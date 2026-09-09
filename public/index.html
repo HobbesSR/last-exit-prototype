@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#172a2b">
+  <title>Last Exit | The Arena</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/mark.svg">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/touch.css">
+  <script type="importmap">{"imports":{"sat":"/sat-browser.js"}}</script>
+  <script src="/vendor/sat/SAT.js"></script>
+  <script src="/vendor/phaser/phaser.min.js" defer></script>
+  <script src="/vendor/lucide/lucide.min.js" defer></script>
+  <script type="module" src="/client.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Last Exit home"><img src="/assets/mark.svg" alt=""><span>LAST <b>EXIT</b></span></a>
+    <span class="live-status" id="connection"><span class="status-dot"></span><span id="connection-text">CONNECTING</span></span>
+    <div class="top-actions">
+      <button id="share" class="icon-button" aria-label="Copy arena link" data-tip="Copy arena link"><i data-lucide="link"></i></button>
+      <button id="archive" class="icon-button" aria-label="Replays" data-tip="Broadcast archive"><i data-lucide="clapperboard"></i></button>
+      <button id="new-game" class="primary-button" aria-label="New arena" data-tip="New arena"><i data-lucide="plus"></i><span>New arena</span></button>
+    </div>
+  </header>
+  <main id="arena" aria-label="Last Exit arena">
+    <div id="game"></div>
+    <div class="arena-top">
+      <div class="round-label"><span class="eyebrow">THE GAUNTLET</span><div>Sector <span id="sector">01</span> <span class="divider">/</span> <span id="seed-label">4217</span></div></div>
+      <div class="scoreboard"><div class="timer"><i data-lucide="timer"></i><strong id="clock">02:20</strong></div><div class="escape-count"><i data-lucide="door-open"></i><strong id="slots">3</strong><span>EXITS LEFT</span></div></div>
+      <button id="map-toggle" class="icon-button map-toggle" aria-label="Toggle local zoom" data-tip="Local zoom (M)"><i data-lucide="scan"></i></button>
+    </div>
+    <div id="hazard-warning" hidden><i data-lucide="triangle-alert"></i> HAZARD APPROACHING</div>
+    <div id="event-feed" aria-live="polite"></div>
+    <div id="outcome" hidden><span class="eyebrow" id="outcome-label">BROADCAST COMPLETE</span><h1 id="outcome-title">End of the line.</h1><p id="outcome-detail"></p><div><button id="play-again" class="primary-button"><i data-lucide="rotate-ccw"></i>Play again</button><button id="watch-match" class="secondary-button" disabled><i data-lucide="play"></i>Watch replay</button></div></div>
+    <div class="bottom-hud" id="live-hud">
+      <div class="player-vitals"><img id="portrait" src="/assets/contestant.svg" alt=""><div class="vitals-content"><div class="identity"><strong id="player-name">CONTESTANT</strong><span id="player-level">01</span></div><div class="health-track"><div id="health-bar"></div></div><div class="vitals-values"><span id="health-value">100 HP</span><span id="shield-value">0 SHIELD</span></div></div></div>
+      <div class="loadout"><div class="inventory"><div data-tip="Access charges: open nearby barriers (E)"><i data-lucide="key-round"></i><span id="keys">0</span></div><div data-tip="Blaster level: fire toward the pointer"><i data-lucide="crosshair"></i><span id="weapon">0</span></div></div><button id="skill" class="ability-button" data-tip="Smoke sprint (Q)" aria-label="Use ability"><i data-lucide="wind"></i><span id="skill-cd">READY</span></button><button id="interact" class="ability-button" data-tip="Open gate / extract / ride rail (E)" aria-label="Interact"><i data-lucide="hand"></i><span id="interact-label">USE</span></button><button id="sneak" class="ability-button" data-tip="Hold to sneak past sensors (Shift)" aria-label="Sneak"><i data-lucide="footprints"></i><span>STEALTH</span></button></div>
+      <button id="minimap-button" aria-label="Toggle full arena map" data-tip="Tactical map (M)"><canvas id="minimap" width="260" height="124"></canvas><span><span id="remaining">8 CONTESTANTS</span><i data-lucide="maximize-2"></i></span></button>
+    </div>
+    <div id="touch-controls"><div id="move-stick" class="virtual-stick" role="group" aria-label="Movement stick"><span><i data-lucide="move"></i></span></div><div id="aim-stick" class="virtual-stick aim-stick" role="group" aria-label="Aim and fire stick"><span><i data-lucide="crosshair"></i></span></div></div>
+    <div id="replay-controls" hidden><button id="replay-play" class="icon-button" aria-label="Pause replay"><i data-lucide="pause"></i></button><span id="replay-time">00:00</span><input id="replay-seek" type="range" min="0" max="1" value="0" aria-label="Replay timeline"><select id="replay-speed" aria-label="Playback speed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option><option value="4">4x</option></select><button id="replay-download" class="icon-button" aria-label="Download replay" data-tip="Download replay"><i data-lucide="download"></i></button><button id="replay-close" class="icon-button" aria-label="Exit replay" data-tip="Return to arena"><i data-lucide="x"></i></button></div>
+    <div id="toast" role="status" hidden></div>
+  </main>
+  <dialog id="loadout-dialog"><form id="deploy-form"><div class="dialog-heading"><div><span class="eyebrow">NEXT BROADCAST</span><h2>Enter the arena.</h2></div><button type="button" class="icon-button close-dialog" aria-label="Close"><i data-lucide="x"></i></button></div><div class="role-select" role="group" aria-label="Player role"><button type="button" data-role="contestant" class="selected" aria-pressed="true"><img src="/assets/contestant.svg" alt=""><span>Contestant</span></button><button type="button" data-role="gladiator" aria-pressed="false"><img src="/assets/warden.svg" alt=""><span>Gladiator</span></button></div><div id="kit-options" hidden><label for="kit">Gladiator kit</label><select id="kit"><option value="warden">Warden / Shockwave</option><option value="specter">Specter / Pulse scan</option><option value="striker">Striker / Overdrive</option></select></div><div class="form-row"><label>Callsign<input id="callsign" maxlength="16" value="Runner" required autocomplete="off"></label><label>Arena seed<div class="seed-input"><input id="seed" type="number" min="1" max="2147483647" value="4217" required><button type="button" id="random-seed" class="icon-button" aria-label="Randomize seed" data-tip="Randomize seed"><i data-lucide="shuffle"></i></button></div></label></div><div class="match-facts"><span>8 contestants</span><span>2 gladiators</span><span>3 exits</span></div><p id="deploy-error" class="error" hidden></p><button class="primary-button deploy" type="submit"><span>Deploy</span><i data-lucide="arrow-right"></i></button></form></dialog>
+  <dialog id="archive-dialog"><div class="dialog-heading"><div><span class="eyebrow">ON THE RECORD</span><h2>Broadcast archive.</h2></div><button class="icon-button close-dialog" aria-label="Close"><i data-lucide="x"></i></button></div><div id="replay-list"></div><button id="finish-recording" class="secondary-button"><i data-lucide="square"></i>End match & save replay</button></dialog>
+  <div id="tooltip" role="tooltip" hidden></div>
+</body>
+</html>

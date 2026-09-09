@@ -1,0 +1,6 @@
+.virtual-stick{width:96px;height:96px;border:2px solid #d2e6cf55;border-radius:50%;background:#172a2b85;display:flex;align-items:center;justify-content:center;pointer-events:auto;touch-action:none;user-select:none}
+.virtual-stick span{width:42px;height:42px;border:1px solid #dbedd295;border-radius:50%;background:#365843d9;display:flex;align-items:center;justify-content:center;pointer-events:none;will-change:transform}
+.virtual-stick svg{width:21px;height:21px;color:#d7f6b0}
+.aim-stick{border-color:#e4c99366}.aim-stick span{background:#635938c9}.aim-stick svg{color:#fae4a8}
+@media(pointer:coarse){#touch-controls{bottom:179px;left:18px;right:18px}.virtual-stick{width:94px;height:94px}}
+@media(max-width:760px) and (min-width:701px){.player-vitals{width:180px}.loadout{gap:4px}.ability-button{width:48px}#minimap-button{width:150px}.inventory{gap:5px}}
