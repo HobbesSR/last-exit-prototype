@@ -39,6 +39,7 @@ test('spectators hold no slot, need the owner key, and receive the directed view
     const welcomePlayer = next(player, 'welcome'); player.send(JSON.stringify({ type: 'join', room: room.id, role: 'contestant', name: 'P' }));
     const wp = await welcomePlayer;
     assert.equal(wp.state.directed, false);
+    eye.send(JSON.stringify({ type: 'start' }));
     const [spectated, played] = await Promise.all([next(eye, 'state'), next(player, 'state')]);
     assert.equal(spectated.state.directed, true);
     assert.ok(spectated.state.items.length > played.state.items.length, 'directed view is unfogged');
@@ -65,12 +66,14 @@ test('two clients share authority; replay preserves each recorded frame and surv
     await new Promise(resolve => a.once('open', resolve));
     const welcomeA = next(a, 'welcome'); a.send(JSON.stringify({ type: 'join', room: room.id, ownerKey: room.ownerKey, name: 'A' }));
     const wa = await welcomeA; assert.equal(wa.owner, true);
+    assert.equal(wa.started, false);
     const received = []; a.on('message', raw => { const data = JSON.parse(raw); if (data.type === 'state') received.push(data.state); });
     const b = new WebSocket(base.replace('http:', 'ws:'));
     await new Promise(resolve => b.once('open', resolve));
     const welcomeB = next(b, 'welcome'); b.send(JSON.stringify({ type: 'join', room: room.id, role: 'gladiator' }));
     const wb = await welcomeB; assert.notEqual(wb.id, wa.id); assert.equal(wb.owner, false);
     b.send(JSON.stringify({ type: 'finish' }));
+    a.send(JSON.stringify({ type: 'start' }));
     const live = await next(a, 'state'); assert.equal(live.state.phase, 'live');
     a.send(JSON.stringify({ type: 'input', seq: 1, x: 1, hp: 99999 }));
     await next(a, 'state'); await next(a, 'state');

@@ -8,6 +8,7 @@ import { createGzip } from 'node:zlib';
 import { pipeline } from 'node:stream/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { networkInterfaces } from 'node:os';
 import { createGame, joinGame, setInput, step, snapshot, playerView, HZ, VERSION, KITS } from '../shared/simulation.js';
 import * as profiler from '../shared/profiler.js';
 
@@ -16,6 +17,39 @@ const MAX_SPECTATORS = 24;
 const SPECTATOR_DELAY_TICKS = 60; // Three seconds at the authoritative 20 Hz rate.
 const deliver = (ws, payload) => { if (ws.readyState === WebSocket.OPEN && ws.bufferedAmount < 512 * 1024) ws.send(payload); };
 const send = (ws, value) => deliver(ws, JSON.stringify(value));
+const lobbyPayload = room => ({
+  type: 'lobby',
+  room: room.id,
+  started: room.started,
+  players: room.game.players
+    .filter(p => !p.bot)
+    .map(p => ({ id: p.id, name: p.name, role: p.role, kit: p.kit }))
+});
+function broadcastLobby(room) {
+  const payload = JSON.stringify(lobbyPayload(room));
+  for (const ws of room.clients) deliver(ws, payload);
+}
+export function lanUrls(port) {
+  const urls = [];
+  for (const entries of Object.values(networkInterfaces())) {
+    for (const entry of entries || []) {
+      if (entry.family === 'IPv4' && !entry.internal) urls.push(`http://${entry.address}:${port}`);
+    }
+  }
+  return urls;
+}
+function printListeningUrls(host, port) {
+  console.log(`Last Exit is running at http://${host}:${port}`);
+  if (host === '0.0.0.0' || host === '::') {
+    const urls = lanUrls(port);
+    if (urls.length) {
+      console.log('LAN clients can join at:');
+      for (const url of urls) console.log(`  ${url}`);
+    } else {
+      console.log('No LAN IPv4 address was found. Check your network connection.');
+    }
+  }
+}
 // One serialized payload per distinct view rather than per socket: players each need their own fogged
 // view, every spectator shares the single directed one, and a broadcast audience must not cost a
 // filter pass and a JSON.stringify per viewer.
@@ -44,6 +78,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use(express.static(path.join(ROOT, 'public')));
   const http = createHttpServer(app);
   const wss = new WebSocketServer({ server: http, maxPayload: 2048 });
+  wss.on('error', error => { if (error.code !== 'EADDRINUSE') console.error(error); });
   const rooms = new Map();
   const archives = new Map();
   for (const file of await readdir(replayDir)) {
@@ -133,12 +168,21 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
         ws.room = room; ws.owner = owner; ws.playerId = p.id;
         room.clients.add(ws);
         room.inputs.push({ type: 'join', id: p.id, role, kit, name: p.name });
-        if (!room.started) { room.started = true; startRecording(room); }
-        send(ws, { type: 'welcome', id: p.id, room: room.id, owner: ws.owner, map: room.game.map, state: playerView(room.game, snapshot(room.game), p.id) });
+        send(ws, { type: 'welcome', id: p.id, room: room.id, owner: ws.owner, started: room.started, map: room.game.map, state: playerView(room.game, snapshot(room.game), p.id) });
+        broadcastLobby(room);
         return;
       }
       const room = ws.room;
       if (!room || room.finished) return;
+      if (data.type === 'start' && ws.owner && !room.started) {
+        room.started = true;
+        room.inputs.push({ type: 'start' });
+        startRecording(room);
+        broadcastLobby(room);
+        broadcast(room, snapshot(room.game), (id, frame) => playerView(room.game, frame, id));
+        return;
+      }
+      if (!room.started) return;
       if (data.type === 'input' && ws.playerId && setInput(room.game, ws.playerId, data)) room.inputs.push({ type: 'input', id: ws.playerId, input: room.game.players.find(p => p.id === ws.playerId).input, seq: data.seq });
       if (data.type === 'finish' && ws.owner) {
         room.game.phase = 'finished';
@@ -157,6 +201,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
       if (!ws.playerId) { room.spectators = Math.max(0, room.spectators - 1); return; }
       const p = room.game.players.find(p => p.id === ws.playerId);
       if (p && !room.finished) { p.bot = true; p.input = {}; room.inputs.push({ type: 'leave', id: p.id }); }
+      if (!room.finished) broadcastLobby(room);
     });
     ws.on('error', () => {});
   });
@@ -227,14 +272,15 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const arena = await createArenaServer();
-  const host = process.env.HOST || '127.0.0.1';
+  const lan = process.argv.includes('--lan') || process.env.LAN === '1';
+  const host = process.env.HOST || (lan ? '0.0.0.0' : '127.0.0.1');
   const firstPort = Number(process.env.PORT || 3000);
   let port = firstPort;
   arena.http.on('error', error => {
     if (error.code === 'EADDRINUSE' && port < firstPort + 20) arena.http.listen(++port, host);
     else { console.error(error); process.exit(1); }
   });
-  arena.http.on('listening', () => console.log(`Last Exit is running at http://${host}:${port}`));
+  arena.http.on('listening', () => printListeningUrls(host, port));
   arena.http.listen(port, host);
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await arena.close(); process.exit(0); });
 }

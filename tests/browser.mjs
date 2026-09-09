@@ -14,6 +14,8 @@ async function ready(page, url = base) {
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   await page.goto(url);
+  const start = page.getByRole('button', { name: 'Start match', exact: true });
+  if (await start.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)) await start.click();
   await page.waitForFunction(() => window.arenaDebug?.().tick > 3, null, { timeout: 15000 });
 }
 try {
@@ -67,6 +69,7 @@ try {
   await page.locator('#kit').selectOption('striker');
   await page.screenshot({ path: 'test-results/loadout.png' });
   await page.getByRole('button', { name: 'Deploy', exact: true }).click();
+  await page.getByRole('button', { name: 'Start match', exact: true }).click();
   await page.waitForFunction(() => window.arenaDebug().me?.kit === 'striker' && window.arenaDebug().me?.role === 'gladiator');
   await page.waitForTimeout(300); await page.screenshot({ path: 'test-results/gladiator.png' });
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
@@ -104,7 +107,7 @@ try {
   Object.assign(geometryGame.players[0], { bot: true, x: 980, y: 1440, weapon: 1 });
   geometryGame.map.obstacles.push({ id: 'visibility-fixture', kind: 'container', color: 0, x: 1080, y: 1370, w: 60, h: 140 });
   const visionPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  await ready(visionPage, `${base}/?room=${vr.id}`);
+  await ready(visionPage, `${base}/?room=${vr.id}&ownerKey=${encodeURIComponent(vr.ownerKey)}`);
   await visionPage.mouse.move(1100, 420);
   // The camera eases toward the player over several frames, so a fixed pause here raced that ease
   // and compared a settled aim against a still-moving viewport. Sample once the camera has stopped.

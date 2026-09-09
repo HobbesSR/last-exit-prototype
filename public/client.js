@@ -10,6 +10,7 @@ const KIT = { warden: ['Warden', 'Shockwave', 'zap'], specter: ['Specter', 'Puls
 const COLORS = { access: 0xf4d26c, med: 0xff8b97, weapon: 0x8bd9f0, shield: 0xa3b9ff };
 let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liveState, predicted;
 let seq = 0, pending = [], overview = false, selectedRole = 'contestant', savedReplay, replay, playback = 0, playing = true;
+let lobbyPlayers = [];
 let pulseSkill = false, pulseInteract = false, pointerFire = false, sneakHeld = false, currentAim = 0;
 const movementStick = { x: 0, y: 0, active: false }, aimingStick = { x: 0, y: 0, active: false };
 const held = new Set();
@@ -26,9 +27,45 @@ async function json(url, options) {
 }
 function clearInput() { held.clear(); pointerFire = false; sneakHeld = false; pulseSkill = false; pulseInteract = false; for (const stick of [movementStick, aimingStick]) Object.assign(stick, { x: 0, y: 0, active: false }); document.querySelectorAll('.virtual-stick span').forEach(el => el.style.transform = ''); }
 function changeMap(map) { arenaMap = structuredClone(map); if (scene?.ready) scene.buildMap(); }
+function updateLobby(data = {}) {
+  if (data.players) lobbyPlayers = data.players;
+  const contestants = lobbyPlayers.filter(p => p.role === 'contestant');
+  const gladiators = lobbyPlayers.filter(p => p.role === 'gladiator');
+  $('lobby-room').textContent = roomId || data.room || '';
+  $('lobby-count').textContent = `${contestants.length}/8 contestants / ${gladiators.length}/2 gladiators`;
+  const render = (target, list, empty) => {
+    target.replaceChildren();
+    if (!list.length) {
+      const li = document.createElement('li'); li.className = 'empty'; li.textContent = empty; target.append(li); return;
+    }
+    for (const p of list) {
+      const li = document.createElement('li'), name = document.createElement('strong'), meta = document.createElement('span');
+      const kit = p.role === 'gladiator' ? ` / ${KIT[p.kit]?.[0] || p.kit}` : '';
+      name.textContent = p.name; meta.textContent = `${p.role}${kit}`;
+      li.append(name, meta); target.append(li);
+    }
+  };
+  render($('lobby-contestants'), contestants, 'Open contestant slots will be bots.');
+  render($('lobby-gladiators'), gladiators, 'Open gladiator slots will be bots.');
+  $('start-match').hidden = !owner;
+  $('start-match').disabled = !owner || data.started;
+  $('lobby-waiting').hidden = owner;
+  icons();
+}
+function showLobby(data) {
+  updateLobby(data);
+  $('live-hud').hidden = true;
+  if (!$('lobby-dialog').open) $('lobby-dialog').showModal();
+  connection(owner ? 'LOBBY' : 'WAITING');
+}
+function hideLobby() {
+  if ($('lobby-dialog').open) $('lobby-dialog').close();
+  $('live-hud').hidden = false;
+}
 async function connect({ room, key, role = 'contestant', kit = 'warden', name = 'Runner' }) {
   if (ws) { disconnecting = true; ws.close(); }
   clearInput(); pending = []; seq = 0; savedReplay = null; playerId = null;
+  owner = false; lobbyPlayers = [];
   $('finish-recording').disabled = false;
   roomId = room; ownerKey = key; selectedRole = role;
   connection('CONNECTING');
@@ -47,13 +84,18 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       $('replay-controls').hidden = true; $('live-hud').hidden = !!data.spectator;
       changeMap(data.map); acceptState(data.state);
       history.replaceState(null, '', `?room=${room}`);
-      connection(data.spectator ? 'SPECTATING' : 'LIVE'); $('loadout-dialog').close();
+      connection(data.spectator ? 'SPECTATING' : data.started ? 'LIVE' : 'LOBBY'); $('loadout-dialog').close();
+      if (!data.spectator && !data.started) showLobby(data);
     } else if (data.type === 'state') {
       // Gap between authoritative frames: separates server pacing from client render cost.
       if (lastStateAt) profiler.observe('net.stateGap', performance.now() - lastStateAt);
       profiler.observe('net.stateBytes', event.data.length, 'n');
       liveState = data.state;
       if (!replay) acceptState(data.state);
+    } else if (data.type === 'lobby') {
+      updateLobby(data);
+      if (data.started) { hideLobby(); connection('LIVE'); }
+      else if (playerId) showLobby(data);
     } else if (data.type === 'saved') {
       savedReplay = data.replay; $('watch-match').disabled = false;
       if ($('archive-dialog').open) void loadArchive();
@@ -271,6 +313,8 @@ document.querySelectorAll('[data-role]').forEach(button => button.onclick = () =
 });
 document.querySelectorAll('.close-dialog').forEach(button => button.onclick = () => button.closest('dialog').close());
 $('share').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('Arena link copied'); } catch { toast('Arena link: ' + location.href); } };
+$('copy-lobby-link').onclick = $('share').onclick;
+$('start-match').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) ws.send(JSON.stringify({ type: 'start' })); };
 $('archive').onclick = () => { clearInput(); $('archive-dialog').showModal(); void loadArchive(); };
 $('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) { ws.send(JSON.stringify({ type: 'finish' })); $('finish-recording').disabled = true; } };
 $('watch-match').onclick = () => { if (savedReplay) void watchReplay(savedReplay.id); };
@@ -288,8 +332,9 @@ document.addEventListener('pointerout', e => { if (e.target.closest('[data-tip]'
 icons();
 new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: '#253f3f', antialias: true, scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' }, scene: ArenaScene, audio: { noAudio: true }, render: { preserveDrawingBuffer: true } });
 setInterval(inputTick, 50);
-const initialRoom = new URLSearchParams(location.search).get('room');
-if (initialRoom) void connect({ room: initialRoom }); else void newArena();
+const initialParams = new URLSearchParams(location.search);
+const initialRoom = initialParams.get('room');
+if (initialRoom) void connect({ room: initialRoom, key: initialParams.get('ownerKey') }); else void newArena();
 // Profiling is opt-in so instrumented hot paths cost nothing during normal play.
 function renderProfileOverlay() {
   if (!profiler.profiling()) { profileOverlay?.remove(); profileOverlay = null; return; }

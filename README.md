@@ -17,6 +17,14 @@ npm run dev
 
 Open the URL printed by the server, normally http://127.0.0.1:3000. Occupied ports are skipped automatically. The server binds to loopback by default. It must remain running while playing; Ctrl+C stops it and finalizes active recordings. There are no required build watchers or background installers.
 
+To let other devices on the same network join, start the LAN server instead:
+
+```powershell
+npm run dev:lan
+```
+
+Open one of the LAN URLs printed by the server, such as `http://192.168.1.25:3000`, from each client device. Windows may ask whether to allow Node.js through the firewall; allow private network access. LAN mode is still local-network only and does not configure internet hosting.
+
 ## Controls
 
 | Action | Keyboard and mouse | Touch |
@@ -33,7 +41,7 @@ Walk over loot to collect it. Access charges open checkpoint barriers. Yellow st
 
 The live camera follows your character. Structures, containers, rocks, fences, and closed gates block sight. Terrain and structures stay on screen wherever they are and fall into shadow when you cannot see them; contestants, gladiators, loot, and shots appear only while actually in sight. The minimap is schematic and does not reveal the whole battlefield. Full-map viewing is available only in completed replays.
 
-New arena opens role, kit, callsign, and seed selection. Copy the arena link to join the same match in another browser tab; joining takes over an available bot. The default loopback address is only reachable on this computer. LAN hosting needs `HOST=0.0.0.0`, the computer's LAN address, and appropriate firewall access; no internet deployment or account system is configured.
+New arena opens role, kit, callsign, and seed selection. Copy the arena link to join the same match in another browser tab or from another device using a LAN URL; joining takes over an available bot. The default loopback address is only reachable on this computer. LAN hosting needs `npm run dev:lan` or `HOST=0.0.0.0`, the computer's LAN address, and appropriate firewall access; no internet deployment or account system is configured.
 
 ## Replays
 
