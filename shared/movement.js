@@ -18,7 +18,7 @@ function geometry(map) {
       const key = `${x},${y}`; if (!buckets.has(key)) buckets.set(key, []); buckets.get(key).push(shape);
     }
   }
-  cached = { source: map.obstacles, count: map.obstacles.length, shapes, buckets, segments: shapes.flatMap(edges) };
+  cached = { source: map.obstacles, count: map.obstacles.length, shapes, buckets, segments: shapes.filter(o => o.kind !== 'window').flatMap(edges) };
   shapeCache.set(map, cached); return cached;
 }
 function edges(o) {
@@ -35,16 +35,17 @@ function nearbyShapes(map, x, y, radius) {
 function nearby(o, x, y, radius) {
   return o.r ? Math.abs(x - o.x) <= radius + o.r && Math.abs(y - o.y) <= radius + o.r : x + radius >= o.x && x - radius <= o.x + o.w && y + radius >= o.y && y - radius <= o.y + o.h;
 }
-function gateShape(g) { return { x: g.x - 13, y: g.y - 27, w: 26, h: 54 }; }
+export function gateShape(g) { const w = g.w || 26, h = g.h || 54; return { x: g.x - w / 2, y: g.y - h / 2, w, h }; }
 export function insideMap(map, x, y, radius = 0) {
   const hx = map.width / 2 - 40, hy = map.height / 2 - 40;
   return Math.abs(x - map.width / 2) / hx + Math.abs(y - map.height / 2) / hy + radius * Math.hypot(1 / hx, 1 / hy) <= 1;
 }
-export function canOccupy(map, x, y, radius = 12, ignoreGates = false) {
+export function canOccupy(map, x, y, radius = 12, ignoreGates = false, projectile = false) {
   count('calls.canOccupy');
   if (!insideMap(map, x, y, radius)) return false;
   const circle = new SAT.Circle(vec(x, y), radius), response = new SAT.Response();
   for (const o of nearbyShapes(map, x, y, radius)) {
+    if (projectile && o.kind === 'window') continue;
     if (!nearby(o, x, y, radius)) continue;
     response.clear();
     if ((o.r ? SAT.testCircleCircle(circle, o.shape, response) : SAT.testCirclePolygon(circle, o.shape, response)) && response.overlap > 0.01) return false;
@@ -90,11 +91,11 @@ const sightCache = new WeakMap();
 // rebuilt on that event rather than on every sight query. It was being rebuilt a dozen-plus times a
 // frame, once per lineClear call.
 function sightEdges(map) {
-  const key = map.gates.reduce((k, g) => k * 2 + (g.open ? 1 : 0), 1);
+  const key = map.gates.map(g => `${g.id}:${g.open ? 1 : 0}`).join('|');
   const cached = sightCache.get(map);
   if (cached && cached.key === key && cached.source === map.obstacles && cached.count === map.obstacles.length) return cached.edges;
   count('alloc.sightEdges');
-  const list = [...geometry(map).segments, ...map.gates.filter(g => !g.open).flatMap(g => edges(gateShape(g)))];
+  const list = [...geometry(map).segments, ...map.gates.filter(g => !g.open).flatMap(g => edges(gateShape(g)).map(edge => ({ ...edge, gateId: g.id })))];
   sightCache.set(map, { key, source: map.obstacles, count: map.obstacles.length, edges: list });
   return list;
 }
@@ -106,14 +107,25 @@ function hitRay(origin, dx, dy, edge) {
   const t = (ax * sy - ay * sx) / cross, u = (ax * dy - ay * dx) / cross;
   return t >= 0 && u >= 0 && u <= 1 ? t : Infinity;
 }
-export function lineClear(map, a, b) {
+export function lineClear(map, a, b, ignoreGateId = null) {
   count('calls.lineClear');
   const length = Math.hypot(b.x - a.x, b.y - a.y);
   if (length < 0.01) return true;
   const dx = (b.x - a.x) / length, dy = (b.y - a.y) / length;
   const edges = sightEdges(map);
   count('work.rayEdgeTests', edges.length);
-  return !edges.some(edge => hitRay(a, dx, dy, edge) < length - 0.1);
+  return !edges.some(edge => edge.gateId !== ignoreGateId
+    && Math.max(edge.a.x, edge.b.x) >= Math.min(a.x, b.x) && Math.min(edge.a.x, edge.b.x) <= Math.max(a.x, b.x)
+    && Math.max(edge.a.y, edge.b.y) >= Math.min(a.y, b.y) && Math.min(edge.a.y, edge.b.y) <= Math.max(a.y, b.y)
+    && hitRay(a, dx, dy, edge) < length - 0.1);
+}
+// Hands and dropped equipment cannot pass through a window even though sight and shots can.
+export function reachClear(map, a, b) {
+  if (!lineClear(map, a, b)) return false;
+  const length = Math.hypot(b.x - a.x, b.y - a.y);
+  if (length < 0.01) return true;
+  const dx = (b.x - a.x) / length, dy = (b.y - a.y) / length;
+  return !geometry(map).shapes.some(o => o.kind === 'window' && edges(o).some(edge => hitRay(a, dx, dy, edge) < length));
 }
 export function visibilityPolygon(map, origin, radius = VISION) {
   count('calls.visibilityPolygon');

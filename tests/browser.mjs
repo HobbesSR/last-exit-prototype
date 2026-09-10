@@ -40,6 +40,10 @@ try {
   assert.equal(await page.locator('#skill').isVisible(), false, 'contestants have no innate skill');
   await page.keyboard.press('Digit3');
   await page.waitForFunction(() => window.arenaDebug().me.selectedSlot === 2, null, { timeout: 5000 });
+  await page.keyboard.press('Digit1');
+  await page.waitForFunction(() => window.arenaDebug().me.selectedSlot === 0);
+  await page.getByRole('button', { name: 'Drop selected', exact: false }).click();
+  await page.waitForFunction(() => window.arenaDebug().me.inventory[0] === null);
   await page.screenshot({ path: 'test-results/desktop.png' });
   await page.getByRole('button', { name: 'Toggle local zoom', exact: true }).click();
   await page.waitForTimeout(200);
@@ -115,8 +119,9 @@ try {
   const vr = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":4217}' })).json();
   const geometryGame = server.rooms.get(vr.id).game;
   for (const p of geometryGame.players) p.bot = false;
-  Object.assign(geometryGame.players[0], { bot: true, x: 980, y: 1440, weapon: 1, selectedSlot: 0, inventory: [{ kind: 'weapon', weaponType: 'pistol' }, null, null, null, null] });
-  geometryGame.map.obstacles = [{ id: 'visibility-fixture', kind: 'container', color: 0, x: 1080, y: 1370, w: 60, h: 140 }];
+  Object.assign(geometryGame.players[0], { bot: true, x: 11980, y: 6000, weapon: 1, selectedSlot: 0, inventory: [{ kind: 'weapon', weaponType: 'pistol' }, null, null, null, null] });
+  geometryGame.map.gates = []; geometryGame.map.buildings = []; geometryGame.map.traps = []; geometryGame.map.items = [];
+  geometryGame.map.obstacles = [{ id: 'visibility-fixture', kind: 'container', color: 0, x: 12080, y: 5930, w: 60, h: 140 }];
   const visionPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await ready(visionPage, `${base}/?room=${vr.id}&ownerKey=${encodeURIComponent(vr.ownerKey)}`);
   await visionPage.mouse.move(1100, 420);
@@ -137,7 +142,7 @@ try {
   const occlusion = await visionPage.evaluate(() => {
     const d = window.arenaDebug(), canvas = document.querySelector('#game canvas'), gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
     const sample = (x, y) => { const px = Math.round((x - d.camera.x) * d.camera.zoom), py = Math.round((y - d.camera.y) * d.camera.zoom); const rgba = new Uint8Array(4); gl.readPixels(px, gl.drawingBufferHeight - py - 1, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rgba); return [...rgba].slice(0, 3); };
-    return { front: sample(1020, 1440), behind: sample(1220, 1440) };
+    return { front: sample(12020, 6000), behind: sample(12220, 6000) };
   });
   // Cover is no longer cut away: what is out of sight is drawn and shaded, so the far side must be
   // darker than the lit side yet still not the bare camera background.
@@ -171,28 +176,28 @@ try {
   // The server now sends anything within reach; the client alone decides what is drawn. An enemy
   // standing behind cover must arrive in the state and still never be rendered.
   const lurker = geometryGame.players.find(p => p.role === 'gladiator');
-  Object.assign(lurker, { x: 1200, y: 1440, bot: false, input: {} });
+  Object.assign(lurker, { x: 12200, y: 6000, bot: false, input: {} });
   await visionPage.waitForFunction(id => window.arenaDebug().actors?.some(a => a.id === id), lurker.id, { timeout: 8000 });
   const behindCover = await visionPage.evaluate(id => window.arenaDebug().actors.find(a => a.id === id), lurker.id);
   assert.equal(behindCover.visible, false, 'an enemy behind cover is transmitted but not drawn');
-  Object.assign(lurker, { x: 1035, y: 1440 });
+  Object.assign(lurker, { x: 12035, y: 6000 });
   await visionPage.waitForFunction(id => window.arenaDebug().actors?.find(a => a.id === id)?.visible === true, lurker.id, { timeout: 8000 });
   const inTheOpen = await visionPage.evaluate(id => window.arenaDebug().actors.find(a => a.id === id), lurker.id);
   assert.equal(inTheOpen.visible, true, 'the same enemy in the open is drawn');
   const runnerId = await visionPage.evaluate(() => window.arenaDebug().me.id);
   const runner = geometryGame.players.find(p => p.id === runnerId);
-  runner.x = 43000; runner.y = 1440; geometryGame.map.traps = [];
-  lurker.x = 43720; lurker.y = 1740;
+  runner.x = 15000; runner.y = 6000; geometryGame.map.traps = [];
+  lurker.x = 15720; lurker.y = 6300;
   await visionPage.getByRole('button', { name: 'Toggle local zoom', exact: true }).click();
-  await visionPage.waitForFunction(id => window.arenaDebug().me.x > 42000 && window.arenaDebug().actors.find(a => a.id === id)?.visible, lurker.id);
+  await visionPage.waitForFunction(id => window.arenaDebug().me.x > 14900 && window.arenaDebug().actors.find(a => a.id === id)?.visible, lurker.id);
   assert.ok(Math.hypot(lurker.x - runner.x, lurker.y - runner.y) > 620, 'visible actor is beyond the former circular cutoff');
   await visionPage.screenshot({ path: 'test-results/viewport-visibility.png' });
-  runner.cell = { charge: 899 }; Object.assign(runner, { x: geometryGame.map.chargers[1].x, y: geometryGame.map.chargers[1].y });
-  await visionPage.waitForFunction(() => window.arenaDebug().me.cell?.charge === 899);
+  runner.inventory[1] = { kind: 'cell', charge: 99 }; Object.assign(runner, { x: geometryGame.map.chargers[1].x, y: geometryGame.map.chargers[1].y });
+  await visionPage.waitForFunction(() => window.arenaDebug().me.inventory?.[1]?.charge === 99);
   await visionPage.keyboard.press('KeyE');
   await visionPage.waitForFunction(() => document.getElementById('objective').textContent.includes('CELL CHARGED'));
   Object.assign(runner, geometryGame.map.exit);
-  await visionPage.waitForFunction(() => window.arenaDebug().me.x > 84000);
+  await visionPage.waitForFunction(x => Math.abs(window.arenaDebug().me.x - x) < 1, geometryGame.map.exit.x);
   await visionPage.keyboard.press('KeyE');
   await visionPage.waitForFunction(() => window.arenaDebug().me.status === 'escaped');
   const caster = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -208,11 +213,21 @@ try {
   const artRoom = server.rooms.get(await page.evaluate(() => window.arenaDebug().room));
   const artId = await page.evaluate(() => window.arenaDebug().me.id);
   const artPlayer = artRoom.game.players.find(p => p.id === artId);
-  const interior = artRoom.game.map.modules.find(m => m.interior);
-  Object.assign(artPlayer, { x: interior.x, y: interior.y });
-  await page.waitForFunction(() => window.arenaDebug().me.x < 80000 && window.arenaDebug().me.x > 20000);
+  const interior = artRoom.game.map.buildings[0];
+  Object.assign(artPlayer, { x: interior.x + 125, y: interior.y + 125 });
+  await page.waitForFunction(x => Math.abs(window.arenaDebug().me.x - x) < 1, interior.x + 125);
   await page.waitForTimeout(150);
   await page.screenshot({ path: 'test-results/ruins.png' });
+  assert.equal(await page.evaluate(id => window.arenaDebug().roofs.find(r => r.id === id).visible, interior.id), false, 'roof hides while inside');
+  Object.assign(artPlayer, { x: interior.x + 125, y: interior.y + 305 });
+  await page.waitForFunction(id => window.arenaDebug().roofs.find(r => r.id === id)?.visible, interior.id);
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: 'test-results/building-roof.png' });
+  artPlayer.keys = 1;
+  await page.keyboard.press('KeyE');
+  await page.keyboard.down('KeyW'); await page.waitForTimeout(850); await page.keyboard.up('KeyW');
+  await page.waitForFunction(id => window.arenaDebug().roofs.find(r => r.id === id)?.visible === false, interior.id);
+  assert.ok(artPlayer.y < interior.y + interior.h, 'opened door and walked into a real building');
   await guest.close(); await mobile.close(); await visionPage.close(); await caster.close();
   await page.getByRole('button', { name: 'New arena', exact: true }).click();
   await page.locator('#matchmaking').check(); await page.locator('#role-preference').selectOption('gladiator');

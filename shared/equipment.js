@@ -5,6 +5,7 @@ export const WEAPONS = {
   scattergun: { name: 'Scattergun', cooldown: 18, damage: 7, speed: 30, life: 12, spread: [-0.18, -0.09, 0, 0.09, 0.18] }
 };
 export function equipped(p) { return p.inventory?.[p.selectedSlot || 0] || null; }
+export function carriedCell(p) { return equipped(p)?.kind === 'cell' ? equipped(p) : p.inventory?.find(item => item?.kind === 'cell') || null; }
 export function syncWeapon(p) {
   const item = equipped(p);
   p.weapon = item?.kind === 'weapon' ? Object.keys(WEAPONS).indexOf(item.weaponType) + 1 : 0;
@@ -13,14 +14,15 @@ export function collectEquipment(p, item) {
   const inventory = p.inventory;
   if (!inventory) return false;
   if (item.kind === 'weapon') {
-    if (inventory.some(slot => slot?.weaponType === item.weaponType)) return false;
-  } else {
+    if (inventory.some(slot => slot?.weaponType === (item.weaponType || 'pistol'))) return false;
+  } else if (item.kind !== 'cell') {
     const stack = inventory.find(slot => slot?.kind === item.kind && slot.count < 3);
     if (stack) { stack.count++; return true; }
   }
   const index = inventory.findIndex(slot => !slot);
   if (index < 0) return false;
-  inventory[index] = item.kind === 'weapon' ? { kind: 'weapon', weaponType: item.weaponType || 'pistol' } : { kind: item.kind, count: 1 };
+  inventory[index] = item.kind === 'weapon' ? { kind: 'weapon', weaponType: item.weaponType || 'pistol' }
+    : item.kind === 'cell' ? { kind: 'cell', charge: item.charge || 0 } : { kind: item.kind, count: 1 };
   if (!equipped(p) || item.kind === 'weapon' && equipped(p).kind !== 'weapon') p.selectedSlot = index;
   syncWeapon(p); return true;
 }

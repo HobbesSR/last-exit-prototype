@@ -7,7 +7,7 @@ import test from 'node:test';
 const pts = o => o.r ? Array.from({ length: 16 }, (_, i) => ({ x: o.x + Math.cos(i * Math.PI / 8) * o.r, y: o.y + Math.sin(i * Math.PI / 8) * o.r }))
   : [{ x: o.x, y: o.y }, { x: o.x + o.w, y: o.y }, { x: o.x + o.w, y: o.y + o.h }, { x: o.x, y: o.y + o.h }];
 const edgesOf = o => { const p = pts(o); return p.map((a, i) => ({ a, b: p[(i + 1) % p.length] })); };
-const gateShape = g => ({ x: g.x - 13, y: g.y - 27, w: 26, h: 54 });
+const gateShape = g => ({ x: g.x - (g.w ?? 26) / 2, y: g.y - (g.h ?? 54) / 2, w: g.w ?? 26, h: g.h ?? 54 });
 function hitRay(o, dx, dy, e) {
   const sx = e.b.x - e.a.x, sy = e.b.y - e.a.y, cross = dx * sy - dy * sx;
   if (Math.abs(cross) < 1e-9) return Infinity;
@@ -16,7 +16,7 @@ function hitRay(o, dx, dy, e) {
   return t >= 0 && u >= 0 && u <= 1 ? t : Infinity;
 }
 function reference(map, origin, radius = VISION) {
-  const all = [...map.obstacles.flatMap(edgesOf), ...map.gates.filter(g => !g.open).flatMap(g => edgesOf(gateShape(g)))];
+  const all = [...map.obstacles.filter(o => o.kind !== 'window').flatMap(edgesOf), ...map.gates.filter(g => !g.open).flatMap(g => edgesOf(gateShape(g)))];
   const segments = all.filter(({ a, b }) => Math.min(a.x, b.x) < origin.x + radius && Math.max(a.x, b.x) > origin.x - radius && Math.min(a.y, b.y) < origin.y + radius && Math.max(a.y, b.y) > origin.y - radius);
   const angles = Array.from({ length: 100 }, (_, i) => i * Math.PI / 50 - Math.PI);
   for (const edge of segments) for (const p of [edge.a, edge.b]) { const ang = Math.atan2(p.y - origin.y, p.x - origin.x); angles.push(ang - 0.00001, ang, ang + 0.00001); }
@@ -61,7 +61,8 @@ test('litPoint agrees with the fog it is derived from, to within its own edge', 
       if (!canOccupy(map, origin.x, origin.y, 12)) continue; // A player can never stand inside geometry.
       const poly = visibilityPolygon(map, origin);
       for (let k = 0; k < 400; k++) {
-        const a = k * 2.39996, r = (k % 40) * (VISION / 38);
+        // Offset samples from exact radius/vertex coincidences, which are boundary-ambiguous.
+        const a = k * 2.39996, r = ((k % 40) + 0.37) * (VISION / 38);
         const p = { x: origin.x + Math.cos(a) * r, y: origin.y + Math.sin(a) * r };
         samples++;
         if ((r < VISION && lineClear(map, origin, p)) === litPoint(poly, origin, p.x, p.y)) continue;
@@ -70,9 +71,8 @@ test('litPoint agrees with the fog it is derived from, to within its own edge', 
         let lo = 0, hi = poly.length - 1;
         if (angle >= poly[0].angle && angle <= poly[hi].angle) while (hi - lo > 1) { const m = (lo + hi) >> 1; if (poly[m].angle <= angle) lo = m; else hi = m; }
         else { lo = poly.length - 1; hi = 0; }
-        const va = poly[lo], vb = poly[hi], gap = vb.angle - va.angle;
-        const t = Math.abs(gap) < 1e-12 ? 0 : (angle - va.angle) / gap;
-        depths.push(Math.abs(r - (va.length + (vb.length - va.length) * t)));
+        const edge = { a: poly[lo], b: poly[hi] };
+        depths.push(Math.abs(r - hitRay(origin, Math.cos(angle), Math.sin(angle), edge)));
       }
     }
   }
@@ -82,7 +82,7 @@ test('litPoint agrees with the fog it is derived from, to within its own edge', 
 });
 test('an eye buried in geometry lights nothing', () => {
   const map = generateMap(4217);
-  const wall = map.obstacles.find(o => !o.r && o.w > 60);
+  const wall = map.obstacles.find(o => !o.r && o.kind !== 'window' && o.w > 60 && o.w < 180 && o.h > 60 && o.h < 180);
   const inside = { x: wall.x + wall.w / 2, y: wall.y + wall.h / 2 };
   const poly = visibilityPolygon(map, inside);
   assert.equal(litPoint(poly, inside, inside.x + 200, inside.y), false);

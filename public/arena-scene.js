@@ -1,5 +1,5 @@
-import { visibilityPolygon, litPoint } from '/shared/movement.js';
-import { playerZoom, viewBounds, viewRadius, inViewport, observeGates } from '/shared/view.js';
+import { visibilityPolygon, litPoint, gateShape } from '/shared/movement.js';
+import { playerZoom, viewBounds, viewRadius, inViewport, observeGates, buildingAt, roofConceals } from '/shared/view.js';
 import { observe, start, stop, frame as endProfileFrame } from '/shared/profiler.js';
 
 const COLORS = { access: 0xf4d26c, med: 0xff8b97, weapon: 0x8bd9f0, shield: 0xa3b9ff, cell: 0xffe98a };
@@ -16,6 +16,7 @@ export function makeArenaScene(api) {
       this.floor = this.add.graphics(); this.decor = this.add.container(0, 0);
       this.fixtures = this.add.graphics(); this.shade = this.add.graphics(); this.dynamic = this.add.graphics();
       this.world.add([this.floor, this.decor, this.fixtures, this.shade, this.dynamic]);
+      this.roofs = new Map(); this.roofLayer = this.add.container(0, 0); this.world.add(this.roofLayer);
       this.actors = new Map(); this.labels = []; this.eye = null;
       this.vision = this.make.graphics({ x: 0, y: 0, add: false });
       this.shadeMask = this.vision.createGeometryMask();
@@ -33,8 +34,8 @@ export function makeArenaScene(api) {
       const label = this.add.text(x, y, text, { fontFamily: 'Arial', fontSize: size, fontStyle: 'bold', color }).setOrigin(0.5);
       this.labels.push(label); this.decor.add(label);
     }
-    chunkAt(x) {
-      const key = Math.floor(x / 2048);
+    chunkAt(x, y) {
+      const key = `${Math.floor(x / 1024)},${Math.floor(y / 1024)}`;
       if (!this.chunks.has(key)) { const graphics = this.add.graphics(); this.world.addAt(graphics, 1); this.chunks.set(key, graphics); }
       return this.chunks.get(key);
     }
@@ -45,27 +46,27 @@ export function makeArenaScene(api) {
       g.clear(); this.labels.forEach(l => l.destroy()); this.labels = [];
       this.gateMemory = new Map(); this.rememberedGates = []; this.eye = null; this.sightMap = { ...map };
       this.actors.forEach(a => a.container.destroy()); this.actors.clear();
+      for (const roof of this.roofs.values()) roof.destroy(); this.roofs.clear();
       this.cameras.main.setBounds(-400, -400, map.width + 800, map.height + 800);
       const diamond = [{ x: 40, y: map.height / 2 }, { x: map.width / 2, y: 40 }, { x: map.width - 40, y: map.height / 2 }, { x: map.width / 2, y: map.height - 40 }];
       g.fillStyle(0x39454c); g.fillPoints(diamond, true);
       g.lineStyle(8, 0x729b9e); g.strokePoints(diamond, true);
       // Broad paths connect generated sections. There are no visible grid cells.
-      for (const route of map.routes || [{ points: [{ x: 160, y: map.height / 2 }, ...map.modules, map.exit] }]) {
+      for (const route of map.streets?.map(st => ({ points: [st.a, st.port, st.b] })) || map.routes || [{ points: [{ x: 160, y: map.height / 2 }, ...map.modules, map.exit] }]) {
         for (let i = 1; i < route.points.length; i++) {
-          const a = route.points[i - 1], b = route.points[i]; g = this.chunkAt((a.x + b.x) / 2);
-          g.lineStyle(route.band === 'middle' ? 100 : 72, 0x596269); g.lineBetween(a.x, a.y, b.x, b.y);
+          const a = route.points[i - 1], b = route.points[i]; g = this.chunkAt((a.x + b.x) / 2, (a.y + b.y) / 2);
+          g.lineStyle(map.streets ? 160 : 100, 0x596269); g.lineBetween(a.x, a.y, b.x, b.y);
           g.lineStyle(2, 0xa5bbc0, 0.35); g.lineBetween(a.x, a.y, b.x, b.y);
         }
       }
       for (const m of map.modules) {
-        g = this.chunkAt(m.x);
+        g = this.chunkAt(m.x, m.y);
+        // These are ground markings, not fake building silhouettes.
         if (m.kind === 'depot') {
-          const height = Math.min(475, m.height * 0.5);
-          g.fillStyle(0x687079); g.fillRoundedRect(m.x - 195, m.y - height / 2, 390, height, 8);
-          g.lineStyle(2, 0xdbdec5, 0.7); g.strokeRoundedRect(m.x - 177, m.y - height / 2 + 18, 354, height - 36, 18);
-        } else {
-          g.fillStyle(m.kind === 'garden' ? 0x44584e : 0x49545e, 0.75);
-          g.fillEllipse(m.x, m.y - Math.min(210, m.height / 4), 330, Math.min(190, m.height / 3));
+          g.lineStyle(2, 0x9daab0, 0.3);
+          for (let dx = -120; dx <= 120; dx += 60) g.lineBetween(m.x + dx, m.y - 130, m.x + dx, m.y - 100);
+        } else if (m.kind === 'garden') {
+          g.fillStyle(0x44584e, 0.45); g.fillEllipse(m.x, m.y - 210, 220, 100);
         }
         this.label(m.x, m.y - 75, ['SERVICE YARD', 'RUINED DEPOT', 'OVERGROWN BLOCK'][['yard', 'depot', 'garden'].indexOf(m.kind)], '#91b9bc', 13);
         if (m.interior) { g.fillStyle(0x50505d); g.fillRect(m.interior.x, m.interior.y, m.interior.w, m.interior.h); }
@@ -73,22 +74,31 @@ export function makeArenaScene(api) {
       for (let i = 0; i < 430; i++) {
         const x = (i * 479 + map.seed * 7) % map.width, y = (i * 193 + map.seed * 13) % map.height;
         if (Math.abs(x - map.width / 2) / (map.width / 2 - 70) + Math.abs(y - map.height / 2) / (map.height / 2 - 70) > 1 || Math.abs(y - map.height / 2) < 70) continue;
-        g = this.chunkAt(x);
+        g = this.chunkAt(x, y);
         g.lineStyle(2, 0x568f60, 0.55); g.lineBetween(x - 3, y + 3, x - 5, y - 3); g.lineBetween(x, y + 3, x + 2, y - 5);
       }
       for (const h of map.hazards) {
-        g = this.chunkAt(h.x);
+        g = this.chunkAt(h.x, h.y);
         g.fillStyle(0x56605a); g.fillRoundedRect(h.x, h.y, h.w, h.h, 10);
         g.lineStyle(3, 0xe9b758); g.strokeRoundedRect(h.x + 4, h.y + 4, h.w - 8, h.h - 8, 7);
         for (let x = h.x + 13; x < h.x + h.w - 12; x += 22) { g.lineStyle(7, 0xe6b357, 0.65); g.lineBetween(x, h.y + 13, x - 4, h.y + h.h - 13); }
       }
-      for (const o of map.obstacles) this.obstacle(this.chunkAt(o.x), o);
+      for (const o of map.obstacles) this.obstacle(this.chunkAt(o.x, o.y), o);
+      for (const building of map.buildings || []) {
+        const floor = this.chunkAt(building.x, building.y); floor.fillStyle(0x77717a); floor.fillRect(building.x + 18, building.y + 18, building.w - 36, building.h - 36);
+        const roof = this.add.graphics(); roof.fillStyle(0x323a4b); roof.fillRoundedRect(building.x + 18, building.y + 18, building.w - 36, building.h - 36, 5);
+        roof.lineStyle(4, 0x8091a8); roof.strokeRoundedRect(building.x + 20, building.y + 20, building.w - 40, building.h - 40, 4);
+        roof.fillStyle(0x4b586b); roof.fillRect(building.x + 35, building.y + 30, building.w - 70, building.h - 60);
+        roof.lineStyle(2, 0x748298); for (let y = building.y + 40; y < building.y + building.h - 30; y += 24) roof.lineBetween(building.x + 35, y, building.x + building.w - 35, y);
+        roof.fillStyle(0x273240); roof.fillRect(building.x + 70, building.y + 70, 60, 40);
+        this.roofLayer.add(roof); this.roofs.set(building.id, roof);
+      }
       for (const gap of map.gaps) {
-        g = this.chunkAt(gap.x);
+        g = this.chunkAt(gap.x, gap.y);
         g.lineStyle(2, 0xd1f4cd); g.lineBetween(gap.x - 27, gap.y - 8, gap.x - 18, gap.y); g.lineBetween(gap.x - 18, gap.y, gap.x - 27, gap.y + 8);
       }
       for (const st of map.stations) {
-        g = this.chunkAt(st.x);
+        g = this.chunkAt(st.x, st.y);
         g.fillStyle(0x274c57); g.fillRoundedRect(st.x - 41, st.y - 34, 82, 68, 11);
         g.lineStyle(3, 0x9bd6e6); g.strokeRoundedRect(st.x - 36, st.y - 29, 72, 58, 7);
         g.lineStyle(3, 0x9bd6e6); g.lineBetween(st.x - 12, st.y - 16, st.x - 12, st.y + 16); g.lineBetween(st.x + 12, st.y - 16, st.x + 12, st.y + 16);
@@ -97,22 +107,24 @@ export function makeArenaScene(api) {
       }
       const ex = map.exit;
       for (const st of map.chargers || []) {
-        g = this.chunkAt(st.x);
+        g = this.chunkAt(st.x, st.y);
         g.fillStyle(0x273947); g.fillRoundedRect(st.x - 35, st.y - 30, 70, 60, 8);
         g.lineStyle(3, 0xffe98a); g.strokeRoundedRect(st.x - 30, st.y - 25, 60, 50, 6);
         g.fillStyle(0xffe98a); g.fillTriangle(st.x + 4, st.y - 19, st.x - 11, st.y + 2, st.x + 6, st.y + 2);
         g.fillTriangle(st.x - 4, st.y + 19, st.x + 11, st.y - 2, st.x - 6, st.y - 2);
         this.label(st.x, st.y + 45, 'CHARGE CELL · E', '#ffe98a', 11);
       }
-      g = this.chunkAt(ex.x);
+      g = this.chunkAt(ex.x, ex.y);
       g.fillStyle(0x264f42); g.fillRoundedRect(ex.x - 44, ex.y - 42, 88, 84, 12);
       g.lineStyle(4, 0xe6f59e); g.strokeRoundedRect(ex.x - 38, ex.y - 36, 76, 72, 8);
       g.lineStyle(6, 0xe6f59e); g.lineBetween(ex.x - 12, ex.y, ex.x + 14, ex.y); g.lineBetween(ex.x + 3, ex.y - 12, ex.x + 15, ex.y); g.lineBetween(ex.x + 15, ex.y, ex.x + 3, ex.y + 12);
       this.label(ex.x, ex.y - 60, 'LAST EXIT', '#e6f3a1', 14);
-      this.label(map.entry?.x || 340, map.height / 2 - 70, 'CONTESTANT ENTRY', '#b4d6cf', 12);
+      this.label(map.entry?.x || 340, (map.entry?.y || map.height / 2) - 70, 'CONTESTANT ENTRY', '#b4d6cf', 12);
       this.updateCamera(true);
     }
     obstacle(g, o) {
+      if (o.kind === 'window') { g.fillStyle(0x77dbe3, 0.65); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, 0xc1f4f6); g.strokeRect(o.x, o.y, o.w, o.h); return; }
+      if (o.kind === 'ruin-wall') { g.fillStyle(0x303740); g.fillRect(o.x + 5, o.y + 6, o.w, o.h); g.fillStyle(0x77828a); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, 0xa2a9af); g.lineBetween(o.x + 2, o.y + 2, o.x + o.w - 2, o.y + 2); return; }
       if (o.r) {
         g.fillStyle(0x294d39, 0.25); g.fillCircle(o.x + 6, o.y + 8, o.r + 2);
         g.fillStyle(o.kind === 'tree' ? 0x315e46 : 0x5c6e68); g.fillCircle(o.x, o.y, o.r);
@@ -142,7 +154,7 @@ export function makeArenaScene(api) {
       if (p.role === 'contestant' && p.id !== api.playerId()) sprite.setTint([0xffffff, 0x9de6df, 0xfbdba2, 0xb9bdff][p.name.length % 4]);
       const ring = this.add.graphics(), bar = this.add.graphics();
       const name = this.add.text(0, -35, p.id === api.playerId() ? 'YOU' : p.name, { fontFamily: 'Arial', fontSize: 9, fontStyle: 'bold', color: '#f8fce9', stroke: '#294a3e', strokeThickness: 3 }).setOrigin(0.5);
-      const container = this.add.container(p.x, p.y, [ring, sprite, bar, name]); this.world.add(container);
+      const container = this.add.container(p.x, p.y, [ring, sprite, bar, name]); this.world.add(container); this.world.bringToTop(this.roofLayer);
       const actor = { sprite, ring, bar, name, container }; this.actors.set(p.id, actor); return actor;
     }
     updateCamera(snap = false) {
@@ -170,8 +182,14 @@ export function makeArenaScene(api) {
       const eye = this.eye;
       start('render.camera'); this.updateCamera(); stop('render.camera');
       const halfWidth = this.scale.width / this.cameras.main.zoom / 2;
-      for (const [key, chunk] of this.chunks) chunk.setVisible(api.directed() || !eye || key * 2048 < eye.x + halfWidth + 1500 && (key + 1) * 2048 > eye.x - halfWidth - 1500);
-      for (const label of this.labels) label.setVisible(api.directed() || !eye || Math.abs(label.x - eye.x) < halfWidth + 500);
+      const halfHeight = this.scale.height / this.cameras.main.zoom / 2;
+      const nearView = (x, y, margin = 400) => api.directed() || !eye || Math.abs(x - eye.x) < halfWidth + margin && Math.abs(y - eye.y) < halfHeight + margin;
+      for (const [key, chunk] of this.chunks) {
+        const [cx, cy] = key.split(',').map(Number);
+        // Geometry can extend one block beyond its anchor; preserve that margin at chunk seams.
+        chunk.setVisible(nearView(cx * 1024 + 512, cy * 1024 + 512, 1500));
+      }
+      for (const label of this.labels) label.setVisible(nearView(label.x, label.y));
       this.shade.clear();
       if (api.directed() || !eye) this.visionPoints = null;
       else {
@@ -188,11 +206,20 @@ export function makeArenaScene(api) {
       }
       // The server now sends a wider set than the eye can reach, so the renderer resolves the geometry.
       const points = this.visionPoints;
-      const lit = (x, y) => !points || inViewport(this.viewBounds, x, y, 30) && litPoint(points, eye, x, y);
+      const lit = (x, y) => !points || !roofConceals(map, eye, { x, y }) && inViewport(this.viewBounds, x, y, 30) && litPoint(points, eye, x, y);
+      const inside = eye && buildingAt(map, eye);
+      for (const building of map.buildings || []) this.roofs.get(building.id).setVisible(!api.directed() && building.id !== inside?.id && nearView(building.x + building.w / 2, building.y + building.h / 2));
       const g = this.dynamic; g.clear();
       const fixed = this.fixtures; fixed.clear();
       start('render.world');
       for (const gate of api.directed() ? state.gates : this.rememberedGates) {
+        if (!nearView(gate.x, gate.y)) continue;
+        if (gate.kind === 'door') {
+          const box = gateShape(gate); fixed.lineStyle(3, gate.stale ? 0x687789 : 0xe8bc74);
+          if (gate.open) fixed.strokeRect(box.x, box.y - 55, 12, 70);
+          else { fixed.fillStyle(gate.stale ? 0x494451 : 0xa07952); fixed.fillRect(box.x, box.y, box.w, box.h); fixed.strokeRect(box.x, box.y, box.w, box.h); }
+          continue;
+        }
         if (gate.open) {
           fixed.lineStyle(3, gate.stale ? 0x758583 : 0xa6e5dc, gate.stale ? 0.55 : 1);
           fixed.strokeRoundedRect(gate.x - 15, gate.y - 29, 30, 58, 3);
@@ -220,6 +247,7 @@ export function makeArenaScene(api) {
         else g.fillTriangle(item.x - 7, y - 5, item.x + 7, y - 5, item.x, y + 8);
       }
       for (const sensor of map.sensors) {
+        if (!nearView(sensor.x, sensor.y)) continue;
         fixed.fillStyle(0xf2df82, 0.08); fixed.fillCircle(sensor.x, sensor.y, 180); fixed.lineStyle(1, 0xe6d174, 0.5); fixed.strokeCircle(sensor.x, sensor.y, 180);
         fixed.fillStyle(0x355749); fixed.fillCircle(sensor.x, sensor.y, 11); fixed.fillStyle(0xffeaa0); fixed.fillCircle(sensor.x, sensor.y, 4);
         fixed.lineStyle(2, 0xe6d174, 0.5); fixed.lineBetween(sensor.x, sensor.y, sensor.x + Math.cos(now / 1200) * 174, sensor.y + Math.sin(now / 1200) * 174);

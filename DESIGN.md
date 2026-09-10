@@ -17,7 +17,7 @@ Contestants gain power from environmental equipment. Gladiators have distinct ki
 - "Tiles" means composable, procedurally generated map sections. It does not mean a visible square grid, grid movement, or narrow grid corridors.
 - A section chooses a layout and generates continuous geometry inside it: open yards, depot structures, cover clusters, access checkpoints, and bypasses.
 - The live map spans several camera views. Players cannot see all gameplay at once.
-- Solid obstacles occlude vision. The current server sends a bounded potential-visibility projection and the client resolves exact sight. The future target removes the circular boundary and uses the full play-area viewport while retaining obstacle occlusion for dynamic entities.
+- Solid obstacles occlude vision. The current server sends a bounded potential-visibility projection and the client resolves exact sight. The sight polygon fills the play-area viewport while retaining obstacle occlusion for dynamic entities.
 - Keyboard movement is independent of mouse aiming. Mouse buttons fire toward the pointer.
 - Touch uses independent movement and aim/fire sticks, with separate ability and interaction controls.
 - The prototype's playful arena presentation is a baseline. The accepted art direction is cyberpunk urban dystopian ruins, preserving clear silhouettes, readable equipment, and obvious interactions. Zombs Royale remains a handling and inventory reference. The target playing field is 2½D; camera treatment and playable elevation remain open.
@@ -28,7 +28,7 @@ This section and the role table describe implemented behavior, not completion of
 
 Eight contestants and two gladiators enter a seeded arena with three escape slots. Bots occupy unclaimed slots and are replaced as people join. Contestants travel toward extraction, collect equipment, and use charges to open barriers or choose exposed/hazardous bypasses. Gladiators hunt through sight, sensor information, and kit abilities. The advancing hazard prevents indefinite retreat. The match ends when all exits are claimed, no contestants remain active, or time expires.
 
-The current build has nine generated sections across a 6,720 by 2,880 world, three gated checkpoints with bypasses, three physical escape gaps, three transit stations, and three sensors. These numbers are tuning defaults, not final design commitments.
+The current interim build is a 24,000 by 12,000 connected street maze with loops and offset passages, optional locked buildings, windows and roofs, separated loot, transit and chargers. A cell uses an ordinary equipment slot and charges in five seconds. The wall finishes at ten minutes, leaving room for exploration instead of constant running. The actual modular hierarchy remains deferred for a detailed user specification.
 
 ## Accepted Direction — status 2026-09-10
 
@@ -40,7 +40,7 @@ The current build has nine generated sections across a 6,720 by 2,880 world, thr
 - Support private rooms and server matchmaking with gladiator, contestant, or no role preference. Assignment policy is still open; this requirement does not imply completed public hosting.
 - Fill the entire play-area viewport without a circular sight cutoff. Static map elements stay visible; obstacles conceal dynamic entities. Doors and other changeable map elements retain their last-known state outside sight, refreshing on observation. Future dynamic terrain should use the same principle.
 
-These are tracked as F-01 through F-10 in `REQUIREMENTS.md`. All are implemented except the cyberpunk ruins art direction, which is partial: the palette, interiors, and exterior routes exist, but presentation is still flat top-down. The 2½D treatment remains an explicit open decision, along with any revisions to inventory sizes, weapon roster, charging rules, access-point definition, and matchmaking allocation now that first versions are playable.
+These are tracked as F-01 through F-10 in `REQUIREMENTS.md`. The requested hierarchical template system is explicitly deferred; the interim maze improves playability without claiming to implement it. Indoor/outdoor mechanics are implemented, but 2½D presentation and finished art remain incomplete. Batched design questions are in requirements section 8.
 
 ## Roles (Current Prototype)
 
@@ -51,11 +51,11 @@ These are tracked as F-01 through F-10 in `REQUIREMENTS.md`. All are implemented
 | Specter | Scan reveals nearby contestants | Lower basic damage | Kill-based level, damage, recovery, health |
 | Striker | Temporary speed burst | Ability timing matters | Kill-based level, damage, recovery, health |
 
-Provisional rule: contestants cannot damage each other. They still compete for limited extraction slots and pickups. Friendly fire, alliances, revives, and direct contestant combat require playtesting and an explicit decision.
+Contestants can shoot each other and compete for equipment and escape slots. Bots cooperate by default and retaliate when hit. Gladiators killed in combat respawn after 20 seconds at a safe transit station, retaining upgrades. Human PvP incentives and balance remain playtest questions.
 
 ## Information and Counterplay
 
-Obstacles block ordinary sight and projectile travel. Smoke breaks visual tracking unless a reveal is active. Sensors reveal nearby running contestants; sneaking bypasses detection. A Specter scan counters concealment. Sensor marks appear on the schematic minimap even when direct sight is blocked. Camera viewing stations are deferred.
+Solid walls and closed doors block ordinary sight and projectile travel. Windows pass sight and shots, while roofs hide interiors from outside. Sensors reveal nearby running contestants; sneaking bypasses detection. A Specter scan counters concealment. Sensor marks appear on the schematic minimap even when direct sight is blocked. Camera viewing stations are deferred.
 
 Transport currently cycles gladiators among stations ahead of the hazard and has a cooldown. A later implementation may offer route selection and travel time. Contestants cannot use it. Physical gaps and movement speed provide escape opportunities between transit points.
 
@@ -73,4 +73,4 @@ The Running Man, Battle Royale, Hunger Games, Smash TV, and the remembered Slide
 
 Can a contestant break pursuit using cover and gaps? Can a gladiator find engagements without camping extraction? Is opening a gate worth consuming a charge when it also opens the route for pursuers? Does the hazard matter before the match ends? Do all three kits offer viable counterplay? Do generated sections produce routes players can read at speed? Do three exits create competition without making early outcomes inevitable?
 
-Persistent progression, monetization, destructible cover, player-built impediments, command centers, additional extraction zones, and hunter-triggered traps should follow evidence from these tests. Playable interiors and the threat variety listed above are accepted future requirements, not implemented features.
+Persistent progression, monetization, destructible cover, player-built impediments, command centers, additional extraction zones, and hunter-triggered traps should follow evidence from these tests. Playable interiors, doors, roofs, windows and the trap types above are implemented prototype mechanics.

@@ -1,6 +1,6 @@
-import { movePlayer, litPoint } from '/shared/movement.js';
-import { inViewport } from '/shared/view.js';
-import { WEAPONS } from '/shared/equipment.js';
+import { movePlayer, litPoint, lineClear } from '/shared/movement.js';
+import { inViewport, roofConceals } from '/shared/view.js';
+import { WEAPONS, carriedCell } from '/shared/equipment.js';
 import { makeArenaScene } from '/arena-scene.js';
 import * as profiler from '/shared/profiler.js';
 
@@ -16,6 +16,7 @@ let lobbyPlayers = [];
 let lobbyStartsAt = null;
 let pulseSkill = false, pulseInteract = false, pointerFire = false, sneakHeld = false, currentAim = 0;
 let selectedSlot;
+let pulseDrop = false;
 const movementStick = { x: 0, y: 0, active: false }, aimingStick = { x: 0, y: 0, active: false };
 const held = new Set();
 for (let index = 0; index < 5; index++) {
@@ -33,7 +34,7 @@ async function json(url, options) {
   if (!response.ok) throw new Error(result.error || 'Request failed');
   return result;
 }
-function clearInput() { held.clear(); pointerFire = false; sneakHeld = false; pulseSkill = false; pulseInteract = false; selectedSlot = undefined; for (const stick of [movementStick, aimingStick]) Object.assign(stick, { x: 0, y: 0, active: false }); document.querySelectorAll('.virtual-stick span').forEach(el => el.style.transform = ''); }
+function clearInput() { held.clear(); pointerFire = false; sneakHeld = false; pulseSkill = false; pulseInteract = false; pulseDrop = false; selectedSlot = undefined; for (const stick of [movementStick, aimingStick]) Object.assign(stick, { x: 0, y: 0, active: false }); document.querySelectorAll('.virtual-stick span').forEach(el => el.style.transform = ''); }
 function changeMap(map) { arenaMap = structuredClone(map); if (scene?.ready) scene.buildMap(); }
 function updateLobby(data = {}) {
   lobbyStartsAt = data.startsAt || null;
@@ -150,7 +151,7 @@ function updateHUD() {
 }
 function hud() {
   const me = state.players.find(p => p.id === playerId) || (replay ? state.players[0] : null);
-  if (!me) { $('objective').hidden = true; $('equipment-slots').hidden = true; }
+  if (!me) { $('objective').hidden = true; $('equipment-slots').hidden = true; $('drop-item').hidden = true; }
   $('clock').textContent = time((state.duration || 2400) - state.tick);
   $('slots').textContent = state.slots;
   $('seed-label').textContent = arenaMap.seed;
@@ -159,20 +160,22 @@ function hud() {
   $('event-feed').replaceChildren(...state.events.slice(-3).map(e => { const line = document.createElement('div'); line.textContent = e.text; return line; }));
   if (me) {
     const gladiator = me.role === 'gladiator';
+    const cell = carriedCell(me) || me.cell; // Older recordings stored a dedicated cell.
+    $('drop-item').hidden = gladiator || !!replay || me.status !== 'active';
     $('equipment-slots').hidden = gladiator || !!replay;
     $('skill').hidden = !gladiator;
     for (const button of $('equipment-slots').children) {
       const index = Number(button.dataset.slot), item = me.inventory?.[index];
-      const label = item?.kind === 'weapon' ? WEAPONS[item.weaponType]?.name : item ? `${item.kind === 'med' ? 'Medkit' : 'Shield'} ×${item.count}` : 'Empty';
+      const label = item?.kind === 'weapon' ? WEAPONS[item.weaponType]?.name : item?.kind === 'cell' ? `Cell ${Math.floor(item.charge / (state.cellChargeTicks || 100) * 100)}%` : item ? `${item.kind === 'med' ? 'Medkit' : 'Shield'} ×${item.count}` : 'Empty';
       button.textContent = `${index + 1} · ${label}`; button.classList.toggle('selected', me.selectedSlot === index);
       button.ariaLabel = `Slot ${index + 1}: ${label}`; button.setAttribute('aria-pressed', String(me.selectedSlot === index));
     }
     $('objective').hidden = gladiator || !!replay || me.status !== 'active';
-    const chargeTicks = state.cellChargeTicks || 200;
-    $('objective').textContent = !me.cell ? 'FIND A POWER CELL · then charge it at a station'
-      : me.cell.charge >= chargeTicks ? 'CELL CHARGED · bring it to the escape pods · E to escape'
-      : me.charging ? `CHARGING ${Math.floor(me.cell.charge / chargeTicks * 100)}% · stay still`
-      : `CELL ${Math.floor(me.cell.charge / chargeTicks * 100)}% · find a charging station · E to charge`;
+    const chargeTicks = state.cellChargeTicks || 100;
+    $('objective').textContent = !cell ? 'EXPLORE FOR A POWER CELL · requires one inventory slot'
+      : cell.charge >= chargeTicks ? 'CELL CHARGED · bring it to the escape pods · E to escape'
+      : me.charging ? `CHARGING ${Math.floor(cell.charge / chargeTicks * 100)}% · stay still`
+      : `CELL ${Math.floor(cell.charge / chargeTicks * 100)}% · find a charging station · E to charge`;
     $('portrait').src = `/assets/${gladiator ? 'warden' : 'contestant'}.svg`;
     $('player-name').textContent = gladiator ? KIT[me.kit][0].toUpperCase() : me.name.toUpperCase();
     $('player-level').textContent = gladiator ? `LV ${me.level}` : 'RUNNER';
@@ -187,6 +190,9 @@ function hud() {
     $('skill').classList.toggle('active', me.boost > 0 || me.cloak > 0);
     $('skill').disabled = me.cooldown > 0 || me.status !== 'active';
     $('interact-label').textContent = gladiator ? (me.railCd ? `${(me.railCd / HZ).toFixed(1)}s` : 'RAIL') : 'USE';
+    const nearbyDoor = arenaMap.gates.find(g => g.kind === 'door' && Math.hypot(g.x - me.x, g.y - me.y) < 85 && lineClear(arenaMap, me, g, g.id));
+    if (nearbyDoor) $('interact-label').textContent = nearbyDoor.open ? 'CLOSE' : nearbyDoor.locked ? 'UNLOCK' : 'OPEN';
+    $('interact').dataset.tip = nearbyDoor ? `${nearbyDoor.open ? 'Close door' : nearbyDoor.locked ? 'Unlock door · one key' : 'Open door'} (E)` : 'Use / charge / extract / transit (E)';
     $('sneak').hidden = gladiator;
     $('hazard-warning').hidden = replay || me.status !== 'active' || me.x - state.hazardX > 230;
     const ended = !replay && (state.phase === 'finished' || me.status !== 'active');
@@ -197,6 +203,11 @@ function hud() {
       $('outcome-title').textContent = escaped ? 'You made it out.' : gladiator ? 'The hunt is over.' : 'End of the line.';
       $('outcome-detail').textContent = gladiator ? `${me.kills} eliminations. ${3 - state.slots} contestants escaped.` : escaped ? `${state.slots} escape slots remain.` : `${3 - state.slots} escaped. ${state.slots} exits unclaimed.`;
       $('watch-match').disabled = !savedReplay;
+      if (me.status === 'respawning' && state.phase !== 'finished') {
+        $('outcome-label').textContent = 'GLADIATOR REDEPLOYMENT';
+        $('outcome-title').textContent = `Returning in ${Math.max(0, Math.ceil((me.respawnAt - state.tick) / HZ))}s`;
+        $('outcome-detail').textContent = 'Earned upgrades are retained. Waiting for a safe transit station.';
+      }
     }
   }
   profiler.start('render.minimap'); drawMinimap(); profiler.stop('render.minimap');
@@ -235,6 +246,7 @@ function drawMinimap() {
   const shown = p => {
     if (directed() || p.id === playerId) return true;
     const known = mine?.role === 'gladiator' && p.revealed > 0;
+    if (mine && roofConceals(arenaMap, mine, p)) return false;
     if (p.cloak && !known) return false;
     return known || (scene?.visionPoints && scene.eye && scene.viewBounds ? inViewport(scene.viewBounds, p.x, p.y) && litPoint(scene.visionPoints, scene.eye, p.x, p.y) : false);
   };
@@ -257,6 +269,7 @@ function inputTick() {
     else if (matchMedia('(pointer:coarse)').matches) input.aim = currentAim;
   }
   currentAim = input.aim;
+  input.drop = !blocked && pulseDrop; pulseDrop = false;
   if (selectedSlot !== undefined) { input.slot = selectedSlot; selectedSlot = undefined; }
   ws.send(JSON.stringify(input)); pending.push(input); pending = pending.slice(-20);
   movePlayer(arenaMap, predicted, input); pulseSkill = false; pulseInteract = false;
@@ -321,6 +334,7 @@ document.addEventListener('keydown', e => {
   if (e.target.matches('input,select,textarea') || document.querySelector('dialog[open]')) return;
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
   held.add(e.code);
+  if (!e.repeat && e.code === 'KeyG') pulseDrop = true;
   if (/^Digit[1-5]$/.test(e.code)) selectedSlot = Number(e.code.slice(-1)) - 1;
   if (!e.repeat) { if (e.code === 'KeyQ') pulseSkill = true; if (e.code === 'KeyE') pulseInteract = true; if (e.code === 'KeyM') toggleMap(); if (e.code === 'Space' && replay) setPlaying(!playing); }
 });
@@ -356,6 +370,7 @@ document.querySelectorAll('[data-role]').forEach(button => button.onclick = () =
 document.querySelectorAll('.close-dialog').forEach(button => button.onclick = () => button.closest('dialog').close());
 $('share').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('Arena link copied'); } catch { toast('Arena link: ' + location.href); } };
 $('copy-lobby-link').onclick = $('share').onclick;
+$('drop-item').onclick = () => pulseDrop = true;
 $('matchmaking').onchange = () => {
   const matching = $('matchmaking').checked;
   $('preference-field').hidden = !matching; $('matchmaking-note').hidden = !matching;
@@ -417,4 +432,4 @@ window.arenaProfiling = setProfiling;
 // tooling will grow from, and what the tests drive.
 window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, role: 'spectator' });
 // Read-only inspection surface for reproducible browser smoke tests.
-window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: !!replay, overview, phase: state?.phase, actorCount: scene?.actors.size, actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible })), aim: currentAim, cameraWidth: scene?.cameras.main.worldView.width, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y } });
+window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: !!replay, overview, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible })), aim: currentAim, cameraWidth: scene?.cameras.main.worldView.width, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y } });

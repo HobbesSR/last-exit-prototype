@@ -1,5 +1,13 @@
 # Architecture
 
+## September 10 playability revision
+
+`shared/map.js` now builds an interim connected street graph with loops and offset passages in a 24,000 × 12,000 arena. This is explicitly not the deferred user-defined hierarchical template system. Coarse block routes guide bots, with bounded local collision-aware A* around the next passage. Generation scores main routes against a ten-minute moving-wall deadline with exploration allowance. Placement reservations protect streets and separate objects.
+
+Building footprints and doors are authoritative map data. `shared/view.js` supplies roof concealment; solid geometry and closed doors occlude sight, while windows only block bodies and item reach. The renderer hides roofs for the occupied building. Doors retain local observed-state memory; actual collision still uses authoritative state under the existing prototype trust model.
+
+Power cells are normal unstackable equipment entries with retained charge, not a separate player field. Charging takes 100 ticks. Drop input is latched like interaction input. Projectile hits can damage other contestants; killed gladiators enter a 400-tick respawning state and return only when a safe transit station is available. Recordings contain these new states under simulation version `last-exit-0.5`; old recordings retain a display fallback for their dedicated cell field.
+
 ## Stack Decision
 
 Phaser renders the browser client. Node hosts an authoritative 20 Hz simulation over WebSockets. SAT.js supplies circle/polygon collision; PathFinding.js supplies bot route search. The map generator assembles generated sections with world-space geometry. Its coarse navigation sampling is private implementation detail and does not constrain human movement or rendering.

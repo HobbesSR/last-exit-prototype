@@ -4,7 +4,8 @@ import { createGame, setInput, step, snapshot, playerView } from '../shared/simu
 
 function fixture(kind, extra = {}) {
   const s = createGame(); s.map.obstacles = []; s.map.items = []; s.map.gates = [];
-  for (const [i, p] of s.players.entries()) { p.bot = false; p.input = {}; p.x = 44000 + i * 1000; p.y = 1440; }
+  s.map.buildings = [];
+  for (const [i, p] of s.players.entries()) { p.bot = false; p.input = {}; p.x = 10000 + i * 700; p.y = 6000; }
   const p = s.players[0], trap = { id: 'trap', kind, x: p.x + 40, y: p.y, homeX: p.x + 40, homeY: p.y, heading: Math.PI, cooldown: 0, offset: 0, ...extra };
   s.map.traps = [trap]; return { s, p, trap };
 }

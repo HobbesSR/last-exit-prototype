@@ -24,10 +24,16 @@ export function viewRadius(bounds, eye) {
 // Unknown gates are drawn as closed, muted and marked '?', never as secretly current.
 export function observeGates(map, eye, bounds, memory, tick) {
   return map.gates.map(gate => {
-    const withoutGate = { ...map, gates: map.gates.filter(g => g.id !== gate.id) };
-    const visible = inViewport(bounds, gate.x, gate.y) && lineClear(withoutGate, eye, gate);
+    const visible = inViewport(bounds, gate.x, gate.y) && lineClear(map, eye, gate, gate.id);
     if (visible) memory.set(gate.id, { ...gate, lastSeenTick: tick });
     const remembered = memory.get(gate.id);
     return { ...(remembered || { ...gate, open: false }), known: !!remembered, stale: !visible };
   });
+}
+export function buildingAt(map, point) {
+  return map.buildings?.find(b => point.x > b.x && point.x < b.x + b.w && point.y > b.y && point.y < b.y + b.h) || null;
+}
+export function roofConceals(map, eye, point) {
+  const building = buildingAt(map, point);
+  return !!building && buildingAt(map, eye)?.id !== building.id;
 }

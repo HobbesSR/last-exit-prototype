@@ -1,101 +1,219 @@
 import { canOccupy, insideMap, TILE } from './movement.js';
 import { count, start, stop } from './profiler.js';
 
-export const WORLD_WIDTH = 86400, WORLD_HEIGHT = 2880;
-export const MODULE_COUNT = 64;
+export const WORLD_WIDTH = 24000, WORLD_HEIGHT = 12000;
+export const BLOCK_SIZE = 1000;
 const navigationCache = new WeakMap();
-const TEMPLATES = [
-  { id: 'service-yard', kind: 'yard', bend: -35, cover: 10 },
-  { id: 'ruined-depot', kind: 'depot', bend: 35, cover: 15 },
-  { id: 'overgrown-block', kind: 'garden', bend: 0, cover: 12 }
-];
-const segmentDistance = (p, a, b) => {
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy || 1)));
-  return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
-};
+const graphCache = new WeakMap();
+const gap = 300, wall = 40;
+const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+export function blockAt(map, point) {
+  return map.nodes?.find(n => Math.abs(n.x - point.x) <= BLOCK_SIZE / 2 && Math.abs(n.y - point.y) <= BLOCK_SIZE / 2)
+    || map.nodes?.reduce((best, n) => !best || distance(n, point) < distance(best, point) ? n : best, null);
+}
+export function blockRoute(map, from, to) {
+  if (!from || !to) return [];
+  let cache = graphCache.get(map);
+  if (!cache) { cache = new Map(); graphCache.set(map, cache); }
+  const key = from.id + ':' + to.id;
+  if (cache.has(key)) return cache.get(key);
+  const nodes = new Map(map.nodes.map(n => [n.id, n])), queue = [from.id], previous = new Map([[from.id, null]]);
+  for (let i = 0; i < queue.length && !previous.has(to.id); i++) for (const id of nodes.get(queue[i]).neighbors) {
+    if (!previous.has(id)) { previous.set(id, queue[i]); queue.push(id); }
+  }
+  const route = [];
+  if (previous.has(to.id)) for (let id = to.id; id !== null; id = previous.get(id)) route.push(nodes.get(id));
+  route.reverse(); cache.set(key, route); return route;
+}
 export function generateMap(seed) {
   let rng = seed || 1;
   const random = () => { rng ^= rng << 13; rng ^= rng >>> 17; rng ^= rng << 5; return (rng >>> 0) / 4294967296; };
   const range = (a, b) => Math.round(a + random() * (b - a));
-  const cy = WORLD_HEIGHT / 2, entry = { x: 1500, y: cy }, exit = { x: WORLD_WIDTH - 1500, y: cy };
-  const map = { seed, width: WORLD_WIDTH, height: WORLD_HEIGHT, entry, exit, modules: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [], sensors: [], items: [], routes: [] };
+  const map = { seed, width: WORLD_WIDTH, height: WORLD_HEIGHT, modules: [], buildings: [], obstacles: [], gates: [], hazards: [], gaps: [], stations: [], chargers: [], sensors: [], items: [], traps: [], routes: [], nodes: [], streets: [] };
   let serial = 0;
-  const rect = (x, y, w, h, kind, color = 0) => map.obstacles.push({ id: 'o' + serial++, x, y, w, h, kind, color });
-  const extentAt = x => (1 - Math.abs(x - WORLD_WIDTH / 2) / (WORLD_WIDTH / 2 - 40)) * (WORLD_HEIGHT / 2 - 40);
-  const checkpointXs = [0.28, 0.52, 0.76].map(f => Math.round(WORLD_WIDTH * f));
-  // District -> template -> lane anchors -> geometry/loot. Longitudinal access slots stay stable.
-  for (let index = 0; index < MODULE_COUNT; index++) {
-    const x = 2300 + index * (WORLD_WIDTH - 4600) / (MODULE_COUNT - 1);
-    const template = TEMPLATES[range(0, TEMPLATES.length - 1)];
-    map.modules.push({ id: index, district: Math.floor(index / 8), x, y: cy, width: 1280, height: extentAt(x) * 2, template: template.id, kind: template.kind, bend: template.bend, cover: template.cover });
+  const rect = (x, y, w, h, kind, extra = {}) => { const o = { id: 'o' + serial++, x, y, w, h, kind, ...extra }; map.obstacles.push(o); return o; };
+  for (let col = 0; col < WORLD_WIDTH / BLOCK_SIZE; col++) for (let row = 0; row < WORLD_HEIGHT / BLOCK_SIZE; row++) {
+    const x = (col + 0.5) * BLOCK_SIZE, y = (row + 0.5) * BLOCK_SIZE;
+    if (insideMap(map, x, y, 580)) map.nodes.push({ id: col + ',' + row, col, row, x, y, neighbors: [] });
   }
-  for (const [band, side] of [['top', -1], ['middle', 0], ['bottom', 1]]) {
-    const points = [entry, ...map.modules.map(m => ({ x: m.x, y: cy + side * Math.max(0, extentAt(m.x) - 100) * 0.62 + (side ? m.bend * Math.min(1, extentAt(m.x) / 200) : 0) })), exit];
-    // Keys open direct crossings; the middle route retains guaranteed hazardous bypasses.
-    if (!side) for (const x of checkpointXs) {
-      for (let i = points.length - 1; i >= 0; i--) if (Math.abs(points[i].x - x) < 380) points.splice(i, 1);
-      points.push({ x: x - 380, y: cy }, { x: x - 150, y: cy + 430 }, { x: x + 150, y: cy + 430 }, { x: x + 380, y: cy });
+  const lookup = new Map(map.nodes.map(n => [n.id, n]));
+  const adjacent = n => [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => lookup.get((n.col + dx) + ',' + (n.row + dy))).filter(Boolean);
+  const entryNode = map.nodes.reduce((a, b) => b.x < a.x || b.x === a.x && Math.abs(b.y - WORLD_HEIGHT / 2) < Math.abs(a.y - WORLD_HEIGHT / 2) ? b : a);
+  const exitNode = map.nodes.reduce((a, b) => b.x > a.x || b.x === a.x && Math.abs(b.y - WORLD_HEIGHT / 2) < Math.abs(a.y - WORLD_HEIGHT / 2) ? b : a);
+  map.entry = { x: entryNode.x, y: entryNode.y }; map.exit = { x: exitNode.x, y: exitNode.y };
+  const connect = (a, b) => { a.neighbors.push(b.id); b.neighbors.push(a.id); };
+  // This is an interim connected street maze, not the deferred hierarchical template system.
+  // Build a spanning tree, then add loops while protecting meaningful route length.
+  let best = null, bestScore = Infinity;
+  for (let attempt = 0; attempt < 32; attempt++) {
+    for (const n of map.nodes) n.neighbors = [];
+    const visited = new Set([entryNode.id]), stack = [entryNode];
+    while (stack.length) {
+      const n = stack.at(-1), choices = adjacent(n).filter(q => !visited.has(q.id));
+      if (!choices.length) { stack.pop(); continue; }
+      const q = choices[Math.floor(random() * choices.length)]; connect(n, q); visited.add(q.id); stack.push(q);
     }
-    points.sort((a, b) => a.x - b.x); map.routes.push({ band, points });
+    graphCache.delete(map);
+    let route = blockRoute(map, entryNode, exitNode);
+    const candidates = map.nodes.flatMap(n => adjacent(n).filter(q => n.id < q.id && !n.neighbors.includes(q.id)).map(q => [n, q]));
+    for (let i = candidates.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [candidates[i], candidates[j]] = [candidates[j], candidates[i]]; }
+    for (const [a, b] of candidates) {
+      connect(a, b); graphCache.delete(map);
+      const shorter = blockRoute(map, entryNode, exitNode);
+      if (shorter.length < 44) { a.neighbors.pop(); b.neighbors.pop(); graphCache.delete(map); }
+      else route = shorter;
+    }
+    // Reject late westward backtracking that the wall would consume. Budget a full minute at
+    // spawn, conservative offset-passage travel, and two seconds of exploration per block.
+    const clearance = Math.min(...route.map((n, i) => n.x - (-80 + i * 8 / 540 * (WORLD_WIDTH + 100))));
+    const score = Math.abs(route.length - 48) + Math.max(0, 800 - clearance);
+    if (score < bestScore) { bestScore = score; best = map.nodes.map(n => [...n.neighbors]); }
+    if (score <= 4) break;
   }
-  const reserved = (x, y, radius) => map.routes.some(route => route.points.some((b, i) => i && segmentDistance({ x, y }, route.points[i - 1], b) < radius + 60));
-  for (const m of map.modules) {
-    for (let i = 0; i < m.cover; i++) {
-      const x = range(m.x - 540, m.x + 540), y = cy + range(-m.height / 2 + 60, m.height / 2 - 60);
-      const w = range(50, 140), h = range(45, 100), radius = Math.hypot(w, h) / 2;
-      if (!insideMap(map, x + w / 2, y + h / 2, radius + 30) || reserved(x + w / 2, y + h / 2, radius)) continue;
-      if (checkpointXs.some(gx => Math.abs(x - gx) < 450)) continue;
-      rect(x, y, w, h, m.kind === 'depot' ? 'container' : 'crate', range(0, 2));
+  map.nodes.forEach((n, i) => n.neighbors = best[i]); graphCache.delete(map);
+  const main = blockRoute(map, entryNode, exitNode);
+  const edgeKey = (a, b) => [a.id, b.id].sort().join(':');
+  const ports = new Map();
+  for (const n of map.nodes) for (const id of n.neighbors) {
+    const q = lookup.get(id), key = edgeKey(n, q); if (ports.has(key)) continue;
+    const horizontal = n.col !== q.col, offset = range(-180, 180);
+    ports.set(key, { x: (n.x + q.x) / 2 + (horizontal ? 0 : offset), y: (n.y + q.y) / 2 + (horizontal ? offset : 0) });
+    map.streets.push({ a: { x: n.x, y: n.y }, port: ports.get(key), b: { x: q.x, y: q.y } });
+  }
+  const routePoints = nodes => nodes.flatMap((n, i) => i ? [ports.get(edgeKey(nodes[i - 1], n)), { x: n.x, y: n.y }] : [{ x: n.x, y: n.y }]);
+  map.routes = [{ band: 'main', points: routePoints(main) }];
+  for (const [band, pick] of [['top', (a, b) => b.y < a.y ? b : a], ['bottom', (a, b) => b.y > a.y ? b : a]]) {
+    const anchor = map.nodes.reduce(pick), path = [...blockRoute(map, entryNode, anchor), ...blockRoute(map, anchor, exitNode).slice(1)];
+    map.routes.push({ band, points: routePoints(path) });
+  }
+  // Every shared boundary is emitted once. Open connections have offset doorways; closed ones
+  // become continuous terrain walls. Thus no horizontal highway survives across the map.
+  for (const n of map.nodes) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    const q = lookup.get((n.col + dx) + ',' + (n.row + dy));
+    if (q && n.id > q.id) continue;
+    const vertical = !!dx, x = n.x + dx * BLOCK_SIZE / 2, y = n.y + dy * BLOCK_SIZE / 2;
+    const port = q && ports.get(edgeKey(n, q));
+    const start = vertical ? n.y - 480 : n.x - 500, end = vertical ? n.y + 480 : n.x + 500;
+    const opening = port && (vertical ? port.y : port.x);
+    for (const [a, b] of port ? [[start, opening - gap / 2], [opening + gap / 2, end]] : [[start, end]]) {
+      if (b <= a) continue;
+      if (vertical) rect(x - wall / 2, a, wall, b - a, 'ruin-wall');
+      else rect(a, y - wall / 2, b - a, wall, 'ruin-wall');
     }
-    // Separate U-shaped walls provide playable ruined interiors and optional dead ends.
-    if (m.height > 1500 && m.id % 3 === 0 && !checkpointXs.some(x => Math.abs(x - m.x) < 500)) {
-      const x = m.x - 130, y = cy - 300;
-      if (!reserved(m.x, y + 75, 150)) {
-        map.obstacles = map.obstacles.filter(o => o.x + o.w < x - 35 || o.x > x + 295 || o.y + o.h < y - 35 || o.y > y + 200);
-        rect(x, y, 260, 18, 'building'); rect(x, y, 18, 150, 'building'); rect(x + 242, y, 18, 150, 'building');
-        m.interior = { x: x + 18, y: y + 18, w: 224, h: 132 };
+  }
+  const overlaps = (a, b, margin = 0) => a.x < b.x + b.w + margin && a.x + a.w + margin > b.x && a.y < b.y + b.h + margin && a.y + a.h + margin > b.y;
+  // A few narrow shortcuts connect nearby blocks for contestants while larger hunters must detour.
+  for (const n of map.nodes) {
+    if (map.gaps.length >= 3) break;
+    const q = lookup.get((n.col + 1) + ',' + n.row);
+    if (!q || n.neighbors.includes(q.id) || blockRoute(map, n, q).length > 6 || n.x < 5000) continue;
+    const x = n.x + 500, y = n.y;
+    const index = map.obstacles.findIndex(o => o.kind === 'ruin-wall' && o.x === x - 20 && o.y < y - 100 && o.y + o.h > y + 100);
+    if (index < 0) continue;
+    const original = map.obstacles.splice(index, 1)[0];
+    rect(original.x, original.y, original.w, y - 16 - original.y, 'ruin-wall');
+    rect(original.x, y + 16, original.w, original.y + original.h - y - 16, 'ruin-wall');
+    map.gaps.push({ x, y });
+  }
+  const reservations = [];
+  const reserve = (x, y, radius) => reservations.push({ x: x - radius, y: y - radius, w: radius * 2, h: radius * 2 });
+  for (const n of map.nodes) reserve(n.x, n.y, 110);
+  reserve(entryNode.x, entryNode.y, 490); reserve(exitNode.x, exitNode.y, 300);
+  // Spread contestants across four nearby connected blocks, rather than a single firing line.
+  const startBlocks = [entryNode];
+  for (let i = 0; i < startBlocks.length && startBlocks.length < 4; i++) for (const id of startBlocks[i].neighbors) {
+    const n = lookup.get(id);
+    if (!startBlocks.includes(n)) startBlocks.push(n);
+    if (startBlocks.length === 4) break;
+  }
+  map.spawns = startBlocks.flatMap(n => [-200, 200].map(dy => ({ x: n.x - 100, y: n.y + dy })));
+  for (const p of map.spawns) reserve(p.x, p.y, 165);
+  for (const st of map.streets) {
+    // Keep all center-to-port approaches free of props and building footprints.
+    for (const a of [st.a, st.b]) {
+      const steps = Math.ceil(distance(a, st.port) / 80);
+      for (let i = 0; i <= steps; i++) reserve(a.x + (st.port.x - a.x) * i / steps, a.y + (st.port.y - a.y) * i / steps, 85);
+    }
+  }
+  const clearFootprint = box => insideMap(map, box.x + box.w / 2, box.y + box.h / 2, Math.hypot(box.w, box.h) / 2)
+    && !map.obstacles.some(o => overlaps(box, o, 20)) && !reservations.some(r => overlaps(box, r, 10));
+  const spots = [];
+  for (const [index, n] of map.nodes.entries()) {
+    const kind = ['yard', 'depot', 'garden'][range(0, 2)];
+    const module = { id: index, x: n.x, y: n.y, width: BLOCK_SIZE, height: BLOCK_SIZE, kind }; map.modules.push(module);
+    const corners = [[-390, -390], [140, -390], [-390, 140], [140, 140]];
+    for (const [i, [dx, dy]] of corners.entries()) {
+      const box = { x: n.x + dx, y: n.y + dy, w: 250, h: 250 };
+      if (!clearFootprint(box)) continue;
+      if (i === index % 4 && index % 2 === 0) {
+        const building = { id: 'building-' + serial++, ...box, nodeId: n.id }; map.buildings.push(building);
+        // Door in south wall; two north-facing windows admit sight and bullets, never bodies.
+        const extra = { buildingId: building.id };
+        rect(box.x, box.y, 65, 18, 'building', extra);
+        rect(box.x + 65, box.y, 60, 18, 'window', extra);
+        rect(box.x + 125, box.y, 60, 18, 'window', extra);
+        rect(box.x + 185, box.y, 65, 18, 'building', extra);
+        rect(box.x, box.y + 18, 18, 214, 'building', extra); rect(box.x + 232, box.y + 18, 18, 214, 'building', extra);
+        rect(box.x, box.y + 232, 75, 18, 'building', extra); rect(box.x + 175, box.y + 232, 75, 18, 'building', extra);
+        map.gates.push({ id: 'door-' + serial++, x: box.x + 125, y: box.y + 241, w: 100, h: 18, open: false, locked: index % 10 === 0, kind: 'door', buildingId: building.id });
+        spots.push({ x: box.x + 125, y: box.y + 125, nodeId: n.id, buildingId: building.id });
+        reservations.push({ x: box.x - 30, y: box.y - 30, w: 310, h: 350 });
+      } else {
+        const prop = { x: box.x + range(0, 90), y: box.y + range(0, 90), w: range(65, 140), h: range(65, 140) };
+        if (clearFootprint(prop)) rect(prop.x, prop.y, prop.w, prop.h, kind === 'depot' ? 'container' : 'crate', { color: index % 3 });
       }
     }
+    // Loot courtyard is in a different quarter than the through-route center.
+    spots.push({ x: n.x + 220, y: n.y - 220, nodeId: n.id });
   }
-  for (const [i, x] of checkpointXs.entries()) {
-    rect(x - 13, cy - 290, 26, 263, 'fence'); rect(x - 13, cy + 27, 26, 263, 'fence');
-    map.gates.push({ id: 'gate-' + i, x, y: cy, open: false });
-    map.hazards.push({ x: x - 100, y: cy - 390, w: 210, h: 100 }, { x: x - 100, y: cy + 290, w: 210, h: 100 });
-    const gx = x + 165, gy = cy - 140;
-    rect(gx - 14, gy - 116, 28, 100, 'fence'); rect(gx - 14, gy + 16, 28, 100, 'fence');
-    map.gaps.push({ x: gx, y: gy });
+  const occupied = [];
+  function place(x, y, kind, extra = {}, separation = 55) {
+    if (!canOccupy(map, x, y, 24) || occupied.some(p => distance(p, { x, y }) < separation)) return null;
+    const item = { id: 'item-' + serial++, x, y, kind, ...extra }; map.items.push(item); occupied.push(item); return item;
   }
-  map.stations = [0.06, 0.25, 0.44, 0.63, 0.82, 0.96].map((f, i) => ({ id: 'rail-' + i, x: Math.round(WORLD_WIDTH * f), y: cy + 35 }));
-  map.chargers = [0.18, 0.46, 0.72, 0.9].map((f, i) => ({ id: 'charger-' + i, x: Math.round(WORLD_WIDTH * f), y: cy }));
-  map.sensors = [0.3, 0.55, 0.8].map((f, i) => ({ id: 'sensor-' + i, x: Math.round(WORLD_WIDTH * f), y: cy - 45 }));
-  const addItem = (x, y, kind) => { if (canOccupy(map, x, y, 30)) map.items.push({ id: 'item-' + serial++, x, y, kind, ...(kind === 'weapon' ? { weaponType: ['pistol', 'rifle', 'scattergun'][range(0, 2)] } : {}) }); };
-  for (const m of map.modules) {
-    for (let i = 0; i < 8; i++) addItem(range(m.x - 480, m.x + 480), cy + range(-m.height / 2 + 65, m.height / 2 - 65), ['access', 'med', 'weapon', 'shield'][range(0, 3)]);
-    if (m.interior) addItem(m.x, m.interior.y + 60, 'weapon');
+  // One easy starter weapon per separated spawn.
+  for (const spawn of map.spawns) place(spawn.x + 40, spawn.y, 'weapon', { weaponType: 'pistol' });
+  place(entryNode.x - 100, entryNode.y + 240, 'access'); place(entryNode.x + 100, entryNode.y + 240, 'access');
+  for (const [i, n] of main.entries()) if (i > 3 && i < main.length - 3 && i % 6 === 0) {
+    const station = { id: 'rail-' + serial++, x: n.x, y: n.y, nodeId: n.id }; map.stations.push(station); occupied.push(station);
   }
-  addItem(entry.x + 150, cy, 'weapon'); addItem(entry.x + 280, cy, 'access');
-  for (const x of [2600, 3400, 4200, 5200, 6900, 8800, 11000, 14000, 28000, 41000, 57000, 69000]) addItem(x, cy, 'cell');
-  for (const x of checkpointXs) addItem(x - 600, cy, 'access');
-  map.traps = [];
-  for (const m of map.modules) if (m.id > 3 && m.id < MODULE_COUNT - 3 && m.id % 2 === 0) {
-    const kind = ['mine', 'turret', 'flame', 'spider'][range(0, 3)], x = m.x + 300, y = cy + (m.id % 4 ? 95 : -95);
-    if (canOccupy(map, x, y, 25) && map.chargers.every(st => Math.hypot(st.x - x, st.y - y) > 850)) map.traps.push({ id: 'trap-' + serial++, kind, x, y, homeX: x, homeY: y, heading: y < cy ? Math.PI / 2 : -Math.PI / 2, offset: range(0, 159), cooldown: 35, spent: false });
+  map.stations.sort((a, b) => a.x - b.x || a.y - b.y);
+  for (const index of [10, 20, 30]) if (main[index]) { const n = main[index]; map.sensors.push({ id: 'sensor-' + serial++, x: n.x + 80, y: n.y - 80 }); }
+  // Put objective choices in upper and lower neighborhoods rather than on one centerline.
+  const objectiveNodes = map.nodes.filter(n => n.x > WORLD_WIDTH * 0.18 && n.x < WORLD_WIDTH * 0.75);
+  for (const [i, n] of objectiveNodes.entries()) if (i % 9 === 0) {
+    const charger = { id: 'charger-' + serial++, x: n.x - 130, y: n.y + 100, nodeId: n.id };
+    if (canOccupy(map, charger.x, charger.y, 30) && occupied.every(o => distance(o, charger) > 90)) { map.chargers.push(charger); occupied.push(charger); }
+  }
+  for (const [i, spot] of spots.entries()) {
+    if (!spot.buildingId && distance(spot, entryNode) < 800 || !canOccupy(map, spot.x, spot.y, 24)) continue;
+    const kind = spot.buildingId ? (i % 3 === 0 ? 'cell' : 'weapon') : i % 7 === 0 ? 'cell' : ['weapon', 'med', 'shield', 'access'][range(0, 3)];
+    place(spot.x, spot.y, kind, { ...(kind === 'weapon' ? { weaponType: ['pistol', 'rifle', 'scattergun'][range(0, 2)] } : {}), ...(spot.buildingId ? { buildingId: spot.buildingId } : {}) });
+  }
+  // Add early outdoor cells, so finding a building is a choice, not an undocumented prerequisite.
+  for (const n of main.slice(1, 5)) place(n.x - 120, n.y + 100, 'cell');
+  for (const [i, n] of map.nodes.entries()) if (i % 11 === 0 && distance(n, entryNode) > 2500) {
+    const point = { x: n.x + 130, y: n.y + 100 };
+    if (!canOccupy(map, point.x, point.y, 25) || occupied.some(o => distance(o, point) < 100) || map.chargers.some(st => distance(st, point) < 850)) continue;
+    const kind = ['mine', 'turret', 'flame', 'spider'][range(0, 3)];
+    map.traps.push({ id: 'trap-' + serial++, kind, ...point, homeX: point.x, homeY: point.y, heading: -Math.PI / 2, offset: range(0, 159), cooldown: 35, spent: false }); occupied.push(point);
   }
   return map;
 }
-
-// Local windows prevent a long arena from making every bot clone a whole-world grid.
-export function navigationGrid(map, role, bounds = { x: 0, y: 0, width: Math.ceil(map.width / TILE), height: Math.ceil(map.height / TILE) }) {
-  const gateKey = map.gates.map(g => Number(g.open)).join('');
+export function navigationGrid(map, role, bounds = { x: 0, y: 0, width: Math.ceil(map.width / TILE), height: Math.ceil(map.height / TILE) }, openDoors = false) {
+  const gateKey = map.gates.map(g => `${Number(g.open)}${Number(!!g.locked)}`).join('');
   let cached = navigationCache.get(map);
-  if (!cached || cached.key !== gateKey) { cached = { key: gateKey, grids: new Map() }; navigationCache.set(map, cached); }
-  const key = [role, bounds.x, bounds.y, bounds.width, bounds.height].join(':');
+  if (!cached || cached.key !== gateKey || cached.obstacles !== map.obstacles || cached.count !== map.obstacles.length) {
+    cached = { key: gateKey, obstacles: map.obstacles, count: map.obstacles.length, grids: new Map(), maps: new Map() }; navigationCache.set(map, cached);
+  }
+  const key = [role, bounds.x, bounds.y, bounds.width, bounds.height, openDoors].join(':');
   count('calls.navigationGrid');
   if (!cached.grids.has(key)) {
     start('sim.navGridRebuild'); count('work.navGridRebuild');
-    const matrix = Array.from({ length: bounds.height }, (_, y) => Array.from({ length: bounds.width }, (_, x) => canOccupy(map, (x + bounds.x + 0.5) * TILE, (y + bounds.y + 0.5) * TILE, role === 'gladiator' ? 25 : 14) ? 0 : 1));
-    if (cached.grids.size >= 40) cached.grids.delete(cached.grids.keys().next().value);
+    if (!cached.maps.has(openDoors)) cached.maps.set(openDoors, openDoors ? { ...map, gates: map.gates.filter(g => openDoors !== 'all' && g.locked) } : map);
+    const navMap = cached.maps.get(openDoors);
+    const matrix = Array.from({ length: bounds.height }, (_, y) => Array.from({ length: bounds.width }, (_, x) => canOccupy(navMap, (x + bounds.x + 0.5) * TILE, (y + bounds.y + 0.5) * TILE, role === 'gladiator' ? 25 : 14) ? 0 : 1));
+    if (cached.grids.size >= 60) cached.grids.delete(cached.grids.keys().next().value);
     cached.grids.set(key, matrix); stop('sim.navGridRebuild');
   }
   return cached.grids.get(key);
