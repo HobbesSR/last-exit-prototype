@@ -30,7 +30,7 @@ Eight contestants and two gladiators enter a seeded arena with three escape slot
 
 The current build has nine generated sections across a 6,720 by 2,880 world, three gated checkpoints with bypasses, three physical escape gaps, three transit stations, and three sensors. These numbers are tuning defaults, not final design commitments.
 
-## Accepted Future Direction — 2026-09-09
+## Accepted Direction — status 2026-09-10
 
 - Hierarchical procedural generation selects tile templates controlling paths and connections. Guarantee top, middle, and bottom routes to extraction, with optional dead ends, key-gated areas, and relatively fixed access-point distribution. Include playable interiors and outdoor spaces.
 - Extraction requires finding a power cell, charging it at a station, and delivering the charged cell to an escape pod. Limited escape capacity remains; cell handling and charging details need design work.
@@ -40,13 +40,13 @@ The current build has nine generated sections across a 6,720 by 2,880 world, thr
 - Support private rooms and server matchmaking with gladiator, contestant, or no role preference. Assignment policy is still open; this requirement does not imply completed public hosting.
 - Fill the entire play-area viewport without a circular sight cutoff. Static map elements stay visible; obstacles conceal dynamic entities. Doors and other changeable map elements retain their last-known state outside sight, refreshing on observation. Future dynamic terrain should use the same principle.
 
-These are planned targets, tracked as F-01 through F-10 in `REQUIREMENTS.md`. Exact 2½D treatment, inventory sizes, weapon roster, charging rules, access-point definition, matchmaking allocation, and initially unknown map-state presentation remain explicit open decisions.
+These are tracked as F-01 through F-10 in `REQUIREMENTS.md`. All are implemented except the cyberpunk ruins art direction, which is partial: the palette, interiors, and exterior routes exist, but presentation is still flat top-down. The 2½D treatment remains an explicit open decision, along with any revisions to inventory sizes, weapon roster, charging rules, access-point definition, and matchmaking allocation now that first versions are playable.
 
 ## Roles (Current Prototype)
 
 | Role | Strength | Constraint | Growth |
 | --- | --- | --- | --- |
-| Contestant | Smaller body, faster movement, smoke sprint, blaster pickups | Fragile; escape places are scarce | Access charges, weapon levels, shields, healing |
+| Contestant | Smaller body, faster movement, five equipment slots, no innate ability | Fragile; escape places are scarce | Access charges, weapons, shields, healing |
 | Warden | Close-range shockwave | Must reach its target | Kill-based level, damage, recovery, health |
 | Specter | Scan reveals nearby contestants | Lower basic damage | Kill-based level, damage, recovery, health |
 | Striker | Temporary speed burst | Ability timing matters | Kill-based level, damage, recovery, health |

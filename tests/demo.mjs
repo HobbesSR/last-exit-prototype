@@ -49,6 +49,9 @@ const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 try {
   // The page creates its own arena, so it holds the owner key that spectating requires.
   await page.goto(base);
+  // Rooms now open in a lobby and tick only once the owner starts the match.
+  const start = page.getByRole('button', { name: 'Start match', exact: true });
+  if (await start.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false)) await start.click();
   await page.waitForFunction(() => window.arenaDebug?.().tick > 2, null, { timeout: 20000 });
   const playerId = await page.evaluate(() => window.arenaDebug().me.id);
   const game = [...server.rooms.values()].find(r => r.started).game;
@@ -57,7 +60,7 @@ try {
   // has no pathfinder, so a crate behind a building is a crate it will grind against a wall chasing.
   const loot = kind => {
     const self = me(), all = game.map.items.filter(i => i.kind === kind).sort((a, b) => distance(self, a) - distance(self, b));
-    return all.find(i => distance(self, i) < 900 && lineClear(game.map, self, i)) ?? all[0];
+    return all.find(i => distance(self, i) < 3000 && lineClear(game.map, self, i)) ?? all[0];
   };
   const hunter = () => game.players.filter(p => p.role === 'gladiator' && p.status === 'active').sort((a, b) => distance(me(), a) - distance(me(), b))[0];
 
@@ -94,37 +97,51 @@ try {
     }
     await press(new Set());
   }
-  // Keep trying for a pickup until the counter actually moves or the attempts run out.
-  async function collect(kind, counter, attempts = 3, each = 5000) {
-    for (let i = 0; i < attempts; i++) {
-      if (counter() > 0) return true;
-      const goal = loot(kind);
-      if (!goal) return false;
-      await steer(() => loot(kind), { timeout: each });
-      await page.waitForTimeout(200);
-    }
+  // Keep trying for a pickup until the counter actually moves or the attempts run out. Eight bots spawn
+  // on top of the entry and strip the nearby crates within seconds, so each attempt commits to one crate
+  // and allows enough time to actually walk there rather than re-targeting the nearest every step.
+  // Only chase a crate that is genuinely close. Eight bots spawn on the entry and take everything within
+  // a couple of hundred pixels within seconds; after that the nearest crate is a thirteen second walk on
+  // an arena this size, which is a dull clip, so the demo moves on rather than trudging after it.
+  async function collect(kind, counter, reach = 700) {
+    if (counter() > 0) return true;
+    const goal = loot(kind);
+    if (!goal || distance(me(), goal) > reach) return false;
+    const travel = distance(me(), goal) / 0.16 + 2000; // Contestants cover about 160 px a second.
+    await steer(() => game.map.items.find(item => item.id === goal.id) ?? goal, { timeout: travel });
+    await page.waitForTimeout(150);
     return counter() > 0;
   }
 
-  await aimAt({ x: me().x + 400, y: me().y });
-  await page.waitForTimeout(600);
   await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: WIDTH, maxHeight: HEIGHT, everyNthFrame: 1 });
+  await aimAt({ x: me().x + 400, y: me().y });
 
-  // Find a blaster first, so the rest of the clip has something to show, then grab a charge if it is close.
-  const armed = await collect('weapon', () => me()?.weapon ?? 0, 3, 5000);
-  console.log(`blaster acquired: ${armed}`);
-  await collect('access', () => me()?.keys ?? 0, 1, 3500);
+  // Find a weapon first, so the rest of the clip has something to show, then a charge and a power cell.
+  // Count a weapon in the pack, not an equipped one: picking up a medkit first leaves the weapon unequipped.
+  const armed = await collect('weapon', () => me()?.inventory?.some(slot => slot?.kind === 'weapon') ? 1 : 0);
+  if (armed) {
+    const slot = me().inventory.findIndex(item => item?.kind === 'weapon');
+    await page.keyboard.press(`Digit${slot + 1}`);
+    await page.waitForTimeout(250);
+  }
+  await collect('access', () => me()?.keys ?? 0);
+  console.log(`weapon in pack: ${armed}`);
+
+  // Run the lane east: the hazard wall, ruins, traps and remembered gates are what this arena looks like.
+  for (const [x, y] of [[0.9, 0.3], [0.85, 0.7], [0.5, 0.85], [0.2, 0.5]]) {
+    await page.mouse.move(WIDTH * x, HEIGHT * y);
+    await page.waitForTimeout(220);
+  }
+  await steer(() => ({ x: me().x + 900, y: me().y - 40 }), { timeout: 5000, stop: 0 });
 
   // Push east, firing toward the nearest gladiator when one is around and down the lane otherwise.
   const ahead = () => { const g = hunter(), self = me(); return g && self && distance(self, g) < 900 ? g : { x: (self?.x ?? 0) + 500, y: self?.y ?? 0 }; };
-  await page.mouse.down();
+  if (armed) await page.mouse.down();
   await steer(() => ({ x: me().x + 420, y: me().y - 60 }), { timeout: 3600, stop: 0, aim: ahead });
-  await page.mouse.up();
+  if (armed) await page.mouse.up();
   await page.waitForTimeout(200);
 
-  // Smoke and speed burst, then keep running the lane.
-  await page.keyboard.press('KeyQ');
-  await steer(() => ({ x: me().x + 500, y: me().y }), { timeout: 2600, stop: 0, aim: ahead });
+  await steer(() => ({ x: me().x + 600, y: me().y }), { timeout: 2600, stop: 0, aim: ahead });
 
   // Pull back to the local overview, then hand the camera to the directed view for the closing shot.
   await page.keyboard.press('KeyM');
@@ -164,7 +181,7 @@ const palette = path.join(frameDir, 'palette.png');
 await run('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', list, '-vf', 'fps=30,scale=1280:-2:flags=lanczos', '-c:v', 'libx264', '-preset', 'slow', '-crf', '22', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', mp4]);
 // The GIF is the README's, so it takes the closing stretch only and stays small enough to embed.
 const seconds = (frames.at(-1).at - frames[0].at) / 1000;
-const gifFrom = Math.max(0, seconds - 17).toFixed(2);
+const gifFrom = Math.max(0, seconds - 20).toFixed(2);
 await run('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-ss', gifFrom, '-i', list, '-vf', 'fps=12,scale=600:-2:flags=lanczos,palettegen=max_colors=128', palette]);
 await run('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-ss', gifFrom, '-i', list, '-i', palette, '-lavfi', 'fps=12,scale=600:-2:flags=lanczos[v];[v][1:v]paletteuse=dither=bayer:bayer_scale=3', '-loop', '0', gif]);
 

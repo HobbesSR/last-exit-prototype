@@ -2,9 +2,9 @@
 
 A playable browser proof of concept for an asymmetric escape game. Eight contestants compete for three exits while two gladiators hunt them across an elongated diamond arena. Empty player slots are filled by bots.
 
-![A contestant collecting a blaster, firing on the move, using the smoke sprint, and the arena seen from the directed camera](media/last-exit-demo.gif)
+![A contestant leaving the entry sector of the ruins, equipment slots and the power-cell objective on screen, closing on the unfogged directed camera](media/last-exit-demo.gif)
 
-Recorded from a real match with `npm run demo`, which scripts a contestant through installed Chrome and encodes the capture with ffmpeg. The full-length clip is [media/last-exit-demo.mp4](media/last-exit-demo.mp4).
+Recorded from a real match with `npm run demo`, which scripts a contestant through installed Chrome and encodes the capture with ffmpeg. The full-length clip is [media/last-exit-demo.mp4](media/last-exit-demo.mp4). It covers the opening of a ten-minute match, so it shows traversal and the objective rather than a fight; bots clear the crates near the entry within seconds, and the two roles begin the match at opposite ends of the arena.
 
 ## Run
 
@@ -32,16 +32,17 @@ Open one of the LAN URLs printed by the server, such as `http://192.168.1.25:300
 | Move | WASD or arrow keys | Left virtual stick |
 | Aim | Mouse position | Right virtual stick |
 | Fire / melee | Hold left mouse button | Deflect right stick |
-| Ability | Q | Ability button |
-| Open gate / extract / rail | E | Hand button |
+| Select equipment slot | 1 to 5 | Slot buttons |
+| Gladiator kit ability | Q | Ability button |
+| Open gate / charge cell / extract / rail | E | Hand button |
 | Sneak | Hold Shift | Hold footprints button |
 | Local zoom | M | View button |
 
-Walk over loot to collect it. Access charges open checkpoint barriers. Yellow strips damage either role; longer exposed routes go around them. Narrow physical gaps pass contestants but block larger gladiators. Running near sensors reveals contestants to gladiators; sneaking avoids triggering them. Gladiators use blue transit pads with E. Warden has a shockwave, Specter has a scan, and Striker has a speed burst. Kills improve gladiator damage and ability recovery; environmental loot improves contestants.
+Contestants win by finding a power cell, holding still at a charging station until it is charged, and carrying it to an escape pod. Walk over loot to collect it into one of five equipment slots; weapons are pistols, rifles, and scatterguns, and medkits and shields stack. Contestants have no innate ability of their own. Access charges open checkpoint barriers. Yellow strips damage either role; longer exposed routes go around them. Motion mines, turrets, flamethrowers, and leashed spider bots attack whichever role walks into them. Narrow physical gaps pass contestants but block larger gladiators. Running near sensors reveals contestants to gladiators; sneaking avoids triggering them. Gladiators use blue transit pads with E. Warden has a shockwave, Specter has a scan, and Striker has a speed burst. Kills improve gladiator damage and ability recovery.
 
-The live camera follows your character. Structures, containers, rocks, fences, and closed gates block sight. Terrain and structures stay on screen wherever they are and fall into shadow when you cannot see them; contestants, gladiators, loot, and shots appear only while actually in sight. The minimap is schematic and does not reveal the whole battlefield. Full-map viewing is available only in completed replays.
+The live camera follows your character and fills the viewport rather than clipping sight to a circle. Structures, containers, rocks, fences, and closed gates block sight. Terrain and structures stay on screen wherever they are and fall into shadow when you cannot see them; contestants, gladiators, loot, traps, and shots appear only while actually in sight. Gates you have already seen keep their last observed state, marked as remembered rather than current, until you see them again. The minimap is schematic and does not reveal the whole battlefield. Full-map viewing is available only in completed replays and the directed spectator stream.
 
-New arena opens role, kit, callsign, and seed selection. Copy the arena link to join the same match in another browser tab or from another device using a LAN URL; joining takes over an available bot. The default loopback address is only reachable on this computer. LAN hosting needs `npm run dev:lan` or `HOST=0.0.0.0`, the computer's LAN address, and appropriate firewall access; no internet deployment or account system is configured.
+New arena opens role, kit, callsign, and seed selection, then a lobby the room owner starts; matchmaking on this server fills a shared room instead and starts on a timer. Copy the arena link to join the same match in another browser tab or from another device using a LAN URL; joining takes over an available bot. The default loopback address is only reachable on this computer. LAN hosting needs `npm run dev:lan` or `HOST=0.0.0.0`, the computer's LAN address, and appropriate firewall access; no internet deployment or account system is configured.
 
 ## Replays
 
@@ -101,4 +102,4 @@ The maintained product requirements, acceptance status, original prompt notes, d
 
 Non-player clients are supported at the protocol level but have no interface yet: a connection can join as a spectator with the room owner key and receive the unfogged directed view, delayed by 60 simulation ticks (three seconds). During the initial three seconds it stays at the opening frame. There is no spectator UI or patron action system. Owner credentials persist in session storage for refresh recovery; shared room URLs remain keyless.
 
-This is a local vertical slice using Phaser, Node, SAT.js, and PathFinding.js. The simulation and geometric movement are separate from rendering. Persistent unlocks, contestant perks, cameras with viewing stations, matchmaking, sound, polished animation, economy, and production hosting are future work. See [DESIGN.md](DESIGN.md) and [ARCHITECTURE.md](ARCHITECTURE.md).
+This is a local vertical slice using Phaser, Node, SAT.js, and PathFinding.js. The simulation and geometric movement are separate from rendering. Persistent unlocks, contestant perks, cameras with viewing stations, sound, polished animation, economy, and production hosting are future work. See [DESIGN.md](DESIGN.md) and [ARCHITECTURE.md](ARCHITECTURE.md).
