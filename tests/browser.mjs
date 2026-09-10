@@ -20,7 +20,16 @@ async function ready(page, url = base) {
 }
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  await ready(page);
+  await page.goto(base);
+  await page.getByRole('button', { name: 'Start match', exact: true }).waitFor();
+  const ownerRoom = new URL(page.url()).searchParams.get('room');
+  const ownerPlayer = await page.evaluate(() => window.arenaDebug().me.id);
+  assert.equal(new URL(page.url()).searchParams.has('ownerKey'), false, 'invite URL contains no owner credential');
+  await page.reload();
+  await page.getByRole('button', { name: 'Start match', exact: true }).waitFor();
+  assert.equal(new URL(page.url()).searchParams.get('room'), ownerRoom, 'reload retains room and owner controls');
+  assert.equal(await page.evaluate(() => window.arenaDebug().me.id), ownerPlayer, 'reload resumes the same player');
+  await ready(page, page.url());
   const before = await page.evaluate(() => window.arenaDebug().me.x);
   await page.keyboard.down('KeyD'); await page.waitForTimeout(650); await page.keyboard.up('KeyD');
   const after = await page.evaluate(() => window.arenaDebug().me.x);
@@ -28,7 +37,9 @@ try {
   // An ability press travels client input tick -> server tick -> broadcast, which can exceed a fixed
   // 100 ms pause on a coarse platform timer. Wait for the authoritative cooldown instead of guessing.
   await page.keyboard.press('KeyQ');
-  await page.waitForFunction(() => window.arenaDebug().me.cooldown > 0, null, { timeout: 5000 });
+  assert.equal(await page.locator('#skill').isVisible(), false, 'contestants have no innate skill');
+  await page.keyboard.press('Digit3');
+  await page.waitForFunction(() => window.arenaDebug().me.selectedSlot === 2, null, { timeout: 5000 });
   await page.screenshot({ path: 'test-results/desktop.png' });
   await page.getByRole('button', { name: 'Toggle local zoom', exact: true }).click();
   await page.waitForTimeout(200);
@@ -104,8 +115,8 @@ try {
   const vr = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":4217}' })).json();
   const geometryGame = server.rooms.get(vr.id).game;
   for (const p of geometryGame.players) p.bot = false;
-  Object.assign(geometryGame.players[0], { bot: true, x: 980, y: 1440, weapon: 1 });
-  geometryGame.map.obstacles.push({ id: 'visibility-fixture', kind: 'container', color: 0, x: 1080, y: 1370, w: 60, h: 140 });
+  Object.assign(geometryGame.players[0], { bot: true, x: 980, y: 1440, weapon: 1, selectedSlot: 0, inventory: [{ kind: 'weapon', weaponType: 'pistol' }, null, null, null, null] });
+  geometryGame.map.obstacles = [{ id: 'visibility-fixture', kind: 'container', color: 0, x: 1080, y: 1370, w: 60, h: 140 }];
   const visionPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await ready(visionPage, `${base}/?room=${vr.id}&ownerKey=${encodeURIComponent(vr.ownerKey)}`);
   await visionPage.mouse.move(1100, 420);
@@ -168,6 +179,22 @@ try {
   await visionPage.waitForFunction(id => window.arenaDebug().actors?.find(a => a.id === id)?.visible === true, lurker.id, { timeout: 8000 });
   const inTheOpen = await visionPage.evaluate(id => window.arenaDebug().actors.find(a => a.id === id), lurker.id);
   assert.equal(inTheOpen.visible, true, 'the same enemy in the open is drawn');
+  const runnerId = await visionPage.evaluate(() => window.arenaDebug().me.id);
+  const runner = geometryGame.players.find(p => p.id === runnerId);
+  runner.x = 43000; runner.y = 1440; geometryGame.map.traps = [];
+  lurker.x = 43720; lurker.y = 1740;
+  await visionPage.getByRole('button', { name: 'Toggle local zoom', exact: true }).click();
+  await visionPage.waitForFunction(id => window.arenaDebug().me.x > 42000 && window.arenaDebug().actors.find(a => a.id === id)?.visible, lurker.id);
+  assert.ok(Math.hypot(lurker.x - runner.x, lurker.y - runner.y) > 620, 'visible actor is beyond the former circular cutoff');
+  await visionPage.screenshot({ path: 'test-results/viewport-visibility.png' });
+  runner.cell = { charge: 899 }; Object.assign(runner, { x: geometryGame.map.chargers[1].x, y: geometryGame.map.chargers[1].y });
+  await visionPage.waitForFunction(() => window.arenaDebug().me.cell?.charge === 899);
+  await visionPage.keyboard.press('KeyE');
+  await visionPage.waitForFunction(() => document.getElementById('objective').textContent.includes('CELL CHARGED'));
+  Object.assign(runner, geometryGame.map.exit);
+  await visionPage.waitForFunction(() => window.arenaDebug().me.x > 84000);
+  await visionPage.keyboard.press('KeyE');
+  await visionPage.waitForFunction(() => window.arenaDebug().me.status === 'escaped');
   const caster = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await ready(caster);
   await caster.evaluate(() => window.arenaSpectate());
@@ -178,6 +205,24 @@ try {
   assert.equal(cast.vision, null, 'a directed view computes no personal visibility polygon');
   assert.ok(cast.cameraWidth >= cast.mapWidth, `directed camera frames the whole arena: ${cast.cameraWidth} vs ${cast.mapWidth}`);
   await caster.screenshot({ path: 'test-results/spectator.png' });
+  const artRoom = server.rooms.get(await page.evaluate(() => window.arenaDebug().room));
+  const artId = await page.evaluate(() => window.arenaDebug().me.id);
+  const artPlayer = artRoom.game.players.find(p => p.id === artId);
+  const interior = artRoom.game.map.modules.find(m => m.interior);
+  Object.assign(artPlayer, { x: interior.x, y: interior.y });
+  await page.waitForFunction(() => window.arenaDebug().me.x < 80000 && window.arenaDebug().me.x > 20000);
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: 'test-results/ruins.png' });
+  await guest.close(); await mobile.close(); await visionPage.close(); await caster.close();
+  await page.getByRole('button', { name: 'New arena', exact: true }).click();
+  await page.locator('#matchmaking').check(); await page.locator('#role-preference').selectOption('gladiator');
+  await page.getByRole('button', { name: 'Deploy', exact: true }).click();
+  await page.waitForFunction(() => document.getElementById('lobby-dialog').open && window.arenaDebug().me?.role === 'gladiator');
+  const matchedRoom = await page.evaluate(() => window.arenaDebug().room);
+  assert.equal(server.rooms.get(matchedRoom).matchmade, true);
+  assert.equal(await page.locator('#start-match').isVisible(), false);
+  server.rooms.get(matchedRoom).startsAt = Date.now() - 1;
+  await page.waitForFunction(() => !document.getElementById('lobby-dialog').open && window.arenaDebug().tick > 3);
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ passed: true, pixels, occlusion, screenshots: ['desktop', 'arena-overview', 'replay', 'loadout', 'gladiator', 'mobile', 'mobile-loadout', 'occlusion', 'spectator'], checks: ['movement', 'ability', 'multiplayer', 'replay seek', 'download', 'kit selection', 'dual-stick multitouch', 'mouse aim', 'occlusion pixels', 'shade not blackout', 'client-side visibility', 'shot interpolation', 'spectator directed view', 'mobile overflow', 'assets', 'browser errors'] }, null, 2));
 } catch (error) { console.error('Browser errors:', errors); throw error; }

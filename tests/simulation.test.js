@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, generateMap, joinGame, setInput, step, snapshot, visibleTo, couldSee, playerView, POTENTIAL, TILE, DURATION } from '../shared/simulation.js';
+import { createGame, generateMap, joinGame, setInput, step, snapshot, visibleTo, couldSee, playerView, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.js';
 import { movePlayer, canOccupy, lineClear, visibilityPolygon } from '../shared/movement.js';
 import { navigationGrid } from '../shared/map.js';
 import PF from 'pathfinding';
+import { collectEquipment } from '../shared/equipment.js';
 
 function fixture(role = 'contestant', kit = 'warden') {
   const s = createGame(4217);
@@ -28,7 +29,24 @@ test('200 generated maps have a no-key route for both body sizes', () => {
       assert.ok(route.length > 0, `seed ${seed}, ${role}`);
     }
     assert.ok(s.map.items.every(i => canOccupy(s.map, i.x, i.y, 12)), `loot seed ${seed}`);
+    assert.ok(s.map.chargers.every(i => canOccupy(s.map, i.x, i.y, 25)), `chargers seed ${seed}`);
+    for (const route of s.map.routes) for (let i = 1; i < route.points.length; i++) {
+      const a = route.points[i - 1], b = route.points[i], length = Math.hypot(b.x - a.x, b.y - a.y);
+      const samples = Math.ceil(length / 20);
+      for (let j = 0; j <= samples; j++) assert.ok(canOccupy(s.map, a.x + (b.x - a.x) * j / samples, a.y + (b.y - a.y) * j / samples, 25), `seed ${seed} ${route.band} segment ${i} sample ${j}`);
+    }
   }
+});
+
+test('route distance plus charging targets a near-ten-minute run and the wall reaches the end at ten minutes', () => {
+  const { s, p } = fixture();
+  for (const route of s.map.routes) {
+    const length = route.points.slice(1).reduce((sum, b, i) => sum + Math.hypot(b.x - route.points[i].x, b.y - route.points[i].y), 0);
+    const seconds = length / (9 * 20) + CELL_CHARGE_TICKS / 20;
+    assert.ok(seconds > 500 && seconds < 580, `${route.band}: ${seconds} seconds before combat/detours`);
+  }
+  s.tick = DURATION - 1; Object.assign(p, s.map.exit);
+  step(s); assert.ok(s.hazardX >= s.map.width); assert.equal(s.phase, 'finished');
 });
 test('clients cannot send positions or amplify movement and stale inputs are rejected', () => {
   const { s, p } = fixture(); const x = p.x;
@@ -60,10 +78,44 @@ test('access gates require and consume a charge, hazardous bypass stays open', (
 test('only three contestants can extract, and gladiators cannot consume exits', () => {
   const { s, p } = fixture('gladiator');
   Object.assign(p, s.map.exit); input(s, p, { interact: true }); assert.equal(s.slots, 3);
-  for (const c of s.players.filter(p => p.role === 'contestant')) { Object.assign(c, s.map.exit); setInput(s, c.id, { seq: 0, interact: true }); }
+  for (const c of s.players.filter(p => p.role === 'contestant')) { Object.assign(c, s.map.exit, { cell: { charge: CELL_CHARGE_TICKS } }); setInput(s, c.id, { seq: 0, interact: true }); }
   step(s);
   assert.equal(s.slots, 0); assert.equal(s.players.filter(p => p.status === 'escaped').length, 3);
   assert.equal(s.phase, 'finished');
+});
+
+test('power-cell objective requires pickup, stationary charging, and delivery; movement pauses progress', () => {
+  const { s, p } = fixture();
+  Object.assign(p, s.map.exit);
+  input(s, p, { interact: true }); assert.equal(s.slots, 3);
+  const cell = s.map.items.find(i => i.kind === 'cell');
+  Object.assign(p, { x: cell.x, y: cell.y }); input(s, p, {});
+  assert.equal(p.cell.charge, 0); assert.ok(!s.map.items.includes(cell));
+  Object.assign(p, s.map.exit); input(s, p, { interact: true }); assert.equal(s.slots, 3);
+  Object.assign(p, { x: s.map.chargers[0].x, y: s.map.chargers[0].y });
+  input(s, p, { interact: true }); assert.equal(p.cell.charge, 1);
+  input(s, p, { x: 1 }); assert.equal(p.cell.charge, 1); assert.equal(p.charging, null);
+  input(s, p, { interact: true });
+  for (let i = p.cell.charge; i < CELL_CHARGE_TICKS; i++) step(s);
+  assert.equal(p.cell.charge, CELL_CHARGE_TICKS); assert.equal(p.charging, null);
+  Object.assign(p, s.map.exit); input(s, p, { interact: true });
+  assert.equal(p.status, 'escaped'); assert.equal(p.cell, null); assert.equal(s.slots, 2);
+});
+
+test('cells cannot be hoarded or picked up through walls and drop with their charge on death', () => {
+  const { s, p } = fixture();
+  p.x = 1000; p.y = s.map.height / 2;
+  s.map.items = [{ id: 'a', kind: 'cell', x: p.x, y: p.y }, { id: 'b', kind: 'cell', x: p.x, y: p.y }];
+  step(s); assert.equal(s.map.items.length, 1);
+  p.cell.charge = 55;
+  const hunter = s.players.find(p => p.role === 'gladiator');
+  hunter.x = p.x + 40; hunter.y = p.y; p.hp = 1;
+  input(s, hunter, { attack: true, aim: Math.PI });
+  assert.equal(p.status, 'eliminated'); assert.equal(p.cell, null);
+  assert.ok(s.map.items.some(i => i.kind === 'cell' && i.charge === 55));
+  const other = s.players[1]; other.x = 1020; other.y = p.y;
+  s.map.obstacles.push({ id: 'cell-wall', x: 1008, y: p.y - 80, w: 4, h: 160 });
+  step(s); assert.equal(other.cell, undefined);
 });
 test('gladiator kills upgrade the kit and refill ability, friendly contestants do not take blaster damage', () => {
   const { s, p } = fixture('gladiator'); const target = s.players[0];
@@ -71,7 +123,7 @@ test('gladiator kills upgrade the kit and refill ability, friendly contestants d
   p.x = target.x + 40; p.y = target.y; target.hp = 1; p.cooldown = 80;
   input(s, p, { attack: true, aim: Math.PI });
   assert.equal(target.status, 'eliminated'); assert.equal(p.kills, 1); assert.equal(p.level, 2); assert.equal(p.cooldown, 0);
-  const a = s.players[1], b = s.players[2]; a.weapon = 3; b.x = a.x + 24; b.y = a.y;
+  const a = s.players[1], b = s.players[2]; collectEquipment(a, { kind: 'weapon', weaponType: 'pistol' }); b.x = a.x + 24; b.y = a.y;
   input(s, a, { attack: true, aim: 0 }); assert.equal(b.hp, 100);
 });
 test('rail travel is gladiator-only, has a cooldown, and skips consumed stations', () => {
@@ -82,12 +134,11 @@ test('rail travel is gladiator-only, has a cooldown, and skips consumed stations
   const c = s.players[0]; c.x = s.map.stations[0].x; c.y = s.map.stations[0].y;
   input(s, c, { interact: true }); assert.equal(c.x, s.map.stations[0].x);
 });
-test('sneaking avoids sensors, smoke has a cooldown, hazard affects gladiators too', () => {
+test('sneaking avoids sensors, contestants have no innate skill, hazard affects gladiators too', () => {
   const { s, p } = fixture(); Object.assign(p, { x: s.map.sensors[0].x, y: s.map.sensors[0].y });
   input(s, p, { sneak: true }); assert.equal(p.revealed, 0);
   input(s, p, {}); assert.ok(p.revealed > 0);
-  input(s, p, { skill: true }); assert.equal(p.cooldown, 200); assert.equal(p.cloak, 55);
-  input(s, p, { skill: true }); assert.equal(p.cooldown, 199);
+  input(s, p, { skill: true }); assert.equal(p.cooldown, 0); assert.equal(p.cloak, 0);
   s.tick = DURATION - 11;
   const g = s.players.find(p => p.role === 'gladiator'); const hp = g.hp;
   step(s); assert.ok(g.hp < hp);
@@ -125,6 +176,16 @@ test('directed views are unfogged, player views withhold private fields, and nei
   for (const view of [mine, directed]) for (const field of ['rng', 'serial']) assert.equal(Object.hasOwn(view, field), false, `${field} not broadcast`);
   assert.equal(setInput(s, 'presenter-1', { seq: 1, x: 1 }), false, 'a non-player id has no input authority');
 });
+
+test('historical projections use historical player membership and contestant totals', () => {
+  const { s, p } = fixture();
+  const frame = snapshot(s);
+  p.status = 'eliminated'; p.id = 'replacement';
+  const view = playerView(s, frame, frame.players[0].id);
+  assert.equal(view.directed, false);
+  assert.equal(view.contestantsActive, 8);
+  assert.equal(playerView(s, frame, null).contestantsActive, 8);
+});
 test('the server transmits what could become visible while gameplay still turns on true sight', () => {
   const { s, p } = fixture('gladiator'); const c = s.players[0];
   // Put a contestant close behind solid cover: reachable, but not actually in sight.
@@ -146,7 +207,7 @@ test('the server transmits what could become visible while gameplay still turns 
   assert.equal(couldSee(s, p, c), true);
 });
 test('a one-shot press is not erased by the next input arriving before the tick', () => {
-  const { s, p } = fixture();
+  const { s, p } = fixture('gladiator');
   // Two client messages between two server ticks: the second carries no press, as a real client sends.
   assert.ok(setInput(s, p.id, { seq: 1, skill: true }));
   assert.ok(setInput(s, p.id, { seq: 2, x: 1 }));

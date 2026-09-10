@@ -18,7 +18,9 @@ const browser = await chromium.launch({ channel: 'chrome', headless: !args.has('
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await page.goto(`${base}/?profile=1`);
+  await page.getByRole('button', { name: 'Start match', exact: true }).click();
   await page.waitForFunction(() => window.arenaDebug?.().tick > 3, null, { timeout: 15000 });
+  await page.evaluate(() => window.arenaProfiling(true));
   await page.keyboard.down('KeyD');
   await page.waitForTimeout(seconds * 1000);
   await page.keyboard.up('KeyD');

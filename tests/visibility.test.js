@@ -33,7 +33,7 @@ for (const seed of [4217, 9, 11, 777, 20250908, 31337, 2, 65535]) {
   for (const open of [false, true]) {
     for (const g of map.gates) g.open = open;
     const origins = [];
-    for (let i = 0; i < 60; i++) origins.push({ x: 200 + (i * 163) % (map.width - 400), y: 300 + (i * 271) % (map.height - 600) });
+    for (let i = 0; i < 60; i++) origins.push({ x: 200 + (i * 7919) % (map.width - 400), y: 300 + (i * 271) % (map.height - 600) });
     // Include origins placed exactly on obstacle corners and edge midpoints, where the wedge is degenerate.
     for (const o of map.obstacles.slice(0, 12)) {
       if (o.r) origins.push({ x: o.x, y: o.y }, { x: o.x + o.r, y: o.y });
@@ -57,7 +57,7 @@ test('litPoint agrees with the fog it is derived from, to within its own edge', 
   for (const seed of [4217, 9, 11, 777, 20250908]) {
     const map = generateMap(seed);
     for (let i = 0; i < 12; i++) {
-      const origin = { x: 400 + (i * 521) % (map.width - 800), y: 500 + (i * 337) % (map.height - 1000) };
+      const origin = { x: map.width * (0.2 + i * 0.05), y: map.height / 2 + (i % 3 - 1) * 170 };
       if (!canOccupy(map, origin.x, origin.y, 12)) continue; // A player can never stand inside geometry.
       const poly = visibilityPolygon(map, origin);
       for (let k = 0; k < 400; k++) {

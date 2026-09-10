@@ -99,6 +99,6 @@ The maintained product requirements, acceptance status, original prompt notes, d
 
 ## Scope
 
-Non-player clients are supported at the protocol level but have no interface yet: a connection can join as a spectator with the room owner key and receive the unfogged directed view, which is what a presenter or patron client would build on. There is no spectator UI, no broadcast delay, and no patron actions.
+Non-player clients are supported at the protocol level but have no interface yet: a connection can join as a spectator with the room owner key and receive the unfogged directed view, delayed by 60 simulation ticks (three seconds). During the initial three seconds it stays at the opening frame. There is no spectator UI or patron action system. Owner credentials persist in session storage for refresh recovery; shared room URLs remain keyless.
 
 This is a local vertical slice using Phaser, Node, SAT.js, and PathFinding.js. The simulation and geometric movement are separate from rendering. Persistent unlocks, contestant perks, cameras with viewing stations, matchmaking, sound, polished animation, economy, and production hosting are future work. See [DESIGN.md](DESIGN.md) and [ARCHITECTURE.md](ARCHITECTURE.md).

@@ -1,6 +1,6 @@
 # Last Exit: Design Working Draft
 
-The canonical requirements and the preserved original prompt notes are in [REQUIREMENTS.md](REQUIREMENTS.md). This file stays intentionally shorter and explains the current design shape.
+The canonical requirements and the preserved original prompt notes are in [REQUIREMENTS.md](REQUIREMENTS.md). This file stays intentionally shorter and distinguishes the implemented prototype from accepted future direction.
 
 ## Purpose
 
@@ -17,18 +17,32 @@ Contestants gain power from environmental equipment. Gladiators have distinct ki
 - "Tiles" means composable, procedurally generated map sections. It does not mean a visible square grid, grid movement, or narrow grid corridors.
 - A section chooses a layout and generates continuous geometry inside it: open yards, depot structures, cover clusters, access checkpoints, and bypasses.
 - The live map spans several camera views. Players cannot see all gameplay at once.
-- Solid obstacles occlude vision. The server also withholds unseen enemies and nearby transient objects from live clients.
+- Solid obstacles occlude vision. The current server sends a bounded potential-visibility projection and the client resolves exact sight. The future target removes the circular boundary and uses the full play-area viewport while retaining obstacle occlusion for dynamic entities.
 - Keyboard movement is independent of mouse aiming. Mouse buttons fire toward the pointer.
 - Touch uses independent movement and aim/fire sticks, with separate ability and interaction controls.
-- Art direction is a readable, playful top-down arena: clear silhouettes, bright equipment, restrained effects, and obvious interaction shapes. Zombs Royale is the handling and readability reference; Nintendo/Fortnite playground design is an interaction goal, not copied branding or assets.
+- The prototype's playful arena presentation is a baseline. The accepted art direction is cyberpunk urban dystopian ruins, preserving clear silhouettes, readable equipment, and obvious interactions. Zombs Royale remains a handling and inventory reference. The target playing field is 2½D; camera treatment and playable elevation remain open.
 
 ## Primitive Match
+
+This section and the role table describe implemented behavior, not completion of the future requirements below.
 
 Eight contestants and two gladiators enter a seeded arena with three escape slots. Bots occupy unclaimed slots and are replaced as people join. Contestants travel toward extraction, collect equipment, and use charges to open barriers or choose exposed/hazardous bypasses. Gladiators hunt through sight, sensor information, and kit abilities. The advancing hazard prevents indefinite retreat. The match ends when all exits are claimed, no contestants remain active, or time expires.
 
 The current build has nine generated sections across a 6,720 by 2,880 world, three gated checkpoints with bypasses, three physical escape gaps, three transit stations, and three sensors. These numbers are tuning defaults, not final design commitments.
 
-## Roles
+## Accepted Future Direction — 2026-09-09
+
+- Hierarchical procedural generation selects tile templates controlling paths and connections. Guarantee top, middle, and bottom routes to extraction, with optional dead ends, key-gated areas, and relatively fixed access-point distribution. Include playable interiors and outdoor spaces.
+- Extraction requires finding a power cell, charging it at a station, and delivering the charged cell to an escape pod. Limited escape capacity remains; cell handling and charging details need design work.
+- Increase map size substantially. Initially tune travel plus objectives toward ten minutes, with the wall of death reaching the map end around ten minutes. Current dimensions are not the target dimensions.
+- Add motion-sensitive mines, turrets, flamethrowers, and spider bots that attack anything in web range, pursue only a limited distance, and can grapple.
+- Replace innate contestant abilities, including smoke sprint, with weapon/item slots and broader weapon variety. A single equipped-ability slot remains optional and undecided. Gladiator kits and kill-based growth remain.
+- Support private rooms and server matchmaking with gladiator, contestant, or no role preference. Assignment policy is still open; this requirement does not imply completed public hosting.
+- Fill the entire play-area viewport without a circular sight cutoff. Static map elements stay visible; obstacles conceal dynamic entities. Doors and other changeable map elements retain their last-known state outside sight, refreshing on observation. Future dynamic terrain should use the same principle.
+
+These are planned targets, tracked as F-01 through F-10 in `REQUIREMENTS.md`. Exact 2½D treatment, inventory sizes, weapon roster, charging rules, access-point definition, matchmaking allocation, and initially unknown map-state presentation remain explicit open decisions.
+
+## Roles (Current Prototype)
 
 | Role | Strength | Constraint | Growth |
 | --- | --- | --- | --- |
@@ -59,4 +73,4 @@ The Running Man, Battle Royale, Hunger Games, Smash TV, and the remembered Slide
 
 Can a contestant break pursuit using cover and gaps? Can a gladiator find engagements without camping extraction? Is opening a gate worth consuming a charge when it also opens the route for pursuers? Does the hazard matter before the match ends? Do all three kits offer viable counterplay? Do generated sections produce routes players can read at speed? Do three exits create competition without making early outcomes inevitable?
 
-Persistent progression, monetization, procedural interiors, destructible cover, player-built impediments, command centers, additional extraction zones, and hunter-triggered traps should follow evidence from these tests.
+Persistent progression, monetization, destructible cover, player-built impediments, command centers, additional extraction zones, and hunter-triggered traps should follow evidence from these tests. Playable interiors and the threat variety listed above are accepted future requirements, not implemented features.

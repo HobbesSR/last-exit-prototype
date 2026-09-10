@@ -4,17 +4,33 @@ import { count } from './profiler.js';
 export const TILE = 40; // Navigation sampling only, never a movement or rendering grid.
 export const VISION = 620;
 const shapeCache = new WeakMap();
+const BUCKET = 200;
 const vec = (x, y) => new SAT.Vector(x, y);
 function geometry(map) {
   let cached = shapeCache.get(map);
   if (cached && cached.source === map.obstacles && cached.count === map.obstacles.length) return cached;
   const shapes = map.obstacles.map(o => ({ ...o, shape: o.r ? new SAT.Circle(vec(o.x, o.y), o.r) : new SAT.Box(vec(o.x, o.y), o.w, o.h).toPolygon() }));
-  cached = { source: map.obstacles, count: map.obstacles.length, shapes, segments: shapes.flatMap(edges) };
+  const buckets = new Map();
+  for (const shape of shapes) {
+    const left = shape.r ? shape.x - shape.r : shape.x, top = shape.r ? shape.y - shape.r : shape.y;
+    const right = shape.r ? shape.x + shape.r : shape.x + shape.w, bottom = shape.r ? shape.y + shape.r : shape.y + shape.h;
+    for (let x = Math.floor(left / BUCKET); x <= Math.floor(right / BUCKET); x++) for (let y = Math.floor(top / BUCKET); y <= Math.floor(bottom / BUCKET); y++) {
+      const key = `${x},${y}`; if (!buckets.has(key)) buckets.set(key, []); buckets.get(key).push(shape);
+    }
+  }
+  cached = { source: map.obstacles, count: map.obstacles.length, shapes, buckets, segments: shapes.flatMap(edges) };
   shapeCache.set(map, cached); return cached;
 }
 function edges(o) {
   const points = o.r ? Array.from({ length: 16 }, (_, i) => ({ x: o.x + Math.cos(i * Math.PI / 8) * o.r, y: o.y + Math.sin(i * Math.PI / 8) * o.r })) : [{ x: o.x, y: o.y }, { x: o.x + o.w, y: o.y }, { x: o.x + o.w, y: o.y + o.h }, { x: o.x, y: o.y + o.h }];
   return points.map((a, i) => ({ a, b: points[(i + 1) % points.length] }));
+}
+function nearbyShapes(map, x, y, radius) {
+  const found = new Set(), { buckets } = geometry(map);
+  for (let bx = Math.floor((x - radius) / BUCKET); bx <= Math.floor((x + radius) / BUCKET); bx++)
+    for (let by = Math.floor((y - radius) / BUCKET); by <= Math.floor((y + radius) / BUCKET); by++)
+      for (const shape of buckets.get(`${bx},${by}`) || []) found.add(shape);
+  return found;
 }
 function nearby(o, x, y, radius) {
   return o.r ? Math.abs(x - o.x) <= radius + o.r && Math.abs(y - o.y) <= radius + o.r : x + radius >= o.x && x - radius <= o.x + o.w && y + radius >= o.y && y - radius <= o.y + o.h;
@@ -28,7 +44,7 @@ export function canOccupy(map, x, y, radius = 12, ignoreGates = false) {
   count('calls.canOccupy');
   if (!insideMap(map, x, y, radius)) return false;
   const circle = new SAT.Circle(vec(x, y), radius), response = new SAT.Response();
-  for (const o of geometry(map).shapes) {
+  for (const o of nearbyShapes(map, x, y, radius)) {
     if (!nearby(o, x, y, radius)) continue;
     response.clear();
     if ((o.r ? SAT.testCircleCircle(circle, o.shape, response) : SAT.testCirclePolygon(circle, o.shape, response)) && response.overlap > 0.01) return false;
@@ -50,7 +66,7 @@ export function movePlayer(map, p, input) {
   const radius = p.role === 'gladiator' ? 23 : 12;
   const circle = new SAT.Circle(vec(p.x + x / norm * speed, p.y + y / norm * speed), radius);
   const response = new SAT.Response();
-  const colliders = geometry(map).shapes.filter(o => nearby(o, circle.pos.x, circle.pos.y, radius + speed));
+  const colliders = [...nearbyShapes(map, circle.pos.x, circle.pos.y, radius + speed)].filter(o => nearby(o, circle.pos.x, circle.pos.y, radius + speed));
   for (const g of map.gates) if (!g.open) {
     const o = gateShape(g);
     if (nearby(o, circle.pos.x, circle.pos.y, radius + speed)) colliders.push({ ...o, shape: new SAT.Box(vec(o.x, o.y), o.w, o.h).toPolygon() });

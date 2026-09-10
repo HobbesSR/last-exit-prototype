@@ -17,10 +17,13 @@ const MAX_SPECTATORS = 24;
 const SPECTATOR_DELAY_TICKS = 60; // Three seconds at the authoritative 20 Hz rate.
 const deliver = (ws, payload) => { if (ws.readyState === WebSocket.OPEN && ws.bufferedAmount < 512 * 1024) ws.send(payload); };
 const send = (ws, value) => deliver(ws, JSON.stringify(value));
+const liveMap = map => ({ ...map, traps: [] }); // Dynamic trap state travels only in the per-viewer projection.
 const lobbyPayload = room => ({
   type: 'lobby',
   room: room.id,
   started: room.started,
+  matchmade: !!room.matchmade,
+  startsAt: room.startsAt || null,
   players: room.game.players
     .filter(p => !p.bot)
     .map(p => ({ id: p.id, name: p.name, role: p.role, kit: p.kit }))
@@ -55,7 +58,7 @@ function printListeningUrls(host, port) {
 // filter pass and a JSON.stringify per viewer.
 function broadcast(room, state, view) {
   const payloads = new Map();
-  const delayed = room.history?.length > SPECTATOR_DELAY_TICKS ? room.history[0] : state;
+  const delayed = spectatorFrame(room);
   for (const ws of room.clients) {
     const key = ws.playerId || 'spectator';
     let payload = payloads.get(key);
@@ -64,6 +67,14 @@ function broadcast(room, state, view) {
   }
   profiler.count('loop.viewsBuilt', payloads.size);
   profiler.count('loop.viewsSent', room.clients.size);
+}
+function spectatorFrame(room) {
+  const cutoff = Math.max(0, room.game.tick - SPECTATOR_DELAY_TICKS);
+  return room.history.findLast(frame => frame.tick <= cutoff) || room.history[0] || snapshot(room.game);
+}
+function remember(room, frame) {
+  room.history.push(frame);
+  while (room.history.length > SPECTATOR_DELAY_TICKS + 2) room.history.shift();
 }
 export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1' } = {}) {
   profiler.enable(profile);
@@ -80,6 +91,19 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   const wss = new WebSocketServer({ server: http, maxPayload: 2048 });
   wss.on('error', error => { if (error.code !== 'EADDRINUSE') console.error(error); });
   const rooms = new Map();
+  function makeRoom(seed, matchmade = false) {
+    if ([...rooms.values()].filter(r => !r.finished).length >= 8) return null;
+    const id = randomBytes(4).toString('hex');
+    const room = { id, ownerKey: randomUUID(), game: createGame(seed), clients: new Set(), started: false, createdAt: Date.now(), inputs: [], finished: false, debt: 0, steppedAt: 0, spectators: 0, history: [], matchmade, resumes: new Map() };
+    rooms.set(id, room); return room;
+  }
+  function preferredRole(room, preference) {
+    const open = role => room.game.players.some(p => p.bot && p.status === 'active' && p.role === role);
+    if (['contestant', 'gladiator'].includes(preference) && open(preference)) return preference;
+    const roles = ['contestant', 'gladiator'].filter(open);
+    return roles.sort((a, b) => room.game.players.filter(p => p.role === a && !p.bot).length / (a === 'contestant' ? 8 : 2)
+      - room.game.players.filter(p => p.role === b && !p.bot).length / (b === 'contestant' ? 8 : 2))[0];
+  }
   const archives = new Map();
   for (const file of await readdir(replayDir)) {
     if (!file.endsWith('.meta.json')) continue;
@@ -92,10 +116,8 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     if ([...rooms.values()].filter(r => !r.finished).length >= 8) return res.status(429).json({ error: 'All arena slots are occupied. Try again after a match ends.' });
     const seed = Number(req.body?.seed ?? 4217);
     if (!Number.isInteger(seed) || seed < 1 || seed > 2147483647) return res.status(400).json({ error: 'Seed must be an integer from 1 to 2147483647.' });
-    const id = randomBytes(4).toString('hex');
-    const ownerKey = randomUUID();
-    rooms.set(id, { id, ownerKey, game: createGame(seed), clients: new Set(), started: false, createdAt: Date.now(), inputs: [], finished: false, debt: 0, steppedAt: 0, spectators: 0, history: [] });
-    res.status(201).json({ id, ownerKey, seed });
+    const room = makeRoom(seed);
+    res.status(201).json({ id: room.id, ownerKey: room.ownerKey, seed });
   });
   app.get('/api/replays', (_req, res) => res.json([...archives.values()].sort((a, b) => b.createdAt - a.createdAt).slice(0, 30)));
   app.get('/api/replays/:id', (req, res) => {
@@ -116,6 +138,11 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     room.recording.catch(error => { room.recordError = error.message; console.error('Replay write failed:', error.message); });
     room.recorder.write(JSON.stringify({ version: VERSION, id: room.id, seed: room.game.seed, hz: HZ, createdAt: room.createdAt, map: room.game.map }).slice(0, -1) + ',"frames":[');
     record(room, snapshot(room.game));
+  }
+  function startMatch(room) {
+    room.started = true; room.inputs.push({ type: 'start' });
+    startRecording(room); remember(room, snapshot(room.game)); broadcastLobby(room);
+    broadcast(room, snapshot(room.game), (id, frame) => playerView(room.game, frame, id));
   }
   async function finish(room) {
     if (room.finished) return;
@@ -147,39 +174,50 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
       let data;
       try { data = JSON.parse(raw); } catch { return ws.close(1008, 'Invalid message'); }
       if (!data || typeof data !== 'object') return;
+      if (data.type === 'match' && !ws.room) {
+        const preference = ['contestant', 'gladiator'].includes(data.role) ? data.role : 'any';
+        let room = [...rooms.values()].find(room => room.matchmade && !room.started && !room.finished && preferredRole(room, preference));
+        if (!room) room = makeRoom(randomBytes(4).readUInt32BE() % 2147483646 + 1, true);
+        if (!room) return send(ws, { type: 'error', message: 'All arena slots are occupied. Try matchmaking again after a match ends.' });
+        data = { ...data, type: 'join', room: room.id, role: preferredRole(room, preference) };
+      }
       if (data.type === 'join' && !ws.room) {
         const room = rooms.get(data.room);
         if (!room || room.finished) return send(ws, { type: 'error', message: 'This arena has ended or no longer exists. Start a new match.' });
         const owner = data.ownerKey === room.ownerKey;
         if (data.role === 'spectator') {
           // The directed view is unfogged, so it is a wallhack for anyone also holding a player slot.
-          // Until spectator streams are delayed, only the room owner may open one.
+          // Keep owner authorization even with a delayed stream; there is no public spectator UX yet.
           if (!owner) return send(ws, { type: 'error', message: 'Spectating this arena requires its owner key.' });
           if (room.spectators >= MAX_SPECTATORS) return send(ws, { type: 'error', message: 'This arena has no spectator capacity left.' });
           ws.room = room; ws.owner = owner; room.spectators++; room.clients.add(ws);
           // A spectator holds no slot, drives no simulation, and never starts a recording.
-          const frame = room.history.length > SPECTATOR_DELAY_TICKS ? room.history[0] : snapshot(room.game);
-          return send(ws, { type: 'welcome', id: null, spectator: true, spectatorDelayTicks: SPECTATOR_DELAY_TICKS, room: room.id, owner, map: room.game.map, state: playerView(room.game, frame, null) });
+          const frame = spectatorFrame(room);
+          return send(ws, { type: 'welcome', id: null, spectator: true, spectatorDelayTicks: SPECTATOR_DELAY_TICKS, room: room.id, owner, map: { ...room.game.map, gates: frame.gates, items: frame.items, traps: [] }, state: playerView(room.game, frame, null) });
         }
-        const role = data.role === 'gladiator' ? 'gladiator' : 'contestant';
+        const role = room.matchmade ? preferredRole(room, data.role) : data.role === 'gladiator' ? 'gladiator' : 'contestant';
         const kit = Object.hasOwn(KITS, data.kit) ? data.kit : 'warden';
-        const p = joinGame(room.game, ws.connectionId, role, kit, typeof data.name === 'string' ? data.name.trim() || 'Player' : 'Player');
+        const resumedId = typeof data.resumeKey === 'string' ? room.resumes.get(data.resumeKey) : null;
+        let p = resumedId && room.game.players.find(p => p.id === resumedId);
+        if (p) {
+          for (const old of room.clients) if (old.playerId === p.id) { room.clients.delete(old); old.room = null; old.close(1000, 'Session resumed'); }
+          p.bot = false; p.input = {}; p.lastSeq = -1; p.path = [];
+        } else p = role && joinGame(room.game, ws.connectionId, role, kit, typeof data.name === 'string' ? data.name.trim() || 'Player' : 'Player');
         if (!p) return send(ws, { type: 'error', message: `No ${role} places remain in this match.` });
         ws.room = room; ws.owner = owner; ws.playerId = p.id;
         room.clients.add(ws);
-        room.inputs.push({ type: 'join', id: p.id, role, kit, name: p.name });
-        send(ws, { type: 'welcome', id: p.id, room: room.id, owner: ws.owner, started: room.started, map: room.game.map, state: playerView(room.game, snapshot(room.game), p.id) });
+        for (const [key, id] of room.resumes) if (id === p.id) room.resumes.delete(key);
+        const resumeKey = randomUUID(); room.resumes.set(resumeKey, p.id);
+        if (room.matchmade && !room.startsAt) room.startsAt = Date.now() + 15000;
+        room.inputs.push({ type: resumedId ? 'resume' : 'join', id: p.id, role: p.role, kit: p.kit, name: p.name });
+        send(ws, { type: 'welcome', id: p.id, resumeKey, room: room.id, owner: ws.owner, started: room.started, matchmade: !!room.matchmade, startsAt: room.startsAt || null, map: liveMap(room.game.map), state: playerView(room.game, snapshot(room.game), p.id) });
         broadcastLobby(room);
         return;
       }
       const room = ws.room;
       if (!room || room.finished) return;
       if (data.type === 'start' && ws.owner && !room.started) {
-        room.started = true;
-        room.inputs.push({ type: 'start' });
-        startRecording(room);
-        broadcastLobby(room);
-        broadcast(room, snapshot(room.game), (id, frame) => playerView(room.game, frame, id));
+        startMatch(room);
         return;
       }
       if (!room.started) return;
@@ -188,8 +226,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
         room.game.phase = 'finished';
         for (const p of room.game.players) if (p.status === 'active' && p.role === 'contestant') p.status = 'stranded';
         const state = snapshot(room.game); record(room, state);
-        room.history.push(state);
-        while (room.history.length > SPECTATOR_DELAY_TICKS + 2) room.history.shift();
+        remember(room, state);
         broadcast(room, state, (id, frame) => playerView(room.game, frame, id));
         void finish(room);
       }
@@ -221,6 +258,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     profiler.start('loop.tick');
     let live = 0, stepped = 0;
     for (const [id, room] of rooms) {
+      if (room.matchmade && !room.started && room.startsAt && Date.now() >= room.startsAt && room.clients.size > 0) startMatch(room);
       if ((!room.started || room.finished) && room.clients.size === 0 && Date.now() - room.createdAt > 180000) { rooms.delete(id); continue; }
       if (!room.started || room.finished) continue;
       live++;
@@ -241,11 +279,10 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
         step(room.game);
         state = snapshot(room.game); stepped++;
         profiler.start('loop.record'); record(room, state); profiler.stop('loop.record');
+        remember(room, state);
         if (room.game.phase === 'finished') break;
       }
       profiler.start('loop.broadcast');
-      room.history.push(state);
-      while (room.history.length > SPECTATOR_DELAY_TICKS + 2) room.history.shift();
       broadcast(room, state, (id, frame) => playerView(room.game, frame, id));
       profiler.stop('loop.broadcast');
       if (room.game.phase === 'finished') void finish(room);

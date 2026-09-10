@@ -2,5 +2,12 @@
 .virtual-stick span{width:42px;height:42px;border:1px solid #dbedd295;border-radius:50%;background:#365843d9;display:flex;align-items:center;justify-content:center;pointer-events:none;will-change:transform}
 .virtual-stick svg{width:21px;height:21px;color:#d7f6b0}
 .aim-stick{border-color:#e4c99366}.aim-stick span{background:#635938c9}.aim-stick svg{color:#fae4a8}
+#objective{position:absolute;top:88px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);padding:8px 12px;border:1px solid #ffe98a55;border-radius:5px;background:#172a2bed;color:#ffe98a;font-size:11px;text-align:center;pointer-events:none}
+#equipment-slots{position:absolute;bottom:120px;left:50%;transform:translateX(-50%);display:flex;gap:5px;max-width:calc(100% - 24px)}
+#equipment-slots button{min-width:80px;min-height:40px;padding:6px;border:1px solid #718f98;background:#1c3039eb;border-radius:5px;font-size:10px}
+#equipment-slots button.selected{border-color:#ffe98a;color:#ffe98a;background:#3b4245}
+.matchmaking-options{margin:14px 0;font-size:12px}.matchmaking-options>label{display:block;margin:10px 0}.matchmaking-options input[type=checkbox]{width:auto;margin-right:8px;accent-color:#c5f16f}.matchmaking-options p{font-size:11px;line-height:1.5;color:#b2c7c4}
+@media(max-width:700px){#equipment-slots{bottom:290px;width:calc(100% - 24px)}#equipment-slots button{min-width:0;flex:1;font-size:8px;padding:4px}}
+@media(max-width:700px){#objective{top:108px;width:calc(100% - 24px);font-size:10px}#event-feed{top:166px}#hazard-warning{top:205px}}
 @media(pointer:coarse){#touch-controls{bottom:179px;left:18px;right:18px}.virtual-stick{width:94px;height:94px}}
 @media(max-width:760px) and (min-width:701px){.player-vitals{width:180px}.loadout{gap:4px}.ability-button{width:48px}#minimap-button{width:150px}.inventory{gap:5px}}

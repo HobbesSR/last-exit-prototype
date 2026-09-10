@@ -15,6 +15,52 @@ function next(ws, type) {
     ws.on('message', receive);
   });
 }
+test('matchmaking separates private rooms, honors available preferences, falls back, and starts automatically', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-match-'));
+  const server = await createArenaServer({ replayDir: dir });
+  try {
+    await new Promise(resolve => server.http.listen(0, '127.0.0.1', resolve));
+    const base = `http://127.0.0.1:${server.http.address().port}`;
+    const privateRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();
+    const clients = [], welcomes = [];
+    for (const role of ['gladiator', 'gladiator', 'gladiator', 'contestant', 'any']) {
+      const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve));
+      const welcome = next(ws, 'welcome'); ws.send(JSON.stringify({ type: 'match', role, name: 'Queued' }));
+      clients.push(ws); welcomes.push(await welcome);
+    }
+    const roomId = welcomes[0].room;
+    assert.notEqual(roomId, privateRoom.id);
+    assert.ok(welcomes.every(w => w.room === roomId && !w.owner));
+    assert.deepEqual(welcomes.map(w => w.state.players.find(p => p.id === w.id).role), ['gladiator', 'gladiator', 'contestant', 'contestant', 'contestant']);
+    const room = server.rooms.get(roomId); assert.equal(room.started, false);
+    const live = next(clients[0], 'state'); room.startsAt = Date.now() - 1;
+    assert.equal((await live).state.phase, 'live'); assert.equal(room.started, true);
+    clients.forEach(ws => ws.close());
+  } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
+});
+
+test('resume credentials restore the same player even while the previous socket is open', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-resume-'));
+  const server = await createArenaServer({ replayDir: dir });
+  try {
+    await new Promise(resolve => server.http.listen(0, '127.0.0.1', resolve));
+    const base = `http://127.0.0.1:${server.http.address().port}`;
+    const room = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();
+    const join = async extra => {
+      const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve));
+      const welcome = next(ws, 'welcome'); ws.send(JSON.stringify({ type: 'join', room: room.id, ...extra })); return { ws, welcome: await welcome };
+    };
+    const a = await join({ ownerKey: room.ownerKey, role: 'gladiator', kit: 'striker' });
+    const p = server.rooms.get(room.id).game.players.find(p => p.id === a.welcome.id); p.hp = 215;
+    const b = await join({ ownerKey: room.ownerKey, resumeKey: a.welcome.resumeKey });
+    assert.equal(b.welcome.id, a.welcome.id); assert.equal(b.welcome.owner, true);
+    assert.equal(b.welcome.state.players.find(p => p.id === b.welcome.id).hp, 215);
+    assert.notEqual(b.welcome.resumeKey, a.welcome.resumeKey, 'resume token rotates');
+    assert.equal(p.bot, false); assert.equal(p.kit, 'striker');
+    const guest = await join({}); assert.notEqual(guest.welcome.id, b.welcome.id); assert.equal(guest.welcome.owner, false);
+    a.ws.close(); b.ws.close(); guest.ws.close();
+  } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
+});
 test('spectators hold no slot, need the owner key, and receive the directed view', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-spectator-'));
   const server = await createArenaServer({ replayDir: dir });
@@ -44,11 +90,17 @@ test('spectators hold no slot, need the owner key, and receive the directed view
     assert.equal(spectated.state.directed, true);
     assert.ok(spectated.state.items.length > played.state.items.length, 'directed view is unfogged');
     assert.ok(spectated.state.players.length >= played.state.players.length);
+    assert.equal(spectated.state.tick, 0, 'spectators remain at the initial frame during delay warmup');
     for (let i = 0; i < 70; i++) await next(player, 'state');
     const delayed = next(eye, 'state');
     const current = next(player, 'state');
     const [spectatorFrame, playerFrame] = await Promise.all([delayed, current]);
     assert.ok(playerFrame.state.tick - spectatorFrame.state.tick >= 55, `spectator delay ${playerFrame.state.tick - spectatorFrame.state.tick} ticks`);
+    const game = server.rooms.get(room.id).game;
+    game.players.find(p => p.role === 'contestant' && p.status === 'active').status = 'eliminated';
+    const historical = await next(eye, 'state');
+    assert.equal(historical.state.contestantsActive, historical.state.players.filter(p => p.role === 'contestant' && p.status === 'active').length);
+    assert.ok(historical.state.contestantsActive > game.players.filter(p => p.role === 'contestant' && p.status === 'active').length);
     eye.close(); player.close();
   } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
 });

@@ -1,4 +1,6 @@
 import { movePlayer, litPoint } from '/shared/movement.js';
+import { inViewport } from '/shared/view.js';
+import { WEAPONS } from '/shared/equipment.js';
 import { makeArenaScene } from '/arena-scene.js';
 import * as profiler from '/shared/profiler.js';
 
@@ -11,9 +13,15 @@ const COLORS = { access: 0xf4d26c, med: 0xff8b97, weapon: 0x8bd9f0, shield: 0xa3
 let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liveState, predicted;
 let seq = 0, pending = [], overview = false, selectedRole = 'contestant', savedReplay, replay, playback = 0, playing = true;
 let lobbyPlayers = [];
+let lobbyStartsAt = null;
 let pulseSkill = false, pulseInteract = false, pointerFire = false, sneakHeld = false, currentAim = 0;
+let selectedSlot;
 const movementStick = { x: 0, y: 0, active: false }, aimingStick = { x: 0, y: 0, active: false };
 const held = new Set();
+for (let index = 0; index < 5; index++) {
+  const button = document.createElement('button'); button.type = 'button'; button.dataset.slot = index;
+  button.onclick = () => selectedSlot = index; $('equipment-slots').append(button);
+}
 let toastTimer, connecting = false, disconnecting = false, lastStateAt = 0, profileOverlay;
 const directed = () => !!replay || !playerId;
 const time = ticks => { const seconds = Math.max(0, Math.floor(ticks / HZ)); return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`; };
@@ -25,9 +33,10 @@ async function json(url, options) {
   if (!response.ok) throw new Error(result.error || 'Request failed');
   return result;
 }
-function clearInput() { held.clear(); pointerFire = false; sneakHeld = false; pulseSkill = false; pulseInteract = false; for (const stick of [movementStick, aimingStick]) Object.assign(stick, { x: 0, y: 0, active: false }); document.querySelectorAll('.virtual-stick span').forEach(el => el.style.transform = ''); }
+function clearInput() { held.clear(); pointerFire = false; sneakHeld = false; pulseSkill = false; pulseInteract = false; selectedSlot = undefined; for (const stick of [movementStick, aimingStick]) Object.assign(stick, { x: 0, y: 0, active: false }); document.querySelectorAll('.virtual-stick span').forEach(el => el.style.transform = ''); }
 function changeMap(map) { arenaMap = structuredClone(map); if (scene?.ready) scene.buildMap(); }
 function updateLobby(data = {}) {
+  lobbyStartsAt = data.startsAt || null;
   if (data.players) lobbyPlayers = data.players;
   const contestants = lobbyPlayers.filter(p => p.role === 'contestant');
   const gladiators = lobbyPlayers.filter(p => p.role === 'gladiator');
@@ -50,6 +59,7 @@ function updateLobby(data = {}) {
   $('start-match').hidden = !owner;
   $('start-match').disabled = !owner || data.started;
   $('lobby-waiting').hidden = owner;
+  $('lobby-waiting').textContent = data.matchmade ? 'Match found. Preparing the arena…' : 'Waiting for the room owner to start the match.';
   icons();
 }
 function showLobby(data) {
@@ -62,7 +72,10 @@ function hideLobby() {
   if ($('lobby-dialog').open) $('lobby-dialog').close();
   $('live-hud').hidden = false;
 }
-async function connect({ room, key, role = 'contestant', kit = 'warden', name = 'Runner' }) {
+async function connect({ room, key, role = 'contestant', kit = 'warden', name = 'Runner', matchmake = false }) {
+  let saved;
+  try { saved = JSON.parse(sessionStorage.getItem(`last-exit:owner:${room}`)); } catch { /* Storage may be unavailable. */ }
+  if (!key && saved?.key) { key = saved.key; role = saved.role; kit = saved.kit; name = saved.name; }
   if (ws) { disconnecting = true; ws.close(); }
   clearInput(); pending = []; seq = 0; savedReplay = null; playerId = null;
   owner = false; lobbyPlayers = [];
@@ -73,13 +86,21 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   ws = socket;
   socket.addEventListener('open', () => {
     disconnecting = false;
-    socket.send(JSON.stringify({ type: 'join', room, ownerKey: key, role, kit, name }));
+    let resumeKey;
+    try { if (room) resumeKey = sessionStorage.getItem(`last-exit:resume:${room}`); } catch { /* Optional recovery. */ }
+    socket.send(JSON.stringify({ type: matchmake ? 'match' : 'join', room, ownerKey: key, resumeKey, role, kit, name }));
   });
   socket.addEventListener('message', event => {
     if (ws !== socket) return;
     const data = JSON.parse(event.data);
     if (data.type === 'welcome') {
+      room = data.room; roomId = room;
+      try { if (data.resumeKey) sessionStorage.setItem(`last-exit:resume:${room}`, data.resumeKey); } catch { /* Optional recovery. */ }
       playerId = data.id; owner = data.owner; liveMap = data.map; liveState = data.state;
+      if (owner) {
+        try { sessionStorage.setItem(`last-exit:owner:${room}`, JSON.stringify({ key, role, kit, name })); }
+        catch { toast('Owner recovery is unavailable in this browser session. Keep this tab open.'); }
+      }
       replay = null; document.body.classList.remove('replaying');
       $('replay-controls').hidden = true; $('live-hud').hidden = !!data.spectator;
       changeMap(data.map); acceptState(data.state);
@@ -129,14 +150,29 @@ function updateHUD() {
 }
 function hud() {
   const me = state.players.find(p => p.id === playerId) || (replay ? state.players[0] : null);
+  if (!me) { $('objective').hidden = true; $('equipment-slots').hidden = true; }
   $('clock').textContent = time((state.duration || 2400) - state.tick);
   $('slots').textContent = state.slots;
   $('seed-label').textContent = arenaMap.seed;
-  $('sector').textContent = String(Math.min(9, 1 + Math.floor((me?.x || 0) / 740))).padStart(2, '0');
+  $('sector').textContent = String(Math.min(arenaMap.modules.length, 1 + Math.floor((me?.x || 0) / arenaMap.width * arenaMap.modules.length))).padStart(2, '0');
   $('remaining').textContent = `${state.contestantsActive ?? state.players.filter(p => p.role === 'contestant' && p.status === 'active').length} CONTESTANTS`;
   $('event-feed').replaceChildren(...state.events.slice(-3).map(e => { const line = document.createElement('div'); line.textContent = e.text; return line; }));
   if (me) {
     const gladiator = me.role === 'gladiator';
+    $('equipment-slots').hidden = gladiator || !!replay;
+    $('skill').hidden = !gladiator;
+    for (const button of $('equipment-slots').children) {
+      const index = Number(button.dataset.slot), item = me.inventory?.[index];
+      const label = item?.kind === 'weapon' ? WEAPONS[item.weaponType]?.name : item ? `${item.kind === 'med' ? 'Medkit' : 'Shield'} ×${item.count}` : 'Empty';
+      button.textContent = `${index + 1} · ${label}`; button.classList.toggle('selected', me.selectedSlot === index);
+      button.ariaLabel = `Slot ${index + 1}: ${label}`; button.setAttribute('aria-pressed', String(me.selectedSlot === index));
+    }
+    $('objective').hidden = gladiator || !!replay || me.status !== 'active';
+    const chargeTicks = state.cellChargeTicks || 200;
+    $('objective').textContent = !me.cell ? 'FIND A POWER CELL · then charge it at a station'
+      : me.cell.charge >= chargeTicks ? 'CELL CHARGED · bring it to the escape pods · E to escape'
+      : me.charging ? `CHARGING ${Math.floor(me.cell.charge / chargeTicks * 100)}% · stay still`
+      : `CELL ${Math.floor(me.cell.charge / chargeTicks * 100)}% · find a charging station · E to charge`;
     $('portrait').src = `/assets/${gladiator ? 'warden' : 'contestant'}.svg`;
     $('player-name').textContent = gladiator ? KIT[me.kit][0].toUpperCase() : me.name.toUpperCase();
     $('player-level').textContent = gladiator ? `LV ${me.level}` : 'RUNNER';
@@ -145,7 +181,7 @@ function hud() {
     $('health-value').textContent = `${me.hp} HP`;
     $('shield-value').textContent = gladiator ? `${me.kills} KILLS` : `${me.shield} SHIELD`;
     $('keys').textContent = me.keys; $('weapon').textContent = gladiator ? me.level : me.weapon;
-    const skillName = gladiator ? KIT[me.kit][1] : 'Smoke sprint';
+    const skillName = gladiator ? KIT[me.kit][1] : 'No innate ability';
     $('skill').dataset.tip = `${skillName} (Q)`;
     $('skill-cd').textContent = me.cooldown ? `${(me.cooldown / HZ).toFixed(1)}s` : 'READY';
     $('skill').classList.toggle('active', me.boost > 0 || me.cloak > 0);
@@ -192,14 +228,15 @@ function drawMinimap() {
   c.strokeStyle = '#729481'; c.setLineDash([3, 4]); c.beginPath(); c.moveTo(6, 62); c.lineTo(254, 62); c.stroke(); c.setLineDash([]);
   c.fillStyle = '#f46c7a88'; c.fillRect(0, 0, Math.max(0, state.hazardX * sx), 124);
   for (const station of arenaMap.stations) { c.fillStyle = '#92d6f0'; c.fillRect(station.x * sx - 2, station.y * sy - 2, 4, 4); }
+  for (const station of arenaMap.chargers || []) { c.strokeStyle = '#f4d26c'; c.strokeRect(station.x * sx - 2, station.y * sy - 2, 4, 4); }
   // The server sends more than the eye can reach, so the minimap has to apply the same test the
   // renderer does or it would quietly become a wallhack.
   const mine = state.players.find(q => q.id === playerId);
   const shown = p => {
     if (directed() || p.id === playerId) return true;
-    const known = (mine && p.role === mine.role) || p.revealed > 0;
+    const known = mine?.role === 'gladiator' && p.revealed > 0;
     if (p.cloak && !known) return false;
-    return known || (scene?.visionPoints && scene.eye ? litPoint(scene.visionPoints, scene.eye, p.x, p.y) : false);
+    return known || (scene?.visionPoints && scene.eye && scene.viewBounds ? inViewport(scene.viewBounds, p.x, p.y) && litPoint(scene.visionPoints, scene.eye, p.x, p.y) : false);
   };
   for (const p of state.players) {
     if (p.status !== 'active' || !shown(p)) continue;
@@ -220,6 +257,7 @@ function inputTick() {
     else if (matchMedia('(pointer:coarse)').matches) input.aim = currentAim;
   }
   currentAim = input.aim;
+  if (selectedSlot !== undefined) { input.slot = selectedSlot; selectedSlot = undefined; }
   ws.send(JSON.stringify(input)); pending.push(input); pending = pending.slice(-20);
   movePlayer(arenaMap, predicted, input); pulseSkill = false; pulseInteract = false;
   $('sneak').classList.toggle('active', input.sneak);
@@ -228,6 +266,9 @@ async function newArena() {
   if (connecting) return;
   connecting = true; $('deploy-error').hidden = true;
   try {
+    if ($('matchmaking').checked) {
+      await connect({ matchmake: true, role: $('role-preference').value, kit: $('kit').value, name: $('callsign').value || 'Runner' }); return;
+    }
     const data = await json('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seed: Number($('seed').value) }) });
     await connect({ room: data.id, key: data.ownerKey, role: selectedRole, kit: $('kit').value, name: $('callsign').value || 'Runner' });
   } catch (error) { $('deploy-error').textContent = error.message; $('deploy-error').hidden = false; toast(error.message); }
@@ -280,6 +321,7 @@ document.addEventListener('keydown', e => {
   if (e.target.matches('input,select,textarea') || document.querySelector('dialog[open]')) return;
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
   held.add(e.code);
+  if (/^Digit[1-5]$/.test(e.code)) selectedSlot = Number(e.code.slice(-1)) - 1;
   if (!e.repeat) { if (e.code === 'KeyQ') pulseSkill = true; if (e.code === 'KeyE') pulseInteract = true; if (e.code === 'KeyM') toggleMap(); if (e.code === 'Space' && replay) setPlaying(!playing); }
 });
 document.addEventListener('keyup', e => held.delete(e.code));
@@ -314,6 +356,16 @@ document.querySelectorAll('[data-role]').forEach(button => button.onclick = () =
 document.querySelectorAll('.close-dialog').forEach(button => button.onclick = () => button.closest('dialog').close());
 $('share').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('Arena link copied'); } catch { toast('Arena link: ' + location.href); } };
 $('copy-lobby-link').onclick = $('share').onclick;
+$('matchmaking').onchange = () => {
+  const matching = $('matchmaking').checked;
+  $('preference-field').hidden = !matching; $('matchmaking-note').hidden = !matching;
+  $('seed').disabled = matching; $('random-seed').disabled = matching;
+  document.querySelector('.role-select').hidden = matching;
+  $('kit-options').hidden = !matching && selectedRole !== 'gladiator';
+};
+setInterval(() => {
+  if (lobbyStartsAt && $('lobby-dialog').open) $('lobby-waiting').textContent = `Match starts in ${Math.max(0, Math.ceil((lobbyStartsAt - Date.now()) / 1000))}s. Open slots will be filled by bots.`;
+}, 250);
 $('start-match').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) ws.send(JSON.stringify({ type: 'start' })); };
 $('archive').onclick = () => { clearInput(); $('archive-dialog').showModal(); void loadArchive(); };
 $('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) { ws.send(JSON.stringify({ type: 'finish' })); $('finish-recording').disabled = true; } };
