@@ -42,6 +42,13 @@ try {
   await page.waitForFunction(() => window.arenaDebug().me.selectedSlot === 2, null, { timeout: 5000 });
   await page.keyboard.press('Digit1');
   await page.waitForFunction(() => window.arenaDebug().me.selectedSlot === 0);
+  assert.equal(await page.locator('#equipment-slots button').count(), 6);
+  assert.ok(await page.locator('#equipment-slots button svg').count() > 0, 'equipment uses icons');
+  await page.getByRole('button', { name: 'Move or merge selected item', exact: true }).click();
+  await page.locator('#equipment-slots button').nth(5).click();
+  await page.waitForFunction(() => window.arenaDebug().me.inventory[5]?.kind === 'weapon' && window.arenaDebug().me.selectedSlot === 5);
+  await page.keyboard.press('KeyR'); await page.keyboard.press('Digit1');
+  await page.waitForFunction(() => window.arenaDebug().me.inventory[0]?.kind === 'weapon' && window.arenaDebug().me.selectedSlot === 0);
   await page.getByRole('button', { name: 'Drop selected', exact: false }).click();
   await page.waitForFunction(() => window.arenaDebug().me.inventory[0] === null);
   await page.screenshot({ path: 'test-results/desktop.png' });
@@ -67,6 +74,19 @@ try {
   await guest.waitForFunction(() => window.arenaDebug?.().me);
   assert.equal(await guest.evaluate(() => window.arenaDebug().room), await page.evaluate(() => window.arenaDebug().room));
   await page.getByRole('button', { name: 'Replays', exact: true }).click();
+  // Deliberately stall a frame. Diagnostics must preserve the spike, not Phaser's smoothed delta.
+  await page.evaluate(() => { const end = performance.now() + 120; while (performance.now() < end) {} });
+  await page.waitForTimeout(100);
+  const diagnosticDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download performance diagnostics', exact: true }).click();
+  const diagnosticFile = await diagnosticDownload;
+  const diagnosticStream = await diagnosticFile.createReadStream(), diagnosticChunks = [];
+  for await (const chunk of diagnosticStream) diagnosticChunks.push(chunk);
+  const diagnostic = JSON.parse(Buffer.concat(diagnosticChunks).toString());
+  assert.ok(diagnostic.timings.frameMs.max >= 100, 'raw frame capture includes long stalls');
+  assert.equal(Object.hasOwn(diagnostic, 'ownerKey'), false);
+  assert.equal(Object.hasOwn(diagnostic, 'players'), false);
+  assert.equal(diagnostic.server.ok, true);
   await page.getByRole('button', { name: 'End match & save replay' }).click();
   await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().waitFor();
   await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().click();

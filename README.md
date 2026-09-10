@@ -32,24 +32,31 @@ Open one of the LAN URLs printed by the server, such as `http://192.168.1.25:300
 | Move | WASD or arrow keys | Left virtual stick |
 | Aim | Mouse position | Right virtual stick |
 | Fire / melee | Hold left mouse button | Deflect right stick |
-| Select equipment slot | 1 to 5 | Slot buttons |
+| Select equipment slot | 1 to 6 | Slot buttons |
+| Move / merge item | R, then destination 1–6 | Move/merge, then destination slot |
 | Gladiator kit ability | Q | Ability button |
 | Open/close door / charge cell / extract / rail | E | Hand button |
 | Drop selected equipment | G | Drop selected button |
 | Sneak | Hold Shift | Hold footprints button |
 | Local zoom | M | View button |
 
-Contestants win by finding a power cell, charging it for five seconds at a station, and carrying it to an escape pod. Each cell costs one normal inventory slot; charge survives dropping it. The 24,000 × 12,000 street maze leaves exploration room within a ten-minute wall deadline. Walk over loot to collect it into one of five equipment slots; weapons are pistols, rifles, and scatterguns, and medkits and shields stack. Contestants have no innate ability of their own. Access charges unlock optional building doors. Contestants can shoot one another. A starter pistol is placed near each spawn. Motion mines, turrets, flamethrowers, and leashed spider bots attack whichever role walks into them. Narrow physical gaps pass contestants but block larger gladiators. Running near sensors reveals contestants to gladiators; sneaking avoids triggering them. Gladiators use blue transit pads with E. Warden has a shockwave, Specter has a scan, and Striker has a speed burst. Kills improve gladiator damage and ability recovery. Eliminated gladiators respawn after 20 seconds at a safe transit station with earned upgrades retained.
+Contestants win by finding a power cell, charging it for five seconds at a station, and carrying it to an escape pod. Each cell costs one normal inventory slot; charge survives dropping it. The 24,000 × 12,000 street maze leaves exploration room within a ten-minute wall deadline. Walk over loot to collect it into one of six equipment slots; weapons are pistols, rifles, and scatterguns with finite ammo, and medkits and shields stack. Matching weapon pickups replenish ammunition. Item icons show ammo, stack count or cell charge; empty weapons turn red. R or Move/merge lets you rearrange slots and recombine compatible stacks. Contestants have no innate ability of their own. Access charges unlock optional building doors. Contestants can shoot one another. A starter pistol is placed near each spawn. Motion mines, turrets, flamethrowers, and leashed spider bots attack whichever role walks into them. Narrow physical gaps pass contestants but block larger gladiators. Running near sensors reveals contestants to gladiators; sneaking avoids triggering them. Gladiators use blue transit pads with E. Warden has a shockwave, Specter has a scan, and Striker has a speed burst. Kills improve gladiator damage and ability recovery. Eliminated gladiators respawn after 20 seconds at a safe transit station with earned upgrades retained.
 
 The live camera follows your character and fills the viewport rather than clipping sight to a circle. Solid structures and closed doors block sight. Building roofs hide interiors from outside and disappear inside. Windows pass sight and shots but block movement; E opens or closes nearby doors. Terrain and structures stay on screen wherever they are and fall into shadow when you cannot see them; contestants, gladiators, loot, traps, and shots appear only while actually in sight. Gates you have already seen keep their last observed state, marked as remembered rather than current, until you see them again. The minimap is schematic and does not reveal the whole battlefield. Full-map viewing is available only in completed replays and the directed spectator stream.
 
 New arena opens role, kit, callsign, and seed selection, then a lobby the room owner starts; matchmaking on this server fills a shared room instead and starts on a timer. Copy the arena link to join the same match in another browser tab or from another device using a LAN URL; joining takes over an available bot. The default loopback address is only reachable on this computer. LAN hosting needs `npm run dev:lan` or `HOST=0.0.0.0`, the computer's LAN address, and appropriate firewall access; no internet deployment or account system is configured.
+
+Empty live rooms close and save after a 30-second reconnect grace, so repeatedly starting a new arena does not leave entire bot matches running in the background.
 
 ## Replays
 
 The server streams every simulation tick to compressed JSON under `replays/`. Completed matches are available from the clapperboard button. The room creator can end a match there to save immediately. Playback supports pause, timeline seeking, speed selection, and JSON download.
 
 These are exact recorded simulation states, not a promise of identical audiovisual output or cross-platform input resimulation. They include all actors, positions, health, cooldowns, AI paths, objects, projectiles, accepted commands, seed, map geometry, and simulation version. SHA-256 metadata verifies the frame stream. Interrupted `.partial` recordings are not offered as completed replays. Recordings from the earlier grid prototype remain downloadable but are incompatible with the new renderer.
+
+## Performance diagnostics
+
+If the game stutters, open Replays → Download performance diagnostics. This saves recent raw frame times and packet gaps, browser/viewport information, seed/location and server room counts. It does not include owner credentials or the player list. Share the file when reviewing performance issues. Local tests have not reproduced the severe slowdown reported during playtesting; it remains open.
 
 ## Profiling
 
@@ -68,6 +75,7 @@ For benchmark parameters, invoke the script directly because npm 12 treats unkno
 
 ```powershell
 node tests/bench.mjs --rooms=2 --ticks=300 --clients=8
+node tests/bench-client.mjs --location=dense --seconds=30
 ```
 
 `bench` runs the simulation headless with no sockets or disk and reports per-tick cost against the

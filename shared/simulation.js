@@ -3,10 +3,10 @@ import { movePlayer, canOccupy, lineClear, reachClear, gateShape, TILE, VISION }
 import { generateMap, navigationGrid, blockAt, blockRoute, WORLD_WIDTH, WORLD_HEIGHT } from './map.js';
 import { count, start, stop } from './profiler.js';
 import { POTENTIAL_RADIUS, roofConceals } from './view.js';
-import { SLOT_COUNT, WEAPONS, equipped, carriedCell, collectEquipment, syncWeapon } from './equipment.js';
+import { SLOT_COUNT, WEAPONS, equipped, carriedCell, collectEquipment, syncWeapon, rearrangeEquipment } from './equipment.js';
 import { stepTraps } from './traps.js';
 export { generateMap, TILE };
-export const VERSION = 'last-exit-0.5';
+export const VERSION = 'last-exit-0.6';
 export const HZ = 20;
 export const DURATION = 600 * HZ;
 export const CELL_CHARGE_TICKS = 5 * HZ;
@@ -54,7 +54,10 @@ export function setInput(s, id, input) {
   // press the first one carried before any tick had a chance to read it.
   p.input = { x: axis(input.x), y: axis(input.y), aim: Number.isFinite(input.aim) ? input.aim : 0, attack: input.attack === true,
     skill: input.skill === true || p.input.skill === true, interact: input.interact === true || p.input.interact === true, drop: input.drop === true || p.input.drop === true, sneak: input.sneak === true,
-    slot: Number.isInteger(input.slot) && input.slot >= 0 && input.slot < SLOT_COUNT ? input.slot : p.input.slot };
+    slot: Number.isInteger(input.slot) && input.slot >= 0 && input.slot < SLOT_COUNT ? input.slot : p.input.slot,
+    moveSlot: input.moveSlot && Number.isInteger(input.moveSlot.from) && Number.isInteger(input.moveSlot.to)
+      && input.moveSlot.from >= 0 && input.moveSlot.from < SLOT_COUNT && input.moveSlot.to >= 0 && input.moveSlot.to < SLOT_COUNT
+      ? { from: input.moveSlot.from, to: input.moveSlot.to } : p.input.moveSlot };
   p.inputTick = s.tick; return true;
 }
 // The reach the server transmits within. Generous on purpose: it carries everything that could become
@@ -195,6 +198,9 @@ function attack(s, p) {
       p.attackCd = HZ; syncWeapon(p); effect(s, p, 'loot', 30); return;
     }
     const weapon = WEAPONS[item.weaponType]; if (!weapon) return;
+    item.ammo ??= weapon.ammo;
+    if (item.ammo <= 0) return;
+    item.ammo--;
     p.attackCd = weapon.cooldown;
     for (const spread of weapon.spread) s.projectiles.push({ id: s.serial++, owner: p.id, x: p.x, y: p.y, dx: Math.cos(p.heading + spread) * weapon.speed, dy: Math.sin(p.heading + spread) * weapon.speed, life: weapon.life, damage: weapon.damage }); p.cloak = 0;
   }
@@ -208,12 +214,15 @@ function botInput(s, p) {
   const cell = carriedCell(p);
   if (p.inventory) {
     const utility = p.inventory.findIndex(i => i && (i.kind === 'med' && p.hp < 65 || i.kind === 'shield' && p.shield < 45));
-    const weapon = p.inventory.findIndex(i => i?.kind === 'weapon');
+    const weapon = p.inventory.findIndex(i => i?.kind === 'weapon' && (i.ammo ?? WEAPONS[i.weaponType].ammo) > 0);
     p.selectedSlot = utility >= 0 ? utility : weapon >= 0 ? weapon : 0; syncWeapon(p);
     if (utility >= 0) attack(s, p);
   }
+  // Mixed temperaments create occasional betrayal, rather than every converging bot starting
+  // a deathmatch simultaneously. All bots can retaliate; roughly one third initiate disputes.
+  const opportunistic = p.id.charCodeAt(p.id.length - 1) % 3 === 0;
   const nearest = s.players.filter(t => t.id !== p.id && (t.role !== p.role || p.aggressor === t.id && s.tick < p.aggressionUntil
-    || p.role === 'contestant' && s.tick > 30 * HZ && distance(p, t) < (s.tick > 120 * HZ ? 320 : 180))
+    || p.role === 'contestant' && opportunistic && s.tick > 30 * HZ && distance(p, t) < (s.tick > 120 * HZ ? 320 : 180))
     && t.status === 'active' && visibleTo(s, p, t)).sort((a, b) => distance(p, a) - distance(p, b))[0];
   let target = p.role === 'gladiator' ? nearest || s.map.stations.find(st => st.x > s.hazardX + 1200) || s.map.exit : s.map.exit;
   if (p.role === 'contestant') {
@@ -225,14 +234,14 @@ function botInput(s, p) {
       const cost = t => blockRoute(s.map, from, blockAt(s.map, t)).length * 1000 + distance(p, t) * 0.05;
       target = objective.sort((a, b) => cost(a) - cost(b))[0];
       if (!cell && p.inventory.every(Boolean)) {
-        const discard = p.inventory.findIndex(item => item.kind !== 'weapon');
+        const discard = p.inventory.findIndex(item => item.kind !== 'weapon' || item.ammo === 0);
         if (discard >= 0) { dropEquipment(s, p, p.inventory[discard]); p.inventory[discard] = null; }
       }
     }
     const loot = s.map.items.filter(i => i.kind !== 'cell' && i.x > s.hazardX + 100 && i.x >= p.x - 60 && distance(p, i) < 210 && accessible(i)
       && (i.kind !== 'med' || p.hp < 75)
-      && (i.kind === 'access' || p.inventory.some(slot => !slot) || p.inventory.some(slot => slot?.kind === i.kind && slot.count < 3))
-      && (i.kind !== 'weapon' || !p.inventory.some(slot => slot?.weaponType === i.weaponType))).sort((a, b) => distance(p, a) - distance(p, b))[0];
+      && (i.kind === 'access' || p.inventory.some(slot => !slot) || p.inventory.some(slot => slot?.kind === i.kind && (slot.count < 3 || slot.weaponType === i.weaponType && slot.ammo < WEAPONS[i.weaponType]?.maxAmmo)))
+      && (i.kind !== 'weapon' || i.ammo !== 0 && !p.inventory.some(slot => slot?.weaponType === i.weaponType && slot.ammo >= WEAPONS[i.weaponType].maxAmmo))).sort((a, b) => distance(p, a) - distance(p, b))[0];
     if (loot && loot.kind !== 'cell' && !p.charging && (!nearest || distance(p, nearest) > 250)) target = loot;
   }
   if (!p.path?.length || s.tick % 20 === p.name.length % 20) {
@@ -253,7 +262,20 @@ function botInput(s, p) {
   let waypoint = p.path?.[0] ? center(...p.path[0]) : target;
   if (distance(p, target) < 55 && lineClear(s.map, p, target)) waypoint = target;
   else if (distance(p, waypoint) < 11 && p.path?.length) { p.path.shift(); waypoint = p.path[0] ? center(...p.path[0]) : target; }
-  const dx = waypoint.x - p.x, dy = waypoint.y - p.y, length = Math.max(9, Math.hypot(dx, dy));
+  let dx = waypoint.x - p.x, dy = waypoint.y - p.y;
+  const hunter = p.role === 'contestant' && s.players.find(t => t.role === 'gladiator' && t.status === 'active' && distance(p, t) < 170 && visibleTo(s, p, t));
+  if (hunter) {
+    // Keep firing, but do not blindly follow an objective path straight into melee range.
+    const away = Math.atan2(p.y - hunter.y, p.x - hunter.x);
+    const goalLength = Math.max(1, Math.hypot(dx, dy));
+    const options = [0, -0.5, 0.5, -1, 1, -1.5, 1.5].map(offset => {
+      const x = Math.cos(away + offset), y = Math.sin(away + offset);
+      const point = { x: p.x + x * 90, y: p.y + y * 90 };
+      return { x, y, point, score: distance(point, hunter) + (x * dx + y * dy) / goalLength * 15 - (point.x < s.hazardX + 100 ? 1000 : 0) };
+    }).filter(o => canOccupy(s.map, o.point.x, o.point.y, 12) && reachClear(s.map, p, o.point)).sort((a, b) => b.score - a.score);
+    if (options.length) { dx = options[0].x * 9; dy = options[0].y * 9; }
+  }
+  const length = Math.max(9, Math.hypot(dx, dy));
   if (p.role === 'contestant' && cell?.charge < CELL_CHARGE_TICKS && s.map.chargers.some(st => distance(p, st) < 55 && lineClear(s.map, p, st))) return { x: 0, y: 0, interact: true };
   const allyInLine = p.role === 'contestant' && nearest && s.players.some(other => {
     if (other.id === p.id || other.id === nearest.id || other.role !== 'contestant' || other.status !== 'active') return false;
@@ -287,6 +309,7 @@ export function step(s) {
     stop('sim.move');
     start('sim.actions');
     if (p.inventory && input.slot !== undefined) { p.selectedSlot = input.slot; syncWeapon(p); }
+    if (input.moveSlot) rearrangeEquipment(p, input.moveSlot.from, input.moveSlot.to);
     if (input.drop && equipped(p)) { dropEquipment(s, p, equipped(p)); p.inventory[p.selectedSlot] = null; p.charging = null; syncWeapon(p); }
     if (input.skill) skill(s, p);
     if (input.attack) attack(s, p);
@@ -297,7 +320,7 @@ export function step(s) {
       if (!cell || cell.charge >= CELL_CHARGE_TICKS || input.x || input.y || !station || distance(p, station) >= 70 || !lineClear(s.map, p, station)) p.charging = null;
       else if (++cell.charge >= CELL_CHARGE_TICKS) { p.charging = null; event(s, `${p.name} charged a power cell`); effect(s, p, 'charge', 70); }
     }
-    if (!p.bot) { p.input.skill = false; p.input.interact = false; p.input.drop = false; delete p.input.slot; } // Latched presses are spent once.
+    if (!p.bot) { p.input.skill = false; p.input.interact = false; p.input.drop = false; delete p.input.slot; delete p.input.moveSlot; } // Latched presses are spent once.
     stop('sim.actions');
     start('sim.pickups');
     if (p.role === 'contestant') {

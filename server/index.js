@@ -15,6 +15,7 @@ import * as profiler from '../shared/profiler.js';
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const MAX_SPECTATORS = 24;
 const SPECTATOR_DELAY_TICKS = 60; // Three seconds at the authoritative 20 Hz rate.
+export const EMPTY_ROOM_GRACE_MS = 30000;
 const deliver = (ws, payload) => { if (ws.readyState === WebSocket.OPEN && ws.bufferedAmount < 512 * 1024) ws.send(payload); };
 const send = (ws, value) => deliver(ws, JSON.stringify(value));
 const liveMap = map => ({ ...map, traps: [] }); // Dynamic trap state travels only in the per-viewer projection.
@@ -109,7 +110,9 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     if (!file.endsWith('.meta.json')) continue;
     try { const data = JSON.parse(await readFile(path.join(replayDir, file), 'utf8')); archives.set(data.id, data); } catch { /* Ignore incomplete metadata from interrupted writes. */ }
   }
-  app.get('/api/health', (_req, res) => res.json({ ok: true, version: VERSION, tickRate: HZ, profiling: profiler.profiling() }));
+  app.get('/api/health', (_req, res) => res.json({ ok: true, version: VERSION, tickRate: HZ, profiling: profiler.profiling(),
+    liveRooms: [...rooms.values()].filter(r => r.started && !r.finished).length,
+    emptyLiveRooms: [...rooms.values()].filter(r => r.started && !r.finished && !r.clients.size).length }));
   app.get('/api/profile', (_req, res) => { const pacing = profiler.report().find(s => s.name === 'sim.tickPacing'); res.json({ enabled: profiler.profiling(), tickRate: HZ, budgetMs: 1000 / HZ, effectiveHz: pacing?.mean ? 1000 / pacing.mean : null, frames: profiler.frameCount(), rooms: [...rooms.values()].filter(r => r.started && !r.finished).length, series: profiler.report() }); });
   app.post('/api/profile', (req, res) => { profiler.enable(req.body?.enabled !== false); res.json({ enabled: profiler.profiling() }); });
   app.post('/api/rooms', (req, res) => {
@@ -221,7 +224,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
         return;
       }
       if (!room.started) return;
-      if (data.type === 'input' && ws.playerId && setInput(room.game, ws.playerId, data)) room.inputs.push({ type: 'input', id: ws.playerId, input: room.game.players.find(p => p.id === ws.playerId).input, seq: data.seq });
+      if (data.type === 'input' && ws.playerId && setInput(room.game, ws.playerId, data)) room.inputs.push({ type: 'input', id: ws.playerId, input: structuredClone(room.game.players.find(p => p.id === ws.playerId).input), seq: data.seq });
       if (data.type === 'finish' && ws.owner) {
         room.game.phase = 'finished';
         for (const p of room.game.players) if (p.status === 'active' && p.role === 'contestant') p.status = 'stranded';
@@ -261,6 +264,17 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
       if (room.matchmade && !room.started && room.startsAt && Date.now() >= room.startsAt && room.clients.size > 0) startMatch(room);
       if ((!room.started || room.finished) && room.clients.size === 0 && Date.now() - room.createdAt > 180000) { rooms.delete(id); continue; }
       if (!room.started || room.finished) continue;
+      // Keep a short reconnect window, but abandoned playtests must not run ten minutes of bots
+      // and gzip recording in the background while the owner is testing another arena.
+      if (room.clients.size === 0) {
+        room.emptySince ??= Date.now();
+        if (Date.now() - room.emptySince >= EMPTY_ROOM_GRACE_MS) {
+          room.game.phase = 'finished';
+          for (const p of room.game.players) if (p.role === 'contestant' && p.status === 'active') p.status = 'stranded';
+          room.inputs.push({ type: 'abandoned', reason: 'No viewers after reconnect grace' });
+          record(room, snapshot(room.game)); void finish(room); continue;
+        }
+      } else room.emptySince = null;
       live++;
       room.debt += elapsed;
       // Pause simulation advancement under disk backpressure rather than dropping replay ticks.

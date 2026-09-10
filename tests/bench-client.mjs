@@ -28,16 +28,18 @@ try {
   }
   await page.getByRole('button', { name: 'Start match', exact: true }).click();
   await page.waitForFunction(() => window.arenaDebug?.().tick > 3, null, { timeout: 15000 });
-  await page.evaluate(() => window.arenaProfiling(true));
+  await page.evaluate(() => { window.arenaProfiling(false); window.arenaProfiling(true); });
+  const measuredAt = performance.now();
   await page.keyboard.down('KeyD');
   await page.waitForTimeout(seconds * 1000);
   await page.keyboard.up('KeyD');
   const { frames, series } = await page.evaluate(() => window.arenaProfile());
+  const elapsedSeconds = (performance.now() - measuredAt) / 1000;
   const find = name => series.find(s => s.name === name);
   const delta = find('render.delta'), gap = find('net.stateGap'), bytes = find('net.stateBytes');
   if (args.has('json')) console.log(JSON.stringify({ frames, series }, null, 2));
   else {
-    console.log(`Last Exit client benchmark — ${args.get('location') || 'entry'}, ${seconds}s, ${frames} rendered frames (${(frames / seconds).toFixed(1)} fps average)`);
+    console.log(`Last Exit client benchmark — ${args.get('location') || 'entry'}, ${elapsedSeconds.toFixed(2)}s, ${frames} rendered frames (${(frames / elapsedSeconds).toFixed(1)} fps average)`);
     if (delta) console.log(`frame time  mean ${delta.mean.toFixed(2)} ms   p50 ${delta.p50.toFixed(2)}   p95 ${delta.p95.toFixed(2)}   max ${delta.max.toFixed(2)}   (60 fps budget 16.7 ms)`);
     if (gap) console.log(`state gap   mean ${gap.mean.toFixed(1)} ms   p50 ${gap.p50.toFixed(1)}   p95 ${gap.p95.toFixed(1)}   max ${gap.max.toFixed(1)}   over ${gap.calls} packets   (server ${HZ} Hz = ${(1000 / HZ).toFixed(1)} ms)`);
     if (bytes) console.log(`state size  mean ${(bytes.mean / 1024).toFixed(1)} KiB, p95 ${(bytes.p95 / 1024).toFixed(1)} KiB per authoritative frame`);

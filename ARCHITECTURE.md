@@ -6,7 +6,13 @@
 
 Building footprints and doors are authoritative map data. `shared/view.js` supplies roof concealment; solid geometry and closed doors occlude sight, while windows only block bodies and item reach. The renderer hides roofs for the occupied building. Doors retain local observed-state memory; actual collision still uses authoritative state under the existing prototype trust model.
 
-Power cells are normal unstackable equipment entries with retained charge, not a separate player field. Charging takes 100 ticks. Drop input is latched like interaction input. Projectile hits can damage other contestants; killed gladiators enter a 400-tick respawning state and return only when a safe transit station is available. Recordings contain these new states under simulation version `last-exit-0.5`; old recordings retain a display fallback for their dedicated cell field.
+Power cells are normal unstackable equipment entries with retained charge, not a separate player field. Charging takes 100 ticks. Drop input is latched like interaction input. Projectile hits can damage other contestants; killed gladiators enter a 400-tick respawning state and return only when a safe transit station is available. Recordings contain these new states under simulation version `last-exit-0.6`; old recordings retain a display fallback for their dedicated cell field.
+
+## Inventory, lifecycle and diagnostics follow-up
+
+The six-slot inventory stores ammo on weapons and charge on cells. Validated moveSlot input is latched and applied authoritatively; compatible utility stacks merge and other slots swap. Recording copies sanitized accepted input before the simulation clears one-shot fields, preserving commands as well as outcome frames. The icon HUD supports keyboard and touch rearrangement without client authority over inventory.
+
+Empty live rooms retain a 30-second reconnect grace, then finalize a replay with an abandoned event and stop simulation. A viewer—including an authorized spectator—keeps a room live. Raw frame timestamps replace Phaser-smoothed delta for diagnostics and client benchmarks. The bounded always-on client samples can be downloaded without owner credentials or a player list. Profiler per-frame call rates now use the same rolling window as timing samples.
 
 ## Stack Decision
 

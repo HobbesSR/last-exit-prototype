@@ -119,10 +119,11 @@ test('bots open a building door to retrieve an indoor objective', () => {
   assert.equal(door.open, true); assert.ok(carriedCell(p));
 });
 
-test('without hunters, bots complete the cell objective and fill all three pods through the maze', () => {
+test('with combat damage neutralized, bots complete the cell objective and fill all three pods through the maze', () => {
   for (const seed of [1, 9, 4217]) {
     const s = createGame(seed); s.map.traps = [];
-    for (const p of s.players) if (p.role === 'gladiator') p.status = 'eliminated';
+    // Isolate objective navigation from the separately tested proactive PvP and finite ammo.
+    for (const p of s.players) if (p.role === 'gladiator') p.status = 'eliminated'; else p.shield = 1000000;
     while (s.phase === 'live') step(s);
     assert.equal(s.players.filter(p => p.status === 'escaped').length, 3, `seed ${seed}`);
   }
@@ -137,4 +138,13 @@ test('contestant bots initiate close-range fights after opening grace without be
   s.tick = 601;
   for (let i = 0; i < 10; i++) step(s);
   assert.ok(target.hp < 100, 'nearby contestant is challenged without retaliation trigger');
+});
+
+test('armed contestant bots create distance from a nearby hunter instead of walking into melee', () => {
+  const { s, p } = fixture(), hunter = s.players.find(p => p.role === 'gladiator');
+  Object.assign(hunter, { x: p.x + 100, y: p.y });
+  p.bot = true; p.inventory[0] = { kind: 'weapon', weaponType: 'pistol', ammo: 48 };
+  for (let i = 0; i < 12; i++) step(s);
+  assert.ok(Math.hypot(p.x - hunter.x, p.y - hunter.y) > 150);
+  assert.ok(hunter.hp < hunter.maxHp, 'retreating bot can still return fire');
 });

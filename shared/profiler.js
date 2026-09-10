@@ -9,24 +9,25 @@
 // render frames that happened to pass in between.
 const WINDOW = 600; // Samples retained per series: 30 s of server ticks at 20 Hz.
 let on = false, frames = 0;
-const open = new Map(), pending = new Map(), series = new Map();
+const open = new Map(), pending = new Map(), pendingCalls = new Map(), series = new Map();
 const clock = () => performance.now();
 function track(name, unit, scope) {
   let s = series.get(name);
-  if (!s) series.set(name, s = { name, unit, scope, values: [], calls: 0 });
+  if (!s) series.set(name, s = { name, unit, scope, values: [], callSamples: [], calls: 0 });
   return s;
 }
 function push(s, value) { s.values.push(value); if (s.values.length > WINDOW) s.values.shift(); }
 export const profiling = () => on;
 export const frameCount = () => frames;
 export function enable(value = true) { if (!value) reset(); on = !!value; return on; }
-export function reset() { open.clear(); pending.clear(); series.clear(); frames = 0; }
+export function reset() { open.clear(); pending.clear(); pendingCalls.clear(); series.clear(); frames = 0; }
 export function start(name) { if (on) open.set(name, clock()); }
 export function stop(name) {
   if (!on) return;
   const started = open.get(name);
   if (started === undefined) return;
   open.delete(name); track(name, 'ms', 'frame').calls++;
+  pendingCalls.set(name, (pendingCalls.get(name) || 0) + 1);
   pending.set(name, (pending.get(name) ?? 0) + (clock() - started));
 }
 export function count(name, amount = 1) {
@@ -38,14 +39,18 @@ export function observe(name, value, unit = 'ms') { if (on) { const s = track(na
 export function frame() {
   if (!on) return;
   frames++;
-  for (const s of series.values()) if (s.scope === 'frame') push(s, pending.get(s.name) ?? 0);
-  pending.clear(); open.clear();
+  for (const s of series.values()) if (s.scope === 'frame') {
+    push(s, pending.get(s.name) ?? 0);
+    s.callSamples.push(pendingCalls.get(s.name) || 0);
+    if (s.callSamples.length > WINDOW) s.callSamples.shift();
+  }
+  pending.clear(); pendingCalls.clear(); open.clear();
 }
 export function report() {
   return [...series.values()].map(s => {
     const sorted = [...s.values].sort((a, b) => a - b), n = sorted.length || 1;
     const at = q => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] : 0;
-    return { name: s.name, unit: s.unit, scope: s.scope, samples: sorted.length, calls: s.scope === 'event' ? s.calls : s.calls / n,
+    return { name: s.name, unit: s.unit, scope: s.scope, samples: sorted.length, calls: s.scope === 'event' ? s.calls : s.callSamples.reduce((a, b) => a + b, 0) / n,
       mean: sorted.reduce((a, b) => a + b, 0) / n, p50: at(0.5), p95: at(0.95), max: sorted.length ? sorted[sorted.length - 1] : 0 };
   }).sort((a, b) => b.mean - a.mean);
 }

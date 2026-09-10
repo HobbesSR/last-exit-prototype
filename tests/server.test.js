@@ -6,7 +6,7 @@ import path from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { WebSocket } from 'ws';
-import { createArenaServer } from '../server/index.js';
+import { createArenaServer, EMPTY_ROOM_GRACE_MS } from '../server/index.js';
 
 function next(ws, type) {
   return new Promise((resolve, reject) => {
@@ -15,6 +15,34 @@ function next(ws, type) {
     ws.on('message', receive);
   });
 }
+
+test('abandoned live rooms keep a reconnect grace then stop simulation and finalize their replay', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-abandoned-'));
+  const server = await createArenaServer({ replayDir: dir });
+  const until = async predicate => {
+    const deadline = Date.now() + 5000;
+    while (!await predicate()) { assert.ok(Date.now() < deadline, 'condition timed out'); await new Promise(r => setTimeout(r, 15)); }
+  };
+  try {
+    await new Promise(resolve => server.http.listen(0, '127.0.0.1', resolve));
+    const base = `http://127.0.0.1:${server.http.address().port}`;
+    const created = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();
+    const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve));
+    const welcome = next(ws, 'welcome'); ws.send(JSON.stringify({ type: 'join', room: created.id, ownerKey: created.ownerKey })); await welcome;
+    const live = next(ws, 'state'); ws.send(JSON.stringify({ type: 'start' })); await live;
+    const room = server.rooms.get(created.id), closed = new Promise(resolve => ws.once('close', resolve)); ws.close(); await closed;
+    await until(() => room.clients.size === 0 && room.emptySince);
+    assert.equal(room.finished, false, 'reconnection grace preserves live match');
+    room.emptySince = Date.now() - EMPTY_ROOM_GRACE_MS - 1;
+    await until(() => room.finished);
+    await until(async () => (await (await fetch(base + '/api/replays')).json()).some(r => r.id === room.id));
+    const replay = JSON.parse(gunzipSync(await readFile(path.join(dir, room.id + '.json.gz'))));
+    assert.equal(replay.frames.at(-1).state.phase, 'finished');
+    assert.ok(replay.frames.at(-1).commands.some(c => c.type === 'abandoned'));
+    const tick = room.game.tick; await new Promise(r => setTimeout(r, 100)); assert.equal(room.game.tick, tick);
+    const health = await (await fetch(base + '/api/health')).json(); assert.equal(health.emptyLiveRooms, 0);
+  } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
+});
 test('matchmaking separates private rooms, honors available preferences, falls back, and starts automatically', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-match-'));
   const server = await createArenaServer({ replayDir: dir });
@@ -127,13 +155,17 @@ test('two clients share authority; replay preserves each recorded frame and surv
     b.send(JSON.stringify({ type: 'finish' }));
     a.send(JSON.stringify({ type: 'start' }));
     const live = await next(a, 'state'); assert.equal(live.state.phase, 'live');
-    a.send(JSON.stringify({ type: 'input', seq: 1, x: 1, hp: 99999 }));
+    a.send(JSON.stringify({ type: 'input', seq: 1, x: 1, hp: 99999, interact: true, moveSlot: { from: 0, to: 5 } }));
     await next(a, 'state'); await next(a, 'state');
     const saved = next(a, 'saved'); a.send(JSON.stringify({ type: 'finish' })); const metadata = (await saved).replay;
     const replay = await (await fetch(base + `/api/replays/${room.id}`)).json();
     assert.equal(replay.frames.length, metadata.frames);
     assert.equal(replay.frames[0].state.tick, 0);
     assert.equal(replay.frames.at(-1).state.phase, 'finished');
+    const accepted = replay.frames.flatMap(f => f.commands).find(c => c.type === 'input' && c.seq === 1);
+    assert.equal(accepted.input.interact, true, 'spent one-shot input remains intact in the recording');
+    assert.deepEqual(accepted.input.moveSlot, { from: 0, to: 5 });
+    assert.equal(Object.hasOwn(accepted.input, 'hp'), false, 'record sanitized input, not injected state');
     for (const frame of received) {
       const archived = replay.frames.find(r => r.state.tick === frame.tick && r.state.phase === frame.phase)?.state;
       assert.ok(archived, `live tick ${frame.tick} retained`);

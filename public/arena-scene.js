@@ -1,6 +1,7 @@
 import { visibilityPolygon, litPoint, gateShape } from '/shared/movement.js';
 import { playerZoom, viewBounds, viewRadius, inViewport, observeGates, buildingAt, roofConceals } from '/shared/view.js';
 import { observe, start, stop, frame as endProfileFrame } from '/shared/profiler.js';
+import { noteFrame } from '/diagnostics.js';
 
 const COLORS = { access: 0xf4d26c, med: 0xff8b97, weapon: 0x8bd9f0, shield: 0xa3b9ff, cell: 0xffe98a };
 export function makeArenaScene(api) {
@@ -168,7 +169,8 @@ export function makeArenaScene(api) {
       camera.centerOn(x, y);
     }
     update(now, delta) {
-      start('render.frame'); observe('render.delta', delta);
+      const rawDelta = noteFrame();
+      start('render.frame'); if (rawDelta !== null) observe('render.delta', rawDelta);
       api.onFrame(delta);
       const state = api.state(), map = api.map(), self = api.self();
       if (!state || !map) { stop('render.frame'); endProfileFrame(); return; }

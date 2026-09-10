@@ -20,7 +20,7 @@ Contestants gain power from environmental equipment. Gladiators have distinct ki
 - Solid obstacles occlude vision. The current server sends a bounded potential-visibility projection and the client resolves exact sight. The sight polygon fills the play-area viewport while retaining obstacle occlusion for dynamic entities.
 - Keyboard movement is independent of mouse aiming. Mouse buttons fire toward the pointer.
 - Touch uses independent movement and aim/fire sticks, with separate ability and interaction controls.
-- The prototype's playful arena presentation is a baseline. The accepted art direction is cyberpunk urban dystopian ruins, preserving clear silhouettes, readable equipment, and obvious interactions. Zombs Royale remains a handling and inventory reference. The target playing field is 2½D; camera treatment and playable elevation remain open.
+- The prototype's playful arena presentation is a baseline. The accepted art direction is cyberpunk urban dystopian ruins, preserving clear silhouettes, readable equipment, and obvious interactions. Zombs Royale remains a handling and inventory reference. The accepted target includes ramps, playable roofs and overlapping floors on discrete collision planes. Their navigation and transition rules remain future work.
 
 ## Primitive Match
 
@@ -42,16 +42,18 @@ The current interim build is a 24,000 by 12,000 connected street maze with loops
 
 These are tracked as F-01 through F-10 in `REQUIREMENTS.md`. The requested hierarchical template system is explicitly deferred; the interim maze improves playability without claiming to implement it. Indoor/outdoor mechanics are implemented, but 2½D presentation and finished art remain incomplete. Batched design questions are in requirements section 8.
 
+Inventory now uses six icon-based slots, finite ammo, move/swap/merge controls and retained ammunition on drops. Weapon pickups replenish matching ammunition. Magazine/reload design remains an open balance question; current ammo is attached to each weapon.
+
 ## Roles (Current Prototype)
 
 | Role | Strength | Constraint | Growth |
 | --- | --- | --- | --- |
-| Contestant | Smaller body, faster movement, five equipment slots, no innate ability | Fragile; escape places are scarce | Access charges, weapons, shields, healing |
+| Contestant | Smaller body, faster movement, six equipment slots, no innate ability | Fragile; escape places are scarce | Access charges, weapons, shields, healing |
 | Warden | Close-range shockwave | Must reach its target | Kill-based level, damage, recovery, health |
 | Specter | Scan reveals nearby contestants | Lower basic damage | Kill-based level, damage, recovery, health |
 | Striker | Temporary speed burst | Ability timing matters | Kill-based level, damage, recovery, health |
 
-Contestants can shoot each other and compete for equipment and escape slots. Bots cooperate by default and retaliate when hit. Gladiators killed in combat respawn after 20 seconds at a safe transit station, retaining upgrades. Human PvP incentives and balance remain playtest questions.
+Contestants can shoot each other and compete for equipment and escape slots. Bots avoid initiating contestant fights for 30 seconds, then contest close personal space; after two minutes their engagement distance increases. Retaliation remains immediate. Gladiators killed in combat respawn after 20 seconds at a safe transit station, retaining upgrades. Human PvP incentives and balance remain playtest questions.
 
 ## Information and Counterplay
 

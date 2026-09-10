@@ -1,6 +1,8 @@
 import { movePlayer, litPoint, lineClear } from '/shared/movement.js';
 import { inViewport, roofConceals } from '/shared/view.js';
-import { WEAPONS, carriedCell } from '/shared/equipment.js';
+import { WEAPONS, carriedCell, SLOT_COUNT } from '/shared/equipment.js';
+import { slotPresentation } from '/equipment-ui.js';
+import { notePacket, resetDiagnostics, diagnosticTimings } from '/diagnostics.js';
 import { makeArenaScene } from '/arena-scene.js';
 import * as profiler from '/shared/profiler.js';
 
@@ -17,11 +19,21 @@ let lobbyStartsAt = null;
 let pulseSkill = false, pulseInteract = false, pointerFire = false, sneakHeld = false, currentAim = 0;
 let selectedSlot;
 let pulseDrop = false;
+let moveFrom = null, pendingMove = null;
+function selectSlot(index) {
+  if (moveFrom !== null) { pendingMove = { from: moveFrom, to: index }; moveFrom = null; }
+  else selectedSlot = index;
+}
+function toggleArrange() {
+  const me = state?.players.find(p => p.id === playerId);
+  moveFrom = moveFrom === null && me?.inventory?.[me.selectedSlot] ? me.selectedSlot : null;
+  updateHUD();
+}
 const movementStick = { x: 0, y: 0, active: false }, aimingStick = { x: 0, y: 0, active: false };
 const held = new Set();
-for (let index = 0; index < 5; index++) {
+for (let index = 0; index < SLOT_COUNT; index++) {
   const button = document.createElement('button'); button.type = 'button'; button.dataset.slot = index;
-  button.onclick = () => selectedSlot = index; $('equipment-slots').append(button);
+  button.onclick = () => selectSlot(index); $('equipment-slots').append(button);
 }
 let toastTimer, connecting = false, disconnecting = false, lastStateAt = 0, profileOverlay;
 const directed = () => !!replay || !playerId;
@@ -34,7 +46,7 @@ async function json(url, options) {
   if (!response.ok) throw new Error(result.error || 'Request failed');
   return result;
 }
-function clearInput() { held.clear(); pointerFire = false; sneakHeld = false; pulseSkill = false; pulseInteract = false; pulseDrop = false; selectedSlot = undefined; for (const stick of [movementStick, aimingStick]) Object.assign(stick, { x: 0, y: 0, active: false }); document.querySelectorAll('.virtual-stick span').forEach(el => el.style.transform = ''); }
+function clearInput() { moveFrom = null; pendingMove = null; held.clear(); pointerFire = false; sneakHeld = false; pulseSkill = false; pulseInteract = false; pulseDrop = false; selectedSlot = undefined; for (const stick of [movementStick, aimingStick]) Object.assign(stick, { x: 0, y: 0, active: false }); document.querySelectorAll('.virtual-stick span').forEach(el => el.style.transform = ''); }
 function changeMap(map) { arenaMap = structuredClone(map); if (scene?.ready) scene.buildMap(); }
 function updateLobby(data = {}) {
   lobbyStartsAt = data.startsAt || null;
@@ -79,6 +91,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   if (!key && saved?.key) { key = saved.key; role = saved.role; kit = saved.kit; name = saved.name; }
   if (ws) { disconnecting = true; ws.close(); }
   clearInput(); pending = []; seq = 0; savedReplay = null; playerId = null;
+  resetDiagnostics();
   owner = false; lobbyPlayers = [];
   $('finish-recording').disabled = false;
   roomId = room; ownerKey = key; selectedRole = role;
@@ -109,6 +122,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       connection(data.spectator ? 'SPECTATING' : data.started ? 'LIVE' : 'LOBBY'); $('loadout-dialog').close();
       if (!data.spectator && !data.started) showLobby(data);
     } else if (data.type === 'state') {
+      notePacket(event.data.length);
       // Gap between authoritative frames: separates server pacing from client render cost.
       if (lastStateAt) profiler.observe('net.stateGap', performance.now() - lastStateAt);
       profiler.observe('net.stateBytes', event.data.length, 'n');
@@ -151,7 +165,7 @@ function updateHUD() {
 }
 function hud() {
   const me = state.players.find(p => p.id === playerId) || (replay ? state.players[0] : null);
-  if (!me) { $('objective').hidden = true; $('equipment-slots').hidden = true; $('drop-item').hidden = true; }
+  if (!me) { $('arrange-item').hidden = true; $('objective').hidden = true; $('equipment-slots').hidden = true; $('drop-item').hidden = true; }
   $('clock').textContent = time((state.duration || 2400) - state.tick);
   $('slots').textContent = state.slots;
   $('seed-label').textContent = arenaMap.seed;
@@ -162,13 +176,24 @@ function hud() {
     const gladiator = me.role === 'gladiator';
     const cell = carriedCell(me) || me.cell; // Older recordings stored a dedicated cell.
     $('drop-item').hidden = gladiator || !!replay || me.status !== 'active';
+    $('arrange-item').hidden = $('drop-item').hidden;
+    $('arrange-item').textContent = moveFrom === null ? 'Move / merge · R' : 'Choose destination · R cancels';
+    $('arrange-item').setAttribute('aria-pressed', String(moveFrom !== null));
     $('equipment-slots').hidden = gladiator || !!replay;
     $('skill').hidden = !gladiator;
     for (const button of $('equipment-slots').children) {
       const index = Number(button.dataset.slot), item = me.inventory?.[index];
-      const label = item?.kind === 'weapon' ? WEAPONS[item.weaponType]?.name : item?.kind === 'cell' ? `Cell ${Math.floor(item.charge / (state.cellChargeTicks || 100) * 100)}%` : item ? `${item.kind === 'med' ? 'Medkit' : 'Shield'} ×${item.count}` : 'Empty';
-      button.textContent = `${index + 1} · ${label}`; button.classList.toggle('selected', me.selectedSlot === index);
-      button.ariaLabel = `Slot ${index + 1}: ${label}`; button.setAttribute('aria-pressed', String(me.selectedSlot === index));
+      const display = slotPresentation(item, state.cellChargeTicks || 100);
+      if (button.dataset.item !== display.key) {
+        button.innerHTML = '<span class="slot-number">' + (index + 1) + '</span>' + display.glyph + '<span class="slot-count">' + display.count + '</span>';
+        button.dataset.item = display.key;
+      }
+      button.classList.toggle('selected', me.selectedSlot === index);
+      button.classList.toggle('move-source', moveFrom === index);
+      button.classList.toggle('empty-ammo', item?.kind === 'weapon' && item.ammo === 0);
+      button.ariaLabel = 'Slot ' + (index + 1) + ': ' + display.name + (display.count ? ' ' + display.count : '');
+      button.title = display.name + (item?.kind === 'weapon' ? ' · ' + display.count + ' rounds' : '');
+      button.setAttribute('aria-pressed', String(me.selectedSlot === index));
     }
     $('objective').hidden = gladiator || !!replay || me.status !== 'active';
     const chargeTicks = state.cellChargeTicks || 100;
@@ -269,6 +294,7 @@ function inputTick() {
     else if (matchMedia('(pointer:coarse)').matches) input.aim = currentAim;
   }
   currentAim = input.aim;
+  if (!blocked && pendingMove) input.moveSlot = pendingMove; pendingMove = null;
   input.drop = !blocked && pulseDrop; pulseDrop = false;
   if (selectedSlot !== undefined) { input.slot = selectedSlot; selectedSlot = undefined; }
   ws.send(JSON.stringify(input)); pending.push(input); pending = pending.slice(-20);
@@ -335,7 +361,8 @@ document.addEventListener('keydown', e => {
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
   held.add(e.code);
   if (!e.repeat && e.code === 'KeyG') pulseDrop = true;
-  if (/^Digit[1-5]$/.test(e.code)) selectedSlot = Number(e.code.slice(-1)) - 1;
+  if (/^Digit[1-6]$/.test(e.code)) selectSlot(Number(e.code.slice(-1)) - 1);
+  if (!e.repeat && e.code === 'KeyR') toggleArrange();
   if (!e.repeat) { if (e.code === 'KeyQ') pulseSkill = true; if (e.code === 'KeyE') pulseInteract = true; if (e.code === 'KeyM') toggleMap(); if (e.code === 'Space' && replay) setPlaying(!playing); }
 });
 document.addEventListener('keyup', e => held.delete(e.code));
@@ -371,6 +398,7 @@ document.querySelectorAll('.close-dialog').forEach(button => button.onclick = ()
 $('share').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('Arena link copied'); } catch { toast('Arena link: ' + location.href); } };
 $('copy-lobby-link').onclick = $('share').onclick;
 $('drop-item').onclick = () => pulseDrop = true;
+$('arrange-item').onclick = toggleArrange;
 $('matchmaking').onchange = () => {
   const matching = $('matchmaking').checked;
   $('preference-field').hidden = !matching; $('matchmaking-note').hidden = !matching;
@@ -383,6 +411,18 @@ setInterval(() => {
 }, 250);
 $('start-match').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) ws.send(JSON.stringify({ type: 'start' })); };
 $('archive').onclick = () => { clearInput(); $('archive-dialog').showModal(); void loadArchive(); };
+async function downloadDiagnostics() {
+  const me = state?.players.find(p => p.id === playerId);
+  const report = { capturedAt: new Date().toISOString(), version: state?.version, seed: arenaMap?.seed, tick: state?.tick,
+    role: me?.role, position: me && { x: me.x, y: me.y }, viewport: { width: innerWidth, height: innerHeight, pixelRatio: devicePixelRatio },
+    userAgent: navigator.userAgent, hardwareConcurrency: navigator.hardwareConcurrency, visibility: document.visibilityState,
+    socketBufferedBytes: ws?.bufferedAmount, timings: diagnosticTimings(), profile: profiler.report() };
+  try { report.server = await json('/api/health'); } catch { report.server = { reachable: false }; }
+  const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
+  const a = document.createElement('a'); a.href = url; a.download = `last-exit-diagnostics-${Date.now()}.json`; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+$('download-diagnostics').onclick = () => void downloadDiagnostics();
 $('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) { ws.send(JSON.stringify({ type: 'finish' })); $('finish-recording').disabled = true; } };
 $('watch-match').onclick = () => { if (savedReplay) void watchReplay(savedReplay.id); };
 $('replay-play').onclick = () => { if (replay && playback >= replay.frames.length - 1) playback = 0; setPlaying(!playing); };

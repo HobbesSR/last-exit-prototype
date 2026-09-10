@@ -2,7 +2,7 @@
 
 Status: living document  
 Updated: 2026-09-10
-Prototype version: `last-exit-0.5`
+Prototype version: `last-exit-0.6`
 
 This is the canonical product and engineering requirements document for the prototype. `DESIGN.md` is the shorter design working draft; `ARCHITECTURE.md` records implementation ownership and technical tradeoffs. When implementation and this document disagree, update the document and the relevant tests in the same change.
 
@@ -46,7 +46,7 @@ The target is a substantially larger cyberpunk urban dystopian ruin with indoor 
 | F-03 | Find a power cell, charge it at a station, and deliver it to a pod. | Cells each occupy one ordinary slot, retain charge on drops, take five seconds to charge, and are consumed on extraction. Inventory, interruption, death/drop, charging and extraction tests pass. | Implemented |
 | F-04 | Cyberpunk ruins with interiors/exteriors and a 2½D playing field. | Buildings have open/close doors, windows, and roofs that hide interiors outside and disappear inside. Flat top-down presentation remains; playable elevation and finished art are not implemented. | Partial |
 | F-05 | Add motion-sensitive mines, turrets, flamethrowers, and NPC spider bots that attack anything within web range, pursue only a limited distance, and can grapple. | Tests cover mine movement triggers, turret targeting, flame warning/cone/cover, and spider grappling and leash limits against both player roles. | Implemented prototype |
-| F-06 | Give contestants weapon/item slots inspired by Zombs Royale and broader weapon variety. Default to no innate special abilities; retain a possible single equipped-ability slot as an open decision. | Five slots; pistol, rifle, scattergun, medkits and shields. Validated 1–5/touch selection, stack caps, use/fire, full-inventory swaps and death drops. Innate contestant skill removed. | Implemented prototype |
+| F-06 | Six weapon/item slots, finite ammunition, icons, rearrangement and compatible stack merging. No innate contestant abilities. | Six slots; pistol/rifle/scattergun with finite rounds; med/shield stacks; unstackable cells; numeric ammo/charge badges; R/touch move/merge; G/touch drop. Server validation and browser tests cover sixth-slot use and rearrangement. | Implemented prototype |
 | F-07 | Support private rooms and server matchmaking with gladiator, contestant, or no role preference. | Private owner-started rooms and separate server matchmaking. Tests cover all preferences, fallback, automatic start, and refresh recovery. No internet deployment or account service. | Implemented on one server |
 | F-08 | Allow exploration within an approximately ten-minute wall deadline. | Revised 24,000 x 12,000 maze; 600-second limit, 60-second wall grace, five-second charging. Main-route travel targets roughly four to five minutes; generation penalizes late westward backtracking and tests include exploration pauses. Human balance still needs playtesting. | Revised initial tuning |
 | F-09 | Remove the circular visibility boundary and use the full play-area viewport. Static map elements remain visible; obstacles still conceal dynamic entities. | Viewport coverage tests include portrait, desktop and ultrawide sizes; browser test renders an actor beyond the former 620-unit cutoff while preserving wall occlusion. Camera coverage is bounded on huge displays. | Implemented |
@@ -58,15 +58,17 @@ The power-cell objective supplements limited escape capacity; three extraction s
 
 Camera coverage is capped at 2,400 x 1,600 world units, and the server's potential-visibility radius includes its diagonal plus a 250-unit margin. The sight polygon covers the viewport rather than imposing a circular cutoff. Obstacles conceal dynamic actors, including allies, except explicit gladiator sensor/scan reveals. Static geometry stays visible with shade. Gate memory is local historical presentation; authoritative collision uses actual gate state. This is not a production anti-cheat system: potential state and actual gates remain available to a modified client within the existing trust model.
 
-Each cell occupies one of the five ordinary equipment slots and never stacks; carrying several costs several slots. Keys remain separate. A cell takes 100 ticks (five seconds) to charge; press E in range and stay still. Movement or leaving the station pauses charging but retains progress. Stations can charge multiple contestants. Elimination drops the cell with its charge; extraction consumes it. Traps are placed at least 850 units from chargers so required stationary charging is not automatically covered by a trap.
+Each cell occupies one of the six ordinary equipment slots and never stacks; carrying several costs several slots. Keys remain separate. A cell takes 100 ticks (five seconds) to charge; press E in range and stay still. Movement or leaving the station pauses charging but retains progress. Stations can charge multiple contestants. Elimination drops the cell with its charge; extraction consumes it. Traps are placed at least 850 units from chargers so required stationary charging is not automatically covered by a trap.
 
-Equipment has five mixed slots. 1–5 or slot buttons select equipment; fire/use activates it. Medkits and shields stack to three per slot, restoring 40 HP or 30 shield (75 maximum). E swaps a nearby item into the selected slot when inventory is full. G or the Drop selected button drops that slot, preserving cell charge; a one-second owner pickup delay prevents immediate recollection. Weapons currently have unlimited ammunition: pistol (10 damage / 8-tick cooldown), rifle (6 / 4), scattergun (five 7-damage pellets / 18). There is no contestant ability slot in this version.
+Equipment has six mixed slots. 1–6 or slot buttons select equipment; fire/use activates it. Items use icons with numeric ammo, stack or charge badges, tooltips and accessible names. R or Move/merge selects the current item for rearrangement; choose a destination with a number key or slot button. Matching medkit/shield stacks combine up to three; other items swap. Medkits restore 40 HP and shields restore 30 (75 maximum). Each cell takes one slot and never stacks.
+
+E swaps nearby loot into the selected slot when full. G or Drop selected drops the whole selected slot; a one-second owner pickup delay avoids immediate recollection. Drops retain cell charge and remaining weapon ammunition. Pistol/rifle/scattergun pickups start with 48/90/24 rounds, capped at 192/360/96 per weapon. One shot costs one round, including a scattergun's five-pellet shot. Matching weapon pickups replenish ammo even with full inventory; untransferred rounds remain on the ground. There is no reload mechanic or separate reserve-ammo slot yet. Existing damage/cooldowns remain pistol 10/8 ticks, rifle 6/4, scattergun five 7-damage pellets/18. No contestant ability slot is implemented.
 
 Matchmaking only considers unstarted matchmade rooms on this server. It honors an available preferred role; otherwise it fills the role with the lower occupied fraction, with contestant as the tie-breaker. A 15-second countdown begins with the first join, then bots fill vacancies. Private rooms are excluded and remain owner-started. Session-stored rotating resume credentials reclaim the same actor; owner credentials restore lobby/finish authority and never enter shared invite links.
 
 Mine radius is 65 with a 120-unit blast and 45 damage; actual movement above 0.5 units triggers it once. Turrets target either role within 650 units and fire 12-damage shots on a 35-tick cooldown. Flame cycles last 160 ticks, warn for 40, then fire for 40; cone reach is 240 with wall checks. Spider webs acquire within 240, release targets beyond 360 from home, and grapple within 150 for 10 damage plus 30 ticks of movement slowdown on a 50-tick cooldown. All are prototype balance values.
 
-Contestants can damage each other with projectiles. Bots retaliate immediately; after 30 seconds they may initiate fights with contestants within 180 units, expanding to 320 units after two minutes. They still avoid shooting directly through a third contestant. Starts are distributed across four nearby connected blocks, with at least 400 units between players and a pistol near every start. These distances/times are provisional balance values. Gladiators killed during a live match wait 20 seconds, then return at a valid transit station ahead of the wall and at least 1,000 units from active contestants; if none is safe, redeployment waits. Earned upgrades are retained.
+Contestants can damage each other with projectiles. Bots retaliate immediately; roughly one third have an opportunistic temperament and may initiate fights after 30 seconds within 180 units, expanding to 320 units after two minutes. They avoid shooting directly through a third contestant and seek collision-clear space away from hunters within 170 units while returning fire. Starts are distributed across four nearby connected blocks, with at least 400 units between players and a pistol near every start. These distances/times are provisional balance values. Gladiators killed during a live match wait 20 seconds, then return at a valid transit station ahead of the wall and at least 1,000 units from active contestants; if none is safe, redeployment waits. Earned upgrades are retained.
 
 Outside a building its roof conceals interior actors and loot, even through a window. Inside, the roof disappears and ordinary wall/window/door sight applies to the outside world. Windows block movement and reaching for items; sight and bullets pass through. Doors can be opened and closed with E by either role, but cannot close onto an active body. These are provisional visibility semantics pending the batched review.
 
@@ -78,7 +80,7 @@ The default match contains eight contestant slots, two gladiator slots, three ex
 
 The server advances the simulation at 20 Hz based on elapsed real time rather than trusting the operating-system timer interval. It can catch up a bounded number of ticks after a wake-up. Every simulated tick is recorded; only the latest state in a catch-up batch is broadcast.
 
-The match finishes when all extraction slots are used, no active contestants remain, or the time limit expires. Active contestants left at time expiry become stranded. The exact numbers are tuning defaults and must stay named in code and docs when changed.
+The match finishes when all extraction slots are used, no active contestants remain, or the time limit expires. A started room with no connected players or spectators receives a 30-second reconnect grace, then ends and archives cleanly; abandoned playtests must not continue running bots and recording for the entire match. Active contestants left at time expiry become stranded. The exact numbers are tuning defaults and must stay named in code and docs when changed.
 
 ## 4. Information Rules
 
@@ -124,29 +126,27 @@ These are requirements for later milestones, not silently missing pieces of the 
 
 ## 8. Batch Product Review and Remaining Work
 
-The implementation uses the defaults in section 2.2 without requiring further input. Review these together when convenient:
+### Settled and integrated
 
-- Modular hierarchy: provide the intended hierarchy levels, template sizes, connector contracts, and a concrete example. The current street maze deliberately does not claim to implement it.
-- Buildings: should exterior players ever see interiors through windows or open doors? Current default keeps roofs opaque outside; inside players can see out through openings.
-- Timing: playtest the shorter/taller map, five-second charge and ten-minute wall. Main-route pauses are validated, but arbitrarily long detours are intentionally unsafe.
-- Gladiator return: keep 20 seconds, retained upgrades and safe automatic transit placement, or use player-selected spawn points? No extra reward for killing a gladiator is added yet.
-- 2½D: visual depth on one plane, or playable ramps/roofs/overlapping floors?
-    - Yes, we eventually want playable ramps roofs and overlapping floors. We'll treat objects as existing on discrete planes for collision detection. Hopefully we can navmesh this.
-- Equipment: keep five slots, unlimited ammunition, and multiple cells at one slot each? Optional equipped-ability slot and additional weapon designs remain open.
-    - 6 slots, limited ammo, one chargeable cell per slot. Other items can stack and recombine. Items in slots can be rearranged. Items can be dropped. Items have icons, not text.
-- Access points: define whether this means building entrances, transit, chargers, extraction, or another system.
-    - We need some kind of fast travel system for gladiators / hunters. I believe that's what this is talking about.
-- Matchmaking: soft role fallback and a 15-second bot-filled start currently run on one server; account/ranking/public hosting are deferred.
-- Patron resources/actions, progression fairness and presenter controls remain separate work. Spectator delay remains 60 ticks.
+- Inventory: six slots, finite ammunition, icons, move/swap/merge, drops, one cell per slot. Implemented defaults are in section 2.2; the former five-slot/unlimited-ammo version is superseded.
+- Multi-floor direction: eventually playable ramps, roofs and overlapping floors, with discrete collision planes. This is accepted direction, not an open yes/no question. Collision-plane transitions and navigation-mesh design remain future engineering work.
+- Access points mean hunter fast travel. Existing transit stations are the interim implementation.
+- Contestants can fight one another. Bots initiate close-range fights after opening grace, and immediately retaliate. Spawns occupy four nearby blocks rather than one cluster.
+- Functional buildings have doors, roof concealment and guaranteed useful loot. Non-colliding depot silhouettes were removed. Automated browser checks open a door and walk inside.
 
-### 8.1 Accepted follow-up decisions from the September 10 batch
+### Open questions — review together when convenient
 
-The notes in section 8 are preserved as user input. They resolve the following direction, even where implementation has not caught up:
+1. Modular hierarchy: provide hierarchy levels, template sizes, connector contracts and one concrete example. Current street generation remains explicitly interim.
+2. Exterior visibility: should open doors/windows reveal interiors to exterior players? Current roofs keep interiors hidden until entry.
+3. Human balance: review route readability, vertical exploration, five-second charging, the ten-minute wall, PvP engagement distances and three extraction slots.
+4. Ammo: keep ammunition attached to weapons and refill from matching pickups, or introduce magazines/reloads and separate ammo stacks? Current supplies/caps are provisional. Additional weapon types and an equipped-ability slot remain undecided.
+5. Hunter travel/respawning: automatic safe placement versus chosen destinations, 20-second respawn, retained upgrades, and rewards for taking down a hunter.
+6. Multi-floor implementation: ramp transition rules, overlapping-floor visibility/projectile rules, and a navigation representation compatible with intended templates.
+7. Matchmaking and lifecycle: soft role preference, 15-second bot-fill timer and 30-second empty-room grace. Public hosting/accounts/ranking are separate work.
+8. Performance: if a slowdown recurs, capture Replays → Download performance diagnostics. It includes recent raw frame intervals, packet gaps, browser/viewport, seed/location and live/empty room counts, but no owner credentials, chat or player list. Note whether movement stutters or the whole display freezes, plus elapsed match time and number of game tabs.
+9. Patron actions, persistent progression, presenter UX and fairness remain separate milestones.
 
-- Inventory target: six slots, limited ammunition, one cell per slot, stack/recombine compatible items, rearrange slots, and icon-based item presentation. The current five-slot/unlimited-ammo/text-label implementation is an interim baseline, not acceptance of the final equipment requirement. Drop support is already implemented; the remaining inventory changes are next work.
-- 2½D target: playable ramps, roofs and overlapping floors, with discrete collision planes. Navigation-mesh feasibility needs a separate engineering pass; multi-floor movement is not implemented yet.
-- Access points refer to hunter fast travel. Existing transit stations are the prototype for this, not a requirement for additional contestant checkpoints.
-- Immediate feedback pass: separated world starts, proactive close-range bot PvP, useful building loot, readable door prompts, and removal of non-colliding depot silhouettes. Two-axis terrain/roof culling and reused navigation collision geometry reduce avoidable work. The reported severe performance issue has not been reproduced in local Chrome; do not mark it resolved solely from a benchmark.
+The reported severe slowdown is still open. Off-screen culling and navigation reuse are implemented; abandoned rooms now retire; previous benchmarks used smoothed frame deltas and have been replaced with raw timing. Passing local tests alone does not establish a fix.
 
 ## 9. Core Original Prompt Notes
 
