@@ -3,6 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { createArenaServer } from '../server/index.js';
 import path from 'node:path';
+import { checkClientControllers } from './client-controllers.mjs';
 
 await mkdir('test-results', { recursive: true });
 const server = await createArenaServer({ replayDir: path.resolve('test-results/replays') });
@@ -19,6 +20,7 @@ async function ready(page, url = base) {
   await page.waitForFunction(() => window.arenaDebug?.().tick > 3, null, { timeout: 15000 });
 }
 try {
+  await checkClientControllers(browser, base);
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await page.goto(base);
   await page.getByRole('button', { name: 'Start match', exact: true }).waitFor();

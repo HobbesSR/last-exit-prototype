@@ -1,0 +1,4198 @@
+{
+  "baselineCheckpoint": "5dd7d61",
+  "date": "2026-09-10",
+  "serverCommand": "node tests/bench.mjs --json",
+  "clientCommand": "node tests/bench-client.mjs --json",
+  "results": {
+    "baseline": {
+      "server": {
+        "stats": {
+          "seed": 4217,
+          "rooms": 1,
+          "clients": 1,
+          "ticks": 4464,
+          "wallMs": 4088.6305,
+          "meanMs": 0.9098199372759869,
+          "p50Ms": 0.588799999999992,
+          "p95Ms": 2.5314999999999372,
+          "p99Ms": 3.7907000000000153,
+          "maxMs": 28.872699999999995,
+          "budgetMs": 50,
+          "budgetUsedPct": 1.819639874551974,
+          "overBudgetTicks": 0,
+          "sustainableHz": 395.0227138060536,
+          "roomHeadroom": 19
+        },
+        "series": [
+          {
+            "name": "calls.canOccupy",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 271.60833333333335,
+            "p50": 0,
+            "p95": 2132,
+            "max": 4326
+          },
+          {
+            "name": "work.rayEdgeTests",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 174.19333333333333,
+            "p50": 0,
+            "p95": 0,
+            "max": 10812
+          },
+          {
+            "name": "calls.movePlayer",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 6.61,
+            "p50": 7,
+            "p95": 7,
+            "max": 7
+          },
+          {
+            "name": "work.repath",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1.0216666666666667,
+            "p50": 1,
+            "p95": 3,
+            "max": 4
+          },
+          {
+            "name": "calls.navigationGrid",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1.0216666666666667,
+            "p50": 1,
+            "p95": 3,
+            "max": 4
+          },
+          {
+            "name": "calls.lineClear",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0.8216666666666667,
+            "p50": 0,
+            "p95": 2,
+            "max": 4
+          },
+          {
+            "name": "sim.step",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.2542963333333144,
+            "p50": 0.11120000000028085,
+            "p95": 1.1633999999999105,
+            "max": 2.224499999999807
+          },
+          {
+            "name": "sim.snapshot",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.224037333333312,
+            "p50": 0.19700000000011642,
+            "p95": 0.36619999999993524,
+            "max": 0.750999999999749
+          },
+          {
+            "name": "sim.bots",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.17576233333334357,
+            "p50": 0.04839999999876454,
+            "p95": 1.0797000000011394,
+            "max": 2.1235999999998967
+          },
+          {
+            "name": "work.navGridRebuild",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0.15666666666666668,
+            "p50": 0,
+            "p95": 1,
+            "max": 2
+          },
+          {
+            "name": "sim.repath",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1.0216666666666667,
+            "mean": 0.13097533333334846,
+            "p50": 0.016499999999723514,
+            "p95": 1.0036999999997533,
+            "max": 2.0575000000003456
+          },
+          {
+            "name": "sim.navGridRebuild",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0.15666666666666668,
+            "mean": 0.11129033333332397,
+            "p50": 0,
+            "p95": 0.9346000000000458,
+            "max": 1.9783000000002176
+          },
+          {
+            "name": "sim.actions",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.03377150000001696,
+            "p50": 0.028700000000299042,
+            "p95": 0.05510000000049331,
+            "max": 0.26410000000032596
+          },
+          {
+            "name": "sim.pickups",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.025045333333340143,
+            "p50": 0.02290000000039072,
+            "p95": 0.039900000000216096,
+            "max": 0.12380000000075597
+          },
+          {
+            "name": "sim.playerView",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.017326499999998458,
+            "p50": 0.01499999999987267,
+            "p95": 0.029199999999946158,
+            "max": 0.05259999999998399
+          },
+          {
+            "name": "sim.move",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.010839666666688572,
+            "p50": 0.008500000000367436,
+            "p95": 0.017899999999372085,
+            "max": 0.5527000000001863
+          },
+          {
+            "name": "sim.repathGrid",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1.0216666666666667,
+            "mean": 0.008302000000007866,
+            "p50": 0.00889999999981228,
+            "p95": 0.025399999999535794,
+            "max": 0.4724000000005617
+          },
+          {
+            "name": "sim.projectiles",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.00038666666665903904,
+            "p50": 0.0003000000001520675,
+            "p95": 0.0007000000000516593,
+            "max": 0.0036000000000058208
+          },
+          {
+            "name": "alloc.sightEdges",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          }
+        ]
+      },
+      "client": {
+        "frames": 720,
+        "series": [
+          {
+            "name": "net.stateBytes",
+            "unit": "n",
+            "scope": "event",
+            "samples": 240,
+            "calls": 240,
+            "mean": 5775.975,
+            "p50": 5789,
+            "p95": 5886,
+            "max": 6043
+          },
+          {
+            "name": "work.visibilityRays",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1221.6216666666667,
+            "p50": 1217,
+            "p95": 1253,
+            "max": 1390
+          },
+          {
+            "name": "net.stateGap",
+            "unit": "ms",
+            "scope": "event",
+            "samples": 240,
+            "calls": 240,
+            "mean": 50.00041666664183,
+            "p50": 49.399999998509884,
+            "p95": 57.70000000298023,
+            "max": 68.5
+          },
+          {
+            "name": "render.delta",
+            "unit": "ms",
+            "scope": "event",
+            "samples": 600,
+            "calls": 720,
+            "mean": 16.665999999990067,
+            "p50": 16.69999999552965,
+            "p95": 17.600000001490116,
+            "max": 18.900000005960464
+          },
+          {
+            "name": "calls.visibilityPolygon",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1,
+            "p50": 1,
+            "p95": 1,
+            "max": 1
+          },
+          {
+            "name": "calls.movePlayer",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0.44166666666666665,
+            "p50": 0,
+            "p95": 2,
+            "max": 2
+          },
+          {
+            "name": "render.frame",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.34566666709880034,
+            "p50": 0.30000000447034836,
+            "p95": 0.5,
+            "max": 1.2999999970197678
+          },
+          {
+            "name": "render.vision",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.18166666691501934,
+            "p50": 0.19999999552965164,
+            "p95": 0.30000000447034836,
+            "max": 0.7000000029802322
+          },
+          {
+            "name": "render.hud",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0.3333333333333333,
+            "mean": 0.08583333346992732,
+            "p50": 0,
+            "p95": 0.30000000447034836,
+            "max": 1
+          },
+          {
+            "name": "render.actors",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.025666666589677332,
+            "p50": 0,
+            "p95": 0.10000000149011612,
+            "max": 1
+          },
+          {
+            "name": "render.minimap",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0.3333333333333333,
+            "mean": 0.01566666666418314,
+            "p50": 0,
+            "p95": 0.10000000149011612,
+            "max": 0.20000000298023224
+          },
+          {
+            "name": "render.world",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.010499999870856603,
+            "p50": 0,
+            "p95": 0.10000000149011612,
+            "max": 0.19999999552965164
+          },
+          {
+            "name": "render.camera",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.007999999932944774,
+            "p50": 0,
+            "p95": 0.10000000149011612,
+            "max": 0.10000000149011612
+          }
+        ]
+      }
+    },
+    "simulation": {
+      "server": {
+        "stats": {
+          "seed": 4217,
+          "rooms": 1,
+          "clients": 1,
+          "ticks": 4464,
+          "wallMs": 4064.6691999999994,
+          "meanMs": 0.9042326836917564,
+          "p50Ms": 0.5421999999998661,
+          "p95Ms": 2.5208999999999833,
+          "p99Ms": 4.0090000000000146,
+          "maxMs": 30.534800000000004,
+          "budgetMs": 50,
+          "budgetUsedPct": 1.8084653673835125,
+          "overBudgetTicks": 0,
+          "sustainableHz": 396.6837240668042,
+          "roomHeadroom": 19
+        },
+        "series": [
+          {
+            "name": "calls.canOccupy",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 271.60833333333335,
+            "p50": 0,
+            "p95": 2132,
+            "max": 4326
+          },
+          {
+            "name": "work.rayEdgeTests",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 174.19333333333333,
+            "p50": 0,
+            "p95": 0,
+            "max": 10812
+          },
+          {
+            "name": "calls.movePlayer",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 6.61,
+            "p50": 7,
+            "p95": 7,
+            "max": 7
+          },
+          {
+            "name": "work.repath",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1.0216666666666667,
+            "p50": 1,
+            "p95": 3,
+            "max": 4
+          },
+          {
+            "name": "calls.navigationGrid",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1.0216666666666667,
+            "p50": 1,
+            "p95": 3,
+            "max": 4
+          },
+          {
+            "name": "calls.lineClear",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0.8216666666666667,
+            "p50": 0,
+            "p95": 2,
+            "max": 4
+          },
+          {
+            "name": "sim.step",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.23649233333334374,
+            "p50": 0.1066000000000713,
+            "p95": 1.0986000000002605,
+            "max": 2.1641999999997097
+          },
+          {
+            "name": "sim.snapshot",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.20953799999999545,
+            "p50": 0.19920000000001892,
+            "p95": 0.28209999999944557,
+            "max": 0.6684000000000196
+          },
+          {
+            "name": "sim.bots",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.16392133333335399,
+            "p50": 0.04270000000087748,
+            "p95": 1.0326000000013664,
+            "max": 2.07930000000124
+          },
+          {
+            "name": "work.navGridRebuild",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0.15666666666666668,
+            "p50": 0,
+            "p95": 1,
+            "max": 2
+          },
+          {
+            "name": "sim.repath",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1.0216666666666667,
+            "mean": 0.12404166666667,
+            "p50": 0.015000000000327418,
+            "p95": 1.002400000000307,
+            "max": 2.0310999999996966
+          },
+          {
+            "name": "sim.navGridRebuild",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0.15666666666666668,
+            "mean": 0.10684233333333092,
+            "p50": 0,
+            "p95": 0.9329000000002452,
+            "max": 1.918199999999615
+          },
+          {
+            "name": "sim.actions",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.03190583333335629,
+            "p50": 0.029099999999743886,
+            "p95": 0.05009999999992942,
+            "max": 0.17770000000018626
+          },
+          {
+            "name": "sim.pickups",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.023265999999979005,
+            "p50": 0.022999999999683496,
+            "p95": 0.033299999999599095,
+            "max": 0.12770000000000437
+          },
+          {
+            "name": "sim.playerView",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.016948333333329325,
+            "p50": 0.01540000000022701,
+            "p95": 0.025799999999890133,
+            "max": 0.13200000000006185
+          },
+          {
+            "name": "sim.move",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.00948633333334783,
+            "p50": 0.008399999999710417,
+            "p95": 0.01680000000033033,
+            "max": 0.11839999999983775
+          },
+          {
+            "name": "sim.repathGrid",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1.0216666666666667,
+            "mean": 0.007358999999999772,
+            "p50": 0.008700000000317232,
+            "p95": 0.025200000000495493,
+            "max": 0.045000000000982254
+          },
+          {
+            "name": "sim.projectiles",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.0003401666666756379,
+            "p50": 0.0003000000001520675,
+            "p95": 0.000699999999596912,
+            "max": 0.005599999999958527
+          },
+          {
+            "name": "alloc.sightEdges",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          }
+        ]
+      },
+      "client": {
+        "frames": 721,
+        "series": [
+          {
+            "name": "net.stateBytes",
+            "unit": "n",
+            "scope": "event",
+            "samples": 240,
+            "calls": 240,
+            "mean": 5775.966666666666,
+            "p50": 5789,
+            "p95": 5886,
+            "max": 6043
+          },
+          {
+            "name": "work.visibilityRays",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1221.2416666666666,
+            "p50": 1217,
+            "p95": 1253,
+            "max": 1390
+          },
+          {
+            "name": "net.stateGap",
+            "unit": "ms",
+            "scope": "event",
+            "samples": 240,
+            "calls": 240,
+            "mean": 49.93958333333333,
+            "p50": 50,
+            "p95": 52.600000001490116,
+            "max": 59.80000000447035
+          },
+          {
+            "name": "render.delta",
+            "unit": "ms",
+            "scope": "event",
+            "samples": 600,
+            "calls": 721,
+            "mean": 16.66733333333085,
+            "p50": 16.69999999552965,
+            "p95": 17.399999998509884,
+            "max": 18
+          },
+          {
+            "name": "calls.visibilityPolygon",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1,
+            "p50": 1,
+            "p95": 1,
+            "max": 1
+          },
+          {
+            "name": "calls.movePlayer",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0.4816666666666667,
+            "p50": 0,
+            "p95": 2,
+            "max": 2
+          },
+          {
+            "name": "render.frame",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.25516666620969775,
+            "p50": 0.20000000298023224,
+            "p95": 0.3999999985098839,
+            "max": 0.8999999985098839
+          },
+          {
+            "name": "render.vision",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.13399999948839347,
+            "p50": 0.10000000149011612,
+            "p95": 0.20000000298023224,
+            "max": 0.30000000447034836
+          },
+          {
+            "name": "render.hud",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0.3333333333333333,
+            "mean": 0.06350000001490116,
+            "p50": 0,
+            "p95": 0.20000000298023224,
+            "max": 0.3999999985098839
+          },
+          {
+            "name": "render.actors",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.02283333323895931,
+            "p50": 0,
+            "p95": 0.10000000149011612,
+            "max": 0.7999999970197678
+          },
+          {
+            "name": "render.minimap",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0.3333333333333333,
+            "mean": 0.01183333336065213,
+            "p50": 0,
+            "p95": 0.10000000149011612,
+            "max": 0.20000000298023224
+          },
+          {
+            "name": "render.world",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.006833333373069763,
+            "p50": 0,
+            "p95": 0.10000000149011612,
+            "max": 0.20000000298023224
+          },
+          {
+            "name": "render.camera",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.005833333320915699,
+            "p50": 0,
+            "p95": 0.09999999403953552,
+            "max": 0.10000000149011612
+          }
+        ]
+      }
+    },
+    "map": {
+      "server": {
+        "stats": {
+          "seed": 4217,
+          "rooms": 1,
+          "clients": 1,
+          "ticks": 4464,
+          "wallMs": 3965.6015,
+          "meanMs": 0.8825706093189969,
+          "p50Ms": 0.4908999999997832,
+          "p95Ms": 2.4697000000001026,
+          "p99Ms": 3.889499999999771,
+          "maxMs": 29.298699999999997,
+          "budgetMs": 50,
+          "budgetUsedPct": 1.7651412186379938,
+          "overBudgetTicks": 0,
+          "sustainableHz": 404.9074786411137,
+          "roomHeadroom": 20
+        },
+        "series": [
+          {
+            "name": "calls.canOccupy",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 271.60833333333335,
+            "p50": 0,
+            "p95": 2132,
+            "max": 4326
+          },
+          {
+            "name": "work.rayEdgeTests",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 174.19333333333333,
+            "p50": 0,
+            "p95": 0,
+            "max": 10812
+          },
+          {
+            "name": "calls.movePlayer",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 6.61,
+            "p50": 7,
+            "p95": 7,
+            "max": 7
+          },
+          {
+            "name": "work.repath",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1.0216666666666667,
+            "p50": 1,
+            "p95": 3,
+            "max": 4
+          },
+          {
+            "name": "calls.navigationGrid",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1.0216666666666667,
+            "p50": 1,
+            "p95": 3,
+            "max": 4
+          },
+          {
+            "name": "calls.lineClear",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0.8216666666666667,
+            "p50": 0,
+            "p95": 2,
+            "max": 4
+          },
+          {
+            "name": "sim.step",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.22895616666666987,
+            "p50": 0.10759999999982028,
+            "p95": 1.0736000000001695,
+            "max": 1.8350000000000364
+          },
+          {
+            "name": "sim.snapshot",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.21202133333334663,
+            "p50": 0.20699999999987995,
+            "p95": 0.2496000000001004,
+            "max": 0.47699999999986176
+          },
+          {
+            "name": "sim.bots",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.1580423333333306,
+            "p50": 0.0476000000003296,
+            "p95": 0.9870999999998276,
+            "max": 1.7547999999992498
+          },
+          {
+            "name": "work.navGridRebuild",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0.15666666666666668,
+            "p50": 0,
+            "p95": 1,
+            "max": 2
+          },
+          {
+            "name": "sim.repath",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1.0216666666666667,
+            "mean": 0.1173150000000093,
+            "p50": 0.01650000000017826,
+            "p95": 0.9279000000001361,
+            "max": 1.7054999999995744
+          },
+          {
+            "name": "sim.navGridRebuild",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0.15666666666666668,
+            "mean": 0.10041950000000043,
+            "p50": 0,
+            "p95": 0.8577000000000226,
+            "max": 1.6218999999996413
+          },
+          {
+            "name": "sim.actions",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.030176333333304987,
+            "p50": 0.0284999999998945,
+            "p95": 0.035000000000763976,
+            "max": 0.17190000000027794
+          },
+          {
+            "name": "sim.pickups",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.023938166666613747,
+            "p50": 0.022400000000288856,
+            "p95": 0.025899999999637657,
+            "max": 0.45720000000073924
+          },
+          {
+            "name": "sim.playerView",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.015089000000005702,
+            "p50": 0.014599999999973079,
+            "p95": 0.01919999999972788,
+            "max": 0.04179999999996653
+          },
+          {
+            "name": "sim.move",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.009349166666641697,
+            "p50": 0.008200000000215368,
+            "p95": 0.01239999999961583,
+            "max": 0.4549000000001797
+          },
+          {
+            "name": "sim.repathGrid",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1.0216666666666667,
+            "mean": 0.007365333333336063,
+            "p50": 0.008999999999559805,
+            "p95": 0.025499999999738066,
+            "max": 0.04120000000011714
+          },
+          {
+            "name": "sim.projectiles",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.00031883333333325935,
+            "p50": 0.0003000000001520675,
+            "p95": 0.0005000000001018634,
+            "max": 0.0028999999999541615
+          },
+          {
+            "name": "alloc.sightEdges",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          }
+        ]
+      },
+      "client": {
+        "frames": 721,
+        "series": [
+          {
+            "name": "net.stateBytes",
+            "unit": "n",
+            "scope": "event",
+            "samples": 240,
+            "calls": 240,
+            "mean": 5777.091666666666,
+            "p50": 5789,
+            "p95": 5886,
+            "max": 6043
+          },
+          {
+            "name": "work.visibilityRays",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1221.2716666666668,
+            "p50": 1217,
+            "p95": 1252,
+            "max": 1390
+          },
+          {
+            "name": "net.stateGap",
+            "unit": "ms",
+            "scope": "event",
+            "samples": 240,
+            "calls": 240,
+            "mean": 49.970416666660455,
+            "p50": 48.600000001490116,
+            "p95": 63,
+            "max": 64.39999999850988
+          },
+          {
+            "name": "render.delta",
+            "unit": "ms",
+            "scope": "event",
+            "samples": 600,
+            "calls": 721,
+            "mean": 16.66733333333085,
+            "p50": 16.69999999552965,
+            "p95": 17.30000000447035,
+            "max": 18
+          },
+          {
+            "name": "calls.visibilityPolygon",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1,
+            "p50": 1,
+            "p95": 1,
+            "max": 1
+          },
+          {
+            "name": "calls.movePlayer",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0.3333333333333333,
+            "p50": 0,
+            "p95": 1,
+            "max": 1
+          },
+          {
+            "name": "render.frame",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.25266666676849125,
+            "p50": 0.29999999701976776,
+            "p95": 0.3999999985098839,
+            "max": 1.1999999955296516
+          },
+          {
+            "name": "render.vision",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.1361666669199864,
+            "p50": 0.10000000149011612,
+            "p95": 0.20000000298023224,
+            "max": 0.5
+          },
+          {
+            "name": "render.hud",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0.3333333333333333,
+            "mean": 0.0631666666517655,
+            "p50": 0,
+            "p95": 0.20000000298023224,
+            "max": 0.30000000447034836
+          },
+          {
+            "name": "render.actors",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.020166666756073634,
+            "p50": 0,
+            "p95": 0.10000000149011612,
+            "max": 1.1000000014901161
+          },
+          {
+            "name": "render.minimap",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0.3333333333333333,
+            "mean": 0.010833333333333334,
+            "p50": 0,
+            "p95": 0.10000000149011612,
+            "max": 0.20000000298023224
+          },
+          {
+            "name": "render.world",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.008500000027318795,
+            "p50": 0,
+            "p95": 0.10000000149011612,
+            "max": 0.20000000298023224
+          },
+          {
+            "name": "render.camera",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.004500000017384688,
+            "p50": 0,
+            "p95": 0,
+            "max": 0.10000000149011612
+          }
+        ]
+      }
+    },
+    "client": {
+      "server": {
+        "stats": {
+          "seed": 4217,
+          "rooms": 1,
+          "clients": 1,
+          "ticks": 4464,
+          "wallMs": 3943.0643,
+          "meanMs": 0.8775577284946261,
+          "p50Ms": 0.48660000000018044,
+          "p95Ms": 2.4525999999999613,
+          "p99Ms": 3.8708999999998923,
+          "maxMs": 29.0711,
+          "budgetMs": 50,
+          "budgetUsedPct": 1.7551154569892522,
+          "overBudgetTicks": 0,
+          "sustainableHz": 407.73057163826786,
+          "roomHeadroom": 20
+        },
+        "series": [
+          {
+            "name": "calls.canOccupy",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 271.60833333333335,
+            "p50": 0,
+            "p95": 2132,
+            "max": 4326
+          },
+          {
+            "name": "work.rayEdgeTests",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 174.19333333333333,
+            "p50": 0,
+            "p95": 0,
+            "max": 10812
+          },
+          {
+            "name": "calls.movePlayer",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 6.61,
+            "p50": 7,
+            "p95": 7,
+            "max": 7
+          },
+          {
+            "name": "work.repath",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1.0216666666666667,
+            "p50": 1,
+            "p95": 3,
+            "max": 4
+          },
+          {
+            "name": "calls.navigationGrid",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1.0216666666666667,
+            "p50": 1,
+            "p95": 3,
+            "max": 4
+          },
+          {
+            "name": "calls.lineClear",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0.8216666666666667,
+            "p50": 0,
+            "p95": 2,
+            "max": 4
+          },
+          {
+            "name": "sim.step",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.2250168333333363,
+            "p50": 0.1022000000002663,
+            "p95": 1.0812000000000808,
+            "max": 2.038300000000163
+          },
+          {
+            "name": "sim.snapshot",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.19985483333332923,
+            "p50": 0.19619999999986248,
+            "p95": 0.2318000000000211,
+            "max": 0.5555999999996857
+          },
+          {
+            "name": "sim.bots",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.15763949999999038,
+            "p50": 0.04120000000057189,
+            "p95": 1.0123000000007778,
+            "max": 1.9644999999991342
+          },
+          {
+            "name": "work.navGridRebuild",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0.15666666666666668,
+            "p50": 0,
+            "p95": 1,
+            "max": 2
+          },
+          {
+            "name": "sim.repath",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1.0216666666666667,
+            "mean": 0.12230583333333774,
+            "p50": 0.014799999999922875,
+            "p95": 0.9769000000001142,
+            "max": 1.924800000000232
+          },
+          {
+            "name": "sim.navGridRebuild",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0.15666666666666668,
+            "mean": 0.10664099999999507,
+            "p50": 0,
+            "p95": 0.9065000000000509,
+            "max": 1.847400000000107
+          },
+          {
+            "name": "sim.actions",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.030147500000005798,
+            "p50": 0.02839999999923748,
+            "p95": 0.03540000000020882,
+            "max": 0.16489999999885185
+          },
+          {
+            "name": "sim.pickups",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.021735500000020995,
+            "p50": 0.02230000000054133,
+            "p95": 0.02550000000064756,
+            "max": 0.11860000000024229
+          },
+          {
+            "name": "sim.playerView",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.014863999999991696,
+            "p50": 0.014200000000073487,
+            "p95": 0.0181999999999789,
+            "max": 0.05510000000003856
+          },
+          {
+            "name": "sim.move",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 6.61,
+            "mean": 0.008261833333303912,
+            "p50": 0.007900000000518048,
+            "p95": 0.010999999999967258,
+            "max": 0.029500000000552973
+          },
+          {
+            "name": "sim.repathGrid",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1.0216666666666667,
+            "mean": 0.007076666666656213,
+            "p50": 0.008500000000367436,
+            "p95": 0.024800000000141154,
+            "max": 0.061300000000301225
+          },
+          {
+            "name": "sim.projectiles",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.0003239999999914289,
+            "p50": 0.0003000000001520675,
+            "p95": 0.0005000000001018634,
+            "max": 0.002800000000206637
+          },
+          {
+            "name": "alloc.sightEdges",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0,
+            "p50": 0,
+            "p95": 0,
+            "max": 0
+          }
+        ]
+      },
+      "client": {
+        "frames": 721,
+        "series": [
+          {
+            "name": "net.stateBytes",
+            "unit": "n",
+            "scope": "event",
+            "samples": 240,
+            "calls": 240,
+            "mean": 5777.0875,
+            "p50": 5789,
+            "p95": 5886,
+            "max": 6042
+          },
+          {
+            "name": "work.visibilityRays",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1221.345,
+            "p50": 1217,
+            "p95": 1252,
+            "max": 1392
+          },
+          {
+            "name": "net.stateGap",
+            "unit": "ms",
+            "scope": "event",
+            "samples": 240,
+            "calls": 240,
+            "mean": 49.98124999993791,
+            "p50": 49.29999999701977,
+            "p95": 61.69999999552965,
+            "max": 64.5
+          },
+          {
+            "name": "render.delta",
+            "unit": "ms",
+            "scope": "event",
+            "samples": 600,
+            "calls": 721,
+            "mean": 16.66700000000497,
+            "p50": 16.69999999552965,
+            "p95": 17.30000000447035,
+            "max": 18.299999997019768
+          },
+          {
+            "name": "calls.visibilityPolygon",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 1,
+            "p50": 1,
+            "p95": 1,
+            "max": 1
+          },
+          {
+            "name": "calls.movePlayer",
+            "unit": "n",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0,
+            "mean": 0.515,
+            "p50": 0,
+            "p95": 2,
+            "max": 2
+          },
+          {
+            "name": "render.frame",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.25216666635125873,
+            "p50": 0.20000000298023224,
+            "p95": 0.3999999985098839,
+            "max": 1.0999999940395355
+          },
+          {
+            "name": "render.vision",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.14350000000248353,
+            "p50": 0.10000000149011612,
+            "p95": 0.20000000298023224,
+            "max": 0.30000000447034836
+          },
+          {
+            "name": "render.hud",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0.3333333333333333,
+            "mean": 0.06416666666666666,
+            "p50": 0,
+            "p95": 0.20000000298023224,
+            "max": 0.4000000059604645
+          },
+          {
+            "name": "render.actors",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.01999999988824129,
+            "p50": 0,
+            "p95": 0.10000000149011612,
+            "max": 0.7999999970197678
+          },
+          {
+            "name": "render.minimap",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 0.3333333333333333,
+            "mean": 0.01183333333581686,
+            "p50": 0,
+            "p95": 0.10000000149011612,
+            "max": 0.20000000298023224
+          },
+          {
+            "name": "render.world",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.007833333263794581,
+            "p50": 0,
+            "p95": 0.10000000149011612,
+            "max": 0.10000000149011612
+          },
+          {
+            "name": "render.camera",
+            "unit": "ms",
+            "scope": "frame",
+            "samples": 600,
+            "calls": 1,
+            "mean": 0.0048333333184321725,
+            "p50": 0,
+            "p95": 0,
+            "max": 0.10000000149011612
+          }
+        ]
+      }
+    }
+  },
+  "isolatedRepeats": {
+    "baseline": [
+      {
+        "server": {
+          "stats": {
+            "seed": 4217,
+            "rooms": 1,
+            "clients": 1,
+            "ticks": 4464,
+            "wallMs": 3978.8303,
+            "meanMs": 0.8856687724014346,
+            "p50Ms": 0.4714999999998781,
+            "p95Ms": 2.524499999999989,
+            "p99Ms": 3.902400000000057,
+            "maxMs": 30.026900000000012,
+            "budgetMs": 50,
+            "budgetUsedPct": 1.771337544802869,
+            "overBudgetTicks": 0,
+            "sustainableHz": 396.1180431768684,
+            "roomHeadroom": 19
+          },
+          "series": [
+            {
+              "name": "calls.canOccupy",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 271.60833333333335,
+              "p50": 0,
+              "p95": 2132,
+              "max": 4326
+            },
+            {
+              "name": "work.rayEdgeTests",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 174.19333333333333,
+              "p50": 0,
+              "p95": 0,
+              "max": 10812
+            },
+            {
+              "name": "calls.movePlayer",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 6.61,
+              "p50": 7,
+              "p95": 7,
+              "max": 7
+            },
+            {
+              "name": "work.repath",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1.0216666666666667,
+              "p50": 1,
+              "p95": 3,
+              "max": 4
+            },
+            {
+              "name": "calls.navigationGrid",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1.0216666666666667,
+              "p50": 1,
+              "p95": 3,
+              "max": 4
+            },
+            {
+              "name": "calls.lineClear",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.8216666666666667,
+              "p50": 0,
+              "p95": 2,
+              "max": 4
+            },
+            {
+              "name": "sim.step",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.22189250000001037,
+              "p50": 0.10410000000047148,
+              "p95": 1.0548000000003412,
+              "max": 2.0335000000000036
+            },
+            {
+              "name": "sim.snapshot",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.19744316666667752,
+              "p50": 0.19489999999996144,
+              "p95": 0.2183999999997468,
+              "max": 0.36870000000044456
+            },
+            {
+              "name": "work.navGridRebuild",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.15666666666666668,
+              "p50": 0,
+              "p95": 1,
+              "max": 2
+            },
+            {
+              "name": "sim.bots",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.15266683333334488,
+              "p50": 0.04149999999981446,
+              "p95": 0.9658000000008542,
+              "max": 1.9490000000000691
+            },
+            {
+              "name": "sim.repath",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1.0216666666666667,
+              "mean": 0.11610516666667915,
+              "p50": 0.014599999999518332,
+              "p95": 0.9337999999997919,
+              "max": 1.9050999999999476
+            },
+            {
+              "name": "sim.navGridRebuild",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.15666666666666668,
+              "mean": 0.10014666666666623,
+              "p50": 0,
+              "p95": 0.8390999999996893,
+              "max": 1.798500000000331
+            },
+            {
+              "name": "sim.actions",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.030519999999995284,
+              "p50": 0.02860000000009677,
+              "p95": 0.0340000000001055,
+              "max": 0.3920000000002801
+            },
+            {
+              "name": "sim.pickups",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.023003666666688787,
+              "p50": 0.023099999999885767,
+              "p95": 0.025099999999838474,
+              "max": 0.12400000000025102
+            },
+            {
+              "name": "sim.playerView",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.014414833333322198,
+              "p50": 0.014099999999871216,
+              "p95": 0.016899999999623105,
+              "max": 0.03029999999989741
+            },
+            {
+              "name": "sim.move",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.008162000000008902,
+              "p50": 0.007900000000518048,
+              "p95": 0.010900000000219734,
+              "max": 0.019099999999980355
+            },
+            {
+              "name": "sim.repathGrid",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1.0216666666666667,
+              "mean": 0.00751533333335298,
+              "p50": 0.008400000000619912,
+              "p95": 0.023400000000037835,
+              "max": 0.3766000000000531
+            },
+            {
+              "name": "sim.projectiles",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.0004096666666805504,
+              "p50": 0.0003000000001520675,
+              "p95": 0.0005999999998493877,
+              "max": 0.047899999999572174
+            },
+            {
+              "name": "alloc.sightEdges",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0,
+              "p50": 0,
+              "p95": 0,
+              "max": 0
+            }
+          ]
+        },
+        "client": {
+          "frames": 721,
+          "series": [
+            {
+              "name": "net.stateBytes",
+              "unit": "n",
+              "scope": "event",
+              "samples": 240,
+              "calls": 240,
+              "mean": 5775.958333333333,
+              "p50": 5789,
+              "p95": 5886,
+              "max": 6043
+            },
+            {
+              "name": "work.visibilityRays",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1221.165,
+              "p50": 1217,
+              "p95": 1252,
+              "max": 1390
+            },
+            {
+              "name": "net.stateGap",
+              "unit": "ms",
+              "scope": "event",
+              "samples": 240,
+              "calls": 240,
+              "mean": 49.99416666673496,
+              "p50": 48.79999999701977,
+              "p95": 62.79999999701977,
+              "max": 65.19999999552965
+            },
+            {
+              "name": "render.delta",
+              "unit": "ms",
+              "scope": "event",
+              "samples": 600,
+              "calls": 721,
+              "mean": 16.666999999992548,
+              "p50": 16.69999999552965,
+              "p95": 17.30000000447035,
+              "max": 18.399999998509884
+            },
+            {
+              "name": "calls.visibilityPolygon",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1,
+              "p50": 1,
+              "p95": 1,
+              "max": 1
+            },
+            {
+              "name": "calls.movePlayer",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.35,
+              "p50": 0,
+              "p95": 1,
+              "max": 2
+            },
+            {
+              "name": "render.frame",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.25566666639099517,
+              "p50": 0.20000000298023224,
+              "p95": 0.3999999985098839,
+              "max": 1.3000000044703484
+            },
+            {
+              "name": "render.vision",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.1434999995927016,
+              "p50": 0.10000000149011612,
+              "p95": 0.20000000298023224,
+              "max": 0.30000000447034836
+            },
+            {
+              "name": "render.hud",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.3333333333333333,
+              "mean": 0.06716666669895252,
+              "p50": 0,
+              "p95": 0.29999999701976776,
+              "max": 0.3999999985098839
+            },
+            {
+              "name": "render.actors",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.018333333432674407,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.7999999970197678
+            },
+            {
+              "name": "render.minimap",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.3333333333333333,
+              "mean": 0.01050000003228585,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.10000000149011612
+            },
+            {
+              "name": "render.world",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.006833333310981592,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.10000000149011612
+            },
+            {
+              "name": "render.camera",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.004166666641831398,
+              "p50": 0,
+              "p95": 0,
+              "max": 0.10000000149011612
+            }
+          ]
+        }
+      },
+      {
+        "server": {
+          "stats": {
+            "seed": 4217,
+            "rooms": 1,
+            "clients": 1,
+            "ticks": 4464,
+            "wallMs": 3959.6721000000002,
+            "meanMs": 0.8815275761648759,
+            "p50Ms": 0.48480000000017753,
+            "p95Ms": 2.454699999999775,
+            "p99Ms": 3.747200000000248,
+            "maxMs": 30.510900000000007,
+            "budgetMs": 50,
+            "budgetUsedPct": 1.7630551523297517,
+            "overBudgetTicks": 0,
+            "sustainableHz": 407.38175744493896,
+            "roomHeadroom": 20
+          },
+          "series": [
+            {
+              "name": "calls.canOccupy",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 271.60833333333335,
+              "p50": 0,
+              "p95": 2132,
+              "max": 4326
+            },
+            {
+              "name": "work.rayEdgeTests",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 174.19333333333333,
+              "p50": 0,
+              "p95": 0,
+              "max": 10812
+            },
+            {
+              "name": "calls.movePlayer",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 6.61,
+              "p50": 7,
+              "p95": 7,
+              "max": 7
+            },
+            {
+              "name": "work.repath",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1.0216666666666667,
+              "p50": 1,
+              "p95": 3,
+              "max": 4
+            },
+            {
+              "name": "calls.navigationGrid",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1.0216666666666667,
+              "p50": 1,
+              "p95": 3,
+              "max": 4
+            },
+            {
+              "name": "calls.lineClear",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.8216666666666667,
+              "p50": 0,
+              "p95": 2,
+              "max": 4
+            },
+            {
+              "name": "sim.step",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.22110450000000129,
+              "p50": 0.10500000000001819,
+              "p95": 1.045799999999872,
+              "max": 2.1702000000000226
+            },
+            {
+              "name": "sim.snapshot",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.1985689999999992,
+              "p50": 0.19529999999986103,
+              "p95": 0.2282999999997628,
+              "max": 0.3364000000001397
+            },
+            {
+              "name": "work.navGridRebuild",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.15666666666666668,
+              "p50": 0,
+              "p95": 1,
+              "max": 2
+            },
+            {
+              "name": "sim.bots",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.15137049999999666,
+              "p50": 0.04130000000077416,
+              "p95": 0.9722999999999047,
+              "max": 2.090299999999843
+            },
+            {
+              "name": "sim.repath",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1.0216666666666667,
+              "mean": 0.11586049999998976,
+              "p50": 0.01499999999987267,
+              "p95": 0.9284999999995307,
+              "max": 2.050199999999677
+            },
+            {
+              "name": "sim.navGridRebuild",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.15666666666666668,
+              "mean": 0.10061233333333423,
+              "p50": 0,
+              "p95": 0.8827000000001135,
+              "max": 1.979399999999714
+            },
+            {
+              "name": "sim.actions",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.03023949999999104,
+              "p50": 0.028499999998985004,
+              "p95": 0.03530000000000655,
+              "max": 0.18080000000054497
+            },
+            {
+              "name": "sim.pickups",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.02385233333332508,
+              "p50": 0.023999999999432475,
+              "p95": 0.02719999999999345,
+              "max": 0.1248000000000502
+            },
+            {
+              "name": "sim.playerView",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.015264833333331656,
+              "p50": 0.014099999999871216,
+              "p95": 0.01830000000018117,
+              "max": 0.404700000000048
+            },
+            {
+              "name": "sim.move",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.00825433333332891,
+              "p50": 0.007899999999608553,
+              "p95": 0.011299999999209831,
+              "max": 0.03199999999878855
+            },
+            {
+              "name": "sim.repathGrid",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1.0216666666666667,
+              "mean": 0.00672900000001088,
+              "p50": 0.008400000000165164,
+              "p95": 0.021499999999832653,
+              "max": 0.09069999999974243
+            },
+            {
+              "name": "sim.projectiles",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.000327666666667786,
+              "p50": 0.0003000000001520675,
+              "p95": 0.0005000000001018634,
+              "max": 0.003200000000106229
+            },
+            {
+              "name": "alloc.sightEdges",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0,
+              "p50": 0,
+              "p95": 0,
+              "max": 0
+            }
+          ]
+        },
+        "client": {
+          "frames": 720,
+          "series": [
+            {
+              "name": "net.stateBytes",
+              "unit": "n",
+              "scope": "event",
+              "samples": 240,
+              "calls": 240,
+              "mean": 5777.0875,
+              "p50": 5789,
+              "p95": 5886,
+              "max": 6043
+            },
+            {
+              "name": "work.visibilityRays",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1221.315,
+              "p50": 1217,
+              "p95": 1252,
+              "max": 1390
+            },
+            {
+              "name": "net.stateGap",
+              "unit": "ms",
+              "scope": "event",
+              "samples": 240,
+              "calls": 240,
+              "mean": 49.9483333333085,
+              "p50": 50,
+              "p95": 65.5,
+              "max": 66.59999999403954
+            },
+            {
+              "name": "render.delta",
+              "unit": "ms",
+              "scope": "event",
+              "samples": 600,
+              "calls": 720,
+              "mean": 16.66700000000497,
+              "p50": 16.69999999552965,
+              "p95": 17.399999998509884,
+              "max": 18.400000005960464
+            },
+            {
+              "name": "calls.visibilityPolygon",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1,
+              "p50": 1,
+              "p95": 1,
+              "max": 1
+            },
+            {
+              "name": "calls.movePlayer",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.3566666666666667,
+              "p50": 0,
+              "p95": 1,
+              "max": 2
+            },
+            {
+              "name": "render.frame",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.2594999993095795,
+              "p50": 0.29999999701976776,
+              "p95": 0.3999999985098839,
+              "max": 1.1000000014901161
+            },
+            {
+              "name": "render.vision",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.1449999994536241,
+              "p50": 0.10000000149011612,
+              "p95": 0.20000000298023224,
+              "max": 0.3999999985098839
+            },
+            {
+              "name": "render.hud",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.3333333333333333,
+              "mean": 0.06099999992797772,
+              "p50": 0,
+              "p95": 0.20000000298023224,
+              "max": 0.3999999985098839
+            },
+            {
+              "name": "render.actors",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.023833333229025203,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.8999999985098839
+            },
+            {
+              "name": "render.minimap",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.3333333333333333,
+              "mean": 0.010833333283662795,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.20000000298023224
+            },
+            {
+              "name": "render.camera",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.005833333370586237,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.10000000149011612
+            },
+            {
+              "name": "render.world",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.004499999980131785,
+              "p50": 0,
+              "p95": 0,
+              "max": 0.10000000149011612
+            }
+          ]
+        }
+      },
+      {
+        "server": {
+          "stats": {
+            "seed": 4217,
+            "rooms": 1,
+            "clients": 1,
+            "ticks": 4464,
+            "wallMs": 3941.7765,
+            "meanMs": 0.8771911738351245,
+            "p50Ms": 0.4852000000000771,
+            "p95Ms": 2.4329999999999927,
+            "p99Ms": 3.813899999999876,
+            "maxMs": 30.750500000000002,
+            "budgetMs": 50,
+            "budgetUsedPct": 1.754382347670249,
+            "overBudgetTicks": 0,
+            "sustainableHz": 411.01520756268104,
+            "roomHeadroom": 20
+          },
+          "series": [
+            {
+              "name": "calls.canOccupy",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 271.60833333333335,
+              "p50": 0,
+              "p95": 2132,
+              "max": 4326
+            },
+            {
+              "name": "work.rayEdgeTests",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 174.19333333333333,
+              "p50": 0,
+              "p95": 0,
+              "max": 10812
+            },
+            {
+              "name": "calls.movePlayer",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 6.61,
+              "p50": 7,
+              "p95": 7,
+              "max": 7
+            },
+            {
+              "name": "work.repath",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1.0216666666666667,
+              "p50": 1,
+              "p95": 3,
+              "max": 4
+            },
+            {
+              "name": "calls.navigationGrid",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1.0216666666666667,
+              "p50": 1,
+              "p95": 3,
+              "max": 4
+            },
+            {
+              "name": "calls.lineClear",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.8216666666666667,
+              "p50": 0,
+              "p95": 2,
+              "max": 4
+            },
+            {
+              "name": "sim.step",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.22032883333333758,
+              "p50": 0.10429999999996653,
+              "p95": 0.9873999999999796,
+              "max": 1.7716999999997824
+            },
+            {
+              "name": "sim.snapshot",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.1969610000000057,
+              "p50": 0.19309999999995853,
+              "p95": 0.22420000000010987,
+              "max": 0.5359000000003107
+            },
+            {
+              "name": "work.navGridRebuild",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.15666666666666668,
+              "p50": 0,
+              "p95": 1,
+              "max": 2
+            },
+            {
+              "name": "sim.bots",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.15007616666666082,
+              "p50": 0.04149999999981446,
+              "p95": 0.919999999999618,
+              "max": 1.625300000000152
+            },
+            {
+              "name": "sim.repath",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1.0216666666666667,
+              "mean": 0.11292233333332585,
+              "p50": 0.01470000000017535,
+              "p95": 0.8897000000001754,
+              "max": 1.572700000000168
+            },
+            {
+              "name": "sim.navGridRebuild",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.15666666666666668,
+              "mean": 0.09741183333333614,
+              "p50": 0,
+              "p95": 0.8272999999999229,
+              "max": 1.4643000000005486
+            },
+            {
+              "name": "sim.actions",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.03074450000001055,
+              "p50": 0.028299999999489955,
+              "p95": 0.03489999999919746,
+              "max": 0.3888000000001739
+            },
+            {
+              "name": "sim.pickups",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.02293199999996735,
+              "p50": 0.022300000000086584,
+              "p95": 0.02569999999968786,
+              "max": 0.4005999999994856
+            },
+            {
+              "name": "sim.playerView",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.014974333333333712,
+              "p50": 0.014200000000073487,
+              "p95": 0.018500000000130967,
+              "max": 0.07380000000011933
+            },
+            {
+              "name": "sim.move",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.009058500000007826,
+              "p50": 0.008000000000265572,
+              "p95": 0.01139999999986685,
+              "max": 0.43930000000045766
+            },
+            {
+              "name": "sim.repathGrid",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1.0216666666666667,
+              "mean": 0.006644666666674463,
+              "p50": 0.008499999999457941,
+              "p95": 0.021499999999832653,
+              "max": 0.03480000000035943
+            },
+            {
+              "name": "sim.projectiles",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.0003170000000083443,
+              "p50": 0.0003000000001520675,
+              "p95": 0.0005000000001018634,
+              "max": 0.0032999999998537533
+            },
+            {
+              "name": "alloc.sightEdges",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0,
+              "p50": 0,
+              "p95": 0,
+              "max": 0
+            }
+          ]
+        },
+        "client": {
+          "frames": 720,
+          "series": [
+            {
+              "name": "net.stateBytes",
+              "unit": "n",
+              "scope": "event",
+              "samples": 240,
+              "calls": 240,
+              "mean": 5775.970833333334,
+              "p50": 5789,
+              "p95": 5886,
+              "max": 6042
+            },
+            {
+              "name": "work.visibilityRays",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1221.035,
+              "p50": 1217,
+              "p95": 1252,
+              "max": 1389
+            },
+            {
+              "name": "net.stateGap",
+              "unit": "ms",
+              "scope": "event",
+              "samples": 240,
+              "calls": 240,
+              "mean": 50.00208333339542,
+              "p50": 49,
+              "p95": 62.099999994039536,
+              "max": 63
+            },
+            {
+              "name": "render.delta",
+              "unit": "ms",
+              "scope": "event",
+              "samples": 600,
+              "calls": 720,
+              "mean": 16.66700000000497,
+              "p50": 16.700000002980232,
+              "p95": 17.399999998509884,
+              "max": 18.19999999552965
+            },
+            {
+              "name": "calls.visibilityPolygon",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1,
+              "p50": 1,
+              "p95": 1,
+              "max": 1
+            },
+            {
+              "name": "calls.movePlayer",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.6283333333333333,
+              "p50": 0,
+              "p95": 2,
+              "max": 2
+            },
+            {
+              "name": "render.frame",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.26016666647046804,
+              "p50": 0.29999999701976776,
+              "p95": 0.3999999985098839,
+              "max": 1.1999999955296516
+            },
+            {
+              "name": "render.vision",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.1419999999180436,
+              "p50": 0.10000000149011612,
+              "p95": 0.20000000298023224,
+              "max": 0.30000000447034836
+            },
+            {
+              "name": "render.hud",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.3333333333333333,
+              "mean": 0.06333333333333334,
+              "p50": 0,
+              "p95": 0.20000000298023224,
+              "max": 0.30000000447034836
+            },
+            {
+              "name": "render.actors",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.023666666597127916,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.7999999970197678
+            },
+            {
+              "name": "render.minimap",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.3333333333333333,
+              "mean": 0.010500000044703483,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.19999999552965164
+            },
+            {
+              "name": "render.world",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.0076666666318972905,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.10000000149011612
+            },
+            {
+              "name": "render.camera",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.005166666669150194,
+              "p50": 0,
+              "p95": 0.09999999403953552,
+              "max": 0.10000000149011612
+            }
+          ]
+        }
+      }
+    ],
+    "final": [
+      {
+        "server": {
+          "stats": {
+            "seed": 4217,
+            "rooms": 1,
+            "clients": 1,
+            "ticks": 4464,
+            "wallMs": 3923.6116,
+            "meanMs": 0.8733051747311845,
+            "p50Ms": 0.4950999999996384,
+            "p95Ms": 2.4343000000003485,
+            "p99Ms": 3.819099999999935,
+            "maxMs": 30.179699999999997,
+            "budgetMs": 50,
+            "budgetUsedPct": 1.746610349462369,
+            "overBudgetTicks": 0,
+            "sustainableHz": 410.7957112927153,
+            "roomHeadroom": 20
+          },
+          "series": [
+            {
+              "name": "calls.canOccupy",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 271.60833333333335,
+              "p50": 0,
+              "p95": 2132,
+              "max": 4326
+            },
+            {
+              "name": "work.rayEdgeTests",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 174.19333333333333,
+              "p50": 0,
+              "p95": 0,
+              "max": 10812
+            },
+            {
+              "name": "calls.movePlayer",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 6.61,
+              "p50": 7,
+              "p95": 7,
+              "max": 7
+            },
+            {
+              "name": "work.repath",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1.0216666666666667,
+              "p50": 1,
+              "p95": 3,
+              "max": 4
+            },
+            {
+              "name": "calls.navigationGrid",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1.0216666666666667,
+              "p50": 1,
+              "p95": 3,
+              "max": 4
+            },
+            {
+              "name": "calls.lineClear",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.8216666666666667,
+              "p50": 0,
+              "p95": 2,
+              "max": 4
+            },
+            {
+              "name": "sim.step",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.22101950000001278,
+              "p50": 0.10300000000006548,
+              "p95": 1.0057000000001608,
+              "max": 1.9524000000001251
+            },
+            {
+              "name": "sim.snapshot",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.1992380000000071,
+              "p50": 0.19369999999980791,
+              "p95": 0.23610000000007858,
+              "max": 0.5646999999999025
+            },
+            {
+              "name": "work.navGridRebuild",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.15666666666666668,
+              "p50": 0,
+              "p95": 1,
+              "max": 2
+            },
+            {
+              "name": "sim.bots",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.15078033333335422,
+              "p50": 0.04149999999981446,
+              "p95": 0.9302000000002408,
+              "max": 1.8661000000001877
+            },
+            {
+              "name": "sim.repath",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1.0216666666666667,
+              "mean": 0.11439033333333251,
+              "p50": 0.014799999999468127,
+              "p95": 0.8963000000003376,
+              "max": 1.8235999999997148
+            },
+            {
+              "name": "sim.navGridRebuild",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.15666666666666668,
+              "mean": 0.09876800000000155,
+              "p50": 0,
+              "p95": 0.8395000000000437,
+              "max": 1.7475000000004002
+            },
+            {
+              "name": "sim.actions",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.03100816666667394,
+              "p50": 0.029500000000098225,
+              "p95": 0.03699999999935244,
+              "max": 0.17029999999977008
+            },
+            {
+              "name": "sim.pickups",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.022059833333324452,
+              "p50": 0.02250000000003638,
+              "p95": 0.02629999999953725,
+              "max": 0.12089999999989232
+            },
+            {
+              "name": "sim.playerView",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.014951833333340497,
+              "p50": 0.014200000000073487,
+              "p95": 0.01960000000008222,
+              "max": 0.048800000000028376
+            },
+            {
+              "name": "sim.move",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.010039333333344681,
+              "p50": 0.008100000000013097,
+              "p95": 0.012299999999868305,
+              "max": 0.5130000000003747
+            },
+            {
+              "name": "sim.repathGrid",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1.0216666666666667,
+              "mean": 0.0071749999999989695,
+              "p50": 0.008599999999660213,
+              "p95": 0.024000000000796717,
+              "max": 0.041999999999916326
+            },
+            {
+              "name": "sim.projectiles",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.00029633333333246506,
+              "p50": 0.00029999999969732016,
+              "p95": 0.0005000000001018634,
+              "max": 0.002300000000104774
+            },
+            {
+              "name": "alloc.sightEdges",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0,
+              "p50": 0,
+              "p95": 0,
+              "max": 0
+            }
+          ]
+        },
+        "client": {
+          "frames": 721,
+          "series": [
+            {
+              "name": "net.stateBytes",
+              "unit": "n",
+              "scope": "event",
+              "samples": 240,
+              "calls": 240,
+              "mean": 5775.95,
+              "p50": 5789,
+              "p95": 5886,
+              "max": 6043
+            },
+            {
+              "name": "work.visibilityRays",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1221.175,
+              "p50": 1217,
+              "p95": 1252,
+              "max": 1390
+            },
+            {
+              "name": "net.stateGap",
+              "unit": "ms",
+              "scope": "event",
+              "samples": 240,
+              "calls": 240,
+              "mean": 49.99583333333333,
+              "p50": 48.899999998509884,
+              "p95": 60.5,
+              "max": 67.70000000298023
+            },
+            {
+              "name": "render.delta",
+              "unit": "ms",
+              "scope": "event",
+              "samples": 600,
+              "calls": 721,
+              "mean": 16.666000000002484,
+              "p50": 16.69999999552965,
+              "p95": 17.399999998509884,
+              "max": 18.399999998509884
+            },
+            {
+              "name": "calls.visibilityPolygon",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1,
+              "p50": 1,
+              "p95": 1,
+              "max": 1
+            },
+            {
+              "name": "calls.movePlayer",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.34,
+              "p50": 0,
+              "p95": 1,
+              "max": 2
+            },
+            {
+              "name": "render.frame",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.2575000005587935,
+              "p50": 0.29999999701976776,
+              "p95": 0.3999999985098839,
+              "max": 0.9000000059604645
+            },
+            {
+              "name": "render.vision",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.14550000050415596,
+              "p50": 0.10000000149011612,
+              "p95": 0.20000000298023224,
+              "max": 0.3999999985098839
+            },
+            {
+              "name": "render.hud",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.3333333333333333,
+              "mean": 0.06866666668405136,
+              "p50": 0,
+              "p95": 0.29999999701976776,
+              "max": 0.30000000447034836
+            },
+            {
+              "name": "render.actors",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.018500000052154065,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.8000000044703484
+            },
+            {
+              "name": "render.minimap",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.3333333333333333,
+              "mean": 0.012666666656732559,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.20000000298023224
+            },
+            {
+              "name": "render.world",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.006999999992549419,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.19999999552965164
+            },
+            {
+              "name": "render.camera",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.00433333333581686,
+              "p50": 0,
+              "p95": 0,
+              "max": 0.10000000149011612
+            }
+          ]
+        }
+      },
+      {
+        "server": {
+          "stats": {
+            "seed": 4217,
+            "rooms": 1,
+            "clients": 1,
+            "ticks": 4464,
+            "wallMs": 3936.9253,
+            "meanMs": 0.8762232750896077,
+            "p50Ms": 0.4915000000000873,
+            "p95Ms": 2.4538000000002285,
+            "p99Ms": 3.938699999999983,
+            "maxMs": 29.0835,
+            "budgetMs": 50,
+            "budgetUsedPct": 1.7524465501792157,
+            "overBudgetTicks": 0,
+            "sustainableHz": 407.5311761349364,
+            "roomHeadroom": 20
+          },
+          "series": [
+            {
+              "name": "calls.canOccupy",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 271.60833333333335,
+              "p50": 0,
+              "p95": 2132,
+              "max": 4326
+            },
+            {
+              "name": "work.rayEdgeTests",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 174.19333333333333,
+              "p50": 0,
+              "p95": 0,
+              "max": 10812
+            },
+            {
+              "name": "calls.movePlayer",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 6.61,
+              "p50": 7,
+              "p95": 7,
+              "max": 7
+            },
+            {
+              "name": "work.repath",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1.0216666666666667,
+              "p50": 1,
+              "p95": 3,
+              "max": 4
+            },
+            {
+              "name": "calls.navigationGrid",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1.0216666666666667,
+              "p50": 1,
+              "p95": 3,
+              "max": 4
+            },
+            {
+              "name": "calls.lineClear",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.8216666666666667,
+              "p50": 0,
+              "p95": 2,
+              "max": 4
+            },
+            {
+              "name": "sim.step",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.22096766666666554,
+              "p50": 0.10370000000011714,
+              "p95": 1.0018999999997504,
+              "max": 2.0589999999997417
+            },
+            {
+              "name": "sim.snapshot",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.20869350000000697,
+              "p50": 0.20280000000002474,
+              "p95": 0.24420000000009168,
+              "max": 0.4319000000000415
+            },
+            {
+              "name": "work.navGridRebuild",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.15666666666666668,
+              "p50": 0,
+              "p95": 1,
+              "max": 2
+            },
+            {
+              "name": "sim.bots",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.15171949999999015,
+              "p50": 0.04150000000026921,
+              "p95": 0.9359999999992397,
+              "max": 1.97649999999976
+            },
+            {
+              "name": "sim.repath",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1.0216666666666667,
+              "mean": 0.11562216666665942,
+              "p50": 0.014799999999468127,
+              "p95": 0.9057000000002517,
+              "max": 1.933100000000195
+            },
+            {
+              "name": "sim.navGridRebuild",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.15666666666666668,
+              "mean": 0.0991334999999981,
+              "p50": 0,
+              "p95": 0.7880999999997584,
+              "max": 1.8567000000002736
+            },
+            {
+              "name": "sim.actions",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.030725166666692682,
+              "p50": 0.028699999999844295,
+              "p95": 0.038100000000213186,
+              "max": 0.18679999999994834
+            },
+            {
+              "name": "sim.pickups",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.02216183333331628,
+              "p50": 0.022499999999581632,
+              "p95": 0.026200000000244472,
+              "max": 0.1362000000003718
+            },
+            {
+              "name": "sim.playerView",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.015782499999997222,
+              "p50": 0.014300000000275759,
+              "p95": 0.02010000000018408,
+              "max": 0.4238999999997759
+            },
+            {
+              "name": "sim.move",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.009134500000007695,
+              "p50": 0.00809999999955835,
+              "p95": 0.012400000000070577,
+              "max": 0.3655000000007931
+            },
+            {
+              "name": "sim.repathGrid",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1.0216666666666667,
+              "mean": 0.007882833333338416,
+              "p50": 0.008500000000367436,
+              "p95": 0.024900000000343425,
+              "max": 0.43979999999965
+            },
+            {
+              "name": "sim.projectiles",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.0002891666666732817,
+              "p50": 0.00029999999969732016,
+              "p95": 0.00040000000035433914,
+              "max": 0.001099999999951251
+            },
+            {
+              "name": "alloc.sightEdges",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0,
+              "p50": 0,
+              "p95": 0,
+              "max": 0
+            }
+          ]
+        },
+        "client": {
+          "frames": 721,
+          "series": [
+            {
+              "name": "net.stateBytes",
+              "unit": "n",
+              "scope": "event",
+              "samples": 240,
+              "calls": 240,
+              "mean": 5777.1,
+              "p50": 5789,
+              "p95": 5886,
+              "max": 6043
+            },
+            {
+              "name": "work.visibilityRays",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1221.3966666666668,
+              "p50": 1217,
+              "p95": 1253,
+              "max": 1390
+            },
+            {
+              "name": "net.stateGap",
+              "unit": "ms",
+              "scope": "event",
+              "samples": 240,
+              "calls": 240,
+              "mean": 49.991666666728754,
+              "p50": 48.70000000298023,
+              "p95": 62.80000000447035,
+              "max": 66.80000000447035
+            },
+            {
+              "name": "render.delta",
+              "unit": "ms",
+              "scope": "event",
+              "samples": 600,
+              "calls": 721,
+              "mean": 16.6671666666617,
+              "p50": 16.69999999552965,
+              "p95": 17.30000000447035,
+              "max": 18.5
+            },
+            {
+              "name": "calls.visibilityPolygon",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1,
+              "p50": 1,
+              "p95": 1,
+              "max": 1
+            },
+            {
+              "name": "calls.movePlayer",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.3333333333333333,
+              "p50": 0,
+              "p95": 1,
+              "max": 1
+            },
+            {
+              "name": "render.frame",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.267833332841595,
+              "p50": 0.29999999701976776,
+              "p95": 0.3999999985098839,
+              "max": 1
+            },
+            {
+              "name": "render.vision",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.15083333298563958,
+              "p50": 0.10000000149011612,
+              "p95": 0.29999999701976776,
+              "max": 0.5
+            },
+            {
+              "name": "render.hud",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.3333333333333333,
+              "mean": 0.0670000001663963,
+              "p50": 0,
+              "p95": 0.29999999701976776,
+              "max": 0.4000000059604645
+            },
+            {
+              "name": "render.actors",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.021833333410322665,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.8000000044703484
+            },
+            {
+              "name": "render.minimap",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.3333333333333333,
+              "mean": 0.01266666671882073,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.20000000298023224
+            },
+            {
+              "name": "render.world",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.007166666636864345,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.10000000149011612
+            },
+            {
+              "name": "render.camera",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.005500000019868215,
+              "p50": 0,
+              "p95": 0.09999999403953552,
+              "max": 0.10000000149011612
+            }
+          ]
+        }
+      },
+      {
+        "server": {
+          "stats": {
+            "seed": 4217,
+            "rooms": 1,
+            "clients": 1,
+            "ticks": 4464,
+            "wallMs": 3919.5606,
+            "meanMs": 0.872369175627239,
+            "p50Ms": 0.4773000000000138,
+            "p95Ms": 2.4382000000000517,
+            "p99Ms": 3.8466000000000236,
+            "maxMs": 32.913799999999995,
+            "budgetMs": 50,
+            "budgetUsedPct": 1.744738351254478,
+            "overBudgetTicks": 0,
+            "sustainableHz": 410.1386268558686,
+            "roomHeadroom": 20
+          },
+          "series": [
+            {
+              "name": "calls.canOccupy",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 271.60833333333335,
+              "p50": 0,
+              "p95": 2132,
+              "max": 4326
+            },
+            {
+              "name": "work.rayEdgeTests",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 174.19333333333333,
+              "p50": 0,
+              "p95": 0,
+              "max": 10812
+            },
+            {
+              "name": "calls.movePlayer",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 6.61,
+              "p50": 7,
+              "p95": 7,
+              "max": 7
+            },
+            {
+              "name": "work.repath",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1.0216666666666667,
+              "p50": 1,
+              "p95": 3,
+              "max": 4
+            },
+            {
+              "name": "calls.navigationGrid",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1.0216666666666667,
+              "p50": 1,
+              "p95": 3,
+              "max": 4
+            },
+            {
+              "name": "calls.lineClear",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.8216666666666667,
+              "p50": 0,
+              "p95": 2,
+              "max": 4
+            },
+            {
+              "name": "sim.step",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.21877116666666627,
+              "p50": 0.10169999999970969,
+              "p95": 1.0489999999999782,
+              "max": 1.8269000000000233
+            },
+            {
+              "name": "sim.snapshot",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.19888866666666444,
+              "p50": 0.1934000000001106,
+              "p95": 0.2300000000000182,
+              "max": 0.578899999999976
+            },
+            {
+              "name": "work.navGridRebuild",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.15666666666666668,
+              "p50": 0,
+              "p95": 1,
+              "max": 2
+            },
+            {
+              "name": "sim.bots",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.14924233333335601,
+              "p50": 0.04109999999991487,
+              "p95": 0.9773999999997613,
+              "max": 1.7260999999994056
+            },
+            {
+              "name": "sim.repath",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1.0216666666666667,
+              "mean": 0.11386966666667225,
+              "p50": 0.014699999999720603,
+              "p95": 0.9111999999995533,
+              "max": 1.672900000000027
+            },
+            {
+              "name": "sim.navGridRebuild",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.15666666666666668,
+              "mean": 0.09780183333333602,
+              "p50": 0,
+              "p95": 0.8692999999998392,
+              "max": 1.574200000000019
+            },
+            {
+              "name": "sim.actions",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.03044299999998581,
+              "p50": 0.028099999999994907,
+              "p95": 0.036499999999705324,
+              "max": 0.18149999999968713
+            },
+            {
+              "name": "sim.pickups",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.02313699999999168,
+              "p50": 0.022100000000136788,
+              "p95": 0.027100000000700675,
+              "max": 0.46200000000044383
+            },
+            {
+              "name": "sim.playerView",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.01563450000001088,
+              "p50": 0.014200000000073487,
+              "p95": 0.019099999999980355,
+              "max": 0.4329999999999927
+            },
+            {
+              "name": "sim.move",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 6.61,
+              "mean": 0.00886833333333243,
+              "p50": 0.007899999999153806,
+              "p95": 0.011799999999311694,
+              "max": 0.3667999999993299
+            },
+            {
+              "name": "sim.repathGrid",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1.0216666666666667,
+              "mean": 0.007616833333341523,
+              "p50": 0.008299999999962893,
+              "p95": 0.022699999999986176,
+              "max": 0.41740000000027067
+            },
+            {
+              "name": "sim.projectiles",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.00028983333333295984,
+              "p50": 0.00029999999969732016,
+              "p95": 0.0004999999996471161,
+              "max": 0.0012000000001535227
+            },
+            {
+              "name": "alloc.sightEdges",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0,
+              "p50": 0,
+              "p95": 0,
+              "max": 0
+            }
+          ]
+        },
+        "client": {
+          "frames": 721,
+          "series": [
+            {
+              "name": "net.stateBytes",
+              "unit": "n",
+              "scope": "event",
+              "samples": 240,
+              "calls": 240,
+              "mean": 5777.120833333333,
+              "p50": 5789,
+              "p95": 5886,
+              "max": 6043
+            },
+            {
+              "name": "work.visibilityRays",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1220.9066666666668,
+              "p50": 1217,
+              "p95": 1251,
+              "max": 1382
+            },
+            {
+              "name": "net.stateGap",
+              "unit": "ms",
+              "scope": "event",
+              "samples": 240,
+              "calls": 240,
+              "mean": 49.98874999998758,
+              "p50": 49.5,
+              "p95": 61.100000001490116,
+              "max": 63
+            },
+            {
+              "name": "render.delta",
+              "unit": "ms",
+              "scope": "event",
+              "samples": 600,
+              "calls": 721,
+              "mean": 16.6671666666617,
+              "p50": 16.69999999552965,
+              "p95": 17.399999998509884,
+              "max": 18.299999997019768
+            },
+            {
+              "name": "calls.visibilityPolygon",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 1,
+              "p50": 1,
+              "p95": 1,
+              "max": 1
+            },
+            {
+              "name": "calls.movePlayer",
+              "unit": "n",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0,
+              "mean": 0.5833333333333334,
+              "p50": 0,
+              "p95": 2,
+              "max": 2
+            },
+            {
+              "name": "render.frame",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.2626666670913498,
+              "p50": 0.29999999701976776,
+              "p95": 0.3999999985098839,
+              "max": 0.8999999985098839
+            },
+            {
+              "name": "render.vision",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.14466666710873444,
+              "p50": 0.10000000149011612,
+              "p95": 0.20000000298023224,
+              "max": 0.3999999985098839
+            },
+            {
+              "name": "render.hud",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.3333333333333333,
+              "mean": 0.06050000004470348,
+              "p50": 0,
+              "p95": 0.20000000298023224,
+              "max": 0.30000000447034836
+            },
+            {
+              "name": "render.actors",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.022333333330849806,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.8000000044703484
+            },
+            {
+              "name": "render.minimap",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 0.3333333333333333,
+              "mean": 0.010666666701436043,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.20000000298023224
+            },
+            {
+              "name": "render.world",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.007166666661699613,
+              "p50": 0,
+              "p95": 0.10000000149011612,
+              "max": 0.10000000149011612
+            },
+            {
+              "name": "render.camera",
+              "unit": "ms",
+              "scope": "frame",
+              "samples": 600,
+              "calls": 1,
+              "mean": 0.00533333328862985,
+              "p50": 0,
+              "p95": 0.09999999403953552,
+              "max": 0.10000000149011612
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "notes": [
+    "Initial raw client baseline may overlap characterization; use the three isolated alternating baseline/final repeats for performance conclusions.",
+    "Baseline repeats run detached worktree 5dd7d61 with the same installed dependencies. Each server and client command completes before the next starts."
+  ],
+  "finalAcceptance": {
+    "server": {
+      "stats": {
+        "seed": 4217,
+        "rooms": 1,
+        "clients": 1,
+        "ticks": 4464,
+        "wallMs": 3925.1587000000004,
+        "meanMs": 0.8736446460573449,
+        "p50Ms": 0.4861999999998261,
+        "p95Ms": 2.438799999999901,
+        "p99Ms": 3.8888000000000034,
+        "maxMs": 29.299599999999998,
+        "budgetMs": 50,
+        "budgetUsedPct": 1.7472892921146899,
+        "overBudgetTicks": 0,
+        "sustainableHz": 410.03772347057594,
+        "roomHeadroom": 20
+      },
+      "series": [
+        {
+          "name": "calls.canOccupy",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 271.60833333333335,
+          "p50": 0,
+          "p95": 2132,
+          "max": 4326
+        },
+        {
+          "name": "work.rayEdgeTests",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 174.19333333333333,
+          "p50": 0,
+          "p95": 0,
+          "max": 10812
+        },
+        {
+          "name": "calls.movePlayer",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 6.61,
+          "p50": 7,
+          "p95": 7,
+          "max": 7
+        },
+        {
+          "name": "work.repath",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 1.0216666666666667,
+          "p50": 1,
+          "p95": 3,
+          "max": 4
+        },
+        {
+          "name": "calls.navigationGrid",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 1.0216666666666667,
+          "p50": 1,
+          "p95": 3,
+          "max": 4
+        },
+        {
+          "name": "calls.lineClear",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.8216666666666667,
+          "p50": 0,
+          "p95": 2,
+          "max": 4
+        },
+        {
+          "name": "sim.step",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.22401916666667224,
+          "p50": 0.1032999999997628,
+          "p95": 1.0115000000000691,
+          "max": 1.8352999999997337
+        },
+        {
+          "name": "sim.snapshot",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.20015516666667962,
+          "p50": 0.19549999999981083,
+          "p95": 0.23229999999966822,
+          "max": 0.6864000000000487
+        },
+        {
+          "name": "work.navGridRebuild",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.15666666666666668,
+          "p50": 0,
+          "p95": 1,
+          "max": 2
+        },
+        {
+          "name": "sim.bots",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 6.61,
+          "mean": 0.15391616666668217,
+          "p50": 0.041700000000673754,
+          "p95": 0.9408999999996013,
+          "max": 1.7431000000005952
+        },
+        {
+          "name": "sim.repath",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1.0216666666666667,
+          "mean": 0.11814183333332721,
+          "p50": 0.014999999999417923,
+          "p95": 0.9059000000002015,
+          "max": 1.6918000000000575
+        },
+        {
+          "name": "sim.navGridRebuild",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0.15666666666666668,
+          "mean": 0.1003861666666694,
+          "p50": 0,
+          "p95": 0.8137000000001535,
+          "max": 1.5983000000001084
+        },
+        {
+          "name": "sim.actions",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 6.61,
+          "mean": 0.031245500000009845,
+          "p50": 0.02850000000125874,
+          "p95": 0.035499999999956344,
+          "max": 0.5334000000007109
+        },
+        {
+          "name": "sim.pickups",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 6.61,
+          "mean": 0.023185500000005656,
+          "p50": 0.022200000000793807,
+          "p95": 0.02589999999918291,
+          "max": 0.47630000000026484
+        },
+        {
+          "name": "sim.playerView",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.015368500000006407,
+          "p50": 0.014599999999973079,
+          "p95": 0.01999999999998181,
+          "max": 0.055600000000140426
+        },
+        {
+          "name": "sim.move",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 6.61,
+          "mean": 0.00843849999998156,
+          "p50": 0.007999999999810825,
+          "p95": 0.012299999999868305,
+          "max": 0.026899999999386637
+        },
+        {
+          "name": "sim.repathGrid",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1.0216666666666667,
+          "mean": 0.008290666666676619,
+          "p50": 0.00860000000011496,
+          "p95": 0.024799999999686406,
+          "max": 0.3888999999999214
+        },
+        {
+          "name": "sim.projectiles",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.00030449999999594484,
+          "p50": 0.00029999999969732016,
+          "p95": 0.0005000000001018634,
+          "max": 0.002300000000104774
+        },
+        {
+          "name": "alloc.sightEdges",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "max": 0
+        }
+      ]
+    },
+    "client": {
+      "frames": 721,
+      "series": [
+        {
+          "name": "net.stateBytes",
+          "unit": "n",
+          "scope": "event",
+          "samples": 240,
+          "calls": 240,
+          "mean": 5775.9625,
+          "p50": 5789,
+          "p95": 5886,
+          "max": 6043
+        },
+        {
+          "name": "work.visibilityRays",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 1221.0033333333333,
+          "p50": 1217,
+          "p95": 1252,
+          "max": 1389
+        },
+        {
+          "name": "net.stateGap",
+          "unit": "ms",
+          "scope": "event",
+          "samples": 240,
+          "calls": 240,
+          "mean": 49.95333333332091,
+          "p50": 48.5,
+          "p95": 63.5,
+          "max": 65.79999999701977
+        },
+        {
+          "name": "render.delta",
+          "unit": "ms",
+          "scope": "event",
+          "samples": 600,
+          "calls": 721,
+          "mean": 16.66700000000497,
+          "p50": 16.69999999552965,
+          "p95": 17.30000000447035,
+          "max": 18.200000002980232
+        },
+        {
+          "name": "calls.visibilityPolygon",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 1,
+          "p50": 1,
+          "p95": 1,
+          "max": 1
+        },
+        {
+          "name": "calls.movePlayer",
+          "unit": "n",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0,
+          "mean": 0.6583333333333333,
+          "p50": 0,
+          "p95": 2,
+          "max": 2
+        },
+        {
+          "name": "render.frame",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.254500000278155,
+          "p50": 0.20000000298023224,
+          "p95": 0.3999999985098839,
+          "max": 1
+        },
+        {
+          "name": "render.vision",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.14516666686783233,
+          "p50": 0.10000000149011612,
+          "p95": 0.20000000298023224,
+          "max": 0.3999999985098839
+        },
+        {
+          "name": "render.hud",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0.3333333333333333,
+          "mean": 0.06833333330849807,
+          "p50": 0,
+          "p95": 0.29999999701976776,
+          "max": 0.5
+        },
+        {
+          "name": "render.actors",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.020999999915560088,
+          "p50": 0,
+          "p95": 0.10000000149011612,
+          "max": 0.8999999985098839
+        },
+        {
+          "name": "render.minimap",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 0.3333333333333333,
+          "mean": 0.011333333340783914,
+          "p50": 0,
+          "p95": 0.10000000149011612,
+          "max": 0.20000000298023224
+        },
+        {
+          "name": "render.world",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.007833333338300387,
+          "p50": 0,
+          "p95": 0.10000000149011612,
+          "max": 0.10000000149011612
+        },
+        {
+          "name": "render.camera",
+          "unit": "ms",
+          "scope": "frame",
+          "samples": 600,
+          "calls": 1,
+          "mean": 0.0038333333656191825,
+          "p50": 0,
+          "p95": 0,
+          "max": 0.10000000149011612
+        }
+      ]
+    }
+  }
+}

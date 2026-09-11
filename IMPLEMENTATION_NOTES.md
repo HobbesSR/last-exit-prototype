@@ -24,7 +24,7 @@ The user's severe slowdown remains open. A recent raw entry benchmark measured 6
 
 ## Verification
 
-Final checkpoint checks: 50 unit/server tests pass; desktop/mobile browser suite passes; syntax and diff checks pass; both benchmark commands complete. The diagnostics browser test preserves a deliberately injected long frame.
+After the behavior-preserving decoupling refactor, 59 unit/server/characterization tests pass; the desktop/mobile browser suite plus independent input/HUD checks pass; recursive syntax and diff checks pass; both benchmark commands complete. See `REFACTOR_VERIFICATION.md` and `REFACTOR_BENCHMARKS.json` for the unchanged-source baseline, subsystem checkpoints, coverage and raw timing comparisons. The diagnostics browser test preserves a deliberately injected long frame.
 
 Unit/server coverage includes 200-seed path clearance, 50-seed placement/spawn/maze checks, ammo exhaustion/refill, sixth-slot selection, move/merge validation, retained drops, doors/windows, hunter respawning, bot retreat, abandoned-room archival and immutable replay commands. Objective-route runs neutralize combat damage so PvP deaths do not invalidate navigation assertions. Full default bot play with combat completes three escapes in about 223 seconds in the latest sample; human balance is still unverified.
 
