@@ -35,7 +35,7 @@ function printListeningUrls(host, port) {
   }
 }
 
-export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1' } = {}) {
+export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true } = {}) {
   profiler.enable(profile);
   const replays = await createFileReplayStore(replayDir);
   const service = createRoomService({ replays });
@@ -51,7 +51,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   const http = createHttpServer(app), wss = attachWebSockets(http, service);
   const stopScheduler = startScheduler(service.advance);
   const summary = setInterval(() => {
-    if (!profiler.profiling() || !profiler.frameCount()) return;
+    if (!profileSummary || !profiler.profiling() || !profiler.frameCount()) return;
     console.log(`\nprofile: ${profiler.frameCount()} loop frames, budget ${(1000 / HZ).toFixed(1)} ms${profiler.format()}`);
   }, 10000);
   summary.unref?.();
