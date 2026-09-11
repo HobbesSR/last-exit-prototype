@@ -28,6 +28,51 @@ discovery, a new database, TypeScript migration or an internal gameplay event bu
 Transport envelope parsing and simulation input validation are different layers:
 slot/input latching depends on player state and remains authoritative.
 
+## Completed September 11
+
+- Replay encoding and filesystem archive ownership: `93bc904`.
+- Match operations, room/session application, transport and timer adapters: `236f8a6`.
+- Awaited, idempotent archive shutdown, including retired rooms: `1b9af8d`.
+- Explicit live-frame field contracts, including nested equipment and world entities.
+- Controlled crowd diagnostics separating actor placement from AI activity.
+
+The priorities marked Now and the outbound-field Next item above are implemented.
+See ENCAPSULATION_VERIFICATION.md for baseline comparisons, the measured filtering
+cost and the remaining performance uncertainty. Product additions F-11 through
+F-18 remain the next gameplay milestone, with a separate simulation/version review.
+
+## Next implementation boundaries
+
+The new requirements make three boundaries especially useful:
+
+1. **Content and equipment.** One match-owned content bundle should define role
+   capacities, weapon tier statistics and ammunition rules. Both spawn creation and
+   matchmaking must read the same capacities when moving to three hunters. Keep
+   item identity/remaining ammo separate from tier definitions. Drag/drop should
+   produce existing validated inventory intents where possible; input/UI controllers own the
+   gesture, and the server owns the resulting swap/drop. Resolve reload versus R
+   rearrangement before changing controls. Pin content in recordings only after
+   deciding compatibility; do not silently extend today's replay version.
+2. **Generation difficulty and trap lifecycle.** Define one pure spatial difficulty
+   calculation for vertical excursion and rightward progress. Pass its result to
+   reward and danger placement separately, so safety reservations and spawn routes
+   stay authoritative. Separate trap activation/cooldown/rearming state from its
+   visible tell; concealment must apply to world rendering and minimap. Do not infer
+   that deactivation means rearming or that reward and danger share identical curves.
+3. **Physics and geometry.** Keep forces, impulses, velocity integration and friction
+   inside authoritative ticks, with shared prediction and bounded substeps. Establish
+   collision/query ownership before selecting an engine. Evaluate custom and middleware
+   implementations against the same corner, tunneling, resting-contact, crowd and
+   replay workloads, including allocations and worst-frame cost. Avoid parallel
+   geometry caches with different door/obstacle invalidation rules. Current diagnostics
+   make bot sight/query work a useful profiling target, not proof that middleware or a
+   geometry rewrite is needed.
+
+The more difficult production work remains versioned content, session routing and
+draining, archive retention/access, and idempotent persistent match results. These
+need the batch policies below. Do not build a service registry or split processes
+before those ownership and failure contracts have concrete consumers.
+
 ## Implementation sequence
 
 1. Establish current baseline with full checks/browser tests and benchmarks.

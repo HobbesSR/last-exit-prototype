@@ -1,4 +1,4 @@
-# Current implementation — September 10, 2026
+# Current implementation — September 11, 2026
 
 Simulation version: `last-exit-0.6`. The map/building/PvP checkpoint was committed and pushed as `00dc8ef`. The intended modular hierarchy remains deferred; this street maze does not claim to implement it.
 
@@ -13,6 +13,10 @@ Simulation version: `last-exit-0.6`. The map/building/PvP checkpoint was committ
 
 ## Performance and reliability work
 
+- Server transport, room/session lifecycle, match access and replay storage now have separate owners and independent tests. Shutdown awaits outstanding replay publication, including already-retired rooms, and repeated close calls share completion.
+- Live frame field contracts make additional internal fields private by default. Complete snapshots/replays and current serialized player views remain compatible with the original frozen fixtures.
+- Crowd benchmarks compare nearby and off-screen actors with AI enabled or idle. AI dominates server work in these local samples; the severe slowdown has not been reproduced or declared fixed. See ENCAPSULATION_VERIFICATION.md for repeated measurements and limitations.
+
 - Two-axis terrain/label/roof culling; stable roof layer instead of repeated per-frame reordering.
 - Reused navigation collision geometry across local pathfinding windows.
 - Abandoned live rooms retain a 30-second reconnect grace, then end and archive, avoiding ten-minute background bot/recording workloads during repeated playtests.
@@ -24,7 +28,7 @@ The user's severe slowdown remains open. A recent raw entry benchmark measured 6
 
 ## Verification
 
-After the behavior-preserving decoupling refactor, 59 unit/server/characterization tests pass; the desktop/mobile browser suite plus independent input/HUD checks pass; recursive syntax and diff checks pass; both benchmark commands complete. See `REFACTOR_VERIFICATION.md` and `REFACTOR_BENCHMARKS.json` for the unchanged-source baseline, subsystem checkpoints, coverage and raw timing comparisons. The diagnostics browser test preserves a deliberately injected long frame.
+After server encapsulation and field contracts, 74 unit/server/characterization tests pass; the desktop/mobile browser suite plus independent input/HUD checks pass; recursive syntax and diff checks pass; both benchmark commands complete. See `ENCAPSULATION_VERIFICATION.md` for this pass, and `REFACTOR_VERIFICATION.md` and `REFACTOR_BENCHMARKS.json` for the earlier simulation/map/client extraction. The original fixture remains unchanged. The diagnostics browser test preserves a deliberately injected long frame.
 
 Unit/server coverage includes 200-seed path clearance, 50-seed placement/spawn/maze checks, ammo exhaustion/refill, sixth-slot selection, move/merge validation, retained drops, doors/windows, hunter respawning, bot retreat, abandoned-room archival and immutable replay commands. Objective-route runs neutralize combat damage so PvP deaths do not invalidate navigation assertions. Full default bot play with combat completes three escapes in about 223 seconds in the latest sample; human balance is still unverified.
 
@@ -32,6 +36,6 @@ Browser coverage includes keyboard/touch, six slot icons, move/merge, drops, cha
 
 ## Remaining work
 
-Canonical settled decisions and open questions are in REQUIREMENTS.md section 8. Priorities: capture an actual slow run; human playtest combat/escape pacing; obtain the explicit modular template specification; design discrete-plane ramps/roofs/overlapping floors. Reloads, separate ammo reserves, extra weapon types, presenter UX and patron/progression systems are not silently implemented.
+Canonical settled decisions and open questions are in REQUIREMENTS.md section 8. Three hunters, weapon tiers, drag/drop weapon gestures, reloads retaining ammunition, ammo pickups, spatial reward/danger scaling, proximity trap concealment and force/impulse/friction physics are accepted requirements pending a separate gameplay checkpoint. The current prototype still has two hunters. ENCAPSULATION_PLAN.md describes useful implementation boundaries and batches the production policy questions. Other priorities remain capturing an actual slow run, human playtesting, explicit modular templates and discrete-plane ramps/roofs/overlapping floors.
 
 Known limitations: uniform interim block geometry, global bot objective knowledge, possible crowding/accidental crossfire, occasional crowded-drop fallback at the original position, and the prototype's potential-state trust model. No public deployment or accounts were added.
