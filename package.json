@@ -11,7 +11,7 @@
     "dev": "node server/index.js",
     "dev:lan": "node server/index.js --lan",
     "test": "node --test tests/*.test.js",
-    "check": "node --check server/index.js && node --check shared/simulation.js && node --check shared/profiler.js && node --check public/client.js",
+    "check": "node tests/check.mjs",
     "bench": "node tests/bench.mjs",
     "bench:client": "node tests/bench-client.mjs",
     "demo": "node tests/demo.mjs",
