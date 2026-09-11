@@ -3,6 +3,7 @@ import { POTENTIAL_RADIUS, roofConceals } from '../view.js';
 import { distance } from './geometry.js';
 import { start, stop } from '../profiler.js';
 import { DURATION, CELL_CHARGE_TICKS } from './rules.js';
+import { frameFields, ownPlayerFields, itemFields, gateFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.js';
 // The reach the server transmits within. Generous on purpose: it carries everything that could become
 // visible before the next update — through cover clearing, a cloak dropping, a scan reveal, or simply
 // movement — so the client never has to wait on the server to show something that just became
@@ -28,7 +29,6 @@ export function visibleTo(s, viewer, target) {
 // leaves the server for anyone but the player it describes. Recordings keep the full state.
 const OBSERVED = ['id', 'role', 'kit', 'name', 'x', 'y', 'heading', 'status', 'hp', 'maxHp', 'shield', 'weapon', 'cloak', 'revealed'];
 const observed = p => Object.fromEntries(OBSERVED.map(key => [key, p[key]]));
-const privately = ({ path, input, inputTick, bot, movedThisTick, aggressor, aggressionUntil, ...p }) => p;
 export function playerView(s, frame, id) {
   start('sim.playerView');
   try { return buildPlayerView(s, frame, id); } finally { stop('sim.playerView'); }
@@ -39,10 +39,12 @@ function buildPlayerView(s, frame, id) {
   const viewer = frame.players.find(p => p.id === id);
   // Effects are sized, so a wide ring counts as reachable when its edge is, not just its centre.
   const inRange = p => !viewer || distance(viewer, p) < POTENTIAL + (p.radius ?? 0);
-  const { rng, serial, ...rest } = frame; // Replay bookkeeping; no client reads either.
+  const rest = frameFields(frame); // Replay bookkeeping and unlisted internal fields stay private.
   return { ...rest, duration: DURATION, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
-    players: frame.players.filter(p => couldSee(s, viewer, p)).map(p => p.id === id ? privately(p) : observed(p)),
-    items: frame.items.filter(inRange), traps: (frame.traps || []).filter(inRange).map(({ targetId, ...trap }) => trap), projectiles: frame.projectiles.filter(inRange), effects: frame.effects.filter(inRange) };
+    players: frame.players.filter(p => couldSee(s, viewer, p)).map(p => p.id === id ? ownPlayerFields(p) : observed(p)),
+    items: frame.items.filter(inRange).map(itemFields), gates: frame.gates?.map(gateFields),
+    traps: (frame.traps || []).filter(inRange).map(trapFields), projectiles: frame.projectiles.filter(inRange).map(projectileFields),
+    effects: frame.effects.filter(inRange).map(effectFields), events: frame.events?.map(eventFields) };
 }
 export function snapshot(s) {
   start('sim.snapshot');
