@@ -37,3 +37,12 @@ test('replay stream and publication failures reject completion without publishin
   second.append({ tick: 0 }, []);
   await assert.rejects(second.finish({ ticks: 0, escaped: 0 }), /metadata unavailable/);
 });
+
+test('replay writer exposes real stream backpressure and drains before publication', async () => {
+  let published = false;
+  const writer = createReplayWriter({ header: { id: 'slow' },
+    output: new Writable({ write(_c, _e, next) { setImmediate(next); } }), publish: async () => published = true });
+  writer.append({ payload: 'x'.repeat(256 * 1024) }, []);
+  assert.equal(writer.blocked, true); assert.equal(published, false);
+  await writer.finish({ ticks: 0, escaped: 0 }); assert.equal(published, true);
+});

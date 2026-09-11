@@ -55,12 +55,17 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     console.log(`\nprofile: ${profiler.frameCount()} loop frames, budget ${(1000 / HZ).toFixed(1)} ms${profiler.format()}`);
   }, 10000);
   summary.unref?.();
-  async function close() {
-    stopScheduler(); clearInterval(summary);
-    for (const ws of wss.clients) ws.terminate();
-    await service.close();
-    await new Promise(resolve => wss.close(resolve));
-    if (http.listening) await new Promise(resolve => http.close(resolve));
+  let closing;
+  function close() {
+    if (!closing) {
+      stopScheduler(); clearInterval(summary);
+      for (const ws of wss.clients) ws.terminate();
+      // Stop admitting connections before waiting for potentially slow archive publication.
+      const socketsClosed = new Promise(resolve => wss.close(resolve));
+      const httpClosed = http.listening ? new Promise(resolve => http.close(resolve)) : Promise.resolve();
+      closing = Promise.all([service.close(), socketsClosed, httpClosed]).then(() => undefined);
+    }
+    return closing;
   }
   return { http, close, rooms: service.rooms, profiler };
 }

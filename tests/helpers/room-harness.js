@@ -1,6 +1,6 @@
 import { createRoomService } from '../../server/room-service.js';
 
-export function roomHarness({ finalize } = {}) {
+export function roomHarness({ finalize, reportError } = {}) {
   let wall = 1000, monotonic = 0;
   const writers = new Map();
   const replays = { start(header) {
@@ -14,7 +14,7 @@ export function roomHarness({ finalize } = {}) {
     };
     writers.set(header.id, writer); return writer;
   } };
-  const service = createRoomService({ replays, wallNow: () => wall });
+  const service = createRoomService({ replays, wallNow: () => wall, reportError });
   const peer = () => {
     const messages = [], closes = [];
     const session = service.connect({ deliver: payload => messages.push(JSON.parse(payload)), close: (...args) => { closes.push(args); service.disconnect(session); } });

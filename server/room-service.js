@@ -8,9 +8,11 @@ export const EMPTY_ROOM_GRACE_MS = 30000;
 const MAX_SPECTATORS = 24;
 
 // Sessions provide only deliver(serializedPayload) and close(code, reason); no socket dependency.
-export function createRoomService({ replays, wallNow = Date.now }) {
+export function createRoomService({ replays, wallNow = Date.now, reportError = console.error }) {
   const rooms = new Map();
-  const hasCapacity = () => [...rooms.values()].filter(r => !r.finished).length < 8;
+  const finalizations = new Set();
+  let closing;
+  const hasCapacity = () => !closing && [...rooms.values()].filter(r => !r.finished).length < 8;
   const connect = peer => ({ ...peer, connectionId: randomUUID(), playerId: null });
   function makeRoom(seed, matchmade = false) {
     if (!hasCapacity()) return null;
@@ -32,18 +34,26 @@ export function createRoomService({ replays, wallNow = Date.now }) {
     startRecording(room); remember(room, room.match.snapshot()); broadcastLobby(room);
     broadcast(room, room.match.snapshot());
   }
-  async function finish(room) {
-    if (room.finished) return;
+  function finish(room) {
+    if (room.finalization) return room.finalization;
     room.finished = true;
-    try {
-      const meta = await room.writer.finish(room.match.result());
-      for (const session of room.clients) send(session, { type: 'saved', replay: meta });
-    } catch (error) {
-      for (const session of room.clients) send(session, { type: 'error', message: 'Replay could not be saved.' });
-      console.error(error);
-    }
+    room.finalization = (async () => {
+      try {
+        const meta = await room.writer.finish(room.match.result());
+        for (const session of room.clients) send(session, { type: 'saved', replay: meta });
+      } catch (error) {
+        for (const session of room.clients) send(session, { type: 'error', message: 'Replay could not be saved.' });
+        reportError(error);
+      }
+    })();
+    // A retired room can leave the room map while its archive is still being published.
+    const completion = room.finalization;
+    finalizations.add(completion);
+    completion.then(() => finalizations.delete(completion), () => finalizations.delete(completion));
+    return completion;
   }
   function receive(session, data) {
+    if (closing) return;
     if (data.type === 'match' && !session.room) {
       const preference = ['contestant', 'gladiator'].includes(data.role) ? data.role : 'any';
       let room = [...rooms.values()].find(room => room.matchmade && !room.started && !room.finished && preferredRole(room, preference));
@@ -112,6 +122,7 @@ export function createRoomService({ replays, wallNow = Date.now }) {
     if (!room.finished) broadcastLobby(room);
   }
   function advance(elapsed, now) {
+    if (closing) return;
     profiler.start('loop.tick');
     let live = 0, stepped = 0;
     for (const [id, room] of rooms) {
@@ -158,8 +169,12 @@ export function createRoomService({ replays, wallNow = Date.now }) {
     profiler.count('loop.simSteps', stepped);
     profiler.frame();
   }
-  async function close() {
-    for (const room of rooms.values()) if (room.started && !room.finished) { room.match.end(); record(room, room.match.snapshot()); await finish(room); }
+  function close() {
+    if (!closing) closing = (async () => {
+      for (const room of rooms.values()) if (room.started && !room.finished) { room.match.end(); record(room, room.match.snapshot()); await finish(room); }
+      await Promise.all([...finalizations]);
+    })();
+    return closing;
   }
 
   return { rooms, hasCapacity, makeRoom, connect, receive, disconnect, advance, close };
