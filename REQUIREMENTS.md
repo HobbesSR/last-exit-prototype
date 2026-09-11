@@ -1,7 +1,7 @@
 # Last Exit Design and Requirements
 
 Status: living document  
-Updated: 2026-09-10
+Updated: 2026-09-11
 Prototype version: `last-exit-0.6`
 
 This is the canonical product and engineering requirements document for the prototype. `DESIGN.md` is the shorter design working draft; `ARCHITECTURE.md` records implementation ownership and technical tradeoffs. When implementation and this document disagree, update the document and the relevant tests in the same change.
@@ -51,6 +51,14 @@ The target is a substantially larger cyberpunk urban dystopian ruin with indoor 
 | F-08 | Allow exploration within an approximately ten-minute wall deadline. | Revised 24,000 x 12,000 maze; 600-second limit, 60-second wall grace, five-second charging. Main-route travel targets roughly four to five minutes; generation penalizes late westward backtracking and tests include exploration pauses. Human balance still needs playtesting. | Revised initial tuning |
 | F-09 | Remove the circular visibility boundary and use the full play-area viewport. Static map elements remain visible; obstacles still conceal dynamic entities. | Viewport coverage tests include portrait, desktop and ultrawide sizes; browser test renders an actor beyond the former 620-unit cutoff while preserving wall occlusion. Camera coverage is bounded on huge displays. | Implemented |
 | F-10 | Preserve the last-known state of changeable map elements such as doors when out of sight. Extend this principle to future dynamic terrain. | Gate memory tests cover unseen changes and observation refresh. Unseen gates are muted; unknown gates are shown closed with an uncertainty marker. Dynamic terrain remains future work. | Implemented for gates |
+| F-11 | Three hunters/gladiators per default match. | Accepted 2026-09-11. Current frozen prototype still has two; update spawning, lobby capacity, matchmaking fractions and tests together in a gameplay/version checkpoint. | Accepted; not implemented |
+| F-12 | Weapons have quality tiers; better tiers become more likely farther toward the top/bottom and farther right. | Define tier statistics and a seeded spatial loot distribution. Verify distribution across many seeds rather than requiring every individual pickup to improve monotonically. | Accepted; not implemented |
+| F-13 | Weapons support drag-and-drop slot swapping and dropping into the world. | Retain keyboard/accessibility alternatives and server validation. Desktop and touch gestures must distinguish rearrangement from world drops and preserve tier/ammo data. Current controls use click/tap destinations and G/drop. | Accepted; not implemented |
+| F-14 | Support rudimentary physics: forces, impulses, velocity and friction. | Keep server authority and fixed ticks; test collision/impulse edge cases, replay behavior and crowded-scene cost. Middleware versus custom implementation is undecided and requires a measured comparison. | Accepted; not implemented |
+| F-15 | Traps and hazards generally become more frequent and more dangerous toward the top/bottom and farther right. | Use a seeded spatial danger distribution coordinated with higher-tier rewards; preserve reachable routes and deliberate objective-placement constraints. Exact density/severity curves remain tuning choices. | Accepted; not implemented |
+| F-16 | Traps have subtle tells, become overt when proximity triggers them, and return to a concealed presentation after deactivation. | Test dormant/triggered/deactivated presentation, visibility projection and minimap together. Concealment after deactivation does not by itself imply automatic rearming. Current traps do not implement this presentation lifecycle. | Accepted; not implemented |
+| F-17 | Add reloading and separate ammunition pickups; reloading must not discard unused loaded rounds. | Define magazine/reserve ownership, capacities, ammo compatibility, reload timing/cancellation and inventory cost. Current ammunition remains attached to weapons and matching weapons refill it. | Accepted; not implemented |
+| F-18 | Interior/exterior sight follows the user's described reference: inside can see outside through visible openings; outside can see inside when near a window or door. | Use actual line of sight through the opening plus an exterior proximity rule. Exact proximity and roof-cutaway presentation need specification; current exterior roofs conceal all interiors. The reference game's precise implementation has not been independently verified. | Accepted; partially supported |
 
 ### 2.2 Implemented Defaults and Constraints
 
@@ -77,6 +85,11 @@ Outside a building its roof conceals interior actors and loot, even through a wi
 Contestants must complete the power-cell objective before spending one of the three escape slots. The match time limit is ten minutes; early finish conditions below still apply.
 
 The default match contains eight contestant slots, two gladiator slots, three extraction slots, a seeded generated map, and bot occupants for unclaimed player slots. A connection is a viewer until it explicitly claims a contestant or gladiator slot. Spectators consume no slot, start no recording, and have no input authority.
+
+That count describes the implemented `last-exit-0.6` baseline. The accepted target
+is three gladiators (F-11); contestant capacity and extraction capacity have not
+otherwise changed. Gameplay/version changes follow the current behavior-preserving
+server encapsulation checkpoint rather than invalidating its frozen fixtures.
 
 The server advances the simulation at 20 Hz based on elapsed real time rather than trusting the operating-system timer interval. It can catch up a bounded number of ticks after a wake-up. Every simulated tick is recorded; only the latest state in a catch-up batch is broadcast.
 
@@ -134,17 +147,44 @@ These are requirements for later milestones, not silently missing pieces of the 
 - Contestants can fight one another. Bots initiate close-range fights after opening grace, and immediately retaliate. Spawns occupy four nearby blocks rather than one cluster.
 - Functional buildings have doors, roof concealment and guaranteed useful loot. Non-colliding depot silhouettes were removed. Automated browser checks open a door and walk inside.
 
+### Accepted September 11; pending implementation
+
+- Three hunters, weapon tiers, drag-and-drop swapping/dropping, reloads that retain
+  unused loaded ammunition, and ammunition pickups are now requirements, not
+  undecided yes/no features (F-11 through F-13 and F-17).
+- Stronger weapon rewards and more frequent/dangerous traps/hazards should generally
+  occur with greater vertical excursion toward either extreme and greater progress
+  to the right. The exact combination of those influences is a tuning decision.
+- Traps should give subtle dormant tells, become overt on proximity activation,
+  and return to a more hidden state after deactivation. Trigger radii, activation
+  duration, reveal audience and which traps can rearm remain open (F-16).
+- Physics must support forces, impulses and friction. Choose custom or middleware
+  by evaluating correctness, determinism, integration cost and measured performance;
+  neither smaller source size nor using an engine proves it is faster (F-14).
+- Opening-based interior/exterior visibility should follow the user's described
+  behavior in F-18. Outside proximity remains to be tuned.
+- New performance evidence: slowdown appears when many bots or players are nearby,
+  including off-screen. Add controlled crowd/visibility/AI workloads before claiming
+  the issue fixed; entry-only benchmarks cannot resolve this report.
+
 ### Open questions — review together when convenient
 
 1. Modular hierarchy: provide hierarchy levels, template sizes, connector contracts and one concrete example. Current street generation remains explicitly interim.
-2. Exterior visibility: should open doors/windows reveal interiors to exterior players? Current roofs keep interiors hidden until entry.
+2. Exterior visibility: choose the outside proximity threshold and roof-cutaway presentation for the now-accepted opening-based sight rule (F-18). Current roofs keep interiors hidden until entry.
+    - I'm essentially trying to use the same mechanics as Zombs royale. I believe when inside you can see outside or at least what is visible through the windows. When you are outside you can only see in if you're nearby the window or door.
 3. Human balance: review route readability, vertical exploration, five-second charging, the ten-minute wall, PvP engagement distances and three extraction slots.
-4. Ammo: keep ammunition attached to weapons and refill from matching pickups, or introduce magazines/reloads and separate ammo stacks? Current supplies/caps are provisional. Additional weapon types and an equipped-ability slot remain undecided.
+4. Ammo: reloads and ammo pickups are accepted. Choose magazine/reserve capacities, ammo sharing between weapon types, reload cancellation/timing and whether reserves cost inventory slots. R currently means move/merge, so the reload binding needs resolution. Additional weapon types and an equipped-ability slot remain undecided.
+    - Need reloading. Unused loaded ammo is not lost. We also need ammo pickups.
 5. Hunter travel/respawning: automatic safe placement versus chosen destinations, 20-second respawn, retained upgrades, and rewards for taking down a hunter.
 6. Multi-floor implementation: ramp transition rules, overlapping-floor visibility/projectile rules, and a navigation representation compatible with intended templates.
 7. Matchmaking and lifecycle: soft role preference, 15-second bot-fill timer and 30-second empty-room grace. Public hosting/accounts/ranking are separate work.
 8. Performance: if a slowdown recurs, capture Replays → Download performance diagnostics. It includes recent raw frame intervals, packet gaps, browser/viewport, seed/location and live/empty room counts, but no owner credentials, chat or player list. Note whether movement stutters or the whole display freezes, plus elapsed match time and number of game tabs.
+    - Slowdowns seem to occur when lots of bots (or maybe just players) are nearby, even when off screen
 9. Patron actions, persistent progression, presenter UX and fairness remain separate milestones.
+10. Weapon tiers: tier count/names, affected statistics, refill/merge compatibility between tiers, and the relative influence of vertical excursion versus rightward progress.
+11. Trap/hazard scaling: density and severity curves, proximity triggers, subtle tells, visibility after deactivation and rearming rules. Keep mandatory charging/spawn safety constraints explicit.
+12. Physics: first required interactions (knockback, sliding, pushing, grapples or movable props), collision response expectations and maximum supported actor/prop counts. Prototype both implementation approaches only against those concrete needs.
+13. Server/live-service policy questions are batched in ENCAPSULATION_PLAN.md; none blocks the current in-process encapsulation work.
 
 The reported severe slowdown is still open. Off-screen culling and navigation reuse are implemented; abandoned rooms now retire; previous benchmarks used smoothed frame deltas and have been replaced with raw timing. Passing local tests alone does not establish a fix.
 
