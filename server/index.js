@@ -1,16 +1,13 @@
 import express from 'express';
 import { createServer as createHttpServer } from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { randomUUID, randomBytes, createHash } from 'node:crypto';
-import { mkdir, readdir, readFile, writeFile, rename } from 'node:fs/promises';
-import { createWriteStream } from 'node:fs';
-import { createGzip } from 'node:zlib';
-import { pipeline } from 'node:stream/promises';
+import { randomUUID, randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
 import { createGame, joinGame, setInput, step, snapshot, playerView, HZ, VERSION, KITS } from '../shared/simulation.js';
 import * as profiler from '../shared/profiler.js';
+import { createFileReplayStore } from './replay-store.js';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const MAX_SPECTATORS = 24;
@@ -79,7 +76,7 @@ function remember(room, frame) {
 }
 export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1' } = {}) {
   profiler.enable(profile);
-  await mkdir(replayDir, { recursive: true });
+  const replays = await createFileReplayStore(replayDir);
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '2kb' }));
@@ -105,11 +102,6 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     return roles.sort((a, b) => room.game.players.filter(p => p.role === a && !p.bot).length / (a === 'contestant' ? 8 : 2)
       - room.game.players.filter(p => p.role === b && !p.bot).length / (b === 'contestant' ? 8 : 2))[0];
   }
-  const archives = new Map();
-  for (const file of await readdir(replayDir)) {
-    if (!file.endsWith('.meta.json')) continue;
-    try { const data = JSON.parse(await readFile(path.join(replayDir, file), 'utf8')); archives.set(data.id, data); } catch { /* Ignore incomplete metadata from interrupted writes. */ }
-  }
   app.get('/api/health', (_req, res) => res.json({ ok: true, version: VERSION, tickRate: HZ, profiling: profiler.profiling(),
     liveRooms: [...rooms.values()].filter(r => r.started && !r.finished).length,
     emptyLiveRooms: [...rooms.values()].filter(r => r.started && !r.finished && !r.clients.size).length }));
@@ -122,24 +114,18 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     const room = makeRoom(seed);
     res.status(201).json({ id: room.id, ownerKey: room.ownerKey, seed });
   });
-  app.get('/api/replays', (_req, res) => res.json([...archives.values()].sort((a, b) => b.createdAt - a.createdAt).slice(0, 30)));
+  app.get('/api/replays', (_req, res) => res.json(replays.list()));
   app.get('/api/replays/:id', (req, res) => {
-    if (!archives.has(req.params.id)) return res.status(404).json({ error: 'Replay not found or still recording.' });
+    const download = replays.download(req.params.id);
+    if (!download) return res.status(404).json({ error: 'Replay not found or still recording.' });
     res.set({ 'Content-Type': 'application/json', 'Content-Encoding': 'gzip', 'Cache-Control': 'no-store' });
-    res.sendFile(path.join(replayDir, `${req.params.id}.json.gz`));
+    res.sendFile(download.path);
   });
   function record(room, frame) {
-    const line = JSON.stringify({ state: frame, commands: room.inputs.splice(0) });
-    room.hash.update(line + '\n');
-    room.recorder.write((room.frameCount ? ',' : '') + line);
-    room.frameCount++;
+    room.writer.append(frame, room.inputs.splice(0));
   }
   function startRecording(room) {
-    room.hash = createHash('sha256'); room.frameCount = 0;
-    room.recorder = createGzip();
-    room.recording = pipeline(room.recorder, createWriteStream(path.join(replayDir, `${room.id}.partial`)));
-    room.recording.catch(error => { room.recordError = error.message; console.error('Replay write failed:', error.message); });
-    room.recorder.write(JSON.stringify({ version: VERSION, id: room.id, seed: room.game.seed, hz: HZ, createdAt: room.createdAt, map: room.game.map }).slice(0, -1) + ',"frames":[');
+    room.writer = replays.start({ version: VERSION, id: room.id, seed: room.game.seed, hz: HZ, createdAt: room.createdAt, map: room.game.map });
     record(room, snapshot(room.game));
   }
   function startMatch(room) {
@@ -150,14 +136,8 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   async function finish(room) {
     if (room.finished) return;
     room.finished = true;
-    room.recorder.end(']}');
     try {
-      await room.recording;
-      if (room.recordError) throw new Error(room.recordError);
-      await rename(path.join(replayDir, `${room.id}.partial`), path.join(replayDir, `${room.id}.json.gz`));
-      const meta = { id: room.id, seed: room.game.seed, createdAt: room.createdAt, ticks: room.game.tick, frames: room.frameCount, sha256: room.hash.digest('hex'), escaped: room.game.players.filter(p => p.status === 'escaped').length };
-      await writeFile(path.join(replayDir, `${room.id}.meta.json`), JSON.stringify(meta));
-      archives.set(room.id, meta);
+      const meta = await room.writer.finish({ ticks: room.game.tick, escaped: room.game.players.filter(p => p.status === 'escaped').length });
       for (const ws of room.clients) send(ws, { type: 'saved', replay: meta });
     } catch (error) {
       for (const ws of room.clients) send(ws, { type: 'error', message: 'Replay could not be saved.' });
@@ -278,7 +258,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
       live++;
       room.debt += elapsed;
       // Pause simulation advancement under disk backpressure rather than dropping replay ticks.
-      if (room.recorder.writableNeedDrain) { profiler.count('loop.backpressureSkips'); continue; }
+      if (room.writer.blocked) { profiler.count('loop.backpressureSkips'); continue; }
       const owed = Math.floor(room.debt / TICK_MS);
       if (!owed) continue;
       room.debt -= owed * TICK_MS;
