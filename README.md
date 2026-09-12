@@ -33,10 +33,10 @@ Open one of the LAN URLs printed by the server, such as `http://192.168.1.25:300
 | Aim | Mouse position | Right virtual stick |
 | Fire / melee | Hold left mouse button | Deflect right stick |
 | Select equipment slot | 1 to 6 | Slot buttons |
-| Move / merge item | R, then destination 1–6 | Move/merge, then destination slot |
+| Move / merge item | Drag between slots, or R then destination 1–6 | Drag between slots, or Move/merge then destination slot |
 | Gladiator kit ability | Q | Ability button |
 | Open/close door / charge cell / extract / rail | E | Hand button |
-| Drop selected equipment | G | Drop selected button |
+| Drop equipment | Drag a slot into the arena, or G for selected item | Drag a slot into the arena, or Drop selected button |
 | Sneak | Hold Shift | Hold footprints button |
 | Local zoom | M | View button |
 

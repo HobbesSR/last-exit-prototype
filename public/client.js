@@ -22,6 +22,9 @@ const inputController = createInputController({
 const hudController = createHUDController({
   selectSlot: index => inputController.selectSlot(index), arrange: () => inputController.toggleArrange(),
   skill: () => inputController.skill(), interact: () => inputController.interact(), drop: () => inputController.drop(),
+  moveSlot: (from, to) => inputController.moveSlot(from, to), dropSlot: from => inputController.dropSlot(from),
+  cancelPointerFire: () => inputController.setPointerFire(false),
+  canDrag: () => !replay && state?.players.some(p => p.id === playerId && p.role === 'contestant' && p.status === 'active'),
   toggleMap: () => toggleMap()
 });
 let toastTimer, connecting = false, disconnecting = false, lastStateAt = 0, profileOverlay;
@@ -35,7 +38,7 @@ async function json(url, options) {
   if (!response.ok) throw new Error(result.error || 'Request failed');
   return result;
 }
-function clearInput() { inputController.reset(); }
+function clearInput() { hudController.cancelDrag(); inputController.reset(); }
 function changeMap(map) { arenaMap = structuredClone(map); if (scene?.ready) scene.buildMap(); }
 function updateLobby(data = {}) {
   lobbyStartsAt = data.startsAt || null;
@@ -174,8 +177,9 @@ const ArenaScene = makeArenaScene({
 });
 function toggleMap() { overview = !overview; $('map-toggle').classList.toggle('active', overview); scene?.updateCamera(true); }
 function inputTick() {
-  if (replay || !state || !predicted || !ws || ws.readyState !== WebSocket.OPEN || predicted.status !== 'active') return;
+  if (replay || !state || !predicted || !ws || ws.readyState !== WebSocket.OPEN || predicted.status !== 'active') { hudController.cancelDrag(); return; }
   const blocked = document.querySelector('dialog[open]');
+  if (blocked) hudController.cancelDrag();
   let pointerAim;
   if (scene?.ready) {
     const point = scene.cameras.main.getWorldPoint(scene.input.activePointer.x, scene.input.activePointer.y);

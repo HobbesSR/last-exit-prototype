@@ -8,6 +8,9 @@
 #equipment-slots svg{width:27px;height:27px;display:block;margin:0 auto 8px}
 .slot-number{position:absolute;left:4px;top:3px;font-size:9px;color:#a8b9bd}.slot-count{position:absolute;right:4px;bottom:2px;font-size:10px}
 #equipment-slots button.move-source{border:2px dashed #8de0ee}
+#equipment-slots button{touch-action:none}
+#equipment-slots button.dragging{border-color:#c5f16f;color:#c5f16f;opacity:.78}
+body.inventory-dragging,#equipment-slots button.dragging{user-select:none}
 #equipment-slots button.empty-ammo{color:#ff8b97}
 #arrange-item{position:absolute;bottom:178px;left:calc(50% + 4px);min-height:28px;font-size:10px}
 #equipment-slots button.selected{border-color:#ffe98a;color:#ffe98a;background:#3b4245}

@@ -12,10 +12,57 @@ const time = ticks => { const seconds = Math.max(0, Math.floor(ticks / HZ)); ret
 export function createHUDController(actions) {
   const listeners = new AbortController(), buttons = [];
   const listen = (target, type, handler) => target.addEventListener(type, handler, { signal: listeners.signal });
+  let drag, dragEnabled = false;
+  const suppressedClicks = new WeakSet();
+  const cancelDrag = () => {
+    if (!drag) return;
+    const { button, pointerId, moved } = drag;
+    drag = null;
+    if (moved) suppressedClicks.add(button);
+    if (button.hasPointerCapture?.(pointerId)) button.releasePointerCapture(pointerId);
+    button.classList.remove('dragging'); document.body.classList.remove('inventory-dragging');
+  };
+  const slotAtPoint = (x, y) => {
+    const target = document.elementFromPoint(x, y);
+    const button = target?.closest?.('#equipment-slots button[data-slot]');
+    return button ? Number(button.dataset.slot) : null;
+  };
   for (let index = 0; index < SLOT_COUNT; index++) {
     const button = document.createElement('button'); button.type = 'button'; button.dataset.slot = index;
-    listen(button, 'click', () => actions.selectSlot(index)); $('equipment-slots').append(button); buttons.push(button);
+    listen(button, 'click', e => {
+      if (suppressedClicks.delete(button) && e.detail !== 0) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+      actions.selectSlot(index);
+    });
+    listen(button, 'pointerdown', e => {
+      suppressedClicks.delete(button);
+      if (drag || !dragEnabled || (e.pointerType !== 'touch' && e.button !== 0) || document.querySelector('dialog[open]') || actions.canDrag?.() === false || button.dataset.occupied !== 'true') return;
+      drag = { button, pointerId: e.pointerId, source: index, x: e.clientX, y: e.clientY, moved: false };
+      button.setPointerCapture(e.pointerId);
+    });
+    listen(button, 'pointermove', e => {
+      if (!drag || e.pointerId !== drag.pointerId) return;
+      if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) >= 8) {
+        drag.moved = true; actions.cancelPointerFire?.(); button.classList.add('dragging'); document.body.classList.add('inventory-dragging');
+      }
+      if (drag.moved) e.preventDefault();
+    });
+    listen(button, 'pointerup', e => {
+      if (!drag || e.pointerId !== drag.pointerId) return;
+      const active = drag; cancelDrag();
+      if (!active.moved) return;
+      suppressedClicks.add(button); e.preventDefault();
+      if (!dragEnabled || document.querySelector('dialog[open]') || actions.canDrag?.() === false) return;
+      const destination = slotAtPoint(e.clientX, e.clientY);
+      if (destination !== null && destination !== active.source) actions.moveSlot(active.source, destination);
+      else if (document.elementFromPoint(e.clientX, e.clientY) === document.querySelector('#game canvas')) actions.dropSlot(active.source);
+    });
+    for (const type of ['pointercancel', 'lostpointercapture']) listen(button, type, e => {
+      if (drag && e.pointerId === drag.pointerId) cancelDrag();
+    });
+    $('equipment-slots').append(button); buttons.push(button);
   }
+  listen(window, 'blur', cancelDrag);
+  listen(document, 'visibilitychange', () => { if (document.hidden) cancelDrag(); });
   for (const [id, action] of [['skill', 'skill'], ['interact', 'interact'], ['drop-item', 'drop'], ['arrange-item', 'arrange'], ['map-toggle', 'toggleMap'], ['minimap-button', 'toggleMap']]) {
     listen($(id), 'click', () => actions[action]());
   }
@@ -28,7 +75,8 @@ export function createHUDController(actions) {
   listen(document, 'pointerout', e => { if (e.target.closest('[data-tip]')) $('tooltip').hidden = true; });
   function hud({ state, arenaMap, playerId, replay, savedReplay, selection: { moveFrom }, visibility }) {
     const me = state.players.find(p => p.id === playerId) || (replay ? state.players[0] : null);
-    if (!me) { $('arrange-item').hidden = true; $('objective').hidden = true; $('equipment-slots').hidden = true; $('drop-item').hidden = true; }
+    dragEnabled = false;
+    if (!me) { cancelDrag(); $('arrange-item').hidden = true; $('objective').hidden = true; $('equipment-slots').hidden = true; $('drop-item').hidden = true; }
     $('clock').textContent = time((state.duration || 2400) - state.tick);
     $('slots').textContent = state.slots;
     $('seed-label').textContent = arenaMap.seed;
@@ -37,6 +85,8 @@ export function createHUDController(actions) {
     $('event-feed').replaceChildren(...state.events.slice(-3).map(e => { const line = document.createElement('div'); line.textContent = e.text; return line; }));
     if (me) {
       const gladiator = me.role === 'gladiator';
+      dragEnabled = !gladiator && !replay && me.status === 'active' && !document.querySelector('dialog[open]');
+      if (!dragEnabled) cancelDrag();
       const cell = carriedCell(me) || me.cell; // Older recordings stored a dedicated cell.
       $('drop-item').hidden = gladiator || !!replay || me.status !== 'active';
       $('arrange-item').hidden = $('drop-item').hidden;
@@ -53,6 +103,7 @@ export function createHUDController(actions) {
         }
         button.classList.toggle('selected', me.selectedSlot === index);
         button.classList.toggle('move-source', moveFrom === index);
+        button.dataset.occupied = String(!!item);
         button.classList.toggle('empty-ammo', item?.kind === 'weapon' && item.ammo === 0);
         button.ariaLabel = 'Slot ' + (index + 1) + ': ' + display.name + (display.count ? ' ' + display.count : '');
         button.title = display.name + (item?.kind === 'weapon' ? ' · ' + display.count + ' rounds' : '');
@@ -133,6 +184,7 @@ export function createHUDController(actions) {
       try { hud(props); } finally { profiler.stop('render.hud'); }
     },
     setSneak: value => $('sneak').classList.toggle('active', value),
-    destroy() { listeners.abort(); for (const button of buttons) button.remove(); $('tooltip').hidden = true; }
+    cancelDrag,
+    destroy() { cancelDrag(); listeners.abort(); for (const button of buttons) button.remove(); $('tooltip').hidden = true; }
   };
 }

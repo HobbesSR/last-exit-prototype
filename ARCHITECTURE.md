@@ -46,6 +46,16 @@ Frozen characterization fixtures in `tests/fixtures` come from unchanged checkpo
 
 `public/hud-controller.js` owns inventory/status/objective display, tooltips and minimap drawing. Each render receives authoritative state, map, player/replay context, local selection, and explicit visibility polygon/eye/viewport/directed inputs. It emits selection/action callbacks; it never sends commands or mutates authoritative objects. The application connects these callbacks to input intents. Controllers can release their listeners independently. The renderer's injected API and internals are unchanged. `tests/client-controllers.mjs`, run by the browser suite, exercises frozen HUD inputs, concealment, callbacks, one-shot consumption, blocked input, blur/visibility resets and cleanup without a running game client.
 
+Inventory pointer capture, drag threshold and DOM destination hit testing belong
+to the HUD controller. It emits source/destination indices for swaps, or a source
+index for a canvas drop. The input controller translates these to existing
+`moveSlot` or `slot` + `drop` commands; a pending drag drop pins its source and
+discards competing rearrangement until that intent is collected. The application
+cancels gestures with input resets and supplies current live-player eligibility.
+World drops retain authoritative nearby placement, not the pointer's coordinates.
+No simulation, projection or recording fields change for this gesture feature;
+simulation version remains `last-exit-0.6`.
+
 The room loop paces itself against real time rather than against the timer. Platform timer granularity
 is coarser than a tick — about 15.6 ms on Windows, which rounds a bare 50 ms interval up to 62.5 ms and
 silently ran the match at 16 Hz — so the loop wakes several times per tick and advances each room by the

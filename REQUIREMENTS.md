@@ -53,7 +53,7 @@ The target is a substantially larger cyberpunk urban dystopian ruin with indoor 
 | F-10 | Preserve the last-known state of changeable map elements such as doors when out of sight. Extend this principle to future dynamic terrain. | Gate memory tests cover unseen changes and observation refresh. Unseen gates are muted; unknown gates are shown closed with an uncertainty marker. Dynamic terrain remains future work. | Implemented for gates |
 | F-11 | Three hunters/gladiators per default match. | Accepted 2026-09-11. Current frozen prototype still has two; update spawning, lobby capacity, matchmaking fractions and tests together in a gameplay/version checkpoint. | Accepted; not implemented |
 | F-12 | Weapons have quality tiers; better tiers become more likely farther toward the top/bottom and farther right. | Define tier statistics and a seeded spatial loot distribution. Verify distribution across many seeds rather than requiring every individual pickup to improve monotonically. | Accepted; not implemented |
-| F-13 | Weapons support drag-and-drop slot swapping and dropping into the world. | Retain keyboard/accessibility alternatives and server validation. Desktop and touch gestures must distinguish rearrangement from world drops and preserve tier/ammo data. Current controls use click/tap destinations and G/drop. | Accepted; not implemented |
+| F-13 | Weapons support drag-and-drop slot swapping and dropping into the world. | Mouse/touch drags swap slots or drop the source beside the player when released over the arena canvas. Tap, R/move and G/drop alternatives remain. Server-validated commands preserve ammo and cell charge; tiers remain pending F-12. Cancellation and live mouse/multitouch checks cover the gesture path. | Implemented for current equipment |
 | F-14 | Support rudimentary physics: forces, impulses, velocity and friction. | Keep server authority and fixed ticks; test collision/impulse edge cases, replay behavior and crowded-scene cost. Middleware versus custom implementation is undecided and requires a measured comparison. | Accepted; not implemented |
 | F-15 | Traps and hazards generally become more frequent and more dangerous toward the top/bottom and farther right. | Use a seeded spatial danger distribution coordinated with higher-tier rewards; preserve reachable routes and deliberate objective-placement constraints. Exact density/severity curves remain tuning choices. | Accepted; not implemented |
 | F-16 | Traps have subtle tells, become overt when proximity triggers them, and return to a concealed presentation after deactivation. | Test dormant/triggered/deactivated presentation, visibility projection and minimap together. Concealment after deactivation does not by itself imply automatic rearming. Current traps do not implement this presentation lifecycle. | Accepted; not implemented |
@@ -69,6 +69,15 @@ Camera coverage is capped at 2,400 x 1,600 world units, and the server's potenti
 Each cell occupies one of the six ordinary equipment slots and never stacks; carrying several costs several slots. Keys remain separate. A cell takes 100 ticks (five seconds) to charge; press E in range and stay still. Movement or leaving the station pauses charging but retains progress. Stations can charge multiple contestants. Elimination drops the cell with its charge; extraction consumes it. Traps are placed at least 850 units from chargers so required stationary charging is not automatically covered by a trap.
 
 Equipment has six mixed slots. 1–6 or slot buttons select equipment; fire/use activates it. Items use icons with numeric ammo, stack or charge badges, tooltips and accessible names. R or Move/merge selects the current item for rearrangement; choose a destination with a number key or slot button. Matching medkit/shield stacks combine up to three; other items swap. Medkits restore 40 HP and shields restore 30 (75 maximum). Each cell takes one slot and never stacks.
+
+Drag an occupied slot at least eight screen pixels to another slot to move,
+swap or merge it. Release over the arena canvas to drop that source item beside
+the player, using the same placement and pickup delay as G; the pointer does not
+choose a remote world location. Releasing over other UI cancels. Mouse and touch
+share the gesture, including touch dragging while another finger holds the move
+stick. Cancellation, blur, dialogs, inactive players and replay mode prevent
+unfinished gestures from producing inventory commands. Inventory changes remain
+authoritative; the UI does not move items before the server responds.
 
 E swaps nearby loot into the selected slot when full. G or Drop selected drops the whole selected slot; a one-second owner pickup delay avoids immediate recollection. Drops retain cell charge and remaining weapon ammunition. Pistol/rifle/scattergun pickups start with 48/90/24 rounds, capped at 192/360/96 per weapon. One shot costs one round, including a scattergun's five-pellet shot. Matching weapon pickups replenish ammo even with full inventory; untransferred rounds remain on the ground. There is no reload mechanic or separate reserve-ammo slot yet. Existing damage/cooldowns remain pistol 10/8 ticks, rifle 6/4, scattergun five 7-damage pellets/18. No contestant ability slot is implemented.
 
@@ -147,20 +156,29 @@ These are requirements for later milestones, not silently missing pieces of the 
 - Contestants can fight one another. Bots initiate close-range fights after opening grace, and immediately retaliate. Spawns occupy four nearby blocks rather than one cluster.
 - Functional buildings have doors, roof concealment and guaranteed useful loot. Non-colliding depot silhouettes were removed. Automated browser checks open a door and walk inside.
 
-### Accepted September 11; pending implementation
+### Accepted September 11; implementation progress
 
-- Three hunters, weapon tiers, drag-and-drop swapping/dropping, reloads that retain
+- Three hunters, weapon tiers, reloads that retain
   unused loaded ammunition, and ammunition pickups are now requirements, not
-  undecided yes/no features (F-11 through F-13 and F-17).
+  undecided yes/no features (F-11/F-12 and F-17). Drag-and-drop swapping/dropping
+  is implemented for current equipment (F-13); tier support follows F-12.
 - Stronger weapon rewards and more frequent/dangerous traps/hazards should generally
   occur with greater vertical excursion toward either extreme and greater progress
-  to the right. The exact combination of those influences is a tuning decision.
+  to the right. The user's follow-up selects five virtual columns/rows and five
+  mixed quality distributions: horizontal progression supplies the base mix,
+  while vertical distance from the center adds 0/1/2, capped at tier 5. These are
+  distribution zones, not map tiles. Novel/special content should additionally
+  favor vertical exploration. Exact weights, tier statistics and novelty content
+  remain tuning decisions; trap/hazard scaling should use the same spatial policy.
 - Traps should give subtle dormant tells, become overt on proximity activation,
   and return to a more hidden state after deactivation. Trigger radii, activation
   duration, reveal audience and which traps can rearm remain open (F-16).
 - Physics must support forces, impulses and friction. Choose custom or middleware
   by evaluating correctness, determinism, integration cost and measured performance;
   neither smaller source size nor using an engine proves it is faster (F-14).
+  Requested cases include ice-like sliding, slowing, explosion responses, pushing
+  dynamic objects, and robust hunter hook/drag interactions without clipping out
+  of the level. The meaning of 2½D ballistics still needs a concrete contract.
 - Opening-based interior/exterior visibility should follow the user's described
   behavior in F-18. Outside proximity remains to be tuned.
 - New performance evidence: slowdown appears when many bots or players are nearby,
@@ -182,8 +200,15 @@ These are requirements for later milestones, not silently missing pieces of the 
     - Slowdowns seem to occur when lots of bots (or maybe just players) are nearby, even when off screen
 9. Patron actions, persistent progression, presenter UX and fairness remain separate milestones.
 10. Weapon tiers: tier count/names, affected statistics, refill/merge compatibility between tiers, and the relative influence of vertical excursion versus rightward progress.
+    - Let's say there are 5 tiers. Let's say we split the diamond into a "grid" of 5 x 5 virtual zones (not in like map layout). But essentially horizontally the likilihood of
+    higher tier lier bumps up by a tier each zone. You catch my drift. Not hard jump of what tier stuff can be found in each zone. So you'll find a mix in each zone. Vertically
+    middle zones don't modify that, while moving away from the center adds 1 and then 2 to that tier mix. So I mean you can probably just set this to 5 different tier mixes and the way the diamond works it's like 1 through 5 in the center, then in column 2 you'll have 2 in the center and 3 above and below it, and then the map doesn't extend into where the 4 would be. So by the time you get to 3 you'll have essentially a tier 5 at the top and bottom zones in the middle column. However, there's also a novelty factor I'd like to add in, where the more novel and special items and weapons will be distributed vertically further from the center.
 11. Trap/hazard scaling: density and severity curves, proximity triggers, subtle tells, visibility after deactivation and rearming rules. Keep mandatory charging/spawn safety constraints explicit.
+    Probably trap / hazard scaling can go hand in hand with loot tier scaling
 12. Physics: first required interactions (knockback, sliding, pushing, grapples or movable props), collision response expectations and maximum supported actor/prop counts. Prototype both implementation approaches only against those concrete needs.
+    So we need sliding like on ice, and slowing down. Responses to explosions. 2 1/2d ballistics (not sure what this really will mean). Dynamic objects should push. Shouldn't be
+    able to clip out of the level or anything. (Zombs royale level of physics essentially). But also importantly we want to make fun kits for the hunters / gladiators. Like
+    Overwatch's Roadhog's Hook mechanic would be awesome, but it actually went through a lot of iterations to get right and deal with all the mechanical edge cases that causes.
 13. Server/live-service policy questions are batched in ENCAPSULATION_PLAN.md; none blocks the current in-process encapsulation work.
 
 The reported severe slowdown is still open. Off-screen culling and navigation reuse are implemented; abandoned rooms now retire; previous benchmarks used smoothed frame deltas and have been replaced with raw timing. Passing local tests alone does not establish a fix.

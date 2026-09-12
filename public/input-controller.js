@@ -7,7 +7,8 @@ export function createInputController({ getPlayer, onSelectionChange, onToggleMa
   let pulseSkill = false, pulseInteract = false, pointerFire = false, sneakHeld = false, currentAim = 0;
   let selectedSlot;
   let pulseDrop = false;
-  let moveFrom = null, pendingMove = null;
+  let moveFrom = null, pendingMove = null, dragDropSource = null;
+  const validSlot = index => Number.isInteger(index) && index >= 0 && index < 6;
   function selectSlot(index) {
     if (moveFrom !== null) { pendingMove = { from: moveFrom, to: index }; moveFrom = null; }
     else selectedSlot = index;
@@ -17,9 +18,24 @@ export function createInputController({ getPlayer, onSelectionChange, onToggleMa
     moveFrom = moveFrom === null && me?.inventory?.[me.selectedSlot] ? me.selectedSlot : null;
     onSelectionChange();
   }
+  // Drag gestures are translated into the existing, server-validated one-shot intents.
+  // Include the source selection so an unselected item can be moved or dropped.
+  function moveSlot(from, to) {
+    const me = getPlayer();
+    if (!validSlot(from) || !validSlot(to) || from === to || !me?.inventory?.[from]) return;
+    selectedSlot = from; pendingMove = { from, to }; moveFrom = null;
+    onSelectionChange();
+  }
+  function dropSlot(from) {
+    const me = getPlayer();
+    if (!validSlot(from) || !me?.inventory?.[from]) return;
+    // A world drop must not be preceded by a queued rearrange in the same input.
+    selectedSlot = from; pendingMove = null; moveFrom = null; dragDropSource = from; pulseDrop = true;
+    onSelectionChange();
+  }
   const movementStick = { x: 0, y: 0, active: false }, aimingStick = { x: 0, y: 0, active: false };
   const held = new Set();
-  function clearInput() { moveFrom = null; pendingMove = null; held.clear(); pointerFire = false; sneakHeld = false; pulseSkill = false; pulseInteract = false; pulseDrop = false; selectedSlot = undefined; for (const stick of [movementStick, aimingStick]) Object.assign(stick, { x: 0, y: 0, active: false }); document.querySelectorAll('.virtual-stick span').forEach(el => el.style.transform = ''); }
+  function clearInput() { moveFrom = null; pendingMove = null; dragDropSource = null; held.clear(); pointerFire = false; sneakHeld = false; pulseSkill = false; pulseInteract = false; pulseDrop = false; selectedSlot = undefined; for (const stick of [movementStick, aimingStick]) Object.assign(stick, { x: 0, y: 0, active: false }); document.querySelectorAll('.virtual-stick span').forEach(el => el.style.transform = ''); }
   listen(document, 'keydown', e => {
     if (e.target.matches('input,select,textarea') || document.querySelector('dialog[open]')) return;
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
@@ -60,13 +76,14 @@ export function createInputController({ getPlayer, onSelectionChange, onToggleMa
       else if (matchMedia('(pointer:coarse)').matches) input.aim = currentAim;
     }
     currentAim = input.aim;
-    if (!blocked && pendingMove) input.moveSlot = pendingMove; pendingMove = null;
+    if (!blocked && pendingMove && dragDropSource === null) input.moveSlot = pendingMove; pendingMove = null;
     input.drop = !blocked && pulseDrop; pulseDrop = false;
-    if (selectedSlot !== undefined) { input.slot = selectedSlot; selectedSlot = undefined; }
+    if (dragDropSource !== null) { if (!blocked) input.slot = dragDropSource; dragDropSource = null; selectedSlot = undefined; }
+    else if (selectedSlot !== undefined) { input.slot = selectedSlot; selectedSlot = undefined; }
     return input;
   }
   return {
-    collectIntent, reset: clearInput, selectSlot, toggleArrange,
+    collectIntent, reset: clearInput, selectSlot, toggleArrange, moveSlot, dropSlot,
     selection: () => ({ moveFrom }), aim: () => currentAim,
     setPointerFire: value => pointerFire = value,
     skill: () => pulseSkill = true, interact: () => pulseInteract = true, drop: () => pulseDrop = true,

@@ -43,6 +43,51 @@ F-18 remain the next gameplay milestone, with a separate simulation/version revi
 
 ## Next implementation boundaries
 
+### September 11 task selection after the user's policy answers
+
+The inline answers below supersede the older assumption that all prototype
+policies should remain defaults. They are accepted direction, not evidence that
+the corresponding behavior is implemented. Preserve the completed extraction's
+frozen fixtures while making intentional changes in separate checkpoints.
+
+1. **Inventory drag/drop (F-13), completed this checkpoint.** Reuse validated `moveSlot` and
+   `slot` + `drop` commands for mouse/touch gestures. Keep keyboard and button
+   alternatives, cancel gestures over unrelated UI, and test source-slot selection,
+   pointer cancellation and one-shot consumption. This needs no simulation or
+   recording version change; tiers are a separate equipment change.
+2. **Recording must not stop gameplay, next reliability task.** The current room
+   loop explicitly pauses on `writer.blocked`, contrary to the new answer. First
+   define a bounded recording queue and failure state: no unbounded buffering,
+   no propagation of start/append/stream errors into match advancement, no false
+   saved notification, and idempotent shutdown even after failure. A slow sink,
+   permanently stalled sink, synchronous throw and asynchronous failure must all
+   be tested with a fake clock and multiple rooms. Do not merely remove the
+   backpressure check. Recoverable gaps require explicit tick/gap metadata and
+   playback seeking by recorded time; today's playback indexes frames at 20 Hz.
+   The lead owns that format/client contract before delegating implementation.
+3. **Match capacities and content checkpoint (F-11).** Centralize the eight
+   contestant/three gladiator capacities across spawning, lobby and matchmaking.
+   Decide an explicit new gameplay/content version and how legacy characterization
+   remains exercised before changing defaults; never regenerate the old fixture.
+4. **Shared spatial reward/danger policy (F-12/F-15).** The user selected five
+   virtual columns and rows, five mixed tier distributions, a horizontal base
+   from 1 to 5, and vertical offsets 0/1/2 capped at tier 5. These zones do not
+   alter map geometry. Track vertical novelty separately from quality. Tier
+   statistics, distribution weights and special-item definitions still need
+   concrete recorded tuning assumptions; preserve spawn/charger reservations.
+5. **Physics evaluation (F-14).** Compare sliding/slowing surfaces, explosion
+   impulses, pushing dynamic bodies and hook/drag corner cases at fixed ticks.
+   Elevation/ballistics need a collision-plane contract before implementation.
+   Profile geometry in controlled crowd workloads; current evidence has not
+   established the cause of the reported severe slowdown.
+
+Replay ownership/lifetime and BSON encoding, configurable spectator access/delay,
+and lobby/game-server deployment remain separate follow-ups. The desired owner
+exit lifetime still needs a precise relationship to refresh/reconnect grace;
+current archives remain process-wide and persistent. Spectators are still owner
+gated and delayed by default. Do not present either behavior as satisfying the
+new policy answers. Public deployment is not part of this checkpoint.
+
 The new requirements make three boundaries especially useful:
 
 1. **Content and equipment.** One match-owned content bundle should define role
@@ -96,18 +141,27 @@ remains the default until these policies are decided.
 
 1. First release: private invited playtests, public anonymous play, or accounts?
    What concurrent players/matches and geographic footprint should we plan for?
+   Let's say worldwide for now. Imagine we deploy this on a VPS and other turn key services for deploying something like this as a live service.
 2. Deployment behavior: finish matches on the old server version, reconnect to a
    replacement, or tolerate interrupted matches? Is crash recovery required?
+   So I guess you know there is the lobby server and then there are the spawned game server. So I guess when you come back to join a new game yoru client will have to update.
 3. Replay policy: who may download full-state recordings, how long are they kept,
    and how long must old recordings remain playable?
+      - Replays can only be downloaded by the room owner. They last as long as the owner has not exited the game. Ideally replays will be stored in BSON and recorded in JSON only for debugging.
 4. Content rollout: should a match always retain its starting balance/content,
    and are simultaneous balance variants/experiments needed?
 5. Persistent progression/rewards: which outcomes survive a match, and what must
    happen when storage fails or the same result is delivered twice?
 6. Observer fairness: public spectators/presenters, delay policy, and whether the
    same person may participate and observe through separate sessions?
+      - We should plan to be able to restrict who is allowed to spectate, but not implement it. We should plan to be able to delay spectation,
+      but not automatically do it. During the initial bring up of the game, we will not worry about whether there are bad actors, we simply tolerate
+      them during rapid development. But we try not to box ourselves in.
 7. Failure policy: if recording cannot keep up or fails, pause the match, continue
    without a replay, or end it? Current disk backpressure pauses advancement.
+      - Recording replay should not impact gameplay. If replay fails for some reason it should
+      fail gracefully for all clients and systems. If replay can be recovered, playback should
+      handle missing data gracefully.
 
 Keep the existing map hierarchy, multi-floor, balance and presentation questions
 in REQUIREMENTS.md; this batch supplements them.

@@ -53,6 +53,29 @@ try {
   await page.waitForFunction(() => window.arenaDebug().me.inventory[0]?.kind === 'weapon' && window.arenaDebug().me.selectedSlot === 0);
   await page.getByRole('button', { name: 'Drop selected', exact: false }).click();
   await page.waitForFunction(() => window.arenaDebug().me.inventory[0] === null);
+  // Real pointer gestures travel through the client, wire validation and fixed tick.
+  const inventoryPlayer = server.rooms.get(ownerRoom).game.players.find(p => p.id === ownerPlayer);
+  inventoryPlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7 };
+  inventoryPlayer.selectedSlot = 0;
+  await page.waitForFunction(() => window.arenaDebug().me.inventory[5]?.ammo === 7);
+  const slotCenter = async index => {
+    const box = await page.locator('#equipment-slots button').nth(index).boundingBox();
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  };
+  const dragInventory = async (from, to) => {
+    const source = await slotCenter(from);
+    await page.mouse.move(source.x, source.y); await page.mouse.down();
+    await page.mouse.move(to.x, to.y, { steps: 8 }); await page.mouse.up();
+  };
+  await dragInventory(5, await slotCenter(4));
+  await page.waitForFunction(() => window.arenaDebug().me.inventory[4]?.ammo === 7 && !window.arenaDebug().me.inventory[5]);
+  await page.keyboard.press('Digit1');
+  await page.waitForFunction(() => window.arenaDebug().me.selectedSlot === 0);
+  const arenaBox = await page.locator('#game canvas').boundingBox();
+  await dragInventory(4, { x: arenaBox.x + arenaBox.width / 2, y: arenaBox.y + arenaBox.height / 2 });
+  await page.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
+  const gestureDrop = server.rooms.get(ownerRoom).game.map.items.find(item => item.droppedBy === ownerPlayer && item.weaponType === 'rifle');
+  assert.equal(gestureDrop?.ammo, 7, 'world drag drops the unselected source with its ammunition');
   await page.screenshot({ path: 'test-results/desktop.png' });
   await page.getByRole('button', { name: 'Toggle local zoom', exact: true }).click();
   await page.waitForTimeout(200);
@@ -138,6 +161,31 @@ try {
   const touchState = await mobile.evaluate(() => window.arenaDebug());
   assert.ok(touchState.me.x > startTouchX + 20 && Math.abs(touchState.me.heading + Math.PI / 2) < 0.1, 'simultaneous move and aim');
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  const mobileInfo = await mobile.evaluate(() => window.arenaDebug());
+  const mobilePlayer = server.rooms.get(mobileInfo.room).game.players.find(p => p.id === mobileInfo.me.id);
+  mobilePlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7 };
+  mobilePlayer.inventory[4] = null;
+  await mobile.waitForFunction(() => window.arenaDebug().me.inventory[5]?.ammo === 7 && !window.arenaDebug().me.inventory[4]);
+  const touchSlotCenter = async index => {
+    const box = await mobile.locator('#equipment-slots button').nth(index).boundingBox();
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2, id: 3 };
+  };
+  const sourceTouch = await touchSlotCenter(5), targetTouch = await touchSlotCenter(4);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [leftPoint] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [leftPoint, sourceTouch] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [leftPoint, targetTouch] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [targetTouch] });
+  await mobile.waitForFunction(() => window.arenaDebug().me.inventory[4]?.ammo === 7 && !window.arenaDebug().me.inventory[5]);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await mobile.locator('#equipment-slots button').nth(0).tap();
+  await mobile.waitForFunction(() => window.arenaDebug().me.selectedSlot === 0);
+  const mobileCanvas = await mobile.locator('#game canvas').boundingBox();
+  const worldTouch = { x: mobileCanvas.x + mobileCanvas.width / 2, y: mobileCanvas.y + mobileCanvas.height / 2, id: 3 };
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [targetTouch] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [worldTouch] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await mobile.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
+  assert.equal(server.rooms.get(mobileInfo.room).game.map.items.find(item => item.droppedBy === mobilePlayer.id && item.weaponType === 'rifle')?.ammo, 7, 'touch world drag preserves source ammo');
   const vr = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":4217}' })).json();
   const geometryGame = server.rooms.get(vr.id).game;
   for (const p of geometryGame.players) p.bot = false;
