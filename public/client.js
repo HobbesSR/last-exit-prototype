@@ -169,7 +169,7 @@ const ArenaScene = makeArenaScene({
   replay: () => !!replay, directed, overview: () => overview, aim: () => inputController.aim(),
   // How far into the current authoritative tick the renderer is, so motion that only updates on a
   // server frame can be advanced smoothly between them.
-  frameAlpha: () => replay ? playback - Math.floor(playback) : Math.min(1, (performance.now() - lastStateAt) / (1000 / HZ)),
+  frameAlpha: () => replay ? replayTimeline.at(playback)?.alpha ?? 0 : Math.min(1, (performance.now() - lastStateAt) / (1000 / HZ)),
   onReady: value => scene = value, onFire: value => inputController.setPointerFire(value),
   onFrame: delta => {
     if (!replay || !playing) return;

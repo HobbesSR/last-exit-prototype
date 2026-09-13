@@ -18,16 +18,20 @@ export function createReplayTimeline(recording) {
   const endTick = validTick(declaredEnd) && declaredEnd >= (lastTick ?? 0) ? declaredEnd : lastTick;
 
   function at(tick) {
-    if (!retained.length || !validTick(tick)) return null;
-    const playhead = Math.min(Math.max(0, Math.floor(tick)), endTick ?? tick);
+    if (!retained.length || !Number.isFinite(tick) || tick < 0) return null;
+    // Render time is continuous; only authoritative frame lookup uses whole ticks.
+    const playhead = Math.min(tick, endTick ?? tick);
+    const lookupTick = Math.floor(playhead);
     let low = 0, high = retained.length;
     while (low < high) {
       const middle = Math.floor((low + high) / 2);
-      if (retained[middle].tick <= playhead) low = middle + 1;
+      if (retained[middle].tick <= lookupTick) low = middle + 1;
       else high = middle;
     }
     const entry = retained[Math.max(0, low - 1)];
-    return { state: entry.frame.state, frame: entry.frame, tick: playhead, frameTick: entry.tick, missing: playhead !== entry.tick };
+    const missing = lookupTick !== entry.tick;
+    return { state: entry.frame.state, frame: entry.frame, tick: playhead, frameTick: entry.tick, missing,
+      alpha: missing ? 0 : playhead - lookupTick };
   }
 
   return { frames: retained.map(entry => entry.frame), firstTick, lastTick, endTick,

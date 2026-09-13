@@ -114,11 +114,131 @@ try {
   assert.equal(diagnostic.server.ok, true);
   await page.getByRole('button', { name: 'End match & save replay' }).click();
   await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().waitFor();
+  // Keep the archive's normal dense recording path covered too: real playback
+  // must advance authoritative state before the routed sparse fixture below.
   await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().click();
   await page.waitForFunction(() => window.arenaDebug().replay);
+  await page.waitForFunction(() => window.arenaDebug().tick >= 16, null, { timeout: 5000 });
   await page.getByRole('button', { name: 'Pause replay', exact: true }).click();
   await page.locator('#replay-seek').fill('5');
   assert.equal(await page.evaluate(() => window.arenaDebug().tick), 5);
+  const denseDownloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download replay', exact: true }).click();
+  assert.match((await denseDownloadPromise).suggestedFilename(), /^last-exit-.*\.json$/);
+  await page.getByRole('button', { name: 'Exit replay' }).click();
+  await page.getByRole('button', { name: 'Replays', exact: true }).click();
+  // Routed archives keep the real map contract while making playback deterministic.
+  // The dense fixture covers continuous render time; the sparse one covers omitted
+  // frames, which must hold the last retained state rather than extrapolate through
+  // data that was never saved. Projectiles advance ten units per tick, so a rendered
+  // position states both the authoritative tick and the fraction into it.
+  const savedRecording = await (await fetch(`${base}/api/replays/${ownerRoom}`)).json();
+  const fixtureState = tick => {
+    const state = structuredClone(savedRecording.frames[0].state);
+    const origin = state.players[0];
+    state.tick = tick;
+    state.projectiles = [{ id: 'fixture-shot', x: origin.x + tick * 10, y: origin.y, dx: 10, dy: 0 }];
+    state.effects = [];
+    return state;
+  };
+  const originX = fixtureState(0).projectiles[0].x;
+  const denseReplay = {
+    ...savedRecording,
+    frames: Array.from({ length: 61 }, (_, tick) => ({ state: fixtureState(tick), commands: [] })),
+    recording: { complete: true, droppedFrames: 0, endTick: 60 }
+  };
+  const sparseReplay = {
+    ...savedRecording,
+    frames: [0, 8, 16, 24].map(tick => ({ state: fixtureState(tick), commands: [] })),
+    recording: { complete: false, droppedFrames: 20, endTick: 30 }
+  };
+  let routedReplay = denseReplay;
+  await page.route(`**/api/replays/${ownerRoom}`, route => route.fulfill({ contentType: 'application/json', body: JSON.stringify(routedReplay) }));
+  const openRoutedReplay = async () => {
+    await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().waitFor();
+    await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().click();
+    await page.waitForFunction(() => window.arenaDebug().replay);
+  };
+  // A headless frame is longer than a playback tick, so no assertion may assume a
+  // sample lands in a chosen tick. Sample whatever frames occur and check the
+  // invariant that must hold for every one of them.
+  const samplePlayback = frames => page.evaluate(async count => {
+    const samples = [];
+    for (let i = 0; i < count; i++) {
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      const debug = window.arenaDebug(), status = document.getElementById('replay-status');
+      samples.push({ tick: debug.tick, seek: Number(document.getElementById('replay-seek').value),
+        x: debug.shots?.[0]?.x, status: status.hidden ? null : status.textContent });
+    }
+    return samples;
+  }, frames);
+  const pausePlayback = () => page.evaluate(() => {
+    const button = document.getElementById('replay-play');
+    if (button.ariaLabel === 'Pause replay') button.click();
+  });
+  await openRoutedReplay();
+  await pausePlayback();
+  await page.locator('#replay-speed').selectOption('0.5');
+  await page.locator('#replay-seek').fill('0');
+  await page.getByRole('button', { name: 'Play replay', exact: true }).click();
+  const denseSamples = await samplePlayback(6);
+  await pausePlayback();
+  // Dense playback keeps fractional render time: every frame shows the floored
+  // authoritative tick with the projectile advanced part way into it. Rejecting
+  // fractional lookups froze both the state and the seek position instead.
+  const report = samples => JSON.stringify(samples);
+  for (const sample of denseSamples) {
+    assert.equal(sample.tick, sample.seek, `dense playback shows the floored tick: ${report(denseSamples)}`);
+    assert.equal(sample.status, null, `a complete recording shows no gap notice: ${report(denseSamples)}`);
+    assert.ok(sample.x >= originX + sample.tick * 10 && sample.x < originX + sample.tick * 10 + 10,
+      `dense frame alpha stays inside its own tick: ${report(denseSamples)}`);
+  }
+  assert.ok(denseSamples.at(-1).tick > denseSamples[0].tick, `dense playback advances ticks: ${report(denseSamples)}`);
+  assert.ok(denseSamples.some(sample => sample.x > originX + sample.tick * 10),
+    `dense playback renders between authoritative ticks: ${report(denseSamples)}`);
+  routedReplay = sparseReplay;
+  await page.getByRole('button', { name: 'Exit replay' }).click();
+  await page.getByRole('button', { name: 'Replays', exact: true }).click();
+  await openRoutedReplay();
+  await pausePlayback();
+  // Seeking into a sparse gap holds tick zero's projectile exactly and tells the
+  // viewer which retained state is on screen.
+  await page.locator('#replay-seek').fill('5');
+  assert.equal(await page.evaluate(() => window.arenaDebug().tick), 0);
+  assert.equal(await page.locator('#replay-status').textContent(), 'MISSING DATA · showing tick 0');
+  assert.equal(await page.evaluate(() => window.arenaDebug().shots[0].x), originX, 'gaps do not advance held projectiles');
+  // The same must hold while playing, not merely at an integer seek position: a
+  // retained tick interpolates within itself, a gap holds its recorded position.
+  await page.getByRole('button', { name: 'Play replay', exact: true }).click();
+  const gapSamples = await samplePlayback(6);
+  await pausePlayback();
+  for (const sample of gapSamples) {
+    const held = originX + sample.tick * 10;
+    if (sample.seek === sample.tick) {
+      assert.equal(sample.status, 'PARTIAL RECORDING · 20 frames omitted', `retained sparse frames label the recording: ${report(gapSamples)}`);
+      assert.ok(sample.x >= held && sample.x < held + 10, `retained sparse frames interpolate within their tick: ${report(gapSamples)}`);
+    } else {
+      assert.equal(sample.status, `MISSING DATA · showing tick ${sample.tick}`, `gaps name the retained tick on screen: ${report(gapSamples)}`);
+      assert.equal(sample.x, held, `gaps never extrapolate a projectile: ${report(gapSamples)}`);
+    }
+  }
+  assert.ok(gapSamples.some(sample => sample.seek !== sample.tick), `sparse playback rendered a gap: ${report(gapSamples)}`);
+  // Real onFrame playback supplies fractional ticks. Each supported speed must
+  // advance to the next retained state, without asserting fragile timing.
+  for (const speed of ['0.5', '1', '2', '4']) {
+    await page.locator('#replay-seek').fill('0');
+    await page.locator('#replay-speed').selectOption(speed);
+    await page.getByRole('button', { name: 'Play replay', exact: true }).click();
+    await page.waitForFunction(() => window.arenaDebug().tick >= 8, null, { timeout: 5000 });
+    await pausePlayback();
+  }
+  // Resume from a gap, then run to the declared tail. The final tail is also
+  // missing data and therefore keeps the final retained projectile stationary.
+  await page.locator('#replay-seek').fill('5');
+  await page.getByRole('button', { name: 'Play replay', exact: true }).click();
+  await page.waitForFunction(() => Number(document.getElementById('replay-seek').value) === 30, null, { timeout: 5000 });
+  assert.equal(await page.locator('#replay-status').textContent(), 'MISSING DATA · showing tick 24');
+  assert.equal(await page.evaluate(() => window.arenaDebug().shots[0].x), originX + 240, 'tail gap holds final projectile position');
   await page.screenshot({ path: 'test-results/replay.png' });
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download replay', exact: true }).click();

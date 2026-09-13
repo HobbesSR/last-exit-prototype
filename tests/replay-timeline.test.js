@@ -4,6 +4,36 @@ import { createReplayTimeline } from '../public/replay-timeline.js';
 
 const frame = tick => ({ state: { tick, marker: `state-${tick}` } });
 
+test('render frames retain fractional time and advance at each playback speed', () => {
+  const timeline = createReplayTimeline({ frames: Array.from({ length: 101 }, (_, tick) => frame(tick)) });
+  for (const speed of [0.5, 1, 2, 4]) {
+    let playhead = 0, sample;
+    for (let i = 0; i < 60; i++) {
+      sample = timeline.at(playhead + 20 / 60 * speed);
+      assert.ok(sample);
+      playhead = sample.tick;
+      assert.equal(sample.state.tick, Math.floor(playhead));
+      assert.equal(sample.missing, false);
+    }
+    assert.ok(Math.abs(playhead - 20 * speed) < 1e-10);
+  }
+  assert.equal(timeline.at(0.5).alpha, 0.5);
+  assert.equal(timeline.at(101.5).tick, 100);
+});
+
+test('fractional gaps hold recorded positions without projectile extrapolation', () => {
+  const timeline = createReplayTimeline({ frames: [frame(2), frame(5)], recording: { complete: false, endTick: 8 } });
+  for (const tick of [0.5, 1.9, 3.2, 4.8, 6.5, 7.9, 8]) {
+    const sample = timeline.at(tick);
+    assert.equal(sample.missing, true);
+    assert.equal(sample.alpha, 0);
+  }
+  assert.equal(timeline.at(2.5).missing, false);
+  assert.equal(timeline.at(2.5).alpha, 0.5);
+  assert.equal(timeline.at(5.5).state.tick, 5);
+  for (const invalid of [NaN, Infinity, -1, '2']) assert.equal(timeline.at(invalid), null);
+});
+
 test('dense legacy recordings retain their tick playback', () => {
   const timeline = createReplayTimeline({ frames: [frame(0), frame(1), frame(2)] });
   assert.equal(timeline.complete, true); assert.equal(timeline.endTick, 2);
