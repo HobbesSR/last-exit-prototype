@@ -3,6 +3,7 @@ import { createInputController } from '/input-controller.js';
 import { createHUDController } from '/hud-controller.js';
 import { notePacket, resetDiagnostics, diagnosticTimings } from '/diagnostics.js';
 import { makeArenaScene } from '/arena-scene.js';
+import { createReplayTimeline } from '/replay-timeline.js';
 import * as profiler from '/shared/profiler.js';
 
 const $ = id => document.getElementById(id);
@@ -11,7 +12,7 @@ const icons = () => window.lucide?.createIcons();
 const HZ = 20;
 const KIT = { warden: ['Warden', 'Shockwave', 'zap'], specter: ['Specter', 'Pulse scan', 'radar'], striker: ['Striker', 'Overdrive', 'flame'] };
 let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liveState, predicted;
-let seq = 0, pending = [], overview = false, selectedRole = 'contestant', savedReplay, replay, playback = 0, playing = true;
+let seq = 0, pending = [], overview = false, selectedRole = 'contestant', savedReplay, replay, replayTimeline, playback = 0, playing = true, recordingFailed = false;
 let lobbyPlayers = [];
 let lobbyStartsAt = null;
 const inputController = createInputController({
@@ -82,7 +83,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   try { saved = JSON.parse(sessionStorage.getItem(`last-exit:owner:${room}`)); } catch { /* Storage may be unavailable. */ }
   if (!key && saved?.key) { key = saved.key; role = saved.role; kit = saved.kit; name = saved.name; }
   if (ws) { disconnecting = true; ws.close(); }
-  clearInput(); pending = []; seq = 0; savedReplay = null; playerId = null;
+  clearInput(); pending = []; seq = 0; savedReplay = null; recordingFailed = false; playerId = null;
   resetDiagnostics();
   owner = false; lobbyPlayers = [];
   $('finish-recording').disabled = false;
@@ -107,7 +108,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
         try { sessionStorage.setItem(`last-exit:owner:${room}`, JSON.stringify({ key, role, kit, name })); }
         catch { toast('Owner recovery is unavailable in this browser session. Keep this tab open.'); }
       }
-      replay = null; document.body.classList.remove('replaying');
+      replay = null; replayTimeline = null; document.body.classList.remove('replaying');
       $('replay-controls').hidden = true; $('live-hud').hidden = !!data.spectator;
       changeMap(data.map); acceptState(data.state);
       history.replaceState(null, '', `?room=${room}`);
@@ -125,8 +126,12 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       if (data.started) { hideLobby(); connection('LIVE'); }
       else if (playerId) showLobby(data);
     } else if (data.type === 'saved') {
+      if (recordingFailed) return;
       savedReplay = data.replay; $('watch-match').disabled = false;
       if ($('archive-dialog').open) void loadArchive();
+    } else if (data.type === 'replay-status') {
+      if (data.status === 'failed') recordingFailed = true;
+      toast(data.message || (data.status === 'partial' ? 'Replay recording is partial.' : 'Replay recording failed.'));
     } else if (data.type === 'error') {
       toast(data.message); connection('UNAVAILABLE');
       $('deploy-error').textContent = data.message; $('deploy-error').hidden = false;
@@ -168,11 +173,9 @@ const ArenaScene = makeArenaScene({
   onReady: value => scene = value, onFire: value => inputController.setPointerFire(value),
   onFrame: delta => {
     if (!replay || !playing) return;
-    playback = Math.min(replay.frames.length - 1, playback + delta / 1000 * replay.hz * Number($('replay-speed').value));
-    const next = replay.frames[Math.floor(playback)].state;
-    if (next !== state) { state = next; arenaMap.gates = next.gates; updateHUD(); }
-    $('replay-seek').value = Math.floor(playback); $('replay-time').textContent = time(state.tick);
-    if (playback >= replay.frames.length - 1) setPlaying(false);
+    playback = Math.min(replayTimeline.endTick, playback + delta / 1000 * replay.hz * Number($('replay-speed').value));
+    applyReplayTick(playback);
+    if (playback >= replayTimeline.endTick) setPlaying(false);
   }
 });
 function toggleMap() { overview = !overview; $('map-toggle').classList.toggle('active', overview); scene?.updateCamera(true); }
@@ -210,7 +213,7 @@ async function loadArchive() {
     if (!list.length) { const p = document.createElement('p'); p.className = 'empty-archive'; p.textContent = 'No completed broadcasts yet.'; $('replay-list').append(p); }
     for (const r of list) {
       const row = document.createElement('div'); row.className = 'replay-row';
-      const details = document.createElement('div'); const title = document.createElement('strong'); title.textContent = `Arena ${r.seed}`;
+      const details = document.createElement('div'); const title = document.createElement('strong'); title.textContent = `Arena ${r.seed}${r.recording?.complete === false ? ' · PARTIAL' : ''}`;
       const sub = document.createElement('small'); sub.textContent = `${time(r.ticks)} / ${r.escaped} escaped / ${new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       details.append(title, sub); const actions = document.createElement('div');
       const play = document.createElement('button'); play.className = 'icon-button'; play.ariaLabel = `Play arena ${r.seed}`; play.innerHTML = icon('play'); play.onclick = () => watchReplay(r.id);
@@ -223,14 +226,26 @@ async function loadArchive() {
 async function watchReplay(id) {
   try {
     const data = await json(`/api/replays/${id}`);
-    if (!data.frames?.length) throw new Error('Replay contains no frames.');
+    const timeline = createReplayTimeline(data);
+    if (!timeline.frames.length) throw new Error('Replay contains no playable frames.');
     if (!data.map?.obstacles) throw new Error('This broadcast uses the earlier grid prototype. Its JSON can still be downloaded.');
-    clearInput(); replay = data; playback = 0; playing = true;
-    changeMap(data.map); state = data.frames[0].state;
+    clearInput(); replay = data; replayTimeline = timeline; playback = 0; playing = true;
+    changeMap(data.map);
     $('outcome').hidden = true; $('archive-dialog').close(); $('live-hud').hidden = true;
-    $('replay-controls').hidden = false; $('replay-seek').max = data.frames.length - 1; $('replay-seek').value = 0;
-    document.body.classList.add('replaying'); connection('REPLAY'); setPlaying(true); updateHUD(); scene?.updateCamera(true);
+    $('replay-controls').hidden = false; $('replay-seek').min = 0; $('replay-seek').max = timeline.endTick; $('replay-seek').value = 0;
+    document.body.classList.add('replaying'); connection('REPLAY'); setPlaying(true); applyReplayTick(0); scene?.updateCamera(true);
   } catch (error) { toast(error.message); }
+}
+function applyReplayTick(tick) {
+  const sample = replayTimeline?.at(tick);
+  if (!sample) return;
+  playback = sample.tick;
+  if (state !== sample.state) { state = sample.state; arenaMap.gates = state.gates; updateHUD(); }
+  $('replay-seek').value = String(Math.floor(playback)); $('replay-time').textContent = time(playback);
+  const status = $('replay-status'); status.hidden = !sample.missing && replayTimeline.complete;
+  if (!status.hidden) status.textContent = sample.missing
+    ? `MISSING DATA · showing tick ${sample.frameTick}`
+    : `PARTIAL RECORDING · ${replayTimeline.droppedFrames} frame${replayTimeline.droppedFrames === 1 ? '' : 's'} omitted`;
 }
 function setPlaying(value) { playing = value; $('replay-play').innerHTML = icon(value ? 'pause' : 'play'); $('replay-play').ariaLabel = value ? 'Pause replay' : 'Play replay'; icons(); }
 async function downloadReplay(id) {
@@ -241,7 +256,7 @@ async function downloadReplay(id) {
   } catch (error) { toast(error.message); }
 }
 function closeReplay() {
-  replay = null; $('replay-controls').hidden = true; $('live-hud').hidden = false; document.body.classList.remove('replaying');
+  replay = null; replayTimeline = null; $('replay-controls').hidden = true; $('live-hud').hidden = false; document.body.classList.remove('replaying');
   if (liveMap && liveState) { changeMap(liveMap); acceptState(liveState); }
   connection(ws?.readyState === WebSocket.OPEN ? 'LIVE' : 'OFFLINE'); scene?.updateCamera(true);
 }
@@ -281,8 +296,8 @@ async function downloadDiagnostics() {
 $('download-diagnostics').onclick = () => void downloadDiagnostics();
 $('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) { ws.send(JSON.stringify({ type: 'finish' })); $('finish-recording').disabled = true; } };
 $('watch-match').onclick = () => { if (savedReplay) void watchReplay(savedReplay.id); };
-$('replay-play').onclick = () => { if (replay && playback >= replay.frames.length - 1) playback = 0; setPlaying(!playing); };
-$('replay-seek').oninput = () => { if (!replay) return; playback = Number($('replay-seek').value); state = replay.frames[playback].state; arenaMap.gates = state.gates; $('replay-time').textContent = time(state.tick); updateHUD(); };
+$('replay-play').onclick = () => { if (replay && playback >= replayTimeline.endTick) applyReplayTick(0); setPlaying(!playing); };
+$('replay-seek').oninput = () => { if (replay) applyReplayTick(Number($('replay-seek').value)); };
 $('replay-download').onclick = () => { if (replay) void downloadReplay(replay.id); };
 $('replay-close').onclick = closeReplay;
 icons();

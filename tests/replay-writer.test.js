@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import { Writable } from 'node:stream';
 import { gunzipSync } from 'node:zlib';
 import { createHash } from 'node:crypto';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { createReplayWriter } from '../server/replay-writer.js';
+import { createFileReplayStore } from '../server/replay-store.js';
 
 test('replay writer preserves frame JSON, command ownership, integrity and idempotent publication', async () => {
   const chunks = [], published = [], errors = [];
@@ -45,4 +49,71 @@ test('replay writer exposes real stream backpressure and drains before publicati
   writer.append({ payload: 'x'.repeat(256 * 1024) }, []);
   assert.equal(writer.blocked, true); assert.equal(published, false);
   await writer.finish({ ticks: 0, escaped: 0 }); assert.equal(published, true);
+});
+
+test('replay writer bounds immutable serialized frames, drops whole frames, then resumes after draining', async () => {
+  const chunks = [], callbacks = [];
+  const output = new Writable({ highWaterMark: 1, write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); callbacks.push(next); } });
+  const writer = createReplayWriter({ header: { id: 'bounded' }, output, publish: async () => {}, onError: () => {},
+    queueBytes: 600, gzipOptions: { writableHighWaterMark: 1, readableHighWaterMark: 1 } });
+  const first = { tick: 0, payload: 'a'.repeat(240) };
+  assert.equal(writer.append(first, [{ type: 'first' }]), true);
+  assert.equal(writer.append({ tick: 1, payload: 'b'.repeat(240) }, [{ type: 'dropped' }]), false);
+  assert.equal(writer.droppedFrames, 1);
+  assert.ok(writer.pendingBytes <= 600);
+  first.payload = 'mutated after append';
+  // Let gzip and the deliberately slow sink make room, then record a later tick.
+  for (let i = 0; i < 20 && writer.blocked; i++) {
+    while (callbacks.length) callbacks.shift()();
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(writer.append({ tick: 2, payload: 'c'.repeat(24) }, []), true);
+  const completion = writer.finish({ ticks: 3, escaped: 0 });
+  for (let i = 0; i < 20; i++) {
+    while (callbacks.length) callbacks.shift()();
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  await completion;
+  const replay = JSON.parse(gunzipSync(Buffer.concat(chunks)));
+  assert.deepEqual(replay.frames.map(frame => frame.state.tick), [0, 2]);
+  assert.equal(replay.frames[0].state.payload, 'a'.repeat(240));
+  assert.deepEqual(replay.recording, { complete: false, droppedFrames: 1, endTick: 3 });
+});
+
+test('replay writer contains synchronous serialization errors and idempotently aborts stalled recording', async () => {
+  const errors = [], stalled = new Writable({ write() {} });
+  const writer = createReplayWriter({ header: { id: 'stalled' }, output: stalled, publish: async () => assert.fail('must not publish'),
+    onError: error => errors.push(error), finalizeTimeoutMs: 20 });
+  const circular = {}; circular.circular = circular;
+  assert.equal(writer.append({ tick: 0, circular }, []), false);
+  assert.ok(writer.failed instanceof Error);
+  writer.abort(new Error('later abort')); writer.abort(new Error('another abort'));
+  assert.equal(errors.length, 1);
+  await assert.rejects(writer.finish({ ticks: 1, escaped: 0 }), /circular/);
+
+  const timeoutErrors = [];
+  const timeoutWriter = createReplayWriter({ header: { id: 'timeout' }, output: new Writable({ write() {} }), publish: async () => assert.fail('must not publish'),
+    onError: error => timeoutErrors.push(error), finalizeTimeoutMs: 20 });
+  assert.equal(timeoutWriter.append({ tick: 0 }, []), true);
+  const first = timeoutWriter.finish({ ticks: 1, escaped: 0 });
+  assert.equal(timeoutWriter.finish({ ticks: 99, escaped: 9 }), first);
+  await assert.rejects(first, /exceeded 20ms/);
+  assert.match(timeoutWriter.failed.message, /exceeded 20ms/);
+  assert.equal(timeoutErrors.length, 1);
+});
+
+test('filesystem store forwards writer errors and never promotes a failed archive on restart', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'last-exit-replay-store-'));
+  try {
+    const errors = [], store = await createFileReplayStore(directory);
+    // The nested directory does not exist, so the stream fails without a publishable metadata row.
+    const writer = store.start({ id: 'missing/recording' }, { onError: error => errors.push(error) });
+    writer.append({ tick: 0 }, []);
+    await assert.rejects(writer.finish({ ticks: 1, escaped: 0 }), /ENOENT/);
+    assert.equal(errors.length, 1);
+    const restarted = await createFileReplayStore(directory);
+    assert.deepEqual(restarted.list(), []);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

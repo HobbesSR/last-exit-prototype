@@ -35,5 +35,6 @@ test('a failed pending archive reports failure once and allows shutdown to settl
   const closing = h.service.close(); reject(new Error('archive unavailable')); await closing;
   assert.deepEqual(errors, ['archive unavailable']); assert.equal(writer.finishCalls, 1);
   assert.equal(owner.messages.filter(m => m.type === 'saved').length, 0);
-  assert.equal(owner.messages.filter(m => m.type === 'error').length, 1);
+  assert.equal(owner.messages.filter(m => m.type === 'replay-status' && m.status === 'failed').length, 1);
+  assert.equal(owner.messages.filter(m => m.type === 'error').length, 0);
 });

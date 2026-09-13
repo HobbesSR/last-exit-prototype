@@ -27,7 +27,7 @@ test('fake clock preserves debt, catch-up cap, every recorded tick and newest-on
   h.wake(450); assert.equal(room.match.tick, 6);
   assert.deepEqual(writer.frames.map(f => f.state.tick), [0, 1, 2, 3, 4, 5, 6]);
   assert.deepEqual(owner.messages.filter(m => m.type === 'state').map(m => m.state.tick), [1, 6]);
-  writer.blocked = true; h.wake(200); assert.equal(room.match.tick, 6);
+  writer.blocked = true; h.wake(200); assert.equal(room.match.tick, 10, 'storage pressure cannot pause simulation');
   writer.blocked = false; h.wake(0); assert.equal(room.match.tick, 10);
   assert.equal(room.debt, 0); await h.service.close();
 });

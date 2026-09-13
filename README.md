@@ -50,7 +50,7 @@ Empty live rooms close and save after a 30-second reconnect grace, so repeatedly
 
 ## Replays
 
-The server streams every simulation tick to compressed JSON under `replays/`. Completed matches are available from the clapperboard button. The room creator can end a match there to save immediately. Playback supports pause, timeline seeking, speed selection, and JSON download.
+The server records simulation ticks to compressed JSON under `replays/`. Completed matches are available from the clapperboard button. The room creator can end a match there to save immediately. Playback supports pause, timeline seeking, speed selection, and JSON download. Slow storage never pauses gameplay: bounded recording may omit frames, with recovered archives labelled incomplete. Playback preserves elapsed match time and indicates missing intervals. A permanent recording failure notifies viewers while the match continues.
 
 These are exact recorded simulation states, not a promise of identical audiovisual output or cross-platform input resimulation. They include all actors, positions, health, cooldowns, AI paths, objects, projectiles, accepted commands, seed, map geometry, and simulation version. SHA-256 metadata verifies the frame stream. Interrupted `.partial` recordings are not offered as completed replays. Recordings from the earlier grid prototype remain downloadable but are incompatible with the new renderer.
 

@@ -1,9 +1,10 @@
 import { createRoomService } from '../../server/room-service.js';
 
-export function roomHarness({ finalize, reportError } = {}) {
+export function roomHarness({ finalize, reportError, startWriter, ...serviceOptions } = {}) {
   let wall = 1000, monotonic = 0;
   const writers = new Map();
-  const replays = { start(header) {
+  const replays = { start(header, options) {
+    if (startWriter) { const writer = startWriter(header, options); writers.set(header.id, writer); return writer; }
     const writer = { header: structuredClone(header), frames: [], blocked: false, finishCalls: 0,
       append(state, commands) { this.frames.push(structuredClone({ state, commands })); },
       async finish(result) {
@@ -14,7 +15,7 @@ export function roomHarness({ finalize, reportError } = {}) {
     };
     writers.set(header.id, writer); return writer;
   } };
-  const service = createRoomService({ replays, wallNow: () => wall, reportError });
+  const service = createRoomService({ replays, wallNow: () => wall, reportError, ...serviceOptions });
   const peer = () => {
     const messages = [], closes = [];
     const session = service.connect({ deliver: payload => messages.push(JSON.parse(payload)), close: (...args) => { closes.push(args); service.disconnect(session); } });

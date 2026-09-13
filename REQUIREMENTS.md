@@ -32,7 +32,7 @@ P-01 through P-16 describe the core implementation. Section 2.1 tracks the impro
 | P-12 | Desktop controls separate movement and aim. | WASD/arrow movement and pointer aim; left mouse fires. | Implemented |
 | P-13 | Touch controls support simultaneous movement and aim/fire. | Independent virtual sticks are tested with two concurrent touch contacts. | Implemented |
 | P-14 | A player cannot see the whole live battlefield. | Camera follows the player; full-map view is reserved for completed replays. | Implemented |
-| P-15 | A player can replay exactly what the authoritative server recorded. | Every simulation tick is stored in a compressed replay with commands, map, metadata, and SHA-256. | Implemented |
+| P-15 | A player can replay exactly what the authoritative server recorded. | Normal recordings retain every tick with commands, map and SHA-256. Storage pressure may omit whole frames without pausing gameplay; recovered recordings are labelled incomplete and playback preserves recorded timing. Permanent recording failures notify viewers without ending the match. | Implemented with explicit failure policy |
 | P-16 | Server authority prevents client-side state injection. | Inputs are bounded, sequenced, rate-limited, and validated; clients cannot set position, health, inventory, or outcomes. | Implemented |
 
 ### 2.1 Accepted Improvements — updated 2026-09-10
@@ -100,7 +100,17 @@ is three gladiators (F-11); contestant capacity and extraction capacity have not
 otherwise changed. Gameplay/version changes follow the current behavior-preserving
 server encapsulation checkpoint rather than invalidating its frozen fixtures.
 
-The server advances the simulation at 20 Hz based on elapsed real time rather than trusting the operating-system timer interval. It can catch up a bounded number of ticks after a wake-up. Every simulated tick is recorded; only the latest state in a catch-up batch is broadcast.
+The server advances the simulation at 20 Hz based on elapsed real time rather than trusting the operating-system timer interval. It can catch up a bounded number of ticks after a wake-up. Every simulated tick is offered to the bounded recorder; only the latest state in a catch-up batch is broadcast. Recording backpressure never pauses advancement.
+
+Recording has an 8 MiB pending-data budget per match. On overflow, whole incoming
+frames are omitted until capacity returns. A recovered archive explicitly records
+its omission count and match endpoint; playback holds the last known state through
+missing ticks and labels the gap. Permanent write failures stop recording and
+notify viewers through a replay-specific status, while inputs and live state
+continue. Finalization has a five-second deadline and never reports a failed
+archive as saved. JSON serialization still uses the server event loop; this is
+storage-failure isolation, not a claim that recording consumes no CPU.
+See REPLAY_RELIABILITY.md for the queue, recovery and compatibility contract.
 
 The match finishes when all extraction slots are used, no active contestants remain, or the time limit expires. A started room with no connected players or spectators receives a 30-second reconnect grace, then ends and archives cleanly; abandoned playtests must not continue running bots and recording for the entire match. Active contestants left at time expiry become stranded. The exact numbers are tuning defaults and must stay named in code and docs when changed.
 

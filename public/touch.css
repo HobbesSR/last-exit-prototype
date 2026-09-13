@@ -1,3 +1,4 @@
+#replay-status{font-size:9px;font-weight:800;color:#ffd08a;white-space:nowrap}
 .virtual-stick{width:96px;height:96px;border:2px solid #d2e6cf55;border-radius:50%;background:#172a2b85;display:flex;align-items:center;justify-content:center;pointer-events:auto;touch-action:none;user-select:none}
 .virtual-stick span{width:42px;height:42px;border:1px solid #dbedd295;border-radius:50%;background:#365843d9;display:flex;align-items:center;justify-content:center;pointer-events:none;will-change:transform}
 .virtual-stick svg{width:21px;height:21px;color:#d7f6b0}

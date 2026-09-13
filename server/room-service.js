@@ -8,7 +8,8 @@ export const EMPTY_ROOM_GRACE_MS = 30000;
 const MAX_SPECTATORS = 24;
 
 // Sessions provide only deliver(serializedPayload) and close(code, reason); no socket dependency.
-export function createRoomService({ replays, wallNow = Date.now, reportError = console.error }) {
+export function createRoomService({ replays, wallNow = Date.now, reportError = console.error,
+  replayFinishTimeoutMs = 5000, setTimer = setTimeout, clearTimer = clearTimeout }) {
   const rooms = new Map();
   const finalizations = new Set();
   let closing;
@@ -22,11 +23,36 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
     rooms.set(id, room); return room;
   }
   const preferredRole = (room, preference) => room.match.preferredRole(preference);
+  function replayStatus(room, status) {
+    if (room.recordingStatus?.status === status || room.recordingStatus?.status === 'failed') return;
+    room.recordingStatus = { type: 'replay-status', status, message: status === 'failed'
+      ? 'Replay recording is unavailable. Gameplay continues.'
+      : 'Replay recording has missing frames. Gameplay continues.' };
+    for (const session of room.clients) send(session, room.recordingStatus);
+  }
+  function failRecording(room, error) {
+    if (room.recordingError) return;
+    room.recordingError = error instanceof Error ? error : new Error(String(error));
+    try { room.writer?.abort?.(room.recordingError); } catch { /* Recording cleanup cannot stop the match. */ }
+    replayStatus(room, 'failed');
+    reportError(room.recordingError);
+  }
   function record(room, frame) {
-    room.writer.append(frame, room.inputs.splice(0));
+    const commands = room.inputs.splice(0);
+    if (room.recordingError) return;
+    try {
+      if (room.writer.failed) return failRecording(room, room.writer.failed);
+      const accepted = room.writer.append(frame, commands);
+      if (room.writer.failed) failRecording(room, room.writer.failed);
+      else if (accepted === false || room.writer.droppedFrames > 0) replayStatus(room, 'partial');
+    } catch (error) { failRecording(room, error); }
   }
   function startRecording(room) {
-    room.writer = replays.start({ version: VERSION, id: room.id, seed: room.match.seed, hz: HZ, createdAt: room.createdAt, map: room.match.map() });
+    try {
+      room.writer = replays.start({ version: VERSION, id: room.id, seed: room.match.seed, hz: HZ, createdAt: room.createdAt, map: room.match.map() },
+        { onError: error => failRecording(room, error) });
+      if (room.recordingError) room.writer?.abort?.(room.recordingError);
+    } catch (error) { failRecording(room, error); }
     record(room, room.match.snapshot());
   }
   function startMatch(room) {
@@ -38,13 +64,18 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
     if (room.finalization) return room.finalization;
     room.finished = true;
     room.finalization = (async () => {
+      let deadline;
       try {
-        const meta = await room.writer.finish(room.match.result());
+        if (!room.writer) return;
+        const meta = await Promise.race([
+          Promise.resolve().then(() => room.writer.finish(room.match.result())),
+          new Promise((_resolve, reject) => { deadline = setTimer(() => reject(new Error('Replay finalization timed out')), replayFinishTimeoutMs); })
+        ]);
+        if (room.recordingError) return;
         for (const session of room.clients) send(session, { type: 'saved', replay: meta });
       } catch (error) {
-        for (const session of room.clients) send(session, { type: 'error', message: 'Replay could not be saved.' });
-        reportError(error);
-      }
+        failRecording(room, error);
+      } finally { if (deadline !== undefined) clearTimer(deadline); }
     })();
     // A retired room can leave the room map while its archive is still being published.
     const completion = room.finalization;
@@ -73,7 +104,9 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
         session.room = room; session.owner = owner; room.spectators++; room.clients.add(session);
         // A spectator holds no slot, drives no simulation, and never starts a recording.
         const frame = spectatorFrame(room);
-        return send(session, { type: 'welcome', id: null, spectator: true, spectatorDelayTicks: SPECTATOR_DELAY_TICKS, room: room.id, owner, map: room.match.spectatorMap(frame), state: room.match.project(frame, null) });
+        send(session, { type: 'welcome', id: null, spectator: true, spectatorDelayTicks: SPECTATOR_DELAY_TICKS, room: room.id, owner, map: room.match.spectatorMap(frame), state: room.match.project(frame, null) });
+        if (room.recordingStatus) send(session, room.recordingStatus);
+        return;
       }
       const role = room.matchmade ? preferredRole(room, data.role) : data.role === 'gladiator' ? 'gladiator' : 'contestant';
       const kit = Object.hasOwn(KITS, data.kit) ? data.kit : 'warden';
@@ -91,6 +124,7 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
       if (room.matchmade && !room.startsAt) room.startsAt = wallNow() + 15000;
       room.inputs.push({ type: resumedId ? 'resume' : 'join', id: p.id, role: p.role, kit: p.kit, name: p.name });
       send(session, { type: 'welcome', id: p.id, resumeKey, room: room.id, owner: session.owner, started: room.started, matchmade: !!room.matchmade, startsAt: room.startsAt || null, map: room.match.liveMap(), state: room.match.project(room.match.snapshot(), p.id) });
+      if (room.recordingStatus) send(session, room.recordingStatus);
       broadcastLobby(room);
       return;
     }
@@ -141,8 +175,6 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
       } else room.emptySince = null;
       live++;
       room.debt += elapsed;
-      // Pause simulation advancement under disk backpressure rather than dropping replay ticks.
-      if (room.writer.blocked) { profiler.count('loop.backpressureSkips'); continue; }
       const owed = Math.floor(room.debt / TICK_MS);
       if (!owed) continue;
       room.debt -= owed * TICK_MS;
@@ -150,8 +182,8 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
       const ticks = Math.min(owed, MAX_CATCHUP);
       if (room.steppedAt) profiler.observe('sim.tickPacing', (now - room.steppedAt) / ticks);
       room.steppedAt = now;
-      // Every simulated tick is recorded; only the newest reaches clients, so a catch-up batch
-      // costs one broadcast rather than several stale ones.
+      // Offer every tick to the bounded recorder; storage pressure never delays gameplay.
+      // Only the newest state reaches clients after a catch-up batch.
       let state;
       for (let i = 0; i < ticks; i++) {
         state = room.match.advance(); stepped++;
@@ -171,7 +203,7 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
   }
   function close() {
     if (!closing) closing = (async () => {
-      for (const room of rooms.values()) if (room.started && !room.finished) { room.match.end(); record(room, room.match.snapshot()); await finish(room); }
+      for (const room of rooms.values()) if (room.started && !room.finished) { room.match.end(); record(room, room.match.snapshot()); void finish(room); }
       await Promise.all([...finalizations]);
     })();
     return closing;
