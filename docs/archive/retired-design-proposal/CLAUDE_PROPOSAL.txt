@@ -1,0 +1,701 @@
+# Procedural Map Generation — Architecture Design
+
+**Project:** Top-down 2D/2.5D directional battle royale ("Running Man" format)
+**Status:** Architecture spec. Sections marked **[TUNE]** are hyperparameters. Sections marked **[OPEN]** are unresolved decisions that affect the architecture.
+**Version:** 1.0
+
+---
+
+## 1. Purpose and Scope
+
+This document specifies the procedural map generation system: the data primitives, the generation pipeline, the contracts between macro and micro generation, and the validation layer.
+
+It covers the map as a *generated artifact*. It does not cover rendering, netcode, the item economy beyond spawn budgeting, or gameplay tuning beyond what constrains the generator.
+
+### 1.1 Design goals
+
+1. **Novel every match.** Memorized routes must not transfer between matches.
+2. **Legible macro structure.** Recognizable large-scale features players can learn to engage with, even as their arrangement changes.
+3. **Directional progression.** Left-to-right traversal from contestant spawn to a limited set of exits, with loot tier and hazard escalating along the way.
+4. **Provable connectivity.** Every generated map is guaranteed traversable start-to-exit and fully reachable, for every agent class that must reach a given place.
+5. **Controlled friction.** Dead ends, choke points, and detours are *specified quantities*, not emergent accidents.
+6. **Deterministic.** `seed → map` is a pure function, reproducible on server and client.
+
+### 1.2 The core architectural claim
+
+Everything else in this document follows from one decision:
+
+> **Topology, height, and required-feature placement are solved as global passes *before* tile selection. Tile selection is then a local, always-satisfiable lookup.**
+
+The alternative — solving connectivity, aesthetics, elevation, and feature placement simultaneously via constraint propagation over the tile grid — is dramatically harder, slower, prone to unsatisfiable seams, and provides no dial for "make it mazier." The pipeline in §7 exists to keep those concerns sequential.
+
+---
+
+## 2. Scale and Units
+
+Scale is pinned by agent size, which is the only hard physical constraint in the system.
+
+### 2.1 Base units
+
+| Quantity | Value | Notes |
+|---|---|---|
+| **Segment** | 1.0 m | The base unit. A cell edge is one segment. |
+| **Cell** | 1.0 × 1.0 m | Square. |
+| **Module** | 6 × 6 cells (6 × 6 m) | Tile dimensions are integer multiples of the module. |
+| Contestant diameter | 1.1 m | radius 0.55 m **[TUNE]** |
+| Hunter diameter | 1.8 m | radius 0.90 m **[TUNE]** |
+
+Agent diameters are the load-bearing numbers. Everything about clearance (§4) derives from them.
+
+### 2.2 The aperture ladder
+
+Because contestant-only gaps are a core mechanic, apertures must be **standardized into discrete classes** with adequate margin on both sides of every threshold. The generator must never emit an aperture within ±0.15 m of a class threshold.
+
+| Class | Nominal width | Contestant (1.1 m) | Hunter (1.8 m) |
+|---|---|---|---|
+| `SEALED` | 0 | ✗ | ✗ |
+| `SQUEEZE` | 1.5 m | ✓ (0.4 m margin) | ✗ (0.3 m short) |
+| `DOOR` | 2.0 m | ✓ | ✓ (0.2 m margin) |
+| `WIDE` | 3.0 m+ | ✓ | ✓ |
+
+`DOOR` at 2.0 m gives the hunter only 0.2 m of total margin, which is uncomfortably tight for a right-angle turn between two door-width passages. **Recommendation:** raise `DOOR` to 2.4 m, or raise the standard corridor width to 3.0 m and reserve 2.0 m for doorways specifically (which agents pass straight through). **[TUNE]**
+
+### 2.3 Map dimensions
+
+Derived from target traversal time rather than picked:
+
+- Contestant run speed ≈ 5.0 m/s **[TUNE]**
+- Target start-to-exit traversal ≈ 4 min of pure movement = 1200 m of path
+- Target detour ratio ≈ 1.6 (§7.4) → straight-line width ≈ 750 m
+
+**Recommended starting dimensions:**
+
+| Quantity | Value |
+|---|---|
+| Standard tile | 2 × 2 modules = 12 × 12 cells = 12 × 12 m |
+| Map bounding box | 60 × 30 tiles = 720 × 360 m |
+| Tier zone | 12 × 6 tiles = 144 × 72 m |
+| Playable area (after diamond mask) | ≈ 135,000 m² |
+| Target population | ≈ 50 contestants + 6 hunters **[TUNE]** |
+| Area per player | ≈ 2,400 m² |
+
+This is far denser than a conventional BR (PUBG is ~64,000 m²/player) and appropriately so — this is a short-format directional mode where encounter frequency is the point.
+
+### 2.4 Zone geometry
+
+The 5×5 tier grid from the original design:
+
+```
+X X 5 X X
+X 3 4 3 X
+1 2 3 4 5
+X 3 4 3 X
+X X 5 X X
+```
+
+**Two modifications are recommended:**
+
+**Truncate the right tip.** A pure diamond narrows to a single 12×6-tile zone at the exit, meaning every contestant funnels through one corridor that hunters camp trivially. The geometry alone does ~100% of the work that "not enough exits" was supposed to do. Use a trapezoid: keep the right edge at 3 zone-rows tall rather than 1, so multiple genuinely distinct approach lanes to the exit region exist.
+
+**Make the vertical tier-5 tips traversable.** As drawn they are cul-de-sacs — high reward, but the risk is *entrapment*, which means nobody enters. Make them through-routes along the map boundary so the risk is *exposure* instead. Same tension, much better play.
+
+**Do not smooth the stair-stepped boundary.** Jagged boundaries produce alcoves and pockets for free, which is more interesting than a clean diagonal and saves an entire edge-tile set.
+
+### 2.5 Tier as a field, not a grid
+
+Quantizing tier by zone produces visible banding. Instead:
+
+```
+tier(x, y) = quantize( f(x_norm, |y_norm|) + noise(x, y) )
+```
+
+The 5×5 zone grid is a **soft prior** used by macro placement passes; the per-cell tier used for spawning is sampled from the continuous field. This decouples loot tier from which tile got placed and gives ragged, natural zone boundaries.
+
+---
+
+## 3. Primitives
+
+### 3.1 Addressing
+
+**Cell address is `(x, y)`. Two dimensions. Layer is not part of the address.**
+
+This is a deliberate restriction, justified in §3.3. It keeps every generator signature, nav query, and serialized structure two-dimensional.
+
+- **Cell** — `(x, y)`. Unit square.
+- **Segment** — the boundary between two orthogonally adjacent cells. Addressed as `(x, y, H|V)`.
+- **Vertex** — a corner shared by up to four cells. Addressed as `(x, y)` on the vertex lattice.
+
+### 3.2 Cell data
+
+```
+Cell {
+  terrain_class:   TerrainClass       // small closed enum, ~6-8 values
+  region_class:    RegionClass        // drives micro-gen aggregation
+  height:          CellHeight         // see 3.3
+  tier:            u8                 // sampled from the tier field
+  spawn_slot:      Option<SpawnKind>  // at most one per cell
+  flags:           CellFlags
+}
+```
+
+### 3.3 Height model
+
+**Vertex heights are explicit and discrete.** Height lives on the four vertices of a cell. Cells are constrained to be:
+
+- **Flat** — all four vertex heights equal.
+- **Ramp** — two parallel edges at different levels, the other two edges linearly interpolating.
+
+Multi-height cells (a walkable surface above another walkable surface) are **not represented in the grid**. They are permitted only as *bespoke region mechanics* that expose a navigation contract at their region boundary and manage their own interior.
+
+**What this restricts.** Generic overpasses are unavailable: bridges over roads, roofs you can walk under, building interiors distinct from their exteriors. Any of these must be authored as a bespoke region. This is the correct trade at this stage — full layer support would put a dimension in the cell address and multiply every nav structure — but it should be a conscious limit, not a surprise.
+
+**Level quantum:** 1.0 m **[TUNE]**. Levels 0–3 initially.
+
+### 3.4 Segment data
+
+A segment's blocking behavior is **per channel**, not a boolean:
+
+```
+Segment {
+  barriers:  [BarrierState; N_CHANNELS]   // MOVEMENT, SIGHT, PROJECTILE
+  aperture:  Option<Aperture>             // see below
+  feature:   Option<SegmentFeature>       // door, fence, window, gate...
+  height_discontinuity: bool              // cliff edge
+}
+
+Aperture {
+  class:      ApertureClass   // SEALED | SQUEEZE | DOOR | WIDE
+  clearance:  f32             // explicit metric width, NOT a segment count
+  position:   f32             // offset along the segment, [0,1]
+}
+```
+
+**Clearance is an explicit scalar, not a segment count.** A 1.5 m gap does not fit a segment-atomic barrier model. Rather than contaminate every tile file with sub-segment offsets, a passage feature carries its own clearance value and the realization step builds geometry to match. Segments stay atomic; the nav check (§4.2) stays exact.
+
+**Three channels minimum.** A chain-link fence, a hedge, a waist-high wall, and a solid wall are four distinct points in `(movement, sight, projectile)` space, and each produces a different fight. This is the entire content of a top-down shooter's cover system. Even if v1 only populates `MOVEMENT`, the arrays exist from day one — retrofitting means re-authoring every tile.
+
+### 3.5 Vertex data
+
+```
+Vertex {
+  height:      i16          // discrete level
+  feature:     Option<VertexFeature>   // post, pillar, corner detail
+}
+```
+
+Vertices are the anchor for the height model and for corner consistency (§6.4).
+
+### 3.6 Directed traversal **[OPEN]**
+
+**Unresolved and architecturally one-way:** can an agent drop off a ledge it cannot climb back up?
+
+Discrete heights plus ramps mean cliffs exist implicitly. If any traversal is one-way, then:
+
+- The nav graph is **directed**.
+- "All tiles reachable" becomes **strong connectivity** (SCC computation), not flood fill.
+- The clearance oracle needs a direction field.
+
+Allowing directed edges in the model costs almost nothing today. Adding them after the connectivity proof is built on undirected assumptions rewrites the thing the entire generation guarantee rests on. **Recommendation: model edges as directed from the start**, even if v1 only ever emits symmetric pairs.
+
+---
+
+## 4. Traversal Model
+
+### 4.1 Agent classes
+
+```
+AgentClass {
+  id:      ClassId          // CONTESTANT | HUNTER | (future: VEHICLE)
+  radius:  f32
+  channel_capabilities: ...  // which barriers this class ignores
+}
+```
+
+Contestant and hunter traverse identically except for **radius** and **speed**. Radius is the mechanically critical difference and the basis of the `SQUEEZE` mechanic.
+
+**Every connectivity structure in this system is per-agent-class.** Not "computed for the hunter and assumed for the contestant" — both live, simultaneously, throughout generation. Reasons in §4.4.
+
+### 4.2 The navigability oracle: distance transform
+
+Graph flood fill over cells **cannot** answer "can a disc of diameter 1.8 m get through here." The failures are not at apertures — those are easy — they are at corners, oblique junctions, and pinches between two independent obstacles, all of which segment counting misses.
+
+**Canonical oracle:**
+
+1. Rasterize free space on the `MOVEMENT` channel at sub-cell resolution (4 samples/cell = 0.25 m). **[TUNE]**
+2. Compute the Euclidean distance transform to nearest blocking geometry.
+3. Threshold at the agent's radius.
+4. Flood fill (or SCC, if §3.6 resolves to directed) the thresholded field.
+
+Exact, cheap at this grid size, and it dissolves a question that never has to be asked: two solid cells touching diagonally produce zero clearance automatically, so **no diagonal-adjacency rule is needed anywhere in the system**.
+
+This oracle is the ground truth. Everything else — tile connectivity partitions, macro graph edges — is a *declaration* that the oracle validates.
+
+### 4.3 Connectivity contracts
+
+Guaranteed connectivity requires a contract, because region generators are otherwise free to wall off the interior between two open sockets.
+
+**Tile side.** Each tile declares, as *authored data*, a **connectivity partition over its edge sockets, per agent class**:
+
+> "For CONTESTANT: {W1, N2, S1} are mutually reachable; {E1} is a separate component.
+> For HUNTER: {W1, N2} are mutually reachable; {S1} separate; {E1} separate."
+
+Hunter partition is a refinement of (never coarser than) the contestant partition, absent breaching (§4.5).
+
+**Region side.** Every region generator receives a **reserved corridor mask** in its parameters: cells that must remain navigable, at a stated clearance, for a stated set of agent classes. This is a hard constraint the generator must satisfy.
+
+**Validation.** After realization, run the §4.2 oracle over the whole map and assert every declared component. Reject-and-reroll on failure. The contract is what keeps the reroll rate near zero; the oracle is what keeps the guarantee honest.
+
+### 4.4 Two graphs, and the difference between them
+
+Proving reachability on the hunter graph is *sufficient* for reachability — anything a hunter can reach, a contestant can. But it is only half of what the design needs, because **the contestant-only gaps are the interesting part**.
+
+The macro pass therefore maintains both graphs live, and placement predicates operate on their **difference**:
+
+- A `SQUEEZE` that parallels an already-open hunter route is worthless.
+- A `SQUEEZE` that bypasses a hunter choke point is the entire counterplay.
+
+Formally: the *value* of a contestant-only edge is the reduction in contestant shortest-path cost (or the increase in contestant min-cut) relative to the hunter graph. That value is a first-class quantity the macro pass optimizes for.
+
+**Consequence for micro-gen:** if region generators are free to add `SQUEEZE` apertures at will, their density is uncontrolled, and hunter lethality swings match to match. This is one of the reasons regions return a manifest (§8.3).
+
+**Consequence of full static visibility (§9):** hunters can see every `SQUEEZE` and pre-position on the far side. A squeeze with a single covered exit is a trap, not an escape. Therefore:
+
+> **Flanking rule:** every `SQUEEZE` must have ≥2 topologically distinct contestant-reachable continuations on its far side, or lie within *k* tiles of an alternative contestant route. **[TUNE]**
+
+This is a hard macro constraint, not a nicety.
+
+### 4.5 Breaching **[OPEN]**
+
+If hunters can destroy walls, blow doors, or otherwise create passage, then hunter-navigable is **no longer a subset** of contestant-navigable and the reachability shortcut in §4.4 breaks. Same for any destructible terrain.
+
+If destructibility exists, the generator's guarantee becomes "connected at *t* = 0," which is fine — but it must be stated explicitly and the validation harness must not assume otherwise.
+
+---
+
+## 5. Tiles
+
+### 5.1 Variable size
+
+**Tiles are `k × m` multiples of the 6-cell module, not a fixed 12 × 12.**
+
+Committing to uniform tiles makes placement a grid fill; allowing variable sizes makes it rectangle packing. The packing version costs modestly today and is a full macro-pass rewrite later.
+
+It also dissolves two problems at once:
+
+- Multi-tile Set Pieces become **first-class tiles** rather than a separate assembly concept (§6).
+- Grid-read irregularity comes free, without needing the half-column offset.
+
+**On the half-column offset (offset every other column by 3 cells): don't.** The benefits are real but small — it breaks grid regularity, gives 6-neighbor adjacency, and replaces degenerate 4-way crossroads with T-junctions. The cost lands precisely on the most valued feature: a 2×2-tile Set Piece stops being a rectangle and becomes a jagged parallelogram, making stable multi-tile architecture painful to author. The topological benefit is obtainable for free by forbidding 4-way junctions in the topology pass (§7.4).
+
+### 5.2 Socket structure
+
+A socket is per-segment along a tile edge, and it is a **struct**, not an enum. Enum → struct means re-authoring every edge of every tile.
+
+```
+Socket {
+  terrain_class:   TerrainClass
+  barriers:        [BarrierState; N_CHANNELS]
+  aperture:        Option<Aperture>
+  height_delta:    i16         // RELATIVE to the tile's base level
+  vertex_states:   (VertexState, VertexState)   // endpoints — see 6.4
+  wildcard:        bool        // "don't care", auto-matches
+}
+```
+
+**Height is relative, never absolute.** Absolute socket heights fragment the tile set by elevation — a tile would only ever place at one height. Relative deltas plus a per-tile base offset (assigned by the height field pass, §7.3) keep the set compact.
+
+Relative heights normally create a cycle-consistency problem (up, up, down does not return to zero around a loop). **Solving the base-level field globally, before tile selection, eliminates the problem entirely** — every tile's base is read from a consistent scalar field, so cycles close by construction.
+
+### 5.3 Compatibility
+
+Two sockets match when, pointwise along the shared edge:
+
+- Terrain classes are compatible per a **compatibility matrix** (not exact equality — this is what keeps the alphabet small).
+- Barrier states agree on every channel.
+- Aperture classes and clearances agree.
+- `base_A + height_delta_A == base_B + height_delta_B`.
+- Endpoint vertex states agree.
+
+Any socket marked `wildcard` matches anything and adopts its neighbor's values.
+
+**Terrain class alphabet: 6–8 values, closed.** This is the highest-leverage decision in the entire system. A small alphabet with a compatibility matrix and generous wildcards is what makes tile lookup always succeed. A rich alphabet with few tiles guarantees unsatisfiable seams.
+
+### 5.4 Authored tile metadata
+
+Three things must be captured at authoring time because recovering them later requires human review of every tile:
+
+| Field | Why it must be authored |
+|---|---|
+| **Connectivity partition, per agent class** | The macro connectivity proof rests on it. Not derivable cheaply and not derivable at all before micro-gen runs. |
+| **Permitted symmetries** (subset of the 8 dihedral ops) | If uncaptured, adding rotation support later means reviewing all tiles by hand. |
+| **Emitted signature** (§5.5) | Feeds the build-time closure validator. |
+
+### 5.5 The closure guarantee
+
+Define a tile's **signature** as everything tile selection matches on:
+
+```
+Signature = (port_state_per_side_per_class,
+             connectivity_partition_per_class,
+             edge_terrain_classes,
+             edge_height_deltas)
+```
+
+> **Closure requirement:** for every signature the topology and height passes can emit, at least one tile must exist in the index.
+
+Enforce this **at build time**, not at generation time:
+
+1. Restrict the passes to a declared, enumerable set of emittable signatures.
+2. Run a validator that enumerates that space and checks the tile index covers it.
+3. Provide **adapter tiles** — heavily wildcarded, visually plain — that cover large swaths of signature space cheaply.
+
+With closure verified at build time, tile selection is a hash lookup that cannot fail. This is what makes the "painter fill" idea safe; without it, painter fill paints itself into unsatisfiable corners.
+
+---
+
+## 6. Set Pieces
+
+### 6.1 A Set Piece is a large tile
+
+Set Pieces need finer-grained boundary constraints than a naive tile — but cell-granularity boundary socket data *is exactly what a tile boundary already is*.
+
+> **A Set Piece is a `k × m` tile plus optional internal region overrides.**
+
+Do not build a parallel constraint tier for Set Pieces. One constraint language, one authoring format, one validator, one solver. If Set Pieces get their own tier, you will maintain two solvers and they will disagree.
+
+`TileSet` and `TileLayout` become **authoring conveniences** — named collections and pre-composed arrangements that compile down to tiles — not runtime concepts.
+
+### 6.2 Set Piece classes and selection
+
+```
+SetPieceClass {
+  id:                 ClassId
+  members:            [SetPieceId]
+  eligible_zones:     [TierZone]
+  min_separation:     f32
+  exclusions:         [ClassId]     // mutually exclusive classes
+  co_requirements:    [ClassId]
+}
+```
+
+Per-map: select 4–8 classes from ~10 **[TUNE]**, then one or more members per selected class.
+
+**Feasibility pre-check is mandatory.** Before placement, verify each selected class contains at least one member that physically fits in its eligible zones at the current zone dimensions. Late failures during fill are far more expensive than an upfront check.
+
+### 6.3 Obstruction Set Pieces
+
+A dedicated class whose purpose is **topological**: large, low-permeability structures placed specifically to reduce min-cut across a band and defeat straight-shot routes. These are the tool that makes §7.4's targets achievable at macro scale, since local generation cannot enforce a global property.
+
+They are placed by predicate, not by position (§7.5).
+
+### 6.4 Corner consistency
+
+**Carry endpoint vertex states inside the edge socket.** Then four tiles meeting at a vertex all agree on that vertex transitively, purely from pairwise edge matching. No corner solver is needed for **height**, which is the case where a contradiction would be structurally fatal.
+
+What remains at corners is terrain class touching diagonally with no shared edge to constrain it. **Demote this to a cosmetic transition pass** run after placement, not a placement constraint. With clearance-based navigability (§4.2), the diagonal-pinch case is already handled correctly by the oracle, so nothing about traversal depends on the corner rule.
+
+---
+
+## 7. Macro Generation Pipeline
+
+Passes run in strict order. Each pass's output is the next pass's input; no pass revisits an earlier one.
+
+```
+  seed
+   ↓
+[1] Zone & tier field
+   ↓
+[2] Height field
+   ↓
+[3] Required feature placement          ← predicate-driven
+   ↓
+[4] Topology solve  (per agent class)   ← the maze
+   ↓
+[5] Tile selection                      ← local lookup, cannot fail
+   ↓
+[6] Region aggregation
+   ↓
+[7] Micro generation                    ← per region, parallel
+   ↓
+[8] Validation & reroll
+   ↓
+  MapData
+```
+
+### 7.1 Pass 1 — Zone and tier field
+
+Establish the trapezoid mask, the zone grid, and the continuous tier field (§2.5). Allocate the **loot tier budget** (§7.7) across zones.
+
+### 7.2 Pass 2 — Height field
+
+Assign an integer base level to each tile slot from a coarse noise field, quantized, subject to a Lipschitz constraint (adjacent slots differ by ≤ 1). Because base levels come from a single global field, cycle consistency is automatic (§5.2).
+
+Most tiles have flat, zero-delta edge profiles; transition tiles (ramps, cliffs) carry nonzero profiles and are what permit base level to change across a seam.
+
+### 7.3 Pass 3 — Required feature placement
+
+Place, as pre-committed constraints on the tile lattice:
+
+- Contestant spawn region(s)
+- Hunter spawn region(s)
+- Exit regions
+- **Required interactive mechanic regions** — the class that includes warp regions, charging stations, and anything else the match rules demand exists. These are placed abstractly by class and zone eligibility; their specific mechanics do not concern the generator.
+- Selected Set Pieces, including Obstruction Set Pieces
+
+> **Warning on warps.** A warp is a **non-local edge in the connectivity graph**. It breaks monotone left-to-right progression, invalidates "min-cut across a vertical band" as a measure of the funnel, and can single-handedly create the straight shot the design is trying to prevent. If warps exist, Pass 4 must know about them from the start and must include warp edges in all cut and path computations.
+
+### 7.4 Pass 4 — Topology solve
+
+**This pass produces the maze, and it is where the design's friction requirements are actually satisfied.** It emits an explicit graph, per agent class:
+
+```
+Nodes:  (tile_slot, connectivity_component)
+Edges:  matched open sockets between adjacent slots, per class
+        + warp edges
+```
+
+Objectives, all measurable and all specified as inputs:
+
+| Metric | Definition | Target |
+|---|---|---|
+| **Min-cut per band** | Edge-disjoint left→right routes across each vertical band | Monotone decreasing: ≈ 8 → 5 → 3 → 2 → 2 **[TUNE]** |
+| **Detour ratio** | Shortest path length / straight-line distance | 1.4 – 1.8 **[TUNE]** |
+| **Dead-end count** | Per zone, contestant graph | **[TUNE]** — but see §9 |
+| **Squeeze value** | Contestant path-cost reduction vs. hunter graph | ≥ threshold for each `SQUEEZE` |
+| **Flanking compliance** | §4.4 rule | 100% |
+| **4-way junctions** | Degree-4 nodes | Suppressed (substitute for the column offset, §5.1) |
+| **Exit cost spread** | max/min contestant path cost to each exit from spawn | ≤ 1.25 **[TUNE]** |
+
+That last one deserves emphasis: **if exit A costs 60% of exit B, everyone converges on A and the other exits are decoration.** It is an enforceable generator constraint, not a hope.
+
+**Output format.** For each tile slot, emit a required **port state** on each side (per class: open/closed, aperture class) plus a required internal partition. This is precisely the signature Pass 5 looks up.
+
+### 7.5 The placement predicate interface
+
+Passes 3 and 4 interleave for obstruction placement. The Set Piece placer must therefore accept **predicates over the resulting graph**, not positions:
+
+```
+place(class: ClassId, constraint: GraphPredicate) → Placement
+```
+
+v1 may implement this with dumb random placement in eligible zones. But "place obstructions until min-cut across this band drops below *k*" is a solver query. If the placer's contract is `(class, zone) → position`, upgrading is a macro-pass rewrite. If the contract is `(class, predicate) → placement`, it is a new implementation behind an unchanged seam.
+
+This is also what turns "I want dead ends" from a wish into a request.
+
+### 7.6 Pass 5 — Tile selection
+
+Index all tiles by signature (§5.5). For each slot, look up the required signature, filter by terrain compatibility with already-committed neighbors and by height deltas, and sample weighted by tier zone and Tile Set membership.
+
+Given the build-time closure guarantee, **this pass cannot fail**. No backtracking, no reroll, no unsatisfiable seams.
+
+### 7.7 Loot budget as a supply schedule
+
+Because tradeable items are NFT-minted and honored by contract, **procedural variance in tier-4/5 spawn counts is variance in mint rate.** "Tiers increase left to right" is a gradient, not a budget.
+
+> The map carries a **hard per-match cap on high-tier spawns.** The spatial tier field controls *where* a fixed budget lands, never *how much* exists.
+
+Macro allocates spawn budget to zones, zones allocate to regions, and regions report actuals in their manifest (§8.3). Macro enforces the cap; regions cannot exceed their allocation.
+
+---
+
+## 8. Regions
+
+### 8.1 Aggregation
+
+After tile placement, cells carry `region_class` metadata. Flood fill contiguous same-class cells into regions. **Regions may cross tile boundaries** — this is what produces structure larger than a tile from ordinary fill.
+
+Regions are arbitrary polyominoes, not rectangles.
+
+> **Consequence to accept knowingly:** because regions depend on global macro results, a region cannot be authored or tested in isolation, and cannot be regenerated independently at runtime. If destructible terrain or mid-match map events ever need to re-run a region, this forecloses it permanently. **[OPEN]** — decide deliberately; the answer is probably "no" and that is fine.
+
+### 8.2 The region contract (in)
+
+```
+RegionInput {
+  shape:              Polyomino
+  region_class:       RegionClass
+  tier_range:         (u8, u8)
+  height_profile:     ...
+  seed:               u64                  // see §10
+  reserved_corridors: [CorridorRequirement] // cells that MUST stay navigable,
+                                            // with clearance + agent classes
+  required_features:  [FeaturePlacement]    // e.g. "one warp node in here"
+  spawn_budget:       SpawnBudget           // per tier, hard cap
+  boundary_sockets:   [Socket]              // what the edges must present
+}
+```
+
+`reserved_corridors` is the mechanism that makes the connectivity guarantee real. It is not advisory.
+
+### 8.3 The region manifest (out)
+
+```
+RegionManifest {
+  cells_written:        ...
+  spawns_placed:        SpawnCounts         // per tier — validated against budget
+  apertures_created:    [Aperture]          // especially SQUEEZE
+  corridors_honored:    bool
+  released_subregions:  [Polyomino]         // handed back for filler gen
+  connectivity_claimed: [ComponentClaim]    // per agent class
+}
+```
+
+**The macro↔micro contract must be bidirectional.** Macro needs to know what micro actually produced — squeeze density, spawn counts, connectivity — in order to validate budgets and global properties. Making this bidirectional later means touching every generator.
+
+### 8.4 Shape capability and decomposition
+
+Handing arbitrary polyominoes to every generator is a real burden. Each generator declares a shape capability:
+
+```
+ShapeCapability = RECTANGLE_ONLY | CONVEX | ANY_POLYOMINO
+```
+
+A **shared maximal-rectangle partitioner** is the first utility to build. `RECTANGLE_ONLY` generators receive the largest inscribed rectangle and release the remainder via the manifest for filler generation.
+
+### 8.5 Hierarchical regions
+
+A region generator may subdivide its area and recursively invoke sub-generators with narrowed `RegionInput`. The contract is identical at every level; `reserved_corridors` propagate downward and must be honored at the leaves.
+
+### 8.6 Shared utility library
+
+Generators are free to place mechanical and cosmetic content as they see fit, but are strongly encouraged to build on shared primitives:
+
+- Maximal-rectangle decomposition
+- Cell/segment/vertex iteration and neighborhood queries
+- Corridor carving that respects a clearance target
+- Aperture placement conforming to the ladder (§2.2)
+- Poisson-disc and blue-noise scatter over polyominoes
+- Wall/fence chain construction along segment runs
+- Local clearance verification (a scoped version of §4.2)
+
+---
+
+## 9. Visibility and What It Does to Dead Ends
+
+**All static, non-interactive architecture is permanently visible to all players. Dynamic elements persist in their last-seen state.**
+
+Two consequences shape generation targets:
+
+**Unbaited dead ends are wasted budget.** A visible dead end is not a discovery hazard — players route around it for free. A dead end does work only if it is:
+
+- **Baited** — loot, an interactable, or a tier bonus at the terminus, so the player enters knowingly, or
+- **Dynamically closable** — a hunter can cut off the mouth while a contestant is inside.
+
+Generate baited and closable dead ends. Do not generate plain ones and expect them to create tension.
+
+**Procedural variance cannot buy unfamiliarity, only non-transferability.** With free map knowledge, randomness does not produce "you don't know the terrain." It produces "your memorized route doesn't exist this match." That argues for:
+
+- **Fewer, more legible macro structures** with high variance in which routes through them are open, over
+- Lots of fine-grained small-scale randomness, which players simply read at a glance.
+
+It also raises the value of Obstruction Set Pieces (§6.3) relative to micro-scale noise.
+
+---
+
+## 10. Determinism
+
+### 10.1 Generation is a pure function
+
+```
+generate(seed: u64, params: MapParams) → MapData
+```
+
+`MapData` is inert data. A **separate realization step** instantiates engine objects, colliders, and visuals from it.
+
+Keeping these apart is what makes headless batch generation, server-side generation, client/server parity, and seed-based bug reproduction possible. Entangling generation with scene construction is easy to fall into and expensive to undo.
+
+### 10.2 Stable identifiers
+
+Every stochastic element derives its seed from stable content, never from iteration order:
+
+```
+region_seed = H(map_seed, region_class, min_corner_cell)
+tile_seed   = H(map_seed, tile_slot_coord)
+```
+
+Iteration-order-derived seeds mean a change in traversal order silently changes every map, and bug reports become irreproducible.
+
+---
+
+## 11. Validation Harness
+
+**Build this before authoring content.** The system described here has several dozen hyperparameters and currently no feedback loop.
+
+### 11.1 Batch metrics
+
+Generate 10,000 maps headless and report distributions for:
+
+| Category | Metrics |
+|---|---|
+| **Connectivity** | Oracle failures (must be 0), unreachable tile count, per-class component counts |
+| **Topology** | Min-cut per band, detour ratio, dead-end count, junction degree histogram, 4-way junction count |
+| **Asymmetry** | Squeeze count, squeeze value distribution, flanking-rule violations, hunter-vs-contestant path cost ratio |
+| **Progression** | Exit path cost spread, tier field distribution, time-to-cross estimate |
+| **Economy** | Tier-4/5 spawn counts (must respect the hard cap), spawn count variance |
+| **Structure** | Region size histogram, released-subregion fraction, Set Piece class co-occurrence, adapter tile fraction |
+| **Performance** | Generation wall time, per-pass breakdown |
+
+### 11.2 Production use
+
+The same harness is the runtime **reject-and-reroll filter**. Any map failing a hard assertion (connectivity, spawn cap, exit spread) is discarded and regenerated. Target reroll rate < 1%; if it exceeds that, the tile set or the topology targets are wrong, not the filter.
+
+### 11.3 Build-time checks
+
+- Signature closure validation (§5.5)
+- Set Piece feasibility against current zone dimensions (§6.2)
+- Tile connectivity partition verification: run the §4.2 oracle against each tile in isolation with all boundary sockets open, and confirm the authored partition matches
+
+---
+
+## 12. Open Decisions
+
+Ranked by cost of getting wrong.
+
+| # | Decision | Why it's one-way |
+|---|---|---|
+| 1 | **Directed traversal** (§3.6) — are there one-way drops? | Flips the connectivity proof from flood fill to SCC and adds a direction field to the oracle. Recommend allowing directed edges regardless. |
+| 2 | **Breaching / destructibility** (§4.5) | Breaks hunter ⊆ contestant, invalidates the reachability shortcut. |
+| 3 | **Mid-match region re-run** (§8.1) | Cross-tile regions foreclose it permanently. |
+| 4 | **Final agent radii** (§2.1) | Every aperture in every authored tile is calibrated to these numbers. |
+| 5 | **Tile count / authoring budget** | Alphabet size and tile count must be chosen together (§5.3). Closure with a rich alphabet and 40 tiles is unachievable; with a small alphabet and 300 tiles it is routine. |
+| 6 | **Contestant spawn mechanism** | Forced edge spawn vs. player-chosen drop vs. staggered release. Constrains Pass 3 and the exit-cost-spread metric. |
+| 7 | **Set Piece : procedural ratio** | The legibility-vs-novelty tradeoff (§9) is a content budget decision that shapes the authoring format. |
+
+---
+
+## 13. Explicitly Deferred
+
+Not architectural; safe to defer or rework.
+
+- Time pressure / closing hazard tuning — affects targets, not structure
+- Specific loot table contents and item mechanics
+- Cosmetic transition pass at diagonal terrain corners (§6.4)
+- Boundary smoothing tile set (recommend never building it, §2.4)
+- Vehicles / rail traversal — treat as a future agent class if it happens
+- Weather, time of day, biome variation
+- Streaming / partial generation — the whole map generates at match start
+
+---
+
+## Appendix A — Pipeline Data Flow Summary
+
+| Pass | Reads | Writes | Can fail? |
+|---|---|---|---|
+| 1 Zone & tier | seed, params | zone mask, tier field, loot budget | No |
+| 2 Height field | zone mask | per-slot base level | No |
+| 3 Feature placement | zones, height, predicates | committed slot constraints | Yes → reroll |
+| 4 Topology | committed constraints | per-class graph, per-slot signatures | Yes → retry with relaxed targets |
+| 5 Tile selection | signatures | placed tiles, cell/segment/vertex data | **No** (closure guarantee) |
+| 6 Region aggregation | cell data | region shapes + inputs | No |
+| 7 Micro generation | region inputs | cell/segment content, manifests | Yes → reroll region |
+| 8 Validation | everything | pass/fail + metrics | Yes → reroll map |
+
+## Appendix B — Terminology
+
+**Maze, not labyrinth.** A labyrinth is unicursal — a single path with no decisions. A maze is multicursal. This design wants a maze: specifically, a *braided* maze (loops present) with a controlled density of dead ends and a monotonically narrowing min-cut toward the exits.
+
+**Choke point** — an edge or small edge set whose removal disconnects a region; measured by min-cut.
+
+**Squeeze** — a `SQUEEZE`-class aperture: passable by contestants, impassable by hunters. The core asymmetric mechanic.
+
+**Signature** — the tuple tile selection matches on (§5.5). Closure over the emittable signature space is what makes Pass 5 infallible.
