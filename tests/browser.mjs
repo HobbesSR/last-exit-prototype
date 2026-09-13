@@ -122,6 +122,23 @@ try {
   await page.getByRole('button', { name: 'Pause replay', exact: true }).click();
   await page.locator('#replay-seek').fill('5');
   assert.equal(await page.evaluate(() => window.arenaDebug().tick), 5);
+  // A replay opens on the whole arena, where an unscaled contestant covers about three pixels, so
+  // markers are enlarged to hold their apparent size. Choosing a subject cuts to that player's own
+  // zoom and draws markers at life size again.
+  const wide = await page.evaluate(() => window.arenaDebug());
+  assert.ok(wide.cameraWidth >= wide.mapWidth, `replay opens on the whole arena: ${wide.cameraWidth} vs ${wide.mapWidth}`);
+  assert.ok(wide.markerScale > 4, `whole arena markers are enlarged: ${wide.markerScale}`);
+  const subject = await page.locator('#replay-focus option').nth(1).getAttribute('value');
+  await page.locator('#replay-focus').selectOption(subject);
+  await page.waitForFunction(id => window.arenaDebug().follow === id && window.arenaDebug().markerScale === 1, subject, { timeout: 5000 });
+  const following = await page.evaluate(() => window.arenaDebug());
+  const target = following.actors.find(actor => actor.id === subject);
+  assert.ok(following.mapWidth > following.cameraWidth * 3, `a followed camera shows a player view: ${following.cameraWidth} vs ${following.mapWidth}`);
+  assert.ok(Math.abs(following.camera.x + following.cameraWidth / 2 - target.x) < 60
+    && Math.abs(following.camera.y + following.cameraHeight / 2 - target.y) < 60,
+    `the followed camera centres on its subject: ${JSON.stringify({ camera: following.camera, target })}`);
+  await page.locator('#replay-focus').selectOption('');
+  await page.waitForFunction(width => window.arenaDebug().cameraWidth >= width, wide.mapWidth, { timeout: 5000 });
   const denseDownloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download replay', exact: true }).click();
   assert.match((await denseDownloadPromise).suggestedFilename(), /^last-exit-.*\.json$/);

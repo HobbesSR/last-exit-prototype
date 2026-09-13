@@ -11,8 +11,26 @@ type RoofMap = Pick<GameMap, 'buildings'>;
 export const MAX_VIEW_WIDTH = 2400;
 export const MAX_VIEW_HEIGHT = 1600;
 export const POTENTIAL_RADIUS = Math.ceil(Math.hypot(MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT) / 2) + 250;
+export const PLAYER_ZOOM = 1.12;
 export function playerZoom(width: number, height: number, overview = false): number {
-  return Math.max(overview ? 0.85 : 1.12, width / MAX_VIEW_WIDTH, height / MAX_VIEW_HEIGHT);
+  return Math.max(overview ? 0.85 : PLAYER_ZOOM, width / MAX_VIEW_WIDTH, height / MAX_VIEW_HEIGHT);
+}
+
+// A directed camera frames the whole arena, which is two orders of magnitude wider than a player's
+// view, so an unscaled contestant covers about three pixels and the roster is impossible to read.
+// Markers are enlarged by the ratio the camera is zoomed out by, which holds their apparent size
+// steady instead of shrinking with the camera, and never shrinks them below life size.
+export const MARKER_ZOOM = 0.8;
+/** Apparent text height in screen pixels; labels are authored at LABEL_FONT_PX and scaled to it. */
+export const LABEL_SCREEN_PX = 10;
+export const LABEL_FONT_PX = 24;
+export function markerScale(zoom: number): number {
+  return Math.max(1, MARKER_ZOOM / zoom);
+}
+// Names stay legible at a fixed pixel height rather than riding the marker scale, which would leave
+// them unreadable at whole arena zoom. Authoring above the drawn size keeps the glyphs downscaled.
+export function labelScale(zoom: number, marker: number): number {
+  return LABEL_SCREEN_PX / LABEL_FONT_PX / (zoom * marker);
 }
 export function viewBounds(eye: Vec2, width: number, height: number, zoom: number): ViewBounds {
   return { x: eye.x - width / zoom / 2, y: eye.y - height / zoom / 2, width: width / zoom, height: height / zoom };

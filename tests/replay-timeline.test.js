@@ -64,3 +64,22 @@ test('invalid inputs remain safe and do not manufacture states', () => {
   const timeline = createReplayTimeline({ frames: [frame(2)], recording: { complete: false, endTick: 'bad' } });
   assert.equal(timeline.endTick, 2); assert.equal(timeline.at(NaN), null);
 });
+
+test('the roster names every recorded player once, in first seen order', () => {
+  const players = list => ({ state: { tick: list.tick, players: list.players } });
+  const timeline = createReplayTimeline({ frames: [
+    players({ tick: 0, players: [{ id: 'a', name: 'Ada', role: 'contestant' }, { id: 'w', name: 'Hunt', role: 'gladiator', kit: 'warden' }] }),
+    players({ tick: 1, players: [{ id: 'a', name: 'Ada', role: 'contestant', status: 'dead' }, { id: 'b', name: 'Bo', role: 'contestant' }] }),
+    players({ tick: 2, players: [{ id: 'w', name: 'Hunt', role: 'gladiator', kit: 'warden' }] })
+  ] });
+  assert.deepEqual(timeline.roster, [
+    { id: 'a', name: 'Ada', role: 'contestant', kit: undefined },
+    { id: 'w', name: 'Hunt', role: 'gladiator', kit: 'warden' },
+    { id: 'b', name: 'Bo', role: 'contestant', kit: undefined }
+  ]);
+});
+
+test('a roster tolerates frames without players', () => {
+  assert.deepEqual(createReplayTimeline({ frames: [frame(0), frame(1)] }).roster, []);
+  assert.deepEqual(createReplayTimeline({}).roster, []);
+});

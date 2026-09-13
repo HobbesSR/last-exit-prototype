@@ -12,6 +12,16 @@ export function createReplayTimeline(recording) {
     if (retained.at(-1)?.tick === entry.tick) retained[retained.length - 1] = entry;
     else retained.push(entry);
   }
+  // Every player the recording ever held, in the order the frames first named them, so a viewer can
+  // pick a subject that has not entered yet or has already been eliminated out of the current frame.
+  const roster = [], named = new Set();
+  for (const entry of retained) {
+    for (const player of entry.frame.state.players || []) {
+      if (!player || player.id === undefined || named.has(player.id)) continue;
+      named.add(player.id);
+      roster.push({ id: player.id, name: player.name, role: player.role, kit: player.kit });
+    }
+  }
   const firstTick = retained[0]?.tick;
   const lastTick = retained.at(-1)?.tick;
   const declaredEnd = recording?.recording?.endTick;
@@ -34,7 +44,7 @@ export function createReplayTimeline(recording) {
       alpha: missing ? 0 : playhead - lookupTick };
   }
 
-  return { frames: retained.map(entry => entry.frame), firstTick, lastTick, endTick,
+  return { frames: retained.map(entry => entry.frame), roster, firstTick, lastTick, endTick,
     complete: recording?.recording?.complete !== false,
     droppedFrames: Number.isSafeInteger(recording?.recording?.droppedFrames) && recording.recording.droppedFrames > 0 ? recording.recording.droppedFrames : 0,
     at };

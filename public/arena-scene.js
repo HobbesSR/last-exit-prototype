@@ -1,5 +1,5 @@
 import { visibilityPolygon, litPoint, gateShape } from '/shared/movement.ts';
-import { playerZoom, viewBounds, viewRadius, inViewport, observeGates, buildingAt, roofConceals } from '/shared/view.ts';
+import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, inViewport, observeGates, buildingAt, roofConceals } from '/shared/view.ts';
 import { observe, start, stop, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
 
@@ -19,12 +19,20 @@ export function makeArenaScene(api) {
       this.world.add([this.floor, this.decor, this.fixtures, this.shade, this.dynamic]);
       this.roofs = new Map(); this.roofLayer = this.add.container(0, 0); this.world.add(this.roofLayer);
       this.actors = new Map(); this.labels = []; this.eye = null;
+      this.marker = 1; this.nameScale = 1 / LABEL_FONT_PX;
       this.vision = this.make.graphics({ x: 0, y: 0, add: false });
       this.shadeMask = this.vision.createGeometryMask();
       this.shadeMask.invertAlpha = true;
       this.shade.setMask(this.shadeMask);
       this.crosshair = this.add.graphics();
-      this.input.on('pointerdown', p => { if (p.leftButtonDown() && !api.replay()) api.onFire(true); });
+      this.input.on('pointerdown', p => {
+        if (!p.leftButtonDown()) return;
+        if (!api.replay()) { api.onFire(true); return; }
+        // Clicking a marker is the fastest way to pick a subject out of a crowd; the roster select
+        // covers anyone too small, too distant or not currently on screen to hit.
+        const target = this.playerAt(p);
+        if (target) api.onFollow(target.id);
+      });
       this.input.on('pointerup', () => api.onFire(false));
       this.game.canvas.addEventListener('contextmenu', e => e.preventDefault());
       this.game.canvas.style.cursor = 'crosshair';
@@ -154,19 +162,39 @@ export function makeArenaScene(api) {
       if (p.role === 'gladiator' && p.kit === 'striker') sprite.setTint(0xffd485);
       if (p.role === 'contestant' && p.id !== api.playerId()) sprite.setTint([0xffffff, 0x9de6df, 0xfbdba2, 0xb9bdff][p.name.length % 4]);
       const ring = this.add.graphics(), bar = this.add.graphics();
-      const name = this.add.text(0, -35, p.id === api.playerId() ? 'YOU' : p.name, { fontFamily: 'Arial', fontSize: 9, fontStyle: 'bold', color: '#f8fce9', stroke: '#294a3e', strokeThickness: 3 }).setOrigin(0.5);
+      const name = this.add.text(0, -35, p.id === api.playerId() && !api.replay() ? 'YOU' : p.name, { fontFamily: 'Arial', fontSize: LABEL_FONT_PX, fontStyle: 'bold', color: '#f8fce9', stroke: '#294a3e', strokeThickness: 8 }).setOrigin(0.5).setScale(this.nameScale);
       const container = this.add.container(p.x, p.y, [ring, sprite, bar, name]); this.world.add(container); this.world.bringToTop(this.roofLayer);
       const actor = { sprite, ring, bar, name, container }; this.actors.set(p.id, actor); return actor;
     }
+    /** The active player nearest a pointer, within a fixed screen distance of it, or null. */
+    playerAt(pointer) {
+      const state = api.state(); if (!state) return null;
+      const point = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+      let best = null, nearest = 44 / this.cameras.main.zoom;
+      for (const p of state.players) {
+        if (p.status !== 'active') continue;
+        const distance = Math.hypot(p.x - point.x, p.y - point.y);
+        if (distance <= nearest) { best = p; nearest = distance; }
+      }
+      return best;
+    }
+    // A directed camera frames the whole arena unless it has been given a subject to follow, which it
+    // shows at the zoom that player had in the match.
+    wideView() { return api.directed() && !api.follow(); }
+    /** Drop the smoothed eye so the next frame cuts to a new subject instead of gliding across the map. */
+    cutTo() { this.eye = null; this.updateCamera(true); }
     updateCamera(snap = false) {
       const state = api.state(), map = api.map(); if (!state || !map) return;
-      const focus = this.eye || api.self() || state.players[0];
-      const zoom = api.directed() ? Math.min((this.scale.width - 40) / map.width, (this.scale.height - 150) / map.height) : playerZoom(this.scale.width, this.scale.height, api.overview());
+      const wide = this.wideView();
+      const focus = this.eye || api.follow() || api.self() || state.players[0];
+      const zoom = wide ? Math.min((this.scale.width - 40) / map.width, (this.scale.height - 150) / map.height) : playerZoom(this.scale.width, this.scale.height, api.overview());
       const camera = this.cameras.main; camera.setZoom(zoom);
-      const x = api.directed() ? map.width / 2 : focus?.x || map.width / 2;
-      const y = api.directed() ? map.height / 2 : focus?.y || map.height / 2;
+      const x = wide ? map.width / 2 : focus?.x || map.width / 2;
+      const y = wide ? map.height / 2 : focus?.y || map.height / 2;
       // The eye is already smoothed, so the camera tracks it directly rather than easing a second time.
       camera.centerOn(x, y);
+      this.marker = api.directed() ? markerScale(zoom) : 1;
+      this.nameScale = labelScale(zoom, this.marker);
     }
     update(now, delta) {
       const rawDelta = noteFrame();
@@ -178,14 +206,17 @@ export function makeArenaScene(api) {
       // predicted position while the camera and sprite eased toward it, so the shadows led the world
       // by the easing lag and stepped at the 20 Hz input tick instead of gliding with the frame.
       const ease = Math.min(1, delta / 40);
-      if (!self) this.eye = null;
-      else if (!this.eye || Math.hypot(self.x - this.eye.x, self.y - this.eye.y) > 150) this.eye = { x: self.x, y: self.y };
-      else { this.eye.x = Phaser.Math.Linear(this.eye.x, self.x, ease); this.eye.y = Phaser.Math.Linear(this.eye.y, self.y, ease); }
+      // A followed replay subject drives the same eased eye the player's own view uses, so a followed
+      // camera glides exactly like a live one and cuts only when the subject changes or teleports.
+      const focus = api.follow() || self;
+      if (!focus) this.eye = null;
+      else if (!this.eye || Math.hypot(focus.x - this.eye.x, focus.y - this.eye.y) > 150) this.eye = { x: focus.x, y: focus.y };
+      else { this.eye.x = Phaser.Math.Linear(this.eye.x, focus.x, ease); this.eye.y = Phaser.Math.Linear(this.eye.y, focus.y, ease); }
       const eye = this.eye;
       start('render.camera'); this.updateCamera(); stop('render.camera');
       const halfWidth = this.scale.width / this.cameras.main.zoom / 2;
       const halfHeight = this.scale.height / this.cameras.main.zoom / 2;
-      const nearView = (x, y, margin = 400) => api.directed() || !eye || Math.abs(x - eye.x) < halfWidth + margin && Math.abs(y - eye.y) < halfHeight + margin;
+      const nearView = (x, y, margin = 400) => this.wideView() || !eye || Math.abs(x - eye.x) < halfWidth + margin && Math.abs(y - eye.y) < halfHeight + margin;
       for (const [key, chunk] of this.chunks) {
         const [cx, cy] = key.split(',').map(Number);
         // Geometry can extend one block beyond its anchor; preserve that margin at chunk seams.
@@ -296,22 +327,33 @@ export function makeArenaScene(api) {
       const ids = new Set();
       for (const p of state.players) {
         ids.add(p.id); const actor = this.actors.get(p.id) || this.makeActor(p); const own = p.id === api.playerId();
+        // Own marks the viewer's player in any view; only a live one is steered by local aim and eye.
+        const controlled = own && !api.replay();
         // Ordinary dynamic actors, including allies, are occluded. Reveals remain an explicit exception.
         const known = api.directed() || own || self?.role === 'gladiator' && p.revealed > 0;
         actor.container.setVisible(p.status === 'active' && (known || lit(p.x, p.y)) && (known || !p.cloak));
-        if (own && !api.replay() && eye) { actor.container.x = eye.x; actor.container.y = eye.y; }
+        if (controlled && eye) { actor.container.x = eye.x; actor.container.y = eye.y; }
         else {
           const blend = api.replay() || Math.hypot(p.x - actor.container.x, p.y - actor.container.y) > 150 ? 1 : ease;
           actor.container.x = Phaser.Math.Linear(actor.container.x, p.x, blend); actor.container.y = Phaser.Math.Linear(actor.container.y, p.y, blend);
         }
-        actor.sprite.setRotation(own && !api.replay() ? api.aim() : p.heading); actor.sprite.setAlpha(p.cloak ? 0.45 : 1);
+        actor.sprite.setRotation(controlled ? api.aim() : p.heading); actor.sprite.setAlpha(p.cloak ? 0.45 : 1);
+        // Markers hold their apparent size as the camera pulls back; names hold a fixed pixel height
+        // rather than riding that scale, which would leave them unreadable at whole arena zoom.
+        actor.container.setScale(this.marker); actor.name.setScale(this.nameScale);
         actor.ring.clear(); actor.bar.clear();
         if (own) { actor.ring.lineStyle(2, 0xf8ffd0, 0.8); actor.ring.strokeCircle(0, 0, p.role === 'gladiator' ? 34 : 25); }
+        // A directed view carries no fog to separate the roster by, so role reads from a ring instead.
+        if (api.directed()) {
+          const followed = p.id === api.follow()?.id;
+          actor.ring.lineStyle(followed ? 5 : 3, p.role === 'gladiator' ? 0xff7d8a : 0xc5f16f, followed ? 1 : 0.8);
+          actor.ring.strokeCircle(0, 0, p.role === 'gladiator' ? 42 : 31);
+        }
         if (p.revealed) { actor.ring.lineStyle(2, 0xff7769); actor.ring.strokeCircle(0, 0, 29); }
         if (p.shield) { actor.ring.lineStyle(2, 0x98ddff, 0.7); actor.ring.strokeCircle(0, 0, 23); }
         actor.bar.fillStyle(0x254939); actor.bar.fillRect(-18, 29, 36, 4); actor.bar.fillStyle(p.role === 'gladiator' ? 0xff8185 : 0xc5f16f); actor.bar.fillRect(-18, 29, 36 * p.hp / p.maxHp, 4);
         if (p.weapon && p.role === 'contestant') {
-          const angle = own && !api.replay() ? api.aim() : p.heading;
+          const angle = controlled ? api.aim() : p.heading;
           actor.ring.lineStyle(7, 0x344b4f); actor.ring.lineBetween(Math.cos(angle) * 15, Math.sin(angle) * 15, Math.cos(angle) * 34, Math.sin(angle) * 34);
         }
       }

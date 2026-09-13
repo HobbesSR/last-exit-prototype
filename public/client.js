@@ -13,6 +13,10 @@ const HZ = 20;
 const KIT = { warden: ['Warden', 'Shockwave', 'zap'], specter: ['Specter', 'Pulse scan', 'radar'], striker: ['Striker', 'Overdrive', 'flame'] };
 let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liveState, predicted;
 let seq = 0, pending = [], overview = false, selectedRole = 'contestant', savedReplay, replay, replayTimeline, playback = 0, playing = true, recordingFailed = false;
+// Replay camera subject. Null frames the whole arena; otherwise the camera follows this player at the
+// zoom they played at. The recorded roster may name players the current frame no longer contains.
+let followId = null;
+const followed = () => followId && replay ? state?.players.find(p => p.id === followId) || null : null;
 let lobbyPlayers = [];
 let lobbyStartsAt = null;
 const inputController = createInputController({
@@ -166,11 +170,12 @@ let scene;
 const ArenaScene = makeArenaScene({
   map: () => arenaMap, state: () => state, playerId: () => playerId,
   self: () => !replay && predicted ? predicted : state?.players.find(p => p.id === playerId) || null,
-  replay: () => !!replay, directed, overview: () => overview, aim: () => inputController.aim(),
+  replay: () => !!replay, directed, overview: () => overview, aim: () => inputController.aim(), follow: followed,
   // How far into the current authoritative tick the renderer is, so motion that only updates on a
   // server frame can be advanced smoothly between them.
   frameAlpha: () => replay ? replayTimeline.at(playback)?.alpha ?? 0 : Math.min(1, (performance.now() - lastStateAt) / (1000 / HZ)),
   onReady: value => scene = value, onFire: value => inputController.setPointerFire(value),
+  onFollow: id => setFollow(id),
   onFrame: delta => {
     if (!replay || !playing) return;
     playback = Math.min(replayTimeline.endTick, playback + delta / 1000 * replay.hz * Number($('replay-speed').value));
@@ -233,8 +238,33 @@ async function watchReplay(id) {
     changeMap(data.map);
     $('outcome').hidden = true; $('archive-dialog').close(); $('live-hud').hidden = true;
     $('replay-controls').hidden = false; $('replay-seek').min = 0; $('replay-seek').max = timeline.endTick; $('replay-seek').value = 0;
+    fillFollowOptions(timeline.roster); setFollow(null);
     document.body.classList.add('replaying'); connection('REPLAY'); setPlaying(true); applyReplayTick(0); scene?.updateCamera(true);
   } catch (error) { toast(error.message); }
+}
+// The roster comes from the recording rather than the displayed frame, so a subject can be chosen
+// before they appear and stays selectable after they are eliminated.
+function fillFollowOptions(roster = []) {
+  const select = $('replay-focus');
+  const whole = document.createElement('option'); whole.value = ''; whole.textContent = 'Whole arena';
+  const groups = [['contestant', 'Contestants'], ['gladiator', 'Gladiators']].map(([role, label]) => {
+    const group = document.createElement('optgroup'); group.label = label;
+    for (const player of roster.filter(p => p.role === role)) {
+      const option = document.createElement('option'); option.value = player.id;
+      option.textContent = player.role === 'gladiator' ? `${player.name} / ${KIT[player.kit]?.[0] || player.kit}` : player.name;
+      group.append(option);
+    }
+    return group;
+  }).filter(group => group.childElementCount);
+  select.replaceChildren(whole, ...groups);
+}
+function setFollow(id) {
+  followId = id || null;
+  $('replay-focus').value = followId || '';
+  // A cut, not a pan: gliding a camera across a 24000 unit arena would lose the subject for seconds.
+  scene?.cutTo();
+  const target = followed();
+  if (target) toast(`Following ${target.name}`);
 }
 function applyReplayTick(tick) {
   const sample = replayTimeline?.at(tick);
@@ -256,7 +286,7 @@ async function downloadReplay(id) {
   } catch (error) { toast(error.message); }
 }
 function closeReplay() {
-  replay = null; replayTimeline = null; $('replay-controls').hidden = true; $('live-hud').hidden = false; document.body.classList.remove('replaying');
+  replay = null; replayTimeline = null; followId = null; $('replay-controls').hidden = true; $('live-hud').hidden = false; document.body.classList.remove('replaying');
   if (liveMap && liveState) { changeMap(liveMap); acceptState(liveState); }
   connection(ws?.readyState === WebSocket.OPEN ? 'LIVE' : 'OFFLINE'); scene?.updateCamera(true);
 }
@@ -298,6 +328,7 @@ $('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN &&
 $('watch-match').onclick = () => { if (savedReplay) void watchReplay(savedReplay.id); };
 $('replay-play').onclick = () => { if (replay && playback >= replayTimeline.endTick) applyReplayTick(0); setPlaying(!playing); };
 $('replay-seek').oninput = () => { if (replay) applyReplayTick(Number($('replay-seek').value)); };
+$('replay-focus').onchange = () => { if (replay) setFollow($('replay-focus').value); };
 $('replay-download').onclick = () => { if (replay) void downloadReplay(replay.id); };
 $('replay-close').onclick = closeReplay;
 icons();
@@ -336,4 +367,4 @@ window.arenaProfiling = setProfiling;
 // tooling will grow from, and what the tests drive.
 window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, role: 'spectator' });
 // Read-only inspection surface for reproducible browser smoke tests.
-window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: !!replay, overview, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible })), aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y } });
+window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: !!replay, follow: followId, overview, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y } });
