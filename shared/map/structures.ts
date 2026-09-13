@@ -1,14 +1,17 @@
-import { BLOCK_SIZE } from './world.js';
-import { distance } from './context.js';
+import { BLOCK_SIZE } from './world.ts';
+import { distance } from './context.ts';
+import type { GenerationContext, SpawnedGenerationContext } from './context.ts';
+import type { BuildingId, GateId, ModuleKind } from '../types.ts';
 
-export function buildStructures(context) {
+/** Places spawn points, building shells with doors, and street props. */
+export function buildStructures(context: GenerationContext): asserts context is SpawnedGenerationContext {
   const { map, entryNode, exitNode, lookup, reserve, reservations, clearFootprint, spots, range, rect, nextId } = context;
   for (const n of map.nodes) reserve(n.x, n.y, 110);
   reserve(entryNode.x, entryNode.y, 490); reserve(exitNode.x, exitNode.y, 300);
   // Spread contestants across four nearby connected blocks, rather than a single firing line.
   const startBlocks = [entryNode];
   for (let i = 0; i < startBlocks.length && startBlocks.length < 4; i++) for (const id of startBlocks[i].neighbors) {
-    const n = lookup.get(id);
+    const n = lookup.get(id)!;
     if (!startBlocks.includes(n)) startBlocks.push(n);
     if (startBlocks.length === 4) break;
   }
@@ -22,14 +25,14 @@ export function buildStructures(context) {
     }
   }
   for (const [index, n] of map.nodes.entries()) {
-    const kind = ['yard', 'depot', 'garden'][range(0, 2)];
+    const kind = ['yard', 'depot', 'garden'][range(0, 2)] as ModuleKind;
     const module = { id: index, x: n.x, y: n.y, width: BLOCK_SIZE, height: BLOCK_SIZE, kind }; map.modules.push(module);
     const corners = [[-390, -390], [140, -390], [-390, 140], [140, 140]];
     for (const [i, [dx, dy]] of corners.entries()) {
       const box = { x: n.x + dx, y: n.y + dy, w: 250, h: 250 };
       if (!clearFootprint(box)) continue;
       if (i === index % 4 && index % 2 === 0) {
-        const building = { id: nextId('building-'), ...box, nodeId: n.id }; map.buildings.push(building);
+        const building = { id: nextId('building-') as BuildingId, ...box, nodeId: n.id }; map.buildings.push(building);
         // Door in south wall; two north-facing windows admit sight and bullets, never bodies.
         const extra = { buildingId: building.id };
         rect(box.x, box.y, 65, 18, 'building', extra);
@@ -38,7 +41,7 @@ export function buildStructures(context) {
         rect(box.x + 185, box.y, 65, 18, 'building', extra);
         rect(box.x, box.y + 18, 18, 214, 'building', extra); rect(box.x + 232, box.y + 18, 18, 214, 'building', extra);
         rect(box.x, box.y + 232, 75, 18, 'building', extra); rect(box.x + 175, box.y + 232, 75, 18, 'building', extra);
-        map.gates.push({ id: nextId('door-'), x: box.x + 125, y: box.y + 241, w: 100, h: 18, open: false, locked: index % 10 === 0, kind: 'door', buildingId: building.id });
+        map.gates.push({ id: nextId('door-') as GateId, x: box.x + 125, y: box.y + 241, w: 100, h: 18, open: false, locked: index % 10 === 0, kind: 'door', buildingId: building.id });
         spots.push({ x: box.x + 125, y: box.y + 125, nodeId: n.id, buildingId: building.id });
         reservations.push({ x: box.x - 30, y: box.y - 30, w: 310, h: 350 });
       } else {

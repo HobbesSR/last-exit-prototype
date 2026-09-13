@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { roomHarness } from './helpers/room-harness.js';
 import { createMatch } from '../server/match.js';
-import { createGame, joinGame, setInput, step, snapshot } from '../shared/simulation.js';
+import { createGame, joinGame, setInput, step, snapshot } from '../shared/simulation.ts';
 import { parseMessage, acceptMessageRate, roomSeed } from '../server/protocol.js';
 
 test('match boundary preserves simulation output and returns detached commands, identities and maps', () => {

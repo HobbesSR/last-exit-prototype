@@ -1,9 +1,11 @@
-import { canOccupy } from '../movement.js';
-import { syncWeapon } from '../equipment.js';
-import { GLADIATOR_RESPAWN_TICKS, DURATION } from './rules.js';
-import { distance } from './geometry.js';
-import { event, effect, dropEquipment } from './loot.js';
-export function eliminate(s, target, source) {
+import { canOccupy } from '../movement.ts';
+import { syncWeapon } from '../equipment.ts';
+import { GLADIATOR_RESPAWN_TICKS, DURATION } from './rules.ts';
+import { distance } from './geometry.ts';
+import { event, effect, dropEquipment } from './loot.ts';
+import type { Game, Player } from '../types.ts';
+
+export function eliminate(s: Game, target: Player, source: Player | null): void {
   target.status = 'eliminated'; event(s, `${target.name} ${source ? 'eliminated by ' + source.name : 'lost to the arena'}`);
   target.charging = null;
   if (target.role === 'gladiator') { target.status = 'respawning'; target.respawnAt = s.tick + GLADIATOR_RESPAWN_TICKS; target.input = {}; }
@@ -14,15 +16,15 @@ export function eliminate(s, target, source) {
   }
   else if (source?.role === 'contestant') source.kills++;
 }
-export function respawn(s, p) {
-  if (p.status === 'respawning' && s.tick >= p.respawnAt) {
+export function respawn(s: Game, p: Player): void {
+  if (p.status === 'respawning' && p.respawnAt != null && s.tick >= p.respawnAt) {
     const candidates = s.map.stations.filter(st => st.x > s.hazardX + 400 && canOccupy(s.map, st.x, st.y, 25)
       && s.players.every(other => other.role !== 'contestant' || other.status !== 'active' || distance(other, st) > 1000));
     const station = candidates.sort((a, b) => a.x - b.x)[0];
     if (station) { p.x = station.x; p.y = station.y; p.hp = p.maxHp; p.shield = 0; p.status = 'active'; p.respawnAt = null; p.input = {}; p.inputTick = s.tick; p.path = []; p.cooldown = 0; p.attackCd = 0; p.stun = 0; p.boost = 0; p.railCd = 0; event(s, `${p.name} returned to the hunt`); }
   }
 }
-export function finishMatch(s) {
+export function finishMatch(s: Game): void {
   if (s.slots === 0 || !s.players.some(p => p.role === 'contestant' && p.status === 'active') || s.tick >= DURATION) {
     s.phase = 'finished'; for (const p of s.players) if (p.role === 'contestant' && p.status === 'active') p.status = 'stranded'; event(s, 'Broadcast complete');
   }

@@ -1,8 +1,8 @@
-import { litPoint, lineClear } from '/shared/movement.js';
-import { inViewport, roofConceals } from '/shared/view.js';
-import { carriedCell, SLOT_COUNT } from '/shared/equipment.js';
+import { litPoint, lineClear } from '/shared/movement.ts';
+import { inViewport, roofConceals } from '/shared/view.ts';
+import { carriedCell, SLOT_COUNT } from '/shared/equipment.ts';
 import { slotPresentation } from '/equipment-ui.js';
-import * as profiler from '/shared/profiler.js';
+import * as profiler from '/shared/profiler.ts';
 const $ = id => document.getElementById(id);
 const HZ = 20;
 const KIT = { warden: ['Warden', 'Shockwave', 'zap'], specter: ['Specter', 'Pulse scan', 'radar'], striker: ['Striker', 'Overdrive', 'flame'] };

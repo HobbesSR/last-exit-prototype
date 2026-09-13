@@ -4,8 +4,8 @@
 import { chromium } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { createArenaServer } from '../server/index.js';
-import { format } from '../shared/profiler.js';
-import { HZ } from '../shared/simulation.js';
+import { format } from '../shared/profiler.ts';
+import { HZ } from '../shared/simulation.ts';
 import path from 'node:path';
 import { arrangeCrowd } from './crowd-workload.mjs';
 

@@ -1,5 +1,5 @@
-import { HZ, VERSION } from '../shared/simulation/rules.js';
-import * as profiler from '../shared/profiler.js';
+import { HZ, VERSION } from '../shared/simulation/rules.ts';
+import * as profiler from '../shared/profiler.ts';
 import { roomSeed } from './protocol.js';
 
 export function installHttpApi(app, service, replays) {

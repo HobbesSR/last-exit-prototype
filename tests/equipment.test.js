@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, setInput, step, snapshot, playerView } from '../shared/simulation.js';
-import { collectEquipment, WEAPONS, rearrangeEquipment, SLOT_COUNT } from '../shared/equipment.js';
+import { createGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { collectEquipment, WEAPONS, rearrangeEquipment, SLOT_COUNT } from '../shared/equipment.ts';
 
 function fixture() {
   const s = createGame(); for (const p of s.players) { p.bot = false; p.input = {}; }

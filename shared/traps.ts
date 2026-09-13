@@ -1,13 +1,18 @@
-import { canOccupy, lineClear } from './movement.js';
+import { canOccupy, lineClear } from './movement.ts';
+import type { EffectKind, Game, Player, PlayerId, Vec2, World } from './types.ts';
 
-const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-export function stepTraps(s, damage, effect) {
+// Injected rather than imported, so hazards stay a leaf: traps never reach back into combat.
+export type DamageFn = (s: Game, target: Player, amount: number, source: Player | null) => void;
+export type EffectFn = (s: Game, at: Vec2, kind: EffectKind, radius?: World) => void;
+
+const distance = (a: Vec2, b: Vec2): World => Math.hypot(a.x - b.x, a.y - b.y);
+export function stepTraps(s: Game, damage: DamageFn, effect: EffectFn): void {
   for (const trap of s.map.traps || []) {
     if (trap.spent) continue;
     trap.cooldown = Math.max(0, (trap.cooldown || 0) - 1);
     const active = s.players.filter(p => p.status === 'active');
     if (trap.kind === 'mine') {
-      if (!active.some(p => distance(p, trap) < 65 && p.movedThisTick > 0.5 && lineClear(s.map, trap, p))) continue;
+      if (!active.some(p => distance(p, trap) < 65 && (p.movedThisTick ?? 0) > 0.5 && lineClear(s.map, trap, p))) continue;
       trap.spent = true; effect(s, trap, 'shock', 120);
       for (const p of active) if (distance(p, trap) < 120 && lineClear(s.map, trap, p)) damage(s, p, 45, null);
     } else if (trap.kind === 'turret') {
@@ -27,7 +32,7 @@ export function stepTraps(s, damage, effect) {
       const home = { x: trap.homeX, y: trap.homeY };
       let target = active.find(p => p.id === trap.targetId && distance(p, home) < 360);
       if (!target) target = active.filter(p => distance(p, home) < 240 && lineClear(s.map, trap, p)).sort((a, b) => distance(a, trap) - distance(b, trap))[0];
-      trap.targetId = target?.id || null;
+      trap.targetId = (target?.id ?? null) as PlayerId | null;
       const destination = target || home, length = distance(trap, destination);
       trap.heading = Math.atan2(destination.y - trap.y, destination.x - trap.x);
       if (length > 20) {

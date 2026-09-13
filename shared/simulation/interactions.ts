@@ -1,13 +1,15 @@
-import { lineClear, reachClear, gateShape, TILE } from '../movement.js';
-import { carriedCell, equipped, collectEquipment, syncWeapon } from '../equipment.js';
-import { CELL_CHARGE_TICKS } from './rules.js';
-import { distance } from './geometry.js';
-import { event, effect, dropEquipment } from './loot.js';
-export function interact(s, p) {
+import { lineClear, reachClear, gateShape, TILE } from '../movement.ts';
+import { carriedCell, equipped, collectEquipment, syncWeapon } from '../equipment.ts';
+import { CELL_CHARGE_TICKS } from './rules.ts';
+import { distance } from './geometry.ts';
+import { event, effect, dropEquipment } from './loot.ts';
+import type { CellItem, Game, Player, PlayerInput } from '../types.ts';
+
+export function interact(s: Game, p: Player): void {
   const cell = carriedCell(p);
-  const charged = p.inventory?.find(item => item?.kind === 'cell' && item.charge >= CELL_CHARGE_TICKS);
+  const charged = p.inventory?.find((item): item is CellItem => item?.kind === 'cell' && item.charge >= CELL_CHARGE_TICKS);
   if (p.role === 'contestant' && distance(p, s.map.exit) < 65 && s.slots > 0 && charged && lineClear(s.map, p, s.map.exit)) {
-    s.slots--; p.inventory[p.inventory.indexOf(charged)] = null; syncWeapon(p); p.charging = null; p.status = 'escaped';
+    s.slots--; p.inventory![p.inventory!.indexOf(charged)] = null; syncWeapon(p); p.charging = null; p.status = 'escaped';
     event(s, p.name + ' powered an escape pod. ' + s.slots + ' slots remain'); return;
   }
   if (cell && cell.charge < CELL_CHARGE_TICKS) {
@@ -15,10 +17,10 @@ export function interact(s, p) {
     if (station) { p.charging = station.id; return; }
   }
   const pickup = p.inventory && s.map.items.filter(i => ['weapon', 'med', 'shield', 'cell'].includes(i.kind) && distance(p, i) < 45 && reachClear(s.map, p, i)).sort((a, b) => distance(p, a) - distance(p, b))[0];
-  if (!p.bot && pickup && p.inventory.every(Boolean)) {
-    const index = p.selectedSlot, old = equipped(p); p.inventory[index] = null;
-    if (collectEquipment(p, pickup)) { s.map.items = s.map.items.filter(i => i.id !== pickup.id); dropEquipment(s, p, old); }
-    else p.inventory[index] = old;
+  if (!p.bot && pickup && p.inventory!.every(Boolean)) {
+    const index = p.selectedSlot!, old = equipped(p); p.inventory![index] = null;
+    if (collectEquipment(p, pickup)) { s.map.items = s.map.items.filter(i => i.id !== pickup.id); dropEquipment(s, p, old!); }
+    else p.inventory![index] = old;
     syncWeapon(p); return;
   }
   const gate = s.map.gates.filter(g => distance(p, g) < 85 && (!p.bot || !g.open) && lineClear(s.map, p, g, g.id)).sort((a, b) => distance(p, a) - distance(p, b))[0];
@@ -42,7 +44,7 @@ export function interact(s, p) {
     }
   }
 }
-export function advanceCharging(s, p, input) {
+export function advanceCharging(s: Game, p: Player, input: PlayerInput): void {
   if (p.charging) {
     const cell = carriedCell(p);
     const station = s.map.chargers.find(st => st.id === p.charging);

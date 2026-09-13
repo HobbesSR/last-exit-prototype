@@ -12,7 +12,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createArenaServer } from '../server/index.js';
-import { lineClear } from '../shared/movement.js';
+import { lineClear } from '../shared/movement.ts';
 import path from 'node:path';
 
 const run = promisify(execFile);

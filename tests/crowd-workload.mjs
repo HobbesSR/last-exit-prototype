@@ -1,4 +1,4 @@
-import { canOccupy } from '../shared/movement.js';
+import { canOccupy } from '../shared/movement.ts';
 
 // Benchmark-only arrangement: keep the observer still and compare identical actors with/without AI.
 export function arrangeCrowd(game, playerId, { location, ai = true }) {

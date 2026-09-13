@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, setInput, step, snapshot, playerView } from '../shared/simulation.js';
+import { createGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 
 function fixture(kind, extra = {}) {
   const s = createGame(); s.map.obstacles = []; s.map.items = []; s.map.gates = [];

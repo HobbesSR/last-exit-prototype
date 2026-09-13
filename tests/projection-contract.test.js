@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, snapshot, playerView } from '../shared/simulation.js';
+import { createGame, snapshot, playerView } from '../shared/simulation.ts';
 
 test('unlisted internal fields stay out of own, other-player and directed frame projections', () => {
   const game = createGame(9), me = game.players[0];
