@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import * as profiler from '../shared/profiler.js';
+import * as profiler from '../shared/profiler.ts';
 
 test('profiler call rates use the same rolling window as frame timings', () => {
   profiler.reset(); profiler.enable(true);

@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, step, setInput, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS } from '../shared/simulation.js';
-import { generateMap, blockRoute } from '../shared/map.js';
-import { canOccupy, lineClear, reachClear, movePlayer } from '../shared/movement.js';
-import { buildingAt, roofConceals } from '../shared/view.js';
-import { carriedCell } from '../shared/equipment.js';
+import { createGame, step, setInput, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS } from '../shared/simulation.ts';
+import { generateMap, blockRoute } from '../shared/map.ts';
+import { canOccupy, lineClear, reachClear, movePlayer } from '../shared/movement.ts';
+import { buildingAt, roofConceals } from '../shared/view.ts';
+import { carriedCell } from '../shared/equipment.ts';
 
 function fixture() {
   const s = createGame(4217);

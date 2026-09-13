@@ -1,4 +1,4 @@
-import * as profiler from '../shared/profiler.js';
+import * as profiler from '../shared/profiler.ts';
 export const SPECTATOR_DELAY_TICKS = 60;
 export const send = (session, value) => session.deliver(JSON.stringify(value));
 export const lobbyPayload = room => ({

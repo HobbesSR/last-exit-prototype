@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, generateMap, joinGame, setInput, step, snapshot, visibleTo, couldSee, playerView, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.js';
-import { movePlayer, canOccupy, lineClear, visibilityPolygon } from '../shared/movement.js';
-import { navigationGrid } from '../shared/map.js';
+import { createGame, generateMap, joinGame, setInput, step, snapshot, visibleTo, couldSee, playerView, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
+import { movePlayer, canOccupy, lineClear, visibilityPolygon } from '../shared/movement.ts';
+import { navigationGrid } from '../shared/map.ts';
 import PF from 'pathfinding';
-import { collectEquipment, carriedCell } from '../shared/equipment.js';
+import { collectEquipment, carriedCell } from '../shared/equipment.ts';
 
 function fixture(role = 'contestant', kit = 'warden') {
   const s = createGame(4217);

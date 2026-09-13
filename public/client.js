@@ -1,9 +1,9 @@
-import { movePlayer } from '/shared/movement.js';
+import { movePlayer } from '/shared/movement.ts';
 import { createInputController } from '/input-controller.js';
 import { createHUDController } from '/hud-controller.js';
 import { notePacket, resetDiagnostics, diagnosticTimings } from '/diagnostics.js';
 import { makeArenaScene } from '/arena-scene.js';
-import * as profiler from '/shared/profiler.js';
+import * as profiler from '/shared/profiler.ts';
 
 const $ = id => document.getElementById(id);
 const icon = name => `<i data-lucide="${name}"></i>`;

@@ -1,23 +1,27 @@
 // Public compatibility surface and authoritative fixed-tick coordinator.
 // Player iteration and phase ordering are gameplay: bot decisions may act before movement.
-export { generateMap } from './map.js';
-export { TILE } from './movement.js';
-export { VERSION, HZ, DURATION, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS, HAZARD_GRACE_TICKS, KITS } from './simulation/rules.js';
-export { createGame, joinGame, setInput } from './simulation/state.js';
-export { POTENTIAL, couldSee, visibleTo, playerView, snapshot } from './simulation/visibility.js';
-import { movePlayer } from './movement.js';
-import { start, stop } from './profiler.js';
-import { equipped, syncWeapon, rearrangeEquipment } from './equipment.js';
-import { stepTraps } from './traps.js';
-import { HAZARD_GRACE_TICKS, DURATION } from './simulation/rules.js';
-import { distance } from './simulation/geometry.js';
-import { effect, dropEquipment, automaticPickups } from './simulation/loot.js';
-import { respawn, finishMatch } from './simulation/lifecycle.js';
-import { damage, skill, attack, advanceProjectiles } from './simulation/combat.js';
-import { interact, advanceCharging } from './simulation/interactions.js';
-import { botInput } from './simulation/bots.js';
+export { generateMap } from './map.ts';
+export { TILE } from './movement.ts';
+export { VERSION, HZ, DURATION, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS, HAZARD_GRACE_TICKS, KITS } from './simulation/rules.ts';
+export { createGame, joinGame, setInput } from './simulation/state.ts';
+export { POTENTIAL, couldSee, visibleTo, playerView, snapshot } from './simulation/visibility.ts';
+import { movePlayer } from './movement.ts';
+import { start, stop } from './profiler.ts';
+import { equipped, syncWeapon, rearrangeEquipment } from './equipment.ts';
+import { stepTraps } from './traps.ts';
+import { HAZARD_GRACE_TICKS, DURATION } from './simulation/rules.ts';
+import { distance } from './simulation/geometry.ts';
+import { effect, dropEquipment, automaticPickups } from './simulation/loot.ts';
+import { respawn, finishMatch } from './simulation/lifecycle.ts';
+import { damage, skill, attack, advanceProjectiles } from './simulation/combat.ts';
+import { interact, advanceCharging } from './simulation/interactions.ts';
+import { botInput } from './simulation/bots.ts';
+import type { Game } from './types.ts';
 
-export function step(s) {
+/** Per-player countdown fields, all measured in ticks. */
+const TIMERS = ['cooldown', 'attackCd', 'railCd', 'cloak', 'revealed', 'boost', 'stun'] as const;
+
+export function step(s: Game): void {
   if (s.phase !== 'live') return;
   start('sim.step');
   s.tick++;
@@ -27,7 +31,7 @@ export function step(s) {
     p.movedThisTick = 0;
     respawn(s, p);
     if (p.status !== 'active') continue;
-    for (const key of ['cooldown', 'attackCd', 'railCd', 'cloak', 'revealed', 'boost', 'stun']) p[key] = Math.max(0, p[key] - 1);
+    for (const key of TIMERS) p[key] = Math.max(0, p[key] - 1);
     if (p.bot) start('sim.bots');
     const input = p.bot ? botInput(s, p) : s.tick - (p.inputTick ?? 0) > 10 ? {} : p.input;
     if (p.bot) stop('sim.bots');
@@ -38,7 +42,7 @@ export function step(s) {
     start('sim.actions');
     if (p.inventory && input.slot !== undefined) { p.selectedSlot = input.slot; syncWeapon(p); }
     if (input.moveSlot) rearrangeEquipment(p, input.moveSlot.from, input.moveSlot.to);
-    if (input.drop && equipped(p)) { dropEquipment(s, p, equipped(p)); p.inventory[p.selectedSlot] = null; p.charging = null; syncWeapon(p); }
+    if (input.drop && equipped(p)) { dropEquipment(s, p, equipped(p)!); p.inventory![p.selectedSlot!] = null; p.charging = null; syncWeapon(p); }
     if (input.skill) skill(s, p);
     if (input.attack) attack(s, p);
     if (input.interact) interact(s, p);

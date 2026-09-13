@@ -3,13 +3,14 @@ import { createServer as createHttpServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
-import { HZ } from '../shared/simulation/rules.js';
-import * as profiler from '../shared/profiler.js';
+import { HZ } from '../shared/simulation/rules.ts';
+import * as profiler from '../shared/profiler.ts';
 import { createFileReplayStore } from './replay-store.js';
 import { createRoomService } from './room-service.js';
 import { installHttpApi } from './http-api.js';
 import { attachWebSockets } from './websocket.js';
 import { startScheduler } from './scheduler.js';
+import { serveSharedModules } from './shared-assets.js';
 export { EMPTY_ROOM_GRACE_MS } from './room-service.js';
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 
@@ -45,7 +46,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use('/vendor/phaser', express.static(path.join(ROOT, 'node_modules/phaser/dist')));
   app.use('/vendor/lucide', express.static(path.join(ROOT, 'node_modules/lucide/dist/umd')));
   app.use('/vendor/sat', express.static(path.join(ROOT, 'node_modules/sat')));
-  app.use('/shared', express.static(path.join(ROOT, 'shared')));
+  app.use('/shared', serveSharedModules(path.join(ROOT, 'shared')));
   app.use(express.static(path.join(ROOT, 'public')));
   installHttpApi(app, service, replays);
   const http = createHttpServer(app), wss = attachWebSockets(http, service);

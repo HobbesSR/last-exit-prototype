@@ -1,8 +1,8 @@
 // Headless tick benchmark: runs the real simulation with no sockets, disk, or renderer so the
 // numbers describe the simulation itself rather than the machine's I/O. Mirrors the server loop
 // body (step, snapshot, per-client view) because that whole sequence shares the 1000/HZ budget.
-import { createGame, step, snapshot, playerView, HZ, DURATION } from '../shared/simulation.js';
-import * as profiler from '../shared/profiler.js';
+import { createGame, step, snapshot, playerView, HZ, DURATION } from '../shared/simulation.ts';
+import * as profiler from '../shared/profiler.ts';
 
 const args = new Map(process.argv.slice(2).map(a => a.replace(/^--/, '').split('=')).map(([k, v]) => [k, v ?? '1']));
 const number = (key, fallback) => Number(args.get(key) ?? fallback);

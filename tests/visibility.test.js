@@ -1,7 +1,7 @@
 // Guards the wedge-culled visibility polygon against a brute-force implementation of the same rays.
 // The optimisation must be exact: every vertex identical, not merely close.
-import { generateMap } from '../shared/map.js';
-import { visibilityPolygon, litPoint, lineClear, canOccupy, VISION } from '../shared/movement.js';
+import { generateMap } from '../shared/map.ts';
+import { visibilityPolygon, litPoint, lineClear, canOccupy, VISION } from '../shared/movement.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 const pts = o => o.r ? Array.from({ length: 16 }, (_, i) => ({ x: o.x + Math.cos(i * Math.PI / 8) * o.r, y: o.y + Math.sin(i * Math.PI / 8) * o.r }))

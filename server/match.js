@@ -1,4 +1,4 @@
-import { createGame, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.js';
+import { createGame, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
 
