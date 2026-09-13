@@ -1,4 +1,4 @@
-import { WEAPONS } from '/shared/equipment.js';
+import { WEAPONS } from '/shared/equipment.ts';
 
 // Code-native glyphs match the existing outlined HUD. Names remain in tooltips and ARIA labels.
 const paths = {

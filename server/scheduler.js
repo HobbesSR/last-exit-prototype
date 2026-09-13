@@ -1,5 +1,5 @@
-import { HZ } from '../shared/simulation/rules.js';
-import * as profiler from '../shared/profiler.js';
+import { HZ } from '../shared/simulation/rules.ts';
+import * as profiler from '../shared/profiler.ts';
 export const TICK_MS = 1000 / HZ;
 export const WAKE_MS = Math.max(1, Math.round(TICK_MS / 8));
 export const MAX_CATCHUP = 5;

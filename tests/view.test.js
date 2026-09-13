@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { playerZoom, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT } from '../shared/view.js';
-import { visibilityPolygon, litPoint } from '../shared/movement.js';
+import { playerZoom, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT } from '../shared/view.ts';
+import { visibilityPolygon, litPoint } from '../shared/movement.ts';
 
 test('full viewport corners are visible across supported sizes and zooms within server coverage', () => {
   const eye = { x: 3000, y: 2000 }, map = { obstacles: [], gates: [] };

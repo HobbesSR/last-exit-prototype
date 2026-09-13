@@ -12,6 +12,7 @@
     "dev:lan": "node server/index.js --lan",
     "test": "node --test tests/*.test.js",
     "check": "node tests/check.mjs",
+    "typecheck": "tsc --noEmit",
     "bench": "node tests/bench.mjs",
     "bench:client": "node tests/bench-client.mjs",
     "demo": "node tests/demo.mjs",
@@ -26,6 +27,8 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0"
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^22.20.2",
+    "typescript": "^7.0.2"
   }
 }

@@ -1,6 +1,6 @@
-import { visibilityPolygon, litPoint, gateShape } from '/shared/movement.js';
-import { playerZoom, viewBounds, viewRadius, inViewport, observeGates, buildingAt, roofConceals } from '/shared/view.js';
-import { observe, start, stop, frame as endProfileFrame } from '/shared/profiler.js';
+import { visibilityPolygon, litPoint, gateShape } from '/shared/movement.ts';
+import { playerZoom, viewBounds, viewRadius, inViewport, observeGates, buildingAt, roofConceals } from '/shared/view.ts';
+import { observe, start, stop, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
 
 const COLORS = { access: 0xf4d26c, med: 0xff8b97, weapon: 0x8bd9f0, shield: 0xa3b9ff, cell: 0xffe98a };

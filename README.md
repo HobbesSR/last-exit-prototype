@@ -17,6 +17,8 @@ npm run dev
 
 Open the URL printed by the server, normally http://127.0.0.1:3000. Occupied ports are skipped automatically. The server binds to loopback by default. It must remain running while playing; Ctrl+C stops it and finalizes active recordings. There are no required build watchers or background installers.
 
+The shared simulation is written in TypeScript and is never compiled to an output directory. Node strips the types as it loads each module, and the dev server does the same for the browser as it serves them, so there is no bundle, no `dist/`, and no source map to keep in sync. Type checking is a separate command, not a step between editing a file and running it.
+
 To let other devices on the same network join, start the LAN server instead:
 
 ```powershell
@@ -98,8 +100,11 @@ combined per-tick cost of all of them, which is the number the loop budget actua
 ```powershell
 npm test
 npm run check
+npm run typecheck
 npm run test:browser
 ```
+
+`npm run check` parses every JavaScript module and confirms every TypeScript module erases cleanly, which is what Node does to load it. `npm run typecheck` is the stronger pass: `tsc --noEmit` over `shared/` under `strict`.
 
 Browser tests use an installed Google Chrome through Playwright and start an isolated temporary server. Screenshots are written to `test-results/`. Tests cover seeded routes, geometry, line of sight, movement, combat, extraction, multiplayer authority, per-viewer filtering, the spectator directed view, recording integrity, replay controls, shot interpolation, and desktop/touch input. The visibility polygon's culling is checked against a brute-force implementation of the same rays over sixteen hundred cases, including origins placed exactly on obstacle corners and edges, and must match it vertex for vertex.
 

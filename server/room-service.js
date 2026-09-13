@@ -1,6 +1,6 @@
 import { randomUUID, randomBytes } from 'node:crypto';
-import { HZ, VERSION, KITS } from '../shared/simulation/rules.js';
-import * as profiler from '../shared/profiler.js';
+import { HZ, VERSION, KITS } from '../shared/simulation/rules.ts';
+import * as profiler from '../shared/profiler.ts';
 import { createMatch } from './match.js';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
 import { send, broadcast, broadcastLobby, spectatorFrame, remember, SPECTATOR_DELAY_TICKS } from './room-views.js';

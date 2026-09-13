@@ -1,6 +1,6 @@
 // Captured against unchanged gameplay at 5dd7d61. Expected results are never updated by tests.
 import { createHash } from 'node:crypto';
-import { createGame, generateMap, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.js';
+import { createGame, generateMap, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 
 export const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 export const seeds = [1, 9, 4217, 777];

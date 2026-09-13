@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createGame, snapshot } from '../shared/simulation.js';
+import { createGame, snapshot } from '../shared/simulation.ts';
 
 // Exercise the controllers without the application, socket, prediction, or Phaser scene.
 export async function checkClientControllers(browser, base) {

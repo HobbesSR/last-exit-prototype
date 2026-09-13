@@ -2,13 +2,13 @@ import { chromium } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { createArenaServer } from '../server/index.js';
+import { listen } from './helpers/listen.js';
 import path from 'node:path';
 import { checkClientControllers } from './client-controllers.mjs';
 
 await mkdir('test-results', { recursive: true });
 const server = await createArenaServer({ replayDir: path.resolve('test-results/replays') });
-await new Promise(resolve => server.http.listen(0, '127.0.0.1', resolve));
-const base = `http://127.0.0.1:${server.http.address().port}`;
+const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const errors = [];
 async function ready(page, url = base) {
