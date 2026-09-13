@@ -110,10 +110,10 @@ Browser tests use an installed Google Chrome through Playwright and start an iso
 
 ## Design and Requirements
 
-The maintained product requirements, acceptance status, original prompt notes, deferred work, and open decisions live in [REQUIREMENTS.md](REQUIREMENTS.md). [DESIGN.md](DESIGN.md) is the concise design draft; [ARCHITECTURE.md](ARCHITECTURE.md) explains code ownership, networking, privacy, pacing, profiling, spectator delay, and the Rust/WASM migration path. Update `REQUIREMENTS.md` and its tests together when the game rules change.
+The maintained product requirements, acceptance status, original prompt notes, deferred work, and open decisions live in [docs/](docs/), split into numbered files so a task can load the two or three it needs. [docs/00-index.md](docs/00-index.md) says what is where: `1x` is product, `2x` is engineering, `3x` is process, `4x` is plan and history. Update the relevant numbered file and its tests together when the game rules change.
 
 ## Scope
 
 Non-player clients are supported at the protocol level but have no interface yet: a connection can join as a spectator with the room owner key and receive the unfogged directed view, delayed by 60 simulation ticks (three seconds). During the initial three seconds it stays at the opening frame. There is no spectator UI or patron action system. Owner credentials persist in session storage for refresh recovery; shared room URLs remain keyless.
 
-This is a local vertical slice using Phaser, Node, SAT.js, and PathFinding.js. The simulation and geometric movement are separate from rendering. Persistent unlocks, contestant perks, cameras with viewing stations, sound, polished animation, economy, and production hosting are future work. See [DESIGN.md](DESIGN.md) and [ARCHITECTURE.md](ARCHITECTURE.md).
+This is a local vertical slice using Phaser, Node, SAT.js, and PathFinding.js. The simulation and geometric movement are separate from rendering. Persistent unlocks, contestant perks, cameras with viewing stations, sound, polished animation, economy, and production hosting are future work. See [docs/16-deferred.md](docs/16-deferred.md) and [docs/28-operational-limits.md](docs/28-operational-limits.md).

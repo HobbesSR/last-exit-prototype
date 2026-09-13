@@ -1,0 +1,58 @@
+# 22. Ownership
+
+Each decision has exactly one owner. Boundary tests enforce the ones that matter;
+the rest are conventions this file records so a change lands in the right module.
+
+`shared/map.ts` exposes map generation and routing. `shared/movement.ts` contains shared geometry, collision resolution, sight queries, and visibility polygons. `shared/simulation.ts` is the public simulation facade and explicit fixed-tick coordinator. `server/index.js` composes the server and serves static assets. `public/client.js` owns application startup, networking, authoritative state, prediction/reconciliation, lobby flow, and replay lifecycle; `public/arena-scene.js` renders the world and visibility mask.
+
+## Shared simulation
+
+Simulation internals live in `shared/simulation/`: `rules` defines constants, `state` creates players/games and validates joining/input, `loot` owns events/effects/drops/automatic pickups, `lifecycle` owns elimination/respawn/completion, `combat` owns damage/abilities/weapons/projectiles, `interactions` owns doors/transit/charging/extraction, `bots` owns decisions/navigation, and `visibility` owns gameplay sight and snapshots/projections. Functions receive the existing state/player objects directly. No internal module imports the simulation facade. Dependencies flow from bots to combat to lifecycle to loot; lifecycle never imports combat. Rules and geometry helpers are leaves.
+
+Tick order is part of gameplay: advance time/effects, then iterate players in array order. For each player, attempt respawn, decrement timers, obtain input (including bot utility use and equipment drops), move, apply slot/move/drop/skill/attack/interact/charge actions, consume latched presses, collect loot/reveal at sensors, and apply hazards. Traps, projectiles, and match completion follow the player loop. Extraction preserves that order, mutable state shapes, public exports, wire fields, and simulation version `last-exit-0.6`.
+
+Power cells are normal unstackable equipment entries with retained charge, not a separate player field. Charging takes 100 ticks. Drop input is latched like interaction input. Projectile hits can damage other contestants; killed gladiators enter a 400-tick respawning state and return only when a safe transit station is available. Recordings contain these new states under simulation version `last-exit-0.6`; old recordings retain a display fallback for their dedicated cell field.
+
+`shared/vector.ts` and `shared/numbers.ts` are dependency-free leaves: the first owns world-point distance, which map generation, routing, hazards and the simulation had each defined separately; the second owns the numeric guards that client input is validated through. Both are re-exported by `simulation/geometry` and `map/context` so existing consumers import them from the module that owns their stage.
+
+## Map generation
+
+`shared/map.ts` is a compatibility facade over `shared/map/`. `generate` runs topology → terrain/passages → spawn reservations/buildings/props → objectives/loot/traps. Every stage receives one generation context: seeded RNG, ID stream, placement helpers, reservations, and intermediate graph/placement data. Creating helpers consumes no random draws or IDs; stage order and loop order preserve the original output. `world` and `graph` provide constants and graph lookup/routing; graph caches are private WeakMaps keyed by map identity and explicitly invalidated during topology changes. `navigation` separately owns runtime grid caches, invalidated by door open/locked state, obstacle-array replacement, or obstacle-count changes. In-place obstacle geometry edits without replacement remain outside the existing cache contract. This stage boundary is a future generator replacement point, not a new hierarchy or multi-floor schema.
+
+`shared/map.ts` builds an interim connected street graph with loops and offset passages in a 24,000 × 12,000 arena. This is explicitly not the deferred user-defined hierarchical template system. Coarse block routes guide bots, with bounded local collision-aware A* around the next passage. Generation scores main routes against a ten-minute moving-wall deadline with exploration allowance. Placement reservations protect streets and separate objects.
+
+Building footprints and doors are authoritative map data. `shared/view.ts` supplies roof concealment; solid geometry and closed doors occlude sight, while windows only block bodies and item reach. The renderer hides roofs for the occupied building. Doors retain local observed-state memory; actual collision still uses authoritative state under the existing prototype trust model.
+
+## Server
+
+Server ownership is explicit: `server/match.js` is the application's sole mutable simulation access, through join/resume/leave/input/advance/end operations and detached snapshot/identity/map queries. `room-service.js` owns room admission, matchmaking, sessions, command queues, match lifecycle and tick debt. Sessions supply delivery and close callbacks; they are ordinary objects without WebSocket dependencies. `room-views.js` owns lobby broadcasts, bounded spectator history and per-view payload reuse. `scheduler.js` owns elapsed-time wakeups. `shared-assets.js` owns delivery of the shared modules to the browser, and is the only server module outside replay storage permitted to read files. `websocket.js` owns origins, socket limits and connection events; `protocol.js` owns envelope decoding, rate-window arithmetic and HTTP seed validation. Simulation continues to own state-dependent input validation and one-shot latching.
+
+`replay-writer.js` owns gzip, per-frame JSON serialization, bounded buffering, hashing and stream completion. It receives header/frame/command values, never rooms. `replay-store.js` owns filesystem paths, archive metadata and publication. Rooms depend on writer append/failure/abort/finalize operations; backpressure is not a scheduling input. The filesystem adapter supplies a download path only to `http-api.js`, preserving Express's existing file delivery, headers and range behavior; a remote storage adapter would replace this delivery edge as well as storage, without affecting room or match code. No storage product has been selected.
+
+Shutdown is an explicitly owned asynchronous operation. Logical match completion and archive publication are separate: the room service tracks outstanding finalizations even after a room is retired, and `close()` awaits them. Repeated writer/service/server close calls share completion. Server shutdown stops admission and timers before awaiting storage. Rooms finalize concurrently with a five-second deadline, so a stalled adapter cannot block shutdown indefinitely. Replay failure sends a typed `replay-status` message rather than a connection error or saved replay; gameplay continues. The original shutdown race fix and the later storage-failure policy are separate checkpoints.
+
+Empty live rooms retain a 30-second reconnect grace, then finalize a replay with an abandoned event and stop simulation. A viewer—including an authorized spectator—keeps a room live. Raw frame timestamps replace Phaser-smoothed delta for diagnostics and client benchmarks. The bounded always-on client samples can be downloaded without owner credentials or a player list. Profiler per-frame call rates now use the same rolling window as timing samples.
+
+The existing `createArenaServer().rooms` surface retains `room.game` for scenario setup and benchmarks. It is a deliberately retained diagnostic escape hatch, not production process isolation; server application and transport modules are prohibited from using it by boundary tests. Timers, sessions and storage can be replaced with fake time, peers and writers in lifecycle tests. See [41](41-roadmap.md) for follow-on priorities and [17](17-open-questions.md) for batched live-service policy questions. New gameplay direction is recorded as F-11 through F-18 in [13](13-accepted-features.md) and remains separate from this behavior-preserving extraction.
+
+## Client
+
+`public/input-controller.js` owns keyboard, pointer-fire state, touch sticks, inventory selection/rearrangement and one-shot intents. It exposes intent collection, selection/aim reads, reset, action consumption and listener cleanup. The application calculates pointer world aim through the renderer, assigns sequence numbers, sends packets, maintains pending history and predicts movement. Action consumption remains after sending/prediction. Existing application reset call sites (connect/disconnect, new-arena/archive dialogs, replay entry), plus input-owned blur/visibility handlers, retain their prior behavior.
+
+`public/hud-controller.js` owns inventory/status/objective display, tooltips and minimap drawing. Each render receives authoritative state, map, player/replay context, local selection, and explicit visibility polygon/eye/viewport/directed inputs. It emits selection/action callbacks; it never sends commands or mutates authoritative objects. The application connects these callbacks to input intents. Controllers can release their listeners independently. The renderer's injected API and internals are unchanged. `tests/client-controllers.mjs`, run by the browser suite, exercises frozen HUD inputs, concealment, callbacks, one-shot consumption, blocked input, blur/visibility resets and cleanup without a running game client.
+
+Inventory pointer capture, drag threshold and DOM destination hit testing belong
+to the HUD controller. It emits source/destination indices for swaps, or a source
+index for a canvas drop. The input controller translates these to existing
+`moveSlot` or `slot` + `drop` commands; a pending drag drop pins its source and
+discards competing rearrangement until that intent is collected. The application
+cancels gestures with input resets and supplies current live-player eligibility.
+World drops retain authoritative nearby placement, not the pointer's coordinates.
+No simulation, projection or recording fields change for this gesture feature;
+simulation version remains `last-exit-0.6`.
+
+The six-slot inventory stores ammo on weapons and charge on cells. Validated moveSlot input is latched and applied authoritatively; compatible utility stacks merge and other slots swap. Recording copies sanitized accepted input before the simulation clears one-shot fields, preserving commands as well as outcome frames. The icon HUD supports keyboard and touch rearrangement without client authority over inventory.
+
+Presentation smoothing, shading and the replay playhead are in
+[25](25-pacing-and-rendering.md). What each view is permitted to contain is in
+[24](24-networking-privacy.md).

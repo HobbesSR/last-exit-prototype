@@ -1,4 +1,4 @@
-# Delegation and model handoffs
+# 32. Delegation and model handoffs
 
 The user requests persistent cost-aware delegation. The lead owns the plan,
 cross-system reasoning, task boundaries and final verification. Workers own bounded

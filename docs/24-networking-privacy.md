@@ -1,0 +1,19 @@
+# 24. Networking and privacy
+
+The rules this mechanism enforces are in [15](15-information-rules.md).
+
+## Client authority
+
+Clients send bounded movement axes, aim, button state, and monotonic sequence numbers. They cannot set health, world positions, inventory, or match outcomes. The server expires stale input and checks interaction range, cooldowns, collision, and extraction availability. Local movement is predicted with the same collision code and reconciled from authoritative snapshots. This prototype coalesces received input per simulation tick, except for one-shot presses, which latch until a tick spends them: clients send on their own interval, so two messages can land between two ticks and the later one must not erase a button press the earlier one carried. It has no rewind hit validation or latency-compensated combat.
+
+## Potential visibility
+
+The server is authoritative over what could become visible, not over what is visible. It transmits everything within a generous radius of a viewer, plus anything a reveal has exposed at any range, and leaves line of sight to the client. That removes the latency and the pop that a per-tick server side sight test causes when something steps out of cover, and it gives the renderer the data it needs to shade rather than erase. The trade is explicit and deliberate: that radius is also how far a modified client could see through walls, so it is a tuned constant rather than the whole map. True line of sight stays server side and stays authoritative wherever it decides an outcome — bot targeting, ability reach, hit resolution — none of which may depend on anything a client asserts.
+
+Filtering is field-level as well: another player carries only what the renderer draws, while inventory counts, ability timers, bot status, and input bookkeeping stay with the player they belong to, and replay-only bookkeeping is never broadcast. Recordings keep the complete state; a live view is a projection of it and must never differ where the two overlap. Every consumer of the transmitted state applies the client side sight test, the minimap included, since a surface that skipped it would quietly become a wallhack. This is not a complete production anti-cheat system.
+
+`shared/simulation/projection-contract.ts` explicitly lists the live frame, own-player, equipment, gate, trap, projectile, effect and event fields. Source-key order and optional-field presence are retained for existing serialized output. Adding simulation bookkeeping now requires deliberate opt-in before it appears in those payloads. Other-player fields retain their existing narrower contract; snapshots and recordings remain complete. Static welcome-map content still follows the prototype map contract, and permitted fields retain their current types: these lists are not a protocol migration framework or full schema validator.
+
+## Viewers and spectators
+
+A connection is a viewer before it is a player. Each socket holds a connection id, and a player id only once it claims a slot, so a non-player client is a first-class case rather than a missing player. A viewer id matching no player receives the directed view: unfogged, the same shape a recording plays back, and the basis for spectator, patron, and presenter clients. The owner-key gate remains, and spectator state is delayed by 60 authoritative ticks (three seconds at 20 Hz) before it is broadcast, so an audience cannot use the directed view to relay current positions. Broadcast cost is per distinct view rather than per socket — every spectator shares one filtered, serialized delayed payload — so an audience does not scale the tick. Non-player clients hold no slot, start no recording, and have no input authority; giving patrons a way to affect a match means a separate validated command type recorded alongside each frame, not a widening of player input.
