@@ -12,6 +12,8 @@ import type { Game, Player, PlayerId, Snapshot, Vec2, World } from '../types.ts'
 // what a modified client could see through walls.
 export const POTENTIAL = POTENTIAL_RADIUS;
 // What the server will send, as opposed to what the viewer can actually see.
+// `s` is unread: this deliberately mirrors `visibleTo` below so the two are interchangeable at a
+// call site, and a distance cull must not start depending on wider state. Kept, not an oversight.
 export function couldSee(s: Game, viewer: Player | null | undefined, target: Player): boolean {
   if (!viewer || viewer.id === target.id || target.status !== 'active') return true;
   // A reveal makes a contestant visible to gladiators at any range, so it is never distance culled.

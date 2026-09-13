@@ -4,6 +4,7 @@
 import { chromium } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { createArenaServer } from '../server/index.js';
+import { listen } from './helpers/listen.js';
 import { format } from '../shared/profiler.ts';
 import { HZ } from '../shared/simulation.ts';
 import path from 'node:path';
@@ -14,8 +15,7 @@ const seconds = Number(args.get('seconds') ?? 12);
 await mkdir('test-results', { recursive: true });
 const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'),
   ...(args.has('server-profile') ? { profile: true, profileSummary: false } : {}) });
-await new Promise(resolve => server.http.listen(0, '127.0.0.1', resolve));
-const base = `http://127.0.0.1:${server.http.address().port}`;
+const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: !args.has('headed') });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });

@@ -43,10 +43,11 @@ export const VISION = 620;
 const shapeCache = new WeakMap<CollisionMap, Geometry>();
 const BUCKET = 200;
 const vec = (x: World, y: World) => new SAT.Vector(x, y);
+const boxPolygon = (o: Box) => new SAT.Box(vec(o.x, o.y), o.w, o.h).toPolygon();
 function geometry(map: CollisionMap): Geometry {
   let cached = shapeCache.get(map);
   if (cached && cached.source === map.obstacles && cached.count === map.obstacles.length) return cached;
-  const shapes = map.obstacles.map(o => ({ ...o, shape: o.r ? new SAT.Circle(vec(o.x, o.y), o.r) : new SAT.Box(vec(o.x, o.y), o.w, o.h).toPolygon() }));
+  const shapes = map.obstacles.map(o => ({ ...o, shape: o.r ? new SAT.Circle(vec(o.x, o.y), o.r) : boxPolygon(o) }));
   const buckets = new Map<string, Shape[]>();
   for (const shape of shapes) {
     const left = shape.r ? shape.x - shape.r : shape.x, top = shape.r ? shape.y - shape.r : shape.y;
@@ -95,7 +96,7 @@ export function canOccupy(map: CollisionMap, x: World, y: World, radius: World =
   }
   if (!ignoreGates) for (const g of map.gates) if (!g.open) {
     const o = gateShape(g);
-    if (nearby(o, x, y, radius) && SAT.testCirclePolygon(circle, new SAT.Box(vec(o.x, o.y), o.w, o.h).toPolygon())) return false;
+    if (nearby(o, x, y, radius) && SAT.testCirclePolygon(circle, boxPolygon(o))) return false;
   }
   return true;
 }
@@ -113,7 +114,7 @@ export function movePlayer(map: CollisionMap, p: Player, input: PlayerInput): Pl
   const colliders: Collider[] = [...nearbyShapes(map, circle.pos.x, circle.pos.y, radius + speed)].filter(o => nearby(o, circle.pos.x, circle.pos.y, radius + speed));
   for (const g of map.gates) if (!g.open) {
     const o = gateShape(g);
-    if (nearby(o, circle.pos.x, circle.pos.y, radius + speed)) colliders.push({ ...o, shape: new SAT.Box(vec(o.x, o.y), o.w, o.h).toPolygon() });
+    if (nearby(o, circle.pos.x, circle.pos.y, radius + speed)) colliders.push({ ...o, shape: boxPolygon(o) });
   }
   // SAT separation provides continuous sliding along walls and around obstacle corners.
   for (let pass = 0; pass < 3; pass++) for (const o of colliders) {

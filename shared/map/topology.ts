@@ -12,7 +12,7 @@ export function buildTopology(context: BaseGenerationContext): asserts context i
     if (insideMap(map, x, y, 580)) map.nodes.push({ id: col + ',' + row as NodeId, col, row, x, y, neighbors: [] });
   }
   const lookup = new Map(map.nodes.map(n => [n.id, n] as const));
-  const adjacent = (n: MapNode) => [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => lookup.get((n.col + dx!) + ',' + (n.row + dy!) as NodeId)).filter((q): q is MapNode => !!q);
+  const adjacent = (n: MapNode) => [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => lookup.get((n.col + dx) + ',' + (n.row + dy) as NodeId)).filter((q): q is MapNode => !!q);
   const entryNode = map.nodes.reduce((a, b) => b.x < a.x || b.x === a.x && Math.abs(b.y - WORLD_HEIGHT / 2) < Math.abs(a.y - WORLD_HEIGHT / 2) ? b : a);
   const exitNode = map.nodes.reduce((a, b) => b.x > a.x || b.x === a.x && Math.abs(b.y - WORLD_HEIGHT / 2) < Math.abs(a.y - WORLD_HEIGHT / 2) ? b : a);
   map.entry = { x: entryNode.x, y: entryNode.y }; map.exit = { x: exitNode.x, y: exitNode.y };
@@ -26,12 +26,12 @@ export function buildTopology(context: BaseGenerationContext): asserts context i
     while (stack.length) {
       const n = stack.at(-1)!, choices = adjacent(n).filter(q => !visited.has(q.id));
       if (!choices.length) { stack.pop(); continue; }
-      const q = choices[Math.floor(random() * choices.length)]!; connect(n, q); visited.add(q.id); stack.push(q);
+      const q = choices[Math.floor(random() * choices.length)]; connect(n, q); visited.add(q.id); stack.push(q);
     }
     invalidateGraph(map);
     let route = blockRoute(map, entryNode, exitNode);
     const candidates = map.nodes.flatMap(n => adjacent(n).filter(q => n.id < q.id && !n.neighbors.includes(q.id)).map(q => [n, q] as [MapNode, MapNode]));
-    for (let i = candidates.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [candidates[i], candidates[j]] = [candidates[j]!, candidates[i]!]; }
+    for (let i = candidates.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [candidates[i], candidates[j]] = [candidates[j], candidates[i]]; }
     for (const [a, b] of candidates) {
       connect(a, b); invalidateGraph(map);
       const shorter = blockRoute(map, entryNode, exitNode);
@@ -45,7 +45,7 @@ export function buildTopology(context: BaseGenerationContext): asserts context i
     if (score < bestScore) { bestScore = score; best = map.nodes.map(n => [...n.neighbors]); }
     if (score <= 4) break;
   }
-  map.nodes.forEach((n, i) => n.neighbors = best![i]!); invalidateGraph(map);
+  map.nodes.forEach((n, i) => n.neighbors = best![i]); invalidateGraph(map);
   const main = blockRoute(map, entryNode, exitNode);
   const edgeKey = (a: MapNode, b: MapNode) => [a.id, b.id].sort().join(':');
   const ports = new Map<string, Vec2>();
@@ -55,7 +55,7 @@ export function buildTopology(context: BaseGenerationContext): asserts context i
     ports.set(key, { x: (n.x + q.x) / 2 + (horizontal ? 0 : offset), y: (n.y + q.y) / 2 + (horizontal ? offset : 0) });
     map.streets.push({ a: { x: n.x, y: n.y }, port: ports.get(key)!, b: { x: q.x, y: q.y } });
   }
-  const routePoints = (nodes: MapNode[]): Vec2[] => nodes.flatMap((n, i) => i ? [ports.get(edgeKey(nodes[i - 1]!, n))!, { x: n.x, y: n.y }] : [{ x: n.x, y: n.y }]);
+  const routePoints = (nodes: MapNode[]): Vec2[] => nodes.flatMap((n, i) => i ? [ports.get(edgeKey(nodes[i - 1], n))!, { x: n.x, y: n.y }] : [{ x: n.x, y: n.y }]);
   map.routes = [{ band: 'main', points: routePoints(main) }];
   const bands: [RouteBand, (a: MapNode, b: MapNode) => MapNode][] = [['top', (a, b) => b.y < a.y ? b : a], ['bottom', (a, b) => b.y > a.y ? b : a]];
   for (const [band, pick] of bands) {

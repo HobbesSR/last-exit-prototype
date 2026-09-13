@@ -1,11 +1,11 @@
 import { BLOCK_SIZE } from './world.ts';
-import type { GameMap, MapNode, NodeId, Vec2, World } from '../types.ts';
+import { distance } from '../vector.ts';
+import type { GameMap, MapNode, NodeId, Vec2 } from '../types.ts';
 
 /** The map fields the block graph reads. Routing runs during generation, before the map is whole. */
 type GraphMap = Pick<GameMap, 'nodes'>;
 
 const graphCache = new WeakMap<GraphMap, Map<string, MapNode[]>>();
-const distance = (a: Vec2, b: Vec2): World => Math.hypot(a.x - b.x, a.y - b.y);
 export function blockAt(map: GraphMap, point: Vec2): MapNode | null {
   return map.nodes?.find(n => Math.abs(n.x - point.x) <= BLOCK_SIZE / 2 && Math.abs(n.y - point.y) <= BLOCK_SIZE / 2)
     || map.nodes?.reduce<MapNode | null>((best, n) => !best || distance(n, point) < distance(best, point) ? n : best, null)

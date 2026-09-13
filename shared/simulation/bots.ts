@@ -71,7 +71,7 @@ export function botInput(s: Game, p: Player): PlayerInput {
     const from = nearestNode(matrix, { x: p.x - bx * TILE, y: p.y - by * TILE });
     const to = nearestNode(matrix, { x: localTarget.x - bx * TILE, y: localTarget.y - by * TILE });
     start('sim.repathGrid'); const grid = new PF.Grid(matrix); stop('sim.repathGrid');
-    p.path = new PF.AStarFinder({ allowDiagonal: true, dontCrossCorners: true }).findPath(from.x, from.y, to.x, to.y, grid).slice(1).map(([x, y]): TileStep => [(x! + bx) as TileIndex, (y! + by) as TileIndex]);
+    p.path = new PF.AStarFinder({ allowDiagonal: true, dontCrossCorners: true }).findPath(from.x, from.y, to.x, to.y, grid).slice(1).map(([x, y]): TileStep => [(x + bx) as TileIndex, (y + by) as TileIndex]);
     stop('sim.repath');
   }
   let waypoint = p.path?.[0] ? center(...p.path[0]) : target;

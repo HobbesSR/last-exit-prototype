@@ -1,8 +1,9 @@
 import { canOccupy, insideMap } from '../movement.ts';
 import { WORLD_WIDTH, WORLD_HEIGHT } from './world.ts';
+import { distance } from '../vector.ts';
 import type { Box, BuildingId, GameMap, GroundItem, ItemKind, MapDraft, MapNode, NodeId, Obstacle, ObstacleId, ObstacleKind, ItemId, Vec2, World } from '../types.ts';
 
-export const distance = (a: Vec2, b: Vec2): World => Math.hypot(a.x - b.x, a.y - b.y);
+export { distance };
 
 /** A candidate loot position, tagged with the block and building it belongs to. */
 export interface LootSpot extends Vec2 {

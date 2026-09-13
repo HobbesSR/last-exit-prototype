@@ -7,6 +7,7 @@ import { gunzipSync } from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { WebSocket } from 'ws';
 import { createArenaServer, EMPTY_ROOM_GRACE_MS } from '../server/index.js';
+import { listen } from './helpers/listen.js';
 
 function next(ws, type) {
   return new Promise((resolve, reject) => {
@@ -24,8 +25,7 @@ test('abandoned live rooms keep a reconnect grace then stop simulation and final
     while (!await predicate()) { assert.ok(Date.now() < deadline, 'condition timed out'); await new Promise(r => setTimeout(r, 15)); }
   };
   try {
-    await new Promise(resolve => server.http.listen(0, '127.0.0.1', resolve));
-    const base = `http://127.0.0.1:${server.http.address().port}`;
+    const base = await listen(server);
     const created = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();
     const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve));
     const welcome = next(ws, 'welcome'); ws.send(JSON.stringify({ type: 'join', room: created.id, ownerKey: created.ownerKey })); await welcome;
@@ -47,8 +47,7 @@ test('matchmaking separates private rooms, honors available preferences, falls b
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-match-'));
   const server = await createArenaServer({ replayDir: dir });
   try {
-    await new Promise(resolve => server.http.listen(0, '127.0.0.1', resolve));
-    const base = `http://127.0.0.1:${server.http.address().port}`;
+    const base = await listen(server);
     const privateRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();
     const clients = [], welcomes = [];
     for (const role of ['gladiator', 'gladiator', 'gladiator', 'contestant', 'any']) {
@@ -71,8 +70,7 @@ test('resume credentials restore the same player even while the previous socket 
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-resume-'));
   const server = await createArenaServer({ replayDir: dir });
   try {
-    await new Promise(resolve => server.http.listen(0, '127.0.0.1', resolve));
-    const base = `http://127.0.0.1:${server.http.address().port}`;
+    const base = await listen(server);
     const room = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();
     const join = async extra => {
       const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve));
@@ -93,8 +91,7 @@ test('spectators hold no slot, need the owner key, and receive the directed view
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-spectator-'));
   const server = await createArenaServer({ replayDir: dir });
   try {
-    await new Promise(resolve => server.http.listen(0, '127.0.0.1', resolve));
-    const base = `http://127.0.0.1:${server.http.address().port}`;
+    const base = await listen(server);
     const room = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();
     const open = async () => { const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve)); return ws; };
     const denied = await open();
@@ -137,8 +134,7 @@ test('two clients share authority; replay preserves each recorded frame and surv
   const server = await createArenaServer({ replayDir: dir });
   let restarted;
   try {
-    await new Promise(resolve => server.http.listen(0, '127.0.0.1', resolve));
-    const base = `http://127.0.0.1:${server.http.address().port}`;
+    const base = await listen(server);
     assert.equal((await fetch(base + '/api/health')).status, 200);
     assert.equal((await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":-1}' })).status, 400);
     const room = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();

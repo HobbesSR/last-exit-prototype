@@ -1,11 +1,11 @@
 import { canOccupy, lineClear } from './movement.ts';
+import { distance } from './vector.ts';
 import type { EffectKind, Game, Player, PlayerId, Vec2, World } from './types.ts';
 
 // Injected rather than imported, so hazards stay a leaf: traps never reach back into combat.
 export type DamageFn = (s: Game, target: Player, amount: number, source: Player | null) => void;
 export type EffectFn = (s: Game, at: Vec2, kind: EffectKind, radius?: World) => void;
 
-const distance = (a: Vec2, b: Vec2): World => Math.hypot(a.x - b.x, a.y - b.y);
 export function stepTraps(s: Game, damage: DamageFn, effect: EffectFn): void {
   for (const trap of s.map.traps || []) {
     if (trap.spent) continue;

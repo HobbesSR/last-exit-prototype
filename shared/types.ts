@@ -110,8 +110,6 @@ export type Phase = 'live' | 'finished';
 export type PlayerStatus = 'active' | 'eliminated' | 'respawning' | 'escaped' | 'stranded';
 export type WeaponType = 'pistol' | 'rifle' | 'scattergun';
 export type ItemKind = 'weapon' | 'med' | 'shield' | 'cell' | 'access';
-/** The item kinds that occupy an inventory slot. `access` is consumed into `Player.keys`. */
-export type CarriedKind = Exclude<ItemKind, 'access'>;
 export type StackKind = 'med' | 'shield';
 export type TrapKind = 'mine' | 'turret' | 'flame' | 'spider';
 export type ObstacleKind = 'ruin-wall' | 'building' | 'window' | 'container' | 'crate';

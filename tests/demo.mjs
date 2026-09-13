@@ -12,6 +12,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createArenaServer } from '../server/index.js';
+import { listen } from './helpers/listen.js';
 import { lineClear } from '../shared/movement.ts';
 import path from 'node:path';
 
@@ -27,8 +28,7 @@ await mkdir(frameDir, { recursive: true });
 await mkdir(outDir, { recursive: true });
 
 const server = await createArenaServer({ replayDir: path.resolve('test-results/replays') });
-await new Promise(resolve => server.http.listen(0, '127.0.0.1', resolve));
-const base = `http://127.0.0.1:${server.http.address().port}`;
+const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT } });
 
