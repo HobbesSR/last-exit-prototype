@@ -1,4 +1,4 @@
-const $ = id => document.getElementById(id);
+import { $ } from '/ui.js';
 
 // Device state and one-shot intent only. No socket, sequence, prediction or authoritative writes.
 export function createInputController({ getPlayer, onSelectionChange, onToggleMap, onToggleReplay }) {

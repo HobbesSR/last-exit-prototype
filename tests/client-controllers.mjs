@@ -46,7 +46,8 @@ export async function checkClientControllers(browser, base) {
         const angle = -Math.PI + i * Math.PI * 2 / 64;
         return { angle, x: eye.x + Math.cos(angle) * 500, y: eye.y + Math.sin(angle) * 500 };
       });
-      const visibility = { directed: false, eye, points, bounds: { x: 11500, y: 5500, width: 1000, height: 1000 } };
+      const sight = { eye, points, bounds: { x: 11500, y: 5500, width: 1000, height: 1000 } };
+      const visibility = { directed: false, sight };
       const props = { state, arenaMap, playerId: me.id, replay: false, savedReplay: null, selection: input.selection(), visibility };
       const canvas = $('minimap').getContext('2d'), arc = canvas.arc.bind(canvas); let dots = 0;
       canvas.arc = (...args) => { dots++; arc(...args); };
@@ -54,8 +55,14 @@ export async function checkClientControllers(browser, base) {
       const visible = render({}), noSight = render({ visibility: { directed: false } });
       const cloakedState = { ...state, players: [me, { ...state.players[1], cloak: 10 }] };
       const cloaked = render({ state: freeze(cloakedState) });
-      const roof = render({ arenaMap: freeze({ ...arenaMap, buildings: [{ id: 'roof', x: 12075, y: 5975, w: 50, h: 50 }] }) });
-      const outsideViewport = render({ visibility: { ...visibility, bounds: { x: 11990, y: 5990, width: 20, height: 20 } } });
+      const roofMap = freeze({ ...arenaMap, buildings: [{ id: 'roof', x: 12075, y: 5975, w: 50, h: 50 }] });
+      const roof = render({ arenaMap: roofMap });
+      // A gladiator's reveal is the documented exception to concealment, so the map must show a
+      // revealed player under a roof. The minimap used to test the roof first and hide them, which
+      // disagreed with the world the renderer drew.
+      const revealedState = freeze({ ...state, players: [{ ...me, role: 'gladiator', kit: 'warden' }, { ...state.players[1], revealed: 12, cloak: 8 }] });
+      const revealedUnderRoof = render({ state: revealedState, arenaMap: roofMap });
+      const outsideViewport = render({ visibility: { ...visibility, sight: { ...sight, bounds: { x: 11990, y: 5990, width: 20, height: 20 } } } });
       const directed = render({ state: cloakedState, visibility: { directed: true } });
       render({});
       const slots = [...$('equipment-slots').children].map(b => b.ariaLabel);
@@ -109,7 +116,7 @@ export async function checkClientControllers(browser, base) {
       input.destroy(); hud.destroy(); key('KeyD'); key('KeyM'); $('map-toggle').click(); $('drop-item').click();
       const destroyed = collect(false);
       return { first, second, blurred, arranged, blocked, afterBlocked, reset, dialog, hidden, clicked, draggedMove, draggedDrop, cancelledDrag, tappedSlot, cancelledGestures, pinnedDrop, afterPinnedDrop, blockedDragDrop, destroyed,
-        dots: { visible, noSight, cloaked, roof, outsideViewport, directed }, slots,
+        dots: { visible, noSight, cloaked, roof, revealedUnderRoof, outsideViewport, directed }, slots,
         beforeDestroy, afterDestroy: { selectionChanges, mapActions, replayActions }, buttonsAfterDestroy: $('equipment-slots').children.length,
         sneakReleaseCancelled: sneakRelease.defaultPrevented };
     }, { state: snapshot(game), arenaMap: game.map });
@@ -134,7 +141,7 @@ export async function checkClientControllers(browser, base) {
     for (const intent of [result.afterPinnedDrop, result.blockedDragDrop]) {
       assert.equal(intent.slot, undefined); assert.equal(intent.drop, false); assert.equal(intent.moveSlot, undefined);
     }
-    assert.deepEqual(result.dots, { visible: 2, noSight: 1, cloaked: 1, roof: 1, outsideViewport: 1, directed: 2 });
+    assert.deepEqual(result.dots, { visible: 2, noSight: 1, cloaked: 1, roof: 1, revealedUnderRoof: 2, outsideViewport: 1, directed: 2 });
     assert.equal(result.slots.length, 6); assert.match(result.slots[5], /^Slot 6: /);
     assert.deepEqual(result.beforeDestroy, result.afterDestroy); assert.equal(result.buttonsAfterDestroy, 0);
     assert.equal(result.sneakReleaseCancelled, true, 'preserve the original property handler return-false behavior');

@@ -1,24 +1,20 @@
 import SAT from 'sat';
-import type { Circle, Polygon, Response } from 'sat';
+import type { Circle, Polygon } from 'sat';
 import { count } from './profiler.ts';
 import { finite } from './numbers.ts';
+import { shapeOf, bounds, nearBounds, edgesOf, body, separate } from './shape.ts';
+import type { Bounded, Edge, Shape } from './shape.ts';
 import type { Box, CollisionMap, GateId, Obstacle, Player, PlayerInput, Vec2, World } from './types.ts';
 
-/** A world-space box that may instead be a circle, which `r` decides. */
-interface Bounded extends Box {
-  r?: number | undefined;
-}
-/** One obstacle paired with the SAT body used to test it. */
-interface Shape extends Obstacle {
-  shape: Circle | Polygon;
-}
-/** Anything `movePlayer` separates against: an obstacle shape, or a closed gate's box. */
-interface Collider extends Bounded {
-  shape: Circle | Polygon;
-}
-interface Edge {
-  a: Vec2;
-  b: Vec2;
+// Geometry is described once in `shape.ts` and consumed here. This module owns what the simulation
+// does with a shape -- occupancy, the movement sweep and sight -- not what a shape is.
+/** One record resolved to its shape, bounds and SAT body, all kept for as long as the map lives. */
+interface Collider {
+  source?: Obstacle;
+  shape: Shape;
+  box: Box;
+  body: Circle | Polygon;
+  kind?: string | undefined;
 }
 /** A sight-blocking edge, tagged when it came from a gate so that gate can be excluded. */
 interface SightEdge extends Edge {
@@ -27,9 +23,9 @@ interface SightEdge extends Edge {
 interface Geometry {
   source: Obstacle[];
   count: number;
-  shapes: Shape[];
-  /** Obstacle shapes indexed by `BUCKET`-sized cell, keyed `"<col>,<row>"`. */
-  buckets: Map<string, Shape[]>;
+  shapes: Collider[];
+  /** Obstacle colliders indexed by `BUCKET`-sized cell, keyed `"<col>,<row>"`. */
+  buckets: Map<string, Collider[]>;
   segments: Edge[];
 }
 /** A visibility polygon vertex, which keeps the ray angle that produced it. */
@@ -43,46 +39,36 @@ export const VISION = 620;
 const shapeCache = new WeakMap<CollisionMap, Geometry>();
 const BUCKET = 200;
 const vec = (x: World, y: World) => new SAT.Vector(x, y);
-const boxPolygon = (o: Box) => new SAT.Box(vec(o.x, o.y), o.w, o.h).toPolygon();
+/** Resolve a stored record -- an obstacle, or a closed gate's box -- into a reusable collider. */
+function collider(source: Bounded & { kind?: string | undefined }): Collider {
+  const shape = shapeOf(source);
+  return { shape, box: bounds(shape), body: body(shape), kind: source.kind };
+}
 function geometry(map: CollisionMap): Geometry {
   let cached = shapeCache.get(map);
   if (cached && cached.source === map.obstacles && cached.count === map.obstacles.length) return cached;
-  const shapes = map.obstacles.map(o => ({ ...o, shape: o.r ? new SAT.Circle(vec(o.x, o.y), o.r) : boxPolygon(o) }));
-  const buckets = new Map<string, Shape[]>();
-  for (const shape of shapes) {
-    const left = shape.r ? shape.x - shape.r : shape.x, top = shape.r ? shape.y - shape.r : shape.y;
-    const right = shape.r ? shape.x + shape.r : shape.x + shape.w, bottom = shape.r ? shape.y + shape.r : shape.y + shape.h;
-    for (let x = Math.floor(left / BUCKET); x <= Math.floor(right / BUCKET); x++) for (let y = Math.floor(top / BUCKET); y <= Math.floor(bottom / BUCKET); y++) {
-      const key = `${x},${y}`; if (!buckets.has(key)) buckets.set(key, []); buckets.get(key)!.push(shape);
+  const shapes = map.obstacles.map(o => ({ ...collider(o), source: o }));
+  const buckets = new Map<string, Collider[]>();
+  for (const entry of shapes) {
+    const { x: left, y: top, w, h } = entry.box;
+    for (let x = Math.floor(left / BUCKET); x <= Math.floor((left + w) / BUCKET); x++) for (let y = Math.floor(top / BUCKET); y <= Math.floor((top + h) / BUCKET); y++) {
+      const key = `${x},${y}`; if (!buckets.has(key)) buckets.set(key, []); buckets.get(key)!.push(entry);
     }
   }
-  cached = { source: map.obstacles, count: map.obstacles.length, shapes, buckets, segments: shapes.filter(o => o.kind !== 'window').flatMap(edges) };
+  cached = { source: map.obstacles, count: map.obstacles.length, shapes, buckets, segments: shapes.filter(o => o.kind !== 'window').flatMap(o => edgesOf(o.shape)) };
   shapeCache.set(map, cached); return cached;
 }
-function edges(o: Bounded): Edge[] {
-  const r = o.r;
-  const points: Vec2[] = r ? Array.from({ length: 16 }, (_, i) => ({ x: o.x + Math.cos(i * Math.PI / 8) * r, y: o.y + Math.sin(i * Math.PI / 8) * r })) : [{ x: o.x, y: o.y }, { x: o.x + o.w, y: o.y }, { x: o.x + o.w, y: o.y + o.h }, { x: o.x, y: o.y + o.h }];
-  return points.map((a, i) => ({ a, b: points[(i + 1) % points.length] }));
-}
-function nearbyShapes(map: CollisionMap, x: World, y: World, radius: World): Set<Shape> {
-  const found = new Set<Shape>(), { buckets } = geometry(map);
+function nearbyShapes(map: CollisionMap, x: World, y: World, radius: World): Set<Collider> {
+  const found = new Set<Collider>(), { buckets } = geometry(map);
   for (let bx = Math.floor((x - radius) / BUCKET); bx <= Math.floor((x + radius) / BUCKET); bx++)
     for (let by = Math.floor((y - radius) / BUCKET); by <= Math.floor((y + radius) / BUCKET); by++)
       for (const shape of buckets.get(`${bx},${by}`) || []) found.add(shape);
   return found;
 }
-function nearby(o: Bounded, x: World, y: World, radius: World): boolean {
-  return o.r ? Math.abs(x - o.x) <= radius + o.r && Math.abs(y - o.y) <= radius + o.r : x + radius >= o.x && x - radius <= o.x + o.w && y + radius >= o.y && y - radius <= o.y + o.h;
-}
 export function gateShape(g: Bounded): Box { const w = g.w || 26, h = g.h || 54; return { x: g.x - w / 2, y: g.y - h / 2, w, h }; }
 export function insideMap(map: Pick<CollisionMap, 'width' | 'height'>, x: World, y: World, radius: World = 0): boolean {
   const hx = map.width / 2 - 40, hy = map.height / 2 - 40;
   return Math.abs(x - map.width / 2) / hx + Math.abs(y - map.height / 2) / hy + radius * Math.hypot(1 / hx, 1 / hy) <= 1;
-}
-// SAT has no shared supertype for circles and polygons, so `r` picks the test. Kept in one place
-// because both the point query and the movement sweep need exactly this dispatch.
-function separates(circle: Circle, o: Collider, response: Response): boolean {
-  return o.r ? SAT.testCircleCircle(circle, o.shape as Circle, response) : SAT.testCirclePolygon(circle, o.shape as Polygon, response);
 }
 export function canOccupy(map: CollisionMap, x: World, y: World, radius: World = 12, ignoreGates = false, projectile = false): boolean {
   count('calls.canOccupy');
@@ -90,13 +76,15 @@ export function canOccupy(map: CollisionMap, x: World, y: World, radius: World =
   const circle = new SAT.Circle(vec(x, y), radius), response = new SAT.Response();
   for (const o of nearbyShapes(map, x, y, radius)) {
     if (projectile && o.kind === 'window') continue;
-    if (!nearby(o, x, y, radius)) continue;
+    if (!nearBounds(o.box, x, y, radius)) continue;
     response.clear();
-    if (separates(circle, o, response) && response.overlap > 0.01) return false;
+    if (separate(circle, o.shape, o.body, response) && response.overlap > 0.01) return false;
   }
   if (!ignoreGates) for (const g of map.gates) if (!g.open) {
-    const o = gateShape(g);
-    if (nearby(o, x, y, radius) && SAT.testCirclePolygon(circle, boxPolygon(o))) return false;
+    const box = gateShape(g);
+    if (!nearBounds(box, x, y, radius)) continue;
+    const o = collider(box);
+    if (separate(circle, o.shape, o.body)) return false;
   }
   return true;
 }
@@ -111,15 +99,15 @@ export function movePlayer(map: CollisionMap, p: Player, input: PlayerInput): Pl
   const radius = p.role === 'gladiator' ? 23 : 12;
   const circle = new SAT.Circle(vec(p.x + x / norm * speed, p.y + y / norm * speed), radius);
   const response = new SAT.Response();
-  const colliders: Collider[] = [...nearbyShapes(map, circle.pos.x, circle.pos.y, radius + speed)].filter(o => nearby(o, circle.pos.x, circle.pos.y, radius + speed));
+  const colliders: Collider[] = [...nearbyShapes(map, circle.pos.x, circle.pos.y, radius + speed)].filter(o => nearBounds(o.box, circle.pos.x, circle.pos.y, radius + speed));
   for (const g of map.gates) if (!g.open) {
-    const o = gateShape(g);
-    if (nearby(o, circle.pos.x, circle.pos.y, radius + speed)) colliders.push({ ...o, shape: boxPolygon(o) });
+    const box = gateShape(g);
+    if (nearBounds(box, circle.pos.x, circle.pos.y, radius + speed)) colliders.push(collider(box));
   }
   // SAT separation provides continuous sliding along walls and around obstacle corners.
   for (let pass = 0; pass < 3; pass++) for (const o of colliders) {
     response.clear();
-    if (separates(circle, o, response)) circle.pos.sub(response.overlapV);
+    if (separate(circle, o.shape, o.body, response)) circle.pos.sub(response.overlapV);
   }
   const hx = map.width / 2 - 40, hy = map.height / 2 - 40, len = Math.hypot(1 / hx, 1 / hy);
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
@@ -139,7 +127,7 @@ function sightEdges(map: CollisionMap): SightEdge[] {
   const cached = sightCache.get(map);
   if (cached && cached.key === key && cached.source === map.obstacles && cached.count === map.obstacles.length) return cached.edges;
   count('alloc.sightEdges');
-  const list: SightEdge[] = [...geometry(map).segments, ...map.gates.filter(g => !g.open).flatMap(g => edges(gateShape(g)).map(edge => ({ ...edge, gateId: g.id })))];
+  const list: SightEdge[] = [...geometry(map).segments, ...map.gates.filter(g => !g.open).flatMap(g => edgesOf(shapeOf(gateShape(g))).map(edge => ({ ...edge, gateId: g.id })))];
   sightCache.set(map, { key, source: map.obstacles, count: map.obstacles.length, edges: list });
   return list;
 }
@@ -169,7 +157,7 @@ export function reachClear(map: CollisionMap, a: Vec2, b: Vec2): boolean {
   const length = Math.hypot(b.x - a.x, b.y - a.y);
   if (length < 0.01) return true;
   const dx = (b.x - a.x) / length, dy = (b.y - a.y) / length;
-  return !geometry(map).shapes.some(o => o.kind === 'window' && edges(o).some(edge => hitRay(a, dx, dy, edge) < length));
+  return !geometry(map).shapes.some(o => o.kind === 'window' && edgesOf(o.shape).some(edge => hitRay(a, dx, dy, edge) < length));
 }
 export function visibilityPolygon(map: CollisionMap, origin: Vec2, radius: World = VISION): VisibilityPoint[] {
   count('calls.visibilityPolygon');

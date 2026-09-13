@@ -5,12 +5,10 @@ import { notePacket, resetDiagnostics, diagnosticTimings } from '/diagnostics.js
 import { makeArenaScene } from '/arena-scene.js';
 import { createReplayTimeline } from '/replay-timeline.js';
 import * as profiler from '/shared/profiler.ts';
+import { $, HZ, kitName, time } from '/ui.js';
 
-const $ = id => document.getElementById(id);
 const icon = name => `<i data-lucide="${name}"></i>`;
 const icons = () => window.lucide?.createIcons();
-const HZ = 20;
-const KIT = { warden: ['Warden', 'Shockwave', 'zap'], specter: ['Specter', 'Pulse scan', 'radar'], striker: ['Striker', 'Overdrive', 'flame'] };
 let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liveState, predicted;
 let seq = 0, pending = [], overview = false, selectedRole = 'contestant', savedReplay, replay, replayTimeline, playback = 0, playing = true, recordingFailed = false;
 // Replay camera subject. Null frames the whole arena; otherwise the camera follows this player at the
@@ -34,7 +32,6 @@ const hudController = createHUDController({
 });
 let toastTimer, connecting = false, disconnecting = false, lastStateAt = 0, profileOverlay;
 const directed = () => !!replay || !playerId;
-const time = ticks => { const seconds = Math.max(0, Math.floor(ticks / HZ)); return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`; };
 function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 3500); }
 function connection(message) { $('connection-text').textContent = message; }
 async function json(url, options) {
@@ -59,7 +56,7 @@ function updateLobby(data = {}) {
     }
     for (const p of list) {
       const li = document.createElement('li'), name = document.createElement('strong'), meta = document.createElement('span');
-      const kit = p.role === 'gladiator' ? ` / ${KIT[p.kit]?.[0] || p.kit}` : '';
+      const kit = p.role === 'gladiator' ? ` / ${kitName(p.kit)}` : '';
       name.textContent = p.name; meta.textContent = `${p.role}${kit}`;
       li.append(name, meta); target.append(li);
     }
@@ -162,7 +159,7 @@ function acceptState(next) {
 function updateHUD() {
   hudController.render({ state, arenaMap, playerId, replay: !!replay, savedReplay,
     selection: inputController.selection(),
-    visibility: { directed: directed(), points: scene?.visionPoints, eye: scene?.eye, bounds: scene?.viewBounds }
+    visibility: { directed: directed(), sight: scene?.sight }
   });
 }
 
@@ -251,7 +248,7 @@ function fillFollowOptions(roster = []) {
     const group = document.createElement('optgroup'); group.label = label;
     for (const player of roster.filter(p => p.role === role)) {
       const option = document.createElement('option'); option.value = player.id;
-      option.textContent = player.role === 'gladiator' ? `${player.name} / ${KIT[player.kit]?.[0] || player.kit}` : player.name;
+      option.textContent = player.role === 'gladiator' ? `${player.name} / ${kitName(player.kit)}` : player.name;
       group.append(option);
     }
     return group;

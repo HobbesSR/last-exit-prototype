@@ -1,5 +1,6 @@
-import { lineClear } from './movement.ts';
-import type { Building, CollisionMap, GameMap, Gate, GateId, ObservedGate, Tick, Vec2, ViewBounds, World } from './types.ts';
+import { lineClear, litPoint } from './movement.ts';
+import type { VisibilityPoint } from './movement.ts';
+import type { Building, CollisionMap, GameMap, Gate, GateId, ObservedGate, Player, Tick, Vec2, ViewBounds, World } from './types.ts';
 
 /** A gate as last seen, kept per client so an unobserved gate is drawn stale rather than current. */
 export type RememberedGate = Gate & { lastSeenTick: Tick };
@@ -53,6 +54,34 @@ export function observeGates(map: CollisionMap, eye: Vec2, bounds: ViewBounds, m
     const remembered = memory.get(gate.id);
     return { ...(remembered || { ...gate, open: false }), known: !!remembered, stale: !visible };
   });
+}
+/** One viewer's computed sight: where they look from, what the camera covers, and the lit polygon. */
+export interface Sight {
+  eye: Vec2;
+  bounds: ViewBounds;
+  points: VisibilityPoint[];
+}
+// Entities are shown slightly beyond the camera edge so one does not pop as it enters frame.
+export const ENTITY_MARGIN: World = 30;
+
+// What a viewer may know is a gameplay rule, not a rendering detail — see docs/15. The world view and
+// the minimap each used to answer this separately and had already drifted apart: the minimap applied
+// roof concealment before consulting a reveal, so a revealed player under a roof was drawn in the
+// world and missing from the map. One predicate cannot disagree with itself.
+export function seesPoint(sight: Sight | null | undefined, map: RoofMap, x: World, y: World, margin: World = ENTITY_MARGIN): boolean {
+  if (!sight) return false; // No computed sight knows nothing; a directed view is the caller's decision.
+  return !roofConceals(map, sight.eye, { x, y })
+    && inViewport(sight.bounds, x, y, margin)
+    && litPoint(sight.points, sight.eye, x, y);
+}
+/** Gladiator sensor and scan reveals are the documented exception to concealment and to cloak. */
+export function revealsActor(viewer: Player | null | undefined, actor: Player): boolean {
+  return viewer?.role === 'gladiator' && actor.revealed > 0;
+}
+export function seesActor(sight: Sight | null | undefined, map: RoofMap, viewer: Player | null | undefined, actor: Player): boolean {
+  if (revealsActor(viewer, actor)) return true;
+  if (actor.cloak) return false;
+  return seesPoint(sight, map, actor.x, actor.y);
 }
 export function buildingAt(map: RoofMap, point: Vec2): Building | null {
   return map.buildings?.find(b => point.x > b.x && point.x < b.x + b.w && point.y > b.y && point.y < b.y + b.h) || null;

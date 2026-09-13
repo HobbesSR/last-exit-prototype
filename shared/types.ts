@@ -204,6 +204,12 @@ export interface Obstacle extends Box {
   kind: ObstacleKind;
   /** Radius, for the circular obstacle form the collision code still supports. */
   r?: number | undefined;
+  /**
+   * A convex outline in points local to `x`,`y`, for generated geometry that is neither a box nor a
+   * circle. Collision, sight and rendering all read it through `shape.ts`. Absent on every recorded
+   * map so far, so older recordings keep their box/circle meaning unchanged.
+   */
+  points?: Vec2[] | undefined;
   buildingId?: BuildingId | undefined;
   color?: number | undefined;
 }

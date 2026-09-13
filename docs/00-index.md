@@ -49,6 +49,7 @@ and handoffs should cite the number, not a heading.
 | [26-recording-contract.md](26-recording-contract.md) | Replay format, integrity, bounded recording, failure and recovery, playback |
 | [27-rust-path.md](27-rust-path.md) | The conditions for moving the core to Rust/WASM, and what stays outside it |
 | [28-operational-limits.md](28-operational-limits.md) | What this build deliberately does not do, and what public hosting would need |
+| [29-geometry-and-drawing.md](29-geometry-and-drawing.md) | Shape descriptions, collision, sight edges, how drawing is cached, physics prerequisites |
 
 ### 3x — Process
 

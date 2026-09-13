@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { playerZoom, markerScale, labelScale, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM } from '../shared/view.ts';
+import { playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM } from '../shared/view.ts';
 import { visibilityPolygon, litPoint } from '../shared/movement.ts';
 
 test('full viewport corners are visible across supported sizes and zooms within server coverage', () => {
@@ -47,4 +47,39 @@ test('markers keep a constant apparent size as a directed camera pulls back, nev
       assert.ok(labelScale(zoom, marker) * LABEL_FONT_PX <= LABEL_FONT_PX, 'names are drawn below their authored size, never upscaled');
     }
   }
+});
+
+// docs/15: obstacles conceal dynamic actors, including allies, except explicit gladiator reveals.
+// This predicate is the single owner of that rule; the world view and the minimap both call it.
+test('sight applies concealment, viewport and reveals in the order the information rules state', () => {
+  const eye = { x: 1000, y: 1000 };
+  const sight = {
+    eye,
+    bounds: { x: 500, y: 500, width: 1000, height: 1000 },
+    points: Array.from({ length: 64 }, (_, i) => {
+      const angle = -Math.PI + i * Math.PI * 2 / 64;
+      return { angle, x: eye.x + Math.cos(angle) * 400, y: eye.y + Math.sin(angle) * 400, length: 400 };
+    })
+  };
+  const open = { buildings: [] };
+  const roofed = { buildings: [{ id: 'shed', x: 1150, y: 950, w: 100, h: 100 }] };
+  const gladiator = { id: 'g', role: 'gladiator', x: eye.x, y: eye.y, revealed: 0, cloak: 0 };
+  const contestant = { id: 'c', role: 'contestant', x: eye.x, y: eye.y, revealed: 0, cloak: 0 };
+  const target = extra => ({ id: 't', role: 'contestant', x: 1200, y: 1000, revealed: 0, cloak: 0, ...extra });
+
+  assert.equal(seesPoint(sight, open, 1200, 1000), true);
+  assert.equal(seesPoint(sight, roofed, 1200, 1000), false, 'a roof conceals what is under it');
+  assert.equal(seesPoint(sight, open, 1900, 1000), false, 'beyond the lit polygon is unseen');
+  assert.equal(seesPoint(null, open, 1200, 1000), false, 'no computed sight knows nothing');
+
+  assert.equal(seesActor(sight, open, contestant, target()), true);
+  assert.equal(seesActor(sight, open, contestant, target({ cloak: 6 })), false, 'cloak hides an unrevealed actor');
+  assert.equal(seesActor(sight, roofed, contestant, target()), false, 'a contestant cannot see through a roof');
+  // The exception, and the case the two views disagreed on before this predicate was shared.
+  assert.equal(revealsActor(gladiator, target({ revealed: 12 })), true);
+  assert.equal(revealsActor(contestant, target({ revealed: 12 })), false, 'only gladiators hold reveals');
+  assert.equal(seesActor(sight, roofed, gladiator, target({ revealed: 12 })), true, 'a reveal beats concealment');
+  assert.equal(seesActor(sight, roofed, gladiator, target({ revealed: 12, cloak: 8 })), true, 'a reveal beats cloak');
+  assert.equal(seesActor(null, open, gladiator, target({ revealed: 12 })), true, 'a reveal needs no sight polygon');
+  assert.equal(seesActor(sight, roofed, gladiator, target()), false, 'an unrevealed actor is still concealed');
 });

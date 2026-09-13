@@ -1,9 +1,12 @@
-import { visibilityPolygon, litPoint, gateShape } from '/shared/movement.ts';
-import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, inViewport, observeGates, buildingAt, roofConceals } from '/shared/view.ts';
+import { visibilityPolygon, gateShape } from '/shared/movement.ts';
+import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt } from '/shared/view.ts';
+import { shapeOf, outline } from '/shared/shape.ts';
 import { observe, start, stop, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
 
 const COLORS = { access: 0xf4d26c, med: 0xff8b97, weapon: 0x8bd9f0, shield: 0xa3b9ff, cell: 0xffe98a };
+const PALETTE = [0x8d5669, 0x526f80, 0x8c815a];
+const obstacleFill = o => o.kind === 'fence' ? 0x53636b : o.kind === 'building' ? 0x92929e : PALETTE[o.color || 0];
 export function makeArenaScene(api) {
   return class ArenaScene extends Phaser.Scene {
     constructor() { super('arena'); }
@@ -132,6 +135,16 @@ export function makeArenaScene(api) {
       this.updateCamera(true);
     }
     obstacle(g, o) {
+      // Generated geometry is drawn from the very description the simulation collides with, so a new
+      // shape needs no matching renderer branch and cannot be drawn as something other than its body.
+      if (o.points?.length) {
+        const points = outline(shapeOf(o));
+        g.fillStyle(0x264439, 0.3); g.fillPoints(points.map(p => ({ x: p.x + 5, y: p.y + 8 })), true);
+        g.fillStyle(obstacleFill(o)); g.fillPoints(points, true);
+        g.lineStyle(3, 0x344d48); g.strokePoints(points, true);
+        g.lineStyle(2, 0xffffff, 0.22); g.strokePoints(points, true);
+        return;
+      }
       if (o.kind === 'window') { g.fillStyle(0x77dbe3, 0.65); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, 0xc1f4f6); g.strokeRect(o.x, o.y, o.w, o.h); return; }
       if (o.kind === 'ruin-wall') { g.fillStyle(0x303740); g.fillRect(o.x + 5, o.y + 6, o.w, o.h); g.fillStyle(0x77828a); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, 0xa2a9af); g.lineBetween(o.x + 2, o.y + 2, o.x + o.w - 2, o.y + 2); return; }
       if (o.r) {
@@ -142,8 +155,7 @@ export function makeArenaScene(api) {
         return;
       }
       g.fillStyle(0x264439, 0.3); g.fillRoundedRect(o.x + 5, o.y + 8, o.w, o.h, 6);
-      const palette = [0x8d5669, 0x526f80, 0x8c815a];
-      const fill = o.kind === 'fence' ? 0x53636b : o.kind === 'building' ? 0x92929e : palette[o.color || 0];
+      const fill = obstacleFill(o);
       g.fillStyle(0x344d48); g.fillRoundedRect(o.x - 2, o.y - 2, o.w + 4, o.h + 4, 6);
       g.fillStyle(fill); g.fillRoundedRect(o.x + 1, o.y + 1, o.w - 2, o.h - 2, 4);
       g.lineStyle(3, 0xffffff, 0.22); g.lineBetween(o.x + 7, o.y + 7, o.x + o.w - 7, o.y + 7);
@@ -224,13 +236,14 @@ export function makeArenaScene(api) {
       }
       for (const label of this.labels) label.setVisible(nearView(label.x, label.y));
       this.shade.clear();
-      if (api.directed() || !eye) this.visionPoints = null;
+      if (api.directed() || !eye) { this.visionPoints = null; this.sight = null; }
       else {
         start('render.vision');
         this.viewBounds = viewBounds(eye, this.scale.width, this.scale.height, this.cameras.main.zoom);
         this.rememberedGates = observeGates(map, eye, this.viewBounds, this.gateMemory, state.tick);
         this.sightMap.obstacles = map.obstacles; this.sightMap.gates = this.rememberedGates;
         this.visionPoints = visibilityPolygon(this.sightMap, eye, viewRadius(this.viewBounds, eye));
+        this.sight = { eye, bounds: this.viewBounds, points: this.visionPoints };
         this.vision.clear(); this.vision.fillStyle(0xffffff); this.vision.fillPoints(this.visionPoints, true);
         // Shade covers the whole arena; the inverted mask cuts the lit wedge back out of it.
         this.shade.fillStyle(0x123330, 0.46);
@@ -238,8 +251,8 @@ export function makeArenaScene(api) {
         stop('render.vision');
       }
       // The server now sends a wider set than the eye can reach, so the renderer resolves the geometry.
-      const points = this.visionPoints;
-      const lit = (x, y) => !points || !roofConceals(map, eye, { x, y }) && inViewport(this.viewBounds, x, y, 30) && litPoint(points, eye, x, y);
+      // Sight itself is a shared rule; a directed view opts out of it rather than reimplementing it.
+      const lit = (x, y) => api.directed() || seesPoint(this.sight, map, x, y);
       const inside = eye && buildingAt(map, eye);
       for (const building of map.buildings || []) this.roofs.get(building.id).setVisible(!api.directed() && building.id !== inside?.id && nearView(building.x + building.w / 2, building.y + building.h / 2));
       const g = this.dynamic; g.clear();
@@ -330,8 +343,8 @@ export function makeArenaScene(api) {
         // Own marks the viewer's player in any view; only a live one is steered by local aim and eye.
         const controlled = own && !api.replay();
         // Ordinary dynamic actors, including allies, are occluded. Reveals remain an explicit exception.
-        const known = api.directed() || own || self?.role === 'gladiator' && p.revealed > 0;
-        actor.container.setVisible(p.status === 'active' && (known || lit(p.x, p.y)) && (known || !p.cloak));
+        const shown = api.directed() || own || seesActor(this.sight, map, self, p);
+        actor.container.setVisible(p.status === 'active' && shown);
         if (controlled && eye) { actor.container.x = eye.x; actor.container.y = eye.y; }
         else {
           const blend = api.replay() || Math.hypot(p.x - actor.container.x, p.y - actor.container.y) > 150 ? 1 : ease;

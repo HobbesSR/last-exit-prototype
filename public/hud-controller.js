@@ -1,12 +1,9 @@
-import { litPoint, lineClear } from '/shared/movement.ts';
-import { inViewport, roofConceals } from '/shared/view.ts';
+import { lineClear } from '/shared/movement.ts';
+import { seesActor } from '/shared/view.ts';
 import { carriedCell, SLOT_COUNT } from '/shared/equipment.ts';
 import { slotPresentation } from '/equipment-ui.js';
 import * as profiler from '/shared/profiler.ts';
-const $ = id => document.getElementById(id);
-const HZ = 20;
-const KIT = { warden: ['Warden', 'Shockwave', 'zap'], specter: ['Specter', 'Pulse scan', 'radar'], striker: ['Striker', 'Overdrive', 'flame'] };
-const time = ticks => { const seconds = Math.max(0, Math.floor(ticks / HZ)); return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`; };
+import { $, HZ, kitName, kitSkill, time } from '/ui.js';
 
 // Render supplied state without mutating it; application callbacks own all user actions.
 export function createHUDController(actions) {
@@ -116,14 +113,14 @@ export function createHUDController(actions) {
         : me.charging ? `CHARGING ${Math.floor(cell.charge / chargeTicks * 100)}% · stay still`
         : `CELL ${Math.floor(cell.charge / chargeTicks * 100)}% · find a charging station · E to charge`;
       $('portrait').src = `/assets/${gladiator ? 'warden' : 'contestant'}.svg`;
-      $('player-name').textContent = gladiator ? KIT[me.kit][0].toUpperCase() : me.name.toUpperCase();
+      $('player-name').textContent = gladiator ? kitName(me.kit).toUpperCase() : me.name.toUpperCase();
       $('player-level').textContent = gladiator ? `LV ${me.level}` : 'RUNNER';
       $('health-bar').style.width = `${100 * me.hp / me.maxHp}%`;
       $('health-bar').style.background = me.hp < me.maxHp * 0.3 ? '#ff8185' : '#c5f16f';
       $('health-value').textContent = `${me.hp} HP`;
       $('shield-value').textContent = gladiator ? `${me.kills} KILLS` : `${me.shield} SHIELD`;
       $('keys').textContent = me.keys; $('weapon').textContent = gladiator ? me.level : me.weapon;
-      const skillName = gladiator ? KIT[me.kit][1] : 'No innate ability';
+      const skillName = gladiator ? kitSkill(me.kit) : kitSkill(null);
       $('skill').dataset.tip = `${skillName} (Q)`;
       $('skill-cd').textContent = me.cooldown ? `${(me.cooldown / HZ).toFixed(1)}s` : 'READY';
       $('skill').classList.toggle('active', me.boost > 0 || me.cloak > 0);
@@ -160,16 +157,10 @@ export function createHUDController(actions) {
     c.fillStyle = '#f46c7a88'; c.fillRect(0, 0, Math.max(0, state.hazardX * sx), 124);
     for (const station of arenaMap.stations) { c.fillStyle = '#92d6f0'; c.fillRect(station.x * sx - 2, station.y * sy - 2, 4, 4); }
     for (const station of arenaMap.chargers || []) { c.strokeStyle = '#f4d26c'; c.strokeRect(station.x * sx - 2, station.y * sy - 2, 4, 4); }
-    // The server sends more than the eye can reach, so the minimap has to apply the same test the
-    // renderer does or it would quietly become a wallhack.
+    // The server sends more than the eye can reach, so the minimap applies the very same predicate the
+    // renderer does — literally the same function, so the two views cannot drift apart again.
     const mine = state.players.find(q => q.id === playerId);
-    const shown = p => {
-      if (visibility.directed || p.id === playerId) return true;
-      const known = mine?.role === 'gladiator' && p.revealed > 0;
-      if (mine && roofConceals(arenaMap, mine, p)) return false;
-      if (p.cloak && !known) return false;
-      return known || (visibility.points && visibility.eye && visibility.bounds ? inViewport(visibility.bounds, p.x, p.y) && litPoint(visibility.points, visibility.eye, p.x, p.y) : false);
-    };
+    const shown = p => visibility.directed || p.id === playerId || seesActor(visibility.sight, arenaMap, mine, p);
     for (const p of state.players) {
       if (p.status !== 'active' || !shown(p)) continue;
       c.fillStyle = p.id === playerId ? '#ffffff' : p.role === 'gladiator' ? '#ff7d8a' : '#c5f16f';

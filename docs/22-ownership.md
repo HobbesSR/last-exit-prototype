@@ -3,7 +3,7 @@
 Each decision has exactly one owner. Boundary tests enforce the ones that matter;
 the rest are conventions this file records so a change lands in the right module.
 
-`shared/map.ts` exposes map generation and routing. `shared/movement.ts` contains shared geometry, collision resolution, sight queries, and visibility polygons. `shared/simulation.ts` is the public simulation facade and explicit fixed-tick coordinator. `server/index.js` composes the server and serves static assets. `public/client.js` owns application startup, networking, authoritative state, prediction/reconciliation, lobby flow, and replay lifecycle; `public/arena-scene.js` renders the world and visibility mask.
+`shared/shape.ts` owns what a shape is: the rect/circle/polygon description, its bounds, outline, edges, SAT body, containment, overlap and transform. It is a dependency-free leaf, and collision, sight and the renderer all read geometry through it rather than from raw `w`/`h`/`r` fields; see [29](29-geometry-and-drawing.md). `shared/map.ts` exposes map generation and routing. `shared/movement.ts` owns what the simulation does with a shape: occupancy, the movement sweep, sight queries and visibility polygons. `shared/simulation.ts` is the public simulation facade and explicit fixed-tick coordinator. `server/index.js` composes the server and serves static assets. `public/client.js` owns application startup, networking, authoritative state, prediction/reconciliation, lobby flow, and replay lifecycle; `public/arena-scene.js` renders the world and visibility mask. `public/ui.js` owns the client's shared presentation vocabulary — DOM lookup, tick formatting and kit naming read from the authoritative kit table rather than a transcribed copy.
 
 ## Shared simulation
 
@@ -21,7 +21,7 @@ Power cells are normal unstackable equipment entries with retained charge, not a
 
 `shared/map.ts` builds an interim connected street graph with loops and offset passages in a 24,000 × 12,000 arena. This is explicitly not the deferred user-defined hierarchical template system. Coarse block routes guide bots, with bounded local collision-aware A* around the next passage. Generation scores main routes against a ten-minute moving-wall deadline with exploration allowance. Placement reservations protect streets and separate objects.
 
-Building footprints and doors are authoritative map data. `shared/view.ts` supplies roof concealment; solid geometry and closed doors occlude sight, while windows only block bodies and item reach. The renderer hides roofs for the occupied building. Doors retain local observed-state memory; actual collision still uses authoritative state under the existing prototype trust model.
+Building footprints and doors are authoritative map data. `shared/view.ts` owns what a viewer may know — `seesPoint` and `seesActor` apply concealment, viewport and reveals in the order [15](15-information-rules.md) states, and both the world renderer and the minimap call them, because two copies of that rule had already drifted apart. `shared/view.ts` supplies roof concealment; solid geometry and closed doors occlude sight, while windows only block bodies and item reach. The renderer hides roofs for the occupied building. Doors retain local observed-state memory; actual collision still uses authoritative state under the existing prototype trust model.
 
 ## Server
 

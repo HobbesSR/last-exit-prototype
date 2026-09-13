@@ -15,6 +15,8 @@ declare module 'sat' {
     r: number;
   }
   export class Polygon {
+    /** Points are offsets from `pos`, wound consistently; SAT requires them to be convex. */
+    constructor(pos?: Vector, points?: Vector[]);
     pos: Vector;
   }
   export class Box {
@@ -28,6 +30,8 @@ declare module 'sat' {
   }
   export function testCircleCircle(a: Circle, b: Circle, response?: Response): boolean;
   export function testCirclePolygon(a: Circle, b: Polygon, response?: Response): boolean;
+  export function testPolygonPolygon(a: Polygon, b: Polygon, response?: Response): boolean;
+  export function pointInPolygon(point: Vector, poly: Polygon): boolean;
 
   const SAT: {
     Vector: typeof Vector;
@@ -37,6 +41,8 @@ declare module 'sat' {
     Response: typeof Response;
     testCircleCircle: typeof testCircleCircle;
     testCirclePolygon: typeof testCirclePolygon;
+    testPolygonPolygon: typeof testPolygonPolygon;
+    pointInPolygon: typeof pointInPolygon;
   };
   export default SAT;
 }
