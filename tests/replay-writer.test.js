@@ -62,17 +62,22 @@ test('replay writer bounds immutable serialized frames, drops whole frames, then
   assert.equal(writer.droppedFrames, 1);
   assert.ok(writer.pendingBytes <= 600);
   first.payload = 'mutated after append';
-  // Let gzip and the deliberately slow sink make room, then record a later tick.
-  for (let i = 0; i < 20 && writer.blocked; i++) {
-    while (callbacks.length) callbacks.shift()();
-    await new Promise(resolve => setImmediate(resolve));
-  }
+  // Drain until the condition actually holds rather than for a fixed number of turns. gzip does its
+  // work on the threadpool, so how many event-loop turns it needs depends on what else is running:
+  // twenty was enough on an idle machine and not enough under a full suite, where this test starved
+  // its own writer past the finalization deadline and failed as if the writer were at fault.
+  const pump = async (done, turns = 2000) => {
+    for (let i = 0; i < turns && !done(); i++) {
+      while (callbacks.length) callbacks.shift()();
+      await new Promise(resolve => setImmediate(resolve));
+    }
+  };
+  await pump(() => !writer.blocked);
   assert.equal(writer.append({ tick: 2, payload: 'c'.repeat(24) }, []), true);
   const completion = writer.finish({ ticks: 3, escaped: 0 });
-  for (let i = 0; i < 20; i++) {
-    while (callbacks.length) callbacks.shift()();
-    await new Promise(resolve => setImmediate(resolve));
-  }
+  let finished = false;
+  completion.then(() => { finished = true; }, () => { finished = true; });
+  await pump(() => finished);
   await completion;
   const replay = JSON.parse(gunzipSync(Buffer.concat(chunks)));
   assert.deepEqual(replay.frames.map(frame => frame.state.tick), [0, 2]);
