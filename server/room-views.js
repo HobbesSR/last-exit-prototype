@@ -1,7 +1,7 @@
 import * as profiler from '../shared/profiler.ts';
 export const SPECTATOR_DELAY_TICKS = 60;
 export const send = (session, value) => session.deliver(JSON.stringify(value));
-export const lobbyPayload = room => ({
+const lobbyPayload = room => ({
   type: 'lobby', room: room.id, started: room.started, matchmade: !!room.matchmade,
   startsAt: room.startsAt || null,
   players: room.match.roster().map(p => ({ id: p.id, name: p.name, role: p.role, kit: p.kit }))

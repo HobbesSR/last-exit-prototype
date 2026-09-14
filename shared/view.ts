@@ -12,7 +12,7 @@ type RoofMap = Pick<GameMap, 'buildings'>;
 export const MAX_VIEW_WIDTH = 2400;
 export const MAX_VIEW_HEIGHT = 1600;
 export const POTENTIAL_RADIUS = Math.ceil(Math.hypot(MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT) / 2) + 250;
-export const PLAYER_ZOOM = 1.12;
+const PLAYER_ZOOM = 1.12;
 export function playerZoom(width: number, height: number, overview = false): number {
   return Math.max(overview ? 0.85 : PLAYER_ZOOM, width / MAX_VIEW_WIDTH, height / MAX_VIEW_HEIGHT);
 }
@@ -36,7 +36,7 @@ export function labelScale(zoom: number, marker: number): number {
 export function viewBounds(eye: Vec2, width: number, height: number, zoom: number): ViewBounds {
   return { x: eye.x - width / zoom / 2, y: eye.y - height / zoom / 2, width: width / zoom, height: height / zoom };
 }
-export function inViewport(bounds: ViewBounds, x: World, y: World, margin: World = 0): boolean {
+function inViewport(bounds: ViewBounds, x: World, y: World, margin: World = 0): boolean {
   return x >= bounds.x - margin && x <= bounds.x + bounds.width + margin
     && y >= bounds.y - margin && y <= bounds.y + bounds.height + margin;
 }
@@ -62,7 +62,7 @@ export interface Sight {
   points: VisibilityPoint[];
 }
 // Entities are shown slightly beyond the camera edge so one does not pop as it enters frame.
-export const ENTITY_MARGIN: World = 30;
+const ENTITY_MARGIN: World = 30;
 
 // What a viewer may know is a gameplay rule, not a rendering detail — see docs/15. The world view and
 // the minimap each used to answer this separately and had already drifted apart: the minimap applied

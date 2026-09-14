@@ -42,7 +42,7 @@ export const HUT: ElementTemplate = {
  * Two rooms behind one door. The partition stops short of the south wall, so entering commits you to
  * a side without being able to see the other — the first structure where interior position matters.
  */
-export const LODGE: ElementTemplate = {
+const LODGE: ElementTemplate = {
   w: 280,
   h: 250,
   encloses: true,
@@ -69,7 +69,7 @@ export const LODGE: ElementTemplate = {
  * A depot hall: one wide window, and two interior blocks that break the sightline from the door to
  * the far wall, so the room has to be crossed rather than checked from the threshold.
  */
-export const WAREHOUSE: ElementTemplate = {
+const WAREHOUSE: ElementTemplate = {
   w: 280,
   h: 260,
   encloses: true,
@@ -94,7 +94,7 @@ export const WAREHOUSE: ElementTemplate = {
  * A roofless ruin: cover without concealment, and the catalogue's demonstration that a part need not
  * be axis aligned — the collapsed span is a convex polygon, solid to bodies, shots and sight alike.
  */
-export const RUIN: ElementTemplate = {
+const RUIN: ElementTemplate = {
   w: 260,
   h: 230,
   parts: [
@@ -111,7 +111,7 @@ export const RUIN: ElementTemplate = {
  * A walled yard with a permanent breach rather than a door: loot in the open, but reaching it means
  * entering a space with one way out. Encloses nothing, so no roof hides what is inside it.
  */
-export const COMPOUND: ElementTemplate = {
+const COMPOUND: ElementTemplate = {
   w: 280,
   h: 260,
   parts: [
@@ -132,7 +132,7 @@ const hexagon = (radius: number): Vec2[] =>
   Array.from({ length: 6 }, (_, i) => ({ x: Math.round(Math.cos(i * Math.PI / 3) * radius), y: Math.round(Math.sin(i * Math.PI / 3) * radius) }));
 
 /** Yard cover: three stacks offset so none of them covers an approach on its own. */
-export const CRATE_CLUSTER: ElementTemplate = {
+const CRATE_CLUSTER: ElementTemplate = {
   w: 200,
   h: 170,
   parts: [
@@ -148,7 +148,7 @@ export const CRATE_CLUSTER: ElementTemplate = {
  * does not, so it is one of the few places the size difference decides an engagement rather than a
  * route. Open at one end, so it is a nook and never a trap.
  */
-export const CONTAINER_ROW: ElementTemplate = {
+const CONTAINER_ROW: ElementTemplate = {
   w: 220,
   h: 150,
   parts: [
@@ -159,7 +159,7 @@ export const CONTAINER_ROW: ElementTemplate = {
 };
 
 /** Garden cover: overgrowth, whose rounded stumps are the catalogue's only non-rectangular cover. */
-export const THICKET: ElementTemplate = {
+const THICKET: ElementTemplate = {
   w: 190,
   h: 160,
   parts: [

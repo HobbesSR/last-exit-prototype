@@ -3,38 +3,38 @@ import { createInputController } from '/input-controller.js';
 import { createHUDController } from '/hud-controller.js';
 import { notePacket, resetDiagnostics, diagnosticTimings } from '/diagnostics.js';
 import { makeArenaScene } from '/arena-scene.js';
-import { createReplayTimeline } from '/replay-timeline.js';
-import { recordingFit } from '/shared/recording.ts';
+import { createReplayController } from '/replay-controller.js';
 import * as profiler from '/shared/profiler.ts';
 import { $, HZ, kitName, time } from '/ui.js';
 
 const icon = name => `<i data-lucide="${name}"></i>`;
 const icons = () => window.lucide?.createIcons();
 let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liveState, predicted;
-let seq = 0, pending = [], overview = false, selectedRole = 'contestant', savedReplay, replay, replayTimeline, playback = 0, playing = true, recordingFailed = false;
-// Where playback was when the clock was last anchored, and when that was. Every jump re-anchors.
-let playbackFrom = 0, playbackAt = 0;
-// Replay camera subject. Null frames the whole arena; otherwise the camera follows this player at the
-// zoom they played at. The recorded roster may name players the current frame no longer contains.
-let followId = null;
-const followed = () => followId && replay ? state?.players.find(p => p.id === followId) || null : null;
+let seq = 0, pending = [], overview = false, selectedRole = 'contestant', savedReplay, recordingFailed = false;
 let lobbyPlayers = [];
 let lobbyStartsAt = null;
 const inputController = createInputController({
   getPlayer: () => state?.players.find(p => p.id === playerId),
   onSelectionChange: () => updateHUD(), onToggleMap: () => toggleMap(),
-  onToggleReplay: () => { if (replay) setPlaying(!playing); }
+  onToggleReplay: () => { if (replayController.active()) replayController.togglePlay(); }
 });
 const hudController = createHUDController({
   selectSlot: index => inputController.selectSlot(index), arrange: () => inputController.toggleArrange(),
   skill: () => inputController.skill(), interact: () => inputController.interact(), drop: () => inputController.drop(),
   moveSlot: (from, to) => inputController.moveSlot(from, to), dropSlot: from => inputController.dropSlot(from),
   cancelPointerFire: () => inputController.setPointerFire(false),
-  canDrag: () => !replay && state?.players.some(p => p.id === playerId && p.role === 'contestant' && p.status === 'active'),
+  canDrag: () => !replayController.active() && state?.players.some(p => p.id === playerId && p.role === 'contestant' && p.status === 'active'),
   toggleMap: () => toggleMap()
 });
+const replayController = createReplayController({
+  fetchJSON: json, changeMap, acceptState, updateHUD, clearInput, toast, connection,
+  getMap: () => arenaMap, getState: () => state, setState: value => state = value,
+  getScene: () => scene, getLiveMap: () => liveMap, getLiveState: () => liveState,
+  liveConnectionLabel: () => ws?.readyState === WebSocket.OPEN ? 'LIVE' : 'OFFLINE',
+  downloadReplay, icon, icons,
+});
 let toastTimer, connecting = false, disconnecting = false, lastStateAt = 0, profileOverlay;
-const directed = () => !!replay || !playerId;
+const directed = () => replayController.active() || !playerId;
 function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 3500); }
 function connection(message) { $('connection-text').textContent = message; }
 async function json(url, options) {
@@ -112,8 +112,8 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
         try { sessionStorage.setItem(`last-exit:owner:${room}`, JSON.stringify({ key, role, kit, name })); }
         catch { toast('Owner recovery is unavailable in this browser session. Keep this tab open.'); }
       }
-      replay = null; replayTimeline = null; document.body.classList.remove('replaying');
-      $('replay-controls').hidden = true; $('live-hud').hidden = !!data.spectator;
+      replayController.reset();
+      $('live-hud').hidden = !!data.spectator;
       changeMap(data.map); acceptState(data.state);
       history.replaceState(null, '', `?room=${room}`);
       connection(data.spectator ? 'SPECTATING' : data.started ? 'LIVE' : 'LOBBY'); $('loadout-dialog').close();
@@ -124,7 +124,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       if (lastStateAt) profiler.observe('net.stateGap', performance.now() - lastStateAt);
       profiler.observe('net.stateBytes', event.data.length, 'n');
       liveState = data.state;
-      if (!replay) acceptState(data.state);
+      if (!replayController.active()) acceptState(data.state);
     } else if (data.type === 'lobby') {
       updateLobby(data);
       if (data.started) { hideLobby(); connection('LIVE'); }
@@ -143,7 +143,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
     }
   });
   socket.addEventListener('close', () => {
-    if (ws === socket && !disconnecting) { connection('OFFLINE'); clearInput(); if (!replay) toast('Connection closed. Start a new arena to reconnect.'); }
+    if (ws === socket && !disconnecting) { connection('OFFLINE'); clearInput(); if (!replayController.active()) toast('Connection closed. Start a new arena to reconnect.'); }
   });
   socket.addEventListener('error', () => { if (ws === socket) toast('Unable to connect to the arena server.'); });
 }
@@ -152,7 +152,7 @@ function acceptState(next) {
   if (!arenaMap) return;
   arenaMap.gates = state.gates;
   const me = state.players.find(p => p.id === playerId);
-  if (me && !replay) {
+  if (me && !replayController.active()) {
     pending = pending.filter(i => i.seq > me.lastSeq).slice(-20);
     predicted = { ...me };
     if (me.status === 'active') for (const input of pending) movePlayer(arenaMap, predicted, input);
@@ -160,7 +160,7 @@ function acceptState(next) {
   updateHUD();
 }
 function updateHUD() {
-  hudController.render({ state, arenaMap, playerId, replay: !!replay, savedReplay,
+  hudController.render({ state, arenaMap, playerId, replay: replayController.active(), savedReplay,
     selection: inputController.selection(),
     visibility: { directed: directed(), sight: scene?.sight }
   });
@@ -169,26 +169,18 @@ function updateHUD() {
 let scene;
 const ArenaScene = makeArenaScene({
   map: () => arenaMap, state: () => state, playerId: () => playerId,
-  self: () => !replay && predicted ? predicted : state?.players.find(p => p.id === playerId) || null,
-  replay: () => !!replay, directed, overview: () => overview, aim: () => inputController.aim(), follow: followed,
+  self: () => !replayController.active() && predicted ? predicted : state?.players.find(p => p.id === playerId) || null,
+  replay: () => replayController.active(), directed, overview: () => overview, aim: () => inputController.aim(), follow: () => replayController.subject(),
   // How far into the current authoritative tick the renderer is, so motion that only updates on a
   // server frame can be advanced smoothly between them.
-  frameAlpha: () => replay ? replayTimeline.at(playback)?.alpha ?? 0 : Math.min(1, (performance.now() - lastStateAt) / (1000 / HZ)),
+  frameAlpha: () => replayController.active() ? replayController.frameAlpha() : Math.min(1, (performance.now() - lastStateAt) / (1000 / HZ)),
   onReady: value => scene = value, onFire: value => inputController.setPointerFire(value),
-  onFollow: id => setFollow(id),
-  onFrame: () => {
-    if (!replay || !playing) return;
-    // Playback follows the wall clock rather than accumulating the render delta. Phaser smooths and
-    // clamps the delta it reports, so accumulating it runs a replay slow on any client whose frames
-    // are long -- the speed control then selects a rate the viewer never actually gets. Anchoring
-    // also stops rounding drift accumulating over the thousands of frames a match lasts.
-    applyReplayTick(playbackFrom + (performance.now() - playbackAt) / 1000 * replay.hz * Number($('replay-speed').value));
-    if (playback >= replayTimeline.endTick) setPlaying(false);
-  }
+  onFollow: id => replayController.setFollow(id),
+  onFrame: () => replayController.renderFrame()
 });
 function toggleMap() { overview = !overview; $('map-toggle').classList.toggle('active', overview); scene?.updateCamera(true); }
 function inputTick() {
-  if (replay || !state || !predicted || !ws || ws.readyState !== WebSocket.OPEN || predicted.status !== 'active') { hudController.cancelDrag(); return; }
+  if (replayController.active() || !state || !predicted || !ws || ws.readyState !== WebSocket.OPEN || predicted.status !== 'active') { hudController.cancelDrag(); return; }
   const blocked = document.querySelector('dialog[open]');
   if (blocked) hudController.cancelDrag();
   let pointerAim;
@@ -224,83 +216,20 @@ async function loadArchive() {
       const details = document.createElement('div'); const title = document.createElement('strong'); title.textContent = `Arena ${r.seed}${r.recording?.complete === false ? ' · PARTIAL' : ''}`;
       const sub = document.createElement('small'); sub.textContent = `${time(r.ticks)} / ${r.escaped} escaped / ${new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       details.append(title, sub); const actions = document.createElement('div');
-      const play = document.createElement('button'); play.className = 'icon-button'; play.ariaLabel = `Play arena ${r.seed}`; play.innerHTML = icon('play'); play.onclick = () => watchReplay(r.id);
+      const play = document.createElement('button'); play.className = 'icon-button'; play.ariaLabel = `Play arena ${r.seed}`; play.innerHTML = icon('play'); play.onclick = () => replayController.watch(r.id);
       const download = document.createElement('button'); download.className = 'icon-button'; download.ariaLabel = `Download arena ${r.seed}`; download.innerHTML = icon('download'); download.onclick = () => downloadReplay(r.id);
       actions.append(play, download); row.append(details, actions); $('replay-list').append(row);
     }
     icons();
   } catch (error) { $('replay-list').textContent = error.message; }
 }
-async function watchReplay(id) {
-  try {
-    const data = await json(`/api/replays/${id}`);
-    const timeline = createReplayTimeline(data);
-    if (!timeline.frames.length) throw new Error('Replay contains no playable frames.');
-    // The recording states what it is; this build decides whether it can read it. `shared/recording.ts`
-    // owns that decision so the writer and the reader cannot disagree about it.
-    const fit = recordingFit(data);
-    if (fit !== 'ok') throw new Error(`${{
-      'too-new': 'This broadcast was recorded by a newer build of the arena.',
-      'too-old': 'This broadcast uses a recording format this build no longer reads.',
-      'pre-vector': 'This broadcast uses the earlier grid prototype.',
-    }[fit]} Its JSON can still be downloaded.`);
-    clearInput(); replay = data; replayTimeline = timeline; playback = 0; playing = true;
-    changeMap(data.map);
-    $('outcome').hidden = true; $('archive-dialog').close(); $('live-hud').hidden = true;
-    $('replay-controls').hidden = false; $('replay-seek').min = 0; $('replay-seek').max = timeline.endTick; $('replay-seek').value = 0;
-    fillFollowOptions(timeline.roster); setFollow(null);
-    document.body.classList.add('replaying'); connection('REPLAY'); setPlaying(true); seekReplay(0); scene?.updateCamera(true);
-  } catch (error) { toast(error.message); }
-}
-// The roster comes from the recording rather than the displayed frame, so a subject can be chosen
-// before they appear and stays selectable after they are eliminated.
-function fillFollowOptions(roster = []) {
-  const select = $('replay-focus');
-  const whole = document.createElement('option'); whole.value = ''; whole.textContent = 'Whole arena';
-  const groups = [['contestant', 'Contestants'], ['gladiator', 'Gladiators']].map(([role, label]) => {
-    const group = document.createElement('optgroup'); group.label = label;
-    for (const player of roster.filter(p => p.role === role)) {
-      const option = document.createElement('option'); option.value = player.id;
-      option.textContent = player.role === 'gladiator' ? `${player.name} / ${kitName(player.kit)}` : player.name;
-      group.append(option);
-    }
-    return group;
-  }).filter(group => group.childElementCount);
-  select.replaceChildren(whole, ...groups);
-}
-function setFollow(id) {
-  followId = id || null;
-  $('replay-focus').value = followId || '';
-  // A cut, not a pan: gliding a camera across a 24000 unit arena would lose the subject for seconds.
-  scene?.cutTo();
-  const target = followed();
-  if (target) toast(`Following ${target.name}`);
-}
-function applyReplayTick(tick) {
-  const sample = replayTimeline?.at(tick);
-  if (!sample) return;
-  playback = sample.tick;
-  if (state !== sample.state) { state = sample.state; arenaMap.gates = state.gates; updateHUD(); }
-  $('replay-seek').value = String(Math.floor(playback)); $('replay-time').textContent = time(playback);
-  const status = $('replay-status'); status.hidden = !sample.missing && replayTimeline.complete;
-  if (!status.hidden) status.textContent = sample.missing
-    ? `MISSING DATA · showing tick ${sample.frameTick}`
-    : `PARTIAL RECORDING · ${replayTimeline.droppedFrames} frame${replayTimeline.droppedFrames === 1 ? '' : 's'} omitted`;
-}
-function seekReplay(tick) { applyReplayTick(tick); anchorPlayback(); }
-function anchorPlayback() { playbackFrom = playback; playbackAt = performance.now(); }
-function setPlaying(value) { playing = value; if (value) anchorPlayback(); $('replay-play').innerHTML = icon(value ? 'pause' : 'play'); $('replay-play').ariaLabel = value ? 'Pause replay' : 'Play replay'; icons(); }
 async function downloadReplay(id) {
   try {
-    const data = replay?.id === id ? replay : await json(`/api/replays/${id}`);
+    const cached = replayController.cachedData(id);
+    const data = cached || await json(`/api/replays/${id}`);
     const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
     const a = document.createElement('a'); a.href = url; a.download = `last-exit-${id}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) { toast(error.message); }
-}
-function closeReplay() {
-  replay = null; replayTimeline = null; followId = null; $('replay-controls').hidden = true; $('live-hud').hidden = false; document.body.classList.remove('replaying');
-  if (liveMap && liveState) { changeMap(liveMap); acceptState(liveState); }
-  connection(ws?.readyState === WebSocket.OPEN ? 'LIVE' : 'OFFLINE'); scene?.updateCamera(true);
 }
 $('new-game').onclick = $('play-again').onclick = () => { clearInput(); $('deploy-error').hidden = true; $('loadout-dialog').showModal(); };
 $('deploy-form').onsubmit = e => { e.preventDefault(); void newArena(); };
@@ -337,14 +266,7 @@ async function downloadDiagnostics() {
 }
 $('download-diagnostics').onclick = () => void downloadDiagnostics();
 $('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) { ws.send(JSON.stringify({ type: 'finish' })); $('finish-recording').disabled = true; } };
-$('watch-match').onclick = () => { if (savedReplay) void watchReplay(savedReplay.id); };
-$('replay-play').onclick = () => { if (replay && playback >= replayTimeline.endTick) seekReplay(0); setPlaying(!playing); };
-$('replay-seek').oninput = () => { if (replay) seekReplay(Number($('replay-seek').value)); };
-// Without re-anchoring, the time already elapsed would be re-scaled by the new rate and jump.
-$('replay-speed').onchange = () => { if (replay) anchorPlayback(); };
-$('replay-focus').onchange = () => { if (replay) setFollow($('replay-focus').value); };
-$('replay-download').onclick = () => { if (replay) void downloadReplay(replay.id); };
-$('replay-close').onclick = closeReplay;
+$('watch-match').onclick = () => { if (savedReplay) void replayController.watch(savedReplay.id); };
 icons();
 new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: '#253f3f', antialias: true, scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' }, scene: ArenaScene, audio: { noAudio: true }, render: { preserveDrawingBuffer: true } });
 setInterval(inputTick, 50);
@@ -381,4 +303,4 @@ window.arenaProfiling = setProfiling;
 // tooling will grow from, and what the tests drive.
 window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, role: 'spectator' });
 // Read-only inspection surface for reproducible browser smoke tests.
-window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: !!replay, follow: followId, overview, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y } });
+window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: replayController.followId(), overview, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y } });

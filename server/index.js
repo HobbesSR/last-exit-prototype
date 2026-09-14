@@ -14,7 +14,7 @@ import { serveSharedModules } from './shared-assets.js';
 export { EMPTY_ROOM_GRACE_MS } from './room-service.js';
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 
-export function lanUrls(port) {
+function lanUrls(port) {
   const urls = [];
   for (const entries of Object.values(networkInterfaces())) {
     for (const entry of entries || []) {

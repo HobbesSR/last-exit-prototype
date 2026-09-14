@@ -1,7 +1,7 @@
 // Transport limits and envelope decoding. Stateful input latching stays in simulation.
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
-export const MAX_MESSAGES_PER_SECOND = 70;
+const MAX_MESSAGES_PER_SECOND = 70;
 export function parseMessage(raw) {
   const data = JSON.parse(raw); // Caller closes malformed JSON with the established policy code.
   return data && typeof data === 'object' ? data : null;
