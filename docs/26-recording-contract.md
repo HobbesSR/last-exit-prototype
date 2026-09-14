@@ -3,6 +3,35 @@
 Recording failure must never reach gameplay. Simulation stays `last-exit-0.6`;
 frozen gameplay fixtures must remain unchanged by anything in this file.
 
+## Versioning and compatibility
+
+`shared/recording.ts` owns whether a build can play a recording, and both the writer and the reader
+ask it. Before it, the only guard was the client probing `data.map.obstacles` — a data shape standing
+in for a version, which happened to work and said nothing about anything else that might change.
+
+A header carries two numbers beside `version`:
+
+| Field | Means |
+| --- | --- |
+| `schema` | the format this recording was written in |
+| `minSchema` | the oldest reader that can still make sense of it |
+
+The pair is deliberate. An additive change — a new optional field, a longer roster — raises `schema`
+and leaves `minSchema` where it is, so clients written before the change keep playing recordings
+written after it. Only a change that genuinely breaks older readers raises `minSchema`. A single
+number cannot express that: every bump would lock out every older client whether it needed to or
+not, and widening compatibility again would mean migrating the format a second time.
+
+The reader's policy is deliberately the simplest one that works — a floor, `MIN_SCHEMA`, currently
+zero so that archives predating the fields keep playing. That is policy, not format. Because both
+sides record integers, a reader can later apply a range, a set of supported versions, or a
+per-feature table without recordings changing shape again. Policy belongs to the reader; a recording
+only states facts about itself.
+
+`version` is a separate axis and keeps its meaning: which simulation rules produced the recording.
+The schema pair decides whether a file can be *read*; `version` says what its contents *mean*.
+Recordings also embed their own map, so changing map generation never invalidates one.
+
 ## Format and integrity
 
 Each room records a map header and offers every authoritative tick to a bounded gzip JSON writer. Retained records contain a complete simulation snapshot plus accepted commands and membership changes. Frames include AI path state. The final metadata contains retained frame count and a SHA-256 digest over each retained serialized frame plus a newline. A recording is advertised only after successful publication. Disk backpressure never pauses tick advancement: incoming frames exceeding the pending-data budget are omitted whole, and subsequent frames can be accepted after the writer drains. Only archives with omissions add `recording: { complete: false, droppedFrames, endTick }` to the file and metadata; ordinary recordings retain their existing format and digest contract.

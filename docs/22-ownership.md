@@ -13,7 +13,7 @@ Tick order is part of gameplay: advance time/effects, then iterate players in ar
 
 Power cells are normal unstackable equipment entries with retained charge, not a separate player field. Charging takes 100 ticks. Drop input is latched like interaction input. Projectile hits can damage other contestants; killed gladiators enter a 400-tick respawning state and return only when a safe transit station is available. Recordings contain these new states under simulation version `last-exit-0.6`; old recordings retain a display fallback for their dedicated cell field.
 
-`shared/vector.ts` and `shared/numbers.ts` are dependency-free leaves: the first owns world-point distance, which map generation, routing, hazards and the simulation had each defined separately; the second owns the numeric guards that client input is validated through. Both are re-exported by `simulation/geometry` and `map/context` so existing consumers import them from the module that owns their stage.
+`shared/recording.ts` owns recording compatibility — the `schema`/`minSchema` pair a header carries and the decision about whether this build can play a given archive — so `room-service` stamping a recording and `client.js` opening one cannot drift apart on it; see [26](26-recording-contract.md). `shared/vector.ts` and `shared/numbers.ts` are dependency-free leaves: the first owns world-point distance, which map generation, routing, hazards and the simulation had each defined separately; the second owns the numeric guards that client input is validated through. Both are re-exported by `simulation/geometry` and `map/context` so existing consumers import them from the module that owns their stage.
 
 ## Map generation
 

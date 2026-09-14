@@ -4,6 +4,7 @@ import { createHUDController } from '/hud-controller.js';
 import { notePacket, resetDiagnostics, diagnosticTimings } from '/diagnostics.js';
 import { makeArenaScene } from '/arena-scene.js';
 import { createReplayTimeline } from '/replay-timeline.js';
+import { recordingFit } from '/shared/recording.ts';
 import * as profiler from '/shared/profiler.ts';
 import { $, HZ, kitName, time } from '/ui.js';
 
@@ -235,7 +236,14 @@ async function watchReplay(id) {
     const data = await json(`/api/replays/${id}`);
     const timeline = createReplayTimeline(data);
     if (!timeline.frames.length) throw new Error('Replay contains no playable frames.');
-    if (!data.map?.obstacles) throw new Error('This broadcast uses the earlier grid prototype. Its JSON can still be downloaded.');
+    // The recording states what it is; this build decides whether it can read it. `shared/recording.ts`
+    // owns that decision so the writer and the reader cannot disagree about it.
+    const fit = recordingFit(data);
+    if (fit !== 'ok') throw new Error(`${{
+      'too-new': 'This broadcast was recorded by a newer build of the arena.',
+      'too-old': 'This broadcast uses a recording format this build no longer reads.',
+      'pre-vector': 'This broadcast uses the earlier grid prototype.',
+    }[fit]} Its JSON can still be downloaded.`);
     clearInput(); replay = data; replayTimeline = timeline; playback = 0; playing = true;
     changeMap(data.map);
     $('outcome').hidden = true; $('archive-dialog').close(); $('live-hud').hidden = true;

@@ -1,5 +1,6 @@
 import { randomUUID, randomBytes } from 'node:crypto';
 import { HZ, VERSION, KITS } from '../shared/simulation/rules.ts';
+import { SCHEMA, MIN_SCHEMA } from '../shared/recording.ts';
 import * as profiler from '../shared/profiler.ts';
 import { createMatch } from './match.js';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
@@ -49,7 +50,7 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
   }
   function startRecording(room) {
     try {
-      room.writer = replays.start({ version: VERSION, id: room.id, seed: room.match.seed, hz: HZ, createdAt: room.createdAt, map: room.match.map() },
+      room.writer = replays.start({ version: VERSION, schema: SCHEMA, minSchema: MIN_SCHEMA, id: room.id, seed: room.match.seed, hz: HZ, createdAt: room.createdAt, map: room.match.map() },
         { onError: error => failRecording(room, error) });
       if (room.recordingError) room.writer?.abort?.(room.recordingError);
     } catch (error) { failRecording(room, error); }
