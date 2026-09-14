@@ -35,6 +35,8 @@ export interface CellClass {
   clutterChance?: number;
   /** Prop length in cells; must stay under 1 so a prop lives in one cell. */
   clutterSize?: number;
+  /** If true, this class is a parameter placeholder (e.g. "floor") to be bound during macro placement. */
+  parameter?: boolean;
 }
 
 /**
@@ -73,14 +75,6 @@ export interface TileDesign {
   id: string;
   /** Class for cells this design does not paint. */
   defaultCellClass: string;
-  /**
-   * Relative frequency among the designs that fit a slot. Omission means 1.
-   * Not part of what a tile is: how often a patch should appear is a property
-   * of the set or set piece drawing from it, so this is a placeholder for the
-   * legacy filler until tile sets carry their own member weights. The tile
-   * editor no longer offers it.
-   */
-  weight?: number;
   orientations: Orientation[];
   /**
    * Coarse per-side seam classes, consumed by the tile-edge topology solver.
@@ -91,6 +85,8 @@ export interface TileDesign {
   ports?: Partial<Record<Side, PortValue>>;
   /** Explicit fallback role: true is used only when no ordinary design fits. Omission is false. */
   adapter?: boolean;
+  /** Optional custom labels for filtering/organizing. */
+  labels?: string[];
   /** Tier zones the design accepts. */
   eligibleTiers?: number[];
   eligibleBonus?: number[];

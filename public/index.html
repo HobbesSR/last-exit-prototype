@@ -14,12 +14,19 @@
       </div>
       <div class="header-actions">
         <span id="status" role="status">Loading generator…</span
-        ><button id="export">Export JSON ↗</button
-        ><button id="exportBson">Export BSON ↗</button>
+        ><button id="export">Export Map JSON ↗</button
+        ><button id="exportBson">Export Map BSON ↗</button
+        ><button id="downloadLibrary">Export Library JSON ↗</button>
       </div>
     </header>
-    <main>
-      <aside>
+    <nav class="app-nav">
+      <button id="mapTab" class="active">World</button>
+      <button id="authorTab">Tile Editor</button>
+      <button id="setsTab">Tile Sets</button>
+    </nav>
+    <main id="mainLayout">
+      <div id="worldViewContainer" class="tab-view active">
+      <aside id="sidebar">
         <section>
           <h2>01 / World recipe</h2>
           <label>Seed<input id="seed" value="last-exit-001" /></label>
@@ -103,12 +110,11 @@
           <div id="gameStatus" class="readout">Ready for a run.</div>
         </section>
       </aside>
+      <div id="sidebarResizer" class="resizer" title="Drag to resize sidebar"></div>
       <div class="workspace">
         <div class="toolbar">
-          <div class="tabs">
-            <button id="mapTab" class="active">World</button
-            ><button id="authorTab">Authoring</button>
-          </div>
+          <button id="toggleSidebar" class="sidebar-toggle" title="Toggle Sidebar">☰</button>
+          <div class="spacer" style="flex: 1"></div>
           <div>
             <button id="fit">Fit map</button
             ><span class="badge">6 × 6 CELLS / TILE</span>
@@ -127,71 +133,35 @@
             ><span><i class="hunter"></i> Hunter route</span>
           </div>
           <div id="mapCaption">STATIC ARCHITECTURE IS ALWAYS VISIBLE</div>
+          <div id="zoomControls" class="zoom-controls">
+            <button id="zoomOut" title="Zoom Out">-</button>
+            <span id="zoomLevel">100%</span>
+            <button id="zoomIn" title="Zoom In">+</button>
+          </div>
+          <div id="mapTooltip" class="map-tooltip" hidden></div>
         </div>
-        <div id="authorView" hidden>
-          <div class="author-heading">
-            <div>
-              <h2>Tile library</h2>
-              <p>
-                Pick a tile from the gallery, name it, choose the class its
-                unpainted cells take, then paint cells and segments directly on
-                the preview. Declare the classes themselves below. Tile sets and
-                multi-tile layouts live in the shared JSON source.
-              </p>
-            </div>
-            <button id="downloadLibrary">Export library</button>
-          </div>
-          <div class="library-meta" id="libraryMeta"></div>
-          <div class="gallery-head">
-            <label class="grow"
-              >Find<input
-                id="tileFilter"
-                placeholder="filter by name"
-                spellcheck="false"
-            /></label>
-            <label>Tile<select id="template"></select></label>
-          </div>
-          <div id="tileGallery" aria-label="Tile gallery"></div>
-          <div class="pair">
-            <label
-              >Name<input
-                id="tileId"
-                spellcheck="false"
-                title="This tile's id, as tile sets and layouts refer to it" /></label
-            ><label
-              >Default cell class<select
-                id="defaultCellClass"
-                title="Class given to every cell this tile does not paint"
-              ></select
-            ></label>
-          </div>
-          <label class="check author-check"
-            ><input id="tileAdapter" type="checkbox" /> Fallback adapter</label
-          >
-          <div class="modes">
-            <div
-              class="segmented"
-              id="editMode"
-              role="group"
-              aria-label="What the preview edits"
-            ></div>
-            <div
-              class="segmented"
-              id="editTool"
-              role="group"
-              aria-label="Drawing tool"
-            ></div>
-          </div>
-          <p class="hint" id="editHint"></p>
-          <div class="paint">
-            <div class="tile-stage">
-              <div class="gutter cols" id="gutterCols"></div>
-              <div class="gutter rows" id="gutterRows"></div>
+        <footer id="metrics"></footer>
+      </div>
+      </div>
+      <div id="authorViewContainer" class="tab-view" hidden>
+        <div id="authorView">
+          
+          <div class="author-left">
+            <div class="modes">
               <div
-                id="tilePreview"
-                title="Click or drag to apply the active brush · right-click for the palette · Alt-click to pick up what is there"
+                class="segmented"
+                id="editMode"
+                role="group"
+                aria-label="What the preview edits"
+              ></div>
+              <div
+                class="segmented"
+                id="editTool"
+                role="group"
+                aria-label="Drawing tool"
               ></div>
             </div>
+            <p class="hint" id="editHint"></p>
             <div class="palette">
               <div class="palette-group" id="cellPalette">
                 <h3>Cell class</h3>
@@ -217,82 +187,164 @@
               <div id="hoverReadout" class="mini"></div>
             </div>
           </div>
-          <details open>
-            <summary>Segments · geometry and perimeter contracts</summary>
-            <p class="hint">
-              Hatched means deferred, red means wall, green means open, and a
-              partial aperture shows its open span. Perimeter segments are
-              adjacency contracts: <code>any</code> defers; open, wall, or a
-              partial aperture filters topology and does not negotiate a seam.
-              Interior edits keep the one-cell margin; dimmed boundary-adjacent
-              interior lines are shown but unavailable under the current rule.
-              The panel below inspects whichever segment was last touched.
-            </p>
-            <div
-              id="segmentControls"
-              aria-label="Selected segment controls"
-            ></div>
-          </details>
-          <div class="pair">
-            <button id="saveTemplate" class="primary">Update tile</button
-            ><button id="cloneTemplate">Duplicate tile</button>
-          </div>
-          <details open>
-            <summary>Cell classes · the classes any tile may paint</summary>
-            <p class="hint">
-              A class is declared once here and then available to every tile.
-              Clutter is intrinsic to the class; loot density is not — it comes
-              from the tier zone a cell sits in.
-            </p>
-            <div id="classList"></div>
-            <div class="add-class">
-              <input
-                id="newClass"
-                placeholder="New class, e.g. hut"
-                spellcheck="false"
-              />
-              <button id="addClass" type="button">Add class</button>
+
+          <div class="author-center">
+            <div class="paint">
+              <div class="tile-stage">
+                <div class="gutter cols" id="gutterCols"></div>
+                <div class="gutter rows" id="gutterRows"></div>
+                <div
+                  id="tilePreview"
+                  title="Click or drag to apply the active brush · right-click for the palette · Alt-click to pick up what is there"
+                ></div>
+              </div>
             </div>
-          </details>
-          <details>
-            <summary>Topology hints · coarse side seams</summary>
-            <p class="hint">
-              Seam classes the tile-edge solver reads while laying out the map.
-              They are layered over the design rather than part of it; what a
-              side actually carries is stated per segment and per vertex. Leave
-              every side on <code>any</code> to state nothing.
-            </p>
-            <div class="ports" id="ports"></div>
-          </details>
-          <details open>
-            <summary>Library source · tiles, sets, layouts</summary>
-            <textarea
-              id="librarySource"
-              spellcheck="false"
-              aria-label="Library JSON source"
-            ></textarea>
-          </details>
-          <div class="pair">
-            <button id="applyLibrary" class="primary">
-              Validate & apply JSON</button
-            ><label class="file-button"
-              >Import library<input
-                id="importLibrary"
-                type="file"
-                accept=".json,application/json"
-            /></label>
           </div>
-          <button id="resetLibrary" type="button">
-            Reset to shipped library
-          </button>
-          <div id="libraryStatus" role="status">
-            Changes stay local to this browser. Export to use the library from
-            the CLI.
+
+          <div class="author-right">
+            <div class="gallery-head">
+              <label class="grow"
+                >Find<input
+                  id="tileFilter"
+                  placeholder="filter by name"
+                  spellcheck="false"
+              /></label>
+              <label>Tile<select id="template"></select></label>
+            </div>
+            <div id="tileGallery" aria-label="Tile gallery"></div>
+            <div class="library-meta mini" id="libraryMeta"></div>
+            <div class="pair">
+              <label
+                >Name<input
+                  id="tileId"
+                  spellcheck="false"
+                  title="This tile's id, as tile sets and layouts refer to it" /></label
+              ><label
+                >Default cell class<select
+                  id="defaultCellClass"
+                  title="Dominant region class given to every cell this tile does not explicitly paint"
+                ></select
+              ></label>
+            <div class="pair">
+              <label class="check author-check" style="margin-top:auto"
+                ><input id="tileAdapter" type="checkbox" /> Fallback adapter</label
+              >
+              <label
+                >Labels<input
+                  id="tileLabels"
+                  spellcheck="false"
+                  placeholder="space-separated"
+                  title="Custom labels for filtering and organization"
+              /></label>
+            </div>
+            <div class="pair">
+              <button id="saveTemplate" class="primary">Update tile</button
+              ><button id="cloneTemplate">Duplicate tile</button>
+            </div>
+            <details open>
+              <summary>Segments · geometry and perimeter contracts</summary>
+              <p class="hint">
+                Hatched means deferred, red means wall, green means open, and a
+                partial aperture shows its open span. Perimeter segments are
+                adjacency contracts: <code>any</code> defers; open, wall, or a
+                partial aperture filters topology and does not negotiate a seam.
+                The panel below inspects whichever segment was last touched.
+              </p>
+              <div
+                id="segmentControls"
+                aria-label="Selected segment controls"
+              ></div>
+            </details>
+            <details open>
+              <summary>Cell classes · the classes any tile may paint</summary>
+              <p class="hint">
+                A class is declared once here and then available to every tile.
+                Clutter is intrinsic to the class; loot density is not — it comes
+                from the tier zone a cell sits in.
+              </p>
+              <div id="classList"></div>
+              <div class="add-class">
+                <input
+                  id="newClass"
+                  placeholder="New class, e.g. hut"
+                  spellcheck="false"
+                />
+                <button id="addClass" type="button">Add class</button>
+              </div>
+            </details>
+            <details>
+              <summary>Topology hints · coarse side seams</summary>
+              <p class="hint">
+                Seam classes the tile-edge solver reads while laying out the map.
+                They are layered over the design rather than part of it; what a
+                side actually carries is stated per segment and per vertex. Leave
+                every side on <code>any</code> to state nothing.
+              </p>
+              <div class="ports" id="ports"></div>
+            </details>
+            <details open>
+              <summary>Library source · tiles, sets, layouts</summary>
+              <textarea
+                id="librarySource"
+                spellcheck="false"
+                aria-label="Library JSON source"
+              ></textarea>
+            </details>
+            <div class="pair">
+              <button id="applyLibrary" class="primary">
+                Validate & apply JSON</button
+              ><label class="file-button"
+                >Import library<input
+                  id="importLibrary"
+                  type="file"
+                  accept=".json,application/json"
+              /></label>
+            </div>
+            <button id="resetLibrary" type="button">
+              Reset to shipped library
+            </button>
+            <div id="libraryStatus" role="status">
+              Changes stay local to this browser. Export to use the library from
+              the CLI.
+            </div>
           </div>
         </div>
-        <footer id="metrics"></footer>
+      </div>
+      <div id="setsViewContainer" class="tab-view" hidden>
+        <div id="setsView">
+          <div class="sets-left">
+            <h2>Tile Sets</h2>
+            <div id="tileSetsList" class="tile-sets-list"></div>
+            <button id="newTileSet" class="primary full">New Tile Set</button>
+          </div>
+          <div class="sets-right">
+            <div id="setsEditor">
+              <div class="sets-header">
+                <label>Set ID<input id="activeSetId" spellcheck="false" /></label>
+                <button id="saveTileSet" class="primary">Save Changes</button>
+                <button id="deleteTileSet" class="danger">Delete Set</button>
+              </div>
+              <p class="hint">Click tiles in the Available list to add them, or click tiles in the Members list to remove them.</p>
+              
+              <div class="sets-members">
+                <h3>Members</h3>
+                <div id="setMembersGallery" class="gallery-grid" aria-label="Tiles in this set"></div>
+              </div>
+              
+              <div class="sets-available">
+                <div class="gallery-head" style="margin-top:0">
+                  <h3 style="margin:0">Available Tiles</h3>
+                  <label class="grow"><input id="setAvailableFilter" placeholder="filter by name, class, or label" spellcheck="false" /></label>
+                </div>
+                <div id="setAvailableGallery" class="gallery-grid" aria-label="Available tiles"></div>
+              </div>
+            </div>
+            <div id="setsEditorEmpty" class="readout">Select a tile set to edit.</div>
+          </div>
+        </div>
       </div>
     </main>
+    <div id="toastContainer" class="toast-container"></div>
     <script type="module" src="/app.ts"></script>
   </body>
 </html>

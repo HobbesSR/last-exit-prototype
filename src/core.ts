@@ -321,10 +321,6 @@ export function validateLibrary(input: unknown): ValidationResult {
     ids.add(t.id);
     if (!named(t.defaultCellClass))
       errors.push(`tile ${t.id} needs a defaultCellClass`);
-    // Weight is optional and defaults to 1; a stated one still has to mean
-    // something. See TileDesign for why it does not belong on a tile at all.
-    if (t.weight !== undefined && !(Number.isFinite(t.weight) && t.weight > 0))
-      errors.push(`tile ${t.id} weight must be a positive number when stated`);
     if (t.adapter !== undefined && typeof t.adapter !== "boolean")
       errors.push(`tile ${t.id} adapter must be a boolean`);
     const zoneList = (
@@ -741,11 +737,7 @@ function selectTemplate(
       break;
     }
   }
-  const weightOf = (t: TileDesign) => t.weight ?? 1;
-  let sum = pool.reduce((n, x) => n + weightOf(x.t), 0),
-    r = random() * sum;
-  for (const m of pool) if ((r -= weightOf(m.t)) <= 0) return m;
-  return pool[pool.length - 1] ?? null;
+  return pool[Math.floor(random() * pool.length)] ?? null;
 }
 
 /**
@@ -1102,6 +1094,12 @@ export function generateMap(
   const setMap = new Map<string, TileSet>(
     (library.tileSets || []).map((s) => [s.id, s]),
   );
+  const getSetMembers = (id: string): string[] => {
+    const s = setMap.get(id);
+    if (s) return s.members;
+    if (allTiles.some(t => t.id === id)) return [id];
+    return [];
+  };
   // Place the most constrained authored layouts first: a small footprint can
   // always find another home, a large one often cannot.
   const orderedLayouts = (library.layouts || [])
@@ -1130,7 +1128,7 @@ export function generateMap(
             !assigned[x.j] &&
             selectTemplate(
               allTiles.filter((t) =>
-                (setMap.get(x.s.tileSetId)?.members ?? []).includes(t.id),
+                getSetMembers(x.s.tileSetId).includes(t.id),
               ),
               () => 0,
               p,
@@ -1148,7 +1146,7 @@ export function generateMap(
     const place = placements[Math.floor(random() * placements.length)]!;
     for (const { s, j: slot } of place.slots) {
       const j = slot!;
-      const members = new Set(setMap.get(s.tileSetId)?.members ?? []);
+      const members = new Set(getSetMembers(s.tileSetId));
       const chosen = selectTemplate(
         allTiles.filter((t) => members.has(t.id)),
         random,

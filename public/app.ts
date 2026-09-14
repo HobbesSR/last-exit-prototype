@@ -768,6 +768,8 @@ function renderTileSetsList() {
   renderTileSetEditor();
 }
 
+let tileSetFilter = "";
+
 function renderTileSetEditor() {
   const editor = document.getElementById("setsEditor");
   const empty = document.getElementById("setsEditorEmpty");
@@ -794,8 +796,18 @@ function renderTileSetEditor() {
   availableGallery.innerHTML = "";
   
   const inSet = new Set(activeSet.members);
+  const filter = tileSetFilter.toLowerCase();
+  const filterEl = document.getElementById("setAvailableFilter") as HTMLInputElement;
+  if (filterEl && filterEl.value !== tileSetFilter) filterEl.value = tileSetFilter;
   
   for (const t of library.tiles) {
+    const isMember = inSet.has(t.id);
+    
+    if (!isMember && filter) {
+      const searchStr = (t.id + " " + (t.labels || []).join(" ") + " " + (t.defaultCellClass || "")).toLowerCase();
+      if (!searchStr.includes(filter)) continue;
+    }
+
     const card = document.createElement("button");
     card.type = "button";
     card.className = "tile-card";
@@ -804,7 +816,7 @@ function renderTileSetEditor() {
     name.textContent = t.id;
     card.append(tileThumbnail(t), name);
     
-    if (inSet.has(t.id)) {
+    if (isMember) {
       card.title = "Click to remove from set";
       card.onclick = () => {
         activeSet.members = activeSet.members.filter((id) => id !== t.id);
@@ -823,6 +835,11 @@ function renderTileSetEditor() {
     }
   }
 }
+
+document.getElementById("setAvailableFilter")!.oninput = (e) => {
+  tileSetFilter = (e.target as HTMLInputElement).value;
+  renderTileSetEditor();
+};
 
 document.getElementById("newTileSet")!.onclick = () => {
   if (!library.tileSets) library.tileSets = [];
@@ -2091,6 +2108,7 @@ function editTemplate(keepPaint = false) {
   if (!t) return;
   input("tileId").value = t.id;
   input("tileAdapter").checked = t.adapter === true;
+  input("tileLabels").value = (t.labels || []).join(" ");
   const classes = cellClassNames(library)
     .filter((name) => name !== SOLID)
     .sort();
@@ -2178,6 +2196,9 @@ $("saveTemplate").onclick = () => {
     // A design that states nothing about its seams carries no ports at all.
     if (Object.values(ports).every((v) => v === "any")) delete t.ports;
     else t.ports = ports;
+    const labels = input("tileLabels").value.trim().split(/\s+/).filter(Boolean);
+    if (labels.length) t.labels = labels;
+    else delete t.labels;
     if (input("tileAdapter").checked) t.adapter = true;
     else delete t.adapter;
     apply(next);

@@ -52,6 +52,8 @@ export interface MacroPlacement {
   /** Integer world-cell translation after rotation about local vertex (0,0). */
   origin: Point;
   orientation: Orientation;
+  /** Maps parameterized cell classes in the structure to concrete region classes for this placement. */
+  classBindings?: Record<string, string>;
 }
 export interface MacroCompositionInput {
   version: 1;
