@@ -29,10 +29,22 @@ leading gaps, omitted intervals and incomplete tails — because interpolating t
 would invent motion the recording never contained. See
 [26](26-recording-contract.md).
 
+The playhead advances against the **wall clock**, anchored at the last jump, not by
+accumulating the per-frame delta. Phaser smooths and clamps the delta it reports, so
+accumulating it runs a replay slow in exact proportion to how long the client's
+frames are: measured here, a viewer rendering at about four frames a second received
+roughly six percent of the speed they selected, and the speed control silently
+became a fiction. Anchoring also keeps rounding from accumulating across the
+thousands of frames a ten-minute match lasts. Every jump — opening a replay,
+seeking, resuming, changing speed — must re-anchor, or the elapsed time since the
+last anchor is re-scaled by the new rate and the playhead leaps.
+
 Coverage for this must assert an invariant that holds for whatever frames the
 browser happens to render. A headless frame is longer than a playback tick at every
 supported speed, so a test that assumes a rendered frame lands inside a chosen tick
-fails against working code.
+fails against working code. Elapsed time, by contrast, *is* assertable now that
+playback follows it, and must be timed inside the page: driving the clock from the
+test counts the driver's own round trips as playback time.
 
 ## Replay camera
 

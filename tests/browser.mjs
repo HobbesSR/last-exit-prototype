@@ -114,11 +114,10 @@ try {
   assert.equal(diagnostic.server.ok, true);
   await page.getByRole('button', { name: 'End match & save replay' }).click();
   await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().waitFor();
-  // Replay playback advances on render frames. Headless frames in this suite run about 240 ms while
-  // Phaser hands `onFrame` a smoothed delta, so playback covers a small fraction of wall time here
-  // and a tight deadline measures the harness, not the player. Every wait on playback advancing gets
-  // this budget: it still fails if playback stalls, without depending on frame pacing to pass.
-  const PLAYBACK_DEADLINE = 24000;
+  // Playback follows the wall clock, so these deadlines are real time plus headroom for the coarse
+  // frames this suite renders at -- headless frames here run about 240 ms, so a tick becomes visible
+  // up to a frame after playback reaches it.
+  const PLAYBACK_DEADLINE = 10000;
   // Keep the archive's normal dense recording path covered too: real playback
   // must advance authoritative state before the routed sparse fixture below.
   await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().click();
@@ -218,6 +217,23 @@ try {
   assert.ok(denseSamples.at(-1).tick > denseSamples[0].tick, `dense playback advances ticks: ${report(denseSamples)}`);
   assert.ok(denseSamples.some(sample => sample.x > originX + sample.tick * 10),
     `dense playback renders between authoritative ticks: ${report(denseSamples)}`);
+  // Playback must follow the wall clock rather than accumulating render deltas: a viewer whose
+  // frames are long still has to get the speed they selected. Accumulating Phaser's smoothed delta
+  // ran playback at roughly a tenth of real time here, and nothing caught it because no assertion
+  // compared playback against elapsed time.
+  await page.locator('#replay-seek').fill('0');
+  await page.locator('#replay-speed').selectOption('1');
+  await page.getByRole('button', { name: 'Play replay', exact: true }).click();
+  // Timed inside the page: driving the clock from the test would count Playwright's own round trips
+  // as playback time, which in this suite runs to seconds.
+  const clock = await page.evaluate(() => new Promise(resolve => {
+    const from = window.arenaDebug().tick, at = performance.now();
+    setTimeout(() => resolve({ ticks: window.arenaDebug().tick - from, ms: performance.now() - at }), 1500);
+  }));
+  await pausePlayback();
+  const clockExpected = clock.ms / 1000 * 20;
+  assert.ok(clock.ticks > clockExpected * 0.6 && clock.ticks <= clockExpected + 1,
+    `playback tracks wall time: advanced ${clock.ticks} ticks while ${clockExpected.toFixed(1)} elapsed`);
   routedReplay = sparseReplay;
   await page.getByRole('button', { name: 'Exit replay' }).click();
   await page.getByRole('button', { name: 'Replays', exact: true }).click();

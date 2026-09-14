@@ -11,6 +11,8 @@ const icon = name => `<i data-lucide="${name}"></i>`;
 const icons = () => window.lucide?.createIcons();
 let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liveState, predicted;
 let seq = 0, pending = [], overview = false, selectedRole = 'contestant', savedReplay, replay, replayTimeline, playback = 0, playing = true, recordingFailed = false;
+// Where playback was when the clock was last anchored, and when that was. Every jump re-anchors.
+let playbackFrom = 0, playbackAt = 0;
 // Replay camera subject. Null frames the whole arena; otherwise the camera follows this player at the
 // zoom they played at. The recorded roster may name players the current frame no longer contains.
 let followId = null;
@@ -173,10 +175,13 @@ const ArenaScene = makeArenaScene({
   frameAlpha: () => replay ? replayTimeline.at(playback)?.alpha ?? 0 : Math.min(1, (performance.now() - lastStateAt) / (1000 / HZ)),
   onReady: value => scene = value, onFire: value => inputController.setPointerFire(value),
   onFollow: id => setFollow(id),
-  onFrame: delta => {
+  onFrame: () => {
     if (!replay || !playing) return;
-    playback = Math.min(replayTimeline.endTick, playback + delta / 1000 * replay.hz * Number($('replay-speed').value));
-    applyReplayTick(playback);
+    // Playback follows the wall clock rather than accumulating the render delta. Phaser smooths and
+    // clamps the delta it reports, so accumulating it runs a replay slow on any client whose frames
+    // are long -- the speed control then selects a rate the viewer never actually gets. Anchoring
+    // also stops rounding drift accumulating over the thousands of frames a match lasts.
+    applyReplayTick(playbackFrom + (performance.now() - playbackAt) / 1000 * replay.hz * Number($('replay-speed').value));
     if (playback >= replayTimeline.endTick) setPlaying(false);
   }
 });
@@ -236,7 +241,7 @@ async function watchReplay(id) {
     $('outcome').hidden = true; $('archive-dialog').close(); $('live-hud').hidden = true;
     $('replay-controls').hidden = false; $('replay-seek').min = 0; $('replay-seek').max = timeline.endTick; $('replay-seek').value = 0;
     fillFollowOptions(timeline.roster); setFollow(null);
-    document.body.classList.add('replaying'); connection('REPLAY'); setPlaying(true); applyReplayTick(0); scene?.updateCamera(true);
+    document.body.classList.add('replaying'); connection('REPLAY'); setPlaying(true); seekReplay(0); scene?.updateCamera(true);
   } catch (error) { toast(error.message); }
 }
 // The roster comes from the recording rather than the displayed frame, so a subject can be chosen
@@ -274,7 +279,9 @@ function applyReplayTick(tick) {
     ? `MISSING DATA · showing tick ${sample.frameTick}`
     : `PARTIAL RECORDING · ${replayTimeline.droppedFrames} frame${replayTimeline.droppedFrames === 1 ? '' : 's'} omitted`;
 }
-function setPlaying(value) { playing = value; $('replay-play').innerHTML = icon(value ? 'pause' : 'play'); $('replay-play').ariaLabel = value ? 'Pause replay' : 'Play replay'; icons(); }
+function seekReplay(tick) { applyReplayTick(tick); anchorPlayback(); }
+function anchorPlayback() { playbackFrom = playback; playbackAt = performance.now(); }
+function setPlaying(value) { playing = value; if (value) anchorPlayback(); $('replay-play').innerHTML = icon(value ? 'pause' : 'play'); $('replay-play').ariaLabel = value ? 'Pause replay' : 'Play replay'; icons(); }
 async function downloadReplay(id) {
   try {
     const data = replay?.id === id ? replay : await json(`/api/replays/${id}`);
@@ -323,8 +330,10 @@ async function downloadDiagnostics() {
 $('download-diagnostics').onclick = () => void downloadDiagnostics();
 $('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) { ws.send(JSON.stringify({ type: 'finish' })); $('finish-recording').disabled = true; } };
 $('watch-match').onclick = () => { if (savedReplay) void watchReplay(savedReplay.id); };
-$('replay-play').onclick = () => { if (replay && playback >= replayTimeline.endTick) applyReplayTick(0); setPlaying(!playing); };
-$('replay-seek').oninput = () => { if (replay) applyReplayTick(Number($('replay-seek').value)); };
+$('replay-play').onclick = () => { if (replay && playback >= replayTimeline.endTick) seekReplay(0); setPlaying(!playing); };
+$('replay-seek').oninput = () => { if (replay) seekReplay(Number($('replay-seek').value)); };
+// Without re-anchoring, the time already elapsed would be re-scaled by the new rate and jump.
+$('replay-speed').onchange = () => { if (replay) anchorPlayback(); };
 $('replay-focus').onchange = () => { if (replay) setFollow($('replay-focus').value); };
 $('replay-download').onclick = () => { if (replay) void downloadReplay(replay.id); };
 $('replay-close').onclick = closeReplay;
