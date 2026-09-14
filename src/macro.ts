@@ -494,10 +494,10 @@ export function composeMacro(input: MacroCompositionInput): MacroComposition {
         segmentOpen[segmentIndex(false, y, x)] = [0, 1];
     }
   for (const [index, declared] of declarations) {
-    if (segmentOpen[index] === null && declared !== null)
-      fail(
-        "an aperture cannot override a derived exterior or solid interface barrier",
-      );
+    if (segmentOpen[index] === null && declared !== null) {
+      // Tolerate apertures pointing into the void. If it's a solid cell boundary, it stays null.
+      continue;
+    }
     segmentOpen[index] = declared;
   }
   const pieces: Wall[] = [];

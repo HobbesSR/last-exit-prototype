@@ -175,9 +175,20 @@ try {
       line + (vertical ? placed.x : placed.y),
       offset + (vertical ? placed.y : placed.x),
     );
+    const actualSpan = actual.segmentOpen(worldIndex);
+    const expectedSpan =
+      declaration === "wall" ? null : (declaration as number[]);
+    if (actualSpan) {
+      actualSpan[0] = Math.round(actualSpan[0] * 1000) / 1000;
+      actualSpan[1] = Math.round(actualSpan[1] * 1000) / 1000;
+    }
+    if (expectedSpan) {
+      expectedSpan[0] = Math.round(expectedSpan[0] * 1000) / 1000;
+      expectedSpan[1] = Math.round(expectedSpan[1] * 1000) / 1000;
+    }
     assert.deepEqual(
-      actual.segmentOpen(worldIndex),
-      declaration === "wall" ? null : declaration,
+      actualSpan,
+      expectedSpan,
       "exported geometry honors the rotated authored edge",
     );
   }

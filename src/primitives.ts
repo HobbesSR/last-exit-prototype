@@ -137,7 +137,7 @@ export function spanEquals(a: Span, b: Span): boolean {
 export function spanLength(span: Span): number {
   return span ? span[1] - span[0] : 0;
 }
-function spanFrom(declaration: SegmentDeclaration): Span {
+export function spanFrom(declaration: SegmentDeclaration): Span {
   if (declaration === "wall") return null;
   if (declaration === "open" || declaration === "any") return [0, 1];
   return [declaration[0], declaration[1]];

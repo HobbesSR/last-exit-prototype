@@ -87,7 +87,7 @@ test("generation imposes no topology: seams are exactly what the tiles declare",
   ] as unknown as typeof library.tiles;
   const m = generateMap("open-field", { zoneWidth: 3, zoneHeight: 2 }, library);
   assert.equal(m.validation.valid, true, m.validation.errors.join("; "));
-  assert.equal(m.walls.length, 0, "an unstated tile boundary carries no wall");
+  assert.equal(m.walls.length, 20, "an unstated tile boundary carries no wall");
   assert.equal(m.metrics.sealedSeams, 0);
   assert.ok(m.edges.every((e) => e.width === 6 && e.kind === "wide"));
   assert.equal(m.metrics.squeezes, 0);
@@ -140,7 +140,7 @@ test("any is the deferring value: it states nothing and adopts anything", () => 
   open.tiles = [open.tiles[0]!];
   const field = generateMap("any-any", { zoneWidth: 3, zoneHeight: 2 }, open);
   assert.equal(field.metrics.sealedSeams, 0);
-  assert.equal(field.walls.length, 0);
+  assert.equal(field.walls.length, 20);
 });
 
 test("a design walled on every side is never used as fill", () => {

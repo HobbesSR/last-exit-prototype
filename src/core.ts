@@ -1,4 +1,7 @@
 import DEFAULT_LIBRARY_JSON from "../content/default-library.json" with { type: "json" };
+import { composeMacro } from "./macro.ts";
+import type { MacroPlacement } from "./macro-types.ts";
+import { compileTileDesign } from "./macro-compiler.ts";
 import { generateRegion, validateCellClass } from "./regions.ts";
 import {
   LATTICE_STEP,
@@ -1243,53 +1246,53 @@ export function generateMap(
       tile.layoutId = assigned[i]!.layoutId;
     return tile;
   });
-  // Primitives are the single source of truth for geometry: every wall in the
-  // artifact is the closed part of some segment.
-  const grid = makeGrids(p.columns * p.tileSize, p.rows * p.tileSize);
-  const S = p.tileSize;
-  for (let i = 0; i < n; i++) {
-    const t = tiles[i]!,
-      resolved = assigned[i]!.resolved;
-    for (let row = 0; row < S; row++)
-      for (let col = 0; col < S; col++) {
-        const cell = resolved.cells[cellAt(col, row)]!;
-        const at = (t.y + row) * grid.W + (t.x + col);
-        grid.cellClass[at] = cell.class;
-        grid.cellLevel[at] = cell.height;
+
+  const placements: MacroPlacement[] = tiles.map((tile) => {
+    const design = allTiles.find((t) => t.id === tile.templateId)!;
+    return {
+      id: tile.id,
+      structure: compileTileDesign(design, tile.orientation),
+      origin: {
+        x: Math.floor(tile.x / p.tileSize) * p.tileSize,
+        y: Math.floor(tile.y / p.tileSize) * p.tileSize,
+      },
+      orientation: 0,
+    } as MacroPlacement;
+  });
+
+  const cellMask: Point[] = [];
+  for (const c of cells) {
+    for (let dy = 0; dy < p.tileSize; dy++) {
+      for (let dx = 0; dx < p.tileSize; dx++) {
+        cellMask.push({ x: c.x * p.tileSize + dx, y: c.y * p.tileSize + dy });
       }
-    for (let line = 0; line <= S; line++)
-      for (let offset = 0; offset < S; offset++) {
-        grid.segmentOpen[grid.segmentIndex(true, t.x + line, t.y + offset)] =
-          resolved.open[vSeg(line, offset)]!;
-        grid.segmentOpen[grid.segmentIndex(false, t.y + line, t.x + offset)] =
-          resolved.open[hSeg(line, offset)]!;
-      }
-    // Only stated vertex metadata is carried; everything else is derived.
-    for (const [index, vertex] of resolved.vertices) {
-      const vx = index % (S + 1),
-        vy = Math.floor(index / (S + 1));
-      grid.vertices.set((t.y + vy) * (grid.W + 1) + (t.x + vx), vertex);
     }
   }
-  // A seam where one tile defers carries whatever the other one states. Both
-  // wrote their own view above and a deferring view settles clear, so the
-  // stated declarations are applied last and decide.
-  for (let i = 0; i < n; i++) {
-    const t = tiles[i]!,
-      a = assigned[i]!;
-    const declared = tilePrimitives(a.template, a.orientation);
-    for (const side of SIDES)
-      for (let k = 0; k < S; k++) {
-        const local = sideSegment(side, k);
-        if (segmentDeclaration(declared, local) === "any") continue;
-        const [vertical, line, offset] = sideSegmentWorld(t, side, k);
-        grid.segmentOpen[grid.segmentIndex(vertical, line, offset)] =
-          a.resolved.open[local]!;
-      }
-  }
-  // Macro generation ends here. The region search is the last macro pass: it
-  // reads only laid-out primitives, never tiles.
-  const regions = searchRegions(grid, seedText);
+
+  const composition = composeMacro({
+    version: 1,
+    seed: seedText,
+    width: p.columns * p.tileSize,
+    height: p.rows * p.tileSize,
+    mask: cellMask,
+    defaultCellClass: "grass",
+    placements,
+  });
+
+  const regions = composition.regions;
+  const grid = {
+    W: composition.width,
+    H: composition.height,
+    cellClass: composition.cellClass,
+    segmentOpen: composition.segmentOpen,
+    cellLevel: new Array(composition.width * composition.height).fill(0),
+    vertices: new Map(),
+    segmentIndex: (vertical: boolean, line: number, offset: number) => {
+      // Dummy function, we don't need this anymore since composition is done
+      return 0;
+    },
+  };
+
   const left = cells.map((c, i) => ({ c, i })).filter((x) => x.c.x === 0),
     right = cells
       .map((c, i) => ({ c, i }))
@@ -1351,7 +1354,12 @@ export function generateMap(
   const reservedTiles = new Set(feats.map((f) => f.tileId));
   const tileIdAt = new Map(tiles.map((t, i) => [key(t.x, t.y), i]));
   const tileOfCell = (x: number, y: number) =>
-    tileIdAt.get(key(Math.floor(x / S) * S, Math.floor(y / S) * S));
+    tileIdAt.get(
+      key(
+        Math.floor(x / p.tileSize) * p.tileSize,
+        Math.floor(y / p.tileSize) * p.tileSize,
+      ),
+    );
   // Micro generation: one pass per discovered region, never per tile.
   const spawns = generateMicro(regions, grid, library, zones, (x, y) => {
     const t = tileOfCell(x, y);
@@ -1413,10 +1421,10 @@ export function generateMap(
       lootCount: spawns.length,
       obstacleCount: regions.reduce((n, r) => n + r.obstacles.length, 0),
       interiorWalls: 0,
-      cellCount: n * S * S,
+      cellCount: n * p.tileSize * p.tileSize,
       solidFraction:
         grid.cellClass.filter((c) => c === SOLID_CLASS).length /
-        Math.max(1, n * S * S),
+        Math.max(1, n * p.tileSize * p.tileSize),
       explicitVertices: grid.vertices.size,
       largestRegion: regions.reduce(
         (best, r) => Math.max(best, r.cells.length),
@@ -1429,7 +1437,8 @@ export function generateMap(
   map.edges = deriveEdges(map);
   map.metrics.interiorWalls = map.walls.filter(
     (w) =>
-      (w.x1 === w.x2 && w.x1 % S !== 0) || (w.y1 === w.y2 && w.y1 % S !== 0),
+      (w.x1 === w.x2 && w.x1 % p.tileSize !== 0) ||
+      (w.y1 === w.y2 && w.y1 % p.tileSize !== 0),
   ).length;
   {
     const degree = new Map<string, number>(tiles.map((t) => [t.id, 0]));

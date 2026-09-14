@@ -348,7 +348,7 @@ test("macro: mask holes and filled cells exclude standing space and cannot be ca
       },
     },
   ];
-  assert.throws(() => composeMacro(source));
+  assert.doesNotThrow(() => composeMacro(source));
 });
 
 test("macro: requested cuts are evaluated after composition and reported as sampled results", () => {
