@@ -1968,12 +1968,7 @@ function segmentAddress(index: number): string {
   return `${vertical ? "v" : "h"}:${line},${offset}`;
 }
 function editableSegment(index: number): boolean {
-  const { line, offset } = segmentPlace(index);
-  return (
-    line === 0 ||
-    line === TILE_CELLS ||
-    (line >= 1 && line <= 5 && offset >= 1 && offset <= 4)
-  );
+  return true;
 }
 function renderSegments(): void {
   const preview = $("tilePreview");
