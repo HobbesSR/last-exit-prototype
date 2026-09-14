@@ -19,7 +19,16 @@ current proof of concept:
 4. Physics substeps inside the 20 Hz tick for projectiles, knockback, and richer hazards.
 5. Wedge-culling for server `lineClear` queries if profiling shows it matters; client visibility already uses the optimized sweep.
 6. Persistent gladiator unlocks, contestant perks, card/sticker packs, pre-game cards, cosmetics, and a fair monetization model.
-7. Destructible cover, command-center interactions, hunter-triggered hazards, richer camera/sensor stations, audio, authentication, public deployment, and retention policies. Trap variety and single-server matchmaking are implemented as tracked in [13](13-accepted-features.md); richer variants and public infrastructure remain separate work.
+7. Unreliable transport. WebSocket runs over TCP, so one lost packet holds up every
+   frame behind it — head-of-line blocking the receive buffer can only paper over by
+   holding frames longer. WebRTC data channels (geckos.io, MIT) remove it, at the cost
+   of signalling, NAT traversal and a second transport to operate. Deferred until
+   measured, and the measurement now exists: `net.rttMs` reports what the server timed,
+   and the buffer's `starved` and `snaps` counters report how often a frame arrived too
+   late to draw. If starvation stays near zero on real connections, TCP is not the limit
+   and this buys nothing. Take the numbers from a real network rather than loopback,
+   where the stall rate is zero by construction.
+8. Destructible cover, command-center interactions, hunter-triggered hazards, richer camera/sensor stations, audio, authentication, public deployment, and retention policies. Trap variety and single-server matchmaking are implemented as tracked in [13](13-accepted-features.md); richer variants and public infrastructure remain separate work.
 
 F-01's hierarchical template system is deferred pending the user's detailed
 specification; the interim street maze does not claim to implement it. Playable

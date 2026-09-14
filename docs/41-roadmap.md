@@ -18,7 +18,7 @@ can outlive server shutdown. These are concrete sources of cross-system changes.
 | Now | Room/session application separate from HTTP/WebSocket and timers | Run joins, reconnects, delay, catch-up, abandonment and shutdown with fake sessions/time/storage. Existing integration/browser suites still pass. |
 | Now | Owned asynchronous shutdown | Every started finalization is awaited; repeated close/finalize is idempotent. Test slow/failing storage directly. Record this reliability change separately from extraction. |
 | Next | Explicit outbound field contracts | New server-only fields must not automatically appear in player views. Introduce allowlists with frozen projection comparisons and nested item/trap contracts. |
-| Next | Versioned immutable match content | Pin weapons/kits/traps/map tuning at match creation; identify content in recordings. Requires replay/content compatibility policy before changing existing formats. |
+| Done | Versioned immutable match content | Weapons, kits and the tick-denominated rules are pinned and frozen at match creation and read from the match rather than from module constants; the recording header names the set. Trap tunables and map generation tuning are still module-level literals and are the remaining surface — the mechanism to absorb them now exists. |
 | Later | Typed gameplay facts | Separate replayable facts from presentation strings/effects; events carry stable IDs and schemas. Establish actual consumers before broad instrumentation or progression integration. |
 | Later | Deployment/session compatibility | Distinct account/session/player/match identities, admission/draining, reconnect routing and compatibility negotiation. Requires product/hosting decisions. |
 | Profile first | Geometry and renderer component extraction | Preserve shared cache ownership, query semantics and render order. Split when a concrete change/measurement justifies it. |
@@ -29,8 +29,8 @@ discovery, a new database, TypeScript migration or an internal gameplay event bu
 Transport envelope parsing and simulation input validation are different layers:
 slot and input validation depends on player state and remains authoritative.
 
-The priorities marked Now, and the outbound-field Next item, are implemented, as
-are inventory drag/drop (F-13) and the recording failure policy. The completed
+The priorities marked Now and Done are implemented, as are inventory drag/drop
+(F-13) and the recording failure policy. The completed
 checkpoints and what they measured are in [42](42-performance-history.md).
 F-11 through F-18 are the next gameplay milestone, with a separate simulation and
 version review.

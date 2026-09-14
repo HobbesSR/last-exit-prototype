@@ -9,7 +9,6 @@ import { movePlayer } from './movement.ts';
 import { start, stop } from './profiler.ts';
 import { equipped, syncWeapon, rearrangeEquipment } from './equipment.ts';
 import { stepTraps } from './traps.ts';
-import { HAZARD_GRACE_TICKS, DURATION } from './simulation/rules.ts';
 import { distance } from './simulation/geometry.ts';
 import { effect, dropEquipment, automaticPickups } from './simulation/loot.ts';
 import { respawn, finishMatch } from './simulation/lifecycle.ts';
@@ -27,7 +26,7 @@ export function step(s: Game): void {
   if (s.phase !== 'live') return;
   start('sim.step');
   s.tick++;
-  s.hazardX = Math.round(-80 + Math.max(0, s.tick - HAZARD_GRACE_TICKS) / (DURATION - HAZARD_GRACE_TICKS) * (s.map.width + 100));
+  s.hazardX = Math.round(-80 + Math.max(0, s.tick - s.content.hazardGraceTicks) / (s.content.durationTicks - s.content.hazardGraceTicks) * (s.map.width + 100));
   s.effects = s.effects.filter(e => --e.life > 0);
   for (const p of s.players) {
     p.movedThisTick = 0;
@@ -42,9 +41,9 @@ export function step(s: Game): void {
     p.heading = input.aim || 0; movePlayer(s.map, p, input); p.movedThisTick = distance(p, previousPosition);
     stop('sim.move');
     start('sim.actions');
-    if (p.inventory && input.slot !== undefined) { p.selectedSlot = input.slot; syncWeapon(p); }
-    if (input.moveSlot) rearrangeEquipment(p, input.moveSlot.from, input.moveSlot.to);
-    if (input.drop && equipped(p)) { dropEquipment(s, p, equipped(p)!); p.inventory![p.selectedSlot!] = null; p.charging = null; syncWeapon(p); }
+    if (p.inventory && input.slot !== undefined) { p.selectedSlot = input.slot; syncWeapon(p, s.content.weapons); }
+    if (input.moveSlot) rearrangeEquipment(p, input.moveSlot.from, input.moveSlot.to, s.content.weapons);
+    if (input.drop && equipped(p)) { dropEquipment(s, p, equipped(p)!); p.inventory![p.selectedSlot!] = null; p.charging = null; syncWeapon(p, s.content.weapons); }
     if (input.skill) skill(s, p);
     if (input.attack) attack(s, p);
     if (input.interact) interact(s, p);

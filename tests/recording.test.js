@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { recordingFit, SCHEMA, MIN_SCHEMA } from '../shared/recording.ts';
 import { roomHarness } from './helpers/room-harness.js';
+import { CONTENT_ID } from '../shared/simulation/content.ts';
+import { VERSION } from '../shared/simulation/rules.ts';
 
 const playable = { map: { obstacles: [{ id: 'o0' }] } };
 
@@ -42,4 +44,13 @@ test('the server stamps every recording with the schema pair its readers check',
   assert.equal(writer.header.schema, SCHEMA);
   assert.equal(writer.header.minSchema, MIN_SCHEMA);
   assert.equal(recordingFit(writer.header), 'ok', 'what the writer produces is what the reader accepts');
+});
+
+test('a recording names the content set its match was pinned to', () => {
+  const harness = roomHarness();
+  const { writer } = harness.live(9);
+  // `version` says which rules produced the recording; this says which numbers they ran over. A
+  // reader looking at an old archive needs both to say what its contents meant.
+  assert.equal(writer.header.contentId, CONTENT_ID);
+  assert.equal(writer.header.version, VERSION, 'and the rules alongside it');
 });

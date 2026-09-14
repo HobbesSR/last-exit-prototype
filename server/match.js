@@ -11,6 +11,10 @@ export function createMatch(seed) {
     get tick() { return game.tick; },
     get phase() { return game.phase; },
     get seed() { return game.seed; },
+    /** Which content set this match was pinned to, for the recording header to name. */
+    get contentId() { return game.content.id; },
+    /** Whether this match's content offers a kit, rather than whatever the process happens to ship. */
+    hasKit: kit => Object.hasOwn(game.content.kits, kit),
     // Compatibility escape hatch for existing scenario/benchmark tools, not application code.
     get diagnosticState() { return game; },
     roster: () => game.players.filter(p => !p.bot).map(identity),

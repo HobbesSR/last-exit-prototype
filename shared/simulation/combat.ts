@@ -1,6 +1,6 @@
 import { canOccupy, lineClear } from '../movement.ts';
-import { WEAPONS, equipped, syncWeapon } from '../equipment.ts';
-import { HZ, KITS } from './rules.ts';
+import { equipped, syncWeapon } from '../equipment.ts';
+import { HZ } from './rules.ts';
 import { distance } from './geometry.ts';
 import { effect } from './loot.ts';
 import { eliminate } from './lifecycle.ts';
@@ -18,7 +18,7 @@ export function damage(s: Game, target: Player, amount: number, source: Player |
 export function skill(s: Game, p: Player): void {
   if (p.cooldown > 0) return;
   if (p.role === 'contestant') return;
-  p.cooldown = Math.max(45, KITS[p.kit].cooldown - (p.level - 1) * 12);
+  p.cooldown = Math.max(45, s.content.kits[p.kit].cooldown - (p.level - 1) * 12);
   if (p.kit === 'warden') {
     effect(s, p, 'shock', 130);
     // Resolved against where the caster saw them. The ring is drawn at the caster's own position, so
@@ -37,7 +37,7 @@ export function attack(s: Game, p: Player): void {
     // Range, arc and cover all read the positions this gladiator was looking at when they swung.
     const seen = asSeenBy(s, p);
     const t = s.players.filter(t => t.role !== p.role && t.status === 'active' && distance(p, seen(t)) < 86 && Math.cos(Math.atan2(seen(t).y - p.y, seen(t).x - p.x) - p.heading) > 0.25 && lineClear(s.map, p, seen(t))).sort((a, b) => distance(p, seen(a)) - distance(p, seen(b)))[0];
-    if (t) damage(s, t, KITS[p.kit].damage + (p.level - 1) * 4, p);
+    if (t) damage(s, t, s.content.kits[p.kit].damage + (p.level - 1) * 4, p);
   } else {
     const item = equipped(p);
     if (!item) return;
@@ -46,11 +46,11 @@ export function attack(s: Game, p: Player): void {
       if (item.kind === 'med') p.hp = Math.min(p.maxHp, p.hp + 40);
       else p.shield = Math.min(75, p.shield + 30);
       if (--item.count <= 0) p.inventory![p.selectedSlot!] = null;
-      p.attackCd = HZ; syncWeapon(p); effect(s, p, 'loot', 30); return;
+      p.attackCd = HZ; syncWeapon(p, s.content.weapons); effect(s, p, 'loot', 30); return;
     }
     // A carried cell is not a firearm; the original fell through the same way on a missing spec.
     if (item.kind !== 'weapon') return;
-    const weapon = WEAPONS[item.weaponType]; if (!weapon) return;
+    const weapon = s.content.weapons[item.weaponType]; if (!weapon) return;
     item.ammo ??= weapon.ammo;
     if (item.ammo <= 0) return;
     item.ammo--;

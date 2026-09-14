@@ -2,8 +2,8 @@ import PF from 'pathfinding';
 import { canOccupy, lineClear, reachClear, TILE } from '../movement.ts';
 import { navigationGrid, straightenPath, blockAt, blockRoute } from '../map.ts';
 import { count, start, stop } from '../profiler.ts';
-import { WEAPONS, carriedCell, syncWeapon } from '../equipment.ts';
-import { HZ, CELL_CHARGE_TICKS } from './rules.ts';
+import { carriedCell, syncWeapon } from '../equipment.ts';
+import { HZ } from './rules.ts';
 import { distance, tile, center } from './geometry.ts';
 import { visibleTo } from './visibility.ts';
 import { attack } from './combat.ts';
@@ -26,8 +26,8 @@ export function botInput(s: Game, p: Player): PlayerInput {
   const cell = carriedCell(p);
   if (p.inventory) {
     const utility = p.inventory.findIndex(i => !!i && (i.kind === 'med' && p.hp < 65 || i.kind === 'shield' && p.shield < 45));
-    const weapon = p.inventory.findIndex(i => i?.kind === 'weapon' && (i.ammo ?? WEAPONS[i.weaponType].ammo) > 0);
-    p.selectedSlot = utility >= 0 ? utility : weapon >= 0 ? weapon : 0; syncWeapon(p);
+    const weapon = p.inventory.findIndex(i => i?.kind === 'weapon' && (i.ammo ?? s.content.weapons[i.weaponType].ammo) > 0);
+    p.selectedSlot = utility >= 0 ? utility : weapon >= 0 ? weapon : 0; syncWeapon(p, s.content.weapons);
     if (utility >= 0) attack(s, p);
   }
   // Mixed temperaments create occasional betrayal, rather than every converging bot starting
@@ -40,7 +40,7 @@ export function botInput(s: Game, p: Player): PlayerInput {
   if (p.role === 'contestant') {
     const accessible = (i: GroundItem) => p.keys > 0 || !i.buildingId || !s.map.gates.some(g => g.buildingId === i.buildingId && g.locked && !g.open);
     const objective: Vec2[] = !cell ? s.map.items.filter(i => i.kind === 'cell' && i.x > s.hazardX + 100 && accessible(i))
-      : cell.charge < CELL_CHARGE_TICKS ? s.map.chargers.filter(st => st.x > s.hazardX + 100) : [];
+      : cell.charge < s.content.cellChargeTicks ? s.map.chargers.filter(st => st.x > s.hazardX + 100) : [];
     if (objective.length) {
       const from = blockAt(s.map, p);
       const cost = (t: Vec2) => blockRoute(s.map, from, blockAt(s.map, t)).length * 1000 + distance(p, t) * 0.05;
@@ -53,8 +53,8 @@ export function botInput(s: Game, p: Player): PlayerInput {
     const loot = s.map.items.filter(i => i.kind !== 'cell' && i.x > s.hazardX + 100 && i.x >= p.x - 60 && distance(p, i) < 210 && accessible(i)
       && (i.kind !== 'med' || p.hp < 75)
       && (i.kind === 'access' || p.inventory!.some(slot => !slot) || p.inventory!.some(slot => slot?.kind === i.kind && slot.kind !== 'weapon' && slot.kind !== 'cell' && slot.count < 3
-        || slot?.kind === 'weapon' && slot.weaponType === i.weaponType && slot.ammo < WEAPONS[i.weaponType!]?.maxAmmo))
-      && (i.kind !== 'weapon' || i.ammo !== 0 && !p.inventory!.some(slot => slot?.kind === 'weapon' && slot.weaponType === i.weaponType && slot.ammo >= WEAPONS[i.weaponType!].maxAmmo))).sort((a, b) => distance(p, a) - distance(p, b))[0];
+        || slot?.kind === 'weapon' && slot.weaponType === i.weaponType && slot.ammo < s.content.weapons[i.weaponType!]?.maxAmmo))
+      && (i.kind !== 'weapon' || i.ammo !== 0 && !p.inventory!.some(slot => slot?.kind === 'weapon' && slot.weaponType === i.weaponType && slot.ammo >= s.content.weapons[i.weaponType!].maxAmmo))).sort((a, b) => distance(p, a) - distance(p, b))[0];
     if (loot && loot.kind !== 'cell' && !p.charging && (!nearest || distance(p, nearest) > 250)) target = loot;
   }
   if (!p.path?.length || s.tick % 20 === p.name.length % 20) {
@@ -95,7 +95,7 @@ export function botInput(s: Game, p: Player): PlayerInput {
     if (options.length) { dx = options[0].x * 9; dy = options[0].y * 9; }
   }
   const length = Math.max(9, Math.hypot(dx, dy));
-  if (p.role === 'contestant' && cell != null && cell.charge < CELL_CHARGE_TICKS && s.map.chargers.some(st => distance(p, st) < 55 && lineClear(s.map, p, st))) return { x: 0, y: 0, interact: true };
+  if (p.role === 'contestant' && cell != null && cell.charge < s.content.cellChargeTicks && s.map.chargers.some(st => distance(p, st) < 55 && lineClear(s.map, p, st))) return { x: 0, y: 0, interact: true };
   const allyInLine = p.role === 'contestant' && nearest && s.players.some(other => {
     if (other.id === p.id || other.id === nearest.id || other.role !== 'contestant' || other.status !== 'active') return false;
     const nx = nearest.x - p.x, ny = nearest.y - p.y, projection = ((other.x - p.x) * nx + (other.y - p.y) * ny) / (nx * nx + ny * ny);

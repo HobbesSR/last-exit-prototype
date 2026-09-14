@@ -2,6 +2,7 @@ import { generateMap, WORLD_WIDTH, WORLD_HEIGHT } from '../map.ts';
 import { SLOT_COUNT } from '../equipment.ts';
 import { VERSION, KITS } from './rules.ts';
 import { queueInput, resetInput } from './input.ts';
+import { defaultContent } from './content.ts';
 import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role, SlotIndex } from '../types.ts';
 
 /**
@@ -10,8 +11,8 @@ import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role, SlotIndex
  * the current generator emits — see [31](../../docs/31-verification.md). The game mutates what it is
  * given (items are taken, gates open), so a caller reusing a map passes a copy.
  */
-export function createGame(seed = 4217, map: GameMap = generateMap(seed)): Game {
-  const s: Game = { version: VERSION, seed, rng: seed || 1, tick: 0, phase: 'live', map, players: [], projectiles: [], effects: [], events: [], slots: 3, hazardX: -80, serial: 0 };
+export function createGame(seed = 4217, map: GameMap = generateMap(seed), content = defaultContent()): Game {
+  const s: Game = { version: VERSION, content, seed, rng: seed || 1, tick: 0, phase: 'live', map, players: [], projectiles: [], effects: [], events: [], slots: 3, hazardX: -80, serial: 0 };
   for (const [i, name] of ['Mica', 'Juno', 'Patch', 'Pip', 'Nova', 'Rook', 'Echo', 'Sol'].entries()) s.players.push(makePlayer(`c${i}` as PlayerId, name, 'contestant', 'warden', i));
   s.players.push(makePlayer('g0' as PlayerId, 'IRONCLAD', 'gladiator', 'warden', 0), makePlayer('g1' as PlayerId, 'VESPER', 'gladiator', 'specter', 1));
   for (const p of s.players) if (p.role === 'contestant') { p.inventory = Array(SLOT_COUNT).fill(null); p.selectedSlot = 0; }
@@ -29,7 +30,7 @@ export function joinGame(s: Game, id: PlayerId, role: Role = 'contestant', kit: 
   const p = s.players.find(p => p.bot && p.role === role && p.status === 'active');
   if (!p) return null;
   p.id = id; p.name = name.slice(0, 16); p.bot = false;
-  if (Object.hasOwn(KITS, kit)) p.kit = kit;
+  if (Object.hasOwn(s.content.kits, kit)) p.kit = kit;
   resetInput(p); delete p.viewLagTicks; p.path = [];
   return p;
 }

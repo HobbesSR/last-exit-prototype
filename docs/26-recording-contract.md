@@ -34,6 +34,13 @@ recorded command and the queue itself into recorded player state — additive, s
 after it. The same change raised `version` to `last-exit-0.7`, because what a recording *means* moved
 too: a tick now spends one input rather than whatever had accumulated.
 
+Schema 3 added `contentId` to the header, again additively. It is a third axis and the three do not
+substitute for one another: the schema pair says whether a file can be *read*, `version` says which
+rules produced it, and `contentId` says which numbers those rules ran over. Two matches can share a
+version and disagree about what a pistol does, and a reader looking at an old archive needs to tell
+which. The content itself is not in the header — it is fixed for the whole match, so naming it once
+costs a string where carrying it would repeat the same tables in every frame.
+
 `version` is a separate axis and keeps its meaning: which simulation rules produced the recording.
 The schema pair decides whether a file can be *read*; `version` says what its contents *mean*.
 Recordings also embed their own map, so changing map generation never invalidates one.

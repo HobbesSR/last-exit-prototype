@@ -2,7 +2,6 @@ import { lineClear, VISION } from '../movement.ts';
 import { POTENTIAL_RADIUS, roofConceals } from '../view.ts';
 import { distance } from './geometry.ts';
 import { start, stop } from '../profiler.ts';
-import { DURATION, CELL_CHARGE_TICKS } from './rules.ts';
 import { frameFields, ownPlayerFields, itemFields, gateFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
 import type { Game, Player, PlayerId, Snapshot, Vec2, World } from '../types.ts';
 // The reach the server transmits within. Generous on purpose: it carries everything that could become
@@ -43,7 +42,7 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
   // Effects are sized, so a wide ring counts as reachable when its edge is, not just its centre.
   const inRange = (p: Vec2 & { radius?: World | undefined }) => !viewer || distance(viewer, p) < POTENTIAL + (p.radius ?? 0);
   const rest = frameFields(frame); // Replay bookkeeping and unlisted internal fields stay private.
-  return { ...rest, duration: DURATION, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
+  return { ...rest, duration: s.content.durationTicks, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
     players: frame.players.filter(p => couldSee(s, viewer, p)).map(p => p.id === id ? ownPlayerFields(p) : observed(p)),
     items: frame.items.filter(inRange).map(itemFields), gates: frame.gates?.map(gateFields),
     traps: (frame.traps || []).filter(inRange).map(trapFields), projectiles: frame.projectiles.filter(inRange).map(projectileFields),
@@ -51,6 +50,6 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
 }
 export function snapshot(s: Game): Snapshot {
   start('sim.snapshot');
-  try { return structuredClone({ version: s.version, duration: DURATION, cellChargeTicks: CELL_CHARGE_TICKS, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: s.map.items, gates: s.map.gates, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events }); }
+  try { return structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: s.map.items, gates: s.map.gates, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events }); }
   finally { stop('sim.snapshot'); }
 }

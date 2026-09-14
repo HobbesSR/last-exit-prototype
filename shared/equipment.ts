@@ -1,6 +1,8 @@
 import type { CellItem, InventoryItem, GroundItem, Player, SlotIndex, StackItem, StackKind, WeaponItem, WeaponSpec, WeaponType } from './types.ts';
 
 export const SLOT_COUNT = 6;
+/** The weapon table a match is pinned to. Defaults below; a match passes its own copy. */
+type WeaponTable = Record<WeaponType, WeaponSpec>;
 export const WEAPONS: Record<WeaponType, WeaponSpec> = {
   pistol: { name: 'Pistol', ammo: 48, maxAmmo: 192, cooldown: 8, damage: 10, speed: 35, life: 24, spread: [0] },
   rifle: { name: 'Rifle', ammo: 90, maxAmmo: 360, cooldown: 4, damage: 6, speed: 44, life: 28, spread: [0] },
@@ -8,15 +10,15 @@ export const WEAPONS: Record<WeaponType, WeaponSpec> = {
 };
 export function equipped(p: Player): InventoryItem | null { return p.inventory?.[p.selectedSlot || 0] || null; }
 export function carriedCell(p: Player): CellItem | null { return equipped(p)?.kind === 'cell' ? equipped(p) as CellItem : p.inventory?.find((item): item is CellItem => item?.kind === 'cell') || null; }
-export function syncWeapon(p: Player): void {
+export function syncWeapon(p: Player, weapons: WeaponTable = WEAPONS): void {
   const item = equipped(p);
-  p.weapon = item?.kind === 'weapon' ? Object.keys(WEAPONS).indexOf(item.weaponType) + 1 : 0;
+  p.weapon = item?.kind === 'weapon' ? Object.keys(weapons).indexOf(item.weaponType) + 1 : 0;
 }
-export function collectEquipment(p: Player, item: GroundItem): boolean {
+export function collectEquipment(p: Player, item: GroundItem, weapons: WeaponTable = WEAPONS): boolean {
   const inventory = p.inventory;
   if (!inventory) return false;
   if (item.kind === 'weapon') {
-    const type = item.weaponType || 'pistol', weapon = WEAPONS[type];
+    const type = item.weaponType || 'pistol', weapon = weapons[type];
     if (!weapon) return false;
     const existing = inventory.find((slot): slot is WeaponItem => slot?.kind === 'weapon' && slot.weaponType === type);
     if (existing) {
@@ -33,14 +35,14 @@ export function collectEquipment(p: Player, item: GroundItem): boolean {
   }
   const index = inventory.findIndex(slot => !slot);
   if (index < 0) return false;
-  inventory[index] = item.kind === 'weapon' ? { kind: 'weapon', weaponType: item.weaponType || 'pistol', ammo: item.ammo ?? WEAPONS[item.weaponType || 'pistol'].ammo }
+  inventory[index] = item.kind === 'weapon' ? { kind: 'weapon', weaponType: item.weaponType || 'pistol', ammo: item.ammo ?? weapons[item.weaponType || 'pistol'].ammo }
     // Callers only offer carried kinds; an `access` charge is banked in `Player.keys` instead.
     : item.kind === 'cell' ? { kind: 'cell', charge: item.charge || 0 } : { kind: item.kind as StackKind, count: 1 };
   if (!equipped(p) || item.kind === 'weapon' && equipped(p)!.kind !== 'weapon') p.selectedSlot = index;
-  syncWeapon(p); return true;
+  syncWeapon(p, weapons); return true;
 }
 
-export function rearrangeEquipment(p: Player, from: SlotIndex, to: SlotIndex): boolean {
+export function rearrangeEquipment(p: Player, from: SlotIndex, to: SlotIndex, weapons: WeaponTable = WEAPONS): boolean {
   if (!p.inventory || !Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= p.inventory.length || to >= p.inventory.length || from === to) return false;
   const source = p.inventory[from], target = p.inventory[to];
   if (!source) return false;
@@ -54,5 +56,5 @@ export function rearrangeEquipment(p: Player, from: SlotIndex, to: SlotIndex): b
     if (p.selectedSlot === from) p.selectedSlot = to;
     else if (p.selectedSlot === to) p.selectedSlot = from;
   }
-  syncWeapon(p); return true;
+  syncWeapon(p, weapons); return true;
 }

@@ -1,6 +1,5 @@
 import { canOccupy } from '../movement.ts';
 import { syncWeapon } from '../equipment.ts';
-import { GLADIATOR_RESPAWN_TICKS, DURATION } from './rules.ts';
 import { distance } from './geometry.ts';
 import { event, effect, dropEquipment } from './loot.ts';
 import type { Game, Player } from '../types.ts';
@@ -8,9 +7,9 @@ import type { Game, Player } from '../types.ts';
 export function eliminate(s: Game, target: Player, source: Player | null): void {
   target.status = 'eliminated'; event(s, `${target.name} ${source ? 'eliminated by ' + source.name : 'lost to the arena'}`);
   target.charging = null;
-  if (target.role === 'gladiator') { target.status = 'respawning'; target.respawnAt = s.tick + GLADIATOR_RESPAWN_TICKS; target.input = {}; }
+  if (target.role === 'gladiator') { target.status = 'respawning'; target.respawnAt = s.tick + s.content.gladiatorRespawnTicks; target.input = {}; }
   for (const item of target.inventory || []) if (item) dropEquipment(s, target, item);
-  if (target.inventory) { target.inventory.fill(null); syncWeapon(target); }
+  if (target.inventory) { target.inventory.fill(null); syncWeapon(target, s.content.weapons); }
   if (source?.role === 'gladiator') {
     source.kills++; source.level = Math.min(4, 1 + source.kills); source.maxHp += 20; source.hp = Math.min(source.maxHp, source.hp + 45); source.cooldown = 0; effect(s, source, 'upgrade', 90);
   }
@@ -25,7 +24,7 @@ export function respawn(s: Game, p: Player): void {
   }
 }
 export function finishMatch(s: Game): void {
-  if (s.slots === 0 || !s.players.some(p => p.role === 'contestant' && p.status === 'active') || s.tick >= DURATION) {
+  if (s.slots === 0 || !s.players.some(p => p.role === 'contestant' && p.status === 'active') || s.tick >= s.content.durationTicks) {
     s.phase = 'finished'; for (const p of s.players) if (p.role === 'contestant' && p.status === 'active') p.status = 'stranded'; event(s, 'Broadcast complete');
   }
 }

@@ -70,6 +70,11 @@ Lag compensation is tested for the property that separates it from simply being 
 that has stepped out of reach is still hit, and a target that has only just stepped into reach is
 not. Around that sit cover at the rewound position, the bound on how far back it will reach, the
 absence of compensation for travel-time projectiles, and the history staying out of recordings.
+Content pinning is tested for what pinning is *for* rather than for the plumbing: a match given a
+harder-hitting pistol hits harder, which only holds if the read goes through the match and not the
+module the defaults live in. Alongside it, two matches hold independent copies, a match cannot edit
+the balance it runs under, a kit is validated against the match's own table, and the content stays
+out of every frame while the recording header names it.
 
 Unit and server coverage includes 200-seed path clearance, 50-seed
 placement/spawn/maze checks, ammo exhaustion and refill, sixth-slot selection,

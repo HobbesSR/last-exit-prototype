@@ -149,6 +149,24 @@ export interface KitSpec {
   skill: string;
 }
 
+/**
+ * The tunable content one match runs on, fixed at its creation and frozen thereafter.
+ *
+ * The values live in `simulation/content.ts`; the shape lives here with the specs it is made of,
+ * because this file is the dependency-free vocabulary every layer reads and must not import back
+ * out of one.
+ */
+export interface MatchContent {
+  /** Names the content set in a recording header. Changes when any value below changes. */
+  id: string;
+  weapons: Record<WeaponType, WeaponSpec>;
+  kits: Record<Kit, KitSpec>;
+  durationTicks: Tick;
+  cellChargeTicks: Tick;
+  gladiatorRespawnTicks: Tick;
+  hazardGraceTicks: Tick;
+}
+
 export interface WeaponItem {
   kind: 'weapon';
   weaponType: WeaponType;
@@ -419,6 +437,8 @@ export interface GameEvent {
 
 export interface Game {
   version: string;
+  /** The tunable content this match was created with, fixed for its lifetime. */
+  content: MatchContent;
   seed: number;
   /** Seeded PRNG state, carried in snapshots so a replay resumes the same stream. */
   rng: number;

@@ -25,7 +25,7 @@ export function automaticPickups(s: Game, p: Player, input: PlayerInput): void {
     s.map.items = s.map.items.filter(item => {
       if (distance(p, item) > 38 || !reachClear(s.map, p, item) || item.droppedBy === p.id && item.pickupAfter! > s.tick || p.bot && item.kind === 'cell' && carriedCell(p)) return true;
       if (item.kind === 'access') p.keys++;
-      if (['weapon', 'med', 'shield', 'cell'].includes(item.kind) && !collectEquipment(p, item)) return true;
+      if (['weapon', 'med', 'shield', 'cell'].includes(item.kind) && !collectEquipment(p, item, s.content.weapons)) return true;
       if (item.kind === 'cell') p.path = [];
       effect(s, p, 'loot', 30); return false;
     });
