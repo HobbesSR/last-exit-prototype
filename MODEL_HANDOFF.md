@@ -2,7 +2,7 @@
 
 Read AGENTS.md and design_notes.txt first. Implementation documents describe
 behavior and reversible defaults; the retired assistant proposal is historical.
-See docs/EDITOR_CLEANUP.md for the design audit and library-to-generator trace.
+See docs/archive/editor-cleanup/EDITOR_CLEANUP.md for the design audit and library-to-generator trace.
 
 ## Completed
 
@@ -42,7 +42,7 @@ See docs/EDITOR_CLEANUP.md for the design audit and library-to-generator trace.
 - `TileDesign.weight` is optional (omission means 1) and gone from the editor:
   selection frequency belongs to Tile Sets and Set Pieces per Corey. The shipped
   library keeps its tuned values, so legacy filler behavior is unchanged.
-  QUESTIONS.md item 10 holds the open schema question.
+  Tile selection frequency is treated uniformly pending future schema tuning.
 
 ## Pending: generation from composed tile/layout declarations
 
@@ -72,7 +72,7 @@ fail explicitly when bounded placement cannot satisfy required content.
 
 ## Workspace and acceptance
 
-No Git repository is present. Inspect current files and preserve user changes.
+A Git repository is present. Inspect current files and preserve user changes.
 This cleanup touched public/{app.ts,index.html,style.css}, src/{core.ts,types.ts},
 tests/{core.test.ts,browser.mts}, content/default-library.json, README.md,
 AGENTS.md, design_notes.txt and docs.

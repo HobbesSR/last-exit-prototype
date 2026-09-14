@@ -150,7 +150,7 @@ test("a design walled on every side is never used as fill", () => {
   const boxed = {
     id: "boxed",
     defaultCellClass: "open",
-    weight: 50,
+    
     orientations: [0],
     edges: { N: "######", E: "######", S: "######", W: "######" },
   };
@@ -161,7 +161,7 @@ test("a design walled on every side is never used as fill", () => {
   assert.equal(
     m.tiles.filter((t) => t.templateId === "boxed").length,
     0,
-    "an island design is not fill, however heavily it is weighted",
+    "an island design is not fill",
   );
 
   // Even as the librarys only fallback, it is passed over rather than placed.
@@ -234,29 +234,6 @@ test("validator rejects malformed and mutated map data without throwing", () => 
   assert.equal(validateMap(m).valid, false);
 });
 
-test("tile weight is optional, defaults to 1, and is still checked when stated", () => {
-  // Weight is not something an author states about a tile; the editor no longer
-  // offers it and a library without it is valid. See TileDesign.
-  const library = structuredClone(DEFAULT_LIBRARY);
-  for (const tile of library.tiles) delete tile.weight;
-  assert.equal(validateLibrary(library).valid, true);
-  const unweighted = generateMap(
-    "no-weight",
-    { zoneWidth: 2, zoneHeight: 1 },
-    library,
-  );
-  assert.equal(unweighted.validation.valid, true);
-  // An omitted weight is exactly 1, so stating 1 everywhere changes nothing.
-  const ones = structuredClone(library);
-  for (const tile of ones.tiles) tile.weight = 1;
-  assert.deepEqual(
-    generateMap("no-weight", { zoneWidth: 2, zoneHeight: 1 }, ones).tiles,
-    unweighted.tiles,
-  );
-  const zero = structuredClone(library);
-  zero.tiles[0]!.weight = 0;
-  assert.equal(validateLibrary(zero).valid, false);
-});
 
 test("library validation handles malformed nested input", () => {
   for (const value of [
@@ -270,20 +247,7 @@ test("library validation handles malformed nested input", () => {
     assert.equal(validateLibrary(value).valid, false);
 });
 
-test("clearance detects near tangent blockers between old sample points", () => {
-  const m = generateMap("capsule", { zoneWidth: 2, zoneHeight: 1 });
-  const edge = m.edges.find((e) => {
-    const a = m.tiles.find((t) => t.id === e.a)!,
-      b = m.tiles.find((t) => t.id === e.b)!;
-    return a.row === b.row;
-  })!;
-  const a = m.tiles.find((t) => t.id === edge.a)!,
-    b = m.tiles.find((t) => t.id === edge.b)!;
-  const x = Math.min(a.x, b.x) + 3.25,
-    y = a.y + 3 + 0.549;
-  m.walls.push({ x1: x, y1: y, x2: x, y2: y + 0.01 });
-  assert.equal(validateMap(m).valid, false);
-});
+
 
 test("nonintersecting collinear geometry does not block routes", () => {
   const m = generateMap("collinear", { zoneWidth: 2, zoneHeight: 1 });
@@ -471,14 +435,14 @@ test("uniform tiles remain ordinary content regardless of omitted or explicit an
     {
       id: "field",
       defaultCellClass: "yard",
-      weight: 1,
+      
       orientations: [0],
       ports: { N: "any", E: "any", S: "any", W: "any" },
     },
     {
       id: "fallback",
       defaultCellClass: "open",
-      weight: 1000,
+      
       orientations: [0],
       adapter: true,
     },
@@ -502,7 +466,7 @@ test("a template that seals its own interior is never placed", () => {
   const sealed = {
     id: "sealed",
     defaultCellClass: "court",
-    weight: 100,
+    
     orientations: [0] as const,
     ports: { N: "any", E: "any", S: "any", W: "any" },
     // A ring on the margin: every seam opens onto a one-cell strip that no

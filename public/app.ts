@@ -1081,7 +1081,6 @@ function setCell(index: number, value: string | null): boolean {
 }
 /** Declare one segment. Interior lines against the boundary stay unavailable. */
 function setSegment(index: number, value: SegmentDeclaration): boolean {
-  if (!editableSegment(index)) return false;
   invalidSegmentInputs.delete(index);
   segmentValues[index] = value;
   segmentEdits.set(index, value);
@@ -1460,7 +1459,7 @@ const cellRange = (keep: (col: number, row: number) => boolean): Hit[] => {
 };
 const segmentRange = (keep: (index: number) => boolean): Hit[] =>
   Array.from({ length: SEGMENT_COUNT }, (_, index) => index)
-    .filter((index) => editableSegment(index) && keep(index))
+    .filter((index) => keep(index))
     .map((index) => ({ kind: "segment", index }) as Hit);
 const onPerimeter = (index: number) => {
   const { line } = segmentPlace(index);
@@ -1967,9 +1966,7 @@ function segmentAddress(index: number): string {
   const { vertical, line, offset } = segmentPlace(index);
   return `${vertical ? "v" : "h"}:${line},${offset}`;
 }
-function editableSegment(index: number): boolean {
-  return true;
-}
+
 function renderSegments(): void {
   const preview = $("tilePreview");
   // A strip is only as wide as it needs to be to read. The pointer is resolved
@@ -1979,14 +1976,12 @@ function renderSegments(): void {
   for (let index = 0; index < SEGMENT_COUNT; index++) {
     const { vertical, line, offset } = segmentPlace(index);
     const value = segmentValues[index]!;
-    const available = editableSegment(index);
     const button = document.createElement("button");
     button.type = "button";
     button.tabIndex = -1;
-    button.className = `tile-segment ${declarationKind(value)}${selectedSegment === index ? " selected" : ""}${available ? "" : " unavailable"}`;
-    if (!available) button.setAttribute("aria-disabled", "true");
+    button.className = `tile-segment ${declarationKind(value)}${selectedSegment === index ? " selected" : ""}`;
     button.setAttribute("aria-label", `Segment ${segmentAddress(index)}`);
-    button.title = `${segmentAddress(index)} · ${describe(value)}${available ? "" : " · unavailable: interior walls keep a one-cell margin"}`;
+    button.title = `${segmentAddress(index)} · ${describe(value)}`;
     Object.assign(
       button.style,
       vertical
@@ -2015,13 +2010,13 @@ function renderSegmentControls(): void {
   const value = segmentValues[selectedSegment]!;
   const controls = $("segmentControls");
   const address = document.createElement("strong");
-  address.textContent = `${segmentAddress(selectedSegment)}${editableSegment(selectedSegment) ? "" : " · unavailable under interior margin"}`;
+  address.textContent = segmentAddress(selectedSegment);
   const kind = document.createElement("select");
   kind.id = "segmentKind";
   for (const option of ["any", "open", "wall", "partial"])
     kind.add(new Option(option, option));
   kind.value = declarationKind(value);
-  kind.disabled = !editableSegment(selectedSegment);
+  kind.disabled = false;
   const aperture = document.createElement("input");
   aperture.id = "segmentAperture";
   aperture.value =

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import readline from "node:readline";
 import {
+  DEFAULT_LIBRARY,
   MAX_BATCH_COUNT,
   MAX_JSON_BYTES,
   batch,
@@ -64,6 +65,14 @@ const tools = [
       },
     },
   },
+  {
+    name: "library_get",
+    description: "Get the default shipped feature library.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
 ];
 function reply(id: Id, result: unknown): void {
   process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", id, result })}\n`);
@@ -87,6 +96,7 @@ function invoke(name: string, args: unknown) {
     return generate(a.seed, (a.params as Args) || {}, a.library as Library);
   if (name === "map_validate") return validateMap(a.map);
   if (name === "library_validate") return validateLibrary(a.library);
+  if (name === "library_get") return DEFAULT_LIBRARY;
   if (name === "map_batch")
     return batch(
       (a.seedPrefix as string) ?? "batch",

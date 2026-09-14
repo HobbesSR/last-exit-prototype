@@ -2,7 +2,7 @@
 
 ## Current checkpoint
 
-Editor cleanup: see [EDITOR_CLEANUP.md](EDITOR_CLEANUP.md) for the actual library
+Editor cleanup: see [archive/editor-cleanup/EDITOR_CLEANUP.md](archive/editor-cleanup/EDITOR_CLEANUP.md) for the actual library
 path and design/proposal separation. Only explicit `adapter: true` designs are
 fallbacks; uniform patches are ordinary content. The original prose now stands
 alone in `design_notes.txt`. Historical milestones below describe implementation
@@ -66,16 +66,11 @@ and difficulty/balance tuning per Corey's direction.
 5. Give segments separate movement, sight and projectile channels. The six segment sockets, seven vertices, explicit-empty versus wildcard semantics and flat-height metadata are in; a segment's barrier is still one span shared by every channel, so a fence you can see over cannot yet be expressed.
 6. Raise the tile interior budget as part of the structure work. The current one-cell margin prevents geometry from naturally continuing through a seam and should not become a permanent invariant.
 7. Measure squeeze value, per-exit routes, bottlenecks and rewarded geometric dead ends. Expose histograms in the GUI and sweep seeds in batches before enforcing tuning thresholds. Avoid implying that opening count or tile degree proves navigation diversity.
-8. Add a visual tile-set/layout editor above the existing JSON contract. This
-   is also where selection frequency belongs: `TileDesign.weight` is now
-   optional and absent from the tile editor, so a set needs per-member weights
-   before the placeholder on the tile can be retired. Tile sets and multi-tile layouts are still JSON-only. Preserve CLI parity and validate imported files before authoring operations. The one-cell interior restriction belongs to the legacy solver and should leave with it; perimeter segment editing does not require that migration.
+8. Add a visual tile-set/layout editor above the existing JSON contract. Tile sets and multi-tile layouts are still JSON-only. Preserve CLI parity and validate imported files before authoring operations. The one-cell interior restriction belongs to the legacy solver and should leave with it; perimeter segment editing does not require that migration. (Note: tile weight has been removed; selection frequency will be treated uniformly until macro tuning is addressed).
 9. Separate playtest tuning from map parameters; record time, chosen route, tags, deaths, charge duration and player body for repeatable comparisons. The browser simulation is intentionally separate from the production match rules.
 10. Give builders the primitive vocabulary, then extend the region contract: hierarchical sub-regions and shared local geometry utilities. A region builder returns spawns and sub-cell off-lattice props, so it cannot state a segment — no wall along one, no door or window, no interior. Let a builder state cells, segments and vertices inside its own area, under a contract that protects routes it must not sever; `MacroCorridor` and `checkMacroRoutes` already provide that machinery on the macro branch. This is what makes item 4's clearance budget load-bearing. Keep validating actual output rather than generator self-reports.
-11. Give cell class a deferring value and a seam contract. `.` means "use this tile's default", so a tile cannot state a 3 x 3 corner and defer the rest, and no seam contract carries cell class, so two tiles cannot agree to continue a class across a seam. The design notes assign this to segments - "an expectation of an adjacent cell of a compatible type (forming a region)".
-12. Collapse the tile/cell coordinate duplication on `PlacedTile`. `makeMask` sets `x`/`y` in tiles, the placement pass overwrites them in cells, and `col`/`row` stay in tiles. Pick one authoritative pair, derive the other, and drop the redundant one from the wire form. See the coordinate table in VOCABULARY.md.
-13. Add the tile- and zone-aware builders that have no region to attach to: primitive-set resolution, hazard placement and map-boundary treatment. Loot already reaches micro generation from the zone and hazard has the same shape. `RegionInput.budget` is a plain cap rather than a zone allocation, which starts to matter once a hard per-match cap on high-tier spawns is wanted.
-14. Give tiles a primitive set: the metadata naming what ground, walls, fences and doors are made of in that area, and the pass that resolves declarations into physical objects against it. Nothing the generator emits today is a physical object, and nothing yet says what any declaration should become.
+11. Add the tile- and zone-aware builders that have no region to attach to: primitive-set resolution, hazard placement and map-boundary treatment. Loot already reaches micro generation from the zone and hazard has the same shape. `RegionInput.budget` is a plain cap rather than a zone allocation, which starts to matter once a hard per-match cap on high-tier spawns is wanted.
+12. Give tiles a primitive set: the metadata naming what ground, walls, fences and doors are made of in that area, and the pass that resolves declarations into physical objects against it. Nothing the generator emits today is a physical object, and nothing yet says what any declaration should become.
 
 Reachability is now enforced by selection and checked by validation: every tile
 must be walkable by both bodies, the contestant must have a route from its spawn

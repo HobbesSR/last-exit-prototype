@@ -205,15 +205,6 @@ function edgeKey(a: number, b: number): string {
   return a < b ? `${a}|${b}` : `${b}|${a}`;
 }
 /** An omitted side defers, so a design need not mention ports at all. */
-function rotatePorts(
-  ports: Partial<Record<Side, PortValue>> | undefined,
-  turns: number,
-): Record<Side, PortValue> {
-  const out = {} as Record<Side, PortValue>;
-  for (let i = 0; i < 4; i++)
-    out[SIDES[(i + turns) % 4]!] = ports?.[SIDES[i]!] ?? "any";
-  return out;
-}
 /** A port declares the set of seam contracts it accepts: "any", "door|wide", …. */
 function portSet(value: PortValue | undefined): Set<PortKind> | null {
   const text = Array.isArray(value) ? value.join("|") : value;

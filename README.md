@@ -27,7 +27,7 @@ Open **http://127.0.0.1:4173**. Change the seed, zone dimensions, or exit count,
 
 A tile has no weight field in the editor. `weight` is a relative selection frequency, which is a property of whatever set or set piece draws from a tile rather than of the tile itself; it stays optional in the library file (omission means 1) until tile sets carry their own member weights. See [docs/QUESTIONS.md](docs/QUESTIONS.md).
 
-The active library starts from [content/default-library.json](content/default-library.json): ten designs, three tile sets and two layouts. A valid saved browser library takes precedence. The editor exposes design usage and the explicit fallback role; `plain` is a fallback and may have no placements. Reset to shipped library restores the bundled corpus. Browser edits stay in browser storage; export JSON and pass it to the CLI to share the same library. See [the cleanup audit](docs/EDITOR_CLEANUP.md) for selection behavior and remaining generator limitations.
+The active library starts from [content/default-library.json](content/default-library.json): ten designs, three tile sets and two layouts. A valid saved browser library takes precedence. The editor exposes design usage and the explicit fallback role; `plain` is a fallback and may have no placements. Reset to shipped library restores the bundled corpus. Browser edits stay in browser storage; export JSON and pass it to the CLI to share the same library. See [the cleanup audit](docs/archive/editor-cleanup/EDITOR_CLEANUP.md) for selection behavior and remaining generator limitations.
 
 Every tile's 36 cells, 84 segments and 49 vertices are all addressable and all
 have metadata, but only what you actually state is stored. A segment nobody

@@ -64,6 +64,7 @@ function serveStripped(file: string, res: http.ServerResponse, head: boolean) {
     "Content-Type": "text/javascript; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
     "X-Content-Type-Options": "nosniff",
+    "Cache-Control": "no-cache",
   });
   res.end(head ? undefined : body);
 }
@@ -99,6 +100,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, {
       "Content-Type": types[extension] || "application/octet-stream",
       "Content-Length": stat.size,
+      "Cache-Control": "no-cache",
       "X-Content-Type-Options": "nosniff",
     });
     if (req.method === "HEAD") {

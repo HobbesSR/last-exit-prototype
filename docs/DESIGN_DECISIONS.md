@@ -4,15 +4,6 @@ This document records implemented behavior and reversible defaults for the stand
 
 Naming is fixed by [Vocabulary and layering](VOCABULARY.md).
 
-## What this system emits
-
-The generator emits declarations over a lattice. A barrier on a segment states
-that something impassable occupies that edge; a cell class states which
-generation process owns the cell. Physical primitives are resolved later from
-tile metadata naming the primitive set in force — what ground, walls, fences and
-doors are made of in that part of the map. That resolution pass is not built and
-is not part of the artifact contract.
-
 ## Scope
 
 The prototype generates a flat 2D macro topology from a seed, validates it, shows it in a browser map lab, and exposes the same core through a CLI and MCP stdio server. Tiles are 6 × 6 cells with authored interiors: per-cell classes and segment-aligned barriers, stated per segment and per vertex. Four coarse side sockets (`N`, `E`, `S`, `W`) were a hint for the tile-edge topology solver and are currently unread, that solver having been removed. No door has runtime state.
@@ -23,6 +14,13 @@ what the tiles beside them declare, and the edges, loops and contestant-only
 squeezes in a generated map are measurements of that result rather than a plan
 laid over it. Generation only chooses designs that keep the map walkable. It is
 a scaffold for authoring and validation, not a finished game map generator.
+
+**Key Macro and Micro Content Rules (as decided):**
+- **Critical Set Pieces and Regions:** Macro generation is only responsible for placing at least one region/set-piece of the types required to spawn critical map pieces.
+- **Physical Exits:** The placement of actual physical exits is a micro-generation detail. The macro layer simply allocates one or more regions that are responsible for the micro-generation of exits.
+- **Parameterized Cell Classes:** Cell classes formally support parameters (`parameter: true`). This allows common configurations to be reused across region types without duplicating them for each tile set, and allows tiles to act as parameterized templates where region classes are bound during macro placement.
+- **Any Class:** A first-class "any" cell region type exists and defaults to open space. During micro-generation, it takes tile meta parameters to decide its final form.
+- **Selection weights:** Explicit tile selection weights have been removed from the data model. Frequency is treated uniformly until macro generation tuning is directly addressed.
 
 ## The macro model
 
@@ -37,10 +35,7 @@ clearance. Authored cells, segments, vertices, structure footprints and micro
 output contribute geometry. Connectivity graphs and tile-graph degrees are
 solver indexes and diagnostics.
 
-Topology is still solved as a coarse tile-edge maze before tile content is
-chosen, which makes broad open areas and structures spanning many seams
-awkward to express; replacing that pass is NEXT_TASKS.md item 1, and until then
-`deadEnds` counts degree-one nodes in the coarse graph.
+The tile-edge maze solver has been removed. Generation currently fills slots outward from the western edge enforcing reachability through candidate selection, backed by whole-map geometry validation. Replacing that with composed macro structures is NEXT_TASKS.md item 1.
 
 ## Units and scale
 
@@ -115,7 +110,7 @@ so an author can guarantee a path rather than merely permit one.
 Cell class has no deferring value yet: `.` means "use this tile's default", and
 no seam contract carries cell class. Giving cells `any` and a seam term, so a
 tile can state part of its area and defer the rest and two tiles can agree to
-continue a class across a seam, is NEXT_TASKS.md item 11.
+continue a class across a seam, is NEXT_TASKS.md item 3.
 
 A segment's barrier metadata is the _open span_ within it, rather than a
 boolean, because the aperture ladder includes a 1.5-unit squeeze that does not
@@ -193,7 +188,7 @@ with the route contract that keeps such a builder from severing a corridor.
 
 Region builders are one kind. Tile- and zone-aware work that is not
 region-shaped — resolving the primitive set, hazard placement, map-boundary
-treatment — is NEXT_TASKS.md item 13.
+treatment — is NEXT_TASKS.md item 11.
 
 ### Micro geometry has no clearance budget yet
 
