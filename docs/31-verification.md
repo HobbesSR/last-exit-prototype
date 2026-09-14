@@ -28,7 +28,7 @@ reported slowdown fixed without a captured slow run; see
 
 ## The frozen fixture
 
-Frozen characterization fixtures in `tests/fixtures` come from unchanged checkpoint `5dd7d61`. They compare complete ordered map hashes, every tick and projection of four bot matches, and scripted authoritative snapshots/private views against pre-refactor results. Expected results are not regenerated during verification. `npm run check` recursively checks every module in server/shared/public/tests: JavaScript is parsed as Node would load it, and TypeScript is verified to erase cleanly, which is what Node does instead of parsing it. `npm run typecheck` is the separate, stronger pass.
+Frozen characterization fixtures in `tests/fixtures` come from checkpoint `elements-1`, which superseded `5dd7d61` when per-region element catalogues replaced the single hardcoded building and changed every seeded map. They compare complete ordered map hashes, every tick and projection of four bot matches, and scripted authoritative snapshots/private views against that checkpoint. A re-baseline is a decision about content, never a way to make a refactor pass, and it restarts the evidence: the current fixture proves nothing about code predating it. `tests/fixtures/README.md` records provenance and how to regenerate. Expected results are not regenerated during verification. `npm run check` recursively checks every module in server/shared/public/tests: JavaScript is parsed as Node would load it, and TypeScript is verified to erase cleanly, which is what Node does instead of parsing it. `npm run typecheck` is the separate, stronger pass.
 
 Never regenerate it to make a refactor pass. Separate intentional gameplay changes,
 and the new expectations and version decision they require, from behavior-preserving
@@ -36,7 +36,7 @@ extraction. `tests/fixtures/README.md` records its provenance and how to audit i
 
 ## Coverage
 
-The tests currently cover deterministic seeded simulation, 200 generated maps, continuous movement and physical gaps, gates and extraction, combat and kit progression, transit, stealth, visibility geometry, privacy projections, one-shot input latching, pacing/replay integrity, spectators, desktop controls, touch controls, mouse aim, client-side sight, shaded occlusion, and projectile interpolation.
+The tests currently cover deterministic seeded simulation, 200 generated maps, shape records and element stamping, continuous movement and physical gaps, gates and extraction, combat and kit progression, transit, stealth, visibility geometry, privacy projections, one-shot input latching, pacing/replay integrity, spectators, desktop controls, touch controls, mouse aim, client-side sight, shaded occlusion, and projectile interpolation.
 
 Unit and server coverage includes 200-seed path clearance, 50-seed
 placement/spawn/maze checks, ammo exhaustion and refill, sixth-slot selection,

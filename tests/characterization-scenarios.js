@@ -1,4 +1,4 @@
-// Captured against unchanged gameplay at 5dd7d61. Expected results are never updated by tests.
+// Captured at the elements-1 content checkpoint. Expected results are never updated by tests.
 import { createHash } from 'node:crypto';
 import { createGame, generateMap, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 

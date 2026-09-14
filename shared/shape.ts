@@ -45,6 +45,20 @@ export function shapeOf(source: Bounded): Shape {
   return rect(source.x, source.y, source.w, source.h);
 }
 
+/**
+ * The stored record fields for a shape — the inverse of {@link shapeOf}, for generated content that
+ * builds a shape first and has to write it back as a map record. `w`/`h` are always the axis-aligned
+ * extent, so footprint and overlap tests that read raw fields stay correct. A polygon's points are
+ * re-anchored to that box's corner, which keeps `x`/`y` meaning the same thing it means for a rect;
+ * a circle keeps its centre anchor, because that is what `shapeOf` reads back.
+ */
+export function fieldsOf(shape: Shape): Bounded {
+  if (shape.kind === 'rect') return { x: shape.x, y: shape.y, w: shape.w, h: shape.h };
+  const box = bounds(shape);
+  if (shape.kind === 'circle') return { x: shape.x, y: shape.y, w: box.w, h: box.h, r: shape.r };
+  return { x: box.x, y: box.y, w: box.w, h: box.h, points: shape.points.map(p => ({ x: shape.x + p.x - box.x, y: shape.y + p.y - box.y })) };
+}
+
 /** Axis-aligned bounds, the broad-phase key for buckets, culling and nearness. */
 export function bounds(shape: Shape): Box {
   if (shape.kind === 'circle') return { x: shape.x - shape.r, y: shape.y - shape.r, w: shape.r * 2, h: shape.r * 2 };

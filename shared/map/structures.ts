@@ -1,12 +1,26 @@
 import { BLOCK_SIZE } from './world.ts';
 import { distance } from './context.ts';
+import { placeElement } from './element.ts';
+import { REGION_ELEMENTS } from './templates.ts';
 import type { GenerationContext, SpawnedGenerationContext } from './context.ts';
-import type { BuildingId, GateId, ModuleKind } from '../types.ts';
+import type { Box, ModuleKind, World } from '../types.ts';
 
-/** Places spawn points, building shells with doors, and street props. */
+const HALF_BLOCK = BLOCK_SIZE / 2, INSET = 110, CENTRE_RESERVE = 110;
+// The margin `clearFootprint` applies to reservations; see `map/context.ts`.
+const RESERVE_MARGIN = 10;
+
+/**
+ * The largest a corner element may be in one axis and still clear the block centre reserved for the
+ * through-route. A template must satisfy it in at least one axis: fail both and `clearFootprint`
+ * rejects the element at every corner of every block, so it silently never appears on any map rather
+ * than failing loudly. `tests/element.test.js` holds the catalogue to it.
+ */
+export const CORNER_CLEARANCE = HALF_BLOCK - INSET - CENTRE_RESERVE - RESERVE_MARGIN;
+
+/** Places spawn points, one structural element per eligible block corner, and street props. */
 export function buildStructures(context: GenerationContext): asserts context is SpawnedGenerationContext {
-  const { map, entryNode, exitNode, lookup, reserve, reservations, clearFootprint, spots, range, rect, nextId } = context;
-  for (const n of map.nodes) reserve(n.x, n.y, 110);
+  const { map, entryNode, exitNode, lookup, reserve, clearFootprint, spots, range, rect } = context;
+  for (const n of map.nodes) reserve(n.x, n.y, CENTRE_RESERVE);
   reserve(entryNode.x, entryNode.y, 490); reserve(exitNode.x, exitNode.y, 300);
   // Spread contestants across four nearby connected blocks, rather than a single firing line.
   const startBlocks = [entryNode];
@@ -27,27 +41,28 @@ export function buildStructures(context: GenerationContext): asserts context is 
   for (const [index, n] of map.nodes.entries()) {
     const kind = ['yard', 'depot', 'garden'][range(0, 2)] as ModuleKind;
     const module = { id: index, x: n.x, y: n.y, width: BLOCK_SIZE, height: BLOCK_SIZE, kind }; map.modules.push(module);
-    const corners = [[-390, -390], [140, -390], [-390, 140], [140, 140]];
-    for (const [i, [dx, dy]] of corners.entries()) {
-      const box = { x: n.x + dx, y: n.y + dy, w: 250, h: 250 };
+    const set = REGION_ELEMENTS[kind], template = set[range(0, set.length - 1)];
+    // A corner sits a fixed inset from the block edge, so a larger element grows inward, away from
+    // the boundary wall and the reserved centre the through-route crosses.
+    const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+    const corner = ([sx, sy]: number[], w: World, h: World): Box =>
+      ({ x: n.x + (sx < 0 ? INSET - HALF_BLOCK : HALF_BLOCK - INSET - w), y: n.y + (sy < 0 ? INSET - HALF_BLOCK : HALF_BLOCK - INSET - h), w, h });
+    // The structure gets first refusal on its assigned corner, then the others: an element wider than
+    // the 250 a prop occupies would otherwise simply be lost whenever that one corner is crowded,
+    // and blocks with no building are blocks with no indoor loot.
+    let structural = -1;
+    if (index % 2 === 0) for (let k = 0; k < corners.length; k++) {
+      const box = corner(corners[(index + k) % corners.length], template.w, template.h);
       if (!clearFootprint(box)) continue;
-      if (i === index % 4 && index % 2 === 0) {
-        const building = { id: nextId('building-') as BuildingId, ...box, nodeId: n.id }; map.buildings.push(building);
-        // Door in south wall; two north-facing windows admit sight and bullets, never bodies.
-        const extra = { buildingId: building.id };
-        rect(box.x, box.y, 65, 18, 'building', extra);
-        rect(box.x + 65, box.y, 60, 18, 'window', extra);
-        rect(box.x + 125, box.y, 60, 18, 'window', extra);
-        rect(box.x + 185, box.y, 65, 18, 'building', extra);
-        rect(box.x, box.y + 18, 18, 214, 'building', extra); rect(box.x + 232, box.y + 18, 18, 214, 'building', extra);
-        rect(box.x, box.y + 232, 75, 18, 'building', extra); rect(box.x + 175, box.y + 232, 75, 18, 'building', extra);
-        map.gates.push({ id: nextId('door-') as GateId, x: box.x + 125, y: box.y + 241, w: 100, h: 18, open: false, locked: index % 10 === 0, kind: 'door', buildingId: building.id });
-        spots.push({ x: box.x + 125, y: box.y + 125, nodeId: n.id, buildingId: building.id });
-        reservations.push({ x: box.x - 30, y: box.y - 30, w: 310, h: 350 });
-      } else {
-        const prop = { x: box.x + range(0, 90), y: box.y + range(0, 90), w: range(65, 140), h: range(65, 140) };
-        if (clearFootprint(prop)) rect(prop.x, prop.y, prop.w, prop.h, kind === 'depot' ? 'container' : 'crate', { color: index % 3 });
-      }
+      placeElement(context, template, box.x, box.y, { nodeId: n.id, locked: index % 10 === 0 });
+      structural = (index + k) % corners.length; break;
+    }
+    for (const [i, spec] of corners.entries()) {
+      if (i === structural) continue;
+      const box = corner(spec, 250, 250);
+      if (!clearFootprint(box)) continue;
+      const prop = { x: box.x + range(0, 90), y: box.y + range(0, 90), w: range(65, 140), h: range(65, 140) };
+      if (clearFootprint(prop)) rect(prop.x, prop.y, prop.w, prop.h, kind === 'depot' ? 'container' : 'crate', { color: index % 3 });
     }
     // Loot courtyard is in a different quarter than the through-route center.
     spots.push({ x: n.x + 220, y: n.y - 220, nodeId: n.id });

@@ -27,6 +27,48 @@ checks this; generated content should be validated once at build time rather tha
 shapes must be decomposed into convex pieces before they become geometry. No decomposition helper
 exists yet — that is the next piece of this module when the generator needs it.
 
+## One assembly, stamped anywhere
+
+`shape.ts` describes a single body. `shared/map/element.ts` describes a *group* of them: a placeable
+element is a footprint plus parts — obstacles of any shape, gates, loot spots and reservations — all
+positioned in coordinates local to the element's anchor. `placeElement` stamps one at a world point.
+`shared/map/templates.ts` is the catalogue.
+
+Before it there was no such level. The arena's only building existed as eight literal `rect` calls in
+`buildStructures`, so a second building meant a second copy of those literals, and the door, windows
+and interior loot spot were positions in that copy rather than properties of a structure. The
+template carries them; the *instance* carries only what varies, which today is its anchor, its node
+and whether its doors start locked.
+
+Two things are load-bearing:
+
+- **Part order is frozen.** Ids come from one counter shared by every stage, so reordering a
+  published template's parts renumbers every object placed after it and changes each seeded map, the
+  same way stage order does. [31](31-verification.md) treats that as a versioned gameplay change.
+- **Parts are shapes, not boxes.** A part may be a polygon, and `fieldsOf` — the inverse of
+  `shapeOf` — writes it back as a record whose `w`/`h` are the axis-aligned extent, so the footprint
+  and overlap tests that read raw fields stay correct. A polygon's points are re-anchored to that
+  box's corner so `x`/`y` mean for it what they mean for a rect; a circle keeps its centre anchor,
+  because that is where `shapeOf` reads it back from.
+
+`templates.ts` holds the catalogue and `REGION_ELEMENTS` maps a block's module kind to the set it
+draws from, so a yard, a depot and a garden build from different structures rather than one building
+reskinned. Two constraints bind a new template:
+
+- **It must fit a block corner.** `CORNER_CLEARANCE` in `map/structures.ts` is the largest one axis
+  may be and still clear the reserved block centre. Fail it in both axes and `clearFootprint` rejects
+  the element at every corner of every block, so it silently never appears rather than failing
+  loudly — which is exactly what the first warehouse and compound did. `tests/element.test.js` holds
+  the catalogue to it.
+- **Interior openings are about 100 units.** A gladiator is radius 23 and the navigation grid samples
+  at radius 25 every `TILE`, so a narrower way through either refuses the larger role or samples as
+  solid and strands a bot behind it. Loot spots need radius-24 clearance or the objectives stage drops
+  them, leaving a building that [12](12-player-requirements.md) requires to hold loot holding none.
+
+What the element layer deliberately does *not* do yet is vary: templates are static descriptions, so
+the randomised street props are still emitted inline. Parameterised templates and connector contracts
+are F-01, still deferred on the specification in [17](17-open-questions.md).
+
 ## Collision
 
 `shared/movement.ts` is the only module that decides whether something may occupy a place.

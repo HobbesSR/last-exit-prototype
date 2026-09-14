@@ -2,10 +2,14 @@
 // The optimisation must be exact: every vertex identical, not merely close.
 import { generateMap } from '../shared/map.ts';
 import { visibilityPolygon, litPoint, lineClear, canOccupy, VISION } from '../shared/movement.ts';
+import { outline, shapeOf } from '../shared/shape.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-const pts = o => o.r ? Array.from({ length: 16 }, (_, i) => ({ x: o.x + Math.cos(i * Math.PI / 8) * o.r, y: o.y + Math.sin(i * Math.PI / 8) * o.r }))
-  : [{ x: o.x, y: o.y }, { x: o.x + o.w, y: o.y }, { x: o.x + o.w, y: o.y + o.h }, { x: o.x, y: o.y + o.h }];
+// The rays below are deliberately an independent implementation — that is what this test guards.
+// What a shape *is* is deliberately not: a second description of that is the exact defect `shape.ts`
+// exists to prevent, and this reference did carry one. It read every obstacle from raw `x/y/w/h`, so
+// once generation began emitting polygons it compared correct output against a bounding box.
+const pts = o => outline(shapeOf(o));
 const edgesOf = o => { const p = pts(o); return p.map((a, i) => ({ a, b: p[(i + 1) % p.length] })); };
 const gateShape = g => ({ x: g.x - (g.w ?? 26) / 2, y: g.y - (g.h ?? 54) / 2, w: g.w ?? 26, h: g.h ?? 54 });
 function hitRay(o, dx, dy, e) {

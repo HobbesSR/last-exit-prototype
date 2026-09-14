@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { rect, circle, polygon, shapeOf, bounds, nearBounds, outline, edgesOf, body, contains, overlaps, transform, convex, CIRCLE_SEGMENTS } from '../shared/shape.ts';
+import { rect, circle, polygon, shapeOf, fieldsOf, bounds, nearBounds, outline, edgesOf, body, contains, overlaps, transform, convex, CIRCLE_SEGMENTS } from '../shared/shape.ts';
 import { canOccupy, lineClear, movePlayer } from '../shared/movement.ts';
 
 const square = [{ x: -30, y: -30 }, { x: 30, y: -30 }, { x: 30, y: 30 }, { x: -30, y: 30 }];
@@ -96,4 +96,22 @@ test('the SAT body for each form is the one that form needs', () => {
   assert.equal(body(circle(0, 0, 5)).r, 5);
   assert.equal(body(rect(1, 2, 3, 4)).pos.x, 1);
   assert.equal(body(polygon(9, 9, square)).pos.y, 9);
+});
+
+test('fieldsOf writes a shape back as a record that shapeOf reads unchanged', () => {
+  assert.deepEqual(fieldsOf(rect(10, 20, 30, 40)), { x: 10, y: 20, w: 30, h: 40 });
+  assert.deepEqual(shapeOf(fieldsOf(rect(10, 20, 30, 40))), rect(10, 20, 30, 40));
+  assert.deepEqual(shapeOf(fieldsOf(circle(10, 20, 15))), circle(10, 20, 15));
+  // A circle keeps its centre anchor, because that is the anchor shapeOf reads it back from.
+  assert.deepEqual(fieldsOf(circle(10, 20, 15)), { x: 10, y: 20, w: 30, h: 30, r: 15 });
+});
+
+test('a polygon record is re-anchored to its own bounding box, so x/y mean what they mean for a rect', () => {
+  // Generated content builds a shape first; the record it becomes has to satisfy the footprint and
+  // overlap tests that read x/y/w/h directly, which a floating anchor would quietly fail.
+  const shape = polygon(100, 100, square);
+  const record = fieldsOf(shape);
+  assert.deepEqual({ x: record.x, y: record.y, w: record.w, h: record.h }, bounds(shape));
+  assert.deepEqual(record.points, [{ x: 0, y: 0 }, { x: 60, y: 0 }, { x: 60, y: 60 }, { x: 0, y: 60 }]);
+  assert.deepEqual(outline(shapeOf(record)), outline(shape), 'the body is unmoved, only described from elsewhere');
 });

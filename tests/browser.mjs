@@ -114,11 +114,16 @@ try {
   assert.equal(diagnostic.server.ok, true);
   await page.getByRole('button', { name: 'End match & save replay' }).click();
   await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().waitFor();
+  // Replay playback advances on render frames. Headless frames in this suite run about 240 ms while
+  // Phaser hands `onFrame` a smoothed delta, so playback covers a small fraction of wall time here
+  // and a tight deadline measures the harness, not the player. Every wait on playback advancing gets
+  // this budget: it still fails if playback stalls, without depending on frame pacing to pass.
+  const PLAYBACK_DEADLINE = 24000;
   // Keep the archive's normal dense recording path covered too: real playback
   // must advance authoritative state before the routed sparse fixture below.
   await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().click();
   await page.waitForFunction(() => window.arenaDebug().replay);
-  await page.waitForFunction(() => window.arenaDebug().tick >= 16, null, { timeout: 5000 });
+  await page.waitForFunction(() => window.arenaDebug().tick >= 16, null, { timeout: PLAYBACK_DEADLINE });
   await page.getByRole('button', { name: 'Pause replay', exact: true }).click();
   await page.locator('#replay-seek').fill('5');
   assert.equal(await page.evaluate(() => window.arenaDebug().tick), 5);
@@ -246,14 +251,16 @@ try {
     await page.locator('#replay-seek').fill('0');
     await page.locator('#replay-speed').selectOption(speed);
     await page.getByRole('button', { name: 'Play replay', exact: true }).click();
-    await page.waitForFunction(() => window.arenaDebug().tick >= 8, null, { timeout: 5000 });
+    // What must hold is that every speed advances to the next retained state, not how long that
+    // takes in wall time.
+    await page.waitForFunction(() => window.arenaDebug().tick >= 8, null, { timeout: PLAYBACK_DEADLINE });
     await pausePlayback();
   }
   // Resume from a gap, then run to the declared tail. The final tail is also
   // missing data and therefore keeps the final retained projectile stationary.
   await page.locator('#replay-seek').fill('5');
   await page.getByRole('button', { name: 'Play replay', exact: true }).click();
-  await page.waitForFunction(() => Number(document.getElementById('replay-seek').value) === 30, null, { timeout: 5000 });
+  await page.waitForFunction(() => Number(document.getElementById('replay-seek').value) === 30, null, { timeout: PLAYBACK_DEADLINE });
   assert.equal(await page.locator('#replay-status').textContent(), 'MISSING DATA · showing tick 24');
   assert.equal(await page.evaluate(() => window.arenaDebug().shots[0].x), originX + 240, 'tail gap holds final projectile position');
   await page.screenshot({ path: 'test-results/replay.png' });
@@ -420,13 +427,18 @@ try {
   const artRoom = server.rooms.get(await page.evaluate(() => window.arenaDebug().room));
   const artId = await page.evaluate(() => window.arenaDebug().me.id);
   const artPlayer = artRoom.game.players.find(p => p.id === artId);
-  const interior = artRoom.game.map.buildings[0];
-  Object.assign(artPlayer, { x: interior.x + 125, y: interior.y + 125 });
-  await page.waitForFunction(x => Math.abs(window.arenaDebug().me.x - x) < 1, interior.x + 125);
+  // Several archetypes are in the catalogue, so every position here comes from the building rather
+  // than a fixed offset: one lands inside a partition or a stack and the body is separated straight
+  // back out, and the door is not in the same place in all of them.
+  const entrance = artRoom.game.map.gates.find(g => g.buildingId && !g.locked && artRoom.game.map.items.some(i => i.buildingId === g.buildingId));
+  const interior = artRoom.game.map.buildings.find(b => b.id === entrance.buildingId);
+  const indoors = artRoom.game.map.items.find(i => i.buildingId === interior.id);
+  Object.assign(artPlayer, { x: indoors.x, y: indoors.y });
+  await page.waitForFunction(x => Math.abs(window.arenaDebug().me.x - x) < 1, indoors.x);
   await page.waitForTimeout(150);
   await page.screenshot({ path: 'test-results/ruins.png' });
   assert.equal(await page.evaluate(id => window.arenaDebug().roofs.find(r => r.id === id).visible, interior.id), false, 'roof hides while inside');
-  Object.assign(artPlayer, { x: interior.x + 125, y: interior.y + 305 });
+  Object.assign(artPlayer, { x: entrance.x, y: interior.y + interior.h + 55 });
   await page.waitForFunction(id => window.arenaDebug().roofs.find(r => r.id === id)?.visible, interior.id);
   await page.waitForTimeout(150);
   await page.screenshot({ path: 'test-results/building-roof.png' });
