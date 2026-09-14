@@ -42,10 +42,14 @@ defaults. They are accepted direction, not evidence that the corresponding behav
 is implemented. Preserve the completed extraction's frozen fixtures while making
 intentional changes in separate checkpoints.
 
-1. **Match capacities and content checkpoint (F-11).** Centralize the eight
-   contestant/three gladiator capacities across spawning, lobby and matchmaking.
-   Decide an explicit new gameplay/content version and how legacy characterization
-   remains exercised before changing defaults; never regenerate the old fixture.
+1. **Match capacities and content checkpoint (F-11).** The centralization is done:
+   the roster lives in pinned match content, its lengths *are* the capacities, and
+   spawning, matchmaking and the lobby label all count that one list — the lobby is
+   told the numbers by the room rather than transcribing them. What remains is the
+   gameplay decision itself: raising gladiators from two to three is a one-line
+   content edit, but it needs an explicit new content id, a version decision, and a
+   plan for how the existing characterization stays exercised. Never regenerate the
+   old fixture.
 2. **Shared spatial reward/danger policy (F-12/F-15).** The user selected five
    virtual columns and rows, five mixed tier distributions, a horizontal base
    from 1 to 5, and vertical offsets 0/1/2 capped at tier 5. These zones do not

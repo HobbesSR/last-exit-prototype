@@ -159,6 +159,14 @@ export interface KitSpec {
 export interface MatchContent {
   /** Names the content set in a recording header. Changes when any value below changes. */
   id: string;
+  /**
+   * Who a match is made of. Its lengths are the role capacities, so spawning, lobby display and
+   * matchmaking all count the same list instead of each repeating the numbers.
+   */
+  roster: {
+    contestants: string[];
+    gladiators: { name: string; kit: Kit }[];
+  };
   weapons: Record<WeaponType, WeaponSpec>;
   kits: Record<Kit, KitSpec>;
   durationTicks: Tick;

@@ -17,6 +17,8 @@ let seq = 0, pending = [], overview = false, selectedRole = 'contestant', savedR
 const snapshots = createSnapshotBuffer({ hz: HZ, delayTicks: INTERPOLATION_DELAY_TICKS });
 let presentation = null;
 let lobbyPlayers = [];
+// Advertised by the room rather than transcribed here: the roster that decides them is match content.
+let lobbyCapacity = null;
 let lobbyStartsAt = null;
 const inputController = createInputController({
   getPlayer: () => state?.players.find(p => p.id === playerId),
@@ -55,10 +57,12 @@ function changeMap(map) { arenaMap = structuredClone(map); if (scene?.ready) sce
 function updateLobby(data = {}) {
   lobbyStartsAt = data.startsAt || null;
   if (data.players) lobbyPlayers = data.players;
+  if (data.capacity) lobbyCapacity = data.capacity;
   const contestants = lobbyPlayers.filter(p => p.role === 'contestant');
   const gladiators = lobbyPlayers.filter(p => p.role === 'gladiator');
   $('lobby-room').textContent = roomId || data.room || '';
-  $('lobby-count').textContent = `${contestants.length}/8 contestants / ${gladiators.length}/2 gladiators`;
+  const places = role => lobbyCapacity ? `/${lobbyCapacity[role]}` : '';
+  $('lobby-count').textContent = `${contestants.length}${places('contestant')} contestants / ${gladiators.length}${places('gladiator')} gladiators`;
   const render = (target, list, empty) => {
     target.replaceChildren();
     if (!list.length) {
@@ -97,7 +101,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   clearInput(); pending = []; seq = 0; savedReplay = null; recordingFailed = false; playerId = null;
   snapshots.reset(); presentation = null; roundTripMs = null;
   resetDiagnostics();
-  owner = false; lobbyPlayers = [];
+  owner = false; lobbyPlayers = []; lobbyCapacity = null;
   $('finish-recording').disabled = false;
   roomId = room; ownerKey = key; selectedRole = role;
   connection('CONNECTING');

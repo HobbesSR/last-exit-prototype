@@ -7,6 +7,7 @@ const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit }
 // The application's only mutable access to simulation. Returned frames/commands are detached.
 export function createMatch(seed) {
   const game = createGame(seed);
+  const capacity = role => role === 'gladiator' ? game.content.roster.gladiators.length : game.content.roster.contestants.length;
   return {
     get tick() { return game.tick; },
     get phase() { return game.phase; },
@@ -15,6 +16,8 @@ export function createMatch(seed) {
     get contentId() { return game.content.id; },
     /** Whether this match's content offers a kit, rather than whatever the process happens to ship. */
     hasKit: kit => Object.hasOwn(game.content.kits, kit),
+    /** How many of a role a match holds, counted from the roster rather than repeated as a number. */
+    capacity,
     // Compatibility escape hatch for existing scenario/benchmark tools, not application code.
     get diagnosticState() { return game; },
     roster: () => game.players.filter(p => !p.bot).map(identity),
@@ -23,8 +26,8 @@ export function createMatch(seed) {
       const open = role => game.players.some(p => p.bot && p.status === 'active' && p.role === role);
       if (['contestant', 'gladiator'].includes(preference) && open(preference)) return preference;
       const roles = ['contestant', 'gladiator'].filter(open);
-      return roles.sort((a, b) => game.players.filter(p => p.role === a && !p.bot).length / (a === 'contestant' ? 8 : 2)
-        - game.players.filter(p => p.role === b && !p.bot).length / (b === 'contestant' ? 8 : 2))[0];
+      const share = role => game.players.filter(p => p.role === role && !p.bot).length / capacity(role);
+      return roles.sort((a, b) => share(a) - share(b))[0];
     },
     join: (id, role, kit, name) => identity(joinGame(game, id, role, kit, name)),
     resume(id) {

@@ -13,8 +13,10 @@ import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role, SlotIndex
  */
 export function createGame(seed = 4217, map: GameMap = generateMap(seed), content = defaultContent()): Game {
   const s: Game = { version: VERSION, content, seed, rng: seed || 1, tick: 0, phase: 'live', map, players: [], projectiles: [], effects: [], events: [], slots: 3, hazardX: -80, serial: 0 };
-  for (const [i, name] of ['Mica', 'Juno', 'Patch', 'Pip', 'Nova', 'Rook', 'Echo', 'Sol'].entries()) s.players.push(makePlayer(`c${i}` as PlayerId, name, 'contestant', 'warden', i));
-  s.players.push(makePlayer('g0' as PlayerId, 'IRONCLAD', 'gladiator', 'warden', 0), makePlayer('g1' as PlayerId, 'VESPER', 'gladiator', 'specter', 1));
+  // Identifier and iteration order are part of the recorded contract, so both are derived from the
+  // roster's own order rather than from anything that could reorder independently of it.
+  for (const [i, name] of s.content.roster.contestants.entries()) s.players.push(makePlayer(`c${i}` as PlayerId, name, 'contestant', 'warden', i));
+  for (const [i, g] of s.content.roster.gladiators.entries()) s.players.push(makePlayer(`g${i}` as PlayerId, g.name, 'gladiator', g.kit, i));
   for (const p of s.players) if (p.role === 'contestant') { p.inventory = Array(SLOT_COUNT).fill(null); p.selectedSlot = 0; }
   s.players.filter(p => p.role === 'contestant').forEach((p, i) => Object.assign(p, map.spawns[i]));
   s.players.filter(p => p.role === 'gladiator').forEach((p, i) => {

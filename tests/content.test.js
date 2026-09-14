@@ -82,6 +82,25 @@ test('a kit is validated against the match content rather than the shipped table
   assert.ok(Object.hasOwn(content.kits, p.kit), 'and the fallback is one it does');
 });
 
+test('the roster is the one place a capacity is stated', () => {
+  const content = structuredClone(defaultContent());
+  content.id = 'small-roster';
+  content.roster.contestants = ['Solo', 'Duo'];
+  content.roster.gladiators = [{ name: 'ONE', kit: 'warden' }];
+  Object.freeze(content);
+  const s = createGame(4217, undefined, content);
+
+  const contestants = s.players.filter(p => p.role === 'contestant');
+  const gladiators = s.players.filter(p => p.role === 'gladiator');
+  assert.equal(contestants.length, 2, 'spawning counts the roster');
+  assert.equal(gladiators.length, 1);
+  assert.deepEqual(contestants.map(p => p.name), ['Solo', 'Duo'], 'in the order the roster gave');
+  assert.equal(gladiators[0].kit, 'warden', 'with the kit the roster gave it');
+  // Identifiers stay derived from position, which the recorded contract depends on.
+  assert.deepEqual(contestants.map(p => p.id), ['c0', 'c1']);
+  assert.deepEqual(gladiators.map(p => p.id), ['g0']);
+});
+
 test('a match keeps its content across a full tick', () => {
   const { s } = fixture();
   const before = s.content;

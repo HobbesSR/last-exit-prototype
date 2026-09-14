@@ -47,6 +47,10 @@ function deepFreeze<T>(value: T): T {
 export function defaultContent(): MatchContent {
   return deepFreeze(structuredClone({
     id: CONTENT_ID,
+    roster: {
+      contestants: ['Mica', 'Juno', 'Patch', 'Pip', 'Nova', 'Rook', 'Echo', 'Sol'],
+      gladiators: [{ name: 'IRONCLAD', kit: 'warden' }, { name: 'VESPER', kit: 'specter' }],
+    },
     weapons: WEAPONS,
     kits: KITS,
     durationTicks: DURATION,

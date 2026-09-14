@@ -4,6 +4,8 @@ export const send = (session, value) => session.deliver(JSON.stringify(value));
 const lobbyPayload = room => ({
   type: 'lobby', room: room.id, started: room.started, matchmade: !!room.matchmade,
   startsAt: room.startsAt || null,
+  // Counted from the match's own roster, so a lobby never advertises places a match does not hold.
+  capacity: { contestant: room.match.capacity('contestant'), gladiator: room.match.capacity('gladiator') },
   players: room.match.roster().map(p => ({ id: p.id, name: p.name, role: p.role, kit: p.kit }))
 });
 export function broadcastLobby(room) {
