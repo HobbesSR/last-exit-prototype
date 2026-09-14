@@ -240,7 +240,7 @@ function inspect(t: PlacedTile | null | undefined): void {
 }
 $("editSelected").onclick = () => {
   if (!selected) return;
-  tab(true);
+  tab("author");
   select("template").value = selected.templateId;
   editTemplate();
 };
@@ -717,17 +717,151 @@ $("exportBson").onclick = () =>
     artifactToBson(map) as unknown as BlobPart,
     "application/bson",
   );
-function tab(author: boolean): void {
-  $("mapView").hidden = author;
-  $("authorView").hidden = !author;
-  $("authorTab").classList.toggle("active", author);
-  $("mapTab").classList.toggle("active", !author);
-  if (author && playing) stop("Run ended for authoring.");
-  if (author) renderLibraryMeta();
-  if (!author) resize();
+function tab(activeId: "world" | "author" | "sets"): void {
+  $("worldViewContainer").hidden = activeId !== "world";
+  $("authorViewContainer").hidden = activeId !== "author";
+  $("setsViewContainer").hidden = activeId !== "sets";
+  
+  $("mapTab").classList.toggle("active", activeId === "world");
+  $("authorTab").classList.toggle("active", activeId === "author");
+  $("setsTab").classList.toggle("active", activeId === "sets");
+  
+  if (activeId !== "world" && playing) stop("Run ended for authoring.");
+  
+  if (activeId === "author") {
+    renderLibraryMeta();
+  } else if (activeId === "sets") {
+    renderTileSetsList();
+  } else if (activeId === "world") {
+    resize();
+  }
 }
-$("mapTab").onclick = () => tab(false);
-$("authorTab").onclick = () => tab(true);
+$("mapTab").onclick = () => tab("world");
+$("authorTab").onclick = () => tab("author");
+$("setsTab").onclick = () => tab("sets");
+// --- Tile Sets Editor ---
+let activeTileSetId = "";
+
+function renderTileSetsList() {
+  const container = document.getElementById("tileSetsList");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!library.tileSets) library.tileSets = [];
+  
+  library.tileSets.forEach((set) => {
+    const el = document.createElement("div");
+    el.className = "tile-set-item";
+    if (set.id === activeTileSetId) el.classList.add("active");
+    el.textContent = set.id;
+    el.onclick = () => {
+      activeTileSetId = set.id;
+      renderTileSetsList();
+      renderTileSetEditor();
+    };
+    container.appendChild(el);
+  });
+  
+  if (!activeTileSetId && library.tileSets.length > 0) {
+    activeTileSetId = library.tileSets[0].id;
+  }
+  
+  renderTileSetEditor();
+}
+
+function renderTileSetEditor() {
+  const editor = document.getElementById("setsEditor");
+  const empty = document.getElementById("setsEditorEmpty");
+  if (!editor || !empty) return;
+
+  const activeSet = library.tileSets?.find((s) => s.id === activeTileSetId);
+  
+  if (!activeSet) {
+    editor.hidden = true;
+    empty.hidden = false;
+    return;
+  }
+  
+  editor.hidden = false;
+  empty.hidden = true;
+  
+  (document.getElementById("activeSetId") as HTMLInputElement).value = activeSet.id;
+  
+  const membersGallery = document.getElementById("setMembersGallery");
+  const availableGallery = document.getElementById("setAvailableGallery");
+  if (!membersGallery || !availableGallery) return;
+
+  membersGallery.innerHTML = "";
+  availableGallery.innerHTML = "";
+  
+  const inSet = new Set(activeSet.members);
+  
+  for (const t of library.tiles) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "tile-card";
+    
+    const name = document.createElement("span");
+    name.textContent = t.id;
+    card.append(tileThumbnail(t), name);
+    
+    if (inSet.has(t.id)) {
+      card.title = "Click to remove from set";
+      card.onclick = () => {
+        activeSet.members = activeSet.members.filter((id) => id !== t.id);
+        apply(library);
+        renderTileSetEditor();
+      };
+      membersGallery.appendChild(card);
+    } else {
+      card.title = "Click to add to set";
+      card.onclick = () => {
+        activeSet.members.push(t.id);
+        apply(library);
+        renderTileSetEditor();
+      };
+      availableGallery.appendChild(card);
+    }
+  }
+}
+
+document.getElementById("newTileSet")!.onclick = () => {
+  if (!library.tileSets) library.tileSets = [];
+  let id = "new-set";
+  let suffix = 1;
+  while (library.tileSets.some(s => s.id === id)) {
+    id = `new-set-${suffix++}`;
+  }
+  library.tileSets.push({ id, members: [] });
+  activeTileSetId = id;
+  apply(library);
+  renderTileSetsList();
+};
+
+document.getElementById("saveTileSet")!.onclick = () => {
+  const activeSet = library.tileSets?.find((s) => s.id === activeTileSetId);
+  if (!activeSet) return;
+  const newId = (document.getElementById("activeSetId") as HTMLInputElement).value.trim();
+  if (!newId || newId === activeSet.id) return;
+  if (library.tileSets?.some(s => s.id === newId)) {
+    alert("A Tile Set with that ID already exists.");
+    return;
+  }
+  activeSet.id = newId;
+  activeTileSetId = newId;
+  apply(library);
+  renderTileSetsList();
+};
+
+document.getElementById("deleteTileSet")!.onclick = () => {
+  if (!library.tileSets || !activeTileSetId) return;
+  library.tileSets = library.tileSets.filter(s => s.id !== activeTileSetId);
+  activeTileSetId = "";
+  apply(library);
+  renderTileSetsList();
+};
+
+(window as any).renderTileSetsList = renderTileSetsList;
+
 function syncLibrary() {
   const previous = select("template").value;
   select("template").replaceChildren(

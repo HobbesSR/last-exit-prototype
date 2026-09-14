@@ -105,17 +105,8 @@ try {
   await page.locator("#saveTemplate").click();
   assert.match(await page.locator("#librarySource").inputValue(), /test-yard/);
   assert.equal(await page.locator("#template").inputValue(), "test-yard");
-  // Weight is not a tile-authoring control any more: it is a selection
-  // frequency that belongs to whatever set draws from the tile, and until tile
-  // sets carry member weights it lives only in the library file.
+  // Tile weight has been completely removed from the data model.
   assert.equal(await page.locator("#tileWeight").count(), 0);
-  const weighted = JSON.parse(
-    await page.locator("#librarySource").inputValue(),
-  );
-  weighted.tiles.find((t: any) => t.id === "test-yard").weight = 10000;
-  await page.locator("#librarySource").fill(JSON.stringify(weighted, null, 2));
-  await page.locator("#applyLibrary").click();
-  assert.equal(await page.locator("#template").inputValue(), "test-yard");
   await page.locator("#mapTab").click();
   await page.locator("#generate").click();
   assert.ok(
@@ -163,6 +154,7 @@ try {
   await poke(1.5, 3, true);
   await page.locator("#segmentAperture").fill("0.2-0.8");
   await page.locator("#saveTemplate").click();
+  await page.locator("#mapTab").click();
   await page.locator("#generate").click();
   assert.match(await page.locator("#status").innerText(), /^Validated/);
   const downloadPromise = page.waitForEvent("download");
@@ -191,6 +183,7 @@ try {
   }
 
   // A cell class is declared once, then offered everywhere.
+  await page.locator("#authorTab").click();
   await page.locator("#newClass").fill("hut");
   await page.locator("#addClass").click();
   assert.match(
