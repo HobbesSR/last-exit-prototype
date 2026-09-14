@@ -23,6 +23,7 @@
       <button id="mapTab" class="active">World</button>
       <button id="authorTab">Tile Editor</button>
       <button id="setsTab">Tile Sets</button>
+      <button id="layoutsTab">Set Pieces</button>
     </nav>
     <main id="mainLayout">
       <div id="worldViewContainer" class="tab-view active">
@@ -340,6 +341,50 @@
               </div>
             </div>
             <div id="setsEditorEmpty" class="readout">Select a tile set to edit.</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="layoutsViewContainer" class="tab-view" hidden>
+        <div id="setsView">
+          <div class="sets-left">
+            <h2>Set Pieces</h2>
+            <div id="layoutsList" class="tile-sets-list"></div>
+            <button id="newLayout" class="primary full">New Set Piece</button>
+          </div>
+          <div class="sets-right">
+            <div id="layoutsEditor">
+              <div class="sets-header">
+                <label>Set Piece ID<input id="activeLayoutId" spellcheck="false" /></label>
+                <label>Class ID<input id="activeLayoutClass" spellcheck="false" /></label>
+                <div class="tier-label">Eligible Tiers
+                  <div class="tier-checkboxes" id="activeLayoutTiers">
+                    <label><input type="checkbox" value="0">0</label>
+                    <label><input type="checkbox" value="1">1</label>
+                    <label><input type="checkbox" value="2">2</label>
+                    <label><input type="checkbox" value="3">3</label>
+                    <label><input type="checkbox" value="4">4</label>
+                    <label><input type="checkbox" value="5">5</label>
+                  </div>
+                </div>
+                <button id="deleteLayout" class="danger">Delete</button>
+              </div>
+              <div class="layout-workspace">
+                <div class="layout-palette">
+                  <h4>Tile Sets</h4>
+                  <input id="layoutPaletteFilter" placeholder="Filter..." spellcheck="false" />
+                  <div id="layoutPaletteList" class="layout-palette-list"></div>
+                </div>
+                <div class="layout-grid-container">
+                  <div class="layout-grid" id="layoutGrid">
+                    <!-- 11x11 grid populated by JS -->
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="noLayoutSelected" class="empty-state">
+              <p>Select a set piece from the list to edit its properties.</p>
+            </div>
           </div>
         </div>
       </div>

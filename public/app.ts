@@ -717,14 +717,16 @@ $("exportBson").onclick = () =>
     artifactToBson(map) as unknown as BlobPart,
     "application/bson",
   );
-function tab(activeId: "world" | "author" | "sets"): void {
+function tab(activeId: "world" | "author" | "sets" | "layouts"): void {
   $("worldViewContainer").hidden = activeId !== "world";
   $("authorViewContainer").hidden = activeId !== "author";
   $("setsViewContainer").hidden = activeId !== "sets";
+  $("layoutsViewContainer").hidden = activeId !== "layouts";
   
   $("mapTab").classList.toggle("active", activeId === "world");
   $("authorTab").classList.toggle("active", activeId === "author");
   $("setsTab").classList.toggle("active", activeId === "sets");
+  $("layoutsTab").classList.toggle("active", activeId === "layouts");
   
   if (activeId !== "world" && playing) stop("Run ended for authoring.");
   
@@ -739,6 +741,7 @@ function tab(activeId: "world" | "author" | "sets"): void {
 $("mapTab").onclick = () => tab("world");
 $("authorTab").onclick = () => tab("author");
 $("setsTab").onclick = () => tab("sets");
+$("layoutsTab").onclick = () => tab("layouts");
 // --- Tile Sets Editor ---
 let activeTileSetId = "";
 
@@ -2299,3 +2302,194 @@ requestAnimationFrame(function frame(t) {
   draw();
   requestAnimationFrame(frame);
 });
+
+
+// --- Layouts (Set Pieces) Editor ---
+
+let activeLayoutId: string | null = null;
+let activeLayoutBrush: string | null = null;
+
+function renderLayoutsList() {
+  const container = $("layoutsList");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!library.layouts) library.layouts = [];
+  
+  library.layouts.forEach((layout) => {
+    const el = document.createElement("div");
+    el.className = "tile-set-item";
+    if (layout.id === activeLayoutId) el.classList.add("active");
+    el.textContent = layout.id;
+    el.onclick = () => {
+      activeLayoutId = layout.id;
+      renderLayoutsList();
+      renderLayoutEditor();
+    };
+    container.append(el);
+  });
+}
+
+$("newLayout").onclick = () => {
+  if (!library.layouts) library.layouts = [];
+  let id = "new-set-piece";
+  let counter = 1;
+  while (library.layouts.some(l => l.id === id)) {
+    id = `new-set-piece-${counter++}`;
+  }
+  library.layouts.push({
+    id,
+    classId: "set-piece",
+    eligibleTiers: [0, 1, 2, 3, 4, 5],
+    tiles: []
+  });
+  activeLayoutId = id;
+  
+  renderLayoutsList();
+  renderLayoutEditor();
+};
+
+function getLayoutPaletteItems(): string[] {
+  const explicit = (library.tileSets || []).map(s => s.id);
+  const implicit = (library.tiles || []).map(t => t.id).filter(id => !explicit.includes(id));
+  return [...explicit, ...implicit];
+}
+
+function renderLayoutPalette() {
+  const container = $("layoutPaletteList");
+  const filterInput = $("layoutPaletteFilter") as HTMLInputElement;
+  const filter = filterInput.value.toLowerCase();
+  
+  container.innerHTML = "";
+  const items = getLayoutPaletteItems();
+  
+  items.forEach(id => {
+    if (filter && !id.toLowerCase().includes(filter)) return;
+    
+    const el = document.createElement("div");
+    el.className = "layout-palette-item";
+    if (id === activeLayoutBrush) el.classList.add("active");
+    el.textContent = id;
+    
+    // Check if it's explicit or implicit
+    const isExplicit = (library.tileSets || []).some(s => s.id === id);
+    if (!isExplicit) {
+      el.style.opacity = "0.7";
+      el.title = "Implicit tile set (single tile)";
+    }
+    
+    el.onclick = () => {
+      activeLayoutBrush = id;
+      renderLayoutPalette();
+    };
+    container.append(el);
+  });
+}
+
+$("layoutPaletteFilter")?.addEventListener("input", renderLayoutPalette);
+
+function renderLayoutEditor() {
+  const layout = library.layouts?.find(l => l.id === activeLayoutId);
+  const editor = $("layoutsEditor");
+  const empty = $("noLayoutSelected");
+  
+  if (!layout) {
+    editor.style.display = "none";
+    empty.style.display = "block";
+    return;
+  }
+  editor.style.display = "flex";
+  editor.style.flexDirection = "column";
+  empty.style.display = "none";
+  
+  const idInput = $("activeLayoutId") as HTMLInputElement;
+  const classInput = $("activeLayoutClass") as HTMLInputElement;
+  
+  idInput.value = layout.id;
+  idInput.onchange = () => {
+    const newId = idInput.value.trim();
+    if (newId && !library.layouts.some(l => l.id === newId && l !== layout)) {
+      layout.id = newId;
+      activeLayoutId = newId;
+      
+      renderLayoutsList();
+    } else {
+      idInput.value = layout.id;
+    }
+  };
+  
+  classInput.value = layout.classId || "set-piece";
+  classInput.onchange = () => {
+    layout.classId = classInput.value.trim() || "set-piece";
+    
+  };
+  
+  const checkboxes = $("activeLayoutTiers").querySelectorAll("input[type=checkbox]") as NodeListOf<HTMLInputElement>;
+  checkboxes.forEach(cb => {
+    const tier = parseInt(cb.value, 10);
+    cb.checked = layout.eligibleTiers.includes(tier);
+    cb.onchange = () => {
+      if (cb.checked) {
+        if (!layout.eligibleTiers.includes(tier)) layout.eligibleTiers.push(tier);
+      } else {
+        layout.eligibleTiers = layout.eligibleTiers.filter(t => t !== tier);
+      }
+      layout.eligibleTiers.sort((a, b) => a - b);
+      
+    };
+  });
+  
+  renderLayoutPalette();
+  
+  const grid = $("layoutGrid");
+  grid.innerHTML = "";
+  
+  // 11x11 grid from dx -5 to +5, dy -5 to +5
+  const GRID_SIZE = 5;
+  for (let dy = -GRID_SIZE; dy <= GRID_SIZE; dy++) {
+    for (let dx = -GRID_SIZE; dx <= GRID_SIZE; dx++) {
+      const cell = document.createElement("div");
+      cell.className = "layout-cell";
+      if (dx === 0 && dy === 0) cell.classList.add("origin");
+      
+      const slot = layout.tiles.find(t => t.dx === dx && t.dy === dy);
+      if (slot) {
+        cell.classList.add("filled");
+        cell.textContent = slot.tileSetId;
+        cell.title = `${slot.tileSetId} at (${dx}, ${dy})`;
+      } else {
+        cell.title = `(${dx}, ${dy})`;
+      }
+      
+      cell.onmousedown = (e) => {
+        if (e.button === 0 && activeLayoutBrush) {
+          // Left click: Paint
+          if (slot) {
+            slot.tileSetId = activeLayoutBrush;
+          } else {
+            layout.tiles.push({ dx, dy, tileSetId: activeLayoutBrush });
+          }
+          
+          renderLayoutEditor();
+        } else if (e.button === 2) {
+          // Right click: Erase
+          layout.tiles = layout.tiles.filter(t => t !== slot);
+          
+          renderLayoutEditor();
+        }
+      };
+      // Prevent context menu on right click to erase
+      cell.oncontextmenu = (e) => e.preventDefault();
+      
+      grid.append(cell);
+    }
+  }
+}
+
+$("deleteLayout").onclick = () => {
+  if (!activeLayoutId) return;
+  library.layouts = library.layouts.filter(l => l.id !== activeLayoutId);
+  activeLayoutId = null;
+  
+  renderLayoutsList();
+  renderLayoutEditor();
+};
