@@ -4,7 +4,7 @@ import { createGenerationContext } from '../shared/map/context.ts';
 import { placeElement } from '../shared/map/element.ts';
 import { HUT, REGION_ELEMENTS, REGION_PROPS } from '../shared/map/templates.ts';
 import { CORNER_CLEARANCE } from '../shared/map/structures.ts';
-import { polygon, convex, bounds } from '../shared/shape.ts';
+import { polygon, convex, bounds, fieldsOf } from '../shared/shape.ts';
 import { canOccupy } from '../shared/movement.ts';
 
 // Anchored near the middle of the diamond, because `canOccupy` also enforces the arena boundary.
@@ -93,6 +93,13 @@ test('every polygon part in the catalogue is convex, and every part lies inside 
       const box = bounds(part.shape);
       assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.w <= template.w && box.y + box.h <= template.h,
         `${name} part ${i} spills outside the ${template.w}x${template.h} footprint the placer reserves for it`);
+      // `clearFootprint` and the block-corner arithmetic read an obstacle's raw x/y/w/h as a box, so
+      // a part whose record is not its own bounds is placed correctly and then tested against the
+      // wrong rectangle. A circle part fails here on purpose: `shapeOf` reads a circle's x/y as its
+      // centre, so its record cannot also be its top-left box until that convention is revisited.
+      const record = fieldsOf(part.shape);
+      assert.deepEqual({ x: record.x, y: record.y, w: record.w, h: record.h }, box,
+        `${name} part ${i}: the record written for this shape is not its own bounds`);
     }
   }
 });
