@@ -1780,7 +1780,7 @@ $("tilePreview").addEventListener("pointercancel", endDraw);
 $("tilePreview").addEventListener("pointerleave", () => {
   $("hoverReadout").textContent = "";
 });
-$("tilePreview").addEventListener("contextmenu", (e) => {
+$("authorCenter").addEventListener("contextmenu", (e) => {
   e.preventDefault();
   const event = e as MouseEvent;
   openPopup(
