@@ -150,7 +150,7 @@ test("a design walled on every side is never used as fill", () => {
   const boxed = {
     id: "boxed",
     defaultCellClass: "open",
-    
+
     orientations: [0],
     edges: { N: "######", E: "######", S: "######", W: "######" },
   };
@@ -234,7 +234,6 @@ test("validator rejects malformed and mutated map data without throwing", () => 
   assert.equal(validateMap(m).valid, false);
 });
 
-
 test("library validation handles malformed nested input", () => {
   for (const value of [
     null,
@@ -246,8 +245,6 @@ test("library validation handles malformed nested input", () => {
   ] as unknown[])
     assert.equal(validateLibrary(value).valid, false);
 });
-
-
 
 test("nonintersecting collinear geometry does not block routes", () => {
   const m = generateMap("collinear", { zoneWidth: 2, zoneHeight: 1 });
@@ -435,14 +432,14 @@ test("uniform tiles remain ordinary content regardless of omitted or explicit an
     {
       id: "field",
       defaultCellClass: "yard",
-      
+
       orientations: [0],
       ports: { N: "any", E: "any", S: "any", W: "any" },
     },
     {
       id: "fallback",
       defaultCellClass: "open",
-      
+
       orientations: [0],
       adapter: true,
     },
@@ -466,7 +463,7 @@ test("a template that seals its own interior is never placed", () => {
   const sealed = {
     id: "sealed",
     defaultCellClass: "court",
-    
+
     orientations: [0] as const,
     ports: { N: "any", E: "any", S: "any", W: "any" },
     // A ring on the margin: every seam opens onto a one-cell strip that no

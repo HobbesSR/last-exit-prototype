@@ -1088,7 +1088,7 @@ export function generateMap(
   const getSetMembers = (id: string): string[] => {
     const s = setMap.get(id);
     if (s) return s.members;
-    if (allTiles.some(t => t.id === id)) return [id];
+    if (allTiles.some((t) => t.id === id)) return [id];
     return [];
   };
   // Place the most constrained authored layouts first: a small footprint can

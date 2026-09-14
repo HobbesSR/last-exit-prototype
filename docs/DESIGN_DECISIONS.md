@@ -16,6 +16,7 @@ laid over it. Generation only chooses designs that keep the map walkable. It is
 a scaffold for authoring and validation, not a finished game map generator.
 
 **Key Macro and Micro Content Rules (as decided):**
+
 - **Critical Set Pieces and Regions:** Macro generation is only responsible for placing at least one region/set-piece of the types required to spawn critical map pieces.
 - **Physical Exits:** The placement of actual physical exits is a micro-generation detail. The macro layer simply allocates one or more regions that are responsible for the micro-generation of exits.
 - **Parameterized Cell Classes:** Cell classes formally support parameters (`parameter: true`). This allows common configurations to be reused across region types without duplicating them for each tile set, and allows tiles to act as parameterized templates where region classes are bound during macro placement.

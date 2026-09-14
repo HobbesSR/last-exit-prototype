@@ -8,7 +8,7 @@ function template(extra: Partial<TileDesign> = {}): TileDesign {
   return {
     id: "probe",
     defaultCellClass: "open",
-    
+
     orientations: [0, 90, 180, 270],
     ports: { N: "any", E: "any", S: "any", W: "any" },
     ...extra,

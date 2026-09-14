@@ -722,14 +722,14 @@ function tab(activeId: "world" | "author" | "sets" | "layouts"): void {
   $("authorViewContainer").hidden = activeId !== "author";
   $("setsViewContainer").hidden = activeId !== "sets";
   $("layoutsViewContainer").hidden = activeId !== "layouts";
-  
+
   $("mapTab").classList.toggle("active", activeId === "world");
   $("authorTab").classList.toggle("active", activeId === "author");
   $("setsTab").classList.toggle("active", activeId === "sets");
   $("layoutsTab").classList.toggle("active", activeId === "layouts");
-  
+
   if (activeId !== "world" && playing) stop("Run ended for authoring.");
-  
+
   if (activeId === "author") {
     renderLibraryMeta();
   } else if (activeId === "sets") {
@@ -750,7 +750,7 @@ function renderTileSetsList() {
   if (!container) return;
   container.innerHTML = "";
   if (!library.tileSets) library.tileSets = [];
-  
+
   library.tileSets.forEach((set) => {
     const el = document.createElement("div");
     el.className = "tile-set-item";
@@ -763,11 +763,11 @@ function renderTileSetsList() {
     };
     container.appendChild(el);
   });
-  
+
   if (!activeTileSetId && library.tileSets.length > 0) {
     activeTileSetId = library.tileSets[0].id;
   }
-  
+
   renderTileSetEditor();
 }
 
@@ -779,46 +779,56 @@ function renderTileSetEditor() {
   if (!editor || !empty) return;
 
   const activeSet = library.tileSets?.find((s) => s.id === activeTileSetId);
-  
+
   if (!activeSet) {
     editor.hidden = true;
     empty.hidden = false;
     return;
   }
-  
+
   editor.hidden = false;
   empty.hidden = true;
-  
-  (document.getElementById("activeSetId") as HTMLInputElement).value = activeSet.id;
-  
+
+  (document.getElementById("activeSetId") as HTMLInputElement).value =
+    activeSet.id;
+
   const membersGallery = document.getElementById("setMembersGallery");
   const availableGallery = document.getElementById("setAvailableGallery");
   if (!membersGallery || !availableGallery) return;
 
   membersGallery.innerHTML = "";
   availableGallery.innerHTML = "";
-  
+
   const inSet = new Set(activeSet.members);
   const filter = tileSetFilter.toLowerCase();
-  const filterEl = document.getElementById("setAvailableFilter") as HTMLInputElement;
-  if (filterEl && filterEl.value !== tileSetFilter) filterEl.value = tileSetFilter;
-  
+  const filterEl = document.getElementById(
+    "setAvailableFilter",
+  ) as HTMLInputElement;
+  if (filterEl && filterEl.value !== tileSetFilter)
+    filterEl.value = tileSetFilter;
+
   for (const t of library.tiles) {
     const isMember = inSet.has(t.id);
-    
+
     if (!isMember && filter) {
-      const searchStr = (t.id + " " + (t.labels || []).join(" ") + " " + (t.defaultCellClass || "")).toLowerCase();
+      const searchStr = (
+        t.id +
+        " " +
+        (t.labels || []).join(" ") +
+        " " +
+        (t.defaultCellClass || "")
+      ).toLowerCase();
       if (!searchStr.includes(filter)) continue;
     }
 
     const card = document.createElement("button");
     card.type = "button";
     card.className = "tile-card";
-    
+
     const name = document.createElement("span");
     name.textContent = t.id;
     card.append(tileThumbnail(t), name);
-    
+
     if (isMember) {
       card.title = "Click to remove from set";
       card.onclick = () => {
@@ -848,7 +858,7 @@ document.getElementById("newTileSet")!.onclick = () => {
   if (!library.tileSets) library.tileSets = [];
   let id = "new-set";
   let suffix = 1;
-  while (library.tileSets.some(s => s.id === id)) {
+  while (library.tileSets.some((s) => s.id === id)) {
     id = `new-set-${suffix++}`;
   }
   library.tileSets.push({ id, members: [] });
@@ -860,9 +870,11 @@ document.getElementById("newTileSet")!.onclick = () => {
 document.getElementById("saveTileSet")!.onclick = () => {
   const activeSet = library.tileSets?.find((s) => s.id === activeTileSetId);
   if (!activeSet) return;
-  const newId = (document.getElementById("activeSetId") as HTMLInputElement).value.trim();
+  const newId = (
+    document.getElementById("activeSetId") as HTMLInputElement
+  ).value.trim();
   if (!newId || newId === activeSet.id) return;
-  if (library.tileSets?.some(s => s.id === newId)) {
+  if (library.tileSets?.some((s) => s.id === newId)) {
     alert("A Tile Set with that ID already exists.");
     return;
   }
@@ -874,7 +886,7 @@ document.getElementById("saveTileSet")!.onclick = () => {
 
 document.getElementById("deleteTileSet")!.onclick = () => {
   if (!library.tileSets || !activeTileSetId) return;
-  library.tileSets = library.tileSets.filter(s => s.id !== activeTileSetId);
+  library.tileSets = library.tileSets.filter((s) => s.id !== activeTileSetId);
   activeTileSetId = "";
   apply(library);
   renderTileSetsList();
@@ -2189,7 +2201,10 @@ $("saveTemplate").onclick = () => {
     // A design that states nothing about its seams carries no ports at all.
     if (Object.values(ports).every((v) => v === "any")) delete t.ports;
     else t.ports = ports;
-    const labels = input("tileLabels").value.trim().split(/\s+/).filter(Boolean);
+    const labels = input("tileLabels")
+      .value.trim()
+      .split(/\s+/)
+      .filter(Boolean);
     if (labels.length) t.labels = labels;
     else delete t.labels;
     if (input("tileAdapter").checked) t.adapter = true;
@@ -2303,7 +2318,6 @@ requestAnimationFrame(function frame(t) {
   requestAnimationFrame(frame);
 });
 
-
 // --- Layouts (Set Pieces) Editor ---
 
 let activeLayoutId: string | null = null;
@@ -2314,7 +2328,7 @@ function renderLayoutsList() {
   if (!container) return;
   container.innerHTML = "";
   if (!library.layouts) library.layouts = [];
-  
+
   library.layouts.forEach((layout) => {
     const el = document.createElement("div");
     el.className = "tile-set-item";
@@ -2333,24 +2347,26 @@ $("newLayout").onclick = () => {
   if (!library.layouts) library.layouts = [];
   let id = "new-set-piece";
   let counter = 1;
-  while (library.layouts.some(l => l.id === id)) {
+  while (library.layouts.some((l) => l.id === id)) {
     id = `new-set-piece-${counter++}`;
   }
   library.layouts.push({
     id,
     classId: "set-piece",
     eligibleTiers: [0, 1, 2, 3, 4, 5],
-    tiles: []
+    tiles: [],
   });
   activeLayoutId = id;
-  
+
   renderLayoutsList();
   renderLayoutEditor();
 };
 
 function getLayoutPaletteItems(): string[] {
-  const explicit = (library.tileSets || []).map(s => s.id);
-  const implicit = (library.tiles || []).map(t => t.id).filter(id => !explicit.includes(id));
+  const explicit = (library.tileSets || []).map((s) => s.id);
+  const implicit = (library.tiles || [])
+    .map((t) => t.id)
+    .filter((id) => !explicit.includes(id));
   return [...explicit, ...implicit];
 }
 
@@ -2358,25 +2374,25 @@ function renderLayoutPalette() {
   const container = $("layoutPaletteList");
   const filterInput = $("layoutPaletteFilter") as HTMLInputElement;
   const filter = filterInput.value.toLowerCase();
-  
+
   container.innerHTML = "";
   const items = getLayoutPaletteItems();
-  
-  items.forEach(id => {
+
+  items.forEach((id) => {
     if (filter && !id.toLowerCase().includes(filter)) return;
-    
+
     const el = document.createElement("div");
     el.className = "layout-palette-item";
     if (id === activeLayoutBrush) el.classList.add("active");
     el.textContent = id;
-    
+
     // Check if it's explicit or implicit
-    const isExplicit = (library.tileSets || []).some(s => s.id === id);
+    const isExplicit = (library.tileSets || []).some((s) => s.id === id);
     if (!isExplicit) {
       el.style.opacity = "0.7";
       el.title = "Implicit tile set (single tile)";
     }
-    
+
     el.onclick = () => {
       activeLayoutBrush = id;
       renderLayoutPalette();
@@ -2388,10 +2404,10 @@ function renderLayoutPalette() {
 $("layoutPaletteFilter")?.addEventListener("input", renderLayoutPalette);
 
 function renderLayoutEditor() {
-  const layout = library.layouts?.find(l => l.id === activeLayoutId);
+  const layout = library.layouts?.find((l) => l.id === activeLayoutId);
   const editor = $("layoutsEditor");
   const empty = $("noLayoutSelected");
-  
+
   if (!layout) {
     editor.style.display = "none";
     empty.style.display = "block";
@@ -2400,49 +2416,50 @@ function renderLayoutEditor() {
   editor.style.display = "flex";
   editor.style.flexDirection = "column";
   empty.style.display = "none";
-  
+
   const idInput = $("activeLayoutId") as HTMLInputElement;
   const classInput = $("activeLayoutClass") as HTMLInputElement;
-  
+
   idInput.value = layout.id;
   idInput.onchange = () => {
     const newId = idInput.value.trim();
-    if (newId && !library.layouts.some(l => l.id === newId && l !== layout)) {
+    if (newId && !library.layouts.some((l) => l.id === newId && l !== layout)) {
       layout.id = newId;
       activeLayoutId = newId;
-      
+
       renderLayoutsList();
     } else {
       idInput.value = layout.id;
     }
   };
-  
+
   classInput.value = layout.classId || "set-piece";
   classInput.onchange = () => {
     layout.classId = classInput.value.trim() || "set-piece";
-    
   };
-  
-  const checkboxes = $("activeLayoutTiers").querySelectorAll("input[type=checkbox]") as NodeListOf<HTMLInputElement>;
-  checkboxes.forEach(cb => {
+
+  const checkboxes = $("activeLayoutTiers").querySelectorAll(
+    "input[type=checkbox]",
+  ) as NodeListOf<HTMLInputElement>;
+  checkboxes.forEach((cb) => {
     const tier = parseInt(cb.value, 10);
     cb.checked = layout.eligibleTiers.includes(tier);
     cb.onchange = () => {
       if (cb.checked) {
-        if (!layout.eligibleTiers.includes(tier)) layout.eligibleTiers.push(tier);
+        if (!layout.eligibleTiers.includes(tier))
+          layout.eligibleTiers.push(tier);
       } else {
-        layout.eligibleTiers = layout.eligibleTiers.filter(t => t !== tier);
+        layout.eligibleTiers = layout.eligibleTiers.filter((t) => t !== tier);
       }
       layout.eligibleTiers.sort((a, b) => a - b);
-      
     };
   });
-  
+
   renderLayoutPalette();
-  
+
   const grid = $("layoutGrid");
   grid.innerHTML = "";
-  
+
   // 11x11 grid from dx -5 to +5, dy -5 to +5
   const GRID_SIZE = 5;
   for (let dy = -GRID_SIZE; dy <= GRID_SIZE; dy++) {
@@ -2450,8 +2467,8 @@ function renderLayoutEditor() {
       const cell = document.createElement("div");
       cell.className = "layout-cell";
       if (dx === 0 && dy === 0) cell.classList.add("origin");
-      
-      const slot = layout.tiles.find(t => t.dx === dx && t.dy === dy);
+
+      const slot = layout.tiles.find((t) => t.dx === dx && t.dy === dy);
       if (slot) {
         cell.classList.add("filled");
         cell.textContent = slot.tileSetId;
@@ -2459,7 +2476,7 @@ function renderLayoutEditor() {
       } else {
         cell.title = `(${dx}, ${dy})`;
       }
-      
+
       cell.onmousedown = (e) => {
         if (e.button === 0 && activeLayoutBrush) {
           // Left click: Paint
@@ -2468,18 +2485,18 @@ function renderLayoutEditor() {
           } else {
             layout.tiles.push({ dx, dy, tileSetId: activeLayoutBrush });
           }
-          
+
           renderLayoutEditor();
         } else if (e.button === 2) {
           // Right click: Erase
-          layout.tiles = layout.tiles.filter(t => t !== slot);
-          
+          layout.tiles = layout.tiles.filter((t) => t !== slot);
+
           renderLayoutEditor();
         }
       };
       // Prevent context menu on right click to erase
       cell.oncontextmenu = (e) => e.preventDefault();
-      
+
       grid.append(cell);
     }
   }
@@ -2487,9 +2504,9 @@ function renderLayoutEditor() {
 
 $("deleteLayout").onclick = () => {
   if (!activeLayoutId) return;
-  library.layouts = library.layouts.filter(l => l.id !== activeLayoutId);
+  library.layouts = library.layouts.filter((l) => l.id !== activeLayoutId);
   activeLayoutId = null;
-  
+
   renderLayoutsList();
   renderLayoutEditor();
 };

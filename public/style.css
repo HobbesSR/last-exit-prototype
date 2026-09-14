@@ -120,7 +120,8 @@ aside {
   z-index: 10;
   margin-left: -2px;
 }
-.resizer:hover, .resizer.dragging {
+.resizer:hover,
+.resizer.dragging {
   background: #c8f18544;
 }
 section {
@@ -221,7 +222,8 @@ output {
   border-right: 1px solid #25343f !important;
   margin-right: 15px;
 }
-.sidebar-collapsed aside, .sidebar-collapsed .resizer {
+.sidebar-collapsed aside,
+.sidebar-collapsed .resizer {
   display: none !important;
 }
 .badge {
@@ -238,7 +240,8 @@ output {
 }
 canvas {
   position: absolute;
-  top: 0; left: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   display: block;
@@ -895,7 +898,7 @@ summary {
   pointer-events: none;
   white-space: pre-line;
   z-index: 100;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
 }
 
 .toast-container {
@@ -916,9 +919,11 @@ summary {
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   opacity: 0;
-  transition: opacity 0.3s, transform 0.3s;
+  transition:
+    opacity 0.3s,
+    transform 0.3s;
   transform: translateY(10px);
 }
 .toast.show {
@@ -933,7 +938,6 @@ summary {
   background: #72d8dd;
   color: #10212b;
 }
-
 
 /* Tile Sets Editor */
 #setsView {
@@ -994,10 +998,12 @@ summary {
 .sets-header label {
   flex: 1;
 }
-.sets-members, .sets-available {
+.sets-members,
+.sets-available {
   margin-top: 25px;
 }
-.sets-members h3, .sets-available h3 {
+.sets-members h3,
+.sets-available h3 {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -1005,8 +1011,11 @@ summary {
   margin: 0 0 15px;
 }
 
-
-.gallery-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.gallery-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 \n
 /* Layouts (Set Pieces) Editor */
 .tier-label {

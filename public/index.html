@@ -27,126 +27,135 @@
     </nav>
     <main id="mainLayout">
       <div id="worldViewContainer" class="tab-view active">
-      <aside id="sidebar">
-        <section>
-          <h2>01 / World recipe</h2>
-          <label>Seed<input id="seed" value="last-exit-001" /></label>
-          <div class="pair">
+        <aside id="sidebar">
+          <section>
+            <h2>01 / World recipe</h2>
+            <label>Seed<input id="seed" value="last-exit-001" /></label>
+            <div class="pair">
+              <label
+                >Zone width<input
+                  id="zoneWidth"
+                  type="number"
+                  min="1"
+                  max="16"
+                  step="1"
+                  value="12" /></label
+              ><label
+                >Zone height<input
+                  id="zoneHeight"
+                  type="number"
+                  min="1"
+                  max="8"
+                  step="1"
+                  value="6"
+              /></label>
+            </div>
+            <p class="hint">
+              Tiles per tier zone. The map is a 5 &times; 5 zone grid masked to
+              a diamond, so its extent follows: <output id="extent"></output>.
+            </p>
+            <p class="hint">
+              Seams are not planned. Loops, squeezes and walls between tiles are
+              whatever the designs that land next to each other declare; the
+              generator only chooses designs that keep the map walkable.
+            </p>
             <label
-              >Zone width<input
-                id="zoneWidth"
+              >Exit locations<input
+                id="exits"
                 type="number"
                 min="1"
-                max="16"
-                step="1"
-                value="12" /></label
-            ><label
-              >Zone height<input
-                id="zoneHeight"
-                type="number"
-                min="1"
-                max="8"
-                step="1"
-                value="6"
+                max="5"
+                value="2"
             /></label>
+            <div class="pair">
+              <button id="generate" class="primary">Build map</button
+              ><button id="random">New seed</button>
+            </div>
+          </section>
+          <section>
+            <h2>02 / Inspect</h2>
+            <label
+              >Color field<select id="overlay">
+                <option value="tier">Horizontal tier</option>
+                <option value="bonus">Vertical bonus</option>
+                <option value="region">Regions</option>
+                <option value="class">Region class</option>
+                <option value="template">Tile templates</option>
+              </select></label
+            ><label class="check"
+              ><input id="routes" type="checkbox" checked /> Compare shortest
+              routes</label
+            >
+            <p class="hint">
+              Click a tile to inspect it. Scroll to zoom; drag to pan. Routes
+              lead to the selected exit.
+            </p>
+            <div id="inspector" class="readout">Select a tile.</div>
+            <button id="editSelected" type="button" hidden>
+              Edit this tile design
+            </button>
+          </section>
+          <section>
+            <h2>03 / Playtest</h2>
+            <label
+              >Body<select id="body">
+                <option value="contestant">Contestant · 1.1 segments</option>
+                <option value="hunter">Hunter · 1.8 segments</option>
+              </select></label
+            ><button id="play" class="primary full">Start escape run</button>
+            <p class="hint">
+              WASD / arrows move · aim + click fires · E interacts · Esc returns
+              to map. Collect gold, charge once, and reach an exit. Red pursuers
+              respawn after being tagged.
+            </p>
+            <div id="gameStatus" class="readout">Ready for a run.</div>
+          </section>
+        </aside>
+        <div
+          id="sidebarResizer"
+          class="resizer"
+          title="Drag to resize sidebar"
+        ></div>
+        <div class="workspace">
+          <div class="toolbar">
+            <button
+              id="toggleSidebar"
+              class="sidebar-toggle"
+              title="Toggle Sidebar"
+            >
+              ☰
+            </button>
+            <div class="spacer" style="flex: 1"></div>
+            <div>
+              <button id="fit">Fit map</button
+              ><span class="badge">6 × 6 CELLS / TILE</span>
+            </div>
           </div>
-          <p class="hint">
-            Tiles per tier zone. The map is a 5 &times; 5 zone grid masked to a
-            diamond, so its extent follows: <output id="extent"></output>.
-          </p>
-          <p class="hint">
-            Seams are not planned. Loops, squeezes and walls between tiles are
-            whatever the designs that land next to each other declare; the
-            generator only chooses designs that keep the map walkable.
-          </p>
-          <label
-            >Exit locations<input
-              id="exits"
-              type="number"
-              min="1"
-              max="5"
-              value="2"
-          /></label>
-          <div class="pair">
-            <button id="generate" class="primary">Build map</button
-            ><button id="random">New seed</button>
+          <div id="mapView">
+            <canvas
+              id="map"
+              aria-label="Generated map and playable escape prototype"
+            ></canvas>
+            <div class="legend">
+              <span><i class="spawn"></i> Start</span
+              ><span><i class="exit"></i> Exit</span
+              ><span><i class="squeeze"></i> Squeeze</span
+              ><span><i class="contestant"></i> Contestant route</span
+              ><span><i class="hunter"></i> Hunter route</span>
+            </div>
+            <div id="mapCaption">STATIC ARCHITECTURE IS ALWAYS VISIBLE</div>
+            <div id="zoomControls" class="zoom-controls">
+              <button id="zoomOut" title="Zoom Out">-</button>
+              <span id="zoomLevel">100%</span>
+              <button id="zoomIn" title="Zoom In">+</button>
+            </div>
+            <div id="mapTooltip" class="map-tooltip" hidden></div>
           </div>
-        </section>
-        <section>
-          <h2>02 / Inspect</h2>
-          <label
-            >Color field<select id="overlay">
-              <option value="tier">Horizontal tier</option>
-              <option value="bonus">Vertical bonus</option>
-              <option value="region">Regions</option>
-              <option value="class">Region class</option>
-              <option value="template">Tile templates</option>
-            </select></label
-          ><label class="check"
-            ><input id="routes" type="checkbox" checked /> Compare shortest
-            routes</label
-          >
-          <p class="hint">
-            Click a tile to inspect it. Scroll to zoom; drag to pan. Routes lead
-            to the selected exit.
-          </p>
-          <div id="inspector" class="readout">Select a tile.</div>
-          <button id="editSelected" type="button" hidden>
-            Edit this tile design
-          </button>
-        </section>
-        <section>
-          <h2>03 / Playtest</h2>
-          <label
-            >Body<select id="body">
-              <option value="contestant">Contestant · 1.1 segments</option>
-              <option value="hunter">Hunter · 1.8 segments</option>
-            </select></label
-          ><button id="play" class="primary full">Start escape run</button>
-          <p class="hint">
-            WASD / arrows move · aim + click fires · E interacts · Esc returns
-            to map. Collect gold, charge once, and reach an exit. Red pursuers
-            respawn after being tagged.
-          </p>
-          <div id="gameStatus" class="readout">Ready for a run.</div>
-        </section>
-      </aside>
-      <div id="sidebarResizer" class="resizer" title="Drag to resize sidebar"></div>
-      <div class="workspace">
-        <div class="toolbar">
-          <button id="toggleSidebar" class="sidebar-toggle" title="Toggle Sidebar">☰</button>
-          <div class="spacer" style="flex: 1"></div>
-          <div>
-            <button id="fit">Fit map</button
-            ><span class="badge">6 × 6 CELLS / TILE</span>
-          </div>
+          <footer id="metrics"></footer>
         </div>
-        <div id="mapView">
-          <canvas
-            id="map"
-            aria-label="Generated map and playable escape prototype"
-          ></canvas>
-          <div class="legend">
-            <span><i class="spawn"></i> Start</span
-            ><span><i class="exit"></i> Exit</span
-            ><span><i class="squeeze"></i> Squeeze</span
-            ><span><i class="contestant"></i> Contestant route</span
-            ><span><i class="hunter"></i> Hunter route</span>
-          </div>
-          <div id="mapCaption">STATIC ARCHITECTURE IS ALWAYS VISIBLE</div>
-          <div id="zoomControls" class="zoom-controls">
-            <button id="zoomOut" title="Zoom Out">-</button>
-            <span id="zoomLevel">100%</span>
-            <button id="zoomIn" title="Zoom In">+</button>
-          </div>
-          <div id="mapTooltip" class="map-tooltip" hidden></div>
-        </div>
-        <footer id="metrics"></footer>
-      </div>
       </div>
       <div id="authorViewContainer" class="tab-view" hidden>
         <div id="authorView">
-          
           <div class="author-left">
             <div class="modes">
               <div
@@ -226,9 +235,11 @@
                   title="Dominant region class given to every cell this tile does not explicitly paint"
                 ></select
               ></label>
+            </div>
             <div class="pair">
-              <label class="check author-check" style="margin-top:auto"
-                ><input id="tileAdapter" type="checkbox" /> Fallback adapter</label
+              <label class="check author-check" style="margin-top: auto"
+                ><input id="tileAdapter" type="checkbox" /> Fallback
+                adapter</label
               >
               <label
                 >Labels<input
@@ -260,8 +271,8 @@
               <summary>Cell classes · the classes any tile may paint</summary>
               <p class="hint">
                 A class is declared once here and then available to every tile.
-                Clutter is intrinsic to the class; loot density is not — it comes
-                from the tier zone a cell sits in.
+                Clutter is intrinsic to the class; loot density is not — it
+                comes from the tier zone a cell sits in.
               </p>
               <div id="classList"></div>
               <div class="add-class">
@@ -276,10 +287,10 @@
             <details>
               <summary>Topology hints · coarse side seams</summary>
               <p class="hint">
-                Seam classes the tile-edge solver reads while laying out the map.
-                They are layered over the design rather than part of it; what a
-                side actually carries is stated per segment and per vertex. Leave
-                every side on <code>any</code> to state nothing.
+                Seam classes the tile-edge solver reads while laying out the
+                map. They are layered over the design rather than part of it;
+                what a side actually carries is stated per segment and per
+                vertex. Leave every side on <code>any</code> to state nothing.
               </p>
               <div class="ports" id="ports"></div>
             </details>
@@ -321,26 +332,46 @@
           <div class="sets-right">
             <div id="setsEditor">
               <div class="sets-header">
-                <label>Set ID<input id="activeSetId" spellcheck="false" /></label>
+                <label
+                  >Set ID<input id="activeSetId" spellcheck="false"
+                /></label>
                 <button id="saveTileSet" class="primary">Save Changes</button>
                 <button id="deleteTileSet" class="danger">Delete Set</button>
               </div>
-              <p class="hint">Click tiles in the Available list to add them, or click tiles in the Members list to remove them.</p>
-              
+              <p class="hint">
+                Click tiles in the Available list to add them, or click tiles in
+                the Members list to remove them.
+              </p>
+
               <div class="sets-members">
                 <h3>Members</h3>
-                <div id="setMembersGallery" class="gallery-grid" aria-label="Tiles in this set"></div>
+                <div
+                  id="setMembersGallery"
+                  class="gallery-grid"
+                  aria-label="Tiles in this set"
+                ></div>
               </div>
-              
+
               <div class="sets-available">
-                <div class="gallery-head" style="margin-top:0">
-                  <h3 style="margin:0">Available Tiles</h3>
-                  <label class="grow"><input id="setAvailableFilter" placeholder="filter by name, class, or label" spellcheck="false" /></label>
+                <div class="gallery-head" style="margin-top: 0">
+                  <h3 style="margin: 0">Available Tiles</h3>
+                  <label class="grow"
+                    ><input
+                      id="setAvailableFilter"
+                      placeholder="filter by name, class, or label"
+                      spellcheck="false"
+                  /></label>
                 </div>
-                <div id="setAvailableGallery" class="gallery-grid" aria-label="Available tiles"></div>
+                <div
+                  id="setAvailableGallery"
+                  class="gallery-grid"
+                  aria-label="Available tiles"
+                ></div>
               </div>
             </div>
-            <div id="setsEditorEmpty" class="readout">Select a tile set to edit.</div>
+            <div id="setsEditorEmpty" class="readout">
+              Select a tile set to edit.
+            </div>
           </div>
         </div>
       </div>
@@ -355,16 +386,21 @@
           <div class="sets-right">
             <div id="layoutsEditor">
               <div class="sets-header">
-                <label>Set Piece ID<input id="activeLayoutId" spellcheck="false" /></label>
-                <label>Class ID<input id="activeLayoutClass" spellcheck="false" /></label>
-                <div class="tier-label">Eligible Tiers
+                <label
+                  >Set Piece ID<input id="activeLayoutId" spellcheck="false"
+                /></label>
+                <label
+                  >Class ID<input id="activeLayoutClass" spellcheck="false"
+                /></label>
+                <div class="tier-label">
+                  Eligible Tiers
                   <div class="tier-checkboxes" id="activeLayoutTiers">
-                    <label><input type="checkbox" value="0">0</label>
-                    <label><input type="checkbox" value="1">1</label>
-                    <label><input type="checkbox" value="2">2</label>
-                    <label><input type="checkbox" value="3">3</label>
-                    <label><input type="checkbox" value="4">4</label>
-                    <label><input type="checkbox" value="5">5</label>
+                    <label><input type="checkbox" value="0" />0</label>
+                    <label><input type="checkbox" value="1" />1</label>
+                    <label><input type="checkbox" value="2" />2</label>
+                    <label><input type="checkbox" value="3" />3</label>
+                    <label><input type="checkbox" value="4" />4</label>
+                    <label><input type="checkbox" value="5" />5</label>
                   </div>
                 </div>
                 <button id="deleteLayout" class="danger">Delete</button>
@@ -372,7 +408,11 @@
               <div class="layout-workspace">
                 <div class="layout-palette">
                   <h4>Tile Sets</h4>
-                  <input id="layoutPaletteFilter" placeholder="Filter..." spellcheck="false" />
+                  <input
+                    id="layoutPaletteFilter"
+                    placeholder="Filter..."
+                    spellcheck="false"
+                  />
                   <div id="layoutPaletteList" class="layout-palette-list"></div>
                 </div>
                 <div class="layout-grid-container">
