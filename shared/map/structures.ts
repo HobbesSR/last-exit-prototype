@@ -1,7 +1,7 @@
 import { BLOCK_SIZE } from './world.ts';
 import { distance } from './context.ts';
 import { placeElement } from './element.ts';
-import { REGION_ELEMENTS } from './templates.ts';
+import { REGION_ELEMENTS, REGION_PROPS } from './templates.ts';
 import type { GenerationContext, SpawnedGenerationContext } from './context.ts';
 import type { Box, ModuleKind, World } from '../types.ts';
 
@@ -57,10 +57,17 @@ export function buildStructures(context: GenerationContext): asserts context is 
       placeElement(context, template, box.x, box.y, { nodeId: n.id, locked: index % 10 === 0 });
       structural = (index + k) % corners.length; break;
     }
+    const cover = REGION_PROPS[kind];
     for (const [i, spec] of corners.entries()) {
       if (i === structural) continue;
       const box = corner(spec, 250, 250);
       if (!clearFootprint(box)) continue;
+      // Every third corner gets the region's cover arrangement rather than a lone box, so what sits
+      // between the structures tells you which kind of block you are in too.
+      if ((index + i) % 3 === 0) {
+        const patch = corner(spec, cover.w, cover.h);
+        if (clearFootprint(patch)) { placeElement(context, cover, patch.x, patch.y, { nodeId: n.id }); continue; }
+      }
       const prop = { x: box.x + range(0, 90), y: box.y + range(0, 90), w: range(65, 140), h: range(65, 140) };
       if (clearFootprint(prop)) rect(prop.x, prop.y, prop.w, prop.h, kind === 'depot' ? 'container' : 'crate', { color: index % 3 });
     }

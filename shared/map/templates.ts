@@ -1,6 +1,6 @@
 import { rect, polygon } from '../shape.ts';
 import type { ElementTemplate } from './element.ts';
-import type { ModuleKind } from '../types.ts';
+import type { ModuleKind, Vec2 } from '../types.ts';
 
 /**
  * The element catalogue. A region generator draws from this rather than writing geometry inline, so
@@ -125,6 +125,59 @@ export const COMPOUND: ElementTemplate = {
     { part: 'spot', x: 200, y: 70 },
     { part: 'reserve', x: -20, y: -20, w: 320, h: 300 },
   ],
+};
+
+// Integer points, so a stored map stays exact rather than carrying float noise no one reads.
+const hexagon = (radius: number): Vec2[] =>
+  Array.from({ length: 6 }, (_, i) => ({ x: Math.round(Math.cos(i * Math.PI / 3) * radius), y: Math.round(Math.sin(i * Math.PI / 3) * radius) }));
+
+/** Yard cover: three stacks offset so none of them covers an approach on its own. */
+export const CRATE_CLUSTER: ElementTemplate = {
+  w: 200,
+  h: 170,
+  parts: [
+    { part: 'obstacle', shape: rect(0, 0, 70, 70), kind: 'crate' },
+    { part: 'obstacle', shape: rect(95, 25, 60, 60), kind: 'crate' },
+    { part: 'obstacle', shape: rect(40, 105, 80, 65), kind: 'crate' },
+    { part: 'reserve', x: -10, y: -10, w: 220, h: 190 },
+  ],
+};
+
+/**
+ * Depot cover: two containers with a 40-unit slot between them. A contestant fits and a gladiator
+ * does not, so it is one of the few places the size difference decides an engagement rather than a
+ * route. Open at one end, so it is a nook and never a trap.
+ */
+export const CONTAINER_ROW: ElementTemplate = {
+  w: 220,
+  h: 150,
+  parts: [
+    { part: 'obstacle', shape: rect(0, 0, 220, 55), kind: 'container' },
+    { part: 'obstacle', shape: rect(0, 95, 160, 55), kind: 'container' },
+    { part: 'reserve', x: -10, y: -10, w: 240, h: 170 },
+  ],
+};
+
+/** Garden cover: overgrowth, whose rounded stumps are the catalogue's only non-rectangular cover. */
+export const THICKET: ElementTemplate = {
+  w: 190,
+  h: 160,
+  parts: [
+    { part: 'obstacle', shape: polygon(45, 45, hexagon(40)), kind: 'crate' },
+    { part: 'obstacle', shape: polygon(140, 62, hexagon(32)), kind: 'crate' },
+    { part: 'obstacle', shape: polygon(80, 122, hexagon(35)), kind: 'crate' },
+    { part: 'reserve', x: -10, y: -10, w: 210, h: 180 },
+  ],
+};
+
+/**
+ * The cover a region scatters between its structures. Props were a single randomly sized box
+ * whatever the region was, so a yard and a garden differed only in the colour of that box.
+ */
+export const REGION_PROPS: Record<ModuleKind, ElementTemplate> = {
+  yard: CRATE_CLUSTER,
+  depot: CONTAINER_ROW,
+  garden: THICKET,
 };
 
 /**

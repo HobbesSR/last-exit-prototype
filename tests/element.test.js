@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGenerationContext } from '../shared/map/context.ts';
 import { placeElement } from '../shared/map/element.ts';
-import { HUT, REGION_ELEMENTS } from '../shared/map/templates.ts';
+import { HUT, REGION_ELEMENTS, REGION_PROPS } from '../shared/map/templates.ts';
 import { CORNER_CLEARANCE } from '../shared/map/structures.ts';
-import { polygon } from '../shared/shape.ts';
+import { polygon, convex, bounds } from '../shared/shape.ts';
 import { canOccupy } from '../shared/movement.ts';
 
 // Anchored near the middle of the diamond, because `canOccupy` also enforces the arena boundary.
@@ -66,13 +66,33 @@ test('a template part of any shape becomes real geometry, not just a box', () =>
   assert.equal(canOccupy(map, 12060, 6200), true, 'and only where it stands');
 });
 
+const catalogue = [
+  ...Object.entries(REGION_ELEMENTS).flatMap(([region, set]) => set.map((template, i) => [`${region}[${i}]`, template])),
+  ...Object.entries(REGION_PROPS).map(([region, template]) => [`${region} cover`, template]),
+];
+
 // A template too large for a block corner is rejected by `clearFootprint` everywhere, so it never
 // appears on any map and nothing reports it. WAREHOUSE and COMPOUND were both born that way.
 test('every catalogue template fits a block corner, or it would never appear on any map', () => {
   for (const [region, set] of Object.entries(REGION_ELEMENTS)) {
     assert.ok(set.length > 0, `${region} has no elements`);
     assert.ok(set.some(t => t.encloses), `${region} needs an enclosing structure: indoor loot is where cells concentrate`);
-    for (const t of set) assert.ok(t.w <= CORNER_CLEARANCE || t.h <= CORNER_CLEARANCE,
-      `${region}: a ${t.w}x${t.h} element clears the reserved block centre in neither axis`);
+  }
+  for (const [name, template] of catalogue) assert.ok(template.w <= CORNER_CLEARANCE || template.h <= CORNER_CLEARANCE,
+    `${name}: a ${template.w}x${template.h} element clears the reserved block centre in neither axis`);
+});
+
+// `docs/29`: SAT only separates convex bodies, and a concave one separates in the wrong direction
+// rather than failing loudly, so generated content is checked at build time instead of trusted.
+// This is that check -- the catalogue is where a concave body would now enter the world.
+test('every polygon part in the catalogue is convex, and every part lies inside its footprint', () => {
+  for (const [name, template] of catalogue) {
+    for (const [i, part] of template.parts.entries()) {
+      if (part.part !== 'obstacle') continue;
+      if (part.shape.kind === 'polygon') assert.ok(convex(part.shape.points), `${name} part ${i} is not convex`);
+      const box = bounds(part.shape);
+      assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.w <= template.w && box.y + box.h <= template.h,
+        `${name} part ${i} spills outside the ${template.w}x${template.h} footprint the placer reserves for it`);
+    }
   }
 });
