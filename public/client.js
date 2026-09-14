@@ -6,7 +6,7 @@ import { makeArenaScene } from '/arena-scene.js';
 import { createReplayController } from '/replay-controller.js';
 import { createSnapshotBuffer } from '/snapshot-buffer.js';
 import * as profiler from '/shared/profiler.ts';
-import { $, HZ, kitName, time } from '/ui.js';
+import { $, HZ, INTERPOLATION_DELAY_TICKS, kitName, time } from '/ui.js';
 
 const icon = name => `<i data-lucide="${name}"></i>`;
 const icons = () => window.lucide?.createIcons();
@@ -14,7 +14,7 @@ let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liv
 let seq = 0, pending = [], overview = false, selectedRole = 'contestant', savedReplay, recordingFailed = false;
 // Authoritative frames are buffered and read back at a fixed delay, so what is drawn is
 // interpolated between two received states rather than chasing the newest one.
-const snapshots = createSnapshotBuffer({ hz: HZ });
+const snapshots = createSnapshotBuffer({ hz: HZ, delayTicks: INTERPOLATION_DELAY_TICKS });
 let presentation = null;
 let lobbyPlayers = [];
 let lobbyStartsAt = null;

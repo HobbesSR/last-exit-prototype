@@ -66,6 +66,10 @@ repeats movement but not one-shot presses, and a silence long enough to stop the
 Latency measurement is tested for the properties that make it safe to trade on rather than merely
 accurate: an invented or superseded token is refused, a token counts once, a stalled echo cannot pull
 the reported minimum up on its own, and sustained stalling is clamped instead of believed.
+Lag compensation is tested for the property that separates it from simply being generous: a target
+that has stepped out of reach is still hit, and a target that has only just stepped into reach is
+not. Around that sit cover at the rewound position, the bound on how far back it will reach, the
+absence of compensation for travel-time projectiles, and the history staying out of recordings.
 
 Unit and server coverage includes 200-seed path clearance, 50-seed
 placement/spawn/maze checks, ammo exhaustion and refill, sixth-slot selection,

@@ -8,8 +8,7 @@ Clients send bounded movement axes, aim, button state, and monotonic sequence nu
 
 Two sequence numbers are kept, and the split is the point. One records what was *accepted*, guarding ordering and duplicates on arrival; `lastSeq`, the one transmitted, records what a tick has *spent*. Acknowledging on arrival tells a client an input was applied while it is still sitting in the queue, and the client then stops replaying it. A queue deeper than a few inputs is trimmed from the oldest, because an unbounded queue is unbounded input lag and the newest input is the closest to what the player currently intends. An empty queue repeats the last input's movement and aim for a short while — one late packet is far likelier than a player releasing every key — but never its one-shot presses, since that would turn packet loss into an action the player never asked for. The repeat is reported to the client so a correction it could not have predicted is distinguishable from one it mispredicted. Measured against a real client over a socket, holding a movement key, the queue sits in equilibrium at one input in flight with no stalls at all across 161 ticks, and never approaches the depth cap. The client therefore does not adapt its send rate and should not be given machinery to: a free-running 20 Hz send and a 20 Hz consumption balance on their own, and the repeat exists for the loss and jitter a local socket does not show, not for a rate mismatch.
 
-It has no rewind hit validation or latency-compensated combat. It does now measure what such a thing
-would need. The server stamps a token once a second, the client echoes it, and the server times the
+Instantaneous attacks are resolved against what their attacker could see. It measures what that needs, and then uses it. The server stamps a token once a second, the client echoes it, and the server times the
 return against its own clock: the client reports no number and can only return something it could not
 have held earlier. It can still stall an echo, and that only ever makes its own connection look
 slower — the direction that would buy a cheat more rewind — so the reported figure is the minimum of
@@ -17,6 +16,33 @@ the last five samples rather than their mean, and it is clamped at 400 ms. A lag
 minimum upward without holding back every echo in the window, and the clamp bounds what it would win
 if it did. Anything that later trades on latency must treat this as an upper bound the server chose,
 never as a client statement.
+
+## Lag compensation
+
+A player aims at what is on their screen, and what is on their screen is old: two ticks of
+interpolation delay by design, plus however long the frame took to arrive. Resolving a swing against
+where the target is *now* charges the attacker for both, and the amount is invisible and varies with
+their connection. `shared/simulation/rewind.ts` keeps ten ticks of positions and resolves a gladiator's
+melee and a warden's shockwave against the positions their attacker was looking at, derived from the
+measured round trip plus the buffer's own delay. Range, firing arc and cover all read the rewound
+position: a compensated hit still had to have had line of sight.
+
+This is not permissiveness, and the distinction is what the tests pin. A target that has stepped out
+of reach since can still be hit; a target that has only just stepped *into* reach cannot, because the
+attacker could not have seen them there. The cost is paid by the person being shot at, who can be hit
+after reaching cover on their own screen. That trade is the standard one, and it is why the window is
+bounded at half a second: past that a connection is too far behind to compensate for without the
+victim's experience becoming the absurd one.
+
+Travel-time projectiles are deliberately left alone. A player already leads a moving target by the
+flight time, aiming where it will be rather than where it was, so rewinding the shot as well would
+compensate twice and land it behind. That is a decision about this game's weapons, not a gap:
+revisit it if a hitscan weapon is ever added.
+
+The history never reaches a snapshot or a recording. It is derivable from the frames a recording
+already holds, so carrying it would store the same positions twice. A player with no measured
+latency — a bot, a local match, anyone before their first round trip returns — carries no trace of
+the mechanism at all, which is why the frozen behaviour baseline is unchanged by it.
 
 ## Potential visibility
 

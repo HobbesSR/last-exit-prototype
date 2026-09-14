@@ -17,6 +17,7 @@ import { damage, skill, attack, advanceProjectiles } from './simulation/combat.t
 import { interact, advanceCharging } from './simulation/interactions.ts';
 import { botInput } from './simulation/bots.ts';
 import { consumeInput } from './simulation/input.ts';
+import { recordRewind } from './simulation/rewind.ts';
 import type { Game } from './types.ts';
 
 /** Per-player countdown fields, all measured in ticks. */
@@ -61,5 +62,8 @@ export function step(s: Game): void {
   advanceProjectiles(s);
   stop('sim.projectiles');
   finishMatch(s);
+  // After every position this tick is final, because that is what the broadcast carries and so what
+  // a client will have drawn by the time it aims at any of it.
+  recordRewind(s);
   stop('sim.step');
 }

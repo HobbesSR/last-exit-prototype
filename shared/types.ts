@@ -376,6 +376,8 @@ export interface Player extends Vec2 {
   receivedSeq?: number | undefined;
   /** Consecutive ticks the queue has been empty, so a repeat is distinguishable from a real input. */
   inputStalled?: number | undefined;
+  /** How far behind this player's view runs, in ticks, from latency the server measured itself. */
+  viewLagTicks?: number | undefined;
   inventory?: Inventory | undefined;
   selectedSlot?: SlotIndex | undefined;
   /** Remaining bot route, in absolute tile coordinates. Not world units. */
@@ -432,6 +434,12 @@ export interface Game {
   /** World x of the advancing wall; anything west of it takes damage. */
   hazardX: World;
   serial: Serial;
+  /**
+   * Recent positions, for resolving a shot against what its shooter could see. Deliberately absent
+   * from `Snapshot`: it is derivable from the frames a recording already holds, so carrying it would
+   * multiply every recorded frame's position data to store what is already there.
+   */
+  rewind?: { tick: Tick; at: Map<PlayerId, Vec2> }[] | undefined;
 }
 
 /** A complete authoritative state clone, as recorded and as sent to spectators. */

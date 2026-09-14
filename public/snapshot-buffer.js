@@ -14,8 +14,12 @@
 // The seams here — take a frame in, advance a playhead, read an interpolated frame out — are the
 // ones a state-sync framework exposes, so replacing this with one is a substitution rather than a
 // redesign.
+//
+// The delay itself is not this module's to choose. Hit resolution rewinds a shooter's targets by how
+// far behind their view ran, and this delay is part of that, so it is a rule owned by
+// `shared/simulation/rules.ts` and passed in — not a presentation constant with a copy on each side.
+// Taking it as an argument also keeps this a dependency-free leaf that tests can drive directly.
 
-const DELAY_TICKS = 2;
 // Enough history to interpolate across a stall without growing without bound.
 const CAPACITY = 32;
 // Past this the playhead is not drifting, it is somewhere else entirely: a join, a resumed tab, a
@@ -36,7 +40,7 @@ export function lerpAngle(a, b, t) {
   return a + delta * t;
 }
 
-export function createSnapshotBuffer({ hz, delayTicks = DELAY_TICKS, clock = () => performance.now() } = {}) {
+export function createSnapshotBuffer({ hz, delayTicks, clock = () => performance.now() } = {}) {
   const tickMs = 1000 / hz;
   let frames = [];
   // The playhead is `anchor` ticks at `anchorAt`, advancing at `rate` ticks per tick of real time.

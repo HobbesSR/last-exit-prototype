@@ -30,7 +30,7 @@ export function joinGame(s: Game, id: PlayerId, role: Role = 'contestant', kit: 
   if (!p) return null;
   p.id = id; p.name = name.slice(0, 16); p.bot = false;
   if (Object.hasOwn(KITS, kit)) p.kit = kit;
-  resetInput(p); p.path = [];
+  resetInput(p); delete p.viewLagTicks; p.path = [];
   return p;
 }
 /**

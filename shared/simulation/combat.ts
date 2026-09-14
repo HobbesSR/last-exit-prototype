@@ -4,6 +4,7 @@ import { HZ, KITS } from './rules.ts';
 import { distance } from './geometry.ts';
 import { effect } from './loot.ts';
 import { eliminate } from './lifecycle.ts';
+import { asSeenBy } from './rewind.ts';
 import type { Game, Player } from '../types.ts';
 
 export function damage(s: Game, target: Player, amount: number, source: Player | null): void {
@@ -20,7 +21,10 @@ export function skill(s: Game, p: Player): void {
   p.cooldown = Math.max(45, KITS[p.kit].cooldown - (p.level - 1) * 12);
   if (p.kit === 'warden') {
     effect(s, p, 'shock', 130);
-    for (const t of s.players) if (t.role !== p.role && t.status === 'active' && distance(p, t) < 130 && lineClear(s.map, p, t)) { damage(s, t, 18 + 5 * p.level, p); t.stun = 22; }
+    // Resolved against where the caster saw them. The ring is drawn at the caster's own position, so
+    // nothing about the effect moves; only whether a target was inside it when they were aimed at.
+    const seen = asSeenBy(s, p);
+    for (const t of s.players) if (t.role !== p.role && t.status === 'active' && distance(p, seen(t)) < 130 && lineClear(s.map, p, seen(t))) { damage(s, t, 18 + 5 * p.level, p); t.stun = 22; }
   } else if (p.kit === 'specter') {
     effect(s, p, 'scan', 450);
     for (const t of s.players) if (t.role !== p.role && distance(p, t) < 450) t.revealed = 110;
@@ -30,7 +34,9 @@ export function attack(s: Game, p: Player): void {
   if (p.attackCd > 0) return;
   if (p.role === 'gladiator') {
     p.attackCd = 13; effect(s, { x: p.x + Math.cos(p.heading) * 30, y: p.y + Math.sin(p.heading) * 30 }, 'slash', 55);
-    const t = s.players.filter(t => t.role !== p.role && t.status === 'active' && distance(p, t) < 86 && Math.cos(Math.atan2(t.y - p.y, t.x - p.x) - p.heading) > 0.25 && lineClear(s.map, p, t)).sort((a, b) => distance(p, a) - distance(p, b))[0];
+    // Range, arc and cover all read the positions this gladiator was looking at when they swung.
+    const seen = asSeenBy(s, p);
+    const t = s.players.filter(t => t.role !== p.role && t.status === 'active' && distance(p, seen(t)) < 86 && Math.cos(Math.atan2(seen(t).y - p.y, seen(t).x - p.x) - p.heading) > 0.25 && lineClear(s.map, p, seen(t))).sort((a, b) => distance(p, seen(a)) - distance(p, seen(b)))[0];
     if (t) damage(s, t, KITS[p.kit].damage + (p.level - 1) * 4, p);
   } else {
     const item = equipped(p);

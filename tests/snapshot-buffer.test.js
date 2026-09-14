@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSnapshotBuffer, lerpAngle } from '../public/snapshot-buffer.js';
+import { INTERPOLATION_DELAY_TICKS } from '../shared/simulation/rules.ts';
 
 const HZ = 20, TICK_MS = 1000 / HZ;
 
 /** A buffer driven by a clock the test advances, so arrival jitter is scripted rather than timed. */
-function harness({ delayTicks } = {}) {
+function harness({ delayTicks = INTERPOLATION_DELAY_TICKS } = {}) {
   let now = 1000;
   const buffer = createSnapshotBuffer({ hz: HZ, delayTicks, clock: () => now });
   return { buffer, advance: ms => { now += ms; }, now: () => now };

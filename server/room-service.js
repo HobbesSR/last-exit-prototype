@@ -5,7 +5,7 @@ import * as profiler from '../shared/profiler.ts';
 import { createMatch } from './match.js';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
 import { send, broadcast, broadcastLobby, spectatorFrame, remember, SPECTATOR_DELAY_TICKS } from './room-views.js';
-import { trackLatency, pingSession, acceptPong } from './latency.js';
+import { trackLatency, pingSession, acceptPong, roundTripMs } from './latency.js';
 export const EMPTY_ROOM_GRACE_MS = 30000;
 const MAX_SPECTATORS = 24;
 
@@ -87,7 +87,14 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
   }
   function receive(session, data) {
     if (closing) return;
-    if (data.type === 'pong') return void acceptPong(session, data, wallNow());
+    if (data.type === 'pong') {
+      // A fresh measurement is the only thing that changes how far a shot is rewound, so it is
+      // applied here rather than re-derived every tick.
+      if (acceptPong(session, data, wallNow()) && session.playerId && session.room && !session.room.finished) {
+        session.room.match.setViewLag(session.playerId, roundTripMs(session));
+      }
+      return;
+    }
     if (data.type === 'match' && !session.room) {
       const preference = ['contestant', 'gladiator'].includes(data.role) ? data.role : 'any';
       let room = [...rooms.values()].find(room => room.matchmade && !room.started && !room.finished && preferredRole(room, preference));
