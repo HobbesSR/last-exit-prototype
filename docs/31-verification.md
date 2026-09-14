@@ -28,11 +28,32 @@ reported slowdown fixed without a captured slow run; see
 
 ## The frozen fixture
 
-Frozen characterization fixtures in `tests/fixtures` come from checkpoint `elements-1`, which superseded `5dd7d61` when per-region element catalogues replaced the single hardcoded building and changed every seeded map. They compare complete ordered map hashes, every tick and projection of four bot matches, and scripted authoritative snapshots/private views against that checkpoint. A re-baseline is a decision about content, never a way to make a refactor pass, and it restarts the evidence: the current fixture proves nothing about code predating it. `tests/fixtures/README.md` records provenance and how to regenerate. Expected results are not regenerated during verification. `npm run check` recursively checks every module in server/shared/public/tests: JavaScript is parsed as Node would load it, and TypeScript is verified to erase cleanly, which is what Node does instead of parsing it. `npm run typecheck` is the separate, stronger pass.
+Frozen characterization fixtures in `tests/fixtures` come from checkpoint `elements-1`,
+which superseded `5dd7d61` when per-region element catalogues replaced the single
+hardcoded building and changed every seeded map.
 
-Never regenerate it to make a refactor pass. Separate intentional gameplay changes,
-and the new expectations and version decision they require, from behavior-preserving
-extraction. `tests/fixtures/README.md` records its provenance and how to audit it.
+The fixture separates what the generator emits from what the simulation does.
+Complete ordered map hashes characterize generation. The bot and scripted traces
+characterize the simulation, and they run against **arenas stored in the fixture
+itself** — `createGame(seed, map)` takes the stored one — rather than against
+whatever the generator currently emits. So a deliberate content change re-baselines
+four hashes and leaves every trace intact, instead of destroying the evidence that
+the simulation is unchanged along with the content it happened to run on. Map
+diversity stays covered by those hashes and by `playability.test.js`, which routes
+bots to completion over generated maps.
+
+Never regenerate a fixture to make a refactor pass: a behaviour-preserving change
+must reproduce it exactly. Regenerating is correct only for a deliberate content or
+rules change that has been decided, and it restarts the evidence — the current
+fixture proves nothing about code predating it. Separate intentional gameplay
+changes, and the new expectations and version decision they require, from
+behaviour-preserving extraction. `tests/fixtures/README.md` records provenance, how
+to regenerate and how to audit.
+
+`npm run check` recursively checks every module in server/shared/public/tests:
+JavaScript is parsed as Node would load it, and TypeScript is verified to erase
+cleanly, which is what Node does instead of parsing it. `npm run typecheck` is the
+separate, stronger pass.
 
 ## Coverage
 

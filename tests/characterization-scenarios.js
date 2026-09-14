@@ -5,9 +5,14 @@ import { createGame, generateMap, joinGame, setInput, step, snapshot, playerView
 export const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 export const seeds = [1, 9, 4217, 777];
 export const mapHashes = () => Object.fromEntries(seeds.map(seed => [seed, hash(generateMap(seed))]));
+// The arenas the traces below run in. A fixture stores these alongside its expected traces, so what
+// the simulation does stops moving every time what the generator emits moves. Generation is still
+// characterized, by `mapHashes` above; this separates the two so a content change re-baselines four
+// hashes instead of erasing every piece of evidence that the simulation itself is unchanged.
+export const traceMaps = () => Object.fromEntries(seeds.map(seed => [seed, generateMap(seed)]));
 
-export function botTrace(seed) {
-  const s = createGame(seed), chunks = [];
+export function botTrace(seed, map) {
+  const s = createGame(seed, structuredClone(map)), chunks = [];
   let digest = createHash('sha256');
   while (s.phase === 'live') {
     step(s);
@@ -22,8 +27,8 @@ export function botTrace(seed) {
   return chunks;
 }
 
-export function scriptedTrace() {
-  const s = createGame(4217), frames = [];
+export function scriptedTrace(map) {
+  const s = createGame(4217, structuredClone(map)), frames = [];
   const p = joinGame(s, 'human', 'contestant', 'warden', 'Characterization');
   for (const other of s.players) { other.bot = false; other.input = {}; }
   s.map.items = []; s.map.traps = [];

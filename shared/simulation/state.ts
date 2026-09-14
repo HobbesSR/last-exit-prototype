@@ -2,10 +2,15 @@ import { generateMap, WORLD_WIDTH, WORLD_HEIGHT } from '../map.ts';
 import { SLOT_COUNT } from '../equipment.ts';
 import { VERSION, KITS } from './rules.ts';
 import { finite, integer, safeInteger } from '../numbers.ts';
-import type { Game, Kit, Player, PlayerId, PlayerInput, Role, SlotIndex } from '../types.ts';
+import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role, SlotIndex } from '../types.ts';
 
-export function createGame(seed = 4217): Game {
-  const map = generateMap(seed);
+/**
+ * `map` defaults to the one `seed` generates. Supplying it instead pins the arena a game runs in,
+ * which is what lets behaviour be characterized against a stored map rather than against whatever
+ * the current generator emits — see [31](../../docs/31-verification.md). The game mutates what it is
+ * given (items are taken, gates open), so a caller reusing a map passes a copy.
+ */
+export function createGame(seed = 4217, map: GameMap = generateMap(seed)): Game {
   const s: Game = { version: VERSION, seed, rng: seed || 1, tick: 0, phase: 'live', map, players: [], projectiles: [], effects: [], events: [], slots: 3, hazardX: -80, serial: 0 };
   for (const [i, name] of ['Mica', 'Juno', 'Patch', 'Pip', 'Nova', 'Rook', 'Echo', 'Sol'].entries()) s.players.push(makePlayer(`c${i}` as PlayerId, name, 'contestant', 'warden', i));
   s.players.push(makePlayer('g0' as PlayerId, 'IRONCLAD', 'gladiator', 'warden', 0), makePlayer('g1' as PlayerId, 'VESPER', 'gladiator', 'specter', 1));
