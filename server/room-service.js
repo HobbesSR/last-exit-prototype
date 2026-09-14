@@ -5,6 +5,7 @@ import * as profiler from '../shared/profiler.ts';
 import { createMatch } from './match.js';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
 import { send, broadcast, broadcastLobby, spectatorFrame, remember, SPECTATOR_DELAY_TICKS } from './room-views.js';
+import { trackLatency, pingSession, acceptPong } from './latency.js';
 export const EMPTY_ROOM_GRACE_MS = 30000;
 const MAX_SPECTATORS = 24;
 
@@ -15,7 +16,7 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
   const finalizations = new Set();
   let closing;
   const hasCapacity = () => !closing && [...rooms.values()].filter(r => !r.finished).length < 8;
-  const connect = peer => ({ ...peer, connectionId: randomUUID(), playerId: null });
+  const connect = peer => trackLatency({ ...peer, connectionId: randomUUID(), playerId: null });
   function makeRoom(seed, matchmade = false) {
     if (!hasCapacity()) return null;
     const id = randomBytes(4).toString('hex');
@@ -86,6 +87,7 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
   }
   function receive(session, data) {
     if (closing) return;
+    if (data.type === 'pong') return void acceptPong(session, data, wallNow());
     if (data.type === 'match' && !session.room) {
       const preference = ['contestant', 'gladiator'].includes(data.role) ? data.role : 'any';
       let room = [...rooms.values()].find(room => room.matchmade && !room.started && !room.finished && preferredRole(room, preference));
@@ -161,6 +163,7 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
     profiler.start('loop.tick');
     let live = 0, stepped = 0;
     for (const [id, room] of rooms) {
+      for (const session of room.clients) pingSession(session, wallNow(), send);
       if (room.matchmade && !room.started && room.startsAt && wallNow() >= room.startsAt && room.clients.size > 0) startMatch(room);
       if ((!room.started || room.finished) && room.clients.size === 0 && wallNow() - room.createdAt > 180000) { rooms.delete(id); continue; }
       if (!room.started || room.finished) continue;

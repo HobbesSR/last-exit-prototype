@@ -39,6 +39,8 @@ const replayController = createReplayController({
   downloadReplay, icon, icons,
 });
 let toastTimer, connecting = false, disconnecting = false, lastStateAt = 0, profileOverlay;
+// What the server last measured for this connection, for display only.
+let roundTripMs = null;
 const directed = () => replayController.active() || !playerId;
 function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 3500); }
 function connection(message) { $('connection-text').textContent = message; }
@@ -93,7 +95,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   if (!key && saved?.key) { key = saved.key; role = saved.role; kit = saved.kit; name = saved.name; }
   if (ws) { disconnecting = true; ws.close(); }
   clearInput(); pending = []; seq = 0; savedReplay = null; recordingFailed = false; playerId = null;
-  snapshots.reset(); presentation = null;
+  snapshots.reset(); presentation = null; roundTripMs = null;
   resetDiagnostics();
   owner = false; lobbyPlayers = [];
   $('finish-recording').disabled = false;
@@ -131,6 +133,11 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       profiler.observe('net.stateBytes', event.data.length, 'n');
       liveState = data.state;
       if (!replayController.active()) acceptState(data.state);
+    } else if (data.type === 'ping') {
+      // Echoed immediately and unmodified. The server times its own round trip; this end
+      // states nothing about latency, it only returns a token it could not have held earlier.
+      socket.send(JSON.stringify({ type: 'pong', token: data.token }));
+      roundTripMs = data.rtt ?? null;
     } else if (data.type === 'lobby') {
       updateLobby(data);
       if (data.started) { hideLobby(); connection('LIVE'); }
@@ -301,7 +308,8 @@ function renderProfileOverlay() {
     (() => { const b = snapshots.stats(); return b.newest === null ? '' : `interp ${b.delayTicks} ticks behind (${(b.delayTicks * 1000 / HZ).toFixed(0)} ms), buffered ${b.depth}, rate ${b.rate.toFixed(2)}, starved ${b.starved}, cuts ${b.snaps}`; })(),
     // Unacknowledged inputs the client is still replaying, and whether the server had to repeat one
     // because none had arrived. A stall is the signal that the send rate is losing to the tick rate.
-    (() => { const me = state?.players.find(p => p.id === playerId); return me ? `input pending ${pending.length}, stalled ${me.inputStalled ?? 0}` : ''; })()].filter(Boolean);
+    (() => { const me = state?.players.find(p => p.id === playerId); return me ? `input pending ${pending.length}, stalled ${me.inputStalled ?? 0}` : ''; })(),
+    roundTripMs === null ? '' : `rtt ${roundTripMs} ms (server measured)`].filter(Boolean);
   profileOverlay.textContent = head.join('\n') + '\n' + profiler.format(rows.filter(r => r !== delta && r !== gap && r !== bytes));
 }
 function setProfiling(value) {
@@ -319,4 +327,4 @@ window.arenaProfiling = setProfiling;
 window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, role: 'spectator' });
 // Read-only inspection surface for reproducible browser smoke tests.
 window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: replayController.followId(), overview, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
-  pending: pending.length, inputStalled: state?.players.find(p => p.id === playerId)?.inputStalled ?? null });
+  pending: pending.length, inputStalled: state?.players.find(p => p.id === playerId)?.inputStalled ?? null, rtt: roundTripMs });

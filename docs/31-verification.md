@@ -63,6 +63,9 @@ unacknowledged inputs through the shared movement code lands on the server's pos
 than close to it. Around it sit the cases that decide whether that holds under load: acknowledging on
 consumption rather than arrival, a queue trimmed when a client outruns the tick, a starved queue that
 repeats movement but not one-shot presses, and a silence long enough to stop the player.
+Latency measurement is tested for the properties that make it safe to trade on rather than merely
+accurate: an invented or superseded token is refused, a token counts once, a stalled echo cannot pull
+the reported minimum up on its own, and sustained stalling is clamped instead of believed.
 
 Unit and server coverage includes 200-seed path clearance, 50-seed
 placement/spawn/maze checks, ammo exhaustion and refill, sixth-slot selection,
