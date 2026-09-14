@@ -1,6 +1,6 @@
 import PF from 'pathfinding';
 import { canOccupy, lineClear, reachClear, TILE } from '../movement.ts';
-import { navigationGrid, blockAt, blockRoute } from '../map.ts';
+import { navigationGrid, straightenPath, blockAt, blockRoute } from '../map.ts';
 import { count, start, stop } from '../profiler.ts';
 import { WEAPONS, carriedCell, syncWeapon } from '../equipment.ts';
 import { HZ, CELL_CHARGE_TICKS } from './rules.ts';
@@ -71,7 +71,11 @@ export function botInput(s: Game, p: Player): PlayerInput {
     const from = nearestNode(matrix, { x: p.x - bx * TILE, y: p.y - by * TILE });
     const to = nearestNode(matrix, { x: localTarget.x - bx * TILE, y: localTarget.y - by * TILE });
     start('sim.repathGrid'); const grid = new PF.Grid(matrix); stop('sim.repathGrid');
-    p.path = new PF.AStarFinder({ allowDiagonal: true, dontCrossCorners: true }).findPath(from.x, from.y, to.x, to.y, grid).slice(1).map(([x, y]): TileStep => [(x + bx) as TileIndex, (y + by) as TileIndex]);
+    const steps = new PF.AStarFinder({ allowDiagonal: true, dontCrossCorners: true }).findPath(from.x, from.y, to.x, to.y, grid).slice(1).map(([x, y]): TileStep => [(x + bx) as TileIndex, (y + by) as TileIndex]);
+    // A grid route is a staircase wherever it runs at an angle the grid cannot express. Walking it
+    // waypoint by waypoint is what makes a bot visibly wobble, so the redundant steps come out here
+    // rather than being smoothed over by the renderer, which could not remove real turning anyway.
+    p.path = straightenPath(s.map, p.role, p, steps, p.keys > 0 ? 'all' : true);
     stop('sim.repath');
   }
   let waypoint = p.path?.[0] ? center(...p.path[0]) : target;

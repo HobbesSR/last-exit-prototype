@@ -4,6 +4,7 @@ import { createHUDController } from '/hud-controller.js';
 import { notePacket, resetDiagnostics, diagnosticTimings } from '/diagnostics.js';
 import { makeArenaScene } from '/arena-scene.js';
 import { createReplayController } from '/replay-controller.js';
+import { createSnapshotBuffer } from '/snapshot-buffer.js';
 import * as profiler from '/shared/profiler.ts';
 import { $, HZ, kitName, time } from '/ui.js';
 
@@ -11,6 +12,10 @@ const icon = name => `<i data-lucide="${name}"></i>`;
 const icons = () => window.lucide?.createIcons();
 let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liveState, predicted;
 let seq = 0, pending = [], overview = false, selectedRole = 'contestant', savedReplay, recordingFailed = false;
+// Authoritative frames are buffered and read back at a fixed delay, so what is drawn is
+// interpolated between two received states rather than chasing the newest one.
+const snapshots = createSnapshotBuffer({ hz: HZ });
+let presentation = null;
 let lobbyPlayers = [];
 let lobbyStartsAt = null;
 const inputController = createInputController({
@@ -88,6 +93,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   if (!key && saved?.key) { key = saved.key; role = saved.role; kit = saved.kit; name = saved.name; }
   if (ws) { disconnecting = true; ws.close(); }
   clearInput(); pending = []; seq = 0; savedReplay = null; recordingFailed = false; playerId = null;
+  snapshots.reset(); presentation = null;
   resetDiagnostics();
   owner = false; lobbyPlayers = [];
   $('finish-recording').disabled = false;
@@ -149,6 +155,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
 }
 function acceptState(next) {
   state = next; lastStateAt = performance.now();
+  if (!replayController.active()) snapshots.push(next);
   if (!arenaMap) return;
   arenaMap.gates = state.gates;
   const me = state.players.find(p => p.id === playerId);
@@ -159,6 +166,10 @@ function acceptState(next) {
   }
   updateHUD();
 }
+// What the renderer draws: the buffered, interpolated view when live, and the frame a replay's own
+// playhead selects when a recording is open. `state` stays the newest authoritative frame, which is
+// what the HUD, prediction and every gameplay read use.
+function presentationFrame() { return replayController.active() ? state : presentation || state; }
 function updateHUD() {
   hudController.render({ state, arenaMap, playerId, replay: replayController.active(), savedReplay,
     selection: inputController.selection(),
@@ -168,15 +179,15 @@ function updateHUD() {
 
 let scene;
 const ArenaScene = makeArenaScene({
-  map: () => arenaMap, state: () => state, playerId: () => playerId,
+  map: () => arenaMap, state: () => presentationFrame(), playerId: () => playerId,
   self: () => !replayController.active() && predicted ? predicted : state?.players.find(p => p.id === playerId) || null,
   replay: () => replayController.active(), directed, overview: () => overview, aim: () => inputController.aim(), follow: () => replayController.subject(),
   // How far into the current authoritative tick the renderer is, so motion that only updates on a
   // server frame can be advanced smoothly between them.
-  frameAlpha: () => replayController.active() ? replayController.frameAlpha() : Math.min(1, (performance.now() - lastStateAt) / (1000 / HZ)),
+  frameAlpha: () => replayController.active() ? replayController.frameAlpha() : (presentationFrame()?.alpha ?? 0),
   onReady: value => scene = value, onFire: value => inputController.setPointerFire(value),
   onFollow: id => replayController.setFollow(id),
-  onFrame: () => replayController.renderFrame()
+  onFrame: () => { if (!replayController.active()) presentation = snapshots.frame() || state; replayController.renderFrame(); }
 });
 function toggleMap() { overview = !overview; $('map-toggle').classList.toggle('active', overview); scene?.updateCamera(true); }
 function inputTick() {
@@ -286,7 +297,11 @@ function renderProfileOverlay() {
   const head = [`frames ${profiler.frameCount()}`,
     delta ? `fps ${(1000 / Math.max(0.001, delta.mean)).toFixed(0)} (p95 frame ${delta.p95.toFixed(1)} ms)` : 'fps --',
     gap ? `state gap ${gap.mean.toFixed(1)} ms mean / ${gap.p95.toFixed(1)} p95 (server ${HZ} Hz = ${(1000 / HZ).toFixed(0)} ms)` : 'state gap --',
-    bytes ? `state ${(bytes.mean / 1024).toFixed(1)} KiB` : ''].filter(Boolean);
+    bytes ? `state ${(bytes.mean / 1024).toFixed(1)} KiB` : '',
+    (() => { const b = snapshots.stats(); return b.newest === null ? '' : `interp ${b.delayTicks} ticks behind (${(b.delayTicks * 1000 / HZ).toFixed(0)} ms), buffered ${b.depth}, rate ${b.rate.toFixed(2)}, starved ${b.starved}, cuts ${b.snaps}`; })(),
+    // Unacknowledged inputs the client is still replaying, and whether the server had to repeat one
+    // because none had arrived. A stall is the signal that the send rate is losing to the tick rate.
+    (() => { const me = state?.players.find(p => p.id === playerId); return me ? `input pending ${pending.length}, stalled ${me.inputStalled ?? 0}` : ''; })()].filter(Boolean);
   profileOverlay.textContent = head.join('\n') + '\n' + profiler.format(rows.filter(r => r !== delta && r !== gap && r !== bytes));
 }
 function setProfiling(value) {
@@ -303,4 +318,5 @@ window.arenaProfiling = setProfiling;
 // tooling will grow from, and what the tests drive.
 window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, role: 'spectator' });
 // Read-only inspection surface for reproducible browser smoke tests.
-window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: replayController.followId(), overview, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y } });
+window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: replayController.followId(), overview, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
+  pending: pending.length, inputStalled: state?.players.find(p => p.id === playerId)?.inputStalled ?? null });

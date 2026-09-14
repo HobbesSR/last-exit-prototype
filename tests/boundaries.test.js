@@ -8,7 +8,7 @@ import { invalidateGraph } from '../shared/map/graph.ts';
 
 test('public simulation/map exports and acyclic shared dependencies remain stable', () => {
   assert.deepEqual(Object.keys(simulation).sort(), ['VERSION', 'HZ', 'DURATION', 'CELL_CHARGE_TICKS', 'GLADIATOR_RESPAWN_TICKS', 'HAZARD_GRACE_TICKS', 'KITS', 'POTENTIAL', 'TILE', 'generateMap', 'createGame', 'joinGame', 'setInput', 'couldSee', 'visibleTo', 'playerView', 'step', 'snapshot'].sort());
-  assert.deepEqual(Object.keys(map).sort(), ['WORLD_WIDTH', 'WORLD_HEIGHT', 'BLOCK_SIZE', 'blockAt', 'blockRoute', 'generateMap', 'navigationGrid'].sort());
+  assert.deepEqual(Object.keys(map).sort(), ['WORLD_WIDTH', 'WORLD_HEIGHT', 'BLOCK_SIZE', 'blockAt', 'blockRoute', 'generateMap', 'navigationGrid', 'straightenPath'].sort());
   const files = readdirSync('shared', { recursive: true }).filter(f => f.endsWith('.ts') && !f.endsWith('.d.ts')).map(f => path.resolve('shared', f));
   const graph = new Map(files.map(file => {
     const refs = [...readFileSync(file, 'utf8').matchAll(/(?:from\s*|import\s*)['"](\.[^'"]+)['"]/g)].map(m => path.resolve(path.dirname(file), m[1]));

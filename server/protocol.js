@@ -1,4 +1,4 @@
-// Transport limits and envelope decoding. Stateful input latching stays in simulation.
+// Transport limits and envelope decoding. Stateful input queueing stays in simulation.
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
 const MAX_MESSAGES_PER_SECOND = 70;

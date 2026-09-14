@@ -1,4 +1,4 @@
-// Captured at the elements-1 content checkpoint. Expected results are never updated by tests.
+// Captured at the netcode-1 checkpoint. Expected results are never updated by tests.
 import { createHash } from 'node:crypto';
 import { createGame, generateMap, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 
@@ -17,7 +17,7 @@ export function botTrace(seed, map) {
   while (s.phase === 'live') {
     step(s);
     const frame = snapshot(s);
-    // Every authoritative field, including bot paths and latched input, on every tick.
+    // Every authoritative field, including bot paths and the queued input, on every tick.
     digest.update(JSON.stringify(frame));
     for (const id of ['c0', 'g0', 'spectator']) digest.update(JSON.stringify(playerView(s, frame, id)));
     if (s.tick % 100 === 0 || s.phase !== 'live') {
@@ -41,8 +41,11 @@ export function scriptedTrace(map) {
   capture('joined');
   p.inventory = [{ kind: 'weapon', weaponType: 'pistol', ammo: 7 }, { kind: 'med', count: 2 }, { kind: 'med', count: 2 }, { kind: 'shield', count: 1 }, { kind: 'cell', charge: 0 }, null];
   p.hp = 45;
+  // Two inputs arriving between two ticks: each is spent by its own tick rather than merged.
   setInput(s, p.id, { seq: 1, slot: 1, moveSlot: { from: 1, to: 2 } });
-  setInput(s, p.id, { seq: 2, attack: true }); step(s); capture('latched-merge-and-use');
+  setInput(s, p.id, { seq: 2, attack: true });
+  step(s); capture('queued-first-spent');
+  step(s); capture('queued-second-spent');
   press({ slot: 4, drop: true }); capture('drop');
   const dropped = s.map.items[0]; Object.assign(p, { x: dropped.x, y: dropped.y });
   for (let i = 0; i < 21; i++) step(s); capture('automatic-pickup');

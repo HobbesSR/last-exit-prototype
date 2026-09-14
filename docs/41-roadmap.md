@@ -27,7 +27,7 @@ Use ordinary functions and explicit dependencies in one process. A future worker
 boundary should follow the match API; this boundary does not require workers, service
 discovery, a new database, TypeScript migration or an internal gameplay event bus.
 Transport envelope parsing and simulation input validation are different layers:
-slot/input latching depends on player state and remains authoritative.
+slot and input validation depends on player state and remains authoritative.
 
 The priorities marked Now, and the outbound-field Next item, are implemented, as
 are inventory drag/drop (F-13) and the recording failure policy. The completed

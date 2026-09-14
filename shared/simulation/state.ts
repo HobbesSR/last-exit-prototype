@@ -1,7 +1,7 @@
 import { generateMap, WORLD_WIDTH, WORLD_HEIGHT } from '../map.ts';
 import { SLOT_COUNT } from '../equipment.ts';
 import { VERSION, KITS } from './rules.ts';
-import { finite, integer, safeInteger } from '../numbers.ts';
+import { queueInput, resetInput } from './input.ts';
 import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role, SlotIndex } from '../types.ts';
 
 /**
@@ -30,22 +30,17 @@ export function joinGame(s: Game, id: PlayerId, role: Role = 'contestant', kit: 
   if (!p) return null;
   p.id = id; p.name = name.slice(0, 16); p.bot = false;
   if (Object.hasOwn(KITS, kit)) p.kit = kit;
-  p.input = {}; p.lastSeq = -1; p.path = [];
+  resetInput(p); p.path = [];
   return p;
 }
-export function setInput(s: Game, id: PlayerId, input: PlayerInput | null | undefined): boolean {
+/**
+ * Accept one client input into that player's queue, or reject it.
+ *
+ * Returns the accepted input so a caller can record exactly what was queued, and literal `false`
+ * on rejection. A tick spends one of these; see `input.ts` for why that replaced coalescing.
+ */
+export function setInput(s: Game, id: PlayerId, input: PlayerInput | null | undefined): PlayerInput | false {
   const p = s.players.find(p => p.id === id);
-  if (!p || !input || !safeInteger(input.seq) || input.seq <= p.lastSeq) return false;
-  const axis = (v: unknown) => finite(v) ? Math.max(-1, Math.min(1, v)) : 0;
-  p.lastSeq = input.seq;
-  // Axes and held buttons are replaced, but one-shot presses are latched. Clients send on their own
-  // interval, so two messages can arrive between two ticks, and the second must not erase a button
-  // press the first one carried before any tick had a chance to read it.
-  p.input = { x: axis(input.x), y: axis(input.y), aim: finite(input.aim) ? input.aim : 0, attack: input.attack === true,
-    skill: input.skill === true || p.input.skill === true, interact: input.interact === true || p.input.interact === true, drop: input.drop === true || p.input.drop === true, sneak: input.sneak === true,
-    slot: integer(input.slot) && input.slot >= 0 && input.slot < SLOT_COUNT ? input.slot as SlotIndex : p.input.slot,
-    moveSlot: input.moveSlot && integer(input.moveSlot.from) && integer(input.moveSlot.to)
-      && input.moveSlot.from >= 0 && input.moveSlot.from < SLOT_COUNT && input.moveSlot.to >= 0 && input.moveSlot.to < SLOT_COUNT
-      ? { from: input.moveSlot.from, to: input.moveSlot.to } : p.input.moveSlot };
-  p.inputTick = s.tick; return true;
+  if (!p) return false;
+  return queueInput(p, input, s.tick) ?? false;
 }

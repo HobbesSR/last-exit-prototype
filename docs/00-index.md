@@ -45,7 +45,7 @@ and handoffs should cite the number, not a heading.
 | [22-ownership.md](22-ownership.md) | Which module owns which decision, and the boundaries tests enforce |
 | [23-types.md](23-types.md) | The TypeScript arrangement in `shared/`, branding policy, erasure |
 | [24-networking-privacy.md](24-networking-privacy.md) | Server authority, potential visibility, field contracts, spectator delay |
-| [25-pacing-and-rendering.md](25-pacing-and-rendering.md) | Tick pacing against real time, input latching, presentation smoothing, shading |
+| [25-pacing-and-rendering.md](25-pacing-and-rendering.md) | Tick pacing against real time, the receive buffer, presentation smoothing, shading |
 | [26-recording-contract.md](26-recording-contract.md) | Replay format, integrity, bounded recording, failure and recovery, playback |
 | [27-rust-path.md](27-rust-path.md) | The conditions for moving the core to Rust/WASM, and what stays outside it |
 | [28-operational-limits.md](28-operational-limits.md) | What this build deliberately does not do, and what public hosting would need |

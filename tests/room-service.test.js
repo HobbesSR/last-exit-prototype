@@ -32,14 +32,19 @@ test('fake clock preserves debt, catch-up cap, every recorded tick and newest-on
   assert.equal(room.debt, 0); await h.service.close();
 });
 
-test('room command recording owns sanitized latched inputs independently of later ticks', async () => {
+test('room command recording owns each sanitized input independently of later ticks', async () => {
   const h = roomHarness(), { owner, writer } = h.live();
   owner.send({ type: 'input', seq: 1, interact: true, moveSlot: { from: 0, to: 5 }, hp: 999 });
   owner.send({ type: 'input', seq: 2, x: 1 }); h.wake(50);
   const inputs = writer.frames.at(-1).commands.filter(c => c.type === 'input');
+  // Both arrived before the tick and both are recorded on arrival, but each carries exactly what its
+  // own client message carried. Nothing is merged forward into the next one any more.
   assert.equal(inputs.length, 2); assert.equal(inputs[0].input.interact, true);
-  assert.deepEqual(inputs[1].input.moveSlot, { from: 0, to: 5 }); assert.equal(inputs[0].input.hp, undefined);
-  assert.equal(writer.frames.at(-1).state.players.find(p => p.id === owner.session.playerId).input.interact, false);
+  assert.deepEqual(inputs[0].input.moveSlot, { from: 0, to: 5 });
+  assert.equal(inputs[1].input.moveSlot, undefined); assert.equal(inputs[1].input.interact, false);
+  assert.equal(inputs[0].input.hp, undefined, 'fields a client may not set are dropped');
+  // One tick spends one input, so only the first is acknowledged; the second waits for the next tick.
+  assert.equal(writer.frames.at(-1).state.players.find(p => p.id === owner.session.playerId).lastSeq, 1);
   await h.service.close();
 });
 
@@ -53,13 +58,11 @@ test('inventory gesture commands preserve source items in authoritative frames a
     const cell = { kind: 'cell', charge: 71 };
     player.inventory = [cell, null, null, null, null, weapon]; player.selectedSlot = 0;
 
-    owner.send({ type: 'input', seq: 1, moveSlot: { from: 5, to: 0 } });
-    owner.send({ type: 'input', seq: 2 }); h.wake(50);
+    owner.send({ type: 'input', seq: 1, moveSlot: { from: 5, to: 0 } }); h.wake(50);
     assert.deepEqual(player.inventory[0], weapon); assert.deepEqual(player.inventory[5], cell);
     assert.equal(player.selectedSlot, 5, 'selection follows the swapped cell');
 
-    owner.send({ type: 'input', seq: 3, slot: 0, drop: true });
-    owner.send({ type: 'input', seq: 4 }); h.wake(50);
+    owner.send({ type: 'input', seq: 3, slot: 0, drop: true }); h.wake(50);
     assert.equal(player.inventory[0], null); assert.deepEqual(player.inventory[5], cell);
     const dropped = game.map.items.find(item => item.droppedBy === player.id);
     assert.equal(dropped.weaponType, 'rifle'); assert.equal(dropped.ammo, 7);

@@ -232,7 +232,12 @@ try {
   }));
   await pausePlayback();
   const clockExpected = clock.ms / 1000 * 20;
-  assert.ok(clock.ticks > clockExpected * 0.6 && clock.ticks <= clockExpected + 1,
+  // Both readings floor a continuous playhead, so the tick count can overstate the elapsed playhead
+  // by nearly a whole tick on its own — start at N.99 reported as N, end at M.01 reported as M — and
+  // the two samples are not taken at the same instant. Two ticks of slack is that, not a loosened
+  // guard: the regression this exists to catch ran playback at roughly a tenth of real time, which
+  // lands far outside the lower bound regardless.
+  assert.ok(clock.ticks > clockExpected * 0.6 && clock.ticks <= clockExpected + 2,
     `playback tracks wall time: advanced ${clock.ticks} ticks while ${clockExpected.toFixed(1)} elapsed`);
   routedReplay = sparseReplay;
   await page.getByRole('button', { name: 'Exit replay' }).click();

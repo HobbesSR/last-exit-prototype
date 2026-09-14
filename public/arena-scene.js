@@ -6,6 +6,8 @@ import { noteFrame } from '/diagnostics.js';
 
 const COLORS = { access: 0xf4d26c, med: 0xff8b97, weapon: 0x8bd9f0, shield: 0xa3b9ff, cell: 0xffe98a };
 const PALETTE = [0x8d5669, 0x526f80, 0x8c815a];
+// Eye settling time constant, chosen to match the previous `delta / 40` at 60 Hz.
+const EYE_TAU_MS = 31;
 const obstacleFill = o => o.kind === 'fence' ? 0x53636b : o.kind === 'building' ? 0x92929e : PALETTE[o.color || 0];
 export function makeArenaScene(api) {
   return class ArenaScene extends Phaser.Scene {
@@ -217,7 +219,10 @@ export function makeArenaScene(api) {
       // Camera, own sprite, fog and cover all read one eased eye. Previously the fog sampled the raw
       // predicted position while the camera and sprite eased toward it, so the shadows led the world
       // by the easing lag and stepped at the 20 Hz input tick instead of gliding with the frame.
-      const ease = Math.min(1, delta / 40);
+      // Exponential, so the eye settles on the same time constant whatever the frame rate. A plain
+      // fraction of the frame delta eases faster on a slow client than a fast one, which is the same
+      // frame-rate dependence the remote-actor filter had before the receive buffer replaced it.
+      const ease = 1 - Math.exp(-delta / EYE_TAU_MS);
       // A followed replay subject drives the same eased eye the player's own view uses, so a followed
       // camera glides exactly like a live one and cuts only when the subject changes or teleports.
       const focus = api.follow() || self;
@@ -345,11 +350,12 @@ export function makeArenaScene(api) {
         // Ordinary dynamic actors, including allies, are occluded. Reveals remain an explicit exception.
         const shown = api.directed() || own || seesActor(this.sight, map, self, p);
         actor.container.setVisible(p.status === 'active' && shown);
+        // Everyone but the viewer is drawn where the frame says, with no filter of its own. The
+        // position already arrived interpolated between two authoritative states, so easing toward
+        // it a second time would only add back the lag the buffer exists to remove — and the filter
+        // this replaced converted every irregular arrival into a velocity spike besides.
         if (controlled && eye) { actor.container.x = eye.x; actor.container.y = eye.y; }
-        else {
-          const blend = api.replay() || Math.hypot(p.x - actor.container.x, p.y - actor.container.y) > 150 ? 1 : ease;
-          actor.container.x = Phaser.Math.Linear(actor.container.x, p.x, blend); actor.container.y = Phaser.Math.Linear(actor.container.y, p.y, blend);
-        }
+        else { actor.container.x = p.x; actor.container.y = p.y; }
         actor.sprite.setRotation(controlled ? api.aim() : p.heading); actor.sprite.setAlpha(p.cloak ? 0.45 : 1);
         // Markers hold their apparent size as the camera pulls back; names hold a fixed pixel height
         // rather than riding that scale, which would leave them unreadable at whole arena zoom.

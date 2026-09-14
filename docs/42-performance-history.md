@@ -85,6 +85,31 @@ including idle wakes; the per-tick estimate divides `sim.step.mean` by
 `sim.step.calls` over the same rolling window, and wake p95 is not tick p95. Timing
 series retain at most 600 samples.
 
+## The measured cost of route straightening
+
+Straightening a grid route before a bot walks it (see [22](22-ownership.md)) costs
+differently in different workloads, and the two point opposite ways. Both were measured
+three times, sequentially, with `calls.canOccupy` as the primary figure: it is
+deterministic for a fixed seed, while `sim.step` wall time bounced between 0.24 and
+0.61 ms for identical work on this machine and would have supported either conclusion.
+
+| Workload | `canOccupy` per tick | `sim.step` mean | `sim.step` p95 |
+| --- | ---: | ---: | ---: |
+| Full match, seed 4217, before | 225 | 0.28 ms | 1.10 ms |
+| Full match, seed 4217, after | 454 | 0.37 ms | 1.42 ms |
+| Nearby crowd, AI, before | 788 | 5.17 ms | 9.66 ms |
+| Nearby crowd, AI, after | 699 | 4.91 ms | 7.89 ms |
+
+In an ordinary match it roughly doubles collision queries: bots path across open terrain
+over long distances, so each repath has real work to do and the routes are long. In the
+crowd arrangement it is *cheaper* — eleven percent fewer collision queries and a clearly
+better p95 — because a straightened route carries far fewer waypoints, and the
+per-waypoint work downstream of it falls faster than the straightening costs.
+
+The crowd figure is the one that speaks to the open report below, and it moves the right
+way. That is not evidence the report is resolved: this is the same synthetic arrangement
+that never reproduced it, with the same limitations recorded under Crowd diagnostics.
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including

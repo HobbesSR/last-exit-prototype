@@ -368,7 +368,14 @@ export interface Player extends Vec2 {
   stun: Tick;
   heading: number;
   input: PlayerInput;
+  /** The newest sequence a tick has *consumed*. What the client reconciles against. */
   lastSeq: number;
+  /** Inputs accepted but not yet spent. A tick spends exactly one. */
+  inputQueue?: PlayerInput[] | undefined;
+  /** The newest sequence *accepted*, which guards ordering and duplicates on arrival. */
+  receivedSeq?: number | undefined;
+  /** Consecutive ticks the queue has been empty, so a repeat is distinguishable from a real input. */
+  inputStalled?: number | undefined;
   inventory?: Inventory | undefined;
   selectedSlot?: SlotIndex | undefined;
   /** Remaining bot route, in absolute tile coordinates. Not world units. */

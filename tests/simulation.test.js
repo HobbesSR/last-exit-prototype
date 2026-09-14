@@ -205,17 +205,26 @@ test('the server transmits what could become visible while gameplay still turns 
   c.revealed = 30;
   assert.equal(couldSee(s, p, c), true);
 });
-test('a one-shot press is not erased by the next input arriving before the tick', () => {
+test('each input is spent by exactly one tick, so a press is neither merged away nor repeated', () => {
   const { s, p } = fixture('gladiator');
   // Two client messages between two server ticks: the second carries no press, as a real client sends.
+  // Coalescing them would have thrown one away; a queue spends each on its own tick instead, which is
+  // what lets a client replay the same inputs against the same positions and land where the server did.
   assert.ok(setInput(s, p.id, { seq: 1, skill: true }));
   assert.ok(setInput(s, p.id, { seq: 2, x: 1 }));
   step(s);
-  assert.ok(p.cooldown > 0, 'the ability still fired');
-  assert.equal(p.input.skill, false, 'and the latch was spent');
-  const cooldown = p.cooldown;
+  assert.ok(p.cooldown > 0, 'the first tick spent the press');
+  assert.equal(p.lastSeq, 1, 'and acknowledged only the input it actually spent');
+  const cooldown = p.cooldown, x = p.x;
+  step(s);
+  assert.equal(p.lastSeq, 2, 'the next tick spends the next input');
+  assert.ok(p.x > x, 'which carried the movement that would have been merged away');
+  assert.ok(p.cooldown < cooldown, 'and the press did not fire a second time');
+  // A starved queue repeats movement so a single late packet does not stop the player dead, but it
+  // never re-fires a one-shot: losing a packet must not spend a charge the player never asked for.
+  const held = p.cooldown;
   for (let i = 0; i < 3; i++) step(s);
-  assert.equal(p.cooldown, cooldown - 3, 'it does not fire again on later ticks');
+  assert.equal(p.cooldown, held - 3, 'a repeated input carries no press');
   const { s: s2, p: p2 } = fixture();
   p2.x = s2.map.gates[0].x - 40; p2.y = s2.map.gates[0].y; p2.keys = 1;
   assert.ok(setInput(s2, p2.id, { seq: 1, interact: true }));

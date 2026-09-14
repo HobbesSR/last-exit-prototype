@@ -1,7 +1,7 @@
 
 import type { Kit, KitSpec, Tick } from '../types.ts';
 
-export const VERSION = 'last-exit-0.6';
+export const VERSION = 'last-exit-0.7';
 export const HZ = 20;
 export const DURATION: Tick = 600 * HZ;
 export const CELL_CHARGE_TICKS: Tick = 5 * HZ;

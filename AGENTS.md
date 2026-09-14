@@ -33,7 +33,7 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
 - The frozen characterization fixture comes from `5dd7d61`. Never regenerate it
   to make a refactor pass. Separate intentional gameplay changes and their new
   expectations/version decisions from behavior-preserving extraction.
-- Preserve fixed-tick order, input latching, RNG/ID order, snapshot and replay
+- Preserve fixed-tick order, one-input-per-tick ordering, RNG/ID order, snapshot and replay
   compatibility unless the task explicitly calls for a reviewed change.
 - Follow existing ownership boundaries. Server application code must not use the
   diagnostic `room.game` escape hatch; tests and benchmarks may arrange scenarios.

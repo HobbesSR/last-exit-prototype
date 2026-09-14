@@ -6,7 +6,7 @@ This first implementation uses a shared JavaScript core to make iteration and br
 
 Phaser, SAT.js, and PathFinding.js are the current free/open-source components. They are replaceable only when a replacement improves correctness, determinism, licensing, performance, or browser support. The simulation must remain separable from the renderer so a Rust/WASM core can replace the shared JavaScript implementation if the game validates.
 
-The authoritative simulation and browser prediction share movement and geometry code. Simulation state is fixed-tick and serializable. Rendering is independent of simulation rate: the client smooths the camera, local player, fog, and projectiles using one eased eye and elapsed fractions between authoritative states.
+The authoritative simulation and browser prediction share movement and geometry code. Simulation state is fixed-tick and serializable. Rendering is independent of simulation rate, and splits by who is being drawn. The viewer's own player is predicted forward from unacknowledged input, with camera, sprite, fog and cover reading one eased eye. Everyone else is drawn from a receive buffer held a fixed delay behind the newest frame and interpolated between the two states bracketing it, because arrival is uneven and a renderer that chases the newest position turns that unevenness into stutter. See [25](25-pacing-and-rendering.md).
 
 Profiling is off by default. `shared/profiler.ts` keeps frame-scoped timing/counters separate from event-scoped packet and pacing observations. The server exposes `/api/profile`, `PROFILE=1` enables server profiling, `P` toggles browser profiling, and the benchmark scripts must remain runnable without opening a public server.
 

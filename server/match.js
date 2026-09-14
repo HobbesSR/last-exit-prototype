@@ -1,4 +1,5 @@
 import { createGame, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { resetInput } from '../shared/simulation/input.ts';
 
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
 
@@ -24,17 +25,22 @@ export function createMatch(seed) {
     resume(id) {
       const p = game.players.find(p => p.id === id);
       if (!p) return null;
-      p.bot = false; p.input = {}; p.lastSeq = -1; p.path = [];
+      p.bot = false; resetInput(p); p.path = [];
       return identity(p);
     },
     leave(id) {
       const p = game.players.find(p => p.id === id);
       if (!p) return false;
-      p.bot = true; p.input = {}; return true;
+      // The queue goes with the player. A bot never spends it, so leaving it in place would ride
+      // along in every snapshot and recorded frame until the slot was resumed.
+      p.bot = true; resetInput(p); return true;
     },
     acceptInput(id, command) {
-      if (!setInput(game, id, command)) return null;
-      return { type: 'input', id, input: structuredClone(game.players.find(p => p.id === id).input), seq: command.seq };
+      // The recording carries the input exactly as it was queued, not whichever one a tick has most
+      // recently spent: those are no longer the same thing.
+      const accepted = setInput(game, id, command);
+      if (!accepted) return null;
+      return { type: 'input', id, input: structuredClone(accepted), seq: command.seq };
     },
     advance() { step(game); return snapshot(game); },
     snapshot: () => snapshot(game),

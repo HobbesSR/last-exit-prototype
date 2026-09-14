@@ -40,10 +40,11 @@ test('slot moves follow selection, merge compatible stacks, swap cells and rejec
   assert.ok(rearrangeEquipment(p, 0, 1)); assert.equal(p.inventory[0].count, 1); assert.equal(p.inventory[1].count, 3);
   assert.equal(rearrangeEquipment(p, 0, 1), false);
   p.inventory[2] = { kind: 'cell', charge: 71 };
-  setInput(s, p.id, { seq: 1, slot: 2, moveSlot: { from: 2, to: 5 } });
-  setInput(s, p.id, { seq: 2 }); step(s);
+  setInput(s, p.id, { seq: 1, slot: 2, moveSlot: { from: 2, to: 5 } }); step(s);
   assert.equal(p.selectedSlot, 5); assert.equal(p.inventory[5].charge, 71); assert.equal(p.inventory[2], null);
-  assert.equal(p.input.moveSlot, undefined);
+  const settled = structuredClone(p.inventory);
+  step(s);
+  assert.deepEqual(p.inventory, settled, 'an input a tick already spent is not applied again');
   assert.equal(rearrangeEquipment(p, -1, 0), false); assert.equal(rearrangeEquipment(p, 5, SLOT_COUNT), false);
   assert.equal(rearrangeEquipment(p, 1.2, 0), false);
   const before = structuredClone(p.inventory);
@@ -58,12 +59,14 @@ test('dropped weapons keep remaining ammo and a sixth-slot item can be selected'
   assert.equal(p.selectedSlot, 5); assert.equal(p.inventory[5], null);
   assert.equal(s.map.items.find(i => i.weaponType === 'rifle').ammo, 7);
 });
-test('slot selection is validated and latched; firing uses the selected weapon and utilities consume charges', () => {
+test('slot selection is validated and held; firing uses the selected weapon and utilities consume charges', () => {
   const { s, p } = fixture();
   for (const weaponType of Object.keys(WEAPONS)) collectEquipment(p, { kind: 'weapon', weaponType });
   collectEquipment(p, { kind: 'med' });
-  setInput(s, p.id, { seq: 1, slot: 2 }); setInput(s, p.id, { seq: 2, attack: true, aim: 0 }); step(s);
-  assert.equal(p.selectedSlot, 2); assert.equal(s.projectiles.length, 5); assert.equal(p.attackCd, WEAPONS.scattergun.cooldown);
+  setInput(s, p.id, { seq: 1, slot: 2 }); step(s);
+  assert.equal(p.selectedSlot, 2);
+  setInput(s, p.id, { seq: 2, attack: true, aim: 0 }); step(s);
+  assert.equal(s.projectiles.length, 5); assert.equal(p.attackCd, WEAPONS.scattergun.cooldown);
   setInput(s, p.id, { seq: 3, slot: 999 }); step(s); assert.equal(p.selectedSlot, 2);
   p.attackCd = 0; p.hp = 50;
   setInput(s, p.id, { seq: 4, slot: 3, attack: true }); step(s);

@@ -57,7 +57,12 @@ separate, stronger pass.
 
 ## Coverage
 
-The tests currently cover deterministic seeded simulation, 200 generated maps, shape records and element stamping, continuous movement and physical gaps, gates and extraction, combat and kit progression, transit, stealth, visibility geometry, privacy projections, one-shot input latching, pacing/replay integrity, spectators, desktop controls, touch controls, mouse aim, client-side sight, shaded occlusion, and projectile interpolation.
+The tests currently cover deterministic seeded simulation, 200 generated maps, shape records and element stamping, continuous movement and physical gaps, gates and extraction, combat and kit progression, transit, stealth, visibility geometry, privacy projections, one input spent per tick, pacing/replay integrity, spectators, desktop controls, touch controls, mouse aim, client-side sight, shaded occlusion, and projectile interpolation. The receive buffer is covered separately and directly, against a clock the test drives rather than against wall time: uneven arrivals, a catch-up batch that skips ticks, starvation, a reordered or duplicated frame, and a discontinuity large enough to cut. Those are the conditions that distinguish a buffer from a smoothing filter, and none of them are reachable through a happy-path integration test.
+The input queue is covered the same way, and the assertion that matters is that a client replaying its
+unacknowledged inputs through the shared movement code lands on the server's position exactly, rather
+than close to it. Around it sit the cases that decide whether that holds under load: acknowledging on
+consumption rather than arrival, a queue trimmed when a client outruns the tick, a starved queue that
+repeats movement but not one-shot presses, and a silence long enough to stop the player.
 
 Unit and server coverage includes 200-seed path clearance, 50-seed
 placement/spawn/maze checks, ammo exhaustion and refill, sixth-slot selection,

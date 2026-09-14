@@ -21,7 +21,7 @@
  */
 
 /** The schema this build writes. Bump on any change to recorded structure. */
-export const SCHEMA = 1;
+export const SCHEMA = 2;
 /**
  * The oldest schema this build can read. Zero, because recordings predating the schema field carry
  * no `schema` at all and are still playable; raise it only when support is deliberately dropped.

@@ -16,6 +16,7 @@ import { respawn, finishMatch } from './simulation/lifecycle.ts';
 import { damage, skill, attack, advanceProjectiles } from './simulation/combat.ts';
 import { interact, advanceCharging } from './simulation/interactions.ts';
 import { botInput } from './simulation/bots.ts';
+import { consumeInput } from './simulation/input.ts';
 import type { Game } from './types.ts';
 
 /** Per-player countdown fields, all measured in ticks. */
@@ -33,7 +34,7 @@ export function step(s: Game): void {
     if (p.status !== 'active') continue;
     for (const key of TIMERS) p[key] = Math.max(0, p[key] - 1);
     if (p.bot) start('sim.bots');
-    const input = p.bot ? botInput(s, p) : s.tick - (p.inputTick ?? 0) > 10 ? {} : p.input;
+    const input = p.bot ? botInput(s, p) : consumeInput(p, s.tick);
     if (p.bot) stop('sim.bots');
     start('sim.move');
     const previousPosition = { x: p.x, y: p.y };
@@ -47,7 +48,6 @@ export function step(s: Game): void {
     if (input.attack) attack(s, p);
     if (input.interact) interact(s, p);
     advanceCharging(s, p, input);
-    if (!p.bot) { p.input.skill = false; p.input.interact = false; p.input.drop = false; delete p.input.slot; delete p.input.moveSlot; } // Latched presses are spent once.
     stop('sim.actions');
     start('sim.pickups');
     automaticPickups(s, p, input);

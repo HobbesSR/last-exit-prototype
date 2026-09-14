@@ -28,6 +28,12 @@ sides record integers, a reader can later apply a range, a set of supported vers
 per-feature table without recordings changing shape again. Policy belongs to the reader; a recording
 only states facts about itself.
 
+Schema 2 is the first use of that reasoning. Queuing input per player put a sequence number on every
+recorded command and the queue itself into recorded player state — additive, so `schema` rose and
+`minSchema` stayed at zero, and a reader written against schema 1 still plays recordings written
+after it. The same change raised `version` to `last-exit-0.7`, because what a recording *means* moved
+too: a tick now spends one input rather than whatever had accumulated.
+
 `version` is a separate axis and keeps its meaning: which simulation rules produced the recording.
 The schema pair decides whether a file can be *read*; `version` says what its contents *mean*.
 Recordings also embed their own map, so changing map generation never invalidates one.
