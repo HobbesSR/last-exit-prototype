@@ -92,15 +92,11 @@ test("painted cells carry their own region class", () => {
 test("interior authoring errors are explicit", () => {
   const cases: Array<[string, Partial<TileDesign>]> = [
     [
-      "margin",
-      { cells: ["#.....", "......", "......", "......", "......", "......"] },
-    ],
-    [
       "legend",
       { cells: ["......", ".q....", "......", "......", "......", "......"] },
     ],
     ["rows", { cells: ["....", "......"] }],
-    ["outside", { walls: [{ x1: 0, y1: 3, x2: 5, y2: 3 }] }],
+    ["outside", { walls: [{ x1: -1, y1: 3, x2: 5, y2: 3 }] }],
     ["diagonal", { walls: [{ x1: 1, y1: 1, x2: 4, y2: 4 }] }],
     ["gap", { walls: [{ x1: 1, y1: 3, x2: 5, y2: 3, gap: 9 }] }],
     ["offgrid", { walls: [{ x1: 1, y1: 2.5, x2: 5, y2: 2.5 }] }],
@@ -112,16 +108,6 @@ test("interior authoring errors are explicit", () => {
     );
   assert.deepEqual(validateTileShape(template()), []);
   assert.equal(validateLibrary(libraryWith(template())).valid, true);
-  assert.equal(
-    validateLibrary(
-      libraryWith(
-        template({
-          cells: ["#.....", "......", "......", "......", "......", "......"],
-        }),
-      ),
-    ).valid,
-    false,
-  );
 });
 
 test("the shipped library declares every class it can paint", () => {

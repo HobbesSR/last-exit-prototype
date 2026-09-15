@@ -24,7 +24,7 @@ import type {
 } from "./types.ts";
 
 export const TILE_SIZE = 6;
-export const INTERIOR_MARGIN = 1;
+export const INTERIOR_MARGIN = 0;
 export const ANY_CLASS = "any";
 /**
  * Filled material: what a cell's class says when nothing can stand there. Cells
