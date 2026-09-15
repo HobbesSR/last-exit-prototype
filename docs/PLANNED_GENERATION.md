@@ -72,6 +72,62 @@ Two things, on purpose.
 
 Everything below the contract. Both run the same six builders out of the same catalogue, through the same canvas and the same containment rules, using the same mask, rng, scale and placement helpers. `context.ports` and `context.loot` are optional: absent on the legacy path, where there is no plan to honour, and `conformRegionEdit` is then a clean no-op. That is what lets one set of builders serve both.
 
+## Measured
+
+20 seeds at default size (936 tiles, 33,696 cells), against the legacy generator's
+own 150-seed sweep. min / median / max, and all 20 valid.
+
+| metric           | legacy (150 seeds)    | planned (20 seeds) |
+| ---------------- | --------------------- | ------------------ |
+| valid            | 150 / 150             | 20 / 20            |
+| `microSegments`  | 79 / 196 / 313        | 5373 / 6067 / 6320 |
+| `microCells`     | 0 / 12 / 40           | 320 / 464 / 584    |
+| `obstacleCount`  | 144 / 225 / 303       | 1265 / 1682 / 2222 |
+| `squeezes`       | 0 / 1 / 3             | 59 / 79 / 99       |
+| `detourRatio`    | 1.051 / 1.051 / 1.051 | 1.75 (median)      |
+| `lootCount`      | 1044 / 1151 / 1263    | 737 / 836 / 907    |
+| `portsCorrected` | --                    | 0 / 1 / 2          |
+| reserved ground  | ~33% of the map       | none               |
+
+The numbers that matter are the last three rows plus `microSegments`.
+
+**Builders actually build.** Thirty times the stated geometry of the legacy path,
+because nothing is held back from them. On the legacy path streets and anchor
+standing room took a third of the map before any builder saw it, and what was
+left was too fragmented for the builders that make buildings.
+
+**The map is no longer a straight shot.** A detour ratio of 1.05 means the route
+to an exit is the direct line; 1.75 means getting there is a journey. That was
+the original complaint about the generated map and it is the clearest single
+number here.
+
+**The asymmetry is real and planned.** Seventy-nine contestant-only seams a map,
+against one, and they exist because `planPorts` decided them rather than because
+geometry happened to leave a gap of the right size.
+
+**`portsCorrected` is the honest one.** It counts ports that finished outside
+their band and had to be rewritten by `enforcePorts`. A median of one, out of
+about 900, is the contract essentially holding on its own -- and it is not zero,
+which is why the pass exists: a port is shared, each side's builder runs
+separately, and the later write wins. Each side was conformant when it was
+checked and the pair was not.
+
+`lootCount` falling is a policy change, not a regression: macro now sets an
+explicit budget per region instead of rolling a per-cell chance. Whether ~840 is
+the right number is a content question nobody has answered.
+
+### What is not yet trustworthy
+
+`detourRatio`, `contestantDistance` and `deadEnds` come from the anchor-to-anchor
+tile graph, which NEXT_TASKS item 2 already records as conservative and
+tile-grained. On two of eight sampled seeds it reports no contestant route at all
+while `validateMap`'s lattice flood -- which is the authority, and which checks
+geometry -- passes. The metric is understating, not the map failing. Replacing it
+with geometry-level analysis is that item's job.
+
+Nothing here is tuned. `DEFAULT_TYPE_TABLE`, the port chances, the loot policy
+and `tilesPerRegion` were all set to something reasonable and left alone.
+
 ## Status
 
 The planned path is new and is not yet the default. `generateMap` remains the generator the GUI, CLI and MCP use. Nothing here is integrated with the sibling game, and is not meant to be yet.

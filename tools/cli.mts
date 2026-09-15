@@ -16,9 +16,12 @@ import {
 } from "../src/artifact.ts";
 import { decodeBson, looksLikeBson } from "../src/bson.ts";
 import { listBuilders } from "../src/micro/index.ts";
+import { generatePlannedMap, planMap } from "../src/plan/compose.ts";
 import type { GeneratedMap } from "../src/types.ts";
 
-const HELP = `last-exit-map\n\nCommands:\n  generate --seed SEED [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE] [--format json|bson]\n  validate FILE   (a map in either encoding, or a library)\n  batch [--count N] [--seed PREFIX] [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE]\n  library [--out FILE]\n  help`;
+const HELP = `last-exit-map\n\nCommands:\n  plan --seed SEED [--zone-width N --zone-height N --exits N] [--out FILE] [--format json|bson]   (the planned generator)
+  plan-only --seed SEED [--out FILE]   (the macro plan, without composing it)
+  generate --seed SEED [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE] [--format json|bson]\n  validate FILE   (a map in either encoding, or a library)\n  batch [--count N] [--seed PREFIX] [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE]\n  library [--out FILE]\n  help`;
 
 function fail(message: string): void {
   process.stderr.write(`${message}\n`);
@@ -100,6 +103,18 @@ try {
   else if (command === "library") {
     const o = options(rest);
     output(DEFAULT_LIBRARY, o.out);
+  } else if (command === "plan") {
+    // The second generator. It takes no library: it plans regions over the cell
+    // grid rather than placing authored tiles. See docs/PLANNED_GENERATION.md.
+    const o = options(rest);
+    if (o.seed === undefined) throw new Error("plan requires --seed");
+    const map = generatePlannedMap(o.seed, params(o));
+    writeMap(map, o.out, o.format);
+    if (!map.validation.valid) process.exitCode = 1;
+  } else if (command === "plan-only") {
+    const o = options(rest);
+    if (o.seed === undefined) throw new Error("plan-only requires --seed");
+    output(planMap(o.seed, params(o)), o.out);
   } else if (command === "builders") {
     // The catalogue is data a library binds to by name, so it has to be
     // inspectable without reading the source that registers it.
