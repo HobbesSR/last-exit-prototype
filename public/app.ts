@@ -1642,6 +1642,7 @@ function renderClasses(): void {
         };
         try {
           apply(next);
+          editTemplate(true);
         } catch (e) {
           $("libraryStatus").textContent = (e as Error).message;
         }
@@ -1664,6 +1665,7 @@ function renderClasses(): void {
         delete next.cellClasses![name];
         try {
           apply(next);
+          editTemplate(true);
         } catch (e) {
           $("libraryStatus").textContent = (e as Error).message;
         }
@@ -1975,6 +1977,7 @@ $("addClass").onclick = () => {
     input("newClass").value = "";
     brush = name;
     apply(next);
+    editTemplate(true);
   } catch (e) {
     $("libraryStatus").textContent = (e as Error).message;
   }
