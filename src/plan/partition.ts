@@ -31,18 +31,10 @@
  * function of the shape rather than of the order the shapes were discovered in.
  */
 import { createRng } from "../micro/rng.ts";
+export type { PartitionedRegion } from "./types.ts";
+import type { PartitionedRegion } from "./types.ts";
 import type { Rng } from "../micro/types.ts";
 import type { Box, MapParams, MapZone } from "../types.ts";
-import type { RegionPlan } from "./types.ts";
-
-/**
- * A region before its ports and loot are decided.
- *
- * Ports need the finished partition to exist (a port is a shared border, so it
- * cannot be stated until both sides are final), and loot needs the region's
- * tier. Both are other stages' work; this type is the seam between them.
- */
-export type PartitionedRegion = Omit<RegionPlan, "ports" | "loot">;
 
 /** Candidate builder ids with relative weights. */
 export interface RegionTypeTable {

@@ -36,19 +36,10 @@
  * off map-wide on the legacy path, and it has to mean the same here, or a
  * caller that switched generation paths silently gets its loot back.
  */
+export type { PartitionedRegion } from "./types.ts";
+import type { PartitionedRegion } from "./types.ts";
 import type { LootCriteria } from "../micro/types.ts";
 import type { MapParams } from "../types.ts";
-import type { RegionPlan } from "./types.ts";
-
-/**
- * A region before its ports and loot are decided.
- *
- * The partition pass produces these; ports and loot are two independent
- * decisions layered on afterwards, and neither needs the other's output. Naming
- * the intermediate state rather than passing a half-built `RegionPlan` is what
- * keeps `deriveLoot` from being able to read a field that does not exist yet.
- */
-export type PartitionedRegion = Omit<RegionPlan, "ports" | "loot">;
 
 /** Knobs on the allocation. All optional; the defaults are the shipped policy. */
 export interface LootPolicy {

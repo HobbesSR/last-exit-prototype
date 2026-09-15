@@ -63,6 +63,13 @@ export interface RegionPlan {
   bonus: number;
 }
 
+/**
+ * A region after the partition has decided its shape and type, and before its
+ * ports and loot are decided. The three planning passes hand this between them,
+ * so it is named once here rather than restated by each of them.
+ */
+export type PartitionedRegion = Omit<RegionPlan, "ports" | "loot">;
+
 /** A macro feature, attached to the region responsible for siting it. */
 export interface PlannedFeature {
   kind: FeatureKind;

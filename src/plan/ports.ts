@@ -25,16 +25,11 @@
  * nothing to repair.
  */
 import { createRng } from "../micro/rng.ts";
+export type { PartitionedRegion } from "./types.ts";
+import type { PartitionedRegion } from "./types.ts";
 import type { Passage, PerimeterPort, SegmentRef } from "../micro/types.ts";
 import type { ValidationResult } from "../types.ts";
 import { PASSAGE_RANK, admitsPassage, type RegionPlan } from "./types.ts";
-
-/**
- * A region as the partition pass leaves it: everything about a region except
- * the two things later passes decide. Ports are this module's output; loot
- * belongs to the loot pass.
- */
-export type PartitionedRegion = Omit<RegionPlan, "ports" | "loot">;
 
 /**
  * One maximal run of contiguous collinear segments separating two regions,
