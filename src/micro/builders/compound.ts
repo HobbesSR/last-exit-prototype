@@ -17,7 +17,7 @@
  */
 import { PASSAGE } from "../scale.ts";
 import { buildableCells } from "../placement.ts";
-import { createCanvas, segmentCells } from "../edit.ts";
+import { createCanvas } from "../edit.ts";
 import { guardRegionEdit } from "../clearance.ts";
 import { SIDES } from "../../primitives.ts";
 // Shared with the builders that place props: a street crossing the area is not
@@ -126,27 +126,12 @@ export function runAperture(
   strip: Box,
   side: Side,
   width: number,
-  interior: (x: number, y: number) => boolean,
-  rng: Rng,
+  _interior: (x: number, y: number) => boolean,
+  _rng: Rng,
 ): SegmentRef[] {
-  const result = canvas.room(strip, {
-    doors: 1,
-    doorWidth: width,
-    windows: 0,
-    sides: [side],
-    rng,
-  });
-  if (!result.placed) return [];
-  for (const other of SIDES) {
-    if (other === side) continue;
-    for (const ref of sideRefs(canvas, strip, other)) {
-      const [a, b] = segmentCells(ref);
-      // Only what is interior to the structure goes back to open. The
-      // structure's own other walls, and the region border, are left as found.
-      if (interior(a.x, a.y) && interior(b.x, b.y)) canvas.open(ref);
-    }
-  }
-  return result.doors;
+  const refs = sideRefs(canvas, strip, side);
+  if (canvas.apertureRun(refs, width)) return refs;
+  return [];
 }
 
 /** One building, before anything has been declared about it. */

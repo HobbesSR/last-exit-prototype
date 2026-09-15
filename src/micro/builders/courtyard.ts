@@ -26,11 +26,9 @@ import { guardRegionEdit } from "../clearance.ts";
 // makes a cell standing room is one rule, and it is the open-field builder that
 // first needed it.
 import { PROP_MARGIN, keepClear, standableSlot } from "../placement.ts";
-// `runAperture` belongs on the canvas as `apertureRun`; until it can live in
-// edit.ts, the catalogue keeps one implementation rather than two copies.
-import { runAperture } from "./compound.ts";
+
 import { SIDES } from "../../primitives.ts";
-import type { Box, Side } from "../../types.ts";
+import type { Side } from "../../types.ts";
 import type {
   RegionBuilder,
   RegionContext,
@@ -173,32 +171,14 @@ export const courtyardBuilder: RegionBuilder = {
     let doors = 0;
     let squeezes = 0;
     const wide: SegmentRef[] = [];
-    const insideRegion = (x: number, y: number): boolean => mask.has(x, y);
     for (const [index, run] of gates.entries()) {
       const segments = used.get(String(index))!;
-      const side = sideOf(segments[0]!);
       const asSqueeze =
         index > 0 &&
         segments.length >= doorRun &&
         !run.some((one) => one.required);
       if (asSqueeze) {
-        const cells = segments.map((one) => one.inside);
-        const strip: Box = [
-          Math.min(...cells.map((c) => c.x)),
-          Math.min(...cells.map((c) => c.y)),
-          Math.max(...cells.map((c) => c.x)),
-          Math.max(...cells.map((c) => c.y)),
-        ];
-        if (
-          runAperture(
-            canvas,
-            strip,
-            side,
-            PASSAGE.squeeze,
-            insideRegion,
-            context.rng.stream(`courtyard:squeeze:${index}`),
-          ).length
-        ) {
+        if (canvas.apertureRun(segments, PASSAGE.squeeze)) {
           squeezes += 1;
           continue;
         }

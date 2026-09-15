@@ -75,6 +75,8 @@ export interface RegionCanvas {
   open(ref: SegmentRef): boolean;
   /** A centered aperture of `width` segments; see scale.centeredSpan. */
   aperture(ref: SegmentRef, width: number): boolean;
+  /** A centered aperture of `width` segments across a run of segments. */
+  apertureRun(refs: SegmentRef[], width: number): boolean;
   /** The segment between two orthogonally adjacent cells, or undefined. */
   between(
     ax: number,
@@ -332,6 +334,14 @@ export function createCanvas(context: RegionContext): RegionCanvas {
     },
     aperture(ref, width) {
       return setSpan(ref, centeredSpan(width));
+    },
+    apertureRun(refs, width) {
+      const spans = runSpans(refs.length, width);
+      let ok = true;
+      refs.forEach((ref, i) => {
+        if (!setSpan(ref, spans[i]!)) ok = false;
+      });
+      return ok;
     },
 
     between(ax, ay, bx, by) {

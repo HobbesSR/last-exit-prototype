@@ -912,10 +912,7 @@ const TILE_CELLS = 6;
 /** The reserved material class, and the mark that stands for it in `cells`. */
 const SOLID = "solid";
 const SOLID_MARK = "#";
-// Solid cells must keep the one-cell tile margin, which is what lets template
-// selection stay a local decision. Classes have no such restriction.
-const canBeSolid = (col: number, row: number) =>
-  col >= 1 && col <= 4 && row >= 1 && row <= 4;
+const canBeSolid = (_col: number, _row: number) => true;
 const classColor = (name: string) => `hsl(${hash(name) % 360} 32% 34%)`;
 let paint: Array<string | null> = new Array(36).fill(null);
 let brush: string | null = null;
@@ -1120,11 +1117,9 @@ function applyTo(hits: Hit[]): void {
     else refusedSegments++;
   }
   if (refusedCells)
-    $("libraryStatus").textContent =
-      "A border cell cannot be solid: interior geometry keeps a one-cell margin.";
+    $("libraryStatus").textContent = "Refused invalid cell placement.";
   else if (refusedSegments)
-    $("libraryStatus").textContent =
-      "Those interior lines are unavailable: interior walls keep a one-cell margin.";
+    $("libraryStatus").textContent = "Refused invalid segment edit.";
   const single = hits.length === 1 ? hits[0]! : null;
   if (single?.kind === "segment") selectedSegment = single.index;
   refresh();
