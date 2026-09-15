@@ -1,3 +1,60 @@
+# Implementation checkpoint: a second generator that plans before it builds
+
+Read AGENTS.md and design_notes.txt first, then
+[docs/PLANNED_GENERATION.md](docs/PLANNED_GENERATION.md). The previous
+checkpoint follows below and is still accurate about the legacy path.
+
+## There are now two generators
+
+`core.generateMap` is unchanged. `plan/compose.generatePlannedMap` is new:
+
+```
+plan:     partition into regions -> state a perimeter contract on every boundary
+          -> prove reachability on the region graph, from the floors alone
+compose:  lay the contract down -> one builder per region
+          -> hold each builder to the contract it was given
+```
+
+A `PerimeterPort` carries a floor (`required`) and a ceiling (`allowed`). Macro
+proves routes from the floors; `micro/conform.ts` holds builders to them. That
+pairing is the whole design, and it is why the planned path needs **no reserved
+route network and no repair pass** -- `planStreets` exists only to defend
+connectivity after the fact, and is now marked superseded and do-not-extend.
+
+New: `src/plan/{types,partition,ports,loot,compose}.ts`, `src/micro/conform.ts`,
+`src/micro/loot.ts`, four test files, `cli plan` and `cli plan-only`.
+
+## Measured, 20 seeds at default size, all valid
+
+Against the legacy path's 150-seed sweep: ~30x the stated geometry (6,067 median
+segments against 196), detour ratio 1.75 against 1.05, 79 contestant-only seams
+against 1, and no ground held back from builders. The full table and its caveats
+are in PLANNED_GENERATION.md. Nothing is tuned.
+
+## Three mistakes worth not repeating
+
+**A port is shared; each side's builder runs separately.** The later write wins,
+so a port conformant at both checks can still finish below its floor. Fourteen of
+166 did. `enforcePorts` gives the plan the last word, over out-of-band ports only.
+
+**An anchor must be standing room a body can reach**, not merely standing room.
+Builders legitimately seal pockets and anchors landed inside them. Anchors are
+now drawn from the largest connected component, at hunter clearance.
+
+**An empty path is not a distance of zero.** Zero is what an adjacent tile looks
+like; the two are opposites. This is the "fixed count standing in for a
+condition" shape that has bitten this project before.
+
+## Still open
+
+`detourRatio`/`contestantDistance`/`deadEnds` come from the anchor-to-anchor tile
+graph and understate: on two of eight sampled seeds they report no contestant
+route while `validateMap`'s lattice flood passes. That is NEXT_TASKS item 2.
+The planned path is not the default and the GUI/MCP still use `generateMap`.
+Region types, port chances, loot policy and `tilesPerRegion` are all untuned.
+
+---
+
 # Implementation checkpoint: micro generation
 
 Read AGENTS.md and design_notes.txt first. Implementation documents describe
