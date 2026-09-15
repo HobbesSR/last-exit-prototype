@@ -4,7 +4,6 @@ import {
   SOLID_CLASS,
   ANY_CLASS,
   channelSpan,
-  contractFor,
   CELL_COUNT,
   SEGMENT_COUNT,
   VERTEX_COUNT,

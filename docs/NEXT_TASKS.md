@@ -96,12 +96,12 @@ and difficulty/balance tuning per Corey's direction.
    of it were wrong. What is left: the network is derived from tile adjacency
    and anchors, so it is still tile-grained in the same way item 2 describes,
    and `STREET_SPACING` is an untuned dial rather than a measured one.
-5. Give segments separate movement, sight and projectile channels. The six segment sockets, seven vertices, explicit-empty versus wildcard semantics and flat-height metadata are in; a segment's barrier is still one span shared by every channel, so a fence you can see over cannot yet be expressed.
-6. Raise the tile interior budget as part of the structure work. The current one-cell margin prevents geometry from naturally continuing through a seam and should not become a permanent invariant.
+5. **Done.** Added separate movement, sight and projectile channels to segments via `SegmentChannels` and `channelSpan`.
+6. **Done.** Raised the tile interior budget by removing `INTERIOR_MARGIN`, allowing geometry to naturally continue through a seam.
 7. Measure squeeze value, per-exit routes, bottlenecks and rewarded geometric dead ends. Expose histograms in the GUI and sweep seeds in batches before enforcing tuning thresholds. Avoid implying that opening count or tile degree proves navigation diversity.
 8. Add a visual tile-set/layout editor above the existing JSON contract. Tile sets and multi-tile layouts are still JSON-only. Preserve CLI parity and validate imported files before authoring operations. The one-cell interior restriction belongs to the legacy solver and should leave with it; perimeter segment editing does not require that migration. (Note: tile weight has been removed; selection frequency will be treated uniformly until macro tuning is addressed).
 9. Separate playtest tuning from map parameters; record time, chosen route, tags, deaths, charge duration and player body for repeatable comparisons. The browser simulation is intentionally separate from the production match rules.
-10. **Done, except sub-regions.** Builders have the primitive vocabulary:
+10. **Done, except sub-regions:** Builders have the primitive vocabulary:
     `RegionEdit` in `src/micro/types.ts` supersedes `RegionOutput`, so a builder
     states cells, segments and vertices inside its own area as well as spawns
     and props, and six of them do. Which builder owns a region is library data
@@ -111,12 +111,7 @@ and difficulty/balance tuning per Corey's direction.
     containment contract), `src/micro/placement.ts` (where detail may sit),
     `src/micro/rng.ts` and `src/micro/scale.ts`. Manifests are recomputed from
     what actually landed, never from what a builder reported. What is left:
-    hierarchical sub-regions, and `apertureRun` on the canvas -- an opening of
-    fractional width needs a run of segments, which `canvas.room` knows how to
-    do privately and `canvas.aperture` cannot express, so `compound.runAperture`
-    works around it by rooming a strip and reopening its sides. That workaround
-    is why `courtyard.ts` imports from `compound.ts`, which is the one
-    builder-to-builder dependency left.
+    hierarchical sub-regions.
 11. Add the tile- and zone-aware builders that have no region to attach to: primitive-set resolution, hazard placement and map-boundary treatment. Loot already reaches micro generation from the zone and hazard has the same shape. `RegionInput.budget` is a plain cap rather than a zone allocation, which starts to matter once a hard per-match cap on high-tier spawns is wanted.
 12. Give tiles a primitive set: the metadata naming what ground, walls, fences and doors are made of in that area, and the pass that resolves declarations into physical objects against it. Nothing the generator emits today is a physical object, and nothing yet says what any declaration should become.
 
