@@ -2380,6 +2380,7 @@ function renderLayoutPalette() {
     el.className = "layout-palette-item";
     if (id === activeLayoutBrush) el.classList.add("active");
     el.textContent = id;
+    el.style.borderLeft = `4px solid ${classColor(id)}`;
 
     // Check if it's explicit or implicit
     const isExplicit = (library.tileSets || []).some((s) => s.id === id);
@@ -2467,6 +2468,7 @@ function renderLayoutEditor() {
       if (slot) {
         cell.classList.add("filled");
         cell.textContent = slot.tileSetId;
+        cell.style.background = classColor(slot.tileSetId);
         cell.title = `${slot.tileSetId} at (${dx}, ${dy})`;
       } else {
         cell.title = `(${dx}, ${dy})`;
@@ -2496,6 +2498,15 @@ function renderLayoutEditor() {
     }
   }
 }
+
+$("saveLayout").onclick = () => {
+  try {
+    apply(structuredClone(library));
+    $("libraryStatus").textContent = "Set piece saved successfully.";
+  } catch (e) {
+    $("libraryStatus").textContent = (e as Error).message;
+  }
+};
 
 $("deleteLayout").onclick = () => {
   if (!activeLayoutId) return;
