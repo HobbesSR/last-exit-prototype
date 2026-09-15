@@ -13,23 +13,15 @@
  * The same form serializes to JSON, where typed arrays become plain number
  * arrays, and to BSON, where they stay binary.
  */
-import {
-  ZONE_COLUMNS,
-  deriveEdges,
-  deriveWalls,
-  makeZones,
-  validateMap,
-} from "./core.ts";
+import { deriveEdges, deriveWalls, makeZones, validateMap } from "./core.ts";
 import { decodeBson, encodeBson, looksLikeBson } from "./bson.ts";
 import type { BsonValue } from "./bson.ts";
 import type {
   GeneratedMap,
-  MapEdge,
   MapFeature,
   MapParams,
   MapRegion,
   PlacedTile,
-  PortKind,
   Span,
   ValidationResult,
   Wall,

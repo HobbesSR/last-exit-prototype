@@ -2,7 +2,14 @@ import DEFAULT_LIBRARY_JSON from "../content/default-library.json" with { type: 
 import { composeMacro } from "./macro.ts";
 import type { MacroPlacement } from "./macro-types.ts";
 import { compileTileDesign } from "./macro-compiler.ts";
-import { generateRegion, validateCellClass } from "./regions.ts";
+import { validateCellClass } from "./regions.ts";
+import { builderFor, createMask, createRng } from "./micro/index.ts";
+import type {
+  GridAxis,
+  RegionContext,
+  RegionMask,
+  RegionOpening,
+} from "./micro/types.ts";
 import {
   LATTICE_STEP,
   clearNavCache,
@@ -19,15 +26,12 @@ import {
   SIDES,
   TILE_SIZE,
   widestOpening,
-  cellAt,
-  hSeg,
   mergeRuns,
   resolvePrimitives,
   segmentDeclaration,
   sideSegment,
   sideVertex,
   tilePrimitives,
-  vSeg,
   wallsFrom,
 } from "./primitives.ts";
 import type {
@@ -106,20 +110,6 @@ interface GridBuild {
   /** Explicit vertex metadata only; an absent vertex is deferred and flat. */
   vertices: Map<number, VertexMeta>;
   segmentIndex: (vertical: boolean, line: number, offset: number) => number;
-}
-function makeGrids(W: number, H: number): GridBuild {
-  const verticalCount = (W + 1) * H;
-  return {
-    W,
-    H,
-    cellClass: new Array<string>(W * H).fill(OUTSIDE_CLASS),
-    cellLevel: new Array<number>(W * H).fill(0),
-    // Everything outside the mask is sealed, which costs one run to encode.
-    segmentOpen: new Array<Span>(verticalCount + (H + 1) * W).fill(null),
-    vertices: new Map<number, VertexMeta>(),
-    segmentIndex: (vertical, line, offset) =>
-      vertical ? offset * (W + 1) + line : verticalCount + line * W + offset,
-  };
 }
 
 /**
@@ -204,9 +194,7 @@ function rng(seed: string | number): () => number {
 function key(x: number, y: number): string {
   return `${x},${y}`;
 }
-function edgeKey(a: number, b: number): string {
-  return a < b ? `${a}|${b}` : `${b}|${a}`;
-}
+
 /** An omitted side defers, so a design need not mention ports at all. */
 /** A port declares the set of seam contracts it accepts: "any", "door|wide", …. */
 function portSet(value: PortValue | undefined): Set<PortKind> | null {
@@ -448,10 +436,10 @@ export function makeZones(p: MapParams): MapZone[] {
  * so it stair-steps rather than tapering: the notes keep that deliberately,
  * since jagged edges produce alcoves and pockets for free.
  */
-function makeMask(
-  p: MapParams,
-  zones: MapZone[],
-): { cells: MaskCell[]; byKey: Map<string, number> } {
+function makeMask(zones: MapZone[]): {
+  cells: MaskCell[];
+  byKey: Map<string, number>;
+} {
   const cells: MaskCell[] = [];
   const byKey = new Map<string, number>();
   for (const zone of zones) {
@@ -824,68 +812,214 @@ export function searchRegions(
 }
 
 /**
- * Micro generation: each discovered region parameterises its own pass. Offering
- * a sparse candidate lattice keeps slots spaced and the budget unbiased.
+ * Micro generation: one builder pass per discovered region.
+ *
+ * Regions are discovered twice, and the difference matters. The first search
+ * finds the *build* regions: the areas a builder owns and is handed. A builder
+ * may then repaint cells and state segments inside its own area, which is what
+ * makes a wall, a door, a window or a pillar expressible at all -- but it also
+ * means the partition those regions came from no longer describes the composed
+ * result. So `generateMap` searches again afterwards and the artifact carries
+ * that second partition, which agrees with the cells by construction. A
+ * compound's rooms are separate regions in the artifact because the walls the
+ * builder stated genuinely separate them.
  *
  * The macro parameters a builder needs are passed in rather than looked up: a
  * candidate carries the loot density of the tier zone covering its cell, so a
  * region straddling a zone boundary is handled without deciding which zone it
  * "belongs" to. The class rule supplies only what is intrinsic to the class.
  */
+interface MicroResult {
+  spawns: Array<{ cell: number; kind: string }>;
+  obstacles: Wall[];
+  features: Array<{ kind: string; x: number; y: number }>;
+  /** The builder that owned each cell, by cell index; "" where none ran. */
+  ownerOf: string[];
+  /** False where the clearance guard had to drop a declaration to keep a route. */
+  honored: Uint8Array;
+}
+
+/**
+ * The boundary segments a region is currently reachable through. The widest
+ * opening onto each neighbouring region is marked required: losing it would
+ * strand that neighbour, and a builder has no way to know that from inside.
+ */
+function regionOpenings(
+  mask: RegionMask,
+  grid: GridBuild,
+  regionOf: Int32Array,
+): RegionOpening[] {
+  const { W, H, cellClass, segmentOpen, segmentIndex } = grid;
+  const found: RegionOpening[] = [];
+  const widest = new Map<number, number>();
+  for (const cell of mask.cells) {
+    const steps: Array<[number, number, boolean, number, number]> = [
+      [cell.x - 1, cell.y, true, cell.x, cell.y],
+      [cell.x + 1, cell.y, true, cell.x + 1, cell.y],
+      [cell.x, cell.y - 1, false, cell.y, cell.x],
+      [cell.x, cell.y + 1, false, cell.y + 1, cell.x],
+    ];
+    for (const [nx, ny, vertical, line, offset] of steps) {
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      if (mask.has(nx, ny)) continue;
+      const outsideIndex = ny * W + nx;
+      if (cellClass[outsideIndex] === OUTSIDE_CLASS) continue;
+      const span = segmentOpen[segmentIndex(vertical, line, offset)];
+      if (!span) continue;
+      const width = span[1] - span[0];
+      if (width <= SPAN_EPS) continue;
+      const neighbour = regionOf[outsideIndex]!;
+      widest.set(neighbour, Math.max(widest.get(neighbour) ?? 0, width));
+      found.push({
+        vertical,
+        line,
+        offset,
+        inside: { cellIndex: cell.cellIndex, x: cell.x, y: cell.y },
+        outside: { cellIndex: outsideIndex, x: nx, y: ny },
+        width,
+        required: false,
+      });
+    }
+  }
+  // Exactly one opening onto each neighbour is required, so a builder keeps
+  // every neighbour reachable while still being free to narrow the rest into
+  // doors and squeezes. Ties break on the lowest cell index, for determinism.
+  const claimed = new Set<number>();
+  for (const opening of found) {
+    const neighbour = regionOf[opening.outside.cellIndex]!;
+    if (claimed.has(neighbour)) continue;
+    if (opening.width < (widest.get(neighbour) ?? 0) - SPAN_EPS) continue;
+    opening.required = true;
+    claimed.add(neighbour);
+  }
+  return found;
+}
+
 function generateMicro(
   regions: MapRegion[],
   grid: GridBuild,
   library: Library,
   zones: MapZone[],
+  params: MapParams,
+  regionOf: Int32Array,
   reserved: (x: number, y: number) => boolean,
-): Array<{ cell: number; kind: string }> {
-  const spawns: Array<{ cell: number; kind: string }> = [];
-  const lootAt = (x: number, y: number): number =>
+): MicroResult {
+  const { W, H } = grid;
+  const result: MicroResult = {
+    spawns: [],
+    obstacles: [],
+    features: [],
+    ownerOf: new Array<string>(W * H).fill(""),
+    honored: new Uint8Array(W * H).fill(1),
+  };
+  const ts = params.tileSize;
+  // One axis object serves every region: it describes the tile lattice, which
+  // is a property of the map rather than of any area laid over it.
+  const axis: GridAxis = {
+    tileSize: ts,
+    tileOf: (x, y) => ({ col: Math.floor(x / ts), row: Math.floor(y / ts) }),
+    tileBounds: (col, row) => [
+      col * ts,
+      row * ts,
+      col * ts + ts - 1,
+      row * ts + ts - 1,
+    ],
+    onTileBorder: (x, y) =>
+      x % ts === 0 || y % ts === 0 || x % ts === ts - 1 || y % ts === ts - 1,
+    onTileSeam: (ref) => ref.line % ts === 0,
+    snap: (value) => Math.round(value / ts) * ts,
+  };
+  const zoneAt = (x: number, y: number) =>
     zones.find(
       (z) =>
         x >= z.cells[0] &&
         y >= z.cells[1] &&
         x <= z.cells[2] &&
         y <= z.cells[3],
-    )?.lootChance ?? 0;
-  for (const region of regions) {
-    // No builder is registered for material.
-    if (isSolidClass(region.cellClass)) continue;
-    const candidates = region.cells
-      .filter((i) => {
-        const x = i % grid.W,
-          y = (i - x) / grid.W;
-        return x % 2 === 1 && y % 2 === 1 && !reserved(x, y);
-      })
-      .map((cellIndex) => {
-        const x = cellIndex % grid.W,
-          y = Math.floor(cellIndex / grid.W);
-        return { cellIndex, x, y, lootChance: lootAt(x, y) };
-      });
-    const area = region.cells
-      .filter((i) => !reserved(i % grid.W, Math.floor(i / grid.W)))
-      .map((cellIndex) => ({
-        cellIndex,
-        x: cellIndex % grid.W,
-        y: Math.floor(cellIndex / grid.W),
-      }));
-    const output = generateRegion(
-      {
-        seed: region.seed,
-        cellClass: region.cellClass,
-        candidates,
-        budget: candidates.length,
-        area,
-      },
-      library.cellClasses?.[region.cellClass] ?? {},
     );
-    for (const slot of output.spawns)
-      spawns.push({ cell: slot.cellIndex, kind: slot.kind });
-    region.obstacles = output.obstacles;
-    region.manifest = output.manifest;
+
+  for (const region of regions) {
+    // No builder is registered for material: it is discovered and left alone.
+    if (isSolidClass(region.cellClass)) continue;
+    const rule = library.cellClasses?.[region.cellClass] ?? {};
+    const mask = createMask(region.cells, W, H);
+    const free = mask.cells.filter((c) => !reserved(c.x, c.y));
+    if (!free.length) continue;
+    const candidates = mask
+      .lattice(2, 1, 1)
+      .filter((c) => !reserved(c.x, c.y))
+      .map((c) => ({
+        cellIndex: c.cellIndex,
+        x: c.x,
+        y: c.y,
+        lootChance: zoneAt(c.x, c.y)?.lootChance ?? 0,
+      }));
+    const context: RegionContext = {
+      regionId: region.id,
+      cellClass: region.cellClass,
+      rule,
+      seed: region.seed,
+      rng: createRng(region.seed),
+      mask,
+      grid: axis,
+      params,
+      candidates,
+      budget: candidates.length,
+      isReserved: reserved,
+      openings: regionOpenings(mask, grid, regionOf),
+      // NEXT_TASKS item 4: no proven route envelope reaches micro generation
+      // yet, so the post-edit clearance check is the only thing keeping a
+      // builder from severing a route, and it sees only the region's own area.
+      corridors: [],
+      clearance: {
+        contestant: params.contestantRadius,
+        hunter: params.hunterRadius,
+      },
+      zoneAt: (x, y) => {
+        const zone = zoneAt(x, y);
+        return {
+          tier: zone?.tier ?? 1,
+          bonus: zone?.bonus ?? 0,
+          lootChance: zone?.lootChance ?? 0,
+        };
+      },
+    };
+    const builder = builderFor(rule, free.length);
+    const edit = builder.build(context);
+
+    for (const cell of edit.cells) {
+      if (cell.class !== undefined) grid.cellClass[cell.cellIndex] = cell.class;
+      if (cell.height !== undefined)
+        grid.cellLevel[cell.cellIndex] = cell.height;
+    }
+    for (const segment of edit.segments)
+      grid.segmentOpen[
+        grid.segmentIndex(
+          segment.ref.vertical,
+          segment.ref.line,
+          segment.ref.offset,
+        )
+      ] = segment.open;
+    for (const vertex of edit.vertices)
+      grid.vertices.set(vertex.y * (W + 1) + vertex.x, {
+        class: vertex.class ?? ANY_CLASS,
+        height: vertex.height ?? "any",
+      });
+    for (const slot of edit.spawns)
+      result.spawns.push({ cell: slot.cellIndex, kind: slot.kind });
+    result.obstacles.push(...edit.obstacles);
+    result.features.push(...edit.features);
+    for (const cell of mask.cells) {
+      result.ownerOf[cell.cellIndex] = edit.manifest.generator;
+      if (!edit.manifest.corridorsHonored) result.honored[cell.cellIndex] = 0;
+    }
   }
-  spawns.sort((a, b) => a.cell - b.cell);
-  return spawns;
+  // A builder may have turned a cell to material after a spawn was offered on
+  // it. Nothing may stand in material, so the spawn goes rather than the wall.
+  result.spawns = result.spawns
+    .filter((s) => !isSolidClass(grid.cellClass[s.cell]!))
+    .sort((a, b) => a.cell - b.cell);
+  return result;
 }
 
 /** Every cell an arbitrary segment passes through, walked exactly. */
@@ -976,7 +1110,7 @@ export function generateMap(
   const seedText = String(seed);
   const random = rng(seed),
     zones = makeZones(p),
-    { cells, byKey } = makeMask(p, zones),
+    { cells, byKey } = makeMask(zones),
     n = cells.length;
   const zoneById = new Map(zones.map((z) => [z.id, z]));
   const zoneOf = (slot: MaskCell): MapZone => zoneById.get(slot.zoneId)!;
@@ -1279,7 +1413,7 @@ export function generateMap(
     placements,
   });
 
-  const regions = composition.regions;
+  let regions = composition.regions;
   const grid = {
     W: composition.width,
     H: composition.height,
@@ -1287,10 +1421,15 @@ export function generateMap(
     segmentOpen: composition.segmentOpen,
     cellLevel: new Array(composition.width * composition.height).fill(0),
     vertices: new Map(),
-    segmentIndex: (vertical: boolean, line: number, offset: number) => {
-      // Dummy function, we don't need this anymore since composition is done
-      return 0;
-    },
+    // The same addressing `macro.ts` composed with, and the addressing micro
+    // generation states segments through. It was a stub while nothing wrote to
+    // the grid after composition; something does now.
+    segmentIndex: (vertical: boolean, line: number, offset: number) =>
+      vertical
+        ? offset * (composition.width + 1) + line
+        : (composition.width + 1) * composition.height +
+          line * composition.width +
+          offset,
   };
 
   const left = cells.map((c, i) => ({ c, i })).filter((x) => x.c.x === 0),
@@ -1361,9 +1500,63 @@ export function generateMap(
       ),
     );
   // Micro generation: one pass per discovered region, never per tile.
-  const spawns = generateMicro(regions, grid, library, zones, (x, y) => {
-    const t = tileOfCell(x, y);
-    return t === undefined || reservedTiles.has(tiles[t]!.id);
+  const regionOf = new Int32Array(grid.W * grid.H).fill(-1);
+  regions.forEach((region, index) => {
+    for (const cell of region.cells) regionOf[cell] = index;
+  });
+  const micro = generateMicro(
+    regions,
+    grid,
+    library,
+    zones,
+    p,
+    regionOf,
+    (x, y) => {
+      const t = tileOfCell(x, y);
+      return t === undefined || reservedTiles.has(tiles[t]!.id);
+    },
+  );
+  const spawns = micro.spawns;
+  // The artifact carries the partition of the composed result, not the one the
+  // builders were handed. A builder that stated a wall genuinely split its area
+  // in two, and a region whose class disagrees with its own cells is not a
+  // region at all; searching again is how both stay true by construction.
+  regions = searchRegions(grid, seedText);
+  const regionAt = new Int32Array(grid.W * grid.H).fill(-1);
+  regions.forEach((region, index) => {
+    for (const cell of region.cells) regionAt[cell] = index;
+  });
+  // A prop stays inside one cell by contract, so its midpoint names the region
+  // that now owns it -- which may not be the one whose builder placed it.
+  for (const wall of micro.obstacles) {
+    const cx = Math.floor((wall.x1 + wall.x2) / 2),
+      cy = Math.floor((wall.y1 + wall.y2) / 2);
+    if (cx < 0 || cy < 0 || cx >= grid.W || cy >= grid.H) continue;
+    regions[regionAt[cy * grid.W + cx]!]?.obstacles.push(wall);
+  }
+  const spawnCells = new Set(spawns.map((slot) => slot.cell));
+  for (const region of regions) {
+    const generator = micro.ownerOf[region.cells[0]!] ?? "";
+    region.manifest = {
+      ...(generator ? { generator } : {}),
+      spawnsPlaced: region.cells.filter((cell) => spawnCells.has(cell)).length,
+      obstaclesPlaced: region.obstacles.length,
+      corridorsHonored: region.cells.every((cell) => micro.honored[cell] === 1),
+    };
+  }
+  // A builder may site a feature of its own: where a physical exit or a charger
+  // stands is a micro detail, per docs/DESIGN_DECISIONS.md.
+  micro.features.forEach((feature, index) => {
+    const owner = tileOfCell(feature.x, feature.y);
+    const cell = feature.y * grid.W + feature.x;
+    if (owner === undefined || isSolidClass(grid.cellClass[cell]!)) return;
+    feats.push({
+      id: `micro-${feature.kind}-${index}`,
+      kind: feature.kind as MapFeature["kind"],
+      tileId: tiles[owner]!.id,
+      x: feature.x + 0.5,
+      y: feature.y + 0.5,
+    });
   });
 
   let adjacentPairs = 0;

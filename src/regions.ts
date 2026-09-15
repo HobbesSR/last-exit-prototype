@@ -18,7 +18,13 @@ const DEFAULT_RULE = Object.freeze({
   clutterChance: 0,
   clutterSize: 0.6,
 });
-const RULE_KEYS = ["clutterChance", "clutterSize"] as const;
+const RULE_KEYS = [
+  "clutterChance",
+  "clutterSize",
+  "parameter",
+  "generator",
+  "generatorParams",
+] as const;
 /** Used only when a caller offers a candidate with no macro loot parameter. */
 const DEFAULT_LOOT_CHANCE = 0.5;
 
@@ -50,6 +56,18 @@ export function validateCellClass(rule: unknown = {}): ValidationResult {
       (!Number.isFinite(value[key]) || value[key]! < 0 || value[key]! > 1)
     )
       errors.push(`${key} must be a finite number from 0 to 1`);
+  if (
+    Object.hasOwn(rule as object, "generator") &&
+    typeof value.generator !== "string"
+  )
+    errors.push("generator must be the id of a registered region builder");
+  if (
+    Object.hasOwn(rule as object, "generatorParams") &&
+    (!value.generatorParams ||
+      typeof value.generatorParams !== "object" ||
+      Array.isArray(value.generatorParams))
+  )
+    errors.push("generatorParams must be an object");
   if (
     Object.hasOwn(rule as object, "clutterSize") &&
     (!Number.isFinite(value.clutterSize) ||

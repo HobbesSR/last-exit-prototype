@@ -37,6 +37,14 @@ export interface CellClass {
   clutterSize?: number;
   /** If true, this class is a parameter placeholder (e.g. "floor") to be bound during macro placement. */
   parameter?: boolean;
+  /**
+   * Which region builder owns a region of this class, by catalogue id. Which
+   * generator runs over an area is library data rather than code; an omitted or
+   * unknown name falls back to the catalogue default.
+   */
+  generator?: string;
+  /** Parameters passed through to that builder. Its own schema validates them. */
+  generatorParams?: Record<string, number | string | boolean>;
 }
 
 /**

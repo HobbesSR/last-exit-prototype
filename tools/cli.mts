@@ -15,6 +15,7 @@ import {
   decodeArtifact,
 } from "../src/artifact.ts";
 import { decodeBson, looksLikeBson } from "../src/bson.ts";
+import { listBuilders } from "../src/micro/index.ts";
 import type { GeneratedMap } from "../src/types.ts";
 
 const HELP = `last-exit-map\n\nCommands:\n  generate --seed SEED [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE] [--format json|bson]\n  validate FILE   (a map in either encoding, or a library)\n  batch [--count N] [--seed PREFIX] [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE]\n  library [--out FILE]\n  help`;
@@ -99,6 +100,18 @@ try {
   else if (command === "library") {
     const o = options(rest);
     output(DEFAULT_LIBRARY, o.out);
+  } else if (command === "builders") {
+    // The catalogue is data a library binds to by name, so it has to be
+    // inspectable without reading the source that registers it.
+    const o = options(rest);
+    output(
+      listBuilders().map((b) => ({
+        id: b.id,
+        minArea: b.minArea,
+        description: b.description,
+      })),
+      o.out,
+    );
   } else if (command === "validate") {
     if (rest.length !== 1)
       throw new Error("validate requires exactly one file");

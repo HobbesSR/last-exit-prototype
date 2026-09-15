@@ -1,14 +1,61 @@
 {
   "version": 1,
   "cellClasses": {
-    "depot": {},
-    "hall": {},
-    "market": {},
-    "open": {},
-    "plaza": {},
-    "service": {},
-    "vault": {},
-    "yard": {}
+    "depot": {
+      "generator": "compound",
+      "clutterChance": 0.1,
+      "clutterSize": 0.5
+    },
+    "grass": {
+      "generator": "open-field",
+      "clutterChance": 0.04,
+      "clutterSize": 0.55,
+      "generatorParams": {
+        "coverDensity": 0.5
+      }
+    },
+    "hall": {
+      "generator": "pillar-hall",
+      "clutterChance": 0.03,
+      "clutterSize": 0.6
+    },
+    "market": {
+      "generator": "compound",
+      "clutterChance": 0.12,
+      "clutterSize": 0.45,
+      "generatorParams": {
+        "roomMin": 3,
+        "roomMax": 4
+      }
+    },
+    "open": {
+      "generator": "open-field",
+      "clutterChance": 0.06,
+      "clutterSize": 0.6
+    },
+    "plaza": {
+      "generator": "pillar-hall",
+      "clutterChance": 0.02,
+      "clutterSize": 0.7,
+      "generatorParams": {
+        "blockSize": 2
+      }
+    },
+    "service": {
+      "generator": "rubble",
+      "clutterChance": 0.18,
+      "clutterSize": 0.5
+    },
+    "vault": {
+      "generator": "courtyard",
+      "clutterChance": 0.05,
+      "clutterSize": 0.6
+    },
+    "yard": {
+      "generator": "compound",
+      "clutterChance": 0.08,
+      "clutterSize": 0.5
+    }
   },
   "tiles": [
     {

@@ -7,7 +7,6 @@ import {
   validateMap,
   findPath,
   canOccupy,
-  cellClassNames,
   gridViews,
   readCell,
   cellIndexAt,
