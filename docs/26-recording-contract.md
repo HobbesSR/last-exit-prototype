@@ -43,7 +43,10 @@ costs a string where carrying it would repeat the same tables in every frame.
 
 `version` is a separate axis and keeps its meaning: which simulation rules produced the recording.
 The schema pair decides whether a file can be *read*; `version` says what its contents *mean*.
-Recordings also embed their own map, so changing map generation never invalidates one.
+Recordings also embed their own map, so changing map generation never invalidates one. That is
+also why map generation is not pinned the way weapons, kits and traps are: the embedded map is the
+generator's output rather than its settings, and output is the stronger thing to keep. Reconstructing
+an arena from pinned tuning could disagree with what was played; an embedded map cannot.
 
 ## Format and integrity
 

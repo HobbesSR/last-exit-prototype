@@ -18,10 +18,21 @@ can outlive server shutdown. These are concrete sources of cross-system changes.
 | Now | Room/session application separate from HTTP/WebSocket and timers | Run joins, reconnects, delay, catch-up, abandonment and shutdown with fake sessions/time/storage. Existing integration/browser suites still pass. |
 | Now | Owned asynchronous shutdown | Every started finalization is awaited; repeated close/finalize is idempotent. Test slow/failing storage directly. Record this reliability change separately from extraction. |
 | Next | Explicit outbound field contracts | New server-only fields must not automatically appear in player views. Introduce allowlists with frozen projection comparisons and nested item/trap contracts. |
-| Done | Versioned immutable match content | Weapons, kits and the tick-denominated rules are pinned and frozen at match creation and read from the match rather than from module constants; the recording header names the set. Trap reach, damage and cadence followed. Map generation tuning is the remaining surface: it is consumed before a match exists rather than during one, so it needs a decision about whether a generated map is pinned content or an input to it. |
+| Done | Versioned immutable match content | Weapons, kits and the tick-denominated rules are pinned and frozen at match creation and read from the match rather than from module constants; the recording header names the set. Trap reach, damage and cadence followed. Map generation needs no equivalent and deliberately does not get one: see below. |
 | Later | Typed gameplay facts | Separate replayable facts from presentation strings/effects; events carry stable IDs and schemas. Establish actual consumers before broad instrumentation or progression integration. |
 | Later | Deployment/session compatibility | Distinct account/session/player/match identities, admission/draining, reconnect routing and compatibility negotiation. Requires product/hosting decisions. |
 | Profile first | Geometry and renderer component extraction | Preserve shared cache ownership, query semantics and render order. Split when a concrete change/measurement justifies it. |
+
+Map generation tuning was the one part of that item left unpinned, and on inspection it
+should stay that way. Generation runs *before* a match exists, and what it produces is
+already captured twice over: the game holds the generated map for its lifetime, and the
+recording header embeds it whole. That is a stronger guarantee than pinning the tuning
+would give, because it captures the artifact rather than the recipe — a later generator
+change cannot alter what an existing recording means, and no reconstruction step can
+disagree with what was played. Extracting the generator's constants would also be
+extracting the wrong thing: most are algorithm shape (`i % 6 === 0`, a distance
+threshold that separates spawns from loot) rather than a balance table anyone would
+tune, and moving them would put the seeded RNG and ID order at risk for no consumer.
 
 Use ordinary functions and explicit dependencies in one process. A future worker
 boundary should follow the match API; this boundary does not require workers, service
