@@ -693,6 +693,26 @@ window.addEventListener("keydown", (e) => {
     stop("Run ended.");
     fit();
   }
+
+  if (!playing) {
+    if (k === "d" || k === "p" || k === "r" || k === "f") {
+      tool = k === "r" ? "rect" : k === "f" ? "fill" : "paint";
+      refresh();
+      renderModes();
+    } else if (k === "w" || k === "o" || k === "a") {
+      segmentBrush = k === "w" ? "wall" : k === "o" ? "open" : "any";
+      refresh();
+      renderSegmentBrushes();
+    } else if (k >= "1" && k <= "9") {
+      const idx = parseInt(k, 10) - 1;
+      const names = [null, ...Array.from(new Set([...cellClassNames(library), paintFallback()].filter(Boolean))).sort()];
+      if (idx < names.length) {
+        brush = names[idx];
+        refresh();
+        renderBrushes(paintFallback());
+      }
+    }
+  }
 });
 window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
 window.addEventListener("blur", () => keys.clear());
