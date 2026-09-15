@@ -177,6 +177,17 @@ export interface RegionContext {
   /** Boundary segments the region is currently reachable through. */
   openings: RegionOpening[];
   /**
+   * The perimeter contract macro planned for this region, when it was planned
+   * rather than discovered. A builder must honour every port; `micro/conform.ts`
+   * checks that it did.
+   *
+   * Absent on the legacy path, where regions are discovered from cell classes
+   * after the fact and there is no macro plan to honour.
+   */
+  ports?: PerimeterPort[];
+  /** What macro decided this region owes in loot, when there is a plan. */
+  loot?: LootCriteria;
+  /**
    * Routes crossing this region that must survive. A builder may build up to
    * one but not across it. NEXT_TASKS item 4: until a proven route envelope
    * reaches here this is empty and the post-edit clearance check is the guard.
@@ -189,6 +200,61 @@ export interface RegionContext {
     x: number,
     y: number,
   ): { tier: number; bonus: number; lootChance: number };
+}
+
+/**
+ * What must be able to get through an opening, named by the largest body that
+ * must fit. Ordered: "none" < "contestant" < "hunter".
+ *
+ * A body band, not a width, because the widths are derived (see `scale.ts`) and
+ * because the whole point of the contract is that macro can reason about
+ * passage without knowing what micro will actually build there.
+ */
+export type Passage = "none" | "contestant" | "hunter";
+
+/**
+ * One run of contiguous perimeter segments a region shares with one neighbour,
+ * and the passage band micro must leave across it.
+ *
+ * This is the macro-to-micro contract, and it is two sided on purpose:
+ *
+ * - `required` is a floor. When micro is done, something of at least this size
+ *   must be able to cross this port. Macro proves reachability from the floors
+ *   alone, so the proof holds whatever micro decides to build inside a region.
+ * - `allowed` is a ceiling. `"contestant"` keeps a port a squeeze no hunter may
+ *   use however open micro would like it; `"none"` seals it.
+ *
+ * `required` of `"none"` with `allowed` of `"hunter"` is a port micro may do
+ * whatever it likes with, which is the ordinary case away from the routes macro
+ * actually depends on.
+ */
+export interface PerimeterPort {
+  id: string;
+  /** The region across this port, or null where it faces outside the map. */
+  neighbour: string | null;
+  /** The segments the port covers, ordered along the boundary. */
+  segments: SegmentRef[];
+  /** The floor: micro must leave at least this much open somewhere on it. */
+  required: Passage;
+  /** The ceiling: micro may not leave more than this open anywhere on it. */
+  allowed: Passage;
+}
+
+/**
+ * What a region owes in loot, decided by macro and handed down.
+ *
+ * Macro decides how much and of what tier, because that is progression and it
+ * is a property of where the region sits on the map. Where the spawns actually
+ * go is the region's own business -- it is the only thing that knows what it
+ * built -- under one rule: a cell carries at most one loot spawn.
+ */
+export interface LootCriteria {
+  /** How many spawns this region should place. A target, and a hard cap. */
+  budget: number;
+  /** Loot tier in force here, 1..5, from the zone covering the region. */
+  tier: number;
+  /** Per-cell chance, for a builder that would rather scatter than count. */
+  density: number;
 }
 
 /** A cell declaration a builder makes inside its own area. */
