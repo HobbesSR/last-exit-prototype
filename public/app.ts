@@ -833,7 +833,11 @@ function renderTileSetEditor() {
       card.title = "Click to remove from set";
       card.onclick = () => {
         activeSet.members = activeSet.members.filter((id) => id !== t.id);
-        apply(library);
+        try {
+          apply(library);
+        } catch (e) {
+          $("libraryStatus").textContent = (e as Error).message;
+        }
         renderTileSetEditor();
       };
       membersGallery.appendChild(card);
@@ -841,7 +845,11 @@ function renderTileSetEditor() {
       card.title = "Click to add to set";
       card.onclick = () => {
         activeSet.members.push(t.id);
-        apply(library);
+        try {
+          apply(library);
+        } catch (e) {
+          $("libraryStatus").textContent = (e as Error).message;
+        }
         renderTileSetEditor();
       };
       availableGallery.appendChild(card);
@@ -863,7 +871,6 @@ document.getElementById("newTileSet")!.onclick = () => {
   }
   library.tileSets.push({ id, members: [] });
   activeTileSetId = id;
-  apply(library);
   renderTileSetsList();
 };
 
@@ -880,7 +887,11 @@ document.getElementById("saveTileSet")!.onclick = () => {
   }
   activeSet.id = newId;
   activeTileSetId = newId;
-  apply(library);
+  try {
+    apply(library);
+  } catch (e) {
+    $("libraryStatus").textContent = (e as Error).message;
+  }
   renderTileSetsList();
 };
 
@@ -888,7 +899,11 @@ document.getElementById("deleteTileSet")!.onclick = () => {
   if (!library.tileSets || !activeTileSetId) return;
   library.tileSets = library.tileSets.filter((s) => s.id !== activeTileSetId);
   activeTileSetId = "";
-  apply(library);
+  try {
+    apply(library);
+  } catch (e) {
+    $("libraryStatus").textContent = (e as Error).message;
+  }
   renderTileSetsList();
 };
 
