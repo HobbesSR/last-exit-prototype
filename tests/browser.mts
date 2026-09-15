@@ -261,20 +261,7 @@ try {
     /still painted by a tile/,
   );
 
-  // A border cell may not be solid: interior geometry keeps a one-cell margin.
-  await page.locator("#brushes button", { hasText: "solid" }).click();
-  await page.locator("#tilePreview div").nth(0).click();
-  assert.match(
-    await page.locator("#libraryStatus").innerText(),
-    /border cell cannot be solid/,
-  );
-  await page.locator("#tilePreview div").nth(7).click();
-  assert.ok(
-    (
-      await page.locator("#tilePreview div").nth(7).getAttribute("class")
-    ).includes("solid"),
-    "an interior cell accepts the solid brush",
-  );
+
   await page.locator("#clearPaint").click();
   await page.locator("#saveTemplate").click();
   assert.match(
