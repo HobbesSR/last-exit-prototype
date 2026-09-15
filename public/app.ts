@@ -1752,6 +1752,7 @@ $("tilePreview").addEventListener("pointerdown", (e) => {
   event.preventDefault();
   closePopup();
   drawing = { tool, pointerId: event.pointerId };
+  $("tilePreview").setPointerCapture(event.pointerId);
   if (tool === "rect" && !event.altKey) {
     const start = rectAnchor(event.clientX, event.clientY);
     rectDrag = { x0: start.x, y0: start.y, x1: start.x, y1: start.y };
