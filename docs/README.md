@@ -7,6 +7,7 @@ The primary source of design intent is [design_notes.txt](../design_notes.txt). 
 - [DESIGN_DECISIONS.md](DESIGN_DECISIONS.md): Architectural decisions, invariants, wire encoding, and navigation design.
 - [VOCABULARY.md](VOCABULARY.md): Definitive terminology, primitives, coordinate systems, and layering rules.
 - [MACRO_STRUCTURES.md](MACRO_STRUCTURES.md): Version 1 specification and contract for the macro composition engine (`src/macro.ts`).
+- [PLANNED_GENERATION.md](PLANNED_GENERATION.md): The second generator. Macro states a perimeter contract and proves reachability on the region graph; micro is held to it, so no route network has to be reserved (`src/plan/`).
 - [MICRO_GENERATION.md](MICRO_GENERATION.md): The region builder contract, the generator catalogue, body scale, and the containment and clearance guards (`src/micro/`).
 - [VALIDATION.md](VALIDATION.md): Geometry verification principles, reachability invariants, and benchmark checkpoint records.
 - [NEXT_TASKS.md](NEXT_TASKS.md): Active task backlog (items 1–12), ranked by implementation readiness.
