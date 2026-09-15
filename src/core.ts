@@ -243,7 +243,11 @@ function isAdapter(tile: TileDesign): boolean {
  */
 export function cellClassNames(library: Library | null | undefined): string[] {
   return [
-    ...new Set([...Object.keys(library?.cellClasses ?? {}), SOLID_CLASS, ANY_CLASS]),
+    ...new Set([
+      ...Object.keys(library?.cellClasses ?? {}),
+      SOLID_CLASS,
+      ANY_CLASS,
+    ]),
   ];
 }
 /** The names a design actually uses, whether or not they are declared. */
@@ -823,6 +827,18 @@ export function searchRegions(
 }
 
 /**
+ * SUPERSEDED, and kept because the legacy generator still depends on it.
+ *
+ * `src/plan/` replaces this whole idea. Everything below exists because macro
+ * had no way to state what it needed, so connectivity had to be defended after
+ * the fact: ground reserved from every builder, props dropped, anchors repaired.
+ * The planned path has macro state a floor and a ceiling on every region
+ * boundary instead, proves reachability from the floors, and holds each builder
+ * to them -- which needs no reserved ground and no repair. See
+ * docs/PLANNED_GENERATION.md.
+ *
+ * Do not extend this. `generateMap` is the only caller and should stay that way.
+ *
  * The street network: the macro skeleton micro generation may not build on.
  *
  * A builder sees one region and nothing else, so a per-region clearance guard

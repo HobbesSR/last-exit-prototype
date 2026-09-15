@@ -2,6 +2,19 @@
 
 ## Current checkpoint
 
+There are now two generators. `core.generateMap` is the legacy path and is
+unchanged. `plan/compose.generatePlannedMap` is a second, coherent path in which
+macro partitions the map into regions, states a passage floor and ceiling on
+every region boundary, and proves reachability on the region graph; micro is
+held to those floors by `micro/conform.ts`. It needs no reserved route network
+and no repair pass, and `planStreets` is superseded by it -- kept only because
+the legacy path still calls it, and marked do-not-extend. Read
+[PLANNED_GENERATION.md](PLANNED_GENERATION.md) before touching either.
+
+Measured over 20 seeds at default size, all valid: about thirty times the stated
+geometry of the legacy path, a detour ratio of 1.75 against 1.05, and 79
+contestant-only seams against 1. Nothing in it is tuned.
+
 Editor cleanup: see [archive/editor-cleanup/EDITOR_CLEANUP.md](archive/editor-cleanup/EDITOR_CLEANUP.md) for the actual library
 path and design/proposal separation. Only explicit `adapter: true` designs are
 fallbacks; uniform patches are ordinary content. The original prose now stands
