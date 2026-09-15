@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, step, snapshot, playerView, joinGame } from '../shared/simulation.ts';
+import { createGame, step, snapshot, playerView, joinGame, setInput } from '../shared/simulation.ts';
 import { attack } from '../shared/simulation/combat.ts';
 import { defaultContent, CONTENT_ID } from '../shared/simulation/content.ts';
 import { collectEquipment } from '../shared/equipment.ts';
@@ -99,6 +99,28 @@ test('the roster is the one place a capacity is stated', () => {
   // Identifiers stay derived from position, which the recorded contract depends on.
   assert.deepEqual(contestants.map(p => p.id), ['c0', 'c1']);
   assert.deepEqual(gladiators.map(p => p.id), ['g0']);
+});
+
+test('trap balance is read from the match, not from the module it defaults in', () => {
+  // A mine set to hit harder must hit harder. Reach, damage and cadence are balance; the arithmetic
+  // that makes the trap work is not, and stays in traps.ts.
+  const content = structuredClone(defaultContent());
+  content.id = 'heavy-mines';
+  content.traps.mine.damage = 80;
+  Object.freeze(content);
+
+  const detonate = game => {
+    game.map.obstacles = []; game.map.items = []; game.map.gates = []; game.map.buildings = [];
+    for (const [i, q] of game.players.entries()) { q.bot = false; q.input = {}; q.x = 10000 + i * 700; q.y = 6000; }
+    const victim = game.players[0];
+    game.map.traps = [{ id: 'trap', kind: 'mine', x: victim.x + 40, y: victim.y, homeX: victim.x + 40, homeY: victim.y, heading: Math.PI, cooldown: 0, offset: 0 }];
+    setInput(game, victim.id, { seq: 1, x: 1 });
+    step(game);
+    return victim.hp;
+  };
+  const standard = detonate(createGame());
+  const heavier = detonate(createGame(4217, undefined, content));
+  assert.ok(heavier < standard, `pinned trap content decides damage, got ${heavier} against ${standard}`);
 });
 
 test('a match keeps its content across a full tick', () => {

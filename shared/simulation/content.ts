@@ -53,6 +53,12 @@ export function defaultContent(): MatchContent {
     },
     weapons: WEAPONS,
     kits: KITS,
+    traps: {
+      mine: { trigger: 65, blast: 120, damage: 45 },
+      turret: { range: 650, cooldown: 35, speed: 24, damage: 12, life: 30 },
+      flame: { cycle: 160, warnAt: 80, fireAt: 120, interval: 5, range: 240, cone: 0.8, damage: 6 },
+      spider: { leash: 360, acquire: 240, step: 5, grapple: 150, cooldown: 50, stun: 30, damage: 10 },
+    },
     durationTicks: DURATION,
     cellChargeTicks: CELL_CHARGE_TICKS,
     gladiatorRespawnTicks: GLADIATOR_RESPAWN_TICKS,

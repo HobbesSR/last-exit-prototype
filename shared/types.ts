@@ -150,6 +150,22 @@ export interface KitSpec {
 }
 
 /**
+ * What each trap kind does, as opposed to how it does it.
+ *
+ * Reach, damage, cadence and projectile behaviour are balance and live here. The arithmetic that
+ * makes a trap work - the epsilon that decides a player counts as moving, the radius a spider body
+ * occupies - stays in `traps.ts`, because changing it is a change to the mechanism rather than to
+ * the numbers the mechanism runs on.
+ */
+export interface TrapContent {
+  mine: { trigger: World; blast: World; damage: number };
+  turret: { range: World; cooldown: Tick; speed: World; damage: number; life: Tick };
+  /** `warnAt` and `fireAt` are positions within a `cycle`, and `interval` is the damage cadence. */
+  flame: { cycle: Tick; warnAt: Tick; fireAt: Tick; interval: Tick; range: World; cone: number; damage: number };
+  spider: { leash: World; acquire: World; step: World; grapple: World; cooldown: Tick; stun: Tick; damage: number };
+}
+
+/**
  * The tunable content one match runs on, fixed at its creation and frozen thereafter.
  *
  * The values live in `simulation/content.ts`; the shape lives here with the specs it is made of,
@@ -169,6 +185,7 @@ export interface MatchContent {
   };
   weapons: Record<WeaponType, WeaponSpec>;
   kits: Record<Kit, KitSpec>;
+  traps: TrapContent;
   durationTicks: Tick;
   cellChargeTicks: Tick;
   gladiatorRespawnTicks: Tick;
