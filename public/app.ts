@@ -695,22 +695,20 @@ window.addEventListener("keydown", (e) => {
   }
 
   if (!playing) {
-    if (k === "d" || k === "p" || k === "r" || k === "f") {
+    if (k === "d" || k === "r" || k === "f") {
       tool = k === "r" ? "rect" : k === "f" ? "fill" : "paint";
       refresh();
       renderModes();
-    } else if (k === "w" || k === "o" || k === "a") {
-      segmentBrush = k === "w" ? "wall" : k === "o" ? "open" : "any";
+    } else if (k === "1" || k === "2" || k === "3") {
+      editMode = k === "1" ? "both" : k === "2" ? "cells" : "segments";
       refresh();
+      renderModes();
+    } else if (k === "e") {
+      brush = null;
+      segmentBrush = "any";
+      refresh();
+      renderBrushes(paintFallback());
       renderSegmentBrushes();
-    } else if (k >= "1" && k <= "9") {
-      const idx = parseInt(k, 10) - 1;
-      const names = [null, ...Array.from(new Set([...cellClassNames(library), paintFallback()].filter(Boolean))).sort()];
-      if (idx < names.length) {
-        brush = names[idx];
-        refresh();
-        renderBrushes(paintFallback());
-      }
     }
   }
 });
