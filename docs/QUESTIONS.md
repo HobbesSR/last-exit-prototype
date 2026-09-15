@@ -23,3 +23,30 @@ paint are not implemented. Required-structure conflicts will try bounded
 alternate placements, then fail, pending further guidance on optional omission.
 
 6×6 tiles, cell/segment/vertex metadata, compatible tile sets, reusable layouts/set pieces, nonrectangular regions, simple micro generation, GUI plus agent interfaces, and standalone development are established directions. The coarse side-socket editor is an incremental implementation, not a proposed permanent replacement for six segment sockets. Remaining work is in NEXT_TASKS.md.
+
+## Should a hunter be able to reach every tile?
+
+`validateMap` requires that both bodies reach every tile, and generation now
+satisfies it by construction: `planStreets` reserves a proven hunter route from
+every tile anchor to the street network before any builder runs.
+
+That invariant and the body brief pull against each other. The brief gives a
+contestant a diameter under 1.5 segments and a hunter one over it precisely so
+that an opening of 1.5 admits one and not the other, and the `rubble` builder
+exists to make ground a hunter cannot cross. With the reserved routes in place,
+that hostility is pocket-scale: rubble makes contestant-only shortcuts and
+hiding places, never a contestant-only part of the map.
+
+The open question is whether that is the wanted shape. The alternative is to
+relax the invariant to "a contestant reaches every tile; a hunter reaches every
+street and every block", which would let a whole quarter be hunter-hostile
+ground and make the asymmetry a macro feature rather than a local one. It is a
+one-line change to the validator plus the loss of a guarantee, so it wants a
+decision rather than a default. Until then the conservative reading holds.
+
+## How open should the map be?
+
+`STREET_SPACING` in `src/core.ts` is the dial: tiles between one street and the
+next, currently 3. Lower is more open ground and smaller blocks to build in;
+higher is larger blocks and fewer roads. It was chosen to leave blocks above the
+minimum area of the builders that make buildings, not from playtest evidence.

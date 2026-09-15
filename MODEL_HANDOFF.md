@@ -1,3 +1,99 @@
+# Implementation checkpoint: micro generation
+
+Read AGENTS.md and design_notes.txt first. Implementation documents describe
+behavior and reversible defaults. The previous checkpoint follows below.
+
+## What landed
+
+A catalogue of region builders, the contract they build against, and the route
+network that lets them obstruct the map without disconnecting it. This is
+NEXT_TASKS items 4 and 10; both entries are updated. The design is written up in
+[docs/MICRO_GENERATION.md](docs/MICRO_GENERATION.md) -- read that before touching
+`src/micro/` or `planStreets`.
+
+New: `src/micro/` -- `types.ts` (the contract), `scale.ts` (body scale, stated
+once), `catalogue.ts` (the registry), `mask.ts` (region shape), `rng.ts`
+(named independent streams), `edit.ts` (the canvas, and the containment
+contract), `clearance.ts` (the guard), `placement.ts` (where detail may sit),
+`builders/` (six), `index.ts` (registration). Changed: `src/core.ts`,
+`src/regions.ts`, `src/types.ts`, `content/default-library.json`,
+`tools/cli.mts`, `tests/core.test.ts`. New tests: `micro-mask`, `micro-edit`,
+`micro-builders`, `micro-pipeline`.
+
+## The three things that were not obvious
+
+**A builder cannot be trusted with connectivity, and it is not its fault.** A
+region may be most of the open field; its builder is then deciding whole-map
+connectivity while looking at an area whose boundary tells it nothing. The
+per-region clearance guard is correct and structurally insufficient. The route
+network has to be decided before any builder runs and handed down.
+
+**A street must be a proven route.** The first version reserved straight
+anchor-to-seam lines. On a tile whose authored interior blocks the direct line
+the real route detours, the detour stayed buildable, and seven tiles were
+sealed. Legs are now paths on the same swept-disc lattice route validation uses.
+
+**Streets join blocks, not tiles.** The second version routed to every tile,
+which is a route through every tile, and a 6 x 6 tile has no room for both a
+street and a building. Blocks averaged thirty cells -- below the minimum area of
+every builder that makes buildings -- so `compound` and `pillar-hall` silently
+produced nothing and the map was scatter and rubble again, with every test
+passing. That was caught by counting per-generator output, not by the suite.
+Count what each builder actually produced before believing a green run.
+
+## Regions are discovered twice
+
+Builders repaint cells and state walls, so the partition they were handed stops
+describing the result. `generateMap` searches again afterwards; the artifact
+carries the second partition, which agrees with its cells by construction, as
+`validateMap` has always required. Manifests are recomputed from what landed.
+
+## One test was changed, deliberately
+
+`tiles carry interior geometry` asserted no solid cell sits on a tile's border
+row or column. That margin is a property of authored tile interiors -- the
+legacy solver needed the room, and NEXT_TASKS items 6 and 8 both say it should
+leave with that solver. It was never a property of the map, and regions are not
+tile shaped. The assertion is now scoped to material no builder produced; each
+solid region records its builder, so the two cases are told apart from the
+artifact.
+
+## Measured, and the honest reading
+
+150 seeds, all valid before and after. Median per map: 1,110 blocks built, 196
+segments stated, 225 props, 1 contestant-only squeeze, 0 stranded anchors. The
+full table is in MICRO_GENERATION.md.
+
+The machinery works and the repair pass is nearly idle, which is what it should
+look like. The density is low: ~200 segments and ~225 props over 33,696 cells is
+sparse for a map whose point is obstruction, and `microCells` near zero means
+`pillar-hall` rarely finds a legal block. That is tuning, not design -- streets
+and anchor standing room take ground first, `keepClear` takes a ring more, and
+the builders' gates are conservative on top. `STREET_SPACING`, the anchor berth
+and the per-builder `generatorParams` are the dials and none has been tuned
+against evidence; they were set to whatever first stopped the map breaking.
+Item 7's histograms are the right next step, not another guess.
+
+## Count what a builder produced, not what the suite says
+
+Twice in this work a builder produced literally nothing while every test passed
+and the aggregate wall count sat inside its own baseline noise. Both times the
+builder reported **zero refusals**, because a site that is never proposed is
+never refused. `microBlocks`, `microCells` and `microSegments` are in
+`map.metrics` for exactly this reason. Check them before believing a green run.
+
+## Not done
+
+`courtyard` is exercised by tests but never by the shipped library: the only
+`vault` areas in it are 2 x 2 blocks, far below its minimum area. Giving it
+scope is a content task -- a tile design with a large walled area -- not a code
+one. `apertureRun` still wants to be on the canvas; until it is,
+`courtyard.ts` imports `runAperture` from `compound.ts`, the one
+builder-to-builder dependency. `RegionContext.corridors` is populated but the
+network behind it is still tile-grained, as item 2 describes.
+
+---
+
 # Implementation checkpoint after editor cleanup
 
 Read AGENTS.md and design_notes.txt first. Implementation documents describe

@@ -322,8 +322,18 @@ test("tiles carry interior geometry, not just seam walls", () => {
     if (views.cellSolid(i)) solid.push(i);
   assert.ok(solid.length > 0, "expected solid cells");
   assert.ok(m.metrics.interiorWalls > 0);
-  // Interior geometry keeps the one-cell margin, so nothing lands on a seam.
+  // The one-cell margin is a property of AUTHORED tile interiors: a design may
+  // not put geometry against its own edge, because the legacy solver needed the
+  // room (NEXT_TASKS items 6 and 8). It was never a property of the map. Micro
+  // generation works on regions, which are not tile shaped and routinely span
+  // seams, so material a builder laid is free to cross one -- that freedom is
+  // the point of a region. Each solid region records which builder produced it,
+  // so the two cases are told apart from the artifact rather than by guesswork.
+  const built = new Set(
+    m.regions.filter((r) => r.manifest.generator).flatMap((r) => r.cells),
+  );
   for (const i of solid) {
+    if (built.has(i)) continue;
     const cell = readCell(m, i)!;
     assert.notEqual(cell.x % 6, 0);
     assert.notEqual(cell.y % 6, 0);

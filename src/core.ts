@@ -9,8 +9,10 @@ import type {
   RegionContext,
   RegionMask,
   RegionOpening,
+  ReservedCorridor,
 } from "./micro/types.ts";
 import {
+  type Lattice,
   LATTICE_STEP,
   clearNavCache,
   latticeFor,
@@ -18,7 +20,15 @@ import {
   pointClear,
   reachable,
 } from "./nav.ts";
+import { segmentSegmentDistance } from "./geometry.ts";
 import { hasInterior, validateTileShape } from "./tiles.ts";
+
+/** One tile beside another, and the side of each that faces the other. */
+interface Neighbour {
+  j: number;
+  side: Side;
+  opposite: Side;
+}
 import {
   ANY_CLASS,
   SOLID_CLASS,
@@ -42,11 +52,10 @@ import type {
 } from "./primitives.ts";
 import { encodeGrid, gridReader, validateGrid } from "./coding.ts";
 import type {
-  Agent,
   Box,
   GeneratedMap,
-  Library,
   LayoutSlot,
+  Library,
   MapCell,
   MapEdge,
   MapFeature,
@@ -54,16 +63,18 @@ import type {
   MapRegion,
   MapZone,
   MaskCell,
-  Span,
+  NavTarget,
   PlacedTile,
   Point,
   PortKind,
   PortValue,
   Side,
-  TileSet,
+  Span,
   TileDesign,
+  TileSet,
   ValidationResult,
   Wall,
+  Agent,
 } from "./types.ts";
 
 export type * from "./types.ts";
@@ -812,6 +823,541 @@ export function searchRegions(
 }
 
 /**
+ * The street network: the macro skeleton micro generation may not build on.
+ *
+ * A builder sees one region and nothing else, so a per-region clearance guard
+ * cannot protect a route that crosses several regions -- and on this map every
+ * route does. Worse, a region may be most of the open field, in which case its
+ * builder is deciding whole-map connectivity while looking at an area whose
+ * boundary tells it nothing. No amount of care inside a builder fixes that: the
+ * information is not there to be careful with.
+ *
+ * So the network is decided before any builder runs, out of the composed
+ * geometry, and handed down. The cells it covers are reserved, so nothing may
+ * be placed in them, and its legs reach each builder as `RegionContext.corridors`
+ * so the clearance guard can check what it was asked to protect. What is left
+ * over is what may be built on -- which is how a map ends up with streets and
+ * blocks rather than with a maze, and is the reserved-corridor input
+ * NEXT_TASKS item 4 asks for.
+ *
+ * Two properties are load-bearing:
+ *
+ * A leg is a **proven** route, not a straight line. It is a path on the same
+ * swept-disc lattice route validation uses, confined to the two tiles it joins,
+ * so it bends around whatever the tile designs already put in the way. A
+ * straight anchor-to-seam line looks right and is wrong exactly where the map
+ * is most interesting: on a tile whose authored interior makes the direct line
+ * impossible, the real route detours, and reserving the line leaves the detour
+ * buildable -- which is where the first version of this sealed seven tiles.
+ *
+ * It is a spanning tree plus loops, not the full tile graph. A tree keeps every
+ * tile reachable at the cost of one route through it; the loop edges stop the
+ * result reading as a dendrite; and every seam left out is one a builder may
+ * wall, narrow to a squeeze, or run a compound across.
+ */
+interface StreetPlan {
+  corridors: ReservedCorridor[];
+  /** One byte per cell: 1 where the network runs and nothing may be built. */
+  reserved: Uint8Array;
+  /** The subset of that which is standing room rather than ground to walk. */
+  standing: Uint8Array;
+  legs: number;
+}
+
+/**
+ * Reservation is deliberately thin: a cell is reserved when the route actually
+ * passes through it, not when it lies within a body's clearance of one.
+ *
+ * The wide version was tried first and is the wrong trade. A lane two or three
+ * cells wide through every one of 936 tiles consumes most of a 6 x 6 tile, and
+ * what it leaves is gravel: blocks averaged thirty cells, below the minimum
+ * area of every builder that makes buildings, so `compound` and `pillar-hall`
+ * silently produced nothing at all and the map was scatter and rubble again.
+ *
+ * Thin reservation keeps the blocks whole, and the clearance a body needs
+ * beside the route is kept by two other things instead: the per-block guard,
+ * which will not let a builder sever a corridor with a wall, and `clearStreets`,
+ * which drops any prop that reaches into one.
+ */
+const STREET_REACH = 0.5;
+
+/** Tiles between one street and the next. The open-versus-built dial. */
+const STREET_SPACING = 3;
+
+/**
+ * The lattice path between two points, confined to a box, as the points it
+ * passes through. Empty when the body cannot get from one to the other inside
+ * that box -- which is the question the tree is actually asking of a seam.
+ */
+function latticeRoute(
+  target: NavTarget,
+  radius: number,
+  from: Point,
+  to: Point,
+  box: Box,
+): Point[] {
+  const lattice = latticeFor(target, radius);
+  const start = nodeIndex(target, from.x, from.y),
+    goal = nodeIndex(target, to.x, to.y);
+  if (start < 0 || goal < 0 || !lattice.node[start] || !lattice.node[goal])
+    return [];
+  const { W, hEdge, vEdge } = lattice;
+  const gx0 = Math.round(box[0] / LATTICE_STEP),
+    gx1 = Math.round(box[2] / LATTICE_STEP),
+    gy0 = Math.round(box[1] / LATTICE_STEP),
+    gy1 = Math.round(box[3] / LATTICE_STEP);
+  const parent = new Map<number, number>([[start, -1]]);
+  const queue = [start];
+  for (let head = 0; head < queue.length && !parent.has(goal); head++) {
+    const at = queue[head]!,
+      gx = at % W,
+      gy = (at - gx) / W;
+    const step = (next: number) => {
+      if (parent.has(next)) return;
+      parent.set(next, at);
+      queue.push(next);
+    };
+    if (gx < gx1 && hEdge[at]) step(at + 1);
+    if (gx > gx0 && hEdge[at - 1]) step(at - 1);
+    if (gy < gy1 && vEdge[at]) step(at + W);
+    if (gy > gy0 && vEdge[at - W]) step(at - W);
+  }
+  if (!parent.has(goal)) return [];
+  const points: Point[] = [];
+  for (let at = goal; at !== -1; at = parent.get(at)!) {
+    const gx = at % W;
+    points.push({ x: gx * LATTICE_STEP, y: ((at - gx) / W) * LATTICE_STEP });
+  }
+  return points.reverse();
+}
+
+function planStreets(
+  tiles: PlacedTile[],
+  adj: Neighbour[][],
+  grid: GridBuild,
+  params: MapParams,
+  root: number,
+  seed: string,
+): StreetPlan {
+  const size = params.tileSize;
+  const target: NavTarget = {
+    width: grid.W,
+    height: grid.H,
+    walls: wallsFromLattice(
+      grid.W,
+      grid.H,
+      (index) => grid.cellClass[index]!,
+      (vertical, line, offset) =>
+        grid.segmentOpen[grid.segmentIndex(vertical, line, offset)]!,
+    ),
+    navBoxes: [[0, 0, grid.W, grid.H]],
+  };
+
+  // Streets join blocks, not tiles, and that distinction is the whole design.
+  //
+  // A route to every one of 936 tiles is a route through every tile, and a
+  // 6 x 6 tile has no room for both a street and a building. Blocks stay whole
+  // only if the network is coarse, and it can be: the per-block clearance guard
+  // already keeps a block internally connected and keeps its openings, so a
+  // tile in the middle of a block is reached across the block's own ground and
+  // needs no street of its own. `STREET_SPACING` is how many tiles lie between
+  // one street and the next, and is the single dial between open ground and
+  // buildable ground.
+  const groupOf = (i: number) =>
+    `${Math.floor(tiles[i]!.col / STREET_SPACING)},${Math.floor(
+      tiles[i]!.row / STREET_SPACING,
+    )}`;
+  const members = new Map<string, number[]>();
+  for (let i = 0; i < tiles.length; i++) {
+    const id = groupOf(i);
+    const list = members.get(id);
+    if (list) list.push(i);
+    else members.set(id, [i]);
+  }
+  // One tile speaks for each block: the one nearest its centre of mass, ties on
+  // tile index, so the choice follows from the layout and not from iteration.
+  const speaker = new Map<string, number>();
+  for (const [id, list] of members) {
+    const cx = list.reduce((sum, i) => sum + tiles[i]!.col, 0) / list.length,
+      cy = list.reduce((sum, i) => sum + tiles[i]!.row, 0) / list.length;
+    speaker.set(
+      id,
+      list.reduce((best, i) =>
+        Math.hypot(tiles[i]!.col - cx, tiles[i]!.row - cy) <
+        Math.hypot(tiles[best]!.col - cx, tiles[best]!.row - cy)
+          ? i
+          : best,
+      ),
+    );
+  }
+  const between = new Map<string, Set<string>>();
+  for (let i = 0; i < tiles.length; i++)
+    for (const edge of adj[i]!) {
+      const a = groupOf(i),
+        b = groupOf(edge.j);
+      if (a === b) continue;
+      if (!between.has(a)) between.set(a, new Set());
+      between.get(a)!.add(b);
+    }
+
+  const corridors: ReservedCorridor[] = [];
+  const taken = new Set<string>();
+  /** The ground two blocks cover, which is where a leg between them may run. */
+  const spanOf = (a: string, b: string): Box => {
+    const all = [...(members.get(a) ?? []), ...(members.get(b) ?? [])];
+    return [
+      Math.min(...all.map((i) => tiles[i]!.x)),
+      Math.min(...all.map((i) => tiles[i]!.y)),
+      Math.max(...all.map((i) => tiles[i]!.x)) + size,
+      Math.max(...all.map((i) => tiles[i]!.y)) + size,
+    ];
+  };
+  const addLeg = (a: string, b: string, radius: number) => {
+    const pairKey = a < b ? `${a}|${b}` : `${b}|${a}`;
+    if (taken.has(pairKey)) return false;
+    const points = latticeRoute(
+      target,
+      radius,
+      tiles[speaker.get(a)!]!.anchor,
+      tiles[speaker.get(b)!]!.anchor,
+      spanOf(a, b),
+    );
+    if (!points.length) return false;
+    taken.add(pairKey);
+    corridors.push({ points, radius });
+    return true;
+  };
+
+  // A breadth-first tree from the block the contestant starts in reaches every
+  // block the composed geometry actually joins. Ties break on block id, so the
+  // network is a function of the geometry and of nothing else.
+  //
+  // Two passes, and the second is not an optimisation. The first takes only
+  // routes a hunter fits along, so the spine of the network is one both bodies
+  // can walk. The second then reaches whatever is left at contestant clearance,
+  // because a block joined to the map only by a squeeze still has to survive
+  // micro generation: with no street it is buildable ground and the one way in
+  // gets filled.
+  const seen = new Set<string>([groupOf(root)]);
+  const queue = [groupOf(root)];
+  for (const radius of [params.hunterRadius, params.contestantRadius]) {
+    for (let head = 0; head < queue.length; head++) {
+      const at = queue[head]!;
+      for (const next of [...(between.get(at) ?? [])].sort()) {
+        if (seen.has(next)) continue;
+        if (!addLeg(at, next, radius)) continue;
+        seen.add(next);
+        queue.push(next);
+      }
+    }
+  }
+  // Then loops. A pure tree makes every block a cul-de-sac, which is the maze
+  // this map is trying to stop being, so a deterministic minority of the
+  // remaining block pairs become streets too.
+  for (const [a, neighbours] of [...between].sort((x, y) =>
+    x[0].localeCompare(y[0]),
+  ))
+    for (const b of [...neighbours].sort()) {
+      if (b <= a) continue;
+      if (hash(`${seed}:loop:${a}:${b}`) % 3 !== 0) continue;
+      addLeg(a, b, params.hunterRadius);
+    }
+
+  // Rasterise. A cell is reserved when its centre is close enough to the route
+  // that anything placed in it could reach into the clearance a body needs.
+  const reserved = new Uint8Array(grid.W * grid.H);
+  const standing = new Uint8Array(grid.W * grid.H);
+  // Every tile's anchor, whatever the streets do.
+  //
+  // The anchor is where the nav graph says a body may stand to serve the seams
+  // a tile carries, and validation checks that it really is standing room, so
+  // it is macro skeleton in exactly the way a street is. It is marked as
+  // STANDING room rather than merely reserved, which is the stronger of the two
+  // and costs a ring of berth around it: a segment may be declared whenever one
+  // of its two cells is buildable, so reserving only the cell would still let a
+  // builder wall that cell's edge, half a cell from a point that has to stay
+  // clear. Paying for that ring in `buildableCells` rather than by reserving
+  // five cells per tile leaves the blocks between anchors whole.
+  const berth = Math.max(params.contestantRadius, params.hunterRadius);
+  for (const tile of tiles) {
+    // Every cell the anchor's clearance disc touches, which is not the same as
+    // the cell it floors into: an anchor often lands exactly on a lattice
+    // corner, where it belongs to four cells at once and to none of them in
+    // particular. Reserving the floored cell alone left a wall run ending
+    // exactly on such an anchor, which is a distance of zero.
+    for (
+      let y = Math.floor(tile.anchor.y - berth);
+      y <= Math.floor(tile.anchor.y + berth);
+      y += 1
+    )
+      for (
+        let x = Math.floor(tile.anchor.x - berth);
+        x <= Math.floor(tile.anchor.x + berth);
+        x += 1
+      ) {
+        if (x < 0 || y < 0 || x >= grid.W || y >= grid.H) continue;
+        reserved[y * grid.W + x] = 1;
+        standing[y * grid.W + x] = 1;
+      }
+  }
+  for (const corridor of corridors)
+    for (const point of corridor.points) {
+      const x0 = Math.max(0, Math.floor(point.x - STREET_REACH)),
+        x1 = Math.min(grid.W - 1, Math.ceil(point.x + STREET_REACH)),
+        y0 = Math.max(0, Math.floor(point.y - STREET_REACH)),
+        y1 = Math.min(grid.H - 1, Math.ceil(point.y + STREET_REACH));
+      for (let y = y0; y <= y1; y++)
+        for (let x = x0; x <= x1; x++)
+          if (
+            Math.abs(x + 0.5 - point.x) <= STREET_REACH &&
+            Math.abs(y + 0.5 - point.y) <= STREET_REACH
+          )
+            reserved[y * grid.W + x] = 1;
+    }
+  return { corridors, reserved, standing, legs: corridors.length };
+}
+
+/**
+ * Props that reach into a street, dropped.
+ *
+ * Reservation stops a builder placing a prop in a lane cell, but a prop in the
+ * cell beside one still reaches a little way out of it, and a street only as
+ * wide as the body using it has nothing to spare. The guard in
+ * `micro/clearance.ts` cannot help here: it drops walls, which are the only
+ * thing that can sever a route inside a block, and a prop pinching a street is
+ * a whole-map fact no single block can see.
+ */
+function clearStreets(
+  obstacles: Wall[],
+  corridors: ReservedCorridor[],
+): Wall[] {
+  if (!corridors.length) return obstacles;
+  return obstacles.filter((prop) => {
+    for (const corridor of corridors)
+      for (let leg = 0; leg + 1 < corridor.points.length; leg++) {
+        const a = corridor.points[leg]!,
+          b = corridor.points[leg + 1]!;
+        if (
+          segmentSegmentDistance(
+            prop.x1,
+            prop.y1,
+            prop.x2,
+            prop.y2,
+            a.x,
+            a.y,
+            b.x,
+            b.y,
+          ) < corridor.radius
+        )
+          return false;
+      }
+    return true;
+  });
+}
+
+/**
+ * Props that strand a tile anchor, dropped -- and only those.
+ *
+ * Validation requires that both bodies reach every tile, and a builder is
+ * entitled to make ground a hunter cannot cross: that asymmetry is the point of
+ * `rubble` and of the body brief behind it. The two meet on one or two tiles a
+ * seed, where debris happens to fill a tile's only hunter approach.
+ *
+ * The blunt fix -- reserving a proven hunter route from every anchor back to
+ * the street network, before any builder runs -- was tried and is much worse
+ * than it looks. It is a thousand corridors threading the whole map, and
+ * `clearStreets` then drops every prop within a body radius of any of them: on
+ * a 150 seed sweep it cut collidable detail from ~4,100 a map to 77 and
+ * contestant-only squeezes from 271 to none, while every test stayed green. The
+ * repair has to be as local as the damage.
+ *
+ * So it runs after micro generation, measures, and takes back the minimum. A
+ * lattice with no props at all says where the hunter could go if micro had
+ * placed nothing, which is the guarantee tile selection already gave; the
+ * difference against the real geometry is exactly what micro broke. Each
+ * stranded anchor then walks back to reachable ground along a route that
+ * ignores props, and only the props on that route are dropped. A wall is never
+ * touched: the per-block guard owns walls, and a wall that severed a block
+ * would already have been taken back.
+ */
+function reconnectAnchors(
+  tiles: PlacedTile[],
+  grid: GridBuild,
+  params: MapParams,
+  from: Point,
+  obstacles: Wall[],
+): { obstacles: Wall[]; dropped: number; stranded: number } {
+  const bareWalls = wallsFromLattice(
+    grid.W,
+    grid.H,
+    (index) => grid.cellClass[index]!,
+    (vertical, line, offset) =>
+      grid.segmentOpen[grid.segmentIndex(vertical, line, offset)]!,
+  );
+  const box: Box = [0, 0, grid.W, grid.H];
+  const radius = params.hunterRadius;
+  const bare: NavTarget = {
+    width: grid.W,
+    height: grid.H,
+    walls: bareWalls,
+    navBoxes: [box],
+  };
+  // Where the hunter could go with no micro geometry at all. Anything outside
+  // this was already out of reach and is not micro generation's doing.
+  const couldReach = reachable(bare, radius, from.x, from.y, box);
+  const lattice = latticeFor(bare, radius);
+
+  let kept = obstacles;
+  let dropped = 0,
+    stranded = 0;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const full: NavTarget = {
+      width: grid.W,
+      height: grid.H,
+      walls: [...bareWalls, ...kept],
+      navBoxes: [box],
+    };
+    const reaches = reachable(full, radius, from.x, from.y, box);
+    // Tile order, so which anchor is repaired first -- and so the result -- is
+    // a function of the map and not of iteration.
+    const lost = tiles.filter((tile) => {
+      const at = nodeIndex(bare, tile.anchor.x, tile.anchor.y);
+      return at >= 0 && couldReach.has(at) && !reaches.has(at);
+    });
+    clearNavCache(full);
+    if (!lost.length) return { obstacles: kept, dropped, stranded };
+    if (attempt === 0) stranded = lost.length;
+
+    const doomed = new Set<Wall>();
+    for (const tile of lost) {
+      const route = latticeRouteTo(
+        lattice,
+        nodeIndex(bare, tile.anchor.x, tile.anchor.y),
+        reaches,
+      );
+      for (const prop of kept) {
+        if (doomed.has(prop)) continue;
+        for (let leg = 0; leg + 1 < route.length; leg += 1) {
+          const a = route[leg]!,
+            b = route[leg + 1]!;
+          if (
+            segmentSegmentDistance(
+              prop.x1,
+              prop.y1,
+              prop.x2,
+              prop.y2,
+              a.x,
+              a.y,
+              b.x,
+              b.y,
+            ) < radius
+          ) {
+            doomed.add(prop);
+            break;
+          }
+        }
+      }
+    }
+    if (!doomed.size) break;
+    kept = kept.filter((prop) => !doomed.has(prop));
+    dropped += doomed.size;
+  }
+  return { obstacles: kept, dropped, stranded };
+}
+
+/** The route from one node to the nearest of a set, on a lattice already built. */
+function latticeRouteTo(
+  lattice: Lattice,
+  start: number,
+  goals: ReadonlySet<number>,
+): Point[] {
+  if (start < 0 || !lattice.node[start]) return [];
+  const { W, hEdge, vEdge } = lattice;
+  const parent = new Map<number, number>([[start, -1]]);
+  const queue = [start];
+  let found = goals.has(start) ? start : -1;
+  for (let head = 0; head < queue.length && found < 0; head += 1) {
+    const at = queue[head]!,
+      gx = at % W;
+    const step = (next: number) => {
+      if (parent.has(next) || found >= 0) return;
+      parent.set(next, at);
+      if (goals.has(next)) found = next;
+      else queue.push(next);
+    };
+    if (hEdge[at]) step(at + 1);
+    if (gx > 0 && hEdge[at - 1]) step(at - 1);
+    if (vEdge[at]) step(at + W);
+    if (at >= W && vEdge[at - W]) step(at - W);
+  }
+  if (found < 0) return [];
+  const points: Point[] = [];
+  for (let at = found; at !== -1; at = parent.get(at)!) {
+    const gx = at % W;
+    points.push({ x: gx * LATTICE_STEP, y: ((at - gx) / W) * LATTICE_STEP });
+  }
+  return points.reverse();
+}
+
+/**
+ * The parts of a region a builder may actually build on.
+ *
+ * The streets running through a region are not its builder's to touch, and what
+ * they cut it into are separate places: a block on one side of a street is not
+ * the same yard as the block on the other. So a builder is handed a block, not
+ * a region. Splitting here rather than inside every builder keeps `mask.rects`,
+ * `mask.interior` and the clearance flood all describing the same buildable
+ * area -- without it a builder sites a building across a street, every cell of
+ * it is refused, and the builder silently produces nothing.
+ */
+function buildableBlocks(
+  region: MapRegion,
+  grid: GridBuild,
+  reserved: (x: number, y: number) => boolean,
+): number[][] {
+  const { W, H, segmentOpen, segmentIndex } = grid;
+  const open = new Set<number>();
+  for (const cell of region.cells) {
+    const x = cell % W;
+    if (!reserved(x, (cell - x) / W)) open.add(cell);
+  }
+  const clear = (index: number) => {
+    const span = segmentOpen[index];
+    return !!span && span[0] <= SPAN_EPS && span[1] >= 1 - SPAN_EPS;
+  };
+  const blocks: number[][] = [];
+  const seen = new Set<number>();
+  // Ascending cell order throughout, so which cell seeds a block -- and so the
+  // block's seed -- is a function of the shape and nothing else.
+  for (const start of [...open].sort((a, b) => a - b)) {
+    if (seen.has(start)) continue;
+    const queue = [start],
+      members: number[] = [];
+    seen.add(start);
+    while (queue.length) {
+      const at = queue.pop()!;
+      members.push(at);
+      const x = at % W,
+        y = (at - x) / W;
+      const step = (nx: number, ny: number, segment: number) => {
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) return;
+        const next = ny * W + nx;
+        if (seen.has(next) || !open.has(next) || !clear(segment)) return;
+        seen.add(next);
+        queue.push(next);
+      };
+      step(x - 1, y, segmentIndex(true, x, y));
+      step(x + 1, y, segmentIndex(true, x + 1, y));
+      step(x, y - 1, segmentIndex(false, y, x));
+      step(x, y + 1, segmentIndex(false, y + 1, x));
+    }
+    members.sort((a, b) => a - b);
+    blocks.push(members);
+  }
+  return blocks;
+}
+
+/**
  * Micro generation: one builder pass per discovered region.
  *
  * Regions are discovered twice, and the difference matters. The first search
@@ -837,6 +1383,8 @@ interface MicroResult {
   ownerOf: string[];
   /** False where the clearance guard had to drop a declaration to keep a route. */
   honored: Uint8Array;
+  /** What the builders actually declared, which is the thing worth counting. */
+  declared: { cells: number; segments: number; blocks: number };
 }
 
 /**
@@ -902,6 +1450,8 @@ function generateMicro(
   zones: MapZone[],
   params: MapParams,
   regionOf: Int32Array,
+  streets: ReservedCorridor[],
+  standing: (x: number, y: number) => boolean,
   reserved: (x: number, y: number) => boolean,
 ): MicroResult {
   const { W, H } = grid;
@@ -911,6 +1461,7 @@ function generateMicro(
     features: [],
     ownerOf: new Array<string>(W * H).fill(""),
     honored: new Uint8Array(W * H).fill(1),
+    declared: { cells: 0, segments: 0, blocks: 0 },
   };
   const ts = params.tileSize;
   // One axis object serves every region: it describes the tile lattice, which
@@ -942,78 +1493,85 @@ function generateMicro(
     // No builder is registered for material: it is discovered and left alone.
     if (isSolidClass(region.cellClass)) continue;
     const rule = library.cellClasses?.[region.cellClass] ?? {};
-    const mask = createMask(region.cells, W, H);
-    const free = mask.cells.filter((c) => !reserved(c.x, c.y));
-    if (!free.length) continue;
-    const candidates = mask
-      .lattice(2, 1, 1)
-      .filter((c) => !reserved(c.x, c.y))
-      .map((c) => ({
+    for (const block of buildableBlocks(region, grid, reserved)) {
+      const mask = createMask(block, W, H);
+      const blockSeed = hash(`${region.seed}:${block[0]}`);
+      const candidates = mask.lattice(2, 1, 1).map((c) => ({
         cellIndex: c.cellIndex,
         x: c.x,
         y: c.y,
         lootChance: zoneAt(c.x, c.y)?.lootChance ?? 0,
       }));
-    const context: RegionContext = {
-      regionId: region.id,
-      cellClass: region.cellClass,
-      rule,
-      seed: region.seed,
-      rng: createRng(region.seed),
-      mask,
-      grid: axis,
-      params,
-      candidates,
-      budget: candidates.length,
-      isReserved: reserved,
-      openings: regionOpenings(mask, grid, regionOf),
-      // NEXT_TASKS item 4: no proven route envelope reaches micro generation
-      // yet, so the post-edit clearance check is the only thing keeping a
-      // builder from severing a route, and it sees only the region's own area.
-      corridors: [],
-      clearance: {
-        contestant: params.contestantRadius,
-        hunter: params.hunterRadius,
-      },
-      zoneAt: (x, y) => {
-        const zone = zoneAt(x, y);
-        return {
-          tier: zone?.tier ?? 1,
-          bonus: zone?.bonus ?? 0,
-          lootChance: zone?.lootChance ?? 0,
-        };
-      },
-    };
-    const builder = builderFor(rule, free.length);
-    const edit = builder.build(context);
+      const context: RegionContext = {
+        regionId: region.id,
+        cellClass: region.cellClass,
+        rule,
+        seed: blockSeed,
+        rng: createRng(blockSeed),
+        mask,
+        grid: axis,
+        params,
+        candidates,
+        budget: candidates.length,
+        isReserved: reserved,
+        isStandingRoom: standing,
+        openings: regionOpenings(mask, grid, regionOf),
+        // The streets crossing this area. A builder may build up to one and not
+        // across it, and the clearance guard checks that it did not.
+        corridors: streets.filter((corridor) =>
+          corridor.points.some((point) =>
+            mask.has(Math.floor(point.x), Math.floor(point.y)),
+          ),
+        ),
+        clearance: {
+          contestant: params.contestantRadius,
+          hunter: params.hunterRadius,
+        },
+        zoneAt: (x, y) => {
+          const zone = zoneAt(x, y);
+          return {
+            tier: zone?.tier ?? 1,
+            bonus: zone?.bonus ?? 0,
+            lootChance: zone?.lootChance ?? 0,
+          };
+        },
+      };
+      const builder = builderFor(rule, mask.area);
+      const edit = builder.build(context);
 
-    for (const cell of edit.cells) {
-      if (cell.class !== undefined) grid.cellClass[cell.cellIndex] = cell.class;
-      if (cell.height !== undefined)
-        grid.cellLevel[cell.cellIndex] = cell.height;
-    }
-    for (const segment of edit.segments)
-      grid.segmentOpen[
-        grid.segmentIndex(
-          segment.ref.vertical,
-          segment.ref.line,
-          segment.ref.offset,
-        )
-      ] = segment.open;
-    for (const vertex of edit.vertices)
-      grid.vertices.set(vertex.y * (W + 1) + vertex.x, {
-        class: vertex.class ?? ANY_CLASS,
-        height: vertex.height ?? "any",
-      });
-    for (const slot of edit.spawns)
-      result.spawns.push({ cell: slot.cellIndex, kind: slot.kind });
-    result.obstacles.push(...edit.obstacles);
-    result.features.push(...edit.features);
-    for (const cell of mask.cells) {
-      result.ownerOf[cell.cellIndex] = edit.manifest.generator;
-      if (!edit.manifest.corridorsHonored) result.honored[cell.cellIndex] = 0;
+      for (const cell of edit.cells) {
+        if (cell.class !== undefined)
+          grid.cellClass[cell.cellIndex] = cell.class;
+        if (cell.height !== undefined)
+          grid.cellLevel[cell.cellIndex] = cell.height;
+      }
+      for (const segment of edit.segments)
+        grid.segmentOpen[
+          grid.segmentIndex(
+            segment.ref.vertical,
+            segment.ref.line,
+            segment.ref.offset,
+          )
+        ] = segment.open;
+      for (const vertex of edit.vertices)
+        grid.vertices.set(vertex.y * (W + 1) + vertex.x, {
+          class: vertex.class ?? ANY_CLASS,
+          height: vertex.height ?? "any",
+        });
+      result.declared.blocks += 1;
+      result.declared.cells += edit.cells.length;
+      result.declared.segments += edit.segments.length;
+      for (const slot of edit.spawns)
+        result.spawns.push({ cell: slot.cellIndex, kind: slot.kind });
+      result.obstacles.push(...edit.obstacles);
+      result.features.push(...edit.features);
+      for (const cell of mask.cells) {
+        result.ownerOf[cell.cellIndex] = edit.manifest.generator;
+        if (!edit.manifest.corridorsHonored) result.honored[cell.cellIndex] = 0;
+      }
     }
   }
+  result.obstacles = clearStreets(result.obstacles, streets);
   // A builder may have turned a cell to material after a spawn was offered on
   // it. Nothing may stand in material, so the spawn goes rather than the wall.
   result.spawns = result.spawns
@@ -1114,11 +1672,6 @@ export function generateMap(
     n = cells.length;
   const zoneById = new Map(zones.map((z) => [z.id, z]));
   const zoneOf = (slot: MaskCell): MapZone => zoneById.get(slot.zoneId)!;
-  interface Neighbour {
-    j: number;
-    side: Side;
-    opposite: Side;
-  }
   const adj: Neighbour[][] = Array.from({ length: n }, () => []);
   for (let i = 0; i < n; i++)
     for (const [dx, dy, side, opposite] of DIRS) {
@@ -1504,6 +2057,9 @@ export function generateMap(
   regions.forEach((region, index) => {
     for (const cell of region.cells) regionOf[cell] = index;
   });
+  // Decide the street network before any builder runs, out of the composed
+  // geometry. Everything it covers is reserved; the rest is buildable.
+  const streets = planStreets(tiles, adj, grid, p, spawn, seedText);
   const micro = generateMicro(
     regions,
     grid,
@@ -1511,11 +2067,22 @@ export function generateMap(
     zones,
     p,
     regionOf,
+    streets.corridors,
+    (x, y) => streets.standing[y * grid.W + x] === 1,
     (x, y) => {
+      if (streets.reserved[y * grid.W + x]) return true;
       const t = tileOfCell(x, y);
       return t === undefined || reservedTiles.has(tiles[t]!.id);
     },
   );
+  const repair = reconnectAnchors(
+    tiles,
+    grid,
+    p,
+    tiles[spawn]!.anchor,
+    micro.obstacles,
+  );
+  micro.obstacles = repair.obstacles;
   const spawns = micro.spawns;
   // The artifact carries the partition of the composed result, not the one the
   // builders were handed. A builder that stated a wall genuinely split its area
@@ -1619,6 +2186,17 @@ export function generateMap(
         grid.cellClass.filter((c) => c === SOLID_CLASS).length /
         Math.max(1, n * p.tileSize * p.tileSize),
       explicitVertices: grid.vertices.size,
+      // Tile anchors micro generation stranded, and the props given back to
+      // reach them again. Both should stay small; a large figure means a
+      // builder is fighting the street network rather than using it.
+      strandedAnchors: repair.stranded,
+      propsReclaimed: repair.dropped,
+      // Counted rather than inferred from the wall total: two builders once
+      // produced nothing at all for a whole checkpoint, and the aggregate wall
+      // count was inside its own baseline noise the entire time.
+      microBlocks: micro.declared.blocks,
+      microCells: micro.declared.cells,
+      microSegments: micro.declared.segments,
       largestRegion: regions.reduce(
         (best, r) => Math.max(best, r.cells.length),
         0,
@@ -1780,15 +2358,21 @@ export function tileZone(map: GeneratedMap, tile: MaskCell): MapZone | null {
  * never stored — it follows from the primitives, so one implementation serves
  * both generation and reading an artifact back.
  */
-export function deriveWalls(map: GeneratedMap): Wall[] {
-  const views = gridViews(map);
-  const { width: W, height: H } = map.grid;
+/**
+ * The barrier geometry a lattice of cells and segments implies.
+ *
+ * Read back rather than stored, so what a body meets can never drift from what
+ * the primitives say. It is factored out of `deriveWalls` because the street
+ * planner needs the same answer before any artifact exists to read it off.
+ */
+export function wallsFromLattice(
+  W: number,
+  H: number,
+  classAt: (index: number) => string,
+  spanAt: (vertical: boolean, line: number, offset: number) => Span,
+): Wall[] {
   const occupied = (x: number, y: number) =>
-    x >= 0 &&
-    y >= 0 &&
-    x < W &&
-    y < H &&
-    views.cellClass(y * W + x) !== OUTSIDE_CLASS;
+    x >= 0 && y >= 0 && x < W && y < H && classAt(y * W + x) !== OUTSIDE_CLASS;
   const pieces: Wall[] = [];
   const addClosed = (
     vertical: boolean,
@@ -1814,18 +2398,30 @@ export function deriveWalls(map: GeneratedMap): Wall[] {
   for (let line = 0; line <= W; line++)
     for (let offset = 0; offset < H; offset++) {
       if (!occupied(line - 1, offset) && !occupied(line, offset)) continue;
-      const span = views.segmentOpen(segmentIndexAt(map, true, line, offset));
+      const span = spanAt(true, line, offset);
       if (span && span[0] <= SPAN_EPS && span[1] >= 1 - SPAN_EPS) continue;
       addClosed(true, line, offset, span);
     }
   for (let line = 0; line <= H; line++)
     for (let offset = 0; offset < W; offset++) {
       if (!occupied(offset, line - 1) && !occupied(offset, line)) continue;
-      const span = views.segmentOpen(segmentIndexAt(map, false, line, offset));
+      const span = spanAt(false, line, offset);
       if (span && span[0] <= SPAN_EPS && span[1] >= 1 - SPAN_EPS) continue;
       addClosed(false, line, offset, span);
     }
-  const walls = mergeRuns(pieces);
+  return mergeRuns(pieces);
+}
+
+export function deriveWalls(map: GeneratedMap): Wall[] {
+  const views = gridViews(map);
+  const { width: W, height: H } = map.grid;
+  const walls = wallsFromLattice(
+    W,
+    H,
+    (index) => views.cellClass(index),
+    (vertical, line, offset) =>
+      views.segmentOpen(segmentIndexAt(map, vertical, line, offset)),
+  );
   // Micro props are collidable but off-lattice, so they join the wall list
   // rather than the segment grid.
   for (const region of map.regions) walls.push(...region.obstacles);

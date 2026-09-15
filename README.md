@@ -83,6 +83,37 @@ Unmentioned primitives default to deferring, so an author writes only what they
 actually care about. The shipped `market-arcade` states its two sealed sides
 through `edges` rather than `ports`, which is the same contract at finer grain.
 
+Micro generation is a **catalogue** of region builders, documented in
+[docs/MICRO_GENERATION.md](docs/MICRO_GENERATION.md). A builder takes one area
+and the macro parameters in force over it and states cells, segments, vertices,
+off-lattice props, spawns and features inside it -- declarations over the
+lattice, never physical objects. Which builder owns an area is library data, not
+code: a class rule names one.
+
+```json
+"cellClasses": {
+  "yard": { "generator": "compound", "clutterChance": 0.08 },
+  "hall": { "generator": "pillar-hall" }
+}
+```
+
+Six ship: `loot-scatter` (the fallback, every area can take it), `open-field`,
+`compound`, `pillar-hall`, `rubble` and `courtyard`. `node tools/cli.mts
+builders` lists them. Body scale is stated once, in
+[src/micro/scale.ts](src/micro/scale.ts): a contestant is between 1 and 1.5
+segments across and a hunter between 1.5 and 2, so an opening of exactly 1.5
+admits every contestant and no hunter, and that is where contestant-only
+squeezes come from.
+
+Before any builder runs, `planStreets` decides a route network out of the
+composed geometry -- proven lattice paths, not straight lines -- and reserves it.
+What the streets leave is a **block**, and a block is what a builder is handed:
+regions span many tiles, but a building sited across a street is refused cell by
+cell and the builder silently makes nothing. Two contracts then keep a builder
+from breaking the map: containment, which refuses any declaration reaching
+outside the area it owns, and a clearance guard that drops walls until every one
+of the block's openings is mutually reachable again.
+
 Loot density comes from the tier zone a cell sits in: `params.lootChance` in tier 1, rising by `params.lootTierStep` per tier. Micro generation receives it per candidate slot, so a region spanning two zones is richer at the end nearer the exit. A `cellClasses` entry carries only what is intrinsic to the class, such as clutter. The primitive region generator accepts safe candidate cells and a budget, then returns deterministic spawn slots and an actual-count manifest. Required-feature tiles are reserved. Agents can call `generateRegion` in `src/regions.ts` independently.
 
 Regions are a property of cells. Once every tile is laid, a region search walks

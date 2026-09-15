@@ -43,6 +43,15 @@ derivable, with a dependency-free BSON codec beside the JSON one: a default map
 addressing 260,281 primitives is 280 KB as BSON against 1,050 KB for the
 in-memory shape.
 
+Micro generation then landed: a catalogue of six region builders, a builder
+contract that can state geometry, the street network that keeps the map
+connected while builders are free to obstruct it, and blocks as the unit a
+builder is handed. Over 150 seeds, all valid before and after, the map went
+from no collidable detail and no contestant-only squeeze at all to a median of
+225 props and 1 squeeze. That is a working system at a low density: see the
+measured table and the honest reading of it in
+[MICRO_GENERATION.md](MICRO_GENERATION.md). Tuning it is item 7's job.
+
 ## Ready work, without design answers
 
 The contract-first slice of item 1 is implemented in `src/macro-types.ts` and
@@ -62,13 +71,39 @@ and difficulty/balance tuning per Corey's direction.
 1. Give the map macro structure. The tile-edge-first maze is **gone**: nothing plans seams, an unstated tile boundary contributes no wall, and open field crosses seams with no special adapter. What remains is that nothing has replaced it, so a generated map is close to an open field — over 200 seeds the route to an exit is 1.05× the direct distance and the shipped library contributes no seam barrier but `market-arcade`. The macro-structure pass is now the only source of friction: structures need footprints spanning arbitrary tile sets and must be able to paint region intent and geometry across internal seams. Cul-de-sacs and buildings are properties of the composed result, not single-tile template classes. Until it lands, friction has to be authored into the library.
 2. Derive movement connectivity after composing macro geometry, for each body clearance. Validation now floods the proven lattice per body rather than walking the tile graph, so reachability is a geometric fact; what is left is that route _metrics_ still come from the anchor-to-anchor tile graph, which is conservative and tile-grained. Tile traversability is no longer authored or serialized: `edges` is measured off the laid-out segments after placement and dropped from the wire form entirely, and the nav graph is a cached view of that. What is left is the tile-grain of it — an edge is still per tile pair rather than per corridor. Replace the `deadEnds` metric with geometry-level corridor/space analysis; until then it is explicitly a tile-graph leaf count.
 3. Recast tile designs as local patches used by larger structures and filler. Preserve the valid case where all cells in a tile share one class and join a cross-tile region.
-4. Give micro generation a clearance budget so it can place blockers by default. Containment in a region is not sufficient: a region with an open boundary reaches through it, as the vault experiment in DESIGN_DECISIONS shows. Reserved corridors, or an envelope around proven routes, has to reach the region input before `clutterChance` is anything but a test fixture.
+4. **Done, with one part left.** Micro generation has a clearance budget and
+   places blockers by default. `planStreets` in `src/core.ts` decides a route
+   network out of the composed geometry before any builder runs -- proven
+   lattice paths, not straight lines -- reserves what it covers, and passes its
+   legs to each builder as `RegionContext.corridors`; `guardRegionEdit` checks
+   them after the fact and `clearStreets` drops props that reach into one.
+   Every tile anchor is joined to that network by its own proven hunter route,
+   which is what makes "both bodies reach every tile" true by construction
+   rather than by luck. See MICRO_GENERATION.md for why the first two versions
+   of it were wrong. What is left: the network is derived from tile adjacency
+   and anchors, so it is still tile-grained in the same way item 2 describes,
+   and `STREET_SPACING` is an untuned dial rather than a measured one.
 5. Give segments separate movement, sight and projectile channels. The six segment sockets, seven vertices, explicit-empty versus wildcard semantics and flat-height metadata are in; a segment's barrier is still one span shared by every channel, so a fence you can see over cannot yet be expressed.
 6. Raise the tile interior budget as part of the structure work. The current one-cell margin prevents geometry from naturally continuing through a seam and should not become a permanent invariant.
 7. Measure squeeze value, per-exit routes, bottlenecks and rewarded geometric dead ends. Expose histograms in the GUI and sweep seeds in batches before enforcing tuning thresholds. Avoid implying that opening count or tile degree proves navigation diversity.
 8. Add a visual tile-set/layout editor above the existing JSON contract. Tile sets and multi-tile layouts are still JSON-only. Preserve CLI parity and validate imported files before authoring operations. The one-cell interior restriction belongs to the legacy solver and should leave with it; perimeter segment editing does not require that migration. (Note: tile weight has been removed; selection frequency will be treated uniformly until macro tuning is addressed).
 9. Separate playtest tuning from map parameters; record time, chosen route, tags, deaths, charge duration and player body for repeatable comparisons. The browser simulation is intentionally separate from the production match rules.
-10. Give builders the primitive vocabulary, then extend the region contract: hierarchical sub-regions and shared local geometry utilities. A region builder returns spawns and sub-cell off-lattice props, so it cannot state a segment — no wall along one, no door or window, no interior. Let a builder state cells, segments and vertices inside its own area, under a contract that protects routes it must not sever; `MacroCorridor` and `checkMacroRoutes` already provide that machinery on the macro branch. This is what makes item 4's clearance budget load-bearing. Keep validating actual output rather than generator self-reports.
+10. **Done, except sub-regions.** Builders have the primitive vocabulary:
+    `RegionEdit` in `src/micro/types.ts` supersedes `RegionOutput`, so a builder
+    states cells, segments and vertices inside its own area as well as spawns
+    and props, and six of them do. Which builder owns a region is library data
+    (`cellClasses[x].generator`), resolved by the catalogue in
+    `src/micro/catalogue.ts`. The shared local geometry utilities are
+    `src/micro/mask.ts` (shape), `src/micro/edit.ts` (every declaration, and the
+    containment contract), `src/micro/placement.ts` (where detail may sit),
+    `src/micro/rng.ts` and `src/micro/scale.ts`. Manifests are recomputed from
+    what actually landed, never from what a builder reported. What is left:
+    hierarchical sub-regions, and `apertureRun` on the canvas -- an opening of
+    fractional width needs a run of segments, which `canvas.room` knows how to
+    do privately and `canvas.aperture` cannot express, so `compound.runAperture`
+    works around it by rooming a strip and reopening its sides. That workaround
+    is why `courtyard.ts` imports from `compound.ts`, which is the one
+    builder-to-builder dependency left.
 11. Add the tile- and zone-aware builders that have no region to attach to: primitive-set resolution, hazard placement and map-boundary treatment. Loot already reaches micro generation from the zone and hazard has the same shape. `RegionInput.budget` is a plain cap rather than a zone allocation, which starts to matter once a hard per-match cap on high-tier spawns is wanted.
 12. Give tiles a primitive set: the metadata naming what ground, walls, fences and doors are made of in that area, and the pass that resolves declarations into physical objects against it. Nothing the generator emits today is a physical object, and nothing yet says what any declaration should become.
 
