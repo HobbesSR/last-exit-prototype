@@ -2,8 +2,8 @@ import type { TileDesign } from "./types.ts";
 import type { MacroStructure, MacroCell, MacroSegment } from "./macro-types.ts";
 import {
   TILE_SIZE,
+  channelSpan,
   segmentDeclaration,
-  spanFrom,
   tilePrimitives,
 } from "./primitives.ts";
 
@@ -33,7 +33,7 @@ export function compileTileDesign(
     if (decl !== undefined && decl !== "any") {
       const col = Math.floor(i / TILE_SIZE);
       const row = i % TILE_SIZE;
-      segments.push({ axis: "v", x: col, y: row, open: spanFrom(decl) });
+      segments.push({ axis: "v", x: col, y: row, open: channelSpan(decl, "move") });
     }
   }
 
@@ -42,7 +42,7 @@ export function compileTileDesign(
     if (decl !== undefined && decl !== "any") {
       const row = Math.floor(i / TILE_SIZE);
       const col = i % TILE_SIZE;
-      segments.push({ axis: "h", x: col, y: row, open: spanFrom(decl) });
+      segments.push({ axis: "h", x: col, y: row, open: channelSpan(decl, "move") });
     }
   }
 

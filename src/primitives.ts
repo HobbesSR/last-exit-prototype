@@ -137,10 +137,25 @@ export function spanEquals(a: Span, b: Span): boolean {
 export function spanLength(span: Span): number {
   return span ? span[1] - span[0] : 0;
 }
-export function spanFrom(declaration: SegmentDeclaration): Span {
-  if (declaration === "wall") return null;
-  if (declaration === "open" || declaration === "any") return [0, 1];
-  return [declaration[0], declaration[1]];
+export function spanFrom(span: import("./types.ts").SegmentSpan): Span {
+  if (span === "wall") return null;
+  if (span === "open" || span === "any") return [0, 1];
+  return [span[0], span[1]];
+}
+
+export function channelSpan(
+  declaration: SegmentDeclaration,
+  channel: "move" | "sight" | "shot",
+): Span {
+  if (
+    declaration === "wall" ||
+    declaration === "open" ||
+    declaration === "any" ||
+    Array.isArray(declaration)
+  )
+    return spanFrom(declaration);
+  const span = declaration[channel] ?? declaration.move ?? "any";
+  return spanFrom(span);
 }
 
 /**
@@ -171,7 +186,7 @@ export function segmentAdmits(
   required: Span,
 ): boolean {
   if (declaration === "any") return true;
-  return spanEquals(spanFrom(declaration), required);
+  return spanEquals(channelSpan(declaration, "move"), required);
 }
 export function vertexAdmits(
   declared: VertexMeta,
@@ -437,7 +452,7 @@ export function resolvePrimitives(
 ): ResolvedPrimitives | null {
   const open: Span[] = new Array(SEGMENT_COUNT);
   for (let index = 0; index < SEGMENT_COUNT; index++)
-    open[index] = spanFrom(segmentDeclaration(primitives, index));
+    open[index] = channelSpan(segmentDeclaration(primitives, index), "move");
   const vertices = new Map(primitives.vertices);
   for (const side of SIDES) {
     const required = contract[side];

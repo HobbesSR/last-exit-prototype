@@ -58,7 +58,13 @@ export type Span = [number, number] | null;
  * What a template says about one segment. "any" is the deferring value: it
  * adopts whatever the seam contract and the neighbouring tile require.
  */
-export type SegmentDeclaration = "any" | "open" | "wall" | [number, number];
+export type SegmentSpan = "any" | "open" | "wall" | [number, number];
+export interface SegmentChannels {
+  move?: SegmentSpan;
+  sight?: SegmentSpan;
+  shot?: SegmentSpan;
+}
+export type SegmentDeclaration = SegmentSpan | SegmentChannels;
 /** What a template says about one vertex; "any" defers, as for segments. */
 export interface VertexDeclaration {
   height?: number | "any";

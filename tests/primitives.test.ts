@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   SOLID_CLASS,
   ANY_CLASS,
+  channelSpan,
+  contractFor,
   CELL_COUNT,
   SEGMENT_COUNT,
   VERTEX_COUNT,
@@ -180,6 +182,20 @@ test("explicit metadata overrides the shorthands", () => {
   assert.equal(p.cells[cellAt(3, 3)]!.class, SOLID_CLASS);
   assert.equal(segmentDeclaration(p, hSeg(3, 2)), "wall");
   assert.equal(vertexMeta(p, vertexAt(0, 1)).class, "post");
+});
+
+test("segment declarations can specify separate channels", () => {
+  const p = tilePrimitives(
+    template({
+      primitives: {
+        segments: { "h:3,2": { move: "wall", sight: "open", shot: "open" } },
+      },
+    }),
+  );
+  const decl = segmentDeclaration(p, hSeg(3, 2));
+  assert.deepEqual(decl, { move: "wall", sight: "open", shot: "open" });
+  assert.deepEqual(channelSpan(decl, "move"), null);
+  assert.deepEqual(channelSpan(decl, "sight"), [0, 1]);
 });
 
 test("solid overrides derive boundaries before explicit segment overrides", () => {

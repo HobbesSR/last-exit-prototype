@@ -2004,10 +2004,14 @@ select("defaultCellClass").onchange = () => refresh();
 
 const SIDES: Side[] = ["N", "E", "S", "W"];
 function declarationKind(value: SegmentDeclaration): string {
+  if (value && typeof value === "object" && !Array.isArray(value))
+    return declarationKind(value.move ?? "any");
   return Array.isArray(value) ? "partial" : value;
 }
 function describe(value: SegmentDeclaration): string {
-  return Array.isArray(value) ? `open ${value[0]}–${value[1]}` : value;
+  if (value && typeof value === "object" && !Array.isArray(value))
+    return `[m:${describe(value.move ?? "any")}]`;
+  return Array.isArray(value) ? `open ${value[0]}—${value[1]}` : value;
 }
 function segmentAddress(index: number): string {
   const { vertical, line, offset } = segmentPlace(index);
