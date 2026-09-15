@@ -243,7 +243,7 @@ function isAdapter(tile: TileDesign): boolean {
  */
 export function cellClassNames(library: Library | null | undefined): string[] {
   return [
-    ...new Set([...Object.keys(library?.cellClasses ?? {}), SOLID_CLASS]),
+    ...new Set([...Object.keys(library?.cellClasses ?? {}), SOLID_CLASS, ANY_CLASS]),
   ];
 }
 /** The names a design actually uses, whether or not they are declared. */
@@ -286,7 +286,7 @@ export function validateLibrary(input: unknown): ValidationResult {
       errors.push("cellClasses must be an object");
     else
       for (const [name, rule] of Object.entries(library.cellClasses)) {
-        if (name === SOLID_CLASS || !name.trim())
+        if (name === SOLID_CLASS || name === ANY_CLASS || !name.trim())
           errors.push(`cell class ${name} is reserved`);
         const result = validateCellClass(rule);
         for (const message of result.errors)
