@@ -261,7 +261,6 @@ try {
     /still painted by a tile/,
   );
 
-
   await page.locator("#clearPaint").click();
   await page.locator("#saveTemplate").click();
   assert.match(

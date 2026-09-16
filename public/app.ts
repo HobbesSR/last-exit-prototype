@@ -488,7 +488,7 @@ function renderHistory() {
 Time: ${r.time.toFixed(1)}s · Tags: ${r.tags} · Charge: ${r.charge.toFixed(1)}s
 Route: ${r.route} · Score: ${r.score}`;
       return el;
-    })
+    }),
   );
 }
 
@@ -782,7 +782,7 @@ $("sweep").onclick = async () => {
   content.innerHTML = `<div class="readout">Running sweep...</div>`;
 
   // Yield to allow dialog to render
-  await new Promise(resolve => setTimeout(resolve, 50));
+  await new Promise((resolve) => setTimeout(resolve, 50));
 
   const count = 100;
   const metrics: MapMetrics[] = [];
@@ -799,7 +799,9 @@ $("sweep").onclick = async () => {
   }
 
   const plot = (title: string, extract: (m: MapMetrics) => number) => {
-    const values = metrics.map(extract).filter(v => v !== undefined && !isNaN(v));
+    const values = metrics
+      .map(extract)
+      .filter((v) => v !== undefined && !isNaN(v));
     if (!values.length) return "";
     const min = Math.min(...values);
     const max = Math.max(...values);
@@ -811,22 +813,22 @@ $("sweep").onclick = async () => {
       bins[b]++;
     }
     const maxBin = Math.max(...bins);
-    
+
     return `
       <div>
         <strong>${title}</strong> (min: ${min.toFixed(1)}, max: ${max.toFixed(1)})
         <div class="histogram">
-          ${bins.map(b => `<div class="histogram-bar" style="height: ${maxBin > 0 ? (b / maxBin) * 100 : 0}%" title="${b} maps"></div>`).join("")}
+          ${bins.map((b) => `<div class="histogram-bar" style="height: ${maxBin > 0 ? (b / maxBin) * 100 : 0}%" title="${b} maps"></div>`).join("")}
         </div>
       </div>
     `;
   };
 
   content.innerHTML = `
-    ${plot("Squeezes", m => m.squeezes)}
-    ${plot("Dead Ends", m => m.deadEnds)}
-    ${plot("Detour Ratio", m => m.detourRatio)}
-    ${plot("Contestant Distance", m => m.contestantDistance)}
+    ${plot("Squeezes", (m) => m.squeezes)}
+    ${plot("Dead Ends", (m) => m.deadEnds)}
+    ${plot("Detour Ratio", (m) => m.detourRatio)}
+    ${plot("Contestant Distance", (m) => m.contestantDistance)}
   `;
 };
 $("fit").onclick = fit;
