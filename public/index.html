@@ -71,6 +71,7 @@
               <button id="generate" class="primary">Build map</button
               ><button id="random">New seed</button>
             </div>
+            <button id="sweep" type="button" class="full">Sweep 100 seeds</button>
           </section>
           <section>
             <h2>02 / Inspect</h2>
@@ -441,6 +442,17 @@
       </div>
     </main>
     <div id="toastContainer" class="toast-container"></div>
+    <dialog id="sweepDialog" class="sweep-dialog">
+      <form method="dialog">
+        <header>
+          <h2>Batch Sweep (100 Seeds)</h2>
+          <button type="submit">Close</button>
+        </header>
+        <div id="sweepContent" class="sweep-content">
+          <div class="readout">Running sweep...</div>
+        </div>
+      </form>
+    </dialog>
     <script type="module" src="/app.ts"></script>
   </body>
 </html>

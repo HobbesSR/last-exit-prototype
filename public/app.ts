@@ -21,6 +21,7 @@ import type {
   Side,
   TileDesign,
   SegmentDeclaration,
+  MapMetrics,
 } from "/src/types.ts";
 import {
   segmentPlace,
@@ -773,6 +774,60 @@ $("random").onclick = () => {
   input("seed").value =
     `exit-${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`;
   build();
+};
+$("sweep").onclick = async () => {
+  const dialog = document.getElementById("sweepDialog") as HTMLDialogElement;
+  dialog.showModal();
+  const content = $("sweepContent");
+  content.innerHTML = `<div class="readout">Running sweep...</div>`;
+
+  // Yield to allow dialog to render
+  await new Promise(resolve => setTimeout(resolve, 50));
+
+  const count = 100;
+  const metrics: MapMetrics[] = [];
+  const params = {
+    zoneWidth: Number(input("zoneWidth").value),
+    zoneHeight: Number(input("zoneHeight").value),
+    exitCount: Number(input("exits").value),
+  };
+
+  for (let i = 0; i < count; i++) {
+    const seed = `sweep-${i}-${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`;
+    const result = generateMap(seed, params, library);
+    metrics.push(result.metrics);
+  }
+
+  const plot = (title: string, extract: (m: MapMetrics) => number) => {
+    const values = metrics.map(extract).filter(v => v !== undefined && !isNaN(v));
+    if (!values.length) return "";
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const bins = new Array(20).fill(0);
+    for (const v of values) {
+      let b = Math.floor(((v - min) / (max - min)) * 20);
+      if (b === 20) b = 19;
+      if (max === min) b = 0;
+      bins[b]++;
+    }
+    const maxBin = Math.max(...bins);
+    
+    return `
+      <div>
+        <strong>${title}</strong> (min: ${min.toFixed(1)}, max: ${max.toFixed(1)})
+        <div class="histogram">
+          ${bins.map(b => `<div class="histogram-bar" style="height: ${maxBin > 0 ? (b / maxBin) * 100 : 0}%" title="${b} maps"></div>`).join("")}
+        </div>
+      </div>
+    `;
+  };
+
+  content.innerHTML = `
+    ${plot("Squeezes", m => m.squeezes)}
+    ${plot("Dead Ends", m => m.deadEnds)}
+    ${plot("Detour Ratio", m => m.detourRatio)}
+    ${plot("Contestant Distance", m => m.contestantDistance)}
+  `;
 };
 $("fit").onclick = fit;
 $("play").onclick = start;

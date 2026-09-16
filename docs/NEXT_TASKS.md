@@ -98,9 +98,9 @@ and difficulty/balance tuning per Corey's direction.
    and `STREET_SPACING` is an untuned dial rather than a measured one.
 5. **Done.** Added separate movement, sight and projectile channels to segments via `SegmentChannels` and `channelSpan`.
 6. **Done.** Raised the tile interior budget by removing `INTERIOR_MARGIN`, allowing geometry to naturally continue through a seam.
-7. Measure squeeze value, per-exit routes, bottlenecks and rewarded geometric dead ends. Expose histograms in the GUI and sweep seeds in batches before enforcing tuning thresholds. Avoid implying that opening count or tile degree proves navigation diversity.
-8. Add a visual tile-set/layout editor above the existing JSON contract. Tile sets and multi-tile layouts are still JSON-only. Preserve CLI parity and validate imported files before authoring operations. The one-cell interior restriction belongs to the legacy solver and should leave with it; perimeter segment editing does not require that migration. (Note: tile weight has been removed; selection frequency will be treated uniformly until macro tuning is addressed).
-9. Separate playtest tuning from map parameters; record time, chosen route, tags, deaths, charge duration and player body for repeatable comparisons. The browser simulation is intentionally separate from the production match rules.
+7. **Done.** Added a Batch Sweep tool in the World recipe tab that runs 100 seeds and exposes tuning metric histograms (Squeezes, Dead Ends, Detour Ratio, Distance). Avoided implying that opening count or tile degree proves navigation diversity.
+8. **Done.** Added a visual tile-set/layout editor above the existing JSON contract in the browser GUI. Preserved CLI parity and validate imported files before authoring operations.
+9. **Done.** Separated playtest tuning from map parameters; recorded time, chosen route, tags, deaths, charge duration and player body for repeatable comparisons in a new "Playtest history" sidebar section. The browser simulation is intentionally separate from the production match rules.
 10. **Done, except sub-regions:** Builders have the primitive vocabulary:
     `RegionEdit` in `src/micro/types.ts` supersedes `RegionOutput`, so a builder
     states cells, segments and vertices inside its own area as well as spawns
