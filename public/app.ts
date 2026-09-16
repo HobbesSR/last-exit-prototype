@@ -74,6 +74,8 @@ interface Run {
   bullets: Bullet[];
   loot: LootItem[];
   hunters: Pursuer[];
+  tags: number;
+  exitId?: string;
 }
 let library: Library = structuredClone(DEFAULT_LIBRARY),
   // build() runs during module init and reassigns both before any read.
@@ -86,7 +88,18 @@ let library: Library = structuredClone(DEFAULT_LIBRARY),
   moved = false,
   playing = false,
   run: Run | null = null,
-  last = 0,
+  last = 0;
+
+interface RunRecord {
+  body: string;
+  time: number;
+  score: number;
+  charge: number;
+  result: string;
+  tags: number;
+  route: string;
+}
+let runHistory: RunRecord[] = [],
   mouse = { x: 0, y: 0 },
   keys = new Set<string>(),
   routes: string[][] = [];
@@ -443,7 +456,45 @@ function stop(message = "Ready for a run."): void {
   keys.clear();
   $("play").textContent = "Start escape run";
   $("gameStatus").textContent = message;
+
+  if (run && (message.startsWith("ESCAPED") || message.startsWith("Caught"))) {
+    runHistory.unshift({
+      body: run.body,
+      time: run.time,
+      score: run.score,
+      charge: run.charge,
+      result: message.startsWith("ESCAPED") ? "Escaped" : "Caught",
+      tags: run.tags,
+      route: run.exitId ?? "None",
+    });
+    renderHistory();
+  }
 }
+
+function renderHistory() {
+  const container = $("playtestHistory");
+  if (!runHistory.length) {
+    container.innerHTML = `<div class="readout">No runs recorded yet.</div>`;
+    return;
+  }
+  container.replaceChildren(
+    ...runHistory.map((r, i) => {
+      const el = document.createElement("div");
+      el.className = "readout";
+      el.style.borderLeft = `3px solid ${r.result === "Escaped" ? "#c8f185" : "#ed7988"}`;
+      el.style.paddingLeft = "8px";
+      el.textContent = `[${runHistory.length - i}] ${r.result} (${r.body})
+Time: ${r.time.toFixed(1)}s · Tags: ${r.tags} · Charge: ${r.charge.toFixed(1)}s
+Route: ${r.route} · Score: ${r.score}`;
+      return el;
+    })
+  );
+}
+
+$("clearHistory").onclick = () => {
+  runHistory = [];
+  renderHistory();
+};
 function start() {
   if (!map) return;
   if (playing) {
@@ -480,6 +531,7 @@ function start() {
       path: [],
       repath: 0,
     })),
+    tags: 0,
   };
   playing = true;
   $("play").textContent = "End run";
@@ -598,6 +650,7 @@ function update(dt: number): void {
           h.y = hs.y;
           b.life = 0;
           self.score += 3;
+          self.tags++;
           break;
         }
     }
@@ -622,6 +675,7 @@ function update(dt: number): void {
   $("gameStatus").textContent =
     `Health ${self.health} · score ${self.score}\nCharge ${self.charge.toFixed(1)} / 5s · time ${self.time.toFixed(1)}s\n${hint}`;
   if (exit && self.charge >= 5) {
+    self.exitId = `Exit at ${Math.floor(exit.x)},${Math.floor(exit.y)}`;
     stop(`ESCAPED · ${self.time.toFixed(1)}s · score ${self.score}`);
     fit();
   } else if (self.health <= 0) {
