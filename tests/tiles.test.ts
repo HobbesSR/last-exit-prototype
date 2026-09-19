@@ -25,7 +25,7 @@ function libraryWith(tile: TileDesign): Library {
     ),
     tiles: [tile],
     tileSets: [{ id: "only", members: [tile.id] }],
-    layouts: [],
+    setPieces: [],
   };
 }
 

@@ -42,7 +42,7 @@ test("a squeeze is authored geometry, measured back off the seam", () => {
   // Nothing in generation makes a squeeze. A design states a 1.5-cell aperture
   // on its own perimeter, and the seam beside it reports what is actually there.
   const library = structuredClone(DEFAULT_LIBRARY);
-  library.layouts = [];
+  library.setPieces = [];
   library.tileSets = [];
   library.tiles = [
     {
@@ -79,7 +79,7 @@ test("generation imposes no topology: seams are exactly what the tiles declare",
   // An open field must stay an open field. Every seam between two deferring
   // designs is fully clear, and no tile boundary acquires a wall of its own.
   const library = structuredClone(DEFAULT_LIBRARY);
-  library.layouts = [];
+  library.setPieces = [];
   library.tileSets = [];
   library.tiles = [
     { id: "field", defaultCellClass: "open", orientations: [0] },
@@ -104,7 +104,7 @@ test("any is the deferring value: it states nothing and adopts anything", () => 
   // that defers claims nothing, so the design beside it is free to state a wall
   // and the seam carries that wall — whichever of the two was placed first.
   const library = structuredClone(DEFAULT_LIBRARY);
-  library.layouts = [];
+  library.setPieces = [];
   library.tileSets = [];
   library.tiles = [
     { id: "defers", defaultCellClass: "open", orientations: [0] },
@@ -185,7 +185,7 @@ test("a design walled on every side is never used as fill", () => {
 
   // A library with nothing else to fall back on fails explicitly, naming why.
   const only = structuredClone(DEFAULT_LIBRARY);
-  only.layouts = [];
+  only.setPieces = [];
   only.tileSets = [];
   only.tiles = [boxed as unknown as (typeof only.tiles)[number]];
   assert.throws(
@@ -240,7 +240,7 @@ test("library validation handles malformed nested input", () => {
     { version: 1, tiles: 42 },
     { ...DEFAULT_LIBRARY, tiles: [null] },
     { ...DEFAULT_LIBRARY, tileSets: [{ id: "broken", members: 4 }] },
-    { ...DEFAULT_LIBRARY, layouts: [null] },
+    { ...DEFAULT_LIBRARY, setPieces: [null] },
   ] as unknown[])
     assert.equal(validateLibrary(value).valid, false);
 });
@@ -435,7 +435,7 @@ test("regions aggregate cells across tile seams, not whole tiles", () => {
 
 test("uniform tiles remain ordinary content regardless of omitted or explicit any ports", () => {
   const library = structuredClone(DEFAULT_LIBRARY);
-  library.layouts = [];
+  library.setPieces = [];
   library.tileSets = [];
   library.tiles = [
     {
@@ -490,7 +490,7 @@ test("a template that seals its own interior is never placed", () => {
     sealed as unknown as (typeof library.tiles)[number],
   ];
   library.tileSets = [{ id: "all", members: ["plain", "sealed"] }];
-  library.layouts = [];
+  library.setPieces = [];
   library.cellClasses = { ...library.cellClasses, court: {} };
   const m = generateMap("sealed", { zoneWidth: 2, zoneHeight: 1 }, library);
   assert.equal(m.validation.valid, true);

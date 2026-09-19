@@ -220,10 +220,10 @@
       "members": ["plaza-monument", "pillar-hall", "yard"]
     }
   ],
-  "layouts": [
+  "setPieces": [
     {
       "id": "service-yard",
-      "classId": "set-piece",
+      "class": "set-piece",
       "eligibleTiers": [2, 3, 4],
       "tiles": [
         {
@@ -240,7 +240,7 @@
     },
     {
       "id": "civic-court",
-      "classId": "set-piece",
+      "class": "set-piece",
       "eligibleTiers": [3, 4, 5],
       "tiles": [
         {

@@ -54,7 +54,7 @@ import { encodeGrid, gridReader, validateGrid } from "./coding.ts";
 import type {
   Box,
   GeneratedMap,
-  LayoutSlot,
+  SetPieceSlot,
   Library,
   MapCell,
   MapEdge,
@@ -96,7 +96,7 @@ interface Assignment {
   orientation: number;
   anchor: Point;
   resolved: ResolvedPrimitives;
-  layoutId?: string;
+  setPieceId?: string;
 }
 /** A tile fitted to a seam contract: standing room plus frozen primitives. */
 interface Fit {
@@ -271,12 +271,12 @@ export function validateLibrary(input: unknown): ValidationResult {
     !Array.isArray(library.tiles) ||
     !library.tiles.length ||
     !Array.isArray(library.tileSets) ||
-    !Array.isArray(library.layouts)
+    !Array.isArray(library.setPieces)
   )
     return {
       valid: false,
       errors: [
-        "library requires version 1, nonempty tiles, tileSets and layouts arrays",
+        "library requires version 1, nonempty tiles, tileSets and setPieces arrays",
       ],
     };
   const named = (value: unknown): value is string =>
@@ -370,41 +370,44 @@ export function validateLibrary(input: unknown): ValidationResult {
       if (!ids.has(member))
         errors.push(`tileSet ${set.id} references unknown tile ${member}`);
   }
-  const layoutIds = new Set<string>();
-  for (const layout of library?.layouts || []) {
-    if (!layout || typeof layout !== "object") {
-      errors.push("malformed layout");
+  const setPieceIds = new Set<string>();
+  for (const setPiece of library?.setPieces || []) {
+    if (!setPiece || typeof setPiece !== "object") {
+      errors.push("malformed set piece");
       continue;
     }
     if (
-      !named(layout.id) ||
-      layoutIds.has(layout.id) ||
-      !named(layout.classId) ||
-      !Array.isArray(layout.eligibleTiers) ||
-      !Array.isArray(layout.tiles) ||
-      !layout.tiles.length
+      !named(setPiece.id) ||
+      setPieceIds.has(setPiece.id) ||
+      !named(setPiece.class) ||
+      !Array.isArray(setPiece.eligibleTiers) ||
+      !Array.isArray(setPiece.tiles) ||
+      !setPiece.tiles.length
     ) {
-      errors.push(`layout ${layout?.id || "?"} is incomplete or duplicated`);
+      errors.push(
+        `set piece ${setPiece?.id || "?"} is incomplete or duplicated`,
+      );
       continue;
     }
-    layoutIds.add(layout.id);
+    setPieceIds.add(setPiece.id);
     if (
-      !layout.eligibleTiers.length ||
-      layout.eligibleTiers.some((t) => !Number.isInteger(t) || t < 1 || t > 5)
+      !setPiece.eligibleTiers.length ||
+      setPiece.eligibleTiers.some((t) => !Number.isInteger(t) || t < 1 || t > 5)
     )
-      errors.push(`layout ${layout.id} needs tiers 1..5`);
+      errors.push(`set piece ${setPiece.id} needs tiers 1..5`);
     const coords = new Set<string>();
-    for (const spot of layout.tiles || []) {
+    for (const spot of setPiece.tiles || []) {
       if (!spot || !Number.isInteger(spot.dx) || !Number.isInteger(spot.dy)) {
-        errors.push(`layout ${layout.id} has invalid coordinate`);
+        errors.push(`set piece ${setPiece.id} has invalid coordinate`);
         continue;
       }
       const c = key(spot.dx, spot.dy);
-      if (coords.has(c)) errors.push(`layout ${layout.id} overlaps at ${c}`);
+      if (coords.has(c))
+        errors.push(`set piece ${setPiece.id} overlaps at ${c}`);
       coords.add(c);
       if (!sets.has(spot.tileSetId))
         errors.push(
-          `layout ${layout.id} references unknown tileSet ${spot.tileSetId}`,
+          `set piece ${setPiece.id} references unknown tileSet ${spot.tileSetId}`,
         );
     }
   }
@@ -991,7 +994,7 @@ function planStreets(
     else members.set(id, [i]);
   }
   // One tile speaks for each block: the one nearest its centre of mass, ties on
-  // tile index, so the choice follows from the layout and not from iteration.
+  // tile index, so the choice follows from the set piece and not from iteration.
   const speaker = new Map<string, number>();
   for (const [id, list] of members) {
     const cx = list.reduce((sum, i) => sum + tiles[i]!.col, 0) / list.length,
@@ -1787,7 +1790,7 @@ export function generateMap(
           return true;
         return walkable(resolved, side);
       });
-  const layouts: Array<{ id: string; tileIds: string[] }> = [];
+  const setPieces: Array<{ id: string; tileIds: string[] }> = [];
   const setMap = new Map<string, TileSet>(
     (library.tileSets || []).map((s) => [s.id, s]),
   );
@@ -1797,23 +1800,23 @@ export function generateMap(
     if (allTiles.some((t) => t.id === id)) return [id];
     return [];
   };
-  // Place the most constrained authored layouts first: a small footprint can
+  // Place the most constrained authored set pieces first: a small footprint can
   // always find another home, a large one often cannot.
-  const orderedLayouts = (library.layouts || [])
-    .map((layout, order) => ({ layout, order }))
+  const orderedSetPieces = (library.setPieces || [])
+    .map((setPiece, order) => ({ setPiece, order }))
     .sort(
       (a, b) =>
-        b.layout.tiles.length - a.layout.tiles.length || a.order - b.order,
+        b.setPiece.tiles.length - a.setPiece.tiles.length || a.order - b.order,
     )
-    .map((entry) => entry.layout);
-  for (const layout of orderedLayouts) {
+    .map((entry) => entry.setPiece);
+  for (const setPiece of orderedSetPieces) {
     const placements: Array<{
       i: number;
-      slots: Array<{ s: LayoutSlot; j: number | undefined }>;
+      slots: Array<{ s: SetPieceSlot; j: number | undefined }>;
     }> = [];
     for (let i = 0; i < n; i++) {
       const anchor = cells[i]!;
-      const slots = layout.tiles.map((s) => ({
+      const slots = setPiece.tiles.map((s) => ({
         s,
         j: byKey.get(key(anchor.x + s.dx, anchor.y + s.dy)),
       }));
@@ -1821,7 +1824,7 @@ export function generateMap(
         slots.every(
           (x) =>
             x.j !== undefined &&
-            layout.eligibleTiers.includes(zoneOf(cells[x.j]!).tier) &&
+            setPiece.eligibleTiers.includes(zoneOf(cells[x.j]!).tier) &&
             !assigned[x.j] &&
             selectTemplate(
               allTiles.filter((t) =>
@@ -1839,7 +1842,7 @@ export function generateMap(
         placements.push({ i, slots });
     }
     if (!placements.length)
-      throw new Error(`Authored layout ${layout.id} cannot be placed`);
+      throw new Error(`Authored set piece ${setPiece.id} cannot be placed`);
     const place = placements[Math.floor(random() * placements.length)]!;
     for (const { s, j: slot } of place.slots) {
       const j = slot!;
@@ -1855,7 +1858,7 @@ export function generateMap(
       );
       if (!chosen)
         throw new Error(
-          `Authored layout ${layout.id} cannot honor seam at ${cells[j]!.id}`,
+          `Authored set piece ${setPiece.id} cannot honor seam at ${cells[j]!.id}`,
         );
       assigned[j] = {
         template: chosen.t,
@@ -1863,7 +1866,7 @@ export function generateMap(
         orientation: chosen.deg,
         anchor: chosen.anchor,
         resolved: chosen.resolved,
-        layoutId: layout.id,
+        setPieceId: setPiece.id,
       };
       assignedAt[j] = assigned[j];
       claim(
@@ -1873,8 +1876,8 @@ export function generateMap(
         tilePrimitives(chosen.t, chosen.deg),
       );
     }
-    layouts.push({
-      id: layout.id,
+    setPieces.push({
+      id: setPiece.id,
       tileIds: place.slots.map((x) => cells[x.j!]!.id),
     });
   }
@@ -1945,8 +1948,8 @@ export function generateMap(
       },
     };
     // Absent rather than undefined, so a decoded map is deep-equal to this one.
-    if (assigned[i]!.layoutId !== undefined)
-      tile.layoutId = assigned[i]!.layoutId;
+    if (assigned[i]!.setPieceId !== undefined)
+      tile.setPieceId = assigned[i]!.setPieceId;
     return tile;
   });
 
@@ -2048,14 +2051,14 @@ export function generateMap(
       index = tiles.findIndex((t) => t.id === c.id);
     feats.push({ id, kind, tileId: tiles[index]!.id, ...at(index) });
   }
-  for (const placement of layouts) {
+  for (const placement of setPieces) {
     const index = tiles.findIndex((t) => t.id === placement.tileIds[0]);
     feats.push({
       id: `set-piece-${placement.id}`,
       kind: "set-piece",
       tileId: tiles[index]!.id,
       ...at(index),
-      layoutId: placement.id,
+      setPieceId: placement.id,
       tileIds: placement.tileIds,
     });
   }

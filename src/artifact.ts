@@ -186,7 +186,7 @@ export function encodeArtifact(map: GeneratedMap): WireArtifact {
     row: packInts(map.tiles.map((t) => t.row)),
     template: packInts(map.tiles.map((t) => strings.id(t.templateId))),
     orientation: packInts(map.tiles.map((t) => t.orientation)),
-    layout: packInts(map.tiles.map((t) => strings.optional(t.layoutId))),
+    layout: packInts(map.tiles.map((t) => strings.optional(t.setPieceId))),
     // Anchors sit on the half-cell lattice, so doubling makes them exact ints.
     anchor: packInts(
       map.tiles.flatMap((t) => {
@@ -205,7 +205,7 @@ export function encodeArtifact(map: GeneratedMap): WireArtifact {
       x: f.x,
       y: f.y,
     };
-    if (f.layoutId !== undefined) doc.layout = strings.id(f.layoutId);
+    if (f.setPieceId !== undefined) doc.layout = strings.id(f.setPieceId);
     if (f.tileIds)
       doc.tiles = packInts(
         f.tileIds.map((id) => tileIndex.get(id) ?? -1),
@@ -362,7 +362,7 @@ export function decodeArtifact(input: unknown): GeneratedMap {
       orientation: orientation[i]!,
       anchor: { x: anchor[i * 2]! / 2, y: anchor[i * 2 + 1]! / 2 },
     };
-    if (layout[i]! >= 0) tile.layoutId = name(layout[i]!);
+    if (layout[i]! >= 0) tile.setPieceId = name(layout[i]!);
     tiles.push(tile);
   }
 
@@ -375,7 +375,7 @@ export function decodeArtifact(input: unknown): GeneratedMap {
       x: f.x as number,
       y: f.y as number,
     };
-    if (f.layout !== undefined) feature.layoutId = name(f.layout as number);
+    if (f.layout !== undefined) feature.setPieceId = name(f.layout as number);
     if (f.tiles !== undefined)
       feature.tileIds = [...unpackInts(f.tiles as unknown as PackedInts)].map(
         (i) => tiles[i]!.id,

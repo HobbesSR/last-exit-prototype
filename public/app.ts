@@ -122,7 +122,6 @@ function build() {
       for (const cellIndex of region.cells) index[cellIndex] = position;
     });
     cellRegion = index;
-    stop();
     selected = null;
     routes = routePaths();
     fit();
@@ -450,12 +449,12 @@ function tab(activeId: "world" | "author" | "sets" | "layouts"): void {
   $("worldViewContainer").hidden = activeId !== "world";
   $("authorViewContainer").hidden = activeId !== "author";
   $("setsViewContainer").hidden = activeId !== "sets";
-  $("layoutsViewContainer").hidden = activeId !== "layouts";
+  $("setPiecesViewContainer").hidden = activeId !== "layouts";
 
   $("mapTab").classList.toggle("active", activeId === "world");
   $("authorTab").classList.toggle("active", activeId === "author");
   $("setsTab").classList.toggle("active", activeId === "sets");
-  $("layoutsTab").classList.toggle("active", activeId === "layouts");
+  $("setPiecesTab").classList.toggle("active", activeId === "layouts");
 
   if (activeId === "author") {
     renderLibraryMeta();
@@ -468,7 +467,7 @@ function tab(activeId: "world" | "author" | "sets" | "layouts"): void {
 $("mapTab").onclick = () => tab("world");
 $("authorTab").onclick = () => tab("author");
 $("setsTab").onclick = () => tab("sets");
-$("layoutsTab").onclick = () => tab("layouts");
+$("setPiecesTab").onclick = () => tab("layouts");
 // --- Tile Sets Editor ---
 let activeTileSetId = "";
 
@@ -2053,46 +2052,46 @@ requestAnimationFrame(function frame() {
 
 // --- Layouts (Set Pieces) Editor ---
 
-let activeLayoutId: string | null = null;
+let activeSetPieceId: string | null = null;
 let activeLayoutBrush: string | null = null;
 
-function renderLayoutsList() {
-  const container = $("layoutsList");
+function renderSetPiecesList() {
+  const container = $("setPiecesList");
   if (!container) return;
   container.innerHTML = "";
-  if (!library.layouts) library.layouts = [];
+  if (!library.setPieces) library.setPieces = [];
 
-  library.layouts.forEach((layout) => {
+  library.setPieces.forEach((layout) => {
     const el = document.createElement("div");
     el.className = "tile-set-item";
-    if (layout.id === activeLayoutId) el.classList.add("active");
+    if (layout.id === activeSetPieceId) el.classList.add("active");
     el.textContent = layout.id;
     el.onclick = () => {
-      activeLayoutId = layout.id;
-      renderLayoutsList();
-      renderLayoutEditor();
+      activeSetPieceId = layout.id;
+      renderSetPiecesList();
+      renderSetPieceEditor();
     };
     container.append(el);
   });
 }
 
-$("newLayout").onclick = () => {
-  if (!library.layouts) library.layouts = [];
+$("newSetPiece").onclick = () => {
+  if (!library.setPieces) library.setPieces = [];
   let id = "new-set-piece";
   let counter = 1;
-  while (library.layouts.some((l) => l.id === id)) {
+  while (library.setPieces.some((l) => l.id === id)) {
     id = `new-set-piece-${counter++}`;
   }
-  library.layouts.push({
+  library.setPieces.push({
     id,
-    classId: "set-piece",
+    class: "set-piece",
     eligibleTiers: [0, 1, 2, 3, 4, 5],
     tiles: [],
   });
-  activeLayoutId = id;
+  activeSetPieceId = id;
 
-  renderLayoutsList();
-  renderLayoutEditor();
+  renderSetPiecesList();
+  renderSetPieceEditor();
 };
 
 function getLayoutPaletteItems(): string[] {
@@ -2103,9 +2102,9 @@ function getLayoutPaletteItems(): string[] {
   return [...explicit, ...implicit];
 }
 
-function renderLayoutPalette() {
-  const container = $("layoutPaletteList");
-  const filterInput = $("layoutPaletteFilter") as HTMLInputElement;
+function renderSetPiecePalette() {
+  const container = $("setPiecePaletteList");
+  const filterInput = $("setPiecePaletteFilter") as HTMLInputElement;
   const filter = filterInput.value.toLowerCase();
 
   container.innerHTML = "";
@@ -2129,18 +2128,18 @@ function renderLayoutPalette() {
 
     el.onclick = () => {
       activeLayoutBrush = id;
-      renderLayoutPalette();
+      renderSetPiecePalette();
     };
     container.append(el);
   });
 }
 
-$("layoutPaletteFilter")?.addEventListener("input", renderLayoutPalette);
+$("setPiecePaletteFilter")?.addEventListener("input", renderSetPiecePalette);
 
-function renderLayoutEditor() {
-  const layout = library.layouts?.find((l) => l.id === activeLayoutId);
-  const editor = $("layoutsEditor");
-  const empty = $("noLayoutSelected");
+function renderSetPieceEditor() {
+  const layout = library.setPieces?.find((l) => l.id === activeSetPieceId);
+  const editor = $("setPiecesEditor");
+  const empty = $("noSetPieceSelected");
 
   if (!layout) {
     editor.style.display = "none";
@@ -2151,28 +2150,31 @@ function renderLayoutEditor() {
   editor.style.flexDirection = "column";
   empty.style.display = "none";
 
-  const idInput = $("activeLayoutId") as HTMLInputElement;
-  const classInput = $("activeLayoutClass") as HTMLInputElement;
+  const idInput = $("activeSetPieceId") as HTMLInputElement;
+  const classInput = $("activeSetPieceClass") as HTMLInputElement;
 
   idInput.value = layout.id;
   idInput.onchange = () => {
     const newId = idInput.value.trim();
-    if (newId && !library.layouts.some((l) => l.id === newId && l !== layout)) {
+    if (
+      newId &&
+      !library.setPieces.some((l) => l.id === newId && l !== layout)
+    ) {
       layout.id = newId;
-      activeLayoutId = newId;
+      activeSetPieceId = newId;
 
-      renderLayoutsList();
+      renderSetPiecesList();
     } else {
       idInput.value = layout.id;
     }
   };
 
-  classInput.value = layout.classId || "set-piece";
+  classInput.value = layout.class || "set-piece";
   classInput.onchange = () => {
-    layout.classId = classInput.value.trim() || "set-piece";
+    layout.class = classInput.value.trim() || "set-piece";
   };
 
-  const checkboxes = $("activeLayoutTiers").querySelectorAll(
+  const checkboxes = $("activeSetPieceTiers").querySelectorAll(
     "input[type=checkbox]",
   ) as NodeListOf<HTMLInputElement>;
   checkboxes.forEach((cb) => {
@@ -2189,9 +2191,9 @@ function renderLayoutEditor() {
     };
   });
 
-  renderLayoutPalette();
+  renderSetPiecePalette();
 
-  const grid = $("layoutGrid");
+  const grid = $("setPieceGrid");
   grid.innerHTML = "";
 
   // 11x11 grid from dx -5 to +5, dy -5 to +5
@@ -2221,12 +2223,12 @@ function renderLayoutEditor() {
             layout.tiles.push({ dx, dy, tileSetId: activeLayoutBrush });
           }
 
-          renderLayoutEditor();
+          renderSetPieceEditor();
         } else if (e.button === 2) {
           // Right click: Erase
           layout.tiles = layout.tiles.filter((t) => t !== slot);
 
-          renderLayoutEditor();
+          renderSetPieceEditor();
         }
       };
       // Prevent context menu on right click to erase
@@ -2237,7 +2239,7 @@ function renderLayoutEditor() {
   }
 }
 
-$("saveLayout").onclick = () => {
+$("saveSetPiece").onclick = () => {
   try {
     apply(structuredClone(library));
     $("libraryStatus").textContent = "Set piece saved successfully.";
@@ -2246,11 +2248,13 @@ $("saveLayout").onclick = () => {
   }
 };
 
-$("deleteLayout").onclick = () => {
-  if (!activeLayoutId) return;
-  library.layouts = library.layouts.filter((l) => l.id !== activeLayoutId);
-  activeLayoutId = null;
+$("deleteSetPiece").onclick = () => {
+  if (!activeSetPieceId) return;
+  library.setPieces = library.setPieces.filter(
+    (l) => l.id !== activeSetPieceId,
+  );
+  activeSetPieceId = null;
 
-  renderLayoutsList();
-  renderLayoutEditor();
+  renderSetPiecesList();
+  renderSetPieceEditor();
 };

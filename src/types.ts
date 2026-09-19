@@ -126,16 +126,16 @@ export interface TileSet {
   id: string;
   members: string[];
 }
-export interface LayoutSlot {
+export interface SetPieceSlot {
   dx: number;
   dy: number;
   tileSetId: string;
 }
-export interface Layout {
+export interface SetPiece {
   id: string;
-  classId: string;
+  class: string;
   eligibleTiers: number[];
-  tiles: LayoutSlot[];
+  tiles: SetPieceSlot[];
 }
 export interface Library {
   version: number;
@@ -146,7 +146,7 @@ export interface Library {
   cellClasses?: Record<string, CellClass>;
   tiles: TileDesign[];
   tileSets: TileSet[];
-  layouts: Layout[];
+  setPieces: SetPiece[];
 }
 
 export interface MapParams {
@@ -212,7 +212,7 @@ export interface MaskCell {
 export interface PlacedTile extends MaskCell {
   templateId: string;
   orientation: number;
-  layoutId?: string;
+  setPieceId?: string;
   /** Where a body may stand to serve every seam this tile must serve. */
   anchor: Point;
 }
@@ -236,7 +236,7 @@ export interface MapFeature {
   tileId: string;
   x: number;
   y: number;
-  layoutId?: string;
+  setPieceId?: string;
   tileIds?: string[];
 }
 export interface CellSpawn {
