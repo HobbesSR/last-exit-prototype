@@ -3,7 +3,6 @@ import {
   generateMap,
   validateLibrary,
   findPath,
-  canOccupy,
   gridViews,
   cellIndexAt,
   OUTSIDE_CLASS,
@@ -21,7 +20,6 @@ import type {
   Side,
   TileDesign,
   SegmentDeclaration,
-  MapMetrics,
 } from "/src/types.ts";
 import {
   segmentPlace,
@@ -40,44 +38,6 @@ const area = (id: string) => $(id) as HTMLTextAreaElement;
 const canvas = $("map") as HTMLCanvasElement,
   ctx = canvas.getContext("2d")!;
 
-interface Bullet {
-  x: number;
-  y: number;
-  dx: number;
-  dy: number;
-  life: number;
-}
-interface Pursuer {
-  x: number;
-  y: number;
-  respawn: number;
-  path: string[];
-  repath: number;
-  target?: Point | null;
-}
-interface LootItem {
-  x: number;
-  y: number;
-  taken: boolean;
-}
-interface Run {
-  x: number;
-  y: number;
-  radius: number;
-  body: string;
-  health: number;
-  score: number;
-  charge: number;
-  time: number;
-  shootCd: number;
-  hitCd: number;
-  warpCd: number;
-  bullets: Bullet[];
-  loot: LootItem[];
-  hunters: Pursuer[];
-  tags: number;
-  exitId?: string;
-}
 let library: Library = structuredClone(DEFAULT_LIBRARY),
   // build() runs during module init and reassigns both before any read.
   map!: GeneratedMap,
@@ -86,22 +46,8 @@ let library: Library = structuredClone(DEFAULT_LIBRARY),
   zoom = 1,
   pan = { x: 0, y: 0 },
   dragging: { x: number; y: number; px: number; py: number } | null = null,
-  moved = false,
-  playing = false,
-  run: Run | null = null,
-  last = 0;
-
-interface RunRecord {
-  body: string;
-  time: number;
-  score: number;
-  charge: number;
-  result: string;
-  tags: number;
-  route: string;
-}
-let runHistory: RunRecord[] = [],
-  mouse = { x: 0, y: 0 },
+  moved = false;
+let mouse = { x: 0, y: 0 },
   keys = new Set<string>(),
   routes: string[][] = [];
 let libraryOrigin = "shipped library",
@@ -154,7 +100,7 @@ function resize() {
   canvas.width = r.width * d;
   canvas.height = r.height * d;
   ctx.setTransform(d, 0, 0, d, 0, 0);
-  if (!playing) fit();
+  fit();
 }
 new ResizeObserver(resize).observe(canvas);
 function build() {
@@ -366,7 +312,7 @@ function draw() {
       0.2,
     );
   }
-  if (!playing && input("routes").checked)
+  if (input("routes").checked)
     routes.forEach((path, i) => {
       for (let j = 1; j < path.length; j++) {
         const a = center(map.tiles.find((t) => t.id === path[j - 1])!),
@@ -417,293 +363,10 @@ function draw() {
     ctx.lineWidth = 0.18;
     ctx.strokeRect(selected.x + 0.2, selected.y + 0.2, 5.6, 5.6);
   }
-  if (playing && run) {
-    for (const item of run.loot)
-      if (!item.taken) circle(item.x, item.y, 0.22, "#ffd37f");
-    for (const b of run.bullets) circle(b.x, b.y, 0.13, "#fff0bf");
-    for (const h of run.hunters)
-      if (h.respawn <= 0) circle(h.x, h.y, map.params.hunterRadius, "#ed7988");
-    circle(run.x, run.y, run.radius, "#d6ff9f");
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 0.07;
-    ctx.stroke();
-    const aim = world(mouse),
-      a = Math.atan2(aim.y - run.y, aim.x - run.x);
-    line(
-      run,
-      { x: run.x + Math.cos(a) * 1.2, y: run.y + Math.sin(a) * 1.2 },
-      "#fff",
-      0.15,
-    );
-  }
   ctx.restore();
-}
-function move(
-  actor: { x: number; y: number },
-  dx: number,
-  dy: number,
-  radius: number,
-): void {
-  const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 0.15));
-  for (let i = 0; i < steps; i++) {
-    if (canOccupy(map, actor.x + dx / steps, actor.y, radius))
-      actor.x += dx / steps;
-    if (canOccupy(map, actor.x, actor.y + dy / steps, radius))
-      actor.y += dy / steps;
-  }
-}
-function stop(message = "Ready for a run."): void {
-  playing = false;
-  keys.clear();
-  $("play").textContent = "Start escape run";
-  $("gameStatus").textContent = message;
-
-  if (run && (message.startsWith("ESCAPED") || message.startsWith("Caught"))) {
-    runHistory.unshift({
-      body: run.body,
-      time: run.time,
-      score: run.score,
-      charge: run.charge,
-      result: message.startsWith("ESCAPED") ? "Escaped" : "Caught",
-      tags: run.tags,
-      route: run.exitId ?? "None",
-    });
-    renderHistory();
-  }
-}
-
-function renderHistory() {
-  const container = $("playtestHistory");
-  if (!runHistory.length) {
-    container.innerHTML = `<div class="readout">No runs recorded yet.</div>`;
-    return;
-  }
-  container.replaceChildren(
-    ...runHistory.map((r, i) => {
-      const el = document.createElement("div");
-      el.className = "readout";
-      el.style.borderLeft = `3px solid ${r.result === "Escaped" ? "#c8f185" : "#ed7988"}`;
-      el.style.paddingLeft = "8px";
-      el.textContent = `[${runHistory.length - i}] ${r.result} (${r.body})
-Time: ${r.time.toFixed(1)}s · Tags: ${r.tags} · Charge: ${r.charge.toFixed(1)}s
-Route: ${r.route} · Score: ${r.score}`;
-      return el;
-    }),
-  );
-}
-
-$("clearHistory").onclick = () => {
-  runHistory = [];
-  renderHistory();
-};
-function start() {
-  if (!map) return;
-  if (playing) {
-    stop("Run ended.");
-    fit();
-    return;
-  }
-  const spawn = map.features.find((f) => f.kind === "spawn")!,
-    body = select("body").value;
-  const hs = map.features.find((f) => f.kind === "hunter-spawn")!;
-  run = {
-    x: spawn.x,
-    y: spawn.y,
-    radius:
-      body === "hunter" ? map.params.hunterRadius : map.params.contestantRadius,
-    body,
-    health: 100,
-    score: 0,
-    charge: 0,
-    time: 0,
-    shootCd: 0,
-    hitCd: 0,
-    warpCd: 0,
-    bullets: [],
-    loot: map.grid.cells.spawns.map((slot) => ({
-      x: (slot.cell % map.grid.width) + 0.5,
-      y: Math.floor(slot.cell / map.grid.width) + 0.5,
-      taken: false,
-    })),
-    hunters: [0, 1].map((_, i) => ({
-      x: hs.x,
-      y: hs.y,
-      respawn: i * 3,
-      path: [],
-      repath: 0,
-    })),
-    tags: 0,
-  };
-  playing = true;
-  $("play").textContent = "End run";
-  $("mapTab").click();
-  zoom = Math.max(9, Math.min(18, canvas.clientWidth / 55));
-}
-function update(dt: number): void {
-  if (!playing || !run) return;
-  const self = run;
-  self.time += dt;
-  self.shootCd -= dt;
-  self.hitCd -= dt;
-  self.warpCd -= dt;
-  let dx =
-      Number(keys.has("d") || keys.has("arrowright")) -
-      Number(keys.has("a") || keys.has("arrowleft")),
-    dy =
-      Number(keys.has("s") || keys.has("arrowdown")) -
-      Number(keys.has("w") || keys.has("arrowup"));
-  const l = Math.hypot(dx, dy);
-  if (l)
-    move(
-      self,
-      (dx / l) * dt * (self.body === "hunter" ? 4.5 : 5),
-      (dy / l) * dt * (self.body === "hunter" ? 4.5 : 5),
-      self.radius,
-    );
-  for (const item of self.loot)
-    if (!item.taken && Math.hypot(item.x - self.x, item.y - self.y) < 1) {
-      item.taken = true;
-      self.score++;
-    }
-  const charger = map.features.find(
-    (f) => f.kind === "charger" && Math.hypot(f.x - self.x, f.y - self.y) < 2,
-  );
-  if (keys.has("e") && charger && !l)
-    self.charge = Math.min(5, self.charge + dt);
-  const transit = map.features.find(
-    (f) => f.kind === "warp" && Math.hypot(f.x - self.x, f.y - self.y) < 2,
-  );
-  if (keys.has("e") && transit && self.body === "hunter" && self.warpCd <= 0) {
-    const others = map.features.filter(
-        (f) => f.kind === "warp" && f.id !== transit.id,
-      ),
-      to = others[0];
-    if (to) {
-      self.x = to.x;
-      self.y = to.y;
-      self.warpCd = 3;
-    }
-  }
-  for (const h of self.hunters) {
-    if (h.respawn > 0) {
-      h.respawn -= dt;
-      continue;
-    }
-    h.repath -= dt;
-    const ht = tileAt(h.x, h.y),
-      pt = tileAt(self.x, self.y);
-    if (h.repath <= 0 && ht && pt) {
-      h.path = findPath(map, ht.id, pt.id, "hunter");
-      h.repath = 1;
-      h.target = null;
-    }
-    let target;
-    if (ht && pt && ht.id === pt.id) target = self;
-    else if (ht && h.path.length > 1) {
-      const next = map.tiles.find((t) => t.id === h.path[1])!;
-      const current = center(ht);
-      if (!h.target)
-        h.target =
-          Math.hypot(h.x - current.x, h.y - current.y) > 0.2
-            ? current
-            : center(next);
-      if (Math.hypot(h.x - h.target.x, h.y - h.target.y) < 0.18)
-        h.target = center(next);
-      target = h.target;
-    }
-    if (target) {
-      const len = Math.hypot(target.x - h.x, target.y - h.y);
-      if (len > 0.05)
-        move(
-          h,
-          ((target.x - h.x) / len) * dt * 3.3,
-          ((target.y - h.y) / len) * dt * 3.3,
-          map.params.hunterRadius,
-        );
-    }
-    if (
-      Math.hypot(h.x - self.x, h.y - self.y) <
-        self.radius + map.params.hunterRadius + 0.1 &&
-      self.hitCd <= 0
-    ) {
-      self.health -= 20;
-      self.hitCd = 1;
-    }
-  }
-  for (const b of self.bullets) {
-    const steps = Math.ceil((dt * 30) / 0.15);
-    for (let i = 0; i < steps && b.life > 0; i++) {
-      b.x += (b.dx * dt * 30) / steps;
-      b.y += (b.dy * dt * 30) / steps;
-      b.life -= dt / steps;
-      if (!canOccupy(map, b.x, b.y, 0.05)) {
-        b.life = 0;
-        break;
-      }
-      for (const h of self.hunters)
-        if (
-          h.respawn <= 0 &&
-          Math.hypot(h.x - b.x, h.y - b.y) < map.params.hunterRadius
-        ) {
-          h.respawn = 8;
-          const hs = map.features.find((f) => f.kind === "hunter-spawn")!;
-          h.x = hs.x;
-          h.y = hs.y;
-          b.life = 0;
-          self.score += 3;
-          self.tags++;
-          break;
-        }
-    }
-  }
-  self.bullets = self.bullets.filter((b) => b.life > 0);
-  pan = {
-    x: canvas.clientWidth / 2 - self.x * zoom,
-    y: canvas.clientHeight / 2 - self.y * zoom,
-  };
-  const exit = map.features.find(
-    (f) => f.kind === "exit" && Math.hypot(f.x - self.x, f.y - self.y) < 1.5,
-  );
-  let hint = charger
-    ? "Hold E while still to charge"
-    : transit
-      ? self.body === "hunter"
-        ? "E: transit"
-        : "Transit: hunters only"
-      : exit
-        ? "Charge at C before extracting"
-        : "Find C, charge, then reach E";
-  $("gameStatus").textContent =
-    `Health ${self.health} · score ${self.score}\nCharge ${self.charge.toFixed(1)} / 5s · time ${self.time.toFixed(1)}s\n${hint}`;
-  if (exit && self.charge >= 5) {
-    self.exitId = `Exit at ${Math.floor(exit.x)},${Math.floor(exit.y)}`;
-    stop(`ESCAPED · ${self.time.toFixed(1)}s · score ${self.score}`);
-    fit();
-  } else if (self.health <= 0) {
-    stop(`Caught after ${self.time.toFixed(1)}s · score ${self.score}`);
-    fit();
-  }
-}
-function shoot() {
-  if (!playing || !run || run.shootCd > 0) return;
-  const self = run;
-  const aim = world(mouse),
-    a = Math.atan2(aim.y - self.y, aim.x - self.x);
-  self.bullets.push({
-    x: self.x,
-    y: self.y,
-    dx: Math.cos(a),
-    dy: Math.sin(a),
-    life: 2,
-  });
-  self.shootCd = 0.2;
 }
 canvas.addEventListener("pointerdown", (e) => {
   mouse = point(e);
-  if (playing) {
-    shoot();
-    return;
-  }
   dragging = { ...mouse, px: pan.x, py: pan.y };
   moved = false;
   canvas.setPointerCapture(e.pointerId);
@@ -718,7 +381,7 @@ canvas.addEventListener("pointermove", (e) => {
   }
 });
 canvas.addEventListener("pointerup", (e) => {
-  if (!playing && !moved) {
+  if (!moved) {
     const p = world(point(e));
     inspect(tileAt(p.x, p.y));
   }
@@ -744,27 +407,21 @@ window.addEventListener("keydown", (e) => {
   if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(k))
     e.preventDefault();
   keys.add(k);
-  if (k === "escape") {
-    stop("Run ended.");
-    fit();
-  }
 
-  if (!playing) {
-    if (k === "d" || k === "r" || k === "f") {
-      tool = k === "r" ? "rect" : k === "f" ? "fill" : "paint";
-      refresh();
-      renderModes();
-    } else if (k === "1" || k === "2" || k === "3") {
-      editMode = k === "1" ? "both" : k === "2" ? "cells" : "segments";
-      refresh();
-      renderModes();
-    } else if (k === "e") {
-      brush = null;
-      segmentBrush = "any";
-      refresh();
-      renderBrushes(paintFallback());
-      renderSegmentBrushes();
-    }
+  if (k === "d" || k === "r" || k === "f") {
+    tool = k === "r" ? "rect" : k === "f" ? "fill" : "paint";
+    refresh();
+    renderModes();
+  } else if (k === "1" || k === "2" || k === "3") {
+    editMode = k === "1" ? "both" : k === "2" ? "cells" : "segments";
+    refresh();
+    renderModes();
+  } else if (k === "e") {
+    brush = null;
+    segmentBrush = "any";
+    refresh();
+    renderBrushes(paintFallback());
+    renderSegmentBrushes();
   }
 });
 window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
@@ -775,64 +432,7 @@ $("random").onclick = () => {
     `exit-${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`;
   build();
 };
-$("sweep").onclick = async () => {
-  const dialog = document.getElementById("sweepDialog") as HTMLDialogElement;
-  dialog.showModal();
-  const content = $("sweepContent");
-  content.innerHTML = `<div class="readout">Running sweep...</div>`;
-
-  // Yield to allow dialog to render
-  await new Promise((resolve) => setTimeout(resolve, 50));
-
-  const count = 100;
-  const metrics: MapMetrics[] = [];
-  const params = {
-    zoneWidth: Number(input("zoneWidth").value),
-    zoneHeight: Number(input("zoneHeight").value),
-    exitCount: Number(input("exits").value),
-  };
-
-  for (let i = 0; i < count; i++) {
-    const seed = `sweep-${i}-${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}`;
-    const result = generateMap(seed, params, library);
-    metrics.push(result.metrics);
-  }
-
-  const plot = (title: string, extract: (m: MapMetrics) => number) => {
-    const values = metrics
-      .map(extract)
-      .filter((v) => v !== undefined && !isNaN(v));
-    if (!values.length) return "";
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const bins = new Array(20).fill(0);
-    for (const v of values) {
-      let b = Math.floor(((v - min) / (max - min)) * 20);
-      if (b === 20) b = 19;
-      if (max === min) b = 0;
-      bins[b]++;
-    }
-    const maxBin = Math.max(...bins);
-
-    return `
-      <div>
-        <strong>${title}</strong> (min: ${min.toFixed(1)}, max: ${max.toFixed(1)})
-        <div class="histogram">
-          ${bins.map((b) => `<div class="histogram-bar" style="height: ${maxBin > 0 ? (b / maxBin) * 100 : 0}%" title="${b} maps"></div>`).join("")}
-        </div>
-      </div>
-    `;
-  };
-
-  content.innerHTML = `
-    ${plot("Squeezes", (m) => m.squeezes)}
-    ${plot("Dead Ends", (m) => m.deadEnds)}
-    ${plot("Detour Ratio", (m) => m.detourRatio)}
-    ${plot("Contestant Distance", (m) => m.contestantDistance)}
-  `;
-};
 $("fit").onclick = fit;
-$("play").onclick = start;
 const exportName = (extension: string) =>
   `last-exit-${String(map.seed).replace(/[^a-z0-9-]/gi, "_")}.${extension}`;
 // Both buttons write the same wire form; only the encoding differs.
@@ -856,8 +456,6 @@ function tab(activeId: "world" | "author" | "sets" | "layouts"): void {
   $("authorTab").classList.toggle("active", activeId === "author");
   $("setsTab").classList.toggle("active", activeId === "sets");
   $("layoutsTab").classList.toggle("active", activeId === "layouts");
-
-  if (activeId !== "world" && playing) stop("Run ended for authoring.");
 
   if (activeId === "author") {
     renderLibraryMeta();
@@ -2426,7 +2024,6 @@ window.mapLab = Object.freeze({
   snapshot: () => ({
     seed: map?.seed,
     valid: map?.validation.valid,
-    playing,
     templateUsage: Object.fromEntries(
       [...new Set(map?.tiles.map((tile) => tile.templateId) ?? [])].map(
         (id) => [
@@ -2435,15 +2032,6 @@ window.mapLab = Object.freeze({
         ],
       ),
     ),
-    player: run
-      ? {
-          x: run.x,
-          y: run.y,
-          charge: run.charge,
-          health: run.health,
-          score: run.score,
-        }
-      : null,
   }),
 });
 try {
@@ -2458,9 +2046,7 @@ try {
 } catch {}
 syncLibrary();
 build();
-requestAnimationFrame(function frame(t) {
-  update(Math.min(0.05, (t - last) / 1000 || 0));
-  last = t;
+requestAnimationFrame(function frame() {
   draw();
   requestAnimationFrame(frame);
 });

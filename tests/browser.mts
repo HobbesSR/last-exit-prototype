@@ -58,10 +58,6 @@ try {
     fullPage: true,
   });
   await page.locator("#overlay").selectOption("tier");
-  await page.locator("#play").click();
-  const before = await page.evaluate(
-    () => (window as any).mapLab.snapshot().player,
-  );
   await page.keyboard.down("d");
   await page.waitForTimeout(500);
   await page.keyboard.up("d");
