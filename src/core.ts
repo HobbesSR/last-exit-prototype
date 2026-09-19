@@ -109,10 +109,10 @@ interface Requirements {
   vertices: Map<string, VertexMeta>;
 }
 export const OUTSIDE_CLASS = "";
-const SPAN_EPS = 1e-9;
+export const SPAN_EPS = 1e-9;
 
 /** The primitive grids under construction, addressed in map cell coordinates. */
-interface GridBuild {
+export interface GridBuild {
   W: number;
   H: number;
   cellClass: string[];
@@ -164,7 +164,7 @@ export const DEFAULT_PARAMS = Object.freeze({
   hunterRadius: 0.9,
 });
 export const DEFAULT_LIBRARY = DEFAULT_LIBRARY_JSON as unknown as Library;
-const DIRS: Array<[number, number, Side, Side]> = [
+export const DIRS: Array<[number, number, Side, Side]> = [
   [0, -1, "N", "S"],
   [1, 0, "E", "W"],
   [0, 1, "S", "N"],
@@ -202,7 +202,7 @@ function rng(seed: string | number): () => number {
     ((x ^ (x >>> 14)) >>> 0) / 4294967296
   );
 }
-function key(x: number, y: number): string {
+export function key(x: number, y: number): string {
   return `${x},${y}`;
 }
 
@@ -950,7 +950,7 @@ function latticeRoute(
   return points.reverse();
 }
 
-function planStreets(
+export function planStreets(
   tiles: PlacedTile[],
   adj: Neighbour[][],
   grid: GridBuild,
@@ -1146,7 +1146,7 @@ function planStreets(
  * thing that can sever a route inside a block, and a prop pinching a street is
  * a whole-map fact no single block can see.
  */
-function clearStreets(
+export function clearStreets(
   obstacles: Wall[],
   corridors: ReservedCorridor[],
 ): Wall[] {
@@ -1462,7 +1462,7 @@ function regionOpenings(
   return found;
 }
 
-function generateMicro(
+export function generateMicro(
   regions: MapRegion[],
   grid: GridBuild,
   library: Library,
@@ -2611,7 +2611,7 @@ export function validateMap(input: unknown): ValidationResult {
   reachCaches.delete(map);
   viewCaches.delete(map);
   if (map && typeof map === "object") clearNavCache(map);
-  if (!map || map.version !== 1) errors.push("map.version must be 1");
+  if (!map || (map.version !== 1 && map.version !== 2)) errors.push("map.version must be 1 or 2");
   if (
     !Array.isArray(map?.tiles) ||
     !Array.isArray(map?.walls) ||

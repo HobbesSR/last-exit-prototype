@@ -1,4 +1,4 @@
-import type { TileDesign } from "./types.ts";
+import type { TileDesign, SetPiece, Library } from "./types.ts";
 import type { MacroStructure, MacroCell, MacroSegment } from "./macro-types.ts";
 import {
   TILE_SIZE,
@@ -61,6 +61,51 @@ export function compileTileDesign(
     id: design.id,
     defaultCellClass: design.defaultCellClass,
     cells,
+    segments,
+  };
+}
+
+
+export function compileSetPiece(
+  setPiece: SetPiece,
+  library: Library,
+  random: () => number,
+): MacroStructure {
+  const cellsMap = new Map<string, MacroCell>();
+  const segments: MacroSegment[] = [];
+
+  for (const slot of setPiece.tiles) {
+    const tileSet = library.tileSets?.find((ts) => ts.id === slot.tileSetId);
+    if (!tileSet || !tileSet.members.length) continue;
+    
+    // Pick a random member
+    const memberId = tileSet.members[Math.floor(random() * tileSet.members.length)];
+    const design = library.tiles.find((t) => t.id === memberId);
+    if (!design) continue;
+
+    // Default to orientation 0 for predictability unless the SetPiece specifies it
+    const orientation = (slot as any).orientation !== undefined ? (slot as any).orientation : 0;
+
+    const sub = compileTileDesign(design, orientation);
+
+    const ox = slot.dx * TILE_SIZE;
+    const oy = slot.dy * TILE_SIZE;
+
+    for (const c of sub.cells) {
+      cellsMap.set(`${c.x + ox},${c.y + oy}`, { x: c.x + ox, y: c.y + oy, class: c.class });
+    }
+    if (sub.segments) {
+      for (const s of sub.segments) {
+        segments.push({ axis: s.axis, x: s.x + ox, y: s.y + oy, open: s.open });
+      }
+    }
+  }
+
+  return {
+    version: 1,
+    id: setPiece.id,
+    defaultCellClass: "grass", // or we could read from the first tile
+    cells: Array.from(cellsMap.values()),
     segments,
   };
 }

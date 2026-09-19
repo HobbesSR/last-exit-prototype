@@ -130,6 +130,7 @@ export interface SetPieceSlot {
   dx: number;
   dy: number;
   tileSetId: string;
+    orientation?: number;
 }
 export interface SetPiece {
   id: string;
