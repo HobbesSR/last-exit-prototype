@@ -1,309 +1,46 @@
 {
   "version": 2,
   "cellClasses": {
-    "landing": {
-      "generator": "rubble",
+    "open": {
+      "generator": "open-field",
       "clutterChance": 0.05,
-      "clutterSize": 0.5
-    },
-    "evac": {
-      "generator": "compound",
-      "clutterChance": 0.2,
-      "clutterSize": 0.8
-    },
-    "evac-perimeter": {
-      "generator": "pillar-hall",
-      "clutterChance": 0.0,
-      "clutterSize": 0.8
+      "clutterSize": 0.4
     },
     "market": {
       "generator": "compound",
       "clutterChance": 0.15,
+      "clutterSize": 0.5
+    },
+    "depot": {
+      "generator": "pillar-hall",
+      "clutterChance": 0.2,
+      "clutterSize": 0.7
+    },
+    "park": {
+      "generator": "open-field",
+      "clutterChance": 0.4,
+      "clutterSize": 0.8
+    },
+    "landing": {
+      "generator": "rubble",
+      "clutterChance": 0.05,
       "clutterSize": 0.4
     },
-    "overgrowth": {
-      "generator": "open-field",
-      "clutterChance": 0.25,
-      "clutterSize": 0.6,
-      "generatorParams": {
-        "coverDensity": 0.8
-      }
-    },
-    "office": {
-      "generator": "pillar-hall",
-      "clutterChance": 0.05,
-      "clutterSize": 0.6
-    },
-    "street": {
-      "generator": "open-field",
-      "clutterChance": 0.02,
-      "clutterSize": 0.5
-    },
-    "ruin": {
-      "generator": "rubble",
+    "evac": {
+      "generator": "compound",
       "clutterChance": 0.1,
-      "clutterSize": 0.5
+      "clutterSize": 0.8
     }
   },
   "tiles": [
     {
-      "id": "drop-pad",
-      "defaultCellClass": "landing",
-      "orientations": [
-        0,
-        90,
-        180,
-        270
-      ],
-      "cells": [
-        "......",
-        "......",
-        "......",
-        "......",
-        "......",
-        "......"
-      ],
-      "anchor": {
-        "x": 3,
-        "y": 3
-      }
-    },
-    {
-      "id": "drop-border",
-      "defaultCellClass": "landing",
-      "orientations": [
-        0,
-        90,
-        180,
-        270
-      ],
-      "cells": [
-        "......",
-        "......",
-        "......",
-        "......",
-        "......",
-        "......"
-      ],
-      "anchor": {
-        "x": 3,
-        "y": 3
-      }
-    },
-    {
-      "id": "evac-core",
-      "defaultCellClass": "evac",
-      "orientations": [
-        0,
-        90,
-        180,
-        270
-      ],
-      "cells": [
-        "......",
-        "......",
-        "......",
-        "......",
-        "......",
-        "......"
-      ],
-      "anchor": {
-        "x": 0.5,
-        "y": 0.5
-      }
-    },
-    {
-      "id": "evac-wall",
-      "defaultCellClass": "evac-perimeter",
-      "orientations": [
-        0,
-        90,
-        180,
-        270
-      ],
-      "cells": [
-        "......",
-        "......",
-        "......",
-        "......",
-        "......",
-        "......"
-      ],
-      "anchor": {
-        "x": 3,
-        "y": 4
-      }
-    },
-    {
-      "id": "evac-corner",
-      "defaultCellClass": "evac-perimeter",
-      "orientations": [
-        0,
-        90,
-        180,
-        270
-      ],
-      "cells": [
-        "......",
-        "......",
-        "......",
-        "......",
-        "......",
-        "......"
-      ],
-      "anchor": {
-        "x": 4,
-        "y": 4
-      }
-    },
-    {
-      "id": "evac-gate",
-      "defaultCellClass": "evac-perimeter",
-      "orientations": [
-        0,
-        90,
-        180,
-        270
-      ],
-      "cells": [
-        "......",
-        "......",
-        "......",
-        "......",
-        "......",
-        "......"
-      ],
-      "anchor": {
-        "x": 3,
-        "y": 4
-      }
-    },
-    {
-      "id": "store-mid",
-      "defaultCellClass": "market",
-      "orientations": [
-        0,
-        90,
-        180,
-        270
-      ],
-      "cells": [
-        "......",
-        "......",
-        "......",
-        "......",
-        "......",
-        "......"
-      ],
-      "anchor": {
-        "x": 3,
-        "y": 3
-      }
-    },
-    {
-      "id": "store-end",
-      "defaultCellClass": "market",
-      "orientations": [
-        0,
-        90,
-        180,
-        270
-      ],
-      "cells": [
-        "......",
-        "......",
-        "......",
-        "......",
-        "......",
-        "......"
-      ],
-      "anchor": {
-        "x": 3,
-        "y": 3
-      }
-    },
-    {
-      "id": "park-ground",
-      "defaultCellClass": "overgrowth",
-      "orientations": [
-        0,
-        90,
-        180,
-        270
-      ],
-      "cells": [
-        "......",
-        "......",
-        "......",
-        "......",
-        "......",
-        "......"
-      ],
-      "anchor": {
-        "x": 3,
-        "y": 3
-      }
-    },
-    {
-      "id": "office-corner",
-      "defaultCellClass": "office",
-      "orientations": [
-        0,
-        90,
-        180,
-        270
-      ],
-      "cells": [
-        "......",
-        "......",
-        "......",
-        "......",
-        "......",
-        "......"
-      ],
-      "anchor": {
-        "x": 4,
-        "y": 4
-      }
-    },
-    {
-      "id": "office-gate",
-      "defaultCellClass": "office",
-      "orientations": [
-        0,
-        90,
-        180,
-        270
-      ],
-      "cells": [
-        "......",
-        "......",
-        "......",
-        "......",
-        "......",
-        "......"
-      ],
-      "anchor": {
-        "x": 4,
-        "y": 4
-      }
-    },
-    {
       "id": "street",
-      "defaultCellClass": "street",
+      "defaultCellClass": "open",
       "orientations": [
         0,
         90,
         180,
         270
-      ],
-      "cells": [
-        "......",
-        "......",
-        "......",
-        "......",
-        "......",
-        "......"
       ],
       "anchor": {
         "x": 3,
@@ -313,178 +50,447 @@
       "weight": 10
     },
     {
-      "id": "ruin",
-      "defaultCellClass": "ruin",
+      "id": "market-front",
+      "defaultCellClass": "market",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "OOOOOO",
+        "......",
+        "......",
+        "......",
+        "......"
+      ],
       "orientations": [
         0,
         90,
         180,
         270
       ],
+      "anchor": {
+        "x": 3,
+        "y": 4
+      }
+    },
+    {
+      "id": "market-corner",
+      "defaultCellClass": "market",
+      "legend": {
+        "O": "open"
+      },
       "cells": [
-        "......",
+        "OOOOOO",
+        "OOOOOO",
+        "OO....",
+        "OO....",
+        "OO....",
+        "OO...."
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 4,
+        "y": 4
+      }
+    },
+    {
+      "id": "market-interior",
+      "defaultCellClass": "market",
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      }
+    },
+    {
+      "id": "depot-fence",
+      "defaultCellClass": "depot",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
         "......",
         "......",
         "......",
         "......",
         "......"
       ],
+      "walls": [
+        {
+          "x1": 0,
+          "y1": 1,
+          "x2": 6,
+          "y2": 1
+        }
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
       "anchor": {
         "x": 3,
         "y": 3
+      }
+    },
+    {
+      "id": "depot-corner",
+      "defaultCellClass": "depot",
+      "legend": {
+        "O": "open"
       },
-      "adapter": true,
-      "weight": 5
+      "cells": [
+        "OOOOOO",
+        "O.....",
+        "O.....",
+        "O.....",
+        "O.....",
+        "O....."
+      ],
+      "walls": [
+        {
+          "x1": 1,
+          "y1": 6,
+          "x2": 1,
+          "y2": 1
+        },
+        {
+          "x1": 1,
+          "y1": 1,
+          "x2": 6,
+          "y2": 1
+        }
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      }
+    },
+    {
+      "id": "depot-gate",
+      "defaultCellClass": "depot",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "OOOOOO",
+        "OOOOOO",
+        "OOOOOO",
+        "OOOOOO",
+        "OOOOOO"
+      ],
+      "walls": [
+        {
+          "x1": 0,
+          "y1": 1,
+          "x2": 6,
+          "y2": 1,
+          "gap": 2
+        }
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      }
+    },
+    {
+      "id": "park-transition",
+      "defaultCellClass": "park",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "OOOOOO",
+        "......",
+        "......",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 4
+      }
+    },
+    {
+      "id": "park-interior",
+      "defaultCellClass": "park",
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      }
+    },
+    {
+      "id": "landing-edge",
+      "defaultCellClass": "landing",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "OOOOOO",
+        "......",
+        "......",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 4
+      }
+    },
+    {
+      "id": "landing-interior",
+      "defaultCellClass": "landing",
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      }
+    },
+    {
+      "id": "evac-fence",
+      "defaultCellClass": "evac",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "......",
+        "......",
+        "......",
+        "......",
+        "......"
+      ],
+      "walls": [
+        {
+          "x1": 0,
+          "y1": 1,
+          "x2": 6,
+          "y2": 1
+        }
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      }
+    },
+    {
+      "id": "evac-corner",
+      "defaultCellClass": "evac",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "O.....",
+        "O.....",
+        "O.....",
+        "O.....",
+        "O....."
+      ],
+      "walls": [
+        {
+          "x1": 1,
+          "y1": 6,
+          "x2": 1,
+          "y2": 1
+        },
+        {
+          "x1": 1,
+          "y1": 1,
+          "x2": 6,
+          "y2": 1
+        }
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      }
+    },
+    {
+      "id": "evac-gate",
+      "defaultCellClass": "evac",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "......",
+        "......",
+        "......",
+        "......",
+        "......"
+      ],
+      "walls": [
+        {
+          "x1": 0,
+          "y1": 1,
+          "x2": 6,
+          "y2": 1,
+          "gap": 2
+        }
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      }
     }
   ],
   "tileSets": [
     {
-      "id": "drop-site-tiles",
+      "id": "filler",
       "members": [
-        "drop-pad"
+        "street"
       ]
     },
     {
-      "id": "drop-border-tiles",
+      "id": "market-fronts",
       "members": [
-        "drop-border"
+        "market-front"
       ]
     },
     {
-      "id": "evac-core-tiles",
+      "id": "market-corners",
       "members": [
-        "evac-core"
+        "market-corner"
       ]
     },
     {
-      "id": "evac-wall-tiles",
+      "id": "market-interiors",
       "members": [
-        "evac-wall"
+        "market-interior"
       ]
     },
     {
-      "id": "evac-gate-tiles",
+      "id": "depot-fences",
       "members": [
-        "evac-gate"
+        "depot-fence"
       ]
     },
     {
-      "id": "evac-corner-tiles",
+      "id": "depot-corners",
+      "members": [
+        "depot-corner"
+      ]
+    },
+    {
+      "id": "depot-gates",
+      "members": [
+        "depot-gate"
+      ]
+    },
+    {
+      "id": "park-edges",
+      "members": [
+        "park-transition"
+      ]
+    },
+    {
+      "id": "park-centers",
+      "members": [
+        "park-interior"
+      ]
+    },
+    {
+      "id": "landing-edges",
+      "members": [
+        "landing-edge"
+      ]
+    },
+    {
+      "id": "landing-centers",
+      "members": [
+        "landing-interior"
+      ]
+    },
+    {
+      "id": "evac-fences",
+      "members": [
+        "evac-fence"
+      ]
+    },
+    {
+      "id": "evac-corners",
       "members": [
         "evac-corner"
       ]
     },
     {
-      "id": "store-mid-tiles",
+      "id": "evac-gates",
       "members": [
-        "store-mid"
-      ]
-    },
-    {
-      "id": "store-end-tiles",
-      "members": [
-        "store-end"
-      ]
-    },
-    {
-      "id": "park-tiles",
-      "members": [
-        "park-ground"
-      ]
-    },
-    {
-      "id": "office-corner-tiles",
-      "members": [
-        "office-corner"
-      ]
-    },
-    {
-      "id": "office-gate-tiles",
-      "members": [
-        "office-gate"
-      ]
-    },
-    {
-      "id": "filler-tiles",
-      "members": [
-        "street",
-        "ruin"
+        "evac-gate"
       ]
     }
   ],
   "setPieces": [
-    {
-      "id": "drop-site",
-      "class": "landing",
-      "eligibleTiers": [
-        1
-      ],
-      "tiles": [
-        {
-          "dx": 0,
-          "dy": 0,
-          "tileSetId": "drop-border-tiles"
-        },
-        {
-          "dx": 1,
-          "dy": 0,
-          "tileSetId": "drop-border-tiles"
-        },
-        {
-          "dx": 2,
-          "dy": 0,
-          "tileSetId": "drop-border-tiles"
-        },
-        {
-          "dx": 0,
-          "dy": 1,
-          "tileSetId": "drop-border-tiles"
-        },
-        {
-          "dx": 1,
-          "dy": 1,
-          "tileSetId": "drop-site-tiles"
-        },
-        {
-          "dx": 2,
-          "dy": 1,
-          "tileSetId": "drop-border-tiles"
-        }
-      ]
-    },
-    {
-      "id": "evac-fortress",
-      "class": "evac",
-      "eligibleTiers": [
-        5
-      ],
-      "tiles": [
-        {
-          "dx": 0,
-          "dy": 0,
-          "tileSetId": "evac-corner-tiles",
-          "orientation": 0
-        },
-        {
-          "dx": 0,
-          "dy": 1,
-          "tileSetId": "evac-gate-tiles",
-          "orientation": 270
-        },
-        {
-          "dx": 1,
-          "dy": 0,
-          "tileSetId": "evac-wall-tiles",
-          "orientation": 0
-        },
-        {
-          "dx": 1,
-          "dy": 1,
-          "tileSetId": "evac-wall-tiles",
-          "orientation": 180
-        }
-      ]
-    },
     {
       "id": "strip-mall",
       "class": "market",
@@ -498,20 +504,26 @@
         {
           "dx": 0,
           "dy": 0,
-          "tileSetId": "store-end-tiles",
+          "tileSetId": "market-corners",
           "orientation": 0
         },
         {
-          "dx": 0,
-          "dy": 1,
-          "tileSetId": "store-end-tiles",
-          "orientation": 180
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "market-corners",
+          "orientation": 90
         }
       ]
     },
     {
-      "id": "corporate-campus",
-      "class": "office",
+      "id": "secure-depot",
+      "class": "depot",
       "eligibleTiers": [
         2,
         3,
@@ -521,32 +533,44 @@
         {
           "dx": 0,
           "dy": 0,
-          "tileSetId": "office-corner-tiles",
+          "tileSetId": "depot-corners",
           "orientation": 0
         },
         {
           "dx": 1,
           "dy": 0,
-          "tileSetId": "office-corner-tiles",
+          "tileSetId": "depot-gates",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "depot-corners",
           "orientation": 90
         },
         {
           "dx": 0,
           "dy": 1,
-          "tileSetId": "office-corner-tiles",
+          "tileSetId": "depot-corners",
           "orientation": 270
         },
         {
           "dx": 1,
           "dy": 1,
-          "tileSetId": "office-gate-tiles",
+          "tileSetId": "depot-gates",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "depot-corners",
           "orientation": 180
         }
       ]
     },
     {
-      "id": "overgrown-park",
-      "class": "overgrowth",
+      "id": "city-park",
+      "class": "park",
       "eligibleTiers": [
         1,
         2,
@@ -557,14 +581,92 @@
         {
           "dx": 0,
           "dy": 0,
-          "tileSetId": "park-tiles",
-          "tileId": "park-ground"
+          "tileSetId": "park-edges",
+          "orientation": 0
         },
         {
           "dx": 1,
           "dy": 0,
-          "tileSetId": "park-tiles",
-          "tileId": "park-ground"
+          "tileSetId": "park-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "park-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "park-edges",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "drop-site",
+      "class": "landing",
+      "eligibleTiers": [
+        1
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "landing-centers",
+          "orientation": 0
+        }
+      ]
+    },
+    {
+      "id": "evac-fortress",
+      "class": "evac",
+      "eligibleTiers": [
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "evac-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "evac-gates",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "evac-fences",
+          "orientation": 180
         }
       ]
     }
