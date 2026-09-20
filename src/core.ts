@@ -2938,10 +2938,17 @@ export function generateMap(
 
     const fallbackDesign = library.tiles.find(t => t.id === "open") || library.tiles.find(t => t.id === "plain") || library.tiles[0]!;
 
-      const findAnchor = (design: TileDesign, _deg: number): Point => {
+      const findAnchor = (design: TileDesign, deg: number): Point => {
         const anyDesign = design as any;
         if (anyDesign.anchor) {
-           return { x: anyDesign.anchor.x, y: anyDesign.anchor.y };
+           let ax = anyDesign.anchor.x;
+           let ay = anyDesign.anchor.y;
+           
+           if (deg === 90) { let t = ax; ax = p.tileSize - ay; ay = t; }
+           else if (deg === 180) { ax = p.tileSize - ax; ay = p.tileSize - ay; }
+           else if (deg === 270) { let t = ax; ax = ay; ay = p.tileSize - t; }
+           
+           return { x: ax, y: ay };
         }
         return { x: p.tileSize / 2, y: p.tileSize / 2 };
       };
