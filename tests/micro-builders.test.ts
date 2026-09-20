@@ -9,7 +9,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { DEFAULT_PARAMS, cellsCrossed } from "../src/core.ts";
-import { SIDES, SOLID_CLASS } from "../src/primitives.ts";
+import { SIDES } from "../src/primitives.ts";
 import { generateRegion } from "../src/regions.ts";
 import { createMask } from "../src/micro/mask.ts";
 import { createRng } from "../src/micro/rng.ts";
@@ -433,7 +433,7 @@ test("pillar-hall keeps every aisle at least PASSAGE.wide", () => {
   const edit = MICRO_BUILDERS.find((b) => b.id === "pillar-hall")!.build(
     context,
   );
-  const solid = edit.cells.filter((cell) => cell.class === SOLID_CLASS);
+  const solid = edit.cells.filter((cell) => cell.class === "solid");
   assert.ok(solid.length > 0, "a 24 x 18 region got no pillars");
   assert.equal(
     solid.length,

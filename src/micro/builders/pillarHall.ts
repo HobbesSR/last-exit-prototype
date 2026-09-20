@@ -27,7 +27,7 @@
 import { PASSAGE } from "../scale.ts";
 import { createCanvas } from "../edit.ts";
 import { guardRegionEdit } from "../clearance.ts";
-import { SOLID_CLASS } from "../../primitives.ts";
+import {} from "../../primitives.ts";
 // Shared with the builders that place props: what an area must leave alone is
 // one rule, and material has to obey it more carefully than a wall does.
 import { approachCells, buildableCells } from "../placement.ts";
@@ -142,7 +142,7 @@ export const pillarHallBuilder: RegionBuilder = {
       for (let y = box[1]; y <= box[3]; y += 1)
         for (let x = box[0]; x <= box[2]; x += 1) {
           if (canvas.isClaimed(x, y)) continue;
-          if (!canvas.cell(x, y, { class: SOLID_CLASS })) continue;
+          if (!canvas.cell(x, y, { class: "solid" })) continue;
           canvas.claim(x, y);
           stated += 1;
         }

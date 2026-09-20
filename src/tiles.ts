@@ -11,9 +11,7 @@ import {
   INTERIOR_MARGIN,
   TILE_SIZE,
   cellAt,
-  SOLID_CLASS,
   isPerimeterVertex,
-  isSolidClass,
   resolvePrimitives,
   tilePrimitives,
   vertexAt,
@@ -175,7 +173,7 @@ export function validateTileShape(tile: TileDesign): string[] {
         if (parts.length !== 2 || parts.some((v) => !Number.isInteger(v)))
           errors.push(`primitives.cells key ${addr} must be "col,row"`);
         else if (
-          value?.class === SOLID_CLASS &&
+          value?.class === "solid" &&
           (!marginBound(parts[0]!) || !marginBound(parts[1]!))
         )
           errors.push(
@@ -219,11 +217,7 @@ export function tileShape(
   const blocked = new Uint8Array(TILE_SIZE * TILE_SIZE);
   for (let row = 0; row < TILE_SIZE; row++)
     for (let col = 0; col < TILE_SIZE; col++)
-      blocked[cellAt(col, row)] = isSolidClass(
-        resolved.cells[cellAt(col, row)]!.class,
-      )
-        ? 1
-        : 0;
+      blocked[cellAt(col, row)] = 0;
   return {
     classes: resolved.cells.map((cell) => cell.class),
     blocked,

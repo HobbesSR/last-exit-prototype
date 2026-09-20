@@ -34,7 +34,7 @@ export const ANY_CLASS = "any";
  * The name is reserved so tile validation recognises material without consulting
  * the library. Author-declared material classes are a later generalisation.
  */
-export const SOLID_CLASS = "solid";
+
 export const SIDES: Side[] = ["N", "E", "S", "W"];
 
 export const CELL_COUNT = TILE_SIZE * TILE_SIZE; // 36
@@ -48,7 +48,7 @@ export interface CellMeta {
   class: string;
   height: number;
 }
-export const isSolidClass = (name: string): boolean => name === SOLID_CLASS;
+
 export interface VertexMeta {
   height: number | "any";
   class: string;
@@ -288,10 +288,7 @@ export function tilePrimitives(
       // "#" is shorthand for the reserved material class; "." takes the
       // template's default, and any other mark resolves through the legend.
       cells.push({
-        class:
-          mark === "#"
-            ? SOLID_CLASS
-            : mark === "."
+        class: mark === "."
               ? tile.defaultCellClass
               : (legend[mark] ?? tile.defaultCellClass),
         height: 0,
@@ -309,7 +306,7 @@ export function tilePrimitives(
     row >= 0 &&
     col < TILE_SIZE &&
     row < TILE_SIZE &&
-    isSolidClass(cells[cellAt(col, row)]!.class);
+    false;
   for (let row = 0; row < TILE_SIZE; row++)
     for (let col = 0; col < TILE_SIZE; col++) {
       if (!solidAt(col, row)) continue;

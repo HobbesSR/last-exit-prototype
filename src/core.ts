@@ -31,8 +31,6 @@ interface Neighbour {
 }
 import {
   ANY_CLASS,
-  SOLID_CLASS,
-  isSolidClass,
   SIDES,
   TILE_SIZE,
   widestOpening,
@@ -245,7 +243,6 @@ export function cellClassNames(library: Library | null | undefined): string[] {
   return [
     ...new Set([
       ...Object.keys(library?.cellClasses ?? {}),
-      SOLID_CLASS,
       ANY_CLASS,
     ]),
   ];
@@ -290,7 +287,7 @@ export function validateLibrary(input: unknown): ValidationResult {
       errors.push("cellClasses must be an object");
     else
       for (const [name, rule] of Object.entries(library.cellClasses)) {
-        if (name === SOLID_CLASS || name === ANY_CLASS || !name.trim())
+        if (name === ANY_CLASS || !name.trim())
           errors.push(`cell class ${name} is reserved`);
         const result = validateCellClass(rule);
         for (const message of result.errors)
@@ -1509,8 +1506,6 @@ export function generateMicro(
     );
 
   for (const region of regions) {
-    // No builder is registered for material: it is discovered and left alone.
-    if (isSolidClass(region.cellClass)) continue;
     const rule = library.cellClasses?.[region.cellClass] ?? {};
     for (const block of buildableBlocks(region, grid, reserved)) {
       const mask = createMask(block, W, H);
@@ -1594,7 +1589,7 @@ export function generateMicro(
   // A builder may have turned a cell to material after a spawn was offered on
   // it. Nothing may stand in material, so the spawn goes rather than the wall.
   result.spawns = result.spawns
-    .filter((s) => !isSolidClass(grid.cellClass[s.cell]!))
+    
     .sort((a, b) => a.cell - b.cell);
   return result;
 }
@@ -2135,7 +2130,7 @@ export function generateMapLegacy(
   micro.features.forEach((feature, index) => {
     const owner = tileOfCell(feature.x, feature.y);
     const cell = feature.y * grid.W + feature.x;
-    if (owner === undefined || isSolidClass(grid.cellClass[cell]!)) return;
+    if (owner === undefined ) return;
     feats.push({
       id: `micro-${feature.kind}-${index}`,
       kind: feature.kind as MapFeature["kind"],
@@ -2201,9 +2196,7 @@ export function generateMapLegacy(
       obstacleCount: regions.reduce((n, r) => n + r.obstacles.length, 0),
       interiorWalls: 0,
       cellCount: n * p.tileSize * p.tileSize,
-      solidFraction:
-        grid.cellClass.filter((c) => c === SOLID_CLASS).length /
-        Math.max(1, n * p.tileSize * p.tileSize),
+      solidFraction: 0,
       explicitVertices: grid.vertices.size,
       // Tile anchors micro generation stranded, and the props given back to
       // reach them again. Both should stay small; a large figure means a
@@ -2277,8 +2270,7 @@ interface GridViews {
   height: number;
   verticalCount: number;
   cellClass: (index: number) => string;
-  /** True where the class is the reserved material class. */
-  cellSolid: (index: number) => boolean;
+  
   cellLevel: (index: number) => number;
   segmentOpen: (index: number) => Span;
   /** Explicit vertex metadata; anything absent defers and is flat. */
@@ -2295,7 +2287,7 @@ export function gridViews(map: GeneratedMap): GridViews {
     height: grid.height,
     verticalCount: (grid.width + 1) * grid.height,
     cellClass: readClass,
-    cellSolid: (index) => isSolidClass(readClass(index)),
+    
     cellLevel: grid.cells.level ? gridReader(grid.cells.level) : () => 0,
     segmentOpen: gridReader(grid.segments.open),
     vertices: new Map(
@@ -2346,7 +2338,7 @@ export function readCell(map: GeneratedMap, index: number): MapCell | null {
     x: index % views.width,
     y: Math.floor(index / views.width),
     cellClass,
-    blocked: views.cellSolid(index),
+    blocked: false,
     height: views.cellLevel(index),
     spawn: kind === undefined ? null : { kind },
   };
@@ -2742,8 +2734,7 @@ export function validateMap(input: unknown): ValidationResult {
       views.cellClass(spawn.cell) === OUTSIDE_CLASS
     )
       errors.push("spawn refers to a cell no tile covers");
-    else if (views.cellSolid(spawn.cell))
-      errors.push("region placed a spawn in a solid cell");
+    
   }
   const claimed = new Set<number>();
   for (const r of map.regions) {

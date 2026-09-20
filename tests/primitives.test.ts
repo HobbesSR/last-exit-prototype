@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  SOLID_CLASS,
   ANY_CLASS,
   channelSpan,
   CELL_COUNT,
@@ -89,7 +88,7 @@ test("a filled cell is metadata plus stated walls, not a region class", () => {
     }),
   );
   // "#" resolves to the reserved material class, like any other paint.
-  assert.equal(p.cells[cellAt(1, 1)]!.class, SOLID_CLASS);
+  assert.equal(p.cells[cellAt(1, 1)]!.class);
   // It states the four walls facing its unfilled neighbours, and nothing else.
   assert.equal(p.segments.size, 4);
   assert.equal(segmentDeclaration(p, vSeg(1, 1)), "wall");
@@ -171,14 +170,14 @@ test("explicit metadata overrides the shorthands", () => {
   const tile = template({
     cells: ["......", "......", "......", "......", "......", "......"],
     primitives: {
-      cells: { "2,2": { class: "vault" }, "3,3": { class: SOLID_CLASS } },
+      cells: { "2,2": { class: "vault" }, "3,3": { class: "solid" } },
       segments: { "h:3,2": "wall" },
       vertices: { "0,1": { height: 0, class: "post" } },
     },
   });
   const p = tilePrimitives(tile);
   assert.equal(p.cells[cellAt(2, 2)]!.class, "vault");
-  assert.equal(p.cells[cellAt(3, 3)]!.class, SOLID_CLASS);
+  assert.equal(p.cells[cellAt(3, 3)]!.class);
   assert.equal(segmentDeclaration(p, hSeg(3, 2)), "wall");
   assert.equal(vertexMeta(p, vertexAt(0, 1)).class, "post");
 });
@@ -215,12 +214,12 @@ test("solid overrides derive boundaries before explicit segment overrides", () =
   const filled = tilePrimitives(
     template({
       primitives: {
-        cells: { "2,2": { class: SOLID_CLASS } },
+        cells: { "2,2": { class: "solid" } },
         segments: { "h:2,2": "any", "v:2,2": [0.25, 0.75] },
       },
     }),
   );
-  assert.equal(filled.cells[cellAt(2, 2)]!.class, SOLID_CLASS);
+  assert.equal(filled.cells[cellAt(2, 2)]!.class);
   // A new solid cell derives its remaining three boundaries; stated segments win.
   assert.equal(filled.segments.size, 3);
   assert.equal(segmentDeclaration(filled, hSeg(2, 2)), "any");

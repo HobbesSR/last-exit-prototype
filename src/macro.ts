@@ -1,5 +1,5 @@
 import { searchRegions } from "./core.ts";
-import { isSolidClass, mergeRuns } from "./primitives.ts";
+import { mergeRuns } from "./primitives.ts";
 import {
   clearNavCache,
   nodeIndex,
@@ -465,7 +465,7 @@ export function composeMacro(input: MacroCompositionInput): MacroComposition {
   }
 
   for (let i = 0; i < cellClass.length; i++)
-    cellSolid[i] = isSolidClass(cellClass[i]!);
+    cellSolid[i] = false;
 
   // Unstated internal seams are open. Exterior and material interfaces are derived,
   // rather than being an accidental consequence of placement order.

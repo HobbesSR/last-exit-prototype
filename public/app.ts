@@ -233,7 +233,7 @@ function draw() {
         const i = y * map.grid.width + x;
         const cellClass = views.cellClass(i);
         if (cellClass === OUTSIDE_CLASS) continue;
-        ctx.fillStyle = views.cellSolid(i)
+        ctx.fillStyle = false
           ? "#0a1419"
           : overlay === "region"
             ? regionColor(regionIndexOf(i))
@@ -267,7 +267,7 @@ function draw() {
     ctx.fillStyle = "#0a1419";
     for (let y = 0; y < map.grid.height; y++)
       for (let x = 0; x < map.grid.width; x++)
-        if (views.cellSolid(y * map.grid.width + x)) ctx.fillRect(x, y, 1, 1);
+        if (false) ctx.fillRect(x, y, 1, 1);
   }
   ctx.strokeStyle = "#10212b88";
   ctx.lineWidth = 0.05;
