@@ -35,7 +35,7 @@
   "tiles": [
     {
       "id": "street",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "orientations": [
         0,
         90,
@@ -446,7 +446,7 @@
     },
     {
       "id": "open-tree-2x2",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "T": "tree"
       },
@@ -506,7 +506,7 @@
     },
     {
       "id": "open-tree-3x3",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "T": "tree"
       },
@@ -566,7 +566,7 @@
     },
     {
       "id": "open-tree-2x4",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "T": "tree"
       },
@@ -626,7 +626,7 @@
     },
     {
       "id": "open-tree-caticorner",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "T": "tree"
       },
@@ -686,7 +686,7 @@
     },
     {
       "id": "open-rock-2x2",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "R": "rock"
       },
@@ -746,7 +746,7 @@
     },
     {
       "id": "open-rock-3x3",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "R": "rock"
       },
@@ -806,7 +806,7 @@
     },
     {
       "id": "open-rock-2x4",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "R": "rock"
       },
@@ -866,7 +866,7 @@
     },
     {
       "id": "open-rock-caticorner",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "R": "rock"
       },
@@ -926,7 +926,7 @@
     },
     {
       "id": "open-rubble-2x2",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "B": "rubble"
       },
@@ -986,7 +986,7 @@
     },
     {
       "id": "open-rubble-3x3",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "B": "rubble"
       },
@@ -1046,7 +1046,7 @@
     },
     {
       "id": "open-rubble-2x4",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "B": "rubble"
       },
@@ -1106,7 +1106,7 @@
     },
     {
       "id": "open-rubble-caticorner",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "B": "rubble"
       },
@@ -1166,7 +1166,7 @@
     },
     {
       "id": "open-hut-center",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "H": "hut"
       },
@@ -1226,7 +1226,7 @@
     },
     {
       "id": "open-hut-edge",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "H": "hut"
       },
@@ -1282,11 +1282,12 @@
           "hut",
           "any"
         ]
-      }
+      },
+      "eligibleTiers": []
     },
     {
       "id": "open-hut-corner",
-      "defaultCellClass": "open",
+      "defaultCellClass": "any",
       "legend": {
         "H": "hut"
       },
@@ -1342,7 +1343,8 @@
           "hut",
           "hut"
         ]
-      }
+      },
+      "eligibleTiers": []
     }
   ],
   "tileSets": [
