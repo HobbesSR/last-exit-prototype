@@ -1,3 +1,63 @@
+
+
+window.addEventListener("load", () => {
+  const zoomIn = document.getElementById("zoomIn");
+  if (zoomIn) zoomIn.addEventListener("click", () => {
+    const center = world({ x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 });
+    zoom = Math.min(40, zoom * 1.5);
+    pan = { x: canvas.clientWidth / 2 - center.x * zoom, y: canvas.clientHeight / 2 - center.y * zoom };
+    updateZoomUI();
+    requestAnimationFrame(draw);
+  });
+  
+  const zoomOut = document.getElementById("zoomOut");
+  if (zoomOut) zoomOut.addEventListener("click", () => {
+    const center = world({ x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 });
+    zoom = Math.max(1, zoom / 1.5);
+    pan = { x: canvas.clientWidth / 2 - center.x * zoom, y: canvas.clientHeight / 2 - center.y * zoom };
+    updateZoomUI();
+    requestAnimationFrame(draw);
+  });
+  
+  const zoomReset = document.getElementById("zoomReset");
+  if (zoomReset) zoomReset.addEventListener("click", () => {
+    const center = world({ x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 });
+    zoom = 3;
+    pan = { x: canvas.clientWidth / 2 - center.x * zoom, y: canvas.clientHeight / 2 - center.y * zoom };
+    updateZoomUI();
+    requestAnimationFrame(draw);
+  });
+});
+
+window.addEventListener("load", () => {
+  const zoomIn = document.getElementById("zoomIn");
+  if (zoomIn) zoomIn.addEventListener("click", () => {
+    const center = world({ x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 });
+    zoom = Math.min(40, zoom * 1.5);
+    pan = { x: canvas.clientWidth / 2 - center.x * zoom, y: canvas.clientHeight / 2 - center.y * zoom };
+    updateZoomUI();
+    requestAnimationFrame(draw);
+  });
+  
+  const zoomOut = document.getElementById("zoomOut");
+  if (zoomOut) zoomOut.addEventListener("click", () => {
+    const center = world({ x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 });
+    zoom = Math.max(1, zoom / 1.5);
+    pan = { x: canvas.clientWidth / 2 - center.x * zoom, y: canvas.clientHeight / 2 - center.y * zoom };
+    updateZoomUI();
+    requestAnimationFrame(draw);
+  });
+  
+  const zoomReset = document.getElementById("zoomReset");
+  if (zoomReset) zoomReset.addEventListener("click", () => {
+    const center = world({ x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 });
+    zoom = 3;
+    pan = { x: canvas.clientWidth / 2 - center.x * zoom, y: canvas.clientHeight / 2 - center.y * zoom };
+    updateZoomUI();
+    requestAnimationFrame(draw);
+  });
+});
+
 import {
   DEFAULT_LIBRARY,
   generateMap,
