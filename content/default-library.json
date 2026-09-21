@@ -5,19 +5,19 @@
       "generator": "open-field"
     },
     "market": {
-      "generator": "compound"
+      "generator": "open-field"
     },
     "depot": {
-      "generator": "pillar-hall"
+      "generator": "open-field"
     },
     "park": {
       "generator": "open-field"
     },
     "landing": {
-      "generator": "rubble"
+      "generator": "open-field"
     },
     "evac": {
-      "generator": "compound"
+      "generator": "open-field"
     },
     "tree": {
       "generator": "open-field"
@@ -73,17 +73,7 @@
         "x": 3,
         "y": 4
       },
-      "weight": 5,
-      "edges": {
-        "S": [
-          "market",
-          "market",
-          "market",
-          "market",
-          "market",
-          "market"
-        ]
-      }
+      "weight": 5
     },
     {
       "id": "market-corner",
