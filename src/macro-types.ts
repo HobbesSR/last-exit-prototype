@@ -74,6 +74,7 @@ export interface MacroComposition extends NavTarget {
   constraints: Array<MacroRouteConstraint & { placementId: string }>;
   /** Dense world-cell arrays; empty class denotes outside the mask. */
   cellClass: string[];
+  effectiveCellClass: string[];
   /** True where the class is the reserved material class. */
   cellSolid: boolean[];
   cellOwner: Array<string | null>;

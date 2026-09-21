@@ -443,7 +443,7 @@ test("uniform tiles remain ordinary content regardless of omitted or explicit an
       defaultCellClass: "yard",
 
       orientations: [0],
-      ports: { N: "any", E: "any", S: "any", W: "any" },
+      ports: { N: ["any","any","any","any","any","any"], E: ["any","any","any","any","any","any"], S: ["any","any","any","any","any","any"], W: "any" },
     },
     {
       id: "fallback",
@@ -474,7 +474,7 @@ test("a template that seals its own interior is never placed", () => {
     defaultCellClass: "court",
 
     orientations: [0] as const,
-    ports: { N: "any", E: "any", S: "any", W: "any" },
+    ports: { N: ["any","any","any","any","any","any"], E: ["any","any","any","any","any","any"], S: ["any","any","any","any","any","any"], W: "any" },
     // A ring on the margin: every seam opens onto a one-cell strip that no
     // body fits through, and nothing inside is reachable from outside.
     walls: [

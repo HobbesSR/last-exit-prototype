@@ -175,7 +175,7 @@ test("explicit metadata overrides the shorthands", () => {
       vertices: { "0,1": { height: 0, class: "post" } },
     },
   });
-  const p = tilePrimitives(tile);
+  const p = tilePrimitives(tile, 0);
   assert.equal(p.cells[cellAt(2, 2)]!.class, "vault");
   assert.equal(p.cells[cellAt(3, 3)]!.class);
   assert.equal(segmentDeclaration(p, hSeg(3, 2)), "wall");

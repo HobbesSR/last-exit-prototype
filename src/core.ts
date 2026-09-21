@@ -1986,7 +1986,7 @@ export function generateMapLegacy(
   const grid = {
     W: composition.width,
     H: composition.height,
-    cellClass: composition.cellClass,
+    cellClass: composition.effectiveCellClass,
     segmentOpen: composition.segmentOpen,
     cellLevel: new Array(composition.width * composition.height).fill(0),
     vertices: new Map(),
@@ -3074,7 +3074,7 @@ export function generateMap(
     let regions = composition.regions;
     const grid: GridBuild = {
       W: composition.width, H: composition.height,
-      cellClass: composition.cellClass, segmentOpen: composition.segmentOpen,
+      cellClass: composition.effectiveCellClass, segmentOpen: composition.segmentOpen,
       cellLevel: new Array(composition.width * composition.height).fill(0), vertices: new Map(),
       segmentIndex: (vertical: boolean, line: number, offset: number) =>
         vertical ? offset * (composition.width + 1) + line : (composition.width + 1) * composition.height + line * composition.width + offset,

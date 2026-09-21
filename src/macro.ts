@@ -464,51 +464,13 @@ export function composeMacro(input: MacroCompositionInput): MacroComposition {
     });
   }
 
-  // Post-process: Adapt "any" cells on tile boundaries.
-  // Because WFC matchVertex ensures no conflicting strict segments, an "any" cell
-  // will receive at most one strict region type from its neighbors.
-  let adapted = true;
-  while (adapted) {
-    adapted = false;
-    const newClass = [...cellClass];
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const i = y * width + x;
-        if (cellClass[i] === "any") {
-          const owner = cellOwner[i];
-          const neighbors = [
-            { nx: x, ny: y - 1 },
-            { nx: x, ny: y + 1 },
-            { nx: x - 1, ny: y },
-            { nx: x + 1, ny: y }
-          ];
-          for (const n of neighbors) {
-            if (n.nx >= 0 && n.nx < width && n.ny >= 0 && n.ny < height) {
-              const ni = n.ny * width + n.nx;
-              if (cellOwner[ni] !== owner && cellClass[ni] !== "any") {
-                newClass[i] = cellClass[ni];
-                adapted = true;
-                break;
-              }
-            }
-          }
-        }
-      }
-    }
-    for (let i = 0; i < cellClass.length; i++) {
-      cellClass[i] = newClass[i];
-    }
-  }
-  
-  // Resolve remaining "any" to "open"
-  for (let i = 0; i < cellClass.length; i++) {
-    if (cellClass[i] === "any") {
-      cellClass[i] = "open";
-    }
-  }
-
   for (let i = 0; i < cellClass.length; i++)
     cellSolid[i] = false;
+
+  const effectiveCellClass = [...cellClass];
+  for (let i = 0; i < effectiveCellClass.length; i++) {
+    if (effectiveCellClass[i] === "any") effectiveCellClass[i] = "open";
+  }
 
   // Unstated internal seams are open. Exterior and material interfaces are derived,
   // rather than being an accidental consequence of placement order.
@@ -596,6 +558,7 @@ export function composeMacro(input: MacroCompositionInput): MacroComposition {
     height,
     walls: mergeRuns(pieces),
     cellClass,
+    effectiveCellClass,
     cellSolid,
     cellOwner,
     navBoxes: [...mask]
@@ -608,7 +571,7 @@ export function composeMacro(input: MacroCompositionInput): MacroComposition {
         return [x, y, x + 1, y + 1];
       }),
     regions: searchRegions(
-      { W: width, H: height, cellClass, segmentOpen, segmentIndex },
+      { W: width, H: height, cellClass: effectiveCellClass, segmentOpen, segmentIndex },
       input.seed,
     ),
     entrances,
