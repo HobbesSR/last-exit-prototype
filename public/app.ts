@@ -278,11 +278,7 @@ function draw() {
         const i = y * map.grid.width + x;
         const cellClass = views.cellClass(i);
         if (cellClass === OUTSIDE_CLASS) continue;
-        ctx.fillStyle = false
-          ? "#0a1419"
-          : overlay === "region"
-            ? regionColor(regionIndexOf(i))
-            : `hsl(${hash(cellClass) % 360} 32% 30%)`;
+        ctx.fillStyle = false ? "#0a1419" : overlay === "region" ? (cellClass === "open" ? "#5a6268" : regionColor(regionIndexOf(i))) : (cellClass === "open" ? "#5a6268" : `hsl(${hash(cellClass) % 360} 32% 30%)`);
         ctx.fillRect(x, y, 1, 1);
       }
   } else {
@@ -699,7 +695,7 @@ const TILE_CELLS = 6;
 const SOLID = "solid";
 const SOLID_MARK = "#";
 const canBeSolid = (_col: number, _row: number) => true;
-const classColor = (name: string) => `hsl(${hash(name) % 360} 32% 34%)`;
+const classColor = (name: string) => name === "open" ? "#5a6268" : `hsl(${hash(name) % 360} 32% 34%)`;
 let paint: Array<string | null> = new Array(36).fill(null);
 let brush: string | null = null;
 let segmentValues: SegmentDeclaration[] = new Array(SEGMENT_COUNT).fill("any");
