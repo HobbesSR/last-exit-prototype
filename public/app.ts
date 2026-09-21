@@ -299,11 +299,18 @@ function draw() {
             ctx.fillStyle = "#5a6268";
             ctx.fillRect(x, y, 1, 1);
             if (zoom > 3) {
+              ctx.save();
+              ctx.beginPath();
+              ctx.rect(x, y, 1, 1);
+              ctx.clip();
+              
               ctx.fillStyle = cellColor;
               ctx.beginPath();
               ctx.moveTo(x - 0.5, y); ctx.lineTo(x - 0.2, y); ctx.lineTo(x + 0.8, y + 1); ctx.lineTo(x + 0.5, y + 1);
               ctx.moveTo(x + 0.5, y); ctx.lineTo(x + 0.8, y); ctx.lineTo(x + 1.8, y + 1); ctx.lineTo(x + 1.5, y + 1);
               ctx.fill();
+              
+              ctx.restore();
             } else {
               // When zoomed out, just draw a blended color
               ctx.fillStyle = cellColor;
