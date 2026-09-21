@@ -2,34 +2,22 @@
   "version": 2,
   "cellClasses": {
     "open": {
-      "generator": "open-field",
-      "clutterChance": 0.05,
-      "clutterSize": 0.4
+      "generator": "open-field"
     },
     "market": {
-      "generator": "compound",
-      "clutterChance": 0.15,
-      "clutterSize": 0.5
+      "generator": "compound"
     },
     "depot": {
-      "generator": "pillar-hall",
-      "clutterChance": 0.2,
-      "clutterSize": 0.7
+      "generator": "pillar-hall"
     },
     "park": {
-      "generator": "open-field",
-      "clutterChance": 0.4,
-      "clutterSize": 0.8
+      "generator": "open-field"
     },
     "landing": {
-      "generator": "rubble",
-      "clutterChance": 0.05,
-      "clutterSize": 0.4
+      "generator": "rubble"
     },
     "evac": {
-      "generator": "compound",
-      "clutterChance": 0.1,
-      "clutterSize": 0.8
+      "generator": "compound"
     },
     "tree": {
       "generator": "open-field"

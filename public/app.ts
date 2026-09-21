@@ -86,7 +86,7 @@ function world(p: Point): Point {
 
   function updateZoomUI() {
     const zl = document.getElementById("zoomLevel");
-    if (zl) zl.textContent = Math.round(zoom * 100) + "%";
+    if (zl) zl.textContent = Math.round((zoom / 3) * 100) + "%";
   }
   function fit() {
   if (!map) return;
@@ -277,9 +277,15 @@ function draw() {
   ctx.scale(zoom, zoom);
   const overlay = select("overlay").value;
   const views = gridViews(map);
-  if (overlay === "region" || overlay === "class" || overlay === "components") {
-    for (let y = 0; y < map.grid.height; y++)
-      for (let x = 0; x < map.grid.width; x++) {
+  
+    const minX = Math.max(0, Math.floor(-pan.x / zoom));
+    const maxX = Math.min(map.grid.width, Math.ceil((canvas.clientWidth - pan.x) / zoom));
+    const minY = Math.max(0, Math.floor(-pan.y / zoom));
+    const maxY = Math.min(map.grid.height, Math.ceil((canvas.clientHeight - pan.y) / zoom));
+    
+    if (overlay === "region" || overlay === "class" || overlay === "components") {
+      for (let y = minY; y < maxY; y++)
+        for (let x = minX; x < maxX; x++) {
         const i = y * map.grid.width + x;
         const cellClass = views.cellClass(i);
         if (cellClass === OUTSIDE_CLASS) continue;
@@ -298,7 +304,7 @@ function draw() {
           if (drawStripes) {
             ctx.fillStyle = "#5a6268";
             ctx.fillRect(x, y, 1, 1);
-            if (zoom > 3) {
+            if (zoom > 1.5) {
               ctx.save();
               ctx.beginPath();
               ctx.rect(x, y, 1, 1);
@@ -322,12 +328,12 @@ function draw() {
       }
 
       if (views.constraints) {
-        const W = map.grid.width;
-        const H = map.grid.height;
-        const vOffset = (W + 1) * H;
-        
-        for (let y = 0; y <= H; y++) {
-          for (let x = 0; x <= W; x++) {
+          const W = map.grid.width;
+          const H = map.grid.height;
+          const vOffset = (W + 1) * H;
+          
+          for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
             if (x < W) {
               // horizontal: vOffset + line(y) * width + offset(x)
               const hIdx = vOffset + y * W + x;
@@ -401,8 +407,10 @@ function draw() {
       }
     }
   }
-  for (const w of map.walls)
+  for (const w of map.walls) {
+    if (Math.max(w.x1, w.x2) < minX || Math.min(w.x1, w.x2) > maxX || Math.max(w.y1, w.y2) < minY || Math.min(w.y1, w.y2) > maxY) continue;
     line({ x: w.x1, y: w.y1 }, { x: w.x2, y: w.y2 }, "#071015", 0.2);
+  }
   // A seam only a contestant fits through. Read off the measured width, so it
   // marks what the tiles happen to leave rather than anything that was planned.
   const contestantOnly = (e: MapEdge) =>
