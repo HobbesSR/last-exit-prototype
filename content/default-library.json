@@ -73,33 +73,7 @@
         "x": 3,
         "y": 4
       },
-      "weight": 5,
-      "edges": {
-        "S": [
-          "market",
-          "market",
-          "market",
-          "market",
-          "market",
-          "market"
-        ],
-        "E": [
-          "open",
-          "open",
-          "market",
-          "market",
-          "market",
-          "market"
-        ],
-        "W": [
-          "open",
-          "open",
-          "market",
-          "market",
-          "market",
-          "market"
-        ]
-      }
+      "weight": 5
     },
     {
       "id": "market-corner",
@@ -125,25 +99,7 @@
         "x": 4,
         "y": 4
       },
-      "weight": 5,
-      "edges": {
-        "S": [
-          "open",
-          "open",
-          "market",
-          "market",
-          "market",
-          "market"
-        ],
-        "E": [
-          "open",
-          "open",
-          "market",
-          "market",
-          "market",
-          "market"
-        ]
-      }
+      "weight": 5
     },
     {
       "id": "market-interior",
@@ -158,41 +114,7 @@
         "x": 3,
         "y": 3
       },
-      "weight": 5,
-      "edges": {
-        "N": [
-          "market",
-          "market",
-          "market",
-          "market",
-          "market",
-          "market"
-        ],
-        "S": [
-          "market",
-          "market",
-          "market",
-          "market",
-          "market",
-          "market"
-        ],
-        "E": [
-          "market",
-          "market",
-          "market",
-          "market",
-          "market",
-          "market"
-        ],
-        "W": [
-          "market",
-          "market",
-          "market",
-          "market",
-          "market",
-          "market"
-        ]
-      }
+      "weight": 5
     },
     {
       "id": "depot-fence",
@@ -225,32 +147,6 @@
       "anchor": {
         "x": 3,
         "y": 3
-      },
-      "edges": {
-        "S": [
-          "depot",
-          "depot",
-          "depot",
-          "depot",
-          "depot",
-          "depot"
-        ],
-        "E": [
-          "open",
-          "depot",
-          "depot",
-          "depot",
-          "depot",
-          "depot"
-        ],
-        "W": [
-          "open",
-          "depot",
-          "depot",
-          "depot",
-          "depot",
-          "depot"
-        ]
       }
     },
     {
@@ -290,24 +186,6 @@
       "anchor": {
         "x": 3,
         "y": 3
-      },
-      "edges": {
-        "S": [
-          "open",
-          "depot",
-          "depot",
-          "depot",
-          "depot",
-          "depot"
-        ],
-        "E": [
-          "open",
-          "depot",
-          "depot",
-          "depot",
-          "depot",
-          "depot"
-        ]
       }
     },
     {
@@ -318,11 +196,11 @@
       },
       "cells": [
         "OOOOOO",
-        "OOOOOO",
-        "OOOOOO",
-        "OOOOOO",
-        "OOOOOO",
-        "OOOOOO"
+        "......",
+        "......",
+        "......",
+        "......",
+        "......"
       ],
       "walls": [
         {
@@ -368,33 +246,7 @@
         "x": 3,
         "y": 4
       },
-      "weight": 5,
-      "edges": {
-        "S": [
-          "park",
-          "park",
-          "park",
-          "park",
-          "park",
-          "park"
-        ],
-        "E": [
-          "open",
-          "open",
-          "park",
-          "park",
-          "park",
-          "park"
-        ],
-        "W": [
-          "open",
-          "open",
-          "park",
-          "park",
-          "park",
-          "park"
-        ]
-      }
+      "weight": 5
     },
     {
       "id": "park-interior",
@@ -409,41 +261,7 @@
         "x": 3,
         "y": 3
       },
-      "weight": 5,
-      "edges": {
-        "N": [
-          "park",
-          "park",
-          "park",
-          "park",
-          "park",
-          "park"
-        ],
-        "S": [
-          "park",
-          "park",
-          "park",
-          "park",
-          "park",
-          "park"
-        ],
-        "E": [
-          "park",
-          "park",
-          "park",
-          "park",
-          "park",
-          "park"
-        ],
-        "W": [
-          "park",
-          "park",
-          "park",
-          "park",
-          "park",
-          "park"
-        ]
-      }
+      "weight": 5
     },
     {
       "id": "landing-edge",
@@ -469,33 +287,7 @@
         "x": 3,
         "y": 4
       },
-      "weight": 5,
-      "edges": {
-        "S": [
-          "landing",
-          "landing",
-          "landing",
-          "landing",
-          "landing",
-          "landing"
-        ],
-        "E": [
-          "open",
-          "open",
-          "landing",
-          "landing",
-          "landing",
-          "landing"
-        ],
-        "W": [
-          "open",
-          "open",
-          "landing",
-          "landing",
-          "landing",
-          "landing"
-        ]
-      }
+      "weight": 5
     },
     {
       "id": "landing-interior",
@@ -510,41 +302,7 @@
         "x": 3,
         "y": 3
       },
-      "weight": 5,
-      "edges": {
-        "N": [
-          "landing",
-          "landing",
-          "landing",
-          "landing",
-          "landing",
-          "landing"
-        ],
-        "S": [
-          "landing",
-          "landing",
-          "landing",
-          "landing",
-          "landing",
-          "landing"
-        ],
-        "E": [
-          "landing",
-          "landing",
-          "landing",
-          "landing",
-          "landing",
-          "landing"
-        ],
-        "W": [
-          "landing",
-          "landing",
-          "landing",
-          "landing",
-          "landing",
-          "landing"
-        ]
-      }
+      "weight": 5
     },
     {
       "id": "evac-fence",
@@ -577,32 +335,6 @@
       "anchor": {
         "x": 3,
         "y": 3
-      },
-      "edges": {
-        "S": [
-          "evac",
-          "evac",
-          "evac",
-          "evac",
-          "evac",
-          "evac"
-        ],
-        "E": [
-          "open",
-          "evac",
-          "evac",
-          "evac",
-          "evac",
-          "evac"
-        ],
-        "W": [
-          "open",
-          "evac",
-          "evac",
-          "evac",
-          "evac",
-          "evac"
-        ]
       }
     },
     {
@@ -642,24 +374,6 @@
       "anchor": {
         "x": 3,
         "y": 3
-      },
-      "edges": {
-        "S": [
-          "open",
-          "evac",
-          "evac",
-          "evac",
-          "evac",
-          "evac"
-        ],
-        "E": [
-          "open",
-          "evac",
-          "evac",
-          "evac",
-          "evac",
-          "evac"
-        ]
       }
     },
     {
@@ -694,32 +408,6 @@
       "anchor": {
         "x": 3,
         "y": 3
-      },
-      "edges": {
-        "S": [
-          "evac",
-          "evac",
-          "evac",
-          "evac",
-          "evac",
-          "evac"
-        ],
-        "E": [
-          "open",
-          "evac",
-          "evac",
-          "evac",
-          "evac",
-          "evac"
-        ],
-        "W": [
-          "open",
-          "evac",
-          "evac",
-          "evac",
-          "evac",
-          "evac"
-        ]
       }
     },
     {
@@ -1091,17 +779,7 @@
         3,
         4,
         5
-      ],
-      "edges": {
-        "S": [
-          "any",
-          "hut",
-          "hut",
-          "hut",
-          "hut",
-          "any"
-        ]
-      }
+      ]
     },
     {
       "id": "open-hut-corner",
@@ -1134,25 +812,7 @@
         3,
         4,
         5
-      ],
-      "edges": {
-        "S": [
-          "any",
-          "any",
-          "hut",
-          "hut",
-          "hut",
-          "hut"
-        ],
-        "E": [
-          "any",
-          "any",
-          "hut",
-          "hut",
-          "hut",
-          "hut"
-        ]
-      }
+      ]
     }
   ],
   "tileSets": [
