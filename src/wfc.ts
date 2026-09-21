@@ -102,7 +102,8 @@ export function getRotatedCells(opt: TileOption, side: Side, libraryTiles: TileD
       for (let y = 0; y < 6; y++) def.push(getMark(5, y));
     }
   } else {
-    for (let i = 0; i < 6; i++) def.push("any");
+    const defClass = design.defaultCellClass || "any";
+    for (let i = 0; i < 6; i++) def.push(defClass);
   }
 
   let reversed = false;
