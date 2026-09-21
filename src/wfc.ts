@@ -140,6 +140,7 @@ export function propagate(grid: WfcGrid, columns: number, rows: number, libraryT
       
       const newDomain = cell.domain.filter(opt => {
         const validSet = (opt as any)[validProp] as Set<number>;
+        if (!validSet) { console.error("MISSING validSet for", opt, validProp, "id:", opt.id); }
         for (let k = 0; k < nCell.domain.length; k++) {
           if (validSet.has(nCell.domain[k]!.id!)) return true;
         }
@@ -168,31 +169,43 @@ export function propagate(grid: WfcGrid, columns: number, rows: number, libraryT
 export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTiles: TileDesign[], random: () => number, state = { iterations: 0, maxIterations: 10000 }, startQueue?: number): WfcGrid | null {
   if (state.iterations++ > state.maxIterations) return null;
 
-  // Assign IDs and precalculate valid edges if not done yet
-  let needsPrecalc = false;
-  if (grid.length > 0 && grid[0]!.domain.length > 0 && grid[0]!.domain[0]!.id === undefined) {
-    let id = 0;
-    for (const opt of grid[0]!.domain) opt.id = id++;
-    needsPrecalc = true;
-  }
-
-  if (needsPrecalc) {
-    const domain = grid[0]!.domain;
+  // Assign IDs and precalculate
+    const allOpts = new Set<TileOption>();
+    for (let i = 0; i < grid.length; i++) {
+      const cell = grid[i]!;
+      for (let j = 0; j < cell.domain.length; j++) allOpts.add(cell.domain[j]!);
+    }
+    const domain = Array.from(allOpts);
+    
+    let needsPrecalc = false;
+    let nextId = 0;
     for (const opt of domain) {
-      (opt as any).validN = new Set();
-      (opt as any).validS = new Set();
-      (opt as any).validE = new Set();
-      (opt as any).validW = new Set();
-      for (const nOpt of domain) {
-        if (matchEdge(opt, "N", nOpt, "S", libraryTiles)) (opt as any).validN.add(nOpt.id);
-        if (matchEdge(opt, "S", nOpt, "N", libraryTiles)) (opt as any).validS.add(nOpt.id);
-        if (matchEdge(opt, "E", nOpt, "W", libraryTiles)) (opt as any).validE.add(nOpt.id);
-        if (matchEdge(opt, "W", nOpt, "E", libraryTiles)) (opt as any).validW.add(nOpt.id);
+      if (opt.id === undefined) {
+        opt.id = nextId++;
+        needsPrecalc = true;
+      } else {
+        if (opt.id >= nextId) nextId = opt.id + 1;
       }
     }
-  }
 
-  if (!propagate(grid, columns, rows, libraryTiles, startQueue)) return null;
+    if (needsPrecalc) {
+      for (const opt of domain) {
+        (opt as any).validN = new Set();
+        (opt as any).validS = new Set();
+        (opt as any).validE = new Set();
+        (opt as any).validW = new Set();
+      }
+      for (const opt of domain) {
+        for (const nOpt of domain) {
+          if (matchEdge(opt, "N", nOpt, "S", libraryTiles)) (opt as any).validN.add(nOpt.id);
+          if (matchEdge(opt, "S", nOpt, "N", libraryTiles)) (opt as any).validS.add(nOpt.id);
+          if (matchEdge(opt, "E", nOpt, "W", libraryTiles)) (opt as any).validE.add(nOpt.id);
+          if (matchEdge(opt, "W", nOpt, "E", libraryTiles)) (opt as any).validW.add(nOpt.id);
+        }
+      }
+    }
+
+    if (!propagate(grid, columns, rows, libraryTiles, startQueue)) return null;
 
   let minEntropy = Infinity;
   let bestCellIndex = -1;

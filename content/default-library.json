@@ -47,7 +47,41 @@
         "y": 3
       },
       "adapter": true,
-      "weight": 15.0
+      "weight": 15.0,
+      "edges": {
+        "N": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "E": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "S": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "W": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ]
+      }
     },
     {
       "id": "market-front",
@@ -434,7 +468,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "E": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "S": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "W": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ]
+      }
     },
     {
       "id": "open-tree-3x3",
@@ -460,7 +528,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "E": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "S": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "W": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ]
+      }
     },
     {
       "id": "open-tree-2x4",
@@ -486,7 +588,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "E": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "S": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "W": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ]
+      }
     },
     {
       "id": "open-tree-caticorner",
@@ -512,7 +648,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "E": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "S": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "W": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ]
+      }
     },
     {
       "id": "open-rock-2x2",
@@ -538,7 +708,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "E": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "S": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "W": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ]
+      }
     },
     {
       "id": "open-rock-3x3",
@@ -564,7 +768,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "E": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "S": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "W": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ]
+      }
     },
     {
       "id": "open-rock-2x4",
@@ -590,7 +828,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "E": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "S": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "W": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ]
+      }
     },
     {
       "id": "open-rock-caticorner",
@@ -616,7 +888,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "E": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "S": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "W": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ]
+      }
     },
     {
       "id": "open-rubble-2x2",
@@ -642,7 +948,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "E": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "S": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "W": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ]
+      }
     },
     {
       "id": "open-rubble-3x3",
@@ -668,7 +1008,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "E": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "S": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "W": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ]
+      }
     },
     {
       "id": "open-rubble-2x4",
@@ -694,7 +1068,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "E": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "S": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "W": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ]
+      }
     },
     {
       "id": "open-rubble-caticorner",
@@ -720,7 +1128,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "E": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "S": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "W": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ]
+      }
     },
     {
       "id": "open-hut-center",
@@ -746,7 +1188,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "E": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "S": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ],
+        "W": [
+          "open",
+          "open",
+          "open",
+          "open",
+          "open",
+          "open"
+        ]
+      }
     },
     {
       "id": "open-hut-edge",
@@ -772,7 +1248,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "any",
+          "any",
+          "any",
+          "any",
+          "any",
+          "any"
+        ],
+        "E": [
+          "any",
+          "any",
+          "any",
+          "any",
+          "any",
+          "any"
+        ],
+        "W": [
+          "any",
+          "any",
+          "any",
+          "any",
+          "any",
+          "any"
+        ],
+        "S": [
+          "any",
+          "hut",
+          "hut",
+          "hut",
+          "hut",
+          "any"
+        ]
+      }
     },
     {
       "id": "open-hut-corner",
@@ -798,7 +1308,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 0.5
+      "weight": 0.5,
+      "edges": {
+        "N": [
+          "any",
+          "any",
+          "any",
+          "any",
+          "any",
+          "any"
+        ],
+        "W": [
+          "any",
+          "any",
+          "any",
+          "any",
+          "any",
+          "any"
+        ],
+        "E": [
+          "any",
+          "any",
+          "hut",
+          "hut",
+          "hut",
+          "hut"
+        ],
+        "S": [
+          "any",
+          "any",
+          "hut",
+          "hut",
+          "hut",
+          "hut"
+        ]
+      }
     }
   ],
   "tileSets": [

@@ -2981,6 +2981,15 @@ export function generateMap(
     
     if (!allPlaced) continue;
 
+    const tileOptions: import("./wfc.ts").TileOption[] = library.tiles.flatMap(t => 
+      (t.orientations || [0]).map(o => ({
+        templateId: t.id,
+        orientation: o as any,
+        difficulty: getDifficulty(t),
+        weight: t.weight || 1,
+        id: undefined as any
+      }))
+    );
     const wfcGrid: WfcGrid = cells.map((c, i) => {
       if (assigned[i]) {
         return {
@@ -2996,14 +3005,12 @@ export function generateMap(
         const tier = zoneOf(c).tier;
         const validTiles = library.tiles.filter(t => !t.eligibleTiers || t.eligibleTiers.includes(tier));
         const domain: TileOption[] = [];
-        for (const t of validTiles) {
-          const diff = getDifficulty(t);
-          const orients = t.orientations && t.orientations.length ? t.orientations : [0];
-          for (const o of orients) {
-            domain.push({ templateId: t.id, orientation: o as any, difficulty: diff, weight: t.weight || 1 });
+          for (const t of validTiles) {
+            for (const tOpt of tileOptions) {
+              if (tOpt.templateId === t.id) domain.push(tOpt);
+            }
           }
-        }
-        return { x: c.x, y: c.y, domain };
+          return { x: c.x, y: c.y, domain };
       }
     });
 
@@ -3156,7 +3163,7 @@ export function generateMap(
     map!.walls = deriveWalls(map!);
     break; 
     } catch (e) {
-      // console.warn("Attempt", attempt, "failed:", e);
+      console.warn("Attempt", attempt, "failed:", (e as Error).stack);
     }
   }
   
