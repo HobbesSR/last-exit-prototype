@@ -30,6 +30,26 @@
       "generator": "compound",
       "clutterChance": 0.1,
       "clutterSize": 0.8
+    },
+    "tree": {
+      "generator": "open-field",
+      "clutterChance": 0.0,
+      "clutterSize": 0.0
+    },
+    "rock": {
+      "generator": "open-field",
+      "clutterChance": 0.0,
+      "clutterSize": 0.0
+    },
+    "rubble": {
+      "generator": "open-field",
+      "clutterChance": 0.0,
+      "clutterSize": 0.0
+    },
+    "hut": {
+      "generator": "open-field",
+      "clutterChance": 0.0,
+      "clutterSize": 0.0
     }
   },
   "tiles": [

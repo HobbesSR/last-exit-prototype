@@ -83,7 +83,12 @@ function point(e: { clientX: number; clientY: number }): Point {
 function world(p: Point): Point {
   return { x: (p.x - pan.x) / zoom, y: (p.y - pan.y) / zoom };
 }
-function fit() {
+
+  function updateZoomUI() {
+    const zl = document.getElementById("zoomLevel");
+    if (zl) zl.textContent = Math.round(zoom * 100) + "%";
+  }
+  function fit() {
   if (!map) return;
   zoom = Math.min(
     (canvas.clientWidth - 70) / map.width,
@@ -293,17 +298,19 @@ function draw() {
           if (drawStripes) {
             ctx.fillStyle = "#5a6268";
             ctx.fillRect(x, y, 1, 1);
-            
-            ctx.fillStyle = cellColor; // stripe color
-            // Thinner stripes (e.g., 3-4 per cell)
-            ctx.beginPath();
-            for(let o = -1; o < 2; o += 0.5) {
-              ctx.moveTo(x + o, y);
-              ctx.lineTo(x + o + 0.25, y);
-              ctx.lineTo(x + o + 1.25, y + 1);
-              ctx.lineTo(x + o + 1, y + 1);
+            if (zoom > 3) {
+              ctx.fillStyle = cellColor;
+              ctx.beginPath();
+              ctx.moveTo(x - 0.5, y); ctx.lineTo(x - 0.2, y); ctx.lineTo(x + 0.8, y + 1); ctx.lineTo(x + 0.5, y + 1);
+              ctx.moveTo(x + 0.5, y); ctx.lineTo(x + 0.8, y); ctx.lineTo(x + 1.8, y + 1); ctx.lineTo(x + 1.5, y + 1);
+              ctx.fill();
+            } else {
+              // When zoomed out, just draw a blended color
+              ctx.fillStyle = cellColor;
+              ctx.globalAlpha = 0.5;
+              ctx.fillRect(x, y, 1, 1);
+              ctx.globalAlpha = 1.0;
             }
-            ctx.fill();
           }
       }
 
@@ -315,7 +322,8 @@ function draw() {
         for (let y = 0; y <= H; y++) {
           for (let x = 0; x <= W; x++) {
             if (x < W) {
-              const hIdx = y * (W + 1) + x;
+              // horizontal: vOffset + line(y) * width + offset(x)
+              const hIdx = vOffset + y * W + x;
               const hCon = views.constraints(hIdx);
               if (hCon && hCon !== "any") {
                 ctx.fillStyle = hCon === "open" ? "#5a6268" : `hsl(${hash(hCon) % 360} 32% 30%)`;
@@ -323,7 +331,8 @@ function draw() {
               }
             }
             if (y < H) {
-              const vIdx = vOffset + y * W + x;
+              // vertical: offset(y) * (width + 1) + line(x)
+              const vIdx = y * (W + 1) + x;
               const vCon = views.constraints(vIdx);
               if (vCon && vCon !== "any") {
                 ctx.fillStyle = vCon === "open" ? "#5a6268" : `hsl(${hash(vCon) % 360} 32% 30%)`;
@@ -486,7 +495,7 @@ canvas.addEventListener(
     e.preventDefault();
     const p = point(e),
       w = world(p);
-    zoom = Math.max(1, Math.min(40, zoom * Math.exp(-e.deltaY * 0.001)));
+    zoom = Math.max(1, Math.min(40, zoom * Math.exp(-e.deltaY * 0.001))); updateZoomUI();
     pan = { x: p.x - w.x * zoom, y: p.y - w.y * zoom };
   },
   { passive: false },
