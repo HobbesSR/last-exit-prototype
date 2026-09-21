@@ -1,5 +1,7 @@
 import DEFAULT_LIBRARY_JSON from "../content/default-library.json" with { type: "json" };
 import { composeMacro } from "./macro.ts";
+import { getDifficulty, solveWfc } from "./wfc.ts";
+import type { WfcGrid, TileOption } from "./wfc.ts";
 import type { MacroPlacement } from "./macro-types.ts";
 import { compileTileDesign } from "./macro-compiler.ts";
 import { validateCellClass } from "./regions.ts";
@@ -2879,6 +2881,7 @@ export function generateMap(
   seed: string | number = "last-exit",
   params: Partial<MapParams> = {},
   library: Library = DEFAULT_LIBRARY,
+  onProgress?: (status: string, progress: number) => void
 ): GeneratedMap {
   const seedText = typeof seed === "number" ? seed.toString() : seed;
   const requested = { ...DEFAULT_PARAMS, ...params };
@@ -2887,8 +2890,9 @@ export function generateMap(
   let map: GeneratedMap | null = null;
   
   for (let attempt = 0; attempt < 50; attempt++) {
-    
-    let seedState = 0;
+    if (onProgress) onProgress(`Attempt ${attempt + 1}/50`, attempt / 50);
+    try {
+      let seedState = 0;
     for (let i = 0; i < seedText.length; i++) seedState = Math.imul(seedState ^ seedText.charCodeAt(i), 3432918353);
     seedState += attempt;
     const random = () => { seedState = (seedState + 1831565813) | 0; let t = Math.imul(seedState ^ (seedState >>> 15), 1 | seedState); t = t + Math.imul(t ^ (t >>> 7), 61 | t) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
@@ -2977,9 +2981,58 @@ export function generateMap(
     
     if (!allPlaced) continue;
 
+    const wfcGrid: WfcGrid = cells.map((c, i) => {
+      if (assigned[i]) {
+        return {
+          x: c.x, y: c.y,
+          domain: [{
+            templateId: assigned[i]!.templateId,
+            orientation: assigned[i]!.orientation as any,
+            difficulty: 0 // pre-assigned
+          }]
+        };
+      } else {
+        const tier = zoneOf(c).tier;
+        const validTiles = library.tiles.filter(t => !t.eligibleTiers || t.eligibleTiers.includes(tier));
+        const domain: TileOption[] = [];
+        for (const t of validTiles) {
+          const diff = getDifficulty(t);
+          const orients = t.orientations && t.orientations.length ? t.orientations : [0];
+          for (const o of orients) {
+            domain.push({ templateId: t.id, orientation: o as any, difficulty: diff });
+          }
+        }
+        return { x: c.x, y: c.y, domain };
+      }
+    });
+
+    const cellMap = new Map<string, number>();
+    wfcGrid.forEach((c, i) => cellMap.set(`${c.x},${c.y}`, i));
+    for (const c of wfcGrid) {
+      c.n = cellMap.get(`${c.x},${c.y - 1}`);
+      c.s = cellMap.get(`${c.x},${c.y + 1}`);
+      c.e = cellMap.get(`${c.x + 1},${c.y}`);
+      c.w = cellMap.get(`${c.x - 1},${c.y}`);
+      c.tl = cellMap.get(`${c.x - 1},${c.y - 1}`);
+      c.tr = cellMap.get(`${c.x},${c.y - 1}`);
+      c.bl = cellMap.get(`${c.x - 1},${c.y}`);
+    }
+
+    const solvedGrid = solveWfc(wfcGrid, p.columns, p.rows, library.tiles, random);
+    if (!solvedGrid) {
+      throw new Error("WFC Solver could not find a valid tile layout for the macro grid.");
+    }
+
     for (let i = 0; i < cells.length; i++) {
       if (!assigned[i]) {
-        assigned[i] = { template: fallbackDesign, templateId: fallbackDesign.id, orientation: 0, anchor: findAnchor(fallbackDesign, 0) };
+        const opt = solvedGrid[i]!.domain[0]!;
+        const template = library.tiles.find(t => t.id === opt.templateId) || fallbackDesign;
+        assigned[i] = {
+          template,
+          templateId: template.id,
+          orientation: opt.orientation,
+          anchor: findAnchor(template, opt.orientation)
+        };
       }
     }
 
@@ -3098,10 +3151,12 @@ export function generateMap(
       validation: { valid: true, errors: [] }
     };
     
-  map!.edges = deriveEdges(map!);
-  map!.walls = deriveWalls(map!);
-  break; 
-
+    map!.edges = deriveEdges(map!);
+    map!.walls = deriveWalls(map!);
+    break; 
+    } catch (e) {
+      // console.warn("Attempt", attempt, "failed:", e);
+    }
   }
   
   if (!map) throw new Error("V2 Rejection sampling failed to find a walkable placement.");

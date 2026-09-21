@@ -1,0 +1,295 @@
+import json
+
+library = {
+    "version": 2,
+    "cellClasses": {
+        "open": { "generator": "open-field", "clutterChance": 0.05, "clutterSize": 0.4 },
+        "market": { "generator": "compound", "clutterChance": 0.15, "clutterSize": 0.5 },
+        "depot": { "generator": "pillar-hall", "clutterChance": 0.2, "clutterSize": 0.7 },
+        "park": { "generator": "open-field", "clutterChance": 0.4, "clutterSize": 0.8 },
+        "landing": { "generator": "rubble", "clutterChance": 0.05, "clutterSize": 0.4 },
+        "evac": { "generator": "compound", "clutterChance": 0.1, "clutterSize": 0.8 }
+    },
+    "tiles": [
+        {
+            "id": "street",
+            "defaultCellClass": "open",
+            "orientations": [0, 90, 180, 270],
+            "anchor": {"x": 3, "y": 3},
+            "adapter": True,
+            "weight": 10
+        },
+        {
+            "id": "market-front",
+            "defaultCellClass": "market",
+            "legend": { "O": "open" },
+            "cells": [
+                "OOOOOO",
+                "OOOOOO",
+                "......",
+                "......",
+                "......",
+                "......"
+            ],
+            "orientations": [0, 90, 180, 270],
+            "anchor": {"x": 3, "y": 4}
+        },
+        {
+            "id": "market-corner",
+            "defaultCellClass": "market",
+            "legend": { "O": "open" },
+            "cells": [
+                "OOOOOO",
+                "OOOOOO",
+                "OO....",
+                "OO....",
+                "OO....",
+                "OO...."
+            ],
+            "orientations": [0, 90, 180, 270],
+            "anchor": {"x": 4, "y": 4}
+        },
+        {
+            "id": "market-interior",
+            "defaultCellClass": "market",
+            "orientations": [0, 90, 180, 270],
+            "anchor": {"x": 3, "y": 3}
+        },
+        {
+            "id": "depot-fence",
+            "defaultCellClass": "depot",
+            "legend": { "O": "open" },
+            "cells": [
+                "OOOOOO",
+                "......",
+                "......",
+                "......",
+                "......",
+                "......"
+            ],
+            "walls": [
+                { "x1": 0, "y1": 1, "x2": 6, "y2": 1 }
+            ],
+            "orientations": [0, 90, 180, 270],
+            "anchor": {"x": 3, "y": 3}
+        },
+        {
+            "id": "depot-corner",
+            "defaultCellClass": "depot",
+            "legend": { "O": "open" },
+            "cells": [
+                "OOOOOO",
+                "O.....",
+                "O.....",
+                "O.....",
+                "O.....",
+                "O....."
+            ],
+            "walls": [
+                { "x1": 1, "y1": 6, "x2": 1, "y2": 1 },
+                { "x1": 1, "y1": 1, "x2": 6, "y2": 1 }
+            ],
+            "orientations": [0, 90, 180, 270],
+            "anchor": {"x": 3, "y": 3}
+        },
+        {
+            "id": "depot-gate",
+            "defaultCellClass": "depot",
+            "legend": { "O": "open" },
+            "cells": [
+                "OOOOOO",
+                "......",
+                "......",
+                "......",
+                "......",
+                "......"
+            ],
+            "walls": [
+                { "x1": 0, "y1": 1, "x2": 6, "y2": 1, "gap": 2 }
+            ],
+            "orientations": [0, 90, 180, 270],
+            "anchor": {"x": 3, "y": 3}
+        },
+        {
+            "id": "park-transition",
+            "defaultCellClass": "park",
+            "legend": { "O": "open" },
+            "cells": [
+                "OOOOOO",
+                "OOOOOO",
+                "......",
+                "......",
+                "......",
+                "......"
+            ],
+            "orientations": [0, 90, 180, 270],
+            "anchor": {"x": 3, "y": 4}
+        },
+        {
+            "id": "park-interior",
+            "defaultCellClass": "park",
+            "orientations": [0, 90, 180, 270],
+            "anchor": {"x": 3, "y": 3}
+        },
+        {
+            "id": "landing-edge",
+            "defaultCellClass": "landing",
+            "legend": { "O": "open" },
+            "cells": [
+                "OOOOOO",
+                "OOOOOO",
+                "......",
+                "......",
+                "......",
+                "......"
+            ],
+            "orientations": [0, 90, 180, 270],
+            "anchor": {"x": 3, "y": 4}
+        },
+        {
+            "id": "landing-interior",
+            "defaultCellClass": "landing",
+            "orientations": [0, 90, 180, 270],
+            "anchor": {"x": 3, "y": 3}
+        },
+        {
+            "id": "evac-fence",
+            "defaultCellClass": "evac",
+            "legend": { "O": "open" },
+            "cells": [
+                "OOOOOO",
+                "......",
+                "......",
+                "......",
+                "......",
+                "......"
+            ],
+            "walls": [
+                { "x1": 0, "y1": 1, "x2": 6, "y2": 1 }
+            ],
+            "orientations": [0, 90, 180, 270],
+            "anchor": {"x": 3, "y": 3}
+        },
+        {
+            "id": "evac-corner",
+            "defaultCellClass": "evac",
+            "legend": { "O": "open" },
+            "cells": [
+                "OOOOOO",
+                "O.....",
+                "O.....",
+                "O.....",
+                "O.....",
+                "O....."
+            ],
+            "walls": [
+                { "x1": 1, "y1": 6, "x2": 1, "y2": 1 },
+                { "x1": 1, "y1": 1, "x2": 6, "y2": 1 }
+            ],
+            "orientations": [0, 90, 180, 270],
+            "anchor": {"x": 3, "y": 3}
+        },
+        {
+            "id": "evac-gate",
+            "defaultCellClass": "evac",
+            "legend": { "O": "open" },
+            "cells": [
+                "OOOOOO",
+                "......",
+                "......",
+                "......",
+                "......",
+                "......"
+            ],
+            "walls": [
+                { "x1": 0, "y1": 1, "x2": 6, "y2": 1, "gap": 2 }
+            ],
+            "orientations": [0, 90, 180, 270],
+            "anchor": {"x": 3, "y": 3}
+        }
+    ],
+    "tileSets": [
+        { "id": "filler", "members": ["street"] },
+        
+        { "id": "market-fronts", "members": ["market-front"] },
+        { "id": "market-corners", "members": ["market-corner"] },
+        { "id": "market-interiors", "members": ["market-interior"] },
+        
+        { "id": "depot-fences", "members": ["depot-fence"] },
+        { "id": "depot-corners", "members": ["depot-corner"] },
+        { "id": "depot-gates", "members": ["depot-gate"] },
+        
+        { "id": "park-edges", "members": ["park-transition"] },
+        { "id": "park-centers", "members": ["park-interior"] },
+        
+        { "id": "landing-edges", "members": ["landing-edge"] },
+        { "id": "landing-centers", "members": ["landing-interior"] },
+        
+        { "id": "evac-fences", "members": ["evac-fence"] },
+        { "id": "evac-corners", "members": ["evac-corner"] },
+        { "id": "evac-gates", "members": ["evac-gate"] }
+    ],
+    "setPieces": [
+        {
+            "id": "strip-mall",
+            "class": "market",
+            "eligibleTiers": [1, 2, 3, 4],
+            "tiles": [
+                { "dx": 0, "dy": 0, "tileSetId": "market-corners", "orientation": 0 },
+                { "dx": 1, "dy": 0, "tileSetId": "market-fronts", "orientation": 0 },
+                { "dx": 2, "dy": 0, "tileSetId": "market-corners", "orientation": 90 }
+            ]
+        },
+        {
+            "id": "secure-depot",
+            "class": "depot",
+            "eligibleTiers": [2, 3, 4],
+            "tiles": [
+                { "dx": 0, "dy": 0, "tileSetId": "depot-corners", "orientation": 0 },
+                { "dx": 1, "dy": 0, "tileSetId": "depot-gates", "orientation": 0 },
+                { "dx": 2, "dy": 0, "tileSetId": "depot-corners", "orientation": 90 },
+                { "dx": 0, "dy": 1, "tileSetId": "depot-corners", "orientation": 270 },
+                { "dx": 1, "dy": 1, "tileSetId": "depot-fences", "orientation": 180 },
+                { "dx": 2, "dy": 1, "tileSetId": "depot-corners", "orientation": 180 }
+            ]
+        },
+        {
+            "id": "city-park",
+            "class": "park",
+            "eligibleTiers": [1, 2, 3, 4],
+            "tiles": [
+                { "dx": 0, "dy": 0, "tileSetId": "park-edges", "orientation": 0 },
+                { "dx": 1, "dy": 0, "tileSetId": "park-edges", "orientation": 0 },
+                { "dx": 0, "dy": 1, "tileSetId": "park-edges", "orientation": 180 },
+                { "dx": 1, "dy": 1, "tileSetId": "park-edges", "orientation": 180 }
+            ]
+        },
+        {
+            "id": "drop-site",
+            "class": "landing",
+            "eligibleTiers": [1],
+            "tiles": [
+                { "dx": 0, "dy": 0, "tileSetId": "landing-edges", "orientation": 0 },
+                { "dx": 1, "dy": 0, "tileSetId": "landing-edges", "orientation": 0 },
+                { "dx": 0, "dy": 1, "tileSetId": "landing-edges", "orientation": 270 },
+                { "dx": 1, "dy": 1, "tileSetId": "landing-centers", "orientation": 0 }
+            ]
+        },
+        {
+            "id": "evac-fortress",
+            "class": "evac",
+            "eligibleTiers": [5],
+            "tiles": [
+                { "dx": 0, "dy": 0, "tileSetId": "evac-corners", "orientation": 0 },
+                { "dx": 0, "dy": 1, "tileSetId": "evac-gates", "orientation": 270 },
+                { "dx": 1, "dy": 0, "tileSetId": "evac-fences", "orientation": 0 },
+                { "dx": 1, "dy": 1, "tileSetId": "evac-fences", "orientation": 180 }
+            ]
+        }
+    ]
+}
+
+with open("content/default-library.json", "w", encoding="utf-8") as f:
+    json.dump(library, f, indent=2)
+
+print("Created ground-up library.")
