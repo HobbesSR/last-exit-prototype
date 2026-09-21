@@ -47,7 +47,7 @@
         "y": 3
       },
       "adapter": true,
-      "weight": 10
+      "weight": 1
     },
     {
       "id": "market-front",
@@ -72,7 +72,8 @@
       "anchor": {
         "x": 3,
         "y": 4
-      }
+      },
+      "weight": 5
     },
     {
       "id": "market-corner",
@@ -97,7 +98,8 @@
       "anchor": {
         "x": 4,
         "y": 4
-      }
+      },
+      "weight": 5
     },
     {
       "id": "market-interior",
@@ -111,7 +113,8 @@
       "anchor": {
         "x": 3,
         "y": 3
-      }
+      },
+      "weight": 5
     },
     {
       "id": "depot-fence",
@@ -242,7 +245,8 @@
       "anchor": {
         "x": 3,
         "y": 4
-      }
+      },
+      "weight": 5
     },
     {
       "id": "park-interior",
@@ -256,7 +260,8 @@
       "anchor": {
         "x": 3,
         "y": 3
-      }
+      },
+      "weight": 5
     },
     {
       "id": "landing-edge",
@@ -281,7 +286,8 @@
       "anchor": {
         "x": 3,
         "y": 4
-      }
+      },
+      "weight": 5
     },
     {
       "id": "landing-interior",
@@ -295,7 +301,8 @@
       "anchor": {
         "x": 3,
         "y": 3
-      }
+      },
+      "weight": 5
     },
     {
       "id": "evac-fence",
