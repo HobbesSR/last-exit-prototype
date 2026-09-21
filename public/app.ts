@@ -272,7 +272,7 @@ function draw() {
   ctx.scale(zoom, zoom);
   const overlay = select("overlay").value;
   const views = gridViews(map);
-  if (overlay === "region" || overlay === "class") {
+  if (overlay === "region" || overlay === "class" || overlay === "components") {
     for (let y = 0; y < map.grid.height; y++)
       for (let x = 0; x < map.grid.width; x++) {
         const i = y * map.grid.width + x;
@@ -281,34 +281,58 @@ function draw() {
         const origClass = views.originalClass ? views.originalClass(i) : cellClass;
           const drawStripes = origClass === "any" && cellClass !== "open" && cellClass !== "any";
           
-          ctx.fillStyle = false ? "#0a1419" : overlay === "region" ? (cellClass === "open" ? "#5a6268" : regionColor(regionIndexOf(i))) : (cellClass === "open" ? "#5a6268" : `hsl(${hash(cellClass) % 360} 32% 30%)`);
+          let cellColor = "#5a6268";
+          if (cellClass !== "open") {
+            if (overlay === "components") cellColor = regionColor(regionIndexOf(i));
+            else cellColor = `hsl(${hash(cellClass) % 360} 32% 30%)`;
+          }
+          
+          ctx.fillStyle = false ? "#0a1419" : cellColor;
           ctx.fillRect(x, y, 1, 1);
           
           if (drawStripes) {
-            ctx.fillStyle = "#ffffff33";
-            ctx.beginPath();
-            ctx.moveTo(x, y + 0.5); ctx.lineTo(x + 0.5, y + 1); ctx.lineTo(x + 1, y + 1); ctx.lineTo(x + 1, y + 0.5); ctx.lineTo(x + 0.5, y); ctx.lineTo(x, y);
-            ctx.fill();
+            ctx.fillStyle = "#5a6268";
+            ctx.fillRect(x, y, 1, 1);
             
-            ctx.fillStyle = "#00000033";
+            ctx.fillStyle = cellColor; // stripe color
+            // Thinner stripes (e.g., 3-4 per cell)
             ctx.beginPath();
-            ctx.moveTo(x + 0.5, y); ctx.lineTo(x + 1, y + 0.5); ctx.lineTo(x + 1, y);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.moveTo(x, y + 0.5); ctx.lineTo(x + 0.5, y + 1); ctx.lineTo(x, y + 1);
+            for(let o = -1; o < 2; o += 0.5) {
+              ctx.moveTo(x + o, y);
+              ctx.lineTo(x + o + 0.25, y);
+              ctx.lineTo(x + o + 1.25, y + 1);
+              ctx.lineTo(x + o + 1, y + 1);
+            }
             ctx.fill();
           }
-      const constraint = views.constraints ? views.constraints(i) : "any";
-          if (constraint !== "any") {
-            ctx.fillStyle = constraint === "open" ? "#5a6268" : `hsl(${hash(constraint) % 360} 32% 30%)`;
-            const tSize = 6;
-            const w = 0.2; // 20% thickness
-            if (x % tSize === 0) ctx.fillRect(x, y, w, 1);
-            if (x % tSize === tSize - 1) ctx.fillRect(x + 1 - w, y, w, 1);
-            if (y % tSize === 0) ctx.fillRect(x, y, 1, w);
-            if (y % tSize === tSize - 1) ctx.fillRect(x, y + 1 - w, 1, w);
+      }
+
+      if (views.constraints) {
+        const W = map.grid.width;
+        const H = map.grid.height;
+        const vOffset = (W + 1) * H;
+        
+        for (let y = 0; y <= H; y++) {
+          for (let x = 0; x <= W; x++) {
+            if (x < W) {
+              const hIdx = y * (W + 1) + x;
+              const hCon = views.constraints(hIdx);
+              if (hCon && hCon !== "any") {
+                ctx.fillStyle = hCon === "open" ? "#5a6268" : `hsl(${hash(hCon) % 360} 32% 30%)`;
+                ctx.fillRect(x, y - 0.1, 1, 0.2);
+              }
+            }
+            if (y < H) {
+              const vIdx = vOffset + y * W + x;
+              const vCon = views.constraints(vIdx);
+              if (vCon && vCon !== "any") {
+                ctx.fillStyle = vCon === "open" ? "#5a6268" : `hsl(${hash(vCon) % 360} 32% 30%)`;
+                ctx.fillRect(x - 0.1, y, 0.2, 1);
+              }
+            }
           }
-}
+        }
+      }
   } else {
     const zoneById = new Map(map.zones.map((z) => [z.id, z]));
     for (const t of map.tiles) {

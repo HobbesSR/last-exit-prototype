@@ -3080,6 +3080,8 @@ export function generateMap(
     const W = composition.width;
     const H = composition.height;
     const cellConstraints = new Array(W * H).fill("any");
+    const segmentCount = (W + 1) * H + (H + 1) * W;
+    const segmentConstraints = new Array(segmentCount).fill("any");
     
     for (const t of tiles) {
       const opt = { templateId: t.templateId, orientation: t.orientation as any, difficulty: 0, weight: 1 };
@@ -3092,18 +3094,28 @@ export function generateMap(
         if (N[i] !== "any") {
           const cx = t.x + i; const cy = t.y - 1;
           if (cy >= 0) cellConstraints[cy * W + cx] = N[i];
+          const segIdx = t.y * (W + 1) + cx; // horizontal segment above the tile cell i
+          segmentConstraints[segIdx] = N[i];
         }
         if (S[i] !== "any") {
           const cx = t.x + i; const cy = t.y + p.tileSize;
           if (cy < H) cellConstraints[cy * W + cx] = S[i];
+          const segIdx = (t.y + p.tileSize) * (W + 1) + cx; // horizontal segment below the tile cell i
+          segmentConstraints[segIdx] = S[i];
         }
         if (E[i] !== "any") {
           const cx = t.x + p.tileSize; const cy = t.y + i;
           if (cx < W) cellConstraints[cy * W + cx] = E[i];
+          const vOffset = (W + 1) * H;
+          const segIdx = vOffset + (t.y + i) * W + (t.x + p.tileSize); // vertical segment right of the tile cell i
+          segmentConstraints[segIdx] = E[i];
         }
         if (W_edge[i] !== "any") {
           const cx = t.x - 1; const cy = t.y + i;
           if (cx >= 0) cellConstraints[cy * W + cx] = W_edge[i];
+          const vOffset = (W + 1) * H;
+          const segIdx = vOffset + (t.y + i) * W + t.x; // vertical segment left of the tile cell i
+          segmentConstraints[segIdx] = W_edge[i];
         }
       }
     }
@@ -3198,7 +3210,7 @@ export function generateMap(
         height: grid.H,
         cells: { class: encodeGrid(grid.cellClass),
           originalClass: encodeGrid(composition.cellClass),
-          constraints: encodeGrid(cellConstraints), spawns: micro.spawns },
+          constraints: encodeGrid(segmentConstraints), spawns: micro.spawns },
         segments: { open: encodeGrid(grid.segmentOpen) },
         vertices: []
       },
