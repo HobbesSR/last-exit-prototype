@@ -30,6 +30,9 @@
     },
     "hut": {
       "generator": "open-field"
+    },
+    "any": {
+      "generator": "open-field"
     }
   },
   "tiles": [
