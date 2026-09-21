@@ -116,6 +116,51 @@ export function getRotatedCells(opt: TileOption, side: Side, libraryTiles: TileD
   return def;
 }
 
+
+export function matchDiagonal(optA: TileOption, dir: "TL"|"TR"|"BL"|"BR", optB: TileOption, libraryTiles: TileDesign[]): boolean {
+  if (dir === "BR") { // A is TL, B is BR
+    const aEast = getRotatedEdge(optA, "E", libraryTiles)[5];
+    const bNorth = getRotatedEdge(optB, "N", libraryTiles)[0];
+    if (aEast !== "any" && bNorth !== "any" && aEast !== bNorth) return false;
+
+    const aSouth = getRotatedEdge(optA, "S", libraryTiles)[5];
+    const bWest = getRotatedEdge(optB, "W", libraryTiles)[0];
+    if (aSouth !== "any" && bWest !== "any" && aSouth !== bWest) return false;
+    return true;
+  }
+  if (dir === "TL") { // A is BR, B is TL
+    const aWest = getRotatedEdge(optA, "W", libraryTiles)[0];
+    const bSouth = getRotatedEdge(optB, "S", libraryTiles)[5];
+    if (aWest !== "any" && bSouth !== "any" && aWest !== bSouth) return false;
+
+    const aNorth = getRotatedEdge(optA, "N", libraryTiles)[0];
+    const bEast = getRotatedEdge(optB, "E", libraryTiles)[5];
+    if (aNorth !== "any" && bEast !== "any" && aNorth !== bEast) return false;
+    return true;
+  }
+  if (dir === "TR") { // A is BL, B is TR
+    const aNorth = getRotatedEdge(optA, "N", libraryTiles)[5];
+    const bWest = getRotatedEdge(optB, "W", libraryTiles)[5];
+    if (aNorth !== "any" && bWest !== "any" && aNorth !== bWest) return false;
+
+    const aEast = getRotatedEdge(optA, "E", libraryTiles)[0];
+    const bSouth = getRotatedEdge(optB, "S", libraryTiles)[0];
+    if (aEast !== "any" && bSouth !== "any" && aEast !== bSouth) return false;
+    return true;
+  }
+  if (dir === "BL") { // A is TR, B is BL
+    const aSouth = getRotatedEdge(optA, "S", libraryTiles)[0];
+    const bEast = getRotatedEdge(optB, "E", libraryTiles)[0];
+    if (aSouth !== "any" && bEast !== "any" && aSouth !== bEast) return false;
+
+    const aWest = getRotatedEdge(optA, "W", libraryTiles)[5];
+    const bNorth = getRotatedEdge(optB, "N", libraryTiles)[5];
+    if (aWest !== "any" && bNorth !== "any" && aWest !== bNorth) return false;
+    return true;
+  }
+  return true;
+}
+
 export function matchEdge(optA: TileOption, sideA: Side, optB: TileOption, sideB: Side, libraryTiles: TileDesign[]): boolean {
   const segA = getRotatedEdge(optA, sideA, libraryTiles);
   const cellA = getRotatedCells(optA, sideA, libraryTiles);
@@ -128,6 +173,13 @@ export function matchEdge(optA: TileOption, sideA: Side, optB: TileOption, sideB
     // B's segment constrains A's cell
     if (segB[i] !== "any" && cellA[i] !== "any" && segB[i] !== cellA[i]) return false;
   }
+
+  const cornerA = getRotatedEdge(optA, sideA, libraryTiles, true);
+  const cornerB = getRotatedEdge(optB, sideB, libraryTiles, true);
+  for (let i = 0; i < 7; i++) {
+    if (cornerA[i] !== "any" && cornerB[i] !== "any" && cornerA[i] !== cornerB[i]) return false;
+  }
+
   return true;
 }
 
@@ -211,7 +263,7 @@ export function propagate(grid: WfcGrid, columns: number, rows: number, libraryT
       if (!nCell) return;
         if (cell.setPieceInstance && nCell.setPieceInstance && cell.setPieceInstance === nCell.setPieceInstance) return;
       
-      const validProp = mySide === "N" ? "validN" : mySide === "S" ? "validS" : mySide === "E" ? "validE" : "validW";
+      const validProp = "valid" + mySide;
       
       const newDomain = cell.domain.filter(opt => {
         const validSet = (opt as any)[validProp] as Set<number>;
@@ -300,13 +352,13 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTi
   
   const options = [...cell.domain].map(opt => ({
     opt,
-    score: opt.difficulty + Math.pow(random(), 1 / (opt.weight || 1))
+    score: Math.pow(random(), 1 / (opt.weight || 1))
   })).sort((a, b) => b.score - a.score).map(x => x.opt);
 
   for (const opt of options) {
     const clonedGrid: WfcGrid = grid.map(c => ({
       x: c.x, y: c.y,
-      n: c.n, s: c.s, e: c.e, w: c.w, tl: c.tl, tr: c.tr, bl: c.bl,
+      n: c.n, s: c.s, e: c.e, w: c.w, tl: c.tl, tr: c.tr, bl: c.bl, br: c.br,
       domain: c === cell ? [opt] : c.domain
     }));
 
