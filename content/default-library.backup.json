@@ -73,17 +73,7 @@
         "x": 3,
         "y": 4
       },
-      "weight": 5,
-      "edges": {
-        "S": [
-          "market",
-          "market",
-          "market",
-          "market",
-          "market",
-          "market"
-        ]
-      }
+      "weight": 5
     },
     {
       "id": "market-corner",
