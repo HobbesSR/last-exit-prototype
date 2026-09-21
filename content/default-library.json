@@ -30,9 +30,6 @@
     },
     "hut": {
       "generator": "open-field"
-    },
-    "any": {
-      "generator": "open-field"
     }
   },
   "tiles": [
@@ -786,7 +783,13 @@
         "y": 3
       },
       "weight": 0.5,
-      "eligibleTiers": []
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
     },
     {
       "id": "open-hut-corner",
@@ -813,7 +816,13 @@
         "y": 3
       },
       "weight": 0.5,
-      "eligibleTiers": []
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
     }
   ],
   "tileSets": [
