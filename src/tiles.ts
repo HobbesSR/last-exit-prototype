@@ -135,20 +135,10 @@ export function validateTileShape(tile: TileDesign): string[] {
       }
   }
   for (const [side, value] of Object.entries(tile.edges ?? {})) {
-    if (typeof value === "string") {
-      if (value.length !== TILE_SIZE)
-        errors.push(`edges.${side} must be ${TILE_SIZE} marks`);
-      else if (/[^.o#]/.test(value))
-        errors.push(`edges.${side} marks must be ".", "o" or "#"`);
-      continue;
-    }
     if (!Array.isArray(value) || value.length !== TILE_SIZE) {
-      errors.push(`edges.${side} must be ${TILE_SIZE} declarations`);
+      errors.push(`edges.${side} must be ${TILE_SIZE} strings`);
       continue;
     }
-    value.forEach((entry, i) =>
-      errors.push(...validateDeclaration(entry, `edges.${side}[${i}]`)),
-    );
   }
   for (const [side, value] of Object.entries(tile.corners ?? {})) {
     if (!Array.isArray(value) || value.length !== TILE_SIZE + 1) {

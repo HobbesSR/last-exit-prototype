@@ -116,9 +116,9 @@ export interface TileDesign {
    * N/S and north to south on E/W. Either six marks ("." any, "o" open, "#"
    * wall) or an array of declarations. Omitted sides are entirely "any".
    */
-  edges?: Partial<Record<Side, string | SegmentDeclaration[]>>;
+  edges?: Partial<Record<Side, string[]>>;
   /** Per-side perimeter vertex contracts, seven per side, same ordering. */
-  corners?: Partial<Record<Side, Array<string | VertexDeclaration>>>;
+  corners?: Partial<Record<Side, string[]>>;
   /** Explicit metadata for any individual primitive; wins over the shorthands. */
   primitives?: PrimitiveOverrides;
 }

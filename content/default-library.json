@@ -114,7 +114,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 5
+      "weight": 5,
+      "edges": {
+        "N": [
+          "market",
+          "market",
+          "market",
+          "market",
+          "market",
+          "market"
+        ],
+        "E": [
+          "market",
+          "market",
+          "market",
+          "market",
+          "market",
+          "market"
+        ],
+        "S": [
+          "market",
+          "market",
+          "market",
+          "market",
+          "market",
+          "market"
+        ],
+        "W": [
+          "market",
+          "market",
+          "market",
+          "market",
+          "market",
+          "market"
+        ]
+      }
     },
     {
       "id": "depot-fence",
@@ -261,7 +295,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 5
+      "weight": 5,
+      "edges": {
+        "N": [
+          "park",
+          "park",
+          "park",
+          "park",
+          "park",
+          "park"
+        ],
+        "E": [
+          "park",
+          "park",
+          "park",
+          "park",
+          "park",
+          "park"
+        ],
+        "S": [
+          "park",
+          "park",
+          "park",
+          "park",
+          "park",
+          "park"
+        ],
+        "W": [
+          "park",
+          "park",
+          "park",
+          "park",
+          "park",
+          "park"
+        ]
+      }
     },
     {
       "id": "landing-edge",
@@ -302,7 +370,41 @@
         "x": 3,
         "y": 3
       },
-      "weight": 5
+      "weight": 5,
+      "edges": {
+        "N": [
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing"
+        ],
+        "E": [
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing"
+        ],
+        "S": [
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing"
+        ],
+        "W": [
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing"
+        ]
+      }
     },
     {
       "id": "evac-fence",

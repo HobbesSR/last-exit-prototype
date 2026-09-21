@@ -216,16 +216,13 @@ function isDeferred(meta: VertexMeta): boolean {
 }
 
 function parseSide(
-  value: string | SegmentDeclaration[] | undefined,
+  value: string[] | undefined,
 ): SegmentDeclaration[] {
   const out: SegmentDeclaration[] = new Array(TILE_SIZE).fill("any");
   if (value === undefined) return out;
-  if (typeof value === "string")
+  if (false) {} else
     for (let i = 0; i < Math.min(TILE_SIZE, value.length); i++)
-      out[i] = value[i] === "o" ? "open" : value[i] === "#" ? "wall" : "any";
-  else
-    for (let i = 0; i < Math.min(TILE_SIZE, value.length); i++)
-      out[i] = value[i] ?? "any";
+      out[i] = (value[i] ?? "any") as SegmentDeclaration;
   return out;
 }
 function parseCorner(
