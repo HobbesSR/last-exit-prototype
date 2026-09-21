@@ -298,7 +298,17 @@ function draw() {
             ctx.moveTo(x, y + 0.5); ctx.lineTo(x + 0.5, y + 1); ctx.lineTo(x, y + 1);
             ctx.fill();
           }
-      }
+      const constraint = views.constraints ? views.constraints(i) : "any";
+          if (constraint !== "any") {
+            ctx.fillStyle = constraint === "open" ? "#5a6268" : `hsl(${hash(constraint) % 360} 32% 30%)`;
+            const tSize = 6;
+            const w = 0.2; // 20% thickness
+            if (x % tSize === 0) ctx.fillRect(x, y, w, 1);
+            if (x % tSize === tSize - 1) ctx.fillRect(x + 1 - w, y, w, 1);
+            if (y % tSize === 0) ctx.fillRect(x, y, 1, w);
+            if (y % tSize === tSize - 1) ctx.fillRect(x, y + 1 - w, 1, w);
+          }
+}
   } else {
     const zoneById = new Map(map.zones.map((z) => [z.id, z]));
     for (const t of map.tiles) {

@@ -2165,6 +2165,7 @@ export function generateMapLegacy(
       cells: {
         class: encodeGrid(grid.cellClass),
           originalClass: encodeGrid(composition.cellClass),
+          constraints: encodeGrid(new Array(composition.width * composition.height).fill("any")),
         // Flat maps say nothing about height, so the grid is simply absent.
         ...(grid.cellLevel.some((level) => level !== 0)
           ? { level: encodeGrid(grid.cellLevel) }
@@ -2274,6 +2275,7 @@ interface GridViews {
   verticalCount: number;
   cellClass: (index: number) => string;
     originalClass: (index: number) => string;
+    constraints: (index: number) => string;
   
   cellLevel: (index: number) => number;
   segmentOpen: (index: number) => Span;
@@ -2292,6 +2294,7 @@ export function gridViews(map: GeneratedMap): GridViews {
     verticalCount: (grid.width + 1) * grid.height,
     cellClass: readClass,
       originalClass: grid.cells.originalClass ? gridReader(grid.cells.originalClass) : readClass,
+      constraints: grid.cells.constraints ? gridReader(grid.cells.constraints) : () => "any",
     
     cellLevel: grid.cells.level ? gridReader(grid.cells.level) : () => 0,
     segmentOpen: gridReader(grid.segments.open),
@@ -3194,7 +3197,8 @@ export function generateMap(
         width: grid.W,
         height: grid.H,
         cells: { class: encodeGrid(grid.cellClass),
-          originalClass: encodeGrid(composition.cellClass), spawns: micro.spawns },
+          originalClass: encodeGrid(composition.cellClass),
+          constraints: encodeGrid(cellConstraints), spawns: micro.spawns },
         segments: { open: encodeGrid(grid.segmentOpen) },
         vertices: []
       },
