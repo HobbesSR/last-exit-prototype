@@ -110,74 +110,62 @@ export function matchVertex(options: (TileOption | null)[], libraryTiles: TileDe
   return required.size <= 1;
 }
 
-export function propagate(grid: WfcGrid, columns: number, rows: number, libraryTiles: TileDesign[]): boolean {
-  const cellMap = new Map<string, WfcCell>();
-  for (const c of grid) cellMap.set(`${c.x},${c.y}`, c);
-
-  let changed = true;
-  while (changed) {
-    changed = false;
+export function propagate(grid: WfcGrid, columns: number, rows: number, libraryTiles: TileDesign[], startQueue?: number): boolean {
+  const inQueue = new Uint8Array(grid.length);
+  const queue: number[] = [];
+  
+  if (startQueue === undefined) {
     for (let i = 0; i < grid.length; i++) {
-      const cell = grid[i]!;
-      if (cell.domain.length === 0) return false;
-
-      const checkSide = (nIndex: number | undefined, mySide: Side, neighborSide: Side) => {
-        if (nIndex === undefined) return;
-        const nCell = grid[nIndex]!;
-        if (!nCell) return;
-        const validProp = mySide === "N" ? "validN" : mySide === "S" ? "validS" : mySide === "E" ? "validE" : "validW";
-        
-        const newDomain = cell.domain.filter(opt => {
-          const validSet = (opt as any)[validProp] as Set<number>;
-          // true if ANY neighbor option is in validSet
-          for (let k = 0; k < nCell.domain.length; k++) {
-            if (validSet.has(nCell.domain[k]!.id!)) return true;
-          }
-          return false;
-        });
-        
-        if (newDomain.length < cell.domain.length) {
-          cell.domain = newDomain;
-          changed = true;
-        }
-      };
-
-      checkSide(cell.x, cell.y - 1, "N", "S");
-      checkSide(cell.x, cell.y + 1, "S", "N");
-      checkSide(cell.x - 1, cell.y, "W", "E");
-      checkSide(cell.x + 1, cell.y, "E", "W");
-      
-      if (cell.domain.length === 0) return false;
-      
-      // Check Vertices (Top-Left corner of this cell)
-      const tlCell = cellMap.get(`${cell.x - 1},${cell.y - 1}`);
-      const trCell = cellMap.get(`${cell.x},${cell.y - 1}`);
-      const blCell = cellMap.get(`${cell.x - 1},${cell.y}`);
-      
-      if (tlCell && trCell && blCell) {
-        
-        const newDomain = cell.domain.filter(brOpt => {
-          return tlCell.domain.some(tlOpt => 
-            trCell.domain.some(trOpt => 
-              blCell.domain.some(blOpt => 
-                matchVertex([tlOpt, trOpt, blOpt, brOpt], libraryTiles)
-              )
-            )
-          );
-        });
-        if (newDomain.length < cell.domain.length) { cell.domain = newDomain; changed = true; }
-      }
-      
-      // We don't need to check all 4 corners for this cell explicitly right now, 
-      // because scanning top-left for every cell inherently covers every internal vertex exactly once.
-      // However, we DO need to ensure that the adjacent cells respond.
-      // So we just rely on the full sweep checking all TL corners. 
+      queue.push(i);
+      inQueue[i] = 1;
     }
+  } else {
+    queue.push(startQueue);
+    inQueue[startQueue] = 1;
   }
+
+  let head = 0;
+  while (head < queue.length) {
+    const i = queue[head++];
+    inQueue[i] = 0;
+    const cell = grid[i]!;
+    if (cell.domain.length === 0) return false;
+
+    const checkSide = (nIndex: number | undefined, mySide: Side, neighborSide: Side) => {
+      if (nIndex === undefined) return;
+      const nCell = grid[nIndex]!;
+      if (!nCell) return;
+      
+      const validProp = mySide === "N" ? "validN" : mySide === "S" ? "validS" : mySide === "E" ? "validE" : "validW";
+      
+      const newDomain = cell.domain.filter(opt => {
+        const validSet = (opt as any)[validProp] as Set<number>;
+        for (let k = 0; k < nCell.domain.length; k++) {
+          if (validSet.has(nCell.domain[k]!.id!)) return true;
+        }
+        return false;
+      });
+      
+      if (newDomain.length < cell.domain.length) {
+        cell.domain = newDomain;
+        if (cell.n !== undefined && !inQueue[cell.n]) { queue.push(cell.n); inQueue[cell.n] = 1; }
+        if (cell.s !== undefined && !inQueue[cell.s]) { queue.push(cell.s); inQueue[cell.s] = 1; }
+        if (cell.e !== undefined && !inQueue[cell.e]) { queue.push(cell.e); inQueue[cell.e] = 1; }
+        if (cell.w !== undefined && !inQueue[cell.w]) { queue.push(cell.w); inQueue[cell.w] = 1; }
+      }
+    };
+
+    checkSide(cell.n, "N", "S");
+    checkSide(cell.s, "S", "N");
+    checkSide(cell.e, "E", "W");
+    checkSide(cell.w, "W", "E");
+  }
+
   return true;
 }
 
-export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTiles: TileDesign[], random: () => number, state = { iterations: 0, maxIterations: 10000 }): WfcGrid | null {
+
+export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTiles: TileDesign[], random: () => number, state = { iterations: 0, maxIterations: 10000 }, startQueue?: number): WfcGrid | null {
   if (state.iterations++ > state.maxIterations) return null;
 
   // Assign IDs and precalculate valid edges if not done yet
@@ -204,7 +192,7 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTi
     }
   }
 
-  if (!propagate(grid, columns, rows, libraryTiles)) return null;
+  if (!propagate(grid, columns, rows, libraryTiles, startQueue)) return null;
 
   let minEntropy = Infinity;
   let bestCellIndex = -1;
@@ -235,7 +223,7 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTi
     }));
 
     
-    const result = solveWfc(clonedGrid, columns, rows, libraryTiles, random, state);
+    const result = solveWfc(clonedGrid, columns, rows, libraryTiles, random, state, bestCellIndex);
     if (result !== null) return result;
   }
 

@@ -12,7 +12,6 @@ const tiles: TileOption[] = lib.tiles.flatMap(t =>
     weight: t.weight || 1
   }))
 );
-console.log("Domain size:", tiles.length);
 
 for (let y = 0; y < 30; y++) {
   for (let x = 0; x < 60; x++) {
@@ -30,8 +29,7 @@ for (let y = 0; y < 30; y++) {
   }
 }
 
-console.log("Start solve");
-const start = Date.now();
 const state = { iterations: 0, maxIterations: 10000 };
-const solved = solveWfc(grid, 60, 30, lib.tiles, Math.random, state);
-console.log("Done in", Date.now() - start, "ms", "Iterations:", state.iterations);
+console.log("Start");
+solveWfc(grid, 60, 30, lib.tiles, Math.random, state);
+console.log("Done");
