@@ -47,7 +47,7 @@
         "y": 3
       },
       "adapter": true,
-      "weight": 1
+      "weight": 15.0
     },
     {
       "id": "market-front",
@@ -409,6 +409,396 @@
         "x": 3,
         "y": 3
       }
+    },
+    {
+      "id": "open-tree-2x2",
+      "defaultCellClass": "open",
+      "legend": {
+        "T": "tree"
+      },
+      "cells": [
+        "......",
+        "......",
+        "..TT..",
+        "..TT..",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-tree-3x3",
+      "defaultCellClass": "open",
+      "legend": {
+        "T": "tree"
+      },
+      "cells": [
+        "......",
+        ".TTT..",
+        ".TTT..",
+        ".TTT..",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-tree-2x4",
+      "defaultCellClass": "open",
+      "legend": {
+        "T": "tree"
+      },
+      "cells": [
+        "......",
+        "..TT..",
+        "..TT..",
+        "..TT..",
+        "..TT..",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-tree-caticorner",
+      "defaultCellClass": "open",
+      "legend": {
+        "T": "tree"
+      },
+      "cells": [
+        "......",
+        ".TT...",
+        ".TT...",
+        "...TT.",
+        "...TT.",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rock-2x2",
+      "defaultCellClass": "open",
+      "legend": {
+        "R": "rock"
+      },
+      "cells": [
+        "......",
+        "......",
+        "..RR..",
+        "..RR..",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rock-3x3",
+      "defaultCellClass": "open",
+      "legend": {
+        "R": "rock"
+      },
+      "cells": [
+        "......",
+        ".RRR..",
+        ".RRR..",
+        ".RRR..",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rock-2x4",
+      "defaultCellClass": "open",
+      "legend": {
+        "R": "rock"
+      },
+      "cells": [
+        "......",
+        "..RR..",
+        "..RR..",
+        "..RR..",
+        "..RR..",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rock-caticorner",
+      "defaultCellClass": "open",
+      "legend": {
+        "R": "rock"
+      },
+      "cells": [
+        "......",
+        ".RR...",
+        ".RR...",
+        "...RR.",
+        "...RR.",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rubble-2x2",
+      "defaultCellClass": "open",
+      "legend": {
+        "B": "rubble"
+      },
+      "cells": [
+        "......",
+        "......",
+        "..BB..",
+        "..BB..",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rubble-3x3",
+      "defaultCellClass": "open",
+      "legend": {
+        "B": "rubble"
+      },
+      "cells": [
+        "......",
+        ".BBB..",
+        ".BBB..",
+        ".BBB..",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rubble-2x4",
+      "defaultCellClass": "open",
+      "legend": {
+        "B": "rubble"
+      },
+      "cells": [
+        "......",
+        "..BB..",
+        "..BB..",
+        "..BB..",
+        "..BB..",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rubble-caticorner",
+      "defaultCellClass": "open",
+      "legend": {
+        "B": "rubble"
+      },
+      "cells": [
+        "......",
+        ".BB...",
+        ".BB...",
+        "...BB.",
+        "...BB.",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-hut-center",
+      "defaultCellClass": "open",
+      "legend": {
+        "H": "hut"
+      },
+      "cells": [
+        "......",
+        ".HHHH.",
+        ".HHHH.",
+        ".HHHH.",
+        ".HHHH.",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-hut-edge",
+      "defaultCellClass": "open",
+      "legend": {
+        "H": "hut"
+      },
+      "cells": [
+        "......",
+        "......",
+        ".HHHH.",
+        ".HHHH.",
+        ".HHHH.",
+        ".HHHH."
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-hut-corner",
+      "defaultCellClass": "open",
+      "legend": {
+        "H": "hut"
+      },
+      "cells": [
+        "......",
+        "......",
+        "..HHHH",
+        "..HHHH",
+        "..HHHH",
+        "..HHHH"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
     }
   ],
   "tileSets": [

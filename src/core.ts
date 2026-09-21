@@ -2986,6 +2986,7 @@ export function generateMap(
         return {
           x: c.x, y: c.y,
           domain: [{
+            weight: 1,
             templateId: assigned[i]!.templateId,
             orientation: assigned[i]!.orientation as any,
             difficulty: 0 // pre-assigned
@@ -2999,7 +3000,7 @@ export function generateMap(
           const diff = getDifficulty(t);
           const orients = t.orientations && t.orientations.length ? t.orientations : [0];
           for (const o of orients) {
-            domain.push({ templateId: t.id, orientation: o as any, difficulty: diff });
+            domain.push({ templateId: t.id, orientation: o as any, difficulty: diff, weight: t.weight || 1 });
           }
         }
         return { x: c.x, y: c.y, domain };

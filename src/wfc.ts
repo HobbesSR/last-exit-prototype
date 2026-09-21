@@ -4,6 +4,8 @@ export interface TileOption {
   templateId: string;
   orientation: Orientation;
   difficulty: number;
+  weight: number;
+  id?: number;
 }
 
 export interface WfcCell {
@@ -119,10 +121,21 @@ export function propagate(grid: WfcGrid, columns: number, rows: number, libraryT
       const cell = grid[i]!;
       if (cell.domain.length === 0) return false;
 
-      const checkSide = (nx: number, ny: number, mySide: Side, neighborSide: Side) => {
-        const nCell = cellMap.get(`${nx},${ny}`);
+      const checkSide = (nIndex: number | undefined, mySide: Side, neighborSide: Side) => {
+        if (nIndex === undefined) return;
+        const nCell = grid[nIndex]!;
         if (!nCell) return;
-        const newDomain = cell.domain.filter(opt => nCell.domain.some(nOpt => matchEdge(opt, mySide, nOpt, neighborSide, libraryTiles)));
+        const validProp = mySide === "N" ? "validN" : mySide === "S" ? "validS" : mySide === "E" ? "validE" : "validW";
+        
+        const newDomain = cell.domain.filter(opt => {
+          const validSet = (opt as any)[validProp] as Set<number>;
+          // true if ANY neighbor option is in validSet
+          for (let k = 0; k < nCell.domain.length; k++) {
+            if (validSet.has(nCell.domain[k]!.id!)) return true;
+          }
+          return false;
+        });
+        
         if (newDomain.length < cell.domain.length) {
           cell.domain = newDomain;
           changed = true;
@@ -166,6 +179,31 @@ export function propagate(grid: WfcGrid, columns: number, rows: number, libraryT
 
 export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTiles: TileDesign[], random: () => number, state = { iterations: 0, maxIterations: 10000 }): WfcGrid | null {
   if (state.iterations++ > state.maxIterations) return null;
+
+  // Assign IDs and precalculate valid edges if not done yet
+  let needsPrecalc = false;
+  if (grid.length > 0 && grid[0]!.domain.length > 0 && grid[0]!.domain[0]!.id === undefined) {
+    let id = 0;
+    for (const opt of grid[0]!.domain) opt.id = id++;
+    needsPrecalc = true;
+  }
+
+  if (needsPrecalc) {
+    const domain = grid[0]!.domain;
+    for (const opt of domain) {
+      (opt as any).validN = new Set();
+      (opt as any).validS = new Set();
+      (opt as any).validE = new Set();
+      (opt as any).validW = new Set();
+      for (const nOpt of domain) {
+        if (matchEdge(opt, "N", nOpt, "S", libraryTiles)) (opt as any).validN.add(nOpt.id);
+        if (matchEdge(opt, "S", nOpt, "N", libraryTiles)) (opt as any).validS.add(nOpt.id);
+        if (matchEdge(opt, "E", nOpt, "W", libraryTiles)) (opt as any).validE.add(nOpt.id);
+        if (matchEdge(opt, "W", nOpt, "E", libraryTiles)) (opt as any).validW.add(nOpt.id);
+      }
+    }
+  }
+
   if (!propagate(grid, columns, rows, libraryTiles)) return null;
 
   let minEntropy = Infinity;
@@ -184,16 +222,16 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTi
 
   const cell = grid[bestCellIndex]!;
   
-  // Sort options by difficulty (descending) with random jitter
-  const options = [...cell.domain].sort((a, b) => {
-    return (b.difficulty + random()) - (a.difficulty + random());
-  });
+  const options = [...cell.domain].map(opt => ({
+    opt,
+    score: opt.difficulty + Math.pow(random(), 1 / (opt.weight || 1))
+  })).sort((a, b) => b.score - a.score).map(x => x.opt);
 
   for (const opt of options) {
     const clonedGrid: WfcGrid = grid.map(c => ({
       x: c.x, y: c.y,
       n: c.n, s: c.s, e: c.e, w: c.w, tl: c.tl, tr: c.tr, bl: c.bl,
-      domain: c === cell ? [opt] : [...c.domain]
+      domain: c === cell ? [opt] : c.domain
     }));
 
     

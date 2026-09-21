@@ -99,6 +99,7 @@ export interface TileDesign {
   ports?: Partial<Record<Side, PortValue>>;
   /** Explicit fallback role: true is used only when no ordinary design fits. Omission is false. */
   adapter?: boolean;
+  weight?: number;
   /** Optional custom labels for filtering/organizing. */
   labels?: string[];
   /** Tier zones the design accepts. */
