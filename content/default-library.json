@@ -32,24 +32,16 @@
       "clutterSize": 0.8
     },
     "tree": {
-      "generator": "open-field",
-      "clutterChance": 0.0,
-      "clutterSize": 0.0
+      "generator": "open-field"
     },
     "rock": {
-      "generator": "open-field",
-      "clutterChance": 0.0,
-      "clutterSize": 0.0
+      "generator": "open-field"
     },
     "rubble": {
-      "generator": "open-field",
-      "clutterChance": 0.0,
-      "clutterSize": 0.0
+      "generator": "open-field"
     },
     "hut": {
-      "generator": "open-field",
-      "clutterChance": 0.0,
-      "clutterSize": 0.0
+      "generator": "open-field"
     }
   },
   "tiles": [
