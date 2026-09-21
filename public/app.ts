@@ -4,7 +4,7 @@ window.addEventListener("load", () => {
   const zoomIn = document.getElementById("zoomIn");
   if (zoomIn) zoomIn.addEventListener("click", () => {
     const center = world({ x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 });
-    zoom = Math.min(40, zoom * 1.5);
+    zoom = Math.min(40, zoom * 1.25);
     pan = { x: canvas.clientWidth / 2 - center.x * zoom, y: canvas.clientHeight / 2 - center.y * zoom };
     updateZoomUI();
     requestAnimationFrame(draw);
@@ -13,7 +13,7 @@ window.addEventListener("load", () => {
   const zoomOut = document.getElementById("zoomOut");
   if (zoomOut) zoomOut.addEventListener("click", () => {
     const center = world({ x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 });
-    zoom = Math.max(1, zoom / 1.5);
+    zoom = Math.max(1, zoom / 1.25);
     pan = { x: canvas.clientWidth / 2 - center.x * zoom, y: canvas.clientHeight / 2 - center.y * zoom };
     updateZoomUI();
     requestAnimationFrame(draw);
@@ -33,7 +33,7 @@ window.addEventListener("load", () => {
   const zoomIn = document.getElementById("zoomIn");
   if (zoomIn) zoomIn.addEventListener("click", () => {
     const center = world({ x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 });
-    zoom = Math.min(40, zoom * 1.5);
+    zoom = Math.min(40, zoom * 1.25);
     pan = { x: canvas.clientWidth / 2 - center.x * zoom, y: canvas.clientHeight / 2 - center.y * zoom };
     updateZoomUI();
     requestAnimationFrame(draw);
@@ -42,7 +42,7 @@ window.addEventListener("load", () => {
   const zoomOut = document.getElementById("zoomOut");
   if (zoomOut) zoomOut.addEventListener("click", () => {
     const center = world({ x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 });
-    zoom = Math.max(1, zoom / 1.5);
+    zoom = Math.max(1, zoom / 1.25);
     pan = { x: canvas.clientWidth / 2 - center.x * zoom, y: canvas.clientHeight / 2 - center.y * zoom };
     updateZoomUI();
     requestAnimationFrame(draw);
