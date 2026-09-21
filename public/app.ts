@@ -278,8 +278,26 @@ function draw() {
         const i = y * map.grid.width + x;
         const cellClass = views.cellClass(i);
         if (cellClass === OUTSIDE_CLASS) continue;
-        ctx.fillStyle = false ? "#0a1419" : overlay === "region" ? (cellClass === "open" ? "#5a6268" : regionColor(regionIndexOf(i))) : (cellClass === "open" ? "#5a6268" : `hsl(${hash(cellClass) % 360} 32% 30%)`);
-        ctx.fillRect(x, y, 1, 1);
+        const origClass = views.originalClass ? views.originalClass(i) : cellClass;
+          const drawStripes = origClass === "any" && cellClass !== "open" && cellClass !== "any";
+          
+          ctx.fillStyle = false ? "#0a1419" : overlay === "region" ? (cellClass === "open" ? "#5a6268" : regionColor(regionIndexOf(i))) : (cellClass === "open" ? "#5a6268" : `hsl(${hash(cellClass) % 360} 32% 30%)`);
+          ctx.fillRect(x, y, 1, 1);
+          
+          if (drawStripes) {
+            ctx.fillStyle = "#ffffff33";
+            ctx.beginPath();
+            ctx.moveTo(x, y + 0.5); ctx.lineTo(x + 0.5, y + 1); ctx.lineTo(x + 1, y + 1); ctx.lineTo(x + 1, y + 0.5); ctx.lineTo(x + 0.5, y); ctx.lineTo(x, y);
+            ctx.fill();
+            
+            ctx.fillStyle = "#00000033";
+            ctx.beginPath();
+            ctx.moveTo(x + 0.5, y); ctx.lineTo(x + 1, y + 0.5); ctx.lineTo(x + 1, y);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(x, y + 0.5); ctx.lineTo(x + 0.5, y + 1); ctx.lineTo(x, y + 1);
+            ctx.fill();
+          }
       }
   } else {
     const zoneById = new Map(map.zones.map((z) => [z.id, z]));

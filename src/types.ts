@@ -264,6 +264,7 @@ export interface PrimitiveGrid {
   height: number;
   cells: {
     class: CodedGrid<string>;
+    originalClass?: CodedGrid<string>;
     /** Absent while the map is flat. */
     level?: CodedGrid<number>;
     /** Sparse by nature, so stored as a list rather than a grid. */

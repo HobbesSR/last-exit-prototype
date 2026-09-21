@@ -1,6 +1,6 @@
 import DEFAULT_LIBRARY_JSON from "../content/default-library.json" with { type: "json" };
 import { composeMacro } from "./macro.ts";
-import { getDifficulty, solveWfc } from "./wfc.ts";
+import { getDifficulty, solveWfc, getRotatedEdge } from "./wfc.ts";
 import type { WfcGrid, TileOption } from "./wfc.ts";
 import type { MacroPlacement } from "./macro-types.ts";
 import { compileTileDesign } from "./macro-compiler.ts";
@@ -2164,6 +2164,7 @@ export function generateMapLegacy(
       height: grid.H,
       cells: {
         class: encodeGrid(grid.cellClass),
+          originalClass: encodeGrid(composition.cellClass),
         // Flat maps say nothing about height, so the grid is simply absent.
         ...(grid.cellLevel.some((level) => level !== 0)
           ? { level: encodeGrid(grid.cellLevel) }
@@ -2272,6 +2273,7 @@ interface GridViews {
   height: number;
   verticalCount: number;
   cellClass: (index: number) => string;
+    originalClass: (index: number) => string;
   
   cellLevel: (index: number) => number;
   segmentOpen: (index: number) => Span;
@@ -2289,6 +2291,7 @@ export function gridViews(map: GeneratedMap): GridViews {
     height: grid.height,
     verticalCount: (grid.width + 1) * grid.height,
     cellClass: readClass,
+      originalClass: grid.cells.originalClass ? gridReader(grid.cells.originalClass) : readClass,
     
     cellLevel: grid.cells.level ? gridReader(grid.cells.level) : () => 0,
     segmentOpen: gridReader(grid.segments.open),
@@ -3071,6 +3074,46 @@ export function generateMap(
       mask: cellMask, defaultCellClass: "grass", placements: placementsArray,
     });
 
+    const W = composition.width;
+    const H = composition.height;
+    const cellConstraints = new Array(W * H).fill("any");
+    
+    for (const t of tiles) {
+      const opt = { templateId: t.templateId, orientation: t.orientation as any, difficulty: 0, weight: 1 };
+      const N = getRotatedEdge(opt, "N", library.tiles);
+      const S = getRotatedEdge(opt, "S", library.tiles);
+      const E = getRotatedEdge(opt, "E", library.tiles);
+      const W_edge = getRotatedEdge(opt, "W", library.tiles);
+      
+      for (let i = 0; i < p.tileSize; i++) {
+        if (N[i] !== "any") {
+          const cx = t.x + i; const cy = t.y - 1;
+          if (cy >= 0) cellConstraints[cy * W + cx] = N[i];
+        }
+        if (S[i] !== "any") {
+          const cx = t.x + i; const cy = t.y + p.tileSize;
+          if (cy < H) cellConstraints[cy * W + cx] = S[i];
+        }
+        if (E[i] !== "any") {
+          const cx = t.x + p.tileSize; const cy = t.y + i;
+          if (cx < W) cellConstraints[cy * W + cx] = E[i];
+        }
+        if (W_edge[i] !== "any") {
+          const cx = t.x - 1; const cy = t.y + i;
+          if (cx >= 0) cellConstraints[cy * W + cx] = W_edge[i];
+        }
+      }
+    }
+    
+    const adaptedEffective = [...composition.effectiveCellClass];
+    for (let i = 0; i < adaptedEffective.length; i++) {
+      if (composition.cellClass[i] === "any") {
+        if (cellConstraints[i] !== "any") adaptedEffective[i] = cellConstraints[i];
+      }
+    }
+    composition.effectiveCellClass = adaptedEffective;
+
+
     let regions = composition.regions;
     const grid: GridBuild = {
       W: composition.width, H: composition.height,
@@ -3150,7 +3193,8 @@ export function generateMap(
       grid: {
         width: grid.W,
         height: grid.H,
-        cells: { class: encodeGrid(grid.cellClass), spawns: micro.spawns },
+        cells: { class: encodeGrid(grid.cellClass),
+          originalClass: encodeGrid(composition.cellClass), spawns: micro.spawns },
         segments: { open: encodeGrid(grid.segmentOpen) },
         vertices: []
       },
