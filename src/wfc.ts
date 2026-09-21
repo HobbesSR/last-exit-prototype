@@ -12,6 +12,7 @@ export interface WfcCell {
   x: number;
   y: number;
   domain: TileOption[];
+    setPieceInstance?: string;
   n?: number;
   s?: number;
   e?: number;
@@ -208,6 +209,7 @@ export function propagate(grid: WfcGrid, columns: number, rows: number, libraryT
       if (nIndex === undefined) return;
       const nCell = grid[nIndex]!;
       if (!nCell) return;
+        if (cell.setPieceInstance && nCell.setPieceInstance && cell.setPieceInstance === nCell.setPieceInstance) return;
       
       const validProp = mySide === "N" ? "validN" : mySide === "S" ? "validS" : mySide === "E" ? "validE" : "validW";
       

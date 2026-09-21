@@ -73,7 +73,17 @@
         "x": 3,
         "y": 4
       },
-      "weight": 5
+      "weight": 5,
+      "edges": {
+        "S": [
+          "market",
+          "market",
+          "market",
+          "market",
+          "market",
+          "market"
+        ]
+      }
     },
     {
       "id": "market-corner",
@@ -220,6 +230,16 @@
       "anchor": {
         "x": 3,
         "y": 3
+      },
+      "edges": {
+        "S": [
+          "depot",
+          "depot",
+          "depot",
+          "depot",
+          "depot",
+          "depot"
+        ]
       }
     },
     {
@@ -246,7 +266,17 @@
         "x": 3,
         "y": 4
       },
-      "weight": 5
+      "weight": 5,
+      "edges": {
+        "S": [
+          "park",
+          "park",
+          "park",
+          "park",
+          "park",
+          "park"
+        ]
+      }
     },
     {
       "id": "park-interior",
@@ -287,7 +317,17 @@
         "x": 3,
         "y": 4
       },
-      "weight": 5
+      "weight": 5,
+      "edges": {
+        "S": [
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing"
+        ]
+      }
     },
     {
       "id": "landing-interior",
@@ -408,6 +448,16 @@
       "anchor": {
         "x": 3,
         "y": 3
+      },
+      "edges": {
+        "S": [
+          "evac",
+          "evac",
+          "evac",
+          "evac",
+          "evac",
+          "evac"
+        ]
       }
     },
     {

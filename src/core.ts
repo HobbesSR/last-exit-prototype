@@ -97,6 +97,7 @@ interface Assignment {
   anchor: Point;
   resolved: ResolvedPrimitives;
   setPieceId?: string;
+    setPieceInstance?: string;
 }
 /** A tile fitted to a seam contract: standing room plus frozen primitives. */
 interface Fit {
@@ -1841,6 +1842,7 @@ export function generateMapLegacy(
     if (!placements.length)
       throw new Error(`Authored set piece ${setPiece.id} cannot be placed`);
     const place = placements[Math.floor(random() * placements.length)]!;
+        const instanceId = Math.random().toString();
     for (const { s, j: slot } of place.slots) {
       const j = slot!;
       const members = new Set(getSetMembers(s.tileSetId));
@@ -1864,7 +1866,8 @@ export function generateMapLegacy(
         anchor: chosen.anchor,
         resolved: chosen.resolved,
         setPieceId: setPiece.id,
-      };
+       setPieceInstance: instanceId,
+          };
       assignedAt[j] = assigned[j];
       claim(
         taken,
@@ -2935,6 +2938,7 @@ export function generateMap(
 
     const assigned = new Array<{
       template: TileDesign; templateId: string; orientation: number; anchor: Point; setPieceId?: string;
+    setPieceInstance?: string;
     } | undefined>(cells.length);
 
     const fallbackDesign = library.tiles.find(t => t.id === "open") || library.tiles.find(t => t.id === "plain") || library.tiles[0]!;
@@ -2968,6 +2972,7 @@ export function generateMap(
       }
       if (!placements.length) { allPlaced = false; break; }
       const place = placements[Math.floor(random() * placements.length)]!;
+        const instanceId = Math.random().toString();
       
       for (const { s, j: slot } of place.slots) {
         const j = slot!;
@@ -2981,7 +2986,8 @@ export function generateMap(
           template: design, templateId: design.id, orientation,
           anchor: { x: p.tileSize / 2, y: p.tileSize / 2 },
           setPieceId: setPiece.id,
-        };
+         setPieceInstance: instanceId,
+          };
       }
     }
     
@@ -3006,7 +3012,9 @@ export function generateMap(
             orientation: assigned[i]!.orientation as any,
             difficulty: 0 // pre-assigned
           }]
-        };
+        ,
+            setPieceInstance: assigned[i]!.setPieceInstance
+          };
       } else {
         const tier = zoneOf(c).tier;
         const validTiles = library.tiles.filter(t => !t.eligibleTiers || t.eligibleTiers.includes(tier));
