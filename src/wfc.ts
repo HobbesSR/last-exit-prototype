@@ -281,6 +281,10 @@ export function propagate(grid: WfcGrid, columns: number, rows: number, libraryT
         if (cell.s !== undefined && !inQueue[cell.s]) { queue.push(cell.s); inQueue[cell.s] = 1; }
         if (cell.e !== undefined && !inQueue[cell.e]) { queue.push(cell.e); inQueue[cell.e] = 1; }
         if (cell.w !== undefined && !inQueue[cell.w]) { queue.push(cell.w); inQueue[cell.w] = 1; }
+        if (cell.tl !== undefined && !inQueue[cell.tl]) { queue.push(cell.tl); inQueue[cell.tl] = 1; }
+        if (cell.tr !== undefined && !inQueue[cell.tr]) { queue.push(cell.tr); inQueue[cell.tr] = 1; }
+        if (cell.bl !== undefined && !inQueue[cell.bl]) { queue.push(cell.bl); inQueue[cell.bl] = 1; }
+        if (cell.br !== undefined && !inQueue[cell.br]) { queue.push(cell.br); inQueue[cell.br] = 1; }
       }
     };
 
@@ -288,6 +292,10 @@ export function propagate(grid: WfcGrid, columns: number, rows: number, libraryT
     checkSide(cell.s, "S", "N");
     checkSide(cell.e, "E", "W");
     checkSide(cell.w, "W", "E");
+    checkSide(cell.tl, "TL", "BR");
+    checkSide(cell.tr, "TR", "BL");
+    checkSide(cell.bl, "BL", "TR");
+    checkSide(cell.br, "BR", "TL");
   }
 
   return true;
@@ -322,6 +330,10 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTi
         (opt as any).validS = new Set();
         (opt as any).validE = new Set();
         (opt as any).validW = new Set();
+        (opt as any).validTL = new Set();
+        (opt as any).validTR = new Set();
+        (opt as any).validBL = new Set();
+        (opt as any).validBR = new Set();
       }
       for (const opt of domain) {
         for (const nOpt of domain) {
@@ -329,6 +341,10 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTi
           if (matchEdge(opt, "S", nOpt, "N", libraryTiles)) (opt as any).validS.add(nOpt.id);
           if (matchEdge(opt, "E", nOpt, "W", libraryTiles)) (opt as any).validE.add(nOpt.id);
           if (matchEdge(opt, "W", nOpt, "E", libraryTiles)) (opt as any).validW.add(nOpt.id);
+          if (matchDiagonal(opt, "TL", nOpt, libraryTiles)) (opt as any).validTL.add(nOpt.id);
+          if (matchDiagonal(opt, "TR", nOpt, libraryTiles)) (opt as any).validTR.add(nOpt.id);
+          if (matchDiagonal(opt, "BL", nOpt, libraryTiles)) (opt as any).validBL.add(nOpt.id);
+          if (matchDiagonal(opt, "BR", nOpt, libraryTiles)) (opt as any).validBR.add(nOpt.id);
         }
       }
     }
