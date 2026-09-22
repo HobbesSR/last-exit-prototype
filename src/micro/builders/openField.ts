@@ -205,7 +205,7 @@ export const openFieldBuilder: RegionBuilder = {
         if (run.length < STUB_MIN_SEGMENTS) continue;
         let placed = 0;
         for (const { ref, offset } of run) {
-          if (!canvas.wall(ref)) continue;
+          continue;
           placed += 1;
           touched.add(vertexKey(offset));
           touched.add(vertexKey(offset + 1));

@@ -20,6 +20,7 @@ export interface WfcCell {
   tl?: number;
   tr?: number;
   bl?: number;
+  br?: number;
 }
 
 export type WfcGrid = WfcCell[];
@@ -261,7 +262,7 @@ export function propagate(grid: WfcGrid, columns: number, rows: number, libraryT
       if (nIndex === undefined) return;
       const nCell = grid[nIndex]!;
       if (!nCell) return;
-        if (cell.setPieceInstance && nCell.setPieceInstance && cell.setPieceInstance === nCell.setPieceInstance) return;
+        
       
       const validProp = "valid" + mySide;
       
@@ -352,7 +353,7 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTi
   
   const options = [...cell.domain].map(opt => ({
     opt,
-    score: Math.pow(random(), 1 / (opt.weight || 1))
+    score: opt.difficulty + Math.pow(random(), 1 / (opt.weight || 1))
   })).sort((a, b) => b.score - a.score).map(x => x.opt);
 
   for (const opt of options) {

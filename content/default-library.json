@@ -124,7 +124,17 @@
         "x": 3,
         "y": 3
       },
-      "weight": 5
+      "weight": 5,
+      "edges": {
+        "S": [
+          "market",
+          "market",
+          "market",
+          "market",
+          "market",
+          "market"
+        ]
+      }
     },
     {
       "id": "depot-fence",
@@ -291,7 +301,17 @@
         "x": 3,
         "y": 3
       },
-      "weight": 5
+      "weight": 5,
+      "edges": {
+        "S": [
+          "park",
+          "park",
+          "park",
+          "park",
+          "park",
+          "park"
+        ]
+      }
     },
     {
       "id": "landing-edge",
@@ -342,7 +362,17 @@
         "x": 3,
         "y": 3
       },
-      "weight": 5
+      "weight": 5,
+      "edges": {
+        "S": [
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing"
+        ]
+      }
     },
     {
       "id": "evac-fence",
@@ -863,6 +893,32 @@
         4,
         5
       ]
+    },
+    {
+      "id": "landing-corner",
+      "defaultCellClass": "landing",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "OOOOOO",
+        "OO....",
+        "OO....",
+        "OO....",
+        "OO...."
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 4,
+        "y": 4
+      },
+      "weight": 5
     }
   ],
   "tileSets": [
@@ -948,6 +1004,12 @@
       "id": "evac-gates",
       "members": [
         "evac-gate"
+      ]
+    },
+    {
+      "id": "landing-corners",
+      "members": [
+        "landing-corner"
       ]
     }
   ],
@@ -1075,26 +1137,26 @@
         {
           "dx": 0,
           "dy": 0,
-          "tileSetId": "landing-edges",
+          "tileSetId": "landing-corners",
           "orientation": 0
         },
         {
           "dx": 1,
           "dy": 0,
-          "tileSetId": "landing-edges",
-          "orientation": 0
+          "tileSetId": "landing-corners",
+          "orientation": 90
         },
         {
           "dx": 0,
           "dy": 1,
-          "tileSetId": "landing-edges",
+          "tileSetId": "landing-corners",
           "orientation": 270
         },
         {
           "dx": 1,
           "dy": 1,
-          "tileSetId": "landing-centers",
-          "orientation": 0
+          "tileSetId": "landing-corners",
+          "orientation": 180
         }
       ]
     },
@@ -1112,21 +1174,21 @@
           "orientation": 0
         },
         {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "evac-corners",
+          "orientation": 90
+        },
+        {
           "dx": 0,
           "dy": 1,
-          "tileSetId": "evac-gates",
+          "tileSetId": "evac-corners",
           "orientation": 270
         },
         {
           "dx": 1,
-          "dy": 0,
-          "tileSetId": "evac-fences",
-          "orientation": 0
-        },
-        {
-          "dx": 1,
           "dy": 1,
-          "tileSetId": "evac-fences",
+          "tileSetId": "evac-corners",
           "orientation": 180
         }
       ]
