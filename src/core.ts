@@ -3036,8 +3036,9 @@ export function generateMap(
       c.e = cellMap.get(`${c.x + 1},${c.y}`);
       c.w = cellMap.get(`${c.x - 1},${c.y}`);
       c.tl = cellMap.get(`${c.x - 1},${c.y - 1}`);
-      c.tr = cellMap.get(`${c.x},${c.y - 1}`);
-      c.bl = cellMap.get(`${c.x - 1},${c.y}`);
+      c.tr = cellMap.get(`${c.x + 1},${c.y - 1}`);
+      c.bl = cellMap.get(`${c.x - 1},${c.y + 1}`);
+      c.br = cellMap.get(`${c.x + 1},${c.y + 1}`);
     }
 
     const solvedGrid = solveWfc(wfcGrid, p.columns, p.rows, library.tiles, random);

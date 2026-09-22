@@ -247,9 +247,15 @@ export function propagate(grid: WfcGrid, columns: number, rows: number, libraryT
       inQueue[i] = 1;
     }
   } else {
-    queue.push(startQueue);
-    inQueue[startQueue] = 1;
-  }
+      const startCell = grid[startQueue]!;
+      const neighbors = [startCell.n, startCell.s, startCell.e, startCell.w, startCell.tl, startCell.tr, startCell.bl, startCell.br];
+      for (const n of neighbors) {
+        if (n !== undefined && !inQueue[n]) {
+          queue.push(n);
+          inQueue[n] = 1;
+        }
+      }
+    }
 
   let head = 0;
   while (head < queue.length) {
