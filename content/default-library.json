@@ -1029,32 +1029,17 @@
         {
           "dx": 0,
           "dy": 0,
-          "tileSetId": "market-corners",
-          "orientation": 0
+          "tileSetId": "market-interiors"
         },
         {
           "dx": 1,
           "dy": 0,
-          "tileSetId": "market-fronts",
-          "orientation": 0
-        },
-        {
-          "dx": 2,
-          "dy": 0,
-          "tileSetId": "market-fronts",
-          "orientation": 0
-        },
-        {
-          "dx": 3,
-          "dy": 0,
-          "tileSetId": "market-corners",
-          "orientation": 90
+          "tileSetId": "market-interiors"
         },
         {
           "dx": 0,
           "dy": 1,
-          "tileSetId": "market-fronts",
-          "orientation": 270
+          "tileSetId": "market-interiors"
         },
         {
           "dx": 1,
@@ -1062,21 +1047,9 @@
           "tileSetId": "market-interiors"
         },
         {
-          "dx": 2,
-          "dy": 1,
-          "tileSetId": "market-interiors"
-        },
-        {
-          "dx": 3,
-          "dy": 1,
-          "tileSetId": "market-fronts",
-          "orientation": 90
-        },
-        {
           "dx": 0,
           "dy": 2,
-          "tileSetId": "market-fronts",
-          "orientation": 270
+          "tileSetId": "market-interiors"
         },
         {
           "dx": 1,
@@ -1084,46 +1057,41 @@
           "tileSetId": "market-interiors"
         },
         {
-          "dx": 2,
-          "dy": 2,
-          "tileSetId": "market-interiors"
-        },
-        {
-          "dx": 3,
-          "dy": 2,
-          "tileSetId": "market-fronts",
-          "orientation": 90
-        },
-        {
           "dx": 0,
           "dy": 3,
-          "tileSetId": "market-corners",
-          "orientation": 270
+          "tileSetId": "market-interiors"
         },
         {
           "dx": 1,
           "dy": 3,
-          "tileSetId": "market-fronts",
-          "orientation": 180
+          "tileSetId": "market-interiors"
         },
         {
-          "dx": 2,
-          "dy": 3,
-          "tileSetId": "market-fronts",
-          "orientation": 180
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "market-interiors"
         },
         {
-          "dx": 3,
-          "dy": 3,
-          "tileSetId": "market-corners",
-          "orientation": 180
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "market-interiors"
         }
       ]
     },
     {
       "id": "end-base",
       "category": "end",
-      "class": "military",
+      "class": "landing",
       "eligibleTiers": [
         1,
         2,
@@ -1135,74 +1103,62 @@
         {
           "dx": 0,
           "dy": 0,
-          "tileSetId": "evac-corners",
-          "orientation": 0
+          "tileSetId": "landing-centers"
         },
         {
           "dx": 1,
           "dy": 0,
-          "tileSetId": "evac-fences",
-          "orientation": 0
-        },
-        {
-          "dx": 2,
-          "dy": 0,
-          "tileSetId": "evac-fences",
-          "orientation": 0
-        },
-        {
-          "dx": 3,
-          "dy": 0,
-          "tileSetId": "evac-corners",
-          "orientation": 90
+          "tileSetId": "landing-centers"
         },
         {
           "dx": 0,
           "dy": 1,
-          "tileSetId": "evac-fences",
-          "orientation": 270
+          "tileSetId": "landing-centers"
         },
         {
-          "dx": 3,
+          "dx": 1,
           "dy": 1,
-          "tileSetId": "evac-fences",
-          "orientation": 90
+          "tileSetId": "landing-centers"
         },
         {
           "dx": 0,
           "dy": 2,
-          "tileSetId": "evac-fences",
-          "orientation": 270
+          "tileSetId": "landing-centers"
         },
         {
-          "dx": 3,
+          "dx": 1,
           "dy": 2,
-          "tileSetId": "evac-fences",
-          "orientation": 90
+          "tileSetId": "landing-centers"
         },
         {
           "dx": 0,
           "dy": 3,
-          "tileSetId": "evac-corners",
-          "orientation": 270
+          "tileSetId": "landing-centers"
         },
         {
           "dx": 1,
           "dy": 3,
-          "tileSetId": "evac-fences",
-          "orientation": 180
+          "tileSetId": "landing-centers"
         },
         {
-          "dx": 2,
-          "dy": 3,
-          "tileSetId": "evac-fences",
-          "orientation": 180
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "landing-centers"
         },
         {
-          "dx": 3,
-          "dy": 3,
-          "tileSetId": "evac-corners",
-          "orientation": 180
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "landing-centers"
         }
       ]
     },
