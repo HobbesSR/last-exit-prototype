@@ -264,7 +264,7 @@ export function propagate(grid: WfcGrid, columns: number, rows: number, libraryT
     const cell = grid[i]!;
     if (cell.domain.length === 0) return false;
 
-    const checkSide = (nIndex: number | undefined, mySide: Side, neighborSide: Side) => {
+    const checkSide = (nIndex: number | undefined, mySide: Side | "TL" | "TR" | "BL" | "BR", neighborSide: Side | "TL" | "TR" | "BL" | "BR") => {
       if (nIndex === undefined) return;
       const nCell = grid[nIndex]!;
       if (!nCell) return;
@@ -375,7 +375,7 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTi
   
   const options = [...cell.domain].map(opt => ({
     opt,
-    score: opt.difficulty + Math.pow(random(), 1 / (opt.weight || 1))
+    score: (opt.difficulty + 12) * Math.pow(random(), 1 / (opt.weight || 1))
   })).sort((a, b) => b.score - a.score).map(x => x.opt);
 
   for (const opt of options) {
