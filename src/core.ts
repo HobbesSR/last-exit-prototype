@@ -2959,14 +2959,48 @@ export function generateMap(
       };
 
 
-    const orderedSetPieces = (library.setPieces || []).sort((a, b) => b.tiles.length - a.tiles.length);
+    const allLibraryPieces = library.setPieces || [];
+    const starts = allLibraryPieces.filter((sp: any) => sp.category === "start");
+    const ends = allLibraryPieces.filter((sp: any) => sp.category === "end");
+    const enormous = allLibraryPieces.filter((sp: any) => sp.category === "enormous");
+    const mediums = allLibraryPieces.filter((sp: any) => sp.category === "medium");
+    const smalls = allLibraryPieces.filter((sp: any) => sp.category === "small");
+
+    const activeSetPieces: { piece: any, filter: (anchor: MaskCell, w: number, h: number) => boolean }[] = [];
+    
+    if (starts.length) activeSetPieces.push({ piece: starts[Math.floor(random() * starts.length)], filter: (c, w, h) => c.x === 0 });
+    if (ends.length) activeSetPieces.push({ piece: ends[Math.floor(random() * ends.length)], filter: (c, w, h) => c.x + w >= p.columns });
+    
+    const shuffle = (arr: any[]) => [...arr].sort(() => random() - 0.5);
+    const chosenEnormous = shuffle(enormous).slice(0, 3);
+    if (chosenEnormous[0]) activeSetPieces.push({ piece: chosenEnormous[0], filter: (c, w, h) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y < p.rows / 3 });
+    if (chosenEnormous[1]) activeSetPieces.push({ piece: chosenEnormous[1], filter: (c, w, h) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y >= p.rows / 3 && c.y < p.rows * 2 / 3 });
+    if (chosenEnormous[2]) activeSetPieces.push({ piece: chosenEnormous[2], filter: (c, w, h) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y >= p.rows * 2 / 3 });
+    
+    for (let i = 0; i < 4; i++) {
+      if (!mediums.length) break;
+      activeSetPieces.push({ piece: mediums[Math.floor(random() * mediums.length)], filter: (c, w, h) => c.x < p.columns / 3 || c.x + w > p.columns * 2 / 3 });
+    }
+    
+    for (let i = 0; i < 10; i++) {
+      if (!smalls.length) break;
+      activeSetPieces.push({ piece: smalls[Math.floor(random() * smalls.length)], filter: () => true });
+    }
+    
+    activeSetPieces.sort((a, b) => b.piece.tiles.length - a.piece.tiles.length);
+
     let allPlaced = true;
-    for (const setPiece of orderedSetPieces) {
+    for (const { piece: setPiece, filter } of activeSetPieces) {
+      if (!setPiece) continue;
+      const w = Math.max(...setPiece.tiles.map((s: any) => s.dx)) + 1;
+      const h = Math.max(...setPiece.tiles.map((s: any) => s.dy)) + 1;
+      
       const placements: Array<{ i: number; slots: Array<{ s: SetPieceSlot; j: number | undefined }> }> = [];
       for (let i = 0; i < cells.length; i++) {
         const anchor = cells[i]!;
-        const slots = setPiece.tiles.map((s) => ({ s, j: byKey.get(key(anchor.x + s.dx, anchor.y + s.dy)) }));
-        if (slots.every((x) => x.j !== undefined && setPiece.eligibleTiers.includes(zoneOf(cells[x.j]!).tier) && !assigned[x.j])) {
+        if (!filter(anchor, w, h)) continue;
+        const slots = setPiece.tiles.map((s: any) => ({ s, j: byKey.get(key(anchor.x + s.dx, anchor.y + s.dy)) }));
+        if (slots.every((x: any) => x.j !== undefined && setPiece.eligibleTiers.includes(zoneOf(cells[x.j]!).tier) && !assigned[x.j])) {
           placements.push({ i, slots });
         }
       }

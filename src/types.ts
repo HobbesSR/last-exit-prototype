@@ -135,6 +135,7 @@ export interface SetPieceSlot {
 }
 export interface SetPiece {
   id: string;
+  category?: "enormous" | "medium" | "small" | "start" | "end";
   class: string;
   eligibleTiers: number[];
   tiles: SetPieceSlot[];
