@@ -5,6 +5,53 @@ import { createMatch } from '../server/match.js';
 import { createGame, joinGame, setInput, step, snapshot } from '../shared/simulation.ts';
 import { parseMessage, acceptMessageRate, roomSeed } from '../server/protocol.js';
 
+test('three hunter places are advertised, admitted, reclaimed and recorded', async () => {
+  const h = roomHarness(), room = h.service.makeRoom(9);
+  try {
+    const owner = h.joined(room, { ownerKey: room.ownerKey });
+    const hunters = ['warden', 'specter', 'striker'].map(kit => h.joined(room, { role: 'gladiator', kit }));
+    const lobby = owner.messages.filter(m => m.type === 'lobby').at(-1);
+    assert.deepEqual(lobby.capacity, { contestant: 8, gladiator: 3 });
+    assert.equal(lobby.players.filter(p => p.role === 'gladiator').length, 3);
+    assert.ok(hunters.every(p => p.session.playerId));
+    const fourth = h.joined(room, { role: 'gladiator' });
+    assert.match(fourth.messages[0].message, /No gladiator places/);
+    assert.equal(fourth.session.playerId, null);
+    const third = hunters[2], welcome = third.messages.find(m => m.type === 'welcome');
+    h.service.disconnect(third.session);
+    const resumed = h.joined(room, { resumeKey: welcome.resumeKey });
+    assert.equal(resumed.session.playerId, welcome.id);
+    assert.equal(room.match.player(welcome.id).kit, 'striker');
+    owner.send({ type: 'start' });
+    const writer = h.writers.get(room.id);
+    assert.equal(writer.header.contentId, 'content-2');
+    assert.equal(writer.header.version, 'last-exit-0.7');
+    assert.equal(writer.header.schema, 3);
+    assert.equal(writer.header.minSchema, 0);
+    assert.equal(writer.frames[0].state.players.filter(p => p.role === 'gladiator').length, 3);
+    assert.equal(writer.frames[0].state.slots, 3);
+  } finally { await h.service.close(); }
+});
+
+test('matchmaking balances occupied fractions against three hunter places and fills all eleven slots', async () => {
+  const h = roomHarness();
+  try {
+    const match = role => { const p = h.peer(); p.send({ type: 'match', role }); return p; };
+    const first = match('gladiator'), room = first.session.room;
+    // 3/8 contestants is above 1/3 hunters, but below the obsolete 1/2 fraction.
+    for (let i = 0; i < 3; i++) match('contestant');
+    const balanced = match('any');
+    assert.equal(room.match.player(balanced.session.playerId).role, 'gladiator');
+    const third = match('gladiator');
+    assert.equal(room.match.player(third.session.playerId).role, 'gladiator');
+    const fallback = match('gladiator');
+    assert.equal(room.match.player(fallback.session.playerId).role, 'contestant');
+    for (let i = 0; i < 4; i++) assert.equal(match('any').session.room, room);
+    assert.equal(room.match.roster().length, 11);
+    assert.notEqual(match('any').session.room, room, 'a full room cannot admit a twelfth player');
+  } finally { await h.service.close(); }
+});
+
 test('match boundary preserves simulation output and returns detached commands, identities and maps', () => {
   const match = createMatch(9), game = createGame(9);
   const actor = match.join('human', 'contestant', 'warden', 'Runner');

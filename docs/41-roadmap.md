@@ -6,18 +6,18 @@ shape the later items are in [17](17-open-questions.md).
 
 ## Standing priorities
 
-Module extraction alone does not establish ownership. The next useful boundary is
-the server's match lifecycle: transport currently mutates players, tick scheduling
-reads gzip stream flags, replay writers mutate rooms, and asynchronous finalization
-can outlive server shutdown. These are concrete sources of cross-system changes.
+Module extraction alone does not establish ownership. The completed server match
+lifecycle work removed transport mutations of players, scheduling dependencies on
+gzip flags, replay writers' room mutations, and finalization outliving shutdown.
+These were the concrete sources of cross-system changes behind this sequence.
 
 | Priority | Work | Benefit and acceptance condition |
 | --- | --- | --- |
-| Now | Match access boundary | Server application uses named join/resume/leave/input/step/end/query operations; transport never edits game state. Preserve snapshot/command fixtures. |
-| Now | Replay writer and archive adapter | Private gzip/hash/filesystem state; room orchestration depends on append/backpressure/finalize/list/open operations. Preserve replay JSON and integrity hash. |
-| Now | Room/session application separate from HTTP/WebSocket and timers | Run joins, reconnects, delay, catch-up, abandonment and shutdown with fake sessions/time/storage. Existing integration/browser suites still pass. |
-| Now | Owned asynchronous shutdown | Every started finalization is awaited; repeated close/finalize is idempotent. Test slow/failing storage directly. Record this reliability change separately from extraction. |
-| Next | Explicit outbound field contracts | New server-only fields must not automatically appear in player views. Introduce allowlists with frozen projection comparisons and nested item/trap contracts. |
+| Done | Match access boundary | Server application uses named join/resume/leave/input/step/end/query operations; transport never edits game state. Snapshot/command fixtures were preserved. |
+| Done | Replay writer and archive adapter | Private gzip/hash/filesystem state; room orchestration depends on append/backpressure/finalize/list/open operations. Replay JSON and integrity hash were preserved. |
+| Done | Room/session application separate from HTTP/WebSocket and timers | Joins, reconnects, delay, catch-up, abandonment and shutdown run with fake sessions/time/storage. Integration/browser suites cover the boundary. |
+| Done | Owned asynchronous shutdown | Every started finalization is awaited; repeated close/finalize is idempotent. Slow/failing storage is tested directly. This reliability change was recorded separately from extraction. |
+| Done | Explicit outbound field contracts | Allowlists with frozen projection comparisons and nested item/trap contracts prevent new server-only fields from automatically appearing in player views. |
 | Done | Versioned immutable match content | Weapons, kits and the tick-denominated rules are pinned and frozen at match creation and read from the match rather than from module constants; the recording header names the set. Trap reach, damage and cadence followed. Map generation needs no equivalent and deliberately does not get one: see below. |
 | Later | Typed gameplay facts | Separate replayable facts from presentation strings/effects; events carry stable IDs and schemas. Establish actual consumers before broad instrumentation or progression integration. |
 | Later | Deployment/session compatibility | Distinct account/session/player/match identities, admission/draining, reconnect routing and compatibility negotiation. Requires product/hosting decisions. |
@@ -40,27 +40,53 @@ discovery, a new database, TypeScript migration or an internal gameplay event bu
 Transport envelope parsing and simulation input validation are different layers:
 slot and input validation depends on player state and remains authoritative.
 
-The priorities marked Now and Done are implemented, as are inventory drag/drop
+The priorities marked Done are implemented, as are inventory drag/drop
 (F-13) and the recording failure policy. The completed
 checkpoints and what they measured are in [42](42-performance-history.md).
-F-11 through F-18 are the next gameplay milestone, with a separate simulation and
-version review.
+F-11 is now implemented as `content-2`; F-12 and the remaining accepted additions
+still need separate gameplay and version review.
 
 ## Next tasks
+
+**Current focus, updated by the user on 2026-09-23: F-01 micro generation.**
+The SDK now includes immutable child contexts, bounded polyomino analysis,
+candidate-to-generator allocation, residual ownership, structural interfaces and
+independent plan validation. The allocation visualizer and focused analysis/
+allocation tests exercise that layer. It is deliberately not a physical geometry
+or route generator: grid depth/width are not clearance, seams are only portal
+opportunities, and bounded beam search reports diagnostics rather than optimality.
+The combined generation demo now realizes example assignments, constructs paired
+two-cell portals, checks cross-child swept routes, and supports walking through
+the resulting structures. Allocation controls auto-apply and explain unchanged
+winners; contrasting presets expose policy effects. Next generalize dispatch and
+portal negotiation beyond this explicit demo policy. The decomposition lab now
+also compares bounded recursive allocation trees under alternate objectives, with
+branch inspection and explicit terminal residuals. This does not yet execute those
+trees as physical micro generation. SDK access/boundary utilities now validate
+post-generation crossing and connectivity obligations, inherit complete external
+runs and pair inter-child requirements; nested composition tests exercise this
+contract. Use those checks when adding recursive execution. Then address the sibling
+adapter and recursive execution. Future macro integration still needs a
+unit/ownership adapter, explicit port translation and whole-map physical route
+validation; the sibling remains independent. See [19](19-decomposition-design.md),
+[20](20-micro-generation.md) and the recorded choices in [17](17-open-questions.md).
+
+The sequencing below remains the other gameplay backlog, not an instruction to
+leave the current micro-generation effort for reward tiers.
 
 These supersede the older assumption that all prototype policies should remain
 defaults. They are accepted direction, not evidence that the corresponding behavior
 is implemented. Preserve the completed extraction's frozen fixtures while making
 intentional changes in separate checkpoints.
 
-1. **Match capacities and content checkpoint (F-11).** The centralization is done:
-   the roster lives in pinned match content, its lengths *are* the capacities, and
-   spawning, matchmaking and the lobby label all count that one list — the lobby is
-   told the numbers by the room rather than transcribing them. What remains is the
-   gameplay decision itself: raising gladiators from two to three is a one-line
-   content edit, but it needs an explicit new content id, a version decision, and a
-   plan for how the existing characterization stays exercised. Never regenerate the
-   old fixture.
+1. **Completed: match capacities and content checkpoint (F-11).** `content-2`
+   appends a third hunter using Striker; eight contestants and three extraction
+   slots remain. Spawning, admission, matchmaking fractions and lobby capacities
+   read the pinned roster. Rules stay `last-exit-0.7`, recording schema stays 3/0:
+   only content data changed. The unchanged `netcode-1` fixture runs explicitly
+   with retained `content-1`, while new tests cover the three-hunter default and
+   full-room admission. See [14](14-match-rules.md), [26](26-recording-contract.md)
+   and [31](31-verification.md).
 2. **Shared spatial reward/danger policy (F-12/F-15).** The user selected five
    virtual columns and rows, five mixed tier distributions, a horizontal base
    from 1 to 5, and vertical offsets 0/1/2 capped at tier 5. These zones do not
@@ -100,7 +126,7 @@ The new requirements make three boundaries especially useful:
    make bot sight/query work a useful profiling target, not proof that middleware or a
    geometry rewrite is needed.
 
-The more difficult production work remains versioned content, session routing and
+The more difficult production work remains content rollout policy, session routing and
 draining, archive retention/access, and idempotent persistent match results. These
 need the batch policies in [17](17-open-questions.md). Do not build a service registry or split processes
 before those ownership and failure contracts have concrete consumers.

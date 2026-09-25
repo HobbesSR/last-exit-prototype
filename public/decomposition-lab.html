@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172a2b">
+  <title>Last Exit | Decomposition lab</title>
+  <link rel="stylesheet" href="/decomposition-lab.css">
+  <script type="module" src="/decomposition-lab.js"></script>
+</head>
+<body>
+  <main class="lab">
+    <header><a href="/micro-lab.html">← MICRO LAB</a><div><span class="eyebrow">DEVELOPMENT TOOL</span><h1>Region decomposition</h1><p>Try a pattern and a policy. This allocates child-generator footprints; it does not make doors, geometry, or walkable routes.</p><a class="demo-link" href="/generation-demo.html">Decompose, generate and walk →</a></div></header>
+    <section class="controls" aria-label="Region input">
+      <label>Pattern example<select id="shape"><option value="neck">Neck — two large areas joined by a narrow strip</option><option value="ring">Ring — keep the courtyard hole</option><option value="l">L shape — irregular connected ground</option><option value="rectangle">Rectangle — one simple area</option></select><small>Changes immediately.</small></label>
+      <label class="file-input">Load RegionContextInput JSON<input id="import" type="file" accept=".json,application/json"><small>Invalid files keep the current context and plan.</small></label>
+    </section>
+    <section class="tree-explorer" aria-label="Hierarchical alternatives">
+      <h2>Explore decomposition trees</h2>
+      <p>Compare keeping a region whole with subdividing its pieces and remainders. Only a bounded selection of trees is retained. These are structural choices; they have not been physically generated.</p>
+      <div class="controls">
+        <label>Tree objective<select id="tree-objective"><option value="balanced">Balanced usefulness</option><option value="rooms">Smaller room groups</option><option value="preserve">Preserve large shapes and holes</option></select></label>
+        <label>Maximum tree depth<select id="tree-depth"><option value="1">1 — one allocation</option><option value="2" selected>2 — refine child regions</option><option value="3">3 — refine grandchildren</option></select></label>
+        <label>Retained alternative<select id="tree-alternative"></select></label>
+        <div class="actions"><button id="tree-download" type="button" disabled>Download trees JSON</button></div>
+      </div>
+      <p id="tree-status" role="status">Preparing alternative trees…</p>
+      <div class="workspace">
+        <div class="canvas-wrap"><canvas id="tree-preview" width="960" height="620" aria-label="Selected decomposition tree"></canvas><p>Colors show terminal ownership. Select any branch to highlight its descendants; reserved and forbidden cells remain separate.</p></div>
+        <aside><h2>Selected tree</h2><dl id="tree-score"></dl><h2>Branches</h2><div id="tree-nodes"></div><h2>Selected decision</h2><p id="tree-detail"></p></aside>
+      </div>
+    </section>
+    <h2 class="flat-heading">Flat proposal inspector</h2>
+    <p class="hint">Inspect the original one-level candidate search here. These controls affect only this flat inspector, independently of the tree objective above.</p>
+    <section class="controls" aria-label="Decomposition controls">
+      <label>Allocation policy<select id="preset"><option value="balanced">Balanced</option><option value="fewer">Prefer fewer pieces</option><option value="islands">Avoid leftover islands</option><option value="custom">Custom values</option></select><small id="preset-help">Three useful pieces, no leftover ground.</small></label>
+      <label>Canvas view<select id="view"><option value="selected">Selected allocation</option><option value="depth">Cell depth</option><option value="candidates">Candidate footprint</option><option value="cuts">Neck cuts</option></select><small id="view-help">Colored cells show the winning allocation.</small></label>
+      <label id="candidate-control" hidden>Candidate footprint<select id="candidate" disabled></select><small>Inspect one competing footprint.</small></label>
+      <div class="actions"><button id="generate" type="button">Recompute now</button><button id="reset" type="button">Reset defaults</button><button id="download" type="button" disabled>Download JSON</button></div>
+      <details class="advanced"><summary>Advanced policy</summary><p>These weights guide a bounded search. Changing beam width may leave the same shape selected when its winner is already stable.</p><div class="advanced-grid">
+        <label>Beam search width<input id="beam-width" type="range" min="1" max="32" step="1" value="8"><output id="beam-width-value" for="beam-width">8</output><small>More alternatives to retain (1–32).</small></label>
+        <label>Avoid leftover islands<input id="residual-penalty" type="range" min="0" max="300" step="1" value="10"><output id="residual-penalty-value" for="residual-penalty">10</output><small>Charges each disconnected leftover area.</small></label>
+        <label>Prefer fewer pieces<input id="piece-penalty" type="range" min="0" max="300" step="1" value="3"><output id="piece-penalty-value" for="piece-penalty">3</output><small>Charges every selected generator footprint.</small></label>
+      </div></details>
+    </section>
+    <section class="workspace">
+      <div class="canvas-wrap"><canvas id="preview" width="960" height="620" aria-label="Decomposition plan preview"></canvas><p id="legend"><span class="piece">■</span> assigned piece <span class="residual">■</span> residual <span class="reserved">■</span> reserved <span class="forbidden">■</span> forbidden <span class="hole">■</span> empty/hole <span class="interface">━</span> shared seam <span class="opportunity">┄</span> portal opportunity, not a door</p></div>
+      <aside>
+        <h2>Plan</h2><p id="status" role="status">Preparing the balanced allocation…</p><dl id="summary"></dl>
+        <h2>Selected pieces</h2><label class="sr-only" for="piece-list">Selected allocation piece</label><select id="piece-list"></select><p class="hint">Choose a piece here or click its colored cells.</p>
+        <h2>Details</h2><div id="piece-inspector">Choose a selected piece or a candidate footprint.</div>
+        <h2>Candidate rationale</h2><div id="diagnostics"></div>
+        <h2>Interfaces</h2><ul id="interfaces"></ul>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # 14. Match rules and implemented defaults
 
-Every number here is a tuning default of the implemented `last-exit-0.6` baseline,
+Every number here is a tuning default of `content-2` under `last-exit-0.7` rules,
 not a design constant. When one changes, it must stay named in code and updated
 here in the same change. Accepted-but-unimplemented changes live in
 [13](13-accepted-features.md).
@@ -9,12 +9,17 @@ here in the same change. Accepted-but-unimplemented changes live in
 
 Contestants must complete the power-cell objective before spending one of the three escape slots. The match time limit is ten minutes; early finish conditions below still apply.
 
-The default match contains eight contestant slots, two gladiator slots, three extraction slots, a seeded generated map, and bot occupants for unclaimed player slots. A connection is a viewer until it explicitly claims a contestant or gladiator slot. Spectators consume no slot, start no recording, and have no input authority.
+The default match contains eight contestant slots, three gladiator slots, three extraction slots, a seeded generated map, and bot occupants for unclaimed player slots. A connection is a viewer until it explicitly claims a contestant or gladiator slot. Spectators consume no slot, start no recording, and have no input authority.
 
-That count describes the implemented `last-exit-0.6` baseline. The accepted target
-is three gladiators (F-11); contestant capacity and extraction capacity have not
-otherwise changed. Gameplay/version changes follow the current behavior-preserving
-server encapsulation checkpoint rather than invalidating its frozen fixtures.
+`content-2` implements F-11 by appending BLAZE (Striker) after IRONCLAD (Warden)
+and VESPER (Specter). The existing station assignment puts each hunter at a
+successive station counted back from the end. The name and one-of-each-kit roster
+are tuning choices for this checkpoint. Contestant and extraction capacities stay
+unchanged. `contentById('content-1')` retains the two-hunter baseline for frozen
+characterization; `defaultContent()` selects `content-2`. Each selection returns
+an independent deeply frozen copy, and unknown content IDs are rejected. This is
+a content revision, with unchanged simulation rules and recording structure; see
+[26](26-recording-contract.md) and [31](31-verification.md).
 
 The power-cell objective supplements limited escape capacity; three extraction slots remain a baseline tuning default. Contestant equipment changes do not remove gladiator kits or kill-based progression. The ten-minute deadline leaves time for exploration and combat, not ten minutes of uninterrupted running. Existing early match-end conditions remain.
 

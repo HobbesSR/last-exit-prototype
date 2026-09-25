@@ -11,8 +11,8 @@ export const mapHashes = () => Object.fromEntries(seeds.map(seed => [seed, hash(
 // hashes instead of erasing every piece of evidence that the simulation itself is unchanged.
 export const traceMaps = () => Object.fromEntries(seeds.map(seed => [seed, generateMap(seed)]));
 
-export function botTrace(seed, map) {
-  const s = createGame(seed, structuredClone(map)), chunks = [];
+export function botTrace(seed, map, content) {
+  const s = createGame(seed, structuredClone(map), content), chunks = [];
   let digest = createHash('sha256');
   while (s.phase === 'live') {
     step(s);
@@ -27,8 +27,8 @@ export function botTrace(seed, map) {
   return chunks;
 }
 
-export function scriptedTrace(map) {
-  const s = createGame(4217, structuredClone(map)), frames = [];
+export function scriptedTrace(map, content) {
+  const s = createGame(4217, structuredClone(map), content), frames = [];
   const p = joinGame(s, 'human', 'contestant', 'warden', 'Characterization');
   for (const other of s.players) { other.bot = false; other.input = {}; }
   s.map.items = []; s.map.traps = [];

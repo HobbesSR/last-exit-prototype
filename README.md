@@ -1,6 +1,6 @@
 # Last Exit
 
-A playable browser proof of concept for an asymmetric escape game. Eight contestants compete for three exits while two gladiators hunt them across an elongated diamond arena. Empty player slots are filled by bots.
+A playable browser proof of concept for an asymmetric escape game. Eight contestants compete for three exits while three gladiators hunt them across an elongated diamond arena. Empty player slots are filled by bots.
 
 ![A contestant leaving the entry sector of the ruins, equipment slots and the power-cell objective on screen, closing on the unfogged directed camera](media/last-exit-demo.gif)
 
@@ -28,6 +28,33 @@ npm run dev:lan
 Open one of the LAN URLs printed by the server, such as `http://192.168.1.25:3000`, from each client device. Windows may ask whether to allow Node.js through the firewall; allow private network access. LAN mode is still local-network only and does not configure internet hosting.
 
 ## Controls
+
+For the full procedural pipeline, open [the generation demo](http://localhost:3000/generation-demo.html)
+with the dev server running. Step through Region, Decomposition, Generated and
+Walk: the default example joins two populated room regions through a corridor.
+Vary contents, seed and density, inspect child assignments, then walk with
+WASD/arrows and open doors with E. This is a standalone development preview.
+
+For the decomposition SDK, open [the allocation inspector](http://localhost:3000/decomposition-lab.html)
+with the dev server running. Compare candidate footprints, neck cuts, depth and
+generator assignments, or use **Explore decomposition trees** to compare bounded
+hierarchies. Choose an objective, depth and retained alternative, then select a
+branch to inspect its descendants and stopping reason. Tree exploration is
+structural; those hierarchies do not yet feed the physical generation demo.
+The flat inspector below still lets you compare candidate footprints and
+generator assignments; inspect residuals and change policy weights. Controls apply
+automatically; try the Balanced and Prefer fewer pieces presets. Status explains
+when settings change but the winning allocation stays the same. This is
+separate from the walkable micro geometry preview. See [docs/19](docs/19-decomposition-design.md)
+for the design and [docs/20](docs/20-micro-generation.md) for implemented limits.
+
+For procedural architecture development, open http://localhost:3000/micro-lab.html
+on the same server, or use the actual printed port when 3000 is occupied. Generate
+open, depot, courtyard, ruin, or contestant-entry regions; choose live or cell
+body proportions, inspect clearance and numbered entry positions, walk with WASD
+as either role, use E at doors, and export or import a spec/validated result JSON.
+The normal arena remains unchanged. CLI/custom-region usage and the macro contract
+are in [20](docs/20-micro-generation.md).
 
 | Action | Keyboard and mouse | Touch |
 | --- | --- | --- |

@@ -50,7 +50,7 @@ test('matchmaking separates private rooms, honors available preferences, falls b
     const base = await listen(server);
     const privateRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();
     const clients = [], welcomes = [];
-    for (const role of ['gladiator', 'gladiator', 'gladiator', 'contestant', 'any']) {
+    for (const role of ['gladiator', 'gladiator', 'gladiator', 'gladiator', 'contestant', 'any']) {
       const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve));
       const welcome = next(ws, 'welcome'); ws.send(JSON.stringify({ type: 'match', role, name: 'Queued' }));
       clients.push(ws); welcomes.push(await welcome);
@@ -58,7 +58,7 @@ test('matchmaking separates private rooms, honors available preferences, falls b
     const roomId = welcomes[0].room;
     assert.notEqual(roomId, privateRoom.id);
     assert.ok(welcomes.every(w => w.room === roomId && !w.owner));
-    assert.deepEqual(welcomes.map(w => w.state.players.find(p => p.id === w.id).role), ['gladiator', 'gladiator', 'contestant', 'contestant', 'contestant']);
+    assert.deepEqual(welcomes.map(w => w.state.players.find(p => p.id === w.id).role), ['gladiator', 'gladiator', 'gladiator', 'contestant', 'contestant', 'contestant']);
     const room = server.rooms.get(roomId); assert.equal(room.started, false);
     const live = next(clients[0], 'state'); room.startsAt = Date.now() - 1;
     assert.equal((await live).state.phase, 'live'); assert.equal(room.started, true);

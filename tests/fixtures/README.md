@@ -35,6 +35,13 @@ before a bot walks it. Both move what the simulation does, so both move the trac
 the generator, and that was checked rather than assumed — `generated` carried forward unchanged, and
 so did `maps`.
 
+The current fixture is therefore the `95b7f1b` checkpoint. Its full historical chain is
+`5dd7d61` (captured at `0cd204e`) → `elements-1` (`9fe2d94`) → the stored-arenas
+split (`aa833a6`) → hash-only cover update (`dede8fe`) → `netcode-1`.
+The historical fixture names remain in git history;
+the current tests select legacy `content-1` through `contentById` under rules version
+`last-exit-0.7`, so the default `content-2` does not rewrite this evidence.
+
 Carrying `maps` forward matters more than it looks. Those arenas already predated `elements-1`'s
 `generated` hashes, because an earlier pure-content change replaced those hashes alone, as the rule
 above allows. Recapturing the arenas here would have folded that content change into this one and
@@ -59,10 +66,16 @@ about the code that predates it. Each checkpoint is treated the way `5dd7d61` wa
 
 To regenerate after a decided change, build
 `{ checkpoint, generated, maps, bots, scripted }` from
-`tests/characterization-scenarios.js`: `mapHashes()`, `traceMaps()`, one
-`botTrace(seed, maps[seed])` per exported seed, and
-`JSON.parse(JSON.stringify(scriptedTrace(maps[4217])))` — gzip it, and name it for
-the new checkpoint.
+`tests/characterization-scenarios.js` using an explicitly selected content set
+obtained through `contentById`: `mapHashes()`, `traceMaps()`, one
+`botTrace(seed, maps[seed], content)` per exported seed, and
+`JSON.parse(JSON.stringify(scriptedTrace(maps[4217], content)))` — gzip it,
+and name it for the new checkpoint.
+
+To audit the existing `netcode-1` fixture on this tree, select `content-1` and use
+its stored maps, never today's default content or freshly generated arenas.
+The three-hunter checkpoint preserved the existing gzip bytes, SHA-256
+`b8734d7cbf1292f8e5fad5c5f7007ed368bc33fc7d82b5965b23d71303a48ea2`.
 
 Carry `maps` over from the previous fixture unless the arenas themselves are meant to
 change: regenerating them folds whatever the generator has done since into a change

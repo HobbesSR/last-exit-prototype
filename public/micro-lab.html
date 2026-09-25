@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172a2b">
+  <title>Last Exit | Micro region lab</title>
+  <link rel="stylesheet" href="/micro-lab.css">
+  <style>#legend{padding:10px 14px 0;color:#8da59e;font-size:.82rem;border-top:1px solid #27403d;word-spacing:2px}.legend-loot{color:#f2ca55}.legend-route{color:#72d8d2}.legend-walker{color:#8ee1e0}.legend-door{color:#d66955}</style>
+  <script type="importmap">{"imports":{"sat":"/sat-browser.js"}}</script>
+  <script src="/vendor/sat/SAT.js"></script>
+  <script type="module" src="/micro-lab.js"></script>
+</head>
+<body>
+  <main class="lab">
+    <header><a href="/">LAST <b>EXIT</b></a><div><span class="eyebrow">DEVELOPMENT TOOL</span><h1>Micro region preview</h1><p>Generate a local region and walk its collision geometry. This is not a multiplayer arena.</p></div></header>
+    <section class="controls" aria-label="Region controls">
+      <a href="/decomposition-lab.html">Inspect region decomposition</a>
+      <a href="/generation-demo.html">Decompose, generate and walk</a>
+      <label>Builder<select id="builder" aria-label="Builder"><option value="open">Open</option><option value="depot">Depot</option><option value="courtyard">Courtyard</option><option value="ruins">Ruins</option><option value="entry">Contestant entry</option></select></label>
+      <label>Body scale<select id="body-profile"><option value="cell">Cell proportions</option><option value="live">Current live game</option></select></label>
+      <label id="entry-count-control">Entry contestants<input id="entry-count" type="number" min="0" max="64" step="1" value="24"></label>
+      <label>Region shape<select id="region-shape" aria-label="Region shape"><option value="rect">Rectangle</option><option value="l">L shape</option><option value="hole">Courtyard hole</option></select></label>
+      <label>Seed<input id="seed" type="number" value="4217" step="1" aria-label="Seed"></label>
+      <label id="density-control">Density<input id="density" type="range" min="0" max="1" step="0.05" value="0.55"><output for="density" id="density-value">0.55</output></label>
+      <label id="room-cells-control">Room cells<input id="room-cells" type="range" min="4" max="12" step="1" value="6"><output for="room-cells" id="room-cells-value">6</output></label>
+      <label id="decay-control">Ruin decay<input id="decay" type="range" min="0" max="1" step="0.05" value="0.35"><output for="decay" id="decay-value">0.35</output></label>
+      <label id="loot-budget-control">Loot budget<input id="loot-budget" type="number" min="0" max="40" value="10"></label>
+      <label id="loot-tier-control">Loot tier<input id="loot-tier" type="number" min="1" max="5" value="2"></label>
+      <label class="check"><input id="north-port" type="checkbox"> Contestant north port</label>
+      <label class="check"><input id="routes" type="checkbox" checked> Show clearance routes</label>
+      <label class="check"><input id="roofs" type="checkbox"> Show roofs</label>
+      <label>Walk as<select id="role" aria-label="Walk as"><option value="contestant">Contestant</option><option value="gladiator">Hunter</option></select></label>
+      <div class="actions"><button id="generate" type="button">Generate region</button><button id="download" type="button" disabled>Download JSON</button><button id="reset" type="button" disabled>Reset walker</button></div>
+      <label>Load region JSON<input id="import" type="file" accept=".json,application/json"></label>
+    </section>
+    <section class="workspace">
+      <div class="canvas-wrap"><canvas id="preview" width="960" height="620" aria-label="Generated micro region preview"></canvas><p id="legend"><span class="legend-loot">●</span> Loot <span class="legend-route">━</span> Clearance route <span class="legend-walker">●</span> Walker <span class="legend-door">■</span> Door</p><p id="walk-note">WASD moves at 20 Hz. Press E near a gate to open or close it.</p></div>
+      <aside><h2>Generation</h2><p id="status" role="status">Choose a layout, then generate.</p><p id="scale-note"></p><dl id="diagnostics"></dl><h2>Ports and routes</h2><ul id="ports"></ul></aside>
+    </section>
+  </main>
+</body>
+</html>

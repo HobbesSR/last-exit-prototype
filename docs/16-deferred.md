@@ -30,8 +30,9 @@ current proof of concept:
    where the stall rate is zero by construction.
 8. Destructible cover, command-center interactions, hunter-triggered hazards, richer camera/sensor stations, audio, authentication, public deployment, and retention policies. Trap variety and single-server matchmaking are implemented as tracked in [13](13-accepted-features.md); richer variants and public infrastructure remain separate work.
 
-F-01's hierarchical template system is deferred pending the user's detailed
-specification; the interim street maze does not claim to implement it. Playable
+F-01 micro generation is active under the user's September 19 direction; see
+[20](20-micro-generation.md). Macro integration and recursive child regions remain
+incomplete; the interim street maze does not claim to implement them. Playable
 elevation (2½D), overlapping floors and finished art remain incomplete under F-04.
 Multi-floor direction is accepted; collision-plane transitions and navigation-mesh
 design remain future engineering work.

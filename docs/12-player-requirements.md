@@ -38,8 +38,8 @@ Gladiators killed in combat respawn after 20 seconds at a safe transit station,
 retaining upgrades. Human PvP incentives and balance remain playtest questions;
 see [17](17-open-questions.md).
 
-The accepted target is three gladiators (F-11). The frozen `last-exit-0.6`
-prototype still runs two.
+Default matches have three gladiators (F-11). The retained `content-1` baseline
+has two; see [14](14-match-rules.md) for the versioned roster.
 
 ## Information and counterplay
 

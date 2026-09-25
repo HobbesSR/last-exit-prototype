@@ -12,8 +12,11 @@ operating-system scheduling effects sit outside these JavaScript phase timings.
 
 | Checkpoint | What it established |
 | --- | --- |
-| `5dd7d61` | The frozen characterization baseline. See [31](31-verification.md) |
-| `0cd204e` | Frozen fixtures captured from unchanged gameplay |
+| `5dd7d61` | Historical pre-extraction gameplay checkpoint; its fixture was captured at `0cd204e` |
+| `0cd204e` | Historical frozen `5dd7d61` fixture capture |
+| `9fe2d94` | Historical `elements-1` map/content checkpoint |
+| `aa833a6` | Historical split of generator hashes from stored simulation arenas |
+| `95b7f1b` | Current `netcode-1` fixture checkpoint; see [31](31-verification.md) |
 | `6f141d4`, `c2d35c0` | Simulation systems and ordered map generation extracted |
 | `fa1e1b9` | Input and HUD controllers extracted |
 | `93bc904`, `236f8a6` | Replay writer/archive, then match API, rooms, transport and timers |
@@ -25,6 +28,27 @@ operating-system scheduling effects sit outside these JavaScript phase timings.
 | `c8eb85e` | `shared/` converted to TypeScript with no build step |
 
 ## Baselines
+
+### Three-hunter content checkpoint (2026-09-18)
+
+On the same Windows machine with Node 24.15.0, three sequential alternating
+`content-1`/`content-2` runs used the current code and the `tests/bench.mjs`
+workload: seed 4217, one room, one viewer, full bot match. The benchmark source
+was evaluated with explicit `contentById` selection in `createGame`; no generator
+or fixture was changed. Median tick mean/p95 was 1.082/3.282 ms with two hunters
+and 1.172/3.362 ms with three. All six runs had zero ticks over 50 ms. The roughly
+8.3% mean increase includes the added actor and changed match trajectory
+(4,312 versus 4,232 ticks), so this is a content-workload comparison, not an
+algorithm-only regression measurement.
+
+The standard three-hunter `npm run bench` passed at 1.248 ms mean, 3.679 ms p95,
+and zero over-budget ticks. `npm run bench:client`, measured separately in installed
+headless Chrome at 1440 x 1000 while holding D from entry for 12 seconds, produced
+59.9 fps, raw frame mean/p95 16.70/17.60 ms and mean state gap 50.0 ms. This entry
+workload does not establish a fix for the reported crowded-scene slowdown or verify
+three-hunter human balance.
+
+### Historical extraction comparison
 
 Default workload: seed 4217, one room, one viewer, a full bot match; client holds D
 from entry for 12 seconds after warm-up at 1440 × 1000.

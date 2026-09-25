@@ -67,9 +67,11 @@ reskinned. Two constraints bind a new template:
 
 `REGION_PROPS` does the same for the cover scattered between structures, so a region differs in what
 fills it as well as what anchors it. What the element layer deliberately does *not* do yet is vary:
-templates are static descriptions, so the randomly sized single box that still fills the remaining
-corners is emitted inline rather than drawn from the catalogue. Parameterised templates and connector
-contracts are F-01, still deferred on the specification in [17](17-open-questions.md).
+templates in the live street generator are static descriptions, so the randomly sized single box
+that still fills the remaining corners is emitted inline rather than drawn from the catalogue.
+The separate micro-generation path now supplies parameterized room assemblies, arbitrary region
+masks and explicit connector contracts; see [20](20-micro-generation.md). It stamps through this
+same element layer, and is not yet the live generator.
 
 Every polygon part in the catalogue is held to `convex` by `tests/element.test.js`, which is the
 build-time validation this document asks for above: the catalogue is the place a concave body would

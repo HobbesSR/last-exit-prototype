@@ -3,8 +3,8 @@
  * reader and a writer that each decide compatibility separately drift the way the sight rule did.
  *
  * Two numbers, not one, and the pair is the point. `schema` says what a recording *is*; `minSchema`
- * says the oldest reader that can still make sense of it. Additive changes — a new optional field,
- * a longer roster — bump `schema` and leave `minSchema` alone, so clients written before the change
+ * says the oldest reader that can still make sense of it. Additive format changes — a new optional
+ * field — bump `schema` and leave `minSchema` alone, so clients written before the change
  * keep playing recordings written after it. Only a change that genuinely breaks older readers bumps
  * `minSchema`. With a single number every bump would lock out every older client whether it needed
  * to or not, and widening compatibility again would mean a second format migration.

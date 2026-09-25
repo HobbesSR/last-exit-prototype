@@ -1,8 +1,8 @@
 # Last Exit documentation index
 
 Status: living documentation
-Prototype version: `last-exit-0.6`
-Updated: 2026-09-13
+Prototype rules version: `last-exit-0.7`; default content: `content-2`
+Updated: 2026-09-23
 
 This directory is the canonical product and engineering record for the prototype.
 It is split so a task can load the two or three files it actually needs instead of
@@ -36,11 +36,13 @@ and handoffs should cite the number, not a heading.
 | [16-deferred.md](16-deferred.md) | Settled decisions, and requirements deliberately postponed to later milestones |
 | [17-open-questions.md](17-open-questions.md) | Undecided product and live-service policy, with the user's verbatim answers |
 | [18-original-prompt.md](18-original-prompt.md) | The preserved original design stream and influences. A source record, not requirements |
+| [19-decomposition-design.md](19-decomposition-design.md) | Accepted decomposition SDK direction: candidate assignment, generator contracts, residuals and interfaces |
 
 ### 2x — Engineering
 
 | File | Holds |
 | --- | --- |
+| [20-micro-generation.md](20-micro-generation.md) | Bounded region contract, procedural architecture, game geometry adapter and micro lab |
 | [21-stack.md](21-stack.md) | Chosen components, why, and the constraints a replacement must satisfy |
 | [22-ownership.md](22-ownership.md) | Which module owns which decision, and the boundaries tests enforce |
 | [23-types.md](23-types.md) | The TypeScript arrangement in `shared/`, branding policy, erasure |

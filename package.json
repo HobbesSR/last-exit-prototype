@@ -16,7 +16,10 @@
     "bench": "node tests/bench.mjs",
     "bench:client": "node tests/bench-client.mjs",
     "demo": "node tests/demo.mjs",
-    "test:browser": "node tests/browser.mjs"
+    "test:browser": "node tests/browser.mjs",
+    "test:micro": "node --test tests/micro-*.test.js && node tests/micro-lab.mjs && node tests/decomposition-lab.mjs && node tests/generation-demo.mjs",
+    "micro": "node tools/micro-region.mjs",
+    "decompose": "node tools/decompose-region.mjs"
   },
   "dependencies": {
     "express": "^5.1.0",

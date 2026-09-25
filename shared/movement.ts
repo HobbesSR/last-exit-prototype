@@ -94,9 +94,15 @@ export function movePlayer(map: CollisionMap, p: Player, input: PlayerInput): Pl
   if (p.boost) speed *= p.role === 'contestant' ? 1.45 : 1.5;
   if (p.stun) speed *= 0.35;
   if (input.sneak && p.role === 'contestant') speed *= 0.55;
+  const radius = p.role === 'gladiator' ? 23 : 12;
+  return moveBody(map, p, input, radius, speed);
+}
+
+/** Shared SAT sliding for tools and actors with explicit body dimensions. Input is normalized here. */
+export function moveBody<T extends Vec2>(map: CollisionMap, p: T, input: { x?: number | undefined; y?: number | undefined }, radius: number, speed: number): T {
+  if (!Number.isFinite(radius) || radius <= 0 || !Number.isFinite(speed) || speed < 0) throw new Error('Invalid movement dimensions.');
   const x = finite(input.x) ? input.x : 0, y = finite(input.y) ? input.y : 0;
   const norm = Math.max(1, Math.hypot(x, y));
-  const radius = p.role === 'gladiator' ? 23 : 12;
   const circle = new SAT.Circle(vec(p.x + x / norm * speed, p.y + y / norm * speed), radius);
   const response = new SAT.Response();
   const colliders: Collider[] = [...nearbyShapes(map, circle.pos.x, circle.pos.y, radius + speed)].filter(o => nearBounds(o.box, circle.pos.x, circle.pos.y, radius + speed));

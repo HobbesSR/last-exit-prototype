@@ -24,6 +24,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await page.goto(base);
   await page.getByRole('button', { name: 'Start match', exact: true }).waitFor();
+  await page.waitForFunction(() => document.querySelector('#lobby-count')?.textContent === '1/8 contestants / 0/3 gladiators');
   const ownerRoom = new URL(page.url()).searchParams.get('room');
   const ownerPlayer = await page.evaluate(() => window.arenaDebug().me.id);
   assert.equal(new URL(page.url()).searchParams.has('ownerKey'), false, 'invite URL contains no owner credential');
@@ -130,6 +131,8 @@ try {
   // markers are enlarged to hold their apparent size. Choosing a subject cuts to that player's own
   // zoom and draws markers at life size again.
   const wide = await page.evaluate(() => window.arenaDebug());
+  assert.equal(await page.locator('#replay-focus option[value="g2"]').count(), 1, 'the third hunter remains selectable in recorded playback');
+  assert.ok(wide.actors.some(actor => actor.id === 'g2' && actor.visible), 'the third hunter is drawn in replay');
   assert.ok(wide.cameraWidth >= wide.mapWidth, `replay opens on the whole arena: ${wide.cameraWidth} vs ${wide.mapWidth}`);
   assert.ok(wide.markerScale > 4, `whole arena markers are enlarged: ${wide.markerScale}`);
   const subject = await page.locator('#replay-focus option').nth(1).getAttribute('value');

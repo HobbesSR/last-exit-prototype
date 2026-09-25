@@ -7,6 +7,10 @@ the rest are conventions this file records so a change lands in the right module
 
 ## Shared simulation
 
+`movement.moveBody` owns SAT sliding for an explicit radius and speed. Live
+`movePlayer` still owns role, boost, stun and sneak tuning and delegates to it;
+the micro lab passes its selected profile without changing live player state.
+
 Simulation internals live in `shared/simulation/`: `rules` defines constants, `content` owns the tunable set a match is pinned to — the roster, weapon, kit and trap tables, and the tick-denominated rules — and hands each match a frozen copy at creation, so a balance change is a versioned event rather than an ambient one; `state` creates players/games and validates joining, `input` owns what a client may send and the per-player queue a tick spends exactly one of, `rewind` owns recent positions and how far back a given attacker's view ran, `loot` owns events/effects/drops/automatic pickups, `lifecycle` owns elimination/respawn/completion, `combat` owns damage/abilities/weapons/projectiles, `interactions` owns doors/transit/charging/extraction, `bots` owns decisions/navigation, and `visibility` owns gameplay sight and snapshots/projections. Functions receive the existing state/player objects directly. No internal module imports the simulation facade. Dependencies flow from bots to combat to lifecycle to loot; lifecycle never imports combat. Rules and geometry helpers are leaves.
 
 Tick order is part of gameplay: advance time/effects, then iterate players in array order. For each player, attempt respawn, decrement timers, obtain input — one queued input for a client, a fresh decision for a bot, including bot utility use and equipment drops — move, apply slot/move/drop/skill/attack/interact/charge actions, collect loot/reveal at sensors, and apply hazards. Traps, projectiles, and match completion follow the player loop. Extraction preserved that order, mutable state shapes, public exports and wire fields, at the simulation version it was performed under, `last-exit-0.6`. The version has since advanced deliberately; see [24](24-networking-privacy.md).
@@ -16,6 +20,42 @@ Power cells are normal unstackable equipment entries with retained charge, not a
 `shared/recording.ts` owns recording compatibility — the `schema`/`minSchema` pair a header carries and the decision about whether this build can play a given archive — so `room-service` stamping a recording and `client.js` opening one cannot drift apart on it; see [26](26-recording-contract.md). `shared/vector.ts` and `shared/numbers.ts` are dependency-free leaves: the first owns world-point distance, which map generation, routing, hazards and the simulation had each defined separately; the second owns the numeric guards that client input is validated through. Both are re-exported by `simulation/geometry` and `map/context` so existing consumers import them from the module that owns their stage.
 
 ## Map generation
+
+`shared/map/micro/sdk.ts` exposes reusable mask, geometry, route, scale and
+spacing primitives without importing the builder catalogue. `placement` owns
+bounded farthest-point spacing, while the region generator supplies entry counts,
+clearance and exclusions. It also exposes decomposition mechanics: immutable,
+cached child contexts; polyomino graph measurements and candidate helpers;
+bitset-backed bounded allocation; coalesced structural interfaces; and independent
+plan validation. The SDK owns neither a physical generator assignment nor strategy
+intent. Callers own candidate proposals, generator utility and allocation policy;
+contracts enforce roles/tags/area/hole/rectangle feasibility while `utility`
+scores feasible choices. Reserved, assigned and forbidden ownership remain
+distinct, and an interface is a portal opportunity rather than a door.
+
+`decomposition/realize.ts` owns the combined demo's explicit generator-to-builder
+mapping and internal portal policy, then verifies physical child connectivity.
+It is not exported by the generic SDK. `decomposition/preview.ts` stamps its
+validated children into one collision map with tool-only void boundaries.
+`public/generation-demo.js` owns inspection and walking controls, not allocation
+or generation policy. External macro entrance translation remains separate work.
+`decomposition/explore.ts` owns the example's bounded hierarchy proposal/search
+and objective policies; it leaves the flat allocator and generator contracts
+unchanged. `public/decomposition-tree-panel.js` displays retained alternatives and
+branch decisions. A tree node partitions ownership; it is not generated geometry.
+`micro/access.ts` owns builder-independent post-generation access validation and
+canonical crossing resolution. `micro/boundary.ts` owns parent-to-child boundary
+inheritance, paired requirements and post-generation composition validation.
+Builders own construction tactics; validators never repair or weaken obligations.
+
+`shared/map/micro/` owns the separate bounded-region path described in
+[20](20-micro-generation.md): `types` is the macro/micro contract, `geometry` owns
+mask containment and swept local route queries using `shape.ts`, `index` owns
+validated placement/loot and artifact validation, `builders` owns architecture,
+`compose` checks supplied adjacent-region contracts, and `adapter` emits through
+`placeElement`. `examples` supplies shared tool inputs. The CLI and browser lab
+call those modules; neither reimplements generation or imports the sibling lab.
+The normal `generateMap` path below remains unchanged.
 
 `shared/map.ts` is a compatibility facade over `shared/map/`. `generate` runs topology → terrain/passages → spawn reservations/buildings/props → objectives/loot/traps. Every stage receives one generation context: seeded RNG, ID stream, placement helpers, reservations, and intermediate graph/placement data. Creating helpers consumes no random draws or IDs; stage order and loop order preserve the original output. `element` owns what a *group* of bodies is — a placeable assembly of obstacles, gates, loot spots and reservations in local coordinates — and `templates` is the catalogue of them a region generator draws from; a stage that needs a structure stamps a template rather than emitting literals, and a template's part order is frozen for the same reason stage order is. `world` and `graph` provide constants and graph lookup/routing; graph caches are private WeakMaps keyed by map identity and explicitly invalidated during topology changes. `navigation` separately owns runtime grid caches, invalidated by door open/locked state, obstacle-array replacement, or obstacle-count changes. It also owns the clearance a route requires and the straightening applied after a grid search: a grid returns tile centres, so a route at any angle other than a multiple of 45 degrees comes back as a staircase, and walking it waypoint by waypoint makes a bot turn every few ticks. That turning is real simulation motion, so no amount of presentation smoothing can remove it. Straightening and the walkability grid read one clearance value, because smoothing against a narrower radius would cut the very corners the grid was built to keep clear of. In-place obstacle geometry edits without replacement remain outside the existing cache contract. This stage boundary is a future generator replacement point, not a new hierarchy or multi-floor schema.
 
@@ -48,8 +88,8 @@ index for a canvas drop. The input controller translates these to existing
 discards competing rearrangement until that intent is collected. The application
 cancels gestures with input resets and supplies current live-player eligibility.
 World drops retain authoritative nearby placement, not the pointer's coordinates.
-No simulation, projection or recording fields change for this gesture feature;
-simulation version remains `last-exit-0.6`.
+No simulation, projection or recording fields changed for this gesture feature;
+it landed under `last-exit-0.6` without changing that version.
 
 The six-slot inventory stores ammo on weapons and charge on cells. Validated moveSlot input is queued and applied authoritatively; compatible utility stacks merge and other slots swap. Recording copies each sanitized input as it is accepted, so a command is preserved exactly as the client sent it rather than as some later tick left it, and commands survive alongside outcome frames. The icon HUD supports keyboard and touch rearrangement without client authority over inventory.
 

@@ -1,7 +1,8 @@
 # 26. Recording contract
 
-Recording failure must never reach gameplay. Simulation stays `last-exit-0.6`;
-frozen gameplay fixtures must remain unchanged by anything in this file.
+Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
+default content is `content-2`, and recordings use schema 3 with minimum schema 0.
+Storage-only changes must preserve frozen gameplay fixtures.
 
 ## Versioning and compatibility
 
@@ -16,7 +17,7 @@ A header carries two numbers beside `version`:
 | `schema` | the format this recording was written in |
 | `minSchema` | the oldest reader that can still make sense of it |
 
-The pair is deliberate. An additive change — a new optional field, a longer roster — raises `schema`
+The pair is deliberate. An additive format change — a new optional field — raises `schema`
 and leaves `minSchema` where it is, so clients written before the change keep playing recordings
 written after it. Only a change that genuinely breaks older readers raises `minSchema`. A single
 number cannot express that: every bump would lock out every older client whether it needed to or
@@ -40,6 +41,14 @@ rules produced it, and `contentId` says which numbers those rules ran over. Two 
 version and disagree about what a pistol does, and a reader looking at an old archive needs to tell
 which. The content itself is not in the header — it is fixed for the whole match, so naming it once
 costs a string where carrying it would repeat the same tables in every frame.
+
+F-11 changes the default from two-hunter `content-1` to three-hunter `content-2`.
+It retains `last-exit-0.7`: the roster data changes, not the rules interpreting it.
+Schema remains 3/minimum 0 because player arrays already support arbitrary lengths;
+an extra roster entry is data, not a new field or format. Playback uses recorded
+maps and frames, not a resimulation with today's default content, so both old and
+new rosters remain playable without a content lookup. `content-1` remains explicitly
+selectable for simulation characterization; this does not restore a 0.6 engine.
 
 `version` is a separate axis and keeps its meaning: which simulation rules produced the recording.
 The schema pair decides whether a file can be *read*; `version` says what its contents *mean*.

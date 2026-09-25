@@ -4,8 +4,24 @@ import { recordingFit, SCHEMA, MIN_SCHEMA } from '../shared/recording.ts';
 import { roomHarness } from './helpers/room-harness.js';
 import { CONTENT_ID } from '../shared/simulation/content.ts';
 import { VERSION } from '../shared/simulation/rules.ts';
+import { contentById } from '../shared/simulation/content.ts';
+import { createGame, snapshot } from '../shared/simulation.ts';
+import { createReplayTimeline } from '../public/replay-timeline.js';
 
 const playable = { map: { obstacles: [{ id: 'o0' }] } };
+
+test('both content rosters play from their recorded frames under the same schema and rules', () => {
+  for (const [contentId, hunters] of [['content-1', 2], ['content-2', 3]]) {
+    const game = createGame(9, undefined, contentById(contentId));
+    const state = JSON.parse(JSON.stringify(snapshot(game)));
+    const archive = { version: 'last-exit-0.7', schema: 3, minSchema: 0, contentId,
+      map: game.map, frames: [{ state, commands: [] }] };
+    assert.equal(recordingFit(archive), 'ok');
+    const timeline = createReplayTimeline(archive);
+    assert.equal(timeline.roster.filter(p => p.role === 'gladiator').length, hunters);
+    assert.deepEqual(timeline.at(0).state, state, 'playback retains the recorded roster without substituting defaults');
+  }
+});
 
 test('a recording states what it is and the reader decides, with legacy archives still playable', () => {
   assert.equal(recordingFit({ ...playable, schema: SCHEMA, minSchema: MIN_SCHEMA }), 'ok');

@@ -14,6 +14,29 @@ npm run bench
 npm run bench:client
 ```
 
+Micro-generation changes additionally run `npm run test:micro`: focused contracts
+and seeded builder tests plus all three isolated browser previews. The unit tests also run
+in `npm test`. The lab browser check verifies actual builder content, control
+variation, artifact download and movement, and saves `test-results/micro-lab.png`.
+CLI batch generation/validation and limits are described in [20](20-micro-generation.md).
+Decomposition checks cover immutable contexts and trial claims, graph/topology
+analysis, generator contracts, residual tradeoffs, exact ownership and interface
+accounting, corrupted artifacts, and CLI round trips. The decomposition browser
+lab verifies policy controls, candidate inspection, imports/exports and narrow
+viewports. Its diagrams are allocation proposals, not physical traversal tests.
+The combined demo additionally checks generated child content, stable ownership
+across content changes, export, stages, and real collision movement across a join.
+Realization unit tests validate paired portals and both body-sized swept routes,
+replay those routes with actual movement, preserve holes and reject corrupt output.
+Exploration tests check exact recursive ownership, depth/search limits, distinct
+objective choices and terminal constraints. The browser inspector exercises tree
+and branch selection and exports. Entry-seed and ruin-decay tests compare actual
+positions/geometry, and the micro browser verifies decay applies automatically.
+Boundary tests cover disconnected interiors behind open mouths, single-port
+standing clearance, body-specific passages, freeform routes, inherited and paired
+child obligations, and rejection of silently split crossings. Access validation
+uses final collision geometry rather than trusting recorded routes.
+
 `npm run check` parses every JavaScript module as Node would load it and confirms
 every TypeScript module erases cleanly, which is what Node does instead of parsing
 it. `npm run typecheck` is the separate, stronger pass: `tsc --noEmit` over
@@ -28,9 +51,13 @@ reported slowdown fixed without a captured slow run; see
 
 ## The frozen fixture
 
-Frozen characterization fixtures in `tests/fixtures` come from checkpoint `elements-1`,
-which superseded `5dd7d61` when per-region element catalogues replaced the single
-hardcoded building and changed every seeded map.
+The current frozen characterization fixture is `behavior-netcode-1.json.gz`, captured at
+`95b7f1b`. Its historical chain is `5dd7d61` (fixture captured at `0cd204e`) →
+`elements-1` (`9fe2d94`) → stored-arenas split (`aa833a6`) → `netcode-1`.
+`elements-1` superseded `5dd7d61` when per-region element catalogues replaced the
+single hardcoded building and changed every seeded map. `netcode-1` changed simulation
+traces for queued input consumption and bot route straightening while carrying forward
+the generated hashes and stored arenas.
 
 The fixture separates what the generator emits from what the simulation does.
 Complete ordered map hashes characterize generation. The bot and scripted traces
@@ -41,6 +68,11 @@ four hashes and leaves every trace intact, instead of destroying the evidence th
 the simulation is unchanged along with the content it happened to run on. Map
 diversity stays covered by those hashes and by `playability.test.js`, which routes
 bots to completion over generated maps.
+
+The frozen tests select legacy `content-1` through `contentById` while running under
+simulation version `last-exit-0.7`. The shipped default `content-2` adds the third
+hunter; see [14](14-match-rules.md) for the roster and [26](26-recording-contract.md)
+for the version decision. This checkpoint must not alter any fixture bytes.
 
 Never regenerate a fixture to make a refactor pass: a behaviour-preserving change
 must reproduce it exactly. Regenerating is correct only for a deliberate content or
