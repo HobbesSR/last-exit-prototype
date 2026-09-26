@@ -16,11 +16,19 @@ npm run bench:client
 
 Changes under `mapgen/` run its own suite with `npm run test:mapgen` (typecheck
 plus unit tests, in that directory) and, for editor behavior, `node tests/browser.mts`
-from `mapgen/`. As imported at `544b13c` that suite was already red: 26 type
-errors and 26 of 228 unit tests failing, and the browser check failing at "the
-rebuilt map uses the active edited library" after a WFC layout failure, all
-identical before and after the move.
-Compare against that baseline until it is fixed; do not count it as a regression.
+from `mapgen/`. As imported at `544b13c` that suite was already red, identically
+before and after the move, for two separate reasons:
+
+- The legacy generator (`generateMap`) fails at default size: no WFC layout, or
+  a map with unreachable tiles and no hunter route to the exits, and retries
+  crash. This accounts for most of the 26 of 228 failing unit tests and the
+  browser check. It is a regression tracked in issue #10, not stale tests. The
+  planned generator (`cli plan`) is unaffected.
+- 26 type errors: 10 stale signatures in the tests and 16 unused variables,
+  tracked in issue #12.
+
+Until those close, compare against this baseline, and do not resize test grids
+or relax generation to make the suite pass.
 
 Micro-generation changes additionally run `npm run test:micro`: focused contracts
 and seeded builder tests plus all three isolated browser previews. The unit tests also run
