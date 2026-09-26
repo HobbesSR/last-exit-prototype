@@ -1,7 +1,8 @@
 # 34. Forgejo workflow and agent worktrees
 
 Local Forgejo at `http://localhost:3000` is the source of truth; GitHub (`origin`)
-is a read-only mirror. `corey/astra_test` is the only project repository: the map
+is the public remote copy, described under [GitHub](#github) below.
+`corey/astra_test` is the only project repository: the map
 generator lives in `mapgen/` (see [20](20-micro-generation.md)). The old
 `corey/last_exit_map` repository is retired: open no work against it.
 
@@ -74,3 +75,26 @@ git -C ../astra_test.agents/<agent> config --worktree remote.forgejo.pushurl \
   http://<account>:<token>@localhost:3000/corey/astra_test.git
 (cd ../astra_test.agents/<agent> && npm ci && npm --prefix mapgen ci)
 ```
+
+## GitHub
+
+`origin` is `github.com/HobbesSR/last-exit-prototype`, which is public. It makes
+the project reachable away from this machine and lets work start elsewhere.
+The local side is managed with git and the Forgejo tools; the GitHub side with
+`gh`.
+
+- **Only the human pushes to `origin`.** An agent never pushes there: its
+  worktree carries a Forgejo push identity only, so a push to `origin` would
+  go out under the human's GitHub credentials.
+- **`main` moves on Forgejo first.** In the primary checkout, `main` pulls from
+  `forgejo` and pushes to `origin` (`branch.main.remote` and
+  `branch.main.pushRemote`), so after a merge `git pull` then `git push`
+  publishes it. Nothing is merged on GitHub, which keeps the two `main`s from
+  diverging.
+- **Branches made on GitHub are reviewed on Forgejo.** For work pushed to
+  GitHub from elsewhere, list it with `gh pr list` or `git fetch origin`, bring
+  it across with `git push forgejo origin/<branch>:refs/heads/<branch>`, and
+  open the PR on Forgejo. Delete the GitHub branch with `gh` once it has merged.
+- **No Forgejo push mirror.** A push mirror runs `git push --mirror`, which
+  deletes every GitHub branch that Forgejo lacks, including branches started
+  on GitHub.

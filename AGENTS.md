@@ -61,8 +61,9 @@ yet. `CLAUDE.md` files only import `AGENTS.md`; edit `AGENTS.md`, not them.
 
 ## Forgejo workflow
 
-Local Forgejo (http://localhost:3000) is the source of truth; GitHub is a read-only
-mirror. Use the `forgejo` MCP tools, which act as your own agent account
+Local Forgejo (http://localhost:3000) is the source of truth. GitHub (`origin`) is
+the public remote copy, which only the human pushes to; agents push only to
+`forgejo`. Use the `forgejo` MCP tools, which act as your own agent account
 (Antigravity loads them through `call_mcp_tool` with `ServerName: forgejo`).
 `docs/34-forgejo-workflow.md` has the full loop and the worktree table.
 
