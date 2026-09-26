@@ -37,7 +37,10 @@ variation, artifact download and movement, and saves `test-results/micro-lab.png
 CLI batch generation/validation and limits are described in [20](20-micro-generation.md).
 Decomposition checks cover immutable contexts and trial claims, graph/topology
 analysis, generator contracts, residual tradeoffs, exact ownership and interface
-accounting, corrupted artifacts, and CLI round trips. The decomposition browser
+accounting, corrupted artifacts, and CLI round trips. Negotiation checks cover
+contestant-only and unstated-seam policies, rejected disconnected policies and
+unfitting runs, whole inherited obligations, and the bridged parent proof, including
+its refusal to bridge through a child that failed its own check. The decomposition browser
 lab verifies policy controls, candidate inspection, imports/exports and narrow
 viewports. Its diagrams are allocation proposals, not physical traversal tests.
 The combined demo additionally checks generated child content, stable ownership

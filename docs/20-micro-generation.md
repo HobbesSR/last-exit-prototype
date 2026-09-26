@@ -118,7 +118,14 @@ inter-child interface. Callers choose these interfaces and content parameters.
 After generation, `validateBoundaryComposition(parent, children)` checks inherited
 requirements, paired internal contracts, scale, collision containment and each
 child's required connectivity against the combined collision geometry. It then
-checks the parent's external obligations over the combined result. Children need
+checks the parent's external obligations over the combined result: first by a direct
+route, and where the sampled search misses, by a `bridged` chain of children whose
+own checks passed, joined by paired crossings each child proved from its side. The
+two crossing capsules cover the straight line between the paired inside points, so
+the chain is a continuous route. This fallback exists because a hunter in the cell
+profile clears a two-cell doorway by about six world units, which the half-cell
+lattice rarely samples; a direct route across an intermediate child's doorway was
+therefore almost never found. Children need
 only expose their boundary and collision output; the validator needs no knowledge
 of their internal generation strategy. It returns errors and fresh route evidence,
 and never modifies geometry or repairs a contract. At deeper levels the same
@@ -203,9 +210,9 @@ optimal allocation.
 
 Shared boundaries are coalesced into straight interface runs. Runs at least the
 configured width are portal opportunities for later negotiation, never physical
-doors or traversability guarantees. The combined demo now applies an explicit
-physical realization policy after allocation; general portal negotiation, sibling
-adapters and recursive execution remain unimplemented.
+doors or traversability guarantees. Negotiation and execution of a flat plan are
+described under Dispatch and portal negotiation below; recursive execution and
+macro adapters remain unimplemented.
 
 The concrete example in `decomposition/example.ts` supplies the policy and four
 consumer contracts. On the 252-cell neck example, defaults select two 120-cell
@@ -265,21 +272,52 @@ the retained trees and named score components, with explicit non-optimal search
 diagnostics. This explores structural allocation hierarchies, not recursive physical
 generation. General dispatch, portal negotiation and macro integration remain separate.
 
+### Dispatch and portal negotiation
+
+`negotiatePortals(parent, children, interfaces, policy)` in `decomposition/negotiate.ts`
+is SDK mechanics. It passes the parent's external `RegionPort`s whole to their owners
+through `inheritBoundaryPorts`, then asks the caller's policy for each interface
+between two children: a passage floor and ceiling, and whether the unused runs are
+`sealed` (a closed contract on each) or `unstated` (no contract, so open ground, which
+promises nothing). A null answer leaves the whole seam unstated. The crossing takes the
+longest run, ties broken by row then column, that the access resolver accepts for the
+body it must carry: its floor, or its ceiling when only permitted. There is no second
+width formula. Interfaces that name ground outside the children, such as reserved
+cells, are skipped and reported. Before any generation it checks that the policy's
+required crossings join children holding external obligations of each class and, when
+`connect` names a class, all children. It returns per-child ports, inherited first,
+plus crossings and components. It neither generates nor repairs.
+
+`executeDecomposition(plan, options)` in `micro/execute.ts` is outside the SDK because
+it needs the builder catalogue. A caller `dispatch` maps each allocated piece or
+residual to builder content; null leaves a residual unrealized, and an allocated piece
+must dispatch. It negotiates, generates through `composeMicroRegions` with one seed and
+body profile, and throws unless `validateBoundaryComposition` accepts the result against
+the parent's ports. Ownership is taken from the plan as given.
+
 ### Physical demonstration policy
 
-`decomposition/realize.ts` is an example strategy adapter, outside the generic SDK.
-It maps rectangular rooms to depots (optionally open ground or ruins), courtyard
-rings to courtyards, generic lobes to ruins, and circulation/residual regions to
-clear entry geometry with zero spawns. It preserves the plan's cell ownership.
-For each shared interface it opens one centered two-cell hunter passage in the
-longest eligible straight run and seals the other runs. An interface without a
-two-cell opportunity fails explicitly. External macro entrances are rejected until
-an adapter can preserve their obligations; reserved/forbidden cells stay excluded.
+`decomposition/realize.ts` is an example strategy: one dispatcher and one portal
+policy passed to `executeDecomposition`. It maps rectangular rooms to depots
+(optionally open ground or ruins), courtyard rings to courtyards, generic lobes to
+ruins, and circulation/residual regions to clear entry geometry with zero spawns and
+no loot. Every interface gets one centered hunter crossing, the other runs are sealed,
+and all children must be hunter-connected. An interface with no run that can carry a
+hunter fails explicitly. Its output for the example shapes is byte-identical to the
+earlier hardcoded version. Explicit external `ports` are accepted and recorded as the
+artifact's optional `external` list. `context.entrances` annotations are still rejected,
+because cells plus a width name no side. Converting them is adapter work.
+Reserved/forbidden cells stay excluded. Each child's anchor is an inter-child crossing
+rather than an external port, so the doorway is an endpoint of every saved route.
+
+Loot in an `entry` region with a required port currently breaks entry placement (#19),
+which is why the demo, and the negotiation tests, give entry regions no loot.
 
 The `realized-decomposition-1` artifact includes the original plan, assignments,
 generated children, paired physical portals, anchors and swept routes connecting
 all children for both body sizes. Validation rechecks ownership, local geometry,
-portal pairs and those routes. Unlocked doors are assumed open for route proofs;
+portal pairs, those routes and the boundary composition against `external`
+(absent means none, as in earlier artifacts). Unlocked doors are assumed open for route proofs;
 the walking preview starts with doors closed. This is static connectivity of the
 generated children, not a whole-match spawn-to-exit guarantee.
 
@@ -346,8 +384,8 @@ including actual movement across a child-region join.
 
 Feature-region placement beyond local entry spacing, primitive material sets, and
 authored segment/vertex metadata still need expansion. The next decomposition
-boundary is generalized generator dispatch and portal negotiation beyond the
-explicit demo policy, followed by a `mapgen/` adapter and recursive execution.
+boundaries are recursive execution of explored trees, which can now reuse flat
+dispatch and negotiation at each level, and a `mapgen/` adapter.
 
 `mapgen/` is the input for that adapter; paths below are relative to it. As
 imported at `544b13c`, its compact post-composition region artifact is defined by

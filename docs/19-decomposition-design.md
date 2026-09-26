@@ -106,8 +106,9 @@ This is an example strategy for exercising the SDK, not the universal decomposer
 or a finalized castle, cave, market or apartment generator.
 
 Physical population of selected pieces, portal negotiation and automatic recursive
-dispatch have separate implementation boundaries. The lab now offers bounded
-structural tree exploration, and the combined demo has an explicit physical
-realization policy; neither is a general recursive generator dispatcher. See 20.
+dispatch have separate implementation boundaries. The lab offers bounded structural
+tree exploration. Flat plans now execute through caller-supplied dispatch and portal
+policies, of which the combined demo is one; recursive dispatch of explored trees
+remains separate. See 20.
 Integration with the macro project, now in `mapgen/`,
 remains deferred under the user's instruction in [17](17-open-questions.md).

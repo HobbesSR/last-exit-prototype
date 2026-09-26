@@ -58,15 +58,16 @@ opportunities, and bounded beam search reports diagnostics rather than optimalit
 The combined generation demo now realizes example assignments, constructs paired
 two-cell portals, checks cross-child swept routes, and supports walking through
 the resulting structures. Allocation controls auto-apply and explain unchanged
-winners; contrasting presets expose policy effects. Next generalize dispatch and
-portal negotiation beyond this explicit demo policy. The decomposition lab now
+winners; contrasting presets expose policy effects. Flat plans now execute through
+caller-supplied dispatch and portal-negotiation policies, which also carry explicit
+external ports; the demo is one such policy. The decomposition lab now
 also compares bounded recursive allocation trees under alternate objectives, with
 branch inspection and explicit terminal residuals. This does not yet execute those
 trees as physical micro generation. SDK access/boundary utilities now validate
 post-generation crossing and connectivity obligations, inherit complete external
 runs and pair inter-child requirements; nested composition tests exercise this
-contract. Use those checks when adding recursive execution. Then address the
-`mapgen/` adapter and recursive execution. Future macro integration still needs a
+contract. Next is recursive execution of explored trees, reusing flat dispatch and
+negotiation at each level, then the `mapgen/` adapter. Future macro integration still needs a
 unit/ownership adapter, explicit port translation and whole-map physical route
 validation; `mapgen/` shares this repository but the game does not import it yet. See [19](19-decomposition-design.md),
 [20](20-micro-generation.md) and the recorded choices in [17](17-open-questions.md).
