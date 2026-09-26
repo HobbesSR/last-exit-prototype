@@ -1,0 +1,56 @@
+Ok, I'm working on a procedural generation map system for a top down 2D (2 1/2D) shooter, similar to Zombs Royale mechanically.
+
+Now the map in this game is an elongated diamond along the horizontal axis where contestants start on the left side of the map and hunters on the right side.
+
+This is based somewhat off the running man and similar deadly games and is in the battle royale genre. On the far right side of the map are a limited number of exits, not enough for all contestants.
+
+So the map needs to be somewhat of a maze. And I suppose the design could support something of a labyrinth, but the idea is more there are some dead ends, choke points, and other frictions that make getting from one end to the other less of a straight shot. Horizontally loot tiers and environmental hazards increase from left to right in 5 levels. Similarly the further from the vertical middle bonus tiers increase along with extra novelty
+
+X X 5 X X
+X 3 4 3 X
+1 2 3 4 5
+X 3 4 3 X
+X X 5 X X
+
+The core of the procedural design is a grid with cells and the vertices and segments they share. This is what helps organize macro and micro procedural details. Heading into the lowest level macro detail is map tiles. These are predefined 6 x 6 cell tiles. The macro map is an assembly of these tiles. I'm not sure exactly what will work out best in how they are arranged into the generally diamond shape. I've wanted to have every other column offset vertically by 3 cells. It's not clear if that is necessary or opens up any real benefits or emergent layout. It possibly could, but may just make solving the placing of predefined tiles in compatible ways too difficult.
+
+I believe we want a ratio of tiles of 2:1 width to height. So if we take the most naive tile layout with our tiers zones from before, we might say each zone is 3 tiles tall and 6 tiles wide. I suppose these are hyper parameters we can play with. We may also eventually look at a set of "edge" layouts designed to smooth the step wise layout of the map (with less diversity in the set and in the micro procedural details)
+
+So each cell, and each edge vertex and edge segment will carry meta data. Cell metadata covers what type of procedural generation goes in it, and regions of adjacent cells with the same metadata parameters will become a region that selects and parameterizes a micro procedural generation process that is free to populate the region as it sees fit, using the explicit and macro parameters passed on to it. The edge segments and vertices dictate how adjacent tiles can align. They dictate whether some kind of segment aligned barrier is there, or if there is an expectation of an adjacent cell of a compatible type (forming a region) with the cell within the tile it borders. Vertices carry similar information. Importantly, the procedural map generator should be able to determine whether there is a navigable path between tiles so it can guarantee paths from the beginning to the end and that all tiles are reachable. 
+
+Continuing in the macro direction we have the concept of tile sets and tile layouts. Tile Sets are literally just sets of predefined tiles to pick from (possibly with presribed and proscribed orientations). Tile Layouts are specific arrangements of Tile Sets (including sets of 1). Ways of creating macro structure larger than a tile itself. Some Tile Layouts may be classified as Set Pieces. Set Pieces may themselves be grouped into classes and finally the map may require one or more Set Pieces from a Set Piece Class in certain zones of the map. And this itself may be parameterized. Maybe there are 10 classes, 4 to 8 get picked in each map generation, each class maybe associated with a set of tier zones (like 2-3, 3-5, 1, etc.)
+
+And so some Set Pieces may be a very explicit set of tiles, perhaps with explicit special regions that populate fairly rigid micro details. This allows for large, multi tile stable architecture, recognizable features players can engage with, while still making the map novel to navigate each time.
+
+Now to the micro details. We continue with our organizing primitives, cells, segments, and vertices, and the regions they form. Things like fences and doors will be aligned on the segments. Meta data can be "don't" care, defaulting to empty, but adapting to neighboring requirements if necessary. They can also be explicitly empty (important for ensuring paths). Cells can contain spawning locations for things like items or player spawns and only one type of thing. The location within the cell can be perturbed as long as the cell contains the thing its spawning. 
+
+Region aggregation (sets of cotinguously adjacent compatible cells) is a process I won't dictate the solution for. I believe requiring regions to be rectangles is too rigid. Rather, we may just let region type decide what subset of cells it can actually use if rectangles are a requirement for its generation process. And it may be able to release unused sub regions for smaller inconsequential feature procedural generation.
+
+Anyway within region procedural generation processes, it is not required, but generally preferred that each of these bespoke processes leverage the cell, segment, and vertices primitives, and across procedural generation processes a library of utilitilites ought to be shared. However, ultimately each region type generation process is free to place real mechanical and cosmetic game pieces however it chooses, as long as they remain contained to the regions and respect any meta parameters passed in.
+
+Region procedural generation can also be hierarchal.
+
+Returning to macro generation, the general strategy I am imagining is that key structural elements, Set Pieces, spawning regions, exit regions, warp regions, charing stations, and other features that are needed for the macro game design and need to be layed out with some kind of structural organization get randomly assigned, perhaps as coarsely as tier zones or maybe within a radius of specific points. Tiles are placed to satisfy those requirements and then further tiles are procedurally placed in a kind of painter fill algorithm growing out from each.
+
+
+So I need to identify what details about a 2 1/2D world this system has to accomodate, or what it restricts if we choose not to. Hopefully the system will accomodate growing into 2 1/2D. I guess what we can assume is each vertex is at an explicit height (which may be discrete). And I guess that the vertex heights are constrained such that cells are either flat or "ramps" with two parallel segments at different level heights. Cells that can be traversed at multiple heights will be used sparingly and likely have bespoke mechanics that are contained to their region.
+
+So I've been imagining this from the Zombs Royale perspective and so you've definitely identified that I'm imagining too small of a map. Essentially I would say a door is two segments long, and a contestant is between one and two segments in diameter, closer to one segment, and a hunter is close but less than 2 segments in diameter. There is an intent to put gaps in various places that are about 1.5 segments in length that contestants can fit through but hunters cannot.
+
+So we may need to check for navigability from hunter perspective (as then everyone can reach). So these segment aligned contestant choke points may be something we want to require from a macro level (and micro generations are free and encouraged to include them). 
+
+There is time pressure, but I don't think you need to worry about that. This is part of tuning the map generation, not its fundamental generation architecture.
+
+Warp regions and charging stations are generic examples of placing special interactive mechanics within a region. These two examples are examples of some that are required in every game, but their details don't matter as much as we have some itneractive mechanics that must be in every game and we can place them as regions abstractly.
+
+As mentioned above, hunters and contestants traverse largely the same, however they may have different tuned parameters like their size (the most critical detail) and their speed (which may matter in 2 1/2D navigation). And access to interactables like warp regions (or perhaps vehicles on rails, highly speculative, not a requirement. We'll see what we can make work in the system that comes from the harder requirements). 
+
+Players can always see all static non-interactive architectural elements. Dynamic elements remain in the state they were last seen.
+
+Oh and so 6x3 tiles is clearly way too small for each zone. But fortunately that's a hyper parameter we can tune now that we've pinned down scale by segment.
+
+We may make the socket alphabet such that we have more generic tiles (like a default "don't care" for all elements of the tile that attempt to automatch). At corners there can still be unsolvable details, but I think we can create a rule that addresses that.
+
+Another detail is that Set Pieces themselves may have another tier of edge constraints at a higher granularity than tiles.
+
+
