@@ -51,3 +51,25 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
   regressions three times. Do not claim the reported slowdown fixed without evidence.
 - When a rule changes, update its numbered document in the same change.
   `docs/33-maintenance.md` says where each kind of fact belongs.
+
+## Repository layout
+
+This one repository holds the whole project. The game is at the root; the map
+generator is in `mapgen/`, with its own `package.json`, tests, docs and a nested
+`AGENTS.md` that applies when working there. The game does not import `mapgen/`
+yet. `CLAUDE.md` files only import `AGENTS.md`; edit `AGENTS.md`, not them.
+
+## Forgejo workflow
+
+Local Forgejo (http://localhost:3000) is the source of truth; GitHub is a read-only
+mirror. Use the `forgejo` MCP tools, which act as your own agent account
+(Antigravity loads them through `call_mcp_tool` with `ServerName: forgejo`).
+`docs/34-forgejo-workflow.md` has the full loop and the worktree table.
+
+- Work only in your own worktree, `../astra_test.agents/<agent>`, on a
+  `<agent>/<feature>` branch started from fresh `forgejo/main`. Never commit in
+  the primary checkout, on `main`, or in another agent's worktree.
+- Claim issues with `assign_issue`, push with `git push -u forgejo HEAD`, open the
+  PR with `create_pull_request` ("Fixes #N"), and review others' PRs with
+  `submit_pull_request_review`.
+- Humans merge. Do not merge.
