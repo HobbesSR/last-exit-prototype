@@ -2,3 +2,4 @@ node_modules/
 replays/
 test-results/
 *.log
+.env.local

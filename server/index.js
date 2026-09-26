@@ -74,13 +74,18 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const arena = await createArenaServer();
   const lan = process.argv.includes('--lan') || process.env.LAN === '1';
   const host = process.env.HOST || (lan ? '0.0.0.0' : '127.0.0.1');
-  const firstPort = Number(process.env.PORT || 3000);
+  // 3000 is taken by the local Forgejo. An explicit PORT (e.g. a worktree's .env.local) is
+  // honoured exactly: drifting upward would land on another agent's assigned port.
+  const explicit = process.env.PORT !== undefined && process.env.PORT !== '';
+  const firstPort = explicit ? Number(process.env.PORT) : 3100;
   let port = firstPort;
   arena.http.on('error', error => {
-    if (error.code === 'EADDRINUSE' && port < firstPort + 20) arena.http.listen(++port, host);
+    if (error.code === 'EADDRINUSE' && !explicit && port < firstPort + 9) arena.http.listen(++port, host);
+    else if (error.code === 'EADDRINUSE') { console.error(`Port ${port} is in use${explicit ? ' (set by PORT)' : ''}. Stop the server holding it, or choose another port; PORT=0 picks any free one.`); process.exit(1); }
     else { console.error(error); process.exit(1); }
   });
-  arena.http.on('listening', () => printListeningUrls(host, port));
+  // The bound port, not the requested one: PORT=0 asks the OS for any free port.
+  arena.http.on('listening', () => printListeningUrls(host, arena.http.address().port));
   arena.http.listen(port, host);
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await arena.close(); process.exit(0); });
 }

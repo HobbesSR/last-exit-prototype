@@ -17,11 +17,12 @@ checkout rather than inside it. A nested worktree would load the primary
 checkout's instruction files as well as its own, and would show up in searches
 from the primary checkout.
 
-| Agent | Forgejo account (commit email) | Worktree | Branch prefix |
-| --- | --- | --- | --- |
-| Claude Code | `agent-claudecode` (`claudecode@local.host`) | `../astra_test.agents/claude` | `claude/` |
-| Codex | `agent-codex` (`codex@local.host`) | `../astra_test.agents/codex` | `codex/` |
-| Antigravity | `agent-antigravity` (`antigravity@local.host`) | `../astra_test.agents/antigravity` | `antigravity/` |
+| Agent | Forgejo account (commit email) | Worktree | Branch prefix | Dev ports (game / mapgen) |
+| --- | --- | --- | --- | --- |
+| Human | `corey` | `astra_test/` (primary) | — | 3100 / 4173 (defaults) |
+| Claude Code | `agent-claudecode` (`claudecode@local.host`) | `../astra_test.agents/claude` | `claude/` | 3110 / 4110 |
+| Codex | `agent-codex` (`codex@local.host`) | `../astra_test.agents/codex` | `codex/` | 3120 / 4120 |
+| Antigravity | `agent-antigravity` (`antigravity@local.host`) | `../astra_test.agents/antigravity` | `antigravity/` | 3130 / 4130 |
 
 The primary checkout (`astra_test/`) belongs to the human: `main`, reviewing and
 merging. Agents never commit there and never touch another agent's worktree.
@@ -31,6 +32,14 @@ Each worktree carries its own identity in `config.worktree`: `user.name`,
 so pushes are made as the agent and not as the repository owner. If
 `git config --show-origin --get remote.forgejo.pushurl` shows nothing, or a push
 is recorded as `corey`, stop and report it rather than pushing.
+
+Each worktree also has an untracked, ignored `.env.local` at its root naming its
+dev ports, e.g. `PORT=3110` and `MAPGEN_PORT=4110`. `npm run dev` and mapgen's
+`npm start` load it, so a server an agent starts to look at by hand or drive
+with a browser lands on that agent's own port. An assigned port is used exactly:
+if it is busy the server stops rather than drifting onto a neighbor's port, and
+the busy one is almost always your own earlier server. If `.env.local` is
+missing, create it from the table before starting a dev server.
 
 ## Instruction loading
 
@@ -73,8 +82,30 @@ git -C ../astra_test.agents/<agent> config --worktree user.name  <account>
 git -C ../astra_test.agents/<agent> config --worktree user.email <commit email>
 git -C ../astra_test.agents/<agent> config --worktree remote.forgejo.pushurl \
   http://<account>:<token>@localhost:3000/corey/astra_test.git
+printf 'PORT=<game port>\nMAPGEN_PORT=<mapgen port>\n' > ../astra_test.agents/<agent>/.env.local
 (cd ../astra_test.agents/<agent> && npm ci && npm --prefix mapgen ci)
 ```
+
+## Shared machine resources
+
+Worktrees isolate files, not the machine. Agents run gates at the same time, so
+anything a check takes from the machine as a whole must be one it can share.
+
+- **Ports.** Automated checks bind port 0 and use the address actually bound:
+  `tests/helpers/listen.js` in the game, `--port 0` for mapgen's
+  `tools/server.mts`. Never hardcode a port in a check. Dev servers use the
+  worktree's assigned ports above. Port 3000 is Forgejo; 47913 is the
+  benchmark lock.
+- **Scratch files.** Temporary data goes in a fresh `mkdtemp` directory. Outputs
+  go in the worktree (`test-results/`, `replays/`), never at a fixed path outside it.
+- **Processes.** Stop only the process IDs you started. Never kill by image name
+  (`taskkill /IM node.exe`, `Stop-Process -Name node`): that takes down other
+  agents' servers and the MCP servers every agent depends on.
+- **CPU.** Benchmarks share one machine-wide lock; see [31](31-verification.md).
+- **Git.** Worktrees share one object store, ref namespace and stash stack. Never
+  use a bare `git stash`/`git stash pop`; set work aside with a WIP commit on your
+  own branch. A transient `cannot lock ref` during a fetch is another agent's
+  fetch; retry it.
 
 ## GitHub
 

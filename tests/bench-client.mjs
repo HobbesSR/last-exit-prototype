@@ -5,6 +5,7 @@ import { chromium } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { createArenaServer } from '../server/index.js';
 import { listen } from './helpers/listen.js';
+import { acquireMachineLock } from './helpers/machine-lock.js';
 import { format } from '../shared/profiler.ts';
 import { HZ } from '../shared/simulation.ts';
 import path from 'node:path';
@@ -12,6 +13,7 @@ import { arrangeCrowd } from './crowd-workload.mjs';
 
 const args = new Map(process.argv.slice(2).map(a => a.replace(/^--/, '').split('=')).map(([k, v]) => [k, v ?? '1']));
 const seconds = Number(args.get('seconds') ?? 12);
+await acquireMachineLock('bench');
 await mkdir('test-results', { recursive: true });
 const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'),
   ...(args.has('server-profile') ? { profile: true, profileSummary: false } : {}) });

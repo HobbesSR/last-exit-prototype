@@ -15,16 +15,21 @@ try {
     "Browser check needs @playwright/test; run npm ci at the repository root. Runtime itself has no dependencies.",
   );
 }
-const server = spawn(process.execPath, ["tools/server.mts", "--port", "4179"], {
+// Port 0: other worktrees run this check concurrently, so no fixed port is safe.
+const server = spawn(process.execPath, ["tools/server.mts", "--port", "0"], {
   stdio: ["ignore", "pipe", "pipe"],
 });
 let browser: any;
 try {
-  await new Promise<void>((resolve, reject) => {
+  const base = await new Promise<string>((resolve, reject) => {
     const timer = setTimeout(() => reject(Error("Server timeout")), 10000);
-    server.stdout!.once("data", () => {
+    let printed = "";
+    server.stdout!.on("data", (chunk) => {
+      printed += chunk;
+      const url = /^(http:\/\/\S+)\r?\n/.exec(printed)?.[1];
+      if (!url) return;
       clearTimeout(timer);
-      resolve();
+      resolve(url);
     });
     server.once("exit", (code) => {
       clearTimeout(timer);
@@ -44,7 +49,7 @@ try {
     errors.push(e.message);
   });
   page.on("console", (msg: any) => console.log("PAGE_LOG:", msg.text()));
-  await page.goto("http://127.0.0.1:4179", { waitUntil: "domcontentloaded" });
+  await page.goto(base, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => (window as any).mapLab?.snapshot().valid, {
     timeout: 30000,
   });

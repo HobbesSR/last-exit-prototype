@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node tools/server.mts",
-    "dev": "node tools/server.mts",
+    "start": "node --env-file-if-exists=../.env.local tools/server.mts",
+    "dev": "node --env-file-if-exists=../.env.local tools/server.mts",
     "test": "npm run typecheck && node --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
     "generate": "node tools/cli.mts generate",

@@ -291,8 +291,8 @@ without changing the selected decomposition.
 
 ## Inspect and verify
 
-Run `npm run dev` and open `http://localhost:3000/micro-lab.html`; use the actual
-port printed by the server when 3000 is occupied. Choose class, profile, shape and
+Run `npm run dev` and open `/micro-lab.html` on the address it prints: 3100 by
+default, a worktree's assigned port from [34](34-forgejo-workflow.md) otherwise. Choose class, profile, shape and
 seed, tune the parameters, inspect roofs/ports/clearance, walk as either body with
 WASD, open doors with E, and download the result. The lab defaults to the cell
 profile, displays the diameters/doorway/squeeze in cells, and draws numbered entry

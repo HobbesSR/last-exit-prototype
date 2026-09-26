@@ -3,12 +3,14 @@
 // body (step, snapshot, per-client view) because that whole sequence shares the 1000/HZ budget.
 import { createGame, step, snapshot, playerView, HZ, DURATION } from '../shared/simulation.ts';
 import * as profiler from '../shared/profiler.ts';
+import { acquireMachineLock } from './helpers/machine-lock.js';
 
 const args = new Map(process.argv.slice(2).map(a => a.replace(/^--/, '').split('=')).map(([k, v]) => [k, v ?? '1']));
 const number = (key, fallback) => Number(args.get(key) ?? fallback);
 const seed = number('seed', 4217), ticks = number('ticks', DURATION), rooms = number('rooms', 1), clients = number('clients', 1);
 const budget = 1000 / HZ;
 
+await acquireMachineLock('bench');
 profiler.enable(true);
 const games = Array.from({ length: rooms }, (_, i) => createGame(seed + i));
 const viewers = Array.from({ length: clients }, (_, i) => games[0].players[i % games[0].players.length].id);
