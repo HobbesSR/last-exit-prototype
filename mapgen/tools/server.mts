@@ -27,8 +27,9 @@ const types: Record<string, string> = {
 };
 const portArg = process.argv.indexOf("--port");
 const port = portArg >= 0 ? Number(process.argv[portArg + 1]) : 4173;
-if (!Number.isInteger(port) || port < 1 || port > 65535)
-  throw new Error("port must be an integer from 1 to 65535");
+// 0 asks the OS for a free port; the bound address is printed on start-up.
+if (!Number.isInteger(port) || port < 0 || port > 65535)
+  throw new Error("port must be an integer from 0 to 65535");
 function candidate(urlPath: string): string | null {
   const pathname = decodeURIComponent(
     new URL(urlPath, "http://localhost").pathname,
@@ -111,5 +112,7 @@ const server = http.createServer((req, res) => {
   });
 });
 server.listen(port, "127.0.0.1", () =>
-  process.stdout.write(`http://127.0.0.1:${port}\n`),
+  process.stdout.write(
+    `http://127.0.0.1:${(server.address() as { port: number }).port}\n`,
+  ),
 );

@@ -76,6 +76,27 @@ git -C ../astra_test.agents/<agent> config --worktree remote.forgejo.pushurl \
 (cd ../astra_test.agents/<agent> && npm ci && npm --prefix mapgen ci)
 ```
 
+## Shared machine resources
+
+Worktrees isolate files, not the machine. Agents run gates at the same time, so
+anything a check takes from the machine as a whole must be one it can share.
+
+- **Ports.** Automated checks bind port 0 and use the address actually bound:
+  `tests/helpers/listen.js` in the game, `--port 0` for mapgen's
+  `tools/server.mts`. Never hardcode a port in a check. Port 3000 is Forgejo on
+  this machine, so a manual `npm run dev` moves to the next free port; use the
+  URL it prints, or `PORT=0`. mapgen's `npm start -- --port 0` does the same.
+- **Scratch files.** Temporary data goes in a fresh `mkdtemp` directory. Outputs
+  go in the worktree (`test-results/`, `replays/`), never at a fixed path outside it.
+- **Processes.** Stop only the process IDs you started. Never kill by image name
+  (`taskkill /IM node.exe`, `Stop-Process -Name node`): that takes down other
+  agents' servers and the MCP servers every agent depends on.
+- **CPU.** Benchmarks share one machine-wide lock; see [31](31-verification.md).
+- **Git.** Worktrees share one object store, ref namespace and stash stack. Never
+  use a bare `git stash`/`git stash pop`; set work aside with a WIP commit on your
+  own branch. A transient `cannot lock ref` during a fetch is another agent's
+  fetch; retry it.
+
 ## GitHub
 
 `origin` is `github.com/HobbesSR/last-exit-prototype`, which is public. It makes

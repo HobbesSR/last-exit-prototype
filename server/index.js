@@ -80,7 +80,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     if (error.code === 'EADDRINUSE' && port < firstPort + 20) arena.http.listen(++port, host);
     else { console.error(error); process.exit(1); }
   });
-  arena.http.on('listening', () => printListeningUrls(host, port));
+  // The bound port, not the requested one: PORT=0 asks the OS for any free port.
+  arena.http.on('listening', () => printListeningUrls(host, arena.http.address().port));
   arena.http.listen(port, host);
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await arena.close(); process.exit(0); });
 }
