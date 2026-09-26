@@ -153,11 +153,13 @@ reusable `spreadPoints` primitive. It samples a bounded half-cell lattice, keeps
 only circles fully contained and clear of blockers/reservations, then selects
 farthest points with non-overlap at the active contestant clearance. With a
 required entrance it also checks each accepted point is reachable from that root.
-The root is a reachability anchor, so only blockers can invalidate it. Reservations,
-including loot pickups, are passable: entry points stay off them, but a pickup beside
-the entrance does not break placement. Loot is filled before entry points, so a
-small entry region with the default loot budget can report its whole count as
-shortfall; which should yield is open (#21). Loot that blocks movement, such as a
+The root is a reachability anchor, so only blockers can invalidate it. Macro
+reservations are passable: entry points stay off them, but one beside the entrance
+does not break placement. Spawning is the entry region's guarantee and loot is not,
+so entry points are placed before the loot fill and see only geometry and macro
+reservations. Loot then takes the leftover room and stays off every entry point; a
+small entry region can hold its full spawn count and no loot. The loot budget never
+moves an entry point (#21). Loot that blocks movement, such as a
 container, would be a standard element placed through the builder and obey the
 element rules, including the protected entrance approach.
 It reports a shortfall when this sampled placement cannot meet the requested
@@ -317,8 +319,8 @@ because cells plus a width name no side. Converting them is adapter work.
 Reserved/forbidden cells stay excluded. Each child's anchor is an inter-child crossing
 rather than an external port, so the doorway is an endpoint of every saved route.
 
-The demo gives entry regions no loot, so its output is unchanged by the loot
-order in #21.
+The demo gives entry regions no loot, so its output is unchanged by placing entry
+points before loot (#21).
 
 The `realized-decomposition-1` artifact includes the original plan, assignments,
 generated children, paired physical portals, anchors and swept routes connecting
