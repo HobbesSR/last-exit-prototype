@@ -15,7 +15,7 @@ npm ci
 npm run dev
 ```
 
-Open the URL printed by the server, normally http://127.0.0.1:3000. Occupied ports are skipped automatically. The server binds to loopback by default. It must remain running while playing; Ctrl+C stops it and finalizes active recordings. There are no required build watchers or background installers.
+Open the URL printed by the server, normally http://127.0.0.1:3100. If that is busy the next free port up to 3109 is used. A `PORT` set in the environment or in an untracked `.env.local` beside `package.json` is used exactly, and the server stops if it is busy; `PORT=0` picks any free port. The server binds to loopback by default. It must remain running while playing; Ctrl+C stops it and finalizes active recordings. There are no required build watchers or background installers.
 
 The shared simulation is written in TypeScript and is never compiled to an output directory. Node strips the types as it loads each module, and the dev server does the same for the browser as it serves them, so there is no bundle, no `dist/`, and no source map to keep in sync. Type checking is a separate command, not a step between editing a file and running it.
 
@@ -25,17 +25,17 @@ To let other devices on the same network join, start the LAN server instead:
 npm run dev:lan
 ```
 
-Open one of the LAN URLs printed by the server, such as `http://192.168.1.25:3000`, from each client device. Windows may ask whether to allow Node.js through the firewall; allow private network access. LAN mode is still local-network only and does not configure internet hosting.
+Open one of the LAN URLs printed by the server, such as `http://192.168.1.25:3100`, from each client device. Windows may ask whether to allow Node.js through the firewall; allow private network access. LAN mode is still local-network only and does not configure internet hosting.
 
 ## Controls
 
-For the full procedural pipeline, open [the generation demo](http://localhost:3000/generation-demo.html)
+For the full procedural pipeline, open [the generation demo](http://localhost:3100/generation-demo.html)
 with the dev server running. Step through Region, Decomposition, Generated and
 Walk: the default example joins two populated room regions through a corridor.
 Vary contents, seed and density, inspect child assignments, then walk with
 WASD/arrows and open doors with E. This is a standalone development preview.
 
-For the decomposition SDK, open [the allocation inspector](http://localhost:3000/decomposition-lab.html)
+For the decomposition SDK, open [the allocation inspector](http://localhost:3100/decomposition-lab.html)
 with the dev server running. Compare candidate footprints, neck cuts, depth and
 generator assignments, or use **Explore decomposition trees** to compare bounded
 hierarchies. Choose an objective, depth and retained alternative, then select a
@@ -48,8 +48,8 @@ when settings change but the winning allocation stays the same. This is
 separate from the walkable micro geometry preview. See [docs/19](docs/19-decomposition-design.md)
 for the design and [docs/20](docs/20-micro-generation.md) for implemented limits.
 
-For procedural architecture development, open http://localhost:3000/micro-lab.html
-on the same server, or use the actual printed port when 3000 is occupied. Generate
+For procedural architecture development, open http://localhost:3100/micro-lab.html
+on the same server, or use the actual printed port when 3100 is occupied. Generate
 open, depot, courtyard, ruin, or contestant-entry regions; choose live or cell
 body proportions, inspect clearance and numbered entry positions, walk with WASD
 as either role, use E at doors, and export or import a spec/validated result JSON.

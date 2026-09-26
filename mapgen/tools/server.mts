@@ -26,8 +26,12 @@ const types: Record<string, string> = {
   ".txt": "text/plain; charset=utf-8",
 };
 const portArg = process.argv.indexOf("--port");
-const port = portArg >= 0 ? Number(process.argv[portArg + 1]) : 4173;
-// 0 asks the OS for a free port; the bound address is printed on start-up.
+// --port, else MAPGEN_PORT (a worktree's ../.env.local), else 4173. 0 asks the OS for a
+// free port; the bound address is printed on start-up.
+const port =
+  portArg >= 0
+    ? Number(process.argv[portArg + 1])
+    : Number(process.env.MAPGEN_PORT || 4173);
 if (!Number.isInteger(port) || port < 0 || port > 65535)
   throw new Error("port must be an integer from 0 to 65535");
 function candidate(urlPath: string): string | null {

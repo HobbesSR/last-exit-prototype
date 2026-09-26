@@ -12,7 +12,7 @@ browser, so there is no build step and no compiled copy to drift.
 npm start
 ```
 
-Open **http://127.0.0.1:4173**. `npm start -- --port 0` binds any free port instead and prints it; agents working in parallel worktrees should use that. Change the seed, zone dimensions, or exit count, then build. There is nothing to tune about connectivity: seams carry whatever the tiles beside them declare. Click tiles to inspect their design and features; click an exit to compare routes to it. Scroll to zoom, drag to pan, and use Fit map to reset the camera.
+Open **http://127.0.0.1:4173**. A `MAPGEN_PORT` in the repository root's untracked `.env.local` overrides that per worktree, and `npm start -- --port 0` binds any free port and prints it. Change the seed, zone dimensions, or exit count, then build. There is nothing to tune about connectivity: seams carry whatever the tiles beside them declare. Click tiles to inspect their design and features; click an exit to compare routes to it. Scroll to zoom, drag to pan, and use Fit map to reset the camera.
 
 **Playtest:** start an escape run; WASD/arrows move, mouse aims, click fires, E interacts. Hold E at a charger for five stationary seconds, then reach an exit. Gold is collected by proximity. Two simple pursuers follow hunter-accessible routes; shots tag them and they respawn. The Hunter body selector tests the larger radius and permits transit between T markers. This is a single-player traversal/combat sandbox, not the game's match simulation: no multiplayer, inventory, extraction competition, closing hazard, or final combat balance.
 

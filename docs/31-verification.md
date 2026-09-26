@@ -66,12 +66,13 @@ reported slowdown fixed without a captured slow run; see
 [42](42-performance-history.md).
 
 Other agents' worktrees share this machine's CPU. `npm run bench` and
-`npm run bench:client` therefore take a machine-wide lock
-(`tests/helpers/machine-lock.js`, a file in the OS temp directory) and wait for
-each other rather than overlap. It serializes benchmarks only: another agent's
-`npm test` or browser run can still overlap a timing run. Treat an unexpected
-regression as possibly contended, and repeat it before reporting it. A lock left
-by a killed run is reclaimed once its process has gone.
+`npm run bench:client` therefore take a machine-wide lock and wait for each
+other rather than overlap. The lock (`tests/helpers/machine-lock.js`) is a
+listening socket on loopback port 47913: the OS admits one holder and frees it
+the moment that process exits or is killed, so nothing goes stale. It serializes
+benchmarks only: another agent's `npm test` or browser run can still overlap a
+timing run. Treat an unexpected regression as possibly contended, and repeat it
+before reporting it.
 
 ## The frozen fixture
 

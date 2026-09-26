@@ -1,70 +1,61 @@
-import { closeSync, openSync, readFileSync, unlinkSync, writeSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
+import net from 'node:net';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 /**
- * A machine-wide advisory lock, shared by every worktree run as the same OS user.
+ * Machine-wide locks, one fixed loopback port per name. The fixed port is the point: only one
+ * process can listen on it, and the OS releases it the moment the holder exits or is killed, so
+ * there is no lock file to go stale and no reclamation to race.
  *
  * Agents run gates concurrently from separate worktrees. Ports and scratch directories are
- * isolated per run, but CPU is not: two benchmarks overlapping would both report the other's
- * load as their own cost. Timing scripts take this lock so they run one at a time. It does not
- * serialize ordinary test runs; see docs/31.
- *
- * A lock whose owner has exited, or that is older than `maxAgeMs` (a guard against PID reuse),
- * is reclaimed. The file is removed on normal exit; a killed owner leaves a stale file that the
- * next caller reclaims.
+ * isolated per run, but CPU is not: two overlapping benchmarks would each report the other's
+ * load as their own cost. Timing scripts take the `bench` lock so they run one at a time. It
+ * does not serialize ordinary test runs; see docs/31.
  */
-export async function acquireMachineLock(name, { timeoutMs = 30 * 60_000, pollMs = 2_000, maxAgeMs = 2 * 60 * 60_000, log = message => console.error(message) } = {}) {
-  if (!/^[a-z0-9-]+$/.test(name)) throw new Error('Lock names are lowercase words joined by hyphens.');
-  const file = path.join(tmpdir(), `last-exit-${name}.lock`);
-  const mine = JSON.stringify({ pid: process.pid, cwd: process.cwd(), started: Date.now() });
+export const LOCK_PORTS = Object.freeze({ bench: 47913 });
+
+export async function acquireMachineLock(name, { port = LOCK_PORTS[name], timeoutMs = 30 * 60_000, pollMs = 2_000, log = message => console.error(message) } = {}) {
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error(`No lock port is assigned to ${name}.`);
+  const owner = JSON.stringify({ pid: process.pid, cwd: process.cwd() });
   const deadline = Date.now() + timeoutMs;
   let reported = false;
   for (;;) {
-    try {
-      const fd = openSync(file, 'wx');
-      writeSync(fd, mine); closeSync(fd);
-      break;
-    } catch (error) {
-      if (error.code !== 'EEXIST') throw error;
+    const server = await listen(port, owner);
+    if (server) {
+      let released = false;
+      const release = () => { if (!released) { released = true; server.close(); } };
+      return { port, release };
     }
-    const held = read(file);
-    if (held !== null && stale(held, maxAgeMs)) {
-      // Re-read so a lock another waiter has just reclaimed and re-taken is not removed.
-      if (read(file) === held) remove(file);
-      continue;
-    }
-    if (Date.now() >= deadline) throw new Error(`Timed out waiting for the ${name} lock held by ${describe(held)}. If no such run is active, delete ${file}.`);
-    if (!reported) { log(`Waiting for the ${name} lock held by ${describe(held)} (${file}).`); reported = true; }
+    if (Date.now() >= deadline) throw new Error(`Timed out waiting for the ${name} lock (127.0.0.1:${port}) held by ${await holder(port)}.`);
+    if (!reported) { log(`Waiting for the ${name} lock (127.0.0.1:${port}) held by ${await holder(port)}.`); reported = true; }
     await sleep(pollMs);
   }
-  let released = false;
-  const release = () => {
-    if (released) return;
-    released = true;
-    process.off('exit', release);
-    if (read(file) === mine) remove(file);
-  };
-  process.on('exit', release);
-  return { file, release };
 }
 
-function read(file) {
-  try { return readFileSync(file, 'utf8'); } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+/** A listening server that answers each connection with its owner, or null when the port is taken. */
+function listen(port, owner) {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer(socket => { socket.unref(); socket.end(owner); });
+    server.once('error', error => error.code === 'EADDRINUSE' ? resolve(null) : reject(error));
+    // Unreferenced: holding the lock never keeps a finished script alive.
+    server.listen({ port, host: '127.0.0.1', exclusive: true }, () => { server.unref(); resolve(server); });
+  });
 }
 
-function remove(file) {
-  try { unlinkSync(file); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-}
-
-function stale(text, maxAgeMs) {
-  let owner;
-  try { owner = JSON.parse(text); } catch { return true; }
-  if (!Number.isSafeInteger(owner?.pid) || !Number.isFinite(owner?.started) || Date.now() - owner.started > maxAgeMs) return true;
-  try { process.kill(owner.pid, 0); return false; } catch (error) { return error.code === 'ESRCH'; }
-}
-
-function describe(text) {
-  try { const { pid, cwd } = JSON.parse(text); return `pid ${pid} in ${cwd}`; } catch { return 'an unreadable owner'; }
+/**
+ * Ask the holder who it is. A benchmark's busy event loop may not answer in time, so silence is
+ * ambiguous: it is either a busy holder or another program that happens to use the port.
+ */
+function holder(port) {
+  return new Promise(resolve => {
+    let text = '';
+    const socket = net.connect({ port, host: '127.0.0.1' });
+    const done = () => {
+      socket.destroy();
+      try { const { pid, cwd } = JSON.parse(text); resolve(`pid ${pid} in ${cwd}`); } catch { resolve('a process that did not identify itself (a busy benchmark, or another program using this port)'); }
+    };
+    socket.setTimeout(1_000, done);
+    socket.on('data', chunk => { text += chunk; });
+    socket.on('end', done);
+    socket.on('error', done);
+  });
 }
