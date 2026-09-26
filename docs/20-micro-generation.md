@@ -153,6 +153,13 @@ reusable `spreadPoints` primitive. It samples a bounded half-cell lattice, keeps
 only circles fully contained and clear of blockers/reservations, then selects
 farthest points with non-overlap at the active contestant clearance. With a
 required entrance it also checks each accepted point is reachable from that root.
+The root is a reachability anchor, so only blockers can invalidate it. Reservations,
+including loot pickups, are passable: entry points stay off them, but a pickup beside
+the entrance does not break placement. Loot is filled before entry points, so a
+small entry region with the default loot budget can report its whole count as
+shortfall; which should yield is open (#21). Loot that blocks movement, such as a
+container, would be a standard element placed through the builder and obey the
+element rules, including the protected entrance approach.
 It reports a shortfall when this sampled placement cannot meet the requested
 count. That does not prove maximum packing capacity. It is a local spacing
 result, not a proof that a complete match can support that many players.
@@ -310,8 +317,8 @@ because cells plus a width name no side. Converting them is adapter work.
 Reserved/forbidden cells stay excluded. Each child's anchor is an inter-child crossing
 rather than an external port, so the doorway is an endpoint of every saved route.
 
-Loot in an `entry` region with a required port currently breaks entry placement (#19),
-which is why the demo, and the negotiation tests, give entry regions no loot.
+The demo gives entry regions no loot, so its output is unchanged by the loot
+order in #21.
 
 The `realized-decomposition-1` artifact includes the original plan, assignments,
 generated children, paired physical portals, anchors and swept routes connecting

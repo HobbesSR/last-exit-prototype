@@ -63,3 +63,11 @@ test('rejects invalid placement inputs', () => {
     { count: 1, radius: 10, seed: 1.5 },
   ]) assert.throws(() => spreadPoints(region, options));
 });
+
+test('a passable reservation over the anchor keeps occupants off it without invalidating the root', () => {
+  const region = mask(4, 3), anchor = { x: 20, y: 60 }, pickup = circle(30, 60, 24);
+  const result = spreadPoints(region, { count: 4, radius: 10, reservations: [pickup], anchor });
+  assert.ok(result.points.length > 0);
+  assert.ok(result.points.every(point => !shapesOverlap(circle(point.x, point.y, 10), pickup)));
+  assert.throws(() => spreadPoints(region, { count: 4, radius: 10, blockers: [pickup], anchor }), /anchor is not clear/);
+});
