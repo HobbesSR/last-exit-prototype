@@ -3,8 +3,9 @@
 The game now has a standalone micro-generation implementation in
 `shared/map/micro/`. It accepts explicit regions and resolves them into the same
 obstacles, roofs, windows and doors used by the live game. The default street
-generator does not call it yet. The sibling `last_exit_map` remains a separate
-macro experiment, with no runtime imports or copies of its generated artifacts.
+generator does not call it yet. The macro generator, formerly the sibling
+`last_exit_map` repository, now lives in `mapgen/` with its own tests and docs.
+The game does not import it yet, nor copy its generated artifacts.
 
 This is the current user-directed F-01 work. Macro gives micro an owned area and
 constraints; micro chooses what occupies it. Cells and segments organize that
@@ -49,7 +50,7 @@ density 0.55, room size 6 cells and decay 0.35. `live` preserves current game
 radii of 12/23 and navigation clearance of 14/25 from `map/navigation.ts`.
 `cell` is an explicit preview/profile choice: contestant and hunter diameters are
 1.25 and 1.75 cells, a doorway is 2 cells, and a contestant-only squeeze is 1.5
-cells. This is not a conversion of the sibling's abstract scale. A local artifact
+cells. This is not a conversion of `mapgen/`'s abstract scale. A local artifact
 made with `cell` must not silently change the live game's bodies, clearance,
 capacity, or spawn rules.
 
@@ -346,10 +347,10 @@ including actual movement across a child-region join.
 Feature-region placement beyond local entry spacing, primitive material sets, and
 authored segment/vertex metadata still need expansion. The next decomposition
 boundary is generalized generator dispatch and portal negotiation beyond the
-explicit demo policy, followed by a sibling adapter and recursive execution.
+explicit demo policy, followed by a `mapgen/` adapter and recursive execution.
 
-The sibling `../last_exit_map` is read-only input for a future adapter. At current
-head `544b13c`, its compact post-composition region artifact is defined by
+`mapgen/` is the input for that adapter; paths below are relative to it. As
+imported at `544b13c`, its compact post-composition region artifact is defined by
 `src/types.ts` (`MapRegion`) and packed by `src/artifact.ts`; `src/core.ts`
 discovers regions from same-class cells and fully open segments, then re-discovers
 them after its own micro edits. Its planned `src/plan/types.ts` has the closer
@@ -358,6 +359,6 @@ flat cell indices using its grid width into this SDK's global integer cell
 coordinates, preserve explicit `cellSize`, turn planned perimeter runs into
 `RegionPort`s, keep source-region provenance separate from its final partition,
 and validate world bounds, external geometry, and whole-map spawn-to-exit routes.
-It must not treat sibling graph or sampled connectivity as proof of this game's
+It must not treat `mapgen/`'s graph or sampled connectivity as proof of this game's
 physical geometry. The existing generator remains live until that explicit
 integration checkpoint is satisfied.

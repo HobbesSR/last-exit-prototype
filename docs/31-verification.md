@@ -14,6 +14,14 @@ npm run bench
 npm run bench:client
 ```
 
+Changes under `mapgen/` run its own suite with `npm run test:mapgen` (typecheck
+plus unit tests, in that directory) and, for editor behavior, `node tests/browser.mts`
+from `mapgen/`. As imported at `544b13c` that suite was already red: 26 type
+errors and 26 of 228 unit tests failing, and the browser check failing at "the
+rebuilt map uses the active edited library" after a WFC layout failure, all
+identical before and after the move.
+Compare against that baseline until it is fixed; do not count it as a regression.
+
 Micro-generation changes additionally run `npm run test:micro`: focused contracts
 and seeded builder tests plus all three isolated browser previews. The unit tests also run
 in `npm test`. The lab browser check verifies actual builder content, control

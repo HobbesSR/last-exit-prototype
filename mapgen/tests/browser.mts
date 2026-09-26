@@ -8,15 +8,12 @@ import assert from "node:assert/strict";
 const require = createRequire(import.meta.url);
 let playwright: any;
 try {
+  // Resolves from mapgen/node_modules or, failing that, the repository root's.
   playwright = require("@playwright/test");
 } catch {
-  try {
-    playwright = require("../../astra_test/node_modules/@playwright/test");
-  } catch {
-    throw Error(
-      "Browser check needs @playwright/test locally or in sibling astra_test. Runtime itself has no dependencies.",
-    );
-  }
+  throw Error(
+    "Browser check needs @playwright/test; run npm ci at the repository root. Runtime itself has no dependencies.",
+  );
 }
 const server = spawn(process.execPath, ["tools/server.mts", "--port", "4179"], {
   stdio: ["ignore", "pipe", "pipe"],
