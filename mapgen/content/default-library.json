@@ -1,0 +1,4530 @@
+{
+  "version": 2,
+  "cellClasses": {
+    "open": {
+      "generator": "open-field"
+    },
+    "market": {
+      "generator": "open-field"
+    },
+    "depot": {
+      "generator": "open-field"
+    },
+    "park": {
+      "generator": "open-field"
+    },
+    "landing": {
+      "generator": "open-field"
+    },
+    "evac": {
+      "generator": "open-field"
+    },
+    "tree": {
+      "generator": "open-field"
+    },
+    "rock": {
+      "generator": "open-field"
+    },
+    "rubble": {
+      "generator": "open-field"
+    },
+    "hut": {
+      "generator": "open-field"
+    }
+  },
+  "tiles": [
+    {
+      "id": "street",
+      "defaultCellClass": "any",
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "adapter": true,
+      "weight": 15.0
+    },
+    {
+      "id": "market-front",
+      "defaultCellClass": "market",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "OOOOOO",
+        "......",
+        "......",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 4
+      },
+      "weight": 5,
+      "edges": {
+        "S": [
+          "market",
+          "market",
+          "market",
+          "market",
+          "market",
+          "market"
+        ]
+      }
+    },
+    {
+      "id": "market-corner",
+      "defaultCellClass": "market",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "OOOOOO",
+        "OO....",
+        "OO....",
+        "OO....",
+        "OO...."
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 4,
+        "y": 4
+      },
+      "weight": 5
+    },
+    {
+      "id": "market-interior",
+      "defaultCellClass": "market",
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 5,
+      "edges": {
+        "S": [
+          "market",
+          "market",
+          "market",
+          "market",
+          "market",
+          "market"
+        ]
+      }
+    },
+    {
+      "id": "depot-fence",
+      "defaultCellClass": "depot",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "......",
+        "......",
+        "......",
+        "......",
+        "......"
+      ],
+      "walls": [
+        {
+          "x1": 0,
+          "y1": 1,
+          "x2": 6,
+          "y2": 1
+        }
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      }
+    },
+    {
+      "id": "depot-corner",
+      "defaultCellClass": "depot",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "O.....",
+        "O.....",
+        "O.....",
+        "O.....",
+        "O....."
+      ],
+      "walls": [
+        {
+          "x1": 1,
+          "y1": 6,
+          "x2": 1,
+          "y2": 1
+        },
+        {
+          "x1": 1,
+          "y1": 1,
+          "x2": 6,
+          "y2": 1
+        }
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      }
+    },
+    {
+      "id": "depot-gate",
+      "defaultCellClass": "depot",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "......",
+        "......",
+        "......",
+        "......",
+        "......"
+      ],
+      "walls": [
+        {
+          "x1": 0,
+          "y1": 1,
+          "x2": 6,
+          "y2": 1,
+          "gap": 2
+        }
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "edges": {
+        "S": [
+          "depot",
+          "depot",
+          "depot",
+          "depot",
+          "depot",
+          "depot"
+        ]
+      }
+    },
+    {
+      "id": "park-transition",
+      "defaultCellClass": "park",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "OOOOOO",
+        "......",
+        "......",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 4
+      },
+      "weight": 5,
+      "edges": {
+        "S": [
+          "park",
+          "park",
+          "park",
+          "park",
+          "park",
+          "park"
+        ]
+      }
+    },
+    {
+      "id": "park-interior",
+      "defaultCellClass": "park",
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 5,
+      "edges": {
+        "S": [
+          "park",
+          "park",
+          "park",
+          "park",
+          "park",
+          "park"
+        ]
+      }
+    },
+    {
+      "id": "landing-edge",
+      "defaultCellClass": "landing",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "OOOOOO",
+        "......",
+        "......",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 4
+      },
+      "weight": 5,
+      "edges": {
+        "S": [
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing"
+        ]
+      }
+    },
+    {
+      "id": "landing-interior",
+      "defaultCellClass": "landing",
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 5,
+      "edges": {
+        "S": [
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing",
+          "landing"
+        ]
+      }
+    },
+    {
+      "id": "evac-fence",
+      "defaultCellClass": "evac",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "......",
+        "......",
+        "......",
+        "......",
+        "......"
+      ],
+      "walls": [
+        {
+          "x1": 0,
+          "y1": 1,
+          "x2": 6,
+          "y2": 1
+        }
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      }
+    },
+    {
+      "id": "evac-corner",
+      "defaultCellClass": "evac",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "O.....",
+        "O.....",
+        "O.....",
+        "O.....",
+        "O....."
+      ],
+      "walls": [
+        {
+          "x1": 1,
+          "y1": 6,
+          "x2": 1,
+          "y2": 1
+        },
+        {
+          "x1": 1,
+          "y1": 1,
+          "x2": 6,
+          "y2": 1
+        }
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      }
+    },
+    {
+      "id": "evac-gate",
+      "defaultCellClass": "evac",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "......",
+        "......",
+        "......",
+        "......",
+        "......"
+      ],
+      "walls": [
+        {
+          "x1": 0,
+          "y1": 1,
+          "x2": 6,
+          "y2": 1,
+          "gap": 2
+        }
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "edges": {
+        "S": [
+          "evac",
+          "evac",
+          "evac",
+          "evac",
+          "evac",
+          "evac"
+        ]
+      }
+    },
+    {
+      "id": "open-tree-2x2",
+      "defaultCellClass": "any",
+      "legend": {
+        "T": "tree"
+      },
+      "cells": [
+        "......",
+        "......",
+        "..TT..",
+        "..TT..",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-tree-3x3",
+      "defaultCellClass": "any",
+      "legend": {
+        "T": "tree"
+      },
+      "cells": [
+        "......",
+        ".TTT..",
+        ".TTT..",
+        ".TTT..",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-tree-2x4",
+      "defaultCellClass": "any",
+      "legend": {
+        "T": "tree"
+      },
+      "cells": [
+        "......",
+        "..TT..",
+        "..TT..",
+        "..TT..",
+        "..TT..",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-tree-caticorner",
+      "defaultCellClass": "any",
+      "legend": {
+        "T": "tree"
+      },
+      "cells": [
+        "......",
+        ".TT...",
+        ".TT...",
+        "...TT.",
+        "...TT.",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rock-2x2",
+      "defaultCellClass": "any",
+      "legend": {
+        "R": "rock"
+      },
+      "cells": [
+        "......",
+        "......",
+        "..RR..",
+        "..RR..",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rock-3x3",
+      "defaultCellClass": "any",
+      "legend": {
+        "R": "rock"
+      },
+      "cells": [
+        "......",
+        ".RRR..",
+        ".RRR..",
+        ".RRR..",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rock-2x4",
+      "defaultCellClass": "any",
+      "legend": {
+        "R": "rock"
+      },
+      "cells": [
+        "......",
+        "..RR..",
+        "..RR..",
+        "..RR..",
+        "..RR..",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rock-caticorner",
+      "defaultCellClass": "any",
+      "legend": {
+        "R": "rock"
+      },
+      "cells": [
+        "......",
+        ".RR...",
+        ".RR...",
+        "...RR.",
+        "...RR.",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rubble-2x2",
+      "defaultCellClass": "any",
+      "legend": {
+        "B": "rubble"
+      },
+      "cells": [
+        "......",
+        "......",
+        "..BB..",
+        "..BB..",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rubble-3x3",
+      "defaultCellClass": "any",
+      "legend": {
+        "B": "rubble"
+      },
+      "cells": [
+        "......",
+        ".BBB..",
+        ".BBB..",
+        ".BBB..",
+        "......",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rubble-2x4",
+      "defaultCellClass": "any",
+      "legend": {
+        "B": "rubble"
+      },
+      "cells": [
+        "......",
+        "..BB..",
+        "..BB..",
+        "..BB..",
+        "..BB..",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-rubble-caticorner",
+      "defaultCellClass": "any",
+      "legend": {
+        "B": "rubble"
+      },
+      "cells": [
+        "......",
+        ".BB...",
+        ".BB...",
+        "...BB.",
+        "...BB.",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-hut-center",
+      "defaultCellClass": "any",
+      "legend": {
+        "H": "hut"
+      },
+      "cells": [
+        "......",
+        ".HHHH.",
+        ".HHHH.",
+        ".HHHH.",
+        ".HHHH.",
+        "......"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5
+    },
+    {
+      "id": "open-hut-edge",
+      "defaultCellClass": "any",
+      "legend": {
+        "H": "hut"
+      },
+      "cells": [
+        "......",
+        "......",
+        ".HHHH.",
+        ".HHHH.",
+        ".HHHH.",
+        ".HHHH."
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5,
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "id": "open-hut-corner",
+      "defaultCellClass": "any",
+      "legend": {
+        "H": "hut"
+      },
+      "cells": [
+        "......",
+        "......",
+        "..HHHH",
+        "..HHHH",
+        "..HHHH",
+        "..HHHH"
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 3,
+        "y": 3
+      },
+      "weight": 0.5,
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "id": "landing-corner",
+      "defaultCellClass": "landing",
+      "legend": {
+        "O": "open"
+      },
+      "cells": [
+        "OOOOOO",
+        "OOOOOO",
+        "OO....",
+        "OO....",
+        "OO....",
+        "OO...."
+      ],
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "anchor": {
+        "x": 4,
+        "y": 4
+      },
+      "weight": 5
+    }
+  ],
+  "tileSets": [
+    {
+      "id": "filler",
+      "members": [
+        "street"
+      ]
+    },
+    {
+      "id": "market-fronts",
+      "members": [
+        "market-front"
+      ]
+    },
+    {
+      "id": "market-corners",
+      "members": [
+        "market-corner"
+      ]
+    },
+    {
+      "id": "market-interiors",
+      "members": [
+        "market-interior"
+      ]
+    },
+    {
+      "id": "depot-fences",
+      "members": [
+        "depot-fence"
+      ]
+    },
+    {
+      "id": "depot-corners",
+      "members": [
+        "depot-corner"
+      ]
+    },
+    {
+      "id": "depot-gates",
+      "members": [
+        "depot-gate"
+      ]
+    },
+    {
+      "id": "park-edges",
+      "members": [
+        "park-transition"
+      ]
+    },
+    {
+      "id": "park-centers",
+      "members": [
+        "park-interior"
+      ]
+    },
+    {
+      "id": "landing-edges",
+      "members": [
+        "landing-edge"
+      ]
+    },
+    {
+      "id": "landing-centers",
+      "members": [
+        "landing-interior"
+      ]
+    },
+    {
+      "id": "evac-fences",
+      "members": [
+        "evac-fence"
+      ]
+    },
+    {
+      "id": "evac-corners",
+      "members": [
+        "evac-corner"
+      ]
+    },
+    {
+      "id": "evac-gates",
+      "members": [
+        "evac-gate"
+      ]
+    },
+    {
+      "id": "landing-corners",
+      "members": [
+        "landing-corner"
+      ]
+    }
+  ],
+  "setPieces": [
+    {
+      "id": "start-base",
+      "category": "start",
+      "class": "market",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "market-interiors"
+        }
+      ]
+    },
+    {
+      "id": "end-base",
+      "category": "end",
+      "class": "landing",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "landing-centers"
+        }
+      ]
+    },
+    {
+      "id": "enormous-0",
+      "category": "enormous",
+      "class": "market",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "market-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 9,
+          "dy": 0,
+          "tileSetId": "market-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 9,
+          "dy": 1,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 9,
+          "dy": 2,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 8,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 9,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "market-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 6,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 7,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 8,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 9,
+          "dy": 4,
+          "tileSetId": "market-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "enormous-1",
+      "category": "enormous",
+      "class": "industrial",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "depot-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "depot-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 7,
+          "dy": 4,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "depot-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 5,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 5,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 5,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 6,
+          "dy": 5,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 7,
+          "dy": 5,
+          "tileSetId": "depot-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "enormous-2",
+      "category": "enormous",
+      "class": "landing",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "landing-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 9,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 10,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 11,
+          "dy": 0,
+          "tileSetId": "landing-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 9,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 10,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 11,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "landing-edges",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 9,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 10,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 11,
+          "dy": 2,
+          "tileSetId": "landing-edges",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "landing-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 8,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 9,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 10,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 11,
+          "dy": 3,
+          "tileSetId": "landing-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "enormous-3",
+      "category": "enormous",
+      "class": "market",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "market-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "market-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 6,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 5,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 5,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 5,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 6,
+          "dy": 5,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 6,
+          "tileSetId": "market-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 6,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 6,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 6,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 6,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 6,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 6,
+          "dy": 6,
+          "tileSetId": "market-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "enormous-4",
+      "category": "enormous",
+      "class": "industrial",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "depot-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "depot-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 8,
+          "dy": 3,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 8,
+          "dy": 4,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "depot-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 5,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 5,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 5,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 6,
+          "dy": 5,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 7,
+          "dy": 5,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 8,
+          "dy": 5,
+          "tileSetId": "depot-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "medium-0",
+      "category": "medium",
+      "class": "military",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "evac-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "evac-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "evac-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "evac-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "evac-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "evac-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "evac-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "evac-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "evac-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "evac-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "evac-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 5,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 5,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 5,
+          "tileSetId": "evac-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "medium-1",
+      "category": "medium",
+      "class": "market",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "market-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "market-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "market-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 8,
+          "dy": 3,
+          "tileSetId": "market-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "medium-2",
+      "category": "medium",
+      "class": "military",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "evac-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 9,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 10,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 11,
+          "dy": 0,
+          "tileSetId": "evac-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "evac-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 11,
+          "dy": 1,
+          "tileSetId": "evac-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "evac-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 9,
+          "dy": 2,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 10,
+          "dy": 2,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 11,
+          "dy": 2,
+          "tileSetId": "evac-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "medium-3",
+      "category": "medium",
+      "class": "market",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "market-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "market-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "market-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 6,
+          "dy": 4,
+          "tileSetId": "market-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "medium-4",
+      "category": "medium",
+      "class": "military",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "evac-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "evac-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "evac-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "evac-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "evac-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "evac-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "evac-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "evac-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "evac-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "evac-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "medium-5",
+      "category": "medium",
+      "class": "market",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "market-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "market-fronts",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "market-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "market-interiors"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "market-fronts",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "market-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "market-fronts",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "market-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "small-0",
+      "category": "small",
+      "class": "industrial",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "depot-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "depot-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "depot-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "depot-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "small-1",
+      "category": "small",
+      "class": "landing",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "landing-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "landing-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "landing-edges",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "landing-edges",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "landing-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "landing-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "small-2",
+      "category": "small",
+      "class": "industrial",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "depot-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "depot-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "depot-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "depot-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "small-3",
+      "category": "small",
+      "class": "landing",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "landing-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "landing-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "landing-edges",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "landing-edges",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "landing-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "landing-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "small-4",
+      "category": "small",
+      "class": "industrial",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "depot-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "depot-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "depot-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "depot-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "small-5",
+      "category": "small",
+      "class": "landing",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "landing-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "landing-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "landing-edges",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "landing-edges",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "landing-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "landing-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "small-6",
+      "category": "small",
+      "class": "industrial",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "depot-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "depot-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "depot-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "depot-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "small-7",
+      "category": "small",
+      "class": "landing",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "landing-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "landing-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "landing-edges",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "landing-edges",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "landing-centers"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "landing-edges",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "landing-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "landing-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "small-8",
+      "category": "small",
+      "class": "industrial",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "depot-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "depot-fences",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "depot-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 270
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "depot-fences",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "depot-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "depot-fences",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "depot-corners",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "small-9",
+      "category": "small",
+      "class": "landing",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "landing-corners",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "landing-edges",
+          "orientation": 0
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "landing-corners",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "landing-corners",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "landing-edges",
+          "orientation": 180
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "landing-corners",
+          "orientation": 180
+        }
+      ]
+    }
+  ]
+}

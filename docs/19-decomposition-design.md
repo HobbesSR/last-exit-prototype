@@ -109,5 +109,5 @@ Physical population of selected pieces, portal negotiation and automatic recursi
 dispatch have separate implementation boundaries. The lab now offers bounded
 structural tree exploration, and the combined demo has an explicit physical
 realization policy; neither is a general recursive generator dispatcher. See 20.
-Integration with the sibling macro project
+Integration with the macro project, now in `mapgen/`,
 remains deferred under the user's instruction in [17](17-open-questions.md).

@@ -2,7 +2,7 @@
 
 Status: living documentation
 Prototype rules version: `last-exit-0.7`; default content: `content-2`
-Updated: 2026-09-23
+Updated: 2026-09-26
 
 This directory is the canonical product and engineering record for the prototype.
 It is split so a task can load the two or three files it actually needs instead of
@@ -60,6 +60,7 @@ and handoffs should cite the number, not a heading.
 | [31-verification.md](31-verification.md) | Verification gates, what each suite covers, the frozen fixture rule |
 | [32-delegation.md](32-delegation.md) | Cost-aware delegation, the worker brief, manual model switches |
 | [33-maintenance.md](33-maintenance.md) | How to keep these documents true, and where a new fact belongs |
+| [34-forgejo-workflow.md](34-forgejo-workflow.md) | Forgejo as source of truth, agent accounts and worktrees, the issue-to-PR loop |
 
 ### 4x — Plan and history
 
@@ -75,3 +76,8 @@ invariants. `README.md` is the player- and operator-facing entry point: running,
 controls, replays, profiling. `tests/fixtures/README.md` documents the frozen
 characterization baseline. `FRESH_SESSION.md`, when present, is an untracked
 checkpoint handoff; it is the most recent state, not a requirement.
+
+`mapgen/` is the map generator, imported with its history from the former
+`last_exit_map` repository. Its own `docs/` (unnumbered: `NEXT_TASKS.md`,
+`PLANNED_GENERATION.md`, `DESIGN_DECISIONS.md` and others) and `AGENTS.md` still
+describe it. Fold a fact into this numbered set when work touches both sides.

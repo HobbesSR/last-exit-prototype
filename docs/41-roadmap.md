@@ -65,10 +65,10 @@ branch inspection and explicit terminal residuals. This does not yet execute tho
 trees as physical micro generation. SDK access/boundary utilities now validate
 post-generation crossing and connectivity obligations, inherit complete external
 runs and pair inter-child requirements; nested composition tests exercise this
-contract. Use those checks when adding recursive execution. Then address the sibling
-adapter and recursive execution. Future macro integration still needs a
+contract. Use those checks when adding recursive execution. Then address the
+`mapgen/` adapter and recursive execution. Future macro integration still needs a
 unit/ownership adapter, explicit port translation and whole-map physical route
-validation; the sibling remains independent. See [19](19-decomposition-design.md),
+validation; `mapgen/` shares this repository but the game does not import it yet. See [19](19-decomposition-design.md),
 [20](20-micro-generation.md) and the recorded choices in [17](17-open-questions.md).
 
 The sequencing below remains the other gameplay backlog, not an instruction to

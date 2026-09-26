@@ -1,0 +1,543 @@
+{
+  "version": 2,
+  "cellClasses": {
+    "depot": {
+      "generator": "compound",
+      "clutterChance": 0.1,
+      "clutterSize": 0.5
+    },
+    "grass": {
+      "generator": "open-field",
+      "clutterChance": 0.04,
+      "clutterSize": 0.55,
+      "generatorParams": {
+        "coverDensity": 0.5
+      }
+    },
+    "hall": {
+      "generator": "pillar-hall",
+      "clutterChance": 0.03,
+      "clutterSize": 0.6
+    },
+    "market": {
+      "generator": "compound",
+      "clutterChance": 0.12,
+      "clutterSize": 0.45,
+      "generatorParams": {
+        "roomMin": 3,
+        "roomMax": 4
+      }
+    },
+    "open": {
+      "generator": "open-field",
+      "clutterChance": 0.06,
+      "clutterSize": 0.6
+    },
+    "plaza": {
+      "generator": "pillar-hall",
+      "clutterChance": 0.02,
+      "clutterSize": 0.7,
+      "generatorParams": {
+        "blockSize": 2
+      }
+    },
+    "service": {
+      "generator": "rubble",
+      "clutterChance": 0.18,
+      "clutterSize": 0.5
+    },
+    "vault": {
+      "generator": "courtyard",
+      "clutterChance": 0.05,
+      "clutterSize": 0.6
+    },
+    "yard": {
+      "generator": "compound",
+      "clutterChance": 0.08,
+      "clutterSize": 0.5
+    }
+  },
+  "tiles": [
+    {
+      "id": "plain",
+      "weight": 10,
+      "adapter": true,
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "defaultCellClass": "open"
+    },
+    {
+      "id": "yard",
+      "weight": 5,
+      "adapter": false,
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "defaultCellClass": "yard"
+    },
+    {
+      "id": "pillar-hall",
+      "weight": 5,
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "cells": [
+        "......",
+        ".#..#.",
+        "......",
+        "......",
+        ".#..#.",
+        "......"
+      ],
+      "defaultCellClass": "hall"
+    },
+    {
+      "id": "plaza-monument",
+      "weight": 4,
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "cells": [
+        "......",
+        "......",
+        "..##..",
+        "..##..",
+        "......",
+        "......"
+      ],
+      "defaultCellClass": "plaza",
+      "anchor": {
+        "x": 1,
+        "y": 1
+      }
+    },
+    {
+      "id": "depot-block",
+      "weight": 4,
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "legend": {
+        "d": "depot"
+      },
+      "cells": [
+        "......",
+        ".dd...",
+        ".##...",
+        ".##...",
+        ".dd...",
+        "......"
+      ],
+      "defaultCellClass": "open"
+    },
+    {
+      "id": "checkpoint",
+      "weight": 4,
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "walls": [
+        {
+          "x1": 1,
+          "y1": 3,
+          "x2": 5,
+          "y2": 3,
+          "gap": 2
+        }
+      ],
+      "defaultCellClass": "service"
+    },
+    {
+      "id": "chicane",
+      "weight": 4,
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "walls": [
+        {
+          "x1": 2,
+          "y1": 1,
+          "x2": 2,
+          "y2": 3
+        },
+        {
+          "x1": 4,
+          "y1": 3,
+          "x2": 4,
+          "y2": 5
+        }
+      ],
+      "defaultCellClass": "service"
+    },
+    {
+      "id": "service-cut",
+      "weight": 3,
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "walls": [
+        {
+          "x1": 2,
+          "y1": 1,
+          "x2": 2,
+          "y2": 4,
+          "gap": 1.5
+        }
+      ],
+      "defaultCellClass": "service"
+    },
+    {
+      "id": "vault-court",
+      "weight": 3,
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "legend": {
+        "v": "vault"
+      },
+      "cells": [
+        "......",
+        "......",
+        "..vv..",
+        "..vv..",
+        "......",
+        "......"
+      ],
+      "walls": [
+        {
+          "x1": 2,
+          "y1": 2,
+          "x2": 4,
+          "y2": 2
+        },
+        {
+          "x1": 2,
+          "y1": 4,
+          "x2": 4,
+          "y2": 4
+        },
+        {
+          "x1": 2,
+          "y1": 2,
+          "x2": 2,
+          "y2": 4
+        },
+        {
+          "x1": 4,
+          "y1": 2,
+          "x2": 4,
+          "y2": 4,
+          "gap": 1.5
+        }
+      ],
+      "defaultCellClass": "open"
+    },
+    {
+      "id": "market-arcade",
+      "weight": 3,
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "cells": [
+        "......",
+        ".#..#.",
+        ".#..#.",
+        ".#..#.",
+        ".#..#.",
+        "......"
+      ],
+      "edges": {
+        "E": "######",
+        "W": "######"
+      },
+      "defaultCellClass": "market"
+    },
+    {
+      "id": "court-wall",
+      "defaultCellClass": "grass",
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "edges": {
+        "N": "######"
+      }
+    },
+    {
+      "id": "court-gate",
+      "defaultCellClass": "grass",
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "edges": {
+        "N": "##oo##"
+      }
+    },
+    {
+      "id": "court-corner",
+      "defaultCellClass": "grass",
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "edges": {
+        "N": "######",
+        "W": "######"
+      }
+    },
+    {
+      "id": "market-mid",
+      "defaultCellClass": "market",
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "edges": {
+        "E": "######",
+        "W": "######"
+      }
+    },
+    {
+      "id": "market-end",
+      "defaultCellClass": "market",
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "edges": {
+        "E": "######",
+        "W": "######",
+        "N": "##oo##"
+      }
+    },
+    {
+      "id": "open",
+      "defaultCellClass": "grass",
+      "orientations": [
+        0
+      ],
+      "edges": {
+        "N": "......",
+        "E": "......",
+        "S": "......",
+        "W": "......"
+      }
+    }
+  ],
+  "tileSets": [
+    {
+      "id": "all",
+      "members": [
+        "plain",
+        "yard",
+        "pillar-hall",
+        "plaza-monument",
+        "depot-block",
+        "checkpoint",
+        "chicane",
+        "service-cut",
+        "vault-court",
+        "market-arcade",
+        "court-wall",
+        "court-gate",
+        "court-corner",
+        "market-mid",
+        "market-end"
+      ]
+    },
+    {
+      "id": "open-pair",
+      "members": [
+        "plain",
+        "yard"
+      ]
+    },
+    {
+      "id": "civic",
+      "members": [
+        "plaza-monument",
+        "pillar-hall",
+        "yard"
+      ]
+    },
+    {
+      "id": "court-tiles",
+      "members": [
+        "court-wall",
+        "court-gate",
+        "court-corner"
+      ]
+    },
+    {
+      "id": "market-tiles",
+      "members": [
+        "market-mid",
+        "market-end"
+      ]
+    }
+  ],
+  "setPieces": [
+    {
+      "id": "service-yard",
+      "class": "set-piece",
+      "eligibleTiers": [
+        2,
+        3,
+        4
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "open-pair"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "open-pair"
+        }
+      ]
+    },
+    {
+      "id": "civic-court",
+      "class": "set-piece",
+      "eligibleTiers": [
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "civic"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "civic"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "civic"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "civic"
+        }
+      ]
+    },
+    {
+      "id": "grand-courtyard",
+      "class": "mega-structure",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "court-tiles",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "court-tiles",
+          "orientation": 90
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "court-tiles",
+          "orientation": 270
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "court-tiles",
+          "orientation": 180
+        }
+      ]
+    },
+    {
+      "id": "market-strip",
+      "class": "mega-structure",
+      "eligibleTiers": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "market-tiles",
+          "orientation": 0
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "market-tiles",
+          "orientation": 0
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "market-tiles",
+          "orientation": 180
+        }
+      ]
+    }
+  ]
+}
