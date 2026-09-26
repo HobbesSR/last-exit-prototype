@@ -13,4 +13,6 @@ export { createRegionContext } from './decomposition/context.ts';
 export { DecompositionState, allocateCandidates, generatorFitness, measureState, scoreState } from './decomposition/allocation.ts';
 export { buildInterfaces } from './decomposition/interfaces.ts';
 export { validateDecompositionPlan } from './decomposition/validate.ts';
+export { negotiatePortals } from './decomposition/negotiate.ts';
+export type { CrossingTerms, NegotiatedCrossing, NegotiatedPortals, PortalPolicy } from './decomposition/negotiate.ts';
 export type * from './decomposition/types.ts';

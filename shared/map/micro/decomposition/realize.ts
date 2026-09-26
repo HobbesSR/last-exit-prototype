@@ -1,20 +1,23 @@
-import { composeMicroRegions } from '../compose.ts';
-import { validateBoundaryComposition } from '../boundary.ts';
+import { executeDecomposition } from '../execute.ts';
+import { inheritBoundaryPorts, validateBoundaryComposition } from '../boundary.ts';
 import { microMetrics } from '../metrics.ts';
 import { createRegionMask, elementShapes, findRegionRoute, travelClear } from '../geometry.ts';
 import { spreadPoints } from '../placement.ts';
 import { validateMicroRegion } from '../index.ts';
 import { validateDecompositionPlan } from './validate.ts';
-import { cellKey } from './analysis.ts';
 import { EXAMPLE_GENERATORS } from './example.ts';
-import type { BuilderId, RegionPort, RegionResult, RegionRoute, RegionSpec } from '../types.ts';
+import type { BuilderId, RegionPort, RegionResult, RegionRoute } from '../types.ts';
 import type { Vec2 } from '../../../types.ts';
-import type { DecompositionPlan, InterfaceRun } from './types.ts';
+import type { Dispatcher } from '../execute.ts';
+import type { PortalPolicy } from './negotiate.ts';
+import type { DecompositionPlan } from './types.ts';
 
 export interface RealizedDecomposition {
   version: 'realized-decomposition-1';
   plan: DecompositionPlan;
   seed: number;
+  /** The parent's external obligations; absent in artifacts that predate them. */
+  external?: RegionPort[];
   assignments: Array<{ pieceId: string; generator: string; builder: BuilderId; role: string }>;
   regions: RegionResult[];
   portals: Array<{ a: string; b: string; portA: string; portB: string; centre: Vec2; width: number }>;
@@ -23,58 +26,39 @@ export interface RealizedDecomposition {
 }
 
 const MAPPING: Record<string, BuilderId> = { 'rectangular-room': 'depot', 'courtyard-ring': 'courtyard', 'generic-lobe': 'ruins', 'circulation-strip': 'entry' };
+/** One centered hunter crossing per interface on its longest fitting run; every other run is sealed. */
+const DEMO_PORTALS: PortalPolicy = { crossing: () => ({ required: 'hunter', allowed: 'hunter', others: 'sealed' }), connect: 'hunter' };
 
-/** An explicit demonstration policy, not a universal portal negotiator or macro adapter. */
-export function realizeDecomposition(plan: DecompositionPlan, options: { seed?: number; density?: number; roomBuilder?: 'depot' | 'open' | 'ruins' } = {}): RealizedDecomposition {
+/** The demonstration's dispatch and portal policy, expressed through the general execution step. */
+export function realizeDecomposition(plan: DecompositionPlan, options: { seed?: number; density?: number; roomBuilder?: 'depot' | 'open' | 'ruins'; ports?: RegionPort[] } = {}): RealizedDecomposition {
   const errors = validateDecompositionPlan(plan, EXAMPLE_GENERATORS);
   if (errors.length) throw new Error(`Invalid decomposition: ${errors.join(' ')}`);
-  if (plan.context.entrances?.length) throw new Error('External macro entrances need an explicit adapter; the combined demo currently realizes internal interfaces only.');
+  if (plan.context.entrances?.length) throw new Error('External macro entrances need an explicit adapter to become ports; pass them as `ports` instead.');
   const seed = options.seed ?? 4217, density = options.density ?? .55;
   if (!Number.isSafeInteger(seed) || !Number.isFinite(density) || density < 0 || density > 1) throw new Error('Invalid realization seed or density.');
   if (options.roomBuilder && !['depot', 'open', 'ruins'].includes(options.roomBuilder)) throw new Error('Unknown room realization.');
-  const pieces = [...plan.pieces.map(p => ({ id: p.id, cells: p.cells, role: p.role, generator: p.generator })),
-    ...plan.residuals.filter(r => r.role === 'residual').map(r => ({ ...r, generator: 'clear-residual' }))];
-  if (!pieces.length || pieces.length > 16) throw new Error('The combined demo requires 1 to 16 allocated or residual regions.');
-  const assignments = pieces.map(p => {
-    const builder = p.generator === 'clear-residual' ? 'entry' : p.generator === 'rectangular-room' && options.roomBuilder ? options.roomBuilder : MAPPING[p.generator];
-    if (!builder) throw new Error(`No physical builder registered for ${p.generator}.`);
-    return { pieceId: p.id, generator: p.generator, builder, role: p.role };
-  });
-  const specs: RegionSpec[] = pieces.map((p, i) => ({ id: p.id, cells: structuredClone(p.cells), cellSize: plan.context.cellSize, seed,
-    builder: assignments[i]!.builder, bodyProfile: 'cell', ports: [], parameters: { density, roomCells: 4, decay: .45 },
-    loot: { budget: assignments[i]!.builder === 'entry' ? 0 : 3, tier: 1 }, ...(assignments[i]!.builder === 'entry' ? { entry: { count: 0 } } : {}) }));
-  const byId = new Map(specs.map(s => [s.id, s])), ownership = new Map(pieces.flatMap(p => p.cells.map(c => [cellKey(c), p.id] as const)));
-  const attach = (spec: RegionSpec, run: InterfaceRun, id: string, open: boolean) => {
-    const horizontal = run.axis === 'h';
-    const negative = { x: run.x - (horizontal ? 0 : 1), y: run.y - (horizontal ? 1 : 0) };
-    const onNegativeSide = ownership.get(cellKey(negative)) === spec.id;
-    const side: RegionPort['side'] = horizontal ? onNegativeSide ? 'S' : 'N' : onNegativeSide ? 'E' : 'W';
-    spec.ports.push({ id, side, start: onNegativeSide ? negative : { x: run.x, y: run.y }, length: run.length,
-      required: open ? 'hunter' : 'none', allowed: open ? 'hunter' : 'none' });
+  const external = structuredClone(options.ports ?? []);
+  const dispatch: Dispatcher = part => {
+    if (!('generator' in part) && part.role !== 'residual') return null; // Reserved/forbidden ground stays outside the playable region.
+    const generator = 'generator' in part ? part.generator : 'clear-residual';
+    const builder = generator === 'clear-residual' ? 'entry' : generator === 'rectangular-room' && options.roomBuilder ? options.roomBuilder : MAPPING[generator];
+    if (!builder) throw new Error(`No physical builder registered for ${generator}.`);
+    return { builder, parameters: { density, roomCells: 4, decay: .45 }, loot: { budget: builder === 'entry' ? 0 : 3, tier: 1 }, ...(builder === 'entry' ? { entry: { count: 0 } } : {}) };
   };
-  for (const [i, edge] of plan.interfaces.entries()) {
-    const a = byId.get(edge.a), b = byId.get(edge.b);
-    if (!a || !b) continue; // Reserved/forbidden ground remains outside this demo's playable region.
-    const usable = [...edge.runs].filter(r => r.length >= 2).sort((a, b) => b.length - a.length || a.y - b.y || a.x - b.x);
-    if (!usable.length) throw new Error(`Interface ${edge.a} / ${edge.b} has no two-cell passage opportunity.`);
-    const chosen = usable[0]!;
-    for (const [j, run] of edge.runs.entries()) {
-      const open = run.axis === chosen.axis && run.x === chosen.x && run.y === chosen.y;
-      attach(a, run, `join-${i}-${j}`, open); attach(b, run, `join-${i}-${j}`, open);
-    }
-  }
-  const layout = composeMicroRegions(specs), portals: RealizedDecomposition['portals'] = [];
-  const boundaryCheck = validateBoundaryComposition({ cells: specs.flatMap(s => s.cells), cellSize: plan.context.cellSize, bodyProfile: 'cell', ports: [] },
-    layout.regions.map(region => ({ ...region.spec, blockers: region.elements.flatMap(e => elementShapes(e)) })));
-  if (!boundaryCheck.valid) throw new Error(`Child boundary contract failed: ${boundaryCheck.errors.join(' ')}`);
+  const executed = executeDecomposition(plan, { seed, bodyProfile: 'cell', ports: external, dispatch, portals: DEMO_PORTALS });
+  const { layout } = executed, specs = layout.regions.map(r => r.spec);
+  const assignments = executed.parts.map(p => ({ pieceId: p.id, generator: p.generator ?? 'clear-residual', builder: layout.regions.find(r => r.spec.id === p.id)!.spec.builder, role: p.role }));
+  const portals: RealizedDecomposition['portals'] = [];
   for (const c of layout.connections) {
     const p = layout.regions.find(r => r.spec.id === c.a)!.ports.find(p => p.id === c.portA)!;
     if (p.required !== 'none') portals.push({ ...c, centre: p.centre, width: p.width });
   }
-  const mask = createRegionMask({ cells: specs.flatMap(s => s.cells), cellSize: plan.context.cellSize });
+  const owned = new Map([...plan.pieces, ...plan.residuals].map(p => [p.id, p.cells]));
+  const mask = createRegionMask({ cells: executed.parts.flatMap(p => owned.get(p.id)!), cellSize: plan.context.cellSize });
   const blockers = layout.regions.flatMap(r => r.elements.flatMap(e => elementShapes(e))), radius = microMetrics(specs[0]!).clearance.hunter;
   const anchors = layout.regions.map(region => {
-    const point = region.ports.find(p => p.required === 'hunter')?.inside || spreadPoints(createRegionMask(region.spec), {
+    // Anchor at an inter-child crossing: its paired inside point makes the doorway an endpoint of the route.
+    const point = region.ports.find(p => p.required === 'hunter' && !external.some(e => e.id === p.id))?.inside || spreadPoints(createRegionMask(region.spec), {
       count: 1, radius, blockers: region.elements.flatMap(e => elementShapes(e, true)),
     }).points[0];
     if (!point) throw new Error(`No hunter-sized standing area in ${region.spec.id}.`);
@@ -87,7 +71,7 @@ export function realizeDecomposition(plan: DecompositionPlan, options: { seed?: 
     if (!points) throw new Error(`Combined ${role} route to ${target.pieceId} is obstructed.`);
     routes.push({ role, radius, from: from.pieceId, to: target.pieceId, points });
   }
-  return { version: 'realized-decomposition-1', plan: structuredClone(plan), seed, assignments, regions: layout.regions, portals, anchors, routes };
+  return { version: 'realized-decomposition-1', plan: structuredClone(plan), seed, ...(external.length ? { external } : {}), assignments, regions: layout.regions, portals, anchors, routes };
 }
 
 /** Recheck local artifacts and saved cross-region sweeps from emitted geometry. */
@@ -131,7 +115,12 @@ export function validateRealization(result: RealizedDecomposition): string[] {
       for (let i = 1; i < route.points.length; i++) if (!travelClear(mask, blockers, route.points[i - 1]!, route.points[i]!, route.radius)) errors.push('Combined route crosses obstructed ground.');
     }
     if (result.routes.length !== Math.max(0, expected.length - 1) * 2) errors.push('Combined route coverage is incomplete.');
-    const openPorts = result.regions.flatMap(r => r.ports.filter(p => p.required === 'hunter').map(p => ({ region: r.spec.id, port: p }))), matched = new Set<string>();
+    const parent = { cells: result.regions.flatMap(r => r.spec.cells), cellSize: result.plan.context.cellSize, bodyProfile: 'cell' as const, ports: result.external ?? [] };
+    const boundary = validateBoundaryComposition(parent, result.regions.map(region => ({ ...region.spec, blockers: region.elements.flatMap(e => elementShapes(e)) })));
+    errors.push(...boundary.errors.map(error => `Boundary: ${error}`));
+    const inherited = inheritBoundaryPorts(parent, result.regions.map(r => r.spec));
+    const internal = (region: RegionResult) => region.ports.filter(p => !inherited[region.spec.id]!.some(q => q.id === p.id));
+    const openPorts = result.regions.flatMap(r => internal(r).filter(p => p.required === 'hunter').map(p => ({ region: r.spec.id, port: p }))), matched = new Set<string>();
     for (const portal of result.portals) {
       const a = openPorts.find(p => p.region === portal.a && p.port.id === portal.portA), b = openPorts.find(p => p.region === portal.b && p.port.id === portal.portB);
       const keyA = JSON.stringify([portal.a, portal.portA]), keyB = JSON.stringify([portal.b, portal.portB]);

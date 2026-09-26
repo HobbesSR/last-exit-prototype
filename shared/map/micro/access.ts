@@ -14,6 +14,8 @@ export interface RegionAccessInput {
   bodyProfile?: 'live' | 'cell';
   ports: RegionPort[];
   blockers: Shape[];
+  /** Check routes between required ports; false leaves connectivity to a caller with a stronger proof. */
+  connect?: boolean;
 }
 
 export interface RegionAccessResult {
@@ -22,7 +24,7 @@ export interface RegionAccessResult {
   routes: Array<RegionRoute & { from: string; to: string }>;
 }
 
-type AccessContract = Omit<RegionAccessInput, 'blockers'>;
+type AccessContract = Omit<RegionAccessInput, 'blockers' | 'connect'>;
 
 /**
  * Resolve only the macro perimeter contract.  This deliberately has no builder
@@ -99,7 +101,7 @@ export function validateRegionAccess(input: RegionAccessInput): RegionAccessResu
       if (port.allowed === 'none' && crossingClear(port, radii.contestant, input.blockers)) errors.push(`Port ${port.id} violates its passage ceiling.`);
       if (port.allowed === 'contestant' && crossingClear(port, radii.hunter, input.blockers)) errors.push(`Port ${port.id} violates its passage ceiling.`);
     }
-    for (const role of ['contestant', 'hunter'] as const) {
+    if (input.connect !== false) for (const role of ['contestant', 'hunter'] as const) {
       const required = ports.filter(port => RANK[port.required] >= RANK[role]);
       for (let i = 1; i < required.length; i++) {
         const from = required[0]!, to = required[i]!, points = findRegionRoute(mask, input.blockers, from.inside, to.inside, radii[role]);
