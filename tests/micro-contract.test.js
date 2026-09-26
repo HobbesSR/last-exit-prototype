@@ -91,3 +91,14 @@ test('macro reservations remain empty and stamping preserves roofs, unlocked doo
   assert.throws(() => stampMicroRegion(context, invalid, { x: 12000, y: 6000 }, 'bad'));
   assert.deepEqual(context.map, before, 'invalid region stamping is atomic');
 });
+
+test('an entry region with a required port places default loot and entry spawns on every seed', () => {
+  const cells = Array.from({ length: 3 }, (_, y) => Array.from({ length: 4 }, (_, x) => ({ x, y }))).flat();
+  const ports = [{ id: 'w', side: 'W', start: { x: 0, y: 1 }, length: 2, required: 'contestant', allowed: 'contestant' }];
+  for (let seed = 0; seed < 20; seed++) for (const count of [0, 4]) {
+    const result = generateMicroRegion({ id: 'e', seed, builder: 'entry', cellSize: 40, bodyProfile: 'cell', cells, entry: { count }, ports });
+    assert.deepEqual(validateMicroRegion(result), []);
+    assert.ok(result.loot.length > 0, `seed ${seed} keeps its loot`);
+    assert.equal(result.entry.shortfall, count - result.entry.points.length);
+  }
+});

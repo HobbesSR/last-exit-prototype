@@ -14,7 +14,9 @@ export interface SpreadPointOptions {
   /** Optional deterministic layout variation. It only resolves equally good candidates. */
   seed?: number;
   blockers?: Shape[];
+  /** Passable ground that occupants must stay off but bodies may cross, such as loot pickups. */
   reservations?: Shape[];
+  /** Reachability root. Only blockers can invalidate it; a passable reservation beside it cannot. */
   anchor?: Vec2;
 }
 
@@ -61,7 +63,7 @@ export function spreadPoints(mask: RegionMask, options: SpreadPointOptions): Spr
   const exclusions = [...blockers, ...reservations];
   if (options.anchor) {
     const anchorDisc = circle(options.anchor.x, options.anchor.y, radius);
-    if (!mask.contains(anchorDisc) || exclusions.some(shape => shapesOverlap(anchorDisc, shape))) throw new RangeError('placement anchor is not clear inside the region');
+    if (!mask.contains(anchorDisc) || blockers.some(shape => shapesOverlap(anchorDisc, shape))) throw new RangeError('placement anchor is not clear inside the region');
   }
   if (!count) return { points: [], requested: count, shortfall: 0, minimumSpacing: null };
 

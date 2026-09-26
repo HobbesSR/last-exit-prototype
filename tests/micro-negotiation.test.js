@@ -12,8 +12,7 @@ import { rect } from '../shared/shape.ts';
 const plan = planExample(decompositionExample('neck'));
 const parts = [...plan.pieces, ...plan.residuals.filter(r => r.role === 'residual')];
 const parent = (ports = []) => ({ cells: parts.flatMap(p => p.cells), cellSize: plan.context.cellSize, bodyProfile: 'cell', ports });
-// Entry regions get no loot: loot beside a required port currently breaks entry placement (#19).
-const dispatch = part => 'generator' in part || part.role === 'residual' ? { builder: part.role === 'room' ? 'depot' : 'entry', ...(part.role === 'room' ? {} : { entry: { count: 0 }, loot: { budget: 0, tier: 1 } }) } : null;
+const dispatch = part => 'generator' in part || part.role === 'residual' ? { builder: part.role === 'room' ? 'depot' : 'entry', ...(part.role === 'room' ? {} : { entry: { count: 0 } }) } : null;
 const left = { id: 'west-gate', side: 'W', start: { x: 0, y: 2 }, length: 2, required: 'hunter', allowed: 'hunter' };
 const right = { id: 'east-gate', side: 'E', start: { x: 23, y: 2 }, length: 2, required: 'hunter', allowed: 'hunter' };
 
