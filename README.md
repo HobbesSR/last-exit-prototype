@@ -29,14 +29,14 @@ Open one of the LAN URLs printed by the server, such as `http://192.168.1.25:310
 
 ## Controls
 
-For the full procedural pipeline, open [the generation demo](http://localhost:3100/generation-demo.html)
-with the dev server running. Step through Region, Decomposition, Generated and
+For the full procedural pipeline, open `/generation-demo.html` on the address the dev server printed
+([default](http://localhost:3100/generation-demo.html)). Step through Region, Decomposition, Generated and
 Walk: the default example joins two populated room regions through a corridor.
 Vary contents, seed and density, inspect child assignments, then walk with
 WASD/arrows and open doors with E. This is a standalone development preview.
 
-For the decomposition SDK, open [the allocation inspector](http://localhost:3100/decomposition-lab.html)
-with the dev server running. Compare candidate footprints, neck cuts, depth and
+For the decomposition SDK, open `/decomposition-lab.html` on the address the dev server printed
+([default](http://localhost:3100/decomposition-lab.html)). Compare candidate footprints, neck cuts, depth and
 generator assignments, or use **Explore decomposition trees** to compare bounded
 hierarchies. Choose an objective, depth and retained alternative, then select a
 branch to inspect its descendants and stopping reason. Tree exploration is
@@ -48,8 +48,8 @@ when settings change but the winning allocation stays the same. This is
 separate from the walkable micro geometry preview. See [docs/19](docs/19-decomposition-design.md)
 for the design and [docs/20](docs/20-micro-generation.md) for implemented limits.
 
-For procedural architecture development, open http://localhost:3100/micro-lab.html
-on the same server, or use the actual printed port when 3100 is occupied. Generate
+For procedural architecture development, open `/micro-lab.html` on the address the dev server printed
+(http://localhost:3100/micro-lab.html by default; an agent worktree uses its assigned port). Generate
 open, depot, courtyard, ruin, or contestant-entry regions; choose live or cell
 body proportions, inspect clearance and numbered entry positions, walk with WASD
 as either role, use E at doors, and export or import a spec/validated result JSON.
