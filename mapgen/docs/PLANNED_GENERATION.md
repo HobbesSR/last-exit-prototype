@@ -130,4 +130,4 @@ and `tilesPerRegion` were all set to something reasonable and left alone.
 
 ## Status
 
-The planned path is new and is not yet the default. `generateMap` remains the generator the GUI, CLI and MCP use. Nothing here is integrated with the sibling game, and is not meant to be yet.
+The planned path is new and is not yet the default. `generateMap` remains the generator the GUI, CLI and MCP use. Nothing here is integrated with the game at the repository root, and is not meant to be yet.

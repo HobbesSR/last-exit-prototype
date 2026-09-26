@@ -2,7 +2,7 @@
 
 How a region becomes content. Naming is fixed by [Vocabulary and layering](VOCABULARY.md); this document describes the builder contract, the catalogue, and the helpers a builder is expected to use rather than rewrite.
 
-This is the implementation of NEXT_TASKS items 4 and 10. It is not integrated with the sibling game and is not meant to be yet.
+This is the implementation of NEXT_TASKS items 4 and 10. It is not integrated with the game at the repository root and is not meant to be yet.
 
 ## What a builder is
 

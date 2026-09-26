@@ -45,19 +45,19 @@ contract and executable acceptance fixtures. See [Macro structures](MACRO_STRUCT
 for ownership, rotation, clearance constraints, pass ordering and migration.
 The active generator still uses the legacy tile-edge pipeline described below.
 
-The standalone prototype uses one cell as one abstract segment. A tile is 6 × 6 cells and generated map coordinates are in cells. These are design units, not meters. The sibling game uses continuous world units and has a 24,000 × 12,000 world, 40-unit navigation samples, and actor radii 12 and 23; those values are evidence about the game but are not a conversion contract for this project.
+The standalone prototype uses one cell as one abstract segment. A tile is 6 × 6 cells and generated map coordinates are in cells. These are design units, not meters. The game uses continuous world units and has a 24,000 × 12,000 world, 40-unit navigation samples, and actor radii 12 and 23; those values are evidence about the game but are not a conversion contract for this project.
 
-The prototype defaults to contestant radius `0.55` and hunter radius `0.90` in cell units. This preserves the brain-dump scale idea, but the sibling game's radius ratio is approximately `12/23`, not `0.55/0.90`; both are provisional tuning values. Clearance is always derived from the selected agent radius, so changing either value must update route validation and movement checks together.
+The prototype defaults to contestant radius `0.55` and hunter radius `0.90` in cell units. This preserves the brain-dump scale idea, but the game's radius ratio is approximately `12/23`, not `0.55/0.90`; both are provisional tuning values. Clearance is always derived from the selected agent radius, so changing either value must update route validation and movement checks together.
 
 ## Topology and feature semantics
 
 The generator must produce a connected artifact in which every tile is reachable for each required agent class and every exit has a valid contestant and hunter graph path. Graph paths represent physical walking only. Transit or warp actions are separate mechanics and must not silently make a walking graph appear connected.
 
-Spawn, hunter-spawn, charger, warp, and exit are macro feature locations attached to tiles. A map may have multiple physical exit locations; extraction capacity is not yet simulated or serialized. The sibling game currently has one `map.exit` coordinate with three capacity slots, while this prototype exposes multiple exit locations. Neither representation should be inferred as the final game rule.
+Spawn, hunter-spawn, charger, warp, and exit are macro feature locations attached to tiles. A map may have multiple physical exit locations; extraction capacity is not yet simulated or serialized. The game currently has one `map.exit` coordinate with three capacity slots, while this prototype exposes multiple exit locations. Neither representation should be inferred as the final game rule.
 
-Warp is currently a generic hunter-only feature in the standalone playtest. It is a convenience for testing placement and interaction, not a commitment to rails, vehicles, instant travel, cooldowns, or route selection. The sibling game has interim transit stations and instant gladiator rail movement, but its design notes call rails/vehicles speculative.
+Warp is currently a generic hunter-only feature in the standalone playtest. It is a convenience for testing placement and interaction, not a commitment to rails, vehicles, instant travel, cooldowns, or route selection. The game has interim transit stations and instant gladiator rail movement, but its design notes call rails/vehicles speculative.
 
-Charging is likewise represented as a required macro feature and a playtest interaction. The standalone run models a five-second charge counter; the sibling game implements five seconds as 100 ticks at 20 Hz. This prototype does not couple to that tick rate or to the sibling game's inventory/cell schema.
+Charging is likewise represented as a required macro feature and a playtest interaction. The standalone run models a five-second charge counter; the game implements five seconds as 100 ticks at 20 Hz. This prototype does not couple to that tick rate or to the game's inventory/cell schema.
 
 ## Tier and spatial progression
 

@@ -100,7 +100,7 @@ and difficulty/balance tuning per Corey's direction.
 6. **Done.** Raised the tile interior budget by removing `INTERIOR_MARGIN`, allowing geometry to naturally continue through a seam.
 7. **Done.** Added a Batch Sweep tool in the World recipe tab that runs 100 seeds and exposes tuning metric histograms (Squeezes, Dead Ends, Detour Ratio, Distance). Avoided implying that opening count or tile degree proves navigation diversity.
 8. **Done.** Added a visual tile-set/layout editor above the existing JSON contract in the browser GUI. Preserved CLI parity and validate imported files before authoring operations.
-9. **Cancelled:** Playtesting UI has been removed entirely from this repository, as the actual game logic will live in its sibling repository and the mockup was taking on a life of its own.
+9. **Cancelled:** Playtesting UI has been removed entirely from this repository, as the actual game logic lives in the game at the repository root and the mockup was taking on a life of its own.
 10. **Done, except sub-regions:** Builders have the primitive vocabulary:
     `RegionEdit` in `src/micro/types.ts` supersedes `RegionOutput`, so a builder
     states cells, segments and vertices inside its own area as well as spawns
@@ -130,4 +130,4 @@ Exit location/capacity semantics, body-scale conversion, alternate diamond masks
 
 ## Verification
 
-`npm test`; `node tests/browser.mts`; `npm run typecheck`; `node tools/cli.mts batch --seed regression --count 200 --out test-results/batch.json`. Browser checks require local Chrome and Playwright (can reuse sibling test dependency). See README for launch and MCP usage. Delegate bounded tests/authoring extensions to GPT-5.6 Terra; retain socket contracts, topology negotiation and integration decisions with the lead.
+`npm test`; `node tests/browser.mts`; `npm run typecheck`; `node tools/cli.mts batch --seed regression --count 200 --out test-results/batch.json`. Browser checks require local Chrome and Playwright, resolved from the repository root. See README for launch and MCP usage. Delegate bounded tests/authoring extensions to GPT-5.6 Terra; retain socket contracts, topology negotiation and integration decisions with the lead.

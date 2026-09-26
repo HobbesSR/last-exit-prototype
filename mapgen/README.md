@@ -1,6 +1,6 @@
 # Last Exit Map Lab
 
-A standalone macro-generation and 2D traversal prototype. It reads no game files and does not modify `../astra_test`. [Original user notes](design_notes.txt) are the source of design intent. Implementation documentation describes current behavior and reversible defaults. The later assistant proposal has been [retired to the archive](docs/archive/retired-design-proposal/README.md).
+The macro-generation and 2D traversal prototype, in `mapgen/` of the game repository. The game at the repository root does not import it yet, and it reads no game files. [Original user notes](design_notes.txt) are the source of design intent. Implementation documentation describes current behavior and reversible defaults. The later assistant proposal has been [retired to the archive](docs/archive/retired-design-proposal/README.md).
 
 ## Run
 
@@ -14,7 +14,7 @@ npm start
 
 Open **http://127.0.0.1:4173**. Change the seed, zone dimensions, or exit count, then build. There is nothing to tune about connectivity: seams carry whatever the tiles beside them declare. Click tiles to inspect their design and features; click an exit to compare routes to it. Scroll to zoom, drag to pan, and use Fit map to reset the camera.
 
-**Playtest:** start an escape run; WASD/arrows move, mouse aims, click fires, E interacts. Hold E at a charger for five stationary seconds, then reach an exit. Gold is collected by proximity. Two simple pursuers follow hunter-accessible routes; shots tag them and they respawn. The Hunter body selector tests the larger radius and permits transit between T markers. This is a single-player traversal/combat sandbox, not the sibling game's match simulation: no multiplayer, inventory, extraction competition, closing hazard, or final combat balance.
+**Playtest:** start an escape run; WASD/arrows move, mouse aims, click fires, E interacts. Hold E at a charger for five stationary seconds, then reach an exit. Gold is collected by proximity. Two simple pursuers follow hunter-accessible routes; shots tag them and they respawn. The Hunter body selector tests the larger radius and permits transit between T markers. This is a single-player traversal/combat sandbox, not the game's match simulation: no multiplayer, inventory, extraction competition, closing hazard, or final combat balance.
 
 **Authoring:** pick a tile from the gallery of previews (or the name filter beside it), then paint its cells and segments on one 6 × 6 surface.
 
@@ -139,12 +139,12 @@ A map is written in its wire form, as JSON or as BSON; `validate` accepts either
 and decides from the bytes rather than the file name. Batch reports include min,
 max, mean, median and p95 for each numeric metric, plus failing seeds. Failures produce a nonzero exit status. GUI and CLI use the same ES module, library format, and validator. Reproduction requires the seed **and** parameters, library, and generator revision; a seed alone is not a permanent content identifier.
 
-An optional stdio MCP server exposes `map_generate`, `map_validate`, `library_validate`, and `map_batch`. Launch it with `node tools/mcp.mts` from this directory, or configure an MCP client with:
+An optional stdio MCP server exposes `map_generate`, `map_validate`, `library_validate`, and `map_batch`. Launch it with `node tools/mcp.mts` from this directory, or configure an MCP client with the path to `mapgen/tools/mcp.mts` in the checkout it should serve (the primary checkout tracks `main`):
 
 ```json
 {
   "command": "node",
-  "args": ["C:/Users/Corey/Documents/Projects/last_exit_map/tools/mcp.mts"]
+  "args": ["C:/Users/Corey/Documents/Projects/astra_test/mapgen/tools/mcp.mts"]
 }
 ```
 
@@ -172,6 +172,6 @@ The MCP server is implemented and protocol-tested but is not automatically regis
 - The artifact stores cells and segments as coded grids — an interned palette of the enumerated values plus run-length codes — and everything derivable is left out: vertices appear only where something was stated about them, and cell heights only once a map stops being flat. Read them with `gridViews`, `readCell`, `cellIndexAt` and `segmentIndexAt` rather than decoding by hand; `walls` remains a plain list, holding the closed part of every segment plus any off-lattice micro geometry.
 - Generated maps are treated as immutable by cached path queries. After external edits, call `validateMap` to invalidate caches and verify the artifact before using `findPath`.
 
-Run `npm run typecheck` for types alone; `npm test` runs it first. The unit suite exercises deterministic generation, tile interiors and rotation, cell-level region search, interior-aware clearance, input rejection and CLI/MCP/HTTP behavior. `node tests/browser.mts` additionally runs a headless Chrome smoke check and saves screenshots in `test-results/`; it needs `@playwright/test` locally or from the existing sibling prototype. Runtime does not depend on Playwright. `npm install` only installs development formatting tools.
+Run `npm run typecheck` for types alone; `npm test` runs it first. The unit suite exercises deterministic generation, tile interiors and rotation, cell-level region search, interior-aware clearance, input rejection and CLI/MCP/HTTP behavior. `node tests/browser.mts` additionally runs a headless Chrome smoke check and saves screenshots in `test-results/`; it resolves `@playwright/test` from the repository root, so run `npm ci` there first. Runtime does not depend on Playwright. `npm install` only installs development formatting tools.
 
 See [design decisions](docs/DESIGN_DECISIONS.md), [batch questions](docs/QUESTIONS.md), and [next tasks](docs/NEXT_TASKS.md). The latter separates work ready to implement from decisions to revisit after playtesting.
