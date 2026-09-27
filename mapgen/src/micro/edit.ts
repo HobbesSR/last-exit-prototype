@@ -14,7 +14,7 @@
  * cannot decide -- whether the surviving geometry still leaves the region
  * usable -- belongs to `clearance.ts`, which is the judge of record.
  */
-import { SIDES } from "../primitives.ts";
+import { SIDES, SOLID_CLASS } from "../primitives.ts";
 import { PASSAGE, centeredSpan } from "./scale.ts";
 import type { Box, RegionSpawn, Side, Span, Wall } from "../types.ts";
 import type {
@@ -512,7 +512,7 @@ export function createCanvas(context: RegionContext): RegionCanvas {
       // clearance guard still sees every wall it produced.
       const material = new Set<number>();
       for (const edit of cells.values())
-        if (edit.class === "solid") material.add(edit.cellIndex);
+        if (edit.class === SOLID_CLASS) material.add(edit.cellIndex);
       for (const index of [...material].sort((a, b) => a - b)) {
         const x = index % context.mask.width,
           y = (index - x) / context.mask.width;

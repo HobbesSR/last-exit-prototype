@@ -69,8 +69,8 @@ test("enumerated values are interned once and stored as integers", () => {
   const wire = encodeArtifact(m);
   // Every region class, template id and feature kind, once each. Seam kinds
   // are not among them: a seam is measured off the grid rather than stored.
-  assert.ok(wire.strings.includes("vault"));
-  assert.ok(wire.strings.includes("plain"));
+  assert.ok(wire.strings.includes("market"));
+  assert.ok(wire.strings.includes("street"));
   assert.equal(new Set(wire.strings).size, wire.strings.length);
   assert.ok(wire.strings.length < 64, "the table is a table, not the payload");
 
@@ -80,7 +80,7 @@ test("enumerated values are interned once and stored as integers", () => {
   delete body.strings;
   delete body.seed;
   const rest = JSON.stringify(body);
-  for (const name of ["vault", "market", "pillar-hall", "hunter-spawn"])
+  for (const name of ["market", "street", "market-front", "hunter-spawn"])
     assert.ok(!rest.includes(name), `${name} is still spelled out`);
 });
 

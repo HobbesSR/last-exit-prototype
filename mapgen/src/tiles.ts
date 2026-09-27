@@ -4,13 +4,17 @@
  * Derivation lives in primitives.ts; this module only validates the shorthands
  * (`cells`, `legend`, `walls`, `edges`, `corners`) and the explicit
  * `primitives` overrides, and adapts the resolved model back to the older
- * class/solid/wall view.
+ * class/wall view.
+ *
+ * Tiles paint zones. Material is laid only by micro builders, so a tile that
+ * reaches for the material class by any route is refused rather than silently
+ * repainted with its default.
  */
 import type { InteriorWall, Orientation, TileDesign } from "./types.ts";
 import {
   INTERIOR_MARGIN,
+  SOLID_CLASS,
   TILE_SIZE,
-  cellAt,
   isPerimeterVertex,
   resolvePrimitives,
   tilePrimitives,
@@ -20,10 +24,9 @@ import {
 
 export { INTERIOR_MARGIN, TILE_SIZE };
 
-/** Rotated per-cell classes, solid mask and interior walls, in tile-local cells. */
+/** Rotated per-cell classes and interior walls, in tile-local cells. */
 export interface TileShape {
   classes: string[];
-  blocked: Uint8Array;
   walls: InteriorWall[];
 }
 
@@ -32,8 +35,6 @@ const inside = (v: unknown): v is number =>
   Number.isFinite(v) &&
   v >= INTERIOR_MARGIN &&
   v <= TILE_SIZE - INTERIOR_MARGIN;
-const marginBound = (i: number) =>
-  i >= INTERIOR_MARGIN && i <= TILE_SIZE - 1 - INTERIOR_MARGIN;
 
 /** Does the template say anything beyond an empty box with deferring sides? */
 export function hasInterior(tile: TileDesign | null | undefined): boolean {
@@ -63,6 +64,9 @@ function validateDeclaration(value: unknown, where: string): string[] {
 export function validateTileShape(tile: TileDesign): string[] {
   const errors: string[] = [];
   const legend = tile.legend ?? {};
+  const material = `tiles paint zones; only micro builders lay ${SOLID_CLASS}`;
+  if (tile.defaultCellClass === SOLID_CLASS)
+    errors.push(`defaultCellClass may not be ${SOLID_CLASS}: ${material}`);
   if (tile.legend !== undefined) {
     if (!tile.legend || typeof legend !== "object" || Array.isArray(legend))
       errors.push("legend must be an object");
@@ -72,6 +76,8 @@ export function validateTileShape(tile: TileDesign): string[] {
           errors.push(`legend key ${mark} must be one character, not . or #`);
         if (typeof value !== "string" || !value.trim())
           errors.push(`legend ${mark} needs a cell class name`);
+        else if (value === SOLID_CLASS)
+          errors.push(`legend ${mark} may not be ${SOLID_CLASS}: ${material}`);
       }
   }
   if (tile.cells !== undefined) {
@@ -91,10 +97,7 @@ export function validateTileShape(tile: TileDesign): string[] {
           const mark = tile.cells[row]![col]!;
           if (mark === ".") continue;
           if (mark === "#") {
-            if (!marginBound(row) || !marginBound(col))
-              errors.push(
-                `solid cell ${col},${row} must keep the ${INTERIOR_MARGIN}-cell tile margin`,
-              );
+            errors.push(`cell ${col},${row} is #: ${material}`);
             continue;
           }
           if (!Object.hasOwn(legend, mark))
@@ -162,12 +165,9 @@ export function validateTileShape(tile: TileDesign): string[] {
         const parts = addr.split(",").map(Number);
         if (parts.length !== 2 || parts.some((v) => !Number.isInteger(v)))
           errors.push(`primitives.cells key ${addr} must be "col,row"`);
-        else if (
-          value?.class === "solid" &&
-          (!marginBound(parts[0]!) || !marginBound(parts[1]!))
-        )
+        else if (value?.class === SOLID_CLASS)
           errors.push(
-            `primitives.cells ${addr} may not make a border cell solid`,
+            `primitives.cells ${addr} is ${SOLID_CLASS}: ${material}`,
           );
       }
       for (const [addr, value] of Object.entries(overrides.segments ?? {})) {
@@ -197,20 +197,15 @@ export function validateTileShape(tile: TileDesign): string[] {
   return errors;
 }
 
-/** The older class/solid/wall view, derived from the primitive model. */
+/** The older class/wall view, derived from the primitive model. */
 export function tileShape(
   tile: TileDesign,
   orientation: Orientation | number = 0,
 ): TileShape {
   const primitives = tilePrimitives(tile, orientation);
   const resolved = resolvePrimitives(primitives, {})!;
-  const blocked = new Uint8Array(TILE_SIZE * TILE_SIZE);
-  for (let row = 0; row < TILE_SIZE; row++)
-    for (let col = 0; col < TILE_SIZE; col++)
-      blocked[cellAt(col, row)] = 0;
   return {
     classes: resolved.cells.map((cell) => cell.class),
-    blocked,
     walls: wallsFrom(resolved),
   };
 }

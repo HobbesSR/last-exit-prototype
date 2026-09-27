@@ -511,13 +511,6 @@ footer {
   border: 1px solid #ffffff14;
   cursor: crosshair;
 }
-#tilePreview div.tile-cell.solid {
-  background: #0a1419;
-  border-color: #22333a;
-}
-#tilePreview div.tile-cell.locked {
-  cursor: not-allowed;
-}
 #tilePreview.mode-segments div.tile-cell {
   cursor: default;
   filter: saturate(0.5) brightness(0.82);

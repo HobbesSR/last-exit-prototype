@@ -53,9 +53,9 @@ which re-derives `cells` and `legend` for you:
 ```
 
 `cells` is six rows of six marks, each naming a cell class: `.` takes the
-design's `defaultCellClass`, `#` the reserved `solid` material class, and any other
-mark is a `legend` key. A material cell states a wall against each neighbour
-that is not also material. `walls` are axis-aligned barriers on cell-edge lines,
+design's `defaultCellClass`, and any other mark is a `legend` key. Tiles paint
+zones only; the reserved `solid` material class is laid by micro builders and a
+tile may not use it. `walls` are axis-aligned barriers on cell-edge lines,
 and an optional `gap` leaves a centered aperture — a `gap` of 1.5 is a
 contestant-only squeeze _inside_ a tile.
 All interior geometry must keep a one-cell margin from the tile edge; see

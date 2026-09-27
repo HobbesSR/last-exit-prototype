@@ -94,11 +94,21 @@ contract, so authoring one is reported as a mistake rather than silently
 ignored. Only perimeter vertices can carry metadata. When heights arrive, they
 will arrive as stated exceptions on the same footing.
 
-A filled cell takes the reserved `solid` class, and states a wall against each
-neighbour that is not also material. `#` in a `cells` block is shorthand for
-that class. Material aggregates into regions like any other class, so every cell
-a tile lays down belongs to exactly one region; no builder is registered for
-`solid`, so those regions are discovered and left alone.
+Tiles paint zones; they do not lay material. The reserved `solid` class is
+laid only by micro builders (the pillar hall, for one), and tile validation
+refuses it by every route a tile has: a `#` mark, a legend entry, a
+`primitives.cells` override or a default class. Every cell a tile lays down
+still belongs to exactly one region.
+
+A segment can carry several pieces of data and can say things about the cells
+on either side of it. For macro generation the perimeter segments are what
+matter, and among their properties they may constrain the class of the cells
+in the adjacent tile, suggest a type of wall, or require passability. Those may
+be mutually exclusive in practice, but nothing enforces it. The implementation
+does not yet hold them apart: `edges` is one string per segment, which tile
+selection reads as the class the neighbouring cell must take, so a barrier word
+there only fits against the map boundary. Separating the properties is
+issue #33.
 
 Perimeter primitives are the adjacency contract. Their deferring value, `any`,
 is not a silent default: it states that the tile has no requirement there and
@@ -108,10 +118,10 @@ This is the brain dump's "don't care, defaulting to empty, but adapting to
 neighbouring requirements", with the explicit-empty case (`open`) kept distinct
 so an author can guarantee a path rather than merely permit one.
 
-Cell class has no deferring value yet: `.` means "use this tile's default", and
-no seam contract carries cell class. Giving cells `any` and a seam term, so a
-tile can state part of its area and defer the rest and two tiles can agree to
-continue a class across a seam, is NEXT_TASKS.md item 3.
+Cell class has a deferring value too: a tile whose default class is `any`
+paints nothing of its own there and takes whatever class a neighbouring
+perimeter segment asks for, settling as open ground otherwise. `.` still means
+"use this tile's default".
 
 A segment's barrier metadata is the _open span_ within it, rather than a
 boolean, because the aperture ladder includes a 1.5-unit squeeze that does not
@@ -168,8 +178,8 @@ cross tile seams, and a single tile may contribute cells to several regions.
 
 A region is an area, not an enclosure. Its boundary emits no geometry: walls
 come from seam contracts, from what a tile states, and from micro generation —
-never from two regions being different. Filled cells form material regions;
-no micro builder runs for their reserved `solid` class.
+never from two regions being different. Material a micro builder lays forms
+regions of its own class, and nothing stands in it.
 
 Micro generation then runs once per discovered region, never per tile. It
 receives spaced candidate slots, each carrying the loot density of the tier zone

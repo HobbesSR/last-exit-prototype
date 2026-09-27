@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { tileShape, validateTileShape } from "../src/tiles.ts";
-import { validateLibrary, DEFAULT_LIBRARY, DEFAULT_PARAMS } from "../src/core.ts";
+import {
+  cellClassNames,
+  validateLibrary,
+  DEFAULT_LIBRARY,
+  DEFAULT_PARAMS,
+} from "../src/core.ts";
 import { compileSetPiece } from "../src/macro-compiler.ts";
 import { composeMacro } from "../src/macro.ts";
 import { nodeIndex, reachable } from "../src/nav.ts";
@@ -34,19 +39,19 @@ function libraryWith(tile: TileDesign): Library {
 
 test("interiors rotate with the template", () => {
   const tile = template({
-    cells: ["......", ".#....", "......", "......", "......", "......"],
+    legend: { v: "vault" },
+    cells: ["......", ".v....", "......", "......", "......", "......"],
     walls: [{ x1: 1, y1: 3, x2: 5, y2: 3, gap: 1.5 }],
   });
-  const solidAt = (deg: number) => {
-    const { blocked } = tileShape(tile, deg);
-    const i = [...blocked].findIndex((v) => v === 1);
+  const paintedAt = (deg: number) => {
+    const i = tileShape(tile, deg).classes.indexOf("vault");
     return [i % 6, Math.floor(i / 6)];
   };
-  // A solid cell in the north-west corner walks the corners clockwise.
-  assert.deepEqual(solidAt(0), [1, 1]);
-  assert.deepEqual(solidAt(90), [4, 1]);
-  assert.deepEqual(solidAt(180), [4, 4]);
-  assert.deepEqual(solidAt(270), [1, 4]);
+  // A painted cell in the north-west corner walks the corners clockwise.
+  assert.deepEqual(paintedAt(0), [1, 1]);
+  assert.deepEqual(paintedAt(90), [4, 1]);
+  assert.deepEqual(paintedAt(180), [4, 4]);
+  assert.deepEqual(paintedAt(270), [1, 4]);
   // The gapped wall turns with it and keeps its aperture.
   const flat = tileShape(tile, 0).walls.filter(
     (w) => w.y1 === w.y2 && w.y1 === 3,
@@ -63,20 +68,6 @@ test("interiors rotate with the template", () => {
     );
   assert.equal(span(flat, "x"), 4 - 1.5);
   assert.equal(span(turned, "y"), 4 - 1.5);
-});
-
-test("a filled cell takes the material class and states its own walls", () => {
-  const shape = tileShape(
-    template({
-      cells: ["......", ".#....", "......", "......", "......", "......"],
-    }),
-    0,
-  );
-  assert.equal(shape.classes[1 * 6 + 1], "solid");
-  assert.equal(shape.classes[0], "open");
-  assert.ok(shape.blocked[1 * 6 + 1]);
-  // Four unit edges, merged into four runs around the single cell.
-  assert.equal(shape.walls.length, 4);
 });
 
 test("painted cells carry their own region class", () => {
@@ -103,6 +94,24 @@ test("interior authoring errors are explicit", () => {
     ["diagonal", { walls: [{ x1: 1, y1: 1, x2: 4, y2: 4 }] }],
     ["gap", { walls: [{ x1: 1, y1: 3, x2: 5, y2: 3, gap: 9 }] }],
     ["offgrid", { walls: [{ x1: 1, y1: 2.5, x2: 5, y2: 2.5 }] }],
+    // Tiles paint zones; material is laid only by micro builders, and every
+    // route a tile has to it is refused rather than quietly repainted.
+    [
+      "material mark",
+      { cells: ["......", ".#....", "......", "......", "......", "......"] },
+    ],
+    [
+      "material legend",
+      {
+        legend: { m: "solid" },
+        cells: ["......", ".m....", "......", "......", "......", "......"],
+      },
+    ],
+    [
+      "material override",
+      { primitives: { cells: { "2,2": { class: "solid" } } } },
+    ],
+    ["material default", { defaultCellClass: "solid" }],
   ];
   for (const [name, extra] of cases)
     assert.ok(
@@ -114,7 +123,8 @@ test("interior authoring errors are explicit", () => {
 });
 
 test("the shipped library declares every class it can paint", () => {
-  const declared = new Set(Object.keys(DEFAULT_LIBRARY.cellClasses ?? {}));
+  // Declared classes plus the reserved deferring class, which is never listed.
+  const declared = new Set(cellClassNames(DEFAULT_LIBRARY));
   for (const tile of DEFAULT_LIBRARY.tiles) {
     assert.ok(
       declared.has(tile.defaultCellClass),

@@ -19,11 +19,11 @@ the primitive set, never by cell class.
 
 ## Primitives
 
-| Term        | Extent             | Carries                                                                           |
-| ----------- | ------------------ | --------------------------------------------------------------------------------- |
-| **Cell**    | 1 × 1              | class, and later height                                                           |
-| **Segment** | one cell edge      | a barrier as an open span; later, separate movement / sight / projectile channels |
-| **Vertex**  | one lattice corner | class and height, by exception                                                    |
+| Term        | Extent             | Carries                                                                                                                                                                              |
+| ----------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Cell**    | 1 × 1              | class, and later height                                                                                                                                                              |
+| **Segment** | one cell edge      | a barrier as an open span, or separate movement / sight / projectile channels; on a tile's perimeter, also a constraint on the neighbouring cell's class (issue #33 separates these) |
+| **Vertex**  | one lattice corner | class and height, by exception                                                                                                                                                       |
 
 These are the only addressing primitives. Everything below is an aggregate or a
 container built from them.
@@ -40,15 +40,17 @@ that varies with position on the map belongs to the tier zone instead.
 
 `cell → class` is total. Two class names are reserved:
 
-| Class   | Meaning                                                                                                |
-| ------- | ------------------------------------------------------------------------------------------------------ |
-| `solid` | filled material — nothing stands there; emits a wall on each boundary against a non-material neighbour |
-| `""`    | outside the mask — no tile covers this cell                                                            |
+| Class   | Meaning                                                                                      |
+| ------- | -------------------------------------------------------------------------------------------- |
+| `solid` | filled material — nothing stands there; laid only by micro builders, never painted by a tile |
+| `""`    | outside the mask — no tile covers this cell                                                  |
 
-Material is a class like any other, so it aggregates into regions and the
-partition has no holes. Whether a builder runs over a region is a property of
-its class; nothing is registered for `solid`, so material regions are discovered
-and left alone. Authoring further material classes is a later generalisation.
+A third, `any`, is the deferring class: it states nothing and takes whatever a
+neighbouring perimeter segment requires, settling as open ground.
+
+Tiles paint zones. Material is a micro detail: a builder lays it inside its own
+region, and it aggregates into regions like any other class, so the partition
+has no holes. Authoring further material classes is a later generalisation.
 
 ## Region
 

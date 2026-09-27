@@ -88,6 +88,7 @@ import {
   hSeg,
   vSeg,
   SEGMENT_COUNT,
+  SOLID_CLASS,
 } from "/src/primitives.ts";
 
 const $ = (id: string): HTMLElement => document.getElementById(id)!;
@@ -826,10 +827,6 @@ function syncLibrary() {
 // `cells` and their legend are an encoding detail, decoded on load and
 // re-derived on save rather than authored by hand.
 const TILE_CELLS = 6;
-/** The reserved material class, and the mark that stands for it in `cells`. */
-const SOLID = "solid";
-const SOLID_MARK = "#";
-const canBeSolid = (_col: number, _row: number) => true;
 const classColor = (name: string) => name === "open" ? "#5a6268" : `hsl(${hash(name) % 360} 32% 34%)`;
 let paint: Array<string | null> = new Array(36).fill(null);
 let brush: string | null = null;
@@ -882,8 +879,8 @@ const clamp = (v: number, lo: number, hi: number) =>
 
 function readPaint(t: TileDesign): Array<string | null> {
   const next: Array<string | null> = new Array(36).fill(null);
-  // The shared resolver includes shorthand, solid boundaries, and explicit
-  // primitive cell overrides. The editor must show what generation will read.
+  // The shared resolver includes shorthand and explicit primitive cell
+  // overrides. The editor must show what generation will read.
   const resolved = tilePrimitives(t);
   for (let row = 0; row < TILE_CELLS; row++)
     for (let col = 0; col < TILE_CELLS; col++) {
@@ -894,16 +891,14 @@ function readPaint(t: TileDesign): Array<string | null> {
         mark === "." &&
         t.primitives?.cells?.[`${col},${row}`]?.class === undefined
           ? null
-          : resolvedClass === SOLID
-            ? SOLID
-            : resolvedClass;
+          : resolvedClass;
     }
   return next;
 }
 
 /** Re-derive `cells` and `legend`, or drop both when nothing is painted. */
 function writePaint(t: TileDesign): void {
-  const used = [...new Set(paint.filter((v) => v && v !== SOLID))] as string[];
+  const used = [...new Set(paint.filter((v) => v))] as string[];
   if (!paint.some((v) => v !== null)) {
     delete t.cells;
     delete t.legend;
@@ -922,11 +917,7 @@ function writePaint(t: TileDesign): void {
     t.cells = Array.from({ length: TILE_CELLS }, (_, row) =>
       Array.from({ length: TILE_CELLS }, (_, col) => {
         const value = paint[row * TILE_CELLS + col];
-        return value === null
-          ? "."
-          : value === SOLID
-            ? SOLID_MARK
-            : mark.get(value)!;
+        return value === null ? "." : mark.get(value)!;
       }).join(""),
     );
     const legend = Object.fromEntries([...mark].map(([name, k]) => [k, name]));
@@ -974,15 +965,9 @@ function renderPaint(fallback: string): void {
         row = (i - col) / TILE_CELLS;
       const el = document.createElement("div");
       el.classList.add("tile-cell");
-      if (value === SOLID) {
-        el.classList.add("solid");
-        el.title = `${col},${row} · solid`;
-      } else {
-        const name = value ?? fallback;
-        el.style.background = classColor(name);
-        el.title = `${col},${row} · ${name}${value ? "" : " (default)"}`;
-      }
-      if (brush === SOLID && !canBeSolid(col, row)) el.classList.add("locked");
+      const name = value ?? fallback;
+      el.style.background = classColor(name);
+      el.title = `${col},${row} · ${name}${value ? "" : " (default)"}`;
       return el;
     }),
   );
@@ -1000,11 +985,8 @@ function refresh(): void {
 
 // --- Applying a brush ------------------------------------------------------
 
-/** Paint one cell, refusing what the one-cell interior margin forbids. */
+/** Paint one cell. Every declared class may go anywhere in a tile. */
 function setCell(index: number, value: string | null): boolean {
-  const col = index % TILE_CELLS,
-    row = (index - col) / TILE_CELLS;
-  if (value === SOLID && !canBeSolid(col, row)) return false;
   paint[index] = value;
   return true;
 }
@@ -1309,7 +1291,7 @@ function renderBrushes(fallback: string): void {
   $("brushes").replaceChildren(
     make("default", null, null),
     ...names.map((name) =>
-      make(name, name, name === SOLID ? "#0a1419" : classColor(name)),
+      make(name, name, classColor(name)),
     ),
   );
 }
@@ -1586,8 +1568,7 @@ function tileThumbnail(t: TileDesign): HTMLElement {
   const figure = document.createElement("figure");
   for (const cell of primitives.cells) {
     const el = document.createElement("i");
-    el.style.background =
-      cell.class === SOLID ? "#0a1419" : classColor(cell.class);
+    el.style.background = classColor(cell.class);
     figure.append(el);
   }
   // Only stated barriers are drawn: an unstated segment carries no geometry.
@@ -1826,7 +1807,7 @@ function openPopup(clientX: number, clientY: number, hit: Hit | null): void {
           brush = name;
           applyTo([hit]);
         },
-        name === SOLID ? "#0a1419" : classColor(name),
+        classColor(name),
         paint[hit.index] === name,
       );
     host.append(document.createElement("hr"));
@@ -1869,7 +1850,11 @@ $("clearPaint").onclick = () => {
 $("addClass").onclick = () => {
   const name = input("newClass").value.trim();
   if (!name) return;
-  if (name === SOLID || cellClassNames(library).includes(name)) {
+  if (name === SOLID_CLASS) {
+    $("libraryStatus").textContent = `${name} is laid by micro builders, not painted.`;
+    return;
+  }
+  if (cellClassNames(library).includes(name)) {
     $("libraryStatus").textContent = `${name} is already a cell class.`;
     return;
   }
@@ -2034,9 +2019,7 @@ function editTemplate(keepPaint = false) {
   input("tileId").value = t.id;
   input("tileAdapter").checked = t.adapter === true;
   input("tileLabels").value = (t.labels || []).join(" ");
-  const classes = cellClassNames(library)
-    .filter((name) => name !== SOLID)
-    .sort();
+  const classes = cellClassNames(library).sort();
   select("defaultCellClass").replaceChildren(
     ...classes.map((name) => new Option(name, name)),
   );
