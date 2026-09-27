@@ -65,7 +65,7 @@ generation, and these are kept apart.
 | Layer | What it holds | Stored |
 | --- | --- | --- |
 | **Layout** | Seed and params; each slot's design, orientation and set piece; the primitives those designs lay down (cell classes, with `any` left as `any`; segment spans; stated vertices); macro features (spawn, hunter spawn, exits) | Yes. This is the map. |
-| **Structure** | Everything derived from the layout that informs micro generation: `any` cells filled in from their neighbours' edge constraints, the segment-indexed seam-constraint grid, seams, walls, zones, anchors, reserved streets and corridors, the regions handed to micro | No. `deriveStructure(layout)` builds it, both when generating and when reading an artifact. |
+| **Structure** | Everything derived from the layout that informs micro generation: `any` cells filled in from their neighbours' edge constraints, the segment-indexed seam-constraint grid, seams, the lattice walls the layout's classes and segments imply, zones, anchors, reserved streets and corridors, the regions handed to micro | No. `deriveStructure(layout)` builds it, both when generating and when reading an artifact. |
 | **Interiors** | What micro generation returns: material cells, props, spawns, micro features, cell levels, per-region manifests | Yes, as its own section. |
 | **Report** | Metrics and validation | No. Computed from the other three. |
 
@@ -75,8 +75,11 @@ The rules that follow from it:
   with placement and reads nothing from micro. If two maps have the same layout,
   they have the same structure.
 - **Micro never writes to the layout.** Material a builder lays is interiors.
-  The final region partition, after material is laid, is derived from layout
-  plus interiors.
+  Two things are derived from layout plus interiors, not from layout alone, and
+  aren't structure:
+  - the final region partition, after material is laid;
+  - the final navigation wall list: lattice walls over the layout and the
+    material cells, plus micro props.
 - **One writer per fact.** The Map Lab's debugging overlays, such as the
   stripes on filled-in cells and the seam-constraint lines, read structure.
   They are never fields added to the stored map.
@@ -98,6 +101,8 @@ so derived data can't be mistaken for stated data.
 - The Map Lab overlays were added as stored grids (`originalClass`,
   `constraints`), and the artifact drops them. `constraints` is also
   segment-indexed, but stored under `cells`. That mismatch is #44.
+- `deriveWalls` builds one list from the fused class grid and appends every
+  region's props, so layout walls and final navigation walls can't be told apart.
 - The artifact stores metrics, validation and every region's cell list.
 
 The stages are #47 (a per-layer content baseline), #38 (remove the legacy
@@ -359,10 +364,13 @@ integer, and every bulk field becomes a column in the narrowest integer lane
 that holds it.
 
 `decodeArtifact` reconstructs a map deep-equal to the generated one, which is
-the property the tests assert, on several seeds, through both encodings. Two
-things currently break it: V2's overlay grids aren't encoded (#44), and the
-form still stores derived data, namely metrics, validation and region cell
-lists. "Map layers" defines what the form should hold.
+the property the tests assert, on several seeds, through both encodings. On V2
+maps that currently fails: the wire form doesn't encode the `originalClass` and
+`constraints` grids, so decoding drops them (#44).
+
+A separate problem is that the form stores derived data: metrics, validation
+and every region's cell list. These round-trip correctly, but under "Map
+layers" they shouldn't be stored at all. #50 and #51 remove them.
 
 ## BSON
 
