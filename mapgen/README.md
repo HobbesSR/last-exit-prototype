@@ -62,13 +62,17 @@ All interior geometry must keep a one-cell margin from the tile edge; see
 [design decisions](docs/DESIGN_DECISIONS.md) for why that margin is load-bearing.
 
 Perimeter primitives are the adjacency contract. `edges` states a contract per
-segment — six marks a side, `.` deferring, `o` open, `#` wall — and `corners`
-states one per vertex. `primitives` sets metadata on any individual cell,
+segment — an array of six a side — and `corners` states one per vertex. Tile
+selection reads each `edges` entry as the class the neighbouring cell must take;
+a segment is meant to carry that alongside a wall type and a passability
+requirement, which issue #33 separates. `primitives` sets metadata on any individual cell,
 segment or vertex and wins over the shorthands:
 
 ```json
 {
-  "edges": { "E": "######", "W": "######" },
+  "edges": {
+    "S": ["market", "market", "market", "market", "market", "market"]
+  },
   "corners": { "N": ["arch", ".", ".", ".", ".", ".", "arch"] },
   "primitives": {
     "cells": { "2,2": { "class": "vault" } },
@@ -78,12 +82,12 @@ segment or vertex and wins over the shorthands:
 }
 ```
 
-`any` (written `.`) is the deferring value: it carries no requirement and adopts
+`any` is the deferring value: it carries no requirement and adopts
 whatever the seam contract and the neighbouring tile ask for. A concrete value
 is a requirement, and the design is only placed where that requirement holds.
 Unmentioned primitives default to deferring, so an author writes only what they
-actually care about. Perimeter barriers in the shipped library are stated through
-`edges` rather than `ports`.
+actually care about. The shipped library states neighbour class constraints
+through `edges` rather than `ports`, and no perimeter barriers.
 
 Micro generation is a **catalogue** of region builders, documented in
 [docs/MICRO_GENERATION.md](docs/MICRO_GENERATION.md). A builder takes one area
