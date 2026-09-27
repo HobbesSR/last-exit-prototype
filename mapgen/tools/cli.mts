@@ -17,7 +17,13 @@ import {
 import { decodeBson, looksLikeBson } from "../src/bson.ts";
 import { listBuilders } from "../src/micro/index.ts";
 import { generatePlannedMap, planMap } from "../src/plan/compose.ts";
-import { captureBaseline, compareSweep, runSweep, sweepCases } from "./sweep.mts";
+import {
+  captureBaseline,
+  compareSweep,
+  positiveInteger,
+  runSweep,
+  sweepCases,
+} from "./sweep.mts";
 import type { SweepBaseline } from "./sweep.mts";
 import type { GeneratedMap } from "../src/types.ts";
 
@@ -162,9 +168,11 @@ try {
     // A check reruns exactly what the baseline pinned, so it can't quietly cover less.
     const baseline = o.check ? (readJson(o.check) as SweepBaseline) : undefined;
     if (baseline && o.count) throw new Error("--check reruns the baseline's own cases; drop --count");
-    const cases = baseline?.provenance.cases ?? sweepCases(o.count ? Number(o.count) : undefined);
+    // Both are checked before any map is generated or any file written.
+    const cases = baseline?.provenance.cases ?? sweepCases(o.count ?? 120);
+    const jobs = o.jobs === undefined ? undefined : positiveInteger("jobs", o.jobs);
     const started = performance.now();
-    void runSweep(cases, o.jobs ? Number(o.jobs) : undefined)
+    void runSweep(cases, jobs)
       .then((entries) => {
         const seconds = ((performance.now() - started) / 1000).toFixed(0);
         const count = Object.keys(entries).length;

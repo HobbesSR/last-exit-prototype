@@ -9,14 +9,22 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { decodeGrid, encodeGrid } from "../src/coding.ts";
 import type { CodedGrid } from "../src/coding.ts";
 import type { GeneratedMap } from "../src/types.ts";
 import {
   LAYERS,
+  LAYER_FIELDS,
+  positiveInteger,
+  sweepCases,
   QUICK_CASES,
   compareSweep,
+  layerContent,
   layerHashes,
   runCase,
   sweepMap,
@@ -161,4 +169,82 @@ test("the committed baseline still matches its quick cases", () => {
     ),
     [],
   );
+});
+
+test("a field moved to a new container fails loudly until its entry follows it", () => {
+  // What a later stage does: #49 moves the constraint grid into structure.
+  const moved = structuredClone(map) as GeneratedMap & {
+    structure?: { constraints: unknown };
+  };
+  moved.structure = { constraints: moved.grid.cells.constraints };
+  delete moved.grid.cells.constraints;
+  // Left alone, the table can't hash the new location: it's refused, not
+  // silently read as absent.
+  assert.throws(
+    () => layerHashes(moved),
+    /not assigned to a layer: structure\.constraints/,
+  );
+  // Updating the entry's path in the same change restores every hash.
+  const followed = LAYER_FIELDS.map((field) =>
+    field.name === "constraints"
+      ? { ...field, path: "structure.constraints" }
+      : field,
+  );
+  assert.deepEqual(layerHashes(moved, followed), base);
+});
+
+test("a new field is refused until it is assigned to a layer", () => {
+  const extra = structuredClone(map) as GeneratedMap & { extra?: number };
+  extra.extra = 1;
+  assert.throws(() => layerHashes(extra), /not assigned to a layer: extra/);
+  const tile = structuredClone(map);
+  (tile.tiles[0] as unknown as Record<string, unknown>).note = "x";
+  assert.throws(
+    () => layerHashes(tile),
+    /not assigned to a layer: tiles\[\]\.note/,
+  );
+});
+
+test("a required field that disappears is refused, not hashed as absent", () => {
+  const copy = structuredClone(map) as Partial<GeneratedMap>;
+  delete copy.walls;
+  assert.throws(
+    () => layerContent(copy as GeneratedMap),
+    /map field missing: walls/,
+  );
+});
+
+test("counts and jobs must be positive integers", () => {
+  for (const bad of ["0", "-3", "1.5", "nope", "", "Infinity", 0, NaN])
+    assert.throws(
+      () => positiveInteger("count", bad),
+      /positive integer/,
+      String(bad),
+    );
+  assert.equal(positiveInteger("count", "12"), 12);
+  assert.throws(() => sweepCases("0"), /count must be a positive integer/);
+});
+
+test("the CLI refuses a bad count or jobs before writing anything", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sweep-"));
+  const cli = new URL("../tools/cli.mts", import.meta.url);
+  try {
+    for (const args of [
+      ["--count", "0"],
+      ["--count", "nope"],
+      ["--count", "3", "--jobs", "0"],
+    ]) {
+      const out = path.join(dir, "baseline.json");
+      const run = spawnSync(
+        process.execPath,
+        [fileURLToPath(cli), "sweep", "--out", out, ...args],
+        { encoding: "utf8" },
+      );
+      assert.equal(run.status, 1, args.join(" "));
+      assert.match(run.stderr, /must be a positive integer/);
+      assert.equal(fs.existsSync(out), false, args.join(" "));
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

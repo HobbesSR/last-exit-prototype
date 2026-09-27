@@ -105,8 +105,23 @@ export const QUICK_CASES: SweepCase[] = [
   },
 ];
 
+/**
+ * A command-line count as a positive integer. Anything else is refused, so a
+ * typo can't capture a sparse baseline and report success.
+ */
+export function positiveInteger(name: string, raw: unknown): number {
+  const value =
+    typeof raw === "string" && raw.trim() !== "" ? Number(raw) : raw;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1)
+    throw new Error(
+      `${name} must be a positive integer, got ${JSON.stringify(raw)}`,
+    );
+  return value;
+}
+
 /** The full sweep: `count` seeds per generator at default size, plus smaller spreads. */
-export function sweepCases(count = 120): SweepCase[] {
+export function sweepCases(requested: unknown = 120): SweepCase[] {
+  const count = positiveInteger("count", requested);
   const spread = Math.max(1, Math.round(count / 6));
   const playground = (w: number, h: number) => ({
     mode: "playground",
@@ -208,51 +223,193 @@ function canonicalGrid(grid: CodedGrid | undefined): unknown {
   return { count: grid.count, runs };
 }
 
-const isMicroFeature = (id: string) => id.startsWith("micro-");
+const isMicroFeature = (feature: unknown) =>
+  String((feature as { id?: unknown }).id).startsWith("micro-");
 
-export function layerContent(map: GeneratedMap): Record<Layer, unknown> {
-  const cells = map.grid.cells;
-  return {
-    layout: {
-      seed: map.seed,
-      version: map.version,
-      params: map.params,
-      size: [map.width, map.height],
-      tiles: map.tiles.map(({ anchor, ...placement }) => placement),
-      declaredClass: canonicalGrid(cells.originalClass),
-      features: map.features.filter((f) => !isMicroFeature(f.id)),
-    },
-    structure: {
-      constraints: canonicalGrid(cells.constraints),
-      zones: map.zones,
-      anchors: map.tiles.map((t) => t.anchor),
-    },
-    interiors: {
-      spawns: cells.spawns,
-      level: canonicalGrid(cells.level),
-      features: map.features.filter((f) => isMicroFeature(f.id)),
-      regions: map.regions.map((r) => ({
-        obstacles: r.obstacles,
-        manifest: r.manifest,
-      })),
-    },
-    composed: {
-      size: [map.grid.width, map.grid.height],
-      class: canonicalGrid(cells.class),
-      segments: canonicalGrid(map.grid.segments.open),
-      vertices: map.grid.vertices,
-      edges: map.edges,
-      walls: map.walls,
-      regions: map.regions.map(({ id, cellClass, area, cells, seed }) => ({
-        id,
-        cellClass,
-        area,
-        cells,
-        seed,
-      })),
-    },
-    report: { metrics: map.metrics, validation: map.validation },
+/**
+ * Where each field of a map lives, and which layer it belongs to. This table is
+ * the only code that knows the map's shape. A stage that moves a field changes
+ * its `path` here in the same commit, and the hashes must not move.
+ *
+ * `path` is dotted; `[]` steps into every element of an array. `keys` takes
+ * only those keys from each element, so one array can be split across layers.
+ * `filter` takes only some elements. `grid` marks a run-length coded grid.
+ * `optional` fields may be absent (the planned generator writes no overlay
+ * grids, and a flat map has no levels). Every other field must be present.
+ */
+export interface LayerField {
+  layer: Layer;
+  name: string;
+  path: string;
+  keys?: string[];
+  filter?: (element: unknown) => boolean;
+  grid?: boolean;
+  optional?: boolean;
+}
+export const LAYER_FIELDS: LayerField[] = [
+  { layer: "layout", name: "seed", path: "seed" },
+  { layer: "layout", name: "version", path: "version" },
+  { layer: "layout", name: "params", path: "params" },
+  { layer: "layout", name: "width", path: "width" },
+  { layer: "layout", name: "height", path: "height" },
+  {
+    layer: "layout",
+    name: "placements",
+    path: "tiles[]",
+    keys: [
+      "id",
+      "col",
+      "row",
+      "x",
+      "y",
+      "zoneId",
+      "templateId",
+      "orientation",
+      "setPieceId",
+    ],
+  },
+  {
+    layer: "layout",
+    name: "declaredClass",
+    path: "grid.cells.originalClass",
+    grid: true,
+    optional: true,
+  },
+  {
+    layer: "layout",
+    name: "features",
+    path: "features[]",
+    filter: (f) => !isMicroFeature(f),
+  },
+  {
+    layer: "structure",
+    name: "constraints",
+    path: "grid.cells.constraints",
+    grid: true,
+    optional: true,
+  },
+  { layer: "structure", name: "zones", path: "zones" },
+  { layer: "structure", name: "anchors", path: "tiles[]", keys: ["anchor"] },
+  { layer: "interiors", name: "spawns", path: "grid.cells.spawns" },
+  {
+    layer: "interiors",
+    name: "level",
+    path: "grid.cells.level",
+    grid: true,
+    optional: true,
+  },
+  {
+    layer: "interiors",
+    name: "features",
+    path: "features[]",
+    filter: isMicroFeature,
+  },
+  {
+    layer: "interiors",
+    name: "regions",
+    path: "regions[]",
+    keys: ["obstacles", "manifest"],
+  },
+  { layer: "composed", name: "gridWidth", path: "grid.width" },
+  { layer: "composed", name: "gridHeight", path: "grid.height" },
+  { layer: "composed", name: "class", path: "grid.cells.class", grid: true },
+  {
+    layer: "composed",
+    name: "segments",
+    path: "grid.segments.open",
+    grid: true,
+  },
+  { layer: "composed", name: "vertices", path: "grid.vertices" },
+  { layer: "composed", name: "edges", path: "edges" },
+  { layer: "composed", name: "walls", path: "walls" },
+  {
+    layer: "composed",
+    name: "regions",
+    path: "regions[]",
+    keys: ["id", "cellClass", "area", "cells", "seed"],
+  },
+  { layer: "report", name: "metrics", path: "metrics" },
+  { layer: "report", name: "validation", path: "validation" },
+];
+
+/** The value at a dotted path, or undefined. `[]` maps over an array. */
+function read(value: unknown, steps: string[]): unknown {
+  if (!steps.length || value === undefined || value === null) return value;
+  const [step, ...rest] = steps;
+  if (step!.endsWith("[]")) {
+    const list = (value as Record<string, unknown>)[step!.slice(0, -2)];
+    return Array.isArray(list)
+      ? list.map((item) => read(item, rest))
+      : undefined;
+  }
+  return read((value as Record<string, unknown>)[step!], rest);
+}
+
+/** Paths a field accounts for: its own, or one per picked key. */
+function claims(field: LayerField): string[] {
+  return field.keys
+    ? field.keys.map((key) => `${field.path}.${key}`)
+    : [field.path];
+}
+
+/**
+ * Every leaf of the map that no field accounts for. A field moved to a new
+ * container shows up here until its entry follows it, so nothing can leave
+ * hash coverage silently.
+ */
+function unassigned(map: unknown, fields: LayerField[]): string[] {
+  const claimed = new Set(fields.flatMap(claims));
+  const found = new Set<string>();
+  const walk = (value: unknown, path: string) => {
+    if (claimed.has(path)) return;
+    if (Array.isArray(value)) value.forEach((item) => walk(item, `${path}[]`));
+    else if (
+      value !== null &&
+      typeof value === "object" &&
+      !ArrayBuffer.isView(value)
+    )
+      for (const [key, child] of Object.entries(value))
+        walk(child, path ? `${path}.${key}` : key);
+    else if (value !== undefined) found.add(path);
   };
+  walk(map, "");
+  return [...found].sort();
+}
+
+export function layerContent(
+  map: GeneratedMap,
+  fields: LayerField[] = LAYER_FIELDS,
+): Record<Layer, Record<string, unknown>> {
+  const loose = unassigned(map, fields);
+  if (loose.length)
+    throw new Error(`map fields not assigned to a layer: ${loose.join(", ")}`);
+  const content = Object.fromEntries(
+    LAYERS.map((layer) => [layer, {}]),
+  ) as Record<Layer, Record<string, unknown>>;
+  for (const field of fields) {
+    const steps = field.path.split(".");
+    let value = read(map, steps);
+    if (value === undefined) {
+      if (!field.optional) throw new Error(`map field missing: ${field.path}`);
+      content[field.layer][field.name] = null;
+      continue;
+    }
+    if (field.filter && Array.isArray(value))
+      value = value.filter(field.filter);
+    if (field.keys && Array.isArray(value))
+      value = value.map((item) =>
+        Object.fromEntries(
+          field.keys!.map((key) => [
+            key,
+            (item as Record<string, unknown>)[key],
+          ]),
+        ),
+      );
+    content[field.layer][field.name] = field.grid
+      ? canonicalGrid(value as CodedGrid)
+      : value;
+  }
+  return content;
 }
 
 /**
@@ -277,8 +434,11 @@ export function stableStringify(value: unknown): string {
 const digest = (text: string) =>
   createHash("sha256").update(text).digest("hex").slice(0, 16);
 
-export function layerHashes(map: GeneratedMap): LayerHashes {
-  const content = layerContent(map);
+export function layerHashes(
+  map: GeneratedMap,
+  fields: LayerField[] = LAYER_FIELDS,
+): LayerHashes {
+  const content = layerContent(map, fields);
   return Object.fromEntries(
     LAYERS.map((layer) => [layer, digest(stableStringify(content[layer]))]),
   ) as LayerHashes;
@@ -303,6 +463,7 @@ export async function runSweep(
   cases: SweepCase[],
   jobs = defaultJobs(),
 ): Promise<SweepEntries> {
+  jobs = positiveInteger("jobs", jobs);
   const units = cases.flatMap((c) =>
     Array.from({ length: c.count }, (_, i) => ({
       ...c,
