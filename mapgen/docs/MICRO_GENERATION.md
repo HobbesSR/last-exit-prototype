@@ -159,6 +159,11 @@ Reach for the helpers before writing geometry by hand. `src/micro/mask.ts` answe
 
 ## Measured
 
+Historical. This sweep measured `generateMapLegacy`, removed in #38. Its
+anchor repair (`reconnectAnchors`) produced `strandedAnchors` and
+`propsReclaimed`; `generateMap` has neither. The street network,
+`STREET_SPACING`, the anchor berth in `planStreets` and `keepClear` survive.
+
 150 seeds, default params, the same sweep before and after
 (`node tools/cli.mts batch --seed baseline --count 150`). All 150 valid in both.
 min / median / max:
@@ -176,9 +181,9 @@ min / median / max:
 | `propsReclaimed`  | --                 | 0 / 0 / 4          |
 
 Read this honestly. The machinery works, is deterministic and never produces an
-invalid map, and the repair pass is nearly idle -- at most one stranded anchor
+invalid map, and the repair pass was nearly idle -- at most one stranded anchor
 and four props given back on the worst of 150 seeds, which is what it should
-look like. But the _density_ is low: about 200 stated segments and 225 props
+have looked like. But the _density_ is low: about 200 stated segments and 225 props
 over 33,696 cells is sparse for a map whose point is obstruction, and a median
 of one contestant-only squeeze is barely an asymmetry at all. `microCells` in
 particular is near zero, which means `pillar-hall` almost never finds a legal

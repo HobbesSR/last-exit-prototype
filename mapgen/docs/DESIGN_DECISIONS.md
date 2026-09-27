@@ -12,7 +12,9 @@ The macro skeleton is a horizontal elongated diamond of tier zones, assembled
 from a 6 × 6 tile vocabulary. Connectivity is not designed into it: seams carry
 what the tiles beside them declare, and the edges, loops and contestant-only
 squeezes in a generated map are measurements of that result rather than a plan
-laid over it. Generation only chooses designs that keep the map walkable. It is
+laid over it. Generation does not choose designs for walkability: it places set
+pieces, fills the remaining slots with WFC, reserves a street network through
+the composed result, and validation reports a map that is not walkable. It is
 a scaffold for authoring and validation, not a finished game map generator.
 
 **Key Macro and Micro Content Rules (as decided):**
@@ -51,7 +53,7 @@ clearance. Authored cells, segments, vertices, structure footprints and micro
 output contribute geometry. Connectivity graphs and tile-graph degrees are
 solver indexes and diagnostics.
 
-The tile-edge maze solver has been removed. Generation currently fills slots outward from the western edge enforcing reachability through candidate selection, backed by whole-map geometry validation. Replacing that with composed macro structures is NEXT_TASKS.md item 1.
+The tile-edge maze solver has been removed. Generation currently places set pieces, fills the remaining slots with WFC, and plans streets through the composed result; nothing selects designs for reachability, and whole-map geometry validation reports whether the result is walkable. Replacing that with composed macro structures is NEXT_TASKS.md item 1.
 
 ## Map layers
 
