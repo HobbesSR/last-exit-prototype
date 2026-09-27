@@ -50,3 +50,21 @@ decision rather than a default. Until then the conservative reading holds.
 next, currently 3. Lower is more open ground and smaller blocks to build in;
 higher is larger blocks and fewer roads. It was chosen to leave blocks above the
 minimum area of the builders that make buildings, not from playtest evidence.
+
+## How do fenced set pieces open?
+
+The depot and evac set pieces are a ring of fence tiles. `generate_setpieces.py`
+puts the style's gate tile in the middle of every fenced side, so a compound can
+be crossed whichever way the map runs past it. Gates on only two sides were not
+enough: a 6×6 or 3×6 compound can fill the diamond's six-row tip and cut the
+start or the exit off from the rest of the map.
+
+That is a reversible default that restores the gates `30e4df7` dropped when it
+templated every perimeter as corners plus edges. The open part is the
+edge-constraint work in progress when they were lost. The gate tiles' `S` edge
+requires depot or evac cells inside, and depot and evac pieces have no interior
+set, so WFC fills the interior with fence, corner and gate tiles. Over 30 seeds
+that costs 17 retried attempts against 10 with the gate edges removed; no seed
+fails either way. Corey chose to restore the gates now because doing so does not
+block that work, and to let the edge-constraint work decide what a gate is and
+what fills a compound.
