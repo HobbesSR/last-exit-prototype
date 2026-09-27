@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { tileShape, validateTileShape } from "../src/tiles.ts";
-import { validateLibrary, DEFAULT_LIBRARY } from "../src/core.ts";
+import { validateLibrary, DEFAULT_LIBRARY, DEFAULT_PARAMS } from "../src/core.ts";
+import { compileSetPiece } from "../src/macro-compiler.ts";
+import { composeMacro } from "../src/macro.ts";
+import { nodeIndex, reachable } from "../src/nav.ts";
 import type { Library, TileDesign } from "../src/types.ts";
 
 function template(extra: Partial<TileDesign> = {}): TileDesign {
@@ -119,5 +122,52 @@ test("the shipped library declares every class it can paint", () => {
     );
     for (const painted of Object.values(tile.legend ?? {}))
       assert.ok(declared.has(painted), `missing rule for ${painted}`);
+  }
+});
+
+test("every shipped set piece can be walked into from open ground", () => {
+  // Each piece alone, ringed by a tile of open ground, with its unassigned
+  // slots left open as WFC might leave them. A body walking in from the ring
+  // must reach the middle of every slot: a fenced compound with no gate fails
+  // here rather than as a batch of unwalkable maps.
+  const size = DEFAULT_PARAMS.tileSize;
+  for (const piece of DEFAULT_LIBRARY.setPieces ?? []) {
+    const columns = Math.max(...piece.tiles.map((t) => t.dx)) + 3;
+    const rows = Math.max(...piece.tiles.map((t) => t.dy)) + 3;
+    const mask = [];
+    for (let y = 0; y < rows * size; y++)
+      for (let x = 0; x < columns * size; x++) mask.push({ x, y });
+    const map = composeMacro({
+      version: 1,
+      seed: piece.id,
+      width: columns * size,
+      height: rows * size,
+      mask,
+      defaultCellClass: "grass",
+      placements: [
+        {
+          id: piece.id,
+          structure: compileSetPiece(piece, DEFAULT_LIBRARY, () => 0),
+          origin: { x: size, y: size },
+          orientation: 0,
+        },
+      ],
+    });
+    const radius = DEFAULT_PARAMS.contestantRadius;
+    const reached = reachable(map, radius, size / 2, size / 2, [
+      0,
+      0,
+      map.width,
+      map.height,
+    ]);
+    for (let row = 1; row < rows - 1; row++)
+      for (let column = 1; column < columns - 1; column++) {
+        const x = column * size + size / 2,
+          y = row * size + size / 2;
+        assert.ok(
+          reached.has(nodeIndex(map, x, y)),
+          `${piece.id}: slot ${column - 1},${row - 1} is sealed off`,
+        );
+      }
   }
 });
