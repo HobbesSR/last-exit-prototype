@@ -17,6 +17,14 @@ resolution pass is not built and is not part of the artifact contract.
 So passes _declare_, _paint_, _state_ and _reserve_. Appearance is carried by
 the primitive set, never by cell class.
 
+A generated map has four layers:
+- the **layout**, the arrangement of macro primitives, which is the map itself
+- its derived **structure**
+- micro's **interiors**
+- the **report**
+
+DESIGN_DECISIONS "Map layers" defines them and says which layers are stored.
+
 ## Primitives
 
 | Term        | Extent             | Carries                                                                                                                                                                              |
