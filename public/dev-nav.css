@@ -45,4 +45,4 @@
 .global-tool-nav .links a.active {
   background: #1a2b2b;
   color: #b8ec76;
-}
+}@media (max-width: 760px) { .global-tool-nav { flex-wrap: wrap; height: auto; padding: 8px 12px; gap: 8px; justify-content: center; } .global-tool-nav .links { overflow-x: auto; max-width: 100%; white-space: nowrap; padding-bottom: 4px; } .global-tool-nav .brand span:not(.divider) { display: none; } }
