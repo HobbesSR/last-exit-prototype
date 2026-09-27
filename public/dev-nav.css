@@ -1,11 +1,23 @@
+:root {
+  --nav-bg: #060b0c;
+  --nav-border: #1a2b2b;
+  --nav-text: #8da59e;
+  --nav-brand: #b8ec76;
+  --nav-divider: #27403d;
+  --nav-hover-bg: #101b1c;
+  --nav-hover-text: #cad8d2;
+  --nav-active-bg: #1a2b2b;
+  --nav-active-text: #b8ec76;
+}
+
 .global-tool-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
   height: 48px;
-  background: #060b0c;
-  border-bottom: 1px solid #1a2b2b;
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--nav-border);
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 0.8rem;
 }
@@ -13,25 +25,25 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #8da59e;
+  color: var(--nav-text);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 .global-tool-nav .brand a.home-link {
-  color: #b8ec76;
+  color: var(--nav-brand);
   text-decoration: none;
   font-weight: 900;
   letter-spacing: 0.12em;
 }
 .global-tool-nav .brand .divider {
-  color: #27403d;
+  color: var(--nav-divider);
 }
 .global-tool-nav .links {
   display: flex;
   gap: 4px;
 }
 .global-tool-nav .links a {
-  color: #8da59e;
+  color: var(--nav-text);
   text-decoration: none;
   padding: 6px 12px;
   border-radius: 6px;
@@ -39,10 +51,29 @@
   font-weight: 500;
 }
 .global-tool-nav .links a:hover {
-  background: #101b1c;
-  color: #cad8d2;
+  background: var(--nav-hover-bg);
+  color: var(--nav-hover-text);
 }
 .global-tool-nav .links a.active {
-  background: #1a2b2b;
-  color: #b8ec76;
-}@media (max-width: 760px) { .global-tool-nav { flex-wrap: wrap; height: auto; padding: 8px 12px; gap: 8px; justify-content: center; } .global-tool-nav .links { overflow-x: auto; max-width: 100%; white-space: nowrap; padding-bottom: 4px; } .global-tool-nav .brand span:not(.divider) { display: none; } }
+  background: var(--nav-active-bg);
+  color: var(--nav-active-text);
+}
+
+@media (max-width: 760px) {
+  .global-tool-nav {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 8px 12px;
+    gap: 8px;
+    justify-content: center;
+  }
+  .global-tool-nav .links {
+    overflow-x: auto;
+    max-width: 100%;
+    white-space: nowrap;
+    padding-bottom: 4px;
+  }
+  .global-tool-nav .brand span:not(.divider) {
+    display: none;
+  }
+}

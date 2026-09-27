@@ -79,6 +79,19 @@ const server = http.createServer((req, res) => {
     res.end();
     return;
   }
+    if (req.url === "/dev-nav.js") {
+    const mainPort = process.env.PORT || 3100;
+    const host = req.headers.host?.split(':')[0] || 'localhost';
+    const mapgenUrl = `http://${host}:${port}`;
+    const mainUrl = `http://${host}:${mainPort}`;
+    const template = fs.readFileSync(path.join(root, "../shared/dev-nav.js"), "utf8");
+    res.writeHead(200, { "Content-Type": "application/javascript" });
+    res.end(`
+${template.replace('export function renderDevNav', 'function renderDevNav')}
+renderDevNav('${mainUrl}', '${mapgenUrl}');
+`);
+    return;
+  }
   let file: string | null;
   try {
     file = candidate(req.url || "/");
