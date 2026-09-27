@@ -211,14 +211,14 @@ try {
 
   // A cell class is declared once, then offered everywhere.
   await page.locator("#authorTab").click();
-  await page.locator("#newClass").fill("hut");
+  await page.locator("#newClass").fill("shack");
   await page.locator("#addClass").click();
   assert.match(
     await page.locator("#libraryStatus").innerText(),
     /^Library valid/,
   );
   assert.ok(
-    await page.locator("#defaultCellClass option", { hasText: "hut" }).count(),
+    await page.locator("#defaultCellClass option", { hasText: "shack" }).count(),
     "a declared class is offered as a default",
   );
   // An explicit primitive class remains visible even when it used to equal the
@@ -237,7 +237,7 @@ try {
     .fill(JSON.stringify(withExplicitCell, null, 2));
   await page.locator("#applyLibrary").click();
   await page.locator("#template").selectOption("test-yard");
-  await page.locator("#defaultCellClass").selectOption("hut");
+  await page.locator("#defaultCellClass").selectOption("shack");
   await page.locator("#saveTemplate").click();
   assert.equal(
     await page.locator("#tilePreview div").nth(35).getAttribute("title"),
@@ -247,7 +247,7 @@ try {
   await page.locator("#defaultCellClass").selectOption("open");
   await page.locator("#clearPaint").click();
   await page.locator("#saveTemplate").click();
-  await page.locator("#brushes button", { hasText: "hut" }).click();
+  await page.locator("#brushes button", { hasText: "shack" }).click();
   for (const i of [0, 1, 6, 7])
     await page.locator("#tilePreview div").nth(i).click();
   await page.locator("#saveTemplate").click();
@@ -255,21 +255,21 @@ try {
   const edited = painted.tiles.find((t: any) => t.id === "test-yard");
   assert.equal(
     edited.cells[0].slice(0, 2),
-    "hh",
+    "ss",
     "corner cells carry the mark",
   );
   assert.equal(edited.cells[5], "......", "unpainted rows stay default");
-  assert.equal(edited.legend.h, "hut", "legend resolves the mark to the class");
-  assert.ok(painted.cellClasses.hut, "the class is declared in the library");
+  assert.equal(edited.legend.s, "shack", "legend resolves the mark to the class");
+  assert.ok(painted.cellClasses.shack, "the class is declared in the library");
   assert.equal(
     await page.locator("#tilePreview div").nth(0).getAttribute("title"),
-    "0,0 · hut",
+    "0,0 · shack",
     "the reloaded tile shows the painted class",
   );
 
   // A class still painted by a tile cannot be removed out from under it.
   await page
-    .locator("#classList .class-row", { hasText: "hut" })
+    .locator("#classList .class-row", { hasText: "shack" })
     .locator("button")
     .click();
   assert.match(
@@ -295,8 +295,8 @@ try {
     await page.locator("#tileGallery .tile-card").count(),
     JSON.parse(await page.locator("#librarySource").inputValue()).tiles.length,
   );
-  await page.locator('#tileGallery [data-tile="plain"]').click();
-  assert.equal(await page.locator("#template").inputValue(), "plain");
+  await page.locator('#tileGallery [data-tile="street"]').click();
+  assert.equal(await page.locator("#template").inputValue(), "street");
   await page.locator("#tileFilter").fill("test-y");
   assert.equal(await page.locator("#tileGallery .tile-card").count(), 1);
   await page.locator("#tileFilter").fill("");
@@ -315,11 +315,11 @@ try {
   assert.equal(await page.locator("#segmentKind").inputValue(), "wall");
   // The same point is a cell once cells own the surface again.
   await page.locator('#editMode button[data-value="cells"]').click();
-  await page.locator('#brushes button:has-text("hut")').click();
+  await page.locator('#brushes button:has-text("shack")').click();
   await poke(2.4, 2.5);
   assert.equal(
     await page.locator("#tilePreview div").nth(14).getAttribute("title"),
-    "2,2 · hut",
+    "2,2 · shack",
   );
 
   // A rectangle dragged between vertices walls a room in one gesture.
@@ -379,7 +379,7 @@ try {
   // right-click offers the same choices at the cursor.
   await page.locator('#editTool button[data-value="paint"]').click();
   await page.locator('#editMode button[data-value="cells"]').click();
-  await page.locator('#brushes button:has-text("hut")').click();
+  await page.locator('#brushes button:has-text("shack")').click();
   await page.locator("#gutterRows button").nth(4).click();
   const strip = await at(3.5, 3.5);
   await page.mouse.click(strip.x, strip.y, { button: "right" });
@@ -394,7 +394,7 @@ try {
   const shapedTile = shaped.tiles.find((t: any) => t.id === "test-yard");
   const hutMark = Object.entries(
     shapedTile.legend as Record<string, string>,
-  ).find(([, name]) => name === "hut")![0];
+  ).find(([, name]) => name === "shack")![0];
   assert.equal(
     shapedTile.cells[4],
     hutMark.repeat(6),
