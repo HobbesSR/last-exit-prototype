@@ -6,6 +6,11 @@
  * they cannot check is the join: that the declarations reach the grid, that the
  * second region search still agrees with the cells afterwards, and that the
  * artifact a real seed produces is one `validateMap` accepts.
+ *
+ * The shipped library binds every class to `open-field` on purpose: region
+ * interiors are a black box behind an interface, and walls come from the tile
+ * designs (docs/DESIGN_DECISIONS.md, "Region interiors"). So the join is
+ * exercised with a library that binds classes to the geometry builders.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -19,14 +24,28 @@ import {
 import { listBuilders } from "../src/micro/index.ts";
 import { DEFAULT_LIBRARY } from "../src/core.ts";
 
-/** One map is expensive, so the whole suite shares these two. */
-const map = generateMap("micro-pipeline");
-const again = generateMap("micro-pipeline");
+/** The class bindings the shipped library had before interiors became a black box. */
+const builders = structuredClone(DEFAULT_LIBRARY);
+for (const [cellClass, generator] of Object.entries({
+  market: "compound",
+  depot: "pillar-hall",
+  landing: "rubble",
+  evac: "compound",
+  park: "courtyard",
+}))
+  builders.cellClasses![cellClass] = { generator };
+
+/** One map is expensive, so the whole suite shares these three. */
+const map = generateMap("micro-pipeline", {}, builders);
+const again = generateMap("micro-pipeline", {}, builders);
+const shipped = generateMap("micro-pipeline");
 
 test("a map built with the catalogue is a valid map", () => {
-  const result = validateMap(map);
-  assert.deepEqual(result.errors, []);
-  assert.equal(result.valid, true);
+  for (const m of [map, shipped]) {
+    const result = validateMap(m);
+    assert.deepEqual(result.errors, []);
+    assert.equal(result.valid, true);
+  }
 });
 
 test("generation stays deterministic once builders may state geometry", () => {
@@ -114,12 +133,15 @@ test("the catalogue gives the map friction it did not have", () => {
   // and the route to an exit was 1.05x the direct distance across 150 seeds.
   assert.ok(
     map.metrics.obstacleCount! > 0,
-    "the shipped library still produces no cover",
+    "the builders still produce no cover",
   );
   assert.ok(
     map.metrics.interiorWalls > 0,
     "no interior geometry reached the grid",
   );
+  // More than the tile designs alone lay down, from the same seed.
+  assert.ok(map.metrics.obstacleCount! > shipped.metrics.obstacleCount!);
+  assert.ok(map.metrics.interiorWalls > shipped.metrics.interiorWalls);
   // And it is still a map both bodies can cross: friction, not a maze.
   assert.ok(Number.isFinite(map.metrics.contestantDistance));
   assert.ok(Number.isFinite(map.metrics.hunterDistance));

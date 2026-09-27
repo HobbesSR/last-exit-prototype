@@ -14,12 +14,20 @@ export interface BatchReport {
   metrics: Record<string, Distribution>;
   failures: Array<{ seed: string; error: string }>;
 }
+/**
+ * One metric across the generated maps. `samples` maps reported a finite
+ * value and the statistics describe only those; `unavailable` maps reported
+ * `Infinity` or `NaN` (a route metric with no coarse route to measure). The
+ * statistics are null when no map had a finite value.
+ */
 export interface Distribution {
-  min: number;
-  max: number;
-  mean: number;
-  p50: number;
-  p95: number;
+  samples: number;
+  unavailable: number;
+  min: number | null;
+  max: number | null;
+  mean: number | null;
+  p50: number | null;
+  p95: number | null;
 }
 
 export const MAX_BATCH_COUNT = 1000;
@@ -105,16 +113,34 @@ export function generate(
 }
 
 function distribution(values: number[]): Distribution {
-  const ordered = values.slice().sort((a, b) => a - b);
+  const ordered = values.filter(Number.isFinite).sort((a, b) => a - b);
+  const unavailable = values.length - ordered.length;
+  if (!ordered.length)
+    return { samples: 0, unavailable, min: null, max: null, mean: null, p50: null, p95: null };
   const percentile = (p: number) =>
     ordered[Math.min(ordered.length - 1, Math.ceil(p * ordered.length) - 1)]!;
   return {
+    samples: ordered.length,
+    unavailable,
     min: ordered[0]!,
     max: ordered.at(-1)!,
     mean: ordered.reduce((sum, value) => sum + value, 0) / ordered.length,
     p50: percentile(0.5),
     p95: percentile(0.95),
   };
+}
+
+/** Summarise each numeric metric across maps, keeping count of what was unavailable. */
+export function summarizeMetrics(
+  metrics: Array<Record<string, number | undefined>>,
+): Record<string, Distribution> {
+  const samples: Record<string, number[]> = {};
+  for (const record of metrics)
+    for (const [key, value] of Object.entries(record))
+      if (typeof value === "number") (samples[key] ||= []).push(value);
+  return Object.fromEntries(
+    Object.entries(samples).map(([key, values]) => [key, distribution(values)]),
+  );
 }
 
 export function batch(
@@ -126,16 +152,12 @@ export function batch(
   const n = Number(count);
   if (!Number.isInteger(n) || n < 1 || n > MAX_BATCH_COUNT)
     throw new Error(`count must be an integer from 1 to ${MAX_BATCH_COUNT}`);
-  const metricSamples: Record<string, number[]> = {};
+  const measured: GeneratedMap["metrics"][] = [];
   const failures: Array<{ seed: string; error: string }> = [];
   for (let i = 0; i < n; i += 1) {
     const seed = `${seedPrefix}-${i + 1}`;
     try {
-      const map = generate(seed, params, library);
-      for (const [key, value] of Object.entries(map.metrics || {})) {
-        if (typeof value === "number" && Number.isFinite(value))
-          (metricSamples[key] ||= []).push(value);
-      }
+      measured.push(generate(seed, params, library).metrics);
     } catch (error) {
       failures.push({
         seed,
@@ -147,12 +169,7 @@ export function batch(
     count: n,
     seedPrefix: String(seedPrefix),
     valid: failures.length === 0,
-    metrics: Object.fromEntries(
-      Object.entries(metricSamples).map(([key, values]) => [
-        key,
-        distribution(values),
-      ]),
-    ),
+    metrics: summarizeMetrics(measured),
     failures,
   };
 }

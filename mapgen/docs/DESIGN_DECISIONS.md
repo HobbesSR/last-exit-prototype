@@ -227,6 +227,25 @@ needs reserved corridors or a clearance envelope before it can place blockers by
 default. Until then, validation is the backstop rather than the guarantee: it
 rejects the artifact, it does not repair it.
 
+### Region interiors
+
+The shipped library binds every class to `open-field`, and `open-field`'s wall
+stubs are switched off. Both are deliberate. On 2026-09-21 the user found walls
+inside regions that no tile design stated, and asked that walls come from the
+tiles and nothing else: region interiors are a black box, with an interface
+carrying parameters in from macro and results back out, and the builders here
+were a mock that confused the macro work. The game's own micro SDK
+(`shared/map/micro/`, root doc 20) is where interiors are generated for real;
+this generator's adapter to it is still to be built.
+
+So the catalogue stays, as the far side of that interface. `generateMap` still
+runs a builder over every block and carries back what it returns: the builder a
+region names, its props, features, vertices and levels, and the counts in
+`microBlocks`, `microCells` and `microSegments`. A library that binds a class to
+`compound`, `pillar-hall`, `rubble` or `courtyard` gets that geometry, and
+`tests/micro-pipeline.test.ts` exercises the join that way. Rebinding the
+shipped classes to them is a product decision, not a fix.
+
 ## Navigation
 
 Clearance and connectivity run on a half-cell lattice whose every edge is an

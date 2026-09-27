@@ -33,18 +33,17 @@
 import {
   DEFAULT_PARAMS,
   OUTSIDE_CLASS,
-  findPath,
   ZONE_COLUMNS,
   ZONE_ROWS,
   deriveEdges,
   deriveWalls,
   makeZones,
+  measureMap,
   searchRegions,
   validateMap,
   wallsFromLattice,
 } from "../core.ts";
 import { encodeGrid } from "../coding.ts";
-import { SOLID_CLASS } from "../primitives.ts";
 import { latticeFor, nodeIndex, LATTICE_STEP } from "../nav.ts";
 import { getBuilder } from "../micro/catalogue.ts";
 import { createMask } from "../micro/mask.ts";
@@ -663,11 +662,10 @@ export function composeMap(plan: MapPlan): GeneratedMap {
       hunterDistance: 0,
       detourRatio: 0,
       regionCount: regions.length,
-      templateFallbacks: 0,
       lootCount: spawns.length,
       interiorWalls: 0,
       solidFraction: 0,
-      largestRegion: regions.reduce((n, r) => Math.max(n, r.cells.length), 0),
+      largestRegion: 0,
       plannedRegions: plan.regions.length,
       microCells: declaredCells,
       microSegments: declaredSegments,
@@ -675,55 +673,14 @@ export function composeMap(plan: MapPlan): GeneratedMap {
       portsCorrected: enforced.corrected,
       sealedPockets: main.pockets,
       portCount: enforced.ports,
-      obstacleCount: regions.reduce((n, r) => n + r.obstacles.length, 0),
     },
     validation: { valid: false, errors: [] },
   };
   map.walls = deriveWalls(map);
   map.edges = deriveEdges(map);
-  // Measured off the composed result, exactly as the legacy path does it, so
-  // the two generators' numbers mean the same thing and can be compared.
-  map.metrics.interiorWalls = map.walls.filter(
-    (w) =>
-      (w.x1 === w.x2 && w.x1 % p.tileSize !== 0) ||
-      (w.y1 === w.y2 && w.y1 % p.tileSize !== 0),
-  ).length;
-  map.metrics.solidFraction =
-    grid.cellClass.filter((c) => c === SOLID_CLASS).length /
-    Math.max(1, grid.cellClass.filter((c) => c !== OUTSIDE_CLASS).length);
-  // A seam a contestant fits through and a hunter does not, read off the
-  // measured widths rather than off anyone's intent.
-  map.metrics.squeezes = map.edges.filter(
-    (e) => e.width >= PASSAGE.squeeze && e.width < PASSAGE.door,
-  ).length;
-  const spawnTile = map.features.find((f) => f.kind === "spawn")?.tileId;
-  const exitTile = map.features.find((f) => f.kind === "exit")?.tileId;
-  if (spawnTile && exitTile) {
-    const contestant = findPath(map, spawnTile, exitTile, "contestant");
-    const hunter = findPath(map, spawnTile, exitTile, "hunter");
-    // An empty path means no route, which must not read as a distance of zero:
-    // zero is what an adjacent tile looks like, and the two are opposites.
-    map.metrics.contestantDistance = contestant.length
-      ? Math.max(0, contestant.length - 1) * p.tileSize
-      : Infinity;
-    map.metrics.hunterDistance = hunter.length
-      ? Math.max(0, hunter.length - 1) * p.tileSize
-      : Infinity;
-    const from = tiles.find((t) => t.id === spawnTile),
-      to = tiles.find((t) => t.id === exitTile);
-    map.metrics.detourRatio =
-      map.metrics.contestantDistance /
-      Math.max(1, Math.abs((to?.x ?? 0) - (from?.x ?? 0)));
-  }
-  {
-    const degree = new Map<string, number>(map.tiles.map((t) => [t.id, 0]));
-    for (const e of map.edges) {
-      degree.set(e.a, (degree.get(e.a) ?? 0) + 1);
-      degree.set(e.b, (degree.get(e.b) ?? 0) + 1);
-    }
-    // A tile-graph leaf, which is not the same thing as a geometric cul-de-sac.
-    map.metrics.deadEnds = [...degree.values()].filter((d) => d === 1).length;
-  }
+  // Measured off the composed result by the same function every generator
+  // uses, so the numbers mean the same thing and can be compared.
+  measureMap(map);
   map.validation = validateMap(map);
   return map;
 }

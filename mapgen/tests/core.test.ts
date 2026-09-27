@@ -13,6 +13,7 @@ import {
   DEFAULT_LIBRARY,
 } from "../src/core.ts";
 import { SOLID_CLASS } from "../src/primitives.ts";
+import { batch, summarizeMetrics } from "../tools/shared.mts";
 
 test("generation is deterministic and serializable", () => {
   const a = generateMap("alpha"),
@@ -145,6 +146,100 @@ test("generation imposes no topology: seams are exactly what the tiles declare",
     return total + (at(t.x + 6, t.y) ? 1 : 0) + (at(t.x, t.y + 6) ? 1 : 0);
   }, 0);
   assert.equal(m.edges.length, neighbours);
+});
+
+test("tuning metrics are read off the finished geometry, not initialised and left", () => {
+  const only = (tile: object) => {
+    const library = structuredClone(DEFAULT_LIBRARY);
+    library.setPieces = [];
+    library.tileSets = [];
+    library.tiles = [tile] as unknown as typeof library.tiles;
+    return library;
+  };
+  const params = { mode: "playground" as const, zoneWidth: 3, zoneHeight: 2 };
+  const field = only({ id: "field", defaultCellClass: "open", orientations: [0] });
+  // One authored wall per tile, clear of the anchor and of every seam.
+  const barrier = only({
+    id: "barrier",
+    defaultCellClass: "open",
+    orientations: [0],
+    walls: [{ x1: 1, y1: 1, x2: 5, y2: 1 }],
+  });
+  const open = generateMap("metrics-open", params, field);
+  const walled = generateMap("metrics-barrier", params, barrier);
+  for (const m of [open, walled]) {
+    assert.equal(m.validation.valid, true, m.validation.errors.join("; "));
+    assert.ok(Number.isFinite(m.metrics.contestantDistance) && m.metrics.contestantDistance > 0);
+    assert.ok(Number.isFinite(m.metrics.hunterDistance) && m.metrics.hunterDistance > 0);
+    assert.ok(m.metrics.detourRatio >= 1, "a route is never shorter than the direct distance");
+    assert.equal(m.metrics.largestRegion, Math.max(...m.regions.map((r) => r.cells.length)));
+    assert.equal(m.metrics.solidFraction, 0);
+  }
+  assert.equal(open.metrics.interiorWalls, 0);
+  assert.equal(walled.metrics.interiorWalls, walled.metrics.tileCount);
+
+  // No route reads as no route. Zero is what an adjacent exit looks like.
+  const baffle = only({
+    id: "baffle",
+    defaultCellClass: "open",
+    orientations: [0],
+    walls: [{ x1: 1, y1: 0, x2: 1, y2: 5 }, { x1: 5, y1: 1, x2: 5, y2: 6 }],
+  });
+  const sealed = generateMap("metrics-baffle", params, baffle);
+  assert.equal(sealed.validation.valid, false);
+  const exits = sealed.features.filter((f) => f.kind === "exit").length;
+  assert.equal(sealed.metrics.unroutedExits, exits);
+  // Every route metric says unavailable the same way; none decays to NaN.
+  for (const name of [
+    "contestantDistance",
+    "hunterDistance",
+    "detourRatio",
+    "exitCostSpread",
+    "hunterToContestantRatio",
+  ])
+    assert.equal(sealed.metrics[name], Infinity, name);
+  for (const m of [open, walled]) assert.equal(m.metrics.unroutedExits, 0);
+
+  // And the batch report carries the measured values, not placeholders.
+  const report = batch("metrics-batch", 2, params, barrier);
+  assert.equal(report.metrics.interiorWalls!.min, walled.metrics.tileCount);
+  assert.equal(report.metrics.contestantDistance!.samples, 2);
+  assert.equal(report.metrics.contestantDistance!.unavailable, 0);
+});
+
+test("a batch distribution says how many maps it describes", () => {
+  // The tile graph can miss a route the lattice proves, so a valid map may
+  // report Infinity. The summary must count it rather than drop it silently,
+  // and must not let a NaN into the statistics.
+  const summary = summarizeMetrics([
+    { contestantDistance: 60, exitCostSpread: 1 },
+    { contestantDistance: Infinity, exitCostSpread: NaN },
+    { contestantDistance: 90, exitCostSpread: undefined },
+  ]);
+  assert.deepEqual(summary.contestantDistance, {
+    samples: 2,
+    unavailable: 1,
+    min: 60,
+    max: 90,
+    mean: 75,
+    p50: 60,
+    p95: 90,
+  });
+  assert.deepEqual(summary.exitCostSpread, {
+    samples: 1,
+    unavailable: 1,
+    min: 1,
+    max: 1,
+    mean: 1,
+    p50: 1,
+    p95: 1,
+  });
+  // A metric no map could measure has no statistics at all, not zeros.
+  const none = summarizeMetrics([{ hunterDistance: Infinity }]).hunterDistance;
+  assert.equal(none!.samples, 0);
+  assert.equal(none!.unavailable, 1);
+  assert.equal(none!.min, null);
+  assert.equal(none!.mean, null);
 });
 
 // Waits on perimeter segment records (#33).
