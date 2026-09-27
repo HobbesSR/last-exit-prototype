@@ -2662,25 +2662,36 @@ export function measureMap(map: GeneratedMap): void {
       contestant.get(e.a)?.includes(e.b) && !hunter.get(e.a)?.includes(e.b),
   ).length;
 
+  // Route metrics are measured on the coarse tile graph behind findPath, which
+  // can miss a route the lattice proves (README, "Reachability is validated
+  // against that lattice"), so a valid map may still have none to measure.
+  // Each is then Infinity -- never NaN, never a placeholder -- and
+  // unroutedExits says how many exits the contestant graph could not reach.
   const spawn = map.features.find((f) => f.kind === "spawn");
   const exits = map.features.filter((f) => f.kind === "exit");
-  if (!spawn || !exits.length) return;
   const distance = (to: string, agent: Agent) => {
-    const path = findPath(map, spawn.tileId, to, agent);
+    const path = spawn ? findPath(map, spawn.tileId, to, agent) : [];
     return path.length ? (path.length - 1) * size : Infinity;
   };
-  const exit = exits[0]!;
-  m.contestantDistance = distance(exit.tileId, "contestant");
-  m.hunterDistance = distance(exit.tileId, "hunter");
-  const from = map.tiles.find((t) => t.id === spawn.tileId),
-    to = map.tiles.find((t) => t.id === exit.tileId);
-  m.detourRatio =
-    m.contestantDistance / Math.max(1, Math.abs((to?.x ?? 0) - (from?.x ?? 0)));
+  const ratio = (a: number, b: number) =>
+    Number.isFinite(a) && Number.isFinite(b) ? a / Math.max(1, b) : Infinity;
   const exitDistances = exits.map((e) => distance(e.tileId, "contestant"));
-  m.exitCostSpread =
-    Math.max(...exitDistances) / Math.max(1, Math.min(...exitDistances));
-  m.hunterToContestantRatio =
-    m.hunterDistance / Math.max(1, m.contestantDistance);
+  m.unroutedExits = exitDistances.filter((d) => !Number.isFinite(d)).length;
+  const exit = exits[0];
+  m.contestantDistance = exitDistances[0] ?? Infinity;
+  m.hunterDistance = exit ? distance(exit.tileId, "hunter") : Infinity;
+  const from = map.tiles.find((t) => t.id === spawn?.tileId),
+    to = map.tiles.find((t) => t.id === exit?.tileId);
+  m.detourRatio = ratio(
+    m.contestantDistance,
+    Math.abs((to?.x ?? 0) - (from?.x ?? 0)),
+  );
+  // Finite only when every exit has a route: a spread over some of them would
+  // describe a different set of exits from one map to the next.
+  m.exitCostSpread = exitDistances.length
+    ? ratio(Math.max(...exitDistances), Math.min(...exitDistances))
+    : Infinity;
+  m.hunterToContestantRatio = ratio(m.hunterDistance, m.contestantDistance);
 }
 
 export function validateMap(input: unknown): ValidationResult {

@@ -321,9 +321,15 @@ export interface MapMetrics {
   squeezes: number;
   /** Neighbouring tile pairs the designs left with no opening between them. */
   sealedSeams?: number;
+  /**
+   * Route metrics are measured on the coarse tile graph. Each is `Infinity`
+   * when that graph has no route to measure, even on a valid map.
+   */
   contestantDistance: number;
   hunterDistance: number;
   detourRatio: number;
+  /** Exits the contestant tile graph cannot reach from the spawn. */
+  unroutedExits?: number;
   regionCount: number;
   /** Legacy path only: V2 places no adapter fallbacks yet (#35). */
   templateFallbacks?: number;

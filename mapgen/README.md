@@ -167,8 +167,11 @@ validation details also apply to the current path. The current `generate` and
 fills remaining slots with WFC, composes the result, and validates the map. It
 does not use the `adapter` flag or `ports`. Its tuning metrics are read off the
 finished map by `measureMap`, the same function the planned path uses: route
-distances are tile-graph hops times the tile size and are `Infinity` when there
-is no route (batch distributions skip non-finite samples), `deadEnds` is a
+distances are tile-graph hops times the tile size. The tile graph can miss a
+route the lattice proves, so even on a valid map every route metric may be
+`Infinity`, meaning unavailable (never `NaN`), with `unroutedExits` counting
+the exits it could not reach. Each batch distribution reports its finite
+`samples` and its `unavailable` count, and describes only the finite ones. `deadEnds` is a
 tile-graph leaf count, `squeezes` a seam a contestant can cross and a hunter
 cannot, and `solidFraction` is zero with the shipped library because no class
 is material. `templateFallbacks`, `adapterFraction`, `strandedAnchors` and

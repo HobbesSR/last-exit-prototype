@@ -13,7 +13,7 @@ import {
   DEFAULT_LIBRARY,
 } from "../src/core.ts";
 import { SOLID_CLASS } from "../src/primitives.ts";
-import { batch } from "../tools/shared.mts";
+import { batch, summarizeMetrics } from "../tools/shared.mts";
 
 test("generation is deterministic and serializable", () => {
   const a = generateMap("alpha"),
@@ -187,12 +187,59 @@ test("tuning metrics are read off the finished geometry, not initialised and lef
   });
   const sealed = generateMap("metrics-baffle", params, baffle);
   assert.equal(sealed.validation.valid, false);
-  assert.equal(sealed.metrics.contestantDistance, Infinity);
+  const exits = sealed.features.filter((f) => f.kind === "exit").length;
+  assert.equal(sealed.metrics.unroutedExits, exits);
+  // Every route metric says unavailable the same way; none decays to NaN.
+  for (const name of [
+    "contestantDistance",
+    "hunterDistance",
+    "detourRatio",
+    "exitCostSpread",
+    "hunterToContestantRatio",
+  ])
+    assert.equal(sealed.metrics[name], Infinity, name);
+  for (const m of [open, walled]) assert.equal(m.metrics.unroutedExits, 0);
 
   // And the batch report carries the measured values, not placeholders.
   const report = batch("metrics-batch", 2, params, barrier);
   assert.equal(report.metrics.interiorWalls!.min, walled.metrics.tileCount);
-  assert.ok(report.metrics.contestantDistance!.min > 0);
+  assert.equal(report.metrics.contestantDistance!.samples, 2);
+  assert.equal(report.metrics.contestantDistance!.unavailable, 0);
+});
+
+test("a batch distribution says how many maps it describes", () => {
+  // The tile graph can miss a route the lattice proves, so a valid map may
+  // report Infinity. The summary must count it rather than drop it silently,
+  // and must not let a NaN into the statistics.
+  const summary = summarizeMetrics([
+    { contestantDistance: 60, exitCostSpread: 1 },
+    { contestantDistance: Infinity, exitCostSpread: NaN },
+    { contestantDistance: 90, exitCostSpread: undefined },
+  ]);
+  assert.deepEqual(summary.contestantDistance, {
+    samples: 2,
+    unavailable: 1,
+    min: 60,
+    max: 90,
+    mean: 75,
+    p50: 60,
+    p95: 90,
+  });
+  assert.deepEqual(summary.exitCostSpread, {
+    samples: 1,
+    unavailable: 1,
+    min: 1,
+    max: 1,
+    mean: 1,
+    p50: 1,
+    p95: 1,
+  });
+  // A metric no map could measure has no statistics at all, not zeros.
+  const none = summarizeMetrics([{ hunterDistance: Infinity }]).hunterDistance;
+  assert.equal(none!.samples, 0);
+  assert.equal(none!.unavailable, 1);
+  assert.equal(none!.min, null);
+  assert.equal(none!.mean, null);
 });
 
 // Waits on perimeter segment records (#33).
