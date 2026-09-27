@@ -325,7 +325,8 @@ export interface MapMetrics {
   hunterDistance: number;
   detourRatio: number;
   regionCount: number;
-  templateFallbacks: number;
+  /** Legacy path only: V2 places no adapter fallbacks yet (#35). */
+  templateFallbacks?: number;
   lootCount: number;
   interiorWalls: number;
   solidFraction: number;

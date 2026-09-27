@@ -13,6 +13,7 @@ import {
   DEFAULT_LIBRARY,
 } from "../src/core.ts";
 import { SOLID_CLASS } from "../src/primitives.ts";
+import { batch } from "../tools/shared.mts";
 
 test("generation is deterministic and serializable", () => {
   const a = generateMap("alpha"),
@@ -145,6 +146,53 @@ test("generation imposes no topology: seams are exactly what the tiles declare",
     return total + (at(t.x + 6, t.y) ? 1 : 0) + (at(t.x, t.y + 6) ? 1 : 0);
   }, 0);
   assert.equal(m.edges.length, neighbours);
+});
+
+test("tuning metrics are read off the finished geometry, not initialised and left", () => {
+  const only = (tile: object) => {
+    const library = structuredClone(DEFAULT_LIBRARY);
+    library.setPieces = [];
+    library.tileSets = [];
+    library.tiles = [tile] as unknown as typeof library.tiles;
+    return library;
+  };
+  const params = { mode: "playground" as const, zoneWidth: 3, zoneHeight: 2 };
+  const field = only({ id: "field", defaultCellClass: "open", orientations: [0] });
+  // One authored wall per tile, clear of the anchor and of every seam.
+  const barrier = only({
+    id: "barrier",
+    defaultCellClass: "open",
+    orientations: [0],
+    walls: [{ x1: 1, y1: 1, x2: 5, y2: 1 }],
+  });
+  const open = generateMap("metrics-open", params, field);
+  const walled = generateMap("metrics-barrier", params, barrier);
+  for (const m of [open, walled]) {
+    assert.equal(m.validation.valid, true, m.validation.errors.join("; "));
+    assert.ok(Number.isFinite(m.metrics.contestantDistance) && m.metrics.contestantDistance > 0);
+    assert.ok(Number.isFinite(m.metrics.hunterDistance) && m.metrics.hunterDistance > 0);
+    assert.ok(m.metrics.detourRatio >= 1, "a route is never shorter than the direct distance");
+    assert.equal(m.metrics.largestRegion, Math.max(...m.regions.map((r) => r.cells.length)));
+    assert.equal(m.metrics.solidFraction, 0);
+  }
+  assert.equal(open.metrics.interiorWalls, 0);
+  assert.equal(walled.metrics.interiorWalls, walled.metrics.tileCount);
+
+  // No route reads as no route. Zero is what an adjacent exit looks like.
+  const baffle = only({
+    id: "baffle",
+    defaultCellClass: "open",
+    orientations: [0],
+    walls: [{ x1: 1, y1: 0, x2: 1, y2: 5 }, { x1: 5, y1: 1, x2: 5, y2: 6 }],
+  });
+  const sealed = generateMap("metrics-baffle", params, baffle);
+  assert.equal(sealed.validation.valid, false);
+  assert.equal(sealed.metrics.contestantDistance, Infinity);
+
+  // And the batch report carries the measured values, not placeholders.
+  const report = batch("metrics-batch", 2, params, barrier);
+  assert.equal(report.metrics.interiorWalls!.min, walled.metrics.tileCount);
+  assert.ok(report.metrics.contestantDistance!.min > 0);
 });
 
 // Waits on perimeter segment records (#33).

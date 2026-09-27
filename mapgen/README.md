@@ -165,10 +165,15 @@ The tile-edge selection and route-metric descriptions below were written for
 validation details also apply to the current path. The current `generate` and
 `batch` commands call `generateMap`: it places category-selected set pieces,
 fills remaining slots with WFC, composes the result, and validates the map. It
-does not use the `adapter` flag or `ports`. Its `deadEnds`, `squeezes`, route
-distances, detour ratio, `sealedSeams`, `interiorWalls`, `solidFraction`, and
-`largestRegion` metrics are currently initialized to zero; do not use them for
-tuning. The default tile and body scales in the first bullet still apply.
+does not use the `adapter` flag or `ports`. Its tuning metrics are read off the
+finished map by `measureMap`, the same function the planned path uses: route
+distances are tile-graph hops times the tile size and are `Infinity` when there
+is no route (batch distributions skip non-finite samples), `deadEnds` is a
+tile-graph leaf count, `squeezes` a seam a contestant can cross and a hunter
+cannot, and `solidFraction` is zero with the shipped library because no class
+is material. `templateFallbacks`, `adapterFraction`, `strandedAnchors` and
+`propsReclaimed` come only from `generateMapLegacy`. The default tile and body
+scales in the first bullet still apply.
 
 - Fixed 6×6 tiles. The map is a 5×5 grid of tier zones masked to a diamond, 13 of them occupied; each zone is `zoneWidth`×`zoneHeight` tiles, 12×6 by default, giving a 60×30 slot bounding box and 936 tiles. Cells are abstract segment units, not meters. Contestant radius 0.55, hunter radius 0.90.
 - **Nothing imposes a topology.** No spanning tree, no loop or squeeze budget, and no seam is walled or opened to fit a plan. A seam carries exactly what the two designs beside it declare, and an unstated boundary contributes no wall, so an open field crosses tile seams unbroken and needs no special adapter. What generation still owes is that the result is walkable, and it pays that by _choosing_ designs: slots are filled outward from the western edge, and a design is drawn from those that stay joined to the placed map and do not wall off a neighbour that has no other way in. Where no candidate can do that the slot is still filled and validation reports the map as unreachable rather than the generator cutting an opening. Walking metrics exclude transit.

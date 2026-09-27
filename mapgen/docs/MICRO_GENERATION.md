@@ -60,6 +60,11 @@ Which builder runs over a region is **library data, not code**. A class rule nam
 | `rubble`       | 12      | Dense off-lattice debris whose surviving gaps sit in the contestant-only band.                        |
 | `courtyard`    | 25      | A walled pocket with two or three gates, and a set-piece slot in the middle.                          |
 
+The shipped library binds every class to `open-field`, whose wall stubs are
+switched off, so a default map's walls all come from its tiles. That is
+deliberate; see "Region interiors" in DESIGN_DECISIONS.md. The other builders
+run for any library that names them.
+
 ## Scale
 
 `src/micro/scale.ts` is the single statement of body scale, in segments. One segment is one cell edge and one unit of map cell space, so every quantity there is directly comparable with a span width, a wall `gap` and a body radius.

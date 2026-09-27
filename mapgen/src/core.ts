@@ -34,6 +34,7 @@ interface Neighbour {
 import {
   ANY_CLASS,
   SIDES,
+  SOLID_CLASS,
   TILE_SIZE,
   widestOpening,
   mergeRuns,
@@ -2605,6 +2606,83 @@ export function findPath(
   return out.reverse();
 }
 
+/**
+ * The tuning metrics a finished map's geometry supports, read back off the
+ * walls, seams, regions and features it actually has rather than carried over
+ * from whatever produced it. Call it once `walls` and `edges` are derived.
+ *
+ * A route that does not exist is `Infinity`, never zero: zero is what an
+ * adjacent exit looks like, and the two are opposites.
+ */
+export function measureMap(map: GeneratedMap): void {
+  const m = map.metrics;
+  const size = map.params.tileSize;
+  m.interiorWalls = map.walls.filter(
+    (w) =>
+      (w.x1 === w.x2 && w.x1 % size !== 0) ||
+      (w.y1 === w.y2 && w.y1 % size !== 0),
+  ).length;
+  const views = gridViews(map);
+  let solid = 0,
+    inside = 0;
+  for (let i = 0; i < views.width * views.height; i++) {
+    const cellClass = views.cellClass(i);
+    if (cellClass === OUTSIDE_CLASS) continue;
+    inside++;
+    if (cellClass === SOLID_CLASS) solid++;
+  }
+  m.solidFraction = solid / Math.max(1, inside);
+  m.regionCount = map.regions.length;
+  m.largestRegion = map.regions.reduce(
+    (best, r) => Math.max(best, r.cells.length),
+    0,
+  );
+  m.obstacleCount = map.regions.reduce((n, r) => n + r.obstacles.length, 0);
+
+  const placed = new Set(map.tiles.map((t) => key(t.x, t.y)));
+  let adjacentPairs = 0;
+  for (const t of map.tiles) {
+    if (placed.has(key(t.x + size, t.y))) adjacentPairs++;
+    if (placed.has(key(t.x, t.y + size))) adjacentPairs++;
+  }
+  m.sealedSeams = adjacentPairs - map.edges.length;
+  const degree = new Map<string, number>(map.tiles.map((t) => [t.id, 0]));
+  for (const e of map.edges) {
+    degree.set(e.a, (degree.get(e.a) ?? 0) + 1);
+    degree.set(e.b, (degree.get(e.b) ?? 0) + 1);
+  }
+  // A tile-graph leaf, which is not the same thing as a geometric cul-de-sac.
+  m.deadEnds = [...degree.values()].filter((d) => d === 1).length;
+  // A seam a contestant can cross and a hunter cannot, proven on the lattice
+  // rather than read off the width's name.
+  const contestant = navGraph(map, "contestant"),
+    hunter = navGraph(map, "hunter");
+  m.squeezes = map.edges.filter(
+    (e) =>
+      contestant.get(e.a)?.includes(e.b) && !hunter.get(e.a)?.includes(e.b),
+  ).length;
+
+  const spawn = map.features.find((f) => f.kind === "spawn");
+  const exits = map.features.filter((f) => f.kind === "exit");
+  if (!spawn || !exits.length) return;
+  const distance = (to: string, agent: Agent) => {
+    const path = findPath(map, spawn.tileId, to, agent);
+    return path.length ? (path.length - 1) * size : Infinity;
+  };
+  const exit = exits[0]!;
+  m.contestantDistance = distance(exit.tileId, "contestant");
+  m.hunterDistance = distance(exit.tileId, "hunter");
+  const from = map.tiles.find((t) => t.id === spawn.tileId),
+    to = map.tiles.find((t) => t.id === exit.tileId);
+  m.detourRatio =
+    m.contestantDistance / Math.max(1, Math.abs((to?.x ?? 0) - (from?.x ?? 0)));
+  const exitDistances = exits.map((e) => distance(e.tileId, "contestant"));
+  m.exitCostSpread =
+    Math.max(...exitDistances) / Math.max(1, Math.min(...exitDistances));
+  m.hunterToContestantRatio =
+    m.hunterDistance / Math.max(1, m.contestantDistance);
+}
+
 export function validateMap(input: unknown): ValidationResult {
   const map = input as GeneratedMap;
   const errors: string[] = [];
@@ -3241,23 +3319,60 @@ export function generateMap(
     );
     
     micro.obstacles = clearStreets(micro.obstacles, reservedStreets.corridors);
+    // The artifact carries the partition of the composed result, not the one
+    // the builders were handed, so regions are searched again.
     regions = searchRegions(grid, seedText);
-
+    const regionAt = new Int32Array(grid.W * grid.H).fill(-1);
+    regions.forEach((region, index) => {
+      for (const cell of region.cells) regionAt[cell] = index;
+    });
+    // A prop stays inside one cell by contract, so its midpoint names the
+    // region that now owns it -- which may not be the one whose builder placed it.
     for (const wall of micro.obstacles) {
       const cx = Math.floor((wall.x1 + wall.x2) / 2), cy = Math.floor((wall.y1 + wall.y2) / 2);
       if (cx < 0 || cy < 0 || cx >= grid.W || cy >= grid.H) continue;
-      const regionAt = new Int32Array(grid.W * grid.H).fill(-1);
-      regions.forEach((r, i) => r.cells.forEach(c => regionAt[c] = i));
-      if (regionAt[cy * grid.W + cx] !== -1) regions[regionAt[cy * grid.W + cx]!]?.obstacles.push(wall);
+      regions[regionAt[cy * grid.W + cx]!]?.obstacles.push(wall);
     }
-    
+
     const spawnCells = new Set(micro.spawns.map((s) => s.cell));
     regions.forEach((region) => {
+      // Streets are reserved out of every block, so a region's first cell is
+      // often one no builder owned. The region names whichever owns most of it.
+      // Material a builder laid is a region of its own that nothing builds in,
+      // so it names nobody.
+      const owned = new Map<string, number>();
+      if (region.cellClass !== SOLID_CLASS) for (const cell of region.cells) {
+        const owner = micro.ownerOf[cell];
+        if (owner) owned.set(owner, (owned.get(owner) ?? 0) + 1);
+      }
+      let generator = "";
+      for (const [owner, count] of owned)
+        if (count > (owned.get(generator) ?? 0)) generator = owner;
       region.manifest = {
+        ...(generator ? { generator } : {}),
         spawnsPlaced: region.cells.filter((cell) => spawnCells.has(cell)).length,
         obstaclesPlaced: region.obstacles.length,
         corridorsHonored: region.cells.every((cell) => micro.honored[cell] === 1),
       };
+    });
+
+    // A builder may site a feature of its own: where a physical exit or a
+    // charger stands is a micro detail, per docs/DESIGN_DECISIONS.md.
+    const tileAt = new Map(tiles.map((t) => [key(t.x, t.y), t]));
+    const microFeatures: MapFeature[] = [];
+    micro.features.forEach((feature, index) => {
+      const owner = tileAt.get(key(
+        Math.floor(feature.x / p.tileSize) * p.tileSize,
+        Math.floor(feature.y / p.tileSize) * p.tileSize,
+      ));
+      if (!owner) return;
+      microFeatures.push({
+        id: `micro-${feature.kind}-${index}`,
+        kind: feature.kind as MapFeature["kind"],
+        tileId: owner.id,
+        x: feature.x + 0.5,
+        y: feature.y + 0.5,
+      });
     });
 
     map = {
@@ -3265,7 +3380,8 @@ export function generateMap(
       features: [
         { id: "spawn", kind: "spawn", tileId: tiles[spawn]!.id, ...at(spawn) },
         { id: "hunter-spawn", kind: "hunter-spawn", tileId: tiles[hunter]!.id, ...at(hunter) },
-        ...exits.map((e, i) => ({ id: `exit-${i}`, kind: "exit" as const, tileId: tiles[e.i]!.id, ...at(e.i) }))
+        ...exits.map((e, i) => ({ id: `exit-${i}`, kind: "exit" as const, tileId: tiles[e.i]!.id, ...at(e.i) })),
+        ...microFeatures,
       ],
       
       grid: {
@@ -3273,17 +3389,40 @@ export function generateMap(
         height: grid.H,
         cells: { class: encodeGrid(grid.cellClass),
           originalClass: encodeGrid(composition.cellClass),
-          constraints: encodeGrid(segmentConstraints), spawns: micro.spawns },
+          constraints: encodeGrid(segmentConstraints),
+          ...(grid.cellLevel.some((level) => level !== 0)
+            ? { level: encodeGrid(grid.cellLevel) }
+            : {}),
+          spawns: micro.spawns },
         segments: { open: encodeGrid(grid.segmentOpen) },
-        vertices: []
+        vertices: [...grid.vertices]
+          .sort((a, b) => a[0] - b[0])
+          .map(([vertex, meta]) => ({
+            vertex,
+            ...(meta.class === ANY_CLASS ? {} : { class: meta.class }),
+            ...(meta.height === "any" ? {} : { height: meta.height }),
+          })),
       },
       regions,
-      metrics: { tileCount: cells.length, deadEnds: 0, squeezes: 0, contestantDistance: 0, hunterDistance: 0, detourRatio: 0, regionCount: regions.length, templateFallbacks: 0, lootCount: micro.spawns.length, sealedSeams: 0, interiorWalls: 0, solidFraction: 0, largestRegion: 0 },
+      // The geometric metrics are placeholders until measureMap reads them off
+      // the finished map below.
+      metrics: {
+        tileCount: cells.length, deadEnds: 0, squeezes: 0, contestantDistance: 0, hunterDistance: 0, detourRatio: 0,
+        regionCount: regions.length, lootCount: micro.spawns.length, interiorWalls: 0, solidFraction: 0, largestRegion: 0,
+        cellCount: cells.length * p.tileSize * p.tileSize,
+        explicitVertices: grid.vertices.size,
+        // Counted rather than inferred from the wall total, so a builder that
+        // silently produces nothing shows up here.
+        microBlocks: micro.declared.blocks,
+        microCells: micro.declared.cells,
+        microSegments: micro.declared.segments,
+      },
       validation: { valid: true, errors: [] }
     };
-    
+
     map!.edges = deriveEdges(map!);
     map!.walls = deriveWalls(map!);
+    measureMap(map!);
     map!.validation = validateMap(map!);
     break; 
     } catch (e) {
