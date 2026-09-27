@@ -80,6 +80,15 @@ try {
     await page.mouse.click(p.x, p.y);
     if (alt) await page.keyboard.up("Alt");
   };
+  // Generation runs in a worker; the map is only rebuilt once its dialog closes.
+  const generate = async () => {
+    await page.locator("#generate").click();
+    await page.waitForFunction(
+      () => !(document.getElementById("progressModal") as HTMLDialogElement).open,
+      null,
+      { timeout: 60000 },
+    );
+  };
   const dragBox = async (u0: number, v0: number, u1: number, v1: number) => {
     const a = await at(u0, v0),
       b = await at(u1, v1);
@@ -100,7 +109,7 @@ try {
   // Tile weight has been completely removed from the data model.
   assert.equal(await page.locator("#tileWeight").count(), 0);
   await page.locator("#mapTab").click();
-  await page.locator("#generate").click();
+  await generate();
   assert.ok(
     (
       await page.evaluate(() => (window as any).mapLab.snapshot().templateUsage)
@@ -129,7 +138,7 @@ try {
   const segmentTile = segmented.tiles.find((t: any) => t.id === "test-yard");
   assert.equal(segmentTile.primitives.segments["h:0,0"], "wall");
   assert.deepEqual(segmentTile.primitives.segments["h:3,1"], [0.2, 0.8]);
-  await page.locator("#template").selectOption("plain");
+  await page.locator("#template").selectOption("street");
   await page.locator("#template").selectOption("test-yard");
   // Alt picks up what is already there instead of stating something new.
   await poke(1.5, 3, true);
@@ -147,7 +156,7 @@ try {
   await page.locator("#segmentAperture").fill("0.2-0.8");
   await page.locator("#saveTemplate").click();
   await page.locator("#mapTab").click();
-  await page.locator("#generate").click();
+  await generate();
   assert.match(await page.locator("#status").innerText(), /^Validated/);
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#export").click();
