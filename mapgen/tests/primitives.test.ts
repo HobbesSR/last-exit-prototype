@@ -111,14 +111,14 @@ test("a deferring perimeter adopts the seam contract", () => {
 });
 
 test("a concrete perimeter declaration is a requirement, not a preference", () => {
-  const wallsOffNorth = template({ edges: { N: ["#", "#", "#", "#", "#", "#"] } });
+  const wallsOffNorth = template({ edges: { N: ["wall", "wall", "wall", "wall", "wall", "wall"] } });
   assert.equal(
     resolvePrimitives(tilePrimitives(wallsOffNorth), { N: door }),
     null,
   );
   assert.ok(resolvePrimitives(tilePrimitives(wallsOffNorth), { N: sealed }));
 
-  const needsDoor = template({ edges: { N: [".", ".", "o", "o", ".", "."] } });
+  const needsDoor = template({ edges: { N: ["any", "any", "open", "open", "any", "any"] } });
   assert.ok(resolvePrimitives(tilePrimitives(needsDoor), { N: door }));
   assert.equal(
     resolvePrimitives(tilePrimitives(needsDoor), { N: sealed }),
@@ -127,7 +127,7 @@ test("a concrete perimeter declaration is a requirement, not a preference", () =
 });
 
 test("perimeter declarations turn with the template", () => {
-  const tile = template({ edges: { N: ["#", "#", "#", "#", "#", "#"] } });
+  const tile = template({ edges: { N: ["wall", "wall", "wall", "wall", "wall", "wall"] } });
   const sealedSide = (deg: number): Side | undefined =>
     (["N", "E", "S", "W"] as Side[]).find((side) =>
       [0, 1, 2, 3, 4, 5].every(

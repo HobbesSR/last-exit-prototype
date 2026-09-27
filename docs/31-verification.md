@@ -17,8 +17,9 @@ npm run bench:client
 Changes under `mapgen/` run its own suite with `npm run test:mapgen` (typecheck
 plus unit tests, in that directory) and, for editor behavior, `node tests/browser.mts`
 from `mapgen/`. As imported at `544b13c`, the suite was red. Issue #12 cleared
-its 26 typecheck errors; `npm run typecheck` now passes. Unit failures remain
-and are triaged in issue #15: small-map placement policy (#27), artifact codec
+its 26 typecheck errors; `npm run typecheck` now passes. The current unit
+baseline is 210 pass / 20 fail out of 230 tests. Failures remain and are
+triaged in issue #15: small-map placement policy (#27), artifact codec
 fields (#25), and obsolete V1 test fixtures or expectations (#15). Default-size
 legacy generation and the retry path were repaired in #10. Do not resize test
 grids or relax generation to make the remaining suite pass.
