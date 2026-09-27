@@ -28,11 +28,13 @@ import {
   validateGrid,
 } from "../src/coding.ts";
 import {
+  OUTSIDE_CLASS,
+  cellIndexAt,
   generateMap,
   gridViews,
-  segmentIndexAt,
   DEFAULT_LIBRARY,
 } from "../src/core.ts";
+import { getRotatedEdge } from "../src/wfc.ts";
 import type { Side, TileDesign } from "../src/types.ts";
 
 function template(extra: Partial<TileDesign> = {}): TileDesign {
@@ -81,20 +83,6 @@ test("only perimeter vertices carry metadata", async () => {
   );
 });
 
-test("a filled cell is metadata plus stated walls, not a region class", () => {
-  const p = tilePrimitives(
-    template({
-      cells: ["......", ".#....", "......", "......", "......", "......"],
-    }),
-  );
-  // "#" resolves to the reserved material class, like any other paint.
-  assert.equal(p.cells[cellAt(1, 1)]!.class, "solid");
-  // It states the four walls facing its unfilled neighbours, and nothing else.
-  assert.equal(p.segments.size, 4);
-  assert.equal(segmentDeclaration(p, vSeg(1, 1)), "wall");
-  assert.equal(segmentDeclaration(p, hSeg(1, 1)), "wall");
-});
-
 test("a deferring perimeter adopts the seam contract", () => {
   const p = tilePrimitives(template());
   const resolved = resolvePrimitives(p, { N: door, S: sealed })!;
@@ -111,14 +99,18 @@ test("a deferring perimeter adopts the seam contract", () => {
 });
 
 test("a concrete perimeter declaration is a requirement, not a preference", () => {
-  const wallsOffNorth = template({ edges: { N: ["wall", "wall", "wall", "wall", "wall", "wall"] } });
+  const wallsOffNorth = template({
+    edges: { N: ["wall", "wall", "wall", "wall", "wall", "wall"] },
+  });
   assert.equal(
     resolvePrimitives(tilePrimitives(wallsOffNorth), { N: door }),
     null,
   );
   assert.ok(resolvePrimitives(tilePrimitives(wallsOffNorth), { N: sealed }));
 
-  const needsDoor = template({ edges: { N: ["any", "any", "open", "open", "any", "any"] } });
+  const needsDoor = template({
+    edges: { N: ["any", "any", "open", "open", "any", "any"] },
+  });
   assert.ok(resolvePrimitives(tilePrimitives(needsDoor), { N: door }));
   assert.equal(
     resolvePrimitives(tilePrimitives(needsDoor), { N: sealed }),
@@ -127,7 +119,9 @@ test("a concrete perimeter declaration is a requirement, not a preference", () =
 });
 
 test("perimeter declarations turn with the template", () => {
-  const tile = template({ edges: { N: ["wall", "wall", "wall", "wall", "wall", "wall"] } });
+  const tile = template({
+    edges: { N: ["wall", "wall", "wall", "wall", "wall", "wall"] },
+  });
   const sealedSide = (deg: number): Side | undefined =>
     (["N", "E", "S", "W"] as Side[]).find((side) =>
       [0, 1, 2, 3, 4, 5].every(
@@ -170,14 +164,14 @@ test("explicit metadata overrides the shorthands", () => {
   const tile = template({
     cells: ["......", "......", "......", "......", "......", "......"],
     primitives: {
-      cells: { "2,2": { class: "vault" }, "3,3": { class: "solid" } },
+      cells: { "2,2": { class: "vault" }, "3,3": { class: "court" } },
       segments: { "h:3,2": "wall" },
       vertices: { "0,1": { height: 0, class: "post" } },
     },
   });
   const p = tilePrimitives(tile, 0);
   assert.equal(p.cells[cellAt(2, 2)]!.class, "vault");
-  assert.equal(p.cells[cellAt(3, 3)]!.class, "solid");
+  assert.equal(p.cells[cellAt(3, 3)]!.class, "court");
   assert.equal(segmentDeclaration(p, hSeg(3, 2)), "wall");
   assert.equal(vertexMeta(p, vertexAt(0, 1)).class, "post");
 });
@@ -196,78 +190,50 @@ test("segment declarations can specify separate channels", () => {
   assert.deepEqual(channelSpan(decl, "sight"), [0, 1]);
 });
 
-test("solid overrides derive boundaries before explicit segment overrides", () => {
-  const cleared = tilePrimitives(
-    template({
-      cells: ["......", ".#....", "......", "......", "......", "......"],
-      primitives: {
-        cells: { "1,1": { class: "open" } },
-        segments: { "h:1,1": "wall" },
-      },
-    }),
-  );
-  assert.equal(cleared.cells[cellAt(1, 1)]!.class, "open");
-  // Clearing a filled cell removes its derived boundaries, but a stated wall remains.
-  assert.equal(cleared.segments.size, 1);
-  assert.equal(segmentDeclaration(cleared, hSeg(1, 1)), "wall");
-
-  const filled = tilePrimitives(
-    template({
-      primitives: {
-        cells: { "2,2": { class: "solid" } },
-        segments: { "h:2,2": "any", "v:2,2": [0.25, 0.75] },
-      },
-    }),
-  );
-  assert.equal(filled.cells[cellAt(2, 2)]!.class, "solid");
-  // A new solid cell derives its remaining three boundaries; stated segments win.
-  assert.equal(filled.segments.size, 3);
-  assert.equal(segmentDeclaration(filled, hSeg(2, 2)), "any");
-  assert.deepEqual(segmentDeclaration(filled, vSeg(2, 2)), [0.25, 0.75]);
-});
-
 test("the shipped library states a contract per segment, not just per side", () => {
-  const arcade = DEFAULT_LIBRARY.tiles.find((t) => t.id === "market-arcade")!;
-  assert.ok(arcade.edges?.E && arcade.edges?.W);
-  assert.ok(
-    Object.values(arcade.ports ?? {}).every((port) => port === "any"),
-    "the coarse ports defer; the per-segment contract does the work",
-  );
+  // A perimeter segment can constrain the class of the cell across it. The
+  // market front states it per segment along its south side, and wherever it
+  // lands, however it turns, the neighbouring cells take that class.
+  const front = DEFAULT_LIBRARY.tiles.find((t) => t.id === "market-front")!;
+  assert.deepEqual(front.edges?.S, new Array(6).fill("market"));
   const m = generateMap("arcade");
-  assert.equal(m.validation.valid, true);
+  assert.equal(m.validation.valid, true, m.validation.errors.join("; "));
   const views = gridViews(m);
-  const placements = m.tiles.filter((t) => t.templateId === "market-arcade");
-  assert.ok(placements.length > 0, "expected the arcade to be placed");
-  // Wherever it landed, and however it turned, two opposite sides are sealed.
+  const placements = m.tiles.filter((t) => t.templateId === "market-front");
+  assert.ok(placements.length > 0, "expected the market front to be placed");
+  let checked = 0;
   for (const tile of placements) {
-    const openAlong = (side: Side) => {
-      let total = 0;
-      for (let i = 0; i < 6; i++) {
-        const vertical = side === "E" || side === "W";
-        const line =
-          side === "W"
-            ? tile.x
-            : side === "E"
-              ? tile.x + 6
-              : side === "N"
-                ? tile.y
-                : tile.y + 6;
-        const offset = (vertical ? tile.y : tile.x) + i;
-        total += spanLength(
-          views.segmentOpen(segmentIndexAt(m, vertical, line, offset)),
-        );
-      }
-      return total;
+    const option = {
+      templateId: tile.templateId,
+      orientation: tile.orientation as 0 | 90 | 180 | 270,
+      difficulty: 0,
+      weight: 1,
     };
-    const shut = (["N", "E", "S", "W"] as Side[]).filter(
-      (side) => openAlong(side) === 0,
-    );
-    assert.ok(
-      (shut.includes("E") && shut.includes("W")) ||
-        (shut.includes("N") && shut.includes("S")),
-      `arcade at ${tile.id} sealed ${shut.join("/")}`,
-    );
+    for (const side of ["N", "E", "S", "W"] as Side[]) {
+      const required = getRotatedEdge(option, side, DEFAULT_LIBRARY.tiles);
+      for (let i = 0; i < 6; i++) {
+        if (required[i] === "any") continue;
+        const [x, y] =
+          side === "N"
+            ? [tile.x + i, tile.y - 1]
+            : side === "S"
+              ? [tile.x + i, tile.y + 6]
+              : side === "W"
+                ? [tile.x - 1, tile.y + i]
+                : [tile.x + 6, tile.y + i];
+        const cell = cellIndexAt(m, x, y);
+        // Across the map boundary there is nothing to constrain.
+        if (cell < 0 || views.cellClass(cell) === OUTSIDE_CLASS) continue;
+        assert.equal(
+          views.cellClass(cell),
+          required[i],
+          `${tile.id} ${side} segment ${i}`,
+        );
+        checked += 1;
+      }
+    }
   }
+  assert.ok(checked > 0, "expected a market front with a neighbour to check");
 });
 
 test("coded grids round-trip and are validated", () => {

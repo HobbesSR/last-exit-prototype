@@ -53,22 +53,27 @@ which re-derives `cells` and `legend` for you:
 ```
 
 `cells` is six rows of six marks, each naming a cell class: `.` takes the
-design's `defaultCellClass`, `#` the reserved `solid` material class, and any other
-mark is a `legend` key. A material cell states a wall against each neighbour
-that is not also material. `walls` are axis-aligned barriers on cell-edge lines,
+design's `defaultCellClass`, and any other mark is a `legend` key. Tiles paint
+zones only; the reserved `solid` material class is laid by micro builders and a
+tile may not use it. `walls` are axis-aligned barriers on cell-edge lines,
 and an optional `gap` leaves a centered aperture — a `gap` of 1.5 is a
 contestant-only squeeze _inside_ a tile.
-All interior geometry must keep a one-cell margin from the tile edge; see
-[design decisions](docs/DESIGN_DECISIONS.md) for why that margin is load-bearing.
+Interior geometry may run to the tile edge and continue through a seam; see
+[design decisions](docs/DESIGN_DECISIONS.md) for what removing the old one-cell
+margin gave up.
 
 Perimeter primitives are the adjacency contract. `edges` states a contract per
-segment — six marks a side, `.` deferring, `o` open, `#` wall — and `corners`
-states one per vertex. `primitives` sets metadata on any individual cell,
+segment — an array of six a side — and `corners` states one per vertex. Tile
+selection reads each `edges` entry as the class the neighbouring cell must take;
+a segment is meant to carry that alongside a wall type and a passability
+requirement, which issue #33 separates. `primitives` sets metadata on any individual cell,
 segment or vertex and wins over the shorthands:
 
 ```json
 {
-  "edges": { "E": "######", "W": "######" },
+  "edges": {
+    "S": ["market", "market", "market", "market", "market", "market"]
+  },
   "corners": { "N": ["arch", ".", ".", ".", ".", ".", "arch"] },
   "primitives": {
     "cells": { "2,2": { "class": "vault" } },
@@ -78,12 +83,12 @@ segment or vertex and wins over the shorthands:
 }
 ```
 
-`any` (written `.`) is the deferring value: it carries no requirement and adopts
+`any` is the deferring value: it carries no requirement and adopts
 whatever the seam contract and the neighbouring tile ask for. A concrete value
 is a requirement, and the design is only placed where that requirement holds.
 Unmentioned primitives default to deferring, so an author writes only what they
-actually care about. Perimeter barriers in the shipped library are stated through
-`edges` rather than `ports`.
+actually care about. The shipped library states neighbour class constraints
+through `edges` rather than `ports`, and no perimeter barriers.
 
 Micro generation is a **catalogue** of region builders, documented in
 [docs/MICRO_GENERATION.md](docs/MICRO_GENERATION.md). A builder takes one area

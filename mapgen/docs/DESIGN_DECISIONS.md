@@ -94,11 +94,21 @@ contract, so authoring one is reported as a mistake rather than silently
 ignored. Only perimeter vertices can carry metadata. When heights arrive, they
 will arrive as stated exceptions on the same footing.
 
-A filled cell takes the reserved `solid` class, and states a wall against each
-neighbour that is not also material. `#` in a `cells` block is shorthand for
-that class. Material aggregates into regions like any other class, so every cell
-a tile lays down belongs to exactly one region; no builder is registered for
-`solid`, so those regions are discovered and left alone.
+Tiles paint zones; they do not lay material. The reserved `solid` class is
+laid only by micro builders (the pillar hall, for one), and tile validation
+refuses it by every route a tile has: a `#` mark, a legend entry, a
+`primitives.cells` override or a default class. Every cell a tile lays down
+still belongs to exactly one region.
+
+A segment can carry several pieces of data and can say things about the cells
+on either side of it. For macro generation the perimeter segments are what
+matter, and among their properties they may constrain the class of the cells
+in the adjacent tile, suggest a type of wall, or require passability. Those may
+be mutually exclusive in practice, but nothing enforces it. The implementation
+does not yet hold them apart: `edges` is one string per segment, which tile
+selection reads as the class the neighbouring cell must take, so a barrier word
+there only fits against the map boundary. Separating the properties is
+issue #33.
 
 Perimeter primitives are the adjacency contract. Their deferring value, `any`,
 is not a silent default: it states that the tile has no requirement there and
@@ -108,10 +118,10 @@ This is the brain dump's "don't care, defaulting to empty, but adapting to
 neighbouring requirements", with the explicit-empty case (`open`) kept distinct
 so an author can guarantee a path rather than merely permit one.
 
-Cell class has no deferring value yet: `.` means "use this tile's default", and
-no seam contract carries cell class. Giving cells `any` and a seam term, so a
-tile can state part of its area and defer the rest and two tiles can agree to
-continue a class across a seam, is NEXT_TASKS.md item 3.
+Cell class has a deferring value too: a tile whose default class is `any`
+paints nothing of its own there and takes whatever class a neighbouring
+perimeter segment asks for, settling as open ground otherwise. `.` still means
+"use this tile's default".
 
 A segment's barrier metadata is the _open span_ within it, rather than a
 boolean, because the aperture ladder includes a 1.5-unit squeeze that does not
@@ -130,22 +140,21 @@ backtracking: a tile that cannot satisfy what a neighbour already claimed falls
 back to an adapter rather than causing the neighbour to be reconsidered. Real
 negotiation is still the open question in QUESTIONS.md.
 
-## Tile interiors and the one-cell margin
+## Tile interiors
 
-A template may paint its own cells and place interior barriers. All interior
-geometry must stay at least one cell from the tile edge. This is not a stylistic
-rule; it is what makes template selection a local decision. Because agent radii
-are below 1, geometry authored inside tile B can never come within a body radius
-of a lattice node inside tile A. A template can therefore be accepted or
-rejected against a seam contract without consulting the neighbour that will
-eventually sit beside it, which is what keeps selection an always-satisfiable
-lookup rather than a constraint-propagation problem. `generateMap` refuses to
-run authored interiors when either radius reaches 1, because the argument above
-would no longer hold.
+A template may paint its own cells and place interior barriers anywhere in its
+6 × 6 area, up to and including its edge, so geometry can continue through a
+seam into the neighbouring tile.
 
-A consequence worth stating plainly: with a 6 × 6 tile the authorable interior
-is the inner 4 × 4 plus barrier lines. Larger architecture is expressed through
-multi-tile layouts, not through bigger single-tile interiors.
+This used to be bounded by a one-cell margin. The margin made template
+selection a local decision: with agent radii below 1, geometry inside one tile
+could never come within a body radius of a lattice node inside its neighbour, so
+a template could be accepted against a seam contract without consulting the
+tile beside it. It was removed to raise the interior budget (NEXT_TASKS.md item
+6). Selection is therefore no longer provably local, and walkability is settled
+by validating the composed map as a whole. `generateMapLegacy` still refuses
+authored interiors when either radius reaches 1; that guard, and its error
+message, date from the margin.
 
 ## Anchors
 
@@ -168,8 +177,8 @@ cross tile seams, and a single tile may contribute cells to several regions.
 
 A region is an area, not an enclosure. Its boundary emits no geometry: walls
 come from seam contracts, from what a tile states, and from micro generation —
-never from two regions being different. Filled cells form material regions;
-no micro builder runs for their reserved `solid` class.
+never from two regions being different. Material a micro builder lays forms
+regions of its own class, and nothing stands in it.
 
 Micro generation then runs once per discovered region, never per tile. It
 receives spaced candidate slots, each carrying the loot density of the tier zone

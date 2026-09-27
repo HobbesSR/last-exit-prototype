@@ -14,7 +14,8 @@ No answer is needed to run the prototype. These defaults are assumptions for thi
 A tier zone is 12 x 6 tiles on a 5 x 5 grid masked to a diamond, and the map is
 the tiles those zones cover. Zone dimensions are a tunable parameter; the
 appended proposal's continuous noisy tier field is not adopted. Filled material
-is the reserved cell class `solid` rather than a separate occupancy axis.
+is the reserved cell class `solid` rather than a separate occupancy axis, and
+only micro builders lay it; tiles paint zones.
 
 For the experimental macro contract, overlapping cell ownership is rejected and
 shared segment declarations must agree. Filler owns only unclaimed cells. These

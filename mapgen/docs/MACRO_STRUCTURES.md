@@ -43,8 +43,9 @@ using `Math.round(value * 1e9)` integer ticks; reversal subtracts ticks from 1e9
 Spans that collapse at this precision are rejected. Shared declarations must
 agree exactly after this normalization; contradictory
 requirements fail instead of using last-writer precedence. Unstated segments
-between playable unfilled cells are open. Solid cells and the outside mask
-cannot be opened by a segment declaration. No tile interior margin applies.
+between playable cells are open. The outside mask cannot be opened by a segment
+declaration; composition never produces solid cells, since tiles paint zones and
+only micro builders lay material. No tile interior margin applies.
 
 This precision is a reversible experimental default. It preserves decimal
 apertures through rotation without bit-equality failures or order-dependent

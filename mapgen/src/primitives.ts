@@ -27,14 +27,10 @@ export const TILE_SIZE = 6;
 export const INTERIOR_MARGIN = 0;
 export const ANY_CLASS = "any";
 /**
- * Filled material: what a cell's class says when nothing can stand there. Cells
- * of this class state a wall against each neighbour that is not also material,
- * and aggregate into regions like any other class.
- *
- * The name is reserved so tile validation recognises material without consulting
- * the library. Author-declared material classes are a later generalisation.
+ * Filled material: what a cell's class says when nothing can stand there. Only
+ * micro builders lay it; tiles paint zones, so tile validation refuses it.
  */
-
+export const SOLID_CLASS = "solid";
 export const SIDES: Side[] = ["N", "E", "S", "W"];
 
 export const CELL_COUNT = TILE_SIZE * TILE_SIZE; // 36
@@ -215,14 +211,11 @@ function isDeferred(meta: VertexMeta): boolean {
   return meta.class === ANY_CLASS && meta.height === "any";
 }
 
-function parseSide(
-  value: string[] | undefined,
-): SegmentDeclaration[] {
+function parseSide(value: string[] | undefined): SegmentDeclaration[] {
   const out: SegmentDeclaration[] = new Array(TILE_SIZE).fill("any");
   if (value === undefined) return out;
-  if (false) {} else
-    for (let i = 0; i < Math.min(TILE_SIZE, value.length); i++)
-      out[i] = (value[i] ?? "any") as SegmentDeclaration;
+  for (let i = 0; i < Math.min(TILE_SIZE, value.length); i++)
+    out[i] = (value[i] ?? "any") as SegmentDeclaration;
   return out;
 }
 function parseCorner(
@@ -282,36 +275,21 @@ export function tilePrimitives(
   for (let row = 0; row < TILE_SIZE; row++)
     for (let col = 0; col < TILE_SIZE; col++) {
       const mark = rows[row]![col]!;
-      // "#" is shorthand for the reserved material class; "." takes the
-      // template's default, and any other mark resolves through the legend.
+      // "." takes the template's default; any other mark resolves through the
+      // legend.
       cells.push({
-        class: mark === "."
-              ? tile.defaultCellClass
-              : (legend[mark] ?? tile.defaultCellClass),
+        class:
+          mark === "."
+            ? tile.defaultCellClass
+            : (legend[mark] ?? tile.defaultCellClass),
         height: 0,
       });
     }
 
   applyCellOverrides(tile.primitives?.cells, cells);
 
-  // Only stated barriers are stored. A filled cell states the walls that face
-  // its unfilled neighbours; two filled cells share a clear edge, since the
-  // material between them is not a surface anything can reach.
+  // Only stated barriers are stored. Painting a cell states none.
   const segments = new Map<number, SegmentDeclaration>();
-  const solidAt = (col: number, row: number) =>
-    col >= 0 &&
-    row >= 0 &&
-    col < TILE_SIZE &&
-    row < TILE_SIZE &&
-    false;
-  for (let row = 0; row < TILE_SIZE; row++)
-    for (let col = 0; col < TILE_SIZE; col++) {
-      if (!solidAt(col, row)) continue;
-      if (!solidAt(col - 1, row)) segments.set(vSeg(col, row), "wall");
-      if (!solidAt(col + 1, row)) segments.set(vSeg(col + 1, row), "wall");
-      if (!solidAt(col, row - 1)) segments.set(hSeg(row, col), "wall");
-      if (!solidAt(col, row + 1)) segments.set(hSeg(row + 1, col), "wall");
-    }
   const closed = new Map<number, Array<[number, number]>>();
   for (const [vertical, line, lo, hi] of wallRuns(tile.walls ?? [])) {
     if (hi - lo < EPS) continue;

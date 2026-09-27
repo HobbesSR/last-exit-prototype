@@ -44,7 +44,7 @@ import {
   wallsFromLattice,
 } from "../core.ts";
 import { encodeGrid } from "../coding.ts";
-import {} from "../primitives.ts";
+import { SOLID_CLASS } from "../primitives.ts";
 import { latticeFor, nodeIndex, LATTICE_STEP } from "../nav.ts";
 import { getBuilder } from "../micro/catalogue.ts";
 import { createMask } from "../micro/mask.ts";
@@ -689,7 +689,7 @@ export function composeMap(plan: MapPlan): GeneratedMap {
       (w.y1 === w.y2 && w.y1 % p.tileSize !== 0),
   ).length;
   map.metrics.solidFraction =
-    grid.cellClass.filter((c) => c === "solid").length /
+    grid.cellClass.filter((c) => c === SOLID_CLASS).length /
     Math.max(1, grid.cellClass.filter((c) => c !== OUTSIDE_CLASS).length);
   // A seam a contestant fits through and a hunter does not, read off the
   // measured widths rather than off anyone's intent.

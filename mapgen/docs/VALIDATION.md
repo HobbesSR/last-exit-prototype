@@ -71,8 +71,8 @@ segment grid so a reported edge cannot drift from the geometry.
 
 Geometry checks use swept-disc moves on a half-cell lattice: a found route is
 physical, while a missing sampled route is not proof no continuous route exists.
-The one-cell interior margin remains necessary for the legacy local-fit
-algorithm. Micro blockers are validated against containment and routes, but
+The one-cell interior margin has been removed (NEXT_TASKS item 6), so the legacy
+local-fit algorithm no longer has the locality guarantee it relied on. Micro blockers are validated against containment and routes, but
 shipped classes place none. The experimental macro composer has separate
 composition and post-edit revalidation tests; this seed batch does not exercise
 randomized macro-structure placement, which is not implemented.

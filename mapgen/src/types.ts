@@ -107,15 +107,17 @@ export interface TileDesign {
   eligibleBonus?: number[];
   /**
    * Six rows of six marks, each resolving to a cell class: "." the design's
-   * default, "#" the reserved `solid` material class, else a legend key.
+   * default, else a legend key. Tiles paint zones: the reserved `solid` class
+   * is laid only by micro builders, and "#" is refused.
    */
   cells?: string[];
   legend?: Record<string, string>;
   walls?: InteriorWall[];
   /**
    * Per-side perimeter segment contracts, six per side, ordered west to east on
-   * N/S and north to south on E/W. Either six marks ("." any, "o" open, "#"
-   * wall) or an array of declarations. Omitted sides are entirely "any".
+   * N/S and north to south on E/W. Tile selection reads each entry as the class
+   * the neighbouring cell must take ("any" defers); barrier words share the
+   * same slot until issue #33 separates them. Omitted sides are entirely "any".
    */
   edges?: Partial<Record<Side, string[]>>;
   /** Per-side perimeter vertex contracts, seven per side, same ordering. */
@@ -143,8 +145,8 @@ export interface SetPiece {
 export interface Library {
   version: number;
   /**
-   * Every cell class a design may paint, declared. The reserved `solid` class
-   * and the empty outside class are always available and are not listed here.
+   * Every cell class a design may paint, declared. The reserved `any`, `solid`
+   * (micro builders only) and empty outside classes are not listed here.
    */
   cellClasses?: Record<string, CellClass>;
   tiles: TileDesign[];
