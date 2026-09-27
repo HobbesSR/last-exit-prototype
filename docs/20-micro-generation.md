@@ -383,6 +383,8 @@ explains unchanged winners. Advanced search settings are not style controls.
 All browser-based development tools (`/micro-lab.html`, `/decomposition-lab.html`,
 `/generation-demo.html`, and `mapgen`'s Map Lab at `http://localhost:4173/`) carry a shared
 global navigation bar. The Map Lab link goes to the active mapgen server's root URL.
+Cross-server links appear only when the peer's configured port is reachable in the
+same worktree. Each tool keeps its own local navigation when the peer is unknown.
 
 Open `/generation-demo.html` for Region, Decomposition, Generated and Walk stages
 of the same example. Inspect each child's assignment and geometry, vary contents,
