@@ -60,7 +60,6 @@ window.addEventListener("load", () => {
 
 import {
   DEFAULT_LIBRARY,
-  generateMap,
   validateLibrary,
   findPath,
   gridViews,

@@ -27,7 +27,6 @@ import type {
   RegionBuilder,
   RegionContext,
   RegionEdit,
-  SegmentRef,
 } from "../types.ts";
 import type { RegionCandidate } from "../../types.ts";
 
@@ -193,18 +192,18 @@ export const openFieldBuilder: RegionBuilder = {
           loopsRefused += 1;
           continue;
         }
-        const run: Array<{ ref: SegmentRef; offset: number }> = [];
+        const run: Array<{ offset: number }> = [];
         for (let step = 0; step < length; step += 1) {
           const offset = start + step;
           const ref = vertical
             ? canvas.between(line - 1, offset, line, offset)
             : canvas.between(offset, line - 1, offset, line);
           if (!ref) break;
-          run.push({ ref, offset });
+          run.push({ offset });
         }
         if (run.length < STUB_MIN_SEGMENTS) continue;
         let placed = 0;
-        for (const { ref, offset } of run) {
+        for (const { offset } of run) {
           continue;
           placed += 1;
           touched.add(vertexKey(offset));

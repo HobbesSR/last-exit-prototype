@@ -237,7 +237,7 @@ export function matchVertex(options: (TileOption | null)[], libraryTiles: TileDe
   return true;
 }
 
-export function propagate(grid: WfcGrid, columns: number, rows: number, libraryTiles: TileDesign[], startQueue?: number): boolean {
+export function propagate(grid: WfcGrid, _columns: number, _rows: number, _libraryTiles: TileDesign[], startQueue?: number): boolean {
   const inQueue = new Uint8Array(grid.length);
   const queue: number[] = [];
   
@@ -264,7 +264,7 @@ export function propagate(grid: WfcGrid, columns: number, rows: number, libraryT
     const cell = grid[i]!;
     if (cell.domain.length === 0) return false;
 
-    const checkSide = (nIndex: number | undefined, mySide: Side | "TL" | "TR" | "BL" | "BR", neighborSide: Side | "TL" | "TR" | "BL" | "BR") => {
+    const checkSide = (nIndex: number | undefined, mySide: Side | "TL" | "TR" | "BL" | "BR", _neighborSide: Side | "TL" | "TR" | "BL" | "BR") => {
       if (nIndex === undefined) return;
       const nCell = grid[nIndex]!;
       if (!nCell) return;

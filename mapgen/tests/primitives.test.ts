@@ -88,7 +88,7 @@ test("a filled cell is metadata plus stated walls, not a region class", () => {
     }),
   );
   // "#" resolves to the reserved material class, like any other paint.
-  assert.equal(p.cells[cellAt(1, 1)]!.class);
+  assert.equal(p.cells[cellAt(1, 1)]!.class, "solid");
   // It states the four walls facing its unfilled neighbours, and nothing else.
   assert.equal(p.segments.size, 4);
   assert.equal(segmentDeclaration(p, vSeg(1, 1)), "wall");
@@ -111,14 +111,14 @@ test("a deferring perimeter adopts the seam contract", () => {
 });
 
 test("a concrete perimeter declaration is a requirement, not a preference", () => {
-  const wallsOffNorth = template({ edges: { N: "######" } });
+  const wallsOffNorth = template({ edges: { N: ["#", "#", "#", "#", "#", "#"] } });
   assert.equal(
     resolvePrimitives(tilePrimitives(wallsOffNorth), { N: door }),
     null,
   );
   assert.ok(resolvePrimitives(tilePrimitives(wallsOffNorth), { N: sealed }));
 
-  const needsDoor = template({ edges: { N: "..oo.." } });
+  const needsDoor = template({ edges: { N: [".", ".", "o", "o", ".", "."] } });
   assert.ok(resolvePrimitives(tilePrimitives(needsDoor), { N: door }));
   assert.equal(
     resolvePrimitives(tilePrimitives(needsDoor), { N: sealed }),
@@ -127,7 +127,7 @@ test("a concrete perimeter declaration is a requirement, not a preference", () =
 });
 
 test("perimeter declarations turn with the template", () => {
-  const tile = template({ edges: { N: "######" } });
+  const tile = template({ edges: { N: ["#", "#", "#", "#", "#", "#"] } });
   const sealedSide = (deg: number): Side | undefined =>
     (["N", "E", "S", "W"] as Side[]).find((side) =>
       [0, 1, 2, 3, 4, 5].every(
@@ -177,7 +177,7 @@ test("explicit metadata overrides the shorthands", () => {
   });
   const p = tilePrimitives(tile, 0);
   assert.equal(p.cells[cellAt(2, 2)]!.class, "vault");
-  assert.equal(p.cells[cellAt(3, 3)]!.class);
+  assert.equal(p.cells[cellAt(3, 3)]!.class, "solid");
   assert.equal(segmentDeclaration(p, hSeg(3, 2)), "wall");
   assert.equal(vertexMeta(p, vertexAt(0, 1)).class, "post");
 });
@@ -219,7 +219,7 @@ test("solid overrides derive boundaries before explicit segment overrides", () =
       },
     }),
   );
-  assert.equal(filled.cells[cellAt(2, 2)]!.class);
+  assert.equal(filled.cells[cellAt(2, 2)]!.class, "solid");
   // A new solid cell derives its remaining three boundaries; stated segments win.
   assert.equal(filled.segments.size, 3);
   assert.equal(segmentDeclaration(filled, hSeg(2, 2)), "any");
