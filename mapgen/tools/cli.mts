@@ -17,11 +17,13 @@ import {
 import { decodeBson, looksLikeBson } from "../src/bson.ts";
 import { listBuilders } from "../src/micro/index.ts";
 import { generatePlannedMap, planMap } from "../src/plan/compose.ts";
+import { captureBaseline, compareSweep, runSweep, sweepCases } from "./sweep.mts";
+import type { SweepBaseline } from "./sweep.mts";
 import type { GeneratedMap } from "../src/types.ts";
 
 const HELP = `last-exit-map\n\nCommands:\n  plan --seed SEED [--zone-width N --zone-height N --exits N] [--out FILE] [--format json|bson]   (the planned generator)
   plan-only --seed SEED [--out FILE]   (the macro plan, without composing it)
-  generate --seed SEED [--mode game|playground] [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE] [--format json|bson]\n  validate FILE   (a map in either encoding, or a library)\n  batch [--count N] [--seed PREFIX] [--mode game|playground] [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE]\n  library [--out FILE]\n  help`;
+  generate --seed SEED [--mode game|playground] [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE] [--format json|bson]\n  validate FILE   (a map in either encoding, or a library)\n  batch [--count N] [--seed PREFIX] [--mode game|playground] [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE]\n  library [--out FILE]\n  sweep [--jobs N] (--out FILE [--count N] | --check FILE)   (per-layer content hashes that pin the map-layer refactor, #47)\n  help`;
 
 function fail(message: string): void {
   process.stderr.write(`${message}\n`);
@@ -152,6 +154,30 @@ try {
     const report = batch(o.seed ?? "batch", o.count ?? 100, params(o, true), library);
     output(report, o.out);
     if (!report.valid) process.exitCode = 1;
+  } else if (command === "sweep") {
+    // Pins generated content across the map-layer refactor (#47). It runs for
+    // minutes, so it is a command rather than part of npm test.
+    const o = options(rest);
+    if (!o.out === !o.check) throw new Error("sweep needs exactly one of --out or --check");
+    // A check reruns exactly what the baseline pinned, so it can't quietly cover less.
+    const baseline = o.check ? (readJson(o.check) as SweepBaseline) : undefined;
+    if (baseline && o.count) throw new Error("--check reruns the baseline's own cases; drop --count");
+    const cases = baseline?.provenance.cases ?? sweepCases(o.count ? Number(o.count) : undefined);
+    const started = performance.now();
+    void runSweep(cases, o.jobs ? Number(o.jobs) : undefined)
+      .then((entries) => {
+        const seconds = ((performance.now() - started) / 1000).toFixed(0);
+        const count = Object.keys(entries).length;
+        if (o.out) {
+          output(captureBaseline(cases, entries), o.out);
+          process.stderr.write(`captured ${count} maps in ${seconds}s\n`);
+          return;
+        }
+        const drift = compareSweep(baseline!, entries);
+        output({ checked: count, seconds: Number(seconds), drift });
+        if (drift.length) process.exitCode = 1;
+      })
+      .catch((error: unknown) => fail(error instanceof Error ? error.message : String(error)));
   } else throw new Error(`unknown command: ${command}`);
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));

@@ -103,7 +103,24 @@ so derived data can't be mistaken for stated data.
   segment-indexed, but stored under `cells`. That mismatch is #44.
 - `deriveWalls` builds one list from the fused class grid and appends every
   region's props, so layout walls and final navigation walls can't be told apart.
+- `deriveEdges` measures seams on the final segment grid, and micro builders
+  write segments into that grid. So today's seams depend on interiors: binding
+  classes to builders changes them for the same layout. Seams in structure have
+  to be measured on the layout's own segments. #47 found this.
 - The artifact stores metrics, validation and every region's cell list.
+
+### Proving a stage
+
+`node tools/cli.mts sweep --check tests/fixtures/layer-baseline.json` reruns
+the pinned seeds and compares per-layer content hashes. Today's shape fuses
+layers, so the hashes group content by what can be told apart now: layout,
+structure, interiors, **composed** (the final primitives, seams, walls and
+region partition, which every stage must still reproduce) and report.
+`tools/sweep.mts` `layerContent` is the only code that knows where each field
+lives. A stage that moves a field updates it in the same change, and the hashes
+must not move. A moved hash is a stop-and-escalate. The baseline is only
+recaptured for a deliberate, reviewed content change, and the PR says so. The
+baseline records the last generator commit it measured.
 
 The stages are #47 (a per-layer content baseline), #38 (remove the legacy
 generator and `adapter`), #48 (split the generator into phases without changing

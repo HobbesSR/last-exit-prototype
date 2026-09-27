@@ -28,10 +28,17 @@ const map = sweepMap(small, `${small.seedPrefix}-1`) as GeneratedMap;
 const base = layerHashes(map);
 
 /** Changed layers between two hash sets, in LAYERS order. */
-function changed(a: Record<string, string>, b: Record<string, string>): string[] {
+function changed(
+  a: Record<string, string>,
+  b: Record<string, string>,
+): string[] {
   return LAYERS.filter((layer) => a[layer] !== b[layer]);
 }
-function withGrid<T>(grid: CodedGrid<T>, index: number, value: T): CodedGrid<T> {
+function withGrid<T>(
+  grid: CodedGrid<T>,
+  index: number,
+  value: T,
+): CodedGrid<T> {
   const values = decodeGrid(grid);
   values[index] = value;
   return encodeGrid(values);
@@ -51,9 +58,14 @@ test("a change to one layer's content moves that layer's hash and no other", () 
         cells.originalClass = withGrid(cells.originalClass!, 0, "sweep-test");
       },
     ],
-    ["structure", (m) => (m.edges[0]!.width += 1)],
+    ["structure", (m) => (m.tiles[0]!.anchor.x += 0.5)],
     ["interiors", (m) => m.grid.cells.spawns.pop()],
-    ["composed", (m) => (m.grid.cells.class = withGrid(m.grid.cells.class, 0, "sweep-test"))],
+    [
+      "composed",
+      (m) =>
+        (m.grid.cells.class = withGrid(m.grid.cells.class, 0, "sweep-test")),
+    ],
+    ["composed", (m) => (m.edges[0]!.width += 1)],
     ["report", (m) => (m.metrics.lootCount += 1)],
   ];
   for (const [layer, edit] of edits) {
@@ -61,6 +73,18 @@ test("a change to one layer's content moves that layer's hash and no other", () 
     edit(copy);
     assert.deepEqual(changed(base, layerHashes(copy)), [layer], layer);
   }
+});
+
+test("layout and structure don't depend on which micro builders run", () => {
+  // Same seed and size, the shipped bindings against the geometry builders.
+  // If this fails, a field in one of these buckets is really micro output.
+  const bound = QUICK_CASES.find((c) => c.builders)!;
+  const other = layerHashes(
+    sweepMap(bound, `${bound.seedPrefix}-1`) as GeneratedMap,
+  );
+  assert.equal(other.layout, base.layout);
+  assert.equal(other.structure, base.structure);
+  assert.notEqual(other.interiors, base.interiors);
 });
 
 test("hashes ignore key order and how a grid is run-length coded", () => {
@@ -83,7 +107,9 @@ test("hashes ignore key order and how a grid is run-length coded", () => {
       ? value.map(reversed)
       : value !== null && typeof value === "object"
         ? Object.fromEntries(
-            Object.entries(value).reverse().map(([k, v]) => [k, reversed(v)]),
+            Object.entries(value)
+              .reverse()
+              .map(([k, v]) => [k, reversed(v)]),
           )
         : value;
   copy.tiles = reversed(copy.tiles) as GeneratedMap["tiles"];
@@ -119,14 +145,20 @@ test("the comparison names each drifted seed and layer", () => {
 
 test("the committed baseline still matches its quick cases", () => {
   const baseline = JSON.parse(
-    fs.readFileSync(new URL("./fixtures/layer-baseline.json", import.meta.url), "utf8"),
+    fs.readFileSync(
+      new URL("./fixtures/layer-baseline.json", import.meta.url),
+      "utf8",
+    ),
   ) as SweepBaseline;
   const current = Object.assign({}, ...QUICK_CASES.map((c) => runCase(c)));
   const pinned = Object.fromEntries(
     Object.keys(current).map((key) => [key, baseline.entries[key]]),
   );
   assert.deepEqual(
-    compareSweep({ ...baseline, entries: pinned as SweepBaseline["entries"] }, current),
+    compareSweep(
+      { ...baseline, entries: pinned as SweepBaseline["entries"] },
+      current,
+    ),
     [],
   );
 });
