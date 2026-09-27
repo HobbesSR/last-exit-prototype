@@ -468,6 +468,16 @@ test("uniform tiles remain ordinary content regardless of omitted or explicit an
   assert.ok(mixed.tiles.some((tile) => tile.templateId === "fallback"));
 });
 
+test("a malformed library fails once, not once per attempt", (t) => {
+  // A tile list with a hole once threw the same TypeError inside every one of
+  // the fifty sampling attempts before generation gave up.
+  const warn = t.mock.method(console, "warn", () => {});
+  const library = structuredClone(DEFAULT_LIBRARY);
+  library.tiles = [undefined as unknown as (typeof library.tiles)[number], ...library.tiles];
+  assert.throws(() => generateMap("malformed", {}, library), /invalid library: malformed tile/);
+  assert.equal(warn.mock.callCount(), 0);
+});
+
 test("a template that seals its own interior is never placed", () => {
   const sealed = {
     id: "sealed",

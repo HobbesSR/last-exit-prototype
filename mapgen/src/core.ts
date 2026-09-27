@@ -2895,7 +2895,12 @@ export function generateMap(
   const seedText = typeof seed === "number" ? seed.toString() : seed;
   const requested = { ...DEFAULT_PARAMS, ...params };
   const p: MapParams = { ...requested, columns: ZONE_COLUMNS * requested.zoneWidth, rows: ZONE_ROWS * requested.zoneHeight };
-  
+  // A malformed library fails every attempt the same way; the retry loop below
+  // is for unlucky samples, so reject it once here instead of fifty times.
+  const checkedLibrary = validateLibrary(library);
+  if (!checkedLibrary.valid)
+    throw new Error(`invalid library: ${checkedLibrary.errors.join("; ")}`);
+
   let map: GeneratedMap | null = null;
   
   for (let attempt = 0; attempt < 50; attempt++) {
@@ -3263,6 +3268,7 @@ export function generateMap(
     
     map!.edges = deriveEdges(map!);
     map!.walls = deriveWalls(map!);
+    map!.validation = validateMap(map!);
     break; 
     } catch (e) {
       console.warn("Attempt", attempt, "failed:", (e as Error).stack);
