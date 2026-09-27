@@ -20,8 +20,8 @@ import { listBuilders } from "../src/micro/index.ts";
 import { DEFAULT_LIBRARY } from "../src/core.ts";
 
 /** One map is expensive, so the whole suite shares these two. */
-const map = generateMap("micro-pipeline", { zoneWidth: 4, zoneHeight: 2 });
-const again = generateMap("micro-pipeline", { zoneWidth: 4, zoneHeight: 2 });
+const map = generateMap("micro-pipeline");
+const again = generateMap("micro-pipeline");
 
 test("a map built with the catalogue is a valid map", () => {
   const result = validateMap(map);

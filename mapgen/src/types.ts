@@ -155,6 +155,8 @@ export interface Library {
 }
 
 export interface MapParams {
+  /** Game enforces the calibrated set-piece recipe; playground omits that recipe. */
+  mode?: "game" | "playground";
   /** Tiles per zone, west to east. The map is covered by whole zones. */
   zoneWidth: number;
   /** Tiles per zone, north to south. Conventionally half `zoneWidth`. */

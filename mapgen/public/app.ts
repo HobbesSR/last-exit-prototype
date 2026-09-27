@@ -239,6 +239,7 @@ function build() {
   generationWorker.postMessage({
     seed: input("seed").value,
     params: {
+      mode: select("mode").value as "game" | "playground",
       zoneWidth: Number(input("zoneWidth").value),
       zoneHeight: Number(input("zoneHeight").value),
       exitCount: Number(input("exits").value),

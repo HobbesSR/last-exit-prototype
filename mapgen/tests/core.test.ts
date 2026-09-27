@@ -21,6 +21,53 @@ test("generation is deterministic and serializable", () => {
   assert.doesNotThrow(() => JSON.stringify(a));
   assert.equal(validateMap(a).valid, true);
 });
+test("game mode keeps its calibrated dimensions and required set-piece recipe", () => {
+  assert.throws(
+    () => generateMap("game-small", { zoneWidth: 2, zoneHeight: 1 }),
+    /game mode requires 12 x 6 tile zones/,
+  );
+
+  const incomplete = structuredClone(DEFAULT_LIBRARY);
+  incomplete.setPieces = incomplete.setPieces.filter(
+    (piece) => piece.category !== "enormous",
+  );
+  assert.throws(
+    () => generateMap("missing-enormous", {}, incomplete),
+    /game mode library requires start, end, at least 3 enormous, medium, and small set pieces/,
+  );
+
+  const game = generateMap("game-recipe");
+  assert.equal(game.params.mode, "game");
+  const categoryFor = new Map(
+    DEFAULT_LIBRARY.setPieces.map((piece) => [piece.id, piece.category]),
+  );
+  const placed = new Map<string, Set<string>>();
+  for (const tile of game.tiles) {
+    if (!tile.setPieceId) continue;
+    const category = categoryFor.get(tile.setPieceId);
+    if (!category) continue;
+    let ids = placed.get(category);
+    if (!ids) {
+      ids = new Set();
+      placed.set(category, ids);
+    }
+    ids.add(tile.setPieceId);
+  }
+  assert.ok((placed.get("start")?.size ?? 0) >= 1);
+  assert.ok((placed.get("end")?.size ?? 0) >= 1);
+  assert.ok((placed.get("enormous")?.size ?? 0) >= 3);
+  assert.ok((placed.get("medium")?.size ?? 0) >= 1);
+  assert.ok((placed.get("small")?.size ?? 0) >= 1);
+});
+test("playground mode allows a small map with the shipped library", () => {
+  const map = generateMap("playground-small", {
+    mode: "playground",
+    zoneWidth: 2,
+    zoneHeight: 1,
+  });
+  assert.equal(map.params.mode, "playground");
+  assert.equal(map.validation.valid, true, map.validation.errors.join("; "));
+});
 test("several zone sizes and seeds keep both classes connected", () => {
   for (const seed of ["a", "b", "c"])
     for (const [zoneWidth, zoneHeight] of [
@@ -28,7 +75,7 @@ test("several zone sizes and seeds keep both classes connected", () => {
       [3, 2],
       [5, 3],
     ]) {
-      const m = generateMap(seed, { zoneWidth, zoneHeight });
+      const m = generateMap(seed, { mode: "playground", zoneWidth, zoneHeight });
       assert.equal(m.tiles.length, 13 * zoneWidth! * zoneHeight!);
       assert.equal(m.validation.valid, true);
       const s = m.features.find((f) => f.kind === "spawn")!;
@@ -58,7 +105,7 @@ test.todo("a squeeze is authored geometry, measured back off the seam", () => {
     },
     { id: "field", defaultCellClass: "open", orientations: [0] },
   ] as unknown as typeof library.tiles;
-  const m = generateMap("squeeze", { zoneWidth: 2, zoneHeight: 1 }, library);
+  const m = generateMap("squeeze", { mode: "playground", zoneWidth: 2, zoneHeight: 1 }, library);
   assert.equal(m.validation.valid, true, m.validation.errors.join("; "));
   const e = m.edges.find((x) => x.kind === "squeeze");
   assert.ok(e, "the authored aperture is reported as a squeeze");
@@ -85,7 +132,7 @@ test("generation imposes no topology: seams are exactly what the tiles declare",
   library.tiles = [
     { id: "field", defaultCellClass: "open", orientations: [0] },
   ] as unknown as typeof library.tiles;
-  const m = generateMap("open-field", { zoneWidth: 3, zoneHeight: 2 }, library);
+  const m = generateMap("open-field", { mode: "playground", zoneWidth: 3, zoneHeight: 2 }, library);
   assert.equal(m.validation.valid, true, m.validation.errors.join("; "));
   assert.equal(m.walls.length, 20, "an unstated tile boundary carries no wall");
   assert.equal(m.metrics.sealedSeams, 0);
@@ -121,7 +168,7 @@ test.todo(
     ] as unknown as typeof library.tiles;
     const m = generateMap(
       "any-adopts",
-      { zoneWidth: 3, zoneHeight: 2 },
+      { mode: "playground", zoneWidth: 3, zoneHeight: 2 },
       library,
     );
     assert.equal(m.validation.valid, true, m.validation.errors.join("; "));
@@ -145,13 +192,13 @@ test.todo(
     // Two deferring designs state nothing between them, so the seam is clear.
     const open = structuredClone(library);
     open.tiles = [open.tiles[0]!];
-    const field = generateMap("any-any", { zoneWidth: 3, zoneHeight: 2 }, open);
+    const field = generateMap("any-any", { mode: "playground", zoneWidth: 3, zoneHeight: 2 }, open);
     assert.equal(field.metrics.sealedSeams, 0);
     assert.equal(field.walls.length, 20);
   },
 );
 
-// Waits on perimeter segment records (#33) and small maps (#27).
+// Waits on perimeter segment records (#33).
 test.todo("a design walled on every side is never used as fill", () => {
   // The segment editor makes walling a whole perimeter a two-click gesture, and
   // nothing imposes a seam any more, so such a design would be an island
@@ -170,7 +217,7 @@ test.todo("a design walled on every side is never used as fill", () => {
   };
   const beside = structuredClone(DEFAULT_LIBRARY);
   beside.tiles.push(boxed as unknown as (typeof beside.tiles)[number]);
-  const m = generateMap("boxed-fill", { zoneWidth: 3, zoneHeight: 2 }, beside);
+  const m = generateMap("boxed-fill", { mode: "playground", zoneWidth: 3, zoneHeight: 2 }, beside);
   assert.equal(m.validation.valid, true, m.validation.errors.join("; "));
   assert.equal(
     m.tiles.filter((t) => t.templateId === "boxed").length,
@@ -188,7 +235,7 @@ test.todo("a design walled on every side is never used as fill", () => {
   };
   const still = generateMap(
     "boxed-fallback",
-    { zoneWidth: 3, zoneHeight: 2 },
+    { mode: "playground", zoneWidth: 3, zoneHeight: 2 },
     asFallback,
   );
   assert.equal(
@@ -204,7 +251,7 @@ test.todo("a design walled on every side is never used as fill", () => {
   only.tileSets = [];
   only.tiles = [boxed as unknown as (typeof only.tiles)[number]];
   assert.throws(
-    () => generateMap("boxed-only", { zoneWidth: 2, zoneHeight: 1 }, only),
+    () => generateMap("boxed-only", { mode: "playground", zoneWidth: 2, zoneHeight: 1 }, only),
     /walled on every side|no generic fallback/,
   );
 });
@@ -213,7 +260,7 @@ test("every tile stays reachable and the run can be walked", () => {
   // The only connectivity the generator still owes. Checked over the geometry
   // the tiles produced, for both bodies, rather than over a planned graph.
   for (const seed of ["reach-1", "reach-2", "reach-3"]) {
-    const m = generateMap(seed, { zoneWidth: 3, zoneHeight: 2 });
+    const m = generateMap(seed, { mode: "playground", zoneWidth: 3, zoneHeight: 2 });
     assert.equal(m.validation.valid, true, m.validation.errors.join("; "));
     const spawn = m.features.find((f) => f.kind === "spawn")!;
     const hunterSpawn = m.features.find((f) => f.kind === "hunter-spawn")!;
@@ -261,7 +308,7 @@ test("library validation handles malformed nested input", () => {
 });
 
 test("nonintersecting collinear geometry does not block routes", () => {
-  const m = generateMap("collinear", { zoneWidth: 2, zoneHeight: 1 });
+  const m = generateMap("collinear", { mode: "playground", zoneWidth: 2, zoneHeight: 1 });
   m.walls.push({ x1: -20, y1: 15, x2: -10, y2: 15 });
   assert.equal(validateMap(m).valid, true);
 });
@@ -435,7 +482,7 @@ test.todo(
       },
     ];
     library.cellClasses = { ...library.cellClasses, yard: {} };
-    const params = { zoneWidth: 2, zoneHeight: 1 };
+    const params = { mode: "playground" as const, zoneWidth: 2, zoneHeight: 1 };
     const explicit = generateMap("uniform-content", params, library);
     assert.equal(explicit.validation.valid, true);
     assert.ok(explicit.tiles.every((tile) => tile.templateId === "field"));
@@ -497,7 +544,7 @@ test.todo("a template that seals its own interior is never placed", () => {
   library.tileSets = [{ id: "all", members: ["street", "sealed"] }];
   library.setPieces = [];
   library.cellClasses = { ...library.cellClasses, court: {} };
-  const m = generateMap("sealed", { zoneWidth: 2, zoneHeight: 1 }, library);
+  const m = generateMap("sealed", { mode: "playground", zoneWidth: 2, zoneHeight: 1 }, library);
   assert.equal(m.validation.valid, true);
   assert.equal(
     m.tiles.filter((t) => t.templateId === "sealed").length,

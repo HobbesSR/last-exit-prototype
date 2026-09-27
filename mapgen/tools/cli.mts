@@ -21,7 +21,7 @@ import type { GeneratedMap } from "../src/types.ts";
 
 const HELP = `last-exit-map\n\nCommands:\n  plan --seed SEED [--zone-width N --zone-height N --exits N] [--out FILE] [--format json|bson]   (the planned generator)
   plan-only --seed SEED [--out FILE]   (the macro plan, without composing it)
-  generate --seed SEED [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE] [--format json|bson]\n  validate FILE   (a map in either encoding, or a library)\n  batch [--count N] [--seed PREFIX] [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE]\n  library [--out FILE]\n  help`;
+  generate --seed SEED [--mode game|playground] [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE] [--format json|bson]\n  validate FILE   (a map in either encoding, or a library)\n  batch [--count N] [--seed PREFIX] [--mode game|playground] [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE]\n  library [--out FILE]\n  help`;
 
 function fail(message: string): void {
   process.stderr.write(`${message}\n`);
@@ -88,9 +88,9 @@ function readArtifactOrLibrary(
     return { kind: "map", map: value as unknown as GeneratedMap };
   return { kind: "library", library: value };
 }
-function params(o: Record<string, string>): Record<string, string> {
+function params(o: Record<string, string>, includeMode = false): Record<string, string> {
   return Object.fromEntries(
-    ["zoneWidth", "zoneHeight", "exits"]
+    [...(includeMode ? ["mode"] : []), "zoneWidth", "zoneHeight", "exits"]
       .filter((k) => o[k] !== undefined)
       .map((k) => [k, o[k]]),
   );
@@ -143,13 +143,13 @@ try {
     const library = (
       o.library ? readJson(o.library) : DEFAULT_LIBRARY
     ) as typeof DEFAULT_LIBRARY;
-    writeMap(generate(o.seed, params(o), library), o.out, o.format);
+    writeMap(generate(o.seed, params(o, true), library), o.out, o.format);
   } else if (command === "batch") {
     const o = options(rest);
     const library = (
       o.library ? readJson(o.library) : DEFAULT_LIBRARY
     ) as typeof DEFAULT_LIBRARY;
-    const report = batch(o.seed ?? "batch", o.count ?? 100, params(o), library);
+    const report = batch(o.seed ?? "batch", o.count ?? 100, params(o, true), library);
     output(report, o.out);
     if (!report.valid) process.exitCode = 1;
   } else throw new Error(`unknown command: ${command}`);

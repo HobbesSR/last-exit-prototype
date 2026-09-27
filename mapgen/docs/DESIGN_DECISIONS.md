@@ -23,6 +23,21 @@ a scaffold for authoring and validation, not a finished game map generator.
 - **Any Class:** A first-class "any" cell region type exists and defaults to open space. During micro-generation, it takes tile meta parameters to decide its final form.
 - **Selection weights:** Explicit tile selection weights have been removed from the data model. Frequency is treated uniformly until macro generation tuning is directly addressed.
 
+### Generation modes
+
+`generateMap` accepts an optional `MapParams.mode`, either `game` or
+`playground`, and defaults to `game`. The generated map records the resolved
+mode in its params. Both modes use the same horizontal
+five-by-five grid masked to the diamond, generic generation pipeline, and map
+validation. Game mode requires exactly 12 x 6 tiles per zone. The library must
+provide at least one `start`, one `end`, three `enormous`, one `medium`, and one
+`small` definition. Each game map places one `start`, one `end`, three distinct
+`enormous`, four `medium`, and ten `small` instances; medium and small definitions
+may be reused. Playground mode bypasses those game quotas and
+may use smaller zone dimensions for quick experiments, while still requiring a
+generically valid generated map. The browser, CLI, and MCP interfaces expose
+the same mode parameter and pass it through to the shared core.
+
 ## The macro model
 
 Tiles are an authoring and assembly grid. Regions, buildings, dead ends and
@@ -67,10 +82,10 @@ diagram combines them into its single number is still open in QUESTIONS.md.
 
 A tier zone is an area with its own extent. The zone grid is 5 x 5, masked to a
 diamond by Manhattan distance, and each zone is `zoneWidth` x `zoneHeight`
-tiles - 12 x 6 by default, tunable. The map is exactly the tiles its zones
-cover, so its extent follows from the zone dimensions and its boundary
-stair-steps. Zones are derived from the params and are not stored in the
-artifact.
+tiles. Game mode fixes those dimensions at 12 x 6; playground mode permits
+smaller dimensions. The map is exactly the tiles its zones cover, so its extent
+follows from the zone dimensions and its boundary stair-steps. Zones are
+derived from the params and are not stored in the artifact.
 
 A zone carries the progression numbers for the area it covers. `lootChance`
 starts at `params.lootChance` in tier 1 and rises by `params.lootTierStep` per
