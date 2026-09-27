@@ -147,6 +147,8 @@ A map is written in its wire form, as JSON or as BSON; `validate` accepts either
 and decides from the bytes rather than the file name. Batch reports include min,
 max, mean, median and p95 for each numeric metric, plus failing seeds. Failures produce a nonzero exit status. GUI and CLI use the same ES module, library format, and validator. Reproduction requires the seed **and** parameters, library, and generator revision; a seed alone is not a permanent content identifier.
 
+`sweep` generates the pinned seed set (329 maps across both generators, several sizes and a builder-bound library) on worker threads and compares each map's per-layer content hashes with `tests/fixtures/layer-baseline.json`. It reports every drifted seed and which layer moved, and exits nonzero on any drift. `npm test` checks the baseline's small cases on every run. The full check takes about a minute and a half on 8 workers. `--out FILE [--count N]` captures a new baseline, and refuses when `src/` or `content/` has uncommitted changes. See [Map layers](docs/DESIGN_DECISIONS.md#map-layers) for when a new baseline is allowed.
+
 An optional stdio MCP server exposes `map_generate`, `map_validate`, `library_validate`, and `map_batch`. Launch it with `node tools/mcp.mts` from this directory, or configure an MCP client with the path to `mapgen/tools/mcp.mts` in the checkout it should serve (the primary checkout tracks `main`):
 
 ```json
