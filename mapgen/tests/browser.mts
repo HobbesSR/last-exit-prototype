@@ -89,6 +89,21 @@ try {
       { timeout: 60000 },
     );
   };
+  await page.locator("#mapTab").click();
+  await page.locator("#zoneWidth").fill("2");
+  await page.locator("#zoneHeight").fill("1");
+  await generate();
+  assert.match(
+    await page.locator("#status").innerText(),
+    /game mode requires 12 x 6 tile zones/,
+  );
+  await page.locator("#mode").selectOption("playground");
+  await generate();
+  assert.match(await page.locator("#status").innerText(), /Validated map/);
+  // The remaining checks exercise library authoring, without game set-piece quotas.
+  await page.locator("#zoneWidth").fill("12");
+  await page.locator("#zoneHeight").fill("6");
+  await page.locator("#authorTab").click();
   const dragBox = async (u0: number, v0: number, u1: number, v1: number) => {
     const a = await at(u0, v0),
       b = await at(u1, v1);

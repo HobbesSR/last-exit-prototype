@@ -48,10 +48,16 @@ export function parseJson(text: unknown, name = "JSON"): unknown {
 export function makeParams(input: Record<string, unknown> = {}): MapParams {
   assertObject(input, "params");
   const params: MapParams = { ...DEFAULT_PARAMS };
-  const aliases: Record<string, keyof MapParams> = {
+  if (input.mode !== undefined) {
+    if (input.mode !== "game" && input.mode !== "playground")
+      throw new Error("params.mode must be game or playground");
+    params.mode = input.mode;
+  }
+  type NumericMapParam = Exclude<keyof MapParams, "mode">;
+  const aliases: Record<string, NumericMapParam> = {
     exits: "exitCount",
   };
-  const integral = new Set<keyof MapParams>([
+  const integral = new Set<NumericMapParam>([
     "zoneWidth",
     "zoneHeight",
     "exitCount",
@@ -66,7 +72,7 @@ export function makeParams(input: Record<string, unknown> = {}): MapParams {
   ]) {
     if (input[key] !== undefined) {
       const n = Number(input[key]);
-      const target = aliases[key] || (key as keyof MapParams);
+      const target = aliases[key] || (key as NumericMapParam);
       if (
         !Number.isFinite(n) ||
         (integral.has(target) && !Number.isInteger(n)) ||

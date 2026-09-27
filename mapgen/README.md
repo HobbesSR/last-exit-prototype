@@ -12,7 +12,7 @@ browser, so there is no build step and no compiled copy to drift.
 npm start
 ```
 
-Open **http://127.0.0.1:4173**. A `MAPGEN_PORT` in the repository root's untracked `.env.local` overrides that per worktree, and `npm start -- --port 0` binds any free port and prints it. Change the seed, zone dimensions, or exit count, then build. There is nothing to tune about connectivity: seams carry whatever the tiles beside them declare. Click tiles to inspect their design and features; click an exit to compare routes to it. Scroll to zoom, drag to pan, and use Fit map to reset the camera.
+Open **http://127.0.0.1:4173**. A `MAPGEN_PORT` in the repository root's untracked `.env.local` overrides that per worktree, and `npm start -- --port 0` binds any free port and prints it. Choose `game` mode for the fixed 12 x 6 zones and game set-piece quotas, or `playground` mode for the same diamond with smaller zones and no game category quotas. Change the seed, mode, zone dimensions, or exit count, then build. There is nothing to tune about connectivity: seams carry whatever the tiles beside them declare. Click tiles to inspect their design and features; click an exit to compare routes to it. Scroll to zoom, drag to pan, and use Fit map to reset the camera.
 
 **Playtest:** start an escape run; WASD/arrows move, mouse aims, click fires, E interacts. Hold E at a charger for five stationary seconds, then reach an exit. Gold is collected by proximity. Two simple pursuers follow hunter-accessible routes; shots tag them and they respawn. The Hunter body selector tests the larger radius and permits transit between T markers. This is a single-player traversal/combat sandbox, not the game's match simulation: no multiplayer, inventory, extraction competition, closing hazard, or final combat balance.
 
@@ -29,7 +29,7 @@ A tile has no weight field in the editor. The current `generate` path reads opti
 
 The active library starts from [content/default-library.json](content/default-library.json): 30 tile designs, 15 tile sets and 23 set pieces. A valid saved browser library takes precedence. The editor exposes design usage and the explicit fallback flag; `street` carries `adapter: true`, though the current WFC generator treats it as an ordinary candidate. Reset to shipped library restores the bundled corpus. Browser edits stay in browser storage; export JSON and pass it to the CLI to share the same library. See [the cleanup audit](docs/archive/editor-cleanup/EDITOR_CLEANUP.md) for the earlier selection behavior.
 
-`generate` and `batch` read this library and compose its tiles and set pieces before discovering regions. `plan` uses a separate region-first generator and does not read the library. All 30 designs can be selected by WFC even when no tile set names them. The `filler`, `park-edges` and `park-centers` tile sets are not referenced by the shipped set pieces; their member tiles remain available to WFC. Set-piece `class` is required by validation but is not consumed by current placement. The tile `anchor` field is read for WFC placements, while set-piece placements currently use tile centers.
+`generate` and `batch` read this library and compose its tiles before discovering regions. Game mode also places its required set pieces. Both expose the shared `mode` parameter: `game` is the default and requires 12 x 6 zones plus exactly one start, one end, three enormous, four medium, and ten small set pieces; `playground` keeps generic generation and validation but bypasses those quotas and permits smaller zones. The browser and MCP interfaces expose the same parameter. `plan` uses a separate region-first generator and does not read the library. All 30 designs can be selected by WFC even when no tile set names them. The `filler`, `park-edges` and `park-centers` tile sets are not referenced by the shipped set pieces; their member tiles remain available to WFC. Set-piece `class` is required by validation but is not consumed by current placement. The tile `anchor` field is read for WFC placements, while set-piece placements currently use tile centers.
 
 Every tile's 36 cells, 84 segments and 49 vertices are all addressable and all
 have metadata, but only what you actually state is stored. A segment nobody
@@ -133,8 +133,9 @@ rate without positional bias.
 ## Agent interfaces
 
 ```powershell
-node tools/cli.mts generate --seed experiment-1 --out map.json
+node tools/cli.mts generate --seed experiment-1 --mode game --out map.json
 node tools/cli.mts generate --seed experiment-1 --out map.bson   # or --format bson
+node tools/cli.mts generate --seed quick-check --mode playground --zone-width 3 --zone-height 2 --out playground.json
 node tools/cli.mts validate map.json
 node tools/cli.mts batch --seed experiment --count 100 --out report.json
 node tools/cli.mts library --out library.json

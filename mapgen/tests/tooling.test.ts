@@ -111,7 +111,7 @@ test("MCP initialize, list, call, and unknown method", async () => {
     `${JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list" })}\n`,
   );
   child.stdin.write(
-    `${JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "map_generate", arguments: { seed: "smoke", params: { zoneWidth: 2, zoneHeight: 1 } } } })}\n`,
+    `${JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "map_generate", arguments: { seed: "smoke", params: { mode: "playground", zoneWidth: 2, zoneHeight: 1 } } } })}\n`,
   );
   child.stdin.write(
     `${JSON.stringify({ jsonrpc: "2.0", id: 4, method: "nope" })}\n`,

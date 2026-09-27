@@ -2894,13 +2894,25 @@ export function generateMap(
   const seedText = typeof seed === "number" ? seed.toString() : seed;
   const requested = { ...DEFAULT_PARAMS, ...params };
   const p: MapParams = { ...requested, columns: ZONE_COLUMNS * requested.zoneWidth, rows: ZONE_ROWS * requested.zoneHeight };
+  const mode = p.mode ?? "game";
+  if (mode !== "game" && mode !== "playground")
+    throw new Error("map mode must be game or playground");
+  if (mode === "game" && (p.zoneWidth !== 12 || p.zoneHeight !== 6))
+    throw new Error("game mode requires 12 x 6 tile zones; choose playground mode for other zone dimensions");
   // A malformed library fails every attempt the same way; the retry loop below
   // is for unlucky samples, so reject it once here instead of fifty times.
   const checkedLibrary = validateLibrary(library);
   if (!checkedLibrary.valid)
     throw new Error(`invalid library: ${checkedLibrary.errors.join("; ")}`);
+  if (mode === "game") {
+    const pieces = library.setPieces;
+    const count = (category: string) => pieces.filter((piece) => piece.category === category).length;
+    if (count("start") < 1 || count("end") < 1 || count("enormous") < 3 || count("medium") < 1 || count("small") < 1)
+      throw new Error("game mode library requires start, end, at least 3 enormous, medium, and small set pieces");
+  }
 
   let map: GeneratedMap | null = null;
+  const placementFailures = new Map<string, number>();
   
   for (let attempt = 0; attempt < 50; attempt++) {
     if (onProgress) onProgress(`Attempt ${attempt + 1}/50`, attempt / 50);
@@ -2972,21 +2984,21 @@ export function generateMap(
 
     const activeSetPieces: { piece: any, filter: (anchor: MaskCell, w: number, h: number) => boolean }[] = [];
     
-    if (starts.length) activeSetPieces.push({ piece: starts[Math.floor(random() * starts.length)], filter: (c) => c.x === 0 });
-    if (ends.length) activeSetPieces.push({ piece: ends[Math.floor(random() * ends.length)], filter: (c, w) => c.x + w >= p.columns });
+    if (mode === "game" && starts.length) activeSetPieces.push({ piece: starts[Math.floor(random() * starts.length)], filter: (c) => c.x === 0 });
+    if (mode === "game" && ends.length) activeSetPieces.push({ piece: ends[Math.floor(random() * ends.length)], filter: (c, w) => c.x + w >= p.columns });
     
     const shuffle = (arr: any[]) => [...arr].sort(() => random() - 0.5);
-    const chosenEnormous = shuffle(enormous).slice(0, 3);
+    const chosenEnormous = mode === "game" ? shuffle(enormous).slice(0, 3) : [];
     if (chosenEnormous[0]) activeSetPieces.push({ piece: chosenEnormous[0], filter: (c, w) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y < p.rows / 3 });
     if (chosenEnormous[1]) activeSetPieces.push({ piece: chosenEnormous[1], filter: (c, w) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y >= p.rows / 3 && c.y < p.rows * 2 / 3 });
     if (chosenEnormous[2]) activeSetPieces.push({ piece: chosenEnormous[2], filter: (c, w) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y >= p.rows * 2 / 3 });
     
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; mode === "game" && i < 4; i++) {
       if (!mediums.length) break;
       activeSetPieces.push({ piece: mediums[Math.floor(random() * mediums.length)], filter: (c, w) => c.x < p.columns / 3 || c.x + w > p.columns * 2 / 3 });
     }
     
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; mode === "game" && i < 10; i++) {
       if (!smalls.length) break;
       activeSetPieces.push({ piece: smalls[Math.floor(random() * smalls.length)], filter: () => true });
     }
@@ -3008,7 +3020,11 @@ export function generateMap(
           placements.push({ i, slots });
         }
       }
-      if (!placements.length) { allPlaced = false; break; }
+      if (!placements.length) {
+        placementFailures.set(setPiece.id, (placementFailures.get(setPiece.id) ?? 0) + 1);
+        allPlaced = false;
+        break;
+      }
       const place = placements[Math.floor(random() * placements.length)]!;
         const instanceId = Math.random().toString();
       
@@ -3274,6 +3290,11 @@ export function generateMap(
     }
   }
   
-  if (!map) throw new Error("V2 Rejection sampling failed to find a walkable placement.");
+  if (!map) {
+    const placementDetail = [...placementFailures]
+      .map(([id, count]) => `${id} (${count}/50 attempts)`)
+      .join(", ");
+    throw new Error(`V2 Rejection sampling failed to find a walkable placement.${placementDetail ? ` Set piece placement failures: ${placementDetail}.` : ""}`);
+  }
   return map;
 }
