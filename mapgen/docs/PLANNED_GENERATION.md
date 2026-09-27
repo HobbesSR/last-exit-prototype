@@ -6,7 +6,7 @@ A second generator, built beside the legacy one rather than replacing it. `core.
 
 The legacy generator composes authored tiles, discovers regions from the cell classes that fall out, and only then finds out what it built. Nothing knows whether the map is walkable until the whole thing exists.
 
-That is survivable until micro generation gets the ability to state geometry — and then it is not. A builder sees one region and nothing else, so it cannot be told to keep a route that crosses four other regions; it does not have the information to be careful with. The legacy answer is `planStreets`: reserve a proven route network through the finished geometry before any builder runs, hold that ground back from every builder, drop props that reach into it, and repair the anchors that break anyway.
+That is survivable until micro generation gets the ability to state geometry — and then it is not. A builder sees one region and nothing else, so it cannot be told to keep a route that crosses four other regions; it does not have the information to be careful with. The legacy answer is `planStreets`: reserve a proven route network through the finished geometry before any builder runs, hold that ground back from every builder, and drop props that reach into it.
 
 It works. It also costs about a third of the map in reserved ground, needs a repair pass, and exists entirely because **macro has no way to say what it needs**. Everything it does is a workaround for a missing sentence.
 

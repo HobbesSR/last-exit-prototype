@@ -97,8 +97,6 @@ export interface TileDesign {
    * sides defer, and a design may omit `ports` entirely.
    */
   ports?: Partial<Record<Side, PortValue>>;
-  /** Explicit fallback role: true is used only when no ordinary design fits. Omission is false. */
-  adapter?: boolean;
   weight?: number;
   /** Optional custom labels for filtering/organizing. */
   labels?: string[];
@@ -331,15 +329,12 @@ export interface MapMetrics {
   /** Exits the contestant tile graph cannot reach from the spawn. */
   unroutedExits?: number;
   regionCount: number;
-  /** Legacy path only: V2 places no adapter fallbacks yet (#35). */
-  templateFallbacks?: number;
   lootCount: number;
   interiorWalls: number;
   solidFraction: number;
   largestRegion: number;
   exitCostSpread?: number;
   hunterToContestantRatio?: number;
-  adapterFraction?: number;
   [key: string]: number | undefined;
 }
 export interface GeneratedMap {

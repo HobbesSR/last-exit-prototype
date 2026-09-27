@@ -548,50 +548,31 @@ test("regions aggregate cells across tile seams, not whole tiles", () => {
     assert.notEqual(views.cellClass(spawn.cell), SOLID_CLASS);
 });
 
-// V2 ignores adapter: true (#35).
-test.todo(
-  "uniform tiles remain ordinary content regardless of omitted or explicit any ports",
-  () => {
-    const library = structuredClone(DEFAULT_LIBRARY);
-    library.setPieces = [];
-    library.tileSets = [];
-    library.tiles = [
-      {
-        id: "field",
-        defaultCellClass: "yard",
-
-        orientations: [0],
-        ports: {
-          N: ["any", "any", "any", "any", "any", "any"],
-          E: ["any", "any", "any", "any", "any", "any"],
-          S: ["any", "any", "any", "any", "any", "any"],
-          W: "any",
-        },
+test("uniform tiles remain ordinary content regardless of omitted or explicit any ports", () => {
+  const library = structuredClone(DEFAULT_LIBRARY);
+  library.setPieces = [];
+  library.tileSets = [];
+  library.tiles = [
+    {
+      id: "field",
+      defaultCellClass: "yard",
+      orientations: [0],
+      ports: {
+        N: ["any", "any", "any", "any", "any", "any"],
+        E: ["any", "any", "any", "any", "any", "any"],
+        S: ["any", "any", "any", "any", "any", "any"],
+        W: "any",
       },
-      {
-        id: "fallback",
-        defaultCellClass: "open",
-
-        orientations: [0],
-        adapter: true,
-      },
-    ];
-    library.cellClasses = { ...library.cellClasses, yard: {} };
-    const params = { mode: "playground" as const, zoneWidth: 2, zoneHeight: 1 };
-    const explicit = generateMap("uniform-content", params, library);
-    assert.equal(explicit.validation.valid, true);
-    assert.ok(explicit.tiles.every((tile) => tile.templateId === "field"));
-    assert.equal(explicit.metrics.adapterFraction, 0);
-    delete library.tiles[0]!.ports;
-    assert.deepEqual(generateMap("uniform-content", params, library), explicit);
-    // A fallback still supplies positions where an ordinary tile is ineligible.
-    library.tiles[0]!.eligibleTiers = [1];
-    const mixed = generateMap("uniform-content", params, library);
-    assert.equal(mixed.validation.valid, true);
-    assert.ok(mixed.tiles.some((tile) => tile.templateId === "field"));
-    assert.ok(mixed.tiles.some((tile) => tile.templateId === "fallback"));
-  },
-);
+    },
+  ];
+  library.cellClasses = { ...library.cellClasses, yard: {} };
+  const params = { mode: "playground" as const, zoneWidth: 2, zoneHeight: 1 };
+  const explicit = generateMap("uniform-content", params, library);
+  assert.equal(explicit.validation.valid, true);
+  assert.ok(explicit.tiles.every((tile) => tile.templateId === "field"));
+  delete library.tiles[0]!.ports;
+  assert.deepEqual(generateMap("uniform-content", params, library), explicit);
+});
 
 test("a malformed library fails once, not once per attempt", (t) => {
   // A tile list with a hole once threw the same TypeError inside every one of

@@ -385,9 +385,6 @@ footer {
   border-color: #7fd4dd;
   background: #1d3a42;
 }
-.tile-card.adapter {
-  border-style: dashed;
-}
 .tile-card figure {
   margin: 0;
   position: relative;
@@ -766,9 +763,6 @@ summary {
 #editSelected,
 #resetLibrary {
   margin-top: 12px;
-}
-.author-check {
-  margin: 0 0 12px;
 }
 .library-meta {
   color: #8fa5b4;

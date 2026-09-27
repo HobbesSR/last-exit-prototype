@@ -144,7 +144,7 @@ The corpus entry is a `TileDesign` — one of the tiles the assembler may place,
 not a pattern for producing tiles. A `PlacedTile` is one of them sited at a slot.
 
 In the intended composition model, tile boundaries imply no barrier. Fully open seams, and open meetings of four
-tiles, are ordinary. The live legacy generator still inserts coarse maze seams before selecting tiles; only the experimental composer currently supports this behavior.
+tiles, are ordinary. `generateMap` inserts no seams of its own: a seam carries what the designs beside it state.
 
 `ports` are the exception to "a tile owns its area": four coarse seam classes
 read by the tile-edge topology solver. They are a hint layered over a design

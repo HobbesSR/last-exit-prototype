@@ -1619,8 +1619,7 @@ function renderGallery(): void {
       card.className = "tile-card";
       card.dataset.tile = t.id;
       card.classList.toggle("active", t.id === select("template").value);
-      card.classList.toggle("adapter", t.adapter === true);
-      card.title = `${t.id} · default ${t.defaultCellClass}${t.adapter ? " · fallback adapter" : ""}`;
+      card.title = `${t.id} · default ${t.defaultCellClass}`;
       const name = document.createElement("span");
       name.textContent = t.id;
       card.append(tileThumbnail(t), name);
@@ -2018,7 +2017,6 @@ function editTemplate(keepPaint = false) {
   const t = library.tiles.find((t) => t.id === select("template").value);
   if (!t) return;
   input("tileId").value = t.id;
-  input("tileAdapter").checked = t.adapter === true;
   input("tileLabels").value = (t.labels || []).join(" ");
   const classes = cellClassNames(library).sort();
   select("defaultCellClass").replaceChildren(
@@ -2053,7 +2051,7 @@ function renderLibraryMeta(): void {
     map?.tiles.filter((placed) => placed.templateId === t.id).length ?? 0;
   const fresh = libraryRevision === builtLibraryRevision;
   $("libraryMeta").textContent =
-    `Active corpus: ${library.tiles.length} designs · source: ${libraryOrigin}. ${fresh ? `Last-built map uses ${placements} placement${placements === 1 ? "" : "s"} of this design.` : `Last-built map usage was ${placements}; this library changed and needs a rebuild.`} ${t.adapter ? "Fallback adapter: used only when authored designs cannot fit." : "Authored design: considered before fallback adapters."}`;
+    `Active corpus: ${library.tiles.length} designs · source: ${libraryOrigin}. ${fresh ? `Last-built map uses ${placements} placement${placements === 1 ? "" : "s"} of this design.` : `Last-built map usage was ${placements}; this library changed and needs a rebuild.`}`;
 }
 function apply(next: Library): void {
   const result = validateLibrary(next);
@@ -2111,8 +2109,6 @@ $("saveTemplate").onclick = () => {
       .filter(Boolean);
     if (labels.length) t.labels = labels;
     else delete t.labels;
-    if (input("tileAdapter").checked) t.adapter = true;
-    else delete t.adapter;
     apply(next);
     select("template").value = t.id;
     editTemplate();
