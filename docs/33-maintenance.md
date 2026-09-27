@@ -13,6 +13,7 @@ it restates something in another numbered file; if it does, link the number inst
 | Module structure, ownership, or a contract | The relevant 2x file |
 | A measurement | [42](42-performance-history.md), with its workload and limits |
 | What to build next | [41](41-roadmap.md) |
+| Work in progress or a session handoff | A comment on its Forgejo issue or pull request ([32](32-delegation.md)) |
 
 When a requirement changes, update its row first, then the explanation in a 2x file
 only if the explanation belongs there. Add or update an acceptance test for every

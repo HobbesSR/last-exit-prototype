@@ -2,12 +2,11 @@
 
 ## Start and resume
 
-Inspect `git status` and current files before acting. Read `FRESH_SESSION.md` when
-present for checkpoint context, then `docs/00-index.md` and the numbered files it
-points to for the area you are changing. The documentation and newer user edits
-take precedence over stale handoff summaries. Preserve `FRESH_SESSION.md` and its
-earlier notes; it must remain untracked. Do not stage or overwrite unrelated user
-changes.
+Inspect `git status` and current files before acting. When resuming an issue, read
+its latest handoff comment on Forgejo, then `docs/00-index.md` and the numbered
+files it points to for the area you are changing. The documentation and newer user
+edits take precedence over stale handoff comments. Do not stage or overwrite
+unrelated user changes.
 
 Load the documentation you need, not all of it. `docs/1x` is product, `2x` is
 engineering, `3x` is process, `4x` is plan and history. Cite the number, not a

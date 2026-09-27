@@ -43,14 +43,15 @@ is a cue to refine the brief or escalate, not to repeat an ambiguous assignment.
 
 ## Manual model switch or fresh conversation
 
-If subagents/model overrides are unavailable, prepare the next task in the latest
-section of `FRESH_SESSION.md`, using the brief above. Include what is complete,
-current dirty files, unresolved failures and the precise next action. Preserve all
-prior notes. Do not tell a fresh model to infer missing decisions from the old chat.
+If subagents/model overrides are unavailable, post the next task as a handoff
+comment on the Forgejo issue (or its pull request), using the brief above. Include
+the branch and worktree, what is complete, current dirty files, unresolved failures
+and the precise next action. Add a new comment rather than editing earlier ones.
+Do not tell a fresh model to infer missing decisions from the old chat.
 
 Tell the user the recommended model and why switching is useful. The pickup prompt is:
 
-> Read AGENTS.md and the latest task handoff in FRESH_SESSION.md. Implement the next ready task within its scope, run its acceptance checks, and update the handoff.
+> Read AGENTS.md and the latest handoff comment on issue #N. Implement the next ready task within its scope, run its acceptance checks, and post an updated handoff.
 
 For escalation back to Astra, replace "Implement" with "Review the blocked task,
 resolve the cross-system decision, and prepare the next bounded implementation task."

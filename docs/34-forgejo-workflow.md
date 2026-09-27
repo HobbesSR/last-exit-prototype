@@ -71,6 +71,9 @@ the agent starts its next branch from fresh `forgejo/main`.
    a merge, start the next task from step 2; the merged branch is left for the
    human to delete.
 
+To stop partway through a task, post a handoff comment on the issue as
+[32](32-delegation.md) describes; the next session resumes from it.
+
 ## Setting up a worktree
 
 Done once per agent by the human or the lead, from the primary checkout.
