@@ -53,6 +53,58 @@ solver indexes and diagnostics.
 
 The tile-edge maze solver has been removed. Generation currently fills slots outward from the western edge enforcing reachability through candidate selection, backed by whole-map geometry validation. Replacing that with composed macro structures is NEXT_TASKS.md item 1.
 
+## Map layers
+
+Decided 2026-09-27. Being implemented through issue #52. The code does not
+match this yet; see "Where the code is now" below.
+
+A map is a valid arrangement of macro primitives. Everything else about a
+generated map is either derived from that arrangement or produced by micro
+generation, and these are kept apart.
+
+| Layer | What it holds | Stored |
+| --- | --- | --- |
+| **Layout** | Seed and params; each slot's design, orientation and set piece; the primitives those designs lay down (cell classes, with `any` left as `any`; segment spans; stated vertices); macro features (spawn, hunter spawn, exits) | Yes. This is the map. |
+| **Structure** | Everything derived from the layout that informs micro generation: `any` cells filled in from their neighbours' edge constraints, the segment-indexed seam-constraint grid, seams, walls, zones, anchors, reserved streets and corridors, the regions handed to micro | No. `deriveStructure(layout)` builds it, both when generating and when reading an artifact. |
+| **Interiors** | What micro generation returns: material cells, props, spawns, micro features, cell levels, per-region manifests | Yes, as its own section. |
+| **Report** | Metrics and validation | No. Computed from the other three. |
+
+The rules that follow from it:
+
+- **Structure is a pure function of the layout.** It uses no randomness shared
+  with placement and reads nothing from micro. If two maps have the same layout,
+  they have the same structure.
+- **Micro never writes to the layout.** Material a builder lays is interiors.
+  The final region partition, after material is laid, is derived from layout
+  plus interiors.
+- **One writer per fact.** The Map Lab's debugging overlays, such as the
+  stripes on filled-in cells and the seam-constraint lines, read structure.
+  They are never fields added to the stored map.
+- **A layout is valid on its own terms.** Checks such as whether a tile seals
+  its interior or whether its anchor is free are about the layout and its
+  structure, not about what micro did later.
+- **The layout names no solver.** Fields that only steer a particular
+  placement algorithm, such as the removed `adapter` flag, are not layout.
+
+This is the same "don't store what can be derived" rule that "Encoding the
+primitives" and "The wire form" apply. It adds a line between macro and micro,
+so derived data can't be mistaken for stated data.
+
+### Where the code is now
+
+- One `GeneratedMap` holds all four layers.
+- `grid.cells.class` fuses three of them: the classes tiles declare, the
+  filled-in `any` cells, and micro's `solid` material.
+- The Map Lab overlays were added as stored grids (`originalClass`,
+  `constraints`), and the artifact drops them. `constraints` is also
+  segment-indexed, but stored under `cells`. That mismatch is #44.
+- The artifact stores metrics, validation and every region's cell list.
+
+The stages are #47 (a per-layer content baseline), #38 (remove the legacy
+generator and `adapter`), #48 (split the generator into phases without changing
+its output), then #49, #50 and #51 (layout, interiors and report, each
+test-driven).
+
 ## Units and scale
 
 The first macro redesign milestone now has an independent versioned composition
@@ -307,7 +359,10 @@ integer, and every bulk field becomes a column in the narrowest integer lane
 that holds it.
 
 `decodeArtifact` reconstructs a map deep-equal to the generated one, which is
-the property the tests assert, on several seeds, through both encodings.
+the property the tests assert, on several seeds, through both encodings. Two
+things currently break it: V2's overlay grids aren't encoded (#44), and the
+form still stores derived data, namely metrics, validation and region cell
+lists. "Map layers" defines what the form should hold.
 
 ## BSON
 
