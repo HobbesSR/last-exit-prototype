@@ -2,7 +2,7 @@ import DEFAULT_LIBRARY_JSON from "../content/default-library.json" with { type: 
 import { composeMacro } from "./macro.ts";
 import { getDifficulty, solveWfc, getRotatedEdge } from "./wfc.ts";
 import type { WfcGrid, TileOption } from "./wfc.ts";
-import type { MacroPlacement } from "./macro-types.ts";
+import type { MacroComposition, MacroPlacement } from "./macro-types.ts";
 import { compileTileDesign } from "./macro-compiler.ts";
 import { validateCellClass } from "./regions.ts";
 import { builderFor, createMask, createRng } from "./micro/index.ts";
@@ -521,7 +521,7 @@ export function searchRegions(
  * result reading as a dendrite; and every seam left out is one a builder may
  * wall, narrow to a squeeze, or run a compound across.
  */
-interface StreetPlan {
+export interface StreetPlan {
   corridors: ReservedCorridor[];
   /** One byte per cell: 1 where the network runs and nothing may be built. */
   reserved: Uint8Array;
@@ -897,7 +897,7 @@ function buildableBlocks(
  * region straddling a zone boundary is handled without deciding which zone it
  * "belongs" to. The class rule supplies only what is intrinsic to the class.
  */
-interface MicroResult {
+export interface MicroResult {
   spawns: Array<{ cell: number; kind: string }>;
   obstacles: Wall[];
   features: Array<{ kind: string; x: number; y: number }>;
@@ -1821,6 +1821,556 @@ export function validateMap(input: unknown): ValidationResult {
 }
 
 
+/**
+ * Metrics and validation for a finished map, which is the "Report" layer in
+ * docs/DESIGN_DECISIONS.md "Map layers". Every generator ends here, so the
+ * numbers mean the same thing whichever one made the map.
+ */
+export function reportMap(map: GeneratedMap): void {
+  measureMap(map);
+  map.validation = validateMap(map);
+}
+
+/**
+ * The regions of a finished grid, each holding the props whose midpoint lies
+ * in it. The artifact carries the partition of the composed result, not the
+ * one the builders were handed, so this is searched after micro has run. A
+ * prop stays inside one cell by contract, so its midpoint names the region
+ * that now owns it -- which may not be the one whose builder placed it.
+ */
+export function partitionFinished(
+  grid: Parameters<typeof searchRegions>[0],
+  seed: string,
+  props: Iterable<Wall>,
+): MapRegion[] {
+  const regions = searchRegions(grid, seed);
+  const regionAt = new Int32Array(grid.W * grid.H).fill(-1);
+  regions.forEach((region, index) => {
+    for (const cell of region.cells) regionAt[cell] = index;
+  });
+  for (const wall of props) {
+    const cx = Math.floor((wall.x1 + wall.x2) / 2),
+      cy = Math.floor((wall.y1 + wall.y2) / 2);
+    if (cx < 0 || cy < 0 || cx >= grid.W || cy >= grid.H) continue;
+    regions[regionAt[cy * grid.W + cx]!]?.obstacles.push(wall);
+  }
+  return regions;
+}
+
+/** The placement sampler's generator. Each retry attempt starts one step further along. */
+function placementRandom(seedText: string, attempt: number): () => number {
+  let seedState = 0;
+  for (let i = 0; i < seedText.length; i++)
+    seedState = Math.imul(seedState ^ seedText.charCodeAt(i), 3432918353);
+  seedState += attempt;
+  return () => {
+    seedState = (seedState + 1831565813) | 0;
+    let t = Math.imul(seedState ^ (seedState >>> 15), 1 | seedState);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Where a design's anchor lands inside its tile once turned, in cells from the tile's corner. */
+function designAnchor(design: TileDesign, deg: number, tileSize: number): Point {
+  const anyDesign = design as any;
+  if (!anyDesign.anchor) return { x: tileSize / 2, y: tileSize / 2 };
+  let ax = anyDesign.anchor.x;
+  let ay = anyDesign.anchor.y;
+  if (deg === 90) { const t = ax; ax = tileSize - ay; ay = t; }
+  else if (deg === 180) { ax = tileSize - ax; ay = tileSize - ay; }
+  else if (deg === 270) { const t = ax; ax = ay; ay = tileSize - t; }
+  return { x: ax, y: ay };
+}
+
+/** The design placement falls back to when a slot names none the library has. */
+function fallbackDesign(library: Library): TileDesign {
+  return library.tiles.find(t => t.id === "open") || library.tiles.find(t => t.id === "plain") || library.tiles[0]!;
+}
+
+/**
+ * What placement decided, which is the "Layout" layer in docs/DESIGN_DECISIONS.md
+ * "Map layers": each slot's design, orientation and set piece, the primitives
+ * those designs lay down, and which slots carry the macro features.
+ * `composition.cellClass` keeps `any` cells as `any`; filling them in is
+ * structure. Nothing else may write to it.
+ */
+export interface PlacedLayout {
+  seed: string;
+  params: MapParams;
+  /** The tile slots the occupied zones cover, zone by zone. */
+  cells: MaskCell[];
+  /** One per slot, in `cells` order. */
+  slots: Array<{ templateId: string; orientation: number; setPieceId?: string }>;
+  composition: MacroComposition;
+  /** Slot indices. */
+  features: { spawn: number; hunter: number; exits: number[] };
+}
+
+/**
+ * One sample of the retry loop: set pieces, then WFC for the rest, then the
+ * primitives the chosen designs lay down. Every draw from `random` happens
+ * here. A set piece with nowhere to go is reported rather than thrown, so the
+ * caller can say which one kept failing; a WFC failure throws.
+ */
+export function placeLayout(
+  seedText: string,
+  p: MapParams,
+  library: Library,
+  random: () => number,
+): PlacedLayout | { failedSetPiece: string } {
+  const mode = p.mode;
+  const zones = makeZones(p);
+
+  const cells: MaskCell[] = [];
+  const byKey = new Map<string, number>();
+  for (const zone of zones) {
+    const [x0, y0, x1, y1] = zone.tiles;
+    for (let col = x0; col <= x1; col++) {
+      for (let row = y0; row <= y1; row++) {
+        byKey.set(key(col, row), cells.length);
+        cells.push({ x: col, y: row, col, row, id: `t-${col}-${row}`, zoneId: zone.id });
+      }
+    }
+  }
+
+  const zoneOf = (c: MaskCell) => zones.find((z) => c.x >= z.tiles[0]! && c.x <= z.tiles[2]! && c.y >= z.tiles[1]! && c.y <= z.tiles[3]!)!;
+
+  const assigned = new Array<{
+    templateId: string; orientation: number; setPieceId?: string; setPieceInstance?: string;
+  } | undefined>(cells.length);
+
+  const fallback = fallbackDesign(library);
+
+  const allLibraryPieces = library.setPieces || [];
+  const starts = allLibraryPieces.filter((sp: any) => sp.category === "start");
+  const ends = allLibraryPieces.filter((sp: any) => sp.category === "end");
+  const enormous = allLibraryPieces.filter((sp: any) => sp.category === "enormous");
+  const mediums = allLibraryPieces.filter((sp: any) => sp.category === "medium");
+  const smalls = allLibraryPieces.filter((sp: any) => sp.category === "small");
+
+  const activeSetPieces: { piece: any, filter: (anchor: MaskCell, w: number, h: number) => boolean }[] = [];
+
+  if (mode === "game" && starts.length) activeSetPieces.push({ piece: starts[Math.floor(random() * starts.length)], filter: (c) => c.x === 0 });
+  if (mode === "game" && ends.length) activeSetPieces.push({ piece: ends[Math.floor(random() * ends.length)], filter: (c, w) => c.x + w >= p.columns });
+
+  const shuffle = (arr: any[]) => [...arr].sort(() => random() - 0.5);
+  const chosenEnormous = mode === "game" ? shuffle(enormous).slice(0, 3) : [];
+  if (chosenEnormous[0]) activeSetPieces.push({ piece: chosenEnormous[0], filter: (c, w) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y < p.rows / 3 });
+  if (chosenEnormous[1]) activeSetPieces.push({ piece: chosenEnormous[1], filter: (c, w) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y >= p.rows / 3 && c.y < p.rows * 2 / 3 });
+  if (chosenEnormous[2]) activeSetPieces.push({ piece: chosenEnormous[2], filter: (c, w) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y >= p.rows * 2 / 3 });
+
+  for (let i = 0; mode === "game" && i < 4; i++) {
+    if (!mediums.length) break;
+    activeSetPieces.push({ piece: mediums[Math.floor(random() * mediums.length)], filter: (c, w) => c.x < p.columns / 3 || c.x + w > p.columns * 2 / 3 });
+  }
+
+  for (let i = 0; mode === "game" && i < 10; i++) {
+    if (!smalls.length) break;
+    activeSetPieces.push({ piece: smalls[Math.floor(random() * smalls.length)], filter: () => true });
+  }
+
+  activeSetPieces.sort((a, b) => b.piece.tiles.length - a.piece.tiles.length);
+
+  for (const [pieceIndex, { piece: setPiece, filter }] of activeSetPieces.entries()) {
+    if (!setPiece) continue;
+    const w = Math.max(...setPiece.tiles.map((s: any) => s.dx)) + 1;
+    const h = Math.max(...setPiece.tiles.map((s: any) => s.dy)) + 1;
+
+    const placements: Array<{ i: number; slots: Array<{ s: SetPieceSlot; j: number | undefined }> }> = [];
+    for (let i = 0; i < cells.length; i++) {
+      const anchor = cells[i]!;
+      if (!filter(anchor, w, h)) continue;
+      const slots = setPiece.tiles.map((s: any) => ({ s, j: byKey.get(key(anchor.x + s.dx, anchor.y + s.dy)) }));
+      if (slots.every((x: any) => x.j !== undefined && setPiece.eligibleTiers.includes(zoneOf(cells[x.j]!).tier) && !assigned[x.j])) {
+        placements.push({ i, slots });
+      }
+    }
+    if (!placements.length) return { failedSetPiece: setPiece.id };
+    const place = placements[Math.floor(random() * placements.length)]!;
+    // Tells one placed copy of a set piece from another. It takes no draw from
+    // `random`, so it can't shift anything placed after it.
+    const instanceId = `${setPiece.id}#${pieceIndex}`;
+
+    for (const { s, j: slot } of place.slots) {
+      const j = slot!;
+      const tileSet = library.tileSets?.find((ts) => ts.id === s.tileSetId);
+      const memberId = tileSet ? tileSet.members[Math.floor(random() * tileSet.members.length)] : fallback.id;
+      const design = library.tiles.find((t) => t.id === memberId) || fallback;
+      const orientations = design.orientations && design.orientations.length ? design.orientations : [0];
+      const orientation = (s as any).orientation !== undefined ? (s as any).orientation : orientations[Math.floor(random() * orientations.length)];
+
+      assigned[j] = {
+        templateId: design.id, orientation,
+        setPieceId: setPiece.id,
+        setPieceInstance: instanceId,
+      };
+    }
+  }
+
+  const tileOptions: import("./wfc.ts").TileOption[] = library.tiles.flatMap(t =>
+    (t.orientations || [0]).map(o => ({
+      templateId: t.id,
+      orientation: o as any,
+      difficulty: getDifficulty(t),
+      weight: t.weight || 1,
+      id: undefined as any
+    }))
+  );
+  const wfcGrid: WfcGrid = cells.map((c, i) => {
+    if (assigned[i]) {
+      return {
+        x: c.x, y: c.y,
+        domain: [{
+          weight: 1,
+          templateId: assigned[i]!.templateId,
+          orientation: assigned[i]!.orientation as any,
+          difficulty: 0 // pre-assigned
+        }],
+        setPieceInstance: assigned[i]!.setPieceInstance
+      };
+    } else {
+      const tier = zoneOf(c).tier;
+      const validTiles = library.tiles.filter(t => !t.eligibleTiers || t.eligibleTiers.includes(tier));
+      const domain: TileOption[] = [];
+      for (const t of validTiles) {
+        for (const tOpt of tileOptions) {
+          if (tOpt.templateId === t.id) domain.push(tOpt);
+        }
+      }
+      return { x: c.x, y: c.y, domain };
+    }
+  });
+
+  const cellMap = new Map<string, number>();
+  wfcGrid.forEach((c, i) => cellMap.set(`${c.x},${c.y}`, i));
+  for (const c of wfcGrid) {
+    c.n = cellMap.get(`${c.x},${c.y - 1}`);
+    c.s = cellMap.get(`${c.x},${c.y + 1}`);
+    c.e = cellMap.get(`${c.x + 1},${c.y}`);
+    c.w = cellMap.get(`${c.x - 1},${c.y}`);
+    c.tl = cellMap.get(`${c.x - 1},${c.y - 1}`);
+    c.tr = cellMap.get(`${c.x + 1},${c.y - 1}`);
+    c.bl = cellMap.get(`${c.x - 1},${c.y + 1}`);
+    c.br = cellMap.get(`${c.x + 1},${c.y + 1}`);
+  }
+
+  const solvedGrid = solveWfc(wfcGrid, p.columns, p.rows, library.tiles, random);
+  if (!solvedGrid) {
+    throw new Error("WFC Solver could not find a valid tile layout for the macro grid.");
+  }
+
+  const slots: PlacedLayout["slots"] = cells.map((_, i) => {
+    const placed = assigned[i];
+    if (placed)
+      return {
+        templateId: placed.templateId,
+        orientation: placed.orientation,
+        ...(placed.setPieceId ? { setPieceId: placed.setPieceId } : {}),
+      };
+    const opt = solvedGrid[i]!.domain[0]!;
+    const template = library.tiles.find(t => t.id === opt.templateId) || fallback;
+    return { templateId: template.id, orientation: opt.orientation };
+  });
+
+  const placementsArray: MacroPlacement[] = cells.map((c, i) => {
+    const design = library.tiles.find((t) => t.id === slots[i]!.templateId)!;
+    return {
+      id: c.id, structure: compileTileDesign(design, slots[i]!.orientation as any),
+      origin: { x: c.x * p.tileSize, y: c.y * p.tileSize }, orientation: 0,
+    } as MacroPlacement;
+  });
+
+  const cellMask: Point[] = [];
+  for (const c of cells) {
+    for (let dy = 0; dy < p.tileSize; dy++) {
+      for (let dx = 0; dx < p.tileSize; dx++) { cellMask.push({ x: c.x * p.tileSize + dx, y: c.y * p.tileSize + dy }); }
+    }
+  }
+
+  const composition = composeMacro({
+    version: 1, seed: seedText, width: p.columns * p.tileSize, height: p.rows * p.tileSize,
+    mask: cellMask, defaultCellClass: "grass", placements: placementsArray,
+  });
+
+  const left = cells.map((c, i) => ({ c, i })).filter((x) => x.c.x < p.columns / 3);
+  const right = cells.map((c, i) => ({ c, i })).filter((x) => x.c.x > (p.columns * 2) / 3);
+  const spawn = left.reduce((best, x) => (x.c.y > cells[best]!.y ? x.i : best), left[0]!.i);
+  const hunter = right.reduce((best, x) => (x.c.x > cells[best]!.x ? x.i : best), right[0]!.i);
+  const exits = right.slice(0, p.exitCount).map((x) => x.i);
+
+  return { seed: seedText, params: p, cells, slots, composition, features: { spawn, hunter, exits } };
+}
+
+/**
+ * Everything derived from a layout that informs micro generation, which is the
+ * "Structure" layer in docs/DESIGN_DECISIONS.md "Map layers".
+ */
+export interface DerivedStructure {
+  zones: MapZone[];
+  /** The layout's placements with their anchors, in slot order. */
+  tiles: PlacedTile[];
+  /** The composed classes with each `any` cell filled in from its neighbours' edge constraints. */
+  cellClass: string[];
+  /** What each seam segment's neighbouring tile edge demands, segment-indexed. */
+  segmentConstraints: string[];
+  /** The regions handed to micro, and which one owns each cell. */
+  regions: MapRegion[];
+  regionOf: Int32Array;
+  streets: StreetPlan;
+}
+
+/**
+ * Structure from a layout. Pure: it draws nothing from placement's generator
+ * and reads nothing micro wrote, so two maps with the same layout have the
+ * same structure. It's null when no street network joins the blocks, which
+ * sends the retry loop to its next sample.
+ */
+export function deriveStructure(layout: PlacedLayout, library: Library): DerivedStructure | null {
+  const { params: p, cells, slots, composition } = layout;
+  const zones = makeZones(p);
+  const fallback = fallbackDesign(library);
+
+  // A set piece's tiles stand on their centres; a design placed by WFC may
+  // state where its anchor is.
+  const tiles: PlacedTile[] = cells.map((c, i) => {
+    const slot = slots[i]!;
+    const design = library.tiles.find((t) => t.id === slot.templateId) || fallback;
+    const anchor = slot.setPieceId
+      ? { x: p.tileSize / 2, y: p.tileSize / 2 }
+      : designAnchor(design, slot.orientation, p.tileSize);
+    return {
+      ...c, x: c.x * p.tileSize, y: c.y * p.tileSize,
+      templateId: slot.templateId, orientation: slot.orientation,
+      anchor: { x: c.x * p.tileSize + anchor.x, y: c.y * p.tileSize + anchor.y },
+      ...(slot.setPieceId ? { setPieceId: slot.setPieceId } : {})
+    };
+  });
+
+  const W = composition.width;
+  const H = composition.height;
+  const cellConstraints = new Array(W * H).fill("any");
+  const segmentCount = (W + 1) * H + (H + 1) * W;
+  const segmentConstraints = new Array(segmentCount).fill("any");
+
+  for (const t of tiles) {
+    const opt = { templateId: t.templateId, orientation: t.orientation as any, difficulty: 0, weight: 1 };
+    const N = getRotatedEdge(opt, "N", library.tiles);
+    const S = getRotatedEdge(opt, "S", library.tiles);
+    const E = getRotatedEdge(opt, "E", library.tiles);
+    const W_edge = getRotatedEdge(opt, "W", library.tiles);
+
+    for (let i = 0; i < p.tileSize; i++) {
+      const vOffset = (W + 1) * H;
+      if (N[i] !== "any") {
+        const cx = t.x + i; const cy = t.y - 1;
+        if (cy >= 0) cellConstraints[cy * W + cx] = N[i];
+        const segIdx = vOffset + t.y * W + cx; // horizontal: verticalCount + line(y) * width + offset(x)
+        segmentConstraints[segIdx] = N[i];
+      }
+      if (S[i] !== "any") {
+        const cx = t.x + i; const cy = t.y + p.tileSize;
+        if (cy < H) cellConstraints[cy * W + cx] = S[i];
+        const segIdx = vOffset + (t.y + p.tileSize) * W + cx;
+        segmentConstraints[segIdx] = S[i];
+      }
+      if (E[i] !== "any") {
+        const cx = t.x + p.tileSize; const cy = t.y + i;
+        if (cx < W) cellConstraints[cy * W + cx] = E[i];
+        const segIdx = (t.y + i) * (W + 1) + (t.x + p.tileSize); // vertical: offset(y) * (width + 1) + line(x)
+        segmentConstraints[segIdx] = E[i];
+      }
+      if (W_edge[i] !== "any") {
+        const cx = t.x - 1; const cy = t.y + i;
+        if (cx >= 0) cellConstraints[cy * W + cx] = W_edge[i];
+        const segIdx = (t.y + i) * (W + 1) + t.x;
+        segmentConstraints[segIdx] = W_edge[i];
+      }
+    }
+  }
+
+  const cellClass = [...composition.effectiveCellClass];
+  for (let i = 0; i < cellClass.length; i++) {
+    if (composition.cellClass[i] === "any") {
+      if (cellConstraints[i] !== "any") cellClass[i] = cellConstraints[i];
+    }
+  }
+
+  const byKey = new Map(cells.map((c, i) => [key(c.x, c.y), i]));
+  const adj: Neighbour[][] = Array.from({ length: cells.length }, () => []);
+  const DIRS = [[0, -1, "N", "S"], [1, 0, "E", "W"], [0, 1, "S", "N"], [-1, 0, "W", "E"]] as const;
+  for (let i = 0; i < cells.length; i++) {
+    for (const [dx, dy, side, opposite] of DIRS) {
+      const j = byKey.get(key(cells[i]!.x + dx, cells[i]!.y + dy));
+      if (j !== undefined) adj[i]!.push({ j, side, opposite });
+    }
+  }
+
+  let streets: StreetPlan;
+  try {
+    streets = planStreets(tiles, adj, layoutGrid(W, H, cellClass, composition.segmentOpen), p, layout.features.spawn, layout.seed);
+  } catch {
+    return null;
+  }
+
+  const regions = composition.regions;
+  const regionOf = new Int32Array(W * H).fill(-1);
+  regions.forEach((region, index) => {
+    for (const cell of region.cells) regionOf[cell] = index;
+  });
+
+  return { zones, tiles, cellClass, segmentConstraints, regions, regionOf, streets };
+}
+
+/** A fresh primitive grid over the given classes and segments, flat and with no stated vertices. */
+function layoutGrid(W: number, H: number, cellClass: string[], segmentOpen: Span[]): GridBuild {
+  return {
+    W, H, cellClass, segmentOpen,
+    cellLevel: new Array(W * H).fill(0), vertices: new Map(),
+    segmentIndex: (vertical: boolean, line: number, offset: number) =>
+      vertical ? offset * (W + 1) + line : (W + 1) * H + line * W + offset,
+  };
+}
+
+/**
+ * What micro generation made, which is the "Interiors" layer in
+ * docs/DESIGN_DECISIONS.md "Map layers". `grid` is the composed result: the
+ * layout's primitives with the builders' material, segments, levels and
+ * vertices laid over them. The layers aren't separated in it yet (#49, #50).
+ */
+export interface GeneratedInteriors {
+  grid: GridBuild;
+  micro: MicroResult;
+  /** The final partition of `grid`, with props and manifests. */
+  regions: MapRegion[];
+  features: MapFeature[];
+}
+
+/**
+ * Micro generation over a layout and its structure. Builders work on copies,
+ * so neither input changes.
+ */
+export function generateInteriors(
+  layout: PlacedLayout,
+  structure: DerivedStructure,
+  library: Library,
+): GeneratedInteriors {
+  const p = layout.params;
+  const { composition } = layout;
+  const grid = layoutGrid(composition.width, composition.height, [...structure.cellClass], [...composition.segmentOpen]);
+  const { streets } = structure;
+
+  const micro = generateMicro(
+    structure.regions, grid, library, structure.zones, p, structure.regionOf, streets.corridors,
+    (x, y) => streets.standing[y * grid.W + x] === 1,
+    (x, y) => streets.reserved[y * grid.W + x] === 1
+  );
+
+  const regions = partitionFinished(grid, layout.seed, micro.obstacles);
+
+  const spawnCells = new Set(micro.spawns.map((s) => s.cell));
+  regions.forEach((region) => {
+    // Streets are reserved out of every block, so a region's first cell is
+    // often one no builder owned. The region names whichever owns most of it.
+    // Material a builder laid is a region of its own that nothing builds in,
+    // so it names nobody.
+    const owned = new Map<string, number>();
+    if (region.cellClass !== SOLID_CLASS) for (const cell of region.cells) {
+      const owner = micro.ownerOf[cell];
+      if (owner) owned.set(owner, (owned.get(owner) ?? 0) + 1);
+    }
+    let generator = "";
+    for (const [owner, count] of owned)
+      if (count > (owned.get(generator) ?? 0)) generator = owner;
+    region.manifest = {
+      ...(generator ? { generator } : {}),
+      spawnsPlaced: region.cells.filter((cell) => spawnCells.has(cell)).length,
+      obstaclesPlaced: region.obstacles.length,
+      corridorsHonored: region.cells.every((cell) => micro.honored[cell] === 1),
+    };
+  });
+
+  // A builder may site a feature of its own: where a physical exit or a
+  // charger stands is a micro detail, per docs/DESIGN_DECISIONS.md.
+  const tileAt = new Map(structure.tiles.map((t) => [key(t.x, t.y), t]));
+  const features: MapFeature[] = [];
+  micro.features.forEach((feature, index) => {
+    const owner = tileAt.get(key(
+      Math.floor(feature.x / p.tileSize) * p.tileSize,
+      Math.floor(feature.y / p.tileSize) * p.tileSize,
+    ));
+    if (!owner) return;
+    features.push({
+      id: `micro-${feature.kind}-${index}`,
+      kind: feature.kind as MapFeature["kind"],
+      tileId: owner.id,
+      x: feature.x + 0.5,
+      y: feature.y + 0.5,
+    });
+  });
+
+  return { grid, micro, regions, features };
+}
+
+/** Today's `GeneratedMap`, assembled from the three layers and then reported on. */
+function assembleMap(layout: PlacedLayout, structure: DerivedStructure, interiors: GeneratedInteriors): GeneratedMap {
+  const { params: p, cells, composition } = layout;
+  const { tiles, zones } = structure;
+  const { grid, micro, regions } = interiors;
+  const { spawn, hunter, exits } = layout.features;
+  const at = (i: number) => ({ x: tiles[i]!.anchor.x, y: tiles[i]!.anchor.y });
+
+  const map: GeneratedMap = {
+    version: 2, seed: layout.seed, params: p, width: grid.W, height: grid.H, zones, tiles, edges: [], walls: [],
+    features: [
+      { id: "spawn", kind: "spawn", tileId: tiles[spawn]!.id, ...at(spawn) },
+      { id: "hunter-spawn", kind: "hunter-spawn", tileId: tiles[hunter]!.id, ...at(hunter) },
+      ...exits.map((e, i) => ({ id: `exit-${i}`, kind: "exit" as const, tileId: tiles[e]!.id, ...at(e) })),
+      ...interiors.features,
+    ],
+
+    grid: {
+      width: grid.W,
+      height: grid.H,
+      cells: { class: encodeGrid(grid.cellClass),
+        originalClass: encodeGrid(composition.cellClass),
+        constraints: encodeGrid(structure.segmentConstraints),
+        ...(grid.cellLevel.some((level) => level !== 0)
+          ? { level: encodeGrid(grid.cellLevel) }
+          : {}),
+        spawns: micro.spawns },
+      segments: { open: encodeGrid(grid.segmentOpen) },
+      vertices: [...grid.vertices]
+        .sort((a, b) => a[0] - b[0])
+        .map(([vertex, meta]) => ({
+          vertex,
+          ...(meta.class === ANY_CLASS ? {} : { class: meta.class }),
+          ...(meta.height === "any" ? {} : { height: meta.height }),
+        })),
+    },
+    regions,
+    // The geometric metrics are placeholders until reportMap reads them off
+    // the finished map below.
+    metrics: {
+      tileCount: cells.length, deadEnds: 0, squeezes: 0, contestantDistance: 0, hunterDistance: 0, detourRatio: 0,
+      regionCount: regions.length, lootCount: micro.spawns.length, interiorWalls: 0, solidFraction: 0, largestRegion: 0,
+      cellCount: cells.length * p.tileSize * p.tileSize,
+      explicitVertices: grid.vertices.size,
+      // Counted rather than inferred from the wall total, so a builder that
+      // silently produces nothing shows up here.
+      microBlocks: micro.declared.blocks,
+      microCells: micro.declared.cells,
+      microSegments: micro.declared.segments,
+    },
+    validation: { valid: true, errors: [] }
+  };
+
+  map.edges = deriveEdges(map);
+  map.walls = deriveWalls(map);
+  reportMap(map);
+  return map;
+}
+
 export function generateMap(
   seed: string | number = "last-exit",
   params: Partial<MapParams> = {},
@@ -1848,451 +2398,27 @@ export function generateMap(
       throw new Error("game mode library requires start, end, at least 3 enormous, medium, and small set pieces");
   }
 
-  let map: GeneratedMap | null = null;
   const placementFailures = new Map<string, number>();
-  
+
   for (let attempt = 0; attempt < 50; attempt++) {
     if (onProgress) onProgress(`Attempt ${attempt + 1}/50`, attempt / 50);
     try {
-      let seedState = 0;
-    for (let i = 0; i < seedText.length; i++) seedState = Math.imul(seedState ^ seedText.charCodeAt(i), 3432918353);
-    seedState += attempt;
-    const random = () => { seedState = (seedState + 1831565813) | 0; let t = Math.imul(seedState ^ (seedState >>> 15), 1 | seedState); t = t + Math.imul(t ^ (t >>> 7), 61 | t) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
-
-    
-    const zones: MapZone[] = [];
-    for (let row = 0; row < ZONE_ROWS; row++) {
-      for (let col = 0; col < ZONE_COLUMNS; col++) {
-        if (!zoneOccupied(col, row)) continue;
-        const x0 = col * p.zoneWidth, y0 = row * p.zoneHeight;
-        const x1 = x0 + p.zoneWidth - 1, y1 = y0 + p.zoneHeight - 1;
-        const tier = col + 1;
-        zones.push({
-          id: `z-${col}-${row}`, col, row, tier, bonus: Math.abs(row - ((ZONE_ROWS - 1) / 2)),
-          lootChance: Math.min(1, Math.max(0, p.lootChance + (tier - 1) * p.lootTierStep)),
-          tiles: [x0, y0, x1, y1], cells: [x0 * p.tileSize, y0 * p.tileSize, (x1 + 1) * p.tileSize - 1, (y1 + 1) * p.tileSize - 1],
-        });
+      const layout = placeLayout(seedText, p, library, placementRandom(seedText, attempt));
+      if ("failedSetPiece" in layout) {
+        const id = layout.failedSetPiece;
+        placementFailures.set(id, (placementFailures.get(id) ?? 0) + 1);
+        continue;
       }
-    }
-
-    const cells: MaskCell[] = [];
-    const byKey = new Map<string, number>();
-    for (const zone of zones) {
-      const [x0, y0, x1, y1] = zone.tiles;
-      for (let col = x0; col <= x1; col++) {
-        for (let row = y0; row <= y1; row++) {
-          byKey.set(key(col, row), cells.length);
-          cells.push({ x: col, y: row, col, row, id: `t-${col}-${row}`, zoneId: zone.id });
-        }
-      }
-    }
-
-    const zoneOf = (c: MaskCell) => zones.find((z) => c.x >= z.tiles[0]! && c.x <= z.tiles[2]! && c.y >= z.tiles[1]! && c.y <= z.tiles[3]!)!;
-
-    const assigned = new Array<{
-      template: TileDesign; templateId: string; orientation: number; anchor: Point; setPieceId?: string;
-    setPieceInstance?: string;
-    } | undefined>(cells.length);
-
-    const fallbackDesign = library.tiles.find(t => t.id === "open") || library.tiles.find(t => t.id === "plain") || library.tiles[0]!;
-
-      const findAnchor = (design: TileDesign, deg: number): Point => {
-        const anyDesign = design as any;
-        if (anyDesign.anchor) {
-           let ax = anyDesign.anchor.x;
-           let ay = anyDesign.anchor.y;
-           
-           if (deg === 90) { let t = ax; ax = p.tileSize - ay; ay = t; }
-           else if (deg === 180) { ax = p.tileSize - ax; ay = p.tileSize - ay; }
-           else if (deg === 270) { let t = ax; ax = ay; ay = p.tileSize - t; }
-           
-           return { x: ax, y: ay };
-        }
-        return { x: p.tileSize / 2, y: p.tileSize / 2 };
-      };
-
-
-    const allLibraryPieces = library.setPieces || [];
-    const starts = allLibraryPieces.filter((sp: any) => sp.category === "start");
-    const ends = allLibraryPieces.filter((sp: any) => sp.category === "end");
-    const enormous = allLibraryPieces.filter((sp: any) => sp.category === "enormous");
-    const mediums = allLibraryPieces.filter((sp: any) => sp.category === "medium");
-    const smalls = allLibraryPieces.filter((sp: any) => sp.category === "small");
-
-    const activeSetPieces: { piece: any, filter: (anchor: MaskCell, w: number, h: number) => boolean }[] = [];
-    
-    if (mode === "game" && starts.length) activeSetPieces.push({ piece: starts[Math.floor(random() * starts.length)], filter: (c) => c.x === 0 });
-    if (mode === "game" && ends.length) activeSetPieces.push({ piece: ends[Math.floor(random() * ends.length)], filter: (c, w) => c.x + w >= p.columns });
-    
-    const shuffle = (arr: any[]) => [...arr].sort(() => random() - 0.5);
-    const chosenEnormous = mode === "game" ? shuffle(enormous).slice(0, 3) : [];
-    if (chosenEnormous[0]) activeSetPieces.push({ piece: chosenEnormous[0], filter: (c, w) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y < p.rows / 3 });
-    if (chosenEnormous[1]) activeSetPieces.push({ piece: chosenEnormous[1], filter: (c, w) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y >= p.rows / 3 && c.y < p.rows * 2 / 3 });
-    if (chosenEnormous[2]) activeSetPieces.push({ piece: chosenEnormous[2], filter: (c, w) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y >= p.rows * 2 / 3 });
-    
-    for (let i = 0; mode === "game" && i < 4; i++) {
-      if (!mediums.length) break;
-      activeSetPieces.push({ piece: mediums[Math.floor(random() * mediums.length)], filter: (c, w) => c.x < p.columns / 3 || c.x + w > p.columns * 2 / 3 });
-    }
-    
-    for (let i = 0; mode === "game" && i < 10; i++) {
-      if (!smalls.length) break;
-      activeSetPieces.push({ piece: smalls[Math.floor(random() * smalls.length)], filter: () => true });
-    }
-    
-    activeSetPieces.sort((a, b) => b.piece.tiles.length - a.piece.tiles.length);
-
-    let allPlaced = true;
-    for (const { piece: setPiece, filter } of activeSetPieces) {
-      if (!setPiece) continue;
-      const w = Math.max(...setPiece.tiles.map((s: any) => s.dx)) + 1;
-      const h = Math.max(...setPiece.tiles.map((s: any) => s.dy)) + 1;
-      
-      const placements: Array<{ i: number; slots: Array<{ s: SetPieceSlot; j: number | undefined }> }> = [];
-      for (let i = 0; i < cells.length; i++) {
-        const anchor = cells[i]!;
-        if (!filter(anchor, w, h)) continue;
-        const slots = setPiece.tiles.map((s: any) => ({ s, j: byKey.get(key(anchor.x + s.dx, anchor.y + s.dy)) }));
-        if (slots.every((x: any) => x.j !== undefined && setPiece.eligibleTiers.includes(zoneOf(cells[x.j]!).tier) && !assigned[x.j])) {
-          placements.push({ i, slots });
-        }
-      }
-      if (!placements.length) {
-        placementFailures.set(setPiece.id, (placementFailures.get(setPiece.id) ?? 0) + 1);
-        allPlaced = false;
-        break;
-      }
-      const place = placements[Math.floor(random() * placements.length)]!;
-        const instanceId = Math.random().toString();
-      
-      for (const { s, j: slot } of place.slots) {
-        const j = slot!;
-        const tileSet = library.tileSets?.find((ts) => ts.id === s.tileSetId);
-        const memberId = tileSet ? tileSet.members[Math.floor(random() * tileSet.members.length)] : fallbackDesign.id;
-        const design = library.tiles.find((t) => t.id === memberId) || fallbackDesign;
-        const orientations = design.orientations && design.orientations.length ? design.orientations : [0];
-        const orientation = (s as any).orientation !== undefined ? (s as any).orientation : orientations[Math.floor(random() * orientations.length)];
-        
-        assigned[j] = {
-          template: design, templateId: design.id, orientation,
-          anchor: { x: p.tileSize / 2, y: p.tileSize / 2 },
-          setPieceId: setPiece.id,
-         setPieceInstance: instanceId,
-          };
-      }
-    }
-    
-    if (!allPlaced) continue;
-
-    const tileOptions: import("./wfc.ts").TileOption[] = library.tiles.flatMap(t => 
-      (t.orientations || [0]).map(o => ({
-        templateId: t.id,
-        orientation: o as any,
-        difficulty: getDifficulty(t),
-        weight: t.weight || 1,
-        id: undefined as any
-      }))
-    );
-    const wfcGrid: WfcGrid = cells.map((c, i) => {
-      if (assigned[i]) {
-        return {
-          x: c.x, y: c.y,
-          domain: [{
-            weight: 1,
-            templateId: assigned[i]!.templateId,
-            orientation: assigned[i]!.orientation as any,
-            difficulty: 0 // pre-assigned
-          }]
-        ,
-            setPieceInstance: assigned[i]!.setPieceInstance
-          };
-      } else {
-        const tier = zoneOf(c).tier;
-        const validTiles = library.tiles.filter(t => !t.eligibleTiers || t.eligibleTiers.includes(tier));
-        const domain: TileOption[] = [];
-          for (const t of validTiles) {
-            for (const tOpt of tileOptions) {
-              if (tOpt.templateId === t.id) domain.push(tOpt);
-            }
-          }
-          return { x: c.x, y: c.y, domain };
-      }
-    });
-
-    const cellMap = new Map<string, number>();
-    wfcGrid.forEach((c, i) => cellMap.set(`${c.x},${c.y}`, i));
-    for (const c of wfcGrid) {
-      c.n = cellMap.get(`${c.x},${c.y - 1}`);
-      c.s = cellMap.get(`${c.x},${c.y + 1}`);
-      c.e = cellMap.get(`${c.x + 1},${c.y}`);
-      c.w = cellMap.get(`${c.x - 1},${c.y}`);
-      c.tl = cellMap.get(`${c.x - 1},${c.y - 1}`);
-      c.tr = cellMap.get(`${c.x + 1},${c.y - 1}`);
-      c.bl = cellMap.get(`${c.x - 1},${c.y + 1}`);
-      c.br = cellMap.get(`${c.x + 1},${c.y + 1}`);
-    }
-
-    const solvedGrid = solveWfc(wfcGrid, p.columns, p.rows, library.tiles, random);
-    if (!solvedGrid) {
-      throw new Error("WFC Solver could not find a valid tile layout for the macro grid.");
-    }
-
-    for (let i = 0; i < cells.length; i++) {
-      if (!assigned[i]) {
-        const opt = solvedGrid[i]!.domain[0]!;
-        const template = library.tiles.find(t => t.id === opt.templateId) || fallbackDesign;
-        assigned[i] = {
-          template,
-          templateId: template.id,
-          orientation: opt.orientation,
-          anchor: findAnchor(template, opt.orientation)
-        };
-      }
-    }
-
-    const tiles: PlacedTile[] = cells.map((c, i) => ({
-      ...c, x: c.x * p.tileSize, y: c.y * p.tileSize,
-      templateId: assigned[i]!.templateId, orientation: assigned[i]!.orientation,
-      anchor: { x: c.x * p.tileSize + assigned[i]!.anchor.x, y: c.y * p.tileSize + assigned[i]!.anchor.y },
-      ...(assigned[i]!.setPieceId ? { setPieceId: assigned[i]!.setPieceId } : {})
-    }));
-
-    const placementsArray: MacroPlacement[] = tiles.map((tile) => {
-      const design = library.tiles.find((t) => t.id === tile.templateId)!;
-      return {
-        id: tile.id, structure: compileTileDesign(design, tile.orientation),
-        origin: { x: tile.x, y: tile.y }, orientation: 0,
-      } as MacroPlacement;
-    });
-
-    const cellMask: Point[] = [];
-    for (const c of cells) {
-      for (let dy = 0; dy < p.tileSize; dy++) {
-        for (let dx = 0; dx < p.tileSize; dx++) { cellMask.push({ x: c.x * p.tileSize + dx, y: c.y * p.tileSize + dy }); }
-      }
-    }
-
-    const composition = composeMacro({
-      version: 1, seed: seedText, width: p.columns * p.tileSize, height: p.rows * p.tileSize,
-      mask: cellMask, defaultCellClass: "grass", placements: placementsArray,
-    });
-
-    const W = composition.width;
-    const H = composition.height;
-    const cellConstraints = new Array(W * H).fill("any");
-    const segmentCount = (W + 1) * H + (H + 1) * W;
-    const segmentConstraints = new Array(segmentCount).fill("any");
-    
-    for (const t of tiles) {
-      const opt = { templateId: t.templateId, orientation: t.orientation as any, difficulty: 0, weight: 1 };
-      const N = getRotatedEdge(opt, "N", library.tiles);
-      const S = getRotatedEdge(opt, "S", library.tiles);
-      const E = getRotatedEdge(opt, "E", library.tiles);
-      const W_edge = getRotatedEdge(opt, "W", library.tiles);
-      
-      for (let i = 0; i < p.tileSize; i++) {
-        const vOffset = (W + 1) * H;
-        if (N[i] !== "any") {
-          const cx = t.x + i; const cy = t.y - 1;
-          if (cy >= 0) cellConstraints[cy * W + cx] = N[i];
-          const segIdx = vOffset + t.y * W + cx; // horizontal: verticalCount + line(y) * width + offset(x)
-          segmentConstraints[segIdx] = N[i];
-        }
-        if (S[i] !== "any") {
-          const cx = t.x + i; const cy = t.y + p.tileSize;
-          if (cy < H) cellConstraints[cy * W + cx] = S[i];
-          const segIdx = vOffset + (t.y + p.tileSize) * W + cx;
-          segmentConstraints[segIdx] = S[i];
-        }
-        if (E[i] !== "any") {
-          const cx = t.x + p.tileSize; const cy = t.y + i;
-          if (cx < W) cellConstraints[cy * W + cx] = E[i];
-          const segIdx = (t.y + i) * (W + 1) + (t.x + p.tileSize); // vertical: offset(y) * (width + 1) + line(x)
-          segmentConstraints[segIdx] = E[i];
-        }
-        if (W_edge[i] !== "any") {
-          const cx = t.x - 1; const cy = t.y + i;
-          if (cx >= 0) cellConstraints[cy * W + cx] = W_edge[i];
-          const segIdx = (t.y + i) * (W + 1) + t.x;
-          segmentConstraints[segIdx] = W_edge[i];
-        }
-      }
-    }
-    
-    const adaptedEffective = [...composition.effectiveCellClass];
-    for (let i = 0; i < adaptedEffective.length; i++) {
-      if (composition.cellClass[i] === "any") {
-        if (cellConstraints[i] !== "any") adaptedEffective[i] = cellConstraints[i];
-      }
-    }
-    composition.effectiveCellClass = adaptedEffective;
-
-
-    let regions = composition.regions;
-    const grid: GridBuild = {
-      W: composition.width, H: composition.height,
-      cellClass: composition.effectiveCellClass, segmentOpen: composition.segmentOpen,
-      cellLevel: new Array(composition.width * composition.height).fill(0), vertices: new Map(),
-      segmentIndex: (vertical: boolean, line: number, offset: number) =>
-        vertical ? offset * (composition.width + 1) + line : (composition.width + 1) * composition.height + line * composition.width + offset,
-    };
-
-    
-    
-    
-    const adj: any[][] = Array.from({ length: cells.length }, () => []);
-    const DIRS = [[0, -1, "N", "S"], [1, 0, "E", "W"], [0, 1, "S", "N"], [-1, 0, "W", "E"]] as const;
-    for (let i = 0; i < cells.length; i++) {
-      for (const [dx, dy, side, opposite] of DIRS) {
-        const j = byKey.get(key(cells[i]!.x + dx, cells[i]!.y + dy));
-        if (j !== undefined) adj[i]!.push({ j, side, opposite });
-      }
-    }
-
-    
-    const left = cells.map((c, i) => ({ c, i })).filter((x) => x.c.x < p.columns / 3);
-    const right = cells.map((c, i) => ({ c, i })).filter((x) => x.c.x > (p.columns * 2) / 3);
-    const spawn = left.reduce((best, x) => (x.c.y > cells[best]!.y ? x.i : best), left[0]!.i);
-    const hunter = right.reduce((best, x) => (x.c.x > cells[best]!.x ? x.i : best), right[0]!.i);
-    const exits = right.slice(0, p.exitCount).map(x => ({ i: x.i, kind: "exit" }));
-    
-    const at = (i: number) => ({ x: tiles[i]!.anchor.x, y: tiles[i]!.anchor.y });
-    
-    let reservedStreets;
-    try {
-      reservedStreets = planStreets(tiles, adj, grid, p, spawn, seedText);
-    } catch (e) {
-      continue; // Failed route, try next sample
-    }
-    
-    const regionOf = new Int32Array(grid.W * grid.H).fill(-1);
-    regions.forEach((region, index) => {
-      for (const cell of region.cells) regionOf[cell] = index;
-    });
-    
-    const micro = generateMicro(
-      regions, grid, library, zones, p, regionOf, reservedStreets.corridors,
-      (x, y) => reservedStreets.standing[y * grid.W + x] === 1,
-      (x, y) => reservedStreets.reserved[y * grid.W + x] === 1
-    );
-    
-    micro.obstacles = clearStreets(micro.obstacles, reservedStreets.corridors);
-    // The artifact carries the partition of the composed result, not the one
-    // the builders were handed, so regions are searched again.
-    regions = searchRegions(grid, seedText);
-    const regionAt = new Int32Array(grid.W * grid.H).fill(-1);
-    regions.forEach((region, index) => {
-      for (const cell of region.cells) regionAt[cell] = index;
-    });
-    // A prop stays inside one cell by contract, so its midpoint names the
-    // region that now owns it -- which may not be the one whose builder placed it.
-    for (const wall of micro.obstacles) {
-      const cx = Math.floor((wall.x1 + wall.x2) / 2), cy = Math.floor((wall.y1 + wall.y2) / 2);
-      if (cx < 0 || cy < 0 || cx >= grid.W || cy >= grid.H) continue;
-      regions[regionAt[cy * grid.W + cx]!]?.obstacles.push(wall);
-    }
-
-    const spawnCells = new Set(micro.spawns.map((s) => s.cell));
-    regions.forEach((region) => {
-      // Streets are reserved out of every block, so a region's first cell is
-      // often one no builder owned. The region names whichever owns most of it.
-      // Material a builder laid is a region of its own that nothing builds in,
-      // so it names nobody.
-      const owned = new Map<string, number>();
-      if (region.cellClass !== SOLID_CLASS) for (const cell of region.cells) {
-        const owner = micro.ownerOf[cell];
-        if (owner) owned.set(owner, (owned.get(owner) ?? 0) + 1);
-      }
-      let generator = "";
-      for (const [owner, count] of owned)
-        if (count > (owned.get(generator) ?? 0)) generator = owner;
-      region.manifest = {
-        ...(generator ? { generator } : {}),
-        spawnsPlaced: region.cells.filter((cell) => spawnCells.has(cell)).length,
-        obstaclesPlaced: region.obstacles.length,
-        corridorsHonored: region.cells.every((cell) => micro.honored[cell] === 1),
-      };
-    });
-
-    // A builder may site a feature of its own: where a physical exit or a
-    // charger stands is a micro detail, per docs/DESIGN_DECISIONS.md.
-    const tileAt = new Map(tiles.map((t) => [key(t.x, t.y), t]));
-    const microFeatures: MapFeature[] = [];
-    micro.features.forEach((feature, index) => {
-      const owner = tileAt.get(key(
-        Math.floor(feature.x / p.tileSize) * p.tileSize,
-        Math.floor(feature.y / p.tileSize) * p.tileSize,
-      ));
-      if (!owner) return;
-      microFeatures.push({
-        id: `micro-${feature.kind}-${index}`,
-        kind: feature.kind as MapFeature["kind"],
-        tileId: owner.id,
-        x: feature.x + 0.5,
-        y: feature.y + 0.5,
-      });
-    });
-
-    map = {
-      version: 2, seed: seedText, params: p, width: grid.W, height: grid.H, zones, tiles, edges: [], walls: [],
-      features: [
-        { id: "spawn", kind: "spawn", tileId: tiles[spawn]!.id, ...at(spawn) },
-        { id: "hunter-spawn", kind: "hunter-spawn", tileId: tiles[hunter]!.id, ...at(hunter) },
-        ...exits.map((e, i) => ({ id: `exit-${i}`, kind: "exit" as const, tileId: tiles[e.i]!.id, ...at(e.i) })),
-        ...microFeatures,
-      ],
-      
-      grid: {
-        width: grid.W,
-        height: grid.H,
-        cells: { class: encodeGrid(grid.cellClass),
-          originalClass: encodeGrid(composition.cellClass),
-          constraints: encodeGrid(segmentConstraints),
-          ...(grid.cellLevel.some((level) => level !== 0)
-            ? { level: encodeGrid(grid.cellLevel) }
-            : {}),
-          spawns: micro.spawns },
-        segments: { open: encodeGrid(grid.segmentOpen) },
-        vertices: [...grid.vertices]
-          .sort((a, b) => a[0] - b[0])
-          .map(([vertex, meta]) => ({
-            vertex,
-            ...(meta.class === ANY_CLASS ? {} : { class: meta.class }),
-            ...(meta.height === "any" ? {} : { height: meta.height }),
-          })),
-      },
-      regions,
-      // The geometric metrics are placeholders until measureMap reads them off
-      // the finished map below.
-      metrics: {
-        tileCount: cells.length, deadEnds: 0, squeezes: 0, contestantDistance: 0, hunterDistance: 0, detourRatio: 0,
-        regionCount: regions.length, lootCount: micro.spawns.length, interiorWalls: 0, solidFraction: 0, largestRegion: 0,
-        cellCount: cells.length * p.tileSize * p.tileSize,
-        explicitVertices: grid.vertices.size,
-        // Counted rather than inferred from the wall total, so a builder that
-        // silently produces nothing shows up here.
-        microBlocks: micro.declared.blocks,
-        microCells: micro.declared.cells,
-        microSegments: micro.declared.segments,
-      },
-      validation: { valid: true, errors: [] }
-    };
-
-    map!.edges = deriveEdges(map!);
-    map!.walls = deriveWalls(map!);
-    measureMap(map!);
-    map!.validation = validateMap(map!);
-    break; 
+      const structure = deriveStructure(layout, library);
+      if (!structure) continue;
+      return assembleMap(layout, structure, generateInteriors(layout, structure, library));
     } catch (e) {
       console.warn("Attempt", attempt, "failed:", (e as Error).stack);
     }
   }
-  
-  if (!map) {
-    const placementDetail = [...placementFailures]
-      .map(([id, count]) => `${id} (${count}/50 attempts)`)
-      .join(", ");
-    throw new Error(`V2 Rejection sampling failed to find a walkable placement.${placementDetail ? ` Set piece placement failures: ${placementDetail}.` : ""}`);
-  }
-  return map;
+
+  const placementDetail = [...placementFailures]
+    .map(([id, count]) => `${id} (${count}/50 attempts)`)
+    .join(", ");
+  throw new Error(`V2 Rejection sampling failed to find a walkable placement.${placementDetail ? ` Set piece placement failures: ${placementDetail}.` : ""}`);
 }

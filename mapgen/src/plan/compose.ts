@@ -38,9 +38,8 @@ import {
   deriveEdges,
   deriveWalls,
   makeZones,
-  measureMap,
-  searchRegions,
-  validateMap,
+  partitionFinished,
+  reportMap,
   wallsFromLattice,
 } from "../core.ts";
 import { encodeGrid } from "../coding.ts";
@@ -377,11 +376,15 @@ function widestRun(spans: readonly Span[]): number {
   return best;
 }
 
-export function composeMap(plan: MapPlan): GeneratedMap {
-  const p = plan.params;
+/**
+ * The plan laid down as primitives, before any builder runs: every region's
+ * cells painted with its type, every segment inside a region open, and the
+ * contract's spans over the boundaries. This is the planned path's layout (see
+ * docs/DESIGN_DECISIONS.md "Map layers"). The plan itself, with its ports and
+ * loot, is what this path has for structure.
+ */
+export function layPlan(plan: MapPlan): ComposeGrid {
   const grid = makeComposeGrid(plan.width, plan.height);
-  const byId = new Map(plan.regions.map((r) => [r.id, r]));
-
   // Paint every region's cells with its own type, and open every segment inside
   // a region. A region is one place; the contract only speaks about its edges.
   for (const region of plan.regions)
@@ -413,11 +416,41 @@ export function composeMap(plan: MapPlan): GeneratedMap {
       });
     }
   }
+  return grid;
+}
 
+/** What the planned path's builders made, over a copy of the laid-down plan. */
+export interface PlannedInteriors {
+  /** The composed result: the layout with every builder's edit and the port corrections laid over it. */
+  grid: ComposeGrid;
+  spawns: Array<{ cell: number; kind: string }>;
+  /** Each region's props, in plan order. */
+  obstacles: Map<string, Wall[]>;
+  declaredCells: number;
+  declaredSegments: number;
+  conformed: number;
+  enforced: { corrected: number; ports: number };
+}
+
+/**
+ * One builder per region, each held to its contract, then the contract
+ * enforced once more on the finished grid. A builder sees the openings as the
+ * grid stands when its turn comes, which includes what earlier builders did
+ * to a shared boundary, so openings are read here and not ahead of time.
+ */
+export function buildPlannedInteriors(
+  plan: MapPlan,
+  layout: ComposeGrid,
+): PlannedInteriors {
+  const p = plan.params;
+  const grid: ComposeGrid = {
+    ...layout,
+    cellClass: [...layout.cellClass],
+    cellLevel: [...layout.cellLevel],
+    segmentOpen: [...layout.segmentOpen],
+  };
   const spawns: Array<{ cell: number; kind: string }> = [];
   const obstacles = new Map<string, Wall[]>();
-  const manifests = new Map<string, string>();
-  const featurePoints: Array<{ kind: string; x: number; y: number }> = [];
   let declaredCells = 0,
     declaredSegments = 0,
     conformed = 0;
@@ -498,18 +531,37 @@ export function composeMap(plan: MapPlan): GeneratedMap {
     for (const slot of edit.spawns)
       spawns.push({ cell: slot.cellIndex, kind: slot.kind });
     obstacles.set(region.id, edit.obstacles);
-    manifests.set(region.id, edit.manifest.generator);
-    for (const feature of edit.features) featurePoints.push(feature);
     declaredCells += edit.cells.length;
     declaredSegments += edit.segments.length;
   }
   spawns.sort((a, b) => a.cell - b.cell);
   const enforced = enforcePorts(grid, plan);
+  return {
+    grid,
+    spawns,
+    obstacles,
+    declaredCells,
+    declaredSegments,
+    conformed,
+    enforced,
+  };
+}
 
-  // Anchors are measured, not planned: a tile's anchor is standing room this
-  // map actually has, found after the builders finished. Planning one would
-  // only create a point that has to be defended from the builders, which is the
-  // legacy path's problem and not this one's.
+/**
+ * Tiles and their anchors, measured on the composed grid.
+ *
+ * Anchors are measured, not planned: a tile's anchor is standing room this
+ * map actually has, found after the builders finished. Planning one would
+ * only create a point that has to be defended from the builders, which is the
+ * V2 path's problem and not this one's. A tile with no reachable standing
+ * room is left out.
+ */
+function measureTiles(
+  plan: MapPlan,
+  interiors: PlannedInteriors,
+): { tiles: PlacedTile[]; pockets: number } {
+  const p = plan.params;
+  const { grid } = interiors;
   const probe = {
     width: grid.W,
     height: grid.H,
@@ -519,7 +571,7 @@ export function composeMap(plan: MapPlan): GeneratedMap {
       (index) => grid.cellClass[index]!,
       (vertical, line, offset) =>
         grid.segmentOpen[grid.segmentIndex(vertical, line, offset)]!,
-    ).concat(...obstacles.values()),
+    ).concat(...interiors.obstacles.values()),
     navBoxes: [[0, 0, grid.W, grid.H]] as Array<
       [number, number, number, number]
     >,
@@ -528,16 +580,14 @@ export function composeMap(plan: MapPlan): GeneratedMap {
   // LARGER body can move through; a node only a contestant fits in is not a
   // place the tile graph may hang a route on.
   const main = mainComponent(probe, p.hunterRadius);
+  const regionOfCell = regionOfCells(plan);
   const tiles: PlacedTile[] = [];
-  const regionOfCell = new Map<number, string>();
-  for (const region of plan.regions)
-    for (const cell of region.cells) regionOfCell.set(cell, region.id);
-
   for (let row = 0; row < p.rows; row += 1)
     for (let col = 0; col < p.columns; col += 1) {
       const x0 = col * p.tileSize,
         y0 = row * p.tileSize;
-      if (!inMask(x0, y0)) continue;
+      if (x0 >= grid.W || y0 >= grid.H) continue;
+      if (grid.cellClass[y0 * grid.W + x0] === OUTSIDE_CLASS) continue;
       const anchor = findAnchor(probe, main.nodes, x0, y0, p.tileSize);
       if (!anchor) continue;
       const zone = plan.zones.find(
@@ -559,45 +609,35 @@ export function composeMap(plan: MapPlan): GeneratedMap {
         anchor,
       });
     }
+  return { tiles, pockets: main.pockets };
+}
 
-  // The artifact's regions come from a second search of the finished grid, so
-  // they describe what was built rather than what was planned -- a builder that
-  // stated a wall genuinely split its area, and the two have to agree.
-  const regions = searchRegions(grid, plan.seed);
-  const regionAt = new Map<number, number>();
-  regions.forEach((region, index) => {
-    for (const cell of region.cells) regionAt.set(cell, index);
-  });
-  for (const [id, walls] of obstacles) {
-    const generator = manifests.get(id) ?? "";
-    for (const wall of walls) {
-      const cx = Math.floor((wall.x1 + wall.x2) / 2),
-        cy = Math.floor((wall.y1 + wall.y2) / 2);
-      const at = regionAt.get(cy * grid.W + cx);
-      if (at !== undefined) regions[at]!.obstacles.push(wall);
-    }
-    void generator;
-  }
-  const spawnCells = new Set(spawns.map((s) => s.cell));
-  for (const region of regions) {
-    const planned = byId.get(regionOfCell.get(region.cells[0]!) ?? "");
-    region.manifest = {
-      ...(planned ? { generator: planned.type } : {}),
-      spawnsPlaced: region.cells.filter((cell) => spawnCells.has(cell)).length,
-      obstaclesPlaced: region.obstacles.length,
-      corridorsHonored: true,
-    };
-  }
+/** The planned region that owns each cell. */
+function regionOfCells(plan: MapPlan): Map<number, string> {
+  const owner = new Map<number, string>();
+  for (const region of plan.regions)
+    for (const cell of region.cells) owner.set(cell, region.id);
+  return owner;
+}
 
-  // A feature has to land on a tile that exists. A region's own tiles are the
-  // first choice, but a region whose every tile was sealed off has none, and a
-  // map with no spawn is not a map -- so it falls back to the nearest tile that
-  // did survive rather than dropping the feature and failing validation later.
+/**
+ * Where each planned feature stands. A feature has to land on a tile that
+ * exists. A region's own tiles are the first choice, but a region whose every
+ * tile was sealed off has none, and a map with no spawn is not a map -- so it
+ * falls back to the nearest tile that did survive rather than dropping the
+ * feature and failing validation later.
+ */
+function placeFeatures(
+  plan: MapPlan,
+  tiles: PlacedTile[],
+  width: number,
+): MapFeature[] {
+  const byId = new Map(plan.regions.map((r) => [r.id, r]));
   const tileFor = (regionId: string): PlacedTile | undefined => {
     const region = byId.get(regionId);
     if (!region || !tiles.length) return undefined;
     const own = new Set(region.cells);
-    const inside = tiles.find((t) => own.has(t.y * grid.W + t.x));
+    const inside = tiles.find((t) => own.has(t.y * width + t.x));
     if (inside) return inside;
     const cx = (region.bounds[0] + region.bounds[2]) / 2,
       cy = (region.bounds[1] + region.bounds[3]) / 2;
@@ -628,6 +668,35 @@ export function composeMap(plan: MapPlan): GeneratedMap {
       y: spot.anchor.y,
     });
   }
+  return features;
+}
+
+export function composeMap(plan: MapPlan): GeneratedMap {
+  const p = plan.params;
+  const interiors = buildPlannedInteriors(plan, layPlan(plan));
+  const { grid, spawns, enforced } = interiors;
+  const { tiles, pockets } = measureTiles(plan, interiors);
+
+  // The artifact's regions come from a second search of the finished grid, so
+  // they describe what was built rather than what was planned -- a builder that
+  // stated a wall genuinely split its area, and the two have to agree.
+  const regions = partitionFinished(
+    grid,
+    plan.seed,
+    [...interiors.obstacles.values()].flat(),
+  );
+  const byId = new Map(plan.regions.map((r) => [r.id, r]));
+  const regionOfCell = regionOfCells(plan);
+  const spawnCells = new Set(spawns.map((s) => s.cell));
+  for (const region of regions) {
+    const planned = byId.get(regionOfCell.get(region.cells[0]!) ?? "");
+    region.manifest = {
+      ...(planned ? { generator: planned.type } : {}),
+      spawnsPlaced: region.cells.filter((cell) => spawnCells.has(cell)).length,
+      obstaclesPlaced: region.obstacles.length,
+      corridorsHonored: true,
+    };
+  }
 
   const map: GeneratedMap = {
     version: 1,
@@ -639,7 +708,7 @@ export function composeMap(plan: MapPlan): GeneratedMap {
     tiles,
     edges: [],
     walls: [],
-    features,
+    features: placeFeatures(plan, tiles, grid.W),
     grid: {
       width: grid.W,
       height: grid.H,
@@ -667,11 +736,11 @@ export function composeMap(plan: MapPlan): GeneratedMap {
       solidFraction: 0,
       largestRegion: 0,
       plannedRegions: plan.regions.length,
-      microCells: declaredCells,
-      microSegments: declaredSegments,
-      conformedRegions: conformed,
+      microCells: interiors.declaredCells,
+      microSegments: interiors.declaredSegments,
+      conformedRegions: interiors.conformed,
       portsCorrected: enforced.corrected,
-      sealedPockets: main.pockets,
+      sealedPockets: pockets,
       portCount: enforced.ports,
     },
     validation: { valid: false, errors: [] },
@@ -680,8 +749,7 @@ export function composeMap(plan: MapPlan): GeneratedMap {
   map.edges = deriveEdges(map);
   // Measured off the composed result by the same function every generator
   // uses, so the numbers mean the same thing and can be compared.
-  measureMap(map);
-  map.validation = validateMap(map);
+  reportMap(map);
   return map;
 }
 
