@@ -2134,7 +2134,6 @@ export function generateMapLegacy(
   // stands is a micro detail, per docs/DESIGN_DECISIONS.md.
   micro.features.forEach((feature, index) => {
     const owner = tileOfCell(feature.x, feature.y);
-    const cell = feature.y * grid.W + feature.x;
     if (owner === undefined ) return;
     feats.push({
       id: `micro-${feature.kind}-${index}`,
@@ -2973,18 +2972,18 @@ export function generateMap(
 
     const activeSetPieces: { piece: any, filter: (anchor: MaskCell, w: number, h: number) => boolean }[] = [];
     
-    if (starts.length) activeSetPieces.push({ piece: starts[Math.floor(random() * starts.length)], filter: (c, w, h) => c.x === 0 });
-    if (ends.length) activeSetPieces.push({ piece: ends[Math.floor(random() * ends.length)], filter: (c, w, h) => c.x + w >= p.columns });
+    if (starts.length) activeSetPieces.push({ piece: starts[Math.floor(random() * starts.length)], filter: (c) => c.x === 0 });
+    if (ends.length) activeSetPieces.push({ piece: ends[Math.floor(random() * ends.length)], filter: (c, w) => c.x + w >= p.columns });
     
     const shuffle = (arr: any[]) => [...arr].sort(() => random() - 0.5);
     const chosenEnormous = shuffle(enormous).slice(0, 3);
-    if (chosenEnormous[0]) activeSetPieces.push({ piece: chosenEnormous[0], filter: (c, w, h) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y < p.rows / 3 });
-    if (chosenEnormous[1]) activeSetPieces.push({ piece: chosenEnormous[1], filter: (c, w, h) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y >= p.rows / 3 && c.y < p.rows * 2 / 3 });
-    if (chosenEnormous[2]) activeSetPieces.push({ piece: chosenEnormous[2], filter: (c, w, h) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y >= p.rows * 2 / 3 });
+    if (chosenEnormous[0]) activeSetPieces.push({ piece: chosenEnormous[0], filter: (c, w) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y < p.rows / 3 });
+    if (chosenEnormous[1]) activeSetPieces.push({ piece: chosenEnormous[1], filter: (c, w) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y >= p.rows / 3 && c.y < p.rows * 2 / 3 });
+    if (chosenEnormous[2]) activeSetPieces.push({ piece: chosenEnormous[2], filter: (c, w) => c.x > p.columns / 4 && c.x + w < p.columns * 3 / 4 && c.y >= p.rows * 2 / 3 });
     
     for (let i = 0; i < 4; i++) {
       if (!mediums.length) break;
-      activeSetPieces.push({ piece: mediums[Math.floor(random() * mediums.length)], filter: (c, w, h) => c.x < p.columns / 3 || c.x + w > p.columns * 2 / 3 });
+      activeSetPieces.push({ piece: mediums[Math.floor(random() * mediums.length)], filter: (c, w) => c.x < p.columns / 3 || c.x + w > p.columns * 2 / 3 });
     }
     
     for (let i = 0; i < 10; i++) {

@@ -151,7 +151,12 @@ test("a design walled on every side is never used as fill", () => {
     defaultCellClass: "open",
 
     orientations: [0],
-    edges: { N: "######", E: "######", S: "######", W: "######" },
+    edges: {
+      N: ["wall", "wall", "wall", "wall", "wall", "wall"],
+      E: ["wall", "wall", "wall", "wall", "wall", "wall"],
+      S: ["wall", "wall", "wall", "wall", "wall", "wall"],
+      W: ["wall", "wall", "wall", "wall", "wall", "wall"],
+    },
   };
   const beside = structuredClone(DEFAULT_LIBRARY);
   beside.tiles.push(boxed as unknown as (typeof beside.tiles)[number]);
@@ -166,10 +171,10 @@ test("a design walled on every side is never used as fill", () => {
   // Even as the librarys only fallback, it is passed over rather than placed.
   const asFallback = structuredClone(DEFAULT_LIBRARY);
   asFallback.tiles[0]!.edges = {
-    N: "######",
-    E: "######",
-    S: "######",
-    W: "######",
+    N: ["wall", "wall", "wall", "wall", "wall", "wall"],
+    E: ["wall", "wall", "wall", "wall", "wall", "wall"],
+    S: ["wall", "wall", "wall", "wall", "wall", "wall"],
+    W: ["wall", "wall", "wall", "wall", "wall", "wall"],
   };
   const still = generateMap(
     "boxed-fallback",
@@ -319,7 +324,7 @@ test("tiles carry interior geometry, not just seam walls", () => {
   const views = gridViews(m);
   const solid: number[] = [];
   for (let i = 0; i < m.grid.width * m.grid.height; i++)
-    if (false) solid.push(i);
+    if (views.cellClass(i) === "solid") solid.push(i);
   assert.ok(solid.length > 0, "expected solid cells");
   assert.ok(m.metrics.interiorWalls > 0);
   // The one-cell margin is a property of AUTHORED tile interiors: a design may
@@ -422,7 +427,7 @@ test("regions aggregate cells across tile seams, not whole tiles", () => {
   for (let i = 0; i < m.grid.width * m.grid.height; i++) {
     if (views.cellClass(i) === OUTSIDE_CLASS) continue;
     assert.ok(covered.has(i), `cell ${i} belongs to no region`);
-    if (false) material += 1;
+    if (views.cellClass(i) === "solid") material += 1;
   }
   assert.ok(material > 0, "expected some filled material");
   assert.ok(
@@ -430,7 +435,7 @@ test("regions aggregate cells across tile seams, not whole tiles", () => {
     "expected material to form regions of its own",
   );
   for (const spawn of m.grid.cells.spawns)
-    assert.ok(!false);
+    assert.ok(views.cellClass(spawn.cell) !== "solid");
 });
 
 test("uniform tiles remain ordinary content regardless of omitted or explicit any ports", () => {
