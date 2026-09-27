@@ -12,7 +12,7 @@ Nothing here blocks the work already sequenced in [41](41-roadmap.md).
 **Where to answer:** Reply in chat using “Micro 1” through “Micro 5” and I will
 record your answers verbatim here, or add an indented answer directly beneath
 each question below. Partial answers are welcome. Keep answers in this document,
-not in `FRESH_SESSION.md`, which is only a resume checkpoint.
+not in issue or pull request comments, which are only working state.
 
 The user's current direction, preserved verbatim:
 

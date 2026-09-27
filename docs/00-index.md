@@ -74,8 +74,9 @@ and handoffs should cite the number, not a heading.
 `AGENTS.md` at the repository root carries session start rules and project
 invariants. `README.md` is the player- and operator-facing entry point: running,
 controls, replays, profiling. `tests/fixtures/README.md` documents the frozen
-characterization baseline. `FRESH_SESSION.md`, when present, is an untracked
-checkpoint handoff; it is the most recent state, not a requirement.
+characterization baseline. Work in progress and handoffs live on the Forgejo issue
+and pull request ([34](34-forgejo-workflow.md)); they are recent state, not
+requirements.
 
 `mapgen/` is the map generator, imported with its history from the former
 `last_exit_map` repository. Its own `docs/` (unnumbered: `NEXT_TASKS.md`,
