@@ -58,8 +58,9 @@ zones only; the reserved `solid` material class is laid by micro builders and a
 tile may not use it. `walls` are axis-aligned barriers on cell-edge lines,
 and an optional `gap` leaves a centered aperture — a `gap` of 1.5 is a
 contestant-only squeeze _inside_ a tile.
-All interior geometry must keep a one-cell margin from the tile edge; see
-[design decisions](docs/DESIGN_DECISIONS.md) for why that margin is load-bearing.
+Interior geometry may run to the tile edge and continue through a seam; see
+[design decisions](docs/DESIGN_DECISIONS.md) for what removing the old one-cell
+margin gave up.
 
 Perimeter primitives are the adjacency contract. `edges` states a contract per
 segment — an array of six a side — and `corners` states one per vertex. Tile

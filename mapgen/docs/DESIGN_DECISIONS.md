@@ -140,22 +140,21 @@ backtracking: a tile that cannot satisfy what a neighbour already claimed falls
 back to an adapter rather than causing the neighbour to be reconsidered. Real
 negotiation is still the open question in QUESTIONS.md.
 
-## Tile interiors and the one-cell margin
+## Tile interiors
 
-A template may paint its own cells and place interior barriers. All interior
-geometry must stay at least one cell from the tile edge. This is not a stylistic
-rule; it is what makes template selection a local decision. Because agent radii
-are below 1, geometry authored inside tile B can never come within a body radius
-of a lattice node inside tile A. A template can therefore be accepted or
-rejected against a seam contract without consulting the neighbour that will
-eventually sit beside it, which is what keeps selection an always-satisfiable
-lookup rather than a constraint-propagation problem. `generateMap` refuses to
-run authored interiors when either radius reaches 1, because the argument above
-would no longer hold.
+A template may paint its own cells and place interior barriers anywhere in its
+6 × 6 area, up to and including its edge, so geometry can continue through a
+seam into the neighbouring tile.
 
-A consequence worth stating plainly: with a 6 × 6 tile the authorable interior
-is the inner 4 × 4 plus barrier lines. Larger architecture is expressed through
-multi-tile layouts, not through bigger single-tile interiors.
+This used to be bounded by a one-cell margin. The margin made template
+selection a local decision: with agent radii below 1, geometry inside one tile
+could never come within a body radius of a lattice node inside its neighbour, so
+a template could be accepted against a seam contract without consulting the
+tile beside it. It was removed to raise the interior budget (NEXT_TASKS.md item
+6). Selection is therefore no longer provably local, and walkability is settled
+by validating the composed map as a whole. `generateMapLegacy` still refuses
+authored interiors when either radius reaches 1; that guard, and its error
+message, date from the margin.
 
 ## Anchors
 
