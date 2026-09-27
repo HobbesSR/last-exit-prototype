@@ -3,6 +3,7 @@ import { createServer as createHttpServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
+import { createHash } from 'node:crypto';
 import { HZ } from '../shared/simulation/rules.ts';
 import * as profiler from '../shared/profiler.ts';
 import { createFileReplayStore } from './replay-store.js';
@@ -13,6 +14,7 @@ import { startScheduler } from './scheduler.js';
 import { serveSharedModules } from './shared-assets.js';
 export { EMPTY_ROOM_GRACE_MS } from './room-service.js';
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
+const WORKSPACE_ID = createHash('sha256').update(path.resolve(ROOT)).digest('hex');
 
 function lanUrls(port) {
   const urls = [];
@@ -47,6 +49,26 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use('/vendor/lucide', express.static(path.join(ROOT, 'node_modules/lucide/dist/umd')));
   app.use('/vendor/sat', express.static(path.join(ROOT, 'node_modules/sat')));
   app.use('/shared', serveSharedModules(path.join(ROOT, 'shared')));
+  app.get('/dev-nav-peer.json', (_req, res) => res.json({ kind: 'game', workspace: WORKSPACE_ID }));
+  app.get('/dev-nav.js', async (req, res) => {
+    const host = req.hostname;
+    const peerPort = Number(process.env.MAPGEN_PORT);
+    let mapgenUrl = null;
+    if ((host === '127.0.0.1' || host === 'localhost') && Number.isInteger(peerPort) && peerPort > 0 && peerPort <= 65535) {
+      try {
+        const peer = await fetch(`http://127.0.0.1:${peerPort}/dev-nav-peer.json`, { signal: AbortSignal.timeout(300) });
+        const identity = peer.ok ? await peer.json() : null;
+        if (identity?.kind === 'mapgen' && identity.workspace === WORKSPACE_ID)
+          mapgenUrl = `http://${host}:${peerPort}`;
+      } catch { /* The configured peer is not running. */ }
+    }
+    const mainUrl = `http://${host}:${req.socket.localPort}`;
+    const template = await import('node:fs/promises').then(fs => fs.readFile(path.join(ROOT, 'shared/dev-nav.js'), 'utf8'));
+    res.type('application/javascript').send(`
+${template.replace('export function renderDevNav', 'function renderDevNav')}
+renderDevNav(${JSON.stringify(mainUrl)}, ${JSON.stringify(mapgenUrl)});
+`);
+  });
   app.use(express.static(path.join(ROOT, 'public')));
   installHttpApi(app, service, replays);
   const http = createHttpServer(app), wss = attachWebSockets(http, service);

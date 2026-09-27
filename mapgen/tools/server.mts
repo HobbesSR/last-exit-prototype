@@ -2,11 +2,13 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import process from "node:process";
 import { stripTypeScriptTypes } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const workspaceId = createHash("sha256").update(path.resolve(root, "..")).digest("hex");
 const roots: Record<string, string> = {
   public: path.join(root, "public"),
   src: path.join(root, "src"),
@@ -73,10 +75,43 @@ function serveStripped(file: string, res: http.ServerResponse, head: boolean) {
   });
   res.end(head ? undefined : body);
 }
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   if (req.method !== "GET" && req.method !== "HEAD") {
     res.writeHead(405, { Allow: "GET, HEAD" });
     res.end();
+    return;
+  }
+  if (req.url === "/dev-nav.css") {
+    const content = fs.readFileSync(path.join(root, "../public/dev-nav.css"), "utf8");
+    res.writeHead(200, { "Content-Type": "text/css" });
+    res.end(content);
+    return;
+  }
+  if (req.url === "/dev-nav-peer.json") {
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    res.end(JSON.stringify({ kind: "mapgen", workspace: workspaceId }));
+    return;
+  }
+  if (req.url === "/dev-nav.js") {
+    const hostStr = req.headers.host || 'localhost';
+    const host = hostStr.startsWith('[') ? hostStr.substring(0, hostStr.indexOf(']') + 1) : hostStr.split(':')[0];
+    const mapgenUrl = `http://${host}:${req.socket.localPort}`;
+    const peerPort = Number(process.env.PORT);
+    let mainUrl: string | null = null;
+    if (Number.isInteger(peerPort) && peerPort > 0 && peerPort <= 65535) {
+      try {
+        const peer = await fetch(`http://127.0.0.1:${peerPort}/dev-nav-peer.json`, { signal: AbortSignal.timeout(300) });
+        const identity = peer.ok ? await peer.json() as { kind?: string; workspace?: string } : null;
+        if (identity?.kind === "game" && identity.workspace === workspaceId)
+          mainUrl = `http://${host}:${peerPort}`;
+      } catch { /* The configured peer is not running. */ }
+    }
+    const template = fs.readFileSync(path.join(root, "../shared/dev-nav.js"), "utf8");
+    res.writeHead(200, { "Content-Type": "application/javascript" });
+    res.end(`
+${template.replace('export function renderDevNav', 'function renderDevNav')}
+renderDevNav(${JSON.stringify(mainUrl)}, ${JSON.stringify(mapgenUrl)});
+`);
     return;
   }
   let file: string | null;

@@ -7,10 +7,12 @@
   <title>Last Exit | Decomposition lab</title>
   <link rel="stylesheet" href="/decomposition-lab.css">
   <script type="module" src="/decomposition-lab.js"></script>
+  <link rel="stylesheet" href="/dev-nav.css">
+  <script src="/dev-nav.js"></script>
 </head>
 <body>
   <main class="lab">
-    <header><a href="/micro-lab.html">← MICRO LAB</a><div><span class="eyebrow">DEVELOPMENT TOOL</span><h1>Region decomposition</h1><p>Try a pattern and a policy. This allocates child-generator footprints; it does not make doors, geometry, or walkable routes.</p><a class="demo-link" href="/generation-demo.html">Decompose, generate and walk →</a></div></header>
+    <header><div><span class="eyebrow">DEVELOPMENT TOOL</span><h1>Region decomposition</h1><p>Try a pattern and a policy. This allocates child-generator footprints; it does not make doors, geometry, or walkable routes.</p></div></header>
     <section class="controls" aria-label="Region input">
       <label>Pattern example<select id="shape"><option value="neck">Neck — two large areas joined by a narrow strip</option><option value="ring">Ring — keep the courtyard hole</option><option value="l">L shape — irregular connected ground</option><option value="rectangle">Rectangle — one simple area</option></select><small>Changes immediately.</small></label>
       <label class="file-input">Load RegionContextInput JSON<input id="import" type="file" accept=".json,application/json"><small>Invalid files keep the current context and plan.</small></label>
