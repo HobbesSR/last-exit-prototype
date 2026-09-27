@@ -381,11 +381,8 @@ automatically; presets demonstrate different allocation policies, while status
 explains unchanged winners. Advanced search settings are not style controls.
 
 All browser-based development tools (`/micro-lab.html`, `/decomposition-lab.html`,
-`/generation-demo.html`, and `mapgen`'s Map Lab at `http://localhost:4173/`) are
-connected via a shared global navigation bar. This unified "DEVELOPMENT TOOLS"
-hub makes it seamless to transition between generating individual regions,
-analyzing decomposition strategies, running the full generation pipeline demo,
-and authoring macroscopic content in the Map Lab.
+`/generation-demo.html`, and `mapgen`'s Map Lab at `http://localhost:4173/`) carry a shared
+global navigation bar. The Map Lab link goes to the active mapgen server's root URL.
 
 Open `/generation-demo.html` for Region, Decomposition, Generated and Walk stages
 of the same example. Inspect each child's assignment and geometry, vary contents,

@@ -79,16 +79,23 @@ const server = http.createServer((req, res) => {
     res.end();
     return;
   }
-    if (req.url === "/dev-nav.js") {
-    const mainPort = process.env.PORT || 3100;
-    const host = req.headers.host?.split(':')[0] || 'localhost';
-    const mapgenUrl = `http://${host}:${port}`;
+  if (req.url === "/dev-nav.css") {
+    const content = fs.readFileSync(path.join(root, "../public/dev-nav.css"), "utf8");
+    res.writeHead(200, { "Content-Type": "text/css" });
+    res.end(content);
+    return;
+  }
+  if (req.url === "/dev-nav.js") {
+    const mainPort = process.env.PORT || 3100; // Known limitation: If main server falls back to 3101+, this will link to 3100 unless PORT is set
+    const hostStr = req.headers.host || 'localhost';
+    const host = hostStr.startsWith('[') ? hostStr.substring(0, hostStr.indexOf(']') + 1) : hostStr.split(':')[0];
+    const mapgenUrl = `http://${host}:${req.socket.localPort}`;
     const mainUrl = `http://${host}:${mainPort}`;
     const template = fs.readFileSync(path.join(root, "../shared/dev-nav.js"), "utf8");
     res.writeHead(200, { "Content-Type": "application/javascript" });
     res.end(`
 ${template.replace('export function renderDevNav', 'function renderDevNav')}
-renderDevNav('${mainUrl}', '${mapgenUrl}');
+renderDevNav(${JSON.stringify(mainUrl)}, ${JSON.stringify(mapgenUrl)});
 `);
     return;
   }

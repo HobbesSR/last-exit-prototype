@@ -28,7 +28,7 @@ export function renderDevNav(mainUrl, mapgenUrl) {
       ${linksHtml}
     </div>
   `;
-    const insert = () => document.body.insertBefore(nav, document.body.firstChild);
+  const insert = () => document.body.insertBefore(nav, document.body.firstChild);
   if (document.body) insert();
   else document.addEventListener('DOMContentLoaded', insert);
 }

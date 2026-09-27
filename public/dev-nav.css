@@ -13,6 +13,7 @@
 .global-tool-nav {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   justify-content: space-between;
   padding: 0 24px;
   height: 48px;
@@ -24,6 +25,7 @@
 .global-tool-nav .brand {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 8px;
   color: var(--nav-text);
   letter-spacing: 0.05em;

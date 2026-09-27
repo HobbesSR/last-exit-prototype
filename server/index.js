@@ -47,7 +47,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use('/vendor/lucide', express.static(path.join(ROOT, 'node_modules/lucide/dist/umd')));
   app.use('/vendor/sat', express.static(path.join(ROOT, 'node_modules/sat')));
   app.use('/shared', serveSharedModules(path.join(ROOT, 'shared')));
-    app.get('/dev-nav.js', async (req, res) => {
+  app.get('/dev-nav.js', async (req, res) => {
     const mapgenPort = process.env.MAPGEN_PORT || 4173;
     const host = req.hostname;
     const mapgenUrl = `http://${host}:${mapgenPort}`;
@@ -55,7 +55,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     const template = await import('node:fs/promises').then(fs => fs.readFile(path.join(ROOT, 'shared/dev-nav.js'), 'utf8'));
     res.type('application/javascript').send(`
 ${template.replace('export function renderDevNav', 'function renderDevNav')}
-renderDevNav('${mainUrl}', '${mapgenUrl}');
+renderDevNav(${JSON.stringify(mainUrl)}, ${JSON.stringify(mapgenUrl)});
 `);
   });
   app.use(express.static(path.join(ROOT, 'public')));
