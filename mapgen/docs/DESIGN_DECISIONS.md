@@ -116,9 +116,11 @@ the pinned seeds and compares per-layer content hashes. Today's shape fuses
 layers, so the hashes group content by what can be told apart now: layout,
 structure, interiors, **composed** (the final primitives, seams, walls and
 region partition, which every stage must still reproduce) and report.
-`tools/sweep.mts` `layerContent` is the only code that knows where each field
-lives. A stage that moves a field updates it in the same change, and the hashes
-must not move. A moved hash is a stop-and-escalate. The baseline is only
+`LAYER_FIELDS` in `tools/sweep.mts` is the only code that knows where each
+field lives. Hashing refuses a map with a field no entry claims, or with a
+required field missing, so a field moved without its entry fails loudly. A
+stage that moves a field updates its entry's path in the same change, and the
+hashes must not move. A moved hash is a stop-and-escalate. The baseline is only
 recaptured for a deliberate, reviewed content change, and the PR says so. The
 baseline records the last generator commit it measured.
 

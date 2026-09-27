@@ -18,9 +18,9 @@
  *   interiors today, and every later stage must still reproduce them.
  * - report: metrics and validation
  *
- * `layerContent` is the only code that knows where each field lives. A stage
- * that moves a field updates it in the same change, and the hashes must not
- * move. A change in any hash is a stop-and-escalate, never a re-baseline.
+ * `LAYER_FIELDS` is the only code that knows where each field lives, and
+ * hashing refuses any field it doesn't account for. A stage that moves a field
+ * updates its entry in the same change, and the hashes must not move. A change in any hash is a stop-and-escalate, never a re-baseline.
  */
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
