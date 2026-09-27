@@ -26,11 +26,14 @@ a scaffold for authoring and validation, not a finished game map generator.
 ### Generation modes
 
 `generateMap` accepts an optional `MapParams.mode`, either `game` or
-`playground`, and defaults to `game`. Both modes use the same horizontal
+`playground`, and defaults to `game`. The generated map records the resolved
+mode in its params. Both modes use the same horizontal
 five-by-five grid masked to the diamond, generic generation pipeline, and map
-validation. Game mode requires exactly 12 x 6 tiles per zone and enforces the
-current set-piece category quotas: one `start`, one `end`, three `enormous`,
-four `medium`, and ten `small`. Playground mode bypasses those game quotas and
+validation. Game mode requires exactly 12 x 6 tiles per zone. The library must
+provide at least one `start`, one `end`, three `enormous`, one `medium`, and one
+`small` definition. Each game map places one `start`, one `end`, three distinct
+`enormous`, four `medium`, and ten `small` instances; medium and small definitions
+may be reused. Playground mode bypasses those game quotas and
 may use smaller zone dimensions for quick experiments, while still requiring a
 generically valid generated map. The browser, CLI, and MCP interfaces expose
 the same mode parameter and pass it through to the shared core.

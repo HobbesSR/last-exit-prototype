@@ -2897,6 +2897,7 @@ export function generateMap(
   const mode = p.mode ?? "game";
   if (mode !== "game" && mode !== "playground")
     throw new Error("map mode must be game or playground");
+  p.mode = mode;
   if (mode === "game" && (p.zoneWidth !== 12 || p.zoneHeight !== 6))
     throw new Error("game mode requires 12 x 6 tile zones; choose playground mode for other zone dimensions");
   // A malformed library fails every attempt the same way; the retry loop below

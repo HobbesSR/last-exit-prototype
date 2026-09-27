@@ -37,6 +37,7 @@ test("game mode keeps its calibrated dimensions and required set-piece recipe", 
   );
 
   const game = generateMap("game-recipe");
+  assert.equal(game.params.mode, "game");
   const categoryFor = new Map(
     DEFAULT_LIBRARY.setPieces.map((piece) => [piece.id, piece.category]),
   );
@@ -64,6 +65,7 @@ test("playground mode allows a small map with the shipped library", () => {
     zoneWidth: 2,
     zoneHeight: 1,
   });
+  assert.equal(map.params.mode, "playground");
   assert.equal(map.validation.valid, true, map.validation.errors.join("; "));
 });
 test("several zone sizes and seeds keep both classes connected", () => {
