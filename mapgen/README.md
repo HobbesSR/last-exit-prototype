@@ -23,11 +23,13 @@ Open **http://127.0.0.1:4173**. A `MAPGEN_PORT` in the repository root's untrack
 - Segments take the active segment brush — `any`, `open`, `wall` or a partial aperture — on contact, so declaring a wall is one click rather than a trip to a control below the fold. The panel under **Segments** still inspects whichever segment was last touched.
 - **Right-click** opens a palette at the cursor offering only what the primitive under it can take, including whole-line, matching-run, perimeter, row, column and flood scopes. **Alt-click** picks up what is already there as the brush.
 - The numbered strips beside the preview cover a whole row or column of cells, or, in _Segments_, a whole grid line. **Patterns** apply the active brush to a whole-tile shape: fill, border ring, interior block, checker and stripes for cells; perimeter, interior, room outline and _Defer all_ for segments.
-- Name or duplicate tiles, declare cell classes, set coarse side ports under Topology hints, and edit the complete library JSON — tile sets and multi-tile layouts are still source-panel only. Update the tile or apply JSON, then **Build map**. The generated-tile inspector links back to its design.
+- Name or duplicate tiles, declare cell classes, set coarse side ports under Topology hints, edit tile sets and set pieces, or edit the complete library JSON. Update the tile or apply JSON, then **Build map**. The generated-tile inspector links back to its design.
 
-A tile has no weight field in the editor. `weight` is a relative selection frequency, which is a property of whatever set or set piece draws from a tile rather than of the tile itself; it stays optional in the library file (omission means 1) until tile sets carry their own member weights. See [docs/QUESTIONS.md](docs/QUESTIONS.md).
+A tile has no weight field in the editor. The current `generate` path reads optional tile `weight` when choosing from WFC candidates (omission means 1). Set-piece slots choose a member from their tile set separately. See [docs/QUESTIONS.md](docs/QUESTIONS.md) for the remaining selection-policy question.
 
-The active library starts from [content/default-library.json](content/default-library.json): ten designs, three tile sets and two layouts. A valid saved browser library takes precedence. The editor exposes design usage and the explicit fallback role; `plain` is a fallback and may have no placements. Reset to shipped library restores the bundled corpus. Browser edits stay in browser storage; export JSON and pass it to the CLI to share the same library. See [the cleanup audit](docs/archive/editor-cleanup/EDITOR_CLEANUP.md) for selection behavior and remaining generator limitations.
+The active library starts from [content/default-library.json](content/default-library.json): 30 tile designs, 15 tile sets and 23 set pieces. A valid saved browser library takes precedence. The editor exposes design usage and the explicit fallback flag; `street` carries `adapter: true`, though the current WFC generator treats it as an ordinary candidate. Reset to shipped library restores the bundled corpus. Browser edits stay in browser storage; export JSON and pass it to the CLI to share the same library. See [the cleanup audit](docs/archive/editor-cleanup/EDITOR_CLEANUP.md) for the earlier selection behavior.
+
+`generate` and `batch` read this library and compose its tiles and set pieces before discovering regions. `plan` uses a separate region-first generator and does not read the library. All 30 designs can be selected by WFC even when no tile set names them. The `filler`, `park-edges` and `park-centers` tile sets are not referenced by the shipped set pieces; their member tiles remain available to WFC. Set-piece `class` is required by validation but is not consumed by current placement. The tile `anchor` field is read for WFC placements, while set-piece placements currently use tile centers.
 
 Every tile's 36 cells, 84 segments and 49 vertices are all addressable and all
 have metadata, but only what you actually state is stored. A segment nobody
@@ -80,8 +82,8 @@ segment or vertex and wins over the shorthands:
 whatever the seam contract and the neighbouring tile ask for. A concrete value
 is a requirement, and the design is only placed where that requirement holds.
 Unmentioned primitives default to deferring, so an author writes only what they
-actually care about. The shipped `market-arcade` states its two sealed sides
-through `edges` rather than `ports`, which is the same contract at finer grain.
+actually care about. Perimeter barriers in the shipped library are stated through
+`edges` rather than `ports`.
 
 Micro generation is a **catalogue** of region builders, documented in
 [docs/MICRO_GENERATION.md](docs/MICRO_GENERATION.md). A builder takes one area
@@ -150,7 +152,17 @@ An optional stdio MCP server exposes `map_generate`, `map_validate`, `library_va
 
 The MCP server is implemented and protocol-tested but is not automatically registered in any agent client. All tool output is JSON over stdio. It provides generation/validation, not arbitrary filesystem access. Author files using normal filesystem tools, then validate/generate through CLI or MCP.
 
-## Current contracts and limits
+## Scale and legacy tile-edge contracts
+
+The tile-edge selection and route-metric descriptions below were written for
+`generateMapLegacy`, which remains in `src/core.ts`; shared scale, artifact and
+validation details also apply to the current path. The current `generate` and
+`batch` commands call `generateMap`: it places category-selected set pieces,
+fills remaining slots with WFC, composes the result, and validates the map. It
+does not use the `adapter` flag or `ports`. Its `deadEnds`, `squeezes`, route
+distances, detour ratio, `sealedSeams`, `interiorWalls`, `solidFraction`, and
+`largestRegion` metrics are currently initialized to zero; do not use them for
+tuning. The default tile and body scales in the first bullet still apply.
 
 - Fixed 6×6 tiles. The map is a 5×5 grid of tier zones masked to a diamond, 13 of them occupied; each zone is `zoneWidth`×`zoneHeight` tiles, 12×6 by default, giving a 60×30 slot bounding box and 936 tiles. Cells are abstract segment units, not meters. Contestant radius 0.55, hunter radius 0.90.
 - **Nothing imposes a topology.** No spanning tree, no loop or squeeze budget, and no seam is walled or opened to fit a plan. A seam carries exactly what the two designs beside it declare, and an unstated boundary contributes no wall, so an open field crosses tile seams unbroken and needs no special adapter. What generation still owes is that the result is walkable, and it pays that by _choosing_ designs: slots are filled outward from the western edge, and a design is drawn from those that stay joined to the placed map and do not wall off a neighbour that has no other way in. Where no candidate can do that the slot is still filled and validation reports the map as unreachable rather than the generator cutting an opening. Walking metrics exclude transit.
