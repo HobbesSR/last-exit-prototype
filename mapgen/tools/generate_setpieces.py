@@ -6,6 +6,10 @@ is deterministic. Run from mapgen/: python tools/generate_setpieces.py
 import json
 import random
 
+# Perimeters whose edge tiles are an unbroken fence, and the gate tile that
+# opens each one.
+GATES = {"depot-fences": "depot-gates", "evac-fences": "evac-gates"}
+
 def generate():
     with open("content/default-library.json", "r") as f:
         lib = json.load(f)
@@ -13,6 +17,10 @@ def generate():
     setPieces = []
 
     def make_perimeter_piece(id_name, category, w, h, eligible, corner_set, edge_set, interior_set=None, c_class="open"):
+        # A fenced perimeter needs a way in: the middle of each side takes the
+        # style's gate, so the compound can be crossed whichever way the map
+        # runs past it. secure-depot had gates before 30e4df7 dropped them.
+        gate_set = GATES.get(edge_set)
         tiles = []
         for dy in range(h):
             for dx in range(w):
@@ -37,13 +45,13 @@ def generate():
                 elif is_bl:
                     tiles.append({"dx": dx, "dy": dy, "tileSetId": corner_set, "orientation": 270})
                 elif is_t:
-                    tiles.append({"dx": dx, "dy": dy, "tileSetId": edge_set, "orientation": 0})
+                    tiles.append({"dx": dx, "dy": dy, "tileSetId": gate_set if gate_set and dx == w // 2 else edge_set, "orientation": 0})
                 elif is_r:
-                    tiles.append({"dx": dx, "dy": dy, "tileSetId": edge_set, "orientation": 90})
+                    tiles.append({"dx": dx, "dy": dy, "tileSetId": gate_set if gate_set and dy == h // 2 else edge_set, "orientation": 90})
                 elif is_b:
-                    tiles.append({"dx": dx, "dy": dy, "tileSetId": edge_set, "orientation": 180})
+                    tiles.append({"dx": dx, "dy": dy, "tileSetId": gate_set if gate_set and dx == w // 2 else edge_set, "orientation": 180})
                 elif is_l:
-                    tiles.append({"dx": dx, "dy": dy, "tileSetId": edge_set, "orientation": 270})
+                    tiles.append({"dx": dx, "dy": dy, "tileSetId": gate_set if gate_set and dy == h // 2 else edge_set, "orientation": 270})
                 else:
                     if interior_set:
                         tiles.append({"dx": dx, "dy": dy, "tileSetId": interior_set})

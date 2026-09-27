@@ -341,16 +341,35 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTi
         (opt as any).validBL = new Set();
         (opt as any).validBR = new Set();
       }
+      // Compatibility depends only on template and orientation, and every
+      // pre-assigned set-piece slot is its own option object, so match each
+      // distinct pair once and share the answer across its options.
+      const byKind = new Map<string, TileOption[]>();
       for (const opt of domain) {
-        for (const nOpt of domain) {
-          if (matchEdge(opt, "N", nOpt, "S", libraryTiles)) (opt as any).validN.add(nOpt.id);
-          if (matchEdge(opt, "S", nOpt, "N", libraryTiles)) (opt as any).validS.add(nOpt.id);
-          if (matchEdge(opt, "E", nOpt, "W", libraryTiles)) (opt as any).validE.add(nOpt.id);
-          if (matchEdge(opt, "W", nOpt, "E", libraryTiles)) (opt as any).validW.add(nOpt.id);
-          if (matchDiagonal(opt, "TL", nOpt, libraryTiles)) (opt as any).validTL.add(nOpt.id);
-          if (matchDiagonal(opt, "TR", nOpt, libraryTiles)) (opt as any).validTR.add(nOpt.id);
-          if (matchDiagonal(opt, "BL", nOpt, libraryTiles)) (opt as any).validBL.add(nOpt.id);
-          if (matchDiagonal(opt, "BR", nOpt, libraryTiles)) (opt as any).validBR.add(nOpt.id);
+        const kind = `${opt.templateId}@${opt.orientation}`;
+        const kin = byKind.get(kind);
+        if (kin) kin.push(opt);
+        else byKind.set(kind, [opt]);
+      }
+      const kinds = [...byKind.values()];
+      for (const mine of kinds) {
+        const opt = mine[0]!;
+        for (const theirs of kinds) {
+          const nOpt = theirs[0]!;
+          const fits: Array<[string, boolean]> = [
+            ["validN", matchEdge(opt, "N", nOpt, "S", libraryTiles)],
+            ["validS", matchEdge(opt, "S", nOpt, "N", libraryTiles)],
+            ["validE", matchEdge(opt, "E", nOpt, "W", libraryTiles)],
+            ["validW", matchEdge(opt, "W", nOpt, "E", libraryTiles)],
+            ["validTL", matchDiagonal(opt, "TL", nOpt, libraryTiles)],
+            ["validTR", matchDiagonal(opt, "TR", nOpt, libraryTiles)],
+            ["validBL", matchDiagonal(opt, "BL", nOpt, libraryTiles)],
+            ["validBR", matchDiagonal(opt, "BR", nOpt, libraryTiles)],
+          ];
+          for (const [valid, fit] of fits) {
+            if (!fit) continue;
+            for (const o of mine) for (const n of theirs) (o as any)[valid].add(n.id);
+          }
         }
       }
     }

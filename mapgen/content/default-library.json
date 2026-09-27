@@ -1491,7 +1491,7 @@
         {
           "dx": 4,
           "dy": 0,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 0
         },
         {
@@ -1539,13 +1539,13 @@
         {
           "dx": 0,
           "dy": 3,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 270
         },
         {
           "dx": 7,
           "dy": 3,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 90
         },
         {
@@ -1587,7 +1587,7 @@
         {
           "dx": 4,
           "dy": 5,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 180
         },
         {
@@ -2214,7 +2214,7 @@
         {
           "dx": 4,
           "dy": 0,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 0
         },
         {
@@ -2268,13 +2268,13 @@
         {
           "dx": 0,
           "dy": 3,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 270
         },
         {
           "dx": 8,
           "dy": 3,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 90
         },
         {
@@ -2316,7 +2316,7 @@
         {
           "dx": 4,
           "dy": 5,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 180
         },
         {
@@ -2378,7 +2378,7 @@
         {
           "dx": 3,
           "dy": 0,
-          "tileSetId": "evac-fences",
+          "tileSetId": "evac-gates",
           "orientation": 0
         },
         {
@@ -2420,13 +2420,13 @@
         {
           "dx": 0,
           "dy": 3,
-          "tileSetId": "evac-fences",
+          "tileSetId": "evac-gates",
           "orientation": 270
         },
         {
           "dx": 5,
           "dy": 3,
-          "tileSetId": "evac-fences",
+          "tileSetId": "evac-gates",
           "orientation": 90
         },
         {
@@ -2462,7 +2462,7 @@
         {
           "dx": 3,
           "dy": 5,
-          "tileSetId": "evac-fences",
+          "tileSetId": "evac-gates",
           "orientation": 180
         },
         {
@@ -2746,7 +2746,7 @@
         {
           "dx": 6,
           "dy": 0,
-          "tileSetId": "evac-fences",
+          "tileSetId": "evac-gates",
           "orientation": 0
         },
         {
@@ -2782,13 +2782,13 @@
         {
           "dx": 0,
           "dy": 1,
-          "tileSetId": "evac-fences",
+          "tileSetId": "evac-gates",
           "orientation": 270
         },
         {
           "dx": 11,
           "dy": 1,
-          "tileSetId": "evac-fences",
+          "tileSetId": "evac-gates",
           "orientation": 90
         },
         {
@@ -2830,7 +2830,7 @@
         {
           "dx": 6,
           "dy": 2,
-          "tileSetId": "evac-fences",
+          "tileSetId": "evac-gates",
           "orientation": 180
         },
         {
@@ -3113,7 +3113,7 @@
         {
           "dx": 4,
           "dy": 0,
-          "tileSetId": "evac-fences",
+          "tileSetId": "evac-gates",
           "orientation": 0
         },
         {
@@ -3149,13 +3149,13 @@
         {
           "dx": 0,
           "dy": 2,
-          "tileSetId": "evac-fences",
+          "tileSetId": "evac-gates",
           "orientation": 270
         },
         {
           "dx": 7,
           "dy": 2,
-          "tileSetId": "evac-fences",
+          "tileSetId": "evac-gates",
           "orientation": 90
         },
         {
@@ -3185,7 +3185,7 @@
         {
           "dx": 4,
           "dy": 3,
-          "tileSetId": "evac-fences",
+          "tileSetId": "evac-gates",
           "orientation": 180
         },
         {
@@ -3423,7 +3423,7 @@
         {
           "dx": 3,
           "dy": 0,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 0
         },
         {
@@ -3441,13 +3441,13 @@
         {
           "dx": 0,
           "dy": 1,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 270
         },
         {
           "dx": 5,
           "dy": 1,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 90
         },
         {
@@ -3471,7 +3471,7 @@
         {
           "dx": 3,
           "dy": 2,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 180
         },
         {
@@ -3633,7 +3633,7 @@
         {
           "dx": 4,
           "dy": 0,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 0
         },
         {
@@ -3687,7 +3687,7 @@
         {
           "dx": 4,
           "dy": 1,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 180
         },
         {
@@ -3865,7 +3865,7 @@
         {
           "dx": 1,
           "dy": 0,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 0
         },
         {
@@ -3901,13 +3901,13 @@
         {
           "dx": 0,
           "dy": 3,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 270
         },
         {
           "dx": 2,
           "dy": 3,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 90
         },
         {
@@ -3931,7 +3931,7 @@
         {
           "dx": 1,
           "dy": 5,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 180
         },
         {
@@ -4125,7 +4125,7 @@
         {
           "dx": 3,
           "dy": 0,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 0
         },
         {
@@ -4149,13 +4149,13 @@
         {
           "dx": 0,
           "dy": 1,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 270
         },
         {
           "dx": 6,
           "dy": 1,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 90
         },
         {
@@ -4179,7 +4179,7 @@
         {
           "dx": 3,
           "dy": 2,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 180
         },
         {
@@ -4357,7 +4357,7 @@
         {
           "dx": 2,
           "dy": 0,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 0
         },
         {
@@ -4375,13 +4375,13 @@
         {
           "dx": 0,
           "dy": 1,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 270
         },
         {
           "dx": 4,
           "dy": 1,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 90
         },
         {
@@ -4399,7 +4399,7 @@
         {
           "dx": 2,
           "dy": 2,
-          "tileSetId": "depot-fences",
+          "tileSetId": "depot-gates",
           "orientation": 180
         },
         {
