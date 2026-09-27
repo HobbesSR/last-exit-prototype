@@ -49,9 +49,10 @@ the branch and worktree, what is complete, current dirty files, unresolved failu
 and the precise next action. Add a new comment rather than editing earlier ones.
 Do not tell a fresh model to infer missing decisions from the old chat.
 
-Tell the user the recommended model and why switching is useful. The pickup prompt is:
+Tell the user the recommended model and why switching is useful. Name the exact
+issue or pull request where the comment was posted in the pickup prompt:
 
-> Read AGENTS.md and the latest handoff comment on issue #N. Implement the next ready task within its scope, run its acceptance checks, and post an updated handoff.
+> Read AGENTS.md and the latest handoff comment on issue #N or PR #N. Implement the next ready task within its scope, run its acceptance checks, and post an updated handoff there.
 
 For escalation back to Astra, replace "Implement" with "Review the blocked task,
 resolve the cross-system decision, and prepare the next bounded implementation task."

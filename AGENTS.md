@@ -2,10 +2,10 @@
 
 ## Start and resume
 
-Inspect `git status` and current files before acting. When resuming an issue, read
-its latest handoff comment on Forgejo, then `docs/00-index.md` and the numbered
-files it points to for the area you are changing. The documentation and newer user
-edits take precedence over stale handoff comments. Do not stage or overwrite
+Inspect `git status` and current files before acting. When resuming an issue or
+pull request, read its latest handoff comment on Forgejo, then `docs/00-index.md`
+and the numbered files it points to for the area you are changing. The documentation
+and newer user edits take precedence over stale handoff comments. Do not stage or overwrite
 unrelated user changes.
 
 Load the documentation you need, not all of it. `docs/1x` is product, `2x` is
