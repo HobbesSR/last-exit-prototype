@@ -2,12 +2,15 @@ export function renderDevNav(mainUrl, mapgenUrl) {
   const nav = document.createElement('nav');
   nav.className = 'global-tool-nav';
   
-  const links = [
-    { href: `${mainUrl}/micro-lab.html`, text: 'Micro Lab', match: 'micro-lab' },
-    { href: `${mainUrl}/decomposition-lab.html`, text: 'Decomposition', match: 'decomposition' },
-    { href: `${mainUrl}/generation-demo.html`, text: 'Demo', match: 'generation' },
-    { href: `${mapgenUrl}/`, text: 'Map Lab', match: 'mapgen' }
-  ];
+  const links = [];
+  if (mainUrl) {
+    links.push({ href: `${mainUrl}/micro-lab.html`, text: 'Micro Lab', match: 'micro-lab' });
+    links.push({ href: `${mainUrl}/decomposition-lab.html`, text: 'Decomposition', match: 'decomposition' });
+    links.push({ href: `${mainUrl}/generation-demo.html`, text: 'Demo', match: 'generation' });
+  }
+  if (mapgenUrl) {
+    links.push({ href: `${mapgenUrl}/`, text: 'Map Lab', match: 'mapgen' });
+  }
 
   let linksHtml = '';
   for (const link of links) {
@@ -22,8 +25,10 @@ export function renderDevNav(mainUrl, mapgenUrl) {
     linksHtml += `<a href="${link.href}"${active ? ' class="active"' : ''}${target}>${link.text}${arrow}</a>\n`;
   }
 
+  const brandUrl = mainUrl ? `${mainUrl}/` : '/';
+  
   nav.innerHTML = `
-    <div class="brand"><a href="${mainUrl}/" class="home-link">LAST <b>EXIT</b></a> <span class="divider">/</span> <span>DEVELOPMENT TOOLS</span></div>
+    <div class="brand"><a href="${brandUrl}" class="home-link">LAST <b>EXIT</b></a> <span class="divider">/</span> <span>DEVELOPMENT TOOLS</span></div>
     <div class="links">
       ${linksHtml}
     </div>
