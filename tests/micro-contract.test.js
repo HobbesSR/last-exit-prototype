@@ -98,7 +98,23 @@ test('an entry region with a required port places default loot and entry spawns 
   for (let seed = 0; seed < 20; seed++) for (const count of [0, 4]) {
     const result = generateMicroRegion({ id: 'e', seed, builder: 'entry', cellSize: 40, bodyProfile: 'cell', cells, entry: { count }, ports });
     assert.deepEqual(validateMicroRegion(result), []);
-    assert.ok(result.loot.length > 0, `seed ${seed} keeps its loot`);
+    if (!count) assert.ok(result.loot.length > 0, `seed ${seed} keeps its loot without spawns`);
     assert.equal(result.entry.shortfall, count - result.entry.points.length);
   }
+});
+
+test('entry spawns claim ground before default loot, which fills only the leftover room', () => {
+  const cells = Array.from({ length: 4 }, (_, y) => Array.from({ length: 6 }, (_, x) => ({ x, y }))).flat();
+  const ports = [{ id: 'w', side: 'W', start: { x: 0, y: 1 }, length: 2, required: 'contestant', allowed: 'contestant' }];
+  for (let seed = 0; seed < 10; seed++) {
+    const spec = { id: 'e', seed, builder: 'entry', cellSize: 40, bodyProfile: 'cell', cells, entry: { count: 8 }, ports };
+    const result = generateMicroRegion(spec), bare = generateMicroRegion({ ...spec, loot: { budget: 0, tier: 1 } });
+    assert.equal(result.entry.shortfall, 0, `seed ${seed} places every spawn despite the default loot budget`);
+    assert.deepEqual(result.entry, bare.entry, 'loot budget does not move entry points');
+  }
+  const open = generateMicroRegion({ id: 'e', seed: 3, builder: 'entry', cellSize: 40, bodyProfile: 'cell', cells, entry: { count: 1 }, ports });
+  assert.ok(open.loot.length > 0, 'loot still fills room the spawns leave');
+  const invalid = structuredClone(open);
+  invalid.loot = [{ ...open.entry.points[0], tier: 1 }];
+  assert.ok(validateMicroRegion(invalid).includes('Loot occupies an entry point.'));
 });

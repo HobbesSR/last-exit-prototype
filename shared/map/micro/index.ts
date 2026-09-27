@@ -72,6 +72,12 @@ function rng(seed: number, name: string): RegionRandom {
   } };
 }
 
+/** Entry points see only geometry and macro reservations; loot is placed around them afterwards. */
+function entryPoints(spec: RegionSpec, mask: RegionMask, elements: RegionElement[], root: Vec2 | undefined) {
+  return spreadPoints(mask, { count: spec.entry?.count ?? 24, radius: microMetrics(spec).clearance.contestant, seed: spec.seed,
+    blockers: elements.flatMap(e => elementShapes(e, true)), reservations: (spec.reservations || []).map(b => rect(b.x, b.y, b.w, b.h)), ...(root ? { anchor: root } : {}) });
+}
+
 export function generateMicroRegion(input: RegionSpec): RegionResult {
   const spec = checkedSpec(input), mask = createRegionMask(spec), resolved = resolvePorts(spec, mask);
   const metrics = microMetrics(spec), radii = metrics.clearance;
@@ -96,7 +102,7 @@ export function generateMicroRegion(input: RegionSpec): RegionResult {
   for (const p of ports) if (p.allowed !== 'none') {
     for (const s of capsule(p.centre, p.inside, radii[p.allowed] + 1)) protectedShapes.push(s);
   }
-  const loot: RegionResult['loot'] = [], lootCells = new Set<string>();
+  const loot: RegionResult['loot'] = [], lootCells = new Set<string>(), spawns: Shape[] = [];
   const occupied = elements.flatMap(e => elementShapes(e, true));
   let attempted = 0, rejected = 0;
   const root = ports.find(p => p.required !== 'none')?.inside;
@@ -118,7 +124,7 @@ export function generateMicroRegion(input: RegionSpec): RegionResult {
     loot(x, y) {
       if (loot.length >= (spec.loot?.budget ?? 8) || !Number.isFinite(x) || !Number.isFinite(y)) return false;
       const key = `${Math.floor(x / spec.cellSize)},${Math.floor(y / spec.cellSize)}`, disc = circle(x, y, metrics.lootRadius);
-      if (lootCells.has(key) || !mask.contains(disc) || elements.flatMap(e => elementShapes(e, true)).some(s => shapesOverlap(disc, s)) || (spec.reservations || []).some(b => shapesOverlap(disc, rect(b.x, b.y, b.w, b.h)))) return false;
+      if (lootCells.has(key) || !mask.contains(disc) || elements.flatMap(e => elementShapes(e, true)).some(s => shapesOverlap(disc, s)) || (spec.reservations || []).some(b => shapesOverlap(disc, rect(b.x, b.y, b.w, b.h))) || spawns.some(s => shapesOverlap(disc, s))) return false;
       const path = root && findRegionRoute(mask, blockers, root, { x, y }, radii.contestant);
       if (root && !path) return false;
       if (path) protect(path, 'contestant');
@@ -127,14 +133,15 @@ export function generateMicroRegion(input: RegionSpec): RegionResult {
     },
   };
   BUILDERS[spec.builder](context);
+  // Spawning is what an entry region is for, so its points claim ground before the loot fill.
+  const entry = spec.builder === 'entry' ? entryPoints(spec, mask, elements, root) : undefined;
+  spawns.push(...(entry?.points || []).map(p => circle(p.x, p.y, radii.contestant)));
   const lootRandom = context.random('remaining-loot');
   for (const c of lootRandom.shuffle(mask.cells)) {
     if (loot.length >= (spec.loot?.budget ?? 8)) break;
     context.loot((c.x + 0.35 + lootRandom.next() * 0.3) * spec.cellSize, (c.y + 0.35 + lootRandom.next() * 0.3) * spec.cellSize);
   }
   const parts = elements.flatMap(e => e.template.parts);
-  const entry = spec.builder === 'entry' ? spreadPoints(mask, { count: spec.entry?.count ?? 24, radius: radii.contestant,
-    seed: spec.seed, blockers: elements.flatMap(e => elementShapes(e, true)), reservations: [...(spec.reservations || []).map(b => rect(b.x, b.y, b.w, b.h)), ...loot.map(p => circle(p.x, p.y, metrics.lootRadius))], ...(root ? { anchor: root } : {}) }) : undefined;
   const result: RegionResult = { version: 'micro-1', spec, bounds: mask.bounds, ports, routes, elements, loot,
     ...(entry ? { entry } : {}),
     manifest: { builder: spec.builder, cells: mask.cells.length, structures: elements.filter(e => e.template.encloses).length,
@@ -172,9 +179,9 @@ export function validateMicroRegion(result: RegionResult): string[] {
     }
     if (result.loot.length > (spec.loot?.budget ?? 8)) errors.push('Loot exceeds the macro budget.');
     if (spec.builder === 'entry') {
-      const expected = spreadPoints(mask, { count: spec.entry?.count ?? 24, radius: radii.contestant, blockers: allGeometry,
-        seed: spec.seed, reservations: [...(spec.reservations || []).map(b => rect(b.x, b.y, b.w, b.h)), ...result.loot.map(p => circle(p.x, p.y, metrics.lootRadius))], ...(root ? { anchor: root } : {}) });
+      const expected = entryPoints(spec, mask, result.elements, root);
       if (JSON.stringify(result.entry) !== JSON.stringify(expected)) errors.push('Entry placement disagrees with clear, spaced positions.');
+      if (result.loot.some(p => expected.points.some(q => shapesOverlap(circle(p.x, p.y, metrics.lootRadius), circle(q.x, q.y, radii.contestant))))) errors.push('Loot occupies an entry point.');
     } else if (result.entry !== undefined) errors.push('Unexpected entry placement on a non-entry region.');
     for (const route of result.routes) {
       if (!Object.hasOwn(radii, route.role) || route.radius !== radii[route.role] || !route.points.length) { errors.push('Invalid recorded clearance route.'); continue; }
