@@ -86,11 +86,10 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (req.url === "/dev-nav.js") {
-    const mainPort = process.env.PORT || 3100; // Known limitation: If main server falls back to 3101+, this will link to 3100 unless PORT is set
     const hostStr = req.headers.host || 'localhost';
     const host = hostStr.startsWith('[') ? hostStr.substring(0, hostStr.indexOf(']') + 1) : hostStr.split(':')[0];
     const mapgenUrl = `http://${host}:${req.socket.localPort}`;
-    const mainUrl = `http://${host}:${mainPort}`;
+    const mainUrl = process.env.PORT ? `http://${host}:${process.env.PORT}` : null;
     const template = fs.readFileSync(path.join(root, "../shared/dev-nav.js"), "utf8");
     res.writeHead(200, { "Content-Type": "application/javascript" });
     res.end(`

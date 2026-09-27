@@ -48,9 +48,8 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use('/vendor/sat', express.static(path.join(ROOT, 'node_modules/sat')));
   app.use('/shared', serveSharedModules(path.join(ROOT, 'shared')));
   app.get('/dev-nav.js', async (req, res) => {
-    const mapgenPort = process.env.MAPGEN_PORT || 4173;
     const host = req.hostname;
-    const mapgenUrl = `http://${host}:${mapgenPort}`;
+    const mapgenUrl = process.env.MAPGEN_PORT ? `http://${host}:${process.env.MAPGEN_PORT}` : null;
     const mainUrl = `http://${host}:${req.socket.localPort}`;
     const template = await import('node:fs/promises').then(fs => fs.readFile(path.join(ROOT, 'shared/dev-nav.js'), 'utf8'));
     res.type('application/javascript').send(`

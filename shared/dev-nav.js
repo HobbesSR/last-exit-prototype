@@ -1,7 +1,7 @@
 export function renderDevNav(mainUrl, mapgenUrl) {
   const nav = document.createElement('nav');
   nav.className = 'global-tool-nav';
-  
+
   const links = [];
   if (mainUrl) {
     links.push({ href: `${mainUrl}/micro-lab.html`, text: 'Micro Lab', match: 'micro-lab' });
@@ -26,7 +26,7 @@ export function renderDevNav(mainUrl, mapgenUrl) {
   }
 
   const brandUrl = mainUrl ? `${mainUrl}/` : '/';
-  
+
   nav.innerHTML = `
     <div class="brand"><a href="${brandUrl}" class="home-link">LAST <b>EXIT</b></a> <span class="divider">/</span> <span>DEVELOPMENT TOOLS</span></div>
     <div class="links">
