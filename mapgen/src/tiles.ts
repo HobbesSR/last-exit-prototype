@@ -36,17 +36,6 @@ const inside = (v: unknown): v is number =>
   v >= INTERIOR_MARGIN &&
   v <= TILE_SIZE - INTERIOR_MARGIN;
 
-/** Does the template say anything beyond an empty box with deferring sides? */
-export function hasInterior(tile: TileDesign | null | undefined): boolean {
-  return Boolean(
-    tile?.cells?.length ||
-    tile?.walls?.length ||
-    tile?.edges ||
-    tile?.corners ||
-    tile?.primitives,
-  );
-}
-
 function validateDeclaration(value: unknown, where: string): string[] {
   if (value === "any" || value === "open" || value === "wall") return [];
   if (

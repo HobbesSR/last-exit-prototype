@@ -16,8 +16,8 @@ geometry of the legacy path, a detour ratio of 1.75 against 1.05, and 79
 contestant-only seams against 1. Nothing in it is tuned.
 
 Editor cleanup: see [archive/editor-cleanup/EDITOR_CLEANUP.md](archive/editor-cleanup/EDITOR_CLEANUP.md) for the actual library
-path and design/proposal separation. Only explicit `adapter: true` designs are
-fallbacks; uniform patches are ordinary content. The original prose now stands
+path and design/proposal separation. Uniform patches are ordinary content; the
+`adapter` fallback flag was removed with the legacy generator (#38). The original prose now stands
 alone in `design_notes.txt`. Historical milestones below describe implementation
 progress, not additional requirements overriding that prose.
 

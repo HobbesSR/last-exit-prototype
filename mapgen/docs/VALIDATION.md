@@ -1,5 +1,10 @@
 # Validation checkpoint: emergent seams and the editing surface
 
+This checkpoint measured `generateMapLegacy`, which #38 removed. The tile
+selection rules below (outward fill, refusing walled designs, the adapter
+fraction) went with it; `generateMap` does not have them. See the README
+section "Scale and the current generator" for what it does.
+
 - `npm test`: 82 tests passed. Typecheck runs as part of this command. New
   coverage: tile weight optional and defaulting to 1; seams stating exactly what
   the tiles declare, with an open field producing zero walls and no sealed seam;
@@ -71,8 +76,9 @@ segment grid so a reported edge cannot drift from the geometry.
 
 Geometry checks use swept-disc moves on a half-cell lattice: a found route is
 physical, while a missing sampled route is not proof no continuous route exists.
-The one-cell interior margin has been removed (NEXT_TASKS item 6), so the legacy
-local-fit algorithm no longer has the locality guarantee it relied on. Micro blockers are validated against containment and routes, but
+The one-cell interior margin has been removed (NEXT_TASKS item 6), so tile
+selection is not a local decision and only whole-map validation settles
+walkability. Micro blockers are validated against containment and routes, but
 shipped classes place none. The experimental macro composer has separate
 composition and post-edit revalidation tests; this seed batch does not exercise
 randomized macro-structure placement, which is not implemented.

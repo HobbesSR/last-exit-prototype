@@ -160,36 +160,30 @@ An optional stdio MCP server exposes `map_generate`, `map_validate`, `library_va
 
 The MCP server is implemented and protocol-tested but is not automatically registered in any agent client. All tool output is JSON over stdio. It provides generation/validation, not arbitrary filesystem access. Author files using normal filesystem tools, then validate/generate through CLI or MCP.
 
-## Scale and legacy tile-edge contracts
+## Scale and the current generator
 
-The tile-edge selection and route-metric descriptions below were written for
-`generateMapLegacy`, which remains in `src/core.ts`; shared scale, artifact and
-validation details also apply to the current path. The current `generate` and
-`batch` commands call `generateMap`: it places category-selected set pieces,
-fills remaining slots with WFC, composes the result, and validates the map. It
-does not use the `adapter` flag or `ports`. Its tuning metrics are read off the
-finished map by `measureMap`, the same function the planned path uses: route
-distances are tile-graph hops times the tile size. The tile graph can miss a
-route the lattice proves, so even on a valid map every route metric may be
-`Infinity`, meaning unavailable (never `NaN`), with `unroutedExits` counting
-the exits it could not reach. Each batch distribution reports its finite
-`samples` and its `unavailable` count, and describes only the finite ones. `deadEnds` is a
+`generate`, `batch`, the GUI and MCP all call `generateMap`. It places
+category-selected set pieces, fills the remaining slots with WFC, composes the
+result, and validates the map. Its tuning metrics are read off the finished map
+by `measureMap`, the same function the planned path uses: route distances are
+tile-graph hops times the tile size. The tile graph can miss a route the lattice
+proves, so even on a valid map every route metric may be `Infinity`, meaning
+unavailable (never `NaN`), with `unroutedExits` counting the exits it could
+not reach. Each batch distribution reports its finite `samples` and its
+`unavailable` count, and describes only the finite ones. `deadEnds` is a
 tile-graph leaf count, `squeezes` a seam a contestant can cross and a hunter
 cannot, and `solidFraction` is zero with the shipped library because no class
-is material. `templateFallbacks`, `adapterFraction`, `strandedAnchors` and
-`propsReclaimed` come only from `generateMapLegacy`. The default tile and body
-scales in the first bullet still apply.
+is material.
 
 - Fixed 6×6 tiles. The map is a 5×5 grid of tier zones masked to a diamond, 13 of them occupied; each zone is `zoneWidth`×`zoneHeight` tiles, 12×6 by default, giving a 60×30 slot bounding box and 936 tiles. Cells are abstract segment units, not meters. Contestant radius 0.55, hunter radius 0.90.
-- **Nothing imposes a topology.** No spanning tree, no loop or squeeze budget, and no seam is walled or opened to fit a plan. A seam carries exactly what the two designs beside it declare, and an unstated boundary contributes no wall, so an open field crosses tile seams unbroken and needs no special adapter. What generation still owes is that the result is walkable, and it pays that by _choosing_ designs: slots are filled outward from the western edge, and a design is drawn from those that stay joined to the placed map and do not wall off a neighbour that has no other way in. Where no candidate can do that the slot is still filled and validation reports the map as unreachable rather than the generator cutting an opening. Walking metrics exclude transit.
+- **Nothing imposes a topology.** No spanning tree, no loop or squeeze budget, and no seam is walled or opened to fit a plan. A seam carries exactly what the two designs beside it declare, and an unstated boundary contributes no wall, so an open field crosses tile seams unbroken. What generation still owes is that the result is walkable. `generateMap` does not choose designs for it: where the result is unreachable, validation reports it rather than the generator cutting an opening. Walking metrics exclude transit.
 - `edges` is a report, not a plan. After the tiles are laid, every neighbouring pair is measured: `width` is the widest _continuous_ opening along the seam (two separate one-cell holes are not a two-cell door), `kind` is only a coarse name for that width — squeeze under 2, door under 3, wide at 3 and over — and a pair with no opening has no edge. Passability is decided by the width and the geometry, never by the name. The artifact does not store seams at all; they are rebuilt from the primitives on read, like the wall list.
 - Consequence worth stating plainly: with the shipped library nothing declares a seam barrier except `market-arcade`, so a generated map is close to an open field and the route to an exit is close to a straight line (`Route / direct` ≈ 1.05 over 200 seeds). Friction is now something a library has to author — interior geometry, sealed perimeters, set pieces — rather than something generation adds. See NEXT_TASKS item 1.
-- `ports` — the four coarse side contracts `any`, `closed`, `door`, `wide`, `squeeze` — is **not consulted**. It only ever fed the tile-edge solver, and there is no longer a solver to feed: what a side carries is stated per segment and per vertex, which was always the real vocabulary. The field is still accepted, still round-trips and is still editable under Topology hints, pending the macro-structure pass that decides whether it has a consumer at all. Ordinary designs are preferred; only those explicitly marked `adapter: true` fill uncovered cases. An empty or fully deferring tile is ordinary content unless explicitly marked as fallback.
-- `any` is the deferring value, and it is not a value a seam can carry: it is the absence of one. A design that defers on a seam **claims nothing there**, so the design beside it is free to state a wall, an opening or a partial aperture, and the seam carries what that one states — whichever of the two was placed first. Two deferring designs state nothing between them, so the seam is clear. Perimeter contracts are otherwise settled first-come, greedily and in placement order, with no backtracking: a concrete claim must be admitted by the second design or it is passed over, and a design that can satisfy nothing falls back to an adapter.
-- A design walled on every side that has a neighbour is refused outright, the way a design that seals its own interior already was: without an imposed topology it would be an island wherever it landed. A slot with no neighbours may still be sealed.
-- Templates may restrict where they are used with `eligibleTiers` / `eligibleBonus`. Tier and bonus themselves belong to the placement, not to the template.
-- A template also carries interior cells and barriers. Before a template is accepted for a seam contract, its interior is checked: the tile must offer standing room strictly inside itself from which every seam it must serve is reachable on a proven route. That standing room is serialized as the tile's `anchor`, and routes, features and metrics use it rather than the geometric centre.
-- Layouts select tile sets at integer offsets in eligible horizontal tiers. Each listed layout is currently required once; class IDs are metadata, not a class-selection solver. Compatible placements are considered before selection. Impossible libraries/layouts fail explicitly. There is no topology backtracking to satisfy arbitrary authored structures.
+- `ports` — the four coarse side contracts `any`, `closed`, `door`, `wide`, `squeeze` — is **not consulted**. It only ever fed the tile-edge solver, and there is no longer a solver to feed: what a side carries is stated per segment and per vertex, which was always the real vocabulary. The field is still accepted, still round-trips and is still editable under Topology hints, pending the macro-structure pass that decides whether it has a consumer at all. An empty or fully deferring tile is ordinary content.
+- `any` is meant as the deferring value, not a value a seam can carry: a design that defers on a seam should claim nothing there, leaving the design beside it free to state a wall, an opening or a partial aperture. WFC does not honour that yet; it is a `todo` test in `core.test.ts` waiting on perimeter segment records (#33).
+- Two sealing rules are not enforced yet: a design walled on every side that has a neighbour should never be used as fill (#33), and a template that seals its own interior should never be placed (#34). Both are `todo` tests in `core.test.ts`; today `generateMap` places such a design and validation reports the map.
+- In game mode, set pieces are placed by `category` (`start` and `end` at the western and eastern edges, then `enormous`, `medium` and `small`), only on tiers their `eligibleTiers` list. Playground mode places none. WFC then fills every other slot, and a tile design's own `eligibleTiers` restricts which tiers it fills. `eligibleBonus` is accepted and validated but not read. Tier and bonus themselves belong to the placement, not to the template.
+- Each placement carries an `anchor`. A WFC-filled slot takes its design's authored `anchor`, rotated with it, or the tile centre when it has none; a set-piece slot always takes the tile centre. Routes, features and metrics use it rather than the geometric centre. It is not proven standing room when it is placed; validation checks that it is clear of geometry and reached by the lattice flood.
 - Region search runs on cells after all tiles are laid, so regions are nonrectangular, cross tile seams, and one tile may contribute cells to several regions. A region is an area micro generation works in, not an enclosure: its boundary emits no geometry, and filled cells form material regions without a micro builder.
 - Micro generation may return collidable geometry that is not grid aligned, alongside spawn slots. Validation walks each piece through the cells it crosses and rejects anything that leaves the region that produced it; the usual clearance checks then reject anything that severs a proven route. The shipped rules place none — see the clearance note in [design decisions](docs/DESIGN_DECISIONS.md).
 - Navigation is a half-cell lattice of analytically checked swept-disc moves. A lattice route is a real centered route; the converse does not hold, so the check fails closed and may reject a gap a body could physically use.

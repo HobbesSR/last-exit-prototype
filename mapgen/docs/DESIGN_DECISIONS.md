@@ -134,7 +134,8 @@ test-driven).
 The first macro redesign milestone now has an independent versioned composition
 contract and executable acceptance fixtures. See [Macro structures](MACRO_STRUCTURES.md)
 for ownership, rotation, clearance constraints, pass ordering and migration.
-The active generator still uses the legacy tile-edge pipeline described below.
+The active generator, `generateMap`, places set pieces and fills the rest with
+WFC; the README section "Scale and the current generator" describes it.
 
 The standalone prototype uses one cell as one abstract segment. A tile is 6 × 6 cells and generated map coordinates are in cells. These are design units, not meters. The game uses continuous world units and has a 24,000 × 12,000 world, 40-unit navigation samples, and actor radii 12 and 23; those values are evidence about the game but are not a conversion contract for this project.
 
@@ -223,13 +224,12 @@ disjoint places and keeps its metadata a single span.
 
 ### What the contract cannot do yet
 
-Topology is still solved before tile selection (an implementation limitation,
-not a brain-dump requirement), so a per-segment declaration can only select among the apertures
-topology produced — it cannot propose one. Vertex requirements genuinely
-propagate between neighbours, but greedily in placement order and without
-backtracking: a tile that cannot satisfy what a neighbour already claimed falls
-back to an adapter rather than causing the neighbour to be reconsidered. Real
-negotiation is still the open question in QUESTIONS.md.
+`generateMap` fills slots with WFC over rotated edge compatibility, and does
+not yet read the contract above as written: `any` does not defer to the
+neighbour, a design walled on every side can still be used as fill (both wait on
+perimeter segment records, #33), and a template that seals its own interior can
+still be placed (#34). Each is a `todo` test in `core.test.ts`. Real
+negotiation between neighbours is still the open question in QUESTIONS.md.
 
 ## Tile interiors
 
@@ -243,17 +243,18 @@ could never come within a body radius of a lattice node inside its neighbour, so
 a template could be accepted against a seam contract without consulting the
 tile beside it. It was removed to raise the interior budget (NEXT_TASKS.md item
 6). Selection is therefore no longer provably local, and walkability is settled
-by validating the composed map as a whole. `generateMapLegacy` still refuses
-authored interiors when either radius reaches 1; that guard, and its error
-message, date from the margin.
+by validating the composed map as a whole.
 
 ## Anchors
 
 Once a tile has an interior, its geometric centre may be inside a wall or cut
-off from a seam. Each placement therefore carries an `anchor`: standing room
-strictly inside the tile from which every seam that tile must serve is reachable
-by a proven route. Anchors, not centres, are what macro paths connect and what
-feature coordinates use. Anchors are serialized, so validation of an imported
+off from a seam. Each placement therefore carries an `anchor`, and anchors, not
+centres, are what macro paths connect and what feature coordinates use. A
+WFC-filled slot takes its design's authored `anchor`, rotated with it, or the
+tile centre; a set-piece slot takes the tile centre. Nothing proves it is
+standing room when it is placed: validation rejects a map whose anchor is
+inside geometry or not reached by the lattice flood. Anchors as derived
+structure are #45. Anchors are serialized, so validation of an imported
 map checks the anchor that was recorded rather than recomputing a convenient
 one.
 

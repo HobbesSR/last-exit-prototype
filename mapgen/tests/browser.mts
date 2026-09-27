@@ -117,7 +117,6 @@ try {
 
   // A new tile can be named rather than being stuck with a generated id.
   await page.locator("#tileId").fill("test-yard");
-  await page.locator("#tileAdapter").uncheck();
   await page.locator("#saveTemplate").click();
   assert.match(await page.locator("#librarySource").inputValue(), /test-yard/);
   assert.equal(await page.locator("#template").inputValue(), "test-yard");
