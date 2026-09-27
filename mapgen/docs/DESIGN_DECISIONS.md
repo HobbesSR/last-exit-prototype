@@ -97,6 +97,20 @@ so derived data can't be mistaken for stated data.
 
 ### Where the code is now
 
+- The generators run in phases that match the layers (#48), and still
+  assemble today's `GeneratedMap`. V2: `placeLayout` (the retry loop's
+  sampling, and the only code that draws from its generator),
+  `deriveStructure` (pure; null when no street network joins the blocks),
+  `generateInteriors` (on copies of its inputs), then `reportMap`. Planned:
+  `layPlan` lays the plan down and `buildPlannedInteriors` runs the builders.
+  The plan itself is that path's structure. Both paths share `reportMap` and
+  `partitionFinished`, which gives the final region partition with its props.
+- The planned path measures anchors on the composed grid, after micro, so
+  there an anchor is derived from interiors and not from the layout. #49 has
+  to decide whether that path's anchors become structure.
+- A builder's openings are read off the grid as it stands when that builder's
+  turn comes, so on both paths they include earlier builders' edits to a
+  shared boundary. That is why openings are computed in the interiors phase.
 - One `GeneratedMap` holds all four layers.
 - `grid.cells.class` fuses three of them: the classes tiles declare, the
   filled-in `any` cells, and micro's `solid` material.
