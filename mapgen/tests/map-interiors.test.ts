@@ -23,17 +23,10 @@ import {
   wallsFromLattice,
 } from "../src/core.ts";
 import type { GeneratedMap, Span } from "../src/types.ts";
+import { builderLibrary } from "../tools/sweep.mts";
 
 /** The class bindings sweep.mts uses, so builders lay material, segments and props. */
-const builders = structuredClone(DEFAULT_LIBRARY);
-for (const [cellClass, generator] of Object.entries({
-  market: "compound",
-  depot: "pillar-hall",
-  landing: "rubble",
-  evac: "compound",
-  park: "courtyard",
-}))
-  builders.cellClasses![cellClass] = { generator };
+const builders = builderLibrary();
 
 // Only the default size gives pillar-hall room to lay material.
 const SEED = "micro-pipeline";

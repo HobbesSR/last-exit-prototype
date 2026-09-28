@@ -17,21 +17,14 @@ import {
 import { DEFAULT_LIBRARY, RUN_METRICS, generateMap } from "../src/core.ts";
 import { generatePlannedMap } from "../src/plan/compose.ts";
 import type { GeneratedMap, Library } from "../src/types.ts";
+import { builderLibrary } from "../tools/sweep.mts";
 import { asRead } from "./read-back.ts";
 import { SEALED_PARAMS, sealedLibrary } from "./sealed-library.ts";
 
 const SMALL = { mode: "playground" as const, zoneWidth: 4, zoneHeight: 2 };
 
 /** The class bindings sweep.mts uses, so builders declare blocks, cells and segments. */
-const builders = structuredClone(DEFAULT_LIBRARY);
-for (const [cellClass, generator] of Object.entries({
-  market: "compound",
-  depot: "pillar-hall",
-  landing: "rubble",
-  evac: "compound",
-  park: "courtyard",
-}))
-  builders.cellClasses![cellClass] = { generator };
+const builders = builderLibrary();
 
 interface Case {
   name: string;
