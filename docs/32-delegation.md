@@ -4,13 +4,6 @@ The user requests persistent cost-aware delegation. The lead owns the plan,
 cross-system reasoning, task boundaries and final verification. Workers own bounded
 deliverables. Delegation should reduce total context/rework, not just elapsed time.
 
-This is the workflow for subagents delegated inside a lead agent's session. It is
-separate from the multi-provider workflow in [34](34-forgejo-workflow.md), where
-Codex, Claude Code and Antigravity work as independent top-level agents with
-their own Forgejo identities and worktrees. A subagent uses the lead's task
-context and assigned paths; it does not claim issues, create branches, push or
-open PRs unless its brief explicitly assigns those actions.
-
 ## Task selection
 
 | Work | Preferred owner |
@@ -20,10 +13,8 @@ open PRs unless its brief explicitly assigns those actions.
 | Bounded call-site inventory, mechanical edits, documentation updates with settled facts | GPT-6 Luna, low/medium (`gpt-6-luna`) |
 | Integration review and decisions affecting multiple tasks | Lead |
 
-These are routing preferences, not guaranteed price or availability claims. The
-5.6 Terra and Luna identifiers are deprecated for this workflow; use GPT-6 Sol
-and Luna when available. Check the current tool's actual model identifiers.
-Avoid copying the whole chat into a
+These are routing preferences, not guaranteed price or availability claims. Use
+the current tool's actual model identifiers. Avoid copying the whole chat into a
 worker; reread the necessary sources and write a small complete brief. A task that
 depends on unwritten context is not ready to delegate. Do not create workers just
 to demonstrate delegation, run a single short command or wait for another worker.
