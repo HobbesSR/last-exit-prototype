@@ -8,8 +8,10 @@ import {
   decodeArtifact,
   encodeArtifact,
   readArtifact,
+  WIRE_VERSION,
 } from "../src/artifact.ts";
-import { generateMap, validateMap } from "../src/core.ts";
+import { DEFAULT_LIBRARY, generateMap, validateMap } from "../src/core.ts";
+import { generatePlannedMap } from "../src/plan/compose.ts";
 
 const NUL = String.fromCharCode(0);
 const hex = (bytes: Uint8Array) =>
@@ -87,21 +89,60 @@ test("enumerated values are interned once and stored as integers", () => {
 test("the wire form drops what can be rebuilt", () => {
   const m = generateMap("wire");
   const wire = encodeArtifact(m) as unknown as Record<string, unknown>;
-  // Geometry follows from the primitives; ids and extents follow from indices.
+  // Geometry follows from the primitives; ids, positions and extents follow
+  // from indices and the params.
   assert.equal(wire.walls, undefined);
-  const tiles = wire.tiles as Record<string, unknown>;
-  assert.equal(tiles.id, undefined);
-  assert.equal(tiles.x, undefined);
   assert.equal(wire.edges, undefined);
+  assert.equal(wire.tiles, undefined, "a V2 tile is its layout placement");
   const regions = wire.regions as Record<string, unknown>;
   assert.equal(regions.id, undefined);
   assert.equal(regions.area, undefined);
   // And all of it comes back.
   const back = decodeArtifact(encodeArtifact(m));
   assert.deepEqual(back.walls, m.walls);
-  assert.equal(back.tiles[0]!.id, m.tiles[0]!.id);
+  assert.deepEqual(back.tiles, m.tiles);
   assert.deepEqual(back.edges, m.edges);
   assert.equal(back.regions[0]!.area, m.regions[0]!.area);
+});
+
+test("nothing derived from the layout is stored", () => {
+  // docs/DESIGN_DECISIONS.md "Map layers": structure is derived on read. The
+  // final class grid still fuses filled-in classes with micro material until
+  // interiors are their own layer (#50), so it isn't checked here.
+  const m = generateMap("wire");
+  const wire = encodeArtifact(m) as unknown as Record<string, unknown>;
+  const keys = new Set<string>();
+  const walk = (value: unknown) => {
+    if (!value || typeof value !== "object" || ArrayBuffer.isView(value)) return;
+    if (Array.isArray(value)) return value.forEach(walk);
+    for (const [key, inner] of Object.entries(value)) {
+      keys.add(key);
+      walk(inner);
+    }
+  };
+  walk(wire);
+  for (const derived of [
+    "structure",
+    "constraints",
+    "originalClass",
+    "anchor",
+    "anchors",
+    "edges",
+    "walls",
+    "zones",
+  ])
+    assert.ok(!keys.has(derived), `${derived} is stored`);
+  // Macro features are layout slots; only micro's own features are listed.
+  const features = wire.features as Array<Record<string, unknown>>;
+  assert.equal(
+    features.length,
+    m.features.filter((f) => f.id.startsWith("micro-")).length,
+  );
+  // The layout's classes keep `any`: they are what the designs stated.
+  const layout = wire.layout as { class: { palette: unknown } };
+  const strings = wire.strings as string[];
+  const palette = Array.from((layout.class.palette as { v: ArrayLike<number> }).v);
+  assert.ok(palette.map((id) => strings[id]).includes("any"));
 });
 
 test("a map survives both encodings exactly and still validates", () => {
@@ -146,5 +187,46 @@ test("a foreign or future document is refused clearly", () => {
   const m = generateMap("wire");
   const wire = encodeArtifact(m) as unknown as Record<string, unknown>;
   wire.wire = 99;
-  assert.throws(() => decodeArtifact(wire), /unsupported wire version/);
+  assert.throws(() => decodeArtifact(wire), /unsupported wire version 99/);
+});
+
+test("a version-1 artifact is refused, naming the version", () => {
+  // Version 1 stored the fused grid and anchors, not the layout. There is no
+  // migration and no legacy reader.
+  const m = generateMap("wire");
+  const wire = encodeArtifact(m) as unknown as Record<string, unknown>;
+  wire.wire = 1;
+  assert.throws(
+    () => decodeArtifact(wire),
+    (error: Error) =>
+      /wire version 1\b/.test(error.message) &&
+      error.message.includes(`wire version ${WIRE_VERSION}`),
+  );
+});
+
+test("a map is read with the library it was generated from, or refused", () => {
+  const small = { mode: "playground" as const, zoneWidth: 2, zoneHeight: 1 };
+  const other = structuredClone(DEFAULT_LIBRARY);
+  other.cellClasses!.market = { generator: "compound" };
+  const m = generateMap("library", small, other);
+  const wire = JSON.parse(artifactToJson(m));
+  assert.deepStrictEqual(decodeArtifact(wire, other), m);
+  assert.throws(
+    () => decodeArtifact(wire),
+    /generated with a different library/,
+    "the default library is not the one the layout names designs from",
+  );
+});
+
+test("a planned map survives both encodings exactly", () => {
+  // The planned path's layers are #50's; until then it keeps its own form.
+  const m = generatePlannedMap("wire", { mode: "playground", zoneWidth: 4, zoneHeight: 2 });
+  assert.deepStrictEqual(artifactFromBson(artifactToBson(m)), m);
+  // This map has no tile-graph route, so its route metrics are Infinity, which
+  // survives BSON but not JSON (docs/DESIGN_DECISIONS.md "BSON").
+  const viaJson = decodeArtifact(JSON.parse(artifactToJson(m)));
+  assert.deepStrictEqual(viaJson, {
+    ...m,
+    metrics: JSON.parse(JSON.stringify(m.metrics)),
+  });
 });

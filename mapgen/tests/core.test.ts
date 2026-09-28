@@ -571,7 +571,11 @@ test("uniform tiles remain ordinary content regardless of omitted or explicit an
   assert.equal(explicit.validation.valid, true);
   assert.ok(explicit.tiles.every((tile) => tile.templateId === "field"));
   delete library.tiles[0]!.ports;
-  assert.deepEqual(generateMap("uniform-content", params, library), explicit);
+  const omitted = generateMap("uniform-content", params, library);
+  // The two libraries are different text, so the maps name different ones.
+  assert.notEqual(omitted.layout!.library, explicit.layout!.library);
+  omitted.layout!.library = explicit.layout!.library;
+  assert.deepEqual(omitted, explicit);
 });
 
 test("a malformed library fails once, not once per attempt", (t) => {

@@ -10,15 +10,31 @@
  * derivable (a tile's id and position, a region's id and area, every seam
  * between tiles) is dropped and rebuilt on read.
  *
+ * A V2 map stores its layout, and its structure is derived again on read with
+ * the library the layout names (docs/DESIGN_DECISIONS.md "Map layers"). A
+ * planned map has no layout yet (#50) and stores its tiles and anchors.
+ *
  * The same form serializes to JSON, where typed arrays become plain number
  * arrays, and to BSON, where they stay binary.
  */
-import { deriveEdges, deriveWalls, makeZones, validateMap } from "./core.ts";
+import {
+  DEFAULT_LIBRARY,
+  deriveEdges,
+  deriveStructure,
+  deriveWalls,
+  libraryFingerprint,
+  macroFeatures,
+  makeZones,
+  validateMap,
+} from "./core.ts";
 import { decodeBson, encodeBson, looksLikeBson } from "./bson.ts";
 import type { BsonValue } from "./bson.ts";
+import type { CodedGrid } from "./coding.ts";
 import type {
   GeneratedMap,
+  Library,
   MapFeature,
+  MapLayout,
   MapParams,
   MapRegion,
   PlacedTile,
@@ -27,7 +43,7 @@ import type {
   Wall,
 } from "./types.ts";
 
-export const WIRE_VERSION = 1;
+export const WIRE_VERSION = 2;
 /** Out-of-range marker for a fully closed segment. */
 const BARRIER = -1;
 
@@ -107,6 +123,18 @@ interface WireGrid {
   runs: PackedInts;
   count: number;
 }
+/** A V2 map's layout. Slot positions follow from the params, so they aren't here. */
+interface WireLayout {
+  library: string;
+  template: PackedInts;
+  orientation: PackedInts;
+  setPiece: PackedInts;
+  spawn: number;
+  hunter: number;
+  exits: PackedInts;
+  class: WireGrid;
+  segments: WireGrid;
+}
 export interface WireArtifact {
   format: "last-exit-map";
   wire: number;
@@ -116,7 +144,10 @@ export interface WireArtifact {
   width: number;
   height: number;
   strings: string[];
-  tiles: {
+  /** V2 maps. */
+  layout?: WireLayout;
+  /** Planned maps, until their layout is its own layer (#50). */
+  tiles?: {
     count: number;
     col: PackedInts;
     row: PackedInts;
@@ -125,6 +156,7 @@ export interface WireArtifact {
     layout: PackedInts;
     anchor: PackedInts;
   };
+  /** On a V2 map, only micro's own features: the rest stand at layout slots. */
   features: Array<Record<string, BsonValue>>;
   grid: {
     width: number;
@@ -176,28 +208,128 @@ function unpackWalls(packed: Float64Array): Wall[] {
   return out;
 }
 
+function packClassGrid(grid: CodedGrid<string>, strings: Strings): WireGrid {
+  return {
+    palette: packInts(grid.palette.map((name) => strings.id(name))),
+    runs: packInts(grid.runs),
+    count: grid.count,
+  };
+}
+function unpackClassGrid(
+  grid: WireGrid,
+  name: (id: number) => string,
+): CodedGrid<string> {
+  return {
+    palette: [...unpackInts(grid.palette as PackedInts)].map(name),
+    runs: [...unpackInts(grid.runs)],
+    count: grid.count,
+  };
+}
+// A span is two numbers in 0..1; a barrier is the out-of-range pair -1, -1.
+// A sentinel rather than NaN, because JSON cannot carry NaN.
+function packSpanGrid(grid: CodedGrid<Span>): WireGrid {
+  const palette = new Float64Array(grid.palette.length * 2);
+  grid.palette.forEach((span, i) => {
+    palette[i * 2] = span ? span[0] : BARRIER;
+    palette[i * 2 + 1] = span ? span[1] : BARRIER;
+  });
+  return { palette, runs: packInts(grid.runs), count: grid.count };
+}
+function unpackSpanGrid(grid: WireGrid): CodedGrid<Span> {
+  const packed = asFloat64(grid.palette);
+  const palette: Span[] = [];
+  for (let i = 0; i + 1 < packed.length; i += 2)
+    palette.push(packed[i]! < 0 ? null : [packed[i]!, packed[i + 1]!]);
+  return { palette, runs: [...unpackInts(grid.runs)], count: grid.count };
+}
+
+function packLayout(layout: MapLayout, strings: Strings): WireLayout {
+  const { placements, features } = layout;
+  return {
+    library: layout.library,
+    template: packInts(placements.map((p) => strings.id(p.templateId))),
+    orientation: packInts(placements.map((p) => p.orientation)),
+    setPiece: packInts(placements.map((p) => strings.optional(p.setPieceId))),
+    spawn: features.spawn,
+    hunter: features.hunter,
+    exits: packInts(features.exits),
+    class: packClassGrid(layout.grid.cells.class, strings),
+    segments: packSpanGrid(layout.grid.segments.open),
+  };
+}
+function unpackLayout(
+  wire: WireLayout,
+  seed: string,
+  params: MapParams,
+  width: number,
+  height: number,
+  name: (id: number) => string,
+): MapLayout {
+  const template = unpackInts(wire.template),
+    orientation = unpackInts(wire.orientation),
+    setPiece = unpackInts(wire.setPiece);
+  return {
+    seed,
+    params,
+    library: wire.library,
+    placements: [...template].map((id, i) => ({
+      templateId: name(id),
+      orientation: orientation[i]!,
+      ...(setPiece[i]! >= 0 ? { setPieceId: name(setPiece[i]!) } : {}),
+    })),
+    grid: {
+      width,
+      height,
+      cells: { class: unpackClassGrid(wire.class, name) },
+      segments: { open: unpackSpanGrid(wire.segments) },
+    },
+    features: {
+      spawn: wire.spawn,
+      hunter: wire.hunter,
+      exits: [...unpackInts(wire.exits)],
+    },
+  };
+}
+
+/**
+ * The features a V2 map stores: the ones micro sited. Spawn, hunter spawn and
+ * exits are layout slots. Refuses a map whose leading features aren't what its
+ * layout implies, since reading it back would silently change them.
+ */
+function storedFeatures(map: GeneratedMap): MapFeature[] {
+  if (!map.layout) return map.features;
+  const implied = macroFeatures(map.layout, map.tiles);
+  const leading = map.features.slice(0, implied.length);
+  if (JSON.stringify(leading) !== JSON.stringify(implied))
+    throw new Error("the map's spawn, hunter spawn and exits don't match its layout");
+  return map.features.slice(implied.length);
+}
+
 export function encodeArtifact(map: GeneratedMap): WireArtifact {
   const strings = new Strings();
   const tileIndex = new Map(map.tiles.map((t, i) => [t.id, i]));
 
-  const tiles = {
-    count: map.tiles.length,
-    col: packInts(map.tiles.map((t) => t.col)),
-    row: packInts(map.tiles.map((t) => t.row)),
-    template: packInts(map.tiles.map((t) => strings.id(t.templateId))),
-    orientation: packInts(map.tiles.map((t) => t.orientation)),
-    layout: packInts(map.tiles.map((t) => strings.optional(t.setPieceId))),
-    // Anchors sit on the half-cell lattice, so doubling makes them exact ints.
-    anchor: packInts(
-      map.tiles.flatMap((t) => {
-        const doubled = [t.anchor.x * 2, t.anchor.y * 2];
-        if (!doubled.every(Number.isInteger))
-          throw new Error("anchor is not on the half-cell lattice");
-        return doubled;
-      }),
-    ),
-  };
-  const features = map.features.map((f) => {
+  const tiles = map.layout
+    ? undefined
+    : {
+        count: map.tiles.length,
+        col: packInts(map.tiles.map((t) => t.col)),
+        row: packInts(map.tiles.map((t) => t.row)),
+        template: packInts(map.tiles.map((t) => strings.id(t.templateId))),
+        orientation: packInts(map.tiles.map((t) => t.orientation)),
+        layout: packInts(map.tiles.map((t) => strings.optional(t.setPieceId))),
+        // Anchors sit on the half-cell lattice, so doubling makes them exact ints.
+        anchor: packInts(
+          map.tiles.flatMap((t) => {
+            const doubled = [t.anchor.x * 2, t.anchor.y * 2];
+            if (!doubled.every(Number.isInteger))
+              throw new Error("anchor is not on the half-cell lattice");
+            return doubled;
+          }),
+        ),
+      };
+  const layout = map.layout ? packLayout(map.layout, strings) : undefined;
+  const features = storedFeatures(map).map((f) => {
     const doc: Record<string, BsonValue> = {
       id: strings.id(f.id),
       kind: strings.id(f.kind),
@@ -213,13 +345,8 @@ export function encodeArtifact(map: GeneratedMap): WireArtifact {
     return doc;
   });
 
-  const classGrid = map.grid.cells.class;
   const cells = {
-    class: {
-      palette: packInts(classGrid.palette.map((name) => strings.id(name))),
-      runs: packInts(classGrid.runs),
-      count: classGrid.count,
-    },
+    class: packClassGrid(map.grid.cells.class, strings),
     ...(map.grid.cells.level
       ? {
           level: {
@@ -234,15 +361,6 @@ export function encodeArtifact(map: GeneratedMap): WireArtifact {
       kind: packInts(map.grid.cells.spawns.map((s) => strings.id(s.kind))),
     },
   };
-  // A span is two numbers in 0..1; a barrier is the out-of-range pair -1, -1.
-  // A sentinel rather than NaN, because JSON cannot carry NaN.
-  const spanPalette = new Float64Array(
-    map.grid.segments.open.palette.length * 2,
-  );
-  map.grid.segments.open.palette.forEach((span, i) => {
-    spanPalette[i * 2] = span ? span[0] : BARRIER;
-    spanPalette[i * 2 + 1] = span ? span[1] : BARRIER;
-  });
   // Vertices are few and their fields optional, so they stay small documents.
   const vertices = map.grid.vertices.map((v) => {
     const doc: Record<string, BsonValue> = { vertex: v.vertex };
@@ -275,19 +393,14 @@ export function encodeArtifact(map: GeneratedMap): WireArtifact {
     width: map.width,
     height: map.height,
     strings: strings.table,
-    tiles,
+    ...(layout ? { layout } : {}),
+    ...(tiles ? { tiles } : {}),
     features,
     grid: {
       width: map.grid.width,
       height: map.grid.height,
       cells,
-      segments: {
-        open: {
-          palette: spanPalette,
-          runs: packInts(map.grid.segments.open.runs),
-          count: map.grid.segments.open.count,
-        },
-      },
+      segments: { open: packSpanGrid(map.grid.segments.open) },
       vertices,
     },
     regions: {
@@ -320,28 +433,13 @@ function zoneIdAt(col: number, row: number, params: MapParams): string {
   return `z-${Math.floor(col / params.zoneWidth)}-${Math.floor(row / params.zoneHeight)}`;
 }
 
-export function decodeArtifact(input: unknown): GeneratedMap {
-  const wire = input as WireArtifact;
-  if (
-    !wire ||
-    wire.format !== "last-exit-map" ||
-    !Array.isArray(wire.strings) ||
-    !wire.params
-  )
-    throw new Error("not a last-exit-map artifact");
-  if (wire.wire !== WIRE_VERSION)
-    throw new Error(`unsupported wire version ${wire.wire}`);
-  const names = wire.strings;
-  const name = (id: number): string => {
-    const value = names[id];
-    if (value === undefined)
-      throw new Error(`string ${id} is not in the table`);
-    return value;
-  };
-  const params = wire.params as MapParams;
+/** A planned map's tiles, stored with their anchors until #50. */
+function unpackTiles(
+  t: NonNullable<WireArtifact["tiles"]>,
+  params: MapParams,
+  name: (id: number) => string,
+): PlacedTile[] {
   const size = params.tileSize;
-
-  const t = wire.tiles;
   const col = unpackInts(t.col),
     row = unpackInts(t.row),
     template = unpackInts(t.template),
@@ -365,31 +463,84 @@ export function decodeArtifact(input: unknown): GeneratedMap {
     if (layout[i]! >= 0) tile.setPieceId = name(layout[i]!);
     tiles.push(tile);
   }
+  return tiles;
+}
 
-  const features: MapFeature[] = wire.features.map((doc) => {
-    const f = doc as Record<string, number | Packed>;
-    const feature: MapFeature = {
-      id: name(f.id as number),
-      kind: name(f.kind as number) as MapFeature["kind"],
-      tileId: tiles[f.tile as number]!.id,
-      x: f.x as number,
-      y: f.y as number,
-    };
-    if (f.layout !== undefined) feature.setPieceId = name(f.layout as number);
-    if (f.tiles !== undefined)
-      feature.tileIds = [...unpackInts(f.tiles as unknown as PackedInts)].map(
-        (i) => tiles[i]!.id,
+/**
+ * A map from its wire form. A V2 map's structure is derived from its layout
+ * with `library`, which must be the library the map was generated with.
+ */
+export function decodeArtifact(
+  input: unknown,
+  library: Library = DEFAULT_LIBRARY,
+): GeneratedMap {
+  const wire = input as WireArtifact;
+  if (
+    !wire ||
+    wire.format !== "last-exit-map" ||
+    !Array.isArray(wire.strings) ||
+    !wire.params
+  )
+    throw new Error("not a last-exit-map artifact");
+  if (wire.wire === 1)
+    throw new Error(
+      `wire version 1 is no longer read: it stored derived structure instead of the layout. ` +
+        `Regenerate the map; this reader takes wire version ${WIRE_VERSION}`,
+    );
+  if (wire.wire !== WIRE_VERSION)
+    throw new Error(
+      `unsupported wire version ${wire.wire}; this reader takes wire version ${WIRE_VERSION}`,
+    );
+  const names = wire.strings;
+  const name = (id: number): string => {
+    const value = names[id];
+    if (value === undefined)
+      throw new Error(`string ${id} is not in the table`);
+    return value;
+  };
+  const params = wire.params as MapParams;
+
+  let layout: MapLayout | undefined;
+  let structure: GeneratedMap["structure"];
+  let tiles: PlacedTile[];
+  if (wire.layout) {
+    layout = unpackLayout(wire.layout, wire.seed, params, wire.grid.width, wire.grid.height, name);
+    const expected = libraryFingerprint(library);
+    if (layout.library !== expected)
+      throw new Error(
+        `this map was generated with a different library (${layout.library}, not ${expected}); ` +
+          `read it with the library it was generated from`,
       );
-    return feature;
-  });
+    const derived = deriveStructure(layout, library);
+    if (!derived)
+      throw new Error("the stored layout has no street network, so no generator made it");
+    structure = derived.structure;
+    tiles = derived.tiles;
+  } else if (wire.tiles) {
+    tiles = unpackTiles(wire.tiles, params, name);
+  } else throw new Error("artifact has neither a layout nor tiles");
+
+  const features: MapFeature[] = [
+    ...(layout ? macroFeatures(layout, tiles) : []),
+    ...wire.features.map((doc) => {
+      const f = doc as Record<string, number | Packed>;
+      const feature: MapFeature = {
+        id: name(f.id as number),
+        kind: name(f.kind as number) as MapFeature["kind"],
+        tileId: tiles[f.tile as number]!.id,
+        x: f.x as number,
+        y: f.y as number,
+      };
+      if (f.layout !== undefined) feature.setPieceId = name(f.layout as number);
+      if (f.tiles !== undefined)
+        feature.tileIds = [...unpackInts(f.tiles as unknown as PackedInts)].map(
+          (i) => tiles[i]!.id,
+        );
+      return feature;
+    }),
+  ];
 
   const gc = wire.grid.cells;
-  const spanPalette = asFloat64(wire.grid.segments.open.palette);
-  const spans: Span[] = [];
-  for (let i = 0; i + 1 < spanPalette.length; i += 2)
-    spans.push(
-      spanPalette[i]! < 0 ? null : [spanPalette[i]!, spanPalette[i + 1]!],
-    );
   const spawnCells = unpackInts(gc.spawns.cell),
     spawnKinds = unpackInts(gc.spawns.kind);
 
@@ -397,11 +548,7 @@ export function decodeArtifact(input: unknown): GeneratedMap {
     width: wire.grid.width,
     height: wire.grid.height,
     cells: {
-      class: {
-        palette: [...unpackInts(gc.class.palette as PackedInts)].map(name),
-        runs: [...unpackInts(gc.class.runs)],
-        count: gc.class.count,
-      },
+      class: unpackClassGrid(gc.class, name),
       ...(gc.level
         ? {
             level: {
@@ -416,13 +563,7 @@ export function decodeArtifact(input: unknown): GeneratedMap {
         kind: name(spawnKinds[i]!),
       })),
     },
-    segments: {
-      open: {
-        palette: spans,
-        runs: [...unpackInts(wire.grid.segments.open.runs)],
-        count: wire.grid.segments.open.count,
-      },
-    },
+    segments: { open: unpackSpanGrid(wire.grid.segments.open) },
     vertices: wire.grid.vertices.map((doc) => {
       const v = doc as Record<string, number>;
       const entry: { vertex: number; class?: string; height?: number } = {
@@ -490,6 +631,7 @@ export function decodeArtifact(input: unknown): GeneratedMap {
     regions,
     metrics: wire.metrics as GeneratedMap["metrics"],
     validation: wire.validation,
+    ...(layout ? { layout, structure } : {}),
   };
   // Geometry is derived, never stored, so it cannot drift from the primitives.
   map.walls = deriveWalls(map);
@@ -517,12 +659,18 @@ export function artifactToBson(map: GeneratedMap): Uint8Array {
     encodeArtifact(map) as unknown as Record<string, BsonValue>,
   );
 }
-export function artifactFromBson(bytes: Uint8Array): GeneratedMap {
-  return decodeArtifact(decodeBson(bytes));
+export function artifactFromBson(
+  bytes: Uint8Array,
+  library: Library = DEFAULT_LIBRARY,
+): GeneratedMap {
+  return decodeArtifact(decodeBson(bytes), library);
 }
 /** Read either encoding, decided by the bytes rather than by a file name. */
-export function readArtifact(bytes: Uint8Array): GeneratedMap {
-  if (looksLikeBson(bytes)) return artifactFromBson(bytes);
-  return decodeArtifact(JSON.parse(new TextDecoder().decode(bytes)));
+export function readArtifact(
+  bytes: Uint8Array,
+  library: Library = DEFAULT_LIBRARY,
+): GeneratedMap {
+  if (looksLikeBson(bytes)) return artifactFromBson(bytes, library);
+  return decodeArtifact(JSON.parse(new TextDecoder().decode(bytes)), library);
 }
 export { validateMap };

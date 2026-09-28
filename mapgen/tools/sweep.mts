@@ -234,8 +234,15 @@ const isMicroFeature = (feature: unknown) =>
  * `path` is dotted; `[]` steps into every element of an array. `keys` takes
  * only those keys from each element, so one array can be split across layers.
  * `filter` takes only some elements. `grid` marks a run-length coded grid.
- * `optional` fields may be absent (the planned generator writes no overlay
- * grids, and a flat map has no levels). Every other field must be present.
+ * `optional` fields may be absent (a planned map has no layout or structure
+ * yet, and a flat map has no levels). Every other field must be present.
+ *
+ * `unpinned` fields are claimed but not hashed, and say why. A field that only
+ * repeats pinned content in another shape, such as the layout's placements
+ * beside the `tiles` view, is pinned through that view. A field that holds
+ * content no stage had before can't be in a baseline captured before it, and is
+ * pinned when the baseline is next deliberately recaptured; tests pin it until
+ * then.
  */
 export interface LayerField {
   layer: Layer;
@@ -245,7 +252,10 @@ export interface LayerField {
   filter?: (element: unknown) => boolean;
   grid?: boolean;
   optional?: boolean;
+  unpinned?: string;
 }
+const SAME_AS_VIEW = "repeats content pinned through the tiles and features views";
+const NEW_IN_49 = "new content in #49, pinned by tests/map-layers.test.ts until the next recapture";
 export const LAYER_FIELDS: LayerField[] = [
   { layer: "layout", name: "seed", path: "seed" },
   { layer: "layout", name: "version", path: "version" },
@@ -271,9 +281,32 @@ export const LAYER_FIELDS: LayerField[] = [
   {
     layer: "layout",
     name: "declaredClass",
-    path: "grid.cells.originalClass",
+    path: "layout.grid.cells.class",
     grid: true,
     optional: true,
+  },
+  { layer: "layout", name: "layoutSeed", path: "layout.seed", optional: true, unpinned: SAME_AS_VIEW },
+  { layer: "layout", name: "layoutParams", path: "layout.params", optional: true, unpinned: SAME_AS_VIEW },
+  { layer: "layout", name: "layoutPlacements", path: "layout.placements", optional: true, unpinned: SAME_AS_VIEW },
+  { layer: "layout", name: "layoutFeatures", path: "layout.features", optional: true, unpinned: SAME_AS_VIEW },
+  { layer: "layout", name: "layoutWidth", path: "layout.grid.width", optional: true, unpinned: SAME_AS_VIEW },
+  { layer: "layout", name: "layoutHeight", path: "layout.grid.height", optional: true, unpinned: SAME_AS_VIEW },
+  // A fingerprint of the library differs whenever builder bindings do, and
+  // layout content must not.
+  {
+    layer: "layout",
+    name: "library",
+    path: "layout.library",
+    optional: true,
+    unpinned: "names the library, not the map; differs with builder bindings",
+  },
+  {
+    layer: "layout",
+    name: "layoutSegments",
+    path: "layout.grid.segments.open",
+    grid: true,
+    optional: true,
+    unpinned: NEW_IN_49,
   },
   {
     layer: "layout",
@@ -284,10 +317,19 @@ export const LAYER_FIELDS: LayerField[] = [
   {
     layer: "structure",
     name: "constraints",
-    path: "grid.cells.constraints",
+    path: "structure.segments.constraints",
     grid: true,
     optional: true,
   },
+  {
+    layer: "structure",
+    name: "filledClass",
+    path: "structure.cells.class",
+    grid: true,
+    optional: true,
+    unpinned: NEW_IN_49,
+  },
+  { layer: "structure", name: "structureAnchors", path: "structure.anchors", optional: true, unpinned: SAME_AS_VIEW },
   { layer: "structure", name: "zones", path: "zones" },
   { layer: "structure", name: "anchors", path: "tiles[]", keys: ["anchor"] },
   { layer: "interiors", name: "spawns", path: "grid.cells.spawns" },
@@ -387,6 +429,7 @@ export function layerContent(
     LAYERS.map((layer) => [layer, {}]),
   ) as Record<Layer, Record<string, unknown>>;
   for (const field of fields) {
+    if (field.unpinned) continue;
     const steps = field.path.split(".");
     let value = read(map, steps);
     if (value === undefined) {

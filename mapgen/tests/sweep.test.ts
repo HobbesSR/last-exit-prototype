@@ -62,8 +62,8 @@ test("a change to one layer's content moves that layer's hash and no other", () 
     [
       "layout",
       (m) => {
-        const cells = m.grid.cells;
-        cells.originalClass = withGrid(cells.originalClass!, 0, "sweep-test");
+        const cells = m.layout!.grid.cells;
+        cells.class = withGrid(cells.class, 0, "sweep-test");
       },
     ],
     ["structure", (m) => (m.tiles[0]!.anchor.x += 0.5)],
@@ -172,25 +172,37 @@ test("the committed baseline still matches its quick cases", () => {
 });
 
 test("a field moved to a new container fails loudly until its entry follows it", () => {
-  // What a later stage does: #49 moves the constraint grid into structure.
+  // What a later stage does: #50 moves micro's spawns into an interiors layer.
   const moved = structuredClone(map) as GeneratedMap & {
-    structure?: { constraints: unknown };
+    interiors?: { spawns: unknown };
   };
-  moved.structure = { constraints: moved.grid.cells.constraints };
-  delete moved.grid.cells.constraints;
+  moved.interiors = { spawns: moved.grid.cells.spawns };
+  delete (moved.grid.cells as Partial<typeof moved.grid.cells>).spawns;
   // Left alone, the table can't hash the new location: it's refused, not
   // silently read as absent.
   assert.throws(
     () => layerHashes(moved),
-    /not assigned to a layer: structure\.constraints/,
+    /not assigned to a layer: interiors\.spawns/,
   );
   // Updating the entry's path in the same change restores every hash.
   const followed = LAYER_FIELDS.map((field) =>
-    field.name === "constraints"
-      ? { ...field, path: "structure.constraints" }
+    field.path === "grid.cells.spawns"
+      ? { ...field, path: "interiors.spawns" }
       : field,
   );
   assert.deepEqual(layerHashes(moved, followed), base);
+});
+
+test("an unpinned field is claimed but moves no hash", () => {
+  // Layout segments are new in #49, so no baseline before it holds them.
+  const copy = structuredClone(map);
+  const open = copy.layout!.grid.segments.open;
+  copy.layout!.grid.segments.open = withGrid(open, 0, null);
+  assert.deepEqual(layerHashes(copy), base);
+  assert.ok(
+    LAYER_FIELDS.filter((f) => f.unpinned).every((f) => f.optional),
+    "a planned map has no layout, so every unpinned field is optional",
+  );
 });
 
 test("a new field is refused until it is assigned to a layer", () => {

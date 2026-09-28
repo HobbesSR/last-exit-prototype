@@ -59,7 +59,7 @@ test("CLI help and generate smoke test", async () => {
   const generated = await run("tools/cli.mts", ["generate", "--seed", "smoke"]);
   assert.equal(generated.code, 0, generated.err);
   const map = JSON.parse(generated.out);
-  assert.ok(map.tiles);
+  assert.ok(map.layout, "a V2 map is written as its layout");
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "last-exit-map-"));
   const mapFile = path.join(dir, "map.json");
   fs.writeFileSync(mapFile, generated.out);

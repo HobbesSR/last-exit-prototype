@@ -267,8 +267,6 @@ export interface PrimitiveGrid {
   height: number;
   cells: {
     class: CodedGrid<string>;
-    originalClass?: CodedGrid<string>;
-    constraints?: CodedGrid<string>;
     /** Absent while the map is flat. */
     level?: CodedGrid<number>;
     /** Sparse by nature, so stored as a list rather than a grid. */
@@ -337,6 +335,48 @@ export interface MapMetrics {
   hunterToContestantRatio?: number;
   [key: string]: number | undefined;
 }
+/**
+ * What placement decided: the "Layout" layer in docs/DESIGN_DECISIONS.md "Map
+ * layers". It is the map; everything else about a V2 map is derived from it or
+ * made by micro generation.
+ */
+export interface MapLayout {
+  seed: string;
+  params: MapParams;
+  /**
+   * Fingerprint of the library the placements name designs from. Structure
+   * reads those designs, so a map is only read back with the same library.
+   */
+  library: string;
+  /** One per tile slot, in `layoutSlots(params)` order. */
+  placements: Array<{ templateId: string; orientation: number; setPieceId?: string }>;
+  /**
+   * The primitives the placed designs lay down, before anything is derived or
+   * built: `any` cells stay `any`, and micro's segments aren't in it. The
+   * composition states no vertices yet, so there are none to hold.
+   */
+  grid: {
+    width: number;
+    height: number;
+    cells: { class: CodedGrid<string> };
+    segments: { open: CodedGrid<Span> };
+  };
+  /** The slots that carry the macro features. */
+  features: { spawn: number; hunter: number; exits: number[] };
+}
+/**
+ * The part of the "Structure" layer a map keeps in memory. `deriveStructure`
+ * builds it from the layout, when generating and when reading an artifact, and
+ * it is never stored.
+ */
+export interface MapStructure {
+  /** Where each slot's body stands, in slot order. */
+  anchors: Point[];
+  /** The layout's classes, each `any` cell filled in from its neighbours' edge constraints. */
+  cells: { class: CodedGrid<string> };
+  /** What the neighbouring tile's edge demands of each segment; `any` where nothing does. */
+  segments: { constraints: CodedGrid<string> };
+}
 export interface GeneratedMap {
   version: number;
   seed: string;
@@ -345,6 +385,7 @@ export interface GeneratedMap {
   height: number;
   /** Derived from the params, in zone-grid order. Not stored in the artifact. */
   zones: MapZone[];
+  /** On a V2 map, the layout's placements joined with the structure's anchors. */
   tiles: PlacedTile[];
   edges: MapEdge[];
   walls: Wall[];
@@ -353,6 +394,12 @@ export interface GeneratedMap {
   regions: MapRegion[];
   metrics: MapMetrics;
   validation: ValidationResult;
+  /**
+   * V2 maps only. The planned path's layers are #50's; until then a planned
+   * map has neither, and stores its tiles and anchors as before.
+   */
+  layout?: MapLayout;
+  structure?: MapStructure;
 }
 
 /**
