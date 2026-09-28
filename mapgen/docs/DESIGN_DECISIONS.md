@@ -57,8 +57,9 @@ The tile-edge maze solver has been removed. Generation currently places set piec
 
 ## Map layers
 
-Decided 2026-09-27. Being implemented through issue #52. The code does not
-match this yet; see "Where the code is now" below.
+Decided 2026-09-27. Being implemented through issue #52. On V2 maps layout
+and structure are separate (#49); interiors and report are not yet. See "Where
+the code is now" below.
 
 A map is a valid arrangement of macro primitives. Everything else about a
 generated map is either derived from that arrangement or produced by micro
@@ -113,12 +114,27 @@ so derived data can't be mistaken for stated data.
 - A builder's openings are read off the grid as it stands when that builder's
   turn comes, so on both paths they include earlier builders' edits to a
   shared boundary. That is why openings are computed in the interiors phase.
-- One `GeneratedMap` holds all four layers.
-- `grid.cells.class` fuses three of them: the classes tiles declare, the
-  filled-in `any` cells, and micro's `solid` material.
-- The Map Lab overlays were added as stored grids (`originalClass`,
-  `constraints`), and the artifact drops them. `constraints` is also
-  segment-indexed, but stored under `cells`. That mismatch is #44.
+- A V2 map holds `layout` (`MapLayout`) and `structure` (`MapStructure`)
+  (#49). The artifact stores the layout, and `deriveStructure(layout, library)`
+  rebuilds the structure on read. The layout names designs by id, and
+  structure reads those designs' edge contracts and anchors, so the layout
+  records a fingerprint of its library and a map is only read back with that
+  library (Corey, 2026-09-27). `tiles` and the spawn, hunter-spawn and exit
+  features are views joined from the two layers, kept because everything
+  downstream reads them.
+- `MapStructure` keeps what the Map Lab overlays read: anchors, the filled-in
+  classes and the segment-indexed seam constraints. The regions handed to
+  micro and the reserved streets are structure too, but only generation uses
+  them, so `deriveStructure` returns them without the map keeping them. It
+  holds no seams or lattice walls yet: nothing reads layout-only ones, and the
+  final ones are #50's.
+- The planned path has no `layout` or `structure` yet. Its anchors are
+  measured after micro, so they belong with #50, and until then a planned map
+  stores its tiles and anchors as before.
+- One `GeneratedMap` still holds interiors and report beside the layers.
+- `grid.cells.class` fuses the filled-in classes with micro's `solid`
+  material, and `grid.segments.open` fuses the layout's segments with the ones
+  builders wrote. Both are stored until interiors are their own layer (#50).
 - `deriveWalls` builds one list from the fused class grid and appends every
   region's props, so layout walls and final navigation walls can't be told apart.
 - `deriveEdges` measures seams on the final segment grid, and micro builders
@@ -126,6 +142,11 @@ so derived data can't be mistaken for stated data.
   classes to builders changes them for the same layout. Seams in structure have
   to be measured on the layout's own segments. #47 found this.
 - The artifact stores metrics, validation and every region's cell list.
+- `LAYER_FIELDS` marks fields `unpinned` when they only repeat content pinned
+  through a view (the layout's placements beside `tiles`) or are new content
+  no earlier baseline holds (the layout's own segments, the filled-in
+  classes). Tests pin the new content until the baseline is next deliberately
+  recaptured.
 
 ### Proving a stage
 
@@ -283,10 +304,10 @@ Where they come from today:
   tile centre that the hunter reaches in the map's main component. A tile with
   none is dropped.
 
-Anchors are serialized today (`artifact.ts` packs them), and validation of an
-imported map checks the recorded one. That conflicts with "Map layers":
-**anchors are derived, never stored** (Corey, 2026-09-27). #49 stops storing
-them.
+**Anchors are derived, never stored** (Corey, 2026-09-27). A V2 artifact
+doesn't store them: `deriveStructure` finds them again on read, and validation
+of an imported map checks those. A planned artifact still stores them until its
+layers are separated (#50).
 
 A single anchor is also the wrong shape for a tile whose interior is split: it
 speaks for one piece and the tile graph misses routes through the others.
@@ -482,7 +503,10 @@ bytes re-spelling key names and enum members.
 
 Two rules apply, in order. First, do not store what can be derived: vertices are
 written only where something was stated about them, cell heights only once a map
-stops being flat, and a cell's occupancy follows from its class. Second, what
+stops being flat, and a cell's occupancy follows from its class. The same rule
+holds between layers: a V2 map stores the primitives its layout states, `any`
+included, and not the filled-in classes or seam constraints derived from them
+(#49). Second, what
 remains is stored as an interned palette plus run-length codes, in one shared
 mechanism rather than several ad-hoc ones. The values are strongly coherent in
 space, so the runs are long: a default map's 130,140 segments draw on a palette
@@ -513,14 +537,24 @@ enumerated value goes once into a shared `strings` table and travels as an
 integer, and every bulk field becomes a column in the narrowest integer lane
 that holds it.
 
-`decodeArtifact` reconstructs a map deep-equal to the generated one, which is
-the property the tests assert, on several seeds, through both encodings. On V2
-maps that currently fails: the wire form doesn't encode the `originalClass` and
-`constraints` grids, so decoding drops them (#44).
+A V2 map's wire form stores its layout rather than its tiles: each slot's
+design, orientation and set piece in slot order, the layout's class grid with
+`any` kept, its own segment grid, the feature slots, and the library
+fingerprint. Slot positions follow from the params. Seam constraints, filled-in
+classes and anchors are structure, rebuilt on read by the same `deriveStructure`
+that generation runs, and the spawn, hunter spawn and exits stand at the
+anchors of their slots, so only micro's own features are listed. A planned map
+has no layout yet and stores its tiles, anchors included.
 
-A separate problem is that the form stores derived data: metrics, validation
-and every region's cell list. These round-trip correctly, but under "Map
-layers" they shouldn't be stored at all. #50 and #51 remove them.
+`decodeArtifact` reconstructs a map deep-equal to the generated one, which is
+the property the tests assert, on several seeds, through both encodings. This is
+wire version 2. Version 1 stored anchors and no layout, and is refused by
+version: there is no migration and no legacy reader.
+
+The form still stores data that isn't layout: the fused final class and segment
+grids, metrics, validation and every region's cell list. These round-trip
+correctly, but under "Map layers" they are interiors or report. #50 and #51
+separate them.
 
 ## BSON
 

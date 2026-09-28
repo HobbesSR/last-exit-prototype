@@ -63,6 +63,8 @@ import {
   validateLibrary,
   findPath,
   gridViews,
+  filledIn,
+  overlayCounts,
   cellIndexAt,
   OUTSIDE_CLASS,
   cellClassNames,
@@ -350,8 +352,7 @@ function draw() {
         const i = y * map.grid.width + x;
         const cellClass = views.cellClass(i);
         if (cellClass === OUTSIDE_CLASS) continue;
-        const origClass = views.originalClass ? views.originalClass(i) : cellClass;
-          const drawStripes = origClass === "any" && cellClass !== "open" && cellClass !== "any";
+          const drawStripes = filledIn(views, i);
           
           let cellColor = "#5a6268";
           if (cellClass !== "open") {
@@ -2179,6 +2180,7 @@ window.mapLab = Object.freeze({
   snapshot: () => ({
     seed: map?.seed,
     valid: map?.validation.valid,
+    overlays: map ? overlayCounts(gridViews(map)) : null,
     templateUsage: Object.fromEntries(
       [...new Set(map?.tiles.map((tile) => tile.templateId) ?? [])].map(
         (id) => [

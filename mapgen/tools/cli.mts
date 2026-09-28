@@ -25,11 +25,11 @@ import {
   sweepCases,
 } from "./sweep.mts";
 import type { SweepBaseline } from "./sweep.mts";
-import type { GeneratedMap } from "../src/types.ts";
+import type { GeneratedMap, Library } from "../src/types.ts";
 
 const HELP = `last-exit-map\n\nCommands:\n  plan --seed SEED [--zone-width N --zone-height N --exits N] [--out FILE] [--format json|bson]   (the planned generator)
   plan-only --seed SEED [--out FILE]   (the macro plan, without composing it)
-  generate --seed SEED [--mode game|playground] [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE] [--format json|bson]\n  validate FILE   (a map in either encoding, or a library)\n  batch [--count N] [--seed PREFIX] [--mode game|playground] [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE]\n  library [--out FILE]\n  sweep [--jobs N] (--out FILE [--count N] | --check FILE)   (per-layer content hashes that pin the map-layer refactor, #47)\n  help`;
+  generate --seed SEED [--mode game|playground] [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE] [--format json|bson]\n  validate FILE [--library FILE]   (a map in either encoding, read with the library it was generated from; or a library)\n  batch [--count N] [--seed PREFIX] [--mode game|playground] [--zone-width N --zone-height N --exits N] [--library FILE] [--out FILE]\n  library [--out FILE]\n  sweep [--jobs N] (--out FILE [--count N] | --check FILE)   (per-layer content hashes that pin the map-layer refactor, #47)\n  help`;
 
 function fail(message: string): void {
   process.stderr.write(`${message}\n`);
@@ -81,16 +81,17 @@ function writeMap(map: GeneratedMap, out?: string, format?: string): void {
 /** Read a map or a library, deciding from the bytes rather than the name. */
 function readArtifactOrLibrary(
   file: string,
+  library: Library,
 ): { kind: "map"; map: GeneratedMap } | { kind: "library"; library: unknown } {
   const bytes = new Uint8Array(fs.readFileSync(file));
   if (looksLikeBson(bytes))
-    return { kind: "map", map: decodeArtifact(decodeBson(bytes)) };
+    return { kind: "map", map: decodeArtifact(decodeBson(bytes), library) };
   const value = parseJson(new TextDecoder().decode(bytes), file) as Record<
     string,
     unknown
   >;
   if (value?.format === "last-exit-map")
-    return { kind: "map", map: decodeArtifact(value) };
+    return { kind: "map", map: decodeArtifact(value, library) };
   // An in-memory map, as the MCP server returns it, still validates directly.
   if (Array.isArray(value?.walls) || Array.isArray(value?.features))
     return { kind: "map", map: value as unknown as GeneratedMap };
@@ -136,9 +137,13 @@ try {
       o.out,
     );
   } else if (command === "validate") {
-    if (rest.length !== 1)
+    const [file, ...flags] = rest;
+    if (!file || file.startsWith("--"))
       throw new Error("validate requires exactly one file");
-    const read = readArtifactOrLibrary(rest[0]!);
+    const o = options(flags);
+    // A map's structure is derived from its layout with the library it names.
+    const library = (o.library ? readJson(o.library) : DEFAULT_LIBRARY) as Library;
+    const read = readArtifactOrLibrary(file, library);
     const result =
       read.kind === "map"
         ? validateMap(read.map)

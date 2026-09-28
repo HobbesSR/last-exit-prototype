@@ -141,7 +141,7 @@ test("nothing derived from the layout is stored", () => {
   // The layout's classes keep `any`: they are what the designs stated.
   const layout = wire.layout as { class: { palette: unknown } };
   const strings = wire.strings as string[];
-  const palette = [...(layout.class.palette as { v: ArrayLike<number> }).v];
+  const palette = Array.from((layout.class.palette as { v: ArrayLike<number> }).v);
   assert.ok(palette.map((id) => strings[id]).includes("any"));
 });
 
@@ -199,7 +199,7 @@ test("a version-1 artifact is refused, naming the version", () => {
   assert.throws(
     () => decodeArtifact(wire),
     (error: Error) =>
-      /wire version 1/.test(error.message) &&
+      /wire version 1\b/.test(error.message) &&
       error.message.includes(`wire version ${WIRE_VERSION}`),
   );
 });
@@ -222,5 +222,11 @@ test("a planned map survives both encodings exactly", () => {
   // The planned path's layers are #50's; until then it keeps its own form.
   const m = generatePlannedMap("wire", { mode: "playground", zoneWidth: 4, zoneHeight: 2 });
   assert.deepStrictEqual(artifactFromBson(artifactToBson(m)), m);
-  assert.deepStrictEqual(decodeArtifact(JSON.parse(artifactToJson(m))), m);
+  // This map has no tile-graph route, so its route metrics are Infinity, which
+  // survives BSON but not JSON (docs/DESIGN_DECISIONS.md "BSON").
+  const viaJson = decodeArtifact(JSON.parse(artifactToJson(m)));
+  assert.deepStrictEqual(viaJson, {
+    ...m,
+    metrics: JSON.parse(JSON.stringify(m.metrics)),
+  });
 });

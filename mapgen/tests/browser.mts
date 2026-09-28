@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import { spawn } from "node:child_process";
 import { mkdir, readFile } from "node:fs/promises";
 import { readArtifact } from "../src/artifact.ts";
-import { gridViews, segmentIndexAt } from "../src/core.ts";
+import { gridViews, overlayCounts, segmentIndexAt } from "../src/core.ts";
 import { tilePrimitives, segmentPlace } from "../src/primitives.ts";
 import assert from "node:assert/strict";
 const require = createRequire(import.meta.url);
@@ -172,10 +172,17 @@ try {
   await page.locator("#mapTab").click();
   await generate();
   assert.match(await page.locator("#status").innerText(), /^Validated/);
+  const { overlays } = await page.evaluate(() => (window as any).mapLab.snapshot());
+  assert.ok(overlays.filledCells > 0, "the stripes have filled-in cells to draw");
+  assert.ok(overlays.constrainedSegments > 0, "the constraint lines have segments to draw");
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#export").click();
   const downloaded = await downloadPromise;
-  const rebuilt = readArtifact(await readFile(await downloaded.path()));
+  // The map names the edited library it was generated from, so it's read with that.
+  const generatedWith = JSON.parse(await page.locator("#librarySource").inputValue());
+  const rebuilt = readArtifact(await readFile(await downloaded.path()), generatedWith);
+  // Structure is derived again on read, so a loaded map has the same overlays.
+  assert.deepEqual(overlayCounts(gridViews(rebuilt)), overlays);
   const placed = rebuilt.tiles.find((tile) => tile.templateId === "test-yard");
   assert.ok(placed, "edited edge design is used after rebuilding");
   const actual = gridViews(rebuilt);

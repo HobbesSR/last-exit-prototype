@@ -2,7 +2,7 @@ import DEFAULT_LIBRARY_JSON from "../content/default-library.json" with { type: 
 import { composeMacro } from "./macro.ts";
 import { getDifficulty, solveWfc, getRotatedEdge } from "./wfc.ts";
 import type { WfcGrid, TileOption } from "./wfc.ts";
-import type { MacroComposition, MacroPlacement } from "./macro-types.ts";
+import type { MacroPlacement } from "./macro-types.ts";
 import { compileTileDesign } from "./macro-compiler.ts";
 import { validateCellClass } from "./regions.ts";
 import { builderFor, createMask, createRng } from "./micro/index.ts";
@@ -38,7 +38,7 @@ import {
   mergeRuns,
 } from "./primitives.ts";
 import type { VertexMeta } from "./primitives.ts";
-import { encodeGrid, gridReader, validateGrid } from "./coding.ts";
+import { decodeGrid, encodeGrid, gridReader, validateGrid } from "./coding.ts";
 import type {
   Box,
   GeneratedMap,
@@ -47,8 +47,10 @@ import type {
   MapCell,
   MapEdge,
   MapFeature,
+  MapLayout,
   MapParams,
   MapRegion,
+  MapStructure,
   MapZone,
   MaskCell,
   NavTarget,
@@ -1140,14 +1142,17 @@ export function cellsCrossed(
 }
 
 /** Cached readers over a map's coded grids, so callers never decode by hand. */
-interface GridViews {
+export interface GridViews {
   width: number;
   height: number;
   verticalCount: number;
   cellClass: (index: number) => string;
-    originalClass: (index: number) => string;
-    constraints: (index: number) => string;
-  
+  /** The layout's own classes, `any` kept. The final classes on a map with no layout. */
+  layoutClass: (index: number) => string;
+  /** The layout's classes with `any` filled in. The final classes on a map with no structure. */
+  filledClass: (index: number) => string;
+  /** Segment-indexed seam constraints; `any` throughout on a map with no structure. */
+  constraints: (index: number) => string;
   cellLevel: (index: number) => number;
   segmentOpen: (index: number) => Span;
   /** Explicit vertex metadata; anything absent defers and is flat. */
@@ -1164,9 +1169,9 @@ export function gridViews(map: GeneratedMap): GridViews {
     height: grid.height,
     verticalCount: (grid.width + 1) * grid.height,
     cellClass: readClass,
-      originalClass: grid.cells.originalClass ? gridReader(grid.cells.originalClass) : readClass,
-      constraints: grid.cells.constraints ? gridReader(grid.cells.constraints) : () => "any",
-    
+    layoutClass: map.layout ? gridReader(map.layout.grid.cells.class) : readClass,
+    filledClass: map.structure ? gridReader(map.structure.cells.class) : readClass,
+    constraints: map.structure ? gridReader(map.structure.segments.constraints) : () => "any",
     cellLevel: grid.cells.level ? gridReader(grid.cells.level) : () => 0,
     segmentOpen: gridReader(grid.segments.open),
     vertices: new Map(
@@ -1182,6 +1187,19 @@ export function gridViews(map: GeneratedMap): GridViews {
   };
   viewCaches.set(map, views);
   return views;
+}
+/** A cell the layout left `any` and structure filled in from a neighbour's edge: the Map Lab stripes it. */
+export function filledIn(views: GridViews, index: number): boolean {
+  return views.layoutClass(index) === "any" && views.filledClass(index) !== "open";
+}
+/** How much the Map Lab's structure overlays have to draw. */
+export function overlayCounts(views: GridViews): { filledCells: number; constrainedSegments: number } {
+  let filledCells = 0,
+    constrainedSegments = 0;
+  for (let i = 0; i < views.width * views.height; i++) if (filledIn(views, i)) filledCells += 1;
+  const segments = views.verticalCount + (views.height + 1) * views.width;
+  for (let i = 0; i < segments; i++) if (views.constraints(i) !== "any") constrainedSegments += 1;
+  return { filledCells, constrainedSegments };
 }
 /** Index of the cell at map coordinates, or -1 when outside the grid. */
 export function cellIndexAt(map: GeneratedMap, x: number, y: number): number {
@@ -1889,22 +1907,42 @@ function fallbackDesign(library: Library): TileDesign {
 }
 
 /**
- * What placement decided, which is the "Layout" layer in docs/DESIGN_DECISIONS.md
- * "Map layers": each slot's design, orientation and set piece, the primitives
- * those designs lay down, and which slots carry the macro features.
- * `composition.cellClass` keeps `any` cells as `any`; filling them in is
- * structure. Nothing else may write to it.
+ * The tile slots the occupied zones cover, zone by zone. A layout's
+ * placements are in this order, so a slot's position is never stored.
  */
-export interface PlacedLayout {
-  seed: string;
-  params: MapParams;
-  /** The tile slots the occupied zones cover, zone by zone. */
-  cells: MaskCell[];
-  /** One per slot, in `cells` order. */
-  slots: Array<{ templateId: string; orientation: number; setPieceId?: string }>;
-  composition: MacroComposition;
-  /** Slot indices. */
-  features: { spawn: number; hunter: number; exits: number[] };
+export function layoutSlots(p: MapParams): MaskCell[] {
+  const cells: MaskCell[] = [];
+  for (const zone of makeZones(p)) {
+    const [x0, y0, x1, y1] = zone.tiles;
+    for (let col = x0; col <= x1; col++)
+      for (let row = y0; row <= y1; row++)
+        cells.push({ x: col, y: row, col, row, id: `t-${col}-${row}`, zoneId: zone.id });
+  }
+  return cells;
+}
+
+/** JSON with sorted keys, so equal content gives equal text. */
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
+    .filter((k) => record[k] !== undefined)
+    .sort()
+    .map((k) => `${JSON.stringify(k)}:${canonicalJson(record[k])}`)
+    .join(",")}}`;
+}
+
+/**
+ * Names a library by its content, whatever its key order. A layout names
+ * designs by id and structure reads those designs, so a map records this and
+ * is only read back with the library it names. Two FNV-1a passes, the second
+ * seeded differently, make 64 bits.
+ */
+export function libraryFingerprint(library: Library): string {
+  const text = canonicalJson(library);
+  const hex = (n: number) => n.toString(16).padStart(8, "0");
+  return hex(hash(text)) + hex(hash(`#${text}`));
 }
 
 /**
@@ -1918,21 +1956,12 @@ export function placeLayout(
   p: MapParams,
   library: Library,
   random: () => number,
-): PlacedLayout | { failedSetPiece: string } {
+): MapLayout | { failedSetPiece: string } {
   const mode = p.mode;
   const zones = makeZones(p);
 
-  const cells: MaskCell[] = [];
-  const byKey = new Map<string, number>();
-  for (const zone of zones) {
-    const [x0, y0, x1, y1] = zone.tiles;
-    for (let col = x0; col <= x1; col++) {
-      for (let row = y0; row <= y1; row++) {
-        byKey.set(key(col, row), cells.length);
-        cells.push({ x: col, y: row, col, row, id: `t-${col}-${row}`, zoneId: zone.id });
-      }
-    }
-  }
+  const cells = layoutSlots(p);
+  const byKey = new Map(cells.map((c, i) => [key(c.x, c.y), i]));
 
   const zoneOf = (c: MaskCell) => zones.find((z) => c.x >= z.tiles[0]! && c.x <= z.tiles[2]! && c.y >= z.tiles[1]! && c.y <= z.tiles[3]!)!;
 
@@ -2060,7 +2089,7 @@ export function placeLayout(
     throw new Error("WFC Solver could not find a valid tile layout for the macro grid.");
   }
 
-  const slots: PlacedLayout["slots"] = cells.map((_, i) => {
+  const slots: MapLayout["placements"] = cells.map((_, i) => {
     const placed = assigned[i];
     if (placed)
       return {
@@ -2099,21 +2128,34 @@ export function placeLayout(
   const hunter = right.reduce((best, x) => (x.c.x > cells[best]!.x ? x.i : best), right[0]!.i);
   const exits = right.slice(0, p.exitCount).map((x) => x.i);
 
-  return { seed: seedText, params: p, cells, slots, composition, features: { spawn, hunter, exits } };
+  return {
+    seed: seedText,
+    params: p,
+    library: libraryFingerprint(library),
+    placements: slots,
+    grid: {
+      width: composition.width,
+      height: composition.height,
+      cells: { class: encodeGrid(composition.cellClass) },
+      segments: { open: encodeGrid(composition.segmentOpen) },
+    },
+    features: { spawn, hunter, exits },
+  };
 }
 
 /**
  * Everything derived from a layout that informs micro generation, which is the
- * "Structure" layer in docs/DESIGN_DECISIONS.md "Map layers".
+ * "Structure" layer in docs/DESIGN_DECISIONS.md "Map layers". `structure` is
+ * the part a map keeps; the rest is what micro generation starts from.
  */
 export interface DerivedStructure {
+  structure: MapStructure;
   zones: MapZone[];
-  /** The layout's placements with their anchors, in slot order. */
+  /** The layout's placements joined with their anchors, in slot order. */
   tiles: PlacedTile[];
-  /** The composed classes with each `any` cell filled in from its neighbours' edge constraints. */
+  /** The filled-in classes and the layout's segments, decoded for micro to copy. */
   cellClass: string[];
-  /** What each seam segment's neighbouring tile edge demands, segment-indexed. */
-  segmentConstraints: string[];
+  segmentOpen: Span[];
   /** The regions handed to micro, and which one owns each cell. */
   regions: MapRegion[];
   regionOf: Int32Array;
@@ -2121,14 +2163,18 @@ export interface DerivedStructure {
 }
 
 /**
- * Structure from a layout. Pure: it draws nothing from placement's generator
- * and reads nothing micro wrote, so two maps with the same layout have the
- * same structure. It's null when no street network joins the blocks, which
- * sends the retry loop to its next sample.
+ * Structure from a layout and the library it names designs from. Pure: it
+ * draws nothing from placement's generator and reads nothing micro wrote, so
+ * two maps with the same layout have the same structure. It runs both when
+ * generating and when reading an artifact. It's null when no street network
+ * joins the blocks, which sends the retry loop to its next sample.
  */
-export function deriveStructure(layout: PlacedLayout, library: Library): DerivedStructure | null {
-  const { params: p, cells, slots, composition } = layout;
+export function deriveStructure(layout: MapLayout, library: Library): DerivedStructure | null {
+  const { params: p, placements: slots } = layout;
   const zones = makeZones(p);
+  const cells = layoutSlots(p);
+  if (slots.length !== cells.length)
+    throw new Error(`layout has ${slots.length} placements for ${cells.length} tile slots`);
   const fallback = fallbackDesign(library);
 
   // A set piece's tiles stand on their centres; a design placed by WFC may
@@ -2147,8 +2193,10 @@ export function deriveStructure(layout: PlacedLayout, library: Library): Derived
     };
   });
 
-  const W = composition.width;
-  const H = composition.height;
+  const W = layout.grid.width;
+  const H = layout.grid.height;
+  const declared = decodeGrid(layout.grid.cells.class);
+  const segmentOpen = decodeGrid(layout.grid.segments.open);
   const cellConstraints = new Array(W * H).fill("any");
   const segmentCount = (W + 1) * H + (H + 1) * W;
   const segmentConstraints = new Array(segmentCount).fill("any");
@@ -2189,12 +2237,12 @@ export function deriveStructure(layout: PlacedLayout, library: Library): Derived
     }
   }
 
-  const cellClass = [...composition.effectiveCellClass];
-  for (let i = 0; i < cellClass.length; i++) {
-    if (composition.cellClass[i] === "any") {
-      if (cellConstraints[i] !== "any") cellClass[i] = cellConstraints[i];
-    }
-  }
+  // A cell that defers is open ground unless a neighbour's edge says otherwise.
+  // Regions are searched before that fill, as composition always has.
+  const effective = declared.map((c) => (c === "any" ? "open" : c));
+  const cellClass = declared.map((c, i) =>
+    c === "any" && cellConstraints[i] !== "any" ? cellConstraints[i] : effective[i]!);
+  const regions = searchRegions(layoutGrid(W, H, effective, segmentOpen), layout.seed);
 
   const byKey = new Map(cells.map((c, i) => [key(c.x, c.y), i]));
   const adj: Neighbour[][] = Array.from({ length: cells.length }, () => []);
@@ -2208,18 +2256,22 @@ export function deriveStructure(layout: PlacedLayout, library: Library): Derived
 
   let streets: StreetPlan;
   try {
-    streets = planStreets(tiles, adj, layoutGrid(W, H, cellClass, composition.segmentOpen), p, layout.features.spawn, layout.seed);
+    streets = planStreets(tiles, adj, layoutGrid(W, H, cellClass, segmentOpen), p, layout.features.spawn, layout.seed);
   } catch {
     return null;
   }
 
-  const regions = composition.regions;
   const regionOf = new Int32Array(W * H).fill(-1);
   regions.forEach((region, index) => {
     for (const cell of region.cells) regionOf[cell] = index;
   });
 
-  return { zones, tiles, cellClass, segmentConstraints, regions, regionOf, streets };
+  const structure: MapStructure = {
+    anchors: tiles.map((t) => ({ ...t.anchor })),
+    cells: { class: encodeGrid(cellClass) },
+    segments: { constraints: encodeGrid(segmentConstraints) },
+  };
+  return { structure, zones, tiles, cellClass, segmentOpen, regions, regionOf, streets };
 }
 
 /** A fresh primitive grid over the given classes and segments, flat and with no stated vertices. */
@@ -2251,13 +2303,12 @@ export interface GeneratedInteriors {
  * so neither input changes.
  */
 export function generateInteriors(
-  layout: PlacedLayout,
+  layout: MapLayout,
   structure: DerivedStructure,
   library: Library,
 ): GeneratedInteriors {
   const p = layout.params;
-  const { composition } = layout;
-  const grid = layoutGrid(composition.width, composition.height, [...structure.cellClass], [...composition.segmentOpen]);
+  const grid = layoutGrid(layout.grid.width, layout.grid.height, [...structure.cellClass], [...structure.segmentOpen]);
   const { streets } = structure;
 
   const micro = generateMicro(
@@ -2312,29 +2363,31 @@ export function generateInteriors(
   return { grid, micro, regions, features };
 }
 
+/** Spawn, hunter spawn and exits stand at the anchors of the slots the layout names. */
+export function macroFeatures(layout: MapLayout, tiles: PlacedTile[]): MapFeature[] {
+  const { spawn, hunter, exits } = layout.features;
+  const at = (i: number) => ({ tileId: tiles[i]!.id, x: tiles[i]!.anchor.x, y: tiles[i]!.anchor.y });
+  return [
+    { id: "spawn", kind: "spawn", ...at(spawn) },
+    { id: "hunter-spawn", kind: "hunter-spawn", ...at(hunter) },
+    ...exits.map((e, i) => ({ id: `exit-${i}`, kind: "exit" as const, ...at(e) })),
+  ];
+}
+
 /** Today's `GeneratedMap`, assembled from the three layers and then reported on. */
-function assembleMap(layout: PlacedLayout, structure: DerivedStructure, interiors: GeneratedInteriors): GeneratedMap {
-  const { params: p, cells, composition } = layout;
+function assembleMap(layout: MapLayout, structure: DerivedStructure, interiors: GeneratedInteriors): GeneratedMap {
+  const { params: p } = layout;
   const { tiles, zones } = structure;
   const { grid, micro, regions } = interiors;
-  const { spawn, hunter, exits } = layout.features;
-  const at = (i: number) => ({ x: tiles[i]!.anchor.x, y: tiles[i]!.anchor.y });
 
   const map: GeneratedMap = {
     version: 2, seed: layout.seed, params: p, width: grid.W, height: grid.H, zones, tiles, edges: [], walls: [],
-    features: [
-      { id: "spawn", kind: "spawn", tileId: tiles[spawn]!.id, ...at(spawn) },
-      { id: "hunter-spawn", kind: "hunter-spawn", tileId: tiles[hunter]!.id, ...at(hunter) },
-      ...exits.map((e, i) => ({ id: `exit-${i}`, kind: "exit" as const, tileId: tiles[e]!.id, ...at(e) })),
-      ...interiors.features,
-    ],
+    features: [...macroFeatures(layout, tiles), ...interiors.features],
 
     grid: {
       width: grid.W,
       height: grid.H,
       cells: { class: encodeGrid(grid.cellClass),
-        originalClass: encodeGrid(composition.cellClass),
-        constraints: encodeGrid(structure.segmentConstraints),
         ...(grid.cellLevel.some((level) => level !== 0)
           ? { level: encodeGrid(grid.cellLevel) }
           : {}),
@@ -2352,9 +2405,9 @@ function assembleMap(layout: PlacedLayout, structure: DerivedStructure, interior
     // The geometric metrics are placeholders until reportMap reads them off
     // the finished map below.
     metrics: {
-      tileCount: cells.length, deadEnds: 0, squeezes: 0, contestantDistance: 0, hunterDistance: 0, detourRatio: 0,
+      tileCount: tiles.length, deadEnds: 0, squeezes: 0, contestantDistance: 0, hunterDistance: 0, detourRatio: 0,
       regionCount: regions.length, lootCount: micro.spawns.length, interiorWalls: 0, solidFraction: 0, largestRegion: 0,
-      cellCount: cells.length * p.tileSize * p.tileSize,
+      cellCount: tiles.length * p.tileSize * p.tileSize,
       explicitVertices: grid.vertices.size,
       // Counted rather than inferred from the wall total, so a builder that
       // silently produces nothing shows up here.
@@ -2362,7 +2415,9 @@ function assembleMap(layout: PlacedLayout, structure: DerivedStructure, interior
       microCells: micro.declared.cells,
       microSegments: micro.declared.segments,
     },
-    validation: { valid: true, errors: [] }
+    validation: { valid: true, errors: [] },
+    layout,
+    structure: structure.structure,
   };
 
   map.edges = deriveEdges(map);
