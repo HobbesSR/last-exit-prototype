@@ -5,9 +5,10 @@ No answer is needed to run the prototype. These defaults are assumptions for thi
 2. **Body scale:** should integration preserve the game's radius ratio of 12/23, or the notes' approximate 0.55/0.90 segment radii? The lab uses the latter, with 1.5-unit squeezes and 2-unit doors. Units are abstract, not meters. This affects clearance calibration; no conversion is assumed.
 3. **Shape near exits:** should the diamond's narrow tip remain when several exits share the same corridor? The lab preserves it and permits the rightmost five tiles as exit candidates. Widening/truncating the right side is optional, not an adopted Claude requirement. Staggered columns remain a later experiment.
 4. **Optional structure omission:** which structures may a future composer omit when they are declared optional? The planned composer will try bounded alternate placements/variants for required structures, then fail explicitly. This remains open for the future composer; it does not change the game-mode quotas or the playground mode's quota bypass.
-5. **Reachability exceptions:** may whole regions be contestant-only, or should all tiles stay hunter-walkable with optional squeeze shortcuts? The lab guarantees walking connectivity for both bodies. Squeeze flanking/value thresholds still need measurement and tuning.
+5. **Reachability exceptions:** answered 2026-09-27. Everything stays hunter-reachable, and squeezes are shortcuts on top. See "Should a hunter be able to reach every tile?" below. Squeeze flanking/value thresholds still need measurement and tuning.
 6. **Tier composition:** how should the original diagram combine horizontal tier and vertical bonus? The lab exposes both independently; loot is a placeholder and hazards are absent. Are novelty rewards a separate category? This unlocks content mixes and budgets.
 7. **Later 2.5D:** are flat levels with ramps and occasional bespoke multi-height regions enough, or do generic overlapping floors matter? Cells and vertices are flat today. Deliberately deferred until 2D tuning progresses.
+8. **Reachability contract:** five open parts of the direction in DESIGN_DECISIONS "Reachability". See "Reachability contract" below.
 
 ## Already clear; no reconfirmation requested
 
@@ -39,12 +40,52 @@ exists to make ground a hunter cannot cross. With the reserved routes in place,
 that hostility is pocket-scale: rubble makes contestant-only shortcuts and
 hiding places, never a contestant-only part of the map.
 
-The open question is whether that is the wanted shape. The alternative is to
-relax the invariant to "a contestant reaches every tile; a hunter reaches every
-street and every block", which would let a whole quarter be hunter-hostile
-ground and make the asymmetry a macro feature rather than a local one. It is a
-one-line change to the validator plus the loss of a guarantee, so it wants a
-decision rather than a default. Until then the conservative reading holds.
+The question was whether that is the wanted shape, or whether to relax the
+invariant to "a contestant reaches every tile; a hunter reaches every street
+and every block".
+
+**Answered, Corey, 2026-09-27:** "Everything must be reachable by a hunter so
+we are pessimistic about passablility." And: "remember we ignore gaps." So
+hunter reachability of everything is the invariant, judged pessimistically:
+an opening only a contestant fits through doesn't count toward it. DESIGN_DECISIONS
+"Reachability" builds on this.
+
+## Reachability contract
+
+The direction is in DESIGN_DECISIONS "Reachability": tiles state passable
+perimeter runs and which of them connect inside the tile, composition is a
+union-find, and the open-face rule refuses a placement that seals a component
+off (#59). These parts are open. Each has a working assumption so design can
+go on.
+
+1. **Who states a tile's groups?** The design could author which passable runs
+   connect, or they could be derived from the layout's primitives. Deriving
+   works for open ground. A tile whose interior micro fills later has nothing to
+   derive from before micro, so stating them keeps them in the layout.
+   *Assumption:* stated by the design, derived only where the whole tile is
+   open ground. `MacroRouteConstraint` is the likely starting point.
+2. **What does "open" guarantee?** Corey: open regions "are special in that
+   we know they are passable. Maybe not segments between open cells, but the
+   cells themselves have no obstacles." Today `open-field` does put props and wall stubs in open ground,
+   though it never encloses and keeps wide aisles. Either open ground becomes
+   obstacle-free, or "passable" means "never enclosed, aisles at least
+   `PASSAGE.wide`" and builders are held to that. *Assumption:* the second,
+   because it matches today's builders.
+3. **Skeleton first, or the open-face rule alone?** A spanning tree of required
+   passable seams could be pinned before WFC, so the fill can add loops but
+   never cut it. The open-face rule then only has to catch pockets off the
+   skeleton. The rule alone is exact but may backtrack more.
+   *Assumption:* the rule alone first, with backtracking measured on the
+   sweep, and a skeleton only if that cost is too high.
+4. **Non-open interiors: check after, or hold builders to the groups?** Holding
+   builders keeps the proof valid through micro, as conform does for ports on
+   the planned path. Checking after is simpler but can only reject.
+   *Assumption:* hold builders to the groups, and keep the lattice check as
+   verification.
+5. **Which generator gets it?** The planned path already proves reachability
+   at region grain. The contract is written for tile placement (V2). Whether the
+   two converge, or one generator is retired, is open. *Assumption:* V2 first;
+   the planned path unchanged.
 
 ## How open should the map be?
 

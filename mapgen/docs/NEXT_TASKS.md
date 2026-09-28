@@ -124,6 +124,8 @@ cannot satisfy that produces an explicitly invalid map rather than a repaired on
 
 Exit location/capacity semantics, body-scale conversion, alternate diamond masks/staggering, topology overrides, required set-piece class selection, final transit rules, and target difficulty metrics are in QUESTIONS.md. The defaults allow current work to continue.
 
+The tile reachability contract that replaces anchors (#59, DESIGN_DECISIONS "Reachability") follows the map-layer stages (#52). Its first stage is confirming the working assumptions in QUESTIONS.md "Reachability contract".
+
 ## Explicitly later
 
 2.5D, generic overlapping floors, one-way traversal, production combat/visibility, multiplayer, server import/export adapters, and game integration. These must not displace getting a useful flat 2D playtest first.
