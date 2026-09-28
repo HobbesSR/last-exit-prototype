@@ -8,7 +8,8 @@ generator lives in `mapgen/` (see [20](20-micro-generation.md)). The old
 
 This file governs top-level agents that each hold their own Forgejo account.
 Subagents that a lead spawns inside one session follow [32](32-delegation.md)
-instead, and do not commit unless their brief says so.
+instead, and do not claim issues, create branches, commit, push or open pull
+requests unless their brief says so.
 
 ## Who works where
 

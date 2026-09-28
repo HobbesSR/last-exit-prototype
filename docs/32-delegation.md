@@ -9,8 +9,8 @@ deliverables. Delegation should reduce total context/rework, not just elapsed ti
 | Work | Preferred owner |
 | --- | --- |
 | Physics ownership, replay/content compatibility, conflicting requirements, uncertain performance causes | Astra lead |
-| Implement an agreed inventory gesture, extract a specified adapter, add meaningful tests for a defined contract | Terra, medium |
-| Bounded call-site inventory, mechanical edits, documentation updates with settled facts | Luna, low/medium |
+| Implement an agreed inventory gesture, extract a specified adapter, add meaningful tests for a defined contract | GPT-6 Sol, medium (`gpt-6-sol`) |
+| Bounded call-site inventory, mechanical edits, documentation updates with settled facts | GPT-6 Luna, low/medium (`gpt-6-luna`) |
 | Integration review and decisions affecting multiple tasks | Lead |
 
 These are routing preferences, not guaranteed price or availability claims. Use

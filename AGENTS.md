@@ -16,8 +16,8 @@ heading, in briefs and handoffs.
 
 Use cost-aware delegation proactively when tools and runtime rules permit it.
 Keep architecture, ambiguous diagnosis, cross-system contracts and integration
-review with the lead (Astra when available). Prefer `gpt-5.6-terra` with medium
-reasoning for bounded implementation/tests; use `gpt-5.6-luna` with low/medium
+review with the lead (Astra when available). Prefer `gpt-6-sol` with medium
+reasoning for bounded implementation/tests; use `gpt-6-luna` with low/medium
 reasoning for mechanical edits and focused inventories. Check actual available
 models; do not silently spawn flagship workers for routine tasks.
 
@@ -60,11 +60,15 @@ yet. `CLAUDE.md` files only import `AGENTS.md`; edit `AGENTS.md`, not them.
 
 ## Forgejo workflow
 
+These rules are for top-level agents; in-session subagents follow
+`docs/32-delegation.md` instead (see 34).
+
 Local Forgejo (http://localhost:3000) is the source of truth. GitHub (`origin`) is
 the public remote copy, which only the human pushes to; agents push only to
 `forgejo`. Use the `forgejo` MCP tools, which act as your own agent account
 (Antigravity loads them through `call_mcp_tool` with `ServerName: forgejo`).
-`docs/34-forgejo-workflow.md` has the full loop and the worktree table.
+`docs/34-forgejo-workflow.md` has the full loop, the agent accounts and the
+worktree table.
 
 - Work only in your own worktree, `../astra_test.agents/<agent>`, on a
   `<agent>/<feature>` branch started from fresh `forgejo/main`. Never commit in
