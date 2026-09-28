@@ -237,10 +237,19 @@ The rules that follow from it:
   cells of different regions, i.e. on the perimiter of regions. It's the tile
   designer's job to mark internal as passable. For convenience, we may make
   perimeter segments default to passable with explicit nonpassable
-  indicators." Structure only resolves the default. No builder opens a
-  segment marked nonpassable or closes one marked passable. Who may close a
-  segment left at the default, as a courtyard closes its border, is an open
-  part. This is the same perimeter statement as the tile contract in
+  indicators." And: "just because something isn't marked passable doesn't
+  mean it won't be passable. It just means we can prove its passable." So a
+  mark is a guarantee, and a perimeter segment is in one of three states:
+  - **marked passable:** guaranteed open. Reachability proofs over the layout
+    count it, and no builder closes it.
+  - **marked nonpassable:** guaranteed closed. No builder opens it.
+  - **unmarked** (`any`): no guarantee either way. It ends up open unless a
+    builder allowed to close it does, which is the "default to passable"
+    convenience. A proof over the layout never counts it. Validation of the
+    finished map still measures what was actually built.
+
+  Who may close an unmarked segment, as a courtyard closes its border, is an
+  open part. This is the same perimeter statement as the tile contract in
   "Reachability" (#59), at the grain of a region. The open parts are in
   QUESTIONS.md "Region boundary openings".
 - **Any stage may be saved.** Everything after the layout can be regenerated,

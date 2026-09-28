@@ -155,8 +155,10 @@ is answered.
 to declare passable segments between cells of different regions, i.e. on the
 perimiter of regions. It's the tile designer's job to mark internal as
 passable. For convenience, we may make perimeter segments default to passable
-with explicit nonpassable indicators." DESIGN_DECISIONS "The generation
-chain" records the rule. These parts are open, each with a working
+with explicit nonpassable indicators." And: "just because something isn't
+marked passable doesn't mean it won't be passable. It just means we can prove
+its passable." DESIGN_DECISIONS "The generation chain" records the rule: a
+mark is a guarantee, and an unmarked segment has none either way. These parts are open, each with a working
 assumption:
 
 1. **Where the default applies.** Inside a tile, between cells of different
@@ -166,25 +168,27 @@ assumption:
    and at seams alike. A seam contract or an explicit barrier overrides it.
 2. **How wide "passable" is.** A single passable segment admits nothing at
    hunter size, and "Reachability" counts a run as passable only from two
-   adjacent segments, the door width. *Assumption:* default-passable
-   perimeter segments stay open segment by segment. Reachability checks the
-   runs they form, and a design that leaves only one-segment gaps fails
-   validation instead of being widened.
-3. **Who may close a default-passable segment.** `courtyard` walls its own
+   adjacent segments, the door width. *Assumption:* a proof over the layout
+   counts only runs of at least door width made of marked-passable segments.
+   Unmarked segments never count toward it, even if they are likely to end
+   up open. A tile whose connectivity matters has to mark it.
+3. **Who may close an unmarked segment.** `courtyard` walls its own
    region's border and leaves one door-width gate and some squeeze gates, so
    a contestant can get in where the hunter can't. That is closing perimeter
-   segments the design left at the default. If either neighbouring region
+   segments the design left unmarked. If either neighbouring region
    could close a shared segment, the result would depend on build order again.
-   *Assumption:* an explicitly passable segment is binding on every builder. A
-   default-passable segment belongs to at most one of the two regions it
-   separates, chosen in the region inputs from the classes' rules: a class
+   *Assumption:* a marked segment is binding on every builder. An unmarked
+   segment belongs to at most one of the two regions it separates, chosen in the region inputs from the classes' rules: a class
    that encloses, such as a courtyard's, owns its perimeter. Only the owner
    may close or narrow it, and it must leave at least one door-width run. The
    other side treats the segment as fixed and reads its final state from the
    owner's output only when composing. With no owner, the segment stays open.
-4. **The shipped library.** Today most inter-class segments are `any`, and a
-   builder's openings are whatever the grid shows when its turn comes. Under
-   the default, perimeters that today depend on build order become open or
-   owned. *Assumption:* #68 measures the change on the sweep and on bounded
-   batches. Designs get explicit nonpassable markers only where playability
-   needs them, and that change is reported separately from the code change.
+4. **The shipped library.** Today most inter-class segments are unmarked
+   (`any`), and a builder's openings are whatever the grid shows when its turn
+   comes. After #68 they end up open unless their owner closes them, so the
+   built maps get more open. But nothing in them is proven yet, because
+   nothing is marked. *Assumption:* #68 measures the change on the sweep and
+   on bounded batches. Designs get marks where playability or a proof needs
+   them: passable where connectivity must be guaranteed, nonpassable where
+   the map got too open. That change is reported separately from the code
+   change.
