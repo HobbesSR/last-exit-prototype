@@ -330,11 +330,21 @@ parts are in QUESTIONS.md "Reachability contract". It replaces anchors as the ba
 3. **The open-face rule.** For each component, count its open faces: passable
    runs facing an unplaced slot (faces toward the map's outside don't count).
    Components only join through open faces, so a component with none can never
-   be reached again. A placement is illegal if it leaves any component with no
-   open faces while slots remain, unless that component is the whole map. This
-   is exact, not a heuristic, and cheap: a placement only touches the
-   components next to the new tile. Two mirror tiles passable only on the edge
-   they share are rejected the moment the second is placed.
+   be reached again. The rule has two parts:
+   - **During placement:** a placement is illegal if, while slots remain, it
+     leaves any component with no open faces. Two mirror tiles passable only on
+     the edge they share are rejected the moment the second is placed.
+   - **At the end:** the final placement is legal only if it leaves exactly
+     one component, containing every group that must be reached. Sealed
+     pockets holding nothing that must be reached (point 6) are the only
+     groups allowed outside it.
+
+   The first part alone doesn't prove reachability. Once no slots remain it
+   says nothing, and the last tile could close off two components at once.
+   The terminal condition is what makes the pair a proof. Both are exact, not
+   heuristics, and cheap: a placement only touches the components next to the
+   new tile, and at the end the union-find already knows how many components
+   there are.
 4. **Rewinding already exists.** `solveWfc` is a depth-first backtracking
    search, capped at 10,000 steps, and `generateMap` retries 50 samples. The
    open-face rule prunes options inside that search. A forward check helps
