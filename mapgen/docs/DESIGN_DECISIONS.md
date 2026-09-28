@@ -310,6 +310,12 @@ parts are in QUESTIONS.md "Reachability contract". It replaces anchors as the ba
   face toward an unplaced slot counts as open. Nothing already placed is ever
   given the benefit of the doubt.
 - **Anchors are derived, never stored** (above).
+- **`open` is a privileged region class** (Corey, 2026-09-27). Every cell of a
+  region formed by `open` cells is passable, which means it holds no obstacles,
+  and so is every segment inside that region. It may later get its own
+  decomposer and micro generator that enforce this, but the privilege belongs
+  to the class, not to whichever builder runs. Today's code breaks this rule
+  (see the facts below, and #61).
 
 **The mechanism proposed:**
 
@@ -336,8 +342,10 @@ parts are in QUESTIONS.md "Reachability contract". It replaces anchors as the ba
    prune that slot to options that keep a passable run on that side, so
    contradictions surface at propagation time. WFC collapses in entropy order,
    not placement order, so "unplaced" means not yet collapsed.
-5. **Interiors.** Open ground is the cheap case: its groups follow from its
-   segments alone, with no search. A tile whose interior micro fills later
+5. **Interiors.** An `open` region is the cheap case. Every cell and internal
+   segment is passable, so all of its passable perimeter runs are one group
+   and nothing needs searching, subject to the width question in QUESTIONS.md
+   "Reachability contract" 6. A tile whose interior micro fills later
    needs either a check after placement or a builder held to the tile's stated
    groups, the way `micro/conform.ts` holds planned-path builders to port
    floors. With the second, the proof survives micro unchanged.
@@ -359,10 +367,12 @@ states the contract.
 - `searchRegions` joins cells of one class across *fully clear* segments only,
   so a wall or a door span splits a region. It ignores props and clearance, so
   a region is connected on the cell grid, not necessarily for a hunter.
-- `open-field`, which every class in the default library is bound to, places
-  props and short wall stubs in open ground. It never closes an enclosure and
-  keeps `PASSAGE.wide` aisles between clusters, so open ground is passable, but
-  it isn't obstacle-free.
+- Every class in the default library, `open` included, is bound to
+  `open-field`. That builder places props and short wall stubs so a field
+  isn't "a clear shot": it is cover against long sight lines. It never closes
+  an enclosure and keeps `PASSAGE.wide` aisles. An `open` region too small for
+  `open-field` falls back to `loot-scatter`, which places clutter props. Either
+  way `open` cells get obstacles, which breaks the privileged-class rule (#61).
 - Macro structures can already declare point-to-point connectivity
   (`MacroRouteConstraint`, `connected: true/false` at a radius), and
   `composeMacro` checks it. The default library doesn't use it. It is close to
