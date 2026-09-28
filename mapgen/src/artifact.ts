@@ -45,7 +45,12 @@ import type {
   Wall,
 } from "./types.ts";
 
-export const WIRE_VERSION = 2;
+export const WIRE_VERSION = 3;
+/** Why each earlier wire version is no longer read. None is migrated. */
+const RETIRED_VERSIONS: Record<number, string> = {
+  1: "it stored derived structure instead of the layout",
+  2: "it stored the fused final grid and region cell lists instead of interiors",
+};
 /** Out-of-range marker for a fully closed segment. */
 const BARRIER = -1;
 /** Out-of-range marker for a segment interiors state nothing about. */
@@ -356,12 +361,19 @@ function packInteriors(interiors: MapInteriors, strings: Strings): WireInteriors
     spawns: packSpawns(cells.spawns, strings),
     segments: packStatedSpanGrid(interiors.segments.open),
     vertices: packVertices(interiors.vertices, strings),
-    features: interiors.features.map((f) => ({
-      id: strings.id(f.id),
-      kind: strings.id(f.kind),
-      x: f.x,
-      y: f.y,
-    })),
+    // Tile ids are names, like any other: interiors are decoded before tiles exist.
+    features: interiors.features.map((f) => {
+      const doc: Record<string, BsonValue> = {
+        id: strings.id(f.id),
+        kind: strings.id(f.kind),
+        x: f.x,
+        y: f.y,
+      };
+      if (f.setPieceId !== undefined) doc.setPiece = strings.id(f.setPieceId);
+      if (f.tileIds)
+        doc.tiles = packInts(f.tileIds.map((id) => strings.id(id))) as unknown as BsonValue;
+      return doc;
+    }),
     regions: {
       count: regions.length,
       region: packInts(regions.map((entry) => regionIndex(entry.region))),
@@ -386,7 +398,16 @@ function unpackInteriors(wire: WireInteriors, name: (id: number) => string): Map
     vertices: unpackVertices(wire.vertices, name),
     features: wire.features.map((doc) => {
       const f = doc as Record<string, number>;
-      return { id: name(f.id!), kind: name(f.kind!) as MapFeature["kind"], x: f.x!, y: f.y! };
+      const feature: MapInteriors["features"][number] = {
+        id: name(f.id!),
+        kind: name(f.kind!) as MapFeature["kind"],
+        x: f.x!,
+        y: f.y!,
+      };
+      if (f.setPiece !== undefined) feature.setPieceId = name(f.setPiece);
+      if (doc.tiles !== undefined)
+        feature.tileIds = [...unpackInts(doc.tiles as unknown as PackedInts)].map(name);
+      return feature;
     }),
     regions: manifests.map((manifest, i) => ({ region: `r-${region[i]}`, manifest, props: props[i]! })),
   };
@@ -539,9 +560,10 @@ export function decodeArtifact(
     !wire.params
   )
     throw new Error("not a last-exit-map artifact");
-  if (wire.wire === 1)
+  const retired = RETIRED_VERSIONS[wire.wire];
+  if (retired)
     throw new Error(
-      `wire version 1 is no longer read: it stored derived structure instead of the layout. ` +
+      `wire version ${wire.wire} is no longer read: ${retired}. ` +
         `Regenerate the map; this reader takes wire version ${WIRE_VERSION}`,
     );
   if (wire.wire !== WIRE_VERSION)

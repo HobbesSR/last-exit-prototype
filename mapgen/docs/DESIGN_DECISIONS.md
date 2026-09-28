@@ -576,8 +576,10 @@ again on read.
 
 `decodeArtifact` reconstructs a map deep-equal to the generated one, which is
 the property the tests assert, on several seeds, through both encodings. This is
-wire version 2. Version 1 stored anchors and no layout, and is refused by
-version: there is no migration and no legacy reader.
+wire version 3. Version 1 stored anchors and no layout; version 2 stored the
+layout beside the fused final grid and every region cell list, and no
+interiors. Both are refused by version: there is no migration and no legacy
+reader.
 
 The form still stores metrics and validation, which under "Map layers" are the
 report. #51 separates them.
