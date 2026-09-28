@@ -9,7 +9,7 @@ No answer is needed to run the prototype. These defaults are assumptions for thi
 6. **Tier composition:** how should the original diagram combine horizontal tier and vertical bonus? The lab exposes both independently; loot is a placeholder and hazards are absent. Are novelty rewards a separate category? This unlocks content mixes and budgets.
 7. **Later 2.5D:** are flat levels with ramps and occasional bespoke multi-height regions enough, or do generic overlapping floors matter? Cells and vertices are flat today. Deliberately deferred until 2D tuning progresses.
 8. **Reachability contract:** open parts of the direction in DESIGN_DECISIONS "Reachability". See "Reachability contract" below.
-9. **Saving a map:** should a saved map hold only its layout and regenerate the rest, or keep storing its interiors? See "Saving a map" below. This blocks #70.
+9. **Saving a map:** answered 2026-09-27; every stage object can be saved, alone or together. See "Saving a map" below.
 10. **Region boundary openings:** open parts of the direction given on #68. See "Region boundary openings" below.
 11. **Segment prescriptions:** open parts of the adjacency / geometry / passability model. See "Segment prescriptions" below.
 
@@ -131,35 +131,23 @@ what fills a compound.
 
 ## Saving a map
 
-Under DESIGN_DECISIONS "The generation chain", one seed decides the whole map,
-and re-running micro on a saved layout reproduces its interiors (checked
-2026-09-27; pinned by #66). So the interiors in today's artifact are a copy of
-something that can be regenerated. Either way the artifact will record an
-engine version, a constant bumped whenever generator output changes (#70).
+**Answered, Corey, 2026-09-27:** "Can we not make the interior generation
+essentially a function of a seed, a library, and generation algorithm? And can
+we not make the objects saveable separably and compoundly as needed?"
 
-- **Layout only.** The artifact is the layout. Interiors are regenerated on
-  read, and an artifact from another engine version is refused by name. It's
-  smaller, and it can't disagree with the engine, but an old save stops
-  loading once the builders change.
-- **Layout and interiors (today).** Storing interiors keeps what micro made,
-  so a later change to the builders doesn't change it. That's all it
-  preserves. On read, structure, the composed map and the report are all
-  computed again by the current code (`decodeArtifact` runs `deriveStructure`
-  and `composeLayers`), so a change to either can still change what a stored
-  map looks like and how it validates. A save made with another wire version
-  or another library is refused.
-- **Both.** Interiors are optional: stored when a save must keep micro's
-  output, and left out otherwise.
+So there is no choice between a layout-only artifact and a layout-plus-interiors
+artifact. Every stage object in DESIGN_DECISIONS "The generation chain" can be
+saved alone or together with others, and a save holds whichever subset its
+caller needs. Missing stages are regenerated on read. This works because the
+whole map is a function of seed, params, library and engine (checked
+2026-09-27; pinned by #66).
 
-Whichever is chosen, #70 also has to decide the compatibility policy. Which
-code changes may a stored map survive: builder changes, structure changes,
-composition changes, wire changes? For each, is it reread under the new code,
-refused by name, or migrated? And is a difference from the original reported,
-and against what? Stored interiors alone don't guarantee a save keeps loading
-or looks the same.
-
-*Assumption:* keep storing interiors, and add the engine version, until this
-is answered.
+What's left for #70 is provenance. Each saved stage records the inputs and the
+algorithm version that made it, so a missing stage is regenerated only by the
+same algorithm. *Assumption:* on a version mismatch, regenerating a missing
+stage is refused by name, as a wrong library or an old wire version is today.
+A stage that *is* stored is read as stored. Versions are per stage to start
+with; per builder is a refinement if one builder changes often.
 
 ## Region boundary openings
 

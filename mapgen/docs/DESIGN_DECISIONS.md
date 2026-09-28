@@ -282,9 +282,12 @@ The rules that follow from it:
   depend on build order, is an open part. This is the same perimeter statement as the tile contract in
   "Reachability" (#59), at the grain of a region. The open parts are in
   QUESTIONS.md "Region boundary openings".
-- **Any stage may be saved.** Everything after the layout can be regenerated,
-  so storing it is a choice about speed and about surviving engine changes.
-  QUESTIONS.md "Saving a map" holds that choice (#70).
+- **Any stage may be saved, alone or with others** (Corey, 2026-09-27). A
+  save holds whichever stage objects its caller needs, and the missing ones
+  are regenerated on read. Each saved stage records its inputs and the
+  version of the algorithm that made it, so regenerating a missing stage
+  with a different algorithm is refused by name, not done silently (#70,
+  QUESTIONS.md "Saving a map").
 
 ### Where the chain is now
 
