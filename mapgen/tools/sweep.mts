@@ -70,7 +70,7 @@ export interface Drift {
 }
 
 /** The class bindings the shipped library had before interiors became a black box. */
-const BUILDERS = {
+export const BUILDERS: Record<string, string> = {
   market: "compound",
   depot: "pillar-hall",
   landing: "rubble",
@@ -176,12 +176,16 @@ export function sweepCases(requested: unknown = 120): SweepCase[] {
   ];
 }
 
-function libraryFor(sweepCase: SweepCase): Library {
-  if (!sweepCase.builders) return DEFAULT_LIBRARY;
+/** The shipped library with each class bound to a builder; tests share it. */
+export function builderLibrary(bindings: Record<string, string> = BUILDERS): Library {
   const library = structuredClone(DEFAULT_LIBRARY);
-  for (const [cellClass, generator] of Object.entries(sweepCase.builders))
+  for (const [cellClass, generator] of Object.entries(bindings))
     library.cellClasses![cellClass] = { generator };
   return library;
+}
+
+function libraryFor(sweepCase: SweepCase): Library {
+  return sweepCase.builders ? builderLibrary(sweepCase.builders) : DEFAULT_LIBRARY;
 }
 
 /** One map, or the generator's error message. Retry warnings are silenced. */
