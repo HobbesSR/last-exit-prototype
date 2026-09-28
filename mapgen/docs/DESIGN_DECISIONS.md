@@ -502,8 +502,8 @@ parts are in QUESTIONS.md "Reachability contract". It replaces anchors as the ba
   gaps only a contestant fits through don't count (QUESTIONS.md, "Should a
   hunter be able to reach every tile?"). Once fences exist, a proof counts a
   fence as passable, so this means reachable once fences are broken, not
-  reachable on foot as the map stands. Whether that is the intended meaning
-  is QUESTIONS.md "Segment prescriptions" item 3. A contestant is smaller, so hunter
+  reachable on foot as the map stands. Hunters can break fences (Corey,
+  2026-09-27), so a hunter route through a fence counts. A contestant is smaller, so hunter
   reachability implies contestant reachability, and the contract needs one
   body, not two.
 - **Pessimistic about what is placed, optimistic only about what isn't.** A

@@ -209,16 +209,14 @@ value, and labels set several at once. These parts are open:
 2. **Contradictory prescriptions.** A wall prescribed passable, or a fence
    prescribed not passable. *Assumption:* a design stating a combination its
    own labels contradict is refused by `validateLibrary`, naming the segment.
-3. **A fence in the proofs and in validation.** A fence is passable because
-   it can be removed, but it blocks movement until it is. So does "a hunter
-   reaches everything" (DESIGN_DECISIONS "Reachability") include routes that
-   need a fence broken, and who can break one? *Assumption:* yes. The
-   invariant is about passability, not immediate walking reachability, so a
-   hunter route through a fence counts, if a hunter can break it. Layout
-   proofs count a fence as passable. Finished-map validation, which measures
-   the lattice, reports routes that depend on breaking a fence separately
-   from routes that are open on foot, and doesn't fail a map on them. Nothing
-   here is built until the library has fences.
+3. **A fence in the proofs and in validation.** **Answered, Corey,
+   2026-09-27:** "yes hunters can break fences." So "a hunter reaches
+   everything" includes routes that need a fence broken, and layout proofs
+   count a fence as passable. Still open is how finished-map validation shows
+   it. *Assumption:* validation, which measures the lattice, reports routes
+   that depend on breaking a fence separately from routes that are open on
+   foot, and doesn't fail a map on them. Nothing here is built until the
+   library has fences.
 4. **What a fence blocks.** Movement, and not projectiles. *Assumption:* sight
    isn't blocked either (a fence you can shoot through, you can see through),
    until the primitive set says otherwise.
