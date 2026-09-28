@@ -112,6 +112,30 @@ test("interiors and the final regions survive both encodings", () => {
   }
 });
 
+test("a micro feature keeps its whole contract through both encodings", () => {
+  // Builders only site kind and position today, but the interiors type admits
+  // a feature's set piece and tiles, and the codec must carry them.
+  const m = structuredClone(built);
+  const [a, b] = m.tiles;
+  const feature = {
+    id: "micro-set-piece-99",
+    kind: "set-piece" as const,
+    x: a!.anchor.x,
+    y: a!.anchor.y,
+    setPieceId: "market-arcade",
+    tileIds: [a!.id, b!.id],
+  };
+  m.interiors!.features.push(feature);
+  m.features.push({ ...feature, tileId: a!.id });
+  for (const [name, back] of [
+    ["JSON", decodeArtifact(JSON.parse(artifactToJson(m)), builders)],
+    ["BSON", artifactFromBson(artifactToBson(m), builders)],
+  ] as const) {
+    assert.deepStrictEqual(back.interiors!.features.at(-1), feature, `interiors through ${name}`);
+    assert.deepStrictEqual(back.features.at(-1), m.features.at(-1), `view through ${name}`);
+  }
+});
+
 test("nothing derived from layout plus interiors is stored", () => {
   const wire = encodeArtifact(built) as unknown as Record<string, unknown>;
   assert.ok(wire.interiors, "interiors are their own section");

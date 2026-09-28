@@ -191,18 +191,24 @@ test("a foreign or future document is refused clearly", () => {
   assert.throws(() => decodeArtifact(wire), /unsupported wire version 99/);
 });
 
-test("a version-1 artifact is refused, naming the version", () => {
-  // Version 1 stored the fused grid and anchors, not the layout. There is no
-  // migration and no legacy reader.
+test("an earlier wire version is refused, naming the version", () => {
+  // Version 1 stored the fused grid and anchors, not the layout. Version 2
+  // stored the layout beside the fused final grid and region cell lists, not
+  // interiors. There is no migration and no legacy reader.
+  assert.equal(WIRE_VERSION, 3);
   const m = generateMap("wire");
-  const wire = encodeArtifact(m) as unknown as Record<string, unknown>;
-  wire.wire = 1;
-  assert.throws(
-    () => decodeArtifact(wire),
-    (error: Error) =>
-      /wire version 1\b/.test(error.message) &&
-      error.message.includes(`wire version ${WIRE_VERSION}`),
-  );
+  for (const version of [1, 2]) {
+    const wire = encodeArtifact(m) as unknown as Record<string, unknown>;
+    wire.wire = version;
+    assert.throws(
+      () => decodeArtifact(wire),
+      (error: Error) =>
+        new RegExp(`wire version ${version}\\b`).test(error.message) &&
+        /regenerate/i.test(error.message) &&
+        error.message.includes(`wire version ${WIRE_VERSION}`),
+      `version ${version}`,
+    );
+  }
 });
 
 test("a map is read with the library it was generated from, or refused", () => {
