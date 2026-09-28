@@ -68,7 +68,7 @@ generation, and these are kept apart.
 | Layer | What it holds | Stored |
 | --- | --- | --- |
 | **Layout** | Seed and params; each slot's design, orientation and set piece; the primitives those designs lay down (cell classes, with `any` left as `any`; segment spans; stated vertices); macro features (spawn, hunter spawn, exits) | Yes. This is the map. |
-| **Structure** | Everything derived from the layout that informs micro generation: `any` cells filled in from their neighbours' edge constraints, the segment-indexed seam-constraint grid, seams, the lattice walls the layout's classes and segments imply, zones, anchors, reserved streets and corridors, the regions handed to micro | No. `deriveStructure(layout)` builds it, both when generating and when reading an artifact. |
+| **Structure** | Everything derived from the layout that informs micro generation: `any` cells filled in from their neighbours' edge constraints, the segment-indexed seam-constraint grid, seams, the lattice walls the layout's classes and segments imply, zones, anchors, reserved streets and corridors | No. `deriveStructure(layout)` builds it, both when generating and when reading an artifact. The regions handed to micro are the next step, `deriveRegions` (see "The generation chain"). |
 | **Interiors** | What micro generation returns: material cells, props, spawns, micro features, cell levels, per-region manifests | Yes, as its own section. |
 | **Report** | Metrics and validation | No. Computed from the other three. |
 
@@ -102,6 +102,7 @@ so derived data can't be mistaken for stated data.
   assemble today's `GeneratedMap`. V2: `placeLayout` (the retry loop's
   sampling, and the only code that draws from its generator),
   `deriveStructure` (pure; null when no street network joins the blocks),
+  `deriveRegions` (pure; the blocks handed to builders, #67),
   `generateInteriors` (on copies of its inputs), `composeLayers` (the final
   grid, regions, features and walls, shared with reading an artifact), then
   `reportMap`. Planned: `layPlan` lays the plan down, `buildPlannedInteriors`
@@ -126,9 +127,10 @@ so derived data can't be mistaken for stated data.
   features are views joined from the two layers, kept because everything
   downstream reads them.
 - `MapStructure` keeps what the Map Lab overlays read: anchors, the filled-in
-  classes and the segment-indexed seam constraints. The regions handed to
-  micro and the reserved streets are structure too, but only generation uses
-  them, so `deriveStructure` returns them without the map keeping them. It
+  classes and the segment-indexed seam constraints. The reserved streets are
+  structure too, but only generation uses them, so `deriveStructure` returns
+  them without the map keeping them, and `deriveRegions` returns the regions
+  handed to micro the same way. It
   holds no seams or lattice walls: nothing reads layout-only ones, and the
   final ones are derived from layout plus interiors (below).
 - A planned map holds `plannedLayout` (`PlannedLayout`) (#50): `layPlan`'s
@@ -213,7 +215,7 @@ object:
 | --- | --- | --- | --- |
 | Seed, params, library → | **layout** | `placeLayout` | Pure. The stored map. |
 | layout → | **structure**, the derived macro map | `deriveStructure` | Pure, its own object. |
-| structure → | **region inputs**, the derived regions | inside `deriveStructure` and `generateMicro` | Computed, not its own object (#67). |
+| structure → | **region inputs**, the derived regions | `deriveRegions` | Pure, its own object (#67). Openings aren't in it yet (#68). |
 | each region's inputs → | **region interiors**, what it pushes back | a builder | One shared grid, built in turn order (#68). |
 | layout + all region interiors → | **composed map** | `composeLayers` | Pure. |
 | composed map → | **report** | `reportMap` | Never stored, and computed again on read (#51). Not yet pure: it writes `metrics` and `validation` into the map it's given, so the report isn't its own object (#69). |
@@ -296,14 +298,15 @@ planned seeds: the same seed gave deep-equal maps, and re-running micro on a
 decoded V2 layout alone reproduced its stored interiors exactly. #66 pins that
 as tests.
 
-- **The region step isn't separable.** Each block has its own random stream,
-  keyed on its region's seed and first cell. But builders take turns on one
-  shared grid, and each reads its openings off that grid as earlier builders
-  left it ("Map layers", "Where the code is now"). So a region's output can
-  depend on its neighbours' and on build order, and interiors come out as one
-  merged delta. #67 pulls the region inputs out as their own stage without
-  changing output. #68 takes openings from the tile designs, which changes
-  content (approved by Corey, 2026-09-27).
+- **The region step isn't separable.** `deriveRegions` gives each block its
+  inputs (cells, seed, rule, loot candidates, corridors) as plain data, in
+  build order, without reading anything micro writes (#67). Each block has its
+  own random stream, keyed on its region's seed and first cell. But builders
+  take turns on one shared grid, and each reads its openings off that grid as
+  earlier builders left it ("Map layers", "Where the code is now"). So a
+  region's output can depend on its neighbours' and on build order, and
+  interiors come out as one merged delta. #68 takes openings from the tile
+  designs, which changes content (approved by Corey, 2026-09-27).
 - **The artifact records the library it was made with, but not the engine.**
   A save can't tell whether today's code would regenerate it identically (#70).
 - **`GeneratedMap` is one container** holding the stage objects beside views
