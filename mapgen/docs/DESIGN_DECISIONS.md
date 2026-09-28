@@ -57,9 +57,9 @@ The tile-edge maze solver has been removed. Generation currently places set piec
 
 ## Map layers
 
-Decided 2026-09-27. Being implemented through issue #52. On V2 maps layout
-and structure are separate (#49); interiors and report are not yet. See "Where
-the code is now" below.
+Decided 2026-09-27. Being implemented through issue #52. Layout, structure
+(#49) and interiors (#50) are separate; the report is not yet. See "Where the
+code is now" below.
 
 A map is a valid arrangement of macro primitives. Everything else about a
 generated map is either derived from that arrangement or produced by micro
@@ -102,10 +102,13 @@ so derived data can't be mistaken for stated data.
   assemble today's `GeneratedMap`. V2: `placeLayout` (the retry loop's
   sampling, and the only code that draws from its generator),
   `deriveStructure` (pure; null when no street network joins the blocks),
-  `generateInteriors` (on copies of its inputs), then `reportMap`. Planned:
-  `layPlan` lays the plan down and `buildPlannedInteriors` runs the builders.
-  The plan itself is that path's structure. Both paths share `reportMap` and
-  `partitionFinished`, which gives the final region partition with its props.
+  `generateInteriors` (on copies of its inputs), `composeLayers` (the final
+  grid, regions, features and walls, shared with reading an artifact), then
+  `reportMap`. Planned: `layPlan` lays the plan down, `buildPlannedInteriors`
+  runs the builders, then `composePlanned` (the final grid and regions, then
+  tiles, anchors and features measured on them, shared with reading an
+  artifact). The plan itself is that path's structure. Both paths share
+  `statedInteriors`, `composeInteriors` and `reportMap`.
 - The planned path measures anchors on the composed grid, after micro, so
   there an anchor is derived from layout plus interiors, like the final
   region partition, and isn't structure. Either way anchors are derived and
@@ -126,27 +129,44 @@ so derived data can't be mistaken for stated data.
   classes and the segment-indexed seam constraints. The regions handed to
   micro and the reserved streets are structure too, but only generation uses
   them, so `deriveStructure` returns them without the map keeping them. It
-  holds no seams or lattice walls yet: nothing reads layout-only ones, and the
-  final ones are #50's.
-- The planned path has no `layout` or `structure` yet. Its anchors are
-  measured after micro, so they belong with #50, and until then a planned map
-  stores its tiles and anchors as before.
-- One `GeneratedMap` still holds interiors and report beside the layers.
-- `grid.cells.class` fuses the filled-in classes with micro's `solid`
-  material, and `grid.segments.open` fuses the layout's segments with the ones
-  builders wrote. Both are stored until interiors are their own layer (#50).
-- `deriveWalls` builds one list from the fused class grid and appends every
-  region's props, so layout walls and final navigation walls can't be told apart.
+  holds no seams or lattice walls: nothing reads layout-only ones, and the
+  final ones are derived from layout plus interiors (below).
+- A planned map holds `plannedLayout` (`PlannedLayout`) (#50): `layPlan`'s
+  classes and segments, which planned region owns each cell, and which region
+  each planned feature stands in. The rest of the plan (ports, loot) only
+  steers generation, so it isn't kept. Tiles are named for the planned region
+  at their corner, and plan region ids are a namespace of their own: plan
+  region `r-3` needn't be final region `r-3`.
+- Every generated map holds `interiors` (`MapInteriors`) (#50), stored as its own section
+  of the artifact. It states only what micro did: the class it laid on each
+  cell and the span it stated for each segment, `any` where it stated
+  nothing, over the filled-in classes (the planned layout's classes on a
+  planned map) and the layout's segments; cell levels;
+  spawns; vertex metadata; micro's features; and one entry per final region
+  naming it, with its manifest and props. Whatever produces interiors later,
+  such as the game's micro SDK, fills the same type.
+- The final grid (`grid`), region partition (`regions`), micro features and
+  navigation walls are views `composeLayers` and `composePlanned` derive from
+  layout plus interiors, both when generating and when reading an artifact. None is
+  stored. `grid.cells.class` is where the filled-in classes and micro's
+  `solid` material meet, and no layer holds that fusion. A region's
+  `obstacles` and `manifest` are joined in from its interiors entry, and
+  validation reads the entry, so a prop is checked against the region its
+  manifest names.
+- `deriveWalls` is the lattice over the final grid, then every interiors prop.
+  Layout-only walls aren't derived, because nothing reads them yet.
+- One `GeneratedMap` still holds the report beside the layers.
 - `deriveEdges` measures seams on the final segment grid, and micro builders
   write segments into that grid. So today's seams depend on interiors: binding
   classes to builders changes them for the same layout. Seams in structure have
   to be measured on the layout's own segments. #47 found this.
-- The artifact stores metrics, validation and every region's cell list.
+- The artifact stores metrics and validation (#51).
 - `LAYER_FIELDS` marks fields `unpinned` when they only repeat content pinned
-  through a view (the layout's placements beside `tiles`) or are new content
-  no earlier baseline holds (the layout's own segments, the filled-in
-  classes). Tests pin the new content until the baseline is next deliberately
-  recaptured.
+  through a view (the layout's placements beside `tiles`, the interiors'
+  spawns, props and manifests beside the final views) or are new content no
+  earlier baseline holds (the layout's own segments, the filled-in classes,
+  the interiors' class and segment deltas). Tests pin the new content until
+  the baseline is next deliberately recaptured.
 
 ### Proving a stage
 
@@ -306,8 +326,8 @@ Where they come from today:
 
 **Anchors are derived, never stored** (Corey, 2026-09-27). A V2 artifact
 doesn't store them: `deriveStructure` finds them again on read, and validation
-of an imported map checks those. A planned artifact still stores them until its
-layers are separated (#50).
+of an imported map checks those. A planned artifact doesn't store them
+either: `composePlanned` measures them again on layout plus interiors (#50).
 
 A single anchor is also the wrong shape for a tile whose interior is split: it
 speaks for one piece and the tile graph misses routes through the others.
@@ -543,18 +563,26 @@ design, orientation and set piece in slot order, the layout's class grid with
 fingerprint. Slot positions follow from the params. Seam constraints, filled-in
 classes and anchors are structure, rebuilt on read by the same `deriveStructure`
 that generation runs, and the spawn, hunter spawn and exits stand at the
-anchors of their slots, so only micro's own features are listed. A planned map
-has no layout yet and stores its tiles, anchors included.
+anchors of their slots. Beside the layout it stores the interiors: the class
+and segment grids micro stated, with `any` kept and travelling as the pair
+-2, -2 in a span palette; levels, spawns, vertices and micro's features; and
+each final region's manifest and props, the region named by its index in the
+partition. The final grid and regions are rebuilt from the two by the same
+`composeLayers` generation runs, so no region cell list or area is stored. A
+planned map stores its planned layout in place of the V2 one: `layPlan`'s
+class and segment grids, the planned-region grid, and each planned feature's
+kind and region. `composePlanned` measures its tiles, anchors and features
+again on read.
 
 `decodeArtifact` reconstructs a map deep-equal to the generated one, which is
 the property the tests assert, on several seeds, through both encodings. This is
-wire version 2. Version 1 stored anchors and no layout, and is refused by
-version: there is no migration and no legacy reader.
+wire version 3. Version 1 stored anchors and no layout; version 2 stored the
+layout beside the fused final grid and every region cell list, and no
+interiors. Both are refused by version: there is no migration and no legacy
+reader.
 
-The form still stores data that isn't layout: the fused final class and segment
-grids, metrics, validation and every region's cell list. These round-trip
-correctly, but under "Map layers" they are interiors or report. #50 and #51
-separate them.
+The form still stores metrics and validation, which under "Map layers" are the
+report. #51 separates them.
 
 ## BSON
 

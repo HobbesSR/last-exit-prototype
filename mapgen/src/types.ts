@@ -365,6 +365,26 @@ export interface MapLayout {
   features: { spawn: number; hunter: number; exits: number[] };
 }
 /**
+ * The planned path's "Layout" layer: the plan laid down as primitives before
+ * any builder runs, which planned region each cell belongs to, and which
+ * region each planned feature stands in. The rest of the plan (ports, loot)
+ * only steers generation. Tiles, anchors and where each feature stands are
+ * measured on layout plus interiors, and aren't stored.
+ */
+export interface PlannedLayout {
+  seed: string;
+  params: MapParams;
+  grid: MapLayout["grid"];
+  /**
+   * The planned region each cell belongs to, by plan id; empty outside the
+   * map. Plan ids are their own namespace: `r-3` here needn't be the final
+   * region `r-3`.
+   */
+  regions: CodedGrid<string>;
+  /** In plan order. */
+  features: Array<{ kind: FeatureKind; region: string }>;
+}
+/**
  * The part of the "Structure" layer a map keeps in memory. `deriveStructure`
  * builds it from the layout, when generating and when reading an artifact, and
  * it is never stored.
@@ -377,6 +397,41 @@ export interface MapStructure {
   /** What the neighbouring tile's edge demands of each segment; `any` where nothing does. */
   segments: { constraints: CodedGrid<string> };
 }
+/** What micro generation made for one final region. */
+export interface RegionInterior {
+  /** The final region this describes, by id. */
+  region: string;
+  manifest: RegionManifest;
+  /**
+   * Collidable geometry placed in the region. It is not grid aligned, and has
+   * to stay inside the region named here.
+   */
+  props: Wall[];
+}
+/**
+ * What micro generation made: the "Interiors" layer in docs/DESIGN_DECISIONS.md
+ * "Map layers". It is stored, and states only what micro did over the layout
+ * and its structure. The final grid, region partition and wall list are
+ * derived from the layers together. Whatever produces interiors, mapgen's
+ * placeholder builders or the game's micro SDK later, fills this type.
+ */
+export interface MapInteriors {
+  cells: {
+    /** The class micro laid on each cell, such as `solid` material; `any` where it laid none. */
+    class: CodedGrid<string>;
+    /** Absent while the map is flat. */
+    level?: CodedGrid<number>;
+    spawns: Array<{ cell: number; kind: string }>;
+  };
+  /** The span micro stated for each segment; `any` where it stated none. */
+  segments: { open: CodedGrid<Span | "any"> };
+  /** Vertex metadata micro stated. The layout states none. */
+  vertices: PrimitiveGrid["vertices"];
+  /** Features micro sited. The tile each stands on follows from its position. */
+  features: Array<Omit<MapFeature, "tileId">>;
+  /** One entry per final region, in partition order. */
+  regions: RegionInterior[];
+}
 export interface GeneratedMap {
   version: number;
   seed: string;
@@ -388,18 +443,23 @@ export interface GeneratedMap {
   /** On a V2 map, the layout's placements joined with the structure's anchors. */
   tiles: PlacedTile[];
   edges: MapEdge[];
+  /** The final navigation walls: the lattice over layout plus interiors, then every prop. */
   walls: Wall[];
+  /** The layout's spawn, hunter spawn and exits, then micro's own features. */
   features: MapFeature[];
+  /** On a map with interiors, the final primitives: layout and structure with interiors laid over them. */
   grid: PrimitiveGrid;
+  /** On a map with interiors, the final region partition joined with each region's interior. */
   regions: MapRegion[];
   metrics: MapMetrics;
   validation: ValidationResult;
-  /**
-   * V2 maps only. The planned path's layers are #50's; until then a planned
-   * map has neither, and stores its tiles and anchors as before.
-   */
+  /** V2 maps. */
   layout?: MapLayout;
   structure?: MapStructure;
+  /** Planned maps. The plan is their structure, and only generation reads it. */
+  plannedLayout?: PlannedLayout;
+  /** Every generated map. Optional so a hand-built map can still be validated. */
+  interiors?: MapInteriors;
 }
 
 /**

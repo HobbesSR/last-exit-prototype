@@ -39,6 +39,7 @@ import {
 } from "./primitives.ts";
 import type { VertexMeta } from "./primitives.ts";
 import { decodeGrid, encodeGrid, gridReader, validateGrid } from "./coding.ts";
+import type { CodedGrid } from "./coding.ts";
 import type {
   Box,
   GeneratedMap,
@@ -47,11 +48,13 @@ import type {
   MapCell,
   MapEdge,
   MapFeature,
+  MapInteriors,
   MapLayout,
   MapParams,
   MapRegion,
   MapStructure,
   MapZone,
+  PrimitiveGrid,
   MaskCell,
   NavTarget,
   PlacedTile,
@@ -1149,7 +1152,7 @@ export interface GridViews {
   cellClass: (index: number) => string;
   /** The layout's own classes, `any` kept. The final classes on a map with no layout. */
   layoutClass: (index: number) => string;
-  /** The layout's classes with `any` filled in. The final classes on a map with no structure. */
+  /** The layout's classes with `any` filled in: the planned layout's own on a planned map, the final classes on a map with neither. */
   filledClass: (index: number) => string;
   /** Segment-indexed seam constraints; `any` throughout on a map with no structure. */
   constraints: (index: number) => string;
@@ -1164,13 +1167,17 @@ export function gridViews(map: GeneratedMap): GridViews {
   if (cached) return cached;
   const grid = map.grid;
   const readClass = gridReader(grid.cells.class);
+  const layoutCells = (map.layout ?? map.plannedLayout)?.grid.cells.class;
   const views: GridViews = {
     width: grid.width,
     height: grid.height,
     verticalCount: (grid.width + 1) * grid.height,
     cellClass: readClass,
-    layoutClass: map.layout ? gridReader(map.layout.grid.cells.class) : readClass,
-    filledClass: map.structure ? gridReader(map.structure.cells.class) : readClass,
+    layoutClass: layoutCells ? gridReader(layoutCells) : readClass,
+    // A planned layout states every cell, so there is nothing to fill in.
+    filledClass: map.structure
+      ? gridReader(map.structure.cells.class)
+      : layoutCells ? gridReader(layoutCells) : readClass,
     constraints: map.structure ? gridReader(map.structure.segments.constraints) : () => "any",
     cellLevel: grid.cells.level ? gridReader(grid.cells.level) : () => 0,
     segmentOpen: gridReader(grid.segments.open),
@@ -1240,12 +1247,6 @@ export function tileZone(map: GeneratedMap, tile: MaskCell): MapZone | null {
 }
 
 /**
- * Every wall a map has: the closed part of each segment that touches a laid-out
- * cell, merged into runs, plus whatever micro generation placed. Geometry is
- * never stored — it follows from the primitives, so one implementation serves
- * both generation and reading an artifact back.
- */
-/**
  * The barrier geometry a lattice of cells and segments implies.
  *
  * Read back rather than stored, so what a body meets can never drift from what
@@ -1299,6 +1300,14 @@ export function wallsFromLattice(
   return mergeRuns(pieces);
 }
 
+/**
+ * The final navigation walls: the closed part of each segment that touches a
+ * laid-out cell, merged into runs, then every prop micro placed. On a map with
+ * interiors the lattice is the final grid, layout plus interiors, and the props
+ * are the interiors'. Geometry is never stored — it follows from the
+ * primitives, so one implementation serves both generation and reading an
+ * artifact back.
+ */
 export function deriveWalls(map: GeneratedMap): Wall[] {
   const views = gridViews(map);
   const { width: W, height: H } = map.grid;
@@ -1311,7 +1320,8 @@ export function deriveWalls(map: GeneratedMap): Wall[] {
   );
   // Micro props are collidable but off-lattice, so they join the wall list
   // rather than the segment grid.
-  for (const region of map.regions) walls.push(...region.obstacles);
+  if (map.interiors) for (const entry of map.interiors.regions) walls.push(...entry.props);
+  else for (const region of map.regions) walls.push(...region.obstacles);
   return walls;
 }
 
@@ -1700,26 +1710,51 @@ export function validateMap(input: unknown): ValidationResult {
       errors.push("spawn refers to a cell no tile covers");
     
   }
+  // A map with interiors states each region's manifest and props there, naming
+  // the final region; the regions view only joins them in.
+  const interiorOf = map.interiors
+    ? new Map((map.interiors.regions ?? []).map((entry) => [entry?.region, entry]))
+    : null;
+  if (map.interiors) {
+    if (!Array.isArray(map.interiors.regions))
+      errors.push("interiors must list their regions");
+    else {
+      const ids = new Set(map.regions.map((r) => r?.id));
+      if (interiorOf!.size !== map.interiors.regions.length)
+        errors.push("interiors describe a region twice");
+      for (const entry of map.interiors.regions)
+        if (!ids.has(entry?.region))
+          errors.push(`interiors describe region ${entry?.region}, which the final partition doesn't have`);
+    }
+  }
   const claimed = new Set<number>();
   for (const r of map.regions) {
-    if (!r || !Array.isArray(r.cells) || !r.manifest) {
+    if (!r || !Array.isArray(r.cells)) {
       errors.push("malformed region");
       continue;
     }
+    const entry = interiorOf
+      ? interiorOf.get(r.id)
+      : { manifest: r.manifest, props: r.obstacles };
+    if (!entry?.manifest) {
+      errors.push(interiorOf ? `region ${r.id} has no interior` : "malformed region");
+      continue;
+    }
+    const { manifest, props } = entry;
     for (const i of r.cells)
       if (!Number.isInteger(i) || i < 0 || i >= cellCount || claimed.has(i))
         errors.push("invalid region cell");
       else claimed.add(i);
     const actual = r.cells.filter((i) => views.spawns.has(i)).length;
-    if (actual !== r.manifest.spawnsPlaced)
+    if (actual !== manifest.spawnsPlaced)
       errors.push("region spawn manifest disagrees with cells");
-    if (!Array.isArray(r.obstacles))
+    if (!Array.isArray(props))
       errors.push("region obstacles must be a list");
     else {
-      if (r.obstacles.length !== r.manifest.obstaclesPlaced)
+      if (props.length !== manifest.obstaclesPlaced)
         errors.push("region obstacle manifest disagrees with its geometry");
       const own = new Set(r.cells);
-      for (const o of r.obstacles) {
+      for (const o of props) {
         if (![o.x1, o.y1, o.x2, o.y2].every(finite)) {
           errors.push("malformed region obstacle");
           continue;
@@ -2285,22 +2320,60 @@ function layoutGrid(W: number, H: number, cellClass: string[], segmentOpen: Span
 }
 
 /**
- * What micro generation made, which is the "Interiors" layer in
- * docs/DESIGN_DECISIONS.md "Map layers". `grid` is the composed result: the
- * layout's primitives with the builders' material, segments, levels and
- * vertices laid over them. The layers aren't separated in it yet (#49, #50).
+ * What micro generation made over a layout and its structure. `interiors` is
+ * the stored "Interiors" layer of docs/DESIGN_DECISIONS.md "Map layers";
+ * `micro` keeps the builders' own counts for the report.
  */
 export interface GeneratedInteriors {
-  grid: GridBuild;
+  interiors: MapInteriors;
   micro: MicroResult;
-  /** The final partition of `grid`, with props and manifests. */
-  regions: MapRegion[];
-  features: MapFeature[];
+}
+
+/** Two spans agree when both are barriers or both open the same stretch. */
+function sameSpan(a: Span | undefined, b: Span | undefined): boolean {
+  return a === b || (!!a && !!b && a[0] === b[0] && a[1] === b[1]);
+}
+
+/** What `after` states over `before`: `any` wherever the two agree. */
+function statedOver<T>(before: readonly T[], after: readonly T[], same: (a: T, b: T) => boolean): Array<T | "any"> {
+  return after.map((value, i) => (same(before[i]!, value) ? "any" : value));
+}
+
+/**
+ * The interiors layer from what the builders left: the classes and segments
+ * `built` changed over `base`, `any` elsewhere, its levels once the map
+ * stops being flat, and the rest as given. Both generators build interiors
+ * this way.
+ */
+export function statedInteriors(
+  base: { cellClass: readonly string[]; segmentOpen: readonly Span[] },
+  built: { cellClass: readonly string[]; cellLevel: readonly number[]; segmentOpen: readonly Span[] },
+  rest: Omit<MapInteriors, "cells" | "segments"> & { spawns: MapInteriors["cells"]["spawns"] },
+): MapInteriors {
+  const { spawns, ...others } = rest;
+  return {
+    cells: {
+      class: encodeGrid(statedOver(base.cellClass, built.cellClass, (a, b) => a === b)),
+      ...(built.cellLevel.some((level) => level !== 0) ? { level: encodeGrid([...built.cellLevel]) } : {}),
+      spawns,
+    },
+    segments: { open: encodeGrid(statedOver(base.segmentOpen, built.segmentOpen, sameSpan)) },
+    ...others,
+  };
+}
+
+/** `base` with every value `stated` gives laid over it. */
+function layOver<T>(base: readonly T[], stated: ReadonlyArray<T | "any">): T[] {
+  return base.map((value, i) => {
+    const over = stated[i];
+    return over === "any" || over === undefined ? value : over;
+  });
 }
 
 /**
  * Micro generation over a layout and its structure. Builders work on copies,
- * so neither input changes.
+ * so neither input changes, and what they changed is recorded as a statement
+ * over the structure's classes and the layout's segments.
  */
 export function generateInteriors(
   layout: MapLayout,
@@ -2342,25 +2415,41 @@ export function generateInteriors(
   });
 
   // A builder may site a feature of its own: where a physical exit or a
-  // charger stands is a micro detail, per docs/DESIGN_DECISIONS.md.
-  const tileAt = new Map(structure.tiles.map((t) => [key(t.x, t.y), t]));
-  const features: MapFeature[] = [];
+  // charger stands is a micro detail, per docs/DESIGN_DECISIONS.md. One that
+  // lands on no tile is dropped.
+  const tileAt = tileAtPoint(structure.tiles, p.tileSize);
+  const features: MapInteriors["features"] = [];
   micro.features.forEach((feature, index) => {
-    const owner = tileAt.get(key(
-      Math.floor(feature.x / p.tileSize) * p.tileSize,
-      Math.floor(feature.y / p.tileSize) * p.tileSize,
-    ));
-    if (!owner) return;
+    if (!tileAt(feature.x, feature.y)) return;
     features.push({
       id: `micro-${feature.kind}-${index}`,
       kind: feature.kind as MapFeature["kind"],
-      tileId: owner.id,
       x: feature.x + 0.5,
       y: feature.y + 0.5,
     });
   });
 
-  return { grid, micro, regions, features };
+  return {
+    micro,
+    interiors: statedInteriors(structure, grid, {
+      spawns: micro.spawns,
+      vertices: [...grid.vertices]
+        .sort((a, b) => a[0] - b[0])
+        .map(([vertex, meta]) => ({
+          vertex,
+          ...(meta.class === ANY_CLASS ? {} : { class: meta.class }),
+          ...(meta.height === "any" ? {} : { height: meta.height }),
+        })),
+      features,
+      regions: regions.map((region) => ({ region: region.id, manifest: region.manifest, props: region.obstacles })),
+    }),
+  };
+}
+
+/** The tile a point stands on, or undefined. */
+function tileAtPoint(tiles: PlacedTile[], tileSize: number): (x: number, y: number) => PlacedTile | undefined {
+  const at = new Map(tiles.map((t) => [key(t.x, t.y), t]));
+  return (x, y) => at.get(key(Math.floor(x / tileSize) * tileSize, Math.floor(y / tileSize) * tileSize));
 }
 
 /** Spawn, hunter spawn and exits stand at the anchors of the slots the layout names. */
@@ -2374,41 +2463,103 @@ export function macroFeatures(layout: MapLayout, tiles: PlacedTile[]): MapFeatur
   ];
 }
 
-/** Today's `GeneratedMap`, assembled from the three layers and then reported on. */
-function assembleMap(layout: MapLayout, structure: DerivedStructure, interiors: GeneratedInteriors): GeneratedMap {
-  const { params: p } = layout;
-  const { tiles, zones } = structure;
-  const { grid, micro, regions } = interiors;
+/** Micro's features, each joined with the tile it stands on. */
+function microFeatures(interiors: MapInteriors, tiles: PlacedTile[], tileSize: number): MapFeature[] {
+  const tileAt = tileAtPoint(tiles, tileSize);
+  return interiors.features.map(({ id, ...rest }) => {
+    const tile = tileAt(rest.x, rest.y);
+    if (!tile) throw new Error(`micro feature ${id} stands on no tile`);
+    return { id, ...rest, tileId: tile.id };
+  });
+}
 
-  const map: GeneratedMap = {
-    version: 2, seed: layout.seed, params: p, width: grid.W, height: grid.H, zones, tiles, edges: [], walls: [],
-    features: [...macroFeatures(layout, tiles), ...interiors.features],
-
-    grid: {
-      width: grid.W,
-      height: grid.H,
-      cells: { class: encodeGrid(grid.cellClass),
-        ...(grid.cellLevel.some((level) => level !== 0)
-          ? { level: encodeGrid(grid.cellLevel) }
-          : {}),
-        spawns: micro.spawns },
-      segments: { open: encodeGrid(grid.segmentOpen) },
-      vertices: [...grid.vertices]
-        .sort((a, b) => a[0] - b[0])
-        .map(([vertex, meta]) => ({
-          vertex,
-          ...(meta.class === ANY_CLASS ? {} : { class: meta.class }),
-          ...(meta.height === "any" ? {} : { height: meta.height }),
-        })),
+/**
+ * The final primitives and region partition: `baseClass` and `baseOpen` with
+ * what interiors state laid over them, then searched for regions, each joined
+ * with its interior. Derived, never stored. The final classes and segments come
+ * back decoded too, for callers that measure on them.
+ */
+export function composeInteriors(
+  width: number,
+  height: number,
+  seed: string,
+  baseClass: CodedGrid<string>,
+  baseOpen: CodedGrid<Span>,
+  interiors: MapInteriors,
+): { grid: PrimitiveGrid; regions: MapRegion[]; cellClass: string[]; segmentOpen: Span[] } {
+  const cellClass = layOver(decodeGrid(baseClass), decodeGrid(interiors.cells.class));
+  const segmentOpen = layOver(decodeGrid(baseOpen), decodeGrid(interiors.segments.open));
+  const grid: PrimitiveGrid = {
+    width,
+    height,
+    cells: {
+      class: encodeGrid(cellClass),
+      ...(interiors.cells.level ? { level: interiors.cells.level } : {}),
+      spawns: interiors.cells.spawns,
     },
+    segments: { open: encodeGrid(segmentOpen) },
+    vertices: interiors.vertices,
+  };
+  const regions = searchRegions(layoutGrid(width, height, cellClass, segmentOpen), seed);
+  // A region interiors don't describe keeps an empty manifest, and validation
+  // reports it.
+  const interiorOf = new Map(interiors.regions.map((entry) => [entry.region, entry]));
+  for (const region of regions) {
+    const entry = interiorOf.get(region.id);
+    if (!entry) continue;
+    region.manifest = entry.manifest;
+    region.obstacles = entry.props;
+  }
+  return { grid, regions, cellClass, segmentOpen };
+}
+
+/**
+ * A V2 map from its layers: the layout, the structure derived from it, and
+ * the interiors. Generation and reading an artifact both build the map this
+ * way, so the final grid, regions, features and walls are derived the same
+ * way in both. The report is the caller's.
+ */
+export function composeLayers(
+  layout: MapLayout,
+  structure: DerivedStructure,
+  interiors: MapInteriors,
+  report: Pick<GeneratedMap, "metrics" | "validation">,
+): GeneratedMap {
+  const { params: p } = layout;
+  const { width: W, height: H } = layout.grid;
+  const { tiles, zones } = structure;
+  const { grid, regions } = composeInteriors(
+    W, H, layout.seed, structure.structure.cells.class, layout.grid.segments.open, interiors,
+  );
+  const map: GeneratedMap = {
+    version: 2, seed: layout.seed, params: p, width: W, height: H, zones, tiles, edges: [], walls: [],
+    features: [...macroFeatures(layout, tiles), ...microFeatures(interiors, tiles, p.tileSize)],
+    grid,
     regions,
+    metrics: report.metrics,
+    validation: report.validation,
+    layout,
+    structure: structure.structure,
+    interiors,
+  };
+  map.edges = deriveEdges(map);
+  map.walls = deriveWalls(map);
+  return map;
+}
+
+/** Today's `GeneratedMap`, composed from the three layers and then reported on. */
+function assembleMap(layout: MapLayout, structure: DerivedStructure, generated: GeneratedInteriors): GeneratedMap {
+  const { params: p } = layout;
+  const { tiles } = structure;
+  const { interiors, micro } = generated;
+  const map = composeLayers(layout, structure, interiors, {
     // The geometric metrics are placeholders until reportMap reads them off
     // the finished map below.
     metrics: {
       tileCount: tiles.length, deadEnds: 0, squeezes: 0, contestantDistance: 0, hunterDistance: 0, detourRatio: 0,
-      regionCount: regions.length, lootCount: micro.spawns.length, interiorWalls: 0, solidFraction: 0, largestRegion: 0,
+      regionCount: interiors.regions.length, lootCount: micro.spawns.length, interiorWalls: 0, solidFraction: 0, largestRegion: 0,
       cellCount: tiles.length * p.tileSize * p.tileSize,
-      explicitVertices: grid.vertices.size,
+      explicitVertices: interiors.vertices.length,
       // Counted rather than inferred from the wall total, so a builder that
       // silently produces nothing shows up here.
       microBlocks: micro.declared.blocks,
@@ -2416,12 +2567,7 @@ function assembleMap(layout: MapLayout, structure: DerivedStructure, interiors: 
       microSegments: micro.declared.segments,
     },
     validation: { valid: true, errors: [] },
-    layout,
-    structure: structure.structure,
-  };
-
-  map.edges = deriveEdges(map);
-  map.walls = deriveWalls(map);
+  });
   reportMap(map);
   return map;
 }

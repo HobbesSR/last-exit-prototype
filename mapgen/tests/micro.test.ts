@@ -72,28 +72,30 @@ test("validation keeps micro geometry inside the region that made it", () => {
   const first = region.cells[0]!;
   const x = first % m.grid.width,
     y = Math.floor(first / m.grid.width);
+  // Props and manifests are stated in the interiors, naming their region.
+  const entry = m.interiors!.regions.find((e) => e.region === region.id)!;
 
   // A prop inside its own region is accepted.
-  region.obstacles.push({
+  entry.props.push({
     x1: x + 0.4,
     y1: y + 0.35,
     x2: x + 0.6,
     y2: y + 0.65,
   });
-  region.manifest.obstaclesPlaced = 1;
+  entry.manifest.obstaclesPlaced = 1;
   assert.equal(
     validateMap(m).errors.filter((e) => /outside itself/.test(e)).length,
     0,
   );
 
   // One that reaches into a neighbouring region is not.
-  region.obstacles[0] = { x1: x + 0.5, y1: y + 0.5, x2: x + 9, y2: y + 9 };
+  entry.props[0] = { x1: x + 0.5, y1: y + 0.5, x2: x + 9, y2: y + 9 };
   const escaped = validateMap(m);
   assert.equal(escaped.valid, false);
   assert.ok(escaped.errors.some((e) => /outside itself/.test(e)));
 
   // A manifest that disagrees with the geometry is not either.
-  region.obstacles = [];
+  entry.props = [];
   assert.ok(
     validateMap(m).errors.some((e) => /obstacle manifest disagrees/.test(e)),
   );
@@ -110,11 +112,12 @@ test("micro geometry that severs a proven route fails validation", () => {
       cellIndexAt(m, Math.floor(tile.anchor.x), Math.floor(tile.anchor.y)),
     ),
   )!;
-  region.obstacles = [
+  const entry = m.interiors!.regions.find((e) => e.region === region.id)!;
+  entry.props = [
     { x1: tile.x + 0.1, y1: tile.y + 0.2, x2: tile.x + 5.9, y2: tile.y + 5.8 },
   ];
-  region.manifest.obstaclesPlaced = 1;
-  m.walls.push(region.obstacles[0]!);
+  entry.manifest.obstaclesPlaced = 1;
+  m.walls.push(entry.props[0]!);
   const result = validateMap(m);
   assert.equal(result.valid, false);
   // Containment or clearance — either way the artifact is rejected, not trusted.

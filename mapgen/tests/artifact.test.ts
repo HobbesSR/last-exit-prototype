@@ -94,9 +94,9 @@ test("the wire form drops what can be rebuilt", () => {
   assert.equal(wire.walls, undefined);
   assert.equal(wire.edges, undefined);
   assert.equal(wire.tiles, undefined, "a V2 tile is its layout placement");
-  const regions = wire.regions as Record<string, unknown>;
-  assert.equal(regions.id, undefined);
-  assert.equal(regions.area, undefined);
+  // The final grid and regions follow from layout plus interiors.
+  assert.equal(wire.grid, undefined);
+  assert.equal(wire.regions, undefined);
   // And all of it comes back.
   const back = decodeArtifact(encodeArtifact(m));
   assert.deepEqual(back.walls, m.walls);
@@ -106,9 +106,8 @@ test("the wire form drops what can be rebuilt", () => {
 });
 
 test("nothing derived from the layout is stored", () => {
-  // docs/DESIGN_DECISIONS.md "Map layers": structure is derived on read. The
-  // final class grid still fuses filled-in classes with micro material until
-  // interiors are their own layer (#50), so it isn't checked here.
+  // docs/DESIGN_DECISIONS.md "Map layers": structure is derived on read.
+  // tests/map-interiors.test.ts covers what's derived from layout plus interiors.
   const m = generateMap("wire");
   const wire = encodeArtifact(m) as unknown as Record<string, unknown>;
   const keys = new Set<string>();
@@ -132,8 +131,10 @@ test("nothing derived from the layout is stored", () => {
     "zones",
   ])
     assert.ok(!keys.has(derived), `${derived} is stored`);
-  // Macro features are layout slots; only micro's own features are listed.
-  const features = wire.features as Array<Record<string, unknown>>;
+  // Macro features are layout slots; only micro's own features are listed,
+  // in the interiors.
+  assert.equal(wire.features, undefined);
+  const features = (wire.interiors as { features: unknown[] }).features;
   assert.equal(
     features.length,
     m.features.filter((f) => f.id.startsWith("micro-")).length,
@@ -190,18 +191,24 @@ test("a foreign or future document is refused clearly", () => {
   assert.throws(() => decodeArtifact(wire), /unsupported wire version 99/);
 });
 
-test("a version-1 artifact is refused, naming the version", () => {
-  // Version 1 stored the fused grid and anchors, not the layout. There is no
-  // migration and no legacy reader.
+test("an earlier wire version is refused, naming the version", () => {
+  // Version 1 stored the fused grid and anchors, not the layout. Version 2
+  // stored the layout beside the fused final grid and region cell lists, not
+  // interiors. There is no migration and no legacy reader.
+  assert.equal(WIRE_VERSION, 3);
   const m = generateMap("wire");
-  const wire = encodeArtifact(m) as unknown as Record<string, unknown>;
-  wire.wire = 1;
-  assert.throws(
-    () => decodeArtifact(wire),
-    (error: Error) =>
-      /wire version 1\b/.test(error.message) &&
-      error.message.includes(`wire version ${WIRE_VERSION}`),
-  );
+  for (const version of [1, 2]) {
+    const wire = encodeArtifact(m) as unknown as Record<string, unknown>;
+    wire.wire = version;
+    assert.throws(
+      () => decodeArtifact(wire),
+      (error: Error) =>
+        new RegExp(`wire version ${version}\\b`).test(error.message) &&
+        /regenerate/i.test(error.message) &&
+        error.message.includes(`wire version ${WIRE_VERSION}`),
+      `version ${version}`,
+    );
+  }
 });
 
 test("a map is read with the library it was generated from, or refused", () => {
