@@ -200,6 +200,64 @@ generator and `adapter`), #48 (split the generator into phases without changing
 its output), then #49, #50 and #51 (layout, interiors and report, each
 test-driven).
 
+## The generation chain
+
+Stated by Corey on 2026-09-27. Being implemented through #65. It extends "Map
+layers" from what a map holds to how one is made.
+
+At heart a saved map is its macro layout. Everything else comes from a chain
+of functional transformations, and each step produces its own separable
+object:
+
+| Step | Object | Made by | Today |
+| --- | --- | --- | --- |
+| Seed, params, library → | **layout** | `placeLayout` | Pure. The stored map. |
+| layout → | **structure**, the derived macro map | `deriveStructure` | Pure, its own object. |
+| structure → | **region inputs**, the derived regions | inside `deriveStructure` and `generateMicro` | Computed, not its own object (#67). |
+| each region's inputs → | **region interiors**, what it pushes back | a builder | One shared grid, built in turn order (#68). |
+| layout + all region interiors → | **composed map** | `composeLayers` | Pure. |
+| composed map → | **report** | `reportMap` | Pure, never stored (#51). |
+
+The rules that follow from it:
+
+- **One seed decides the whole map.** With the same engines and libraries, the
+  seed and params determine every object in the chain. Randomness is drawn
+  only from streams named for the step, and for a region, from its own seed.
+  Nothing draws from a stream another step shares.
+- **Each step is a function of the objects before it**, and doesn't mutate
+  them. A step never reads what a later step wrote.
+- **A region is a function of its own inputs.** Its boundary openings are part
+  of its inputs, decided by structure, so building the regions in any order
+  gives the same map, and changing one region's seed changes only that
+  region's interiors. The planned path's ports and the game's micro SDK
+  (root docs 20) already have this shape.
+- **Any stage may be saved.** Everything after the layout can be regenerated,
+  so storing it is a choice about speed and about surviving engine changes.
+  QUESTIONS.md "Saving a map" holds that choice (#70).
+
+### Where the chain is now
+
+Checked 2026-09-27 on 8 V2 seeds (default library and builder-bound) and 8
+planned seeds: the same seed gave deep-equal maps, and re-running micro on a
+decoded V2 layout alone reproduced its stored interiors exactly. #66 pins that
+as tests.
+
+- **The region step isn't separable.** Each block has its own random stream,
+  keyed on its region's seed and first cell. But builders take turns on one
+  shared grid, and each reads its openings off that grid as earlier builders
+  left it ("Map layers", "Where the code is now"). So a region's output can
+  depend on its neighbours' and on build order, and interiors come out as one
+  merged delta. #67 pulls the region inputs out as their own stage without
+  changing output. #68 moves openings into structure, which changes content.
+- **The artifact records the library it was made with, but not the engine.**
+  A save can't tell whether today's code would regenerate it identically (#70).
+- **`GeneratedMap` is one container** holding the stage objects beside views
+  of them (`tiles`, `features`, `grid`, `regions`, `edges`, `walls`, and the
+  `NavTarget` fields `width`, `height` and `params`). `version` is left over
+  from the flat shape (#69).
+- **The planned path has another shape.** Its plan is its structure, and it
+  measures tiles and anchors after micro (#71).
+
 ## Units and scale
 
 The first macro redesign milestone now has an independent versioned composition

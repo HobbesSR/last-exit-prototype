@@ -9,6 +9,7 @@ No answer is needed to run the prototype. These defaults are assumptions for thi
 6. **Tier composition:** how should the original diagram combine horizontal tier and vertical bonus? The lab exposes both independently; loot is a placeholder and hazards are absent. Are novelty rewards a separate category? This unlocks content mixes and budgets.
 7. **Later 2.5D:** are flat levels with ramps and occasional bespoke multi-height regions enough, or do generic overlapping floors matter? Cells and vertices are flat today. Deliberately deferred until 2D tuning progresses.
 8. **Reachability contract:** open parts of the direction in DESIGN_DECISIONS "Reachability". See "Reachability contract" below.
+9. **Saving a map:** should a saved map hold only its layout and regenerate the rest, or keep storing its interiors? See "Saving a map" below. This blocks #70.
 
 ## Already clear; no reconfirmation requested
 
@@ -125,3 +126,24 @@ that costs 17 retried attempts against 10 with the gate edges removed; no seed
 fails either way. Corey chose to restore the gates now because doing so does not
 block that work, and to let the edge-constraint work decide what a gate is and
 what fills a compound.
+
+## Saving a map
+
+Under DESIGN_DECISIONS "The generation chain", one seed decides the whole map,
+and re-running micro on a saved layout reproduces its interiors (checked
+2026-09-27; pinned by #66). So the interiors in today's artifact are a copy of
+something that can be regenerated. Either way the artifact will record an
+engine version, a constant bumped whenever generator output changes (#70).
+
+- **Layout only.** The artifact is the layout. Interiors are regenerated on
+  read, and an artifact from another engine version is refused by name. It's
+  smaller, and it can't disagree with the engine, but an old save stops
+  loading once the builders change.
+- **Layout and interiors (today).** A save keeps loading across engine
+  changes and shows what was generated then. Reading one from another engine
+  version reports the difference.
+- **Both.** Interiors are optional: stored when the save has to outlive the
+  engine, such as a map shipped to the game, and left out otherwise.
+
+*Assumption:* keep storing interiors, and add the engine version, until this
+is answered.

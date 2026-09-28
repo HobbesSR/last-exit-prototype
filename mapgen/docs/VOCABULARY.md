@@ -25,6 +25,12 @@ A generated map has four layers:
 
 DESIGN_DECISIONS "Map layers" defines them and says which layers are stored.
 
+A map is made by a chain of steps, each a function of the objects before it:
+layout → structure → **region inputs** (what each region is handed: its mask,
+seed, rule and boundary openings) → **region interiors** (what each region's
+builder returns) → the composed map → the report. DESIGN_DECISIONS "The
+generation chain" defines it.
+
 ## Primitives
 
 | Term        | Extent             | Carries                                                                                                                                                                              |
