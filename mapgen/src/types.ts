@@ -365,6 +365,26 @@ export interface MapLayout {
   features: { spawn: number; hunter: number; exits: number[] };
 }
 /**
+ * The planned path's "Layout" layer: the plan laid down as primitives before
+ * any builder runs, which planned region each cell belongs to, and which
+ * region each planned feature stands in. The rest of the plan (ports, loot)
+ * only steers generation. Tiles, anchors and where each feature stands are
+ * measured on layout plus interiors, and aren't stored.
+ */
+export interface PlannedLayout {
+  seed: string;
+  params: MapParams;
+  grid: MapLayout["grid"];
+  /**
+   * The planned region each cell belongs to, by plan id; empty outside the
+   * map. Plan ids are their own namespace: `r-3` here needn't be the final
+   * region `r-3`.
+   */
+  regions: CodedGrid<string>;
+  /** In plan order. */
+  features: Array<{ kind: FeatureKind; region: string }>;
+}
+/**
  * The part of the "Structure" layer a map keeps in memory. `deriveStructure`
  * builds it from the layout, when generating and when reading an artifact, and
  * it is never stored.
@@ -433,12 +453,12 @@ export interface GeneratedMap {
   regions: MapRegion[];
   metrics: MapMetrics;
   validation: ValidationResult;
-  /**
-   * V2 maps only. The planned path gets its layers next; until then a planned
-   * map has none, and stores its tiles, anchors, final grid and regions.
-   */
+  /** V2 maps. */
   layout?: MapLayout;
   structure?: MapStructure;
+  /** Planned maps. The plan is their structure, and only generation reads it. */
+  plannedLayout?: PlannedLayout;
+  /** Every generated map. Optional so a hand-built map can still be validated. */
   interiors?: MapInteriors;
 }
 

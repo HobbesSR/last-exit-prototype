@@ -1152,7 +1152,7 @@ export interface GridViews {
   cellClass: (index: number) => string;
   /** The layout's own classes, `any` kept. The final classes on a map with no layout. */
   layoutClass: (index: number) => string;
-  /** The layout's classes with `any` filled in. The final classes on a map with no structure. */
+  /** The layout's classes with `any` filled in: the planned layout's own on a planned map, the final classes on a map with neither. */
   filledClass: (index: number) => string;
   /** Segment-indexed seam constraints; `any` throughout on a map with no structure. */
   constraints: (index: number) => string;
@@ -1167,13 +1167,17 @@ export function gridViews(map: GeneratedMap): GridViews {
   if (cached) return cached;
   const grid = map.grid;
   const readClass = gridReader(grid.cells.class);
+  const layoutCells = (map.layout ?? map.plannedLayout)?.grid.cells.class;
   const views: GridViews = {
     width: grid.width,
     height: grid.height,
     verticalCount: (grid.width + 1) * grid.height,
     cellClass: readClass,
-    layoutClass: map.layout ? gridReader(map.layout.grid.cells.class) : readClass,
-    filledClass: map.structure ? gridReader(map.structure.cells.class) : readClass,
+    layoutClass: layoutCells ? gridReader(layoutCells) : readClass,
+    // A planned layout states every cell, so there is nothing to fill in.
+    filledClass: map.structure
+      ? gridReader(map.structure.cells.class)
+      : layoutCells ? gridReader(layoutCells) : readClass,
     constraints: map.structure ? gridReader(map.structure.segments.constraints) : () => "any",
     cellLevel: grid.cells.level ? gridReader(grid.cells.level) : () => 0,
     segmentOpen: gridReader(grid.segments.open),
@@ -2335,6 +2339,29 @@ function statedOver<T>(before: readonly T[], after: readonly T[], same: (a: T, b
   return after.map((value, i) => (same(before[i]!, value) ? "any" : value));
 }
 
+/**
+ * The interiors layer from what the builders left: the classes and segments
+ * `built` changed over `base`, `any` elsewhere, its levels once the map
+ * stops being flat, and the rest as given. Both generators build interiors
+ * this way.
+ */
+export function statedInteriors(
+  base: { cellClass: readonly string[]; segmentOpen: readonly Span[] },
+  built: { cellClass: readonly string[]; cellLevel: readonly number[]; segmentOpen: readonly Span[] },
+  rest: Omit<MapInteriors, "cells" | "segments"> & { spawns: MapInteriors["cells"]["spawns"] },
+): MapInteriors {
+  const { spawns, ...others } = rest;
+  return {
+    cells: {
+      class: encodeGrid(statedOver(base.cellClass, built.cellClass, (a, b) => a === b)),
+      ...(built.cellLevel.some((level) => level !== 0) ? { level: encodeGrid([...built.cellLevel]) } : {}),
+      spawns,
+    },
+    segments: { open: encodeGrid(statedOver(base.segmentOpen, built.segmentOpen, sameSpan)) },
+    ...others,
+  };
+}
+
 /** `base` with every value `stated` gives laid over it. */
 function layOver<T>(base: readonly T[], stated: ReadonlyArray<T | "any">): T[] {
   return base.map((value, i) => {
@@ -2404,13 +2431,8 @@ export function generateInteriors(
 
   return {
     micro,
-    interiors: {
-      cells: {
-        class: encodeGrid(statedOver(structure.cellClass, grid.cellClass, (a, b) => a === b)),
-        ...(grid.cellLevel.some((level) => level !== 0) ? { level: encodeGrid(grid.cellLevel) } : {}),
-        spawns: micro.spawns,
-      },
-      segments: { open: encodeGrid(statedOver(structure.segmentOpen, grid.segmentOpen, sameSpan)) },
+    interiors: statedInteriors(structure, grid, {
+      spawns: micro.spawns,
       vertices: [...grid.vertices]
         .sort((a, b) => a[0] - b[0])
         .map(([vertex, meta]) => ({
@@ -2420,7 +2442,7 @@ export function generateInteriors(
         })),
       features,
       regions: regions.map((region) => ({ region: region.id, manifest: region.manifest, props: region.obstacles })),
-    },
+    }),
   };
 }
 
@@ -2454,7 +2476,8 @@ function microFeatures(interiors: MapInteriors, tiles: PlacedTile[], tileSize: n
 /**
  * The final primitives and region partition: `baseClass` and `baseOpen` with
  * what interiors state laid over them, then searched for regions, each joined
- * with its interior. Derived, never stored.
+ * with its interior. Derived, never stored. The final classes and segments come
+ * back decoded too, for callers that measure on them.
  */
 export function composeInteriors(
   width: number,
@@ -2463,7 +2486,7 @@ export function composeInteriors(
   baseClass: CodedGrid<string>,
   baseOpen: CodedGrid<Span>,
   interiors: MapInteriors,
-): { grid: PrimitiveGrid; regions: MapRegion[] } {
+): { grid: PrimitiveGrid; regions: MapRegion[]; cellClass: string[]; segmentOpen: Span[] } {
   const cellClass = layOver(decodeGrid(baseClass), decodeGrid(interiors.cells.class));
   const segmentOpen = layOver(decodeGrid(baseOpen), decodeGrid(interiors.segments.open));
   const grid: PrimitiveGrid = {
@@ -2487,7 +2510,7 @@ export function composeInteriors(
     region.manifest = entry.manifest;
     region.obstacles = entry.props;
   }
-  return { grid, regions };
+  return { grid, regions, cellClass, segmentOpen };
 }
 
 /**

@@ -234,8 +234,9 @@ const isMicroFeature = (feature: unknown) =>
  * `path` is dotted; `[]` steps into every element of an array. `keys` takes
  * only those keys from each element, so one array can be split across layers.
  * `filter` takes only some elements. `grid` marks a run-length coded grid.
- * `optional` fields may be absent (a planned map has no layout or structure
- * yet, and a flat map has no levels). Every other field must be present.
+ * `optional` fields may be absent (a V2 map has no planned layout and a planned
+ * map no V2 layout or structure, and a flat map has no levels). Every other
+ * field must be present.
  *
  * `unpinned` fields are claimed but not hashed, and say why. A field that only
  * repeats pinned content in another shape, such as the layout's placements
@@ -257,7 +258,7 @@ export interface LayerField {
 const SAME_AS_VIEW = "repeats content pinned through the tiles and features views";
 const NEW_IN_49 = "new content in #49, pinned by tests/map-layers.test.ts until the next recapture";
 const SAME_AS_FINAL = "repeats content pinned through the final grid, regions and features views";
-const NEW_IN_50 = "new content in #50, pinned by tests/map-interiors.test.ts until the next recapture";
+const NEW_IN_50 = "new content in #50, pinned by tests/map-interiors.test.ts and planned-layers.test.ts until the next recapture";
 export const LAYER_FIELDS: LayerField[] = [
   { layer: "layout", name: "seed", path: "seed" },
   { layer: "layout", name: "version", path: "version" },
@@ -310,6 +311,37 @@ export const LAYER_FIELDS: LayerField[] = [
     optional: true,
     unpinned: NEW_IN_49,
   },
+  // A planned map's layout. The plan laid down is new content; which region
+  // each feature stands in is pinned through where the features stand.
+  { layer: "layout", name: "plannedSeed", path: "plannedLayout.seed", optional: true, unpinned: SAME_AS_VIEW },
+  { layer: "layout", name: "plannedParams", path: "plannedLayout.params", optional: true, unpinned: SAME_AS_VIEW },
+  { layer: "layout", name: "plannedWidth", path: "plannedLayout.grid.width", optional: true, unpinned: SAME_AS_VIEW },
+  { layer: "layout", name: "plannedHeight", path: "plannedLayout.grid.height", optional: true, unpinned: SAME_AS_VIEW },
+  {
+    layer: "layout",
+    name: "plannedClass",
+    path: "plannedLayout.grid.cells.class",
+    grid: true,
+    optional: true,
+    unpinned: NEW_IN_50,
+  },
+  {
+    layer: "layout",
+    name: "plannedSegments",
+    path: "plannedLayout.grid.segments.open",
+    grid: true,
+    optional: true,
+    unpinned: NEW_IN_50,
+  },
+  {
+    layer: "layout",
+    name: "plannedRegions",
+    path: "plannedLayout.regions",
+    grid: true,
+    optional: true,
+    unpinned: NEW_IN_50,
+  },
+  { layer: "layout", name: "plannedFeatures", path: "plannedLayout.features", optional: true, unpinned: NEW_IN_50 },
   {
     layer: "layout",
     name: "features",

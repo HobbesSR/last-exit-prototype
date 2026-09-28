@@ -54,6 +54,8 @@ Two things, on purpose.
 
 **The artifact's regions.** A second search of the finished grid, so they describe what was built rather than what was planned. A builder that stated a wall genuinely split its area in two, and `validateMap` requires a region's class to agree with its own cells.
 
+Neither is stored. The artifact holds the plan laid down (`PlannedLayout`) and what the builders stated over it (`MapInteriors`), and `composePlanned` measures both again when it is read (DESIGN_DECISIONS.md "Map layers").
+
 ## Module map
 
 | module                  | owns                                                          |

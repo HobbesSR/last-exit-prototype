@@ -201,7 +201,7 @@ test("an unpinned field is claimed but moves no hash", () => {
   assert.deepEqual(layerHashes(copy), base);
   assert.ok(
     LAYER_FIELDS.filter((f) => f.unpinned).every((f) => f.optional),
-    "a planned map has no layout, so every unpinned field is optional",
+    "each generator's layout is absent on the other's maps, so every unpinned field is optional",
   );
 });
 

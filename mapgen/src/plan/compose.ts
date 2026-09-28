@@ -35,14 +35,16 @@ import {
   OUTSIDE_CLASS,
   ZONE_COLUMNS,
   ZONE_ROWS,
+  composeInteriors,
   deriveEdges,
   deriveWalls,
   makeZones,
   partitionFinished,
   reportMap,
+  statedInteriors,
   wallsFromLattice,
 } from "../core.ts";
-import { encodeGrid } from "../coding.ts";
+import { decodeGrid, encodeGrid } from "../coding.ts";
 import { latticeFor, nodeIndex, LATTICE_STEP } from "../nav.ts";
 import { getBuilder } from "../micro/catalogue.ts";
 import { createMask } from "../micro/mask.ts";
@@ -68,9 +70,11 @@ import type {
   GeneratedMap,
   NavTarget,
   MapFeature,
+  MapInteriors,
   MapParams,
   MapZone,
   PlacedTile,
+  PlannedLayout,
   Point,
   Span,
   Wall,
@@ -548,49 +552,52 @@ export function buildPlannedInteriors(
 }
 
 /**
- * Tiles and their anchors, measured on the composed grid.
+ * Tiles and their anchors, measured on the final grid and props.
  *
  * Anchors are measured, not planned: a tile's anchor is standing room this
  * map actually has, found after the builders finished. Planning one would
  * only create a point that has to be defended from the builders, which is the
  * V2 path's problem and not this one's. A tile with no reachable standing
- * room is left out.
+ * room is left out. A tile is named for the planned region at its corner.
  */
 function measureTiles(
-  plan: MapPlan,
-  interiors: PlannedInteriors,
+  params: MapParams,
+  zones: MapZone[],
+  final: { cellClass: readonly string[]; segmentOpen: readonly Span[] },
+  props: Wall[],
+  regionOf: readonly string[],
+  W: number,
+  H: number,
 ): { tiles: PlacedTile[]; pockets: number } {
-  const p = plan.params;
-  const { grid } = interiors;
+  const p = params;
+  const segmentIndex = (vertical: boolean, line: number, offset: number) =>
+    vertical ? offset * (W + 1) + line : (W + 1) * H + line * W + offset;
   const probe = {
-    width: grid.W,
-    height: grid.H,
+    width: W,
+    height: H,
     walls: wallsFromLattice(
-      grid.W,
-      grid.H,
-      (index) => grid.cellClass[index]!,
+      W,
+      H,
+      (index) => final.cellClass[index]!,
       (vertical, line, offset) =>
-        grid.segmentOpen[grid.segmentIndex(vertical, line, offset)]!,
-    ).concat(...interiors.obstacles.values()),
-    navBoxes: [[0, 0, grid.W, grid.H]] as Array<
-      [number, number, number, number]
-    >,
+        final.segmentOpen[segmentIndex(vertical, line, offset)]!,
+    ).concat(props),
+    navBoxes: [[0, 0, W, H]] as Array<[number, number, number, number]>,
   };
   // Both bodies have to reach every tile, so anchors come from ground the
   // LARGER body can move through; a node only a contestant fits in is not a
   // place the tile graph may hang a route on.
   const main = mainComponent(probe, p.hunterRadius);
-  const regionOfCell = regionOfCells(plan);
   const tiles: PlacedTile[] = [];
   for (let row = 0; row < p.rows; row += 1)
     for (let col = 0; col < p.columns; col += 1) {
       const x0 = col * p.tileSize,
         y0 = row * p.tileSize;
-      if (x0 >= grid.W || y0 >= grid.H) continue;
-      if (grid.cellClass[y0 * grid.W + x0] === OUTSIDE_CLASS) continue;
+      if (x0 >= W || y0 >= H) continue;
+      if (final.cellClass[y0 * W + x0] === OUTSIDE_CLASS) continue;
       const anchor = findAnchor(probe, main.nodes, x0, y0, p.tileSize);
       if (!anchor) continue;
-      const zone = plan.zones.find(
+      const zone = zones.find(
         (z) =>
           col >= z.tiles[0] &&
           row >= z.tiles[1] &&
@@ -604,7 +611,7 @@ function measureTiles(
         x: x0,
         y: y0,
         zoneId: zone?.id ?? "",
-        templateId: `planned:${regionOfCell.get(y0 * grid.W + x0) ?? ""}`,
+        templateId: `planned:${regionOf[y0 * W + x0] ?? ""}`,
         orientation: 0,
         anchor,
       });
@@ -612,12 +619,29 @@ function measureTiles(
   return { tiles, pockets: main.pockets };
 }
 
-/** The planned region that owns each cell. */
-function regionOfCells(plan: MapPlan): Map<number, string> {
-  const owner = new Map<number, string>();
-  for (const region of plan.regions)
-    for (const cell of region.cells) owner.set(cell, region.id);
-  return owner;
+/** Each planned region's cells, ascending, and their inclusive bounds. */
+function plannedRegions(
+  regionOf: readonly string[],
+  width: number,
+): Map<string, { cells: number[]; bounds: [number, number, number, number] }> {
+  const found = new Map<string, { cells: number[]; bounds: [number, number, number, number] }>();
+  regionOf.forEach((id, cell) => {
+    if (id === OUTSIDE_CLASS) return;
+    const x = cell % width,
+      y = Math.floor(cell / width);
+    const region = found.get(id);
+    if (!region) {
+      found.set(id, { cells: [cell], bounds: [x, y, x, y] });
+      return;
+    }
+    region.cells.push(cell);
+    const b = region.bounds;
+    b[0] = Math.min(b[0], x);
+    b[1] = Math.min(b[1], y);
+    b[2] = Math.max(b[2], x);
+    b[3] = Math.max(b[3], y);
+  });
+  return found;
 }
 
 /**
@@ -628,11 +652,12 @@ function regionOfCells(plan: MapPlan): Map<number, string> {
  * feature and failing validation later.
  */
 function placeFeatures(
-  plan: MapPlan,
+  layout: PlannedLayout,
+  regionOf: readonly string[],
   tiles: PlacedTile[],
-  width: number,
 ): MapFeature[] {
-  const byId = new Map(plan.regions.map((r) => [r.id, r]));
+  const width = layout.grid.width;
+  const byId = plannedRegions(regionOf, width);
   const tileFor = (regionId: string): PlacedTile | undefined => {
     const region = byId.get(regionId);
     if (!region || !tiles.length) return undefined;
@@ -651,8 +676,8 @@ function placeFeatures(
   const features: MapFeature[] = [];
   const usedTiles = new Set<string>();
   let exitIndex = 0;
-  for (const planned of plan.features) {
-    const tile = tileFor(planned.regionId);
+  for (const planned of layout.features) {
+    const tile = tileFor(planned.region);
     if (!tile) continue;
     // Two features on one tile is legal but uninteresting; prefer a free one.
     const spot =
@@ -671,60 +696,124 @@ function placeFeatures(
   return features;
 }
 
-export function composeMap(plan: MapPlan): GeneratedMap {
-  const p = plan.params;
-  const interiors = buildPlannedInteriors(plan, layPlan(plan));
-  const { grid, spawns, enforced } = interiors;
-  const { tiles, pockets } = measureTiles(plan, interiors);
+/**
+ * The planned path's layout: the plan laid down, which planned region owns
+ * each cell, and which region each planned feature stands in.
+ */
+function plannedLayoutOf(plan: MapPlan, laid: ComposeGrid): PlannedLayout {
+  const owner = new Array<string>(laid.W * laid.H).fill(OUTSIDE_CLASS);
+  for (const region of plan.regions)
+    for (const cell of region.cells) owner[cell] = region.id;
+  return {
+    seed: plan.seed,
+    params: plan.params,
+    grid: {
+      width: laid.W,
+      height: laid.H,
+      cells: { class: encodeGrid(laid.cellClass) },
+      segments: { open: encodeGrid(laid.segmentOpen) },
+    },
+    regions: encodeGrid(owner),
+    features: plan.features.map((f) => ({ kind: f.kind, region: f.regionId })),
+  };
+}
 
-  // The artifact's regions come from a second search of the finished grid, so
-  // they describe what was built rather than what was planned -- a builder that
-  // stated a wall genuinely split its area, and the two have to agree.
-  const regions = partitionFinished(
-    grid,
-    plan.seed,
-    [...interiors.obstacles.values()].flat(),
+/**
+ * A planned map from its layers. Generation and reading an artifact both
+ * build it this way: the final grid and regions from layout plus interiors,
+ * then tiles, anchors and features measured on them. The report is the
+ * caller's; `pockets` is for it.
+ */
+export function composePlanned(
+  layout: PlannedLayout,
+  interiors: MapInteriors,
+  report: Pick<GeneratedMap, "metrics" | "validation">,
+): { map: GeneratedMap; pockets: number } {
+  const p = layout.params;
+  const { width: W, height: H } = layout.grid;
+  const zones = makeZones(p);
+  const final = composeInteriors(
+    W,
+    H,
+    layout.seed,
+    layout.grid.cells.class,
+    layout.grid.segments.open,
+    interiors,
   );
-  const byId = new Map(plan.regions.map((r) => [r.id, r]));
-  const regionOfCell = regionOfCells(plan);
-  const spawnCells = new Set(spawns.map((s) => s.cell));
-  for (const region of regions) {
-    const planned = byId.get(regionOfCell.get(region.cells[0]!) ?? "");
-    region.manifest = {
-      ...(planned ? { generator: planned.type } : {}),
-      spawnsPlaced: region.cells.filter((cell) => spawnCells.has(cell)).length,
-      obstaclesPlaced: region.obstacles.length,
-      corridorsHonored: true,
-    };
-  }
-
+  const regionOf = decodeGrid(layout.regions);
+  const { tiles, pockets } = measureTiles(
+    p,
+    zones,
+    final,
+    interiors.regions.flatMap((entry) => entry.props),
+    regionOf,
+    W,
+    H,
+  );
   const map: GeneratedMap = {
     version: 1,
-    seed: plan.seed,
+    seed: layout.seed,
     params: p,
-    width: grid.W,
-    height: grid.H,
-    zones: plan.zones,
+    width: W,
+    height: H,
+    zones,
     tiles,
     edges: [],
     walls: [],
-    features: placeFeatures(plan, tiles, grid.W),
-    grid: {
-      width: grid.W,
-      height: grid.H,
-      cells: {
-        class: encodeGrid(grid.cellClass),
-        ...(grid.cellLevel.some((level) => level !== 0)
-          ? { level: encodeGrid(grid.cellLevel) }
-          : {}),
-        spawns,
-      },
-      segments: { open: encodeGrid(grid.segmentOpen) },
-      vertices: [],
-    },
-    regions,
+    features: placeFeatures(layout, regionOf, tiles),
+    grid: final.grid,
+    regions: final.regions,
+    metrics: report.metrics,
+    validation: report.validation,
+    plannedLayout: layout,
+    interiors,
+  };
+  map.walls = deriveWalls(map);
+  map.edges = deriveEdges(map);
+  return { map, pockets };
+}
+
+export function composeMap(plan: MapPlan): GeneratedMap {
+  const laid = layPlan(plan);
+  const built = buildPlannedInteriors(plan, laid);
+  const { grid, spawns, enforced } = built;
+
+  // The final regions come from a search of the built grid, so they describe
+  // what was built rather than what was planned -- a builder that stated a
+  // wall genuinely split its area, and the two have to agree. Each names the
+  // planned region at its first cell.
+  const regions = partitionFinished(
+    grid,
+    plan.seed,
+    [...built.obstacles.values()].flat(),
+  );
+  const byId = new Map(plan.regions.map((r) => [r.id, r]));
+  const owner = new Map<number, string>();
+  for (const region of plan.regions)
+    for (const cell of region.cells) owner.set(cell, region.id);
+  const spawnCells = new Set(spawns.map((s) => s.cell));
+  const interiors = statedInteriors(laid, grid, {
+    spawns,
+    vertices: [],
+    features: [],
+    regions: regions.map((region) => {
+      const planned = byId.get(owner.get(region.cells[0]!) ?? "");
+      return {
+        region: region.id,
+        manifest: {
+          ...(planned ? { generator: planned.type } : {}),
+          spawnsPlaced: region.cells.filter((cell) => spawnCells.has(cell)).length,
+          obstaclesPlaced: region.obstacles.length,
+          corridorsHonored: true,
+        },
+        props: region.obstacles,
+      };
+    }),
+  });
+
+  const { map, pockets } = composePlanned(plannedLayoutOf(plan, laid), interiors, {
     metrics: {
-      tileCount: tiles.length,
+      tileCount: 0,
       deadEnds: 0,
       squeezes: 0,
       contestantDistance: 0,
@@ -736,17 +825,17 @@ export function composeMap(plan: MapPlan): GeneratedMap {
       solidFraction: 0,
       largestRegion: 0,
       plannedRegions: plan.regions.length,
-      microCells: interiors.declaredCells,
-      microSegments: interiors.declaredSegments,
-      conformedRegions: interiors.conformed,
+      microCells: built.declaredCells,
+      microSegments: built.declaredSegments,
+      conformedRegions: built.conformed,
       portsCorrected: enforced.corrected,
-      sealedPockets: pockets,
+      sealedPockets: 0,
       portCount: enforced.ports,
     },
     validation: { valid: false, errors: [] },
-  };
-  map.walls = deriveWalls(map);
-  map.edges = deriveEdges(map);
+  });
+  map.metrics.tileCount = map.tiles.length;
+  map.metrics.sealedPockets = pockets;
   // Measured off the composed result by the same function every generator
   // uses, so the numbers mean the same thing and can be compared.
   reportMap(map);

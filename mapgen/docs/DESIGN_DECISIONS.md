@@ -57,9 +57,9 @@ The tile-edge maze solver has been removed. Generation currently places set piec
 
 ## Map layers
 
-Decided 2026-09-27. Being implemented through issue #52. On V2 maps layout,
-structure (#49) and interiors (#50) are separate; the report is not yet. See
-"Where the code is now" below.
+Decided 2026-09-27. Being implemented through issue #52. Layout, structure
+(#49) and interiors (#50) are separate; the report is not yet. See "Where the
+code is now" below.
 
 A map is a valid arrangement of macro primitives. Everything else about a
 generated map is either derived from that arrangement or produced by micro
@@ -104,10 +104,11 @@ so derived data can't be mistaken for stated data.
   `deriveStructure` (pure; null when no street network joins the blocks),
   `generateInteriors` (on copies of its inputs), `composeLayers` (the final
   grid, regions, features and walls, shared with reading an artifact), then
-  `reportMap`. Planned:
-  `layPlan` lays the plan down and `buildPlannedInteriors` runs the builders.
-  The plan itself is that path's structure. Both paths share `reportMap` and
-  `partitionFinished`, which gives the final region partition with its props.
+  `reportMap`. Planned: `layPlan` lays the plan down, `buildPlannedInteriors`
+  runs the builders, then `composePlanned` (the final grid and regions, then
+  tiles, anchors and features measured on them, shared with reading an
+  artifact). The plan itself is that path's structure. Both paths share
+  `statedInteriors`, `composeInteriors` and `reportMap`.
 - The planned path measures anchors on the composed grid, after micro, so
   there an anchor is derived from layout plus interiors, like the final
   region partition, and isn't structure. Either way anchors are derived and
@@ -130,19 +131,23 @@ so derived data can't be mistaken for stated data.
   them, so `deriveStructure` returns them without the map keeping them. It
   holds no seams or lattice walls: nothing reads layout-only ones, and the
   final ones are derived from layout plus interiors (below).
-- The planned path has no `layout` or `structure` yet. Its anchors are
-  measured after micro, so they belong with #50, and until then a planned map
-  stores its tiles and anchors as before.
-- A V2 map holds `interiors` (`MapInteriors`) (#50), stored as its own section
+- A planned map holds `plannedLayout` (`PlannedLayout`) (#50): `layPlan`'s
+  classes and segments, which planned region owns each cell, and which region
+  each planned feature stands in. The rest of the plan (ports, loot) only
+  steers generation, so it isn't kept. Tiles are named for the planned region
+  at their corner, and plan region ids are a namespace of their own: plan
+  region `r-3` needn't be final region `r-3`.
+- Every generated map holds `interiors` (`MapInteriors`) (#50), stored as its own section
   of the artifact. It states only what micro did: the class it laid on each
   cell and the span it stated for each segment, `any` where it stated
-  nothing, over the filled-in classes and the layout's segments; cell levels;
+  nothing, over the filled-in classes (the planned layout's classes on a
+  planned map) and the layout's segments; cell levels;
   spawns; vertex metadata; micro's features; and one entry per final region
   naming it, with its manifest and props. Whatever produces interiors later,
   such as the game's micro SDK, fills the same type.
 - The final grid (`grid`), region partition (`regions`), micro features and
-  navigation walls are views `composeLayers` derives from layout plus
-  interiors, both when generating and when reading an artifact. None is
+  navigation walls are views `composeLayers` and `composePlanned` derive from
+  layout plus interiors, both when generating and when reading an artifact. None is
   stored. `grid.cells.class` is where the filled-in classes and micro's
   `solid` material meet, and no layer holds that fusion. A region's
   `obstacles` and `manifest` are joined in from its interiors entry, and
@@ -155,8 +160,7 @@ so derived data can't be mistaken for stated data.
   write segments into that grid. So today's seams depend on interiors: binding
   classes to builders changes them for the same layout. Seams in structure have
   to be measured on the layout's own segments. #47 found this.
-- The artifact stores metrics and validation (#51). A planned map still
-  stores its final grid and every region's cell list.
+- The artifact stores metrics and validation (#51).
 - `LAYER_FIELDS` marks fields `unpinned` when they only repeat content pinned
   through a view (the layout's placements beside `tiles`, the interiors'
   spawns, props and manifests beside the final views) or are new content no
@@ -322,8 +326,8 @@ Where they come from today:
 
 **Anchors are derived, never stored** (Corey, 2026-09-27). A V2 artifact
 doesn't store them: `deriveStructure` finds them again on read, and validation
-of an imported map checks those. A planned artifact still stores them until its
-layers are separated (#50).
+of an imported map checks those. A planned artifact doesn't store them
+either: `composePlanned` measures them again on layout plus interiors (#50).
 
 A single anchor is also the wrong shape for a tile whose interior is split: it
 speaks for one piece and the tile graph misses routes through the others.
@@ -565,8 +569,10 @@ and segment grids micro stated, with `any` kept and travelling as the pair
 each final region's manifest and props, the region named by its index in the
 partition. The final grid and regions are rebuilt from the two by the same
 `composeLayers` generation runs, so no region cell list or area is stored. A
-planned map has no layout yet and stores its tiles, anchors included, its
-final grid and its regions.
+planned map stores its planned layout in place of the V2 one: `layPlan`'s
+class and segment grids, the planned-region grid, and each planned feature's
+kind and region. `composePlanned` measures its tiles, anchors and features
+again on read.
 
 `decodeArtifact` reconstructs a map deep-equal to the generated one, which is
 the property the tests assert, on several seeds, through both encodings. This is
