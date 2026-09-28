@@ -1875,11 +1875,37 @@ export function validateMap(input: unknown): ValidationResult {
 
 
 /**
- * Metrics and validation for a finished map, which is the "Report" layer in
- * docs/DESIGN_DECISIONS.md "Map layers". Every generator ends here, so the
- * numbers mean the same thing whichever one made the map.
+ * Metrics that count what a generator run did rather than what the map is,
+ * such as builders' declared writes including the ones that changed nothing.
+ * They can't be measured on a map, so they aren't stored and only a freshly
+ * generated map has them (Corey, 2026-09-27).
  */
-export function reportMap(map: GeneratedMap): void {
+export const RUN_METRICS = [
+  "microBlocks",
+  "microCells",
+  "microSegments",
+  "conformedRegions",
+  "portsCorrected",
+  "portCount",
+] as const;
+
+/**
+ * Metrics and validation for a finished map, which is the "Report" layer in
+ * docs/DESIGN_DECISIONS.md "Map layers". It's never stored: the composers run
+ * it both when generating and when reading an artifact, so the numbers mean
+ * the same thing whichever generator made the map and however it was loaded.
+ * `measured` is what only the composer can count, such as a planned map's
+ * sealed pockets.
+ */
+export function reportMap(map: GeneratedMap, measured: Record<string, number> = {}): void {
+  map.metrics = {
+    tileCount: map.tiles.length,
+    lootCount: map.grid.cells.spawns.length,
+    ...measured,
+    // measureMap reads each of these off the finished map.
+    deadEnds: 0, squeezes: 0, contestantDistance: 0, hunterDistance: 0, detourRatio: 0,
+    regionCount: 0, interiorWalls: 0, solidFraction: 0, largestRegion: 0,
+  };
   measureMap(map);
   map.validation = validateMap(map);
 }
@@ -2516,14 +2542,13 @@ export function composeInteriors(
 /**
  * A V2 map from its layers: the layout, the structure derived from it, and
  * the interiors. Generation and reading an artifact both build the map this
- * way, so the final grid, regions, features and walls are derived the same
- * way in both. The report is the caller's.
+ * way, so the final grid, regions, features, walls and report are derived the
+ * same way in both.
  */
 export function composeLayers(
   layout: MapLayout,
   structure: DerivedStructure,
   interiors: MapInteriors,
-  report: Pick<GeneratedMap, "metrics" | "validation">,
 ): GeneratedMap {
   const { params: p } = layout;
   const { width: W, height: H } = layout.grid;
@@ -2536,39 +2561,32 @@ export function composeLayers(
     features: [...macroFeatures(layout, tiles), ...microFeatures(interiors, tiles, p.tileSize)],
     grid,
     regions,
-    metrics: report.metrics,
-    validation: report.validation,
+    metrics: {} as GeneratedMap["metrics"],
+    validation: { valid: false, errors: [] },
     layout,
     structure: structure.structure,
     interiors,
   };
   map.edges = deriveEdges(map);
   map.walls = deriveWalls(map);
+  reportMap(map, {
+    cellCount: tiles.length * p.tileSize * p.tileSize,
+    explicitVertices: interiors.vertices.length,
+  });
   return map;
 }
 
-/** Today's `GeneratedMap`, composed from the three layers and then reported on. */
+/** Today's `GeneratedMap`, composed from the three layers, with what the run counted. */
 function assembleMap(layout: MapLayout, structure: DerivedStructure, generated: GeneratedInteriors): GeneratedMap {
-  const { params: p } = layout;
-  const { tiles } = structure;
-  const { interiors, micro } = generated;
-  const map = composeLayers(layout, structure, interiors, {
-    // The geometric metrics are placeholders until reportMap reads them off
-    // the finished map below.
-    metrics: {
-      tileCount: tiles.length, deadEnds: 0, squeezes: 0, contestantDistance: 0, hunterDistance: 0, detourRatio: 0,
-      regionCount: interiors.regions.length, lootCount: micro.spawns.length, interiorWalls: 0, solidFraction: 0, largestRegion: 0,
-      cellCount: tiles.length * p.tileSize * p.tileSize,
-      explicitVertices: interiors.vertices.length,
-      // Counted rather than inferred from the wall total, so a builder that
-      // silently produces nothing shows up here.
-      microBlocks: micro.declared.blocks,
-      microCells: micro.declared.cells,
-      microSegments: micro.declared.segments,
-    },
-    validation: { valid: true, errors: [] },
+  const { declared } = generated.micro;
+  const map = composeLayers(layout, structure, generated.interiors);
+  // Counted rather than inferred from the wall total, so a builder that
+  // silently produces nothing shows up here.
+  Object.assign(map.metrics, {
+    microBlocks: declared.blocks,
+    microCells: declared.cells,
+    microSegments: declared.segments,
   });
-  reportMap(map);
   return map;
 }
 

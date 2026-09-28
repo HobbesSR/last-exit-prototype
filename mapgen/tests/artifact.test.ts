@@ -12,6 +12,7 @@ import {
 } from "../src/artifact.ts";
 import { DEFAULT_LIBRARY, generateMap, validateMap } from "../src/core.ts";
 import { generatePlannedMap } from "../src/plan/compose.ts";
+import { asRead } from "./read-back.ts";
 
 const NUL = String.fromCharCode(0);
 const hex = (bytes: Uint8Array) =>
@@ -151,8 +152,8 @@ test("a map survives both encodings exactly and still validates", () => {
     const m = generateMap(seed, seed === "five" ? { exitCount: 5 } : {});
     const viaBson = artifactFromBson(artifactToBson(m));
     const viaJson = decodeArtifact(JSON.parse(artifactToJson(m)));
-    assert.deepStrictEqual(viaBson, m, `${seed} through BSON`);
-    assert.deepStrictEqual(viaJson, m, `${seed} through JSON`);
+    assert.deepStrictEqual(viaBson, asRead(m), `${seed} through BSON`);
+    assert.deepStrictEqual(viaJson, asRead(m), `${seed} through JSON`);
     assert.equal(validateMap(viaBson).valid, true);
   }
 });
@@ -176,8 +177,8 @@ test("readArtifact decides on the bytes, not on a file name", () => {
   const json = new TextEncoder().encode(artifactToJson(m));
   assert.ok(looksLikeBson(bson));
   assert.ok(!looksLikeBson(json));
-  assert.deepStrictEqual(readArtifact(bson), m);
-  assert.deepStrictEqual(readArtifact(json), m);
+  assert.deepStrictEqual(readArtifact(bson), asRead(m));
+  assert.deepStrictEqual(readArtifact(json), asRead(m));
 });
 
 test("a foreign or future document is refused clearly", () => {
@@ -194,10 +195,11 @@ test("a foreign or future document is refused clearly", () => {
 test("an earlier wire version is refused, naming the version", () => {
   // Version 1 stored the fused grid and anchors, not the layout. Version 2
   // stored the layout beside the fused final grid and region cell lists, not
-  // interiors. There is no migration and no legacy reader.
-  assert.equal(WIRE_VERSION, 3);
+  // interiors. Version 3 stored the report. There is no migration and no
+  // legacy reader.
+  assert.equal(WIRE_VERSION, 4);
   const m = generateMap("wire");
-  for (const version of [1, 2]) {
+  for (const version of [1, 2, 3]) {
     const wire = encodeArtifact(m) as unknown as Record<string, unknown>;
     wire.wire = version;
     assert.throws(
@@ -217,7 +219,7 @@ test("a map is read with the library it was generated from, or refused", () => {
   other.cellClasses!.market = { generator: "compound" };
   const m = generateMap("library", small, other);
   const wire = JSON.parse(artifactToJson(m));
-  assert.deepStrictEqual(decodeArtifact(wire, other), m);
+  assert.deepStrictEqual(decodeArtifact(wire, other), asRead(m));
   assert.throws(
     () => decodeArtifact(wire),
     /generated with a different library/,
@@ -226,14 +228,10 @@ test("a map is read with the library it was generated from, or refused", () => {
 });
 
 test("a planned map survives both encodings exactly", () => {
-  // The planned path's layers are #50's; until then it keeps its own form.
+  // This map has no tile-graph route, so its route metrics are Infinity. JSON
+  // can't carry that, but the report is measured again on read, not stored.
   const m = generatePlannedMap("wire", { mode: "playground", zoneWidth: 4, zoneHeight: 2 });
-  assert.deepStrictEqual(artifactFromBson(artifactToBson(m)), m);
-  // This map has no tile-graph route, so its route metrics are Infinity, which
-  // survives BSON but not JSON (docs/DESIGN_DECISIONS.md "BSON").
-  const viaJson = decodeArtifact(JSON.parse(artifactToJson(m)));
-  assert.deepStrictEqual(viaJson, {
-    ...m,
-    metrics: JSON.parse(JSON.stringify(m.metrics)),
-  });
+  assert.equal(m.metrics.contestantDistance, Infinity);
+  assert.deepStrictEqual(artifactFromBson(artifactToBson(m)), asRead(m));
+  assert.deepStrictEqual(decodeArtifact(JSON.parse(artifactToJson(m))), asRead(m));
 });

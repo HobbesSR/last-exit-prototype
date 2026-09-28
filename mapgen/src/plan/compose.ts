@@ -721,14 +721,12 @@ function plannedLayoutOf(plan: MapPlan, laid: ComposeGrid): PlannedLayout {
 /**
  * A planned map from its layers. Generation and reading an artifact both
  * build it this way: the final grid and regions from layout plus interiors,
- * then tiles, anchors and features measured on them. The report is the
- * caller's; `pockets` is for it.
+ * then tiles, anchors, features and the report measured on them.
  */
 export function composePlanned(
   layout: PlannedLayout,
   interiors: MapInteriors,
-  report: Pick<GeneratedMap, "metrics" | "validation">,
-): { map: GeneratedMap; pockets: number } {
+): GeneratedMap {
   const p = layout.params;
   const { width: W, height: H } = layout.grid;
   const zones = makeZones(p);
@@ -763,14 +761,19 @@ export function composePlanned(
     features: placeFeatures(layout, regionOf, tiles),
     grid: final.grid,
     regions: final.regions,
-    metrics: report.metrics,
-    validation: report.validation,
+    metrics: {} as GeneratedMap["metrics"],
+    validation: { valid: false, errors: [] },
     plannedLayout: layout,
     interiors,
   };
   map.walls = deriveWalls(map);
   map.edges = deriveEdges(map);
-  return { map, pockets };
+  const planned = new Set(regionOf);
+  planned.delete(OUTSIDE_CLASS);
+  // Measured off the composed result by the same function every generator
+  // uses, so the numbers mean the same thing and can be compared.
+  reportMap(map, { plannedRegions: planned.size, sealedPockets: pockets });
+  return map;
 }
 
 export function composeMap(plan: MapPlan): GeneratedMap {
@@ -811,34 +814,14 @@ export function composeMap(plan: MapPlan): GeneratedMap {
     }),
   });
 
-  const { map, pockets } = composePlanned(plannedLayoutOf(plan, laid), interiors, {
-    metrics: {
-      tileCount: 0,
-      deadEnds: 0,
-      squeezes: 0,
-      contestantDistance: 0,
-      hunterDistance: 0,
-      detourRatio: 0,
-      regionCount: regions.length,
-      lootCount: spawns.length,
-      interiorWalls: 0,
-      solidFraction: 0,
-      largestRegion: 0,
-      plannedRegions: plan.regions.length,
-      microCells: built.declaredCells,
-      microSegments: built.declaredSegments,
-      conformedRegions: built.conformed,
-      portsCorrected: enforced.corrected,
-      sealedPockets: 0,
-      portCount: enforced.ports,
-    },
-    validation: { valid: false, errors: [] },
+  const map = composePlanned(plannedLayoutOf(plan, laid), interiors);
+  Object.assign(map.metrics, {
+    microCells: built.declaredCells,
+    microSegments: built.declaredSegments,
+    conformedRegions: built.conformed,
+    portsCorrected: enforced.corrected,
+    portCount: enforced.ports,
   });
-  map.metrics.tileCount = map.tiles.length;
-  map.metrics.sealedPockets = pockets;
-  // Measured off the composed result by the same function every generator
-  // uses, so the numbers mean the same thing and can be compared.
-  reportMap(map);
   return map;
 }
 

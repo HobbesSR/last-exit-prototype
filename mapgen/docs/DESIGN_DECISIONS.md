@@ -57,9 +57,9 @@ The tile-edge maze solver has been removed. Generation currently places set piec
 
 ## Map layers
 
-Decided 2026-09-27. Being implemented through issue #52. Layout, structure
-(#49) and interiors (#50) are separate; the report is not yet. See "Where the
-code is now" below.
+Decided 2026-09-27. Implemented through issue #52: layout, structure (#49),
+interiors (#50) and the report (#51) are separate. See "Where the code is
+now" below.
 
 A map is a valid arrangement of macro primitives. Everything else about a
 generated map is either derived from that arrangement or produced by micro
@@ -155,12 +155,24 @@ so derived data can't be mistaken for stated data.
   manifest names.
 - `deriveWalls` is the lattice over the final grid, then every interiors prop.
   Layout-only walls aren't derived, because nothing reads them yet.
-- One `GeneratedMap` still holds the report beside the layers.
+- The report is computed, never stored (#51). `composeLayers` and
+  `composePlanned` end with `reportMap`, so a map read from an artifact is
+  measured and validated again under today's rules, and a map that was
+  invalid when generated is still invalid on read. `reportMap` takes what only
+  the composer can count: a V2 map's cell count and stated vertices, a
+  planned map's planned regions (counted from `plannedLayout.regions`) and
+  sealed pockets.
+- `RUN_METRICS` count what the generator run did, not what the map is:
+  builders' declared blocks, cells and segments (no-op writes included), and
+  on the planned path the regions conformed, ports corrected and port count.
+  They can't be measured on a map, so the generator adds them to a fresh
+  map's `metrics` and they aren't stored. A decoded map doesn't have them
+  (Corey, 2026-09-27). Batch distributions, the MCP tools and the sweep read
+  fresh maps, so they keep them.
 - `deriveEdges` measures seams on the final segment grid, and micro builders
   write segments into that grid. So today's seams depend on interiors: binding
   classes to builders changes them for the same layout. Seams in structure have
   to be measured on the layout's own segments. #47 found this.
-- The artifact stores metrics and validation (#51).
 - `LAYER_FIELDS` marks fields `unpinned` when they only repeat content pinned
   through a view (the layout's placements beside `tiles`, the interiors'
   spawns, props and manifests beside the final views) or are new content no
@@ -576,13 +588,16 @@ again on read.
 
 `decodeArtifact` reconstructs a map deep-equal to the generated one, which is
 the property the tests assert, on several seeds, through both encodings. This is
-wire version 3. Version 1 stored anchors and no layout; version 2 stored the
+wire version 4. Version 1 stored anchors and no layout; version 2 stored the
 layout beside the fused final grid and every region cell list, and no
-interiors. Both are refused by version: there is no migration and no legacy
-reader.
+interiors; version 3 stored the report. All are refused by version: there is
+no migration and no legacy reader.
 
-The form still stores metrics and validation, which under "Map layers" are the
-report. #51 separates them.
+The artifact is the layers and nothing else: the layout (its seed, params and
+size at the top level), the interiors and the string table they share. The
+report is measured again on read, and which generator made the map follows
+from which layout it holds. A decoded map equals the generated one less its
+`RUN_METRICS`.
 
 ## BSON
 
@@ -601,8 +616,8 @@ against itself.
 
 Two details are worth knowing. JSON cannot carry `NaN`, so a fully closed
 segment is the out-of-range sentinel `-1` rather than a NaN pair — chosen so
-both encodings agree. And a non-finite metric survives BSON but not JSON; valid
-maps have none.
+both encodings agree. Metrics aren't stored, so a route metric that is
+`Infinity` comes back through JSON too.
 
 Sizes for a default map of 936 tiles and 260,281 addressed primitives: about
 1,050 KB as the in-memory shape, 397 KB as wire JSON, 280 KB as BSON, of which

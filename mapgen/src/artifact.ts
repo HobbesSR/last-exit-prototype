@@ -41,15 +41,15 @@ import type {
   PrimitiveGrid,
   RegionManifest,
   Span,
-  ValidationResult,
   Wall,
 } from "./types.ts";
 
-export const WIRE_VERSION = 3;
+export const WIRE_VERSION = 4;
 /** Why each earlier wire version is no longer read. None is migrated. */
 const RETIRED_VERSIONS: Record<number, string> = {
   1: "it stored derived structure instead of the layout",
   2: "it stored the fused final grid and region cell lists instead of interiors",
+  3: "it stored the report (metrics and validation), which is now computed on read",
 };
 /** Out-of-range marker for a fully closed segment. */
 const BARRIER = -1;
@@ -147,7 +147,6 @@ interface WireLayout {
 export interface WireArtifact {
   format: "last-exit-map";
   wire: number;
-  version: number;
   seed: string;
   params: MapParams;
   width: number;
@@ -159,8 +158,6 @@ export interface WireArtifact {
   plannedLayout?: WirePlannedLayout;
   /** What micro made, stated over the layout. */
   interiors: WireInteriors;
-  metrics: Record<string, number>;
-  validation: ValidationResult;
 }
 /** A planned map's layout. Plan region ids are interned like any other name. */
 interface WirePlannedLayout {
@@ -528,7 +525,6 @@ export function encodeArtifact(map: GeneratedMap): WireArtifact {
   return {
     format: "last-exit-map",
     wire: WIRE_VERSION,
-    version: map.version,
     seed: map.seed,
     params: map.params,
     width: map.width,
@@ -537,8 +533,6 @@ export function encodeArtifact(map: GeneratedMap): WireArtifact {
     ...(layout ? { layout } : {}),
     ...(plannedLayout ? { plannedLayout } : {}),
     interiors,
-    metrics: map.metrics as Record<string, number>,
-    validation: map.validation,
   };
 }
 
@@ -578,14 +572,9 @@ export function decodeArtifact(
     return value;
   };
   const params = wire.params as MapParams;
-  const report = {
-    metrics: wire.metrics as GeneratedMap["metrics"],
-    validation: wire.validation,
-  };
   if (!wire.interiors) throw new Error("artifact has no interiors");
   const interiors = unpackInteriors(wire.interiors, name);
 
-  let map: GeneratedMap;
   if (wire.layout) {
     const layout = unpackLayout(wire.layout, wire.seed, params, wire.width, wire.height, name);
     const expected = libraryFingerprint(library);
@@ -597,13 +586,13 @@ export function decodeArtifact(
     const derived = deriveStructure(layout, library);
     if (!derived)
       throw new Error("the stored layout has no street network, so no generator made it");
-    map = composeLayers(layout, derived, interiors, report);
-  } else if (wire.plannedLayout) {
+    return composeLayers(layout, derived, interiors);
+  }
+  if (wire.plannedLayout) {
     const layout = unpackPlannedLayout(wire.plannedLayout, wire.seed, params, wire.width, wire.height, name);
-    map = composePlanned(layout, interiors, report).map;
-  } else throw new Error("artifact has no layout");
-  map.version = wire.version;
-  return map;
+    return composePlanned(layout, interiors);
+  }
+  throw new Error("artifact has no layout");
 }
 
 /** Typed arrays are binary in BSON and plain number arrays in JSON. */
