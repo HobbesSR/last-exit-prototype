@@ -132,4 +132,4 @@ The tile reachability contract that replaces anchors (#59, DESIGN_DECISIONS "Rea
 
 ## Verification
 
-`npm test`; `node tests/browser.mts`; `npm run typecheck`; `node tools/cli.mts batch --seed regression --count 200 --out test-results/batch.json`. Browser checks require local Chrome and Playwright, resolved from the repository root. See README for launch and MCP usage. Delegate bounded tests/authoring extensions to GPT-5.6 Terra; retain socket contracts, topology negotiation and integration decisions with the lead.
+`npm test`; `node tests/browser.mts`; `npm run typecheck`; `node tools/cli.mts batch --seed regression --count 200 --out test-results/batch.json`. Browser checks require local Chrome and Playwright, resolved from the repository root. See README for launch and MCP usage. Delegate bounded tests/authoring extensions to the implementation worker the root [docs/32-delegation.md](../../docs/32-delegation.md) names; retain socket contracts, topology negotiation and integration decisions with the lead.
