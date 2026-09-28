@@ -111,6 +111,10 @@ next, currently 3. Lower is more open ground and smaller blocks to build in;
 higher is larger blocks and fewer roads. It was chosen to leave blocks above the
 minimum area of the builders that make buildings, not from playtest evidence.
 
+This dial goes when the streets retire (#76, Corey, 2026-09-28). After that,
+openness is set by the tile designs and by what each region type's generator
+builds. Whether that needs a dial of its own is still open.
+
 ## How do fenced set pieces open?
 
 The depot and evac set pieces are a ring of fence tiles. `generate_setpieces.py`

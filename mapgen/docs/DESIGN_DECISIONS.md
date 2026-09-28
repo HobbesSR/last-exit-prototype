@@ -307,6 +307,9 @@ as tests.
   region's output can depend on its neighbours' and on build order, and
   interiors come out as one merged delta. #68 takes openings from the tile
   designs, which changes content (approved by Corey, 2026-09-27).
+- **The inputs are per block, not per region.** Streets cut every region into
+  blocks, whatever its type. #76 retires the streets and hands each region
+  whole to its type's generator ("Decomposition belongs to the region type").
 - **The artifact records the library it was made with, but not the engine.**
   A save can't tell whether today's code would regenerate it identically (#70).
 - **`GeneratedMap` is one container** holding the stage objects beside views
@@ -612,6 +615,39 @@ the region's first cell, and the class rule. It may return
 spawn slots and collidable geometry, and that geometry is explicitly not grid
 aligned — micro detail is free of the cell lattice. Validation walks each piece
 through the cells it crosses and rejects anything that leaves its own region.
+
+### Decomposition belongs to the region type
+
+Decided by Corey on 2026-09-28. Being implemented through #76, after #68. It
+restates design_notes.txt: "let region type decide what subset of cells it can
+actually use if rectangles are a requirement for its generation process. And
+it may be able to release unused sub regions for smaller inconsequential
+feature procedural generation," and "Region procedural generation can also be
+hierarchal."
+
+- **A region is handed whole to its type's generator.** No generic step
+  splits it first. A type with no decomposition of its own gets one builder
+  over the whole region.
+- **Decomposition lives in the generator.** A generator may use a subset of its
+  cells, split them, and hand sub-regions to other generators, hierarchically.
+  The split is part of that region's output, not a stage of "The generation
+  chain". Sub-regions stay inside the parent's mask and are held to the same
+  guards, including honouring passable.
+- **The street network retires.** It was built to keep the whole map connected
+  when a builder could see only its own area. Once #68 holds, a region is one
+  reachability node: the tile designs mark its passable perimeter runs, and its
+  builder keeps them mutually reachable (see "The generation chain"). That
+  does the streets' job without cutting across regions. Roads, if the game
+  wants them, are tile-design content, a class that tiles mark, not a generator
+  overlay.
+
+Where the code is now: `planStreets` reserves routes across every region, and
+`buildableBlocks` cuts each region into the blocks between them. `RegionInputs`
+lists those blocks (#67). No region type chose this split. An earlier session
+added it as a fix for connectivity, before regions had a perimeter contract
+(MICRO_GENERATION.md "Streets, and why a builder is handed a block"). Tile
+anchors' standing room is reserved through the same plan. #76 removes both,
+and the open parts are listed there.
 
 ### The builder output contract
 

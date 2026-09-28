@@ -92,6 +92,12 @@ Two contracts, enforced by the harness rather than trusted to the builder.
 
 ## Streets, and why a builder is handed a block
 
+> **To be retired (#76).** This section describes current behaviour. Corey
+> decided on 2026-09-28 that a region is handed whole to its type's generator,
+> which may decompose it hierarchically. Connectivity will come from the
+> region perimeter contract (#68), not from streets. See DESIGN_DECISIONS.md
+> "Decomposition belongs to the region type".
+
 A builder sees one region and nothing else. That is enough to keep its own area
 coherent and nowhere near enough to keep the map connected: a region may be most
 of the open field, and its builder is then deciding whole-map connectivity while

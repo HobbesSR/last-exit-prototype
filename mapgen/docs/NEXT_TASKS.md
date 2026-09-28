@@ -111,7 +111,9 @@ and difficulty/balance tuning per Corey's direction.
     containment contract), `src/micro/placement.ts` (where detail may sit),
     `src/micro/rng.ts` and `src/micro/scale.ts`. Manifests are recomputed from
     what actually landed, never from what a builder reported. What is left:
-    hierarchical sub-regions.
+    hierarchical sub-regions, where a generator hands part of its region to
+    another generator (#76, DESIGN_DECISIONS "Decomposition belongs to the
+    region type").
 11. Add the tile- and zone-aware builders that have no region to attach to: primitive-set resolution, hazard placement and map-boundary treatment. Loot already reaches micro generation from the zone and hazard has the same shape. `RegionInput.budget` is a plain cap rather than a zone allocation, which starts to matter once a hard per-match cap on high-tier spawns is wanted.
 12. Give tiles a primitive set: the metadata naming what ground, walls, fences and doors are made of in that area, and the pass that resolves declarations into physical objects against it. Nothing the generator emits today is a physical object, and nothing yet says what any declaration should become.
 
@@ -124,7 +126,7 @@ cannot satisfy that produces an explicitly invalid map rather than a repaired on
 
 Exit location/capacity semantics, body-scale conversion, alternate diamond masks/staggering, topology overrides, required set-piece class selection, final transit rules, and target difficulty metrics are in QUESTIONS.md. The defaults allow current work to continue.
 
-The generation chain (#65, DESIGN_DECISIONS "The generation chain") follows the map-layer stages (#52): pin that one seed decides the whole map (#66), make the region inputs their own stage (#67), refuse layouts whose perimeter runs prescribed passable are narrower than a hunter (#73), then make region builders independent, with boundary passability prescribed in tile designs, a prescription being a guarantee (#68, approved 2026-09-27; see QUESTIONS.md "Region boundary openings"). Stage objects become separately saveable, each with its provenance (#70).
+The generation chain (#65, DESIGN_DECISIONS "The generation chain") follows the map-layer stages (#52): pin that one seed decides the whole map (#66), make the region inputs their own stage (#67), refuse layouts whose perimeter runs prescribed passable are narrower than a hunter (#73), then make region builders independent, with boundary passability prescribed in tile designs, a prescription being a guarantee (#68, approved 2026-09-27; see QUESTIONS.md "Region boundary openings"). After that, the street network retires, and each region is handed whole to its type's generator (#76, Corey, 2026-09-28). Stage objects become separately saveable, each with its provenance (#70).
 
 The tile reachability contract that replaces anchors (#59, DESIGN_DECISIONS "Reachability") follows the map-layer stages (#52). Its first stage is confirming the working assumptions in QUESTIONS.md "Reachability contract".
 
