@@ -94,9 +94,9 @@ test("the wire form drops what can be rebuilt", () => {
   assert.equal(wire.walls, undefined);
   assert.equal(wire.edges, undefined);
   assert.equal(wire.tiles, undefined, "a V2 tile is its layout placement");
-  const regions = wire.regions as Record<string, unknown>;
-  assert.equal(regions.id, undefined);
-  assert.equal(regions.area, undefined);
+  // The final grid and regions follow from layout plus interiors.
+  assert.equal(wire.grid, undefined);
+  assert.equal(wire.regions, undefined);
   // And all of it comes back.
   const back = decodeArtifact(encodeArtifact(m));
   assert.deepEqual(back.walls, m.walls);
@@ -106,9 +106,8 @@ test("the wire form drops what can be rebuilt", () => {
 });
 
 test("nothing derived from the layout is stored", () => {
-  // docs/DESIGN_DECISIONS.md "Map layers": structure is derived on read. The
-  // final class grid still fuses filled-in classes with micro material until
-  // interiors are their own layer (#50), so it isn't checked here.
+  // docs/DESIGN_DECISIONS.md "Map layers": structure is derived on read.
+  // tests/map-interiors.test.ts covers what's derived from layout plus interiors.
   const m = generateMap("wire");
   const wire = encodeArtifact(m) as unknown as Record<string, unknown>;
   const keys = new Set<string>();
@@ -132,8 +131,10 @@ test("nothing derived from the layout is stored", () => {
     "zones",
   ])
     assert.ok(!keys.has(derived), `${derived} is stored`);
-  // Macro features are layout slots; only micro's own features are listed.
-  const features = wire.features as Array<Record<string, unknown>>;
+  // Macro features are layout slots; only micro's own features are listed,
+  // in the interiors.
+  assert.equal(wire.features, undefined);
+  const features = (wire.interiors as { features: unknown[] }).features;
   assert.equal(
     features.length,
     m.features.filter((f) => f.id.startsWith("micro-")).length,

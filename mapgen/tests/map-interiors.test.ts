@@ -146,8 +146,8 @@ test("every prop stays inside the final region its manifest names", () => {
     const own = new Set(region.cells);
     for (const prop of entry.props) {
       props += 1;
-      for (const cell of cellsCrossed(prop.x1, prop.y1, prop.x2, prop.y2))
-        assert.ok(own.has(cell.y * built.grid.width + cell.x), `a prop of ${entry.region} leaves it`);
+      for (const [cx, cy] of cellsCrossed(prop.x1, prop.y1, prop.x2, prop.y2))
+        assert.ok(own.has(cy * built.grid.width + cx), `a prop of ${entry.region} leaves it`);
     }
   }
   assert.ok(props > 0, "the builders placed props on this seed");

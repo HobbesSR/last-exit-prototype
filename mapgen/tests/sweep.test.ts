@@ -172,22 +172,22 @@ test("the committed baseline still matches its quick cases", () => {
 });
 
 test("a field moved to a new container fails loudly until its entry follows it", () => {
-  // What a later stage does: #50 moves micro's spawns into an interiors layer.
+  // What a later stage does, such as moving micro's spawns into a new layer.
   const moved = structuredClone(map) as GeneratedMap & {
-    interiors?: { spawns: unknown };
+    relocated?: { spawns: unknown };
   };
-  moved.interiors = { spawns: moved.grid.cells.spawns };
+  moved.relocated = { spawns: moved.grid.cells.spawns };
   delete (moved.grid.cells as Partial<typeof moved.grid.cells>).spawns;
   // Left alone, the table can't hash the new location: it's refused, not
   // silently read as absent.
   assert.throws(
     () => layerHashes(moved),
-    /not assigned to a layer: interiors\.spawns/,
+    /not assigned to a layer: relocated\.spawns/,
   );
   // Updating the entry's path in the same change restores every hash.
   const followed = LAYER_FIELDS.map((field) =>
     field.path === "grid.cells.spawns"
-      ? { ...field, path: "interiors.spawns" }
+      ? { ...field, path: "relocated.spawns" }
       : field,
   );
   assert.deepEqual(layerHashes(moved, followed), base);

@@ -256,6 +256,8 @@ export interface LayerField {
 }
 const SAME_AS_VIEW = "repeats content pinned through the tiles and features views";
 const NEW_IN_49 = "new content in #49, pinned by tests/map-layers.test.ts until the next recapture";
+const SAME_AS_FINAL = "repeats content pinned through the final grid, regions and features views";
+const NEW_IN_50 = "new content in #50, pinned by tests/map-interiors.test.ts until the next recapture";
 export const LAYER_FIELDS: LayerField[] = [
   { layer: "layout", name: "seed", path: "seed" },
   { layer: "layout", name: "version", path: "version" },
@@ -333,6 +335,36 @@ export const LAYER_FIELDS: LayerField[] = [
   { layer: "structure", name: "zones", path: "zones" },
   { layer: "structure", name: "anchors", path: "tiles[]", keys: ["anchor"] },
   { layer: "interiors", name: "spawns", path: "grid.cells.spawns" },
+  // The stored interiors layer. Its content is pinned through the final views
+  // it's joined into, except the deltas it states over layout and structure.
+  {
+    layer: "interiors",
+    name: "statedClass",
+    path: "interiors.cells.class",
+    grid: true,
+    optional: true,
+    unpinned: NEW_IN_50,
+  },
+  {
+    layer: "interiors",
+    name: "statedSegments",
+    path: "interiors.segments.open",
+    grid: true,
+    optional: true,
+    unpinned: NEW_IN_50,
+  },
+  { layer: "interiors", name: "interiorLevel", path: "interiors.cells.level", optional: true, unpinned: SAME_AS_FINAL },
+  { layer: "interiors", name: "interiorSpawns", path: "interiors.cells.spawns", optional: true, unpinned: SAME_AS_FINAL },
+  { layer: "interiors", name: "interiorVertices", path: "interiors.vertices", optional: true, unpinned: SAME_AS_FINAL },
+  { layer: "interiors", name: "interiorFeatures", path: "interiors.features", optional: true, unpinned: SAME_AS_FINAL },
+  {
+    layer: "interiors",
+    name: "interiorRegions",
+    path: "interiors.regions[]",
+    keys: ["region", "manifest", "props"],
+    optional: true,
+    unpinned: SAME_AS_FINAL,
+  },
   {
     layer: "interiors",
     name: "level",
