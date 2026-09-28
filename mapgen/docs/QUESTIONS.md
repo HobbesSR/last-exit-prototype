@@ -9,6 +9,9 @@ No answer is needed to run the prototype. These defaults are assumptions for thi
 6. **Tier composition:** how should the original diagram combine horizontal tier and vertical bonus? The lab exposes both independently; loot is a placeholder and hazards are absent. Are novelty rewards a separate category? This unlocks content mixes and budgets.
 7. **Later 2.5D:** are flat levels with ramps and occasional bespoke multi-height regions enough, or do generic overlapping floors matter? Cells and vertices are flat today. Deliberately deferred until 2D tuning progresses.
 8. **Reachability contract:** open parts of the direction in DESIGN_DECISIONS "Reachability". See "Reachability contract" below.
+9. **Saving a map:** answered 2026-09-27; every stage object can be saved, alone or together. See "Saving a map" below.
+10. **Region boundary openings:** open parts of the direction given on #68. See "Region boundary openings" below.
+11. **Segment prescriptions:** open parts of the adjacency / geometry / passability model. See "Segment prescriptions" below.
 
 ## Already clear; no reconfirmation requested
 
@@ -125,3 +128,96 @@ that costs 17 retried attempts against 10 with the gate edges removed; no seed
 fails either way. Corey chose to restore the gates now because doing so does not
 block that work, and to let the edge-constraint work decide what a gate is and
 what fills a compound.
+
+## Saving a map
+
+**Answered, Corey, 2026-09-27:** "Can we not make the interior generation
+essentially a function of a seed, a library, and generation algorithm? And can
+we not make the objects saveable separably and compoundly as needed?"
+
+So there is no choice between a layout-only artifact and a layout-plus-interiors
+artifact. Every stage object in DESIGN_DECISIONS "The generation chain" can be
+saved alone or together with others, and a save holds whichever subset its
+caller needs. Missing stages are regenerated on read. This works because the
+whole map is a function of seed, params, library and engine (checked
+2026-09-27; pinned by #66).
+
+What's left for #70 is provenance. Each saved stage records the inputs and the
+algorithm version that made it, so a missing stage is regenerated only by the
+same algorithm. *Assumption:* on a version mismatch, regenerating a missing
+stage is refused by name, as a wrong library or an old wire version is today.
+A stage that *is* stored is read as stored. Versions are per stage to start
+with; per builder is a refinement if one builder changes often.
+
+## Region boundary openings
+
+**Answered in part, Corey, 2026-09-27 (on #68):** "We may require tile makers
+to declare passable segments between cells of different regions, i.e. on the
+perimiter of regions. It's the tile designer's job to mark internal as
+passable. For convenience, we may make perimeter segments default to passable
+with explicit nonpassable indicators." And: "just because something isn't
+marked passable doesn't mean it won't be passable. It just means we can prove
+its passable." And builders honour only passable: "I'd prefer them to honor
+passable than try to honor multiple objectives." A nonpassable directive is
+deferred. DESIGN_DECISIONS "The generation chain" records the rule. These parts are open, each with a working
+assumption:
+
+1. **Where the marks live.** Inside a tile, between cells of different
+   classes, is clear. At a seam between tiles, a region perimeter is also a
+   seam, and seam contracts already state spans there. *Assumption:* a seam
+   contract's open span implies passable (DESIGN_DECISIONS "Segment
+   prescriptions"), so the two don't need separate prescriptions.
+2. **How wide "passable" is.** **Answered, Corey, 2026-09-27:** "passable
+   segments must all be part of a chain of perimeter segments on the region
+   large enough to be passable for hunters." A shorter run makes the layout
+   invalid. Still open: whether a run may continue across a tile seam, since
+   a region can span tiles. *Assumption:* yes. The check runs on the layout's
+   regions, where a run may cross seams. A design is also refused up front
+   when a run lies wholly inside one tile, doesn't reach the tile's edge, and
+   is too short, because no neighbour can lengthen it.
+3. **Which region writes a shared segment.** Two regions meet along every
+   perimeter segment. If both builders could write it, the result would
+   depend on build order again, which #68 removes. This is write scope, not
+   another objective: a builder still honours only passable. *Assumption:*
+   each unmarked shared segment is written by at most one of the two regions,
+   chosen in the region inputs. A class that encloses, as `courtyard` walls
+   its border, gets its perimeter. Otherwise the lower region index gets it.
+   The other region takes it as given.
+4. **The shipped library.** Today most inter-class segments are unmarked
+   (`any`), and a builder's openings are whatever the grid shows when its turn
+   comes. After #68 they end up open unless the region that writes them
+   builds something there, so the built maps may get more open. Nothing in
+   them is proven yet, because nothing is marked. *Assumption:* #68 measures
+   the change on the sweep and on bounded batches. Designs mark passable
+   where connectivity must be guaranteed. Where the map gets too open, the
+   answer is designs or builders that draw more geometry, not a nonpassable
+   directive. Design edits are reported separately from the code change.
+
+## Segment prescriptions
+
+DESIGN_DECISIONS "Segment prescriptions" records the model Corey described on
+2026-09-27: every segment has an adjacency prescription for each side, a
+geometry prescription and a passability prescription, each with a don't-care
+value, and labels set several at once. These parts are open:
+
+1. **Any versus don't care.** "And there are Any DNC modes and stuff." Today
+   `any` defers: it adopts whatever the seam and the neighbour require
+   (design_notes.txt: "'don't' care, defaulting to empty, but adapting to
+   neighboring requirements"). Is DNC a different mode, one that accepts
+   anything and adapts to nothing? *Assumption:* one don't-care value per
+   dimension, with today's adopting behaviour, until a case needs two.
+2. **Contradictory prescriptions.** A wall prescribed passable, or a fence
+   prescribed not passable. *Assumption:* a design stating a combination its
+   own labels contradict is refused by `validateLibrary`, naming the segment.
+3. **A fence in the proofs and in validation.** **Answered, Corey,
+   2026-09-27:** "yes hunters can break fences." So "a hunter reaches
+   everything" includes routes that need a fence broken, and layout proofs
+   count a fence as passable. Still open is how finished-map validation shows
+   it. *Assumption:* validation, which measures the lattice, reports routes
+   that depend on breaking a fence separately from routes that are open on
+   foot, and doesn't fail a map on them. Nothing here is built until the
+   library has fences.
+4. **What a fence blocks.** Movement, and not projectiles. *Assumption:* sight
+   isn't blocked either (a fence you can shoot through, you can see through),
+   until the primitive set says otherwise.
+

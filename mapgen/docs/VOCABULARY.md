@@ -25,12 +25,18 @@ A generated map has four layers:
 
 DESIGN_DECISIONS "Map layers" defines them and says which layers are stored.
 
+A map is made by a chain of steps, each a function of the objects before it:
+layout → structure → **region inputs** (what each region is handed: its mask,
+seed, rule and boundary openings) → **region interiors** (what each region's
+builder returns) → the composed map → the report. DESIGN_DECISIONS "The
+generation chain" defines it.
+
 ## Primitives
 
 | Term        | Extent             | Carries                                                                                                                                                                              |
 | ----------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Cell**    | 1 × 1              | class, and later height                                                                                                                                                              |
-| **Segment** | one cell edge      | a barrier as an open span, or separate movement / sight / projectile channels; on a tile's perimeter, also a constraint on the neighbouring cell's class (issue #33 separates these) |
+| **Segment** | one cell edge      | a set of prescriptions: adjacency (the class required on each side), geometry (per movement / sight / projectile channel) and passability, each with a don't-care value. Labels such as `open`, `wall` and fence set several at once. See DESIGN_DECISIONS "Segment prescriptions"; issue #33 separates them in code |
 | **Vertex**  | one lattice corner | class and height, by exception                                                                                                                                                       |
 
 These are the only addressing primitives. Everything below is an aggregate or a

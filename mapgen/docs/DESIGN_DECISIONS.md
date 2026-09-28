@@ -200,6 +200,119 @@ generator and `adapter`), #48 (split the generator into phases without changing
 its output), then #49, #50 and #51 (layout, interiors and report, each
 test-driven).
 
+## The generation chain
+
+Stated by Corey on 2026-09-27. Being implemented through #65. It extends "Map
+layers" from what a map holds to how one is made.
+
+At heart a saved map is its macro layout. Everything else comes from a chain
+of functional transformations, and each step produces its own separable
+object:
+
+| Step | Object | Made by | Today |
+| --- | --- | --- | --- |
+| Seed, params, library → | **layout** | `placeLayout` | Pure. The stored map. |
+| layout → | **structure**, the derived macro map | `deriveStructure` | Pure, its own object. |
+| structure → | **region inputs**, the derived regions | inside `deriveStructure` and `generateMicro` | Computed, not its own object (#67). |
+| each region's inputs → | **region interiors**, what it pushes back | a builder | One shared grid, built in turn order (#68). |
+| layout + all region interiors → | **composed map** | `composeLayers` | Pure. |
+| composed map → | **report** | `reportMap` | Never stored, and computed again on read (#51). Not yet pure: it writes `metrics` and `validation` into the map it's given, so the report isn't its own object (#69). |
+
+The rules that follow from it:
+
+- **One seed decides the whole map.** With the same engines and libraries, the
+  seed and params determine every object in the chain. Randomness is drawn
+  only from streams named for the step, and for a region, from its own seed.
+  Nothing draws from a stream another step shares.
+- **Each step is a function of the objects before it**, and doesn't mutate
+  them. A step never reads what a later step wrote.
+- **A region is a function of its own inputs.** Its boundary openings are part
+  of its inputs, so building the regions in any order gives the same map, and
+  changing one region's seed changes only that region's interiors. The
+  planned path's ports and the game's micro SDK (root docs 20) already have
+  this shape.
+- **Region boundary openings are stated in the tile design**, so they are
+  layout, not something structure or micro decides (Corey, 2026-09-27, on
+  #68): "We may require tile makers to declare passable segments between
+  cells of different regions, i.e. on the perimiter of regions. It's the tile
+  designer's job to mark internal as passable. For convenience, we may make
+  perimeter segments default to passable with explicit nonpassable
+  indicators." And: "just because something isn't marked passable doesn't
+  mean it won't be passable. It just means we can prove its passable." So a
+  mark is a guarantee.
+
+  Builders work on an honour system, and they honour one thing: a segment
+  marked passable stays passable (Corey, 2026-09-27): "segment passability
+  isn't really enforced in any way, save through the geometry that builders
+  create within their regions. Now we might at some point want to say we want
+  explicit nonpassable and that is a directive that builders must honor, but
+  I don't want that to be another constraint because all builders work on the
+  honor system, and I'd prefer them to honor passable than try to honor
+  multiple objectives." So:
+  - **prescribed passable**, stated directly or implied by a label such as
+    `open` or a fence (see "Segment prescriptions"): the one directive
+    builders honour. Proofs over the layout (#59) count it.
+  - **anything else**, don't care or prescribed not passable: no directive
+    and no guarantee to a proof. It is geometry like any other, and what ends
+    up there is what the builders make. Nonpassable as a directive builders
+    must honour is deferred, not adopted.
+
+  What honouring passable promises (Corey, 2026-09-27): "the whole idea is
+  we can trust that any passable perimiter segment in a aggregate region is
+  reachable through passable segments." Within a region, however many tiles
+  it spans, every perimeter segment prescribed passable is reachable at hunter
+  size from every other one. So a region is a single node for reachability:
+  regions join where they share passable segments, and whole-map
+  reachability over the layout is a union-find over regions. This is
+  "Reachability"'s groups at region grain: a region's passable runs are one
+  group.
+
+  And the requirement on designs that follows: "passable segments must all be
+  part of a chain of perimeter segments on the region large enough to be
+  passable for hunters." A segment prescribed passable that isn't part of a
+  contiguous passable run at least a hunter's diameter long
+  (`ceil(2 × hunterRadius)` segments, 2 by default) makes the layout invalid.
+  It isn't ignored, and it isn't widened (#73).
+
+  Validation of the finished map still measures what was actually built. The
+  micro guards that refuse sealing a required opening already enforce the
+  passable side. Nothing enforces a closed side, and nothing should yet.
+
+  Which region writes a segment two regions share, so the result doesn't
+  depend on build order, is an open part. This is the same perimeter statement as the tile contract in
+  "Reachability" (#59), at the grain of a region. The open parts are in
+  QUESTIONS.md "Region boundary openings".
+- **Any stage may be saved, alone or with others** (Corey, 2026-09-27). A
+  save holds whichever stage objects its caller needs, and the missing ones
+  are regenerated on read. Each saved stage records its inputs and the
+  version of the algorithm that made it, so regenerating a missing stage
+  with a different algorithm is refused by name, not done silently (#70,
+  QUESTIONS.md "Saving a map").
+
+### Where the chain is now
+
+Checked 2026-09-27 on 8 V2 seeds (default library and builder-bound) and 8
+planned seeds: the same seed gave deep-equal maps, and re-running micro on a
+decoded V2 layout alone reproduced its stored interiors exactly. #66 pins that
+as tests.
+
+- **The region step isn't separable.** Each block has its own random stream,
+  keyed on its region's seed and first cell. But builders take turns on one
+  shared grid, and each reads its openings off that grid as earlier builders
+  left it ("Map layers", "Where the code is now"). So a region's output can
+  depend on its neighbours' and on build order, and interiors come out as one
+  merged delta. #67 pulls the region inputs out as their own stage without
+  changing output. #68 takes openings from the tile designs, which changes
+  content (approved by Corey, 2026-09-27).
+- **The artifact records the library it was made with, but not the engine.**
+  A save can't tell whether today's code would regenerate it identically (#70).
+- **`GeneratedMap` is one container** holding the stage objects beside views
+  of them (`tiles`, `features`, `grid`, `regions`, `edges`, `walls`, and the
+  `NavTarget` fields `width`, `height` and `params`). `version` is left over
+  from the flat shape (#69).
+- **The planned path has another shape.** Its plan is its structure, and it
+  measures tiles and anchors after micro (#71).
+
 ## Units and scale
 
 The first macro redesign milestone now has an independent versioned composition
@@ -263,15 +376,46 @@ refuses it by every route a tile has: a `#` mark, a legend entry, a
 `primitives.cells` override or a default class. Every cell a tile lays down
 still belongs to exactly one region.
 
-A segment can carry several pieces of data and can say things about the cells
-on either side of it. For macro generation the perimeter segments are what
-matter, and among their properties they may constrain the class of the cells
-in the adjacent tile, suggest a type of wall, or require passability. Those may
-be mutually exclusive in practice, but nothing enforces it. The implementation
-does not yet hold them apart: `edges` is one string per segment, which tile
-selection reads as the class the neighbouring cell must take, so a barrier word
-there only fits against the map boundary. Separating the properties is
-issue #33.
+### Segment prescriptions
+
+A segment carries a set of prescriptions, each on its own dimension and each
+with a don't-care value. Corey, 2026-09-27: "we have for segments cell
+adjacency requirement for each side, a geometry prescription, and
+passability prescription. And there are Any DNC modes and stuff." "It can be
+confusing since some things can imply other things and we accept don't care
+on some dimensions. So I guess it's just important we distinguish that a
+segment has that set of prescriptions, which different labels specify
+directly and indirectly."
+
+| Dimension | Says | Values |
+| --- | --- | --- |
+| **Adjacency**, one per side | which class the cell on that side must be | a class, or don't care |
+| **Geometry** | what stands on the segment, per channel (movement, sight, projectiles) | open (nothing), wall, fence, an aperture span, or don't care |
+| **Passability** | whether a body can get across, which is what reachability proofs read | passable, not passable, or don't care |
+
+A label names a point in that space and may imply values on other
+dimensions:
+
+| Label | Geometry | Passability |
+| --- | --- | --- |
+| `open` | nothing | passable |
+| `wall` | blocks every channel | not passable |
+| fence (not yet in the library) | blocks movement, not projectiles; destructible | passable, "because its barrier is removable" |
+| `any` | don't care | don't care |
+
+So geometry and passability are different prescriptions even where one
+implies the other. A fence blocks movement and is still passable. A
+passability prescription can be stated with the geometry left to whatever
+builds there. The builder directive and the reachability
+proofs in "The generation chain" read the passability dimension, whether it
+was stated directly or implied by a label.
+
+The implementation doesn't hold these apart yet. `edges` is one string per
+segment, which tile selection reads as the class the neighbouring cell must
+take, so a barrier word there only fits against the map boundary. Geometry
+already has per-channel spans (`move`, `sight`, `projectile`). There's no
+passability dimension of its own, and no fence. Separating the dimensions is
+issue #33. The open parts are in QUESTIONS.md "Segment prescriptions".
 
 Perimeter primitives are the adjacency contract. Their deferring value, `any`,
 is not a silent default: it states that the tile has no requirement there and
@@ -356,7 +500,10 @@ parts are in QUESTIONS.md "Reachability contract". It replaces anchors as the ba
 
 - **A hunter reaches everything.** Passability is judged at hunter size, so
   gaps only a contestant fits through don't count (QUESTIONS.md, "Should a
-  hunter be able to reach every tile?"). A contestant is smaller, so hunter
+  hunter be able to reach every tile?"). Once fences exist, a proof counts a
+  fence as passable, so this means reachable once fences are broken, not
+  reachable on foot as the map stands. Hunters can break fences (Corey,
+  2026-09-27), so a hunter route through a fence counts. A contestant is smaller, so hunter
   reachability implies contestant reachability, and the contract needs one
   body, not two.
 - **Pessimistic about what is placed, optimistic only about what isn't.** A
