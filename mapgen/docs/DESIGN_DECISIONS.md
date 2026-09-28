@@ -239,17 +239,29 @@ The rules that follow from it:
   perimeter segments default to passable with explicit nonpassable
   indicators." And: "just because something isn't marked passable doesn't
   mean it won't be passable. It just means we can prove its passable." So a
-  mark is a guarantee, and a perimeter segment is in one of three states:
-  - **marked passable:** guaranteed open. Reachability proofs over the layout
-    count it, and no builder closes it.
-  - **marked nonpassable:** guaranteed closed. No builder opens it.
-  - **unmarked** (`any`): no guarantee either way. It ends up open unless a
-    builder allowed to close it does, which is the "default to passable"
-    convenience. A proof over the layout never counts it. Validation of the
-    finished map still measures what was actually built.
+  mark is a guarantee.
 
-  Who may close an unmarked segment, as a courtyard closes its border, is an
-  open part. This is the same perimeter statement as the tile contract in
+  Builders work on an honour system, and they honour one thing: a segment
+  marked passable stays passable (Corey, 2026-09-27): "segment passability
+  isn't really enforced in any way, save through the geometry that builders
+  create within their regions. Now we might at some point want to say we want
+  explicit nonpassable and that is a directive that builders must honor, but
+  I don't want that to be another constraint because all builders work on the
+  honor system, and I'd prefer them to honor passable than try to honor
+  multiple objectives." So:
+  - **marked passable:** the one directive builders honour. Proofs over the
+    layout (#59) count it.
+  - **anything else**, unmarked or a barrier the design draws: no directive
+    and no guarantee to a proof. It is geometry like any other, and what ends
+    up there is what the builders make. Nonpassable as a directive builders
+    must honour is deferred, not adopted.
+
+  Validation of the finished map still measures what was actually built. The
+  micro guards that refuse sealing a required opening already enforce the
+  passable side. Nothing enforces a closed side, and nothing should yet.
+
+  Which region writes a segment two regions share, so the result doesn't
+  depend on build order, is an open part. This is the same perimeter statement as the tile contract in
   "Reachability" (#59), at the grain of a region. The open parts are in
   QUESTIONS.md "Region boundary openings".
 - **Any stage may be saved.** Everything after the layout can be regenerated,

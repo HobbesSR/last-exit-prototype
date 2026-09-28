@@ -157,38 +157,36 @@ perimiter of regions. It's the tile designer's job to mark internal as
 passable. For convenience, we may make perimeter segments default to passable
 with explicit nonpassable indicators." And: "just because something isn't
 marked passable doesn't mean it won't be passable. It just means we can prove
-its passable." DESIGN_DECISIONS "The generation chain" records the rule: a
-mark is a guarantee, and an unmarked segment has none either way. These parts are open, each with a working
+its passable." And builders honour only passable: "I'd prefer them to honor
+passable than try to honor multiple objectives." A nonpassable directive is
+deferred. DESIGN_DECISIONS "The generation chain" records the rule. These parts are open, each with a working
 assumption:
 
-1. **Where the default applies.** Inside a tile, between cells of different
+1. **Where the marks live.** Inside a tile, between cells of different
    classes, is clear. At a seam between tiles, a region perimeter is also a
-   seam, and seam contracts already govern it. *Assumption:* the default
-   applies to region-perimeter segments the design leaves `any`, inside a tile
-   and at seams alike. A seam contract or an explicit barrier overrides it.
+   seam, and seam contracts already state spans there. *Assumption:* a seam
+   contract's open span counts as marked passable, so the two don't need
+   separate marks.
 2. **How wide "passable" is.** A single passable segment admits nothing at
    hunter size, and "Reachability" counts a run as passable only from two
    adjacent segments, the door width. *Assumption:* a proof over the layout
    counts only runs of at least door width made of marked-passable segments.
    Unmarked segments never count toward it, even if they are likely to end
    up open. A tile whose connectivity matters has to mark it.
-3. **Who may close an unmarked segment.** `courtyard` walls its own
-   region's border and leaves one door-width gate and some squeeze gates, so
-   a contestant can get in where the hunter can't. That is closing perimeter
-   segments the design left unmarked. If either neighbouring region
-   could close a shared segment, the result would depend on build order again.
-   *Assumption:* a marked segment is binding on every builder. An unmarked
-   segment belongs to at most one of the two regions it separates, chosen in the region inputs from the classes' rules: a class
-   that encloses, such as a courtyard's, owns its perimeter. Only the owner
-   may close or narrow it, and it must leave at least one door-width run. The
-   other side treats the segment as fixed and reads its final state from the
-   owner's output only when composing. With no owner, the segment stays open.
+3. **Which region writes a shared segment.** Two regions meet along every
+   perimeter segment. If both builders could write it, the result would
+   depend on build order again, which #68 removes. This is write scope, not
+   another objective: a builder still honours only passable. *Assumption:*
+   each unmarked shared segment is written by at most one of the two regions,
+   chosen in the region inputs. A class that encloses, as `courtyard` walls
+   its border, gets its perimeter. Otherwise the lower region index gets it.
+   The other region takes it as given.
 4. **The shipped library.** Today most inter-class segments are unmarked
    (`any`), and a builder's openings are whatever the grid shows when its turn
-   comes. After #68 they end up open unless their owner closes them, so the
-   built maps get more open. But nothing in them is proven yet, because
-   nothing is marked. *Assumption:* #68 measures the change on the sweep and
-   on bounded batches. Designs get marks where playability or a proof needs
-   them: passable where connectivity must be guaranteed, nonpassable where
-   the map got too open. That change is reported separately from the code
-   change.
+   comes. After #68 they end up open unless the region that writes them
+   builds something there, so the built maps may get more open. Nothing in
+   them is proven yet, because nothing is marked. *Assumption:* #68 measures
+   the change on the sweep and on bounded batches. Designs mark passable
+   where connectivity must be guaranteed. Where the map gets too open, the
+   answer is designs or builders that draw more geometry, not a nonpassable
+   directive. Design edits are reported separately from the code change.
