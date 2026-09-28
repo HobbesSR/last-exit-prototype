@@ -227,10 +227,22 @@ The rules that follow from it:
 - **Each step is a function of the objects before it**, and doesn't mutate
   them. A step never reads what a later step wrote.
 - **A region is a function of its own inputs.** Its boundary openings are part
-  of its inputs, decided by structure, so building the regions in any order
-  gives the same map, and changing one region's seed changes only that
-  region's interiors. The planned path's ports and the game's micro SDK
-  (root docs 20) already have this shape.
+  of its inputs, so building the regions in any order gives the same map, and
+  changing one region's seed changes only that region's interiors. The
+  planned path's ports and the game's micro SDK (root docs 20) already have
+  this shape.
+- **Region boundary openings are stated in the tile design**, so they are
+  layout, not something structure or micro decides (Corey, 2026-09-27, on
+  #68): "We may require tile makers to declare passable segments between
+  cells of different regions, i.e. on the perimiter of regions. It's the tile
+  designer's job to mark internal as passable. For convenience, we may make
+  perimeter segments default to passable with explicit nonpassable
+  indicators." Structure only resolves the default. No builder opens a
+  segment marked nonpassable or closes one marked passable. Who may close a
+  segment left at the default, as a courtyard closes its border, is an open
+  part. This is the same perimeter statement as the tile contract in
+  "Reachability" (#59), at the grain of a region. The open parts are in
+  QUESTIONS.md "Region boundary openings".
 - **Any stage may be saved.** Everything after the layout can be regenerated,
   so storing it is a choice about speed and about surviving engine changes.
   QUESTIONS.md "Saving a map" holds that choice (#70).
@@ -248,7 +260,8 @@ as tests.
   left it ("Map layers", "Where the code is now"). So a region's output can
   depend on its neighbours' and on build order, and interiors come out as one
   merged delta. #67 pulls the region inputs out as their own stage without
-  changing output. #68 moves openings into structure, which changes content.
+  changing output. #68 takes openings from the tile designs, which changes
+  content (approved by Corey, 2026-09-27).
 - **The artifact records the library it was made with, but not the engine.**
   A save can't tell whether today's code would regenerate it identically (#70).
 - **`GeneratedMap` is one container** holding the stage objects beside views
