@@ -15,13 +15,13 @@ import { builderLibrary } from "../tools/sweep.mts";
 const builders = builderLibrary();
 const SMALL = { mode: "playground" as const, zoneWidth: 4, zoneHeight: 2 };
 
-// A default-size V2 map with builders takes seconds, so each library gets few seeds.
-const V2_CASES: Array<{ name: string; seed: string; library: Library }> = [
-  { name: "default library", seed: "det-0", library: DEFAULT_LIBRARY },
-  { name: "default library", seed: "det-2", library: DEFAULT_LIBRARY },
-  { name: "builder-bound library", seed: "det-1", library: builders },
-  { name: "builder-bound library", seed: "det-3", library: builders },
-];
+// The eight seeds checked by hand on 2026-09-27, alternating the two libraries.
+const SEEDS = Array.from({ length: 8 }, (_, i) => `det-${i}`);
+const V2_CASES: Array<{ name: string; seed: string; library: Library }> = SEEDS.map((seed, i) =>
+  i % 2 === 0
+    ? { name: "default library", seed, library: DEFAULT_LIBRARY }
+    : { name: "builder-bound library", seed, library: builders },
+);
 const v2 = V2_CASES.map((c) => ({ ...c, map: generateMap(c.seed, {}, c.library) }));
 
 test("the same seed gives the same V2 map", () => {
@@ -30,17 +30,19 @@ test("the same seed gives the same V2 map", () => {
 });
 
 test("the same seed gives the same planned map", () => {
-  for (const seed of ["det-0", "det-1", "det-2", "det-3"])
+  for (const seed of SEEDS)
     assert.deepEqual(generatePlannedMap(seed, SMALL), generatePlannedMap(seed, SMALL), `seed ${seed}`);
 });
 
+// Compared with the interiors read back, not the in-memory ones, so a wire
+// change that alters what's stored can't pass unnoticed.
 test("a saved layout alone regenerates the stored interiors", () => {
   for (const { name, seed, library, map } of v2) {
     const back = artifactFromBson(artifactToBson(map), library);
     const structure = deriveStructure(back.layout!, library);
     assert.ok(structure, `${name}, seed ${seed}: the decoded layout has a structure`);
     const { interiors } = generateInteriors(back.layout!, structure, library);
-    assert.deepEqual(interiors, map.interiors, `${name}, seed ${seed}`);
+    assert.deepEqual(interiors, back.interiors, `${name}, seed ${seed}`);
   }
 });
 
