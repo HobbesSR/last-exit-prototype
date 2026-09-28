@@ -249,9 +249,10 @@ The rules that follow from it:
   I don't want that to be another constraint because all builders work on the
   honor system, and I'd prefer them to honor passable than try to honor
   multiple objectives." So:
-  - **marked passable:** the one directive builders honour. Proofs over the
-    layout (#59) count it.
-  - **anything else**, unmarked or a barrier the design draws: no directive
+  - **prescribed passable**, stated directly or implied by a label such as
+    `open` or a fence (see "Segment prescriptions"): the one directive
+    builders honour. Proofs over the layout (#59) count it.
+  - **anything else**, don't care or prescribed not passable: no directive
     and no guarantee to a proof. It is geometry like any other, and what ends
     up there is what the builders make. Nonpassable as a directive builders
     must honour is deferred, not adopted.
@@ -259,7 +260,7 @@ The rules that follow from it:
   What honouring passable promises (Corey, 2026-09-27): "the whole idea is
   we can trust that any passable perimiter segment in a aggregate region is
   reachable through passable segments." Within a region, however many tiles
-  it spans, every marked-passable perimeter segment is reachable at hunter
+  it spans, every perimeter segment prescribed passable is reachable at hunter
   size from every other one. So a region is a single node for reachability:
   regions join where they share passable segments, and whole-map
   reachability over the layout is a union-find over regions. This is
@@ -268,7 +269,7 @@ The rules that follow from it:
 
   And the requirement on designs that follows: "passable segments must all be
   part of a chain of perimeter segments on the region large enough to be
-  passable for hunters." A marked-passable segment that isn't part of a
+  passable for hunters." A segment prescribed passable that isn't part of a
   contiguous passable run at least a hunter's diameter long
   (`ceil(2 × hunterRadius)` segments, 2 by default) makes the layout invalid.
   It isn't ignored, and it isn't widened (#73).
@@ -372,15 +373,46 @@ refuses it by every route a tile has: a `#` mark, a legend entry, a
 `primitives.cells` override or a default class. Every cell a tile lays down
 still belongs to exactly one region.
 
-A segment can carry several pieces of data and can say things about the cells
-on either side of it. For macro generation the perimeter segments are what
-matter, and among their properties they may constrain the class of the cells
-in the adjacent tile, suggest a type of wall, or require passability. Those may
-be mutually exclusive in practice, but nothing enforces it. The implementation
-does not yet hold them apart: `edges` is one string per segment, which tile
-selection reads as the class the neighbouring cell must take, so a barrier word
-there only fits against the map boundary. Separating the properties is
-issue #33.
+### Segment prescriptions
+
+A segment carries a set of prescriptions, each on its own dimension and each
+with a don't-care value. Corey, 2026-09-27: "we have for segments cell
+adjacency requirement for each side, a geometry prescription, and
+passability prescription. And there are Any DNC modes and stuff." "It can be
+confusing since some things can imply other things and we accept don't care
+on some dimensions. So I guess it's just important we distinguish that a
+segment has that set of prescriptions, which different labels specify
+directly and indirectly."
+
+| Dimension | Says | Values |
+| --- | --- | --- |
+| **Adjacency**, one per side | which class the cell on that side must be | a class, or don't care |
+| **Geometry** | what stands on the segment, per channel (movement, sight, projectiles) | open (nothing), wall, fence, an aperture span, or don't care |
+| **Passability** | whether a body can get across, which is what reachability proofs read | passable, not passable, or don't care |
+
+A label names a point in that space and may imply values on other
+dimensions:
+
+| Label | Geometry | Passability |
+| --- | --- | --- |
+| `open` | nothing | passable |
+| `wall` | blocks every channel | not passable |
+| fence (not yet in the library) | blocks movement, not projectiles; destructible | passable, "because its barrier is removable" |
+| `any` | don't care | don't care |
+
+So geometry and passability are different prescriptions even where one
+implies the other. A fence blocks movement and is still passable. A
+passability prescription can be stated with the geometry left to whatever
+builds there. The builder directive and the reachability
+proofs in "The generation chain" read the passability dimension, whether it
+was stated directly or implied by a label.
+
+The implementation doesn't hold these apart yet. `edges` is one string per
+segment, which tile selection reads as the class the neighbouring cell must
+take, so a barrier word there only fits against the map boundary. Geometry
+already has per-channel spans (`move`, `sight`, `projectile`). There's no
+passability dimension of its own, and no fence. Separating the dimensions is
+issue #33. The open parts are in QUESTIONS.md "Segment prescriptions".
 
 Perimeter primitives are the adjacency contract. Their deferring value, `any`,
 is not a silent default: it states that the tile has no requirement there and

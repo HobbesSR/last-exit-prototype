@@ -11,6 +11,7 @@ No answer is needed to run the prototype. These defaults are assumptions for thi
 8. **Reachability contract:** open parts of the direction in DESIGN_DECISIONS "Reachability". See "Reachability contract" below.
 9. **Saving a map:** should a saved map hold only its layout and regenerate the rest, or keep storing its interiors? See "Saving a map" below. This blocks #70.
 10. **Region boundary openings:** open parts of the direction given on #68. See "Region boundary openings" below.
+11. **Segment prescriptions:** open parts of the adjacency / geometry / passability model. See "Segment prescriptions" below.
 
 ## Already clear; no reconfirmation requested
 
@@ -165,8 +166,8 @@ assumption:
 1. **Where the marks live.** Inside a tile, between cells of different
    classes, is clear. At a seam between tiles, a region perimeter is also a
    seam, and seam contracts already state spans there. *Assumption:* a seam
-   contract's open span counts as marked passable, so the two don't need
-   separate marks.
+   contract's open span implies passable (DESIGN_DECISIONS "Segment
+   prescriptions"), so the two don't need separate prescriptions.
 2. **How wide "passable" is.** **Answered, Corey, 2026-09-27:** "passable
    segments must all be part of a chain of perimeter segments on the region
    large enough to be passable for hunters." A shorter run makes the layout
@@ -192,3 +193,30 @@ assumption:
    where connectivity must be guaranteed. Where the map gets too open, the
    answer is designs or builders that draw more geometry, not a nonpassable
    directive. Design edits are reported separately from the code change.
+
+## Segment prescriptions
+
+DESIGN_DECISIONS "Segment prescriptions" records the model Corey described on
+2026-09-27: every segment has an adjacency prescription for each side, a
+geometry prescription and a passability prescription, each with a don't-care
+value, and labels set several at once. These parts are open:
+
+1. **Any versus don't care.** "And there are Any DNC modes and stuff." Today
+   `any` defers: it adopts whatever the seam and the neighbour require
+   (design_notes.txt: "'don't' care, defaulting to empty, but adapting to
+   neighboring requirements"). Is DNC a different mode, one that accepts
+   anything and adapts to nothing? *Assumption:* one don't-care value per
+   dimension, with today's adopting behaviour, until a case needs two.
+2. **Contradictory prescriptions.** A wall prescribed passable, or a fence
+   prescribed not passable. *Assumption:* a design stating a combination its
+   own labels contradict is refused by `validateLibrary`, naming the segment.
+3. **A fence in the proofs and in validation.** A fence is passable because
+   it can be removed, but it blocks movement until it is. *Assumption:* layout
+   proofs count it as passable, as the prescription says. Finished-map
+   validation, which measures the lattice, reports routes that depend on
+   breaking a fence separately from routes that are open. It doesn't fail a
+   map on them. Nothing here is built until the library has fences.
+4. **What a fence blocks.** Movement, and not projectiles. *Assumption:* sight
+   isn't blocked either (a fence you can shoot through, you can see through),
+   until the primitive set says otherwise.
+

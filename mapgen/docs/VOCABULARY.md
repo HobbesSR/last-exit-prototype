@@ -36,7 +36,7 @@ generation chain" defines it.
 | Term        | Extent             | Carries                                                                                                                                                                              |
 | ----------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Cell**    | 1 × 1              | class, and later height                                                                                                                                                              |
-| **Segment** | one cell edge      | a barrier as an open span, or separate movement / sight / projectile channels; on a tile's perimeter, also a constraint on the neighbouring cell's class (issue #33 separates these) |
+| **Segment** | one cell edge      | a set of prescriptions: adjacency (the class required on each side), geometry (per movement / sight / projectile channel) and passability, each with a don't-care value. Labels such as `open`, `wall` and fence set several at once. See DESIGN_DECISIONS "Segment prescriptions"; issue #33 separates them in code |
 | **Vertex**  | one lattice corner | class and height, by exception                                                                                                                                                       |
 
 These are the only addressing primitives. Everything below is an aggregate or a
