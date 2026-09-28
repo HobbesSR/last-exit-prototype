@@ -216,7 +216,7 @@ object:
 | structure → | **region inputs**, the derived regions | inside `deriveStructure` and `generateMicro` | Computed, not its own object (#67). |
 | each region's inputs → | **region interiors**, what it pushes back | a builder | One shared grid, built in turn order (#68). |
 | layout + all region interiors → | **composed map** | `composeLayers` | Pure. |
-| composed map → | **report** | `reportMap` | Pure, never stored (#51). |
+| composed map → | **report** | `reportMap` | Never stored, and computed again on read (#51). Not yet pure: it writes `metrics` and `validation` into the map it's given, so the report isn't its own object (#69). |
 
 The rules that follow from it:
 
@@ -497,7 +497,10 @@ parts are in QUESTIONS.md "Reachability contract". It replaces anchors as the ba
 
 - **A hunter reaches everything.** Passability is judged at hunter size, so
   gaps only a contestant fits through don't count (QUESTIONS.md, "Should a
-  hunter be able to reach every tile?"). A contestant is smaller, so hunter
+  hunter be able to reach every tile?"). Once fences exist, a proof counts a
+  fence as passable, so this means reachable once fences are broken, not
+  reachable on foot as the map stands. Whether that is the intended meaning
+  is QUESTIONS.md "Segment prescriptions" item 3. A contestant is smaller, so hunter
   reachability implies contestant reachability, and the contract needs one
   body, not two.
 - **Pessimistic about what is placed, optimistic only about what isn't.** A

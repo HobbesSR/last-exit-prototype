@@ -141,11 +141,22 @@ engine version, a constant bumped whenever generator output changes (#70).
   read, and an artifact from another engine version is refused by name. It's
   smaller, and it can't disagree with the engine, but an old save stops
   loading once the builders change.
-- **Layout and interiors (today).** A save keeps loading across engine
-  changes and shows what was generated then. Reading one from another engine
-  version reports the difference.
-- **Both.** Interiors are optional: stored when the save has to outlive the
-  engine, such as a map shipped to the game, and left out otherwise.
+- **Layout and interiors (today).** Storing interiors keeps what micro made,
+  so a later change to the builders doesn't change it. That's all it
+  preserves. On read, structure, the composed map and the report are all
+  computed again by the current code (`decodeArtifact` runs `deriveStructure`
+  and `composeLayers`), so a change to either can still change what a stored
+  map looks like and how it validates. A save made with another wire version
+  or another library is refused.
+- **Both.** Interiors are optional: stored when a save must keep micro's
+  output, and left out otherwise.
+
+Whichever is chosen, #70 also has to decide the compatibility policy. Which
+code changes may a stored map survive: builder changes, structure changes,
+composition changes, wire changes? For each, is it reread under the new code,
+refused by name, or migrated? And is a difference from the original reported,
+and against what? Stored interiors alone don't guarantee a save keeps loading
+or looks the same.
 
 *Assumption:* keep storing interiors, and add the engine version, until this
 is answered.
@@ -211,11 +222,15 @@ value, and labels set several at once. These parts are open:
    prescribed not passable. *Assumption:* a design stating a combination its
    own labels contradict is refused by `validateLibrary`, naming the segment.
 3. **A fence in the proofs and in validation.** A fence is passable because
-   it can be removed, but it blocks movement until it is. *Assumption:* layout
-   proofs count it as passable, as the prescription says. Finished-map
-   validation, which measures the lattice, reports routes that depend on
-   breaking a fence separately from routes that are open. It doesn't fail a
-   map on them. Nothing here is built until the library has fences.
+   it can be removed, but it blocks movement until it is. So does "a hunter
+   reaches everything" (DESIGN_DECISIONS "Reachability") include routes that
+   need a fence broken, and who can break one? *Assumption:* yes. The
+   invariant is about passability, not immediate walking reachability, so a
+   hunter route through a fence counts, if a hunter can break it. Layout
+   proofs count a fence as passable. Finished-map validation, which measures
+   the lattice, reports routes that depend on breaking a fence separately
+   from routes that are open on foot, and doesn't fail a map on them. Nothing
+   here is built until the library has fences.
 4. **What a fence blocks.** Movement, and not projectiles. *Assumption:* sight
    isn't blocked either (a fence you can shoot through, you can see through),
    until the primitive set says otherwise.
