@@ -14,6 +14,7 @@ import {
 } from "../src/core.ts";
 import { SOLID_CLASS } from "../src/primitives.ts";
 import { batch, summarizeMetrics } from "../tools/shared.mts";
+import { SEALED_PARAMS, sealedLibrary } from "./sealed-library.ts";
 
 test("generation is deterministic and serializable", () => {
   const a = generateMap("alpha"),
@@ -596,35 +597,7 @@ test("a malformed library fails once, not once per attempt", (t) => {
 
 // V2 places it and returns an invalid map (#34).
 test.todo("a template that seals its own interior is never placed", () => {
-  const sealed = {
-    id: "sealed",
-    defaultCellClass: "court",
-
-    orientations: [0] as const,
-    ports: {
-      N: ["any", "any", "any", "any", "any", "any"],
-      E: ["any", "any", "any", "any", "any", "any"],
-      S: ["any", "any", "any", "any", "any", "any"],
-      W: "any",
-    },
-    // A ring on the margin: every seam opens onto a one-cell strip that no
-    // body fits through, and nothing inside is reachable from outside.
-    walls: [
-      { x1: 1, y1: 1, x2: 5, y2: 1 },
-      { x1: 1, y1: 5, x2: 5, y2: 5 },
-      { x1: 1, y1: 1, x2: 1, y2: 5 },
-      { x1: 5, y1: 1, x2: 5, y2: 5 },
-    ],
-  };
-  const library = structuredClone(DEFAULT_LIBRARY);
-  library.tiles = [
-    library.tiles.find((t) => t.id === "street")!,
-    sealed as unknown as (typeof library.tiles)[number],
-  ];
-  library.tileSets = [{ id: "all", members: ["street", "sealed"] }];
-  library.setPieces = [];
-  library.cellClasses = { ...library.cellClasses, court: {} };
-  const m = generateMap("sealed", { mode: "playground", zoneWidth: 2, zoneHeight: 1 }, library);
+  const m = generateMap("sealed", SEALED_PARAMS, sealedLibrary());
   assert.equal(m.validation.valid, true);
   assert.equal(
     m.tiles.filter((t) => t.templateId === "sealed").length,
