@@ -106,8 +106,10 @@ so derived data can't be mistaken for stated data.
   The plan itself is that path's structure. Both paths share `reportMap` and
   `partitionFinished`, which gives the final region partition with its props.
 - The planned path measures anchors on the composed grid, after micro, so
-  there an anchor is derived from interiors and not from the layout. #49 has
-  to decide whether that path's anchors become structure.
+  there an anchor is derived from layout plus interiors, like the final
+  region partition, and isn't structure. Either way anchors are derived and
+  not stored (see "Anchors"), and reachability is moving off them (see
+  "Reachability").
 - A builder's openings are read off the grid as it stands when that builder's
   turn comes, so on both paths they include earlier builders' edits to a
   shared boundary. That is why openings are computed in the interiors phase.
@@ -264,15 +266,127 @@ by validating the composed map as a whole.
 ## Anchors
 
 Once a tile has an interior, its geometric centre may be inside a wall or cut
-off from a seam. Each placement therefore carries an `anchor`, and anchors, not
-centres, are what macro paths connect and what feature coordinates use. A
-WFC-filled slot takes its design's authored `anchor`, rotated with it, or the
-tile centre; a set-piece slot takes the tile centre. Nothing proves it is
-standing room when it is placed: validation rejects a map whose anchor is
-inside geometry or not reached by the lattice flood. Anchors as derived
-structure are #45. Anchors are serialized, so validation of an imported
-map checks the anchor that was recorded rather than recomputing a convenient
-one.
+off from a seam. Each placement therefore carries an `anchor`: one point that
+stands for the tile in the coarse tile graph. Anchors, not centres, are what
+tile-graph routes (`findPath`, the route metrics) connect, what V2's streets
+run between, and where spawn, hunter spawn and exits stand.
+
+Where they come from today:
+
+- **V2.** A WFC-filled slot takes its design's authored `anchor`, rotated with
+  it, or the tile centre. A set-piece slot takes the tile centre. Nothing
+  proves it is standing room when it is placed: validation rejects a map whose
+  anchor is inside geometry or not reached by the lattice flood (#45 is the
+  centre-wall case). `planStreets` then reserves standing room around every
+  anchor so builders can't cover it.
+- **Planned.** Measured after the builders run: the nearest lattice node to the
+  tile centre that the hunter reaches in the map's main component. A tile with
+  none is dropped.
+
+Anchors are serialized today (`artifact.ts` packs them), and validation of an
+imported map checks the recorded one. That conflicts with "Map layers":
+**anchors are derived, never stored** (Corey, 2026-09-27). #49 stops storing
+them.
+
+A single anchor is also the wrong shape for a tile whose interior is split: it
+speaks for one piece and the tile graph misses routes through the others.
+Reachability is moving to the contract in "Reachability" below, which needs no
+anchors. What remains is a spot for each feature to stand, derived when needed.
+
+## Reachability
+
+Direction agreed 2026-09-27, tracked in #59. Not implemented, and the open
+parts are in QUESTIONS.md "Reachability contract". It replaces anchors as the basis for
+"is everything reachable?", and applies to tile placement (V2) first.
+
+**Decided:**
+
+- **A hunter reaches everything.** Passability is judged at hunter size, so
+  gaps only a contestant fits through don't count (QUESTIONS.md, "Should a
+  hunter be able to reach every tile?"). A contestant is smaller, so hunter
+  reachability implies contestant reachability, and the contract needs one
+  body, not two.
+- **Pessimistic about what is placed, optimistic only about what isn't.** A
+  face toward an unplaced slot counts as open. Nothing already placed is ever
+  given the benefit of the doubt.
+- **Anchors are derived, never stored** (above).
+- **`open` is a privileged region class** (Corey, 2026-09-27). Every cell of a
+  region formed by `open` cells is passable, which means it holds no obstacles,
+  and so is every segment inside that region. It may later get its own
+  decomposer and micro generator that enforce this, but the privilege belongs
+  to the class, not to whichever builder runs. Today's code breaks this rule
+  (see the facts below, and #61).
+
+**The mechanism proposed:**
+
+1. **Perimeter contract.** Each tile states which runs of its boundary are
+   hunter-passable (at least two adjacent segments, the door width), and which
+   of those runs connect to each other through its interior: a partition of
+   its passable runs into **groups**.
+2. **Composition.** Whole-map reachability is a union-find over groups. Two
+   neighbouring tiles join where their shared runs are both passable. Adding a
+   tile only merges. This works at any grain, so the same reasoning holds for a
+   sub-region of a tile and for regions as tiles aggregate.
+3. **The open-face rule.** For each component, count its open faces: passable
+   runs facing an unplaced slot (faces toward the map's outside don't count).
+   Components only join through open faces, so a component with none can never
+   be reached again. The rule has two parts:
+   - **During placement:** a placement is illegal if, while slots remain, it
+     leaves any component with no open faces. Two mirror tiles passable only on
+     the edge they share are rejected the moment the second is placed.
+   - **At the end:** the final placement is legal only if it leaves exactly
+     one component, containing every group that must be reached. Sealed
+     pockets holding nothing that must be reached (point 6) are the only
+     groups allowed outside it.
+
+   The first part alone doesn't prove reachability. Once no slots remain it
+   says nothing, and the last tile could close off two components at once.
+   The terminal condition is what makes the pair a proof. Both are exact, not
+   heuristics, and cheap: a placement only touches the components next to the
+   new tile, and at the end the union-find already knows how many components
+   there are.
+4. **Rewinding already exists.** `solveWfc` is a depth-first backtracking
+   search, capped at 10,000 steps, and `generateMap` retries 50 samples. The
+   open-face rule prunes options inside that search. A forward check helps
+   further: when a component is down to its last open faces into one slot,
+   prune that slot to options that keep a passable run on that side, so
+   contradictions surface at propagation time. WFC collapses in entropy order,
+   not placement order, so "unplaced" means not yet collapsed.
+5. **Interiors.** An `open` region is the cheap case. Every cell and internal
+   segment is passable, so all of its passable perimeter runs are one group
+   and nothing needs searching, subject to the width question in QUESTIONS.md
+   "Reachability contract" 6. A tile whose interior micro fills later
+   needs either a check after placement or a builder held to the tile's stated
+   groups, the way `micro/conform.ts` holds planned-path builders to port
+   floors. With the second, the proof survives micro unchanged.
+6. **Interior content.** Every standing-room piece inside a tile belongs to
+   some group, or is a deliberately sealed pocket that holds nothing that must
+   be reached (builders do legitimately seal courtyards). #34 is the case this
+   catches at placement.
+7. **Verification stays.** Lattice validation of the finished map still runs,
+   as a check on the proof, the way `enforcePorts` still runs on the planned
+   path.
+
+The planned path already reasons this way at region grain: `proveReachability`
+works on port floors before any geometry exists, and conform holds builders to
+them. This moves the same idea down to tiles, and makes the tile the unit that
+states the contract.
+
+**Facts this rests on (checked 2026-09-27):**
+
+- `searchRegions` joins cells of one class across *fully clear* segments only,
+  so a wall or a door span splits a region. It ignores props and clearance, so
+  a region is connected on the cell grid, not necessarily for a hunter.
+- Every class in the default library, `open` included, is bound to
+  `open-field`. That builder places props and short wall stubs so a field
+  isn't "a clear shot": it is cover against long sight lines. It never closes
+  an enclosure and keeps `PASSAGE.wide` aisles. An `open` region too small for
+  `open-field` falls back to `loot-scatter`, which places clutter props. Either
+  way `open` cells get obstacles, which breaks the privileged-class rule (#61).
+- Macro structures can already declare point-to-point connectivity
+  (`MacroRouteConstraint`, `connected: true/false` at a radius), and
+  `composeMacro` checks it. The default library doesn't use it. It is close to
+  the "groups" half of the contract.
 
 ## Region search and micro generation
 
