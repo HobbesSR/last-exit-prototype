@@ -18,6 +18,7 @@ import {
 import { gridViews, validateMap } from "../src/core.ts";
 import { composeMap, layPlan, planMap } from "../src/plan/compose.ts";
 import type { GeneratedMap } from "../src/types.ts";
+import { asRead } from "./read-back.ts";
 
 const SMALL = { zoneWidth: 4, zoneHeight: 2 };
 const plan = planMap("planned-layers", SMALL);
@@ -83,10 +84,8 @@ test("a planned map's tiles, anchors and features are measured again on read", (
   assert.deepStrictEqual(viaBson.features, map.features);
   assert.deepStrictEqual(viaBson.regions, map.regions);
   assert.deepStrictEqual(viaBson.walls, map.walls);
-  assert.deepStrictEqual(viaBson, map);
-  // Route metrics may be Infinity, which survives BSON but not JSON.
-  const viaJson = decodeArtifact(JSON.parse(artifactToJson(map)));
-  assert.deepStrictEqual(viaJson, { ...map, metrics: JSON.parse(JSON.stringify(map.metrics)) });
+  assert.deepStrictEqual(viaBson, asRead(map));
+  assert.deepStrictEqual(decodeArtifact(JSON.parse(artifactToJson(map))), asRead(map));
 });
 
 test("a planned tile is named for the planned region at its corner", () => {
