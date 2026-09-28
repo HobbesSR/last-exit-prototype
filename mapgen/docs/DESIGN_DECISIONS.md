@@ -256,6 +256,23 @@ The rules that follow from it:
     up there is what the builders make. Nonpassable as a directive builders
     must honour is deferred, not adopted.
 
+  What honouring passable promises (Corey, 2026-09-27): "the whole idea is
+  we can trust that any passable perimiter segment in a aggregate region is
+  reachable through passable segments." Within a region, however many tiles
+  it spans, every marked-passable perimeter segment is reachable at hunter
+  size from every other one. So a region is a single node for reachability:
+  regions join where they share passable segments, and whole-map
+  reachability over the layout is a union-find over regions. This is
+  "Reachability"'s groups at region grain: a region's passable runs are one
+  group.
+
+  And the requirement on designs that follows: "passable segments must all be
+  part of a chain of perimeter segments on the region large enough to be
+  passable for hunters." A marked-passable segment that isn't part of a
+  contiguous passable run at least a hunter's diameter long
+  (`ceil(2 × hunterRadius)` segments, 2 by default) makes the layout invalid.
+  It isn't ignored, and it isn't widened (#73).
+
   Validation of the finished map still measures what was actually built. The
   micro guards that refuse sealing a required opening already enforce the
   passable side. Nothing enforces a closed side, and nothing should yet.

@@ -167,12 +167,14 @@ assumption:
    seam, and seam contracts already state spans there. *Assumption:* a seam
    contract's open span counts as marked passable, so the two don't need
    separate marks.
-2. **How wide "passable" is.** A single passable segment admits nothing at
-   hunter size, and "Reachability" counts a run as passable only from two
-   adjacent segments, the door width. *Assumption:* a proof over the layout
-   counts only runs of at least door width made of marked-passable segments.
-   Unmarked segments never count toward it, even if they are likely to end
-   up open. A tile whose connectivity matters has to mark it.
+2. **How wide "passable" is.** **Answered, Corey, 2026-09-27:** "passable
+   segments must all be part of a chain of perimeter segments on the region
+   large enough to be passable for hunters." A shorter run makes the layout
+   invalid. Still open: whether a run may continue across a tile seam, since
+   a region can span tiles. *Assumption:* yes. The check runs on the layout's
+   regions, where a run may cross seams. A design is also refused up front
+   when a run lies wholly inside one tile, doesn't reach the tile's edge, and
+   is too short, because no neighbour can lengthen it.
 3. **Which region writes a shared segment.** Two regions meet along every
    perimeter segment. If both builders could write it, the result would
    depend on build order again, which #68 removes. This is write scope, not

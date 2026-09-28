@@ -124,7 +124,7 @@ cannot satisfy that produces an explicitly invalid map rather than a repaired on
 
 Exit location/capacity semantics, body-scale conversion, alternate diamond masks/staggering, topology overrides, required set-piece class selection, final transit rules, and target difficulty metrics are in QUESTIONS.md. The defaults allow current work to continue.
 
-The generation chain (#65, DESIGN_DECISIONS "The generation chain") follows the map-layer stages (#52): pin that one seed decides the whole map (#66), make the region inputs their own stage (#67), then make region builders independent, with boundary openings marked in tile designs, a mark being a guarantee (#68, approved 2026-09-27; see QUESTIONS.md "Region boundary openings"). Its save policy (#70) waits on QUESTIONS.md "Saving a map".
+The generation chain (#65, DESIGN_DECISIONS "The generation chain") follows the map-layer stages (#52): pin that one seed decides the whole map (#66), make the region inputs their own stage (#67), refuse layouts whose marked-passable perimeter runs are narrower than a hunter (#73), then make region builders independent, with boundary openings marked in tile designs, a mark being a guarantee (#68, approved 2026-09-27; see QUESTIONS.md "Region boundary openings"). Its save policy (#70) waits on QUESTIONS.md "Saving a map".
 
 The tile reachability contract that replaces anchors (#59, DESIGN_DECISIONS "Reachability") follows the map-layer stages (#52). Its first stage is confirming the working assumptions in QUESTIONS.md "Reachability contract".
 
