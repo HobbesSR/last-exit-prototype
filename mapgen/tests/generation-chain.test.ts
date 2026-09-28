@@ -1,5 +1,5 @@
 /**
- * docs/DESIGN_DECISIONS.md "The generation chain" (#65, #66): one seed decides
+ * docs/DESIGN_DECISIONS.md "The generation chain" (#65, #66, #67): one seed decides
  * the whole map through every step, the layout alone regenerates what follows
  * it, and each step is a pure function of its inputs. No generator change
  * rides on this file; a failure here is a determinism bug, not a flaky test.
@@ -7,7 +7,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { artifactFromBson, artifactToBson } from "../src/artifact.ts";
-import { DEFAULT_LIBRARY, deriveStructure, generateInteriors, generateMap } from "../src/core.ts";
+import { DEFAULT_LIBRARY, deriveRegions, deriveStructure, generateInteriors, generateMap } from "../src/core.ts";
 import { generatePlannedMap } from "../src/plan/compose.ts";
 import type { Library } from "../src/types.ts";
 import { builderLibrary } from "../tools/sweep.mts";
@@ -41,7 +41,7 @@ test("a saved layout alone regenerates the stored interiors", () => {
     const back = artifactFromBson(artifactToBson(map), library);
     const structure = deriveStructure(back.layout!, library);
     assert.ok(structure, `${name}, seed ${seed}: the decoded layout has a structure`);
-    const { interiors } = generateInteriors(back.layout!, structure, library);
+    const { interiors } = generateInteriors(back.layout!, structure, deriveRegions(back.layout!, structure, library));
     assert.deepEqual(interiors, back.interiors, `${name}, seed ${seed}`);
   }
 });
@@ -55,13 +55,44 @@ test("deriveStructure is a pure function of the layout", () => {
   }
 });
 
-test("generateInteriors leaves its layout and structure unchanged", () => {
+test("deriveRegions is a pure function of the layout and structure", () => {
   for (const { name, seed, library, map } of v2) {
     const structure = deriveStructure(map.layout!, library)!;
     const layoutBefore = structuredClone(map.layout!);
     const structureBefore = structuredClone(structure);
-    generateInteriors(map.layout!, structure, library);
+    const first = deriveRegions(map.layout!, structure, library);
+    assert.deepEqual(deriveRegions(map.layout!, structure, library), first, `${name}, seed ${seed}`);
     assert.deepEqual(map.layout, layoutBefore, `${name}, seed ${seed}: layout`);
     assert.deepEqual(structure, structureBefore, `${name}, seed ${seed}: structure`);
+  }
+});
+
+// Openings are read off the grid as earlier builders left it, so they stay out
+// until #68 takes them from the tile designs.
+const REGION_INPUT_KEYS = ["candidates", "cellClass", "cells", "corridors", "regionId", "rule", "seed"];
+
+test("the region inputs are plain data holding nothing micro writes", () => {
+  for (const { name, seed, library, map } of v2) {
+    const structure = deriveStructure(map.layout!, library)!;
+    const regions = deriveRegions(map.layout!, structure, library);
+    assert.ok(regions.blocks.length > 0, `${name}, seed ${seed}: some block is built`);
+    for (const block of regions.blocks)
+      assert.deepEqual(Object.keys(block).sort(), REGION_INPUT_KEYS, `${name}, seed ${seed}: ${block.regionId}`);
+    // structuredClone refuses functions, so a mask or a grid reader can't hide here.
+    assert.deepEqual(structuredClone(regions), regions, `${name}, seed ${seed}: plain data`);
+  }
+});
+
+test("generateInteriors leaves its layout, structure and region inputs unchanged", () => {
+  for (const { name, seed, library, map } of v2) {
+    const structure = deriveStructure(map.layout!, library)!;
+    const regions = deriveRegions(map.layout!, structure, library);
+    const layoutBefore = structuredClone(map.layout!);
+    const structureBefore = structuredClone(structure);
+    const regionsBefore = structuredClone(regions);
+    generateInteriors(map.layout!, structure, regions);
+    assert.deepEqual(map.layout, layoutBefore, `${name}, seed ${seed}: layout`);
+    assert.deepEqual(structure, structureBefore, `${name}, seed ${seed}: structure`);
+    assert.deepEqual(regions, regionsBefore, `${name}, seed ${seed}: region inputs`);
   }
 });

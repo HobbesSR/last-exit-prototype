@@ -42,6 +42,7 @@ import { decodeGrid, encodeGrid, gridReader, validateGrid } from "./coding.ts";
 import type { CodedGrid } from "./coding.ts";
 import type {
   Box,
+  CellClass,
   GeneratedMap,
   SetPieceSlot,
   Library,
@@ -58,6 +59,7 @@ import type {
   MaskCell,
   NavTarget,
   PlacedTile,
+  RegionCandidate,
   Point,
   PortKind,
   PortValue,
@@ -971,12 +973,10 @@ function regionOpenings(
 }
 
 export function generateMicro(
-  regions: MapRegion[],
+  inputs: RegionInputs,
   grid: GridBuild,
-  library: Library,
   zones: MapZone[],
   params: MapParams,
-  regionOf: Int32Array,
   streets: ReservedCorridor[],
   standing: (x: number, y: number) => boolean,
   reserved: (x: number, y: number) => boolean,
@@ -1016,84 +1016,70 @@ export function generateMicro(
         y <= z.cells[3],
     );
 
-  for (const region of regions) {
-    const rule = library.cellClasses?.[region.cellClass] ?? {};
-    for (const block of buildableBlocks(region, grid, reserved)) {
-      const mask = createMask(block, W, H);
-      const blockSeed = hash(`${region.seed}:${block[0]}`);
-      const candidates = mask.lattice(2, 1, 1).map((c) => ({
-        cellIndex: c.cellIndex,
-        x: c.x,
-        y: c.y,
-        lootChance: zoneAt(c.x, c.y)?.lootChance ?? 0,
-      }));
-      const context: RegionContext = {
-        regionId: region.id,
-        cellClass: region.cellClass,
-        rule,
-        seed: blockSeed,
-        rng: createRng(blockSeed),
-        mask,
-        grid: axis,
-        params,
-        candidates,
-        budget: candidates.length,
-        isReserved: reserved,
-        isStandingRoom: standing,
-        openings: regionOpenings(mask, grid, regionOf),
-        // The streets crossing this area. A builder may build up to one and not
-        // across it, and the clearance guard checks that it did not.
-        corridors: streets.filter((corridor) =>
-          corridor.points.some((point) =>
-            mask.has(Math.floor(point.x), Math.floor(point.y)),
-          ),
-        ),
-        clearance: {
-          contestant: params.contestantRadius,
-          hunter: params.hunterRadius,
-        },
-        zoneAt: (x, y) => {
-          const zone = zoneAt(x, y);
-          return {
-            tier: zone?.tier ?? 1,
-            bonus: zone?.bonus ?? 0,
-            lootChance: zone?.lootChance ?? 0,
-          };
-        },
-      };
-      const builder = builderFor(rule, mask.area);
-      const edit = builder.build(context);
+  for (const input of inputs.blocks) {
+    const mask = createMask(input.cells, W, H);
+    const context: RegionContext = {
+      regionId: input.regionId,
+      cellClass: input.cellClass,
+      rule: input.rule,
+      seed: input.seed,
+      rng: createRng(input.seed),
+      mask,
+      grid: axis,
+      params,
+      candidates: input.candidates.map((candidate) => ({ ...candidate })),
+      budget: input.candidates.length,
+      isReserved: reserved,
+      isStandingRoom: standing,
+      // Read off the grid as earlier builders left it, so openings can't be
+      // region inputs yet (#68).
+      openings: regionOpenings(mask, grid, inputs.regionOf),
+      corridors: [...input.corridors],
+      clearance: {
+        contestant: params.contestantRadius,
+        hunter: params.hunterRadius,
+      },
+      zoneAt: (x, y) => {
+        const zone = zoneAt(x, y);
+        return {
+          tier: zone?.tier ?? 1,
+          bonus: zone?.bonus ?? 0,
+          lootChance: zone?.lootChance ?? 0,
+        };
+      },
+    };
+    const builder = builderFor(input.rule, mask.area);
+    const edit = builder.build(context);
 
-      for (const cell of edit.cells) {
-        if (cell.class !== undefined)
-          grid.cellClass[cell.cellIndex] = cell.class;
-        if (cell.height !== undefined)
-          grid.cellLevel[cell.cellIndex] = cell.height;
-      }
-      for (const segment of edit.segments)
-        grid.segmentOpen[
-          grid.segmentIndex(
-            segment.ref.vertical,
-            segment.ref.line,
-            segment.ref.offset,
-          )
-        ] = segment.open;
-      for (const vertex of edit.vertices)
-        grid.vertices.set(vertex.y * (W + 1) + vertex.x, {
-          class: vertex.class ?? ANY_CLASS,
-          height: vertex.height ?? "any",
-        });
-      result.declared.blocks += 1;
-      result.declared.cells += edit.cells.length;
-      result.declared.segments += edit.segments.length;
-      for (const slot of edit.spawns)
-        result.spawns.push({ cell: slot.cellIndex, kind: slot.kind });
-      result.obstacles.push(...edit.obstacles);
-      result.features.push(...edit.features);
-      for (const cell of mask.cells) {
-        result.ownerOf[cell.cellIndex] = edit.manifest.generator;
-        if (!edit.manifest.corridorsHonored) result.honored[cell.cellIndex] = 0;
-      }
+    for (const cell of edit.cells) {
+      if (cell.class !== undefined)
+        grid.cellClass[cell.cellIndex] = cell.class;
+      if (cell.height !== undefined)
+        grid.cellLevel[cell.cellIndex] = cell.height;
+    }
+    for (const segment of edit.segments)
+      grid.segmentOpen[
+        grid.segmentIndex(
+          segment.ref.vertical,
+          segment.ref.line,
+          segment.ref.offset,
+        )
+      ] = segment.open;
+    for (const vertex of edit.vertices)
+      grid.vertices.set(vertex.y * (W + 1) + vertex.x, {
+        class: vertex.class ?? ANY_CLASS,
+        height: vertex.height ?? "any",
+      });
+    result.declared.blocks += 1;
+    result.declared.cells += edit.cells.length;
+    result.declared.segments += edit.segments.length;
+    for (const slot of edit.spawns)
+      result.spawns.push({ cell: slot.cellIndex, kind: slot.kind });
+    result.obstacles.push(...edit.obstacles);
+    result.features.push(...edit.features);
+    for (const cell of mask.cells) {
+      result.ownerOf[cell.cellIndex] = edit.manifest.generator;
+      if (!edit.manifest.corridorsHonored) result.honored[cell.cellIndex] = 0;
     }
   }
   result.obstacles = clearStreets(result.obstacles, streets);
@@ -2217,9 +2203,6 @@ export interface DerivedStructure {
   /** The filled-in classes and the layout's segments, decoded for micro to copy. */
   cellClass: string[];
   segmentOpen: Span[];
-  /** The regions handed to micro, and which one owns each cell. */
-  regions: MapRegion[];
-  regionOf: Int32Array;
   streets: StreetPlan;
 }
 
@@ -2299,11 +2282,8 @@ export function deriveStructure(layout: MapLayout, library: Library): DerivedStr
   }
 
   // A cell that defers is open ground unless a neighbour's edge says otherwise.
-  // Regions are searched before that fill, as composition always has.
-  const effective = declared.map((c) => (c === "any" ? "open" : c));
   const cellClass = declared.map((c, i) =>
-    c === "any" && cellConstraints[i] !== "any" ? cellConstraints[i] : effective[i]!);
-  const regions = searchRegions(layoutGrid(W, H, effective, segmentOpen), layout.seed);
+    c !== "any" ? c : cellConstraints[i] !== "any" ? cellConstraints[i] : "open");
 
   const byKey = new Map(cells.map((c, i) => [key(c.x, c.y), i]));
   const adj: Neighbour[][] = Array.from({ length: cells.length }, () => []);
@@ -2322,17 +2302,90 @@ export function deriveStructure(layout: MapLayout, library: Library): DerivedStr
     return null;
   }
 
-  const regionOf = new Int32Array(W * H).fill(-1);
-  regions.forEach((region, index) => {
-    for (const cell of region.cells) regionOf[cell] = index;
-  });
-
   const structure: MapStructure = {
     anchors: tiles.map((t) => ({ ...t.anchor })),
     cells: { class: encodeGrid(cellClass) },
     segments: { constraints: encodeGrid(segmentConstraints) },
   };
-  return { structure, zones, tiles, cellClass, segmentOpen, regions, regionOf, streets };
+  return { structure, zones, tiles, cellClass, segmentOpen, streets };
+}
+
+/** What one builder is handed that depends only on the layout and its structure. */
+export interface RegionInput {
+  /** The search region the block was split from. */
+  regionId: string;
+  cellClass: string;
+  /** The block's cells, ascending; micro makes its mask from them. */
+  cells: number[];
+  /** The block's own random stream, keyed on its region's seed and first cell. */
+  seed: number;
+  rule: CellClass;
+  /** Spaced spawn slots, each carrying its zone's loot density. */
+  candidates: RegionCandidate[];
+  /**
+   * The streets crossing the block. A builder may build up to one and not
+   * across it, and the clearance guard checks that it did not.
+   */
+  corridors: ReservedCorridor[];
+}
+
+/**
+ * The "region inputs" step of docs/DESIGN_DECISIONS.md "The generation chain":
+ * every block a builder is handed, in build order, and which search region
+ * owns each cell. Plain data that holds nothing micro writes. Openings aren't
+ * here yet, since builders read them off the grid as earlier ones left it (#68).
+ */
+export interface RegionInputs {
+  blocks: RegionInput[];
+  /** The index of the search region owning each cell, -1 outside every region. */
+  regionOf: Int32Array;
+}
+
+/**
+ * The region inputs from a layout and its structure. Pure: it neither draws
+ * from nor writes to anything micro uses, and doesn't change its arguments.
+ */
+export function deriveRegions(layout: MapLayout, structure: DerivedStructure, library: Library): RegionInputs {
+  const W = layout.grid.width;
+  const H = layout.grid.height;
+  const { streets, zones, segmentOpen } = structure;
+  // Regions are searched over the layout's own classes, before structure fills
+  // them in from neighbours' edges, as composition always has.
+  const effective = decodeGrid(layout.grid.cells.class).map((c) => (c === "any" ? "open" : c));
+  const grid = layoutGrid(W, H, effective, [...segmentOpen]);
+  const regions = searchRegions(grid, layout.seed);
+  const regionOf = new Int32Array(W * H).fill(-1);
+  regions.forEach((region, index) => {
+    for (const cell of region.cells) regionOf[cell] = index;
+  });
+
+  const reserved = (x: number, y: number) => streets.reserved[y * W + x] === 1;
+  const lootChanceAt = (x: number, y: number) =>
+    zones.find((z) => x >= z.cells[0] && y >= z.cells[1] && x <= z.cells[2] && y <= z.cells[3])?.lootChance ?? 0;
+  const blocks: RegionInput[] = [];
+  for (const region of regions) {
+    const rule = library.cellClasses?.[region.cellClass] ?? {};
+    for (const block of buildableBlocks(region, grid, reserved)) {
+      const mask = createMask(block, W, H);
+      blocks.push({
+        regionId: region.id,
+        cellClass: region.cellClass,
+        cells: block,
+        seed: hash(`${region.seed}:${block[0]}`),
+        rule,
+        candidates: mask.lattice(2, 1, 1).map((c) => ({
+          cellIndex: c.cellIndex,
+          x: c.x,
+          y: c.y,
+          lootChance: lootChanceAt(c.x, c.y),
+        })),
+        corridors: streets.corridors.filter((corridor) =>
+          corridor.points.some((point) => mask.has(Math.floor(point.x), Math.floor(point.y))),
+        ),
+      });
+    }
+  }
+  return { blocks, regionOf };
 }
 
 /** A fresh primitive grid over the given classes and segments, flat and with no stated vertices. */
@@ -2404,22 +2457,22 @@ function layOver<T>(base: readonly T[], stated: ReadonlyArray<T | "any">): T[] {
 export function generateInteriors(
   layout: MapLayout,
   structure: DerivedStructure,
-  library: Library,
+  regions: RegionInputs,
 ): GeneratedInteriors {
   const p = layout.params;
   const grid = layoutGrid(layout.grid.width, layout.grid.height, [...structure.cellClass], [...structure.segmentOpen]);
   const { streets } = structure;
 
   const micro = generateMicro(
-    structure.regions, grid, library, structure.zones, p, structure.regionOf, streets.corridors,
+    regions, grid, structure.zones, p, streets.corridors,
     (x, y) => streets.standing[y * grid.W + x] === 1,
     (x, y) => streets.reserved[y * grid.W + x] === 1
   );
 
-  const regions = partitionFinished(grid, layout.seed, micro.obstacles);
+  const finished = partitionFinished(grid, layout.seed, micro.obstacles);
 
   const spawnCells = new Set(micro.spawns.map((s) => s.cell));
-  regions.forEach((region) => {
+  finished.forEach((region) => {
     // Streets are reserved out of every block, so a region's first cell is
     // often one no builder owned. The region names whichever owns most of it.
     // Material a builder laid is a region of its own that nothing builds in,
@@ -2467,7 +2520,7 @@ export function generateInteriors(
           ...(meta.height === "any" ? {} : { height: meta.height }),
         })),
       features,
-      regions: regions.map((region) => ({ region: region.id, manifest: region.manifest, props: region.obstacles })),
+      regions: finished.map((region) => ({ region: region.id, manifest: region.manifest, props: region.obstacles })),
     }),
   };
 }
@@ -2630,7 +2683,7 @@ export function generateMap(
       }
       const structure = deriveStructure(layout, library);
       if (!structure) continue;
-      return assembleMap(layout, structure, generateInteriors(layout, structure, library));
+      return assembleMap(layout, structure, generateInteriors(layout, structure, deriveRegions(layout, structure, library)));
     } catch (e) {
       console.warn("Attempt", attempt, "failed:", (e as Error).stack);
     }
