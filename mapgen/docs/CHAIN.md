@@ -33,6 +33,12 @@ Direction it follows (Corey, 2026-09-28):
   with `end` for now, and one charger per map is enough for now.
 - Playground mode "is just supposed to make our lives easier. It's a debug /
   development feature that needs to evolve."
+- A new library, authored fresh (2026-09-29): "Now each region type
+  essentially gets its own bespoke code, so we can just imagine the
+  decomposers and builders we need and prescribe region types for them.
+  Perhaps we can reuse what exists to some extent, but we shouldn't be bound
+  by it." The changes put responsibility on authors, so "it's reasonable to
+  suggest a fresh round of authoring the needed assets."
 - Macro prescribes no geometry. Walls and fences go from the library for now
   and may come back later.
 - The rest is left to the architect: "My architectural directives have been
@@ -113,11 +119,11 @@ Retired, or confined to the old paths until they're deleted:
 - a set piece's own `class` field. It means the primary region class (Corey,
   2026-09-28): "a suggested 'default' or primary region class/type", whose
   main effect is to give the editor a default cell class. Generation doesn't
-  read it, and two of its four values in the shipped library (`industrial`,
-  `military`) aren't declared cell classes. The converter renames it
-  `primaryRegionClass`, keeps the values that name a declared cell class, and
-  reports the rest. "Class" alone now means a cell class; the grouping is
-  always "set piece class".
+  read it, and two of its four values in today's library (`industrial`,
+  `military`) aren't declared cell classes. The new schema names it
+  `primaryRegionClass`: optional, and a declared cell class when present.
+  "Class" alone now means a cell class; the grouping is always "set piece
+  class".
 - `ports`: the unread tile side sockets, and the planned path's `PerimeterPort`.
 - `edges`, whether as design side strings or as `MapEdge` seams.
 - **structure** (`MapStructure`, and `MacroStructure` in `macro.ts`).
@@ -176,9 +182,7 @@ therefore a Layout, optionally with its interiors (see "Saving").
   - A new **`charger`** class owns charging stations. It needs at least one
     charger set piece authored. Until then a map has no charger, as the tile
     path has none today.
-- **No geometry.** There are no walls, gaps, spans or fences. The six walled
-  fence tiles (`depot-*`, `evac-*`) lose their walls when converted and keep
-  their classes.
+- **No geometry.** There are no walls, gaps, spans or fences.
 - **No impassable prescription.** Without macro geometry, nothing could honour
   one, and builders aren't asked to (Corey, 2026-09-27). A suggestion channel
   for builders is deferred.
@@ -186,13 +190,12 @@ therefore a Layout, optionally with its interiors (see "Saving").
   well formed. A passable run that lies wholly inside a tile, without reaching
   the tile's edge, must already be at least a hunter wide, because no
   neighbour can lengthen it. This is the #73 design check.
-- **Conversion:** a one-time converter turns today's library into this
-  schema:
-  - `edges` class words become adjacency prescriptions.
-  - `open` in `edges` becomes passable.
-  - `walls` and `ports` are dropped.
-
-  It reports every design it changed. The library gets a new version number.
+- **A new library, authored fresh.** It is written against a **region type
+  catalogue** (see "Build order", track B): the region types play needs, each
+  with its own builder and decomposer. Tiles and set pieces are then authored
+  to form those regions. Today's library stays with the old paths and is
+  retired with them. Old designs may be reused by hand where they fit, but
+  nothing converts them, and the new library has its own version number.
 
 ### 1. Placement: seed, params, library → **Layout** (object)
 
@@ -264,8 +267,8 @@ This is the knowledge layer: what the solved placement means.
   map only because each builder keeps its guarantees (stage 6), and the
   measurement checks it (stage 8).
 - **Gate:** none for now; the proof is reported. Measurement is the gate (see
-  QUESTIONS "The chain rebuild" item 2). The shipped library prescribes
-  nothing passable yet, so the proof has nothing to connect until designs do.
+  QUESTIONS "The chain rebuild" item 2). The proof has nothing to connect until
+  the new library's designs prescribe passable runs.
 
 ### 5. Briefs: Layout, LayoutRegions, zones → **RegionBrief[]** (view)
 
@@ -376,10 +379,9 @@ Who is responsible for what:
   reports the instance left without. Avoiding that is the authors' job, as
   above.
 
-The shipped library has no feature classes yet. The start pieces paint
-`market` and the end pieces `landing`, and both also appear in ordinary fill.
-So step 2 has to add feature classes and repaint the start and end pieces
-with them. That is a content change (QUESTIONS "The chain rebuild" item 5).
+Today's library has no feature classes: its start pieces paint `market` and
+its end pieces `landing`, which ordinary fill paints too. The new library
+defines feature classes from the start, in the region type catalogue.
 
 Anchors go. They stood in for "somewhere in this tile a body can stand", and
 the builders now choose that inside their own regions.
@@ -437,15 +439,15 @@ artifacts are refused by name.
 
 ## Build order
 
-Each step is its own issue and PR. Steps 2 to 8 build the new chain beside the
-old paths without touching them.
+Each step is its own issue and PR. Nothing here touches the old paths until
+the switch-over.
 
 1. This specification, reviewed.
-2. The library schema and converter, with the new `validateLibrary`. This
-   includes declared set piece classes with their owned features, the
-   `charger` class, and feature classes, with the start and end pieces
-   repainted to use them (QUESTIONS "The chain rebuild" item 5). The converter's report of changed designs goes on the
-   issue (#33 lands here). Charger content is authored separately.
+
+**Track A, the chain (code).**
+
+2. The library schema and `validateLibrary`, with a small test library that
+   exercises every rule (#33 lands here, and the #73 design check).
 3. `chain/types.ts`: every object and view named in this document, with
    interfaces only, plus purity and determinism test harnesses.
 4. Placement.
@@ -453,11 +455,40 @@ old paths without touching them.
    `findBoundaries`).
 6. Proof.
 7. Briefs, Build (the builder adapter, conform, and features sited by
-   builders), and Composition (#68, #76).
+   builders), and Composition (#68, #76). Existing builders are used where
+   the catalogue maps to them, and stubs stand in for the rest.
 8. Measurement.
 9. The map container, the accessor, saving and the wire version (#69, #70).
-10. Switch the Map Lab, CLI and MCP over. Capture the first baseline of the
-    new chain, then delete the old paths.
+
+**Track B, the library (content).** Starts after step 2, alongside steps 3–9.
+
+- B1. **Map Lab authoring** for the new schema: adjacency and passability
+  prescriptions, feature classes, set piece classes. There are browser tests,
+  and no geometry tools.
+- B2. **The region type catalogue**, a document for Corey's review. For each
+  region type:
+  - its role in play
+  - its builder, and its decomposer if it has one
+  - the features it sites, if it is a feature class
+  - its shape needs, such as minimum area and width
+  - its obligations, such as `open`'s privilege (#61)
+
+  Today's six builders are candidates, not constraints.
+- B3. **The builders and decomposers** the catalogue calls for, each its own
+  issue, built on step 7's adapter.
+- B4. **The new library**, authored against the catalogue:
+  - cell classes, tiles and tile sets
+  - set pieces and set piece classes, including `start`, `end` and
+    `charger` with their feature classes
+
+  It starts minimal, with enough to exercise every stage and to play, and
+  grows afterwards.
+
+**Switch-over.**
+
+10. Switch the Map Lab, CLI and MCP to the new chain and the new library (it
+    needs steps 2–9 and B4). Capture the new chain's first baseline, then
+    delete the old paths and the old library.
 
 Content is expected to change. The old #47 baseline is no reference for the
 new chain. The bar is that validation passes and maps play acceptably, and
@@ -468,12 +499,12 @@ then the new chain's first baseline is captured, last.
 | Issue | Becomes |
 | --- | --- |
 | #33 segment prescriptions | step 2 |
-| #73 / PR #78 | parked; its labels and run check move to steps 2 and 5 |
+| #73 / PR #78 | parked; its labels and design check move to step 2, its run check to step 5 |
 | #79 stage types and views | step 3 (this document is its design) |
 | #68 independent builders | step 7 |
-| #76 streets retire, region handed whole | step 7 |
+| #76 streets retire, region handed whole | step 7, and B3 for decomposers |
 | #69 map container | step 9 |
 | #70 saving with provenance | step 9 |
 | #71 planned path joins the chain | closed: the planned path is retired |
 | #59 reachability contract | step 6, then the open-face rule in step 4 |
-| #61 `open` is privileged | an obligation on `open` briefs, after step 7 |
+| #61 `open` is privileged | B2 states it, B3 builds it |

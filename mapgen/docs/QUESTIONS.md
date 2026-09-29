@@ -248,8 +248,8 @@ working assumption:
    CHAIN.md "Features" and "Playground mode" record this. Nothing is open
    here, except how the charger class is placed once one per map stops being
    enough.
-2. **When the proof gates generation.** The shipped library prescribes
-   nothing passable, so the proof has nothing to connect. Which region holds a
+2. **When the proof gates generation.** No library prescribes passable runs
+   yet, so the proof has nothing to connect. Which region holds a
    feature isn't known until micro is complete. *Assumption:* the proof is
    reported and never gates for now, and measurement stays the gate. Once
    designs prescribe passable runs, gating on "the proof connects every
@@ -259,18 +259,10 @@ working assumption:
    region on both sides isn't on any boundary, so the proof doesn't use it.
    *Assumption:* the builder still keeps it passable, since "It's the tile
    designer's job to mark internal as passable" (Corey, 2026-09-27).
-4. **The fence set pieces without walls.** The `depot` and `evac` rings lose
-   their walls when converted, so a compound is only its class until a builder
-   or a later geometry prescription makes it one. That makes "How do fenced set
-   pieces open?" moot for now. *Assumption:* the converter drops the walls and
-   reports each changed design on the library issue, and nothing replaces them
-   until Corey adds geometry back.
-5. **Feature classes in the shipped library.** Features reach builders
-   through their class rule, so each feature needs a cell class that only its
-   owning set pieces paint. Today the start pieces paint `market` and the end
-   pieces `landing`, which ordinary fill paints too, and no class lists any
-   feature. *Assumption:* step 2 adds one feature class for each set piece
-   class that owns features (`start`, `end` and `charger`), and repaints the
-   start and end pieces' feature cells with them. Step 2 reports every
-   repainted design on its issue. The names and which cells carry them are
-   Corey's to change.
+4. **The fence set pieces without walls.** Superseded (Corey, 2026-09-29): the
+   library is authored fresh against a region type catalogue, so nothing is
+   converted and no old design loses anything. "How do fenced set pieces
+   open?" belongs to the old library.
+5. **Feature classes.** Superseded the same day: the new library defines
+   them from the start, and their names and shapes are catalogue decisions
+   (CHAIN.md "Build order", B2).
