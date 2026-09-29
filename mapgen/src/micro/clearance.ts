@@ -3,7 +3,7 @@
  *
  * Containment is not sufficient. A builder that stayed inside its region can
  * still wall that region into disconnected halves, seal its own spawns away, or
- * close the last route a reserved corridor needed -- NEXT_TASKS item 4. So the
+ * close the last route a reserved corridor needed -- archived NEXT_TASKS item 4. So the
  * edit is replayed as geometry and flooded, rather than trusted.
  *
  * What this proves, exactly: `nav.ts` builds a half-cell lattice whose every

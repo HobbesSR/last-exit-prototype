@@ -15,7 +15,7 @@ Measured over 20 seeds at default size, all valid: about thirty times the stated
 geometry of the legacy path, a detour ratio of 1.75 against 1.05, and 79
 contestant-only seams against 1. Nothing in it is tuned.
 
-Editor cleanup: see [archive/editor-cleanup/EDITOR_CLEANUP.md](archive/editor-cleanup/EDITOR_CLEANUP.md) for the actual library
+Editor cleanup: see [archive/editor-cleanup/EDITOR_CLEANUP.md](../editor-cleanup/EDITOR_CLEANUP.md) for the actual library
 path and design/proposal separation. Uniform patches are ordinary content; the
 `adapter` fallback flag was removed with the legacy generator (#38). The original prose now stands
 alone in `design_notes.txt`. Historical milestones below describe implementation
@@ -136,4 +136,4 @@ The tile reachability contract that replaces anchors (#59, DESIGN_DECISIONS "Rea
 
 ## Verification
 
-`npm test`; `node tests/browser.mts`; `npm run typecheck`; `node tools/cli.mts batch --seed regression --count 200 --out test-results/batch.json`. Browser checks require local Chrome and Playwright, resolved from the repository root. See README for launch and MCP usage. Delegate bounded tests/authoring extensions to the implementation worker the root [docs/32-delegation.md](../../docs/32-delegation.md) names; retain socket contracts, topology negotiation and integration decisions with the lead.
+`npm test`; `node tests/browser.mts`; `npm run typecheck`; `node tools/cli.mts batch --seed regression --count 200 --out test-results/batch.json`. Browser checks require local Chrome and Playwright, resolved from the repository root. See README for launch and MCP usage. Delegate bounded tests/authoring extensions to the implementation worker the root [docs/32-delegation.md](../../../../docs/32-delegation.md) names; retain socket contracts, topology negotiation and integration decisions with the lead.

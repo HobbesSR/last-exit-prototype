@@ -5,7 +5,7 @@
  * sightline while leaving the ground completely walkable: nothing here declares
  * a single segment, so there is no door to find and no wall to follow. Material
  * cells are the whole of the output, and material emits its own walls against
- * every non-material neighbour (docs/VOCABULARY.md), so the blocks are stated
+ * every non-material neighbour (docs/archive/pre-integration/VOCABULARY.md), so the blocks are stated
  * once, as cells, rather than as four barriers each.
  *
  * Two numbers carry the design:

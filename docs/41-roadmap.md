@@ -48,7 +48,24 @@ still need separate gameplay and version review.
 
 ## Next tasks
 
-**Current focus, updated by the user on 2026-09-23: F-01 micro generation.**
+**Current focus, updated by the user on 2026-09-28 and 29: map generation as
+one pipeline.** mapgen's macro half is being rebuilt as the generation chain
+([51](51-generation-chain.md)) and joined to the micro half, where each region
+type's strategy is built on the SDK ([50](50-map-generation.md)). The build
+order is 51's:
+- **Track A:** the macro chain, in mapgen.
+- **Track C:** the contract and composition, in the game.
+- **Track B:** the region type catalogue, the strategies, and a new library.
+- **Then the switch-over.**
+
+Work in progress and its order live on the Forgejo tracker, TRACKER_ISSUE, and
+in each step's issue ([34](34-forgejo-workflow.md)). mapgen's former
+`NEXT_TASKS.md` backlog is retired. Its unfinished direction is in 51 and 16.
+
+The micro work below continues within that plan. The recursive execution and
+the mapgen adapter it names next are 51's tracks B and C.
+
+**Earlier focus, updated by the user on 2026-09-23: F-01 micro generation.**
 The SDK now includes immutable child contexts, bounded polyomino analysis,
 candidate-to-generator allocation, residual ownership, structural interfaces and
 independent plan validation. The allocation visualizer and focused analysis/

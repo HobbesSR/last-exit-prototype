@@ -384,7 +384,7 @@ function widestRun(spans: readonly Span[]): number {
  * The plan laid down as primitives, before any builder runs: every region's
  * cells painted with its type, every segment inside a region open, and the
  * contract's spans over the boundaries. This is the planned path's layout (see
- * docs/DESIGN_DECISIONS.md "Map layers"). The plan itself, with its ports and
+ * docs/archive/pre-integration/DESIGN_DECISIONS.md "Map layers"). The plan itself, with its ports and
  * loot, is what this path has for structure.
  */
 export function layPlan(plan: MapPlan): ComposeGrid {

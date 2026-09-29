@@ -3,7 +3,7 @@
  *
  * A region builder is handed an area and the macro parameters in force over it,
  * and returns declarations over the lattice -- never physical objects, per
- * docs/VOCABULARY.md. It may state cells, segments and vertices inside its own
+ * docs/archive/pre-integration/VOCABULARY.md. It may state cells, segments and vertices inside its own
  * area, place off-lattice collidable props, and claim spawn slots.
  *
  * A region is an area, not an enclosure, and is not tile shaped: it may span any
@@ -189,7 +189,7 @@ export interface RegionContext {
   loot?: LootCriteria;
   /**
    * Routes crossing this region that must survive. A builder may build up to
-   * one but not across it. NEXT_TASKS item 4: until a proven route envelope
+   * one but not across it. archived NEXT_TASKS item 4: until a proven route envelope
    * reaches here this is empty and the post-edit clearance check is the guard.
    */
   corridors: ReservedCorridor[];

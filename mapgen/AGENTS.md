@@ -4,8 +4,50 @@ These rules add to the repository root `AGENTS.md`, which carries the session
 start rules, delegation policy and the Forgejo workflow. Run commands from this
 directory unless a step says otherwise.
 
-Read README.md, docs/DESIGN_DECISIONS.md and docs/NEXT_TASKS.md before substantive work. Read design_notes.txt for original user intent. Implementation documents describe current behavior and reversible defaults, not an overriding specification. The retired Claude proposal in docs/archive/retired-design-proposal/ is historical only. Keep unanswered design choices in docs/QUESTIONS.md; proceed with documented reversible defaults.
+mapgen owns macro generation: the tile library, placement, regions, the
+reachability proof and region briefs. The game's `shared/map/micro/` owns what
+fills a region. Don't extend mapgen's own micro layer (`src/micro/`) or its
+planned path (`src/plan/`): both duplicate the game's work and retire when the
+generation chain lands.
 
-This directory was the separate `last_exit_map` repository until its history was imported here. The game does not import it yet; wiring it in is ordinary integration work governed by the root docs (20 and 22), not a boundary to defend. Prioritize working and tunable flat 2D. 2.5D is later. GUI, CLI and MCP must share the core rather than reimplement generation.
+## Before substantive work
 
-Run npm test for core/tooling changes and node tests/browser.mts for meaningful UI behavior changes. Browser tests resolve Playwright from the repository root's dependencies. Use bounded seed batches for generator changes and report actual sample limits. Do not call graph connectivity a proof for geometry that has not been checked. Keep navigation cache invalidation and region manifest validation intact.
+Read, in this order:
+1. `design_notes.txt`, the original statement of intent. It takes precedence.
+2. Root `docs/50-map-generation.md`: the two halves, who owns what, and a
+   reading guide.
+3. The 5x file for the area you're changing:
+   - `docs/51-generation-chain.md`: the chain and its build order
+   - `docs/52-map-primitives-and-library.md`: the library model
+   - `docs/53-map-artifacts-and-tools.md`: artifacts, determinism, the sweep and
+     tools
+4. For anything inside a region: root docs 19 and 20.
+5. Root `docs/17-open-questions.md`, "Map generation": Corey's verbatim answers,
+   and the open questions with their working assumptions.
+6. The Forgejo issue you're working on, and its latest handoff.
+
+`docs/archive/pre-integration/` holds mapgen's former docs. They describe the
+old generators (`generateMap`, `generatePlannedMap`) until those retire. Read
+them only when changing that code, and don't take them as current direction.
+
+Before adding a mechanism, search both halves for an existing one. The SDK,
+mapgen and the planned path have each built the same thing more than once
+(50, "Duplication ledger").
+
+## Rules
+
+- Proceed with a documented working assumption rather than stopping. Record an
+  unanswered design choice in root 17, "Map generation".
+- Work in flat 2D. 2½D is deferred.
+- The GUI, CLI and MCP share the core rather than reimplementing generation.
+- Keep navigation cache invalidation and region validation intact.
+- Don't call graph connectivity a proof for geometry that hasn't been checked.
+- Use bounded seed batches for generator changes, and report the actual sample
+  sizes.
+
+## Checks
+
+- `npm test` (typecheck plus unit tests) for core and tooling changes.
+- `node tests/browser.mts` for meaningful Map Lab behaviour. It resolves
+  Playwright from the repository root's dependencies.
+- The seed sweep for any change to the old generators (root 53 and 31).

@@ -1,5 +1,5 @@
 /**
- * The interiors layer of docs/DESIGN_DECISIONS.md "Map layers". What micro
+ * The interiors layer of docs/archive/pre-integration/DESIGN_DECISIONS.md "Map layers". What micro
  * generation made is stored as its own section, stated over the layout and its
  * structure. The final grid, region partition and wall list are derived from
  * layout plus interiors, both when generating and when reading an artifact.

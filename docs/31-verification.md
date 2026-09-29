@@ -16,13 +16,14 @@ npm run bench:client
 
 Changes under `mapgen/` run its own suite with `npm run test:mapgen` (typecheck
 plus unit tests, in that directory) and, for editor behavior, `node tests/browser.mts`
-from `mapgen/`. As imported at `544b13c`, the suite was red. Issue #12 cleared
-its 26 typecheck errors; `npm run typecheck` now passes. The current unit
-baseline is 210 pass / 20 fail out of 230 tests. Failures remain and are
-triaged in issue #15: small-map placement policy (#27), artifact codec
-fields (#25), and obsolete V1 test fixtures or expectations (#15). Default-size
-legacy generation and the retry path were repaired in #10. Do not resize test
-grids or relax generation to make the remaining suite pass.
+from `mapgen/`. On 2026-09-29 the suite is green: 286 tests, 282 pass, 4 todo
+(each todo names a defect in the old tile path that the chain retires). A change
+to mapgen's old generators also runs the seed sweep from `mapgen/`,
+`node tools/cli.mts sweep --check tests/fixtures/layer-baseline.json`. It must
+show no drift unless the PR declares a content change and recaptures last
+([53](53-map-artifacts-and-tools.md)). The chain (51) gets its own checks and
+baseline as it lands. Do not resize test grids or relax generation to make a
+check pass.
 
 Micro-generation changes additionally run `npm run test:micro`: focused contracts
 and seeded builder tests plus all three isolated browser previews. The unit tests also run

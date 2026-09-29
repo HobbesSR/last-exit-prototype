@@ -492,7 +492,7 @@ export function searchRegions(
  * The planned path has macro state a floor and a ceiling on every region
  * boundary instead, proves reachability from the floors, and holds each builder
  * to them -- which needs no reserved ground and no repair. See
- * docs/PLANNED_GENERATION.md.
+ * docs/archive/pre-integration/PLANNED_GENERATION.md.
  *
  * Do not extend this. `generateMap` is the only caller and should stay that way.
  *
@@ -511,7 +511,7 @@ export function searchRegions(
  * so the clearance guard can check what it was asked to protect. What is left
  * over is what may be built on -- which is how a map ends up with streets and
  * blocks rather than with a maze, and is the reserved-corridor input
- * NEXT_TASKS item 4 asks for.
+ * archived NEXT_TASKS item 4 asks for.
  *
  * Two properties are load-bearing:
  *
@@ -1877,7 +1877,7 @@ export const RUN_METRICS = [
 
 /**
  * Metrics and validation for a finished map, which is the "Report" layer in
- * docs/DESIGN_DECISIONS.md "Map layers". It's never stored: the composers run
+ * docs/archive/pre-integration/DESIGN_DECISIONS.md "Map layers". It's never stored: the composers run
  * it both when generating and when reading an artifact, so the numbers mean
  * the same thing whichever generator made the map and however it was loaded.
  * `measured` is what only the composer can count, such as a planned map's
@@ -2192,7 +2192,7 @@ export function placeLayout(
 
 /**
  * Everything derived from a layout that informs micro generation, which is the
- * "Structure" layer in docs/DESIGN_DECISIONS.md "Map layers". `structure` is
+ * "Structure" layer in docs/archive/pre-integration/DESIGN_DECISIONS.md "Map layers". `structure` is
  * the part a map keeps; the rest is what micro generation starts from.
  */
 export interface DerivedStructure {
@@ -2330,7 +2330,7 @@ export interface RegionInput {
 }
 
 /**
- * The "region inputs" step of docs/DESIGN_DECISIONS.md "The generation chain":
+ * The "region inputs" step of docs/archive/pre-integration/DESIGN_DECISIONS.md "The generation chain":
  * every block a builder is handed, in build order, and which search region
  * owns each cell. Plain data that holds nothing micro writes. Openings aren't
  * here yet, since builders read them off the grid as earlier ones left it (#68).
@@ -2400,7 +2400,7 @@ function layoutGrid(W: number, H: number, cellClass: string[], segmentOpen: Span
 
 /**
  * What micro generation made over a layout and its structure. `interiors` is
- * the stored "Interiors" layer of docs/DESIGN_DECISIONS.md "Map layers";
+ * the stored "Interiors" layer of docs/archive/pre-integration/DESIGN_DECISIONS.md "Map layers";
  * `micro` keeps the builders' own counts for the report.
  */
 export interface GeneratedInteriors {
@@ -2494,7 +2494,7 @@ export function generateInteriors(
   });
 
   // A builder may site a feature of its own: where a physical exit or a
-  // charger stands is a micro detail, per docs/DESIGN_DECISIONS.md. One that
+  // charger stands is a micro detail, per docs/archive/pre-integration/DESIGN_DECISIONS.md. One that
   // lands on no tile is dropped.
   const tileAt = tileAtPoint(structure.tiles, p.tileSize);
   const features: MapInteriors["features"] = [];

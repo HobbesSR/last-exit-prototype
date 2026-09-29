@@ -402,16 +402,19 @@ authored segment/vertex metadata still need expansion. The next decomposition
 boundaries are recursive execution of explored trees, which can now reuse flat
 dispatch and negotiation at each level, and a `mapgen/` adapter.
 
-`mapgen/` is the input for that adapter; paths below are relative to it. As
-imported at `544b13c`, its compact post-composition region artifact is defined by
-`src/types.ts` (`MapRegion`) and packed by `src/artifact.ts`; `src/core.ts`
-discovers regions from same-class cells and fully open segments, then re-discovers
-them after its own micro edits. Its planned `src/plan/types.ts` has the closer
-floor/ceiling port vocabulary, but is not this SDK. An adapter must translate its
-flat cell indices using its grid width into this SDK's global integer cell
-coordinates, preserve explicit `cellSize`, turn planned perimeter runs into
-`RegionPort`s, keep source-region provenance separate from its final partition,
-and validate world bounds, external geometry, and whole-map spawn-to-exit routes.
-It must not treat `mapgen/`'s graph or sampled connectivity as proof of this game's
-physical geometry. The existing generator remains live until that explicit
+`mapgen/` is the input for that adapter. [51](51-generation-chain.md) now
+specifies it:
+- **Briefs** (51 stage 5) are expressed in this directory's contract,
+  `types.ts`, which evolves from `RegionSpec`: region type ids instead of the
+  closed builder list, whole-run passable obligations, features, and zone
+  context ([17](17-open-questions.md) M3, M4).
+- **mapgen's flat cell indices** are translated into this SDK's global integer
+  cell coordinates, with an explicit `cellSize`.
+- **Whole-map composition and measurement** extend `composeMicroRegions` and
+  this SDK's validators (51 track C).
+
+It must not treat `mapgen/`'s graph or sampled connectivity as proof of this
+game's physical geometry. mapgen's own micro layer and its planned path are
+duplicates of this directory's work and retire ([50](50-map-generation.md)).
+The existing generator remains live until that explicit
 integration checkpoint is satisfied.

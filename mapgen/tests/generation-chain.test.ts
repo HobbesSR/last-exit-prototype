@@ -1,5 +1,5 @@
 /**
- * docs/DESIGN_DECISIONS.md "The generation chain" (#65, #66, #67): one seed decides
+ * docs/archive/pre-integration/DESIGN_DECISIONS.md "The generation chain" (#65, #66, #67): one seed decides
  * the whole map through every step, the layout alone regenerates what follows
  * it, and each step is a pure function of its inputs. No generator change
  * rides on this file; a failure here is a determinism bug, not a flaky test.

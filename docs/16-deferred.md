@@ -31,8 +31,25 @@ current proof of concept:
 8. Destructible cover, command-center interactions, hunter-triggered hazards, richer camera/sensor stations, audio, authentication, public deployment, and retention policies. Trap variety and single-server matchmaking are implemented as tracked in [13](13-accepted-features.md); richer variants and public infrastructure remain separate work.
 
 F-01 micro generation is active under the user's September 19 direction; see
-[20](20-micro-generation.md). Macro integration and recursive child regions remain
-incomplete; the interim street maze does not claim to implement them. Playable
+[20](20-micro-generation.md). Macro integration is specified as the generation
+chain ([51](51-generation-chain.md)) and, like recursive child regions, remains
+incomplete. The interim street maze doesn't claim to implement either.
+
+Deferred within map generation, by Corey's answers in [17](17-open-questions.md):
+- **Macro geometry prescriptions** (walls, fences): taken out of the library on
+  2026-09-28, to "add them back in" later. When they return, a fence is
+  passable because hunters can break it. How validation reports routes that
+  need a fence broken is decided then.
+- **An impassable directive** to builders: at most an architectural suggestion,
+  "if at all" (2026-09-28).
+- **Loot as a macro concern:** "that can be added in later" (2026-09-28).
+  Regions place loot.
+- **Primitive sets:** what declarations become physically in each part of the
+  map ([52](52-map-primitives-and-library.md)).
+- **Zone-driven hazards,** and builders with no region to attach to
+  (map-boundary treatment).
+- **The warp feature,** and special access policies such as locked doors on
+  required routes (17, September 22: "parameter passing we can defer"). Playable
 elevation (2½D), overlapping floors and finished art remain incomplete under F-04.
 Multi-floor direction is accepted; collision-plane transitions and navigation-mesh
 design remain future engineering work.

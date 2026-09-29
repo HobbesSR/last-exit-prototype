@@ -1,53 +1,28 @@
-# The generation chain: specification
+# 51. The generation chain
 
-Status: proposed, 2026-09-28. Written for Corey's review before any code.
+Status: accepted 2026-09-28 (PR #80). Integrated with the game's micro half
+2026-09-29 (50). Not implemented.
 
-This specification is for rebuilding map generation as a series of checkpoints
-with clear interfaces between them. The pipeline is new, and it reuses the
-existing leaf modules. The old paths (`core.generateMap` and
-`plan/compose.generatePlannedMap`) keep working until the new chain replaces
-them. Then they are deleted rather than kept as legacy.
+This file specifies map generation as a series of checkpoints with clear
+interfaces between them. mapgen owns the macro stages, 0 to 5 and the map-level
+part of 8. The game owns what happens inside a region, stages 6 and 7 (50).
+The pipeline is new, and it reuses existing leaf modules on both sides.
 
-Direction it follows (Corey, 2026-09-28):
+mapgen's old generators, `generateMap` and `generatePlannedMap`, keep working
+until the switch-over (step 10). Then they're deleted, not kept as legacy. The
+archived mapgen docs in `mapgen/docs/archive/pre-integration/` describe them;
+where they disagree with this file about the chain, this file holds.
 
-- "maybe we keep what we currently have, but now that we have a better
-  understanding we also just try implementing from scratch the whole series
-  of transformers, defining clear interfaces between the layers' transforms,
-  and then implementing within them."
-- "a series of transforms to new classes of objects, some very superficially
-  similar, and perhaps relegated to a 'view' over the primitive data
-  structure."
-- The interfaces are "somewhat like transformation checkpoints", and they
-  "resolve conflation of things with the same name like the declaration of
-  passability versus the knowledge of what segments are passable".
-- Set pieces keep "the same distribution as before", chosen from set piece
-  classes.
-- Features belong to set piece classes, "which are the only things we give
-  first class status in the engine". A new set piece class owns charging
-  stations. The hierarchy: "set piece classes are sets of set pieces, which
-  are layouts of tile sets, which are sets of tiles, sometimes with just one."
-- A region type's builder is responsible for the features. Authors make sure
-  every set piece in a class forms regions that satisfy it, and macro knows a
-  feature exists only by trusting the set piece class. Nothing checks this at
-  load; it can be checked only after every builder has run. Hunter spawn goes
-  with `end` for now, and one charger per map is enough for now.
-- Playground mode "is just supposed to make our lives easier. It's a debug /
-  development feature that needs to evolve."
-- A new library, authored fresh (2026-09-29): "Now each region type
-  essentially gets its own bespoke code, so we can just imagine the
-  decomposers and builders we need and prescribe region types for them.
-  Perhaps we can reuse what exists to some extent, but we shouldn't be bound
-  by it." The changes put responsibility on authors, so "it's reasonable to
-  suggest a fresh round of authoring the needed assets."
-- Macro prescribes no geometry. Walls and fences go from the library for now
-  and may come back later.
-- The rest is left to the architect: "My architectural directives have been
-  suggestive and the most concrete thing I've prescribed is clear interfaces
-  between different layers / views of map generation."
+Corey's directions for the chain (2026-09-28 and 29), verbatim in 17 "Map
+generation":
+- rebuild generation as a series of transforms with clear interfaces
+- name superficially similar objects apart, and make pure readings views
+- set pieces keep their distribution, and features belong to set piece classes
+- region types' builders deliver the features
+- macro prescribes no geometry
+- the library is authored fresh against a region type catalogue
 
-design_notes.txt still takes precedence. Where this document and
-DESIGN_DECISIONS disagree about the new chain, this document holds until the
-chain lands and DESIGN_DECISIONS is rewritten to match.
+design_notes.txt takes precedence for intent.
 
 ## Principles
 
@@ -65,11 +40,11 @@ chain lands and DESIGN_DECISIONS is rewritten to match.
      built. It is knowledge derived from prescriptions once placement is solved.
      Example: "this segment is guaranteed passable", or "these regions are
      proven connected".
-   - A **measurement** is what the finished map actually has. Example: "a hunter
-     reached this region on the lattice".
+   - A **measurement** is what the built map actually has. Example: "a hunter
+     reached this area in the built geometry".
 
-   Builders honour guarantees, and validation compares measurements against
-   them.
+   Region strategies honour guarantees, and validation compares measurements
+   against them.
 3. **Objects and views.** An **object** is a checkpoint's output that holds
    decisions (random draws, solver choices, builder output). Objects are what
    can be saved. A **view** is a pure reading of objects, always recomputed and
@@ -78,59 +53,51 @@ chain lands and DESIGN_DECISIONS is rewritten to match.
 4. **One name, one meaning.** Every term below has exactly one meaning, and
    each stage's output has its own type even when the shape matches another's.
    A declared class grid and a resolved class grid are different types.
-5. **Regions are independent.** A builder reads only its own brief, and
-   composing interiors is order-free. Changing one region's seed changes only
-   that region.
+5. **Regions are independent.** A region's strategy reads only its own brief
+   and places geometry only inside its own cells, so composing regions is
+   order-free. Changing one region's seed changes only that region.
 6. **Macro prescribes no geometry.** Tiles and set pieces paint cell classes
-   and state prescriptions. Everything physical is built by region builders.
+   and state prescriptions. Everything physical is built by region strategies.
+7. **Shared machinery lives in the SDK.** Both halves call
+   `shared/map/micro/sdk.ts` for masks, shapes, routes, interface runs and
+   connectivity, and neither reimplements it (50).
 
 ## Names
 
-Each term has one meaning. Terms retired from the old code are listed so they
-don't come back with a second meaning.
+Each term has one meaning. 52 defines the library's terms in full.
 
 | Term | Means | Stage |
 | --- | --- | --- |
 | **declared class** | The class a design paints on a cell, `any` allowed | Library, Placement |
 | **resolved class** | A declared class with every `any` settled; never `any` | Resolution |
-| **built class** | A resolved class with what a builder laid over it (e.g. `solid`) | Composition |
+| **region type** | What a resolved class names: the strategy (decomposer and builders) that fills a region of that class, in `shared/map/micro/` | Library, Build |
 | **passability prescription** | What a design states about crossing a segment: `passable`, `any`, or unstated | Library |
 | **passability guarantee** | Whether a solved layout promises a segment passable: `guaranteed` or `none` | Resolution |
 | **adjacency prescription** | The class a design requires of the cell across one of its perimeter segments | Library |
 | **layout region** | A maximal 4-connected set of cells with one resolved class | Regions |
-| **built region** | The same search over built classes and built segments, after micro | Composition |
-| **boundary** | A maximal straight run of segments between two layout regions, or between a region and the map's outside | Regions |
+| **boundary** | A maximal straight run of segments between two layout regions (the SDK's interface runs) | Regions |
 | **passable run** | A maximal contiguous stretch of guaranteed-passable segments along one boundary | Regions |
-| **brief** | Everything one region's builder is handed | Briefs |
-| **interior** | What one region's builder returns | Build |
-| **tile design** | One 6 × 6 tile the library holds | Library |
-| **tile set** | A set of tile designs, sometimes just one | Library |
-| **set piece** | A layout of tile sets: slots at tile offsets, each naming a tile set | Library |
-| **set piece class** | A set of set pieces, with a placement rule and a quota, and the features it owns. The only first-class macro structure. The code calls it `category` today | Library, Placement |
+| **brief** | Everything one region's strategy is handed, expressed in the macro/micro contract (`shared/map/micro/types.ts`) | Briefs |
+| **region result** | What one region's strategy returns, in the contract's result type | Build |
+| **built map** | Every region result composed into one map of the game's geometry | Composition |
+| **tile design**, **tile set**, **set piece**, **set piece class**, **feature class**, **primary region class** | See 52 | Library |
 | **set piece instance** | One placed copy of a set piece: which one, and the slots it covers | Placement |
-| **feature** | A spawn, hunter spawn, exit, charger or warp. The builder of a region type sites it; macro knows only that a set piece class promises it | Build, Measurement |
-| **feature class** | A cell class whose rule lists features its builder sites; painted only inside its owning set pieces | Library, Build |
-| **standing component** | A connected component of the lattice nodes where a hunter can stand, on the built map | Measurement |
-| **sealed pocket** | A standing component wholly inside one built region, holding no feature and no spawn slot; allowed to be unreached | Measurement |
-| **primary region class** | The cell class a set piece is mainly meant to form; an editor default, unread by generation | Library |
+| **feature** | A spawn, hunter spawn, exit, charger or warp. A region type's strategy sites it; macro knows only that a set piece class promises it | Build, Measurement |
+| **standing component** | A connected set of places a hunter can stand, in the built map's geometry | Measurement |
+| **sealed pocket** | A standing component wholly inside one layout region's cells, holding no feature and no loot; allowed to be unreached | Measurement |
 
-Retired, or confined to the old paths until they're deleted:
+Retired, and confined to the old paths until they're deleted:
 - `open` as a segment label. `open` is only a cell class.
-- a set piece's own `class` field. It means the primary region class (Corey,
-  2026-09-28): "a suggested 'default' or primary region class/type", whose
-  main effect is to give the editor a default cell class. Generation doesn't
-  read it, and two of its four values in today's library (`industrial`,
-  `military`) aren't declared cell classes. The new schema names it
-  `primaryRegionClass`: optional, and a declared cell class when present.
-  "Class" alone now means a cell class; the grouping is always "set piece
-  class".
+- a set piece's own `class` field (52 calls it the primary region class).
 - `ports`: the unread tile side sockets, and the planned path's `PerimeterPort`.
 - `edges`, whether as design side strings or as `MapEdge` seams.
 - **structure** (`MapStructure`, and `MacroStructure` in `macro.ts`).
 - anchors.
 - streets and blocks.
-- floors and ceilings.
+- floors and ceilings as macro prescriptions (see 17 M4).
 - `walls`, `gap` and segment spans in the library.
+- mapgen's micro layer (`src/micro/`), and its "interiors" of laid classes and
+  segments.
 
 ## The chain
 
@@ -142,62 +109,47 @@ params ──┘                (object)                (view)                  
                                           Proof ◄────────────────────────────────┤
                                           (view)                                 ▼
                                                                     Briefs ─► RegionBrief[] (view)
-                                                                                 │ one per region
-                                                                                 ▼
-                                                                    Build ─► RegionInterior[] (object)
+─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ mapgen above, the game below (50) ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│─ ─ ─ ─ ─
+                                                                                 ▼ one per region
+                                                                    Build ─► RegionResult[] (object)
                                                                                  │
-                                           Layout + ResolvedLayout + interiors ─►Composition ─► BuiltMap (view)
+                                                                    Composition ─► BuiltMap (view)
                                                                                  │
                                                                                  ▼
                                                                     Measurement ─► Report (view)
 ```
 
 Only two things hold decisions: the **Layout** (placement's draws) and the
-**interiors** (the builders' output). Everything else is a view. A saved map is
-therefore a Layout, optionally with its interiors (see "Saving").
+**region results** (the strategies' output). Everything else is a view. A
+saved map is therefore a Layout, optionally with its region results (see
+"Saving").
 
 ## Stages
 
 ### 0. Library (input, all prescriptions)
 
-- **Tile design:**
-  - A declared class for each of its 36 cells (`any` allowed).
-  - For each perimeter segment, an **adjacency prescription**: the class
-    required of the neighbour's cell, or `any`.
-  - For any segment, perimeter or interior, a **passability prescription**:
-    `passable` or `any`. Leaving a segment unstated is recorded as its own
-    value.
-  - Orientations, eligible tiers and bonus, and labels, as today.
-- **Cell classes**, declared once as today, each with its rule: which builder
-  fills a region of the class, and its parameters. The rule also lists the
-  **features** a region of the class sites (for example, one spawn, or
-  `exitCount` exits). This is the only way a feature reaches a builder: in its
-  brief, through its class rule. Macro still places no points.
-- **Set piece classes, set pieces, tile sets and tile designs**, in that
-  hierarchy. Placement is unchanged: the same quotas, zone filters and
-  distribution.
-  - Set piece classes are declared in the library, not a closed list in code.
-    Each names the engine placement rule it uses (today's `start`, `end`,
-    `enormous`, `medium`, `small`) and the features it owns. Each feature has
-    a **count per instance**: a number, or a param such as `exitCount`. For
-    example, `end` owns `exitCount` exits and one hunter spawn per instance.
-  - A new **`charger`** class owns charging stations. It needs at least one
-    charger set piece authored. Until then a map has no charger, as the tile
-    path has none today.
-- **No geometry.** There are no walls, gaps, spans or fences.
-- **No impassable prescription.** Without macro geometry, nothing could honour
-  one, and builders aren't asked to (Corey, 2026-09-27). A suggestion channel
-  for builders is deferred.
-- **Validity:** every declared class is registered, and every prescription is
-  well formed. A passable run that lies wholly inside a tile, without reaching
-  the tile's edge, must already be at least a hunter wide, because no
-  neighbour can lengthen it. This is the #73 design check.
-- **A new library, authored fresh.** It is written against a **region type
-  catalogue** (see "Build order", track B): the region types play needs, each
-  with its own builder and decomposer. Tiles and set pieces are then authored
-  to form those regions. Today's library stays with the old paths and is
-  retired with them. Old designs may be reused by hand where they fit, but
-  nothing converts them, and the new library has its own version number.
+52 defines the library. What the chain relies on:
+
+- **Tile designs** carry a declared class per cell, adjacency prescriptions on
+  perimeter segments, and passability prescriptions (`passable`, `any`, or
+  unstated) on any segment.
+- **Cell classes** each name a region type, with its parameters. A class's rule
+  also lists the **features** its strategy sites. For example, one spawn, or
+  `exitCount` exits. This is the only way a feature reaches a strategy: in its
+  brief, through its class rule. Macro places no points.
+- **Set piece classes** are declared in the library. Each names the engine
+  placement rule it uses (today's `start`, `end`, `enormous`, `medium`,
+  `small`, plus the new `charger`) and the features it owns, each with a count
+  per instance (a number, or a param such as `exitCount`).
+- **No geometry and no impassable prescription.** Without macro geometry,
+  nothing could honour one, and strategies aren't asked to (Corey, 2026-09-27).
+  A suggestion channel for builders is deferred (16).
+- **Validity:** every declared class is registered and names a region type,
+  and every prescription is well formed. A passable run that lies wholly inside
+  a tile, without reaching the tile's edge, must already be at least a hunter
+  wide, because no neighbour can lengthen it. This is the #73 design check.
+- **A new library, authored fresh** against the region type catalogue (track
+  B). Today's library stays with the old paths and retires with them.
 
 ### 1. Placement: seed, params, library → **Layout** (object)
 
@@ -236,11 +188,10 @@ This is the knowledge layer: what the solved placement means.
 - **Passability guarantees:** a segment between two cells on the map is
   `guaranteed` if either side prescribes `passable`, and otherwise `none`. A
   segment facing the map's outside is always `none`, whatever its design
-  prescribes: nothing is across it, and composition closes it. So a design
-  placed at the map's edge is valid, and its outward prescription just doesn't
-  become a guarantee. What each side stated
-  (`passable`, `any`, unstated) is kept alongside, as provenance for later
-  steps and open questions.
+  prescribes: nothing is across it. So a design placed at the map's edge is
+  valid, and its outward prescription just doesn't become a guarantee. What
+  each side stated (`passable`, `any`, unstated) is kept alongside, as
+  provenance for later steps and open questions.
 - **Why it's a view:** nothing is decided here, so there's nothing to save.
 
 ### 3. Regions: ResolvedLayout → **LayoutRegions** (view)
@@ -248,74 +199,79 @@ This is the knowledge layer: what the solved placement means.
 - **Layout regions:** maximal 4-connected sets of cells with one resolved
   class. No segment splits a region, because macro states no geometry. Ids and
   seeds are functions of each region's own cells and the map seed.
-- **Boundaries:** `findBoundaries` (lifted from `plan/ports.ts`) gives maximal
-  straight runs between each pair of regions, split at corners and wherever the
-  region across changes. A run facing the map's outside is included, and it
-  never has a passable run (see Resolution).
+- **Boundaries:** the SDK's `buildInterfaces` gives maximal straight runs
+  between each pair of regions. mapgen's `findBoundaries` and #73's
+  `passableRuns` were copies of it and retire. Runs facing the map's outside
+  aren't boundaries, since they never carry a guarantee.
 - **Passable runs:** the guaranteed stretches of each boundary.
 - **Validity:** every passable run is at least `ceil(2 × hunterRadius)`
-  segments long (#73). A run may cross a tile seam, since boundaries ignore
-  tiles.
+  segments long (#73), with the hunter's size from one body scale (17 M5). A
+  run may cross a tile seam, since boundaries ignore tiles.
 - **Region graph:** each region is a node. Two regions are joined when a
   boundary between them has a passable run.
 
 ### 4. Proof: LayoutRegions → **ReachabilityProof** (view)
 
-- **Holds:** a union-find over the region graph, giving the components that
-  guarantees connect. This is `proveReachability`, adapted from planned floors
-  to guarantees. Which region will hold a feature isn't known before micro, so
-  the proof names no feature regions.
+- **Holds:** the components of the region graph, found by an SDK connectivity
+  utility generalized from the component grouping in `negotiatePortals`. The
+  planned path's `proveReachability` was another copy and retires. Which region
+  will hold a feature isn't known before micro, so the proof names no feature
+  regions.
 - **Meaning:** a claim about guarantees, not geometry. It holds for a built
-  map only because each builder keeps its guarantees (stage 6), and the
+  map only because each strategy keeps its guarantees (stage 6), and the
   measurement checks it (stage 8).
-- **Gate:** none for now; the proof is reported. Measurement is the gate (see
-  QUESTIONS "The chain rebuild" item 2). The proof has nothing to connect until
-  the new library's designs prescribe passable runs.
+- **Gate:** none for now; the proof is reported, and measurement is the gate
+  (17 M2). The proof has nothing to connect until the new library's designs
+  prescribe passable runs.
 
 ### 5. Briefs: Layout, LayoutRegions, zones → **RegionBrief[]** (view)
 
-One brief per layout region, as plain data:
+One brief per layout region, expressed in the macro/micro contract
+(`shared/map/micro/types.ts`, which evolves from today's `RegionSpec`):
 
-- region id, resolved class, the class rule (builder and parameters), cells,
-  and seed
+- region id, seed, and the **region type** with its parameters from the class
+  rule. This replaces `RegionSpec`'s closed list of five builder ids.
+- **cells**, in the contract's global cell coordinates, with the cell size.
+  mapgen's flat indices are translated by its grid width (20, "Next
+  boundaries").
 - **zone context:** each cell's tier, bonus and loot chance
-- **obligations:**
-  - every guaranteed-passable segment in or on the region stays passable
-  - all its passable runs stay mutually reachable at hunter size
+- **features** the class rule lists. The `entry` builder's spawn count is the
+  first case: "The contestant entry areas should be treated like a region that
+  gets micro generated" (17, September 22).
+- **obligations**, one per passable run on the region's boundary, plus any
+  guaranteed segment inside it (17 M8):
+  - every guaranteed segment stays open along its whole length (17 M3)
+  - all its passable runs stay mutually reachable at hunter size, which is
+    19's September 24 contract
 
-A brief never mentions another region's contents. A decomposing region type
-(#76) splits its own brief into sub-briefs inside its build. That isn't a
-stage.
+A brief never mentions another region's contents. A region type that
+decomposes splits its own brief into children with the SDK's decomposition
+(19, 20). That happens inside stage 6, not as a stage of its own.
 
-### 6. Build: each RegionBrief → **RegionInterior** (object)
+### 6. Build: each RegionBrief → **RegionResult** (object), in the game
 
-- **Holds:**
-  - the classes it lays on its own cells
-  - the spans it states on segments with at least one side in its cells
-  - props (containment as today)
-  - spawns, and a site for each feature its class rule declares, in its own
-    cells
-  - a manifest
-- **Write scope:** a builder writes only its own cells, and only segments
-  touching them. It never narrows a guaranteed-passable segment.
-- **Conform:** `conform` checks each interior against its own brief
-  (containment, obligations) before composition. This is the minimum-passage
-  check from `micro/conform.ts`, without maximums.
-- **Builders:** the existing catalogue, called through a brief-to-context
-  adapter.
+- **Dispatch:** by region type, to that type's strategy in
+  `shared/map/micro/`: its decomposer, if it has one, and its builders, all
+  written on the SDK (track B).
+- **Holds:** the contract's result type, evolving from `micro-1`: placed
+  elements and shapes, feature sites, loot, and a manifest counted from what
+  landed.
+- **Write scope:** every collider stays inside the region's own cells, which is
+  the SDK's containment rule. So no strategy writes a boundary another region
+  shares, and composition needs no merge rule. A strategy never places geometry
+  on a guaranteed segment.
+- **Validation:** the SDK's access and boundary validators check each result
+  against its brief's obligations, after generation and never by trusting the
+  builder (19). This replaces mapgen's `conform`.
 
-### 7. Composition: Layout, ResolvedLayout, interiors → **BuiltMap** (view)
+### 7. Composition: Layout, LayoutRegions, region results → **BuiltMap** (view), in the game
 
-- **Built classes:** resolved classes with each interior's cells laid over
-  them.
-- **Built segments:** a segment between two cells on the map starts open, and
-  one facing the map's outside is closed. A segment inside one region
-  takes that region's statement. A boundary segment takes the **intersection**
-  of what its two sides stated. Intersection is commutative, so build order
-  can't matter. Guaranteed segments were left open by both sides, so they stay
-  open.
-- **Also holds:** props, features (from interiors), navigation walls, and
-  built regions (a search over built classes and built segments).
+- **Joins** every region result in one cell coordinate system. That generalizes
+  `composeMicroRegions`, which today composes up to 16 supplied regions (17
+  M7), and checks ownership and that the paired obligations on shared
+  boundaries agree.
+- **Emits** the game's collision geometry through the adapter (`adapter.ts`,
+  `placeElement`), so the built map is geometry the game can walk.
 
 ### 8. Measurement: BuiltMap, proof, Layout → **Report** (view)
 
@@ -333,26 +289,25 @@ stage.
      charger for `charger`.
 
   Two adjacent instances whose feature regions merged are caught this way.
-  The one builder sites one set of features, so they all land in one
-  instance's slots and the other instance counts zero. The builder never needs
-  to know about instances.
-
-- **Lattice validation, over standing components:** the standing components
-  are the connected components of the lattice nodes where a hunter can stand.
-  A hunter starting at the spawn must reach every one of them, except a
-  **sealed pocket**: a component lying wholly inside one built region, with no
-  feature and no spawn slot in it (DESIGN_DECISIONS "Reachability" point 6:
-  builders legitimately seal courtyards).
+  The one strategy sites one set of features, so they all land in one
+  instance's slots and the other instance counts zero. The strategy never
+  needs to know about instances.
+- **Reachability, over standing components.** A hunter starting at the spawn
+  must reach every standing component of the built map, except a **sealed
+  pocket**: one wholly inside one layout region's cells, with no feature and no
+  loot in it. Builders legitimately seal courtyards.
   - Checking components, not regions, catches a region split by a builder's
-    off-grid props, which leave its class and segments unchanged.
-  - It is stronger than today's check of one anchor per tile, which misses
-    whatever part of a tile its anchor doesn't stand in.
+    geometry.
+  - It is stronger than the old check of one anchor per tile.
+  - It runs on the game's geometry with swept discs. mapgen's cell lattice
+    stands in until the built map exists in game geometry (17 M6), because
+    mapgen's sampled connectivity is no proof of the game's geometry (20).
 - **Also checked:**
   - a contestant can reach every exit
-  - the proof agrees with the measurement: every standing component inside a
-    region the proof connects to the spawn's region is reached, sealed
-    pockets aside
-  - every interior conformed
+  - the proof agrees with the measurement: every standing component in a
+    region the proof connects to the spawn's region is reached, sealed pockets
+    aside
+  - every region result passed its own validation (stage 6)
 - **Metrics:** measured from the built map, not from a tile graph.
 
 ## Features
@@ -361,12 +316,12 @@ Features are spawn, hunter spawn, exits, charger and warp. **Features belong
 to set piece classes** (Corey, 2026-09-28). The set piece class is the only
 macro structure the engine treats as first class.
 
-| Feature | Set piece class | Today |
+| Feature | Set piece class | Old tile path |
 | --- | --- | --- |
 | spawn | `start` | the anchor of the lowest slot in the left third, unrelated to set pieces |
 | exits | `end` | anchors of `exitCount` slots in the right third |
 | hunter spawn | `end`, for simplicity for now | the anchor of the rightmost slot |
-| charger | `charger` (new), one per map for now | none on the tile path |
+| charger | `charger` (new), one per map for now | none |
 | warp | deferred | none |
 
 Who is responsible for what:
@@ -375,30 +330,22 @@ Who is responsible for what:
   knows about features: a placed class instance is trusted to deliver the
   features its class promises. Macro doesn't pick a region, a cell or a point.
 - **The authors:**
-  - Every set piece in a class forms at least one region of a
-    **feature class**: a cell class whose rule lists the features the set
-    piece class owns.
+  - Every set piece in a class forms at least one region of a feature class:
+    a cell class whose rule lists the features the set piece class owns.
   - A feature class is painted only inside the set pieces of its owning set
     piece class. That keeps ordinary fill from forming a region of it, so a
     feature region always comes from an owning instance.
-- **The builder of a region type** reads the features from its class rule in
-  the brief. It sites them inside its own region and returns them in its
-  interior. It never needs to know which set piece instance formed its
-  region.
+- **The region type's strategy** reads the features from its class rule in the
+  brief, sites them inside its own region, and returns them in its result. It
+  never needs to know which set piece instance formed its region.
 - **Measurement** is the first and only check (stage 8), per instance. Nothing
   validates at library load that a set piece class delivers its features, and
-  nothing can until micro is complete. Measurement assigns each feature site
-  to the instance whose slots contain it and counts. So if two adjacent
-  instances' feature regions merge and get one set of features, the instance
-  left without is reported (stage 8). Avoiding that is the authors' job, as
-  above.
-
-Today's library has no feature classes: its start pieces paint `market` and
-its end pieces `landing`, which ordinary fill paints too. The new library
-defines feature classes from the start, in the region type catalogue.
+  nothing can until micro is complete. If two adjacent instances' feature
+  regions merge and get one set of features, the instance left without is
+  reported. Avoiding that is the authors' job, as above.
 
 Anchors go. They stood in for "somewhere in this tile a body can stand", and
-the builders now choose that inside their own regions.
+the strategies now choose that inside their own regions.
 
 ## Playground mode
 
@@ -410,71 +357,85 @@ sizes however it needs to.
 ## What the finished map is
 
 The generated map is a container holding the two stage objects, the Layout and
-the interiors, plus the library it was made with. Every other stage output is
-a view computed on demand (#69), such as the resolved layout, the regions, the
-proof, the briefs, the built map and the report. The GUI, CLI and MCP read views through one accessor, not
-through fields copied into the map.
+the region results, plus the library it was made with. Every other stage
+output is a view computed on demand (#69): the resolved layout, the regions,
+the proof, the briefs, the built map and the report. The Map Lab, CLI and MCP
+read views through one accessor, not through fields copied into the map.
 
 ## Saving
 
-A save holds the Layout and, optionally, the interiors. Each records its inputs
-and the version of the algorithm that made it. A missing interior is rebuilt
-from the Layout and refused by name on a version mismatch (#70, QUESTIONS
-"Saving a map"). Views are never saved. The wire version is bumped, and old
-artifacts are refused by name.
+A save holds the Layout and, optionally, the region results. Each records its
+inputs and the version of the algorithm that made it. A missing result is
+rebuilt from the Layout, and refused by name on a version mismatch (#70; 17
+"Map generation", saving). Views are never saved. The wire version is bumped,
+and old artifacts are refused by name (53).
 
-## Reused as they are, or lifted
+## Reused, on each side
 
+**mapgen:**
 - `primitives.ts` and `tiles.ts` parsing, rewritten for the new schema
 - `wfc.ts` (compatibility changes)
-- set piece selection (lifted out of `placeLayout`)
+- set piece selection, lifted out of `placeLayout`
 - `makeZones`
-- `findBoundaries` and `proveReachability`
-- the micro builder catalogue, mask, canvas and clearance
-- `conform` (the minimum-passage half)
-- the navigation lattice
-- `coding.ts`, the wire form and BSON
+- `coding.ts`, the wire form and BSON (53)
 - the sweep and determinism harness
-- the Map Lab, CLI and MCP (through the accessor)
+- the Map Lab, CLI and MCP, through the accessor
+- the navigation lattice, until 17 M6 is settled
+
+**The game** (`shared/map/micro/`):
+- `buildInterfaces`, and the connectivity grouping in `negotiatePortals`
+- the access and boundary validators
+- `composeMicroRegions` and the adapter
+- the SDK's masks, shapes, routes, placement, `spreadPoints` and
+  decomposition machinery
+- the example builders, as material for track B
 
 ## Retired when the chain lands
 
-- `planStreets` and blocks
-- standing room
-- anchors and the tile-graph metrics
-- `composeMacro` and the macro structure contract (`macro.ts`, MACRO_STRUCTURES.md)
-- the whole planned path except the two lifted functions:
-  - partition
-  - port bands and ceilings
-  - `enforcePorts`
-  - loot planning (`LootCriteria` returns if loot becomes a macro concern)
-- tile side `ports`
-- library geometry
+In mapgen:
+- `generateMap`, `generatePlannedMap`, and everything only they use:
+  - `planStreets`, blocks and standing room
+  - anchors and the tile-graph metrics
+  - `composeMacro` and the macro structure contract (`macro.ts`)
+- the whole planned path (`src/plan/`)
+- mapgen's micro layer (`src/micro/`): its builders, conform, clearance, loot
+  and edit contract
+- tile side `ports` and library geometry
+- today's library
 
 ## Build order
 
-Each step is its own issue and PR. Nothing here touches the old paths until
-the switch-over.
+Each step is its own issue and PR. Nothing here touches the old paths or the
+live game until the switch-over.
 
-1. This specification, reviewed.
+1. This specification, reviewed (PR #80), then integrated (50).
 
-**Track A, the chain (code).**
+**Track A: the macro chain, in mapgen.**
 
 2. The library schema and `validateLibrary`, with a small test library that
    exercises every rule (#33 lands here, and the #73 design check).
 3. `chain/types.ts`: every object and view named in this document, with
    interfaces only, plus purity and determinism test harnesses.
 4. Placement.
-5. Resolution and Regions, including the run check (#73's logic, rebuilt on
-   `findBoundaries`).
-6. Proof.
-7. Briefs, Build (the builder adapter, conform, and features sited by
-   builders), and Composition (#68, #76). Existing builders are used where
-   the catalogue maps to them, and stubs stand in for the rest.
-8. Measurement.
+5. Resolution and Regions, including the run check on `buildInterfaces`
+   (#73's logic).
+6. Proof, on the SDK connectivity utility (C1).
+7. Briefs, and the translation into the contract (C1).
+8. Measurement: features per instance, and the proof's agreement, on the built
+   map (C2, C3).
 9. The map container, the accessor, saving and the wire version (#69, #70).
 
-**Track B, the library (content).** Starts after step 2, alongside steps 3–9.
+**Track C: the contract and composition, in the game.**
+
+- C1. **The contract:** region type ids instead of a closed builder list,
+  whole-run passable obligations (17 M3), features and zone context in the
+  brief, and the SDK connectivity utility.
+- C2. **Whole-map composition:** generalize `composeMicroRegions` beyond 16
+  regions and the per-region bounds, as macro-sized regions need (17 M7).
+- C3. **Whole-map measurement** on the game's geometry: standing components
+  and routes from spawn to exits (17 M6).
+
+**Track B: the library (content).** It starts after step 2.
 
 - B1. **Map Lab authoring** for the new schema: adjacency and passability
   prescriptions, feature classes, set piece classes. There are browser tests,
@@ -482,14 +443,15 @@ the switch-over.
 - B2. **The region type catalogue**, a document for Corey's review. For each
   region type:
   - its role in play
-  - its builder, and its decomposer if it has one
+  - its strategy: the decomposer and the builders, on the SDK
   - the features it sites, if it is a feature class
   - its shape needs, such as minimum area and width
   - its obligations, such as `open`'s privilege (#61)
 
-  Today's six builders are candidates, not constraints.
-- B3. **The builders and decomposers** the catalogue calls for, each its own
-  issue, built on step 7's adapter.
+  The game's example builders and mapgen's six are material, not
+  constraints.
+- B3. **The strategies** the catalogue calls for, in `shared/map/micro/`, each
+  its own issue.
 - B4. **The new library**, authored against the catalogue:
   - cell classes, tiles and tile sets
   - set pieces and set piece classes, including `start`, `end` and
@@ -501,24 +463,32 @@ the switch-over.
 **Switch-over.**
 
 10. Switch the Map Lab, CLI and MCP to the new chain and the new library (it
-    needs steps 2–9 and B4). Capture the new chain's first baseline, then
-    delete the old paths and the old library.
+    needs tracks A, B and C). Capture the new chain's first baseline, then
+    delete mapgen's old paths, its micro layer and the old library.
+
+Replacing the live game's interim street maze is a later, separate checkpoint
+(20, 41).
 
 Content is expected to change. The old #47 baseline is no reference for the
 new chain. The bar is that validation passes and maps play acceptably, and
 then the new chain's first baseline is captured, last.
 
-## In-flight work
+## Earlier issues
 
 | Issue | Becomes |
 | --- | --- |
+| #25 tile edge-constraint work, #32 v2 library schema | superseded by step 2 and track B |
 | #33 segment prescriptions | step 2 |
-| #73 / PR #78 | parked; its labels and design check move to step 2, its run check to step 5 |
-| #79 stage types and views | step 3 (this document is its design) |
-| #68 independent builders | step 7 |
-| #76 streets retire, region handed whole | step 7, and B3 for decomposers |
-| #69 map container | step 9 |
-| #70 saving with provenance | step 9 |
-| #71 planned path joins the chain | closed: the planned path is retired |
+| #34 a placed tile seals its interior | retires with the old tile path; stage 8's standing components catch the case |
+| #45 anchors at tile centre | retires with anchors |
+| #52 layer separation (tracking) | done (#49–#51), and superseded by this chain |
 | #59 reachability contract | step 6, then the open-face rule in step 4 |
 | #61 `open` is privileged | B2 states it, B3 builds it |
+| #65 the old chain (tracking) | superseded by the tracker named in 41 |
+| #68 independent builders | stages 5–7: steps 7, C1, B3 |
+| #69 map container | step 9 |
+| #70 saving with provenance | step 9 |
+| #71 planned path joins the chain | closed: the planned path retires |
+| #73 / PR #78 | closed unmerged. Its labels and design check went to step 2, its run check to step 5 |
+| #76 streets retire, region handed whole | stage 6 and B3; streets retire at step 10 |
+| #79 stage types and views | step 3 (this document is its design) |

@@ -10,7 +10,7 @@
  * derivable (a tile's id and position, a region's id and area, every seam
  * between tiles) is dropped and rebuilt on read.
  *
- * A map stores its layout and its interiors (docs/DESIGN_DECISIONS.md "Map
+ * A map stores its layout and its interiors (docs/archive/pre-integration/DESIGN_DECISIONS.md "Map
  * layers"). A V2 map's structure is derived again on read with the library its
  * layout names; a planned map's tiles and anchors are measured again. On both,
  * the final grid, region partition and walls come from layout plus interiors.
