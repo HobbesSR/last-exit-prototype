@@ -58,7 +58,7 @@ order is 51's:
 - **Track B:** the region type catalogue, the strategies, and a new library.
 - **Then the switch-over.**
 
-Work in progress and its order live on the Forgejo tracker, TRACKER_ISSUE, and
+Work in progress and its order live on the Forgejo tracker, #82, and
 in each step's issue ([34](34-forgejo-workflow.md)). mapgen's former
 `NEXT_TASKS.md` backlog is retired. Its unfinished direction is in 51 and 16.
 

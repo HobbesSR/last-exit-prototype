@@ -484,7 +484,7 @@ then the new chain's first baseline is captured, last.
 | #52 layer separation (tracking) | done (#49–#51), and superseded by this chain |
 | #59 reachability contract | step 6, then the open-face rule in step 4 |
 | #61 `open` is privileged | B2 states it, B3 builds it |
-| #65 the old chain (tracking) | superseded by the tracker named in 41 |
+| #65 the old chain (tracking) | superseded by the tracker, #82, which lists each step's issue |
 | #68 independent builders | stages 5–7: steps 7, C1, B3 |
 | #69 map container | step 9 |
 | #70 saving with provenance | step 9 |
