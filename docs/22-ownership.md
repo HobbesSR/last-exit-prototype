@@ -29,9 +29,14 @@ Map generation has two halves ([50](50-map-generation.md)):
   type's strategy (decomposer and builders), the SDK machinery they share, the
   macro/micro contract in `types.ts`, region validation and composition.
 
-Each concern has one owner. mapgen's own micro layer (`mapgen/src/micro/`) and
-its planned path (`mapgen/src/plan/`) duplicate the game's and retire at the
-chain's switch-over, so don't extend either. mapgen may import the contract and
+The same problem at the same level has one owner:
+- mapgen's own micro layer (`mapgen/src/micro/`) duplicates the game's and
+  retires at the chain's switch-over.
+- mapgen's planned path (`mapgen/src/plan/`) retires with it.
+
+Don't extend either. A problem both levels face, such as boundary runs,
+connectivity or reachability checks, is solved at each level within its own
+scope, with a shared definition where the two must agree (50). mapgen may import the contract and
 the SDK from `shared/map/micro/` ([17](17-open-questions.md) M1). The game
 doesn't import `mapgen/` until the live game adopts the chain.
 

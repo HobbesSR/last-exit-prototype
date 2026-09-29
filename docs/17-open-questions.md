@@ -121,6 +121,7 @@ is in 50–53. Answers are grouped by topic, each under the question it settled.
 **The two projects, the SDK and the documentation.**
   - (2026-09-29) "Well I thought the idea of the generation SDK is more about providing a library of reusable functionality likely to be used across builders. But there's kind of a documentation sweep that seems to be necessary in general as well."
   - (2026-09-29) "I kind of wonder if next_tasks is fighting forgejo now."
+  - (2026-09-29) "keep in mind I think we have duplicate things in some cases because they are tailored for the level they are engineered for. Macro and Micro have to solve similar problems but within the boundaries of their scope."
   - (2026-09-29) "Yes mapgen's docs I think have been part of the bane. I think we need to integrate and normalize the documentation and I'm not sure we could have done it without going through the pains we went through to get to where we are now. And I also think we're in a very delicate place where this is probably the best context that understands how to merge the designs of the two coupled projects that were inadvertantly trying to solve the same things. But mapgen evolved towards owning bottom of macro up, and the original game engine owned building aggregate regions down. And that helps generally decide whose work is relevant versus deprecated, but it might take some searching to truly understand."
 
 ### Open

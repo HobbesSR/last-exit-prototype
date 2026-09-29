@@ -414,7 +414,9 @@ specifies it:
   this SDK's validators (51 track C).
 
 It must not treat `mapgen/`'s graph or sampled connectivity as proof of this
-game's physical geometry. mapgen's own micro layer and its planned path are
-duplicates of this directory's work and retire ([50](50-map-generation.md)).
+game's physical geometry. mapgen's own micro layer duplicates this
+directory's work and retires, and its planned path retires with it. Where macro
+and micro solve similar problems, such as boundary runs and connectivity, each
+keeps a version fitted to its own scope ([50](50-map-generation.md)).
 The existing generator remains live until that explicit
 integration checkpoint is satisfied.

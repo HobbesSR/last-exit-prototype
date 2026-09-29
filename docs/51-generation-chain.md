@@ -58,9 +58,17 @@ design_notes.txt takes precedence for intent.
    order-free. Changing one region's seed changes only that region.
 6. **Macro prescribes no geometry.** Tiles and set pieces paint cell classes
    and state prescriptions. Everything physical is built by region strategies.
-7. **Shared machinery lives in the SDK.** Both halves call
-   `shared/map/micro/sdk.ts` for masks, shapes, routes, interface runs and
-   connectivity, and neither reimplements it (50).
+7. **Each level solves its own problems.** Macro and micro face similar
+   problems, such as boundary runs, connectivity and reachability, and each
+   solves them within its own scope (Corey, 2026-09-29):
+   - Macro works across the whole map, on layout regions and guarantees,
+     before anything is built.
+   - Micro works inside one region, on its children and its geometry.
+
+   The same problem at the same level has one home. Machinery that genuinely
+   fits both scopes lives in the SDK. Where the levels must agree, as on body
+   scale and on the runs a brief hands down, they share one definition and a
+   test pins it (50).
 
 ## Names
 
@@ -75,7 +83,7 @@ Each term has one meaning. 52 defines the library's terms in full.
 | **passability guarantee** | Whether a solved layout promises a segment passable: `guaranteed` or `none` | Resolution |
 | **adjacency prescription** | The class a design requires of the cell across one of its perimeter segments | Library |
 | **layout region** | A maximal 4-connected set of cells with one resolved class | Regions |
-| **boundary** | A maximal straight run of segments between two layout regions (the SDK's interface runs) | Regions |
+| **boundary** | A maximal straight run of segments between two layout regions; the same definition of a run as the SDK's interface runs between a region's children | Regions |
 | **passable run** | A maximal contiguous stretch of guaranteed-passable segments along one boundary | Regions |
 | **brief** | Everything one region's strategy is handed, expressed in the macro/micro contract (`shared/map/micro/types.ts`) | Briefs |
 | **region result** | What one region's strategy returns, in the contract's result type | Build |
@@ -199,10 +207,18 @@ This is the knowledge layer: what the solved placement means.
 - **Layout regions:** maximal 4-connected sets of cells with one resolved
   class. No segment splits a region, because macro states no geometry. Ids and
   seeds are functions of each region's own cells and the map seed.
-- **Boundaries:** the SDK's `buildInterfaces` gives maximal straight runs
-  between each pair of regions. mapgen's `findBoundaries` and #73's
-  `passableRuns` were copies of it and retire. Runs facing the map's outside
-  aren't boundaries, since they never carry a guarantee.
+- **Boundaries:** maximal straight runs of shared segments between each pair
+  of layout regions, split at corners and wherever the region across changes.
+  - This is macro's own boundary finder, fitted to the whole map: flat
+    indices, hundreds of regions, tile seams, and guarantees laid over it.
+    mapgen's `findBoundaries` (from the planned path) and #73's `passableRuns`
+    are material for it.
+  - Step 5 reuses the SDK's `buildInterfaces`, which finds the same kind of run
+    between a region's children, only if it fits the whole map's scale.
+  - Either way, a boundary becomes a region's external run in its brief. So
+    macro's runs and the SDK's definition must agree, and a test pins that.
+  - Runs facing the map's outside aren't boundaries, since they never carry a
+    guarantee.
 - **Passable runs:** the guaranteed stretches of each boundary.
 - **Validity:** every passable run is at least `ceil(2 × hunterRadius)`
   segments long (#73), with the hunter's size from one body scale (17 M5). A
@@ -212,11 +228,12 @@ This is the knowledge layer: what the solved placement means.
 
 ### 4. Proof: LayoutRegions → **ReachabilityProof** (view)
 
-- **Holds:** the components of the region graph, found by an SDK connectivity
-  utility generalized from the component grouping in `negotiatePortals`. The
-  planned path's `proveReachability` was another copy and retires. Which region
-  will hold a feature isn't known before micro, so the proof names no feature
-  regions.
+- **Holds:** the components of the region graph, from a union-find over
+  guarantees. This is macro's own proof. The planned path's
+  `proveReachability` is material for it. Micro groups a region's children in
+  a similar way during portal negotiation (`negotiatePortals`), but that
+  answers a different question at a different level. Which region will hold a
+  feature isn't known before micro, so the proof names no feature regions.
 - **Meaning:** a claim about guarantees, not geometry. It holds for a built
   map only because each strategy keeps its guarantees (stage 6), and the
   measurement checks it (stage 8).
@@ -381,9 +398,11 @@ and old artifacts are refused by name (53).
 - the sweep and determinism harness
 - the Map Lab, CLI and MCP, through the accessor
 - the navigation lattice, until 17 M6 is settled
+- from the planned path, as material for stages 3–4: `findBoundaries` and
+  `proveReachability`
 
 **The game** (`shared/map/micro/`):
-- `buildInterfaces`, and the connectivity grouping in `negotiatePortals`
+- `buildInterfaces`, if it fits the whole map's scale (step 5 decides)
 - the access and boundary validators
 - `composeMicroRegions` and the adapter
 - the SDK's masks, shapes, routes, placement, `spreadPoints` and
@@ -397,7 +416,7 @@ In mapgen:
   - `planStreets`, blocks and standing room
   - anchors and the tile-graph metrics
   - `composeMacro` and the macro structure contract (`macro.ts`)
-- the whole planned path (`src/plan/`)
+- the planned path (`src/plan/`), once stages 3–4 have taken what they reuse
 - mapgen's micro layer (`src/micro/`): its builders, conform, clearance, loot
   and edit contract
 - tile side `ports` and library geometry
@@ -417,9 +436,9 @@ live game until the switch-over.
 3. `chain/types.ts`: every object and view named in this document, with
    interfaces only, plus purity and determinism test harnesses.
 4. Placement.
-5. Resolution and Regions, including the run check on `buildInterfaces`
+5. Resolution and Regions, including macro's boundary runs and the run check
    (#73's logic).
-6. Proof, on the SDK connectivity utility (C1).
+6. Proof.
 7. Briefs, and the translation into the contract (C1).
 8. Measurement: features per instance, and the proof's agreement, on the built
    map (C2, C3).
@@ -428,8 +447,8 @@ live game until the switch-over.
 **Track C: the contract and composition, in the game.**
 
 - C1. **The contract:** region type ids instead of a closed builder list,
-  whole-run passable obligations (17 M3), features and zone context in the
-  brief, and the SDK connectivity utility.
+  whole-run passable obligations (17 M3), and features and zone context in
+  the brief.
 - C2. **Whole-map composition:** generalize `composeMicroRegions` beyond 16
   regions and the per-region bounds, as macro-sized regions need (17 M7).
 - C3. **Whole-map measurement** on the game's geometry: standing components
