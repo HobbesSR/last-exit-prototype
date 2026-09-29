@@ -234,19 +234,22 @@ their classes and distribution, macro prescribes no geometry for now, and the
 architecture is the implementer's to set. These parts are open, each with a
 working assumption:
 
-1. **Which region is responsible for each feature.** Spawn, hunter spawn,
-   exits, charger and warp become responsibilities of regions, which site them
-   inside themselves, rather than points at tile anchors. What picks the
-   region is open. Today it's position alone: the lowest slot in the left
-   third for the spawn, the rightmost slot for the hunter, `exitCount` slots in
-   the right third for exits. Set pieces play no part, although the start and
-   end categories suggest they should. Other options:
-   - a set piece carries it (the start piece hosts the spawn, the end piece the
-     exits)
-   - a cell class declares it (every `evac` region is responsible for an exit)
-
-   *Assumption:* today's positional rules, each taking the largest layout
-   region in the chosen slot, so content moves as little as it can.
+1. **Features and set piece classes.** **Answered, Corey, 2026-09-28:**
+   features belong to set piece classes, "which are the only things we give
+   first class status in the engine", and a new set piece class owns chargers.
+   Still open:
+   - **Hunter spawn's owner.** *Assumption:* `end`, since it already sits at
+     the right edge where hunters start.
+   - **Which region inside an instance hosts a feature.** A set piece may cover
+     several regions. *Assumption:* the largest layout region lying wholly
+     inside the instance's footprint. The alternative is that each set piece
+     names the cell class that hosts each feature it owns.
+   - **Playground mode.** It bypasses the game quotas, so it may place no
+     `start` or `end` piece. *Assumption:* playground skips only the
+     size-class quotas (`enormous`, `medium`, `small`). It still places one
+     instance of each class that owns a feature, when the library has one.
+   - **The charger class's rule.** *Assumption:* one instance per map, anywhere
+     its tiers allow, until its placement rule is designed.
 2. **When the proof gates generation.** The shipped library prescribes
    nothing passable, so no region can be proven connected, and a hard gate
    would reject every map. *Assumption:*

@@ -22,6 +22,10 @@ Direction it follows (Corey, 2026-09-28):
   passability versus the knowledge of what segments are passable".
 - Set pieces keep "the same distribution as before", chosen from set piece
   classes.
+- Features belong to set piece classes, "which are the only things we give
+  first class status in the engine". A new set piece class owns charging
+  stations. The hierarchy: "set piece classes are sets of set pieces, which
+  are layouts of tile sets, which are sets of tiles, sometimes with just one."
 - Macro prescribes no geometry. Walls and fences go from the library for now
   and may come back later.
 - The rest is left to the architect: "My architectural directives have been
@@ -86,10 +90,19 @@ don't come back with a second meaning.
 | **passable run** | A maximal contiguous stretch of guaranteed-passable segments along one boundary | Regions |
 | **brief** | Everything one region's builder is handed | Briefs |
 | **interior** | What one region's builder returns | Build |
-| **responsibility** | A feature a region must site (spawn, exit, ...) | Briefs |
+| **tile design** | One 6 × 6 tile the library holds | Library |
+| **tile set** | A set of tile designs, sometimes just one | Library |
+| **set piece** | A layout of tile sets: slots at tile offsets, each naming a tile set | Library |
+| **set piece class** | A set of set pieces, with a placement rule and a quota, and the features it owns. The only first-class macro structure. The code calls it `category` today | Library, Placement |
+| **set piece instance** | One placed copy of a set piece: which one, and the slots it covers | Placement |
+| **responsibility** | A feature a region must site (spawn, exit, charger, ...), handed down from the set piece instance that owns it | Features, Briefs |
 
 Retired, or confined to the old paths until they're deleted:
 - `open` as a segment label. `open` is only a cell class.
+- a set piece's own `class` field (market, industrial, landing, military). It
+  is required by validation and read nowhere else. "Class" now means only a
+  cell class or a set piece class. The converter keeps it as an unread
+  `theme` label.
 - `ports`: the unread tile side sockets, and the planned path's `PerimeterPort`.
 - `edges`, whether as design side strings or as `MapEdge` seams.
 - **structure** (`MapStructure`, and `MacroStructure` in `macro.ts`).
@@ -134,8 +147,15 @@ therefore a Layout, optionally with its interiors (see "Saving").
     `passable` or `any`. Leaving a segment unstated is recorded as its own
     value.
   - Orientations, eligible tiers and bonus, and labels, as today.
-- **Tile sets, set pieces and set piece classes** are unchanged: the same
-  categories, quotas, zone filters and distribution.
+- **Set piece classes, set pieces, tile sets and tile designs**, in that
+  hierarchy. Placement is unchanged: the same quotas, zone filters and
+  distribution.
+  - Set piece classes are declared in the library, not a closed list in code.
+    Each names the engine placement rule it uses (today's `start`, `end`,
+    `enormous`, `medium`, `small`) and the features it owns.
+  - A new **`charger`** class owns charging stations. It needs at least one
+    charger set piece authored. Until then a map has no charger, as the tile
+    path has none today.
 - **No geometry.** There are no walls, gaps, spans or fences. The six walled
   fence tiles (`depot-*`, `evac-*`) lose their walls when converted and keep
   their classes.
@@ -156,11 +176,17 @@ therefore a Layout, optionally with its interiors (see "Saving").
 
 ### 1. Placement: seed, params, library → **Layout** (object)
 
-- **Holds:** seed, params, library fingerprint, and each slot's design,
-  orientation and set piece instance. Nothing else. The primitive grid isn't
-  stored; it's a view (below).
+- **Holds:**
+  - seed, params and library fingerprint
+  - each slot's design and orientation
+  - the **set piece instances**: which set piece, of which class, covering
+    which slots. Today's layout keeps only the set piece's id per slot, so two
+    copies of one piece can't be told apart, and an instance owns features.
+
+  Nothing else. The primitive grid isn't stored; it's a view (below).
 - **Solver:**
-  - Set pieces first, exactly as today.
+  - Set pieces first, exactly as today: each class's rule places its quota.
+    That rule is what guarantees every owned feature exists.
   - Then WFC for the remaining slots, over adjacency compatibility: a
     neighbour's cell must match each adjacency prescription, or be `any`.
   - Passability prescriptions can't conflict, since neither side can say
@@ -273,33 +299,38 @@ stage.
 
 ## Features
 
-Macro features are spawn, hunter spawn, exits, charger and warp. In the new
-chain each is a **responsibility**, not a point:
+Features are spawn, hunter spawn, exits, charger and warp. **Features belong
+to set piece classes** (Corey, 2026-09-28). The set piece class is the only
+macro structure the engine treats as first class, so reasoning about a
+feature's existence and relationships means reasoning about set piece classes
+and their placement rules.
 
-1. **Which region is responsible:** chosen from layout regions, by a rule for
-   each feature, as a view over the Layout and LayoutRegions computed before
-   the Proof. A rule that draws randomness would record its choice in the
-   Layout, making it part of that object. The positional rules below draw
-   none.
+| Feature | Owned by set piece class | Today |
+| --- | --- | --- |
+| spawn | `start` | the anchor of the lowest slot in the left third, unrelated to set pieces |
+| exits | `end` | anchors of `exitCount` slots in the right third |
+| hunter spawn | `end` (*assumption*: the end piece already sits at the right edge, where hunters start) | the anchor of the rightmost slot |
+| charger | `charger` (new) | none on the tile path |
+| warp | deferred | none |
 
-   *Working assumption:* keep today's positional rules, but choose a region,
-   not a tile anchor.
-   - **spawn:** the lowest slot in the left third
-   - **hunter spawn:** the rightmost slot
-   - **exits:** `exitCount` slots in the right third
-   - **charger:** the tile path places none today, and the planned path put
-     one in the region nearest the map's horizontal middle. The chain adopts
-     that rule.
-   - **warp:** deferred; nothing places one today.
+How a feature gets from its class to a spot on the map:
 
-   Each takes the largest layout region in that slot.
-2. **Where in the region the feature stands:** the region's builder decides,
-   and returns a feature site in its interior.
-3. **The proof** requires every responsible region to be in the spawn's
-   component. Measurement confirms each feature is reached.
+1. **Existence.** The class's placement rule places its quota, so every owned
+   feature has at least one set piece instance. A map is invalid if an owning
+   class placed nothing.
+2. **The responsible region.** Each owned feature becomes a responsibility of
+   one layout region inside its instance's footprint. This is a view over the
+   Layout and LayoutRegions, computed before the Proof. *Assumption:* the
+   largest layout region whose cells all lie inside the footprint. Whether a
+   set piece should name the cell class that hosts each feature is QUESTIONS
+   "The chain rebuild" item 1.
+3. **Where it stands.** The responsible region's builder decides, and returns a
+   feature site in its interior.
+4. **Connection.** The proof requires every responsible region to be in the
+   spawn region's component. Measurement confirms each feature is reached.
 
-So anchors disappear. They were a stand-in for "somewhere in this tile a body
-can stand", and responsibilities make the region answer that itself.
+Anchors go. They stood in for "somewhere in this tile a body can stand", and
+the responsible region now answers that itself.
 
 ## What the finished map is
 
@@ -351,8 +382,10 @@ Each step is its own issue and PR. Steps 2 to 8 build the new chain beside the
 old paths without touching them.
 
 1. This specification, reviewed.
-2. The library schema and converter, with the new `validateLibrary`. The
-   converter's report of changed designs goes on the issue (#33 lands here).
+2. The library schema and converter, with the new `validateLibrary`. This
+   includes declared set piece classes with their owned features, and the
+   `charger` class. The converter's report of changed designs goes on the
+   issue (#33 lands here). Charger content is authored separately.
 3. `chain/types.ts`: every object and view named in this document, with
    interfaces only, plus purity and determinism test harnesses.
 4. Placement.
