@@ -12,6 +12,7 @@ No answer is needed to run the prototype. These defaults are assumptions for thi
 9. **Saving a map:** answered 2026-09-27; every stage object can be saved, alone or together. See "Saving a map" below.
 10. **Region boundary openings:** open parts of the direction given on #68. See "Region boundary openings" below.
 11. **Segment prescriptions:** open parts of the adjacency / geometry / passability model. See "Segment prescriptions" below.
+12. **The chain rebuild:** open parts of CHAIN.md, the specification for rebuilding generation as checkpoints. See "The chain rebuild" below.
 
 ## Already clear; no reconfirmation requested
 
@@ -225,3 +226,42 @@ value, and labels set several at once. These parts are open:
    isn't blocked either (a fence you can shoot through, you can see through),
    until the primitive set says otherwise.
 
+## The chain rebuild
+
+CHAIN.md specifies generation rebuilt as checkpoints with clear interfaces
+(Corey, 2026-09-28). Corey answered three parts on 2026-09-28: set pieces keep
+their classes and distribution, macro prescribes no geometry for now, and the
+architecture is the implementer's to set. These parts are open, each with a
+working assumption:
+
+1. **Which region is responsible for each feature.** Spawn, hunter spawn,
+   exits, charger and warp become responsibilities of regions, which site them
+   inside themselves, rather than points at tile anchors. What picks the
+   region is open. Today it's position alone: the lowest slot in the left
+   third for the spawn, the rightmost slot for the hunter, `exitCount` slots in
+   the right third for exits. Set pieces play no part, although the start and
+   end categories suggest they should. Other options:
+   - a set piece carries it (the start piece hosts the spawn, the end piece the
+     exits)
+   - a cell class declares it (every `evac` region is responsible for an exit)
+
+   *Assumption:* today's positional rules, each taking the largest layout
+   region in the chosen slot, so content moves as little as it can.
+2. **When the proof gates generation.** The shipped library prescribes
+   nothing passable, so no region can be proven connected, and a hard gate
+   would reject every map. *Assumption:*
+   - The proof is reported, not enforced, until the library prescribes passable
+     runs; lattice measurement stays the gate meanwhile.
+   - Once designs prescribe them, the proof must connect every region with a
+     responsibility.
+   - "Everything reachable" stays a measurement.
+3. **Guarantees inside a region.** A segment prescribed passable with the same
+   region on both sides isn't on any boundary, so the proof doesn't use it.
+   *Assumption:* the builder still keeps it passable, since "It's the tile
+   designer's job to mark internal as passable" (Corey, 2026-09-27).
+4. **The fence set pieces without walls.** The `depot` and `evac` rings lose
+   their walls when converted, so a compound is only its class until a builder
+   or a later geometry prescription makes it one. That makes "How do fenced set
+   pieces open?" moot for now. *Assumption:* the converter drops the walls and
+   reports each changed design on the library issue, and nothing replaces them
+   until Corey adds geometry back.

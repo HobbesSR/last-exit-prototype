@@ -204,6 +204,10 @@ test-driven).
 
 ## The generation chain
 
+**Being rebuilt (proposed 2026-09-28):** CHAIN.md specifies the chain afresh
+as checkpoints with clear interfaces. Where it and this section disagree
+about the new chain, CHAIN.md holds. This section describes the current code.
+
 Stated by Corey on 2026-09-27. Being implemented through #65. It extends "Map
 layers" from what a map holds to how one is made.
 
