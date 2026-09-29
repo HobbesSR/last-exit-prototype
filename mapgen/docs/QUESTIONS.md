@@ -235,29 +235,26 @@ architecture is the implementer's to set. These parts are open, each with a
 working assumption:
 
 1. **Features and set piece classes.** **Answered, Corey, 2026-09-28:**
-   features belong to set piece classes, "which are the only things we give
-   first class status in the engine", and a new set piece class owns chargers.
-   Still open:
-   - **Hunter spawn's owner.** *Assumption:* `end`, since it already sits at
-     the right edge where hunters start.
-   - **Which region inside an instance hosts a feature.** A set piece may cover
-     several regions. *Assumption:* the largest layout region lying wholly
-     inside the instance's footprint. The alternative is that each set piece
-     names the cell class that hosts each feature it owns.
-   - **Playground mode.** It bypasses the game quotas, so it may place no
-     `start` or `end` piece. *Assumption:* playground skips only the
-     size-class quotas (`enormous`, `medium`, `small`). It still places one
-     instance of each class that owns a feature, when the library has one.
-   - **The charger class's rule.** *Assumption:* one instance per map, anywhere
-     its tiers allow, until its placement rule is designed.
+   - Features belong to set piece classes, "which are the only things we give
+     first class status in the engine", and a new class owns chargers, one per
+     map for now.
+   - Hunter spawn goes with `end` for now.
+   - The builder of a region type is responsible for the features. Authors
+     make sure a class's set pieces form regions that satisfy it, and macro
+     trusts the class.
+   - Checking waits until micro is complete.
+   - Playground mode is a development aid that is expected to evolve.
+
+   CHAIN.md "Features" and "Playground mode" record this. Nothing is open
+   here, except how the charger class is placed once one per map stops being
+   enough.
 2. **When the proof gates generation.** The shipped library prescribes
-   nothing passable, so no region can be proven connected, and a hard gate
-   would reject every map. *Assumption:*
-   - The proof is reported, not enforced, until the library prescribes passable
-     runs; lattice measurement stays the gate meanwhile.
-   - Once designs prescribe them, the proof must connect every region with a
-     responsibility.
-   - "Everything reachable" stays a measurement.
+   nothing passable, so the proof has nothing to connect. Which region holds a
+   feature isn't known until micro is complete. *Assumption:* the proof is
+   reported and never gates for now, and measurement stays the gate. Once
+   designs prescribe passable runs, gating on "the proof connects every
+   region" is a separate decision, because regions are allowed to be
+   unreachable on the proof and still reached on the built map.
 3. **Guarantees inside a region.** A segment prescribed passable with the same
    region on both sides isn't on any boundary, so the proof doesn't use it.
    *Assumption:* the builder still keeps it passable, since "It's the tile

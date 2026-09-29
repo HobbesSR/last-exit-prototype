@@ -26,6 +26,13 @@ Direction it follows (Corey, 2026-09-28):
   first class status in the engine". A new set piece class owns charging
   stations. The hierarchy: "set piece classes are sets of set pieces, which
   are layouts of tile sets, which are sets of tiles, sometimes with just one."
+- A region type's builder is responsible for the features. Authors make sure
+  every set piece in a class forms regions that satisfy it, and macro knows a
+  feature exists only by trusting the set piece class. Nothing checks this at
+  load; it can be checked only after every builder has run. Hunter spawn goes
+  with `end` for now, and one charger per map is enough for now.
+- Playground mode "is just supposed to make our lives easier. It's a debug /
+  development feature that needs to evolve."
 - Macro prescribes no geometry. Walls and fences go from the library for now
   and may come back later.
 - The rest is left to the architect: "My architectural directives have been
@@ -95,14 +102,19 @@ don't come back with a second meaning.
 | **set piece** | A layout of tile sets: slots at tile offsets, each naming a tile set | Library |
 | **set piece class** | A set of set pieces, with a placement rule and a quota, and the features it owns. The only first-class macro structure. The code calls it `category` today | Library, Placement |
 | **set piece instance** | One placed copy of a set piece: which one, and the slots it covers | Placement |
-| **responsibility** | A feature a region must site (spawn, exit, charger, ...), handed down from the set piece instance that owns it | Features, Briefs |
+| **feature** | A spawn, hunter spawn, exit, charger or warp. The builder of a region type sites it; macro knows only that a set piece class promises it | Build, Measurement |
+| **primary region class** | The cell class a set piece is mainly meant to form; an editor default, unread by generation | Library |
 
 Retired, or confined to the old paths until they're deleted:
 - `open` as a segment label. `open` is only a cell class.
-- a set piece's own `class` field (market, industrial, landing, military). It
-  is required by validation and read nowhere else. "Class" now means only a
-  cell class or a set piece class. The converter keeps it as an unread
-  `theme` label.
+- a set piece's own `class` field. It means the primary region class (Corey,
+  2026-09-28): "a suggested 'default' or primary region class/type", whose
+  main effect is to give the editor a default cell class. Generation doesn't
+  read it, and two of its four values in the shipped library (`industrial`,
+  `military`) aren't declared cell classes. The converter renames it
+  `primaryRegionClass`, keeps the values that name a declared cell class, and
+  reports the rest. "Class" alone now means a cell class; the grouping is
+  always "set piece class".
 - `ports`: the unread tile side sockets, and the planned path's `PerimeterPort`.
 - `edges`, whether as design side strings or as `MapEdge` seams.
 - **structure** (`MapStructure`, and `MacroStructure` in `macro.ts`).
@@ -181,7 +193,8 @@ therefore a Layout, optionally with its interiors (see "Saving").
   - each slot's design and orientation
   - the **set piece instances**: which set piece, of which class, covering
     which slots. Today's layout keeps only the set piece's id per slot, so two
-    copies of one piece can't be told apart, and an instance owns features.
+    copies of one piece can't be told apart. Measurement needs to know which
+    class instances were placed, to check what their classes promise.
 
   Nothing else. The primitive grid isn't stored; it's a view (below).
 - **Solver:**
@@ -228,17 +241,18 @@ This is the knowledge layer: what the solved placement means.
 - **Region graph:** each region is a node. Two regions are joined when a
   boundary between them has a passable run.
 
-### 4. Proof: LayoutRegions + responsibilities (see "Features") → **ReachabilityProof** (view)
+### 4. Proof: LayoutRegions → **ReachabilityProof** (view)
 
-- **Holds:** a union-find over the region graph, giving components, and
-  whether every region with a responsibility is in the spawn's component. This
-  is `proveReachability`, adapted from planned floors to guarantees.
+- **Holds:** a union-find over the region graph, giving the components that
+  guarantees connect. This is `proveReachability`, adapted from planned floors
+  to guarantees. Which region will hold a feature isn't known before micro, so
+  the proof names no feature regions.
 - **Meaning:** a claim about guarantees, not geometry. It holds for a built
   map only because each builder keeps its guarantees (stage 6), and the
   measurement checks it (stage 8).
-- **Gate:** see QUESTIONS "The chain rebuild" item 2. The shipped library
-  prescribes nothing passable yet, so the proof can't gate generation until
-  designs do.
+- **Gate:** none for now; the proof is reported. Measurement is the gate (see
+  QUESTIONS "The chain rebuild" item 2). The shipped library prescribes
+  nothing passable yet, so the proof has nothing to connect until designs do.
 
 ### 5. Briefs: Layout, LayoutRegions, zones → **RegionBrief[]** (view)
 
@@ -250,7 +264,6 @@ One brief per layout region, as plain data:
 - **obligations:**
   - every guaranteed-passable segment in or on the region stays passable
   - all its passable runs stay mutually reachable at hunter size
-- **responsibilities:** the features it must site (see "Features")
 
 A brief never mentions another region's contents. A decomposing region type
 (#76) splits its own brief into sub-briefs inside its build. That isn't a
@@ -285,7 +298,11 @@ stage.
 - **Also holds:** props, features (from interiors), navigation walls, and
   built regions (a search over built classes and built segments).
 
-### 8. Measurement: BuiltMap, proof → **Report** (view)
+### 8. Measurement: BuiltMap, proof, Layout → **Report** (view)
+
+- **Features:** the map has a spawn, a hunter spawn, at least one exit, and a
+  charger when a charger instance was placed. This is the first point at which
+  the set piece classes' promise can be checked (see "Features").
 
 - **Lattice validation:** a hunter reaches every built region that has
   standing room, starting from the spawn. This replaces "every tile anchor
@@ -301,36 +318,39 @@ stage.
 
 Features are spawn, hunter spawn, exits, charger and warp. **Features belong
 to set piece classes** (Corey, 2026-09-28). The set piece class is the only
-macro structure the engine treats as first class, so reasoning about a
-feature's existence and relationships means reasoning about set piece classes
-and their placement rules.
+macro structure the engine treats as first class.
 
-| Feature | Owned by set piece class | Today |
+| Feature | Set piece class | Today |
 | --- | --- | --- |
 | spawn | `start` | the anchor of the lowest slot in the left third, unrelated to set pieces |
 | exits | `end` | anchors of `exitCount` slots in the right third |
-| hunter spawn | `end` (*assumption*: the end piece already sits at the right edge, where hunters start) | the anchor of the rightmost slot |
-| charger | `charger` (new) | none on the tile path |
+| hunter spawn | `end`, for simplicity for now | the anchor of the rightmost slot |
+| charger | `charger` (new), one per map for now | none on the tile path |
 | warp | deferred | none |
 
-How a feature gets from its class to a spot on the map:
+Who is responsible for what:
 
-1. **Existence.** The class's placement rule places its quota, so every owned
-   feature has at least one set piece instance. A map is invalid if an owning
-   class placed nothing.
-2. **The responsible region.** Each owned feature becomes a responsibility of
-   one layout region inside its instance's footprint. This is a view over the
-   Layout and LayoutRegions, computed before the Proof. *Assumption:* the
-   largest layout region whose cells all lie inside the footprint. Whether a
-   set piece should name the cell class that hosts each feature is QUESTIONS
-   "The chain rebuild" item 1.
-3. **Where it stands.** The responsible region's builder decides, and returns a
-   feature site in its interior.
-4. **Connection.** The proof requires every responsible region to be in the
-   spawn region's component. Measurement confirms each feature is reached.
+- **Macro** places each class's quota by its placement rule. That is all macro
+  knows about features: a placed class instance is trusted to deliver the
+  features its class promises. Macro doesn't pick a region, a cell or a point.
+- **The authors** make sure every set piece in a class forms at least one
+  region whose type delivers the class's features.
+- **The builder of a region type** sites the features that type is for, inside
+  its own region, and returns them in its interior. For example, the builder
+  of the region type the `start` pieces form sites the spawn.
+- **Measurement** is the first and only check (stage 8). Nothing validates at
+  library load that a set piece class delivers its features, and nothing can
+  until micro is complete.
 
 Anchors go. They stood in for "somewhere in this tile a body can stand", and
-the responsible region now answers that itself.
+the builders now choose that inside their own regions.
+
+## Playground mode
+
+A development aid that is expected to evolve (Corey, 2026-09-28). It isn't
+part of this contract. Its only promise is that it goes through the same
+stages and the same validation. It may relax placement rules, quotas and zone
+sizes however it needs to.
 
 ## What the finished map is
 
@@ -391,9 +411,9 @@ old paths without touching them.
 4. Placement.
 5. Resolution and Regions, including the run check (#73's logic, rebuilt on
    `findBoundaries`).
-6. Proof and Features.
-7. Briefs, Build (the builder adapter and conform), and Composition (#68,
-   #76).
+6. Proof.
+7. Briefs, Build (the builder adapter, conform, and features sited by
+   builders), and Composition (#68, #76).
 8. Measurement.
 9. The map container, the accessor, saving and the wire version (#69, #70).
 10. Switch the Map Lab, CLI and MCP over. Capture the first baseline of the
