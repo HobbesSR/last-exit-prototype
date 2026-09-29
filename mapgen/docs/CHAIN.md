@@ -178,7 +178,9 @@ therefore a Layout, optionally with its interiors (see "Saving").
   distribution.
   - Set piece classes are declared in the library, not a closed list in code.
     Each names the engine placement rule it uses (today's `start`, `end`,
-    `enormous`, `medium`, `small`) and the features it owns.
+    `enormous`, `medium`, `small`) and the features it owns. Each feature has
+    a **count per instance**: a number, or a param such as `exitCount`. For
+    example, `end` owns `exitCount` exits and one hunter spawn per instance.
   - A new **`charger`** class owns charging stations. It needs at least one
     charger set piece authored. Until then a map has no charger, as the tile
     path has none today.
@@ -317,12 +319,23 @@ stage.
 
 ### 8. Measurement: BuiltMap, proof, Layout → **Report** (view)
 
-- **Features, per set piece instance:** every placed instance of a class
-  that owns features has each of them sited in a built region overlapping the
-  instance's slots. Every sited feature lies in a region overlapping some
-  instance whose class owns it, so a feature class painted outside its set
-  pieces is caught. This is the first point at which a set piece class's
-  promise can be checked (see "Features").
+- **Features, counted per set piece instance.** This is the first point at
+  which a set piece class's promise can be checked (see "Features"). It works
+  on feature *sites*, not regions:
+  1. **Assign each site.** A site is assigned to the set piece instance whose
+     slots contain the cell it stands in. Instances never share a slot, so the
+     assignment is unique.
+  2. **No stray sites.** A site that falls in no instance's slots, or in an
+     instance whose class doesn't own that feature, is an error.
+  3. **Exact counts.** Each instance of a class that owns features must have
+     exactly the promised count of each feature among its assigned sites: one
+     spawn for `start`, `exitCount` exits and one hunter spawn for `end`, one
+     charger for `charger`.
+
+  Two adjacent instances whose feature regions merged are caught this way.
+  The one builder sites one set of features, so they all land in one
+  instance's slots and the other instance counts zero. The builder never needs
+  to know about instances.
 
 - **Lattice validation, over standing components:** the standing components
   are the connected components of the lattice nodes where a hunter can stand.
@@ -374,9 +387,10 @@ Who is responsible for what:
   region.
 - **Measurement** is the first and only check (stage 8), per instance. Nothing
   validates at library load that a set piece class delivers its features, and
-  nothing can until micro is complete. Two adjacent instances whose feature
-  regions merge into one region get one set of features, and measurement
-  reports the instance left without. Avoiding that is the authors' job, as
+  nothing can until micro is complete. Measurement assigns each feature site
+  to the instance whose slots contain it and counts. So if two adjacent
+  instances' feature regions merge and get one set of features, the instance
+  left without is reported (stage 8). Avoiding that is the authors' job, as
   above.
 
 Today's library has no feature classes: its start pieces paint `market` and
