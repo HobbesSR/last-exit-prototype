@@ -4,6 +4,7 @@ The primary source of design intent is [design_notes.txt](../design_notes.txt). 
 
 ## Active Documentation
 
+- [CHAIN.md](CHAIN.md): Proposed specification for rebuilding generation as checkpoints with clear interfaces: prescriptions, guarantees and measurements; objects and views.
 - [DESIGN_DECISIONS.md](DESIGN_DECISIONS.md): Architectural decisions, invariants, wire encoding, and navigation design.
 - [VOCABULARY.md](VOCABULARY.md): Definitive terminology, primitives, coordinate systems, and layering rules.
 - [MACRO_STRUCTURES.md](MACRO_STRUCTURES.md): Version 1 specification and contract for the macro composition engine (`src/macro.ts`).

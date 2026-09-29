@@ -12,6 +12,7 @@ No answer is needed to run the prototype. These defaults are assumptions for thi
 9. **Saving a map:** answered 2026-09-27; every stage object can be saved, alone or together. See "Saving a map" below.
 10. **Region boundary openings:** open parts of the direction given on #68. See "Region boundary openings" below.
 11. **Segment prescriptions:** open parts of the adjacency / geometry / passability model. See "Segment prescriptions" below.
+12. **The chain rebuild:** open parts of CHAIN.md, the specification for rebuilding generation as checkpoints. See "The chain rebuild" below.
 
 ## Already clear; no reconfirmation requested
 
@@ -225,3 +226,43 @@ value, and labels set several at once. These parts are open:
    isn't blocked either (a fence you can shoot through, you can see through),
    until the primitive set says otherwise.
 
+## The chain rebuild
+
+CHAIN.md specifies generation rebuilt as checkpoints with clear interfaces
+(Corey, 2026-09-28). Corey answered three parts on 2026-09-28: set pieces keep
+their classes and distribution, macro prescribes no geometry for now, and the
+architecture is the implementer's to set. These parts are open, each with a
+working assumption:
+
+1. **Features and set piece classes.** **Answered, Corey, 2026-09-28:**
+   - Features belong to set piece classes, "which are the only things we give
+     first class status in the engine", and a new class owns chargers, one per
+     map for now.
+   - Hunter spawn goes with `end` for now.
+   - The builder of a region type is responsible for the features. Authors
+     make sure a class's set pieces form regions that satisfy it, and macro
+     trusts the class.
+   - Checking waits until micro is complete.
+   - Playground mode is a development aid that is expected to evolve.
+
+   CHAIN.md "Features" and "Playground mode" record this. Nothing is open
+   here, except how the charger class is placed once one per map stops being
+   enough.
+2. **When the proof gates generation.** No library prescribes passable runs
+   yet, so the proof has nothing to connect. Which region holds a
+   feature isn't known until micro is complete. *Assumption:* the proof is
+   reported and never gates for now, and measurement stays the gate. Once
+   designs prescribe passable runs, gating on "the proof connects every
+   region" is a separate decision, because regions are allowed to be
+   unreachable on the proof and still reached on the built map.
+3. **Guarantees inside a region.** A segment prescribed passable with the same
+   region on both sides isn't on any boundary, so the proof doesn't use it.
+   *Assumption:* the builder still keeps it passable, since "It's the tile
+   designer's job to mark internal as passable" (Corey, 2026-09-27).
+4. **The fence set pieces without walls.** Superseded (Corey, 2026-09-29): the
+   library is authored fresh against a region type catalogue, so nothing is
+   converted and no old design loses anything. "How do fenced set pieces
+   open?" belongs to the old library.
+5. **Feature classes.** Superseded the same day: the new library defines
+   them from the start, and their names and shapes are catalogue decisions
+   (CHAIN.md "Build order", B2).
