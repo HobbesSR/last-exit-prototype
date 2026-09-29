@@ -103,6 +103,9 @@ don't come back with a second meaning.
 | **set piece class** | A set of set pieces, with a placement rule and a quota, and the features it owns. The only first-class macro structure. The code calls it `category` today | Library, Placement |
 | **set piece instance** | One placed copy of a set piece: which one, and the slots it covers | Placement |
 | **feature** | A spawn, hunter spawn, exit, charger or warp. The builder of a region type sites it; macro knows only that a set piece class promises it | Build, Measurement |
+| **feature class** | A cell class whose rule lists features its builder sites; painted only inside its owning set pieces | Library, Build |
+| **standing component** | A connected component of the lattice nodes where a hunter can stand, on the built map | Measurement |
+| **sealed pocket** | A standing component wholly inside one built region, holding no feature and no spawn slot; allowed to be unreached | Measurement |
 | **primary region class** | The cell class a set piece is mainly meant to form; an editor default, unread by generation | Library |
 
 Retired, or confined to the old paths until they're deleted:
@@ -159,6 +162,11 @@ therefore a Layout, optionally with its interiors (see "Saving").
     `passable` or `any`. Leaving a segment unstated is recorded as its own
     value.
   - Orientations, eligible tiers and bonus, and labels, as today.
+- **Cell classes**, declared once as today, each with its rule: which builder
+  fills a region of the class, and its parameters. The rule also lists the
+  **features** a region of the class sites (for example, one spawn, or
+  `exitCount` exits). This is the only way a feature reaches a builder: in its
+  brief, through its class rule. Macro still places no points.
 - **Set piece classes, set pieces, tile sets and tile designs**, in that
   hierarchy. Placement is unchanged: the same quotas, zone filters and
   distribution.
@@ -220,8 +228,12 @@ This is the knowledge layer: what the solved placement means.
 
 - **Resolved classes:** a declared class stands. An `any` cell takes the class
   its neighbours' adjacency prescriptions require, and otherwise `open`.
-- **Passability guarantees:** a segment is `guaranteed` if either side
-  prescribes `passable`, and otherwise `none`. What each side stated
+- **Passability guarantees:** a segment between two cells on the map is
+  `guaranteed` if either side prescribes `passable`, and otherwise `none`. A
+  segment facing the map's outside is always `none`, whatever its design
+  prescribes: nothing is across it, and composition closes it. So a design
+  placed at the map's edge is valid, and its outward prescription just doesn't
+  become a guarantee. What each side stated
   (`passable`, `any`, unstated) is kept alongside, as provenance for later
   steps and open questions.
 - **Why it's a view:** nothing is decided here, so there's nothing to save.
@@ -233,7 +245,8 @@ This is the knowledge layer: what the solved placement means.
   seeds are functions of each region's own cells and the map seed.
 - **Boundaries:** `findBoundaries` (lifted from `plan/ports.ts`) gives maximal
   straight runs between each pair of regions, split at corners and wherever the
-  region across changes. A run facing the map's outside is included.
+  region across changes. A run facing the map's outside is included, and it
+  never has a passable run (see Resolution).
 - **Passable runs:** the guaranteed stretches of each boundary.
 - **Validity:** every passable run is at least `ceil(2 × hunterRadius)`
   segments long (#73). A run may cross a tile seam, since boundaries ignore
@@ -275,7 +288,8 @@ stage.
   - the classes it lays on its own cells
   - the spans it states on segments with at least one side in its cells
   - props (containment as today)
-  - spawns and feature sites, in its own cells
+  - spawns, and a site for each feature its class rule declares, in its own
+    cells
   - a manifest
 - **Write scope:** a builder writes only its own cells, and only segments
   touching them. It never narrows a guaranteed-passable segment.
@@ -300,17 +314,28 @@ stage.
 
 ### 8. Measurement: BuiltMap, proof, Layout → **Report** (view)
 
-- **Features:** the map has a spawn, a hunter spawn, at least one exit, and a
-  charger when a charger instance was placed. This is the first point at which
-  the set piece classes' promise can be checked (see "Features").
+- **Features, per set piece instance:** every placed instance of a class
+  that owns features has each of them sited in a built region overlapping the
+  instance's slots. Every sited feature lies in a region overlapping some
+  instance whose class owns it, so a feature class painted outside its set
+  pieces is caught. This is the first point at which a set piece class's
+  promise can be checked (see "Features").
 
-- **Lattice validation:** a hunter reaches every built region that has
-  standing room, starting from the spawn. This replaces "every tile anchor
-  reached".
+- **Lattice validation, over standing components:** the standing components
+  are the connected components of the lattice nodes where a hunter can stand.
+  A hunter starting at the spawn must reach every one of them, except a
+  **sealed pocket**: a component lying wholly inside one built region, with no
+  feature and no spawn slot in it (DESIGN_DECISIONS "Reachability" point 6:
+  builders legitimately seal courtyards).
+  - Checking components, not regions, catches a region split by a builder's
+    off-grid props, which leave its class and segments unchanged.
+  - It is stronger than today's check of one anchor per tile, which misses
+    whatever part of a tile its anchor doesn't stand in.
 - **Also checked:**
   - a contestant can reach every exit
-  - the proof agrees with the measurement: every proven-connected region is
-    reached
+  - the proof agrees with the measurement: every standing component inside a
+    region the proof connects to the spawn's region is reached, sealed
+    pockets aside
   - every interior conformed
 - **Metrics:** measured from the built map, not from a tile graph.
 
@@ -333,14 +358,28 @@ Who is responsible for what:
 - **Macro** places each class's quota by its placement rule. That is all macro
   knows about features: a placed class instance is trusted to deliver the
   features its class promises. Macro doesn't pick a region, a cell or a point.
-- **The authors** make sure every set piece in a class forms at least one
-  region whose type delivers the class's features.
-- **The builder of a region type** sites the features that type is for, inside
-  its own region, and returns them in its interior. For example, the builder
-  of the region type the `start` pieces form sites the spawn.
-- **Measurement** is the first and only check (stage 8). Nothing validates at
-  library load that a set piece class delivers its features, and nothing can
-  until micro is complete.
+- **The authors:**
+  - Every set piece in a class forms at least one region of a
+    **feature class**: a cell class whose rule lists the features the set
+    piece class owns.
+  - A feature class is painted only inside the set pieces of its owning set
+    piece class. That keeps ordinary fill from forming a region of it, so a
+    feature region always comes from an owning instance.
+- **The builder of a region type** reads the features from its class rule in
+  the brief. It sites them inside its own region and returns them in its
+  interior. It never needs to know which set piece instance formed its
+  region.
+- **Measurement** is the first and only check (stage 8), per instance. Nothing
+  validates at library load that a set piece class delivers its features, and
+  nothing can until micro is complete. Two adjacent instances whose feature
+  regions merge into one region get one set of features, and measurement
+  reports the instance left without. Avoiding that is the authors' job, as
+  above.
+
+The shipped library has no feature classes yet. The start pieces paint
+`market` and the end pieces `landing`, and both also appear in ordinary fill.
+So step 2 has to add feature classes and repaint the start and end pieces
+with them. That is a content change (QUESTIONS "The chain rebuild" item 5).
 
 Anchors go. They stood in for "somewhere in this tile a body can stand", and
 the builders now choose that inside their own regions.
@@ -403,8 +442,9 @@ old paths without touching them.
 
 1. This specification, reviewed.
 2. The library schema and converter, with the new `validateLibrary`. This
-   includes declared set piece classes with their owned features, and the
-   `charger` class. The converter's report of changed designs goes on the
+   includes declared set piece classes with their owned features, the
+   `charger` class, and feature classes, with the start and end pieces
+   repainted to use them (QUESTIONS "The chain rebuild" item 5). The converter's report of changed designs goes on the
    issue (#33 lands here). Charger content is authored separately.
 3. `chain/types.ts`: every object and view named in this document, with
    interfaces only, plus purity and determinism test harnesses.

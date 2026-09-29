@@ -265,3 +265,12 @@ working assumption:
    pieces open?" moot for now. *Assumption:* the converter drops the walls and
    reports each changed design on the library issue, and nothing replaces them
    until Corey adds geometry back.
+5. **Feature classes in the shipped library.** Features reach builders
+   through their class rule, so each feature needs a cell class that only its
+   owning set pieces paint. Today the start pieces paint `market` and the end
+   pieces `landing`, which ordinary fill paints too, and no class lists any
+   feature. *Assumption:* step 2 adds one feature class for each set piece
+   class that owns features (`start`, `end` and `charger`), and repaints the
+   start and end pieces' feature cells with them. Step 2 reports every
+   repainted design on its issue. The names and which cells carry them are
+   Corey's to change.
