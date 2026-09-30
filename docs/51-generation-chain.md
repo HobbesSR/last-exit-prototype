@@ -112,7 +112,7 @@ Each term has one meaning. 52 defines the library's terms in full.
 | **layout region** | A maximal 4-connected set of cells with one resolved class | Regions |
 | **boundary** | A maximal straight run of segments between two layout regions; the same definition of a run as the SDK's interface runs between a region's children | Regions |
 | **portal** | A maximal contiguous stretch of guaranteed-passable segments along one boundary. **Derived, never authored.** At macro level it comes from the designs' passable prescriptions; inside a region, from the strategy's own decisions about its children. It says what must stay passable, and is what validation checks, but places no geometry (Corey, 2026-09-29, M3) | Regions, Briefs, Build |
-| **brief** | Everything one region's strategy is handed, expressed in the macro/micro contract (`shared/map/micro/types.ts`) | Briefs |
+| **brief** | Everything one region's strategy is handed, expressed in the macro/micro contract (`shared/map/common/contract.ts`) | Briefs |
 | **region result** | What one region's strategy returns, in the contract's result type | Build |
 | **built map** | Every region result composed into one map of the game's geometry | Composition |
 | **tile design**, **tile set**, **set piece**, **set piece class**, **feature class**, **primary region class** | See 52 | Library |
@@ -288,8 +288,8 @@ This is the knowledge layer: what the solved placement means.
 ### 5. Briefs: Layout, LayoutRegions, zones → **RegionBrief[]** (view)
 
 One brief per layout region, expressed in the macro/micro contract. The
-contract moves from `shared/map/micro/types.ts` into the shared map space
-(17 M1), and evolves from today's `RegionSpec`:
+contract is in the shared map space (`shared/map/common/contract.ts`, 17 M1),
+and evolves from today's `RegionSpec`:
 
 - region id, seed, and the **region type** with its parameters from the class
   rule. This replaces `RegionSpec`'s closed list of five builder ids.
@@ -519,9 +519,12 @@ live game until the switch-over.
 
 **Track C: the contract and composition, in the game.**
 
-- C0. **The shared map space** (17 M1, M5): create it, and move into it the
-  contract types, the single source of body scale and passage widths, and
-  the definition of a run. mapgen and the SDK both read body scale from it.
+- C0. **The shared map space** (17 M1, M5), `shared/map/common/`: the
+  contract types (`contract.ts`, which `shared/map/micro/types.ts`
+  re-exports), the single source of body scale and passage widths
+  (`scale.ts`), and the definition of a run (`run.ts`), with worked cases
+  (`run-cases.ts`) that every run finder is tested against. mapgen and the SDK
+  both read body scale from it.
 - C1. **The contract:** region type ids instead of a closed builder list;
   portals as derived check targets, which place no geometry (`resolvePorts`
   doesn't wall a brief's portals; 17 M3, M4); and features and zone context in
