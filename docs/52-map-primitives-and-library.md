@@ -1,7 +1,8 @@
 # 52. Map primitives and the library
 
-Status: accepted model, 2026-09-29. The new library schema is 51 step 2 and isn't
-implemented. Today's library schema retires with mapgen's old paths.
+Status: accepted model, 2026-09-29. The new library schema and validator are
+implemented in `mapgen/src/chain/library.ts` (#83). Today's library schema
+retires with mapgen's old paths.
 
 This file defines what a map is made of and what the library an author writes
 contains. The chain that consumes it is 51. Original intent is in

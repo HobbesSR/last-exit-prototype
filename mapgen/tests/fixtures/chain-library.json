@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "cellClasses": {
+    "open": { "regionType": "open-field" },
+    "hut": { "regionType": "hut" },
+    "arrival": { "regionType": "arrival", "features": { "spawn": 1 } }
+  },
+  "tiles": [
+    {
+      "id": "half-hut",
+      "defaultCellClass": "open",
+      "cells": ["...hhh", "...hhh", "...hhh", "...hhh", "...hhh", "...hhh"],
+      "legend": { "h": "hut" },
+      "segments": {
+        "v:3,2": { "passability": "passable" },
+        "v:3,3": { "passability": "passable" },
+        "v:3,4": { "passability": "any" },
+        "v:6,2": { "adjacency": "open" }
+      },
+      "orientations": [0, 90, 180, 270],
+      "eligibleTiers": [1, 2, 3, 4, 5],
+      "eligibleBonus": [0, 1, 2],
+      "labels": ["fixture"]
+    }
+  ],
+  "tileSets": [{ "id": "one", "members": ["half-hut"] }],
+  "setPieces": [
+    {
+      "id": "entry",
+      "tiles": [{ "dx": 0, "dy": 0, "tileSetId": "one" }],
+      "primaryRegionClass": "open",
+      "eligibleTiers": [1]
+    }
+  ],
+  "setPieceClasses": [
+    { "id": "start", "placementRule": "start", "quota": 1, "setPieces": ["entry"], "features": { "spawn": 1 } }
+  ]
+}
