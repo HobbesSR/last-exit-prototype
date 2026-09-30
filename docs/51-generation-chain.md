@@ -85,9 +85,10 @@ generation":
      the builder's business.
    - A builder that doesn't reliably meet its passability promise is
      defective. That breaks the macro contract, and it is a **non-local
-     defect**. Anything that relies on macro's assumptions being true fails
-     somewhere else: a nav mesh built over the final geometry, or any
-     whole-map processing or validation after the regions are generated.
+     defect**. It can be a source of failure somewhere else, though not
+     necessarily one: anything that relies on macro's assumptions, such as a
+     nav mesh built over the final geometry, or whole-map processing or
+     validation after the regions are generated.
      There's no uniform enforcement on region building itself, so the defect
      is either noticed from outside or not.
    - The micro SDK offers validation utilities, which a builder may use or not
@@ -350,7 +351,7 @@ decomposes splits its own brief into children with the SDK's decomposition
 - **Keeping the promise:** a builder keeps the portal rule (stage 5), and
   everything else inside its region is its own business. Nothing in the
   pipeline checks this (principle 9). A builder that breaks it is defective,
-  and systems that rely on macro's assumptions will notice.
+  and that can cause failures in systems that rely on macro's assumptions.
 - **Elective validation:** geometry inside a region is free-form, with no grid
   to lean on, so the SDK offers utilities for checking these promises from
   placed shapes: swept-disc crossings and routes (Corey, 2026-09-29). A

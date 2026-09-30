@@ -193,9 +193,10 @@ number ("M3: …") and the answer is recorded verbatim here.
 
    Recorded in 51 principle 9. The only promise is passability between
    portals, and a region's interior, features and loot included, is the
-   builder's business. A non-local defect is one noticed by something that
-   relies on macro's assumptions, such as a nav mesh over the final geometry
-   or whole-map processing.
+   builder's business. A non-local defect can be a source of failure in
+   something that relies on macro's assumptions, such as a nav mesh over the
+   final geometry or whole-map processing.
+    - (2026-09-29) "They won't necessarily fail, not meeting the contract could be a source of failure."
 4. **M4. Ceilings and sealed runs.**
     - (2026-09-29) "M4 we'll add that in later if we need it, let's keep in simple. Treat them like regions in general, with only passability obligations."
 
