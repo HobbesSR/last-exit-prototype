@@ -60,8 +60,8 @@ test("a short passable run wholly inside a tile is refused, grouped by class", (
   const differentClass = copy();
   differentClass.tiles[0]!.legend!.a = "arrival";
   differentClass.tiles[0]!.cells![3] = "aaa" + "hhh";
-  refusal(differentClass, /short passable run v:3,2\.\.2 for class open/);
-  refusal(differentClass, /short passable run v:3,3\.\.3 for class arrival/);
+  refusal(differentClass, /short passable run v:3,2\.\.2 for classes .*open/);
+  refusal(differentClass, /short passable run v:3,3\.\.3 for classes arrival\|hut/);
 
   const edge = copy();
   edge.tiles[0]!.segments = { "v:3,0": { passability: "passable" } };
@@ -69,11 +69,31 @@ test("a short passable run wholly inside a tile is refused, grouped by class", (
   assert.deepEqual(validateLibrary(one, TYPES, 1).errors, []);
 });
 
+test("staggered class changes cannot hide a one-segment portal", () => {
+  const library = copy();
+  library.cellClasses.p = { regionType: "hut" };
+  library.cellClasses.q = { regionType: "hut" };
+  library.tiles[0]!.legend = { P: "p", H: "hut", Q: "q" };
+  library.tiles[0]!.cells = ["......", "..PH..", "..PH..", "...H..", "...Q..", "...Q.."];
+  library.tiles[0]!.segments = Object.fromEntries(
+    [1, 2, 3, 4, 5].map((y) => [`v:3,${y}`, { passability: "passable" }]),
+  );
+  refusal(library, /short passable run v:3,3\.\.3 for classes hut\|open/);
+});
+
 test("any beside open resolves away before the interior run check", () => {
   const library = copy();
   library.tiles[0]!.legend!.a = "any";
   library.tiles[0]!.cells = Array.from({ length: 6 }, () => "aaa...");
   library.tiles[0]!.segments = { "v:3,2": { passability: "passable" } };
+  assert.deepEqual(validateLibrary(library, TYPES).errors, []);
+});
+
+test("a perimeter any cell defers its portal check until placement resolves its class", () => {
+  const library = copy();
+  library.tiles[0]!.legend = { a: "any", h: "hut" };
+  library.tiles[0]!.cells = ["......", "......", "ah....", "......", "......", "......"];
+  library.tiles[0]!.segments = { "v:1,2": { passability: "passable" } };
   assert.deepEqual(validateLibrary(library, TYPES).errors, []);
 });
 
@@ -110,4 +130,28 @@ test("feature promises are not checked for delivery at library load", () => {
   const library = copy();
   library.cellClasses.arrival = { regionType: "arrival" };
   assert.deepEqual(validateLibrary(library, TYPES).errors, []);
+});
+
+test("retired and unknown schema fields are refused", () => {
+  const oldTile = copy();
+  (oldTile.tiles[0] as unknown as Record<string, unknown>).walls = [];
+  refusal(oldTile, /tile half-hut: unknown field walls/);
+  const oldSetPiece = copy();
+  (oldSetPiece.setPieces[0] as unknown as Record<string, unknown>).category = "start";
+  refusal(oldSetPiece, /set piece entry: unknown field category/);
+  const topLevel = copy();
+  (topLevel as unknown as Record<string, unknown>).legacy = true;
+  refusal(topLevel, /library: unknown field legacy/);
+});
+
+test("tiers, segment addresses and set piece slots have unambiguous bounds", () => {
+  const tier = copy();
+  tier.tiles[0]!.eligibleTiers = [0];
+  refusal(tier, /malformed eligibleTiers/);
+  const address = copy();
+  address.tiles[0]!.segments!["v:03,2"] = { passability: "any" };
+  refusal(address, /malformed segment prescription v:03,2/);
+  const slot = copy();
+  slot.setPieces[0]!.tiles.push(structuredClone(slot.setPieces[0]!.tiles[0]!));
+  refusal(slot, /duplicate slot 0,0/);
 });
