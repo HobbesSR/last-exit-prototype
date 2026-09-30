@@ -206,9 +206,17 @@ number ("M3: …") and the answer is recorded verbatim here.
     - (2026-09-29) "M5, let's find a place in documentation and code for there to be a single source of truth for these."
 
    Recorded: 52 "Units and scale" is the one statement in the docs, and the
-   shared map space holds the one source in code (51 C0). Still open: which
-   values. *Assumption:* the SDK's `cell` profile (radii 0.625 and 0.875
-   cells, doorway 2, squeeze 1.5). The shortest portal stays 2.
+   shared map space holds the one source in code (51 C0).
+
+   Which values, asked while doing C0 (#99): moving mapgen's radii from 0.55
+   and 0.90 to the SDK's 0.625 and 0.875 moved all 329 sweep maps, with every
+   other mapgen test passing.
+    - (2026-09-29) chose "SDK values, re-baseline": the shared scale holds
+      the SDK's `cell` profile, mapgen reads it, and the sweep baseline is
+      recaptured as a declared content change.
+
+   Recorded in 52 "Units and scale". The shortest portal stays 2. M5 is
+   answered.
 6. **M6. How whole-map reachability is established.**
     - (2026-09-29) "M6, M7 Whole map reachability is supposed to be a chain of inference through guarantees at each layer."
 

@@ -419,8 +419,10 @@ specifies it:
   proof and from each builder keeping its promise (51 principles 8 and 9).
   Nothing enforces that promise. This SDK's validators are elective utilities
   a builder may use to check its own work, for example in its tests.
-- **The contract and body scale** move to the shared map space, which neither
-  level owns (51 C0).
+- **The contract, body scale and the definition of a run** are in the shared
+  map space, `shared/map/common/`, which neither level owns (51 C0).
+  `types.ts` re-exports the contract, `microMetrics` reads the scale, and
+  `buildInterfaces` builds on the shared run finder.
 
 It must not treat `mapgen/`'s graph or sampled connectivity as proof of this
 game's physical geometry. mapgen's own micro layer duplicates this

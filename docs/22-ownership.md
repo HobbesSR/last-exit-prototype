@@ -30,9 +30,11 @@ Map generation has two halves, plus a shared space ([50](50-map-generation.md)):
   (including elective validation utilities), and composing the regions.
   Nothing enforces a builder's contract, and breaking it is a builder defect
   ([51](51-generation-chain.md) principle 9).
-- **The shared map space** (proposed `shared/map/common/`, [51](51-generation-chain.md)
-  C0) holds what both must agree on: the macro/micro contract, body scale and
-  passage widths, and the definition of a run. Neither level owns it.
+- **The shared map space** (`shared/map/common/`, [51](51-generation-chain.md)
+  C0) holds what both must agree on: the macro/micro contract (`contract.ts`),
+  body scale and passage widths (`scale.ts`), and the definition of a run
+  (`run.ts`, with the cases every run finder is tested against). Neither level
+  owns it, and it imports neither.
 
 The same problem at the same level has one owner:
 - mapgen's own micro layer (`mapgen/src/micro/`) duplicates the game's and
@@ -41,8 +43,8 @@ The same problem at the same level has one owner:
 
 Don't extend either. A problem both levels face, such as boundary runs,
 connectivity or reachability checks, is solved at each level within its own
-scope, with a shared definition where the two must agree (50). mapgen may import the contract and
-the SDK from `shared/map/micro/` ([17](17-open-questions.md) M1). The game
+scope, with a shared definition where the two must agree (50). mapgen imports the shared map space,
+and may import the SDK from `shared/map/micro/` ([17](17-open-questions.md) M1). The game
 doesn't import `mapgen/` until the live game adopts the chain.
 
 `shared/map/micro/sdk.ts` exposes reusable mask, geometry, route, scale and

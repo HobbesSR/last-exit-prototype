@@ -13,6 +13,8 @@ const roots: Record<string, string> = {
   public: path.join(root, "public"),
   src: path.join(root, "src"),
   content: path.join(root, "content"),
+  // The shared map space, which mapgen's sources import (docs 50).
+  "shared/map/common": path.join(root, "../shared/map/common"),
 };
 const types: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -41,7 +43,7 @@ function candidate(urlPath: string): string | null {
     new URL(urlPath, "http://localhost").pathname,
   );
   if (pathname.includes("\\")) return null;
-  const match = /^\/(src|content)(?:\/(.*))?$/.exec(pathname);
+  const match = /^\/(src|content|shared\/map\/common)(?:\/(.*))?$/.exec(pathname);
   const base = match ? roots[match[1]!]! : roots.public!;
   const relative = match
     ? match[2] || ""

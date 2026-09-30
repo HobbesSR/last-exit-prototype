@@ -1,4 +1,5 @@
 import type { Cell } from '../types.ts';
+import type { Run } from '../../common/run.ts';
 
 export interface CellRect { x: number; y: number; w: number; h: number; area: number }
 export interface BoundaryEdge { a: Cell; b: Cell; cell: Cell; kind: 'outer' | 'hole' }
@@ -68,7 +69,8 @@ export interface GeneratorContract {
 }
 export interface AssignedPiece extends CandidatePiece { generator: string; scores: Record<string, number> }
 export interface ResidualRegion { id: string; cells: Cell[]; role: 'residual' | 'reserved' | 'forbidden' }
-export interface InterfaceRun { axis: 'h' | 'v'; x: number; y: number; length: number }
+/** An interface run is a run in the shared map space's sense. */
+export type InterfaceRun = Run;
 export interface PieceInterface {
   id: string;
   a: string;

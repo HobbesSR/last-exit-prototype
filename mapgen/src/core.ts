@@ -1,4 +1,5 @@
 import DEFAULT_LIBRARY_JSON from "../content/default-library.json" with { type: "json" };
+import { CELL_SCALE } from "../../shared/map/common/scale.ts";
 import { composeMacro } from "./macro.ts";
 import { getDifficulty, solveWfc, getRotatedEdge } from "./wfc.ts";
 import type { WfcGrid, TileOption } from "./wfc.ts";
@@ -131,8 +132,9 @@ export const DEFAULT_PARAMS = Object.freeze({
   lootChance: 0.04,
   lootTierStep: 0.09,
   exitCount: 2,
-  contestantRadius: 0.55,
-  hunterRadius: 0.9,
+  // Body scale is the shared map space's (docs 52, "Units and scale").
+  contestantRadius: CELL_SCALE.contestantRadius,
+  hunterRadius: CELL_SCALE.hunterRadius,
 });
 export const DEFAULT_LIBRARY = DEFAULT_LIBRARY_JSON as unknown as Library;
 export const DIRS: Array<[number, number, Side, Side]> = [
@@ -142,8 +144,8 @@ export const DIRS: Array<[number, number, Side, Side]> = [
   [-1, 0, "W", "E"],
 ];
 export const APERTURES: Record<string, number> = {
-  squeeze: 1.5,
-  door: 2,
+  squeeze: CELL_SCALE.squeeze,
+  door: CELL_SCALE.doorway,
   wide: 3,
 };
 const PORT_KINDS: PortKind[] = ["closed", "door", "wide", "squeeze"];
