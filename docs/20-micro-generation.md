@@ -48,9 +48,9 @@ separate structural and decoration draws; cell input order is normalized.
 The current defaults are 40 world units per cell, 8 loot candidates, tier 1,
 density 0.55, room size 6 cells and decay 0.35. `live` preserves current game
 radii of 12/23 and navigation clearance of 14/25 from `map/navigation.ts`.
-`cell` is an explicit preview/profile choice: contestant and hunter diameters are
-1.25 and 1.75 cells, a doorway is 2 cells, and a contestant-only squeeze is 1.5
-cells. This is not a conversion of `mapgen/`'s abstract scale. A local artifact
+`cell` is an explicit preview/profile choice. Its contestant and hunter sizes,
+its doorway (2 cells) and its contestant-only squeeze (1.5 cells) are stated
+once, in 52, "Units and scale". This is not a conversion of `mapgen/`'s abstract scale. A local artifact
 made with `cell` must not silently change the live game's bodies, clearance,
 capacity, or spawn rules.
 
@@ -132,9 +132,10 @@ and never modifies geometry or repairs a contract. At deeper levels the same
 operation applies to each immediate partition (currently up to 16 children).
 
 The existing example builders still protect paths during construction as a useful
-heuristic. Correctness is established afterward: `validateMicroRegion` delegates
-access checks to the independent utility, and the combined demo runs the child
-composition check after generation. Unlocked-door handling remains explicit:
+heuristic. The examples also check themselves afterward, which is their own
+elective choice ([51](51-generation-chain.md) principle 9): `validateMicroRegion`
+delegates access checks to the independent utility, and the combined demo runs
+the child composition check after generation. Unlocked-door handling remains explicit:
 callers pass blockers representing the assumed door state; existing examples
 assume unlocked doors can open. A failed sampled route search rejects acceptance
 but does not mathematically prove no continuous route exists. This adds SDK
@@ -302,7 +303,8 @@ it needs the builder catalogue. A caller `dispatch` maps each allocated piece or
 residual to builder content; null leaves a residual unrealized, and an allocated piece
 must dispatch. It negotiates, generates through `composeMicroRegions` with one seed and
 body profile, and throws unless `validateBoundaryComposition` accepts the result against
-the parent's ports. Ownership is taken from the plan as given.
+the parent's ports. That check is this demo executor's choice; the chain doesn't
+require it of builders (51 principle 9). Ownership is taken from the plan as given.
 
 ### Physical demonstration policy
 
@@ -402,16 +404,28 @@ authored segment/vertex metadata still need expansion. The next decomposition
 boundaries are recursive execution of explored trees, which can now reuse flat
 dispatch and negotiation at each level, and a `mapgen/` adapter.
 
-`mapgen/` is the input for that adapter; paths below are relative to it. As
-imported at `544b13c`, its compact post-composition region artifact is defined by
-`src/types.ts` (`MapRegion`) and packed by `src/artifact.ts`; `src/core.ts`
-discovers regions from same-class cells and fully open segments, then re-discovers
-them after its own micro edits. Its planned `src/plan/types.ts` has the closer
-floor/ceiling port vocabulary, but is not this SDK. An adapter must translate its
-flat cell indices using its grid width into this SDK's global integer cell
-coordinates, preserve explicit `cellSize`, turn planned perimeter runs into
-`RegionPort`s, keep source-region provenance separate from its final partition,
-and validate world bounds, external geometry, and whole-map spawn-to-exit routes.
-It must not treat `mapgen/`'s graph or sampled connectivity as proof of this game's
-physical geometry. The existing generator remains live until that explicit
+`mapgen/` is the input for that adapter. [51](51-generation-chain.md) now
+specifies it:
+- **Briefs** (51 stage 5) are expressed in the macro/micro contract, which moves to the shared map
+  space and evolves from `RegionSpec`. It gains region type ids instead of the
+  closed builder list, features, and zone context. Its boundary items become
+  **portals**: derived stretches that must stay passable, used for
+  validation, never laid as geometry. Today's ports make `resolvePorts` wall
+  the run except for a centred gap ([17](17-open-questions.md) M3, M4).
+- **mapgen's flat cell indices** are translated into this SDK's global integer
+  cell coordinates, with an explicit `cellSize`.
+- **Whole-map composition** extends `composeMicroRegions` (51 C2).
+  Reachability isn't measured over the whole map. It is inferred from the macro
+  proof and from each builder keeping its promise (51 principles 8 and 9).
+  Nothing enforces that promise. This SDK's validators are elective utilities
+  a builder may use to check its own work, for example in its tests.
+- **The contract and body scale** move to the shared map space, which neither
+  level owns (51 C0).
+
+It must not treat `mapgen/`'s graph or sampled connectivity as proof of this
+game's physical geometry. mapgen's own micro layer duplicates this
+directory's work and retires, and its planned path retires with it. Where macro
+and micro solve similar problems, such as boundary runs and connectivity, each
+keeps a version fitted to its own scope ([50](50-map-generation.md)).
+The existing generator remains live until that explicit
 integration checkpoint is satisfied.

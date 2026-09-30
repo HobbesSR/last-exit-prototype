@@ -1,5 +1,5 @@
 /**
- * The report layer of docs/DESIGN_DECISIONS.md "Map layers" (#51). Metrics and
+ * The report layer of docs/archive/pre-integration/DESIGN_DECISIONS.md "Map layers" (#51). Metrics and
  * validation are functions of layout, structure and interiors, so the artifact
  * doesn't store them: `reportMap` computes them when a map is generated and
  * again when it's read. The metrics that count what the generator run did

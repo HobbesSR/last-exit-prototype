@@ -1,7 +1,7 @@
 # Implementation checkpoint: a second generator that plans before it builds
 
 Read AGENTS.md and design_notes.txt first, then
-[docs/PLANNED_GENERATION.md](docs/PLANNED_GENERATION.md). The previous
+[PLANNED_GENERATION.md](PLANNED_GENERATION.md). The previous
 checkpoint follows below and is still accurate about the legacy path.
 
 ## There are now two generators
@@ -65,7 +65,7 @@ behavior and reversible defaults. The previous checkpoint follows below.
 A catalogue of region builders, the contract they build against, and the route
 network that lets them obstruct the map without disconnecting it. This is
 NEXT_TASKS items 4 and 10; both entries are updated. The design is written up in
-[docs/MICRO_GENERATION.md](docs/MICRO_GENERATION.md) -- read that before touching
+[MICRO_GENERATION.md](MICRO_GENERATION.md) -- read that before touching
 `src/micro/` or `planStreets`.
 
 New: `src/micro/` -- `types.ts` (the contract), `scale.ts` (body scale, stated

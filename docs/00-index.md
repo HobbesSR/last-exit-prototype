@@ -2,7 +2,7 @@
 
 Status: living documentation
 Prototype rules version: `last-exit-0.7`; default content: `content-2`
-Updated: 2026-09-26
+Updated: 2026-09-29
 
 This directory is the canonical product and engineering record for the prototype.
 It is split so a task can load the two or three files it actually needs instead of
@@ -21,6 +21,7 @@ and handoffs should cite the number, not a heading.
 | 2x | Engineering: how the implementation is arranged | Changing code structure, protocol, performance or contracts |
 | 3x | Process: how work is verified and handed off | Running acceptance, delegating, or updating documentation |
 | 4x | Plan and history: what is next and what was measured | Choosing the next task, or citing an earlier measurement |
+| 5x | Map generation: macro (`mapgen/`) and how it meets micro (`shared/map/micro/`) | Changing the tile library, placement, regions, the chain, or map artifacts |
 
 ## Files
 
@@ -69,6 +70,18 @@ and handoffs should cite the number, not a heading.
 | [41-roadmap.md](41-roadmap.md) | Completed boundaries, the next implementation boundaries, and sequencing |
 | [42-performance-history.md](42-performance-history.md) | Measured baselines and their limits, from completed verification passes |
 
+### 5x — Map generation
+
+19 and 20 are map generation too (the micro half), numbered before this area
+existed.
+
+| File | Holds |
+| --- | --- |
+| [50-map-generation.md](50-map-generation.md) | The two halves and who owns what, the SDK as a shared library, the duplication ledger, a reading guide |
+| [51-generation-chain.md](51-generation-chain.md) | The chain's stages and their interfaces, features, saving, and the build order |
+| [52-map-primitives-and-library.md](52-map-primitives-and-library.md) | Cells, segments and prescriptions, region types, tiles, set pieces and set piece classes, tier zones, scale |
+| [53-map-artifacts-and-tools.md](53-map-artifacts-and-tools.md) | Determinism, what is stored, the wire form and BSON, the sweep, the Map Lab, CLI and MCP |
+
 ## Other places facts live
 
 `AGENTS.md` at the repository root carries session start rules and project
@@ -79,6 +92,9 @@ and pull request ([34](34-forgejo-workflow.md)); they are recent state, not
 requirements.
 
 `mapgen/` is the map generator, imported with its history from the former
-`last_exit_map` repository. Its own `docs/` (unnumbered: `NEXT_TASKS.md`,
-`PLANNED_GENERATION.md`, `DESIGN_DECISIONS.md` and others) and `AGENTS.md` still
-describe it. Fold a fact into this numbered set when work touches both sides.
+`last_exit_map` repository. Its design documentation was folded into 17 and 50–53
+on 2026-09-29. Its former docs are archived in
+`mapgen/docs/archive/pre-integration/`, where they still describe the old paths
+that retire when the chain lands (51). `mapgen/design_notes.txt` is the original
+statement of the map's intent. `mapgen/README.md` covers running it, and
+`mapgen/AGENTS.md` its commands.

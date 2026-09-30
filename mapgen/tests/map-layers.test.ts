@@ -1,5 +1,5 @@
 /**
- * The layout and structure layers of docs/DESIGN_DECISIONS.md "Map layers".
+ * The layout and structure layers of docs/archive/pre-integration/DESIGN_DECISIONS.md "Map layers".
  * The layout is the stored map; structure is derived from it, when generating
  * and when reading an artifact back, and is never stored.
  */

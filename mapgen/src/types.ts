@@ -202,7 +202,7 @@ export interface MapZone {
 /**
  * One occupied slot of the tile mask. `x`/`y` are in TILE units here and are
  * overwritten in CELL units once the slot becomes a `PlacedTile`; see the
- * coordinate table in docs/VOCABULARY.md.
+ * coordinate table in docs/archive/pre-integration/VOCABULARY.md.
  */
 export interface MaskCell {
   x: number;
@@ -336,7 +336,7 @@ export interface MapMetrics {
   [key: string]: number | undefined;
 }
 /**
- * What placement decided: the "Layout" layer in docs/DESIGN_DECISIONS.md "Map
+ * What placement decided: the "Layout" layer in docs/archive/pre-integration/DESIGN_DECISIONS.md "Map
  * layers". It is the map; everything else about a V2 map is derived from it or
  * made by micro generation.
  */
@@ -409,7 +409,7 @@ export interface RegionInterior {
   props: Wall[];
 }
 /**
- * What micro generation made: the "Interiors" layer in docs/DESIGN_DECISIONS.md
+ * What micro generation made: the "Interiors" layer in docs/archive/pre-integration/DESIGN_DECISIONS.md
  * "Map layers". It is stored, and states only what micro did over the layout
  * and its structure. The final grid, region partition and wall list are
  * derived from the layers together. Whatever produces interiors, mapgen's
@@ -502,7 +502,7 @@ export interface RegionSpawn {
 }
 /**
  * What a region builder may return. Extending this so a builder can also state
- * cells, segments and vertices inside its own area is NEXT_TASKS item 10.
+ * cells, segments and vertices inside its own area is archived NEXT_TASKS item 10.
  */
 export interface RegionOutput {
   spawns: RegionSpawn[];

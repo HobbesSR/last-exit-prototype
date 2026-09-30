@@ -9,7 +9,7 @@
  *
  * The shipped library binds every class to `open-field` on purpose: region
  * interiors are a black box behind an interface, and walls come from the tile
- * designs (docs/DESIGN_DECISIONS.md, "Region interiors"). So the join is
+ * designs (docs/archive/pre-integration/DESIGN_DECISIONS.md, "Region interiors"). So the join is
  * exercised with a library that binds classes to the geometry builders.
  */
 import test from "node:test";

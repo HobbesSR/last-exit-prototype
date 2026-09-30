@@ -1,7 +1,7 @@
 /**
  * A seed sweep that pins generated content, layer by layer (#47, tracking #52).
  *
- * The map-layer refactor (docs/DESIGN_DECISIONS.md, "Map layers") moves fields
+ * The map-layer refactor (docs/archive/pre-integration/DESIGN_DECISIONS.md, "Map layers") moves fields
  * between containers and must not change what the generator makes. So each map
  * is reduced to canonical content per layer and hashed. Canonical means key
  * order and run-length coding don't matter, and a non-finite number is not

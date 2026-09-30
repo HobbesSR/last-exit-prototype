@@ -107,7 +107,7 @@ test("the wire form drops what can be rebuilt", () => {
 });
 
 test("nothing derived from the layout is stored", () => {
-  // docs/DESIGN_DECISIONS.md "Map layers": structure is derived on read.
+  // docs/archive/pre-integration/DESIGN_DECISIONS.md "Map layers": structure is derived on read.
   // tests/map-interiors.test.ts covers what's derived from layout plus interiors.
   const m = generateMap("wire");
   const wire = encodeArtifact(m) as unknown as Record<string, unknown>;

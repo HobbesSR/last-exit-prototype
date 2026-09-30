@@ -1,5 +1,5 @@
 /**
- * The planned path's layers (docs/DESIGN_DECISIONS.md "Map layers"). Its
+ * The planned path's layers (docs/archive/pre-integration/DESIGN_DECISIONS.md "Map layers"). Its
  * layout is the plan laid down, and its interiors are what the builders stated
  * over it. Tiles, anchors and where the planned features stand are measured on
  * layout plus interiors, when generating and when reading an artifact, and

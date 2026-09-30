@@ -11,6 +11,8 @@ it restates something in another numbered file; if it does, link the number inst
 | A newly accepted feature or a status change | [13](13-accepted-features.md) |
 | An answer to an open question | [17](17-open-questions.md), verbatim, then the requirement row it becomes |
 | Module structure, ownership, or a contract | The relevant 2x file |
+| A map generation decision: the chain, the library model, artifacts or tools | The relevant 5x file. The micro half stays in 19 and 20 |
+| An answer about map generation | [17](17-open-questions.md), "Map generation", verbatim |
 | A measurement | [42](42-performance-history.md), with its workload and limits |
 | What to build next | [41](41-roadmap.md) |
 | Work in progress or a session handoff | A comment on its Forgejo issue or pull request ([32](32-delegation.md)) |

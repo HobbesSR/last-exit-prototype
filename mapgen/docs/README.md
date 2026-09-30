@@ -1,23 +1,27 @@
-# Documentation Index
+# mapgen documentation
 
-The primary source of design intent is [design_notes.txt](../design_notes.txt). Implementation documents describe current behavior and reversible defaults.
+mapgen's design documentation moved into the repository's numbered docs on
+2026-09-29 (root `docs/00-index.md`, area 5x):
 
-## Active Documentation
+- [50](../../docs/50-map-generation.md): map generation overview, who owns what,
+  and a reading guide
+- [51](../../docs/51-generation-chain.md): the generation chain
+- [52](../../docs/52-map-primitives-and-library.md): primitives and the library
+- [53](../../docs/53-map-artifacts-and-tools.md): artifacts, determinism and
+  tools
+- [17](../../docs/17-open-questions.md), "Map generation": questions and
+  Corey's verbatim answers
 
-- [CHAIN.md](CHAIN.md): Proposed specification for rebuilding generation as checkpoints with clear interfaces: prescriptions, guarantees and measurements; objects and views.
-- [DESIGN_DECISIONS.md](DESIGN_DECISIONS.md): Architectural decisions, invariants, wire encoding, and navigation design.
-- [VOCABULARY.md](VOCABULARY.md): Definitive terminology, primitives, coordinate systems, and layering rules.
-- [MACRO_STRUCTURES.md](MACRO_STRUCTURES.md): Version 1 specification and contract for the macro composition engine (`src/macro.ts`).
-- [PLANNED_GENERATION.md](PLANNED_GENERATION.md): The second generator. Macro states a perimeter contract and proves reachability on the region graph; micro is held to it, so no route network has to be reserved (`src/plan/`).
-- [MICRO_GENERATION.md](MICRO_GENERATION.md): The region builder contract, the generator catalogue, body scale, and the containment and clearance guards (`src/micro/`).
-- [VALIDATION.md](VALIDATION.md): Geometry verification principles, reachability invariants, and benchmark checkpoint records.
-- [NEXT_TASKS.md](NEXT_TASKS.md): Active task backlog (items 1–12), ranked by implementation readiness.
-- [QUESTIONS.md](QUESTIONS.md): Open design choices awaiting playtest evidence or user clarification.
+The original statement of intent is [design_notes.txt](../design_notes.txt).
 
-## Historical Archive (`archive/`)
+## Archive
 
-- [retired-design-proposal/](archive/retired-design-proposal/): Assistant proposal separated from the original design notes.
-- [pre-editor-cleanup/](archive/pre-editor-cleanup/): Documentation state before explicit fallback and segment editing.
-- [editor-cleanup/](archive/editor-cleanup/): Audit and changelog from the editor cleanup milestone.
-- [2026-09-12-macro-review/](archive/2026-09-12-macro-review/): Review and findings for initial macro composition contract.
-- [2026-09-12-macro-revalidation/](archive/2026-09-12-macro-revalidation/): Revalidation results after macro contract corrections.
+- [pre-integration/](archive/pre-integration/README.md): mapgen's docs up to
+  2026-09-29. They describe the old generators until those retire.
+- [retired-design-proposal/](archive/retired-design-proposal/): an assistant
+  proposal separated from the original design notes.
+- [pre-editor-cleanup/](archive/pre-editor-cleanup/) and
+  [editor-cleanup/](archive/editor-cleanup/): the editor cleanup milestone.
+- [2026-09-12-macro-review/](archive/2026-09-12-macro-review/) and
+  [2026-09-12-macro-revalidation/](archive/2026-09-12-macro-revalidation/): the
+  review of the macro composition contract.

@@ -70,6 +70,196 @@ its current generator is a standalone prototype. Its uncommitted UI work was lef
 untouched, and its dimensions, clearance values and topology proofs were not
 silently adopted as game contracts.
 
+## Map generation (folded from mapgen, 2026-09-29)
+
+mapgen kept its own questions file until 2026-09-29. It is archived as
+`mapgen/docs/archive/pre-integration/QUESTIONS.md`, and its answers are
+preserved verbatim below with the ones given since. The design they produced
+is in 50–53. Answers are grouped by topic, each under the question it settled.
+
+### Answers
+
+**Reachability.** Must a hunter reach everything?
+  - (2026-09-27) "Everything must be reachable by a hunter so we are pessimistic about passablility."
+  - (2026-09-27) "remember we ignore gaps."
+
+**What does `open` guarantee?**
+  - (2026-09-27) "Open is a special class of region." "Every cell in the regions formed by open cells must be passable as well as every internal segment of those regions. Addressing the open regions may ultimately use a decomposer and microgenerator that enforces its special requirements, but there is a notion that it is a privileged region class."
+
+**Saving a map.**
+  - (2026-09-27) "Can we not make the interior generation essentially a function of a seed, a library, and generation algorithm? And can we not make the objects saveable separably and compoundly as needed?"
+
+**Region boundary openings.** Who states which boundary segments are passable, and what does a builder owe?
+  - (2026-09-27) "We may require tile makers to declare passable segments between cells of different regions, i.e. on the perimiter of regions. It's the tile designer's job to mark internal as passable. For convenience, we may make perimeter segments default to passable with explicit nonpassable indicators."
+  - (2026-09-27) "just because something isn't marked passable doesn't mean it won't be passable. It just means we can prove its passable."
+  - (2026-09-27) "segment passability isn't really enforced in any way, save through the geometry that builders create within their regions. Now we might at some point want to say we want explicit nonpassable and that is a directive that builders must honor, but I don't want that to be another constraint because all builders work on the honor system, and I'd prefer them to honor passable than try to honor multiple objectives."
+  - (2026-09-27) "the whole idea is we can trust that any passable perimiter segment in a aggregate region is reachable through passable segments."
+  - (2026-09-27) "passable segments must all be part of a chain of perimeter segments on the region large enough to be passable for hunters."
+  - (2026-09-28) "there was talk about segments being explicitly impassable on the perimeter of regions, without prescribing a segment object like wall or fence, as a directive to the region builder to make its placed geometry make that segment impassable, and I decided I don't want to make builders, which already work on the honor system, to have to solve for two external objectives at the same time as part of their pinky promise contract, so I suggested they would be, at best, if at all, architectural suggestions for the builers."
+
+**Segment prescriptions.** What does a segment carry?
+  - (2026-09-27) "we have for segments cell adjacency requirement for each side, a geometry prescription, and passability prescription. And there are Any DNC modes and stuff." "It can be confusing since some things can imply other things and we accept don't care on some dimensions. So I guess it's just important we distinguish that a segment has that set of prescriptions, which different labels specify directly and indirectly."
+  - (2026-09-27) "yes hunters can break fences."
+  - (2026-09-28) "Perhaps what's best is to have open / default / any pass down as deep as possible if that information is pertinent (along with the assumption of what it implies if that choice is also needed)"
+  - (2026-09-28) "The passability requirement is something that must be matched, either with a corresponding passability or any (and it might be derived), and a "macro" geometry directive, that prescribes something placed not by a builder (which I'm beginning to regret even allowing as a way for macro to prescribe specifics of geometry placement but I just can't write off just yet) like walls and fences, the former creating a derived not-passable conclusion, and the latter deriving a passable conclusion. And so I guess there is also a difference between the declaritive nature at the tile layer, and the knowledge layer derived after solving after valid placements."
+  - (2026-09-28) On whether macro geometry directives survive: "I'm going to say no. I'll add them back in (this affects set pieces and tile designs we already have)."
+
+**Rebuilding the chain.** How should generation be structured?
+  - (2026-09-28) "let's think about this as a series of transforms to new classes of objects, some very superficially similar, and perhaps relegated to a "view" over the primitive data structure."
+  - (2026-09-28) "maybe we keep what we currently have, but now that we have a better understanding we also just try implementing from scratch the whole series of transformers, defining clear interfaces between the layers' transforms, and then implementing within them."
+  - (2026-09-28) "I'm giving you license to be the architect here. My architectural directives have been suggestive and the msot concrete thing I've prescribed is clear interfaces between different layers / views of map generation. Somewhat like transformation checkpoints and that resolve conflation of things with the same name like the declaration of passability versus the knowledge of what segments are passable, etc."
+  - (2026-09-28) On the planned path: "I don't care about loot prescriptions, that can be added in later and so the "how much" isn't something I care to make first class right now from the macro side. And I"m not sure what's being measured about tiles and anchors, or if anchors are even relevant anymore after previous discussions."
+
+**Set pieces and features.**
+  - (2026-09-28) "The set pieces should use the same distribution as before. If I remember, they're actually chosen from set piece classes, sets of set pieces, so I'm not sure that system needs changing."
+  - (2026-09-28) "I believe each of those things essentially belong to certain set piece classes, which are the only things we give first class status in the engine. So from a macro perspective, if we need to reason about the existence and relationships of features, it is reasoning about the set piece classes our macro generator has our specific placement rules for that guarantee at least the existence. However, missing from that, is at least a set piece class that owns chargers I think. So we'll make a set piece class that covers charging stations. And remember, set piece classes are sets of set pieces, which are layouts of tile sets, which are sets of tiles, sometimes with just one."
+  - (2026-09-28) "class is kind of a suggested "default" or primary region class/type. I don't know if it's really all that helpful or not, but it's supposed to correspond with the type of aggregate region it is predominantly intended to form, which I'm not sure every tile that even makes sense for and its main effect ends up being telling the editor what the default cell region type is. Yup we'll have hunter spawn in end for simplicity right now. We'll assume that the builder for a region type will be responsible for those features. It is up to the authors to ensure that all set pieces that are members of set piece classes generate set pieces with regions that satisfy the special classes. From a macro perspective, we only know its satisfied by trust in the set piece class itself. As far as validation, maybe for now we just trust that the macro generation placement rules for specific set pieces ensure what is placed is valid for feature requirements. There is no loading validation of this and it can only be subsequently reasoned about after micro generation with all buildersis complete. Playground mode I think is just supposed to make our lives easier. It's a debug / development feature that needs to evolve. One per map is fine for now. We can refine the macro generation algorithm as needed for charger placement."
+
+**The library.**
+  - (2026-09-29) "I think we may need to once again create a new tile / set piece library. Now each region type essentially gets its own bespoke code, so we can just imagine the decomposers and builders we need and prescribe region types for them. Perhaps we can reuse what exists to some extent, but we shouldn't be bound by it. We're proposing such large changes and ones that essentially put some responsibility on authors, that I think its reasonable to suggest a fresh round of authoring the needed assets."
+
+**The two projects, the SDK and the documentation.**
+  - (2026-09-29) "Well I thought the idea of the generation SDK is more about providing a library of reusable functionality likely to be used across builders. But there's kind of a documentation sweep that seems to be necessary in general as well."
+  - (2026-09-29) "I kind of wonder if next_tasks is fighting forgejo now."
+  - (2026-09-29) "As for numbering, I guess a 5x range is fine. I just want content to be decomposed hierarchally so unneeded content doesn't get loaded into context. I think I've had some success with a decimal system in the past, but maybe that strategy is another new issue we can worry about later."
+  - (2026-09-29) "keep in mind I think we have duplicate things in some cases because they are tailored for the level they are engineered for. Macro and Micro have to solve similar problems but within the boundaries of their scope."
+  - (2026-09-29) "Yes mapgen's docs I think have been part of the bane. I think we need to integrate and normalize the documentation and I'm not sure we could have done it without going through the pains we went through to get to where we are now. And I also think we're in a very delicate place where this is probably the best context that understands how to merge the designs of the two coupled projects that were inadvertantly trying to solve the same things. But mapgen evolved towards owning bottom of macro up, and the original game engine owned building aggregate regions down. And that helps generally decide whose work is relevant versus deprecated, but it might take some searching to truly understand."
+
+### Open
+
+Each has a working assumption, so work continues without an answer. Answer by
+number ("M3: …") and the answer is recorded verbatim here.
+
+1. **M1. What macro and micro share, and where it lives.** Macro hands briefs
+   to micro's strategies, so the two need a common contract, body scale, and a
+   definition of a run.
+    - (2026-09-29) "M1 not sure what the question is here. Whatever is shared between macro and micro should probably be separated out into its own library / space since that means neither level officially owns it."
+
+   Recorded as a **shared map space** that neither level owns (50, 51 C0).
+   Still open: its name and place. *Assumption:* `shared/map/common/`,
+   imported by mapgen and by `shared/map/micro/`.
+2. **M2. When the proof gates generation.** Reachability is inferred (M6), so
+   the macro proof is a link that has to hold, and it gates placement.
+   Still open: what it must connect. *Assumption:* every layout region must
+   be in the spawn region's component. That is the pessimistic reading of
+   "everything must be reachable by a hunter", and it means designs prescribe
+   passable segments wherever regions meet, so that portals derive there. Your September 27 option, "we may make
+   perimeter segments default to passable with explicit nonpassable
+   indicators", would ease that authoring burden. It is not adopted, and an
+   unstated segment stays no guarantee.
+3. **M3. What a portal obliges of geometry.** Today's SDK ports are
+   supplied by the caller, and `resolvePorts` walls each one except for a
+   centred gap (a doorway of 2 cells, or a squeeze of 1.5) before any builder
+   runs.
+    - (2026-09-29) "Ahh,I'm not sure if we've got like first class things here. resolvePorts, is that... like trying to identify contiguous passable segments? I guess Port is a fair term for it. Maybe we can make it Portal or something. Anyway, they should be derived things and used for checking and validation. At the macro level, passable sections that become derived portals would be authored. In micro, the SDK would provide utilities to help arrive at such reachability conclusions, but it doesn't have the benefit of the rigid grid system, as geometry can be placed arbitrarily."
+
+    - (2026-09-29) "Authors don't write portals, but they definitely think about how their passable sections will build portals."
+
+   Recorded in 51:
+   - A **portal** is derived, never authored: the guaranteed-passable stretch
+     of a boundary. Authors write passable prescriptions, designed with the
+     portals they will form in mind, and the Map Lab previews them (B1).
+   - Portals state what must stay passable, and are what validation checks.
+     They place no geometry, so no jambs.
+   - The SDK supplies utilities for reaching reachability conclusions over
+     free-form geometry.
+
+    - (2026-09-29) "It's the builder's responsibility to ensure that from that portal all other portals in its (sub)region is reachable. So if they put something next to it that effectively make it not passable into the rest of the region, then they are promising there are no other portals on its perimeter to reach. A portal is passable if a hunter can pass through its geometry. so two segments that meet at a right angle, I haven't done the math, but I think that would mean a hunter couldn't pass through that, so that set of passable segments would not count as a portal."
+
+   Recorded in 51 stages 3 and 5:
+   - A portal is straight and at least a hunter's diameter long. A right-angle
+     pair doesn't count.
+   - From each portal, every other portal of the (sub)region is reachable.
+     Blocking a portal promises there's no other portal to reach.
+
+   Where on a portal a hunter crosses:
+    - (2026-09-29) "Again this is a reachability question and a pinky promise, although validation utilities are an intended part of the micro/builder sdk. But essentially, all parts of a portal must be reachable by a hunter from within region, with no assumptions about what's on the outside of the region. So if two regions share a portal.... ah I see, the way I worded it before, you could place geometry down against a portal such that a hunter couldn't reach it coming from the other side. Ahh but this still gets to the rule of reachable from other portals. So all portals in the perimeter of a region must be reachable from all other portals on the perimeter of the region, without any assumptions about what's outside the region. However, when there is only one portal, there essentially is NO reachability requirement at all, because there are no other portals to reach from. And if you have two regions with one portal meeting up together, they already form an unreachable space from outside it, so won't be valid placements."
+
+   Recorded in 51 stage 5:
+   - Every part of every portal is reachable from every other portal, from
+     within the region, with no assumption about outside it.
+   - A region with one portal has no reachability requirement.
+   - Neighbours compose without coordinating, and two one-portal regions
+     sharing their portal are rejected by the proof.
+
+   M3 is answered.
+
+   Enforcement and validation:
+    - (2026-09-29) "We're not enforcing anything on the builders or validating at all. The prescriptions are for macro reasoning purposes. It is a builder defect not to meet it the passability requirement. But builders internals are their business, however, there are general design guidelines typical implementations will follow, and perhaps those guidelines will be written. Validation support for a variety of things can be provided by the micro SDK, but it is elective. For some special types of regions that have unique mechanics or other types of building that breaks some of the assumptions the SDK validation depends on, whatever the builder wants to validate and how they want to do it is up to them. However, if they fail to reliably build to meet the passability requirements, again while not enforced, at that point they are not meeting the macro contract and it is considered a non-local defect."
+
+   Recorded as 51 principle 9: contracts are promises, SDK validation is
+   elective, and the report diagnoses defects rather than rejecting maps.
+    - (2026-09-29) "So look, if we end up with things that need the macro assumptions to be true, then that's what I mean by the defect being non-local. If we start doing things like make nave meshes or something on the final geometry after regions are generated and any post processing is done, then yea, failing to meet the macro contract will result in a failure of a system or validation across the whole map. There's just not a uniform enforcement on region building itself. It will either become a defect that is noticed from the outside or not. Not sure why you're asking me about feature sites and loot reachable from that portal. I mean really, what did I just say about the interior of regions?"
+
+   Recorded in 51 principle 9. The only promise is passability between
+   portals, and a region's interior, features and loot included, is the
+   builder's business. A non-local defect can be a source of failure in
+   something that relies on macro's assumptions, such as a nav mesh over the
+   final geometry or whole-map processing.
+    - (2026-09-29) "They won't necessarily fail, not meeting the contract could be a source of failure."
+4. **M4. Ceilings and sealed runs.**
+    - (2026-09-29) "M4 we'll add that in later if we need it, let's keep in simple. Treat them like regions in general, with only passability obligations."
+
+   Recorded in 51 and 16: obligations are passability only, from macro and
+   between a region's own children. There are no ceilings and no sealed runs.
+5. **M5. One body scale.**
+    - (2026-09-29) "M5, let's find a place in documentation and code for there to be a single source of truth for these."
+
+   Recorded: 52 "Units and scale" is the one statement in the docs, and the
+   shared map space holds the one source in code (51 C0). Still open: which
+   values. *Assumption:* the SDK's `cell` profile (radii 0.625 and 0.875
+   cells, doorway 2, squeeze 1.5). The shortest portal stays 2.
+6. **M6. How whole-map reachability is established.**
+    - (2026-09-29) "M6, M7 Whole map reachability is supposed to be a chain of inference through guarantees at each layer."
+
+   Recorded as 51 principle 8: macro's proof, plus each region's validation
+   of its own guarantees, all the way down. There is no whole-map flood, and
+   the former track C3 is dropped.
+7. **M7. Region size limits.** The same answer settles the reachability half:
+   there is no whole-map check. Still open: the SDK bounds one region to 4,096
+   cells and 64 per axis, and one composition to 16 regions, while a macro
+   region may span a hundred tiles. *Assumption:* those are tool limits (20)
+   and get raised for macro-sized regions (51 C2). A strategy that can't build
+   a large region whole decomposes it.
+8. **M8. Guarantees inside a region.** A segment prescribed passable with the
+   same region on both sides isn't on a boundary, so it forms no portal and
+   the proof doesn't use it.
+   *Assumption,* revised 2026-09-29 after the PR #81 review found it was
+   stated as an obligation but never checked: such a guarantee obliges
+   nothing. Portals are the only obligation a strategy carries, which keeps
+   builders to one objective. The Map Lab flags these prescriptions, since
+   they promise nothing. The earlier assumption was that the strategy keeps
+   them passable.
+9. **M9. Does an `open` region need a minimum width?** Every cell and inside
+   segment of an `open` region is passable, but a one-cell neck still carries no
+   hunter. *Assumption:* at least the door width wherever it has to carry a
+   route, checked when regions are formed.
+10. **M10. Where cover goes,** if `open` cells can't hold obstacles.
+    *Assumption:* cover comes from other classes placed among open ground
+    (trees, rocks, rubble, huts).
+11. **M11. Skeleton first, or the open-face rule alone?** A spanning tree of
+    required passable seams could be pinned before WFC, so the fill adds loops
+    but never cuts it. *Assumption:* the open-face rule alone first (#59), with
+    backtracking measured, and a skeleton only if that's too costly.
+12. **M12. Any versus don't care.** Is "DNC" a mode separate from `any`, one
+    that accepts anything and adapts to nothing? *Assumption:* one don't-care
+    value per dimension, with today's adopting behaviour, until a case needs
+    two.
+13. **M13. The shape near exits.** Should the diamond's narrow tip remain when
+    several exits share one corridor? *Assumption:* keep it.
+14. **M14. Omitting optional structures.** Which set pieces may placement omit
+    when they are optional? *Assumption:* none yet; required classes try bounded
+    alternatives, then fail explicitly.
+15. **M15. 2½D.** Are flat levels with ramps and occasional bespoke
+    multi-height regions enough, or do generic overlapping floors matter?
+    Deferred until 2D tuning progresses (16).
+16. **M16. Tier composition.** How does the diamond diagram combine the
+    horizontal tier and the vertical bonus into one number, and are novelty
+    rewards a separate category? *Assumption:* the axes stay independent.
+17. **M17.** Withdrawn. It asked whether a one-portal region must keep its
+    features and loot reachable, but a region's interior is its builder's
+    business (see the answer on enforcement above).
+
 ## Product and gameplay — review together when convenient
 
 1. Modular hierarchy: provide hierarchy levels, template sizes, connector contracts and one concrete example. Current street generation remains explicitly interim.

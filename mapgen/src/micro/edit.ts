@@ -4,7 +4,7 @@
  * A builder should not hand-assemble a `RegionEdit` and hope it is legal. It
  * declares over a canvas, which enforces the containment contract at the moment
  * each declaration is made, counts what it refused, and emits the edit. Per
- * docs/VOCABULARY.md nothing here is a physical object: a wall on a segment
+ * docs/archive/pre-integration/VOCABULARY.md nothing here is a physical object: a wall on a segment
  * states that something impassable occupies that edge, and what it is made of
  * is resolved much later.
  *
@@ -499,7 +499,7 @@ export function createCanvas(context: RegionContext): RegionCanvas {
 
     finish(generator) {
       // Material states a wall on each boundary against a non-material
-      // neighbour. That rule is in docs/VOCABULARY.md and it has to be applied
+      // neighbour. That rule is in docs/archive/pre-integration/VOCABULARY.md and it has to be applied
       // here, because nothing downstream applies it: `wallsFromLattice` reads
       // segments and treats every cell inside the mask alike, and
       // `clearance.ts` does not read cell class at all. A builder that paints a

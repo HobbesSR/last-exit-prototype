@@ -1,7 +1,7 @@
 /**
  * Macro loot allocation: how much, and of what tier.
  *
- * The split this module exists to keep is the one in docs/VOCABULARY.md under
+ * The split this module exists to keep is the one in docs/archive/pre-integration/VOCABULARY.md under
  * "Builders": macro decides how much loot a region owes and what tier it is,
  * because that is progression and progression is a property of *where* the
  * region sits. Where the spawns actually land is the region's own business --
@@ -62,7 +62,7 @@ const DEFAULT_TIER_STEP = 0.35;
  */
 const DEFAULT_MAX_PER_REGION = 20;
 
-/** Horizontal progression runs 1..5 (docs/VOCABULARY.md, "Tier zone"). */
+/** Horizontal progression runs 1..5 (docs/archive/pre-integration/VOCABULARY.md, "Tier zone"). */
 const TIER_MIN = 1;
 const TIER_COUNT = 5;
 

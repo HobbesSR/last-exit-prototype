@@ -114,7 +114,7 @@ try {
     output(DEFAULT_LIBRARY, o.out);
   } else if (command === "plan") {
     // The second generator. It takes no library: it plans regions over the cell
-    // grid rather than placing authored tiles. See docs/PLANNED_GENERATION.md.
+    // grid rather than placing authored tiles. See docs/archive/pre-integration/PLANNED_GENERATION.md.
     const o = options(rest);
     if (o.seed === undefined) throw new Error("plan requires --seed");
     const map = generatePlannedMap(o.seed, params(o));
