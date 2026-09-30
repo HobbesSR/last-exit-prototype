@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createRegionContext, DecompositionState, allocateCandidates, generatorFitness, buildInterfaces, validateDecompositionPlan, connectedComponents } from '../shared/map/micro/sdk.ts';
-import { decompositionExample, planExample, EXAMPLE_GENERATORS } from '../shared/map/micro/decomposition/example.ts';
+import { createRegionContext, DecompositionState, allocateCandidates, generatorFitness, buildInterfaces, validateDecompositionPlan, connectedComponents } from '../map/micro/sdk.ts';
+import { decompositionExample, planExample, EXAMPLE_GENERATORS } from '../map/micro/decomposition/example.ts';
 
 const grid = (w, h, x = 0, y = 0) => Array.from({ length: w * h }, (_, i) => ({ x: x + i % w, y: y + Math.floor(i / w) }));
 const generic = { id: 'generic', roles: ['utility'], tags: ['flexible'], minArea: 1, maxArea: 4096, holes: 'any', utility: a => ({ area: a.area }) };

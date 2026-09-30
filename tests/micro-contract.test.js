@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateMicroRegion, validateMicroRegion } from '../shared/map/micro/index.ts';
-import { microExample } from '../shared/map/micro/examples.ts';
-import { createRegionMask, capsule, travelClear } from '../shared/map/micro/geometry.ts';
-import { regionCollisionMap, stampMicroRegion } from '../shared/map/micro/adapter.ts';
+import { generateMicroRegion, validateMicroRegion } from '../map/micro/index.ts';
+import { microExample } from '../map/micro/examples.ts';
+import { createRegionMask, capsule, travelClear } from '../map/micro/geometry.ts';
+import { regionCollisionMap, stampMicroRegion } from '../map/micro/adapter.ts';
 import { createGenerationContext } from '../shared/map/context.ts';
 import { circle, polygon, rect } from '../shared/shape.ts';
 import { canOccupy, movePlayer } from '../shared/movement.ts';

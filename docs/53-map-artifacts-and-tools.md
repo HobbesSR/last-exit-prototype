@@ -13,7 +13,7 @@ in the chain (Corey, 2026-09-27):
 - Nothing draws from a stream another step shares.
 - Each step is a function of the objects before it, and doesn't change them.
 
-`mapgen/tests/generation-chain.test.ts` pins this for the old paths: the same
+`map/macro/tests/generation-chain.test.ts` pins this for the old paths: the same
 seed gives deep-equal maps, and a saved layout alone regenerates the stored
 interiors. The chain gets the same pins at 51 step 3.
 
@@ -23,7 +23,7 @@ Two rules apply, in order:
 1. **Don't store what can be derived.** In the chain, only the Layout and the
    region results hold decisions, and every other stage output is a view (51).
 2. **Pack what's left** as an interned palette plus run-length codes, in one
-   shared mechanism (`mapgen/src/coding.ts`).
+   shared mechanism (`map/macro/src/coding.ts`).
 
 **Why packing works:** a map addresses tens of thousands of each primitive,
 and their metadata is almost entirely enumerated values drawn from a small
@@ -75,7 +75,7 @@ an array as a document keyed "0", "1", "2", …, so every bulk field is a typed
 array that the writer stores as a binary element. Only small, heterogeneous
 things stay documents.
 
-- **The codec** (`mapgen/src/bson.ts`) is written in-house, because the
+- **The codec** (`map/macro/src/bson.ts`) is written in-house, because the
   runtime has no other dependencies. It's checked against the published
   example documents byte for byte.
 - **A closed segment** is the sentinel `-1` in both encodings, because JSON
@@ -86,7 +86,7 @@ things stay documents.
 ## Proving a change: the sweep
 
 `node tools/cli.mts sweep --check tests/fixtures/layer-baseline.json` (run
-from `mapgen/`) reruns the pinned seed set and compares per-layer content
+from `map/macro/`) reruns the pinned seed set and compares per-layer content
 hashes: 329 maps across both old generators, several sizes and a builder-bound
 library.
 - `LAYER_FIELDS` in `tools/sweep.mts` is the only code that knows where each
@@ -109,14 +109,14 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
 
 ## Tools
 
-- **Map Lab** (`mapgen/`, `npm run dev`, port 4173 by default): seed and
+- **Map Lab** (`map/macro/`, `npm run dev`, port 4173 by default): seed and
   parameter controls, map overlays, route comparison, tile inspection, and
   library editing and export, including a per-cell class painting grid. It's
   the primary review surface for macro work. Track B1 (51) adds authoring for
   the new schema.
-- **CLI** (`mapgen/tools/cli.mts`): `generate`, `validate`, `batch`, `library`
-  and `sweep`. Commands are in `mapgen/README.md`.
-- **MCP** (`mapgen/tools/mcp.mts`): bounded stdio tools `map_generate`,
+- **CLI** (`map/macro/tools/cli.mts`): `generate`, `validate`, `batch`, `library`
+  and `sweep`. Commands are in `map/macro/README.md`.
+- **MCP** (`map/macro/tools/mcp.mts`): bounded stdio tools `map_generate`,
   `map_validate`, `library_validate` and `map_batch`. It is not registered in
   any agent client by default.
 - **The game's micro tools** (the micro lab, the decomposition lab, the

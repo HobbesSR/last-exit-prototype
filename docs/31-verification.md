@@ -14,11 +14,11 @@ npm run bench
 npm run bench:client
 ```
 
-Changes under `mapgen/` run its own suite with `npm run test:mapgen` (typecheck
+Changes under `map/macro/` run its own suite with `npm run test:mapgen` (typecheck
 plus unit tests, in that directory) and, for editor behavior, `node tests/browser.mts`
-from `mapgen/`. On 2026-09-29 the suite is green: 286 tests, 282 pass, 4 todo
+from `map/macro/`. On 2026-09-29 the suite is green: 286 tests, 282 pass, 4 todo
 (each todo names a defect in the old tile path that the chain retires). A change
-to mapgen's old generators also runs the seed sweep from `mapgen/`,
+to mapgen's old generators also runs the seed sweep from `map/macro/`,
 `node tools/cli.mts sweep --check tests/fixtures/layer-baseline.json`. It must
 show no drift unless the PR declares a content change and recaptures last
 ([53](53-map-artifacts-and-tools.md)). The chain (51) gets its own checks and

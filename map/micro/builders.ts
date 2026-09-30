@@ -1,8 +1,8 @@
-import { polygon, rect } from '../../shape.ts';
+import { polygon, rect } from '../../shared/shape.ts';
 import { microMetrics } from './metrics.ts';
-import type { Shape } from '../../shape.ts';
-import type { Box, Vec2 } from '../../types.ts';
-import type { ElementTemplate } from '../element.ts';
+import type { Shape } from '../../shared/shape.ts';
+import type { Box, Vec2 } from '../../shared/types.ts';
+import type { ElementTemplate } from '../../shared/map/element.ts';
 import type { BuilderContext, BuilderId, RegionBuilder, RegionRandom } from './types.ts';
 
 const WALL = 18;

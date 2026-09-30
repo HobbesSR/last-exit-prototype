@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { outline, transform } from '../shared/shape.ts';
-import { generateMicroRegion, validateMicroRegion } from '../shared/map/micro/index.ts';
+import { generateMicroRegion, validateMicroRegion } from '../map/micro/index.ts';
 
 const CELLS_W = 24, CELLS_H = 18, CELL = 40;
 const cells = (predicate = () => true) => Array.from({ length: CELLS_H }, (_, y) =>

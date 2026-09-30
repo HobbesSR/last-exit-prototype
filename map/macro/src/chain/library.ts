@@ -1,6 +1,6 @@
 /** The chain's authored library (51 stage 0, 52). It is independent of the old library. */
-import { boundaryRuns } from "../../../shared/map/common/run.ts";
-import { MIN_PORTAL_LENGTH } from "../../../shared/map/common/scale.ts";
+import { boundaryRuns } from "../../../kernel/run.ts";
+import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
 export const CHAIN_LIBRARY_VERSION = 1;
 export const CHAIN_TILE_SIZE = 6;
 

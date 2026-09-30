@@ -1,5 +1,5 @@
 import DEFAULT_LIBRARY_JSON from "../content/default-library.json" with { type: "json" };
-import { CELL_SCALE } from "../../shared/map/common/scale.ts";
+import { CELL_SCALE } from "../../kernel/scale.ts";
 import { composeMacro } from "./macro.ts";
 import { getDifficulty, solveWfc, getRotatedEdge } from "./wfc.ts";
 import type { WfcGrid, TileOption } from "./wfc.ts";

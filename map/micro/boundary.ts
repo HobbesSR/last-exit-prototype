@@ -1,7 +1,7 @@
 import { resolveAccessRequirements, validateRegionAccess } from './access.ts';
 import { createRegionMask, findRegionRoute } from './geometry.ts';
 import { microMetrics } from './metrics.ts';
-import type { Shape } from '../../shape.ts';
+import type { Shape } from '../../shared/shape.ts';
 import type { Cell, Passage, RegionPort } from './types.ts';
 
 /** Global cell coordinates at every level; builder parameters are intentionally absent. */

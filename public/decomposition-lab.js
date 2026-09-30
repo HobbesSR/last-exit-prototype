@@ -1,6 +1,6 @@
 import { updateTreeExplorer } from '/decomposition-tree-panel.js';
-import { decompositionExample, planExample } from '/shared/map/micro/decomposition/example.ts';
-import { analyzeRegion } from '/shared/map/micro/decomposition/analysis.ts';
+import { decompositionExample, planExample } from '/map/micro/decomposition/example.ts';
+import { analyzeRegion } from '/map/micro/decomposition/analysis.ts';
 
 const $ = id => document.getElementById(id);
 const palette = ['#54c7bb','#6f9de0','#d884a8','#d7a65d','#a18ada','#72b777','#dc7d66','#70b9d8'];

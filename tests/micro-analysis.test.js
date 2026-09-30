@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { analyzeRegion, canonicalCells, cellKey, connectedComponents, findNeckCuts, growRegion, shortestCellPath } from '../shared/map/micro/decomposition/analysis.ts';
+import { analyzeRegion, canonicalCells, cellKey, connectedComponents, findNeckCuts, growRegion, shortestCellPath } from '../map/micro/decomposition/analysis.ts';
 
 const cells = (rows) => rows.flatMap((row, y) => [...row].flatMap((value, x) => value === '#' ? [{ x, y }] : []));
 

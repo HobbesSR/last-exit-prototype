@@ -1,5 +1,5 @@
-import { navigationClearance } from '../navigation.ts';
-import { CELL_SCALE } from '../common/scale.ts';
+import { navigationClearance } from '../../shared/map/navigation.ts';
+import { CELL_SCALE } from '../kernel/scale.ts';
 import type { RegionSpec } from './types.ts';
 
 /** Explicit preview scale; omitted profile retains existing game geometry contracts. */

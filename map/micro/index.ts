@@ -1,7 +1,7 @@
 import { resolveAccessRequirements, validateRegionAccess } from './access.ts';
-import { circle, rect } from '../../shape.ts';
-import type { Shape } from '../../shape.ts';
-import type { Vec2 } from '../../types.ts';
+import { circle, rect } from '../../shared/shape.ts';
+import type { Shape } from '../../shared/shape.ts';
+import type { Vec2 } from '../../shared/types.ts';
 import { microMetrics } from './metrics.ts';
 import { spreadPoints } from './placement.ts';
 import { BUILDERS } from './builders.ts';

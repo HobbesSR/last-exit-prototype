@@ -1,10 +1,10 @@
-import type { Box, ObstacleKind } from '../../types.ts';
-import type { Shape } from '../../shape.ts';
-import type { ElementTemplate } from '../element.ts';
-import type { Cell, RegionSpec } from '../common/contract.ts';
+import type { Box, ObstacleKind } from '../../shared/types.ts';
+import type { Shape } from '../../shared/shape.ts';
+import type { ElementTemplate } from '../../shared/map/element.ts';
+import type { Cell, RegionSpec } from '../kernel/contract.ts';
 
 // The contract lives in the shared map space; it is re-exported so the SDK's imports stay put.
-export type { BuilderId, Cell, Passage, RegionElement, RegionPort, RegionResult, RegionRoute, RegionSpec, ResolvedPort } from '../common/contract.ts';
+export type { BuilderId, Cell, Passage, RegionElement, RegionPort, RegionResult, RegionRoute, RegionSpec, ResolvedPort } from '../kernel/contract.ts';
 
 export interface RegionMask {
   cells: readonly Cell[];

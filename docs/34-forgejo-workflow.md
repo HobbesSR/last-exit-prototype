@@ -3,7 +3,7 @@
 Local Forgejo at `http://localhost:3000` is the source of truth; GitHub (`origin`)
 is the public remote copy, described under [GitHub](#github) below.
 `corey/astra_test` is the only project repository: the map
-generator lives in `mapgen/` (see [20](20-micro-generation.md)). The old
+generator lives in `map/macro/` (see [20](20-micro-generation.md)). The old
 `corey/last_exit_map` repository is retired: open no work against it.
 
 This file governs top-level agents that each hold their own Forgejo account.
@@ -44,7 +44,7 @@ missing, create it from the table before starting a dev server.
 
 ## Instruction loading
 
-`AGENTS.md` is the single source of instructions, with a nested `mapgen/AGENTS.md`
+`AGENTS.md` is the single source of instructions, with a nested `map/macro/AGENTS.md`
 for that directory. Codex reads both natively. Each directory's `CLAUDE.md` holds
 only `@AGENTS.md`, which Claude Code imports at session start. A worktree sees only
 committed files, so an instruction change reaches an agent once it is merged and
@@ -54,7 +54,7 @@ the agent starts its next branch from fresh `forgejo/main`.
 
 1. Find work with `list_assigned_issues`; claim it with `assign_issue`.
 2. In your worktree: `git fetch forgejo`, then
-   `git switch -c <prefix>/<feature> forgejo/main`. Run `npm ci` (and in `mapgen/`)
+   `git switch -c <prefix>/<feature> forgejo/main`. Run `npm ci` (and in `map/macro/`)
    when a lockfile changed.
 3. Commit only to that branch. Never check out, commit to, merge or rebase onto
    `main` or another agent's branch.

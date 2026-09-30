@@ -1,8 +1,8 @@
-import { placeElement } from '../element.ts';
-import { createGenerationContext } from '../context.ts';
+import { placeElement } from '../../shared/map/element.ts';
+import { createGenerationContext } from '../../shared/map/context.ts';
 import { validateMicroRegion } from './index.ts';
-import type { BaseGenerationContext } from '../context.ts';
-import type { CollisionMap, NodeId, Vec2 } from '../../types.ts';
+import type { BaseGenerationContext } from '../../shared/map/context.ts';
+import type { CollisionMap, NodeId, Vec2 } from '../../shared/types.ts';
 import type { RegionResult } from './types.ts';
 
 /** Resolve a generated region through the same element/shape emission as normal arena content. */

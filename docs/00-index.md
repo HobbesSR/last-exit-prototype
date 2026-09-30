@@ -21,7 +21,7 @@ and handoffs should cite the number, not a heading.
 | 2x | Engineering: how the implementation is arranged | Changing code structure, protocol, performance or contracts |
 | 3x | Process: how work is verified and handed off | Running acceptance, delegating, or updating documentation |
 | 4x | Plan and history: what is next and what was measured | Choosing the next task, or citing an earlier measurement |
-| 5x | Map generation: macro (`mapgen/`) and how it meets micro (`shared/map/micro/`) | Changing the tile library, placement, regions, the chain, or map artifacts |
+| 5x | Map generation: macro (`map/macro/`) and how it meets micro (`map/micro/`) | Changing the tile library, placement, regions, the chain, or map artifacts |
 
 ## Files
 
@@ -91,10 +91,10 @@ characterization baseline. Work in progress and handoffs live on the Forgejo iss
 and pull request ([34](34-forgejo-workflow.md)); they are recent state, not
 requirements.
 
-`mapgen/` is the map generator, imported with its history from the former
+`map/macro/` is the map generator, imported with its history from the former
 `last_exit_map` repository. Its design documentation was folded into 17 and 50–53
 on 2026-09-29. Its former docs are archived in
-`mapgen/docs/archive/pre-integration/`, where they still describe the old paths
-that retire when the chain lands (51). `mapgen/design_notes.txt` is the original
-statement of the map's intent. `mapgen/README.md` covers running it, and
-`mapgen/AGENTS.md` its commands.
+`map/macro/docs/archive/pre-integration/`, where they still describe the old paths
+that retire when the chain lands (51). `map/macro/design_notes.txt` is the original
+statement of the map's intent. `map/macro/README.md` covers running it, and
+`map/macro/AGENTS.md` its commands.

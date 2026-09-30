@@ -1,7 +1,7 @@
 """Regenerates the setPieces section of content/default-library.json.
 
 Replaces setPieces wholesale and leaves every other key untouched; the output
-is deterministic. Run from mapgen/: python tools/generate_setpieces.py
+is deterministic. Run from map/macro/: python tools/generate_setpieces.py
 """
 import json
 import random

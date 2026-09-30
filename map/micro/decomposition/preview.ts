@@ -1,9 +1,9 @@
-import { createGenerationContext } from '../../context.ts';
+import { createGenerationContext } from '../../../shared/map/context.ts';
 import { stampMicroRegion } from '../adapter.ts';
 import { createRegionMask } from '../geometry.ts';
 import { validateRealization } from './realize.ts';
 import type { RealizedDecomposition } from './realize.ts';
-import type { CollisionMap, NodeId, Vec2 } from '../../../types.ts';
+import type { CollisionMap, NodeId, Vec2 } from '../../../shared/types.ts';
 
 /** Stamp every child into one collision map; bound the demo to its owned polyomino. */
 export function realizationCollisionMap(result: RealizedDecomposition): { map: CollisionMap; origin: Vec2 } {

@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { planExample, decompositionExample } from '../shared/map/micro/decomposition/example.ts';
-import { realizeDecomposition, validateRealization } from '../shared/map/micro/decomposition/realize.ts';
-import { realizationCollisionMap } from '../shared/map/micro/decomposition/preview.ts';
-import { microMetrics } from '../shared/map/micro/metrics.ts';
+import { planExample, decompositionExample } from '../map/micro/decomposition/example.ts';
+import { realizeDecomposition, validateRealization } from '../map/micro/decomposition/realize.ts';
+import { realizationCollisionMap } from '../map/micro/decomposition/preview.ts';
+import { microMetrics } from '../map/micro/metrics.ts';
 import { moveBody, canOccupy } from '../shared/movement.ts';
 import { rect } from '../shared/shape.ts';
 

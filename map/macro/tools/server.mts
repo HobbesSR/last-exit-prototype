@@ -8,13 +8,14 @@ import { stripTypeScriptTypes } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const workspaceId = createHash("sha256").update(path.resolve(root, "..")).digest("hex");
+// The repository root, which the game server hashes the same way.
+const workspaceId = createHash("sha256").update(path.resolve(root, "../..")).digest("hex");
 const roots: Record<string, string> = {
   public: path.join(root, "public"),
   src: path.join(root, "src"),
   content: path.join(root, "content"),
-  // The shared map space, which mapgen's sources import (docs 50).
-  "shared/map/common": path.join(root, "../shared/map/common"),
+  // The kernel, which macro's sources import (docs 50).
+  kernel: path.join(root, "../kernel"),
 };
 const types: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -30,7 +31,7 @@ const types: Record<string, string> = {
   ".txt": "text/plain; charset=utf-8",
 };
 const portArg = process.argv.indexOf("--port");
-// --port, else MAPGEN_PORT (a worktree's ../.env.local), else 4173. 0 asks the OS for a
+// --port, else MAPGEN_PORT (a worktree's ../../.env.local), else 4173. 0 asks the OS for a
 // free port; the bound address is printed on start-up.
 const port =
   portArg >= 0
@@ -43,7 +44,7 @@ function candidate(urlPath: string): string | null {
     new URL(urlPath, "http://localhost").pathname,
   );
   if (pathname.includes("\\")) return null;
-  const match = /^\/(src|content|shared\/map\/common)(?:\/(.*))?$/.exec(pathname);
+  const match = /^\/(src|content|kernel)(?:\/(.*))?$/.exec(pathname);
   const base = match ? roots[match[1]!]! : roots.public!;
   const relative = match
     ? match[2] || ""
@@ -84,7 +85,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   if (req.url === "/dev-nav.css") {
-    const content = fs.readFileSync(path.join(root, "../public/dev-nav.css"), "utf8");
+    const content = fs.readFileSync(path.join(root, "../../public/dev-nav.css"), "utf8");
     res.writeHead(200, { "Content-Type": "text/css" });
     res.end(content);
     return;
@@ -108,7 +109,7 @@ const server = http.createServer(async (req, res) => {
           mainUrl = `http://${host}:${peerPort}`;
       } catch { /* The configured peer is not running. */ }
     }
-    const template = fs.readFileSync(path.join(root, "../shared/dev-nav.js"), "utf8");
+    const template = fs.readFileSync(path.join(root, "../../shared/dev-nav.js"), "utf8");
     res.writeHead(200, { "Content-Type": "application/javascript" });
     res.end(`
 ${template.replace('export function renderDevNav', 'function renderDevNav')}

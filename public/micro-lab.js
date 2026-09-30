@@ -1,9 +1,9 @@
-import { generateMicroRegion, validateMicroRegion } from '/shared/map/micro/index.ts';
-import { regionCollisionMap } from '/shared/map/micro/adapter.ts';
-import { microExample } from '/shared/map/micro/examples.ts';
+import { generateMicroRegion, validateMicroRegion } from '/map/micro/index.ts';
+import { regionCollisionMap } from '/map/micro/adapter.ts';
+import { microExample } from '/map/micro/examples.ts';
 import { canOccupy, moveBody } from '/shared/movement.ts';
-import { microMetrics } from '/shared/map/micro/metrics.ts';
-import { createRegionMask, elementShapes, spreadPoints } from '/shared/map/micro/sdk.ts';
+import { microMetrics } from '/map/micro/metrics.ts';
+import { createRegionMask, elementShapes, spreadPoints } from '/map/micro/sdk.ts';
 import { outline, transform } from '/shared/shape.ts';
 
 const $ = id => document.getElementById(id);

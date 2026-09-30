@@ -1,12 +1,12 @@
 # 52. Map primitives and the library
 
 Status: accepted model, 2026-09-29. The new library schema and validator are
-implemented in `mapgen/src/chain/library.ts` (#83). Today's library schema
+implemented in `map/macro/src/chain/library.ts` (#83). Today's library schema
 retires with mapgen's old paths.
 
 This file defines what a map is made of and what the library an author writes
 contains. The chain that consumes it is 51. Original intent is in
-`mapgen/design_notes.txt`, the original statement of intent. Corey's later answers in 17 and the accepted model in 51 govern where they differ.
+`map/macro/design_notes.txt`, the original statement of intent. Corey's later answers in 17 and the accepted model in 51 govern where they differ.
 
 ## The layering rule
 
@@ -80,7 +80,7 @@ with a don't-care value. This is Corey's model (verbatim in 17, 2026-09-27).
 - **Declared once.** Every class is declared once in the library's
   `cellClasses`, and a design may only paint a declared name. The registry is
   the one place a class is introduced.
-- **Names a region type.** A class names the strategy in `shared/map/micro/`
+- **Names a region type.** A class names the strategy in `map/micro/`
   that fills a region of it, and passes that strategy its parameters (51).
   What is intrinsic to the class goes in its entry; what varies with position
   on the map belongs to the tier zone.
@@ -196,7 +196,7 @@ admits a contestant and not a hunter.
 
 **This section is the one statement of body scale in the docs**, and other
 files link here rather than restating numbers (Corey, 2026-09-29, M5). In
-code, the one source is `CELL_SCALE` in `shared/map/common/scale.ts`, in the
+code, the one source is `CELL_SCALE` in `map/kernel/scale.ts`, in the
 shared map space (51 C0):
 
 | Quantity | Cells |
@@ -232,7 +232,7 @@ The brief translation (51 stage 5) converts between the last two.
 
 ## Today's library
 
-`mapgen/content/default-library.json` and its schema serve the old paths
+`map/macro/content/default-library.json` and its schema serve the old paths
 (archived `DESIGN_DECISIONS.md`, `VOCABULARY.md`). The chain doesn't read it;
 the new library is authored fresh (51 track B). What differs in it:
 - `edges` strings that name a neighbour's class or a barrier word

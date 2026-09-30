@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import { decompositionExample, planExample } from '../shared/map/micro/decomposition/example.ts';
-import { validateDecompositionPlan } from '../shared/map/micro/decomposition/validate.ts';
+import { decompositionExample, planExample } from '../map/micro/decomposition/example.ts';
+import { validateDecompositionPlan } from '../map/micro/decomposition/validate.ts';
 
 const args = new Map();
 for (const argument of process.argv.slice(2)) {
