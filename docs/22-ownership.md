@@ -34,7 +34,9 @@ Map generation has two halves, plus a shared space ([50](50-map-generation.md)):
   C0) holds what both must agree on: the macro/micro contract (`contract.ts`),
   body scale and passage widths (`scale.ts`), and the definition of a run
   (`run.ts`, with the cases every run finder is tested against). Neither level
-  owns it, and it imports neither.
+  owns it, and it imports nothing outside itself, so a consumer at either level
+  pulls in nothing else. The one exception is `contract.ts`, whose result type
+  still reaches the engine until C1 splits it, so nothing else there imports it.
 
 The same problem at the same level has one owner:
 - mapgen's own micro layer (`mapgen/src/micro/`) duplicates the game's and

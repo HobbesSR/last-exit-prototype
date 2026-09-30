@@ -22,9 +22,13 @@ for (const runCase of RUN_CASES) test(`runs: ${runCase.name}`, () => {
   assert.deepEqual(buildInterfaces(parts).map(({ a, b, runs }) => ({ a, b, runs })), runCase.boundaries);
 });
 
-test('the shared map space imports neither level', () => {
+// The space imports only itself, so a consumer at either level pulls in nothing else.
+// contract.ts still reaches the engine through RegionResult until C1 (#84) splits it, so
+// no other file here may import it.
+test('the shared map space imports nothing outside itself', () => {
   for (const file of readdirSync('shared/map/common')) {
     const imports = [...readFileSync(`shared/map/common/${file}`, 'utf8').matchAll(/from '([^']+)'/g)].map(m => m[1]);
-    assert.deepEqual(imports.filter(path => /micro|mapgen/.test(path)), [], file);
+    const allowed = path => /^\.\/[\w-]+\.ts$/.test(path) && path !== './contract.ts';
+    assert.deepEqual(file === 'contract.ts' ? [] : imports.filter(path => !allowed(path)), [], file);
   }
 });

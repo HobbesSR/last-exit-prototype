@@ -1,5 +1,6 @@
 import type { Box, Vec2 } from '../../types.ts';
 import type { ElementTemplate } from '../element.ts';
+import type { Cell } from './cell.ts';
 
 /**
  * The macro/micro contract: the brief a region's strategy is handed and the result it
@@ -8,7 +9,7 @@ import type { ElementTemplate } from '../element.ts';
  */
 export type Passage = 'none' | 'contestant' | 'hunter';
 export type BuilderId = 'open' | 'depot' | 'courtyard' | 'ruins' | 'entry';
-export interface Cell { x: number; y: number }
+export type { Cell };
 /** A run on the perimeter of owned cells, starting at the named inside cell. */
 export interface RegionPort {
   id: string;

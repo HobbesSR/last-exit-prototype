@@ -1,4 +1,4 @@
-import type { Cell } from './contract.ts';
+import type { Cell } from './cell.ts';
 import type { OwnerBoundary } from './run.ts';
 
 /**
