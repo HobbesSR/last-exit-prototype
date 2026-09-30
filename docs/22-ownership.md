@@ -44,8 +44,8 @@ It has two halves, plus a kernel between them ([50](50-map-generation.md)):
   body scale and passage widths (`scale.ts`), and the definition of a run
   (`run.ts`, with the cases every run finder is tested against). Neither level
   owns it, and it imports nothing outside itself, so a consumer at either level
-  pulls in nothing else. The one exception is `contract.ts`, whose result type
-  still reaches the engine until C1 splits it, so nothing else there imports it.
+  pulls in nothing else. The contract's result is generic over the game's
+  geometry, so macro can read feature sites without the engine (C1).
 
 The same problem at the same level has one owner:
 - mapgen's own micro layer (`map/macro/src/micro/`) duplicates the game's and

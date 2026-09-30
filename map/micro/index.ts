@@ -6,8 +6,10 @@ import { microMetrics } from './metrics.ts';
 import { spreadPoints } from './placement.ts';
 import { BUILDERS } from './builders.ts';
 import { capsule, createRegionMask, elementShapes, findRegionRoute, shapesOverlap, travelClear } from './geometry.ts';
-import type { BuilderContext, RegionElement, RegionMask, RegionRandom, RegionResult, RegionRoute, RegionSpec, ResolvedPort } from './types.ts';
-export type { RegionSpec, RegionResult } from './types.ts';
+import { portalStands } from './portals.ts';
+import { FEATURE_KINDS } from '../kernel/contract.ts';
+import type { BuilderContext, BuilderId, BuiltRegion, FeatureKind, FeatureSite, Portal, RegionBrief, RegionElement, RegionMask, RegionRandom, MicroResult, RegionRoute, RegionSpec, ResolvedPort } from './types.ts';
+export type { RegionSpec, MicroResult } from './types.ts';
 
 const RANK = { none: 0, contestant: 1, hunter: 2 };
 const WALL = 8;
@@ -78,8 +80,44 @@ function entryPoints(spec: RegionSpec, mask: RegionMask, elements: RegionElement
     blockers: elements.flatMap(e => elementShapes(e, true)), reservations: (spec.reservations || []).map(b => rect(b.x, b.y, b.w, b.h)), ...(root ? { anchor: root } : {}) });
 }
 
-export function generateMicroRegion(input: RegionSpec): RegionResult {
-  const spec = checkedSpec(input), mask = createRegionMask(spec), resolved = resolvePorts(spec, mask);
+/**
+ * What a brief adds to the example generator. Portals are kept, never walled; features
+ * are sited before the loot fill; loot follows each cell's zone.
+ */
+interface BriefTerms {
+  portals: Portal[];
+  features: Array<[FeatureKind, number]>;
+  zoneAt(x: number, y: number): { tier: number; lootChance: number };
+}
+
+export function generateMicroRegion(input: RegionSpec): MicroResult {
+  const { result } = generate(checkedSpec(input));
+  const errors = validateMicroRegion(result);
+  if (errors.length) throw new Error(errors.join(' '));
+  return result;
+}
+
+/**
+ * An example strategy (51 stage 6): today's builder fills a checked brief. It protects
+ * its portals while it builds, as a heuristic, and doesn't check the result: a builder
+ * checks its promise electively, in its tests (`validatePortalReach`).
+ */
+export function generateBriefRegion(brief: RegionBrief, builder: BuilderId): BuiltRegion {
+  const numeric = (key: string) => typeof brief.parameters?.[key] === 'number' ? { [key]: brief.parameters[key] as number } : {};
+  const parameters = { ...numeric('density'), ...numeric('roomCells'), ...numeric('decay') };
+  // Loot has no budget in a brief, only each cell's chance, so the cap is the tool limit.
+  const spec = checkedSpec({ id: brief.id, seed: brief.seed, builder, cellSize: brief.cellSize, bodyProfile: 'cell', cells: brief.cells, ports: [],
+    ...(Object.keys(parameters).length ? { parameters } : {}), loot: { budget: 64, tier: 1 } });
+  const zones = new Map(brief.zones.flatMap(zone => zone.cells.map(c => [`${c.x},${c.y}`, zone] as const)));
+  const features = FEATURE_KINDS.flatMap(kind => brief.features?.[kind] ? [[kind, brief.features[kind]!] as [FeatureKind, number]] : []);
+  const { result, features: sites } = generate(spec, { portals: brief.portals, features, zoneAt: (x, y) => zones.get(`${x},${y}`)! });
+  const { builder: _, ...counts } = result.manifest;
+  return { version: 'region-1', brief: structuredClone(brief), elements: result.elements, features: sites, loot: result.loot,
+    manifest: { ...counts, features: sites.length } };
+}
+
+function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; features: FeatureSite[] } {
+  const mask = createRegionMask(spec), resolved = resolvePorts(spec, mask);
   const metrics = microMetrics(spec), radii = metrics.clearance;
   const elements = resolved.elements, ports = resolved.ports, routes: RegionRoute[] = [], blockers = elements.flatMap(e => elementShapes(e));
   const protectedShapes: Shape[] = (spec.reservations || []).map(b => rect(b.x, b.y, b.w, b.h));
@@ -102,10 +140,17 @@ export function generateMicroRegion(input: RegionSpec): RegionResult {
   for (const p of ports) if (p.allowed !== 'none') {
     for (const s of capsule(p.centre, p.inside, radii[p.allowed] + 1)) protectedShapes.push(s);
   }
-  const loot: RegionResult['loot'] = [], lootCells = new Set<string>(), spawns: Shape[] = [];
+  // A brief's portals: keep every hunter stand along each one clear, and a hunter route between them.
+  const stands = terms ? portalStands({ ...spec, portals: terms.portals }, mask).map(s => s.points).filter(points => points.length && travelClear(mask, blockers, points[0]!, points[0]!, radii.hunter)) : [];
+  for (const points of stands) protectedShapes.push(...capsule(points[0]!, points.at(-1)!, radii.hunter + 1));
+  for (const points of stands.slice(1)) {
+    const path = findRegionRoute(mask, blockers, stands[0]![0]!, points[0]!, radii.hunter);
+    if (path) protect(path, 'hunter');
+  }
+  const loot: MicroResult['loot'] = [], lootCells = new Set<string>(), spawns: Shape[] = [];
   const occupied = elements.flatMap(e => elementShapes(e, true));
   let attempted = 0, rejected = 0;
-  const root = ports.find(p => p.required !== 'none')?.inside;
+  const root = ports.find(p => p.required !== 'none')?.inside ?? stands[0]?.[0];
   const context: BuilderContext = {
     spec, mask, random: channel => rng(spec.seed, `${spec.id}:${channel}`),
     element(label, template, x, y) {
@@ -128,31 +173,39 @@ export function generateMicroRegion(input: RegionSpec): RegionResult {
       const path = root && findRegionRoute(mask, blockers, root, { x, y }, radii.contestant);
       if (root && !path) return false;
       if (path) protect(path, 'contestant');
-      lootCells.add(key); loot.push({ x, y, tier: spec.loot?.tier ?? 1 }); protectedShapes.push(disc);
+      const tier = terms ? terms.zoneAt(Math.floor(x / spec.cellSize), Math.floor(y / spec.cellSize)).tier : spec.loot?.tier ?? 1;
+      lootCells.add(key); loot.push({ x, y, tier }); protectedShapes.push(disc);
       return true;
     },
   };
   BUILDERS[spec.builder](context);
   // Spawning is what an entry region is for, so its points claim ground before the loot fill.
-  const entry = spec.builder === 'entry' ? entryPoints(spec, mask, elements, root) : undefined;
+  const entry = !terms && spec.builder === 'entry' ? entryPoints(spec, mask, elements, root) : undefined;
   spawns.push(...(entry?.points || []).map(p => circle(p.x, p.y, radii.contestant)));
+  // A brief's features are its region's guarantees too, so they are sited first in the same way, kind by kind.
+  const features: FeatureSite[] = [];
+  for (const [kind, count] of terms?.features ?? []) {
+    const radius = kind === 'hunter-spawn' ? radii.hunter : radii.contestant;
+    const placed = spreadPoints(mask, { count, radius, seed: spec.seed, blockers: elements.flatMap(e => elementShapes(e, true)), reservations: [...spawns], ...(root ? { anchor: root } : {}) });
+    features.push(...placed.points.map(p => ({ kind, x: p.x, y: p.y })));
+    spawns.push(...placed.points.map(p => circle(p.x, p.y, radius)));
+  }
   const lootRandom = context.random('remaining-loot');
   for (const c of lootRandom.shuffle(mask.cells)) {
     if (loot.length >= (spec.loot?.budget ?? 8)) break;
+    if (terms && lootRandom.next() >= terms.zoneAt(c.x, c.y).lootChance) continue;
     context.loot((c.x + 0.35 + lootRandom.next() * 0.3) * spec.cellSize, (c.y + 0.35 + lootRandom.next() * 0.3) * spec.cellSize);
   }
   const parts = elements.flatMap(e => e.template.parts);
-  const result: RegionResult = { version: 'micro-1', spec, bounds: mask.bounds, ports, routes, elements, loot,
+  const result: MicroResult = { version: 'micro-1', spec, bounds: mask.bounds, ports, routes, elements, loot,
     ...(entry ? { entry } : {}),
     manifest: { builder: spec.builder, cells: mask.cells.length, structures: elements.filter(e => e.template.encloses).length,
       obstacles: parts.filter(p => p.part === 'obstacle').length, gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, attempted, rejected } };
-  const errors = validateMicroRegion(result);
-  if (errors.length) throw new Error(errors.join(' '));
-  return result;
+  return { result, features };
 }
 
 /** Recompute physical claims from emitted geometry; never trust the manifest or saved routes. */
-export function validateMicroRegion(result: RegionResult): string[] {
+export function validateMicroRegion(result: MicroResult): string[] {
   const errors: string[] = [];
   try {
     if (result.version !== 'micro-1') throw new Error('Unsupported micro artifact version.');

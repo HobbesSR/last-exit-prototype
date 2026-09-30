@@ -529,7 +529,17 @@ live game until the switch-over.
   portals as derived check targets, which place no geometry (`resolvePorts`
   doesn't wall a brief's portals; 17 M3, M4); and features and zone context in
   the brief; and elective SDK utilities for a builder to check its promises
-  (principle 9).
+  (principle 9). **Done (#84):**
+  - `contract.ts` holds `RegionBrief`, with portals as kernel `Run`s, and
+    `RegionResult<Element>` (`region-1`). The result is generic over the
+    game's geometry, so the kernel imports nothing outside itself.
+  - `map/micro/region-types.ts` is the registry and `buildRegion` dispatches
+    to it. Its only entries are today's example builders, prefixed
+    `example-`, until B2 and B3.
+  - `validatePortalReach` in `map/micro/portals.ts` is the elective check.
+  - The SDK's explicit-port `RegionSpec` and its `micro-1` result, now
+    `MicroResult`, stay in `map/micro/types.ts` for the examples and
+    decomposition (20).
 - C2. **Whole-map composition:** generalize `composeMicroRegions` beyond 16
   regions and the per-region bounds, as macro-sized regions need (17 M7).
 
