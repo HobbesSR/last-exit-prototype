@@ -227,6 +227,10 @@ This is the knowledge layer: what the solved placement means.
     macro's runs and the SDK's definition must agree, and a test pins that.
   - Runs facing the map's outside aren't boundaries, since they never carry a
     guarantee.
+- **Guarantees inside a region:** a guaranteed segment with the same region
+  on both sides lies on no boundary. It forms no portal, obliges no strategy,
+  and adds nothing to the proof (17 M8). The Map Lab flags it, because it
+  promises nothing (B1).
 - **Portals** (derived): the guaranteed stretches of each boundary. Authors
   write passable prescriptions, not portals, but they design those sections
   with the portals they will form in mind (Corey, 2026-09-29). So the Map Lab
@@ -278,9 +282,10 @@ contract moves from `shared/map/micro/types.ts` into the shared map space
   first case: "The contestant entry areas should be treated like a region that
   gets micro generated" (17, September 22).
 - **obligations**, which are passability obligations only (Corey,
-  2026-09-29, M4). The brief lists the region's portals and any guaranteed
-  segment inside it (17 M8), as things to keep true and to be checked
-  against, not as geometry to lay:
+  2026-09-29, M4). The brief lists the region's portals, as things to keep
+  true and to be checked against, not as geometry to lay. A guaranteed
+  segment with the same region on both sides is no portal, and it carries no
+  obligation (stage 3, 17 M8).
   - **Every portal on the region's perimeter is reachable from every other
     one, and every part of each portal is reachable, by a hunter from within
     the region,** with no assumption about what lies outside it (Corey,

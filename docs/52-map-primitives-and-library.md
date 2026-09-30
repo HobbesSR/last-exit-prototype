@@ -53,7 +53,10 @@ with a don't-care value. This is Corey's model (verbatim in 17, 2026-09-27).
 - **Adjacency** is stated on a tile's perimeter segments. Inside a tile both
   cells are known, so it would say nothing new.
 - **Passability** may be stated on any segment. Corey, 2026-09-27: "It's the
-  tile designer's job to mark internal as passable".
+  tile designer's job to mark internal as passable". Read in context, that's
+  about segments inside a tile that lie between two regions. A passable
+  prescription with the same region on both sides forms no portal and obliges
+  nothing (51 stage 3, 17 M8).
   - A `passable` prescription becomes a **guarantee** once placement is solved
     (51 stage 2), except on a segment facing the map's outside. The
     guaranteed stretches of each boundary are **portals**. Portals are

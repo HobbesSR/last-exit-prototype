@@ -208,8 +208,14 @@ number ("M3: …") and the answer is recorded verbatim here.
    and get raised for macro-sized regions (51 C2). A strategy that can't build
    a large region whole decomposes it.
 8. **M8. Guarantees inside a region.** A segment prescribed passable with the
-   same region on both sides isn't on a boundary, so the proof doesn't use it.
-   *Assumption:* the strategy still keeps it passable.
+   same region on both sides isn't on a boundary, so it forms no portal and
+   the proof doesn't use it.
+   *Assumption,* revised 2026-09-29 after the PR #81 review found it was
+   stated as an obligation but never checked: such a guarantee obliges
+   nothing. Portals are the only obligation a strategy carries, which keeps
+   builders to one objective. The Map Lab flags these prescriptions, since
+   they promise nothing. The earlier assumption was that the strategy keeps
+   them passable.
 9. **M9. Does an `open` region need a minimum width?** Every cell and inside
    segment of an `open` region is passable, but a one-cell neck still carries no
    hunter. *Assumption:* at least the door width wherever it has to carry a
