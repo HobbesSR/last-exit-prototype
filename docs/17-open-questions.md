@@ -153,9 +153,12 @@ number ("M3: …") and the answer is recorded verbatim here.
    runs.
     - (2026-09-29) "Ahh,I'm not sure if we've got like first class things here. resolvePorts, is that... like trying to identify contiguous passable segments? I guess Port is a fair term for it. Maybe we can make it Portal or something. Anyway, they should be derived things and used for checking and validation. At the macro level, passable sections that become derived portals would be authored. In micro, the SDK would provide utilities to help arrive at such reachability conclusions, but it doesn't have the benefit of the rigid grid system, as geometry can be placed arbitrarily."
 
+    - (2026-09-29) "Authors don't write portals, but they definitely think about how their passable sections will build portals."
+
    Recorded in 51:
    - A **portal** is derived, never authored: the guaranteed-passable stretch
-     of a boundary. Authors write passable prescriptions.
+     of a boundary. Authors write passable prescriptions, designed with the
+     portals they will form in mind, and the Map Lab previews them (B1).
    - Portals state what must stay passable, and are what validation checks.
      They place no geometry, so no jambs.
    - The SDK supplies utilities for reaching reachability conclusions over

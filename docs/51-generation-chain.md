@@ -227,8 +227,10 @@ This is the knowledge layer: what the solved placement means.
     macro's runs and the SDK's definition must agree, and a test pins that.
   - Runs facing the map's outside aren't boundaries, since they never carry a
     guarantee.
-- **Portals** (derived): the guaranteed stretches of each boundary. An author
-  writes passable prescriptions; nobody writes a portal.
+- **Portals** (derived): the guaranteed stretches of each boundary. Authors
+  write passable prescriptions, not portals, but they design those sections
+  with the portals they will form in mind (Corey, 2026-09-29). So the Map Lab
+  shows the portals a design or layout would derive (B1).
 - **Validity:** every portal is at least `ceil(2 × hunterRadius)`
   segments long (#73), with the hunter's size from one body scale (17 M5). A
   run may cross a tile seam, since boundaries ignore tiles.
@@ -488,7 +490,8 @@ reachability is inferred (principle 8).
 **Track B: the library (content).** It starts after step 2.
 
 - B1. **Map Lab authoring** for the new schema: adjacency and passability
-  prescriptions, feature classes, set piece classes. There are browser tests,
+  prescriptions, feature classes, set piece classes, and a preview of the
+  portals the passable sections would derive. There are browser tests,
   and no geometry tools.
 - B2. **The region type catalogue**, a document for Corey's review. For each
   region type:
