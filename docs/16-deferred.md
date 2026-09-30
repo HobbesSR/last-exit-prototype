@@ -42,6 +42,9 @@ Deferred within map generation, by Corey's answers in [17](17-open-questions.md)
   need a fence broken is decided then.
 - **An impassable directive** to builders: at most an architectural suggestion,
   "if at all" (2026-09-28).
+- **Ceilings and sealed runs**, from macro or between a region's children:
+  "we'll add that in later if we need it, let's keep in simple" (2026-09-29).
+  Obligations are passability only.
 - **Loot as a macro concern:** "that can be added in later" (2026-09-28).
   Regions place loot.
 - **Primitive sets:** what declarations become physically in each part of the

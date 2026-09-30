@@ -5,7 +5,7 @@ implemented. Today's library schema retires with mapgen's old paths.
 
 This file defines what a map is made of and what the library an author writes
 contains. The chain that consumes it is 51. Original intent is in
-`mapgen/design_notes.txt`, which takes precedence.
+`mapgen/design_notes.txt`, the original statement of intent. Corey's later answers in 17 and the accepted model in 51 govern where they differ.
 
 ## The layering rule
 
@@ -187,14 +187,23 @@ September 22): "roughly 2 cells is a doorway, a contestant is more than 1 cell
 and less than 1.5. A hunter is more than 1.5 and less than 2." So a 1.5-cell gap
 admits a contestant and not a hunter.
 
-Both sides sit inside that band today:
-- **mapgen:** radii 0.55 and 0.90 cells.
-- **The SDK's `cell` profile:** diameters 1.25 and 1.75 cells.
+**This section is the one statement of body scale in the docs**, and other
+files link here rather than restating numbers (Corey, 2026-09-29, M5). In
+code, the one source is a scale module in the shared map space (51 C0). Both
+mapgen and the SDK read from it.
 
-The shortest passable run is `ceil(2 × hunterRadius)`, which is 2 for either.
-Which one point in the band the chain uses is 17 M5. The game's `live` profile
-(12 and 23 world units, 40 world units per cell) is the live match's and
-changes only with the live game.
+Today the values live in two places, which C0 will merge. Both sit inside the
+band:
+- **mapgen `DEFAULT_PARAMS`:** radii 0.55 and 0.90 cells.
+- **The SDK's `cell` profile (`shared/map/micro/metrics.ts`):** radii 0.625
+  and 0.875 cells, with a doorway of 2 and a squeeze of 1.5.
+
+*Assumption:* C0 adopts the SDK's values. Either way, the shortest passable
+run, `ceil(2 × hunterRadius)`, is 2.
+
+The game's `live` profile (12 and 23 world units, 40 world units per cell) is
+the live match's, stays in `shared/map/navigation.ts`, and changes only with
+the live game.
 
 ## Coordinates
 

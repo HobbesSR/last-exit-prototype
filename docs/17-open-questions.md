@@ -121,6 +121,7 @@ is in 50–53. Answers are grouped by topic, each under the question it settled.
 **The two projects, the SDK and the documentation.**
   - (2026-09-29) "Well I thought the idea of the generation SDK is more about providing a library of reusable functionality likely to be used across builders. But there's kind of a documentation sweep that seems to be necessary in general as well."
   - (2026-09-29) "I kind of wonder if next_tasks is fighting forgejo now."
+  - (2026-09-29) "As for numbering, I guess a 5x range is fine. I just want content to be decomposed hierarchally so unneeded content doesn't get loaded into context. I think I've had some success with a decimal system in the past, but maybe that strategy is another new issue we can worry about later."
   - (2026-09-29) "keep in mind I think we have duplicate things in some cases because they are tailored for the level they are engineered for. Macro and Micro have to solve similar problems but within the boundaries of their scope."
   - (2026-09-29) "Yes mapgen's docs I think have been part of the bane. I think we need to integrate and normalize the documentation and I'm not sure we could have done it without going through the pains we went through to get to where we are now. And I also think we're in a very delicate place where this is probably the best context that understands how to merge the designs of the two coupled projects that were inadvertantly trying to solve the same things. But mapgen evolved towards owning bottom of macro up, and the original game engine owned building aggregate regions down. And that helps generally decide whose work is relevant versus deprecated, but it might take some searching to truly understand."
 
@@ -129,39 +130,69 @@ is in 50–53. Answers are grouped by topic, each under the question it settled.
 Each has a working assumption, so work continues without an answer. Answer by
 number ("M3: …") and the answer is recorded verbatim here.
 
-1. **M1. Which way the halves import.** The chain needs mapgen to hand briefs
-   to the game's strategies. *Assumption:* mapgen imports the contract and
-   the SDK from `shared/map/micro/`; the game doesn't import mapgen until the
-   live game adopts the chain; mapgen's code stays in `mapgen/` until then.
-2. **M2. When the proof gates generation.** No library prescribes passable
-   runs yet, so the proof has nothing to connect, and which region holds a
-   feature isn't known until micro is complete. *Assumption:* the proof is
-   reported and never gates for now, and measurement is the gate.
-3. **M3. What a passable run obliges.** The chain keeps every guaranteed
-   segment open along its whole length. The SDK's `RegionPort` today means "a
-   centred aperture somewhere in this run", and the SDK draws jambs beside it,
-   which is macro-prescribed geometry. *Assumption:* the contract gains a
-   whole-run open obligation for passable runs, with no jambs. Apertures, jambs
-   and sealed runs stay available to a strategy for boundaries between its own
-   children, where the geometry is its own choice.
-4. **M4. Ceilings.** The SDK's `allowed` is a ceiling, and its portal
-   negotiation can seal runs: in effect, "not passable" directives. You declined
-   those as macro-to-builder directives. *Assumption:* macro never sends a
-   ceiling (every obligation it sends allows a hunter), and a strategy may still
-   use ceilings and seals between its own children.
-5. **M5. One body scale.** mapgen uses radii 0.55 and 0.90 cells; the SDK's
-   `cell` profile uses diameters 1.25 and 1.75. Both sit in your band.
-   *Assumption:* the chain uses the SDK's `cell` profile as the one source of
-   body sizes. The shortest passable run stays 2.
-6. **M6. What the whole-map measurement runs on.** *Assumption:* the game's
-   geometry with swept discs, once the built map exists in it (51 track C3).
-   mapgen's cell lattice stands in until then and is not proof of the game's
-   geometry.
-7. **M7. Region size limits.** The SDK bounds a region to 4,096 cells and 64
-   per axis, and composes up to 16 regions. A macro region may span a hundred
-   tiles, wider than 64 cells, and a map has hundreds of regions.
-   *Assumption:* those are tool limits (20) and get raised for macro-sized
-   regions. A strategy that can't build a large region whole decomposes it.
+1. **M1. What macro and micro share, and where it lives.** Macro hands briefs
+   to micro's strategies, so the two need a common contract, body scale, and a
+   definition of a run.
+    - (2026-09-29) "M1 not sure what the question is here. Whatever is shared between macro and micro should probably be separated out into its own library / space since that means neither level officially owns it."
+
+   Recorded as a **shared map space** that neither level owns (50, 51 C0).
+   Still open: its name and place. *Assumption:* `shared/map/common/`,
+   imported by mapgen and by `shared/map/micro/`.
+2. **M2. When the proof gates generation.** Reachability is inferred (M6), so
+   the macro proof is a link that has to hold, and it gates placement.
+   Still open: what it must connect. *Assumption:* every layout region must
+   be in the spawn region's component. That is the pessimistic reading of
+   "everything must be reachable by a hunter", and it means designs prescribe
+   passable runs wherever regions meet. Your September 27 option, "we may make
+   perimeter segments default to passable with explicit nonpassable
+   indicators", would ease that authoring burden. It is not adopted, and an
+   unstated segment stays no guarantee.
+3. **M3. What a passable run obliges of geometry.** Still open. You asked
+   which terms mean what, and at which scope:
+   - **Passable run** (macro scope, 51): a stretch of boundary segments
+     between two layout regions, every one guaranteed passable.
+   - **Port** (micro scope, `shared/map/micro/types.ts`): today's contract
+     item for one run on a region's edge, carrying a floor (`required`) and a
+     ceiling (`allowed`).
+   - **Crossing, doorway, squeeze** (micro scope, `access.ts`): the SDK
+     resolves each port to one crossing, a gap centred on the run. For a
+     hunter it is a doorway 2 cells wide; for contestants only, a squeeze 1.5
+     cells wide. Only the crossing is promised open.
+   - **Jambs, or wall stubs** (micro scope, `index.ts` `resolvePorts`): before
+     any builder runs, the SDK places wall pieces along the rest of the run, on
+     either side of the crossing.
+
+   So a port stated by macro makes micro code, not the region's own builder,
+   wall off most of the boundary. *Assumption:* a passable run obliges only
+   that the whole run stays passable, with nothing placed on it by macro or by
+   the SDK on macro's behalf. What a builder places inside its own cells is
+   its choice, provided the run stays passable. Jambs and centred crossings
+   stay available to a strategy for its own children, but as its own choice
+   (M4).
+4. **M4. Ceilings and sealed runs.**
+    - (2026-09-29) "M4 we'll add that in later if we need it, let's keep in simple. Treat them like regions in general, with only passability obligations."
+
+   Recorded in 51 and 16: obligations are passability only, from macro and
+   between a region's own children. There are no ceilings and no sealed runs.
+5. **M5. One body scale.**
+    - (2026-09-29) "M5, let's find a place in documentation and code for there to be a single source of truth for these."
+
+   Recorded: 52 "Units and scale" is the one statement in the docs, and the
+   shared map space holds the one source in code (51 C0). Still open: which
+   values. *Assumption:* the SDK's `cell` profile (radii 0.625 and 0.875
+   cells, doorway 2, squeeze 1.5). The shortest passable run stays 2.
+6. **M6. How whole-map reachability is established.**
+    - (2026-09-29) "M6, M7 Whole map reachability is supposed to be a chain of inference through guarantees at each layer."
+
+   Recorded as 51 principle 8: macro's proof, plus each region's validation
+   of its own guarantees, all the way down. There is no whole-map flood, and
+   the former track C3 is dropped.
+7. **M7. Region size limits.** The same answer settles the reachability half:
+   there is no whole-map check. Still open: the SDK bounds one region to 4,096
+   cells and 64 per axis, and one composition to 16 regions, while a macro
+   region may span a hundred tiles. *Assumption:* those are tool limits (20)
+   and get raised for macro-sized regions (51 C2). A strategy that can't build
+   a large region whole decomposes it.
 8. **M8. Guarantees inside a region.** A segment prescribed passable with the
    same region on both sides isn't on a boundary, so the proof doesn't use it.
    *Assumption:* the strategy still keeps it passable.

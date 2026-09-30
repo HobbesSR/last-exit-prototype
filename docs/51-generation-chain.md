@@ -22,7 +22,7 @@ generation":
 - macro prescribes no geometry
 - the library is authored fresh against a region type catalogue
 
-design_notes.txt takes precedence for intent.
+`mapgen/design_notes.txt` is the original statement of intent. Corey's later answers in 17 and the accepted model in 51 govern where they differ. For example, the notes describe segment-aligned fences and doors, and 17 records that macro prescribes no geometry for now.
 
 ## Principles
 
@@ -65,10 +65,17 @@ design_notes.txt takes precedence for intent.
      before anything is built.
    - Micro works inside one region, on its children and its geometry.
 
-   The same problem at the same level has one home. Machinery that genuinely
-   fits both scopes lives in the SDK. Where the levels must agree, as on body
-   scale and on the runs a brief hands down, they share one definition and a
-   test pins it (50).
+   The same problem at the same level has one home. What macro and micro
+   must share, such as the contract between them, body scale and the
+   definition of a run, lives in a **shared map space** that neither level
+   owns (50, 17 M1).
+8. **Reachability is a chain of inference** through guarantees at each
+   level (Corey, 2026-09-29):
+   - Macro proves layout regions connected by guarantees.
+   - Each region's strategy guarantees its own passable runs are mutually
+     reachable, and its children's the same way, all the way down.
+   - Each level's validator checks its own guarantee. Nothing floods the
+     whole map to establish reachability.
 
 ## Names
 
@@ -102,7 +109,7 @@ Retired, and confined to the old paths until they're deleted:
 - **structure** (`MapStructure`, and `MacroStructure` in `macro.ts`).
 - anchors.
 - streets and blocks.
-- floors and ceilings as macro prescriptions (see 17 M4).
+- floors and ceilings, and sealed runs (17 M4; deferred in 16).
 - `walls`, `gap` and segment spans in the library.
 - mapgen's micro layer (`src/micro/`), and its "interiors" of laid classes and
   segments.
@@ -237,14 +244,18 @@ This is the knowledge layer: what the solved placement means.
 - **Meaning:** a claim about guarantees, not geometry. It holds for a built
   map only because each strategy keeps its guarantees (stage 6), and the
   measurement checks it (stage 8).
-- **Gate:** none for now; the proof is reported, and measurement is the gate
-  (17 M2). The proof has nothing to connect until the new library's designs
-  prescribe passable runs.
+- **Gate:** the proof is macro's link in the chain of inference (principle
+  8), so it gates placement. The assumption, 17 M2, is that every layout
+  region must be in the spawn region's component. That is the pessimistic
+  reading of "everything must be reachable by a hunter", and it means the new
+  library's designs must prescribe passable runs wherever regions meet
+  (51 track B).
 
 ### 5. Briefs: Layout, LayoutRegions, zones → **RegionBrief[]** (view)
 
-One brief per layout region, expressed in the macro/micro contract
-(`shared/map/micro/types.ts`, which evolves from today's `RegionSpec`):
+One brief per layout region, expressed in the macro/micro contract. The
+contract moves from `shared/map/micro/types.ts` into the shared map space
+(17 M1), and evolves from today's `RegionSpec`:
 
 - region id, seed, and the **region type** with its parameters from the class
   rule. This replaces `RegionSpec`'s closed list of five builder ids.
@@ -255,11 +266,16 @@ One brief per layout region, expressed in the macro/micro contract
 - **features** the class rule lists. The `entry` builder's spawn count is the
   first case: "The contestant entry areas should be treated like a region that
   gets micro generated" (17, September 22).
-- **obligations**, one per passable run on the region's boundary, plus any
-  guaranteed segment inside it (17 M8):
-  - every guaranteed segment stays open along its whole length (17 M3)
+- **obligations**, which are passability obligations only (Corey,
+  2026-09-29, M4). There is one per passable run on the region's boundary,
+  plus any guaranteed segment inside it (17 M8):
+  - every guaranteed segment stays passable (what that asks of geometry is
+    17 M3)
   - all its passable runs stay mutually reachable at hunter size, which is
     19's September 24 contract
+
+  There are no ceilings and no sealed runs, from macro or between a region's
+  own children (16).
 
 A brief never mentions another region's contents. A region type that
 decomposes splits its own brief into children with the SDK's decomposition
@@ -277,16 +293,23 @@ decomposes splits its own brief into children with the SDK's decomposition
   the SDK's containment rule. So no strategy writes a boundary another region
   shares, and composition needs no merge rule. A strategy never places geometry
   on a guaranteed segment.
+- **Children:** a region type that decomposes treats its children like
+  regions in general. They get passability obligations only, with no ceilings
+  and no seals (Corey, 2026-09-29).
 - **Validation:** the SDK's access and boundary validators check each result
   against its brief's obligations, after generation and never by trusting the
-  builder (19). This replaces mapgen's `conform`.
+  builder (19). This replaces mapgen's `conform`. It is micro's link in the
+  chain of inference (principle 8), so it also checks, inside the region:
+  - every standing component is reachable from its passable runs, except a
+    **sealed pocket** that holds no feature and no loot
+  - every feature site is reachable from its passable runs
 
 ### 7. Composition: Layout, LayoutRegions, region results → **BuiltMap** (view), in the game
 
 - **Joins** every region result in one cell coordinate system. That generalizes
-  `composeMicroRegions`, which today composes up to 16 supplied regions (17
-  M7), and checks ownership and that the paired obligations on shared
-  boundaries agree.
+  `composeMicroRegions`, which today composes up to 16 supplied regions, and
+  checks ownership and that the paired obligations on shared boundaries
+  agree.
 - **Emits** the game's collision geometry through the adapter (`adapter.ts`,
   `placeElement`), so the built map is geometry the game can walk.
 
@@ -309,22 +332,14 @@ decomposes splits its own brief into children with the SDK's decomposition
   The one strategy sites one set of features, so they all land in one
   instance's slots and the other instance counts zero. The strategy never
   needs to know about instances.
-- **Reachability, over standing components.** A hunter starting at the spawn
-  must reach every standing component of the built map, except a **sealed
-  pocket**: one wholly inside one layout region's cells, with no feature and no
-  loot in it. Builders legitimately seal courtyards.
-  - Checking components, not regions, catches a region split by a builder's
-    geometry.
-  - It is stronger than the old check of one anchor per tile.
-  - It runs on the game's geometry with swept discs. mapgen's cell lattice
-    stands in until the built map exists in game geometry (17 M6), because
-    mapgen's sampled connectivity is no proof of the game's geometry (20).
-- **Also checked:**
-  - a contestant can reach every exit
-  - the proof agrees with the measurement: every standing component in a
-    region the proof connects to the spawn's region is reached, sealed pockets
-    aside
-  - every region result passed its own validation (stage 6)
+- **Reachability, by inference** (principle 8, 17 M6). The map is reachable
+  when every link in the chain holds:
+  - the proof connects every layout region to the spawn's (stage 4)
+  - every region result, and every child inside it, passed its own validation
+    (stage 6), which covers its standing components and its feature sites
+
+  No whole-map flood is needed. A flood over the built geometry may still run
+  as a diagnostic, but it doesn't decide validity.
 - **Metrics:** measured from the built map, not from a tile graph.
 
 ## Features
@@ -397,7 +412,7 @@ and old artifacts are refused by name (53).
 - `coding.ts`, the wire form and BSON (53)
 - the sweep and determinism harness
 - the Map Lab, CLI and MCP, through the accessor
-- the navigation lattice, until 17 M6 is settled
+- the navigation lattice, as a Map Lab diagnostic only
 - from the planned path, as material for stages 3–4: `findBoundaries` and
   `proveReachability`
 
@@ -440,19 +455,24 @@ live game until the switch-over.
    (#73's logic).
 6. Proof.
 7. Briefs, and the translation into the contract (C1).
-8. Measurement: features per instance, and the proof's agreement, on the built
-   map (C2, C3).
+8. Measurement: features per instance, and reachability by inference (the
+   proof, plus every region's validation) (C2).
 9. The map container, the accessor, saving and the wire version (#69, #70).
 
 **Track C: the contract and composition, in the game.**
 
+- C0. **The shared map space** (17 M1, M5): create it, and move into it the
+  contract types, the single source of body scale and passage widths, and
+  the definition of a run. mapgen and the SDK both read body scale from it.
 - C1. **The contract:** region type ids instead of a closed builder list,
-  whole-run passable obligations (17 M3), and features and zone context in
-  the brief.
+  passability-only obligations (17 M3, M4), and features and zone context in
+  the brief. The validators also check standing components and feature sites
+  inside each region (stage 6).
 - C2. **Whole-map composition:** generalize `composeMicroRegions` beyond 16
   regions and the per-region bounds, as macro-sized regions need (17 M7).
-- C3. **Whole-map measurement** on the game's geometry: standing components
-  and routes from spawn to exits (17 M6).
+
+A whole-map reachability measurement (formerly C3) isn't needed, because
+reachability is inferred (principle 8).
 
 **Track B: the library (content).** It starts after step 2.
 
@@ -498,7 +518,7 @@ then the new chain's first baseline is captured, last.
 | --- | --- |
 | #25 tile edge-constraint work, #32 v2 library schema | superseded by step 2 and track B |
 | #33 segment prescriptions | step 2 |
-| #34 a placed tile seals its interior | retires with the old tile path; stage 8's standing components catch the case |
+| #34 a placed tile seals its interior | retires with the old tile path; each region's validation of its standing components catches the case (stage 6) |
 | #45 anchors at tile centre | retires with anchors |
 | #52 layer separation (tracking) | done (#49–#51), and superseded by this chain |
 | #59 reachability contract | step 6, then the open-face rule in step 4 |

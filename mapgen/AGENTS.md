@@ -6,14 +6,16 @@ directory unless a step says otherwise.
 
 mapgen owns macro generation: the tile library, placement, regions, the
 reachability proof and region briefs. The game's `shared/map/micro/` owns what
-fills a region. Don't extend mapgen's own micro layer (`src/micro/`) or its
-planned path (`src/plan/`): both duplicate the game's work and retire when the
-generation chain lands.
+fills a region. Don't extend mapgen's own micro layer (`src/micro/`), which
+duplicates the game's, or its planned path (`src/plan/`). Both retire when the
+generation chain lands. Whatever macro and micro must share lives in the
+shared map space, which neither owns (root 50).
 
 ## Before substantive work
 
 Read, in this order:
-1. `design_notes.txt`, the original statement of intent. It takes precedence.
+1. `design_notes.txt`, the original statement of intent. Corey's later answers
+   in root 17 and the accepted model in root 51 govern where they differ.
 2. Root `docs/50-map-generation.md`: the two halves, who owns what, and a
    reading guide.
 3. The 5x file for the area you're changing:

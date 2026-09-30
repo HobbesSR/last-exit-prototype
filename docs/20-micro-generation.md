@@ -48,9 +48,9 @@ separate structural and decoration draws; cell input order is normalized.
 The current defaults are 40 world units per cell, 8 loot candidates, tier 1,
 density 0.55, room size 6 cells and decay 0.35. `live` preserves current game
 radii of 12/23 and navigation clearance of 14/25 from `map/navigation.ts`.
-`cell` is an explicit preview/profile choice: contestant and hunter diameters are
-1.25 and 1.75 cells, a doorway is 2 cells, and a contestant-only squeeze is 1.5
-cells. This is not a conversion of `mapgen/`'s abstract scale. A local artifact
+`cell` is an explicit preview/profile choice. Its contestant and hunter sizes,
+its doorway (2 cells) and its contestant-only squeeze (1.5 cells) are stated
+once, in 52, "Units and scale". This is not a conversion of `mapgen/`'s abstract scale. A local artifact
 made with `cell` must not silently change the live game's bodies, clearance,
 capacity, or spawn rules.
 
@@ -410,8 +410,13 @@ specifies it:
   context ([17](17-open-questions.md) M3, M4).
 - **mapgen's flat cell indices** are translated into this SDK's global integer
   cell coordinates, with an explicit `cellSize`.
-- **Whole-map composition and measurement** extend `composeMicroRegions` and
-  this SDK's validators (51 track C).
+- **Whole-map composition** extends `composeMicroRegions` (51 C2).
+  Reachability isn't measured over the whole map. It is inferred from the macro
+  proof and from each region's validation, which is this SDK's link in the
+  chain (51 principle 8). So the validators also check standing components and
+  feature sites inside each region (51 C1).
+- **The contract and body scale** move to the shared map space, which neither
+  level owns (51 C0).
 
 It must not treat `mapgen/`'s graph or sampled connectivity as proof of this
 game's physical geometry. mapgen's own micro layer duplicates this

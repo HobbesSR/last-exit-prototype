@@ -21,13 +21,16 @@ Power cells are normal unstackable equipment entries with retained charge, not a
 
 ## Map generation
 
-Map generation has two halves ([50](50-map-generation.md)):
+Map generation has two halves, plus a shared space ([50](50-map-generation.md)):
 - **Macro, in `mapgen/`,** owns the tile library, placement, resolution,
-  layout regions, the reachability proof, region briefs, and whole-map
-  measurement ([51](51-generation-chain.md)).
+  layout regions, the reachability proof, region briefs, and the map-level
+  checks ([51](51-generation-chain.md)).
 - **The game's `shared/map/micro/`** owns what fills a region: each region
-  type's strategy (decomposer and builders), the SDK machinery they share, the
-  macro/micro contract in `types.ts`, region validation and composition.
+  type's strategy (decomposer and builders), the SDK machinery they share,
+  validating each region, and composing the regions.
+- **The shared map space** (proposed `shared/map/common/`, [51](51-generation-chain.md)
+  C0) holds what both must agree on: the macro/micro contract, body scale and
+  passage widths, and the definition of a run. Neither level owns it.
 
 The same problem at the same level has one owner:
 - mapgen's own micro layer (`mapgen/src/micro/`) duplicates the game's and
