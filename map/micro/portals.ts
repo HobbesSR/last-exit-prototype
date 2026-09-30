@@ -1,5 +1,5 @@
 import { microMetrics } from './metrics.ts';
-import { createRegionMask, findRegionRoute, travelClear, validShape } from './geometry.ts';
+import { capsule, createRegionMask, findRegionRoute, shapesOverlap, travelClear, validShape } from './geometry.ts';
 import type { Shape } from '../../shared/shape.ts';
 import type { Vec2 } from '../../shared/types.ts';
 import type { Cell, Portal, RegionMask, RegionRoute } from './types.ts';
@@ -50,6 +50,18 @@ export function portalStands(region: PortalRegion, mask: RegionMask = createRegi
 }
 
 /**
+ * Whether a hunter standing at `point`, inward of a portal by construction, can actually
+ * cross the boundary there. The mirrored outside endpoint is deliberately unconstrained by
+ * the mask, like `access.ts`'s `crossingClear`: a boundary crossing reaches beyond owned
+ * cells. This is what tells a thin wall sitting right on the boundary from an obstacle
+ * elsewhere in the interior, which the standing-room check alone cannot.
+ */
+function crossingClear(inward: Vec2, point: Vec2, radius: number, blockers: readonly Shape[]): boolean {
+  const outside: Vec2 = { x: point.x - inward.x * 2 * (radius + 1), y: point.y - inward.y * 2 * (radius + 1) };
+  return capsule(outside, point, radius).every(part => !blockers.some(blocker => shapesOverlap(part, blocker)));
+}
+
+/**
  * Elective (51 principle 9): check a region's promise from its final collision geometry.
  * Every part of every portal must be reachable by a hunter from every other portal, from
  * within the region, assuming nothing outside it. One portal carries no requirement.
@@ -64,9 +76,9 @@ export function validatePortalReach(input: PortalReachInput): PortalReachResult 
     if (stands.length < 2) return { valid: true, errors, routes };
     const route = (from: Vec2, to: Vec2) => findRegionRoute(mask, input.blockers, from, to, radius);
     const reached: Array<{ id: string; at: Vec2 }> = [];
-    for (const { portal, points } of stands) {
+    for (const { portal, inward, points } of stands) {
       if (!points.length) { errors.push(`Portal ${portal.id} is too short for a hunter.`); continue; }
-      const blocked = points.filter(p => !travelClear(mask, input.blockers, p, p, radius));
+      const blocked = points.filter(p => !travelClear(mask, input.blockers, p, p, radius) || !crossingClear(inward, p, radius, input.blockers));
       if (blocked.length) { errors.push(`Portal ${portal.id} is obstructed at ${blocked.length} of ${points.length} hunter stands.`); continue; }
       // Along one portal a straight sweep usually suffices; a route covers a portal bent by an obstacle.
       let joined = true;

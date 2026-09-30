@@ -141,16 +141,24 @@ function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; 
     for (const s of capsule(p.centre, p.inside, radii[p.allowed] + 1)) protectedShapes.push(s);
   }
   // A brief's portals: keep every hunter stand along each one clear, and a hunter route between them.
-  const stands = terms ? portalStands({ ...spec, portals: terms.portals }, mask).map(s => s.points).filter(points => points.length && travelClear(mask, blockers, points[0]!, points[0]!, radii.hunter)) : [];
-  for (const points of stands) protectedShapes.push(...capsule(points[0]!, points.at(-1)!, radii.hunter + 1));
-  for (const points of stands.slice(1)) {
-    const path = findRegionRoute(mask, blockers, stands[0]![0]!, points[0]!, radii.hunter);
-    if (path) protect(path, 'hunter');
+  // A stand or a route missing here is the brief's promise already broken, so this fails explicitly
+  // rather than emitting a region that doesn't keep it (51 principle 9).
+  const standList = terms ? portalStands({ ...spec, portals: terms.portals }, mask) : [];
+  for (const { portal, points } of standList) {
+    if (!points.length) throw new Error(`Brief portal ${portal.id} is too short for a hunter.`);
+    if (!travelClear(mask, blockers, points[0]!, points[0]!, radii.hunter)) throw new Error(`Brief portal ${portal.id} lacks standing room for a hunter.`);
+  }
+  for (const { points } of standList) protectedShapes.push(...capsule(points[0]!, points.at(-1)!, radii.hunter + 1));
+  for (const { portal, points } of standList.slice(1)) {
+    const path = findRegionRoute(mask, blockers, standList[0]!.points[0]!, points[0]!, radii.hunter);
+    if (!path) throw new Error(`Brief portal ${portal.id} cannot connect to ${standList[0]!.portal.id} inside region ${spec.id}.`);
+    protect(path, 'hunter');
   }
   const loot: MicroResult['loot'] = [], lootCells = new Set<string>(), spawns: Shape[] = [];
   const occupied = elements.flatMap(e => elementShapes(e, true));
   let attempted = 0, rejected = 0;
-  const root = ports.find(p => p.required !== 'none')?.inside ?? stands[0]?.[0];
+  const root = ports.find(p => p.required !== 'none')?.inside ?? standList[0]?.points[0];
+  const zoneLoot = terms ? rng(spec.seed, `${spec.id}:zone-loot`) : undefined;
   const context: BuilderContext = {
     spec, mask, random: channel => rng(spec.seed, `${spec.id}:${channel}`),
     element(label, template, x, y) {
@@ -168,12 +176,16 @@ function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; 
     obstacle(label, shape, kind) { return context.element(label, { w: mask.bounds.w, h: mask.bounds.h, parts: [{ part: 'obstacle', shape, kind }] }, 0, 0); },
     loot(x, y) {
       if (loot.length >= (spec.loot?.budget ?? 8) || !Number.isFinite(x) || !Number.isFinite(y)) return false;
+      // Every loot placement rolls its cell's chance, whether the builder called this directly
+      // or the remaining-loot fill did, so a zero-chance zone stays free of loot either way.
+      const zone = terms?.zoneAt(Math.floor(x / spec.cellSize), Math.floor(y / spec.cellSize));
+      if (terms && (!zone || zoneLoot!.next() >= zone.lootChance)) return false;
       const key = `${Math.floor(x / spec.cellSize)},${Math.floor(y / spec.cellSize)}`, disc = circle(x, y, metrics.lootRadius);
       if (lootCells.has(key) || !mask.contains(disc) || elements.flatMap(e => elementShapes(e, true)).some(s => shapesOverlap(disc, s)) || (spec.reservations || []).some(b => shapesOverlap(disc, rect(b.x, b.y, b.w, b.h))) || spawns.some(s => shapesOverlap(disc, s))) return false;
       const path = root && findRegionRoute(mask, blockers, root, { x, y }, radii.contestant);
       if (root && !path) return false;
       if (path) protect(path, 'contestant');
-      const tier = terms ? terms.zoneAt(Math.floor(x / spec.cellSize), Math.floor(y / spec.cellSize)).tier : spec.loot?.tier ?? 1;
+      const tier = zone ? zone.tier : spec.loot?.tier ?? 1;
       lootCells.add(key); loot.push({ x, y, tier }); protectedShapes.push(disc);
       return true;
     },
@@ -183,17 +195,19 @@ function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; 
   const entry = !terms && spec.builder === 'entry' ? entryPoints(spec, mask, elements, root) : undefined;
   spawns.push(...(entry?.points || []).map(p => circle(p.x, p.y, radii.contestant)));
   // A brief's features are its region's guarantees too, so they are sited first in the same way, kind by kind.
+  // Loot the builder already placed reserves its ground here too, since a builder's loot calls
+  // can land before this runs.
   const features: FeatureSite[] = [];
   for (const [kind, count] of terms?.features ?? []) {
     const radius = kind === 'hunter-spawn' ? radii.hunter : radii.contestant;
-    const placed = spreadPoints(mask, { count, radius, seed: spec.seed, blockers: elements.flatMap(e => elementShapes(e, true)), reservations: [...spawns], ...(root ? { anchor: root } : {}) });
+    const placed = spreadPoints(mask, { count, radius, seed: spec.seed, blockers: elements.flatMap(e => elementShapes(e, true)),
+      reservations: [...spawns, ...loot.map(l => circle(l.x, l.y, metrics.lootRadius))], ...(root ? { anchor: root } : {}) });
     features.push(...placed.points.map(p => ({ kind, x: p.x, y: p.y })));
     spawns.push(...placed.points.map(p => circle(p.x, p.y, radius)));
   }
   const lootRandom = context.random('remaining-loot');
   for (const c of lootRandom.shuffle(mask.cells)) {
     if (loot.length >= (spec.loot?.budget ?? 8)) break;
-    if (terms && lootRandom.next() >= terms.zoneAt(c.x, c.y).lootChance) continue;
     context.loot((c.x + 0.35 + lootRandom.next() * 0.3) * spec.cellSize, (c.y + 0.35 + lootRandom.next() * 0.3) * spec.cellSize);
   }
   const parts = elements.flatMap(e => e.template.parts);

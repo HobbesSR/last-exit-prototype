@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { REGION_TYPES, briefErrors, buildRegion } from '../map/micro/region-types.ts';
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { elementShapes } from '../map/micro/geometry.ts';
+import { microMetrics } from '../map/micro/metrics.ts';
 import { rect } from '../shared/shape.ts';
 
 /** A 24 × 18 region with a portal on its west and east sides, and two zones split at x = 12. */
@@ -46,6 +47,27 @@ test('the whole-portal promise is refused when a builder narrows a portal or cut
   assert.ok(cut.errors.some(e => /unreachable from portal west/.test(e)), cut.errors.join(' '));
 });
 
+test('a wall sitting right on the boundary seals the portal even when no stand disc touches it', () => {
+  // A thin sliver at the west boundary, spanning the whole portal, that no inset stand circle reaches.
+  const sliver = [rect(0, 320, 0.5, 80)];
+  const sealed = validatePortalReach({ ...brief(), blockers: sliver });
+  assert.ok(sealed.errors.some(e => /Portal west is obstructed/.test(e)), sealed.errors.join(' '));
+  // The same sliver clear of every portal changes nothing.
+  const clear = validatePortalReach({ ...brief(), blockers: [rect(0, 0, 0.5, 80)] });
+  assert.deepEqual(clear.errors, []);
+});
+
+test('a brief whose portals cannot connect fails explicitly, not silently', () => {
+  // Two 2×2 lobes joined by a single-cell corridor: too narrow for a hunter to cross.
+  const cells = [];
+  for (const x of [0, 1, 3, 4]) for (const y of [0, 1]) cells.push({ x, y });
+  cells.push({ x: 2, y: 0 });
+  const lobes = { id: 'lobes', seed: 1, type: 'example-open', cellSize: 40, cells,
+    zones: [{ tier: 1, bonus: 0, lootChance: 0, cells }],
+    portals: [{ id: 'west', axis: 'v', x: 0, y: 0, length: 2 }, { id: 'east', axis: 'v', x: 5, y: 0, length: 2 }] };
+  assert.throws(() => buildRegion(lobes), /cannot connect/);
+});
+
 test('one portal carries no reachability requirement', () => {
   const one = { ...brief(), portals: [brief().portals[0]] };
   const sealed = [rect(0, 0, 200, 720)];
@@ -77,6 +99,24 @@ test('features are sited before loot, and loot follows each cell\'s zone', () =>
   const none = buildRegion({ ...brief('example-entry'), zones: brief().zones.map(z => ({ ...z, lootChance: 0 })) });
   assert.deepEqual(none.loot, []);
   assert.deepEqual(buildRegion(input), result, 'deterministic');
+});
+
+test('zone loot chance gates loot a builder places directly, not only the remaining fill', () => {
+  const zeroChance = zones => brief('example-open').zones.map(z => ({ ...z, lootChance: zones }));
+  // 'open' offers loot from inside its own rooms, before the remaining-loot fill ever runs.
+  assert.deepEqual(buildRegion({ ...brief('example-open'), zones: zeroChance(0) }).loot, []);
+  assert.ok(buildRegion({ ...brief('example-open'), zones: zeroChance(1) }).loot.length > 0);
+});
+
+test('builder-placed loot never overlaps a later-sited feature spawn', () => {
+  const metrics = microMetrics({ cellSize: 40, bodyProfile: 'cell' });
+  for (const type of Object.keys(REGION_TYPES)) for (const seed of [1, 2, 3]) {
+    const result = buildRegion({ ...brief(type, seed), features: { spawn: 10 } });
+    for (const spot of result.loot) for (const site of result.features) {
+      const gap = Math.hypot(spot.x - site.x, spot.y - site.y) - metrics.lootRadius - metrics.clearance.contestant;
+      assert.ok(gap >= -1e-6, `${type} seed ${seed}: loot (${spot.x},${spot.y}) overlaps spawn (${site.x},${site.y})`);
+    }
+  }
 });
 
 test('a malformed brief is refused by name, before any strategy runs', () => {
