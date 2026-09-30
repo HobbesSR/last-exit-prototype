@@ -73,17 +73,30 @@ The user clarified:
 
 > The passable requirement enforcement, if there is any, would have to be a post (sub)-region generation validation step, so that the generators are very free to construct their internals.
 
-Segments communicate macro obligations, locations and inter-child obligations in
-the same vocabulary. Each region must connect all required passable crossings
-internally for their applicable body classes. Generators may arrange their
-interiors freely; helper routes or reservations are optional construction aids,
-not the definition of correctness. Validate the final emitted geometry after
-each child and again at the containing region's boundary. Do not accept saved
-routes or a connected cell graph as a substitute for physical reachability.
+Revised 2026-09-29 ([51](51-generation-chain.md) principle 9; Corey's answers
+verbatim in [17](17-open-questions.md), "Map generation"). The contract is a
+**promise**, and nothing enforces it:
+- **The promise:** a region keeps every part of every portal on its perimeter
+  reachable at hunter size from every other portal, from within. A region
+  with one portal owes nothing. A region's interior is its builder's
+  business, and generators may arrange it freely.
+- **When it's broken:** a builder that doesn't reliably keep it is defective.
+  The defect is non-local, and can be a source of failure in whatever relies
+  on macro's assumptions.
+- **Validation is elective.** The SDK offers it, and a builder may use it,
+  typically in its own tests. A region type whose mechanics break the SDK's
+  assumptions validates its own way, or not at all.
+- **Where a builder does validate,** it should check the final emitted
+  geometry, not saved routes or a connected cell graph. A validator
+  diagnoses; it never weakens or repairs a contract.
 
-The SDK should support inheritance, paired interfaces and repeatable validation.
-Failed contracts must be diagnosed, never silently weakened or repaired by a
-validator. Special traversal policies such as keys and breakable barriers remain
+Earlier, this section said to validate the final emitted geometry after each
+child and again at the containing region's boundary, and that failed
+contracts must be diagnosed. That is superseded as a requirement. It stands
+as the recommended way to use the SDK's validation.
+
+The SDK should support inheritance, paired interfaces and repeatable
+validation, as tools. Special traversal policies such as keys and breakable barriers remain
 separate choices; current static validation assumes unlocked doors can open.
 
 ## Scale and diagnostics

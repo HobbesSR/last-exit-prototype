@@ -132,9 +132,10 @@ and never modifies geometry or repairs a contract. At deeper levels the same
 operation applies to each immediate partition (currently up to 16 children).
 
 The existing example builders still protect paths during construction as a useful
-heuristic. Correctness is established afterward: `validateMicroRegion` delegates
-access checks to the independent utility, and the combined demo runs the child
-composition check after generation. Unlocked-door handling remains explicit:
+heuristic. The examples also check themselves afterward, which is their own
+elective choice ([51](51-generation-chain.md) principle 9): `validateMicroRegion`
+delegates access checks to the independent utility, and the combined demo runs
+the child composition check after generation. Unlocked-door handling remains explicit:
 callers pass blockers representing the assumed door state; existing examples
 assume unlocked doors can open. A failed sampled route search rejects acceptance
 but does not mathematically prove no continuous route exists. This adds SDK
@@ -302,7 +303,8 @@ it needs the builder catalogue. A caller `dispatch` maps each allocated piece or
 residual to builder content; null leaves a residual unrealized, and an allocated piece
 must dispatch. It negotiates, generates through `composeMicroRegions` with one seed and
 body profile, and throws unless `validateBoundaryComposition` accepts the result against
-the parent's ports. Ownership is taken from the plan as given.
+the parent's ports. That check is this demo executor's choice; the chain doesn't
+require it of builders (51 principle 9). Ownership is taken from the plan as given.
 
 ### Physical demonstration policy
 
