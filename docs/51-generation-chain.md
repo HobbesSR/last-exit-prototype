@@ -43,8 +43,9 @@ generation":
    - A **measurement** is what the built map actually has. Example: "a hunter
      reached this area in the built geometry".
 
-   Region strategies honour guarantees, and validation compares measurements
-   against them.
+   Prescriptions and guarantees are for macro's reasoning. Region
+   strategies promise to honour guarantees, and nothing enforces it (principle
+   9).
 3. **Objects and views.** An **object** is a checkpoint's output that holds
    decisions (random draws, solver choices, builder output). Objects are what
    can be saved. A **view** is a pure reading of objects, always recomputed and
@@ -74,8 +75,19 @@ generation":
    - Macro proves layout regions connected by guarantees.
    - Each region's strategy guarantees its own portals are mutually
      reachable, and its children's the same way, all the way down.
-   - Each level's validator checks its own guarantee. Nothing floods the
-     whole map to establish reachability.
+   - Each link is a promise its level keeps. Nothing floods the whole map to
+     establish reachability.
+9. **Contracts are promises, not enforcement** (Corey, 2026-09-29):
+   - The pipeline doesn't validate builders or enforce anything on them. A
+     builder's internals are its own business.
+   - A builder that doesn't reliably meet its passability promise is
+     defective. That breaks the macro contract, and it is a **non-local
+     defect**: the failure shows up somewhere other than where the cause is.
+   - The micro SDK offers validation utilities, which a builder may use or not
+     (**elective**). A special region type whose mechanics break the SDK's
+     assumptions validates however it chooses, or not at all.
+   - General design guidelines that typical builders follow may be written
+     later.
 
 ## Names
 
@@ -259,7 +271,8 @@ This is the knowledge layer: what the solved placement means.
   map only because each strategy keeps its guarantees (stage 6), and the
   measurement checks it (stage 8).
 - **Gate:** the proof is macro's link in the chain of inference (principle
-  8), so it gates placement. The assumption, 17 M2, is that every layout
+  8). It is macro's reasoning about its own output, not enforcement on any
+  builder, so it gates placement. The assumption, 17 M2, is that every layout
   region must be in the spawn region's component. That is the pessimistic
   reading of "everything must be reachable by a hunter", and it means the new
   library's designs must prescribe passable segments wherever regions meet, so
@@ -290,7 +303,8 @@ contract moves from `shared/map/micro/types.ts` into the shared map space
     one, and every part of each portal is reachable, by a hunter from within
     the region,** with no assumption about what lies outside it (Corey,
     2026-09-29). This is the builder's promise, which is 19's September 24
-    contract, and the SDK's validation utilities check it.
+    contract. The SDK's validation utilities can help a builder check it
+    (principle 9).
   - **With only one portal, there is no reachability requirement,** because
     there's no other portal to reach.
   - The same holds for a sub-region and its own portals.
@@ -302,8 +316,8 @@ contract moves from `shared/map/micro/types.ts` into the shared map space
   nothing outside can reach, so the proof rejects that placement (stage 4,
   every region must connect to the spawn's).
 
-  Separately from portals, feature sites and loot must be reachable from the
-  region's portals (stage 6).
+  Separately from portals, a builder also promises that its feature sites and
+  loot are reachable from its portals (17 M17).
 
   Today's `RegionPort` works the other way. The caller supplies ports, and the
   SDK's `resolvePorts` walls each one except for a centred gap before any
@@ -331,18 +345,15 @@ decomposes splits its own brief into children with the SDK's decomposition
 - **Children:** a region type that decomposes treats its children like
   regions in general. They get passability obligations only, with no ceilings
   and no seals (Corey, 2026-09-29).
-- **Validation:** the SDK's access and boundary validators check each result
-  against its brief's portals, after generation and never by trusting the
-  builder (19). Geometry inside a region is free-form, with no grid to lean on,
-  so the SDK supplies utilities for reaching these conclusions from placed
-  shapes: swept-disc crossings and routes (Corey, 2026-09-29). This replaces
-  mapgen's `conform`. It is micro's link in the chain of inference (principle
-  8). It checks, inside the region and assuming nothing outside it:
-  - every part of every portal is reachable from every other portal (stage
-    5). Nothing is required of a region with a single portal.
-  - every feature site and loot slot is reachable from its portals. Where a
-    standing component holds neither, it may be a **sealed pocket** that
-    nothing reaches.
+- **Keeping the promise:** a builder keeps its brief's promises: the portal
+  rule (stage 5), and reachable feature sites and loot. A standing area that
+  holds neither may be a **sealed pocket**. Nothing in the pipeline checks
+  this (principle 9); a builder that breaks it is defective.
+- **Elective validation:** geometry inside a region is free-form, with no grid
+  to lean on, so the SDK offers utilities for checking these promises from
+  placed shapes: swept-disc crossings and routes (Corey, 2026-09-29). A
+  builder may call them, typically in its own tests, and a special region
+  type may validate its own way. mapgen's `conform`, which enforced, retires.
 
 ### 7. Composition: Layout, LayoutRegions, region results → **BuiltMap** (view), in the game
 
@@ -362,7 +373,7 @@ decomposes splits its own brief into children with the SDK's decomposition
      slots contain the cell it stands in. Instances never share a slot, so the
      assignment is unique.
   2. **No stray sites.** A site that falls in no instance's slots, or in an
-     instance whose class doesn't own that feature, is an error.
+     instance whose class doesn't own that feature, is reported as a defect.
   3. **Exact counts.** Each instance of a class that owns features must have
      exactly the promised count of each feature among its assigned sites: one
      spawn for `start`, `exitCount` exits and one hunter spawn for `end`, one
@@ -373,13 +384,16 @@ decomposes splits its own brief into children with the SDK's decomposition
   instance's slots and the other instance counts zero. The strategy never
   needs to know about instances.
 - **Reachability, by inference** (principle 8, 17 M6). The map is reachable
-  when every link in the chain holds:
+  when every link holds:
   - the proof connects every layout region to the spawn's (stage 4)
-  - every region result, and every child inside it, passed its own validation
-    (stage 6), which covers its standing components and its feature sites
+  - every builder kept its promise (stage 6)
 
-  No whole-map flood is needed. A flood over the built geometry may still run
-  as a diagnostic, but it doesn't decide validity.
+  No whole-map flood decides anything. A flood over the built geometry may run
+  as a diagnostic, to help find a defective builder.
+- **The report diagnoses; it doesn't reject.** A failure here names a defect,
+  either an authoring defect or a builder that broke its contract. It is not
+  an invalid map to discard. Tests, batches and the sweep use the report to
+  find defects.
 - **Metrics:** measured from the built map, not from a tile graph.
 
 ## Features
@@ -410,9 +424,10 @@ Who is responsible for what:
 - **The region type's strategy** reads the features from its class rule in the
   brief, sites them inside its own region, and returns them in its result. It
   never needs to know which set piece instance formed its region.
-- **Measurement** is the first and only check (stage 8), per instance. Nothing
-  validates at library load that a set piece class delivers its features, and
-  nothing can until micro is complete. If two adjacent instances' feature
+- **The report** (stage 8) is the first place a set piece class's promise can
+  be seen, per instance. Nothing validates at library load that a set piece
+  class delivers its features, and nothing can until micro is complete. A
+  missing feature is a defect, of an author or a builder. If two adjacent instances' feature
   regions merge and get one set of features, the instance left without is
   reported. Avoiding that is the authors' job, as above.
 
@@ -458,7 +473,7 @@ and old artifacts are refused by name (53).
 
 **The game** (`shared/map/micro/`):
 - `buildInterfaces`, if it fits the whole map's scale (step 5 decides)
-- the access and boundary validators
+- the access and boundary validators, as elective utilities for builders
 - `composeMicroRegions` and the adapter
 - the SDK's masks, shapes, routes, placement, `spreadPoints` and
   decomposition machinery
@@ -495,8 +510,8 @@ live game until the switch-over.
    (#73's logic).
 6. Proof.
 7. Briefs, and the translation into the contract (C1).
-8. Measurement: features per instance, and reachability by inference (the
-   proof, plus every region's validation) (C2).
+8. The report: features per instance, and diagnostics that locate defects
+   (C2).
 9. The map container, the accessor, saving and the wire version (#69, #70).
 
 **Track C: the contract and composition, in the game.**
@@ -507,8 +522,8 @@ live game until the switch-over.
 - C1. **The contract:** region type ids instead of a closed builder list;
   portals as derived check targets, which place no geometry (`resolvePorts`
   doesn't wall a brief's portals; 17 M3, M4); and features and zone context in
-  the brief. The validators check each portal stays passable, plus the
-  standing components and feature sites inside each region (stage 6).
+  the brief; and elective SDK utilities for a builder to check its promises
+  (principle 9).
 - C2. **Whole-map composition:** generalize `composeMicroRegions` beyond 16
   regions and the per-region bounds, as macro-sized regions need (17 M7).
 
@@ -551,7 +566,7 @@ Replacing the live game's interim street maze is a later, separate checkpoint
 (20, 41).
 
 Content is expected to change. The old #47 baseline is no reference for the
-new chain. The bar is that validation passes and maps play acceptably, and
+new chain. The bar is that the report shows no defects and maps play acceptably, and
 then the new chain's first baseline is captured, last.
 
 ## Earlier issues
@@ -560,7 +575,7 @@ then the new chain's first baseline is captured, last.
 | --- | --- |
 | #25 tile edge-constraint work, #32 v2 library schema | superseded by step 2 and track B |
 | #33 segment prescriptions | step 2 |
-| #34 a placed tile seals its interior | retires with the old tile path; each region's validation of its standing components catches the case (stage 6) |
+| #34 a placed tile seals its interior | retires with the old tile path; in the chain, sealing off a region's portals is a builder defect (stage 6, principle 9) |
 | #45 anchors at tile centre | retires with anchors |
 | #52 layer separation (tracking) | done (#49–#51), and superseded by this chain |
 | #59 reachability contract | step 6, then the open-face rule in step 4 |

@@ -183,6 +183,12 @@ number ("M3: …") and the answer is recorded verbatim here.
      sharing their portal are rejected by the proof.
 
    M3 is answered.
+
+   Enforcement and validation:
+    - (2026-09-29) "We're not enforcing anything on the builders or validating at all. The prescriptions are for macro reasoning purposes. It is a builder defect not to meet it the passability requirement. But builders internals are their business, however, there are general design guidelines typical implementations will follow, and perhaps those guidelines will be written. Validation support for a variety of things can be provided by the micro SDK, but it is elective. For some special types of regions that have unique mechanics or other types of building that breaks some of the assumptions the SDK validation depends on, whatever the builder wants to validate and how they want to do it is up to them. However, if they fail to reliably build to meet the passability requirements, again while not enforced, at that point they are not meeting the macro contract and it is considered a non-local defect."
+
+   Recorded as 51 principle 9: contracts are promises, SDK validation is
+   elective, and the report diagnoses defects rather than rejecting maps.
 4. **M4. Ceilings and sealed runs.**
     - (2026-09-29) "M4 we'll add that in later if we need it, let's keep in simple. Treat them like regions in general, with only passability obligations."
 
@@ -242,6 +248,11 @@ number ("M3: …") and the answer is recorded verbatim here.
 16. **M16. Tier composition.** How does the diamond diagram combine the
     horizontal tier and the vertical bonus into one number, and are novelty
     rewards a separate category? *Assumption:* the axes stay independent.
+17. **M17. Features in a region with one portal.** A region with one portal
+    owes no portal-to-portal reachability. Must its builder still keep its
+    feature sites and loot reachable from that portal? *Assumption:* yes.
+    Otherwise a one-portal spawn or exit region could put its feature where no
+    one reaches it. It's a promise like the rest, and not enforced.
 
 ## Product and gameplay — review together when convenient
 

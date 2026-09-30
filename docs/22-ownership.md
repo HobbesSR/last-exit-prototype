@@ -26,8 +26,10 @@ Map generation has two halves, plus a shared space ([50](50-map-generation.md)):
   layout regions, the reachability proof, region briefs, and the map-level
   checks ([51](51-generation-chain.md)).
 - **The game's `shared/map/micro/`** owns what fills a region: each region
-  type's strategy (decomposer and builders), the SDK machinery they share,
-  validating each region, and composing the regions.
+  type's strategy (decomposer and builders), the SDK machinery they share
+  (including elective validation utilities), and composing the regions.
+  Nothing enforces a builder's contract, and breaking it is a builder defect
+  ([51](51-generation-chain.md) principle 9).
 - **The shared map space** (proposed `shared/map/common/`, [51](51-generation-chain.md)
   C0) holds what both must agree on: the macro/micro contract, body scale and
   passage widths, and the definition of a run. Neither level owns it.

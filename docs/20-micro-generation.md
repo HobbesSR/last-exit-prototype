@@ -414,9 +414,9 @@ specifies it:
   cell coordinates, with an explicit `cellSize`.
 - **Whole-map composition** extends `composeMicroRegions` (51 C2).
   Reachability isn't measured over the whole map. It is inferred from the macro
-  proof and from each region's validation, which is this SDK's link in the
-  chain (51 principle 8). So the validators also check standing components and
-  feature sites inside each region (51 C1).
+  proof and from each builder keeping its promise (51 principles 8 and 9).
+  Nothing enforces that promise. This SDK's validators are elective utilities
+  a builder may use to check its own work, for example in its tests.
 - **The contract and body scale** move to the shared map space, which neither
   level owns (51 C0).
 

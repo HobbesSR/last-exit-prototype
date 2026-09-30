@@ -97,7 +97,7 @@ with a don't-care value. This is Corey's model (verbatim in 17, 2026-09-27).
   it: material is geometry a strategy places.
 - **`open` is a privileged region class** (Corey, 2026-09-27, verbatim in 17).
   Every cell of a region formed by `open` cells is passable, and so is every
-  segment inside it. Its strategy enforces that (#61). Whether an open region
+  segment inside it. Its builder promises that (#61). Whether an open region
   needs a minimum width is 17 M9.
 
 ## Regions
