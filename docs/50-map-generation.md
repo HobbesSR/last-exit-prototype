@@ -118,8 +118,9 @@ So the test is:
 - **mapgen:** two generators, `generateMap` (tiles, WFC and streets) and
   `generatePlannedMap`, which both retire when the chain lands (51).
 - **Imports:** neither side imports the other. Both import the shared map
-  space, `shared/map/common/` (M1), which imports neither, and a test holds
-  it to that. The Map Lab's server serves it at `/shared/map/common/`. mapgen
+  space, `shared/map/common/` (M1), which imports nothing outside itself, and a
+  test holds it to that. `contract.ts` is the exception until C1 splits its
+  result type from the brief. The Map Lab's server serves it at `/shared/map/common/`. mapgen
   doesn't import the SDK's builders or strategies, and the game doesn't import
   mapgen until the live game adopts the chain. *Assumption:* the name
   `common` (17 M1's open part).

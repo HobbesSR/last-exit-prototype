@@ -1,4 +1,4 @@
-import type { Cell } from './contract.ts';
+import type { Cell } from './cell.ts';
 
 /**
  * A run: a maximal straight stretch of unit cell edges on one grid line, every edge of
