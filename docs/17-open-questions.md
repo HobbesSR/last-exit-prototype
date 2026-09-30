@@ -189,6 +189,13 @@ number ("M3: …") and the answer is recorded verbatim here.
 
    Recorded as 51 principle 9: contracts are promises, SDK validation is
    elective, and the report diagnoses defects rather than rejecting maps.
+    - (2026-09-29) "So look, if we end up with things that need the macro assumptions to be true, then that's what I mean by the defect being non-local. If we start doing things like make nave meshes or something on the final geometry after regions are generated and any post processing is done, then yea, failing to meet the macro contract will result in a failure of a system or validation across the whole map. There's just not a uniform enforcement on region building itself. It will either become a defect that is noticed from the outside or not. Not sure why you're asking me about feature sites and loot reachable from that portal. I mean really, what did I just say about the interior of regions?"
+
+   Recorded in 51 principle 9. The only promise is passability between
+   portals, and a region's interior, features and loot included, is the
+   builder's business. A non-local defect is one noticed by something that
+   relies on macro's assumptions, such as a nav mesh over the final geometry
+   or whole-map processing.
 4. **M4. Ceilings and sealed runs.**
     - (2026-09-29) "M4 we'll add that in later if we need it, let's keep in simple. Treat them like regions in general, with only passability obligations."
 
@@ -248,11 +255,9 @@ number ("M3: …") and the answer is recorded verbatim here.
 16. **M16. Tier composition.** How does the diamond diagram combine the
     horizontal tier and the vertical bonus into one number, and are novelty
     rewards a separate category? *Assumption:* the axes stay independent.
-17. **M17. Features in a region with one portal.** A region with one portal
-    owes no portal-to-portal reachability. Must its builder still keep its
-    feature sites and loot reachable from that portal? *Assumption:* yes.
-    Otherwise a one-portal spawn or exit region could put its feature where no
-    one reaches it. It's a promise like the rest, and not enforced.
+17. **M17.** Withdrawn. It asked whether a one-portal region must keep its
+    features and loot reachable, but a region's interior is its builder's
+    business (see the answer on enforcement above).
 
 ## Product and gameplay — review together when convenient
 

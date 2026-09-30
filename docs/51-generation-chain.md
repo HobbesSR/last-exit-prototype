@@ -80,9 +80,16 @@ generation":
 9. **Contracts are promises, not enforcement** (Corey, 2026-09-29):
    - The pipeline doesn't validate builders or enforce anything on them. A
      builder's internals are its own business.
+   - The only promise is passability between a region's portals. Everything
+     else inside a region, including where its features and loot sit, is
+     the builder's business.
    - A builder that doesn't reliably meet its passability promise is
      defective. That breaks the macro contract, and it is a **non-local
-     defect**: the failure shows up somewhere other than where the cause is.
+     defect**. Anything that relies on macro's assumptions being true fails
+     somewhere else: a nav mesh built over the final geometry, or any
+     whole-map processing or validation after the regions are generated.
+     There's no uniform enforcement on region building itself, so the defect
+     is either noticed from outside or not.
    - The micro SDK offers validation utilities, which a builder may use or not
      (**elective**). A special region type whose mechanics break the SDK's
      assumptions validates however it chooses, or not at all.
@@ -110,8 +117,6 @@ Each term has one meaning. 52 defines the library's terms in full.
 | **tile design**, **tile set**, **set piece**, **set piece class**, **feature class**, **primary region class** | See 52 | Library |
 | **set piece instance** | One placed copy of a set piece: which one, and the slots it covers | Placement |
 | **feature** | A spawn, hunter spawn, exit, charger or warp. A region type's strategy sites it; macro knows only that a set piece class promises it | Build, Measurement |
-| **standing component** | A connected set of places a hunter can stand, in the built map's geometry | Measurement |
-| **sealed pocket** | A standing component wholly inside one layout region's cells, holding no feature and no loot; allowed to be unreached | Measurement |
 
 Retired, and confined to the old paths until they're deleted:
 - `open` as a segment label. `open` is only a cell class.
@@ -316,9 +321,6 @@ contract moves from `shared/map/micro/types.ts` into the shared map space
   nothing outside can reach, so the proof rejects that placement (stage 4,
   every region must connect to the spawn's).
 
-  Separately from portals, a builder also promises that its feature sites and
-  loot are reachable from its portals (17 M17).
-
   Today's `RegionPort` works the other way. The caller supplies ports, and the
   SDK's `resolvePorts` walls each one except for a centred gap before any
   builder runs. A brief's portals never do that (C1).
@@ -345,10 +347,10 @@ decomposes splits its own brief into children with the SDK's decomposition
 - **Children:** a region type that decomposes treats its children like
   regions in general. They get passability obligations only, with no ceilings
   and no seals (Corey, 2026-09-29).
-- **Keeping the promise:** a builder keeps its brief's promises: the portal
-  rule (stage 5), and reachable feature sites and loot. A standing area that
-  holds neither may be a **sealed pocket**. Nothing in the pipeline checks
-  this (principle 9); a builder that breaks it is defective.
+- **Keeping the promise:** a builder keeps the portal rule (stage 5), and
+  everything else inside its region is its own business. Nothing in the
+  pipeline checks this (principle 9). A builder that breaks it is defective,
+  and systems that rely on macro's assumptions will notice.
 - **Elective validation:** geometry inside a region is free-form, with no grid
   to lean on, so the SDK offers utilities for checking these promises from
   placed shapes: swept-disc crossings and routes (Corey, 2026-09-29). A
