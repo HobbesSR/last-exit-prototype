@@ -281,13 +281,24 @@ contract moves from `shared/map/micro/types.ts` into the shared map space
   2026-09-29, M4). The brief lists the region's portals and any guaranteed
   segment inside it (17 M8), as things to keep true and to be checked
   against, not as geometry to lay:
-  - **from each portal, every other portal of the region is reachable** at
-    hunter size, which is 19's September 24 contract. This is the builder's
-    responsibility (Corey, 2026-09-29).
-  - A builder may place geometry that makes a portal impassable into the rest
-    of its region. Doing so promises there's no other portal on its perimeter
-    to reach, so where there is one, validation fails.
+  - **Every portal on the region's perimeter is reachable from every other
+    one, and every part of each portal is reachable, by a hunter from within
+    the region,** with no assumption about what lies outside it (Corey,
+    2026-09-29). This is the builder's promise, which is 19's September 24
+    contract, and the SDK's validation utilities check it.
+  - **With only one portal, there is no reachability requirement,** because
+    there's no other portal to reach.
   - The same holds for a sub-region and its own portals.
+
+  The rule makes neighbours compose without coordinating. Each side keeps all
+  of a shared portal reachable from its own interior, so a hunter can cross
+  anywhere along it, and neither side needs to know where the other leaves
+  room. Two regions that each have one portal, and share it, form a pocket
+  nothing outside can reach, so the proof rejects that placement (stage 4,
+  every region must connect to the spawn's).
+
+  Separately from portals, feature sites and loot must be reachable from the
+  region's portals (stage 6).
 
   Today's `RegionPort` works the other way. The caller supplies ports, and the
   SDK's `resolvePorts` walls each one except for a centred gap before any
@@ -319,11 +330,14 @@ decomposes splits its own brief into children with the SDK's decomposition
   against its brief's portals, after generation and never by trusting the
   builder (19). Geometry inside a region is free-form, with no grid to lean on,
   so the SDK supplies utilities for reaching these conclusions from placed
-  shapes: swept-disc crossings and routes (Corey, 2026-09-29). This replaces mapgen's `conform`. It is micro's link in the
-  chain of inference (principle 8), so it also checks, inside the region:
-  - every standing component is reachable from its portals, except a
-    **sealed pocket** that holds no feature and no loot
-  - every feature site is reachable from its portals
+  shapes: swept-disc crossings and routes (Corey, 2026-09-29). This replaces
+  mapgen's `conform`. It is micro's link in the chain of inference (principle
+  8). It checks, inside the region and assuming nothing outside it:
+  - every part of every portal is reachable from every other portal (stage
+    5). Nothing is required of a region with a single portal.
+  - every feature site and loot slot is reachable from its portals. Where a
+    standing component holds neither, it may be a **sealed pocket** that
+    nothing reaches.
 
 ### 7. Composition: Layout, LayoutRegions, region results → **BuiltMap** (view), in the game
 

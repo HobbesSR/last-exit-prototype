@@ -172,14 +172,17 @@ number ("M3: …") and the answer is recorded verbatim here.
    - From each portal, every other portal of the (sub)region is reachable.
      Blocking a portal promises there's no other portal to reach.
 
-   Still open: **where on a portal the crossing happens**. Both neighbours may
-   place geometry up to the shared boundary, and each validates only its own
-   side. If each keeps a different stretch clear, each check passes but no
-   hunter gets through. *Assumption:* a region reaches a portal at the
-   portal's centre, so both sides test the same crossing. That is today's SDK
-   crossing point, without the jambs. Alternatives: each side keeps the whole
-   portal clear (stricter), or composition checks the pair jointly
-   (`validateBoundaryComposition` does this between children today).
+   Where on a portal a hunter crosses:
+    - (2026-09-29) "Again this is a reachability question and a pinky promise, although validation utilities are an intended part of the micro/builder sdk. But essentially, all parts of a portal must be reachable by a hunter from within region, with no assumptions about what's on the outside of the region. So if two regions share a portal.... ah I see, the way I worded it before, you could place geometry down against a portal such that a hunter couldn't reach it coming from the other side. Ahh but this still gets to the rule of reachable from other portals. So all portals in the perimeter of a region must be reachable from all other portals on the perimeter of the region, without any assumptions about what's outside the region. However, when there is only one portal, there essentially is NO reachability requirement at all, because there are no other portals to reach from. And if you have two regions with one portal meeting up together, they already form an unreachable space from outside it, so won't be valid placements."
+
+   Recorded in 51 stage 5:
+   - Every part of every portal is reachable from every other portal, from
+     within the region, with no assumption about outside it.
+   - A region with one portal has no reachability requirement.
+   - Neighbours compose without coordinating, and two one-portal regions
+     sharing their portal are rejected by the proof.
+
+   M3 is answered.
 4. **M4. Ceilings and sealed runs.**
     - (2026-09-29) "M4 we'll add that in later if we need it, let's keep in simple. Treat them like regions in general, with only passability obligations."
 
