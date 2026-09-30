@@ -37,3 +37,8 @@ export function renderDevNav(mainUrl, mapgenUrl) {
   if (document.body) insert();
   else document.addEventListener('DOMContentLoaded', insert);
 }
+
+const config = await fetch("/dev-nav-config.json", { cache: "no-store" })
+  .then(response => response.ok ? response.json() : null)
+  .catch(() => null);
+if (config) renderDevNav(config.mainUrl, config.mapgenUrl);

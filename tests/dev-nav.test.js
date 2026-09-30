@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import { chromium } from '@playwright/test';
 import { createArenaServer } from '../server/index.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -34,6 +35,7 @@ test('dev navigation only links to the live peer in this worktree', async () => 
   const previousMapgenPort = process.env.MAPGEN_PORT;
   const game = await createArenaServer({ replayDir, profileSummary: false });
   const mapgenProcesses = [];
+  let browser;
   try {
     await new Promise(resolve => game.http.listen(0, '127.0.0.1', resolve));
     const gamePort = game.http.address().port;
@@ -44,26 +46,44 @@ test('dev navigation only links to the live peer in this worktree', async () => 
     const mapgenUrl = `http://127.0.0.1:${mapgenPort}`;
 
     process.env.MAPGEN_PORT = String(mapgenPort);
-    const gameNav = await (await fetch(`${gameUrl}/dev-nav.js`)).text();
-    const mapgenNav = await (await fetch(`${mapgenUrl}/dev-nav.js`)).text();
-    assert.match(gameNav, new RegExp(`http://127\\.0\\.0\\.1:${mapgenPort}`));
-    assert.match(mapgenNav, new RegExp(`http://127\\.0\\.0\\.1:${gamePort}`));
+    const gameConfig = await (await fetch(`${gameUrl}/dev-nav-config.json`)).json();
+    const mapgenConfig = await (await fetch(`${mapgenUrl}/dev-nav-config.json`)).json();
+    assert.deepEqual(gameConfig, { mainUrl: gameUrl, mapgenUrl });
+    assert.deepEqual(mapgenConfig, { mainUrl: gameUrl, mapgenUrl });
+    for (const base of [gameUrl, mapgenUrl]) {
+      const navModule = await (await fetch(`${base}/shared/dev-nav.js`)).text();
+      const navCss = await (await fetch(`${base}/shared/dev-nav.css`)).text();
+      assert.match(navModule, /export function renderDevNav/);
+      assert.match(navCss, /\.global-tool-nav/);
+    }
+
+    browser = await chromium.launch({ channel: 'chrome', headless: true });
+    for (const [pageUrl, linkedUrl] of [[`${gameUrl}/micro-lab.html`, mapgenUrl], [mapgenUrl, gameUrl]]) {
+      const page = await browser.newPage();
+      await page.goto(pageUrl, { waitUntil: 'domcontentloaded' });
+      const nav = page.locator('.global-tool-nav');
+      await nav.waitFor();
+      assert.equal(await nav.locator(`a[href="${linkedUrl}/"]`).count(), 1);
+      assert.equal(await nav.evaluate(element => getComputedStyle(element).display), 'flex');
+      await page.close();
+    }
 
     process.env.MAPGEN_PORT = '0';
-    const unknownMapgen = await (await fetch(`${gameUrl}/dev-nav.js`)).text();
-    assert.match(unknownMapgen, /renderDevNav\("http:\/\/127\.0\.0\.1:\d+", null\)/);
+    const unknownMapgen = await (await fetch(`${gameUrl}/dev-nav-config.json`)).json();
+    assert.deepEqual(unknownMapgen, { mainUrl: gameUrl, mapgenUrl: null });
 
     // A CLI --port override can leave MAPGEN_PORT pointing at a different port.
     process.env.MAPGEN_PORT = '1';
-    const overriddenMapgen = await (await fetch(`${gameUrl}/dev-nav.js`)).text();
-    assert.match(overriddenMapgen, /renderDevNav\("http:\/\/127\.0\.0\.1:\d+", null\)/);
+    const overriddenMapgen = await (await fetch(`${gameUrl}/dev-nav-config.json`)).json();
+    assert.deepEqual(overriddenMapgen, { mainUrl: gameUrl, mapgenUrl: null });
 
     const unknownGame = startMapgen(0);
     mapgenProcesses.push(unknownGame.child);
     const unknownGamePort = await unknownGame.ready;
-    const unknownGameNav = await (await fetch(`http://127.0.0.1:${unknownGamePort}/dev-nav.js`)).text();
-    assert.match(unknownGameNav, /renderDevNav\(null, "http:\/\/127\.0\.0\.1:\d+"\)/);
+    const unknownGameConfig = await (await fetch(`http://127.0.0.1:${unknownGamePort}/dev-nav-config.json`)).json();
+    assert.deepEqual(unknownGameConfig, { mainUrl: null, mapgenUrl: `http://127.0.0.1:${unknownGamePort}` });
   } finally {
+    await browser?.close();
     if (previousMapgenPort === undefined) delete process.env.MAPGEN_PORT;
     else process.env.MAPGEN_PORT = previousMapgenPort;
     for (const child of mapgenProcesses) {

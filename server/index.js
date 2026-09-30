@@ -12,6 +12,7 @@ import { installHttpApi } from './http-api.js';
 import { attachWebSockets } from './websocket.js';
 import { startScheduler } from './scheduler.js';
 import { serveSharedModules } from './shared-assets.js';
+import { getDevNavConfig } from '../shared/dev-nav-server.js';
 export { EMPTY_ROOM_GRACE_MS } from './room-service.js';
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const WORKSPACE_ID = createHash('sha256').update(path.resolve(ROOT)).digest('hex');
@@ -49,28 +50,17 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use('/vendor/lucide', express.static(path.join(ROOT, 'node_modules/lucide/dist/umd')));
   app.use('/vendor/sat', express.static(path.join(ROOT, 'node_modules/sat')));
   app.use('/shared', serveSharedModules(path.join(ROOT, 'shared')));
+  app.get('/shared/dev-nav.js', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.js')));
+  app.get('/shared/dev-nav.css', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.css')));
   // The micro labs load map generation's micro half and the kernel it builds on (docs 50).
   app.use('/map/micro', serveSharedModules(path.join(ROOT, 'map/micro')));
   app.use('/map/kernel', serveSharedModules(path.join(ROOT, 'map/kernel')));
   app.get('/dev-nav-peer.json', (_req, res) => res.json({ kind: 'game', workspace: WORKSPACE_ID }));
-  app.get('/dev-nav.js', async (req, res) => {
-    const host = req.hostname;
-    const peerPort = Number(process.env.MAPGEN_PORT);
-    let mapgenUrl = null;
-    if ((host === '127.0.0.1' || host === 'localhost') && Number.isInteger(peerPort) && peerPort > 0 && peerPort <= 65535) {
-      try {
-        const peer = await fetch(`http://127.0.0.1:${peerPort}/dev-nav-peer.json`, { signal: AbortSignal.timeout(300) });
-        const identity = peer.ok ? await peer.json() : null;
-        if (identity?.kind === 'mapgen' && identity.workspace === WORKSPACE_ID)
-          mapgenUrl = `http://${host}:${peerPort}`;
-      } catch { /* The configured peer is not running. */ }
-    }
-    const mainUrl = `http://${host}:${req.socket.localPort}`;
-    const template = await import('node:fs/promises').then(fs => fs.readFile(path.join(ROOT, 'shared/dev-nav.js'), 'utf8'));
-    res.type('application/javascript').send(`
-${template.replace('export function renderDevNav', 'function renderDevNav')}
-renderDevNav(${JSON.stringify(mainUrl)}, ${JSON.stringify(mapgenUrl)});
-`);
+  app.get('/dev-nav-config.json', async (req, res) => {
+    res.set('Cache-Control', 'no-store').json(await getDevNavConfig({
+      kind: 'game', host: req.hostname, localPort: req.socket.localPort,
+      peerPort: process.env.MAPGEN_PORT, workspaceId: WORKSPACE_ID,
+    }));
   });
   app.use(express.static(path.join(ROOT, 'public')));
   installHttpApi(app, service, replays);
