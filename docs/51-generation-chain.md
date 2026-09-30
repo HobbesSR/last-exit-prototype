@@ -231,9 +231,15 @@ This is the knowledge layer: what the solved placement means.
   write passable prescriptions, not portals, but they design those sections
   with the portals they will form in mind (Corey, 2026-09-29). So the Map Lab
   shows the portals a design or layout would derive (B1).
-- **Validity:** every portal is at least `ceil(2 × hunterRadius)`
-  segments long (#73), with the hunter's size from one body scale (17 M5). A
-  run may cross a tile seam, since boundaries ignore tiles.
+- **Validity:** a portal is passable only if a hunter can pass through its
+  own geometry (Corey, 2026-09-29):
+  - It is straight. Two passable segments meeting at a right angle don't form
+    a portal a hunter can pass through, so they don't count as one.
+  - It is at least `ceil(2 × hunterRadius)` segments long (#73), with the
+    hunter's size from one body scale (17 M5).
+
+  A passable prescription that forms no such portal makes the layout invalid,
+  as before. A portal may cross a tile seam, since boundaries ignore tiles.
 - **Region graph:** each region is a node. Two regions are joined when a
   boundary between them has a portal.
 
@@ -275,10 +281,13 @@ contract moves from `shared/map/micro/types.ts` into the shared map space
   2026-09-29, M4). The brief lists the region's portals and any guaranteed
   segment inside it (17 M8), as things to keep true and to be checked
   against, not as geometry to lay:
-  - every portal stays passable. The exact geometric test is 17 M3's open
-    part.
-  - all its portals stay mutually reachable at hunter size, which is 19's
-    September 24 contract
+  - **from each portal, every other portal of the region is reachable** at
+    hunter size, which is 19's September 24 contract. This is the builder's
+    responsibility (Corey, 2026-09-29).
+  - A builder may place geometry that makes a portal impassable into the rest
+    of its region. Doing so promises there's no other portal on its perimeter
+    to reach, so where there is one, validation fails.
+  - The same holds for a sub-region and its own portals.
 
   Today's `RegionPort` works the other way. The caller supplies ports, and the
   SDK's `resolvePorts` walls each one except for a centred gap before any

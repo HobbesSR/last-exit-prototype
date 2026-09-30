@@ -164,11 +164,22 @@ number ("M3: …") and the answer is recorded verbatim here.
    - The SDK supplies utilities for reaching reachability conclusions over
      free-form geometry.
 
-   Still open: the exact test for "a portal stays passable". *Assumption:*
-   each side keeps the whole portal crossable at hunter size, checked on its
-   own side. Two neighbouring regions then compose without coordinating. A
-   weaker "a hunter crosses somewhere along it" could fail when each side
-   leaves a different stretch clear.
+    - (2026-09-29) "It's the builder's responsibility to ensure that from that portal all other portals in its (sub)region is reachable. So if they put something next to it that effectively make it not passable into the rest of the region, then they are promising there are no other portals on its perimeter to reach. A portal is passable if a hunter can pass through its geometry. so two segments that meet at a right angle, I haven't done the math, but I think that would mean a hunter couldn't pass through that, so that set of passable segments would not count as a portal."
+
+   Recorded in 51 stages 3 and 5:
+   - A portal is straight and at least a hunter's diameter long. A right-angle
+     pair doesn't count.
+   - From each portal, every other portal of the (sub)region is reachable.
+     Blocking a portal promises there's no other portal to reach.
+
+   Still open: **where on a portal the crossing happens**. Both neighbours may
+   place geometry up to the shared boundary, and each validates only its own
+   side. If each keeps a different stretch clear, each check passes but no
+   hunter gets through. *Assumption:* a region reaches a portal at the
+   portal's centre, so both sides test the same crossing. That is today's SDK
+   crossing point, without the jambs. Alternatives: each side keeps the whole
+   portal clear (stricter), or composition checks the pair jointly
+   (`validateBoundaryComposition` does this between children today).
 4. **M4. Ceilings and sealed runs.**
     - (2026-09-29) "M4 we'll add that in later if we need it, let's keep in simple. Treat them like regions in general, with only passability obligations."
 
