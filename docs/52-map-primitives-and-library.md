@@ -195,17 +195,22 @@ admits a contestant and not a hunter.
 
 **This section is the one statement of body scale in the docs**, and other
 files link here rather than restating numbers (Corey, 2026-09-29, M5). In
-code, the one source is a scale module in the shared map space (51 C0). Both
-mapgen and the SDK read from it.
+code, the one source is `CELL_SCALE` in `shared/map/common/scale.ts`, in the
+shared map space (51 C0):
 
-Today the values live in two places, which C0 will merge. Both sit inside the
-band:
-- **mapgen `DEFAULT_PARAMS`:** radii 0.55 and 0.90 cells.
-- **The SDK's `cell` profile (`shared/map/micro/metrics.ts`):** radii 0.625
-  and 0.875 cells, with a doorway of 2 and a squeeze of 1.5.
+| Quantity | Cells |
+| --- | --- |
+| contestant radius | 0.625 (diameter 1.25) |
+| hunter radius | 0.875 (diameter 1.75) |
+| doorway | 2 |
+| squeeze | 1.5 |
+| clearance margin beyond a body's radius | 0.05 |
 
-*Assumption:* C0 adopts the SDK's values. Either way, the shortest passable
-run, `ceil(2 × hunterRadius)`, is 2.
+The shortest portal, `ceil(2 × hunterRadius)`, is 2 (`MIN_PORTAL_LENGTH`).
+The SDK's `cell` profile (`microMetrics`) and mapgen's `DEFAULT_PARAMS` radii
+and `APERTURES` read these. They were the SDK's values. mapgen's radii were
+0.55 and 0.90 until C0, and Corey chose the SDK's values with a recaptured
+sweep baseline (17 M5).
 
 The game's `live` profile (12 and 23 world units, 40 world units per cell) is
 the live match's, stays in `shared/map/navigation.ts`, and changes only with
