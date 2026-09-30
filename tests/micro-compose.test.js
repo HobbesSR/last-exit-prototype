@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { microExample } from '../shared/map/micro/examples.ts';
-import { composeMicroRegions } from '../shared/map/micro/compose.ts';
+import { microExample } from '../map/micro/examples.ts';
+import { composeMicroRegions } from '../map/micro/compose.ts';
 
 function pair() {
   const a = microExample('depot', 41), b = microExample('ruins', 42);

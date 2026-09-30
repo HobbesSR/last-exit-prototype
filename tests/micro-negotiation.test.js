@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { planExample, decompositionExample } from '../shared/map/micro/decomposition/example.ts';
-import { negotiatePortals } from '../shared/map/micro/sdk.ts';
-import { executeDecomposition } from '../shared/map/micro/execute.ts';
-import { realizeDecomposition, validateRealization } from '../shared/map/micro/decomposition/realize.ts';
-import { buildInterfaces } from '../shared/map/micro/decomposition/interfaces.ts';
-import { validateBoundaryComposition } from '../shared/map/micro/boundary.ts';
-import { elementShapes } from '../shared/map/micro/geometry.ts';
+import { planExample, decompositionExample } from '../map/micro/decomposition/example.ts';
+import { negotiatePortals } from '../map/micro/sdk.ts';
+import { executeDecomposition } from '../map/micro/execute.ts';
+import { realizeDecomposition, validateRealization } from '../map/micro/decomposition/realize.ts';
+import { buildInterfaces } from '../map/micro/decomposition/interfaces.ts';
+import { validateBoundaryComposition } from '../map/micro/boundary.ts';
+import { elementShapes } from '../map/micro/geometry.ts';
 import { rect } from '../shared/shape.ts';
 
 const plan = planExample(decompositionExample('neck'));

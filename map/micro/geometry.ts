@@ -1,6 +1,6 @@
-import { bounds, circle, convex, overlaps, polygon, rect, transform } from '../../shape.ts';
-import type { Shape } from '../../shape.ts';
-import type { Box, Vec2 } from '../../types.ts';
+import { bounds, circle, convex, overlaps, polygon, rect, transform } from '../../shared/shape.ts';
+import type { Shape } from '../../shared/shape.ts';
+import type { Box, Vec2 } from '../../shared/types.ts';
 import type { RegionElement, RegionMask, RegionSpec } from './types.ts';
 
 const EPS = 1e-7;

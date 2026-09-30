@@ -1,10 +1,10 @@
 # 20. Bounded micro generation
 
 The game now has a standalone micro-generation implementation in
-`shared/map/micro/`. It accepts explicit regions and resolves them into the same
+`map/micro/`. It accepts explicit regions and resolves them into the same
 obstacles, roofs, windows and doors used by the live game. The default street
 generator does not call it yet. The macro generator, formerly the sibling
-`last_exit_map` repository, now lives in `mapgen/` with its own tests and docs.
+`last_exit_map` repository, now lives in `map/macro/` with its own tests and docs.
 The game does not import it yet, nor copy its generated artifacts.
 
 This is the current user-directed F-01 work. Macro gives micro an owned area and
@@ -50,7 +50,7 @@ density 0.55, room size 6 cells and decay 0.35. `live` preserves current game
 radii of 12/23 and navigation clearance of 14/25 from `map/navigation.ts`.
 `cell` is an explicit preview/profile choice. Its contestant and hunter sizes,
 its doorway (2 cells) and its contestant-only squeeze (1.5 cells) are stated
-once, in 52, "Units and scale". This is not a conversion of `mapgen/`'s abstract scale. A local artifact
+once, in 52, "Units and scale". This is not a conversion of `map/macro/`'s abstract scale. A local artifact
 made with `cell` must not silently change the live game's bodies, clearance,
 capacity, or spawn rules.
 
@@ -173,7 +173,7 @@ on the reusable `spreadPoints` primitive retains canonical tie ordering.
 Ruin decay now changes intact spans into smaller rotated rubble and adds scatter;
 it is not a parameter of the other builders.
 
-`shared/map/micro/sdk.ts` exports the pure reusable layer: region-mask and shape
+`map/micro/sdk.ts` exports the pure reusable layer: region-mask and shape
 queries, collision/route helpers, `spreadPoints`, and `microMetrics`, with their
 types. It also exports decomposition analysis, immutable region contexts,
 candidate allocation, interface discovery, and independent plan validation.
@@ -402,9 +402,9 @@ including actual movement across a child-region join.
 Feature-region placement beyond local entry spacing, primitive material sets, and
 authored segment/vertex metadata still need expansion. The next decomposition
 boundaries are recursive execution of explored trees, which can now reuse flat
-dispatch and negotiation at each level, and a `mapgen/` adapter.
+dispatch and negotiation at each level, and a `map/macro/` adapter.
 
-`mapgen/` is the input for that adapter. [51](51-generation-chain.md) now
+`map/macro/` is the input for that adapter. [51](51-generation-chain.md) now
 specifies it:
 - **Briefs** (51 stage 5) are expressed in the macro/micro contract, which moves to the shared map
   space and evolves from `RegionSpec`. It gains region type ids instead of the
@@ -420,11 +420,11 @@ specifies it:
   Nothing enforces that promise. This SDK's validators are elective utilities
   a builder may use to check its own work, for example in its tests.
 - **The contract, body scale and the definition of a run** are in the shared
-  map space, `shared/map/common/`, which neither level owns (51 C0).
+  map space, `map/kernel/`, which neither level owns (51 C0).
   `types.ts` re-exports the contract, `microMetrics` reads the scale, and
   `buildInterfaces` builds on the shared run finder.
 
-It must not treat `mapgen/`'s graph or sampled connectivity as proof of this
+It must not treat `map/macro/`'s graph or sampled connectivity as proof of this
 game's physical geometry. mapgen's own micro layer duplicates this
 directory's work and retires, and its planned path retires with it. Where macro
 and micro solve similar problems, such as boundary runs and connectivity, each

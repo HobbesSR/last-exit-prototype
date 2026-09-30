@@ -1,5 +1,5 @@
 import type { Cell } from '../types.ts';
-import type { Run } from '../../common/run.ts';
+import type { Run } from '../../kernel/run.ts';
 
 export interface CellRect { x: number; y: number; w: number; h: number; area: number }
 export interface BoundaryEdge { a: Cell; b: Cell; cell: Cell; kind: 'outer' | 'hole' }

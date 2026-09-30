@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { decompositionExample, planExample } from '../shared/map/micro/decomposition/example.ts';
+import { decompositionExample, planExample } from '../map/micro/decomposition/example.ts';
 
 const cli = (...args) => spawnSync(process.execPath, ['tools/decompose-region.mjs', ...args], { encoding: 'utf8', maxBuffer: 8e6 });
 test('decomposition CLI shares the strategy, validates artifacts, and refuses ambiguous options', () => {

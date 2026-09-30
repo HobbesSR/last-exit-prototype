@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { circle, rect } from '../shared/shape.ts';
-import { createRegionMask, shapesOverlap } from '../shared/map/micro/geometry.ts';
-import { spreadPoints } from '../shared/map/micro/placement.ts';
+import { createRegionMask, shapesOverlap } from '../map/micro/geometry.ts';
+import { spreadPoints } from '../map/micro/placement.ts';
 
 const mask = (width, height, keep = () => true) => createRegionMask({ cellSize: 40,
   cells: Array.from({ length: height }, (_, y) => Array.from({ length: width }, (_, x) => ({ x, y })).filter(({ x, y }) => keep(x, y))).flat(),

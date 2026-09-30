@@ -1,6 +1,6 @@
-import { circle } from '../../shape.ts';
-import type { Shape } from '../../shape.ts';
-import type { Vec2 } from '../../types.ts';
+import { circle } from '../../shared/shape.ts';
+import type { Shape } from '../../shared/shape.ts';
+import type { Vec2 } from '../../shared/types.ts';
 import { findRegionRoute, shapesOverlap, validShape } from './geometry.ts';
 import type { RegionMask } from './types.ts';
 

@@ -7,7 +7,7 @@ import { validateMicroRegion } from '../index.ts';
 import { validateDecompositionPlan } from './validate.ts';
 import { EXAMPLE_GENERATORS } from './example.ts';
 import type { BuilderId, RegionPort, RegionResult, RegionRoute } from '../types.ts';
-import type { Vec2 } from '../../../types.ts';
+import type { Vec2 } from '../../../shared/types.ts';
 import type { Dispatcher } from '../execute.ts';
 import type { PortalPolicy } from './negotiate.ts';
 import type { DecompositionPlan } from './types.ts';

@@ -1,8 +1,8 @@
 // Same generation and validation as the browser lab; custom specs are the future macro seam.
 import { readFile, writeFile } from 'node:fs/promises';
-import { generateMicroRegion, validateMicroRegion } from '../shared/map/micro/index.ts';
-import { microExample } from '../shared/map/micro/examples.ts';
-import { composeMicroRegions } from '../shared/map/micro/compose.ts';
+import { generateMicroRegion, validateMicroRegion } from '../map/micro/index.ts';
+import { microExample } from '../map/micro/examples.ts';
+import { composeMicroRegions } from '../map/micro/compose.ts';
 
 const args = new Map();
 for (const argument of process.argv.slice(2)) {

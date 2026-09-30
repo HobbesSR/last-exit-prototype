@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { inheritBoundaryPorts, pairedBoundaryPort, validateBoundaryComposition } from '../shared/map/micro/boundary.ts';
-import { generateMicroRegion } from '../shared/map/micro/index.ts';
-import { elementShapes } from '../shared/map/micro/geometry.ts';
+import { inheritBoundaryPorts, pairedBoundaryPort, validateBoundaryComposition } from '../map/micro/boundary.ts';
+import { generateMicroRegion } from '../map/micro/index.ts';
+import { elementShapes } from '../map/micro/geometry.ts';
 import { rect } from '../shared/shape.ts';
 
 const cells = (x, width) => Array.from({ length: width * 10 }, (_, i) => ({ x: x + i % width, y: Math.floor(i / width) }));

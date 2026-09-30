@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cellKey, connectedComponents, validateDecompositionPlan } from '../shared/map/micro/sdk.ts';
-import { decompositionExample, EXAMPLE_GENERATORS } from '../shared/map/micro/decomposition/example.ts';
-import { exploreDecomposition } from '../shared/map/micro/decomposition/explore.ts';
+import { cellKey, connectedComponents, validateDecompositionPlan } from '../map/micro/sdk.ts';
+import { decompositionExample, EXAMPLE_GENERATORS } from '../map/micro/decomposition/example.ts';
+import { exploreDecomposition } from '../map/micro/decomposition/explore.ts';
 
 function verifyNode(node) {
   if (!node.children.length) { assert.ok(node.stopReason, `${node.id} is explicitly terminal`); return; }

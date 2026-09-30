@@ -1,4 +1,4 @@
-import { boundaryRuns } from '../../common/run.ts';
+import { boundaryRuns } from '../../kernel/run.ts';
 import type { Cell } from '../types.ts';
 import type { PieceInterface } from './types.ts';
 

@@ -1,5 +1,5 @@
-import type { Box, Vec2 } from '../../types.ts';
-import type { ElementTemplate } from '../element.ts';
+import type { Box, Vec2 } from '../../shared/types.ts';
+import type { ElementTemplate } from '../../shared/map/element.ts';
 import type { Cell } from './cell.ts';
 
 /**

@@ -123,7 +123,7 @@ dispatch have separate implementation boundaries. The lab offers bounded structu
 tree exploration. Flat plans now execute through caller-supplied dispatch and portal
 policies, of which the combined demo is one; recursive dispatch of explored trees
 remains separate. See 20.
-Integration with the macro project in `mapgen/` is now accepted direction
+Integration with the macro project in `map/macro/` is now accepted direction
 (2026-09-28 and 29): a region type's strategy, written on this SDK, fills each
 region the macro chain hands down. [50](50-map-generation.md) records who owns
 what, and [51](51-generation-chain.md) the chain.

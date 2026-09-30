@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateMicroRegion, validateMicroRegion } from '../shared/map/micro/index.ts';
-import { microExample } from '../shared/map/micro/examples.ts';
-import { microMetrics } from '../shared/map/micro/sdk.ts';
-import { regionCollisionMap } from '../shared/map/micro/adapter.ts';
+import { generateMicroRegion, validateMicroRegion } from '../map/micro/index.ts';
+import { microExample } from '../map/micro/examples.ts';
+import { microMetrics } from '../map/micro/sdk.ts';
+import { regionCollisionMap } from '../map/micro/adapter.ts';
 import { canOccupy, moveBody } from '../shared/movement.ts';
 
 test('cell proportions use real collision bodies through 1.5-cell squeezes and 2-cell doors', () => {

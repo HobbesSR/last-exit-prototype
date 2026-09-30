@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { rect } from '../shared/shape.ts';
-import { resolveAccessRequirements, validateRegionAccess } from '../shared/map/micro/access.ts';
+import { resolveAccessRequirements, validateRegionAccess } from '../map/micro/access.ts';
 
 const cells = (width = 8, height = 6) => Array.from({ length: width * height }, (_, i) => ({ x: i % width, y: Math.floor(i / width) }));
 const portPair = (required = 'hunter', allowed = required) => [

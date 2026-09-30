@@ -1,7 +1,7 @@
 import { microMetrics } from './metrics.ts';
 import { capsule, createRegionMask, findRegionRoute, shapesOverlap, travelClear, validShape } from './geometry.ts';
-import type { Shape } from '../../shape.ts';
-import type { Vec2 } from '../../types.ts';
+import type { Shape } from '../../shared/shape.ts';
+import type { Vec2 } from '../../shared/types.ts';
 import type { Cell, Passage, RegionPort, RegionRoute, ResolvedPort } from './types.ts';
 
 const RANK: Record<Passage, number> = { none: 0, contestant: 1, hunter: 2 };

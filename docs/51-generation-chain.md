@@ -10,7 +10,7 @@ The pipeline is new, and it reuses existing leaf modules on both sides.
 
 mapgen's old generators, `generateMap` and `generatePlannedMap`, keep working
 until the switch-over (step 10). Then they're deleted, not kept as legacy. The
-archived mapgen docs in `mapgen/docs/archive/pre-integration/` describe them;
+archived mapgen docs in `map/macro/docs/archive/pre-integration/` describe them;
 where they disagree with this file about the chain, this file holds.
 
 Corey's directions for the chain (2026-09-28 and 29), verbatim in 17 "Map
@@ -22,7 +22,7 @@ generation":
 - macro prescribes no geometry
 - the library is authored fresh against a region type catalogue
 
-`mapgen/design_notes.txt` is the original statement of intent. Corey's later answers in 17 and the accepted model in 51 govern where they differ. For example, the notes describe segment-aligned fences and doors, and 17 records that macro prescribes no geometry for now.
+`map/macro/design_notes.txt` is the original statement of intent. Corey's later answers in 17 and the accepted model in 51 govern where they differ. For example, the notes describe segment-aligned fences and doors, and 17 records that macro prescribes no geometry for now.
 
 ## Principles
 
@@ -105,14 +105,14 @@ Each term has one meaning. 52 defines the library's terms in full.
 | --- | --- | --- |
 | **declared class** | The class a design paints on a cell, `any` allowed | Library, Placement |
 | **resolved class** | A declared class with every `any` settled; never `any` | Resolution |
-| **region type** | What a resolved class names: the strategy (decomposer and builders) that fills a region of that class, in `shared/map/micro/` | Library, Build |
+| **region type** | What a resolved class names: the strategy (decomposer and builders) that fills a region of that class, in `map/micro/` | Library, Build |
 | **passability prescription** | What a design states about crossing a segment: `passable`, `any`, or unstated | Library |
 | **passability guarantee** | Whether a solved layout promises a segment passable: `guaranteed` or `none` | Resolution |
 | **adjacency prescription** | The class a design requires of the cell across one of its perimeter segments | Library |
 | **layout region** | A maximal 4-connected set of cells with one resolved class | Regions |
 | **boundary** | A maximal straight run of segments between two layout regions; the same definition of a run as the SDK's interface runs between a region's children | Regions |
 | **portal** | A maximal contiguous stretch of guaranteed-passable segments along one boundary. **Derived, never authored.** At macro level it comes from the designs' passable prescriptions; inside a region, from the strategy's own decisions about its children. It says what must stay passable, and is what validation checks, but places no geometry (Corey, 2026-09-29, M3) | Regions, Briefs, Build |
-| **brief** | Everything one region's strategy is handed, expressed in the macro/micro contract (`shared/map/common/contract.ts`) | Briefs |
+| **brief** | Everything one region's strategy is handed, expressed in the macro/micro contract (`map/kernel/contract.ts`) | Briefs |
 | **region result** | What one region's strategy returns, in the contract's result type | Build |
 | **built map** | Every region result composed into one map of the game's geometry | Composition |
 | **tile design**, **tile set**, **set piece**, **set piece class**, **feature class**, **primary region class** | See 52 | Library |
@@ -288,7 +288,7 @@ This is the knowledge layer: what the solved placement means.
 ### 5. Briefs: Layout, LayoutRegions, zones → **RegionBrief[]** (view)
 
 One brief per layout region, expressed in the macro/micro contract. The
-contract is in the shared map space (`shared/map/common/contract.ts`, 17 M1),
+contract is in the shared map space (`map/kernel/contract.ts`, 17 M1),
 and evolves from today's `RegionSpec`:
 
 - region id, seed, and the **region type** with its parameters from the class
@@ -336,7 +336,7 @@ decomposes splits its own brief into children with the SDK's decomposition
 ### 6. Build: each RegionBrief → **RegionResult** (object), in the game
 
 - **Dispatch:** by region type, to that type's strategy in
-  `shared/map/micro/`: its decomposer, if it has one, and its builders, all
+  `map/micro/`: its decomposer, if it has one, and its builders, all
   written on the SDK (track B).
 - **Holds:** the contract's result type, evolving from `micro-1`: placed
   elements and shapes, feature sites, loot, and a manifest counted from what
@@ -474,7 +474,7 @@ and old artifacts are refused by name (53).
 - from the planned path, as material for stages 3–4: `findBoundaries` and
   `proveReachability`
 
-**The game** (`shared/map/micro/`):
+**The game** (`map/micro/`):
 - `buildInterfaces`, if it fits the whole map's scale (step 5 decides)
 - the access and boundary validators, as elective utilities for builders
 - `composeMicroRegions` and the adapter
@@ -519,8 +519,8 @@ live game until the switch-over.
 
 **Track C: the contract and composition, in the game.**
 
-- C0. **The shared map space** (17 M1, M5), `shared/map/common/`: the
-  contract types (`contract.ts`, which `shared/map/micro/types.ts`
+- C0. **The shared map space** (17 M1, M5), `map/kernel/`: the
+  contract types (`contract.ts`, which `map/micro/types.ts`
   re-exports), the single source of body scale and passage widths
   (`scale.ts`), and the definition of a run (`run.ts`), with worked cases
   (`run-cases.ts`) that every run finder is tested against. mapgen and the SDK
@@ -552,7 +552,7 @@ reachability is inferred (principle 8).
 
   The game's example builders and mapgen's six are material, not
   constraints.
-- B3. **The strategies** the catalogue calls for, in `shared/map/micro/`, each
+- B3. **The strategies** the catalogue calls for, in `map/micro/`, each
   its own issue.
 - B4. **The new library**, authored against the catalogue:
   - cell classes, tiles and tile sets

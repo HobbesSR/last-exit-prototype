@@ -1,4 +1,4 @@
-import { exploreDecomposition } from '/shared/map/micro/decomposition/explore.ts';
+import { exploreDecomposition } from '/map/micro/decomposition/explore.ts';
 
 const $ = id => document.getElementById(id);
 const colors = ['#54c7bb', '#6f9de0', '#d884a8', '#d7a65d', '#a18ada', '#72b777', '#dc7d66', '#70b9d8'];

@@ -21,16 +21,25 @@ Power cells are normal unstackable equipment entries with retained charge, not a
 
 ## Map generation
 
-Map generation has two halves, plus a shared space ([50](50-map-generation.md)):
-- **Macro, in `mapgen/`,** owns the tile library, placement, resolution,
-  layout regions, the reachability proof, region briefs, and the map-level
-  checks ([51](51-generation-chain.md)).
-- **The game's `shared/map/micro/`** owns what fills a region: each region
+Map generation lives in `map/`, apart from the game's portable core in
+`shared/`, which the server and the browser both run (21, 27). Only prediction
+uses both sides today, but the whole simulation is kept portable, so the test
+for belonging in `shared/` is being part of that runtime core. Map generation
+isn't: neither the running server nor the game client loads it. `map/` builds on
+the core's geometry and element vocabulary, and `shared/` never imports `map/`
+until the live game adopts the chain. A test in `tests/micro-common.test.js`
+holds that direction.
+
+It has two halves, plus a kernel between them ([50](50-map-generation.md)):
+- **Macro, in `map/macro/` ("mapgen"),** owns the tile library, placement,
+  resolution, layout regions, the reachability proof, region briefs, and the
+  map-level checks ([51](51-generation-chain.md)).
+- **Micro, in `map/micro/`,** owns what fills a region: each region
   type's strategy (decomposer and builders), the SDK machinery they share
   (including elective validation utilities), and composing the regions.
   Nothing enforces a builder's contract, and breaking it is a builder defect
   ([51](51-generation-chain.md) principle 9).
-- **The shared map space** (`shared/map/common/`, [51](51-generation-chain.md)
+- **The kernel** (`map/kernel/`, the shared map space of [51](51-generation-chain.md)
   C0) holds what both must agree on: the macro/micro contract (`contract.ts`),
   body scale and passage widths (`scale.ts`), and the definition of a run
   (`run.ts`, with the cases every run finder is tested against). Neither level
@@ -39,17 +48,17 @@ Map generation has two halves, plus a shared space ([50](50-map-generation.md)):
   still reaches the engine until C1 splits it, so nothing else there imports it.
 
 The same problem at the same level has one owner:
-- mapgen's own micro layer (`mapgen/src/micro/`) duplicates the game's and
+- mapgen's own micro layer (`map/macro/src/micro/`) duplicates the game's and
   retires at the chain's switch-over.
-- mapgen's planned path (`mapgen/src/plan/`) retires with it.
+- mapgen's planned path (`map/macro/src/plan/`) retires with it.
 
 Don't extend either. A problem both levels face, such as boundary runs,
 connectivity or reachability checks, is solved at each level within its own
-scope, with a shared definition where the two must agree (50). mapgen imports the shared map space,
-and may import the SDK from `shared/map/micro/` ([17](17-open-questions.md) M1). The game
-doesn't import `mapgen/` until the live game adopts the chain.
+scope, with a shared definition where the two must agree (50). mapgen imports the kernel,
+and may import the SDK from `map/micro/` ([17](17-open-questions.md) M1). The game
+doesn't import `map/` until the live game adopts the chain.
 
-`shared/map/micro/sdk.ts` exposes reusable mask, geometry, route, scale and
+`map/micro/sdk.ts` exposes reusable mask, geometry, route, scale and
 spacing primitives without importing the builder catalogue. `placement` owns
 bounded farthest-point spacing, while the region generator supplies entry counts,
 clearance and exclusions. It also exposes decomposition mechanics: immutable,
@@ -76,13 +85,13 @@ canonical crossing resolution. `micro/boundary.ts` owns parent-to-child boundary
 inheritance, paired requirements and post-generation composition validation.
 Builders own construction tactics; validators never repair or weaken obligations.
 
-`shared/map/micro/` owns the separate bounded-region path described in
-[20](20-micro-generation.md): `types` is the macro/micro contract, `geometry` owns
+`map/micro/` owns the separate bounded-region path described in
+[20](20-micro-generation.md): `types` re-exports the macro/micro contract from the kernel, `geometry` owns
 mask containment and swept local route queries using `shape.ts`, `index` owns
 validated placement/loot and artifact validation, `builders` owns architecture,
 `compose` checks supplied adjacent-region contracts, and `adapter` emits through
 `placeElement`. `examples` supplies shared tool inputs. The CLI and browser lab
-call those modules; neither reimplements generation or imports `mapgen/`.
+call those modules; neither reimplements generation or imports `map/macro/`.
 The normal `generateMap` path below remains unchanged.
 
 `shared/map.ts` is a compatibility facade over `shared/map/`. `generate` runs topology → terrain/passages → spawn reservations/buildings/props → objectives/loot/traps. Every stage receives one generation context: seeded RNG, ID stream, placement helpers, reservations, and intermediate graph/placement data. Creating helpers consumes no random draws or IDs; stage order and loop order preserve the original output. `element` owns what a *group* of bodies is — a placeable assembly of obstacles, gates, loot spots and reservations in local coordinates — and `templates` is the catalogue of them a region generator draws from; a stage that needs a structure stamps a template rather than emitting literals, and a template's part order is frozen for the same reason stage order is. `world` and `graph` provide constants and graph lookup/routing; graph caches are private WeakMaps keyed by map identity and explicitly invalidated during topology changes. `navigation` separately owns runtime grid caches, invalidated by door open/locked state, obstacle-array replacement, or obstacle-count changes. It also owns the clearance a route requires and the straightening applied after a grid search: a grid returns tile centres, so a route at any angle other than a multiple of 45 degrees comes back as a staircase, and walking it waypoint by waypoint makes a bot turn every few ticks. That turning is real simulation motion, so no amount of presentation smoothing can remove it. Straightening and the walkability grid read one clearance value, because smoothing against a narrower radius would cut the very corners the grid was built to keep clear of. In-place obstacle geometry edits without replacement remain outside the existing cache contract. This stage boundary is a future generator replacement point, not a new hierarchy or multi-floor schema.

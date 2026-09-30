@@ -1,8 +1,8 @@
-import { decompositionExample, planExample } from '/shared/map/micro/decomposition/example.ts';
-import { realizeDecomposition } from '/shared/map/micro/decomposition/realize.ts';
-import { realizationCollisionMap } from '/shared/map/micro/decomposition/preview.ts';
+import { decompositionExample, planExample } from '/map/micro/decomposition/example.ts';
+import { realizeDecomposition } from '/map/micro/decomposition/realize.ts';
+import { realizationCollisionMap } from '/map/micro/decomposition/preview.ts';
 import { moveBody, canOccupy } from '/shared/movement.ts';
-import { microMetrics } from '/shared/map/micro/metrics.ts';
+import { microMetrics } from '/map/micro/metrics.ts';
 import { outline, transform } from '/shared/shape.ts';
 
 const $ = id => document.getElementById(id), canvas = $('preview'), ctx = canvas.getContext('2d');

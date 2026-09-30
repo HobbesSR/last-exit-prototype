@@ -73,7 +73,7 @@ silently adopted as game contracts.
 ## Map generation (folded from mapgen, 2026-09-29)
 
 mapgen kept its own questions file until 2026-09-29. It is archived as
-`mapgen/docs/archive/pre-integration/QUESTIONS.md`, and its answers are
+`map/macro/docs/archive/pre-integration/QUESTIONS.md`, and its answers are
 preserved verbatim below with the ones given since. The design they produced
 is in 50–53. Answers are grouped by topic, each under the question it settled.
 
@@ -136,8 +136,21 @@ number ("M3: …") and the answer is recorded verbatim here.
     - (2026-09-29) "M1 not sure what the question is here. Whatever is shared between macro and micro should probably be separated out into its own library / space since that means neither level officially owns it."
 
    Recorded as a **shared map space** that neither level owns (50, 51 C0).
-   Still open: its name and place. *Assumption:* `shared/map/common/`,
-   imported by mapgen and by `shared/map/micro/`.
+
+   Its place, discussed while doing C0 (#99) and after:
+    - (2026-09-30) "then might thought is, confusing as it would be, that instead of under shared, we have a sibling common, unless macro and micro truly live completely under shared/map"
+    - (2026-09-30) "I feel like maybe now is the time to get the top level map in place"
+    - (2026-09-30) "shared can remain shared for client / server shared content, but it may abstract around external details like the map"
+    - (2026-09-30) "I think what we need to do is identify what *doesn't* belong in shared. That may be a smaller list."
+
+   Recorded in 22 and 50: map generation moved to a top-level `map/`, with
+   `map/macro/` (mapgen), `map/micro/` and `map/kernel/` (#105). `shared/` stays
+   the portable game core. `map/` builds on it, and `shared/` never imports
+   `map/`.
+
+   Still open: the name. *Assumption:* `kernel`, after domain-driven design's
+   "shared kernel": a small model two parts agree to share, owned by neither,
+   and changed only by agreement.
 2. **M2. When the proof gates generation.** Reachability is inferred (M6), so
    the macro proof is a link that has to hold, and it gates placement.
    Still open: what it must connect. *Assumption:* every layout region must

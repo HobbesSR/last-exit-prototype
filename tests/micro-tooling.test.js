@@ -4,8 +4,8 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { generateMicroRegion } from '../shared/map/micro/index.ts';
-import { microExample } from '../shared/map/micro/examples.ts';
+import { generateMicroRegion } from '../map/micro/index.ts';
+import { microExample } from '../map/micro/examples.ts';
 
 const cli = (...args) => spawnSync(process.execPath, ['tools/micro-region.mjs', ...args], { encoding: 'utf8', maxBuffer: 4e6 });
 test('CLI exports the same core artifact, validates files, and reports bounded seed batches', () => {

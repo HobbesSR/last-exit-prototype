@@ -49,6 +49,9 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use('/vendor/lucide', express.static(path.join(ROOT, 'node_modules/lucide/dist/umd')));
   app.use('/vendor/sat', express.static(path.join(ROOT, 'node_modules/sat')));
   app.use('/shared', serveSharedModules(path.join(ROOT, 'shared')));
+  // The micro labs load map generation's micro half and the kernel it builds on (docs 50).
+  app.use('/map/micro', serveSharedModules(path.join(ROOT, 'map/micro')));
+  app.use('/map/kernel', serveSharedModules(path.join(ROOT, 'map/kernel')));
   app.get('/dev-nav-peer.json', (_req, res) => res.json({ kind: 'game', workspace: WORKSPACE_ID }));
   app.get('/dev-nav.js', async (req, res) => {
     const host = req.hostname;

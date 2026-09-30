@@ -1,6 +1,6 @@
 # Last Exit Map Lab
 
-The macro-generation and 2D traversal prototype, in `mapgen/` of the game repository. The game at the repository root does not import it yet, and it reads no game files. [Original user notes](design_notes.txt) are the source of design intent. Implementation documentation describes current behavior and reversible defaults. The later assistant proposal has been [retired to the archive](docs/archive/retired-design-proposal/README.md).
+The macro-generation and 2D traversal prototype, in `map/macro/` of the game repository. The game at the repository root does not import it yet. It reads no game files, only the map kernel in `map/kernel/`. [Original user notes](design_notes.txt) are the source of design intent. Implementation documentation describes current behavior and reversible defaults. The later assistant proposal has been [retired to the archive](docs/archive/retired-design-proposal/README.md).
 
 Design documentation lives in the repository's numbered docs: [50](../docs/50-map-generation.md) (overview and ownership), [51](../docs/51-generation-chain.md) (the generation chain), [52](../docs/52-map-primitives-and-library.md) (the library model), [53](../docs/53-map-artifacts-and-tools.md) (artifacts and tools), and [17](../docs/17-open-questions.md) ("Map generation": questions and answers). This README covers running the current generators. They retire when the chain lands, and mapgen's former docs, archived in [docs/archive/pre-integration](docs/archive/pre-integration/README.md), describe them in depth.
 
@@ -155,12 +155,12 @@ max, mean, median and p95 for each numeric metric, plus failing seeds. Failures 
 
 `sweep` generates the pinned seed set (329 maps across both generators, several sizes and a builder-bound library) on worker threads and compares each map's per-layer content hashes with `tests/fixtures/layer-baseline.json`. It reports every drifted seed and which layer moved, and exits nonzero on any drift. `npm test` checks the baseline's small cases on every run. The full check takes about a minute and a half on 8 workers. `--out FILE [--count N]` captures a new baseline, and refuses when `src/` or `content/` has uncommitted changes. See [Map layers](docs/archive/pre-integration/DESIGN_DECISIONS.md#map-layers) for when a new baseline is allowed.
 
-An optional stdio MCP server exposes `map_generate`, `map_validate`, `library_validate`, and `map_batch`. Launch it with `node tools/mcp.mts` from this directory, or configure an MCP client with the path to `mapgen/tools/mcp.mts` in the checkout it should serve (the primary checkout tracks `main`):
+An optional stdio MCP server exposes `map_generate`, `map_validate`, `library_validate`, and `map_batch`. Launch it with `node tools/mcp.mts` from this directory, or configure an MCP client with the path to `map/macro/tools/mcp.mts` in the checkout it should serve (the primary checkout tracks `main`):
 
 ```json
 {
   "command": "node",
-  "args": ["C:/Users/Corey/Documents/Projects/astra_test/mapgen/tools/mcp.mts"]
+  "args": ["C:/Users/Corey/Documents/Projects/astra_test/map/macro/tools/mcp.mts"]
 }
 ```
 

@@ -1,15 +1,15 @@
-# Map generator (mapgen/)
+# Map generator (map/macro/, "mapgen")
 
 These rules add to the repository root `AGENTS.md`, which carries the session
 start rules, delegation policy and the Forgejo workflow. Run commands from this
 directory unless a step says otherwise.
 
 mapgen owns macro generation: the tile library, placement, regions, the
-reachability proof and region briefs. The game's `shared/map/micro/` owns what
-fills a region. Don't extend mapgen's own micro layer (`src/micro/`), which
-duplicates the game's, or its planned path (`src/plan/`). Both retire when the
-generation chain lands. Whatever macro and micro must share lives in the
-shared map space, which neither owns (root 50).
+reachability proof and region briefs. `map/micro/` owns what fills a region.
+Don't extend mapgen's own micro layer (`src/micro/`), which duplicates
+`map/micro/`, or its planned path (`src/plan/`). Both retire when the
+generation chain lands. Whatever macro and micro must share lives in
+`map/kernel/`, which neither owns (root 50).
 
 ## Before substantive work
 

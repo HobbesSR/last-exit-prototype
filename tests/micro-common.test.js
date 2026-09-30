@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { CELL_SCALE, MIN_PORTAL_LENGTH } from '../shared/map/common/scale.ts';
-import { boundaryRuns } from '../shared/map/common/run.ts';
-import { RUN_CASES, runCaseParts } from '../shared/map/common/run-cases.ts';
-import { buildInterfaces, microMetrics } from '../shared/map/micro/sdk.ts';
+import path from 'node:path';
+import { CELL_SCALE, MIN_PORTAL_LENGTH } from '../map/kernel/scale.ts';
+import { boundaryRuns } from '../map/kernel/run.ts';
+import { RUN_CASES, runCaseParts } from '../map/kernel/run-cases.ts';
+import { buildInterfaces, microMetrics } from '../map/micro/sdk.ts';
 
 test('the cell profile reads body scale from the shared map space', () => {
   const metrics = microMetrics({ cellSize: 40, bodyProfile: 'cell' });
@@ -52,11 +53,22 @@ test('the import scan sees every import form', () => {
 // contract.ts still reaches the engine through RegionResult until C1 (#84) splits it, so
 // no other file here may import it.
 test('the shared map space imports nothing outside itself', () => {
-  const files = readdirSync('shared/map/common');
+  const files = readdirSync('map/kernel');
   assert.ok(files.length > 0);
   for (const file of files) {
     if (file === 'contract.ts') continue;
     const allowed = path => /^\.\/[\w-]+\.ts$/.test(path) && files.includes(path.slice(2)) && path !== './contract.ts';
-    assert.deepEqual(importedModules(readFileSync(`shared/map/common/${file}`, 'utf8')).filter(path => !allowed(path)), [], file);
+    assert.deepEqual(importedModules(readFileSync(`map/kernel/${file}`, 'utf8')).filter(path => !allowed(path)), [], file);
+  }
+});
+
+// Map generation builds on the game core, never the reverse (docs 22): nothing in shared/
+// imports map/ until integration wires the two together.
+test('the game core imports nothing from map/', () => {
+  for (const file of readdirSync('shared', { recursive: true }).map(f => `shared/${f.split(path.sep).join('/')}`).filter(f => /\.(ts|js)$/.test(f))) {
+    const reached = importedModules(readFileSync(file, 'utf8'))
+      .map(spec => spec.startsWith('.') ? path.posix.normalize(path.posix.join(path.posix.dirname(file), spec)) : spec)
+      .filter(target => /^\/?map\//.test(target));
+    assert.deepEqual(reached, [], file);
   }
 });

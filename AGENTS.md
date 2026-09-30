@@ -53,12 +53,19 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
 
 ## Repository layout
 
-This one repository holds the whole project. The game is at the root; the map
-generator is in `mapgen/`, with its own `package.json` and tests, and a nested
-`AGENTS.md` that applies when working there. Map generation is documented in
-`docs/5x` together with 19 and 20; mapgen's former docs are archived. mapgen owns
-macro generation and the game's `shared/map/micro/` owns what fills a region
-(`docs/50`). The game does not import `mapgen/` yet. `CLAUDE.md` files only
+This one repository holds the whole project. The game is at the root, and
+`shared/` is its portable core, which the server and the browser both run. Map
+generation is in `map/`:
+- `map/macro/` is the map generator ("mapgen"), with its own `package.json`
+  and tests, and a nested `AGENTS.md` that applies when working there. It owns
+  macro generation.
+- `map/micro/` owns what fills a region.
+- `map/kernel/` holds what both must agree on. It imports nothing outside
+  itself.
+
+`map/` builds on the core, and `shared/` never imports `map/`; a test holds
+both rules. Map generation is documented in `docs/5x` together with 19 and 20
+(`docs/50`), and mapgen's former docs are archived. `CLAUDE.md` files only
 import `AGENTS.md`; edit `AGENTS.md`, not them.
 
 ## Forgejo workflow

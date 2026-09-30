@@ -6,7 +6,7 @@ import { stripTypeScriptTypes } from 'node:module';
 // which is the equivalent guarantee: Node strips these modules at load time rather than parsing
 // them, so a non-erasable construct is what would actually break the server or the browser.
 // Type correctness is a separate, stronger pass — `npm run typecheck`.
-for (const root of ['server', 'shared', 'public', 'tests']) {
+for (const root of ['server', 'shared', 'map/micro', 'map/kernel', 'public', 'tests']) {
   for (const file of readdirSync(root, { recursive: true })) {
     const target = `${root}/${file}`;
     if (/\.(js|mjs)$/.test(file)) {
