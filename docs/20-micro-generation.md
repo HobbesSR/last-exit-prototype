@@ -404,10 +404,12 @@ dispatch and negotiation at each level, and a `mapgen/` adapter.
 
 `mapgen/` is the input for that adapter. [51](51-generation-chain.md) now
 specifies it:
-- **Briefs** (51 stage 5) are expressed in this directory's contract,
-  `types.ts`, which evolves from `RegionSpec`: region type ids instead of the
-  closed builder list, whole-run passable obligations, features, and zone
-  context ([17](17-open-questions.md) M3, M4).
+- **Briefs** (51 stage 5) are expressed in the macro/micro contract, which moves to the shared map
+  space and evolves from `RegionSpec`. It gains region type ids instead of the
+  closed builder list, features, and zone context. Its boundary items become
+  **portals**: derived stretches that must stay passable, used for
+  validation, never laid as geometry. Today's ports make `resolvePorts` wall
+  the run except for a centred gap ([17](17-open-questions.md) M3, M4).
 - **mapgen's flat cell indices** are translated into this SDK's global integer
   cell coordinates, with an explicit `cellSize`.
 - **Whole-map composition** extends `composeMicroRegions` (51 C2).

@@ -55,7 +55,9 @@ with a don't-care value. This is Corey's model (verbatim in 17, 2026-09-27).
 - **Passability** may be stated on any segment. Corey, 2026-09-27: "It's the
   tile designer's job to mark internal as passable".
   - A `passable` prescription becomes a **guarantee** once placement is solved
-    (51 stage 2), except on a segment facing the map's outside.
+    (51 stage 2), except on a segment facing the map's outside. The
+    guaranteed stretches of each boundary are **portals**, which are derived,
+    never authored (51 stage 3).
   - Unstated is kept distinct from a written `any`, so later steps can tell
     them apart (17, "Map generation": segment prescriptions).
   - Neither implies anything: "just because something isn't marked passable

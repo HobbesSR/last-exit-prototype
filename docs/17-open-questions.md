@@ -143,32 +143,29 @@ number ("M3: …") and the answer is recorded verbatim here.
    Still open: what it must connect. *Assumption:* every layout region must
    be in the spawn region's component. That is the pessimistic reading of
    "everything must be reachable by a hunter", and it means designs prescribe
-   passable runs wherever regions meet. Your September 27 option, "we may make
+   passable segments wherever regions meet, so that portals derive there. Your September 27 option, "we may make
    perimeter segments default to passable with explicit nonpassable
    indicators", would ease that authoring burden. It is not adopted, and an
    unstated segment stays no guarantee.
-3. **M3. What a passable run obliges of geometry.** Still open. You asked
-   which terms mean what, and at which scope:
-   - **Passable run** (macro scope, 51): a stretch of boundary segments
-     between two layout regions, every one guaranteed passable.
-   - **Port** (micro scope, `shared/map/micro/types.ts`): today's contract
-     item for one run on a region's edge, carrying a floor (`required`) and a
-     ceiling (`allowed`).
-   - **Crossing, doorway, squeeze** (micro scope, `access.ts`): the SDK
-     resolves each port to one crossing, a gap centred on the run. For a
-     hunter it is a doorway 2 cells wide; for contestants only, a squeeze 1.5
-     cells wide. Only the crossing is promised open.
-   - **Jambs, or wall stubs** (micro scope, `index.ts` `resolvePorts`): before
-     any builder runs, the SDK places wall pieces along the rest of the run, on
-     either side of the crossing.
+3. **M3. What a portal obliges of geometry.** Today's SDK ports are
+   supplied by the caller, and `resolvePorts` walls each one except for a
+   centred gap (a doorway of 2 cells, or a squeeze of 1.5) before any builder
+   runs.
+    - (2026-09-29) "Ahh,I'm not sure if we've got like first class things here. resolvePorts, is that... like trying to identify contiguous passable segments? I guess Port is a fair term for it. Maybe we can make it Portal or something. Anyway, they should be derived things and used for checking and validation. At the macro level, passable sections that become derived portals would be authored. In micro, the SDK would provide utilities to help arrive at such reachability conclusions, but it doesn't have the benefit of the rigid grid system, as geometry can be placed arbitrarily."
 
-   So a port stated by macro makes micro code, not the region's own builder,
-   wall off most of the boundary. *Assumption:* a passable run obliges only
-   that the whole run stays passable, with nothing placed on it by macro or by
-   the SDK on macro's behalf. What a builder places inside its own cells is
-   its choice, provided the run stays passable. Jambs and centred crossings
-   stay available to a strategy for its own children, but as its own choice
-   (M4).
+   Recorded in 51:
+   - A **portal** is derived, never authored: the guaranteed-passable stretch
+     of a boundary. Authors write passable prescriptions.
+   - Portals state what must stay passable, and are what validation checks.
+     They place no geometry, so no jambs.
+   - The SDK supplies utilities for reaching reachability conclusions over
+     free-form geometry.
+
+   Still open: the exact test for "a portal stays passable". *Assumption:*
+   each side keeps the whole portal crossable at hunter size, checked on its
+   own side. Two neighbouring regions then compose without coordinating. A
+   weaker "a hunter crosses somewhere along it" could fail when each side
+   leaves a different stretch clear.
 4. **M4. Ceilings and sealed runs.**
     - (2026-09-29) "M4 we'll add that in later if we need it, let's keep in simple. Treat them like regions in general, with only passability obligations."
 
@@ -180,7 +177,7 @@ number ("M3: …") and the answer is recorded verbatim here.
    Recorded: 52 "Units and scale" is the one statement in the docs, and the
    shared map space holds the one source in code (51 C0). Still open: which
    values. *Assumption:* the SDK's `cell` profile (radii 0.625 and 0.875
-   cells, doorway 2, squeeze 1.5). The shortest passable run stays 2.
+   cells, doorway 2, squeeze 1.5). The shortest portal stays 2.
 6. **M6. How whole-map reachability is established.**
     - (2026-09-29) "M6, M7 Whole map reachability is supposed to be a chain of inference through guarantees at each layer."
 

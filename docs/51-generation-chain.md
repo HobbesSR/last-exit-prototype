@@ -72,7 +72,7 @@ generation":
 8. **Reachability is a chain of inference** through guarantees at each
    level (Corey, 2026-09-29):
    - Macro proves layout regions connected by guarantees.
-   - Each region's strategy guarantees its own passable runs are mutually
+   - Each region's strategy guarantees its own portals are mutually
      reachable, and its children's the same way, all the way down.
    - Each level's validator checks its own guarantee. Nothing floods the
      whole map to establish reachability.
@@ -91,7 +91,7 @@ Each term has one meaning. 52 defines the library's terms in full.
 | **adjacency prescription** | The class a design requires of the cell across one of its perimeter segments | Library |
 | **layout region** | A maximal 4-connected set of cells with one resolved class | Regions |
 | **boundary** | A maximal straight run of segments between two layout regions; the same definition of a run as the SDK's interface runs between a region's children | Regions |
-| **passable run** | A maximal contiguous stretch of guaranteed-passable segments along one boundary | Regions |
+| **portal** | A maximal contiguous stretch of guaranteed-passable segments along one boundary. **Derived, never authored.** At macro level it comes from the designs' passable prescriptions; inside a region, from the strategy's own decisions about its children. It says what must stay passable, and is what validation checks, but places no geometry (Corey, 2026-09-29, M3) | Regions, Briefs, Build |
 | **brief** | Everything one region's strategy is handed, expressed in the macro/micro contract (`shared/map/micro/types.ts`) | Briefs |
 | **region result** | What one region's strategy returns, in the contract's result type | Build |
 | **built map** | Every region result composed into one map of the game's geometry | Composition |
@@ -160,9 +160,10 @@ saved map is therefore a Layout, optionally with its region results (see
   nothing could honour one, and strategies aren't asked to (Corey, 2026-09-27).
   A suggestion channel for builders is deferred (16).
 - **Validity:** every declared class is registered and names a region type,
-  and every prescription is well formed. A passable run that lies wholly inside
-  a tile, without reaching the tile's edge, must already be at least a hunter
-  wide, because no neighbour can lengthen it. This is the #73 design check.
+  and every prescription is well formed. A stretch of passable prescriptions
+  that lies wholly inside a tile, without reaching the tile's edge, must
+  already be at least a hunter wide, because no neighbour can lengthen the
+  portal it will become. This is the #73 design check.
 - **A new library, authored fresh** against the region type catalogue (track
   B). Today's library stays with the old paths and retires with them.
 
@@ -226,12 +227,13 @@ This is the knowledge layer: what the solved placement means.
     macro's runs and the SDK's definition must agree, and a test pins that.
   - Runs facing the map's outside aren't boundaries, since they never carry a
     guarantee.
-- **Passable runs:** the guaranteed stretches of each boundary.
-- **Validity:** every passable run is at least `ceil(2 × hunterRadius)`
+- **Portals** (derived): the guaranteed stretches of each boundary. An author
+  writes passable prescriptions; nobody writes a portal.
+- **Validity:** every portal is at least `ceil(2 × hunterRadius)`
   segments long (#73), with the hunter's size from one body scale (17 M5). A
   run may cross a tile seam, since boundaries ignore tiles.
 - **Region graph:** each region is a node. Two regions are joined when a
-  boundary between them has a passable run.
+  boundary between them has a portal.
 
 ### 4. Proof: LayoutRegions → **ReachabilityProof** (view)
 
@@ -248,7 +250,8 @@ This is the knowledge layer: what the solved placement means.
   8), so it gates placement. The assumption, 17 M2, is that every layout
   region must be in the spawn region's component. That is the pessimistic
   reading of "everything must be reachable by a hunter", and it means the new
-  library's designs must prescribe passable runs wherever regions meet
+  library's designs must prescribe passable segments wherever regions meet, so
+  that portals derive there
   (51 track B).
 
 ### 5. Briefs: Layout, LayoutRegions, zones → **RegionBrief[]** (view)
@@ -267,12 +270,17 @@ contract moves from `shared/map/micro/types.ts` into the shared map space
   first case: "The contestant entry areas should be treated like a region that
   gets micro generated" (17, September 22).
 - **obligations**, which are passability obligations only (Corey,
-  2026-09-29, M4). There is one per passable run on the region's boundary,
-  plus any guaranteed segment inside it (17 M8):
-  - every guaranteed segment stays passable (what that asks of geometry is
-    17 M3)
-  - all its passable runs stay mutually reachable at hunter size, which is
-    19's September 24 contract
+  2026-09-29, M4). The brief lists the region's portals and any guaranteed
+  segment inside it (17 M8), as things to keep true and to be checked
+  against, not as geometry to lay:
+  - every portal stays passable. The exact geometric test is 17 M3's open
+    part.
+  - all its portals stay mutually reachable at hunter size, which is 19's
+    September 24 contract
+
+  Today's `RegionPort` works the other way. The caller supplies ports, and the
+  SDK's `resolvePorts` walls each one except for a centred gap before any
+  builder runs. A brief's portals never do that (C1).
 
   There are no ceilings and no sealed runs, from macro or between a region's
   own children (16).
@@ -297,12 +305,14 @@ decomposes splits its own brief into children with the SDK's decomposition
   regions in general. They get passability obligations only, with no ceilings
   and no seals (Corey, 2026-09-29).
 - **Validation:** the SDK's access and boundary validators check each result
-  against its brief's obligations, after generation and never by trusting the
-  builder (19). This replaces mapgen's `conform`. It is micro's link in the
+  against its brief's portals, after generation and never by trusting the
+  builder (19). Geometry inside a region is free-form, with no grid to lean on,
+  so the SDK supplies utilities for reaching these conclusions from placed
+  shapes: swept-disc crossings and routes (Corey, 2026-09-29). This replaces mapgen's `conform`. It is micro's link in the
   chain of inference (principle 8), so it also checks, inside the region:
-  - every standing component is reachable from its passable runs, except a
+  - every standing component is reachable from its portals, except a
     **sealed pocket** that holds no feature and no loot
-  - every feature site is reachable from its passable runs
+  - every feature site is reachable from its portals
 
 ### 7. Composition: Layout, LayoutRegions, region results → **BuiltMap** (view), in the game
 
@@ -464,10 +474,11 @@ live game until the switch-over.
 - C0. **The shared map space** (17 M1, M5): create it, and move into it the
   contract types, the single source of body scale and passage widths, and
   the definition of a run. mapgen and the SDK both read body scale from it.
-- C1. **The contract:** region type ids instead of a closed builder list,
-  passability-only obligations (17 M3, M4), and features and zone context in
-  the brief. The validators also check standing components and feature sites
-  inside each region (stage 6).
+- C1. **The contract:** region type ids instead of a closed builder list;
+  portals as derived check targets, which place no geometry (`resolvePorts`
+  doesn't wall a brief's portals; 17 M3, M4); and features and zone context in
+  the brief. The validators check each portal stays passable, plus the
+  standing components and feature sites inside each region (stage 6).
 - C2. **Whole-map composition:** generalize `composeMicroRegions` beyond 16
   regions and the per-region bounds, as macro-sized regions need (17 M7).
 
