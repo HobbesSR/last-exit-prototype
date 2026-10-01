@@ -1,7 +1,8 @@
 /**
  * Placement (51 stage 1): seed, params and library to a Layout. Set piece classes place
  * their quotas by today's rules, lifted out of `placeLayout`. WFC fills the remaining
- * slots over adjacency compatibility, so no tile is placed that breaks a prescription.
+ * slots over adjacency compatibility, so no tile is placed that breaks a prescription,
+ * and under the open-face rule, so no layout fails the proof's gate or the portal rule.
  * A sample whose set pieces don't fit, or whose fill has no solution, is retried, each
  * attempt on its own stream.
  */
@@ -10,6 +11,7 @@ import type { MaskCell, MapZone } from "../types.ts";
 import { solveWfc } from "../wfc.ts";
 import type { TileOption, WfcCompatibility, WfcGrid } from "../wfc.ts";
 import { orientedDesigns } from "./declared-grid.ts";
+import { openFaceRule } from "./open-face.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
 import { CHAIN_TILE_SIZE } from "./library.ts";
 import type { ChainLibrary, ChainSetPiece, ChainSetPieceClass, ChainTileDesign, PlacementRule } from "./library.ts";
@@ -169,7 +171,7 @@ type Failure = `set piece ${string}` | "wfc";
 function sample(
   seed: string, params: ChainParams, library: ChainLibrary, fingerprint: string,
   mask: MaskCell[], zones: Map<string, MapZone>, fill: (zone: MapZone) => ChainTileDesign[],
-  random: Stream,
+  random: Stream, openFace: boolean, refused: (reason: string) => void,
 ): Layout | Failure {
   const columns = ZONE_COLUMNS * params.zoneWidth, rows = ZONE_ROWS * params.zoneHeight;
   const designs = new Map(library.tiles.map((tile) => [tile.id, tile]));
@@ -231,7 +233,8 @@ function sample(
     };
   });
   adjacencyLinks(grid);
-  const solved = solveWfc(grid, columns, rows, adjacencyCompatibility(library), () => random.next());
+  const solved = solveWfc(grid, columns, rows, adjacencyCompatibility(library), () => random.next(),
+    openFace ? { accept: openFaceRule(library, grid, columns, rows, refused) } : {});
   if (!solved) return "wfc";
 
   const slots: PlacedSlot[] = mask
@@ -240,7 +243,11 @@ function sample(
   return { seed, params: { ...params }, library: fingerprint, slots, setPieces: instances };
 }
 
-export const placement: MacroStages["placement"] = (seed, params, library) => {
+/**
+ * Placement, with the open-face rule on or off. Only tests switch it off, to show that
+ * layouts it would refuse do occur (the PR #110 method).
+ */
+export const placer = ({ openFace }: { openFace: boolean }): MacroStages["placement"] => (seed, params, library) => {
   const mode = params.mode ?? "game";
   if (mode === "game" && (params.zoneWidth !== GAME_ZONE.width || params.zoneHeight !== GAME_ZONE.height))
     throw new Error(`game mode requires ${GAME_ZONE.width} x ${GAME_ZONE.height} tile zones; choose playground mode for others`);
@@ -268,12 +275,16 @@ export const placement: MacroStages["placement"] = (seed, params, library) => {
 
   const fingerprint = libraryFingerprint(library);
   const failures = new Map<Failure, number>();
+  let refusal: string | undefined;
   for (let attempt = 0; attempt < PLACEMENT_ATTEMPTS; attempt++) {
     const result = sample(seed, params, library, fingerprint, mask, zones, (zone) => fillByZone.get(zone.id)!,
-      stream(seed, "placement", attempt));
+      stream(seed, "placement", attempt), openFace, (reason) => { refusal = reason; });
     if (typeof result !== "string") return result;
     failures.set(result, (failures.get(result) ?? 0) + 1);
   }
   const detail = [...failures].map(([failure, count]) => `${failure} (${count}/${PLACEMENT_ATTEMPTS})`).join(", ");
-  throw new Error(`placement found no valid layout for seed ${seed}: ${detail}`);
+  const last = refusal === undefined ? "" : `; the open-face rule last refused: ${refusal}`;
+  throw new Error(`placement found no valid layout for seed ${seed}: ${detail}${last}`);
 };
+
+export const placement = placer({ openFace: true });

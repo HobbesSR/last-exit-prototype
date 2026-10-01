@@ -262,6 +262,10 @@ number ("M3: …") and the answer is recorded verbatim here.
     required passable seams could be pinned before WFC, so the fill adds loops
     but never cuts it. *Assumption:* the open-face rule alone first (#59), with
     backtracking measured, and a skeleton only if that's too costly.
+    Measured (#113, 51 step 4): with backjumping and domain-aware open faces,
+    the rule alone placed 50 of 50 game seeds of a fixture whose layouts
+    otherwise split into 10 components each. Placement took 441 ms median, and
+    7.9 s at worst. No skeleton yet.
 12. **M12. Any versus don't care.** Is "DNC" a mode separate from `any`, one
     that accepts anything and adapts to nothing? *Assumption:* one don't-care
     value per dimension, with today's adopting behaviour, until a case needs

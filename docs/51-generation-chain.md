@@ -209,8 +209,11 @@ saved map is therefore a Layout, optionally with its region results (see
   per-attempt stream.
 - **Validity:** every adjacency prescription is met, and no `any` cell is asked
   for two different classes.
-- **Later:** the open-face rule (#59) runs here as the incremental form of the
-  reachability proof, over guarantees as slots are placed.
+- **Reachability:** the open-face rule is the proof's gate and the portal
+  rule in incremental form, over guarantees as slots are placed (step 4,
+  #113). A placement is refused when it seals a component that isn't the whole
+  map, or when it settles a portal shorter than a hunter. So placement never
+  returns a layout that `proofViolations` or `portalViolations` would refuse.
 - **View, `DeclaredGrid`:** the Layout plus the library gives each cell's
   declared class, and each segment's prescriptions from the design on each
   side, kept separate, not merged.
@@ -286,8 +289,8 @@ This is the knowledge layer: what the solved placement means.
   reading of "everything must be reachable by a hunter", and it means the new
   library's designs must prescribe passable segments wherever regions meet, so
   that portals derive there
-  (51 track B). Until the open-face rule (#59) brings the gate into the
-  solve, `proofViolations` reports it on the view (step 6).
+  (51 track B). The open-face rule enforces it during the solve (stage 1), and
+  `proofViolations` states it on the view (step 6).
 
 ### 5. Briefs: Layout, LayoutRegions, zones → **RegionBrief[]** (view)
 
@@ -545,6 +548,43 @@ live game until the switch-over.
    - An adjacency prescription facing the map's outside has no cell to
      constrain, so it is met, as a passability prescription there is.
    - Each attempt draws from its own `placement` stream (`chain/random.ts`).
+   - **The open-face rule (#113, 17 M2 and M11):** `chain/open-face.ts`,
+     checked by `solveWfc` after each propagation. It judges placed slots
+     pessimistically and unplaced ones optimistically, and reads only what
+     the newly placed slots touch.
+     - A component of placed cells joins as the proof joins regions: the
+       same resolved class, or a guaranteed segment. It is refused when no
+       face is left open, unless it is the whole map.
+     - A face toward an unplaced slot is open only while some option left in
+       that slot's domain could join there: the same class, an `any` cell
+       that could resolve to it, or a passable statement. Domains only
+       narrow, so a hut whose every way out is spoken for is refused when its
+       last face closes, not when the last slot beside it is placed.
+     - An `any` cell settles when a placed neighbour asks it for a class, or
+       when every neighbour is placed.
+     - A portal is refused once its cells, and the cells past each end, are
+       settled, if it is shorter than `MIN_PORTAL_LENGTH`.
+     - A refusal names the placed slots that settle it. The solver backjumps
+       to the latest of them (conflict-directed backjumping); without that,
+       chronological backtracking hit the iteration cap on every attempt.
+       A choice whose options all fail passes their conflicts up, with its
+       placed neighbours, whose propagation shaped its domain. Propagation
+       through unplaced slots isn't traced, so a jump can miss a solution,
+       as the iteration cap already can. It never admits a refused layout.
+     - Without the rule's `accept`, the solver backtracks as before, and the
+       old path's sweep shows no drift (329 maps).
+     - **Teeth:** the fixture's `hut-annex` is a hut column with no portal
+       that asks for hut across one edge. It is reachable only where it
+       merges with a hut that has one. Over 50 game seeds, every layout
+       placed with the rule switched off splits into 10 components on
+       average. With the rule on, all 50 prove connected with no short
+       portal. That cost 441 ms median against 262 ms, and 7.9 s at worst,
+       because 3 attempts in 50 hit the iteration cap and were retried.
+       Successful solves took a median of 878 iterations, with a p90 of 1,227.
+       So M11's skeleton isn't needed yet.
+     - A design that can't connect where it is eligible still exhausts the
+       solve. The annex eligible in tier 5, where no hut with a portal can
+       face it, fails every attempt. That is a content defect.
 5. Resolution and Regions, including macro's boundary runs and the run check
    (#73's logic). **Done (#88):** `chain/resolution.ts` and `chain/regions.ts`.
    - Resolution reads the `DeclaredGrid`. It shares one walk over the
@@ -561,10 +601,9 @@ live game until the switch-over.
      `hut@11,6~open@6,6~v:11,11`.
    - `portalViolations` refuses a portal shorter than `MIN_PORTAL_LENGTH`,
      naming the two regions and the cells on each side. It is a check on the
-     view. Placement doesn't yet reject on it: placement rules prune during the
-     solve rather than check the whole grid afterwards, so the portal rule
-     joins placement with the proof's gate (step 6) and the open-face rule
-     (#59). The fixture library's layouts already pass it.
+     view. Placement enforces it during the solve through the open-face rule
+     (step 4), since placement rules prune as tiles are placed rather than
+     check the whole grid afterwards.
 6. Proof. **Done (#89):** `chain/proof.ts`.
    - `proof` is a union-find over the region graph. Components come in order
      of their first region, and each lists its regions in their own order.
@@ -574,16 +613,15 @@ live game until the switch-over.
      component stands in for it. Every region in the spawn region's component
      is the same as one component, so the check never has to choose among
      several spawn regions.
-   - Placement doesn't reject on it yet, for the reason it doesn't reject on
-     `portalViolations` (step 5). The gate enters placement as the open-face
-     rule (#59, 17 M11), with the portal rule, over guarantees as slots are
-     placed.
+   - Placement enforces it during the solve through the open-face rule
+     (step 4), together with the portal rule.
    - The fixture library was tweaked just enough for the mechanics to show,
      ahead of the new library (B4). Its layouts had split into 87 to 118
      components over 20 seeds, since `hut-row`'s passable pair lay inside its
      own region, and the departure and charger pads stated none. With those
      moved and added, 200 seeds out of 200 prove connected, with no short
-     portal.
+     portal. The open-face rule then added `hut-annex`, so that it has
+     something to refuse (step 4).
 7. Briefs, and the translation into the contract (C1).
 8. The report: features per instance, and diagnostics that locate defects
    (C2).

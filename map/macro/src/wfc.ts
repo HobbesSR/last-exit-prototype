@@ -314,10 +314,45 @@ export function tileCompatibility(libraryTiles: TileDesign[]): WfcCompatibility 
     : matchDiagonal(a, relation as "TL" | "TR" | "BL" | "BR", b, libraryTiles);
 }
 
-export function solveWfc(grid: WfcGrid, columns: number, rows: number, compatible: WfcCompatibility, random: () => number, state = { iterations: 0, maxIterations: 10000 }, startQueue?: number): WfcGrid | null {
+/**
+ * A rule checked during the solve, after each propagation. `placed` lists the cells
+ * collapsed since the last check on this branch; the first check lists every collapsed
+ * cell. It returns true, or refuses the branch by naming the collapsed cells whose
+ * options alone make it fail, whatever the rest of the grid holds.
+ */
+export type WfcAccept = (grid: WfcGrid, placed: number[]) => true | number[];
+
+export interface WfcOptions {
+  /** Counts calls across the whole search; the solve gives up past `maxIterations`. */
+  state?: { iterations: number; maxIterations: number };
+  accept?: WfcAccept;
+}
+
+export function solveWfc(grid: WfcGrid, columns: number, rows: number, compatible: WfcCompatibility, random: () => number, options: WfcOptions = {}): WfcGrid | null {
+  const result = search(grid, columns, rows, compatible, random, options.state ?? { iterations: 0, maxIterations: 10000 }, options.accept);
+  return Array.isArray(result) ? result : null;
+}
+
+/**
+ * Why a subtree failed, when `accept` was involved: the depths whose choices collapsed
+ * the cells it named. The search backjumps to the deepest of them, since every choice
+ * below leaves those cells as they are (conflict-directed backjumping). `null` is a
+ * failure with no known cause, such as a contradiction, and backtracks one choice.
+ *
+ * A choice whose every option fails passes on its options' conflicts, and the depths of
+ * its cell's collapsed neighbours, whose propagation shaped its domain. Propagation
+ * through uncollapsed cells isn't traced, so a jump may skip a choice that mattered:
+ * the search can miss a solution, as its iteration cap already can, but never returns
+ * a grid `accept` refuses.
+ */
+type Conflict = { depths: Set<number> } | null;
+
+function search(grid: WfcGrid, columns: number, rows: number, compatible: WfcCompatibility, random: () => number, state: { iterations: number; maxIterations: number }, accept?: WfcAccept, startQueue?: number, collapsed?: Int32Array, depth = 0): WfcGrid | Conflict {
   if (state.iterations++ > state.maxIterations) return null;
 
-  // Assign IDs and precalculate
+  // Assign IDs and precalculate. Choices only narrow domains, so below the first call
+  // every option already has its id.
+  if (depth === 0) {
     const allOpts = new Set<TileOption>();
     for (let i = 0; i < grid.length; i++) {
       const cell = grid[i]!;
@@ -361,8 +396,22 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, compatibl
         }
       }
     }
+  }
 
     if (!propagate(grid, columns, rows, startQueue)) return null;
+
+  // Each collapsed cell is labelled with the depth that collapsed it, plus one; the
+  // parent's labels tell which ones this branch placed.
+  const now = new Int32Array(grid.length);
+  const placed: number[] = [];
+  for (let i = 0; i < grid.length; i++) if (grid[i]!.domain.length === 1) {
+    now[i] = collapsed?.[i] || depth + 1;
+    if (!collapsed?.[i]) placed.push(i);
+  }
+  if (accept && placed.length) {
+    const refused = accept(grid, placed);
+    if (refused !== true) return { depths: new Set(refused.map((i) => now[i]! - 1)) };
+  }
 
   let minEntropy = Infinity;
   let bestCellIndex = -1;
@@ -385,6 +434,8 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, compatibl
     score: (opt.difficulty + 12) * Math.pow(random(), 1 / (opt.weight || 1))
   })).sort((a, b) => b.score - a.score).map(x => x.opt);
 
+  const depths = new Set<number>();
+  let unknown = false;
   for (const opt of options) {
     const clonedGrid: WfcGrid = grid.map(c => ({
       x: c.x, y: c.y,
@@ -393,9 +444,16 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, compatibl
     }));
 
     
-    const result = solveWfc(clonedGrid, columns, rows, compatible, random, state, bestCellIndex);
-    if (result !== null) return result;
+    const result = search(clonedGrid, columns, rows, compatible, random, state, accept, bestCellIndex, now, depth + 1);
+    if (Array.isArray(result)) return result;
+    if (result === null) { unknown = true; continue; }
+    // A conflict fixed before this choice fails every other option here too.
+    if (!result.depths.has(depth + 1)) return result;
+    for (const d of result.depths) if (d !== depth + 1) depths.add(d);
   }
 
-  return null;
+  if (unknown || !accept) return null;
+  for (const { cell: n } of cell.links) if (now[n]) depths.add(now[n]! - 1);
+  if (!depths.size) depths.add(depth);
+  return { depths };
 }

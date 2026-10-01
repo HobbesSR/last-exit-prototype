@@ -50,6 +50,23 @@
       "eligibleTiers": [2, 3, 4]
     },
     {
+      "id": "hut-annex",
+      "defaultCellClass": "open",
+      "cells": [".....h", ".....h", ".....h", ".....h", ".....h", ".....h"],
+      "legend": { "h": "hut" },
+      "segments": {
+        "v:6,0": { "adjacency": "hut" },
+        "v:6,1": { "adjacency": "hut" },
+        "v:6,2": { "adjacency": "hut" },
+        "v:6,3": { "adjacency": "hut" },
+        "v:6,4": { "adjacency": "hut" },
+        "v:6,5": { "adjacency": "hut" }
+      },
+      "orientations": [0, 90, 180, 270],
+      "eligibleTiers": [2, 3, 4],
+      "weight": 0.25
+    },
+    {
       "id": "yard-edge",
       "defaultCellClass": "open",
       "segments": {
