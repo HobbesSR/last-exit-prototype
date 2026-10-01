@@ -108,7 +108,7 @@ So the test is:
 | Body scale | the `cell` profile: diameters 1.25 and 1.75, door 2, squeeze 1.5; `live`: 12 and 23 world units | radii 0.55 and 0.90 cells, until C0 | must agree | One source of truth (M5): stated once in 52, "Units and scale", and held once in code in `map/kernel/scale.ts`. mapgen and the SDK both read from it (51 C0). |
 | Development tools | micro lab, decomposition lab, generation demo | the Map Lab, CLI, MCP | tailored per level | Keep both, under the shared navigation bar (20). |
 | Questions and backlog | 17, 41 | `QUESTIONS.md`, `NEXT_TASKS.md` | same level | 17 and 41 (folded 2026-09-29). Work in progress lives on Forgejo (34). |
-| Artifacts | `micro-1`, `decomposition-1`, `realized-decomposition-1` | wire version 4, JSON and BSON (53) | tailored per level | The macro layout keeps mapgen's wire form. How built regions are stored is decided at 51 step 9. |
+| Artifacts | `micro-1`, `region-1` (a brief's result, 51 stage 6), `decomposition-1`, `realized-decomposition-1` | wire version 4, JSON and BSON (53) | tailored per level | The macro layout keeps mapgen's wire form. How built regions are stored is decided at 51 step 9. |
 
 ## Where the code is today
 
@@ -124,8 +124,6 @@ So the test is:
 - **Imports:**
   - Macro and micro don't import each other. Both import the kernel (M1).
   - The kernel imports nothing outside itself, and a test holds it to that.
-    `contract.ts` is the exception until C1 splits its result type from the
-    brief.
   - `map/` builds on the game's portable core in `shared/` (geometry, element
     vocabulary, and micro's live-game adapters). `shared/` never imports
     `map/`, and a test holds that too.

@@ -1,11 +1,11 @@
 import { generateMicroRegion } from './index.ts';
 import { createRegionMask, elementShapes, travelClear } from './geometry.ts';
-import type { RegionResult, RegionSpec } from './types.ts';
+import type { MicroResult, RegionSpec } from './types.ts';
 import { microMetrics } from './metrics.ts';
 
 export interface MicroLayout {
   version: 'micro-layout-1';
-  regions: RegionResult[];
+  regions: MicroResult[];
   connections: Array<{ a: string; b: string; portA: string; portB: string }>;
 }
 

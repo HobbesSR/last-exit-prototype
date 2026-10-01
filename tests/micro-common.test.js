@@ -50,14 +50,11 @@ test('the import scan sees every import form', () => {
 });
 
 // The space imports only itself, so a consumer at either level pulls in nothing else.
-// contract.ts still reaches the engine through RegionResult until C1 (#84) splits it, so
-// no other file here may import it.
 test('the shared map space imports nothing outside itself', () => {
   const files = readdirSync('map/kernel');
-  assert.ok(files.length > 0);
+  assert.ok(files.includes('contract.ts'));
   for (const file of files) {
-    if (file === 'contract.ts') continue;
-    const allowed = path => /^\.\/[\w-]+\.ts$/.test(path) && files.includes(path.slice(2)) && path !== './contract.ts';
+    const allowed = path => /^\.\/[\w-]+\.ts$/.test(path) && files.includes(path.slice(2));
     assert.deepEqual(importedModules(readFileSync(`map/kernel/${file}`, 'utf8')).filter(path => !allowed(path)), [], file);
   }
 });

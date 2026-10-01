@@ -6,7 +6,7 @@ import { spreadPoints } from '../placement.ts';
 import { validateMicroRegion } from '../index.ts';
 import { validateDecompositionPlan } from './validate.ts';
 import { EXAMPLE_GENERATORS } from './example.ts';
-import type { BuilderId, RegionPort, RegionResult, RegionRoute } from '../types.ts';
+import type { BuilderId, RegionPort, MicroResult, RegionRoute } from '../types.ts';
 import type { Vec2 } from '../../../shared/types.ts';
 import type { Dispatcher } from '../execute.ts';
 import type { PortalPolicy } from './negotiate.ts';
@@ -19,7 +19,7 @@ export interface RealizedDecomposition {
   /** The parent's external obligations; absent in artifacts that predate them. */
   external?: RegionPort[];
   assignments: Array<{ pieceId: string; generator: string; builder: BuilderId; role: string }>;
-  regions: RegionResult[];
+  regions: MicroResult[];
   portals: Array<{ a: string; b: string; portA: string; portB: string; centre: Vec2; width: number }>;
   anchors: Array<{ pieceId: string; point: Vec2 }>;
   routes: Array<RegionRoute & { from: string; to: string }>;
@@ -119,7 +119,7 @@ export function validateRealization(result: RealizedDecomposition): string[] {
     const boundary = validateBoundaryComposition(parent, result.regions.map(region => ({ ...region.spec, blockers: region.elements.flatMap(e => elementShapes(e)) })));
     errors.push(...boundary.errors.map(error => `Boundary: ${error}`));
     const inherited = inheritBoundaryPorts(parent, result.regions.map(r => r.spec));
-    const internal = (region: RegionResult) => region.ports.filter(p => !inherited[region.spec.id]!.some(q => q.id === p.id));
+    const internal = (region: MicroResult) => region.ports.filter(p => !inherited[region.spec.id]!.some(q => q.id === p.id));
     const openPorts = result.regions.flatMap(r => internal(r).filter(p => p.required === 'hunter').map(p => ({ region: r.spec.id, port: p }))), matched = new Set<string>();
     for (const portal of result.portals) {
       const a = openPorts.find(p => p.region === portal.a && p.port.id === portal.portA), b = openPorts.find(p => p.region === portal.b && p.port.id === portal.portB);

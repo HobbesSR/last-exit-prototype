@@ -54,6 +54,52 @@ once, in 52, "Units and scale". This is not a conversion of `map/macro/`'s abstr
 made with `cell` must not silently change the live game's bodies, clearance,
 capacity, or spawn rules.
 
+### Briefs
+
+`buildRegion(brief)` in `region-types.ts` takes a `RegionBrief`, the macro/micro
+contract in `map/kernel/contract.ts` ([51](51-generation-chain.md) stage 5). It
+checks the brief's own shape, then dispatches on its region type to a strategy
+in the `REGION_TYPES` registry. A brief carries:
+- the region type and its class rule's parameters
+- cells, with `cellSize`
+- each cell's zone (tier, bonus and loot chance)
+- feature counts
+- portals
+
+Bodies are the kernel's body scale, the `cell` profile.
+
+The strategy returns `region-1`: its elements, feature sites, loot and a
+manifest. It is not checked, because a builder's promise is its own to keep
+(51 principle 9).
+
+**Portals** are straight runs on the region's perimeter. `resolvePorts` never
+walls them. The promise: every part of every portal is reachable by a hunter
+from every other portal, from within the region. One portal carries no
+requirement.
+
+**`portalStands`** gives the hunter positions that cover a portal from inside,
+at most half a cell apart. **`validatePortalReach`** is the elective check over
+final collision geometry. Each stand must be clear. The stands of one portal
+must join. Each portal must reach the first.
+
+Like the other route checks, it is sampled. The half-cell lattice rarely fits
+a hunter through a gap only two cells wide, so a narrow region can be refused
+though a route exists.
+
+**Registered types.** They are today's builders, with the ids `example-open`,
+`example-depot`, `example-courtyard`, `example-ruins` and `example-entry`. They
+stand in until the catalogue (B2) and its strategies (B3), and the prefix
+keeps a library from binding to them. Each one:
+- protects its portals' stands and a hunter route between them while it builds
+- sites the brief's features before the loot fill, as the entry builder does,
+  kind by kind, reachable from the first portal
+- rolls each cell's loot chance, and gives loot its cell's tier, with no
+  budget but the 64-slot tool limit
+
+A brief is not the `RegionSpec` in "Input and output". The explicit-port spec and
+its `micro-1` result (`MicroResult`) stay for the examples, the tools and
+decomposition.
+
 ## Geometry and reachability
 
 Unmentioned region boundaries emit nothing. They are ownership boundaries, not
@@ -406,12 +452,15 @@ dispatch and negotiation at each level, and a `map/macro/` adapter.
 
 `map/macro/` is the input for that adapter. [51](51-generation-chain.md) now
 specifies it:
-- **Briefs** (51 stage 5) are expressed in the macro/micro contract, which moves to the shared map
-  space and evolves from `RegionSpec`. It gains region type ids instead of the
-  closed builder list, features, and zone context. Its boundary items become
-  **portals**: derived stretches that must stay passable, used for
-  validation, never laid as geometry. Today's ports make `resolvePorts` wall
-  the run except for a centred gap ([17](17-open-questions.md) M3, M4).
+- **Briefs** (51 stage 5) are expressed in the macro/micro contract in the
+  shared map space, described under "Briefs" above (C1, #84).
+- **Region type ids** replace the closed builder list.
+- **Portals** are derived stretches that must stay passable. They are used for
+  checking and never laid as geometry ([17](17-open-questions.md) M3, M4).
+- **Not yet done:** decomposition still negotiates walled `RegionPort`s
+  between children, sealed runs included. M4 gives children passability
+  obligations only, so that moves to portals when a decomposing strategy
+  needs it (B3).
 - **mapgen's flat cell indices** are translated into this SDK's global integer
   cell coordinates, with an explicit `cellSize`.
 - **Whole-map composition** extends `composeMicroRegions` (51 C2).
