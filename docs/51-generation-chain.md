@@ -237,14 +237,15 @@ This is the knowledge layer: what the solved placement means.
   seeds are functions of each region's own cells and the map seed.
 - **Boundaries:** maximal straight runs of shared segments between each pair
   of layout regions, split at corners and wherever the region across changes.
-  - This is macro's own boundary finder, fitted to the whole map: flat
-    indices, hundreds of regions, tile seams, and guarantees laid over it.
-    mapgen's `findBoundaries` (from the planned path) and #73's `passableRuns`
-    are material for it.
-  - Step 5 reuses the SDK's `buildInterfaces`, which finds the same kind of run
-    between a region's children, only if it fits the whole map's scale.
-  - Either way, a boundary becomes a region's external run in its brief. So
-    macro's runs and the SDK's definition must agree, and a test pins that.
+  - Macro finds them with the kernel's `boundaryRuns` (`map/kernel/run.ts`),
+    the reference finder that the SDK's `buildInterfaces` also builds on. It
+    fits the whole map's scale: on a game map of 64,800 cells and about 300
+    regions it takes 14 to 27 ms (step 5). Guarantees are laid over its runs
+    afterwards, so macro needs no finder of its own, and mapgen's
+    `findBoundaries` and #73's `passableRuns` retire with the old paths.
+  - A boundary becomes a region's external run in its brief, so macro's runs
+    and the SDK's definition must agree. A test runs every `RUN_CASES` case
+    through the regions stage.
   - Runs facing the map's outside aren't boundaries, since they never carry a
     guarantee.
 - **Guarantees inside a region:** a guaranteed segment with the same region
@@ -544,7 +545,25 @@ live game until the switch-over.
      constrain, so it is met, as a passability prescription there is.
    - Each attempt draws from its own `placement` stream (`chain/random.ts`).
 5. Resolution and Regions, including macro's boundary runs and the run check
-   (#73's logic).
+   (#73's logic). **Done (#88):** `chain/resolution.ts` and `chain/regions.ts`.
+   - Resolution reads the `DeclaredGrid`. It shares one walk over the
+     adjacency prescriptions aimed at each cell with `layoutViolations`
+     (`adjacencyAsks`). An `any` cell nothing asks resolves to `open`.
+   - `ResolvedLayout.segments` lists only segments a side states passability
+     on, `passable` or `any`. A side with no cell of the map, off the map or
+     outside its mask, is `null` in `stated`, and the segment is `none`.
+   - A layout region's id is its class and lowest cell, `hut@11,6`, and its
+     seed hashes the map seed with that id. Both follow the region's own
+     cells, by their coordinates, so an unrelated change elsewhere, or a
+     change to the map's size, leaves them be.
+   - A portal's id is its pair and its first segment,
+     `hut@11,6~open@6,6~v:11,11`.
+   - `portalViolations` refuses a portal shorter than `MIN_PORTAL_LENGTH`,
+     naming the two regions and the cells on each side. It is a check on the
+     view. Placement doesn't yet reject on it: placement rules prune during the
+     solve rather than check the whole grid afterwards, so the portal rule
+     joins placement with the proof's gate (step 6) and the open-face rule
+     (#59). The fixture library's layouts already pass it.
 6. Proof.
 7. Briefs, and the translation into the contract (C1).
 8. The report: features per instance, and diagnostics that locate defects

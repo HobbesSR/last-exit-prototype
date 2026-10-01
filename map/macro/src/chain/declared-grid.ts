@@ -25,7 +25,7 @@ function kernelKey(libraryKey: string): SegmentKey {
   return axis === "v" ? `v:${line},${offset}` as SegmentKey : `h:${offset},${line}` as SegmentKey;
 }
 
-function parseKey(key: SegmentKey): { axis: "h" | "v"; x: number; y: number } {
+export function parseKey(key: SegmentKey): { axis: "h" | "v"; x: number; y: number } {
   const [axis, rest] = key.split(":") as ["h" | "v", string];
   const [x, y] = rest.split(",").map(Number) as [number, number];
   return { axis, x, y };
@@ -102,31 +102,52 @@ export const declaredGrid: MacroStages["declaredGrid"] = (layout, library) => {
   return { width, height, cells, segments };
 };
 
+/** The cell of the map at (x, y), or `undefined` off the map or outside its mask. */
+export function cellAt(grid: { width: number; height: number; cells: readonly string[] }, x: number, y: number): number | undefined {
+  return x < 0 || y < 0 || x >= grid.width || y >= grid.height || grid.cells[y * grid.width + x] === ""
+    ? undefined : y * grid.width + x;
+}
+
+/** The cells on each side of a segment, lower then upper, `undefined` where no cell of the map is. */
+export function segmentCells(grid: { width: number; height: number; cells: readonly string[] }, key: SegmentKey):
+  [number | undefined, number | undefined] {
+  const { axis, x, y } = parseKey(key);
+  return [axis === "v" ? cellAt(grid, x - 1, y) : cellAt(grid, x, y - 1), cellAt(grid, x, y)];
+}
+
+/** One adjacency prescription aimed at a cell of the map: the class it requires there. */
+export interface AdjacencyAsk { key: SegmentKey; required: string; across: number }
+
+/**
+ * Every adjacency prescription aimed at a cell of the map, other than `any`. A
+ * prescription facing the map's outside has no cell to constrain, so it asks nothing.
+ */
+export function adjacencyAsks(grid: DeclaredGrid): AdjacencyAsk[] {
+  const asks: AdjacencyAsk[] = [];
+  for (const [key, sides] of Object.entries(grid.segments) as [SegmentKey, DeclaredSegment][]) {
+    const [lower, upper] = segmentCells(grid, key);
+    for (const [prescription, across] of [[sides.lower, upper], [sides.upper, lower]] as const) {
+      const required = prescription?.adjacency;
+      if (required !== undefined && required !== "any" && across !== undefined) asks.push({ key, required, across });
+    }
+  }
+  return asks;
+}
+
 /**
  * Why a declared grid is invalid (51 stage 1): an adjacency prescription the cell across
- * doesn't meet, or an `any` cell asked for two different classes. A prescription facing
- * the map's outside has no cell to constrain, so it is met.
+ * doesn't meet, or an `any` cell asked for two different classes.
  */
 export function layoutViolations(grid: DeclaredGrid): string[] {
   const violations: string[] = [];
   const asked = new Map<number, Set<string>>();
-  const cellAt = (x: number, y: number): number | undefined =>
-    x < 0 || y < 0 || x >= grid.width || y >= grid.height || grid.cells[y * grid.width + x] === ""
-      ? undefined : y * grid.width + x;
-  for (const [key, sides] of Object.entries(grid.segments) as [SegmentKey, DeclaredSegment][]) {
-    const { axis, x, y } = parseKey(key);
-    const lower = axis === "v" ? cellAt(x - 1, y) : cellAt(x, y - 1);
-    const upper = cellAt(x, y);
-    for (const [prescription, across] of [[sides.lower, upper], [sides.upper, lower]] as const) {
-      const required = prescription?.adjacency;
-      if (required === undefined || required === "any" || across === undefined) continue;
-      const found = grid.cells[across]!;
-      if (found === "any") {
-        let classes = asked.get(across);
-        if (!classes) asked.set(across, classes = new Set());
-        classes.add(required);
-      } else if (found !== required) violations.push(`${key} requires ${required} across, found ${found}`);
-    }
+  for (const { key, required, across } of adjacencyAsks(grid)) {
+    const found = grid.cells[across]!;
+    if (found === "any") {
+      let classes = asked.get(across);
+      if (!classes) asked.set(across, classes = new Set());
+      classes.add(required);
+    } else if (found !== required) violations.push(`${key} requires ${required} across, found ${found}`);
   }
   for (const [cell, classes] of asked) if (classes.size > 1)
     violations.push(`any cell ${cell % grid.width},${Math.floor(cell / grid.width)} is asked for ${[...classes].sort().join(" and ")}`);
