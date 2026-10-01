@@ -507,7 +507,14 @@ live game until the switch-over.
 2. The library schema and `validateLibrary`, with a small test library that
    exercises every rule (#33 lands here, and the #73 design check).
 3. `chain/types.ts`: every object and view named in this document, with
-   interfaces only, plus purity and determinism test harnesses.
+   interfaces only, plus purity and determinism test harnesses. **Done (#86):**
+   - Each stage's output carries a stage mark, so outputs of the same shape
+     don't assign to each other (principle 4). `MacroStages` gives each macro
+     stage's signature.
+   - `RegionBrief` and `RegionResult` are the contract's, re-exported.
+   - `tests/chain-harness.ts` holds `assertPure`, `assertDeterministic` and
+     `assertRecomputable`. The last saves the objects through JSON before
+     recomputing the view from them.
 4. Placement.
 5. Resolution and Regions, including macro's boundary runs and the run check
    (#73's logic).

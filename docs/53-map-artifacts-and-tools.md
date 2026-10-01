@@ -15,7 +15,9 @@ in the chain (Corey, 2026-09-27):
 
 `map/macro/tests/generation-chain.test.ts` pins this for the old paths: the same
 seed gives deep-equal maps, and a saved layout alone regenerates the stored
-interiors. The chain gets the same pins at 51 step 3.
+interiors. The chain's stages get the same pins from
+`map/macro/tests/chain-harness.ts` (51 step 3): purity, determinism, and that a
+view is recomputable from saved objects.
 
 ## What is stored
 
