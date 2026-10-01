@@ -515,7 +515,24 @@ live game until the switch-over.
    - `tests/chain-harness.ts` holds `assertPure`, `assertDeterministic` and
      `assertRecomputable`. The last saves the objects through JSON before
      recomputing the view from them.
-4. Placement.
+4. Placement. **Done (#87):** `chain/placement.ts` and the `DeclaredGrid` view in
+   `chain/declared-grid.ts`.
+   - Set piece classes are drawn in rule order (`start`, `end`, `enormous`,
+     `medium`, `small`, then `charger`, which places anywhere), then by library
+     order, and placed largest first. `enormous` takes distinct pieces, one per
+     vertical third, and fails explicitly if its class has fewer than its quota.
+     Playground mode places no set pieces, as today.
+   - The fill never uses a design that paints a feature class, which is how
+     placement keeps a feature class inside its owning set pieces ("Features").
+     It honours each design's eligible tiers and bonus.
+   - `wfc.ts` takes a compatibility function, and the old path passes its
+     matchers unchanged (the sweep shows no drift). WFC checks neighbours
+     pairwise, so the whole declared grid is checked afterwards, for an `any`
+     corner cell asked for two classes by two neighbours. A failed check
+     retries.
+   - An adjacency prescription facing the map's outside has no cell to
+     constrain, so it is met, as a passability prescription there is.
+   - Each attempt draws from its own `placement` stream (`chain/random.ts`).
 5. Resolution and Regions, including macro's boundary runs and the run check
    (#73's logic).
 6. Proof.

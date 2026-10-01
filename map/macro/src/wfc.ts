@@ -237,7 +237,7 @@ export function matchVertex(options: (TileOption | null)[], libraryTiles: TileDe
   return true;
 }
 
-export function propagate(grid: WfcGrid, _columns: number, _rows: number, _libraryTiles: TileDesign[], startQueue?: number): boolean {
+export function propagate(grid: WfcGrid, _columns: number, _rows: number, startQueue?: number): boolean {
   const inQueue = new Uint8Array(grid.length);
   const queue: number[] = [];
   
@@ -308,7 +308,20 @@ export function propagate(grid: WfcGrid, _columns: number, _rows: number, _libra
 }
 
 
-export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTiles: TileDesign[], random: () => number, state = { iterations: 0, maxIterations: 10000 }, startQueue?: number): WfcGrid | null {
+/** A neighbour's direction from a cell. A diagonal is only consulted where the grid links one. */
+export type WfcDirection = Side | "TL" | "TR" | "BL" | "BR";
+/** Whether `b` may stand in `direction` from `a`. It reads only the two options. */
+export type WfcCompatibility = (a: TileOption, direction: WfcDirection, b: TileOption) => boolean;
+
+/** The old library's compatibility: matching edge, cell and corner declarations. */
+export function tileCompatibility(libraryTiles: TileDesign[]): WfcCompatibility {
+  const opposite: Record<Side, Side> = { N: "S", S: "N", E: "W", W: "E" };
+  return (a, direction, b) => direction.length === 1
+    ? matchEdge(a, direction as Side, b, opposite[direction as Side], libraryTiles)
+    : matchDiagonal(a, direction as "TL" | "TR" | "BL" | "BR", b, libraryTiles);
+}
+
+export function solveWfc(grid: WfcGrid, columns: number, rows: number, compatible: WfcCompatibility, random: () => number, state = { iterations: 0, maxIterations: 10000 }, startQueue?: number): WfcGrid | null {
   if (state.iterations++ > state.maxIterations) return null;
 
   // Assign IDs and precalculate
@@ -356,16 +369,8 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTi
         const opt = mine[0]!;
         for (const theirs of kinds) {
           const nOpt = theirs[0]!;
-          const fits: Array<[string, boolean]> = [
-            ["validN", matchEdge(opt, "N", nOpt, "S", libraryTiles)],
-            ["validS", matchEdge(opt, "S", nOpt, "N", libraryTiles)],
-            ["validE", matchEdge(opt, "E", nOpt, "W", libraryTiles)],
-            ["validW", matchEdge(opt, "W", nOpt, "E", libraryTiles)],
-            ["validTL", matchDiagonal(opt, "TL", nOpt, libraryTiles)],
-            ["validTR", matchDiagonal(opt, "TR", nOpt, libraryTiles)],
-            ["validBL", matchDiagonal(opt, "BL", nOpt, libraryTiles)],
-            ["validBR", matchDiagonal(opt, "BR", nOpt, libraryTiles)],
-          ];
+          const fits: Array<[string, boolean]> = (["N", "S", "E", "W", "TL", "TR", "BL", "BR"] as const)
+            .map((direction) => [`valid${direction}`, compatible(opt, direction, nOpt)]);
           for (const [valid, fit] of fits) {
             if (!fit) continue;
             for (const o of mine) for (const n of theirs) (o as any)[valid].add(n.id);
@@ -374,7 +379,7 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTi
       }
     }
 
-    if (!propagate(grid, columns, rows, libraryTiles, startQueue)) return null;
+    if (!propagate(grid, columns, rows, startQueue)) return null;
 
   let minEntropy = Infinity;
   let bestCellIndex = -1;
@@ -405,7 +410,7 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, libraryTi
     }));
 
     
-    const result = solveWfc(clonedGrid, columns, rows, libraryTiles, random, state, bestCellIndex);
+    const result = solveWfc(clonedGrid, columns, rows, compatible, random, state, bestCellIndex);
     if (result !== null) return result;
   }
 
