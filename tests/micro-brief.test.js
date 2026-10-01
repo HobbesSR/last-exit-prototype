@@ -4,6 +4,7 @@ import { REGION_TYPES, briefErrors, buildRegion } from '../map/micro/region-type
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { elementShapes } from '../map/micro/geometry.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
+import { BUILDERS } from '../map/micro/builders.ts';
 import { rect } from '../shared/shape.ts';
 
 /** A 24 × 18 region with a portal on its west and east sides, and two zones split at x = 12. */
@@ -106,6 +107,20 @@ test('zone loot chance gates loot a builder places directly, not only the remain
   // 'open' offers loot from inside its own rooms, before the remaining-loot fill ever runs.
   assert.deepEqual(buildRegion({ ...brief('example-open'), zones: zeroChance(0) }).loot, []);
   assert.ok(buildRegion({ ...brief('example-open'), zones: zeroChance(1) }).loot.length > 0);
+});
+
+test('a cell rolls its loot chance once, however often it is offered', () => {
+  // Offering one cell 64 times must land loot exactly when offering it once does: the first roll decides.
+  const original = BUILDERS.open, at = { x: 220, y: 220 }, landed = offers => {
+    BUILDERS.open = context => { for (let i = 0; i < offers; i++) context.loot(at.x, at.y); };
+    try {
+      return Array.from({ length: 20 }, (_, seed) => buildRegion({ ...brief('example-open', seed + 1), zones: brief().zones.map(z => ({ ...z, lootChance: 0.5 })) })
+        .loot.some(l => Math.floor(l.x / 40) === 5 && Math.floor(l.y / 40) === 5));
+    } finally { BUILDERS.open = original; }
+  };
+  const once = landed(1);
+  assert.deepEqual(landed(64), once);
+  assert.ok(once.includes(true) && once.includes(false), 'the seeds exercise both outcomes');
 });
 
 test('builder-placed loot never overlaps a later-sited feature spawn', () => {

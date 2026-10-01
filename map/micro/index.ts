@@ -158,7 +158,9 @@ function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; 
   const occupied = elements.flatMap(e => elementShapes(e, true));
   let attempted = 0, rejected = 0;
   const root = ports.find(p => p.required !== 'none')?.inside ?? standList[0]?.points[0];
-  const zoneLoot = terms ? rng(spec.seed, `${spec.id}:zone-loot`) : undefined;
+  // Loot chance is per cell (51 stage 5): each cell rolls once, on its first offer, and every
+  // later offer reuses that roll, so a cell offered twice gets no second chance.
+  const zoneLoot = terms ? rng(spec.seed, `${spec.id}:zone-loot`) : undefined, rolled = new Map<string, boolean>();
   const context: BuilderContext = {
     spec, mask, random: channel => rng(spec.seed, `${spec.id}:${channel}`),
     element(label, template, x, y) {
@@ -176,11 +178,14 @@ function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; 
     obstacle(label, shape, kind) { return context.element(label, { w: mask.bounds.w, h: mask.bounds.h, parts: [{ part: 'obstacle', shape, kind }] }, 0, 0); },
     loot(x, y) {
       if (loot.length >= (spec.loot?.budget ?? 8) || !Number.isFinite(x) || !Number.isFinite(y)) return false;
-      // Every loot placement rolls its cell's chance, whether the builder called this directly
-      // or the remaining-loot fill did, so a zero-chance zone stays free of loot either way.
-      const zone = terms?.zoneAt(Math.floor(x / spec.cellSize), Math.floor(y / spec.cellSize));
-      if (terms && (!zone || zoneLoot!.next() >= zone.lootChance)) return false;
+      // Every offer obeys its cell's chance, whether the builder made it or the remaining-loot fill did.
       const key = `${Math.floor(x / spec.cellSize)},${Math.floor(y / spec.cellSize)}`, disc = circle(x, y, metrics.lootRadius);
+      const zone = terms?.zoneAt(Math.floor(x / spec.cellSize), Math.floor(y / spec.cellSize));
+      if (terms) {
+        if (!zone) return false;
+        if (!rolled.has(key)) rolled.set(key, zoneLoot!.next() < zone.lootChance);
+        if (!rolled.get(key)) return false;
+      }
       if (lootCells.has(key) || !mask.contains(disc) || elements.flatMap(e => elementShapes(e, true)).some(s => shapesOverlap(disc, s)) || (spec.reservations || []).some(b => shapesOverlap(disc, rect(b.x, b.y, b.w, b.h))) || spawns.some(s => shapesOverlap(disc, s))) return false;
       const path = root && findRegionRoute(mask, blockers, root, { x, y }, radii.contestant);
       if (root && !path) return false;
