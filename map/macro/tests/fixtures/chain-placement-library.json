@@ -41,8 +41,10 @@
         "v:6,1": { "adjacency": "hut" },
         "v:6,2": { "adjacency": "hut" },
         "v:6,3": { "adjacency": "hut" },
-        "v:6,4": { "adjacency": "hut", "passability": "passable" },
-        "v:6,5": { "adjacency": "hut", "passability": "passable" }
+        "v:6,4": { "adjacency": "hut" },
+        "v:6,5": { "adjacency": "hut" },
+        "v:5,4": { "passability": "passable" },
+        "v:5,5": { "passability": "passable" }
       },
       "orientations": [0, 90, 180, 270],
       "eligibleTiers": [2, 3, 4]
@@ -79,6 +81,12 @@
     {
       "id": "departure-pad",
       "defaultCellClass": "departure",
+      "segments": {
+        "v:0,2": { "passability": "passable" }, "v:0,3": { "passability": "passable" },
+        "v:6,2": { "passability": "passable" }, "v:6,3": { "passability": "passable" },
+        "h:0,2": { "passability": "passable" }, "h:0,3": { "passability": "passable" },
+        "h:6,2": { "passability": "passable" }, "h:6,3": { "passability": "passable" }
+      },
       "orientations": [0, 90, 180, 270]
     },
     {
@@ -86,6 +94,7 @@
       "defaultCellClass": "open",
       "cells": ["......", ".cc...", ".cc...", "......", "......", "......"],
       "legend": { "c": "charging" },
+      "segments": { "h:3,1": { "passability": "passable" }, "h:3,2": { "passability": "passable" } },
       "orientations": [0, 90, 180, 270]
     }
   ],
