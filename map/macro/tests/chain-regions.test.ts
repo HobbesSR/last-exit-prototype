@@ -122,15 +122,22 @@ const HAND: ChainLibrary = { ...LIBRARY, tiles: HAND_TILES };
 const PLAYGROUND: ChainParams = { ...GAME, mode: "playground", zoneWidth: 1, zoneHeight: 1 };
 
 /** Only the given slots, `col,row` to design; every other cell is outside the mask. */
-function hand(slots: Record<string, string>): { resolved: ResolvedLayout; found: LayoutRegions } {
+function hand(slots: Record<string, string>, params = PLAYGROUND): { resolved: ResolvedLayout; found: LayoutRegions } {
   const placed: PlacedSlot[] = Object.entries(slots).map(([at, design]) => {
     const [col, row] = at.split(",").map(Number) as [number, number];
     return { col, row, design, orientation: 0 };
   });
-  const layout: Layout = { seed: "hand", params: PLAYGROUND, library: "hand", slots: placed, setPieces: [] };
+  const layout: Layout = { seed: "hand", params, library: "hand", slots: placed, setPieces: [] };
   const resolved = resolution(layout, HAND);
   return { resolved, found: regions(resolved, layout.seed) };
 }
+
+test("a region's id and seed follow its cells' coordinates, not the map's width", () => {
+  const narrow = hand({ "1,1": "hut-mid" });
+  const wide = hand({ "1,1": "hut-mid" }, { ...PLAYGROUND, zoneWidth: 2 });
+  assert.notEqual(wide.resolved.width, narrow.resolved.width);
+  assert.deepEqual(wide.found.regions.map((r) => [r.id, r.seed]), narrow.found.regions.map((r) => [r.id, r.seed]));
+});
 
 test("a one-segment portal between two regions is refused, naming the regions and cells", () => {
   const { found } = hand({ "1,1": "hut-low" });

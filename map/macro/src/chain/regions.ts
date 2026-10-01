@@ -40,11 +40,13 @@ function layoutRegions(resolved: ResolvedLayout, seed: string): LayoutRegion[] {
       }
     }
     members.sort((a, b) => a - b);
-    // The lowest cell is the region's identity, so the id and seed follow its own cells
-    // and never another region's.
+    // The lowest cell, by its coordinates, is the region's identity. The seed hashes the
+    // id, so the two never drift apart, and neither follows another region or the map's
+    // width, as a flat index would.
+    const id = `${cellClass}@${start % width},${Math.floor(start / width)}`;
     regions.push({
-      id: `${cellClass}@${start % width},${Math.floor(start / width)}`,
-      seed: hashText(`region\u0000${seed}\u0000${start}`),
+      id,
+      seed: hashText(`region\u0000${seed}\u0000${id}`),
       class: cellClass,
       cells: members,
     });

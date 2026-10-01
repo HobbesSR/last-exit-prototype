@@ -553,8 +553,9 @@ live game until the switch-over.
      on, `passable` or `any`. A side with no cell of the map, off the map or
      outside its mask, is `null` in `stated`, and the segment is `none`.
    - A layout region's id is its class and lowest cell, `hut@11,6`, and its
-     seed hashes the map seed with that cell. Both follow the region's own
-     cells, so an unrelated change elsewhere leaves them be.
+     seed hashes the map seed with that id. Both follow the region's own
+     cells, by their coordinates, so an unrelated change elsewhere, or a
+     change to the map's size, leaves them be.
    - A portal's id is its pair and its first segment,
      `hut@11,6~open@6,6~v:11,11`.
    - `portalViolations` refuses a portal shorter than `MIN_PORTAL_LENGTH`,
