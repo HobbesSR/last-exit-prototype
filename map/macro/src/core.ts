@@ -1,7 +1,7 @@
 import DEFAULT_LIBRARY_JSON from "../content/default-library.json" with { type: "json" };
 import { CELL_SCALE } from "../../kernel/scale.ts";
 import { composeMacro } from "./macro.ts";
-import { getDifficulty, solveWfc, getRotatedEdge } from "./wfc.ts";
+import { compassLinks, getDifficulty, solveWfc, getRotatedEdge, tileCompatibility } from "./wfc.ts";
 import type { WfcGrid, TileOption } from "./wfc.ts";
 import type { MacroPlacement } from "./macro-types.ts";
 import { compileTileDesign } from "./macro-compiler.ts";
@@ -361,8 +361,11 @@ export function validateLibrary(input: unknown): ValidationResult {
   return { valid: !errors.length, errors };
 }
 
+/** What zones are made from; the chain's params supply the same fields. */
+export type ZoneParams = Pick<MapParams, "zoneWidth" | "zoneHeight" | "tileSize" | "lootChance" | "lootTierStep">;
+
 /** Every occupied zone, with its extent in both tiles and cells. */
-export function makeZones(p: MapParams): MapZone[] {
+export function makeZones(p: ZoneParams): MapZone[] {
   const zones: MapZone[] = [];
   for (let row = 0; row < ZONE_ROWS; row++)
     for (let col = 0; col < ZONE_COLUMNS; col++) {
@@ -1959,7 +1962,7 @@ function fallbackDesign(library: Library): TileDesign {
  * The tile slots the occupied zones cover, zone by zone. A layout's
  * placements are in this order, so a slot's position is never stored.
  */
-export function layoutSlots(p: MapParams): MaskCell[] {
+export function layoutSlots(p: ZoneParams): MaskCell[] {
   const cells: MaskCell[] = [];
   for (const zone of makeZones(p)) {
     const [x0, y0, x1, y1] = zone.tiles;
@@ -1988,7 +1991,7 @@ function canonicalJson(value: unknown): string {
  * is only read back with the library it names. Two FNV-1a passes, the second
  * seeded differently, make 64 bits.
  */
-export function libraryFingerprint(library: Library): string {
+export function libraryFingerprint(library: object): string {
   const text = canonicalJson(library);
   const hex = (n: number) => n.toString(16).padStart(8, "0");
   return hex(hash(text)) + hex(hash(`#${text}`));
@@ -2105,7 +2108,7 @@ export function placeLayout(
           orientation: assigned[i]!.orientation as any,
           difficulty: 0 // pre-assigned
         }],
-        setPieceInstance: assigned[i]!.setPieceInstance
+        links: [],
       };
     } else {
       const tier = zoneOf(c).tier;
@@ -2116,24 +2119,13 @@ export function placeLayout(
           if (tOpt.templateId === t.id) domain.push(tOpt);
         }
       }
-      return { x: c.x, y: c.y, domain };
+      return { x: c.x, y: c.y, domain, links: [] };
     }
   });
 
-  const cellMap = new Map<string, number>();
-  wfcGrid.forEach((c, i) => cellMap.set(`${c.x},${c.y}`, i));
-  for (const c of wfcGrid) {
-    c.n = cellMap.get(`${c.x},${c.y - 1}`);
-    c.s = cellMap.get(`${c.x},${c.y + 1}`);
-    c.e = cellMap.get(`${c.x + 1},${c.y}`);
-    c.w = cellMap.get(`${c.x - 1},${c.y}`);
-    c.tl = cellMap.get(`${c.x - 1},${c.y - 1}`);
-    c.tr = cellMap.get(`${c.x + 1},${c.y - 1}`);
-    c.bl = cellMap.get(`${c.x - 1},${c.y + 1}`);
-    c.br = cellMap.get(`${c.x + 1},${c.y + 1}`);
-  }
+  compassLinks(wfcGrid);
 
-  const solvedGrid = solveWfc(wfcGrid, p.columns, p.rows, library.tiles, random);
+  const solvedGrid = solveWfc(wfcGrid, p.columns, p.rows, tileCompatibility(library.tiles), random);
   if (!solvedGrid) {
     throw new Error("WFC Solver could not find a valid tile layout for the macro grid.");
   }

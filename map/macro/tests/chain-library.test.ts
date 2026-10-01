@@ -118,6 +118,25 @@ test("set piece classes need a rule, quota and valid feature counts", () => {
   refusal(param, /feature exit count must be a positive integer or exitCount/);
 });
 
+test("tile sets and set piece classes are sets: a repeated member is refused", () => {
+  const tileSet = copy();
+  tileSet.tileSets[0]!.members.push("half-hut");
+  refusal(tileSet, /tile set one: repeated member half-hut/);
+  const setPieceClass = copy();
+  setPieceClass.setPieceClasses[0]!.setPieces.push("entry");
+  refusal(setPieceClass, /set piece class start: repeated set piece entry/);
+});
+
+test("a set piece slot's fixed orientation must suit some member of its tile set", () => {
+  const unsuited = copy();
+  unsuited.tiles[0]!.orientations = [0];
+  unsuited.setPieces[0]!.tiles[0]!.orientation = 90;
+  refusal(unsuited, /set piece entry: slot 0 orientation 90 suits no member of tile set one/);
+  const suited = copy();
+  suited.setPieces[0]!.tiles[0]!.orientation = 90;
+  assert.deepEqual(validateLibrary(suited, TYPES), { valid: true, errors: [] });
+});
+
 test("a primary region class must be declared", () => {
   const library = copy();
   library.setPieces[0]!.primaryRegionClass = "missing";

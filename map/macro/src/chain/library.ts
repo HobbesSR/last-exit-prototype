@@ -124,6 +124,11 @@ function uniqueIds(value: unknown, path: string, errors: string[]): Set<string> 
   return ids;
 }
 
+/** Each id listed more than once. Tile sets and set piece classes are sets (52). */
+function repeated(ids: readonly string[]): string[] {
+  return [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))];
+}
+
 function isClass(value: unknown, declared: Set<string>): boolean {
   return value === "any" || (name(value) && declared.has(value));
 }
@@ -279,8 +284,18 @@ export function validateLibrary(
   if (Array.isArray(library.tileSets)) for (const raw of library.tileSets) if (object(raw)) {
     unknownFields(raw, ["id", "members"], `tile set ${String(raw.id)}`, errors);
     if (!names(raw.members) || raw.members.length === 0) errors.push(`tile set ${String(raw.id)}: missing members`);
-    else for (const id of raw.members) if (!tileIds.has(id)) errors.push(`tile set ${String(raw.id)}: unknown tile ${id}`);
+    else {
+      for (const id of raw.members) if (!tileIds.has(id)) errors.push(`tile set ${String(raw.id)}: unknown tile ${id}`);
+      for (const id of repeated(raw.members)) errors.push(`tile set ${String(raw.id)}: repeated member ${id}`);
+    }
   }
+
+  const tileOrientations = new Map<string, unknown[]>();
+  if (Array.isArray(library.tiles)) for (const raw of library.tiles)
+    if (object(raw) && name(raw.id) && Array.isArray(raw.orientations)) tileOrientations.set(raw.id, raw.orientations);
+  const tileSetMembers = new Map<string, string[]>();
+  if (Array.isArray(library.tileSets)) for (const raw of library.tileSets)
+    if (object(raw) && name(raw.id) && names(raw.members)) tileSetMembers.set(raw.id, raw.members);
 
   const setPieceIds = uniqueIds(library.setPieces, "setPieces", errors);
   if (Array.isArray(library.setPieces)) for (const raw of library.setPieces) if (object(raw)) {
@@ -304,6 +319,12 @@ export function validateLibrary(
           errors.push(`${path}: malformed slot ${i}`);
         if (object(slot) && slot.orientation !== undefined && !ORIENTATIONS.has(slot.orientation as number))
           errors.push(`${path}: malformed slot orientation ${i}`);
+        else if (object(slot) && slot.orientation !== undefined && name(slot.tileSetId)) {
+          // A fixed orientation must suit some member, or the slot can never be filled.
+          const members = tileSetMembers.get(slot.tileSetId);
+          if (members?.every((id) => tileOrientations.get(id)?.includes(slot.orientation) === false))
+            errors.push(`${path}: slot ${i} orientation ${String(slot.orientation)} suits no member of tile set ${slot.tileSetId}`);
+        }
       }
     }
     if (raw.eligibleTiers !== undefined && (!Array.isArray(raw.eligibleTiers) ||
@@ -318,7 +339,10 @@ export function validateLibrary(
     if (!PLACEMENT_RULES.has(raw.placementRule as PlacementRule)) errors.push(`${path}: missing or unknown placement rule`);
     if (!integer(raw.quota) || raw.quota < 1) errors.push(`${path}: quota must be positive`);
     if (!names(raw.setPieces) || raw.setPieces.length === 0) errors.push(`${path}: missing set pieces`);
-    else for (const id of raw.setPieces) if (!setPieceIds.has(id)) errors.push(`${path}: unknown set piece ${id}`);
+    else {
+      for (const id of raw.setPieces) if (!setPieceIds.has(id)) errors.push(`${path}: unknown set piece ${id}`);
+      for (const id of repeated(raw.setPieces)) errors.push(`${path}: repeated set piece ${id}`);
+    }
     featureErrors(raw.features, path, errors);
   }
   return { valid: errors.length === 0, errors };

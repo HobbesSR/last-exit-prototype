@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "cellClasses": {
+    "open": { "regionType": "open-field" },
+    "hut": { "regionType": "hut" },
+    "arrival": { "regionType": "arrival", "features": { "spawn": 1 } },
+    "departure": { "regionType": "departure", "features": { "exit": "exitCount", "hunter-spawn": 1 } },
+    "charging": { "regionType": "charging", "features": { "charger": 1 } }
+  },
+  "tiles": [
+    {
+      "id": "field",
+      "defaultCellClass": "open",
+      "orientations": [0, 90, 180, 270],
+      "weight": 4
+    },
+    {
+      "id": "hut-corner",
+      "defaultCellClass": "open",
+      "cells": ["hhh...", "hhh...", "hhh...", "......", "......", "......"],
+      "legend": { "h": "hut" },
+      "segments": {
+        "h:0,0": { "adjacency": "hut" },
+        "h:0,1": { "adjacency": "hut" },
+        "h:0,2": { "adjacency": "hut" },
+        "v:0,0": { "adjacency": "hut" },
+        "v:0,1": { "adjacency": "hut" },
+        "v:0,2": { "adjacency": "hut" },
+        "v:3,1": { "passability": "passable" },
+        "v:3,2": { "passability": "passable" }
+      },
+      "orientations": [0, 90, 180, 270]
+    },
+    {
+      "id": "hut-row",
+      "defaultCellClass": "open",
+      "cells": [".....h", ".....h", ".....h", ".....h", ".....h", ".....h"],
+      "legend": { "h": "hut" },
+      "segments": {
+        "v:6,0": { "adjacency": "hut" },
+        "v:6,1": { "adjacency": "hut" },
+        "v:6,2": { "adjacency": "hut" },
+        "v:6,3": { "adjacency": "hut" },
+        "v:6,4": { "adjacency": "hut", "passability": "passable" },
+        "v:6,5": { "adjacency": "hut", "passability": "passable" }
+      },
+      "orientations": [0, 90, 180, 270],
+      "eligibleTiers": [2, 3, 4]
+    },
+    {
+      "id": "yard-edge",
+      "defaultCellClass": "open",
+      "segments": {
+        "v:6,0": { "adjacency": "open" },
+        "v:6,1": { "adjacency": "open" },
+        "v:6,2": { "adjacency": "open" },
+        "v:6,3": { "adjacency": "open" },
+        "v:6,4": { "adjacency": "open" },
+        "v:6,5": { "adjacency": "open" }
+      },
+      "orientations": [0, 90, 180, 270]
+    },
+    {
+      "id": "borderland",
+      "defaultCellClass": "open",
+      "cells": [".....a", ".....a", ".....a", ".....a", ".....a", ".....a"],
+      "legend": { "a": "any" },
+      "orientations": [0, 90, 180, 270],
+      "eligibleTiers": [1, 2, 3, 4]
+    },
+    {
+      "id": "arrival-pad",
+      "defaultCellClass": "open",
+      "cells": ["......", "......", "..aa..", "..aa..", "......", "......"],
+      "legend": { "a": "arrival" },
+      "segments": { "h:2,2": { "passability": "passable" }, "h:2,3": { "passability": "passable" } },
+      "orientations": [0]
+    },
+    {
+      "id": "departure-pad",
+      "defaultCellClass": "departure",
+      "orientations": [0, 90, 180, 270]
+    },
+    {
+      "id": "charger-pad",
+      "defaultCellClass": "open",
+      "cells": ["......", ".cc...", ".cc...", "......", "......", "......"],
+      "legend": { "c": "charging" },
+      "orientations": [0, 90, 180, 270]
+    }
+  ],
+  "tileSets": [
+    { "id": "fields", "members": ["field", "borderland"] },
+    { "id": "hut-corners", "members": ["hut-corner"] },
+    { "id": "arrivals", "members": ["arrival-pad"] },
+    { "id": "departures", "members": ["departure-pad"] },
+    { "id": "chargers", "members": ["charger-pad"] }
+  ],
+  "setPieces": [
+    { "id": "entry", "tiles": [{ "dx": 0, "dy": 0, "tileSetId": "arrivals" }], "eligibleTiers": [1] },
+    {
+      "id": "exit-yard",
+      "tiles": [{ "dx": 0, "dy": 0, "tileSetId": "fields" }, { "dx": 1, "dy": 0, "tileSetId": "departures" }],
+      "eligibleTiers": [5]
+    },
+    { "id": "charger-pod", "tiles": [{ "dx": 0, "dy": 0, "tileSetId": "chargers" }], "eligibleTiers": [2, 3, 4] },
+    {
+      "id": "hut-cluster",
+      "tiles": [
+        { "dx": 0, "dy": 0, "tileSetId": "hut-corners", "orientation": 180 },
+        { "dx": 1, "dy": 0, "tileSetId": "hut-corners", "orientation": 270 },
+        { "dx": 0, "dy": 1, "tileSetId": "hut-corners", "orientation": 90 },
+        { "dx": 1, "dy": 1, "tileSetId": "hut-corners", "orientation": 0 }
+      ],
+      "primaryRegionClass": "hut"
+    },
+    {
+      "id": "plaza-wide",
+      "tiles": [
+        { "dx": 0, "dy": 0, "tileSetId": "fields" }, { "dx": 1, "dy": 0, "tileSetId": "fields" },
+        { "dx": 2, "dy": 0, "tileSetId": "fields" }, { "dx": 0, "dy": 1, "tileSetId": "fields" },
+        { "dx": 1, "dy": 1, "tileSetId": "fields" }, { "dx": 2, "dy": 1, "tileSetId": "fields" }
+      ]
+    },
+    {
+      "id": "plaza-tall",
+      "tiles": [
+        { "dx": 0, "dy": 0, "tileSetId": "fields" }, { "dx": 0, "dy": 1, "tileSetId": "fields" },
+        { "dx": 0, "dy": 2, "tileSetId": "fields" }, { "dx": 1, "dy": 0, "tileSetId": "fields" },
+        { "dx": 1, "dy": 1, "tileSetId": "fields" }
+      ]
+    },
+    {
+      "id": "plaza-square",
+      "tiles": [
+        { "dx": 0, "dy": 0, "tileSetId": "fields" }, { "dx": 1, "dy": 0, "tileSetId": "fields" },
+        { "dx": 0, "dy": 1, "tileSetId": "fields" }, { "dx": 1, "dy": 1, "tileSetId": "fields" },
+        { "dx": 2, "dy": 2, "tileSetId": "fields" }
+      ]
+    }
+  ],
+  "setPieceClasses": [
+    { "id": "start", "placementRule": "start", "quota": 1, "setPieces": ["entry"], "features": { "spawn": 1 } },
+    { "id": "end", "placementRule": "end", "quota": 1, "setPieces": ["exit-yard"], "features": { "exit": "exitCount", "hunter-spawn": 1 } },
+    { "id": "enormous", "placementRule": "enormous", "quota": 3, "setPieces": ["plaza-wide", "plaza-tall", "plaza-square"] },
+    { "id": "medium", "placementRule": "medium", "quota": 4, "setPieces": ["hut-cluster"] },
+    { "id": "small", "placementRule": "small", "quota": 10, "setPieces": ["hut-cluster"] },
+    { "id": "charger", "placementRule": "charger", "quota": 1, "setPieces": ["charger-pod"], "features": { "charger": 1 } }
+  ]
+}
