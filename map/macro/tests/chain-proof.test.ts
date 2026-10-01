@@ -45,8 +45,9 @@ test("the fixture's components partition its regions, and match a search of the 
       for (const id of seen) for (const other of next.get(id) ?? []) seen.add(other);
       assert.deepEqual([...seen].sort(), [...component].sort(), seed);
     }
-    // The gate names every component but the spawn region's.
-    assert.equal(proofViolations({ components }, found, LIBRARY).length, components.length - 1, seed);
+    // The fixture prescribes passable segments wherever its regions meet, so it passes the gate.
+    assert.equal(components.length, 1, seed);
+    assert.deepEqual(proofViolations({ components }, found, LIBRARY), [], seed);
   }
 });
 

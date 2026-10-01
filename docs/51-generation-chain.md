@@ -575,12 +575,15 @@ live game until the switch-over.
      is the same as one component, so the check never has to choose among
      several spawn regions.
    - Placement doesn't reject on it yet, for the reason it doesn't reject on
-     `portalViolations` (step 5). A whole-grid check after the solve would
-     also discard every sample of the fixture library: its layouts split into
-     87 to 118 components over 20 seeds, since most huts state no passable
-     segment. The gate enters placement as the open-face rule (#59, 17 M11),
-     with the portal rule, over guarantees as slots are placed. The new
-     library (B4) prescribes passable segments wherever regions meet.
+     `portalViolations` (step 5). The gate enters placement as the open-face
+     rule (#59, 17 M11), with the portal rule, over guarantees as slots are
+     placed.
+   - The fixture library was tweaked just enough for the mechanics to show,
+     ahead of the new library (B4). Its layouts had split into 87 to 118
+     components over 20 seeds, since `hut-row`'s passable pair lay inside its
+     own region, and the departure and charger pads stated none. With those
+     moved and added, 200 seeds out of 200 prove connected, with no short
+     portal.
 7. Briefs, and the translation into the contract (C1).
 8. The report: features per instance, and diagnostics that locate defects
    (C2).

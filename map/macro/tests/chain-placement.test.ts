@@ -238,9 +238,13 @@ test("the declared grid keeps each side's prescriptions apart, and marks outside
   // On a tile's near edge it owns the upper side only; the field across states nothing.
   assert.deepEqual(grid.segments["h:12,12"], { upper: { adjacency: "hut" } });
   // hut-row turned 180 prescribes hut across its west edge, which faces the outside;
-  // its passable pair turns from rows 4 and 5 to rows 1 and 0.
-  assert.deepEqual(grid.segments["v:0,12"], { upper: { adjacency: "hut", passability: "passable" } });
+  // its passable pair on its hut's open face turns from line 5, rows 4 and 5, to line 1,
+  // rows 1 and 0, inside the tile.
+  assert.deepEqual(grid.segments["v:0,12"], { upper: { adjacency: "hut" } });
   assert.deepEqual(grid.segments["v:0,17"], { upper: { adjacency: "hut" } });
+  for (const key of ["v:1,12", "v:1,13"] as const)
+    assert.deepEqual(grid.segments[key], { lower: { passability: "passable" }, upper: { passability: "passable" } });
+  assert.equal(grid.segments["v:1,14"], undefined);
 });
 
 test("violations name unmet adjacency, but a prescription facing the outside is met", () => {
