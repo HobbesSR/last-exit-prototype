@@ -286,7 +286,8 @@ This is the knowledge layer: what the solved placement means.
   reading of "everything must be reachable by a hunter", and it means the new
   library's designs must prescribe passable segments wherever regions meet, so
   that portals derive there
-  (51 track B).
+  (51 track B). Until the open-face rule (#59) brings the gate into the
+  solve, `proofViolations` reports it on the view (step 6).
 
 ### 5. Briefs: Layout, LayoutRegions, zones → **RegionBrief[]** (view)
 
@@ -564,7 +565,22 @@ live game until the switch-over.
      solve rather than check the whole grid afterwards, so the portal rule
      joins placement with the proof's gate (step 6) and the open-face rule
      (#59). The fixture library's layouts already pass it.
-6. Proof.
+6. Proof. **Done (#89):** `chain/proof.ts`.
+   - `proof` is a union-find over the region graph. Components come in order
+     of their first region, and each lists its regions in their own order.
+   - `proofViolations` is the gate's check (17 M2), one message per component
+     left out, naming its regions. A spawn region is one whose class promises
+     a `spawn` feature. With none, as in playground mode, the largest
+     component stands in for it. Every region in the spawn region's component
+     is the same as one component, so the check never has to choose among
+     several spawn regions.
+   - Placement doesn't reject on it yet, for the reason it doesn't reject on
+     `portalViolations` (step 5). A whole-grid check after the solve would
+     also discard every sample of the fixture library: its layouts split into
+     87 to 118 components over 20 seeds, since most huts state no passable
+     segment. The gate enters placement as the open-face rule (#59, 17 M11),
+     with the portal rule, over guarantees as slots are placed. The new
+     library (B4) prescribes passable segments wherever regions meet.
 7. Briefs, and the translation into the contract (C1).
 8. The report: features per instance, and diagnostics that locate defects
    (C2).
