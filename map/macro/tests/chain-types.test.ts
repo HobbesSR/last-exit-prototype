@@ -35,7 +35,7 @@ const fakePlacement: MacroStages["placement"] = (seed, params, library) => ({
 /** Every cell takes its design's default class, ignoring orientation. */
 const fakeDeclaredGrid: MacroStages["declaredGrid"] = (layout, library) => {
   const width = layout.params.zoneWidth * CHAIN_TILE_SIZE, height = layout.params.zoneHeight * CHAIN_TILE_SIZE;
-  const cells: (string | null)[] = Array(width * height).fill(null);
+  const cells: string[] = Array(width * height).fill("");
   for (const slot of layout.slots) {
     const design = library.tiles.find((tile) => tile.id === slot.design)!;
     for (let y = 0; y < CHAIN_TILE_SIZE; y++) for (let x = 0; x < CHAIN_TILE_SIZE; x++)
@@ -56,7 +56,7 @@ test("a fake declared grid is pure, deterministic and recomputable from its obje
   assertDeterministic("declared grid", fakeDeclaredGrid, layout, LIBRARY);
   assertRecomputable("declared grid", grid, fakeDeclaredGrid, layout, LIBRARY);
   assert.equal(grid.cells.length, 12 * 6);
-  assert.ok(grid.cells.every((cell) => cell !== null));
+  assert.ok(grid.cells.every((cell) => cell !== ""));
 });
 
 test("the purity harness catches a stage that changes its inputs", () => {
@@ -65,17 +65,18 @@ test("the purity harness catches a stage that changes its inputs", () => {
   assert.throws(() => assertPure("sorting", sorting, layout), /sorting changed its inputs/);
 });
 
-test("the determinism harness catches hidden randomness and identity caches", () => {
+test("the determinism harness catches hidden randomness and state", () => {
   assert.throws(() => assertDeterministic("random", (n: number) => n + Math.random(), 1), /random gave different outputs/);
-  const seen = new WeakSet<object>();
-  const cached = (input: { n: number }) => {
-    const fresh = !seen.has(input);
-    seen.add(input);
-    return fresh ? input.n : 0;
-  };
+  let calls = 0;
+  assert.throws(() => assertDeterministic("counting", (n: number) => n + calls++, 1), /counting gave different outputs/);
+});
+
+test("the determinism harness hands each run its own copy of the inputs", () => {
+  const seen: object[] = [];
   const input = { n: 3 };
-  cached(input);
-  assert.equal(assertDeterministic("cached", cached, input), 3);
+  assertDeterministic("recording", (value: { n: number }) => (seen.push(value), value.n), input);
+  assert.equal(seen.length, 2);
+  assert.ok(seen[0] !== seen[1] && !seen.includes(input), "a stage caching on identity sees fresh objects each run");
 });
 
 test("the view harness catches a view that leans on unsaved state", () => {

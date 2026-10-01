@@ -94,7 +94,7 @@ export interface Layout extends StageMark<"layout"> {
 
 // ── View: Layout + library → DeclaredGrid ───────────────────────────────────
 
-/** A declared class: a class the design paints, or `any`. */
+/** A declared class: a class the design paints, `any`, or `""` outside the mask (52). */
 export type DeclaredClass = string;
 
 /** What the designs on each side state about one segment, kept separate, never merged. */
@@ -109,15 +109,15 @@ export interface DeclaredGrid extends StageMark<"declared-grid"> {
   /** In cells. */
   width: number;
   height: number;
-  /** Per cell index; `null` outside the map. */
-  cells: (DeclaredClass | null)[];
+  /** Per cell index; `""` outside the mask (52). */
+  cells: DeclaredClass[];
   /** Only segments a side states something about. */
   segments: Partial<Record<SegmentKey, DeclaredSegment>>;
 }
 
 // ── 2. Resolution: Layout + library → ResolvedLayout (view) ─────────────────
 
-/** A declared class with every `any` settled. Never `any`. */
+/** A declared class with every `any` settled. Never `any`; `""` outside the mask, as declared (52). */
 export type ResolvedClass = string;
 export type PassabilityGuarantee = "guaranteed" | "none";
 /** What one side stated: `null` where no cell of the map is across. */
@@ -132,7 +132,7 @@ export interface ResolvedSegment {
 export interface ResolvedLayout extends StageMark<"resolved-layout"> {
   width: number;
   height: number;
-  cells: (ResolvedClass | null)[];
+  cells: ResolvedClass[];
   /**
    * Only segments a side states passability on. An absent segment is `none`, with
    * nothing stated on either side.
