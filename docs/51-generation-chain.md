@@ -178,7 +178,8 @@ saved map is therefore a Layout, optionally with its region results (see
   nothing could honour one, and strategies aren't asked to (Corey, 2026-09-27).
   A suggestion channel for builders is deferred (16).
 - **Validity:** every declared class is registered and names a region type,
-  and every prescription is well formed. A stretch of passable prescriptions
+  and every prescription is well formed. Tile sets and set piece classes are
+  sets, so neither lists a member twice. A stretch of passable prescriptions
   that lies wholly inside a tile, without reaching the tile's edge, must
   already be at least a hunter wide, because no neighbour can lengthen the
   portal it will become. This is the #73 design check.
@@ -524,7 +525,9 @@ live game until the switch-over.
      Playground mode places no set pieces, as today.
    - The fill never uses a design that paints a feature class, which is how
      placement keeps a feature class inside its owning set pieces ("Features").
-     It honours each design's eligible tiers and bonus.
+   - A design's eligible tiers and bonus hold wherever it is placed. A set
+     piece slot draws only from its tile set's members eligible in that slot's
+     zone, and a piece stands only where every slot has one.
    - `wfc.ts` takes a compatibility function and a list of named relations
      per cell, in place of fixed compass fields. The old path links its eight
      directions as before (the sweep shows no drift).

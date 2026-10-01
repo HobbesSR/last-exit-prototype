@@ -118,6 +118,15 @@ test("set piece classes need a rule, quota and valid feature counts", () => {
   refusal(param, /feature exit count must be a positive integer or exitCount/);
 });
 
+test("tile sets and set piece classes are sets: a repeated member is refused", () => {
+  const tileSet = copy();
+  tileSet.tileSets[0]!.members.push("half-hut");
+  refusal(tileSet, /tile set one: repeated member half-hut/);
+  const setPieceClass = copy();
+  setPieceClass.setPieceClasses[0]!.setPieces.push("entry");
+  refusal(setPieceClass, /set piece class start: repeated set piece entry/);
+});
+
 test("a primary region class must be declared", () => {
   const library = copy();
   library.setPieces[0]!.primaryRegionClass = "missing";

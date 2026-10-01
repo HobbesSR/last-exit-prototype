@@ -119,6 +119,21 @@ test("feature classes stand only inside their owning set pieces, and the fill ke
   }
 });
 
+test("every design is eligible in its slot's zone, in set pieces as in the fill", () => {
+  // Zones are 12 x 6 tiles; tier rises west to east, bonus away from the middle row.
+  const zoneOf = (slot: PlacedSlot) => ({ tier: Math.floor(slot.col / 12) + 1, bonus: Math.abs(Math.floor(slot.row / 6) - 2) });
+  for (const [seed, layout] of layouts) for (const slot of layout.slots) {
+    const { eligibleTiers, eligibleBonus } = design(slot.design), { tier, bonus } = zoneOf(slot);
+    assert.ok(!eligibleTiers || eligibleTiers.includes(tier), `${seed}: ${slot.design} at ${slot.col},${slot.row} in tier ${tier}`);
+    assert.ok(!eligibleBonus || eligibleBonus.includes(bonus), `${seed}: ${slot.design} at ${slot.col},${slot.row} with bonus ${bonus}`);
+  }
+  // exit-yard stands in tier 5, where its `fields` slot can only draw field.
+  for (const [seed, layout] of layouts) {
+    const yard = layout.setPieces.find((i) => i.setPiece === "exit-yard")!.slots[0]!;
+    assert.equal(slotOf(layout).get(`${yard.col},${yard.row}`)!.design, "field", seed);
+  }
+});
+
 test("the declared grid is pure, deterministic and recomputable from the layout and library", () => {
   const layout = layouts.get(SEEDS[0]!)!;
   const grid = assertPure("declared grid", declaredGrid, layout, LIBRARY);
@@ -146,6 +161,11 @@ test("placement fails explicitly, naming what failed", () => {
   const nowhere = copy();
   nowhere.setPieces.find((p) => p.id === "entry")!.eligibleTiers = [5];
   assert.throws(() => placement("s", GAME, nowhere), /set piece entry \(50\/50\)/);
+
+  // A set piece whose slot has no member eligible anywhere it could stand.
+  const ineligible = copy();
+  ineligible.tiles.find((t) => t.id === "arrival-pad")!.eligibleTiers = [5];
+  assert.throws(() => placement("s", GAME, ineligible), /set piece entry \(50\/50\)/);
 
   const few = copy();
   few.setPieceClasses.find((c) => c.id === "enormous")!.quota = 4;

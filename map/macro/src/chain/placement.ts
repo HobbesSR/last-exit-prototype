@@ -61,6 +61,11 @@ function pickSetPieces(library: ChainLibrary, pieces: Map<string, ChainSetPiece>
   return picks.sort((a, b) => b.piece.tiles.length - a.piece.tiles.length);
 }
 
+/** A design's own eligibility (52), wherever it is placed: by the fill or in a set piece slot. */
+const eligibleIn = (tile: ChainTileDesign, zone: MapZone): boolean =>
+  (!tile.eligibleTiers || tile.eligibleTiers.includes(zone.tier)) &&
+  (!tile.eligibleBonus || tile.eligibleBonus.includes(zone.bonus));
+
 /** Adjacency prescriptions a design states, which WFC prefers to place early. */
 function difficulty(design: ChainTileDesign): number {
   return Object.values(design.segments ?? {}).filter((s) => s.adjacency !== undefined && s.adjacency !== "any").length;
@@ -177,18 +182,24 @@ function sample(
   const picks = (params.mode ?? "game") === "game" ? pickSetPieces(library, pieces, columns, rows, random) : [];
   for (const [nth, { setPieceClass, piece, filter }] of picks.entries()) {
     const width = Math.max(...piece.tiles.map((s) => s.dx)) + 1;
+    // The members of each slot's tile set that are eligible in that slot's zone.
+    const eligible = (k: number, j: number): ChainTileDesign[] => {
+      const zone = zones.get(mask[j]!.zoneId)!;
+      return tileSets.get(piece.tiles[k]!.tileSetId)!.members.map((id) => designs.get(id)!).filter((tile) => eligibleIn(tile, zone));
+    };
     const placements: number[][] = [];
     for (const anchor of mask) {
       if (!filter(anchor, width)) continue;
       const covered = piece.tiles.map((s) => slotAt.get(`${anchor.x + s.dx},${anchor.y + s.dy}`));
-      if (covered.every((j) => j !== undefined && !assigned[j] &&
-        (!piece.eligibleTiers || piece.eligibleTiers.includes(zones.get(mask[j]!.zoneId)!.tier))))
+      if (covered.every((j, k) => j !== undefined && !assigned[j] &&
+        (!piece.eligibleTiers || piece.eligibleTiers.includes(zones.get(mask[j]!.zoneId)!.tier)) &&
+        eligible(k, j).length > 0))
         placements.push(covered as number[]);
     }
     if (!placements.length) return `set piece ${piece.id}`;
     const covered = random.pick(placements);
     piece.tiles.forEach((s, k) => {
-      const design = designs.get(random.pick(tileSets.get(s.tileSetId)!.members))!;
+      const design = random.pick(eligible(k, covered[k]!));
       const orientation = (s.orientation ?? random.pick(design.orientations)) as Orientation;
       assigned[covered[k]!] = { design: design.id, orientation };
     });
@@ -245,9 +256,7 @@ export const placement: MacroStages["placement"] = (seed, params, library) => {
   // Problems no retry can fix are reported once, not fifty times.
   const fillByZone = new Map<string, ChainTileDesign[]>();
   for (const zone of zones.values()) {
-    const eligible = library.tiles.filter((tile) => !paintsFeature(tile) &&
-      (!tile.eligibleTiers || tile.eligibleTiers.includes(zone.tier)) &&
-      (!tile.eligibleBonus || tile.eligibleBonus.includes(zone.bonus)));
+    const eligible = library.tiles.filter((tile) => !paintsFeature(tile) && eligibleIn(tile, zone));
     if (!eligible.length) throw new Error(`no tile design is eligible for zone ${zone.id} (tier ${zone.tier}, bonus ${zone.bonus})`);
     fillByZone.set(zone.id, eligible);
   }

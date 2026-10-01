@@ -65,7 +65,8 @@
       "defaultCellClass": "open",
       "cells": [".....a", ".....a", ".....a", ".....a", ".....a", ".....a"],
       "legend": { "a": "any" },
-      "orientations": [0, 90, 180, 270]
+      "orientations": [0, 90, 180, 270],
+      "eligibleTiers": [1, 2, 3, 4]
     },
     {
       "id": "arrival-pad",
