@@ -48,6 +48,19 @@
       "eligibleTiers": [2, 3, 4]
     },
     {
+      "id": "yard-edge",
+      "defaultCellClass": "open",
+      "segments": {
+        "v:6,0": { "adjacency": "open" },
+        "v:6,1": { "adjacency": "open" },
+        "v:6,2": { "adjacency": "open" },
+        "v:6,3": { "adjacency": "open" },
+        "v:6,4": { "adjacency": "open" },
+        "v:6,5": { "adjacency": "open" }
+      },
+      "orientations": [0, 90, 180, 270]
+    },
+    {
       "id": "borderland",
       "defaultCellClass": "open",
       "cells": [".....a", ".....a", ".....a", ".....a", ".....a", ".....a"],

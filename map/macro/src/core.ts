@@ -1,7 +1,7 @@
 import DEFAULT_LIBRARY_JSON from "../content/default-library.json" with { type: "json" };
 import { CELL_SCALE } from "../../kernel/scale.ts";
 import { composeMacro } from "./macro.ts";
-import { getDifficulty, solveWfc, getRotatedEdge, tileCompatibility } from "./wfc.ts";
+import { compassLinks, getDifficulty, solveWfc, getRotatedEdge, tileCompatibility } from "./wfc.ts";
 import type { WfcGrid, TileOption } from "./wfc.ts";
 import type { MacroPlacement } from "./macro-types.ts";
 import { compileTileDesign } from "./macro-compiler.ts";
@@ -2108,7 +2108,7 @@ export function placeLayout(
           orientation: assigned[i]!.orientation as any,
           difficulty: 0 // pre-assigned
         }],
-        setPieceInstance: assigned[i]!.setPieceInstance
+        links: [],
       };
     } else {
       const tier = zoneOf(c).tier;
@@ -2119,22 +2119,11 @@ export function placeLayout(
           if (tOpt.templateId === t.id) domain.push(tOpt);
         }
       }
-      return { x: c.x, y: c.y, domain };
+      return { x: c.x, y: c.y, domain, links: [] };
     }
   });
 
-  const cellMap = new Map<string, number>();
-  wfcGrid.forEach((c, i) => cellMap.set(`${c.x},${c.y}`, i));
-  for (const c of wfcGrid) {
-    c.n = cellMap.get(`${c.x},${c.y - 1}`);
-    c.s = cellMap.get(`${c.x},${c.y + 1}`);
-    c.e = cellMap.get(`${c.x + 1},${c.y}`);
-    c.w = cellMap.get(`${c.x - 1},${c.y}`);
-    c.tl = cellMap.get(`${c.x - 1},${c.y - 1}`);
-    c.tr = cellMap.get(`${c.x + 1},${c.y - 1}`);
-    c.bl = cellMap.get(`${c.x - 1},${c.y + 1}`);
-    c.br = cellMap.get(`${c.x + 1},${c.y + 1}`);
-  }
+  compassLinks(wfcGrid);
 
   const solvedGrid = solveWfc(wfcGrid, p.columns, p.rows, tileCompatibility(library.tiles), random);
   if (!solvedGrid) {

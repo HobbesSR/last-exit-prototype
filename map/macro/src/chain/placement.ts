@@ -1,20 +1,21 @@
 /**
  * Placement (51 stage 1): seed, params and library to a Layout. Set piece classes place
  * their quotas by today's rules, lifted out of `placeLayout`. WFC fills the remaining
- * slots over adjacency compatibility. A sample that breaks a rule is retried, each
+ * slots over adjacency compatibility, so no tile is placed that breaks a prescription.
+ * A sample whose set pieces don't fit, or whose fill has no solution, is retried, each
  * attempt on its own stream.
  */
 import { layoutSlots, libraryFingerprint, makeZones, ZONE_COLUMNS, ZONE_ROWS } from "../core.ts";
 import type { MaskCell, MapZone } from "../types.ts";
 import { solveWfc } from "../wfc.ts";
 import type { TileOption, WfcCompatibility, WfcGrid } from "../wfc.ts";
-import { declaredGrid, layoutViolations, orientedDesigns } from "./declared-grid.ts";
+import { orientedDesigns } from "./declared-grid.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
 import { CHAIN_TILE_SIZE } from "./library.ts";
 import type { ChainLibrary, ChainSetPiece, ChainSetPieceClass, ChainTileDesign, PlacementRule } from "./library.ts";
 import { stream } from "./random.ts";
 import type { Stream } from "./random.ts";
-import type { ChainParams, Layout, MacroStages, Orientation, PlacedSlot, SetPieceInstance } from "./types.ts";
+import type { ChainParams, Layout, MacroStages, Orientation, PlacedSlot, SegmentKey, SetPieceInstance } from "./types.ts";
 
 export const PLACEMENT_ATTEMPTS = 50;
 /** Game mode's zone size (52, "Tier zones and the mask"). Playground mode allows others. */
@@ -88,24 +89,76 @@ function fitsSouth(a: OrientedDesign, b: OrientedDesign): boolean {
 }
 
 /**
- * Adjacency compatibility (51 stage 1): a neighbour's cell must match each adjacency
- * prescription, or be `any`. Passability can't conflict, so it never constrains the
- * solve. Diagonal neighbours share no segment, so they always fit.
+ * A corner cell of a middle tile is the target of two neighbours' seams: the two
+ * orthogonal neighbours beside that corner, which are diagonal to each other. Per
+ * corner, the seam key each neighbour aims at it, by the neighbour's side of the middle.
  */
-function adjacencyCompatibility(oriented: (id: string, orientation: Orientation) => OrientedDesign): WfcCompatibility {
+const CORNERS = {
+  NW: { W: `v:${S},0`, N: `h:0,${S}` },
+  NE: { N: `h:${S - 1},${S}`, E: "v:0,0" },
+  SE: { E: `v:0,${S - 1}`, S: `h:${S - 1},0` },
+  SW: { S: "h:0,0", W: `v:${S},${S - 1}` },
+} as const satisfies Record<string, Partial<Record<"N" | "E" | "S" | "W", SegmentKey>>>;
+type Corner = keyof typeof CORNERS;
+const STEP = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] } as const;
+
+/** Two prescriptions aimed at one cell agree unless both state different classes. */
+const agree = (a: string | undefined, b: string | undefined): boolean =>
+  a === undefined || b === undefined || a === "any" || b === "any" || a === b;
+
+/**
+ * Adjacency compatibility (51 stage 1), as WFC relations.
+ * - `N`, `E`, `S`, `W`: a neighbour's cell must match each adjacency prescription across
+ *   the seam, or be `any`.
+ * - `NW:W` and the like: the two neighbours beside one corner of a middle tile mustn't
+ *   ask its corner cell for two classes. Where that cell is `any`, this is the only rule
+ *   that keeps it to one; where it isn't, the seams already require both to match it.
+ *
+ * Passability can't conflict, so it never constrains the solve.
+ */
+export function adjacencyCompatibility(library: ChainLibrary): WfcCompatibility {
+  const oriented = orientedDesigns(library);
   const of = (option: TileOption) => oriented(option.templateId, option.orientation);
-  return (a, direction, b) => {
-    switch (direction) {
+  return (a, relation, b) => {
+    switch (relation) {
       case "E": return fitsEast(of(a), of(b));
       case "W": return fitsEast(of(b), of(a));
       case "S": return fitsSouth(of(a), of(b));
       case "N": return fitsSouth(of(b), of(a));
-      default: return true;
     }
+    const [corner, side] = relation.split(":") as [Corner, string];
+    const keys = CORNERS[corner] as Record<string, SegmentKey>;
+    const other = Object.keys(keys).find((s) => s !== side)!;
+    return agree(of(a).segments.get(keys[side]!)?.adjacency, of(b).segments.get(keys[other]!)?.adjacency);
   };
 }
 
-type Failure = `set piece ${string}` | "wfc" | "adjacency";
+/**
+ * Links each slot to its four neighbours across seams, and, for every slot standing
+ * between two of its neighbours, those two by that slot's corner. A corner whose
+ * middle slot is outside the map has no cell to ask for, so it links nothing.
+ */
+export function adjacencyLinks(grid: WfcGrid): void {
+  const at = new Map<string, number>();
+  grid.forEach((c, i) => at.set(`${c.x},${c.y}`, i));
+  const beside = (c: { x: number; y: number }, side: keyof typeof STEP) => at.get(`${c.x + STEP[side][0]},${c.y + STEP[side][1]}`);
+  for (const c of grid) {
+    c.links = [];
+    for (const side of ["N", "S", "E", "W"] as const) {
+      const cell = beside(c, side);
+      if (cell !== undefined) c.links.push({ cell, relation: side });
+    }
+  }
+  for (const middle of grid) for (const [corner, keys] of Object.entries(CORNERS)) {
+    const [one, two] = Object.keys(keys) as Array<keyof typeof STEP>;
+    const a = beside(middle, one!), b = beside(middle, two!);
+    if (a === undefined || b === undefined) continue;
+    grid[a]!.links.push({ cell: b, relation: `${corner}:${one}` });
+    grid[b]!.links.push({ cell: a, relation: `${corner}:${two}` });
+  }
+}
+
+type Failure = `set piece ${string}` | "wfc";
 
 /** One sample: set pieces, then WFC. A failure names what failed, for the final error. */
 function sample(
@@ -161,24 +214,17 @@ function sample(
       domain: fixed
         ? [{ templateId: fixed.design, orientation: fixed.orientation, difficulty: 0, weight: 1 }]
         : optionsFor(zones.get(cell.zoneId)!),
+      links: [],
     };
   });
-  for (const cell of grid) {
-    cell.n = slotAt.get(`${cell.x},${cell.y - 1}`);
-    cell.s = slotAt.get(`${cell.x},${cell.y + 1}`);
-    cell.e = slotAt.get(`${cell.x + 1},${cell.y}`);
-    cell.w = slotAt.get(`${cell.x - 1},${cell.y}`);
-  }
-  const solved = solveWfc(grid, columns, rows, adjacencyCompatibility(orientedDesigns(library)), () => random.next());
+  adjacencyLinks(grid);
+  const solved = solveWfc(grid, columns, rows, adjacencyCompatibility(library), () => random.next());
   if (!solved) return "wfc";
 
   const slots: PlacedSlot[] = mask
     .map((cell, i) => ({ col: cell.col, row: cell.row, design: solved[i]!.domain[0]!.templateId, orientation: solved[i]!.domain[0]!.orientation }))
     .sort((a, b) => a.row - b.row || a.col - b.col);
-  const layout: Layout = { seed, params: { ...params }, library: fingerprint, slots, setPieces: instances };
-  // WFC checks neighbours pairwise. An `any` corner cell asked for two classes by two
-  // different neighbours is the one rule it can't see, so the whole grid is checked.
-  return layoutViolations(declaredGrid(layout, library)).length ? "adjacency" : layout;
+  return { seed, params: { ...params }, library: fingerprint, slots, setPieces: instances };
 }
 
 export const placement: MacroStages["placement"] = (seed, params, library) => {

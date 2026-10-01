@@ -11,7 +11,9 @@ import { libraryFingerprint } from "../src/core.ts";
 import { declaredGrid, layoutViolations, orientDesign } from "../src/chain/declared-grid.ts";
 import { validateLibrary } from "../src/chain/library.ts";
 import type { ChainLibrary, ChainTileDesign } from "../src/chain/library.ts";
-import { placement } from "../src/chain/placement.ts";
+import { adjacencyCompatibility, adjacencyLinks, placement } from "../src/chain/placement.ts";
+import { solveWfc } from "../src/wfc.ts";
+import type { WfcGrid } from "../src/wfc.ts";
 import type { ChainParams, DeclaredGrid, Layout, PlacedSlot } from "../src/chain/types.ts";
 import { assertDeterministic, assertPure, assertRecomputable } from "./chain-harness.ts";
 
@@ -219,4 +221,46 @@ test("an any cell may be asked for one class from two sides, never two classes",
   });
   assert.deepEqual(layoutViolations(grid("hut", "hut")), []);
   assert.deepEqual(layoutViolations(grid("hut", "open")), ["any cell 1,0 is asked for hut and open"]);
+});
+
+// ── The corner rule, during the solve ───────────────────────────────────────
+
+/**
+ * Middle tile B has an `any` corner. A, west of it, aims hut at that corner; C, north of
+ * it, aims a class from its options. A and C are diagonal: only B's corner joins them.
+ */
+const CORNER_LIBRARY: ChainLibrary = {
+  version: 1,
+  cellClasses: { open: { regionType: "open-field" }, hut: { regionType: "hut" } },
+  tiles: [
+    { id: "corner-any", defaultCellClass: "open", cells: ["a.....", "......", "......", "......", "......", "......"], legend: { a: "any" }, orientations: [0] },
+    { id: "aim-hut-east", defaultCellClass: "open", segments: { "v:6,0": { adjacency: "hut" } }, orientations: [0] },
+    { id: "aim-hut-south", defaultCellClass: "open", segments: { "h:6,0": { adjacency: "hut" } }, orientations: [0] },
+    { id: "aim-open-south", defaultCellClass: "open", segments: { "h:6,0": { adjacency: "open" } }, orientations: [0] },
+  ],
+  tileSets: [],
+  setPieces: [],
+  setPieceClasses: [],
+};
+
+function solveCorner(northOptions: string[], withMiddle = true): string | null {
+  const option = (templateId: string) => ({ templateId, orientation: 0 as const, difficulty: 0, weight: 1 });
+  const grid: WfcGrid = [
+    { x: 0, y: 1, domain: [option("aim-hut-east")], links: [] },
+    { x: 1, y: 0, domain: northOptions.map(option), links: [] },
+    ...(withMiddle ? [{ x: 1, y: 1, domain: [option("corner-any")], links: [] }] : []),
+  ];
+  adjacencyLinks(grid);
+  const solved = solveWfc(grid, 2, 2, adjacencyCompatibility(CORNER_LIBRARY), () => 0.5);
+  return solved ? solved[1]!.domain[0]!.templateId : null;
+}
+
+test("the solver never places a tile that asks an any corner for a second class", () => {
+  assert.deepEqual(validateLibrary(CORNER_LIBRARY, new Set(["open-field", "hut"])), { valid: true, errors: [] });
+  // Of C's two options, only the one agreeing with A survives propagation.
+  assert.equal(solveCorner(["aim-open-south", "aim-hut-south"]), "aim-hut-south");
+  // With no agreeing option, the solve fails there, rather than placing it.
+  assert.equal(solveCorner(["aim-open-south"]), null);
+  // With no middle tile there is no corner cell, so nothing joins A and C.
+  assert.equal(solveCorner(["aim-open-south"], false), "aim-open-south");
 });

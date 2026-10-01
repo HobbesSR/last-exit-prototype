@@ -6,21 +6,25 @@ export interface TileOption {
   difficulty: number;
   weight: number;
   id?: number;
+  /** Per relation, the ids of the options this one admits across it. The solver fills it. */
+  valid?: Map<string, Set<number>>;
+}
+
+/**
+ * One constraint from a cell to another: `relation` names what must hold between them,
+ * and `WfcCompatibility` answers it. A cell may link one neighbour by several relations.
+ */
+export interface WfcLink {
+  cell: number;
+  relation: string;
 }
 
 export interface WfcCell {
   x: number;
   y: number;
   domain: TileOption[];
-    setPieceInstance?: string;
-  n?: number;
-  s?: number;
-  e?: number;
-  w?: number;
-  tl?: number;
-  tr?: number;
-  bl?: number;
-  br?: number;
+  /** Checked, and queued on a change, in this order. */
+  links: WfcLink[];
 }
 
 export type WfcGrid = WfcCell[];
@@ -241,21 +245,15 @@ export function propagate(grid: WfcGrid, _columns: number, _rows: number, startQ
   const inQueue = new Uint8Array(grid.length);
   const queue: number[] = [];
   
+  const enqueue = (i: number) => {
+    if (!inQueue[i]) { queue.push(i); inQueue[i] = 1; }
+  };
+
   if (startQueue === undefined) {
-    for (let i = 0; i < grid.length; i++) {
-      queue.push(i);
-      inQueue[i] = 1;
-    }
+    for (let i = 0; i < grid.length; i++) enqueue(i);
   } else {
-      const startCell = grid[startQueue]!;
-      const neighbors = [startCell.n, startCell.s, startCell.e, startCell.w, startCell.tl, startCell.tr, startCell.bl, startCell.br];
-      for (const n of neighbors) {
-        if (n !== undefined && !inQueue[n]) {
-          queue.push(n);
-          inQueue[n] = 1;
-        }
-      }
-    }
+    for (const link of grid[startQueue]!.links) enqueue(link.cell);
+  }
 
   let head = 0;
   while (head < queue.length) {
@@ -264,61 +262,56 @@ export function propagate(grid: WfcGrid, _columns: number, _rows: number, startQ
     const cell = grid[i]!;
     if (cell.domain.length === 0) return false;
 
-    const checkSide = (nIndex: number | undefined, mySide: Side | "TL" | "TR" | "BL" | "BR", _neighborSide: Side | "TL" | "TR" | "BL" | "BR") => {
-      if (nIndex === undefined) return;
-      const nCell = grid[nIndex]!;
-      if (!nCell) return;
-        
-      
-      const validProp = "valid" + mySide;
-      
+    for (const { cell: n, relation } of cell.links) {
+      const nCell = grid[n]!;
       const newDomain = cell.domain.filter(opt => {
-        const validSet = (opt as any)[validProp] as Set<number>;
-        if (!validSet) { console.error("MISSING validSet for", opt, validProp, "id:", opt.id); }
+        const validSet = opt.valid!.get(relation)!;
         for (let k = 0; k < nCell.domain.length; k++) {
           if (validSet.has(nCell.domain[k]!.id!)) return true;
         }
         return false;
       });
-      
+
       if (newDomain.length < cell.domain.length) {
         cell.domain = newDomain;
-        if (cell.n !== undefined && !inQueue[cell.n]) { queue.push(cell.n); inQueue[cell.n] = 1; }
-        if (cell.s !== undefined && !inQueue[cell.s]) { queue.push(cell.s); inQueue[cell.s] = 1; }
-        if (cell.e !== undefined && !inQueue[cell.e]) { queue.push(cell.e); inQueue[cell.e] = 1; }
-        if (cell.w !== undefined && !inQueue[cell.w]) { queue.push(cell.w); inQueue[cell.w] = 1; }
-        if (cell.tl !== undefined && !inQueue[cell.tl]) { queue.push(cell.tl); inQueue[cell.tl] = 1; }
-        if (cell.tr !== undefined && !inQueue[cell.tr]) { queue.push(cell.tr); inQueue[cell.tr] = 1; }
-        if (cell.bl !== undefined && !inQueue[cell.bl]) { queue.push(cell.bl); inQueue[cell.bl] = 1; }
-        if (cell.br !== undefined && !inQueue[cell.br]) { queue.push(cell.br); inQueue[cell.br] = 1; }
+        for (const link of cell.links) enqueue(link.cell);
       }
-    };
-
-    checkSide(cell.n, "N", "S");
-    checkSide(cell.s, "S", "N");
-    checkSide(cell.e, "E", "W");
-    checkSide(cell.w, "W", "E");
-    checkSide(cell.tl, "TL", "BR");
-    checkSide(cell.tr, "TR", "BL");
-    checkSide(cell.bl, "BL", "TR");
-    checkSide(cell.br, "BR", "TL");
+    }
   }
 
   return true;
 }
 
 
-/** A neighbour's direction from a cell. A diagonal is only consulted where the grid links one. */
+/** Whether `b` may stand across `relation` from `a`. It reads only the two options. */
+export type WfcCompatibility = (a: TileOption, relation: string, b: TileOption) => boolean;
+
+/** The old path's relations: a neighbour's direction, diagonals included. */
 export type WfcDirection = Side | "TL" | "TR" | "BL" | "BR";
-/** Whether `b` may stand in `direction` from `a`. It reads only the two options. */
-export type WfcCompatibility = (a: TileOption, direction: WfcDirection, b: TileOption) => boolean;
+const COMPASS: Array<[WfcDirection, number, number]> = [
+  ["N", 0, -1], ["S", 0, 1], ["E", 1, 0], ["W", -1, 0],
+  ["TL", -1, -1], ["TR", 1, -1], ["BL", -1, 1], ["BR", 1, 1],
+];
+
+/** Links each cell to its eight neighbours by direction, as the old path always has. */
+export function compassLinks(grid: WfcGrid): void {
+  const at = new Map<string, number>();
+  grid.forEach((c, i) => at.set(`${c.x},${c.y}`, i));
+  for (const c of grid) {
+    c.links = [];
+    for (const [relation, dx, dy] of COMPASS) {
+      const cell = at.get(`${c.x + dx},${c.y + dy}`);
+      if (cell !== undefined) c.links.push({ cell, relation });
+    }
+  }
+}
 
 /** The old library's compatibility: matching edge, cell and corner declarations. */
 export function tileCompatibility(libraryTiles: TileDesign[]): WfcCompatibility {
   const opposite: Record<Side, Side> = { N: "S", S: "N", E: "W", W: "E" };
-  return (a, direction, b) => direction.length === 1
-    ? matchEdge(a, direction as Side, b, opposite[direction as Side], libraryTiles)
-    : matchDiagonal(a, direction as "TL" | "TR" | "BL" | "BR", b, libraryTiles);
+  return (a, relation, b) => relation.length === 1
+    ? matchEdge(a, relation as Side, b, opposite[relation as Side], libraryTiles)
+    : matchDiagonal(a, relation as "TL" | "TR" | "BL" | "BR", b, libraryTiles);
 }
 
 export function solveWfc(grid: WfcGrid, columns: number, rows: number, compatible: WfcCompatibility, random: () => number, state = { iterations: 0, maxIterations: 10000 }, startQueue?: number): WfcGrid | null {
@@ -344,16 +337,8 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, compatibl
     }
 
     if (needsPrecalc) {
-      for (const opt of domain) {
-        (opt as any).validN = new Set();
-        (opt as any).validS = new Set();
-        (opt as any).validE = new Set();
-        (opt as any).validW = new Set();
-        (opt as any).validTL = new Set();
-        (opt as any).validTR = new Set();
-        (opt as any).validBL = new Set();
-        (opt as any).validBR = new Set();
-      }
+      const relations = [...new Set(grid.flatMap((c) => c.links.map((link) => link.relation)))];
+      for (const opt of domain) opt.valid = new Map(relations.map((relation) => [relation, new Set<number>()]));
       // Compatibility depends only on template and orientation, and every
       // pre-assigned set-piece slot is its own option object, so match each
       // distinct pair once and share the answer across its options.
@@ -369,11 +354,9 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, compatibl
         const opt = mine[0]!;
         for (const theirs of kinds) {
           const nOpt = theirs[0]!;
-          const fits: Array<[string, boolean]> = (["N", "S", "E", "W", "TL", "TR", "BL", "BR"] as const)
-            .map((direction) => [`valid${direction}`, compatible(opt, direction, nOpt)]);
-          for (const [valid, fit] of fits) {
-            if (!fit) continue;
-            for (const o of mine) for (const n of theirs) (o as any)[valid].add(n.id);
+          for (const relation of relations) {
+            if (!compatible(opt, relation, nOpt)) continue;
+            for (const o of mine) for (const n of theirs) o.valid!.get(relation)!.add(n.id!);
           }
         }
       }
@@ -405,7 +388,7 @@ export function solveWfc(grid: WfcGrid, columns: number, rows: number, compatibl
   for (const opt of options) {
     const clonedGrid: WfcGrid = grid.map(c => ({
       x: c.x, y: c.y,
-      n: c.n, s: c.s, e: c.e, w: c.w, tl: c.tl, tr: c.tr, bl: c.bl, br: c.br,
+      links: c.links,
       domain: c === cell ? [opt] : c.domain
     }));
 

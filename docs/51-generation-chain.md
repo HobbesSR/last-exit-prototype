@@ -525,11 +525,16 @@ live game until the switch-over.
    - The fill never uses a design that paints a feature class, which is how
      placement keeps a feature class inside its owning set pieces ("Features").
      It honours each design's eligible tiers and bonus.
-   - `wfc.ts` takes a compatibility function, and the old path passes its
-     matchers unchanged (the sweep shows no drift). WFC checks neighbours
-     pairwise, so the whole declared grid is checked afterwards, for an `any`
-     corner cell asked for two classes by two neighbours. A failed check
-     retries.
+   - `wfc.ts` takes a compatibility function and a list of named relations
+     per cell, in place of fixed compass fields. The old path links its eight
+     directions as before (the sweep shows no drift).
+   - The fill never places a tile that breaks a prescription. Each seam is a
+     relation, and so is each corner of a middle tile. The two neighbours
+     beside a corner must not ask that corner's cell for two classes, which
+     is the only rule that keeps an `any` corner to one class. It is checked
+     during propagation, as the old path's diagonal corner matching was, so a
+     conflict prunes options as tiles are placed and is never found after the
+     solve. A corner whose middle slot is outside the map links nothing.
    - An adjacency prescription facing the map's outside has no cell to
      constrain, so it is met, as a passability prescription there is.
    - Each attempt draws from its own `placement` stream (`chain/random.ts`).
