@@ -37,3 +37,17 @@ export function renderDevNav(mainUrl, mapgenUrl) {
   if (document.body) insert();
   else document.addEventListener('DOMContentLoaded', insert);
 }
+
+const config = await fetch("/dev-nav-config.json", {
+  cache: "no-store",
+  signal: AbortSignal.timeout(1500),
+})
+  .then(response => {
+    if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+    return response.json();
+  })
+  .catch(error => {
+    console.warn("Development navigation config could not be loaded.", error);
+    return null;
+  });
+if (config) renderDevNav(config.mainUrl, config.mapgenUrl);

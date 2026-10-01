@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import process from "node:process";
 import { stripTypeScriptTypes } from "node:module";
 import { fileURLToPath } from "node:url";
+import { getDevNavConfig } from "../../../shared/dev-nav-server.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // The repository root, which the game server hashes the same way.
@@ -84,9 +85,10 @@ const server = http.createServer(async (req, res) => {
     res.end();
     return;
   }
-  if (req.url === "/dev-nav.css") {
-    const content = fs.readFileSync(path.join(root, "../../public/dev-nav.css"), "utf8");
-    res.writeHead(200, { "Content-Type": "text/css" });
+  if (req.url === "/shared/dev-nav.js" || req.url === "/shared/dev-nav.css") {
+    const name = req.url.endsWith(".css") ? "dev-nav.css" : "dev-nav.js";
+    const content = fs.readFileSync(path.join(root, `../../shared/${name}`));
+    res.writeHead(200, { "Content-Type": name.endsWith(".css") ? "text/css" : "text/javascript" });
     res.end(content);
     return;
   }
@@ -95,26 +97,13 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({ kind: "mapgen", workspace: workspaceId }));
     return;
   }
-  if (req.url === "/dev-nav.js") {
-    const hostStr = req.headers.host || 'localhost';
-    const host = hostStr.startsWith('[') ? hostStr.substring(0, hostStr.indexOf(']') + 1) : hostStr.split(':')[0];
-    const mapgenUrl = `http://${host}:${req.socket.localPort}`;
-    const peerPort = Number(process.env.PORT);
-    let mainUrl: string | null = null;
-    if (Number.isInteger(peerPort) && peerPort > 0 && peerPort <= 65535) {
-      try {
-        const peer = await fetch(`http://127.0.0.1:${peerPort}/dev-nav-peer.json`, { signal: AbortSignal.timeout(300) });
-        const identity = peer.ok ? await peer.json() as { kind?: string; workspace?: string } : null;
-        if (identity?.kind === "game" && identity.workspace === workspaceId)
-          mainUrl = `http://${host}:${peerPort}`;
-      } catch { /* The configured peer is not running. */ }
-    }
-    const template = fs.readFileSync(path.join(root, "../../shared/dev-nav.js"), "utf8");
-    res.writeHead(200, { "Content-Type": "application/javascript" });
-    res.end(`
-${template.replace('export function renderDevNav', 'function renderDevNav')}
-renderDevNav(${JSON.stringify(mainUrl)}, ${JSON.stringify(mapgenUrl)});
-`);
+  if (req.url === "/dev-nav-config.json") {
+    const config = await getDevNavConfig({
+      kind: "mapgen", host: req.headers.host || "localhost", localPort: req.socket.localPort,
+      peerPort: process.env.PORT, workspaceId,
+    });
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    res.end(JSON.stringify(config));
     return;
   }
   let file: string | null;
