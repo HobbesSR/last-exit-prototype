@@ -134,6 +134,25 @@ test("every design is eligible in its slot's zone, in set pieces as in the fill"
   }
 });
 
+test("a slot's fixed orientation draws only members that allow it", () => {
+  // Codex's repro: no member of the slot's tile set allows 90, so the library is refused.
+  const unsuited = copy();
+  unsuited.setPieces.find((p) => p.id === "entry")!.tiles[0]!.orientation = 90;
+  assert.match(validateLibrary(unsuited, REGION_TYPES).errors.join("; "), /set piece entry: slot 0 orientation 90 suits no member of tile set arrivals/);
+  // With a member that allows it, only that member is drawn.
+  const mixed = copy();
+  mixed.setPieces.find((p) => p.id === "entry")!.tiles[0]!.orientation = 90;
+  mixed.tiles.push({ ...design("arrival-pad"), id: "arrival-turned", orientations: [90] });
+  mixed.tileSets.find((s) => s.id === "arrivals")!.members.push("arrival-turned");
+  assert.deepEqual(validateLibrary(mixed, REGION_TYPES), { valid: true, errors: [] });
+  for (const seed of SEEDS) {
+    const layout = placement(seed, GAME, mixed);
+    const entry = layout.setPieces.find((i) => i.setPiece === "entry")!.slots[0]!;
+    const slot = slotOf(layout).get(`${entry.col},${entry.row}`)!;
+    assert.deepEqual([slot.design, slot.orientation], ["arrival-turned", 90], seed);
+  }
+});
+
 test("the declared grid is pure, deterministic and recomputable from the layout and library", () => {
   const layout = layouts.get(SEEDS[0]!)!;
   const grid = assertPure("declared grid", declaredGrid, layout, LIBRARY);

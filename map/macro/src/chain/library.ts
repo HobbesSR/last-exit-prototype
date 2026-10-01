@@ -290,6 +290,13 @@ export function validateLibrary(
     }
   }
 
+  const tileOrientations = new Map<string, unknown[]>();
+  if (Array.isArray(library.tiles)) for (const raw of library.tiles)
+    if (object(raw) && name(raw.id) && Array.isArray(raw.orientations)) tileOrientations.set(raw.id, raw.orientations);
+  const tileSetMembers = new Map<string, string[]>();
+  if (Array.isArray(library.tileSets)) for (const raw of library.tileSets)
+    if (object(raw) && name(raw.id) && names(raw.members)) tileSetMembers.set(raw.id, raw.members);
+
   const setPieceIds = uniqueIds(library.setPieces, "setPieces", errors);
   if (Array.isArray(library.setPieces)) for (const raw of library.setPieces) if (object(raw)) {
     const path = `set piece ${String(raw.id)}`;
@@ -312,6 +319,12 @@ export function validateLibrary(
           errors.push(`${path}: malformed slot ${i}`);
         if (object(slot) && slot.orientation !== undefined && !ORIENTATIONS.has(slot.orientation as number))
           errors.push(`${path}: malformed slot orientation ${i}`);
+        else if (object(slot) && slot.orientation !== undefined && name(slot.tileSetId)) {
+          // A fixed orientation must suit some member, or the slot can never be filled.
+          const members = tileSetMembers.get(slot.tileSetId);
+          if (members?.every((id) => tileOrientations.get(id)?.includes(slot.orientation) === false))
+            errors.push(`${path}: slot ${i} orientation ${String(slot.orientation)} suits no member of tile set ${slot.tileSetId}`);
+        }
       }
     }
     if (raw.eligibleTiers !== undefined && (!Array.isArray(raw.eligibleTiers) ||

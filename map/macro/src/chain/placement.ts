@@ -182,10 +182,12 @@ function sample(
   const picks = (params.mode ?? "game") === "game" ? pickSetPieces(library, pieces, columns, rows, random) : [];
   for (const [nth, { setPieceClass, piece, filter }] of picks.entries()) {
     const width = Math.max(...piece.tiles.map((s) => s.dx)) + 1;
-    // The members of each slot's tile set that are eligible in that slot's zone.
+    // The members of each slot's tile set eligible in that slot's zone, and allowing the
+    // slot's orientation where it fixes one.
     const eligible = (k: number, j: number): ChainTileDesign[] => {
-      const zone = zones.get(mask[j]!.zoneId)!;
-      return tileSets.get(piece.tiles[k]!.tileSetId)!.members.map((id) => designs.get(id)!).filter((tile) => eligibleIn(tile, zone));
+      const zone = zones.get(mask[j]!.zoneId)!, { tileSetId, orientation } = piece.tiles[k]!;
+      return tileSets.get(tileSetId)!.members.map((id) => designs.get(id)!).filter((tile) =>
+        eligibleIn(tile, zone) && (orientation === undefined || tile.orientations.includes(orientation)));
     };
     const placements: number[][] = [];
     for (const anchor of mask) {
