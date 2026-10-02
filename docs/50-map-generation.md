@@ -3,8 +3,8 @@
 Status: accepted direction, 2026-09-29. Updated: 2026-09-29.
 
 The 5x files are map generation. 50 is the overview and who owns what. 51 is
-the generation chain, 52 the primitives and the library, and 53 artifacts,
-determinism and tools. Micro generation was documented before this area
+the generation chain, 52 the primitives and the library, 53 artifacts,
+determinism and tools, and 54 the region type catalogue. Micro generation was documented before this area
 existed, so its files keep their numbers: 19 (decomposition design) and 20
 (bounded micro generation).
 
@@ -141,6 +141,6 @@ So the test is:
 | A chain stage or its interfaces | 51 |
 | Tiles, set pieces, cell classes, prescriptions, zones | 52 |
 | Artifacts, saving, determinism, the sweep, the Map Lab, CLI and MCP | 53 |
-| A region type, a builder, a decomposer, the SDK | 19, 20, 22 |
+| A region type, a builder, a decomposer, the SDK | 54 (the catalogue, a working draft), then 19, 20, 22 |
 | Open questions, and your verbatim answers | 17, "Map generation" |
 | What's next | 41, and the Forgejo tracker it names |
