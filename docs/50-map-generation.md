@@ -141,6 +141,6 @@ So the test is:
 | A chain stage or its interfaces | 51 |
 | Tiles, set pieces, cell classes, prescriptions, zones | 52 |
 | Artifacts, saving, determinism, the sweep, the Map Lab, CLI and MCP | 53 |
-| A region type, a builder, a decomposer, the SDK | 54 (the catalogue, proposed), then 19, 20, 22 |
+| A region type, a builder, a decomposer, the SDK | 54 (the catalogue, a working draft), then 19, 20, 22 |
 | Open questions, and your verbatim answers | 17, "Map generation" |
 | What's next | 41, and the Forgejo tracker it names |

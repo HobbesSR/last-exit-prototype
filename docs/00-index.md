@@ -81,7 +81,7 @@ existed.
 | [51-generation-chain.md](51-generation-chain.md) | The chain's stages and their interfaces, features, saving, and the build order |
 | [52-map-primitives-and-library.md](52-map-primitives-and-library.md) | Cells, segments and prescriptions, region types, tiles, set pieces and set piece classes, tier zones, scale |
 | [53-map-artifacts-and-tools.md](53-map-artifacts-and-tools.md) | Determinism, what is stored, the wire form and BSON, the sweep, the Map Lab, CLI and MCP |
-| [54-region-types.md](54-region-types.md) | The region type catalogue, proposed: each type's role, strategy, core elements, shape needs and material |
+| [54-region-types.md](54-region-types.md) | The region type catalogue, a working draft: each type's role, strategy, core elements, shape needs and material |
 
 ## Other places facts live
 

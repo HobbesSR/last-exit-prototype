@@ -306,12 +306,22 @@ assumption, and 54 marks what rests on it.
     (P-09), and which set piece class would own it? *Assumption:* the set as
     drafted, with B4 starting from `open`, `cover`, `rubble`, `hut`,
     `arrival`, `departure` and `charging`. `warp` stays deferred.
+    - (2026-10-02) "M18 stays deferred. Once we have the system generally hooked up top to bottom, we will again rework authoring and specially recognized details."
+
+    Recorded in 54: the catalogue stays a working draft. B3 and B4 build its
+    minimal set to hook the chain up top to bottom, and authoring and
+    specially recognized details are reworked after that. `warp` stays
+    deferred (16).
 19. **M19. Obstacles under the proof.** A region with one portal owes nothing
     between portals (M3), so its builder may fill it solid. Is that how a
     library gets rocks, wrecks and other obstacles, or should a region type
     with no portals be exempt from M2's "every region in the spawn's
     component"? *Assumption:* one portal, no exemption, so an obstacle region
     needs one passable stretch facing its neighbour.
+    - (2026-10-02) "M19 let's not worry about "obstacle" regions. They aren't a special class, it's up to authors to exploit the rules as they are if they want a region to be an "obstacle" region."
+
+    Recorded in 54: there is no obstacle type and no exemption from M2.
+    Authors may use the rules as they stand. M19 is answered.
 20. **M20. Contestants' entry points.** The `start` class promises one `spawn`,
     and the report counts exactly one per instance. The arrival region still
     has to place a point for every contestant, about 24 eventually. How should
@@ -319,29 +329,58 @@ assumption, and 54 marks what rests on it.
     class rule gives the contestant count as a parameter, and B3 adds the
     individual points to the result as type output that the report doesn't
     count.
+    - (2026-10-02) "M20 I dunno, for the time being we're assuming there is one region of the class that builders place spawn points in, and that region for now should have all the spawn points for the map as part of what the builder places."
+
+    Recorded in 54: one `arrival` region holds every spawn point on the map,
+    and its builder places them. Still open: how many it is asked for.
+    *Assumption:* each spawn point is a `spawn` core element site, so the
+    `start` class's `spawn` count becomes the contestant count, a param like
+    `exitCount`. That changes the library rule and the report's count, so B3
+    or B4 settles it in code.
 21. **M21. Macro-required squeezes.** The design notes say contestant-only
     choke points "may be something we want to require from a macro level".
     Macro prescribes no geometry now. *Assumption:* squeezes are builders'
     choice, and the `rubble` type exists to make them. Macro requires none.
+    - (2026-10-02) "M21 We can circle back to the squeezes being a macro thing as a special consideration after we get the general hierarchy of layers working well."
+
+    Recorded in 16: deferred until the layers work end to end. Squeezes are
+    builders' choice until then.
 22. **M22. Spacing across regions.** Some live rules reach past one region:
     traps at least 850 units from a charger, and a hunter's respawn at least
     1,000 units from contestants (14). A brief never sees its neighbours.
     *Assumption:* a charging region keeps its own cells trap-free and nothing
     more. A wider rule needs either a bigger `charger` set piece or a new
     channel, and isn't solved yet.
+    - (2026-10-02) "M22 I think these are some builder details I'm not ready to deal with. We should focus on just getting the core elements  working and other elements with mechanics and how builders incorporate them as deferred."
+
+    Recorded in 16 and 54: deferred. Builders site core elements first.
+    Other elements with mechanics, such as traps, sensors and turrets, and
+    how builders incorporate them, come later.
 23. **M23. Locked doors.** Optional keyed areas are accepted (P-06, F-02).
     *Assumption:* a locked door is never on a route between portals, so a
     region with one only has it on a pocket. Which types may lock doors is the
     type's choice.
+    - (2026-10-02) "M23 essentially the same as M22, we'll figure out how to reason about locked doors after we have a generation with core elements working well."
+
+    Recorded in 16: deferred with M22.
 24. **M24. A region too small for its type.** Regions take any shape, so some
     will be too small for their type's main structure. *Assumption:* the
     builder builds as `cover` would and keeps the promise. A core element
     class that can't site its core elements leaves the shortfall for the
     report, and avoiding it is the author's job.
+    - (2026-10-02) "M24 this is essentially up to the region decomposer to determine. If the decomposer can't create a subregion with properties that a builder needs for a region type, it is free to assign that subregion to a different builder. It can always use a default "open" sub region builder as a last resort."
+
+    Recorded in 54: the region type's decomposer decides. It may hand a
+    subregion that doesn't suit the type's builders to a different builder,
+    and the `open` builder is always the last resort. M24 is answered.
 25. **M25. What open ground may hold.** Every cell of an `open` region is
     passable. May it hold anything at all besides loot, such as traps, low
     decoration, or objects that block sight but not bodies? *Assumption:* loot
     and decoration that blocks neither bodies nor sight. Traps go elsewhere.
+    - (2026-10-02) "M25 deferred, we'll reason about the open region builder later. For now it just builds nothing and is pure open cells."
+
+    Recorded in 54: the `open` builder builds nothing, so an `open` region is
+    pure open cells. What else it may hold is deferred (16).
 
 ## Product and gameplay — review together when convenient
 

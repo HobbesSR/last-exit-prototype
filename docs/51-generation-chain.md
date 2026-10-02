@@ -783,8 +783,8 @@ reachability is inferred (principle 8).
   - its obligations, such as `open`'s privilege (#61)
 
   The game's example builders and mapgen's six are material, not
-  constraints. **Drafted (#85):** 54, proposed, with its open choices as
-  17 M18 to M25.
+  constraints. **Drafted (#85):** 54, a working draft. Corey answered its
+  questions, 17 M18 to M25, on 2026-10-02.
 - B3. **The strategies** the catalogue calls for, in `map/micro/`, each
   its own issue.
 - B4. **The new library**, authored against the catalogue:

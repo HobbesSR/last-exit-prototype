@@ -1,9 +1,11 @@
 # 54. Region types
 
-Status: **proposed**, 2026-10-02 (B2, #85). A draft for Corey's review.
-Nothing here is accepted. The types, their names, and every number are
-proposals. They are not requirements until Corey adopts them (53, "Provenance
-rule"). Open choices are questions in 17, "Map generation", M18 to M25.
+Status: **working draft**, 2026-10-02 (B2, #85). Corey's answers to its
+questions, 17 M18 to M25, are recorded in 17 and applied here. The catalogue
+itself stays deferred (M18): B3 and B4 build its minimal set to hook the chain
+up top to bottom, and authoring and specially recognized details are reworked
+after that. Marked proposals and numbers are not requirements until Corey
+adopts them (53, "Provenance rule").
 
 This is the catalogue the new library (B4) and its strategies (B3) are built
 against. A cell class names a region type (52), and the type's strategy fills
@@ -27,17 +29,20 @@ These hold for every entry below, so the entries don't repeat them.
 - **Core elements** are sited before the loot fill, as the entry builder does
   today (20). A core element class sites exactly the counts its brief lists.
 - **Loot** rolls each cell's loot chance and takes the cell's tier, from the
-  brief's zones (52, "Tier zones").
-- **Traps and hazards** (F-05, F-15) are interior content. A type that places
-  them scales them by the cell's tier and bonus. They aren't core elements.
-- **Locked doors** (P-06) stay off every route between portals, so a key is
-  never needed to keep the promise. *Proposed* (M23).
+  brief's zones (52, "Tier zones"). `open` places none (M25).
+- **Core elements first.** Elements with mechanics other than core elements,
+  such as traps, sensors and turrets (F-05, F-15), how builders incorporate
+  them, and locked doors (P-06) are deferred until generation with core
+  elements works (17 M22 and M23, 16).
 - **Parameters:** what is intrinsic to the type goes in its class rule, and
   what varies with position comes from the zone (52). The parameters named
   below are proposals.
-- **Too small for its type:** see M24. *Proposed:* a type that can't fit its
-  main structure builds as `cover` would, and a core element class that can't
-  site its core elements leaves the shortfall for the report (51 stage 8).
+- **Fitting the region** (Corey, 2026-10-02, 17 M24): the type's decomposer
+  decides. If it can't make a subregion with what one of the type's builders
+  needs, it may hand that subregion to a different builder, and the `open`
+  builder is always the last resort. A type below with no decomposer takes
+  its region whole. A core element class that can't site its core elements
+  leaves the shortfall for the report (51 stage 8).
 
 ## How many portals a region has
 
@@ -50,9 +55,9 @@ design with:
 | one | a dead end, or a pocket | nothing between portals, so its interior is free |
 | two or more | a passage, or a junction | a hunter route joining every part of every portal |
 
-A one-portal region may therefore be built as a pocket, a dead end, or solid
-mass, which is how a library can get obstacles without an impassable
-prescription. That is a reading of 17 M3, not a recorded answer, so it's M19.
+There is no obstacle type, and no region is exempt from the proof. Authors
+may use these rules as they stand to make a region act as an obstacle (Corey,
+2026-10-02, 17 M19).
 
 ## The catalogue
 
@@ -72,9 +77,10 @@ prescription. That is a reading of 17 M3, not a recorded answer, so it's M19.
 | `charging` | core element | the power-cell charging station (F-03) | `charger` |
 | *transit* | core element, deferred | the hunters' transit stations (P-09) | `warp`, deferred (51) |
 
-**Minimal first set** for B4, *proposed* (M18): `open`, `cover`, `rubble`,
-`hut`, `arrival`, `departure` and `charging`. That is enough to exercise every
-stage, every core element class, and the contestant-only asymmetry (P-04).
+**Minimal first set** for B3 and B4, *proposed*: `open`, `cover`, `rubble`,
+`hut`, `arrival`, `departure` and `charging`. That is enough to hook the chain
+up top to bottom, with every stage, every core element class, and the
+contestant-only asymmetry (P-04).
 
 ## Ground
 
@@ -85,9 +91,10 @@ stage, every core element class, and the contestant-only asymmetry (P-04).
 - **Privilege** (Corey, 2026-09-27, #61, verbatim in 17): every cell of an
   `open` region is passable, and so is every segment inside it. Its builder
   promises that, on top of the portal promise.
-- **Strategy:** no decomposer. The builder places loot and nothing that blocks
-  a body. Whether anything else may stand on open ground, such as a trap or a
-  low decoration, is M25. Cover comes from other types placed among it (17 M10).
+- **Strategy:** no decomposer. For now the builder builds nothing, so an
+  `open` region is pure open cells (Corey, 2026-10-02, 17 M25). What else it
+  may hold is deferred. Cover comes from other types placed among it (17 M10).
+  It is also every decomposer's last resort for a subregion (M24).
 - **Shape needs:** a door's width, 2 cells, wherever it carries a route (17
   M9, assumption). A one-cell neck carries no hunter.
 - **Formed by:** fill, and the margins of every set piece.
@@ -127,7 +134,8 @@ points, and routes that aren't a straight shot.
 - **Parameters:** `density`, and the share of gaps that are squeezes.
 - **Material:** mapgen's `rubble` (its surviving gaps sit in the contestant
   band), and the game's `example-ruins` decay into rotated rubble.
-- **Open:** whether macro should be able to require a squeeze is M21.
+- **Macro-required squeezes** are deferred until the layers work end to end
+  (17 M21, 16). Until then squeezes are this builder's choice.
 
 ### `ruins`
 
@@ -169,7 +177,7 @@ inside, and windows and doors let sight through.
 - **Shape needs:** *proposed*, a contained 4 × 4 for the building, in a
   region of at least 6 × 6.
 - **Formed by:** small set pieces, and as a child of `block`.
-- **Parameters:** whether the door may be locked (M23).
+- **Parameters:** none yet. Locked doors are deferred (M23).
 - **Material:** the game's room shell in `builders.ts` (real windows, a door
   sized by the profile, optional shelves), and mapgen's `compound`.
 
@@ -230,18 +238,22 @@ report checks those counts per set piece instance (51 stage 8).
 ### `arrival`
 
 - **Role:** where contestants enter, on the western edge. The `start` set
-  piece class owns its one `spawn`.
-- **Strategy:** the `entry` builder's job, grown up: spread the contestants'
-  entry points with roughly equal spacing over the region (17, September 22),
+  piece class owns its spawns.
+- **Strategy:** the `entry` builder's job, grown up: spread every spawn point
+  with roughly equal spacing over the region (17, September 22),
   then cover and loot around them. The live game puts a pistol near every
   start (14).
-- **Core elements:** `spawn` × 1. How the individual contestants' points
-  travel in the result is M20.
+- **Core elements:** every spawn point on the map. For now one `arrival`
+  region holds them all, and its builder places them (Corey, 2026-10-02, 17
+  M20). *Assumption:* each point is a `spawn` site, so the `start` class's
+  `spawn` count becomes the contestant count, a param like `exitCount`. That
+  changes the library rule and the report's count, and B3 or B4 settles it in
+  code.
 - **Shape needs:** room for every contestant's point at the spacing chosen.
   The live game spaces starts 400 units apart, 10 cells at 40 units a cell
   (14). That is a live tuning value, not a requirement here.
 - **Formed by:** `start` set pieces only.
-- **Parameters:** `contestants`, and the spacing.
+- **Parameters:** the spacing.
 - **Material:** the game's `example-entry` and `spreadPoints`.
 
 ### `departure`
@@ -264,16 +276,17 @@ report checks those counts per set piece instance (51 stage 8).
 - **Strategy:** site one charger with standing room around it, and cover close
   enough to make the wait a choice rather than a death.
 - **Core elements:** `charger` × 1.
-- **Shape needs:** room for the station and its stand. The live game keeps
-  traps 850 units from a charger, 21 cells at 40 units a cell (14). That
-  reaches into neighbouring regions, which a brief can't see: M22.
+- **Shape needs:** room for the station and its stand. Spacing rules that
+  reach into other regions, such as the live game's traps 850 units from a
+  charger (14), are deferred (17 M22).
 - **Formed by:** `charger` set pieces only.
 
 ### *transit* (deferred)
 
 The hunters' private transit network (P-09), and their respawn points (14).
 51 lists `warp` as a core element and defers it. Whether `warp` is the
-transit station, and which set piece class would own it, is M18.
+transit station, and which set piece class would own it, stays deferred with
+the catalogue (17 M18).
 
 ## Today's names
 
@@ -288,7 +301,7 @@ keeps those names.
 
 | Type | The game (`map/micro/`) | mapgen (`src/micro/builders/`, retiring) |
 | --- | --- | --- |
-| `open` | the brief path's loot fill in `region-types.ts` | `loot-scatter` |
+| `open` | — (it builds nothing) | — |
 | `cover` | `example-open` | `open-field`, `scatter` |
 | `rubble` | `example-ruins` decay | `rubble` |
 | `ruins` | `example-ruins` | — |
