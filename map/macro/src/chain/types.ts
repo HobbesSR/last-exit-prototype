@@ -243,6 +243,34 @@ export interface Report extends StageMark<"report"> {
   metrics: Record<string, number>;
 }
 
+// ── The finished map (51 "What the finished map is") ────────────────────────
+
+/**
+ * What the game lends macro to build and compose regions, since macro and micro don't
+ * import each other (50). `version` names the strategies, so saved results are never
+ * rebuilt by different ones without saying so (51 "Saving").
+ */
+export interface MapEngines<Element = unknown> {
+  version: string;
+  build(brief: RegionBrief): RegionResult<Element>;
+  compose(results: readonly RegionResult<Element>[]): BuiltMap<Element>;
+}
+
+/**
+ * The generated map: the two objects, the Layout and the region results, plus the library
+ * they were made with. Every other stage output is a view behind one accessor (`mapViews`).
+ */
+export interface ChainMap<Element = unknown> extends StageMark<"chain-map"> {
+  layout: Layout;
+  library: ChainLibrary;
+  /** The briefs' cell size in world units: the game's scale, an input to the results. */
+  cellSize: number;
+  /** The `MapEngines` version that built the results. */
+  build: string;
+  /** One per brief, in the briefs' order. */
+  results: RegionResult<Element>[];
+}
+
 // ── The chain's stages ──────────────────────────────────────────────────────
 
 /** The macro stages' signatures. Stages 6 and 7 are the game's. */

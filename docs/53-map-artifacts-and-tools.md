@@ -1,7 +1,7 @@
 # 53. Map artifacts, determinism and tools
 
 Status: current for mapgen's old paths, and the rules carry into the chain (51).
-Updated 2026-09-29.
+Updated 2026-10-02.
 
 ## One seed decides the whole map
 
@@ -66,9 +66,18 @@ rules:
 A map records the fingerprint of its library and is read back only with that
 library.
 
-**The chain** bumps the version (51 step 9). It stores its Layout, including
-the set piece instances, in this form. How region results are stored, whether
-in this form or as the game's own result artifacts, is decided at that step.
+**The chain** is wire version 5 (51 step 9, `map/macro/src/chain/saving.ts`).
+- Its Layout goes through this form: slot positions, designs and
+  orientations, and each set piece instance with its slots, as columns, with
+  names in the string table. It records `MACRO_VERSION`.
+- Region results are stored as the game's own `region-2` data, less their
+  briefs, which are derived from the Layout on read. Macro can't read the
+  game's geometry, so it doesn't pack it.
+- `decodeChainMap` rebuilds a map deep-equal to the generated one. A save of
+  the Layout alone rebuilds its results with the game's engines, refused by
+  name if their version isn't the one the save records.
+- Versions 1–4 are refused by name. `decodeArtifact` keeps reading 4 until
+  the switch-over (step 10), and names version 5 as a chain map.
 
 ## BSON
 

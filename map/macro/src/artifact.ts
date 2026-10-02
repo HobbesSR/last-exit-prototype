@@ -26,10 +26,12 @@ import {
   macroFeatures,
   validateMap,
 } from "./core.ts";
+import { CHAIN_WIRE_VERSION } from "./chain/saving.ts";
 import { composePlanned } from "./plan/compose.ts";
 import { decodeBson, encodeBson, looksLikeBson } from "./bson.ts";
 import type { BsonValue } from "./bson.ts";
-import type { CodedGrid } from "./coding.ts";
+import { Strings, copyBuffer, packInts, unpackInts, widen } from "./coding.ts";
+import type { CodedGrid, PackedInts } from "./coding.ts";
 import type {
   GeneratedMap,
   Library,
@@ -56,76 +58,13 @@ const BARRIER = -1;
 /** Out-of-range marker for a segment interiors state nothing about. */
 const UNSTATED = -2;
 
-class Strings {
-  private list: string[] = [];
-  private index = new Map<string, number>();
-  id(value: string): number {
-    const existing = this.index.get(value);
-    if (existing !== undefined) return existing;
-    const next = this.list.length;
-    this.index.set(value, next);
-    this.list.push(value);
-    return next;
-  }
-  optional(value: string | undefined): number {
-    return value === undefined ? -1 : this.id(value);
-  }
-  get table(): string[] {
-    return this.list;
-  }
-}
-
 type Packed = Float64Array | number[];
-/**
- * A run of integers in the narrowest lane that holds it. `w` is the byte width,
- * so a reader can view the bytes correctly no matter which encoding carried
- * them; in JSON the values arrive as plain numbers and `w` is redundant.
- */
-interface PackedInts {
-  w: number;
-  v: Int8Array | Int16Array | Int32Array | Uint8Array | number[];
-}
-
-/** Most of a map is small numbers, so pick the lane each array actually needs. */
-function packInts(values: Iterable<number>): PackedInts {
-  const list = Array.from(values);
-  let min = 0,
-    max = 0;
-  for (const value of list) {
-    if (value < min) min = value;
-    if (value > max) max = value;
-  }
-  if (min >= -128 && max <= 127) return { w: 1, v: Int8Array.from(list) };
-  if (min >= -32768 && max <= 32767) return { w: 2, v: Int16Array.from(list) };
-  return { w: 4, v: Int32Array.from(list) };
-}
-function unpackInts(packed: PackedInts | undefined): Int32Array {
-  if (!packed || packed.v === undefined)
-    throw new Error("expected packed integer data");
-  const value = packed.v;
-  if (Array.isArray(value)) return Int32Array.from(value);
-  if (value instanceof Uint8Array) {
-    const buffer = copyBuffer(value);
-    if (packed.w === 1) return Int32Array.from(new Int8Array(buffer));
-    if (packed.w === 2) return Int32Array.from(new Int16Array(buffer));
-    return new Int32Array(buffer);
-  }
-  return Int32Array.from(value as Int32Array);
-}
-
 function asFloat64(value: unknown): Float64Array {
   if (value instanceof Float64Array) return value;
   if (Array.isArray(value)) return Float64Array.from(value as number[]);
   if (value instanceof Uint8Array) return new Float64Array(copyBuffer(value));
   throw new Error("expected packed float64 data");
 }
-function copyBuffer(bytes: Uint8Array): ArrayBuffer {
-  return bytes.buffer.slice(
-    bytes.byteOffset,
-    bytes.byteOffset + bytes.byteLength,
-  ) as ArrayBuffer;
-}
-
 /** A run-length grid whose palette has been reduced to numbers. */
 interface WireGrid {
   palette: PackedInts | Packed;
@@ -547,6 +486,11 @@ export function decodeArtifact(
   library: Library = DEFAULT_LIBRARY,
 ): GeneratedMap {
   const wire = input as WireArtifact;
+  // A chain map has no params of its own, so name it before the shape check.
+  if (wire?.format === "last-exit-map" && wire.wire === CHAIN_WIRE_VERSION)
+    throw new Error(
+      `wire version ${wire.wire} is a generation chain map; read it with decodeChainMap`,
+    );
   if (
     !wire ||
     wire.format !== "last-exit-map" ||
@@ -593,18 +537,6 @@ export function decodeArtifact(
     return composePlanned(layout, interiors);
   }
   throw new Error("artifact has no layout");
-}
-
-/** Typed arrays are binary in BSON and plain number arrays in JSON. */
-function widen(value: unknown): unknown {
-  if (ArrayBuffer.isView(value))
-    return Array.from(value as unknown as ArrayLike<number>);
-  if (Array.isArray(value)) return value.map(widen);
-  if (value && typeof value === "object")
-    return Object.fromEntries(
-      Object.entries(value).map(([key, inner]) => [key, widen(inner)]),
-    );
-  return value;
 }
 
 export function artifactToJson(map: GeneratedMap, space?: number): string {
