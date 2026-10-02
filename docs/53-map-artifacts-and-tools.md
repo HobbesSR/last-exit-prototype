@@ -123,8 +123,11 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
 - **Map Lab** (`map/macro/`, `npm run dev`, port 4173 by default): seed and
   parameter controls, map overlays, route comparison, tile inspection, and
   library editing and export, including a per-cell class painting grid. It's
-  the primary review surface for macro work. Track B1 (51) adds authoring for
-  the new schema.
+  the primary review surface for macro work. The Chain Library tab (51 B1)
+  authors the version 2 schema, validates import and export, and previews
+  tile-local derived portals and invalid passable prescriptions. Its perimeter
+  preview is provisional until placement resolves neighboring tiles. The older
+  editor remains for the old generator until the switch-over (51 step 10).
 - **CLI** (`map/macro/tools/cli.mts`): `generate`, `validate`, `batch`, `library`
   and `sweep`. Commands are in `map/macro/README.md`.
 - **MCP** (`map/macro/tools/mcp.mts`): bounded stdio tools `map_generate`,
