@@ -359,6 +359,11 @@ required crossings join children holding external obligations of each class and,
 `connect` names a class, all children. It returns per-child ports, inherited first,
 plus crossings and components. It neither generates nor repairs.
 
+**The rule for children** ([51](51-generation-chain.md) stage 6, Corey,
+2026-10-01): every two children that share a boundary have at least one portal
+between them. A null policy answer breaks it. `negotiatePortals` doesn't enforce
+it yet; it moves to portals with B3 (#96).
+
 `executeDecomposition(plan, options)` in `micro/execute.ts` is outside the SDK because
 it needs the builder catalogue. A caller `dispatch` maps each allocated piece or
 residual to builder content; null leaves a residual unrealized, and an allocated piece
