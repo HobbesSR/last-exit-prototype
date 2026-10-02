@@ -297,7 +297,7 @@ provided.
 one cell coordinate system (51 stage 7, C2). It refuses a cell with two owners,
 duplicate ids, mixed cell sizes, and any portal that isn't on its region's perimeter,
 faces cells no region owns, straddles two regions, or isn't named alike, with the same
-run, in the brief on its other side. It returns a `BuiltMap` (the kernel's type):
+run, in the brief on its other side, and a portal id that names two pairs. It returns a `BuiltMap` (the kernel's type):
 regions in id order and each shared portal's pair once, the same whatever order the
 results came in. It checks briefs and ownership only, never geometry: a builder's
 promise is its own to check (51 principle 9). `stampBuiltMap` and `builtMapCollision`

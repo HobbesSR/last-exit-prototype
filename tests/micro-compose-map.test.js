@@ -64,6 +64,10 @@ test('a disagreeing pair is refused, not repaired', () => {
   assert.throws(() => composeRegions(longer), /of region band has no matching portal in region block-00-00/);
   const dropped = withBrief(results, 'block-00-00', b => (b.portals = b.portals.filter(p => p.id !== id), b));
   assert.throws(() => composeRegions(dropped), /of region band has no matching portal in region block-00-00/);
+  // Both sides of one pair renamed to another pair's id agree with each other, but the id no longer names one pair.
+  const other = 'block-00-00~block-00-01~v:5,71', renamed = ['block-01-00', 'block-01-01'].reduce((list, region) =>
+    withBrief(list, region, b => (b.portals.find(p => p.id === 'block-01-00~block-01-01~v:5,76').id = other, b)), results);
+  assert.throws(() => composeRegions(renamed), /Portal block-00-00~block-00-01~v:5,71 names two pairs: regions block-00-00 and block-00-01, and regions block-01-00 and block-01-01/);
   const straddling = withBrief(results, 'band', b => (b.portals.find(p => p.id === id).length = 6, b));
   assert.throws(() => composeRegions(straddling), /straddles regions block-00-00 and block-00-01/);
 });

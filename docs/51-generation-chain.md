@@ -687,7 +687,7 @@ live game until the switch-over.
     results into a `BuiltMap`, the kernel's type, so step 8 can read it
     without the engine. It refuses two owners for a cell, and a portal that
     faces no owner, straddles two regions, or isn't named alike, with the
-    same run, on its other side. It checks no geometry (principle 9).
+    same run, on its other side. A portal id names one pair map-wide. It checks no geometry (principle 9).
   - The SDK's region bounds are one module, `map/micro/limits.ts`, raised to
     65,536 cells, 512 per axis and 4,096 portals. The fixture's open ground
     is one region of about 29,500 cells, 360 across, with about 440 portals.
