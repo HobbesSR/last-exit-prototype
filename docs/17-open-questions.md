@@ -331,12 +331,17 @@ assumption, and 54 marks what rests on it.
     count.
     - (2026-10-02) "M20 I dunno, for the time being we're assuming there is one region of the class that builders place spawn points in, and that region for now should have all the spawn points for the map as part of what the builder places."
 
-    Recorded in 54: one `arrival` region holds every spawn point on the map,
-    and its builder places them. Still open: how many it is asked for.
-    *Assumption:* each spawn point is a `spawn` core element site, so the
-    `start` class's `spawn` count becomes the contestant count, a param like
-    `exitCount`. That changes the library rule and the report's count, so B3
-    or B4 settles it in code.
+    Asked what `spawn` and its count meant, Corey described the model:
+    - (2026-10-02) "What I've imagined is there is a set piece that produces one contiguous region of a special type, a starting region, and that regions decomposer breaks it into a single sub region of a starting region class. The builder for that starting region class places all the spawn points for the map contestants."
+    - (2026-10-02) "Ok well should the subregion handle spawns? What does the spawn anchor do at all? It sounds like something from the old original games map generator that designates where spawn points go, but now we have a region that designates an area, not an anchor about which spawn points are placed."
+    - (2026-10-02) On recording that each spawn point is a `spawn` counted by the contestant count: "Yup do all of that"
+
+    Recorded in 51, 52 and 54. A `spawn` is one contestant's spawn point.
+    The `start` class promises `contestantCount` of them, a map param like
+    `exitCount`, and the report checks the count. The `arrival` region's
+    decomposer picks the subregion its spawn builder spreads them over.
+    There's no anchor and no marker point: the old single spawn was a tile
+    anchor (51, "Core elements"). M20 is answered.
 21. **M21. Macro-required squeezes.** The design notes say contestant-only
     choke points "may be something we want to require from a macro level".
     Macro prescribes no geometry now. *Assumption:* squeezes are builders'

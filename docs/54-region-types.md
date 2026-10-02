@@ -72,7 +72,7 @@ may use these rules as they stand to make a region act as an obstacle (Corey,
 | `depot` | structure | warehouses and container aisles: long sightlines, hard corners | — |
 | `compound` | structure | rooms around a walled court with few gates: a pocket with dead ends | — |
 | `block` | district | a city block that decomposes into the types above | — |
-| `arrival` | core element | the contestants' start | `spawn` |
+| `arrival` | core element | the contestants' start | `spawn` × `contestantCount` |
 | `departure` | core element | extraction and the hunters' start | `exit` × `exitCount`, `hunter-spawn` |
 | `charging` | core element | the power-cell charging station (F-03) | `charger` |
 | *transit* | core element, deferred | the hunters' transit stations (P-09) | `warp`, deferred (51) |
@@ -239,16 +239,15 @@ report checks those counts per set piece instance (51 stage 8).
 
 - **Role:** where contestants enter, on the western edge. The `start` set
   piece class owns its spawns.
-- **Strategy:** the `entry` builder's job, grown up: spread every spawn point
-  with roughly equal spacing over the region (17, September 22),
+- **Strategy:** the decomposer picks one subregion for spawns, and its
+  builder does the `entry` builder's job, grown up: spread every spawn point
+  with roughly equal spacing over that subregion (17, September 22),
   then cover and loot around them. The live game puts a pistol near every
   start (14).
-- **Core elements:** every spawn point on the map. For now one `arrival`
-  region holds them all, and its builder places them (Corey, 2026-10-02, 17
-  M20). *Assumption:* each point is a `spawn` site, so the `start` class's
-  `spawn` count becomes the contestant count, a param like `exitCount`. That
-  changes the library rule and the report's count, and B3 or B4 settles it in
-  code.
+- **Core elements:** `spawn` × `contestantCount`. A `spawn` is one
+  contestant's spawn point, and one `arrival` region holds every spawn point
+  on the map (Corey, 2026-10-02, 17 M20). There's no anchor: the old single
+  spawn was a tile anchor (51, "Core elements").
 - **Shape needs:** room for every contestant's point at the spacing chosen.
   The live game spaces starts 400 units apart, 10 cells at 40 units a cell
   (14). That is a live tuning value, not a requirement here.
