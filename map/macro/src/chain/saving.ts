@@ -14,7 +14,7 @@
  */
 import { decodeBson, encodeBson, looksLikeBson } from "../bson.ts";
 import type { BsonValue } from "../bson.ts";
-import { Strings, packInts, unpackInts, widen } from "../coding.ts";
+import { Strings, canonicalJson, packInts, unpackInts, widen } from "../coding.ts";
 import type { PackedInts } from "../coding.ts";
 import { libraryFingerprint } from "../core.ts";
 import type { ChainLibrary } from "./library.ts";
@@ -43,6 +43,8 @@ interface WireLayout {
 }
 /** A region result less its brief, which is a view. One per brief, in the briefs' order. */
 type WireResult = Omit<RegionResult, "version" | "brief">;
+/** What a saved result holds, and nothing else: its version is the build's, and its brief is derived. */
+const RESULT_FIELDS = ["elements", "coreElements", "loot", "manifest"] as const satisfies readonly (keyof WireResult)[];
 interface WireBuild {
   /** The `MapEngines` version that built the results, or that must rebuild them. */
   version: string;
@@ -114,11 +116,12 @@ export function encodeChainMap(map: ChainMap, options: SaveOptions = {}): WireCh
   if (options.results !== false) {
     const briefs = mapViews(map).briefs;
     if (map.results.length !== briefs.length) throw new Error(`the map holds ${map.results.length} results, but its layout gives ${briefs.length} briefs`);
-    build.results = map.results.map(({ version, brief, ...rest }, i) => {
+    build.results = map.results.map(({ version, brief, elements, coreElements, loot, manifest }, i) => {
       if (version !== "region-2") throw new Error(`region ${brief.id}'s result is ${version}, not region-2`);
-      if (JSON.stringify(brief) !== JSON.stringify(briefs[i]))
+      // Compared by content, not key order: a strategy may build an equal brief in its own order.
+      if (canonicalJson(brief) !== canonicalJson(briefs[i]))
         throw new Error(`region ${brief.id}'s result doesn't hold the brief its layout gives (${briefs[i]!.id})`);
-      return rest;
+      return { elements, coreElements, loot, manifest };
     });
   }
   return { format: "last-exit-map", wire: CHAIN_WIRE_VERSION, strings: strings.table, layout, build };
@@ -154,7 +157,13 @@ export function decodeChainMap<Element = unknown>(input: unknown, library: Chain
   if (wire.build.results) {
     if (wire.build.results.length !== briefs.length)
       throw new Error(`the save holds ${wire.build.results.length} results, but its layout gives ${briefs.length} briefs`);
-    map.results = wire.build.results.map((rest, i) => ({ version: "region-2", brief: briefs[i]!, ...rest }) as RegionResult<Element>);
+    map.results = wire.build.results.map((saved, i) => {
+      // A saved result holds no version or brief of its own, so nothing can override the derived ones.
+      const stray = Object.keys(saved).filter((key) => !(RESULT_FIELDS as readonly string[]).includes(key));
+      if (stray.length) throw new Error(`region ${briefs[i]!.id}'s saved result holds ${stray.join(", ")}, which a save never holds`);
+      const { elements, coreElements, loot, manifest } = saved;
+      return { version: "region-2", brief: briefs[i]!, elements, coreElements, loot, manifest } as RegionResult<Element>;
+    });
   } else {
     if (!engines) throw new Error("this save holds the Layout alone; rebuilding its results needs the game's engines");
     if (engines.version !== build)

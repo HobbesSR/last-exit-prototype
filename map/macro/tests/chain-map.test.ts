@@ -107,3 +107,19 @@ test("results that don't match their layout are refused, not saved", () => {
   assert.throws(() => decodeChainMap({ ...wire, build: { ...wire.build, results: wire.build.results.slice(1) } }, LIBRARY),
     /the save holds \d+ results, but its layout gives \d+ briefs/);
 });
+
+test("a saved result can't override its derived brief or its version", () => {
+  const wire = encode(MAP), first = wire.build.results[0];
+  const forged = (extra: object) => ({ ...wire, build: { ...wire.build, results: [{ ...first, ...extra }, ...wire.build.results.slice(1)] } });
+  assert.throws(() => decodeChainMap(forged({ brief: { ...MAP.results[0]!.brief, id: "forged" } }), LIBRARY),
+    new RegExp(`region ${MAP.results[0]!.brief.id}'s saved result holds brief, which a save never holds`));
+  assert.throws(() => decodeChainMap(forged({ version: "region-3" }), LIBRARY), /saved result holds version, which a save never holds/);
+});
+
+test("a result whose brief is equal but built in another key order is saved", () => {
+  const reorder = (value: unknown): unknown => Array.isArray(value) ? value.map(reorder)
+    : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).reverse().map(([k, v]) => [k, reorder(v)])) : value;
+  const results = MAP.results.map((result) => ({ ...result, brief: reorder(result.brief) as typeof result.brief }));
+  assert.notEqual(JSON.stringify(results[0]!.brief), JSON.stringify(MAP.results[0]!.brief));
+  assert.deepEqual(decodeChainMap(encodeChainMap({ ...MAP, results }), LIBRARY), MAP);
+});

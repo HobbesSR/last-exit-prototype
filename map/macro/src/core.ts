@@ -39,7 +39,7 @@ import {
   mergeRuns,
 } from "./primitives.ts";
 import type { VertexMeta } from "./primitives.ts";
-import { decodeGrid, encodeGrid, gridReader, validateGrid } from "./coding.ts";
+import { canonicalJson, decodeGrid, encodeGrid, gridReader, validateGrid } from "./coding.ts";
 import type { CodedGrid } from "./coding.ts";
 import type {
   Box,
@@ -1971,18 +1971,6 @@ export function layoutSlots(p: ZoneParams): MaskCell[] {
         cells.push({ x: col, y: row, col, row, id: `t-${col}-${row}`, zoneId: zone.id });
   }
   return cells;
-}
-
-/** JSON with sorted keys, so equal content gives equal text. */
-function canonicalJson(value: unknown): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  const record = value as Record<string, unknown>;
-  return `{${Object.keys(record)
-    .filter((k) => record[k] !== undefined)
-    .sort()
-    .map((k) => `${JSON.stringify(k)}:${canonicalJson(record[k])}`)
-    .join(",")}}`;
 }
 
 /**
