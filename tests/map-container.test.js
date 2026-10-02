@@ -10,17 +10,17 @@ import { diagnoseBuiltMap } from '../map/micro/diagnose.ts';
 /**
  * 51 step 9 with the game's own engines: macro's chain map, built and composed by the
  * game's strategies. Macro and micro don't import each other (50), so this test is where
- * they meet. The fixture library's region types are bound to the example builders, except
- * its huts: a hut is a narrow region with no standing room behind its portals, so it gets
- * an empty strategy, which keeps the portal promise by placing nothing. A playground map
- * keeps it small, since the example builders can't yet fill the fixture's game-sized open
- * ground.
+ * they meet. The fixture library's region types are bound to the example builders, so that
+ * saving carries real geometry, except its huts. A fixture hut is a narrow region with no
+ * standing room behind its portals, so it is `open`, the last resort (17 M24), until `hut`
+ * has a strategy. A playground map keeps the report clean: at game size the fixture's
+ * arrival is too small for its spawns, and its open ground has one-cell necks.
  */
 const LIBRARY = JSON.parse(readFileSync(new URL('../map/macro/tests/fixtures/chain-placement-library.json', import.meta.url), 'utf8'));
 const PLAYGROUND = { mode: 'playground', zoneWidth: 2, zoneHeight: 2, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 const REGISTRY = {
   'open-field': REGION_TYPES['example-open'],
-  hut: brief => ({ version: 'region-2', brief: structuredClone(brief), elements: [], coreElements: [], loot: [], manifest: {} }),
+  hut: REGION_TYPES.open,
   arrival: REGION_TYPES['example-entry'],
   departure: REGION_TYPES['example-entry'],
   charging: REGION_TYPES['example-depot'],
@@ -34,7 +34,7 @@ test('a chain map built by the game round-trips, whole or from its Layout alone'
   assert.deepEqual(readChainMap(chainMapToBson(map), LIBRARY), map);
   assert.deepEqual(decodeChainMap(JSON.parse(chainMapToJson(map, { results: false })), LIBRARY, ENGINES), map);
   assert.throws(() => decodeChainMap(JSON.parse(chainMapToJson(map, { results: false })), LIBRARY, { ...ENGINES, version: REGION_TYPES_VERSION }),
-    /its results were built by strategies fixture-examples-1, not examples-1/);
+    /its results were built by strategies fixture-types-1, not types-1/);
 });
 
 test('the accessor composes with the game, and both diagnostics read the same built map', () => {
@@ -44,4 +44,17 @@ test('the accessor composes with the game, and both diagnostics read the same bu
   // Macro's report reads sites and briefs; the game's diagnostic reads geometry. Neither is saved.
   assert.deepEqual(views.report.defects, []);
   assert.deepEqual(diagnoseBuiltMap(views.built), []);
+});
+
+test('a game-size chain map builds once its open ground is the open type', () => {
+  // The example builder took about 30 s on this open ground and then threw (#96). `open` builds nothing.
+  const GAME = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
+  const engines = { ...ENGINES, build: brief => buildRegion(brief, { ...REGISTRY, 'open-field': REGION_TYPES.open }) };
+  for (const seed of ['placement-1', 'placement-2', 'placement-3']) {
+    const game = generateChainMap(seed, GAME, LIBRARY, 48, engines), views = mapViews(game, engines.compose);
+    assert.equal(views.built.regions.length, views.briefs.length);
+    assert.deepEqual(decodeChainMap(JSON.parse(chainMapToJson(game, { results: false })), LIBRARY, engines), game);
+    const open = game.results.filter(r => ['open-field', 'hut'].includes(r.brief.type));
+    assert.ok(open.length && open.every(r => !r.elements.length && !r.loot.length), seed);
+  }
 });

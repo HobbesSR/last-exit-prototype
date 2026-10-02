@@ -95,6 +95,10 @@ contestant-only asymmetry (P-04).
   `open` region is pure open cells (Corey, 2026-10-02, 17 M25). What else it
   may hold is deferred. Cover comes from other types placed among it (17 M10).
   It is also every decomposer's last resort for a subregion (M24).
+  **Built (#126):** `map/micro/strategies/open.ts`. It places nothing, so it
+  keeps the portal promise exactly when the region's shape does. A one-cell
+  neck between portals breaks it by shape alone, which is macro's to avoid
+  (17 M9).
 - **Shape needs:** a door's width, 2 cells, wherever it carries a route (17
   M9, assumption). A one-cell neck carries no hunter.
 - **Formed by:** fill, and the margins of every set piece.
