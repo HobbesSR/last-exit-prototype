@@ -178,10 +178,10 @@ saved map is therefore a Layout, optionally with its region results (see
   nothing could honour one, and strategies aren't asked to (Corey, 2026-09-27).
   A suggestion channel for builders is deferred (16).
 - **Validity:** every declared class is registered and names a region type,
-  and every prescription is well formed. A feature count is a whole number
-  from 1 to the contract's `MAX_FEATURE_COUNT` (64), or `exitCount`, and the
-  params' `exitCount` is from 0 to the same limit, so every brief made from
-  them is one micro accepts. Tile sets and set piece classes are
+  and every prescription is well formed. A feature count is a positive whole
+  number or `exitCount`, and the params' `exitCount` is a whole number. There
+  is no ceiling: how many a strategy can site is its own concern, and the
+  report finds any it misses (stage 8). Tile sets and set piece classes are
   sets, so neither lists a member twice. A set piece slot that fixes an
   orientation must name a tile set with a member allowing it. A stretch of passable prescriptions
   that lies wholly inside a tile, without reaching the tile's edge, must
@@ -640,10 +640,10 @@ live game until the switch-over.
      an id. The id names the two regions (step 5), so both sides' briefs name a
      shared portal alike; nothing else about the region across is passed.
    - The library's `Feature` type is gone; it uses the kernel's `FeatureKind`.
-   - The contract's feature limit is `MAX_FEATURE_COUNT` in the kernel, read
-     by micro's `briefErrors`, `validateLibrary`, and the `exitCount` check
-     (`exitCountProblem`) that placement and briefs both make (PR #115
-     review).
+   - A brief's feature counts are whole numbers with no ceiling. Micro's
+     `briefErrors` had carried the SDK's 64-slot tool limit (20), which
+     macro has no reason to know; it is dropped. Placement and briefs both
+     check that `exitCount` is a whole number (`exitCountProblem`).
    - `tests/chain-briefs.test.ts` copies micro's `briefErrors` rule, since
      macro and micro don't import each other, and adds that every portal lies
      on the brief's perimeter. A one-off check against micro's own

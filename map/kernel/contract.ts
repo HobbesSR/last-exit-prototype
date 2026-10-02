@@ -14,8 +14,6 @@ export type RegionTypeId = string;
 /** A spawn, hunter spawn, exit, charger or warp (51 "Features"). */
 export type FeatureKind = 'spawn' | 'hunter-spawn' | 'exit' | 'charger' | 'warp';
 export const FEATURE_KINDS: readonly FeatureKind[] = Object.freeze(['spawn', 'hunter-spawn', 'exit', 'charger', 'warp']);
-/** The most of one feature a brief may ask a region for. Macro's library and params are held to it too. */
-export const MAX_FEATURE_COUNT = 64;
 
 /**
  * A maximal straight stretch of guaranteed-passable segments on the region's perimeter
@@ -42,7 +40,7 @@ export interface RegionBrief {
   cells: Cell[];
   /** Every cell appears in exactly one zone. */
   zones: ZoneContext[];
-  /** The features the class rule lists, with every count resolved, from 0 to `MAX_FEATURE_COUNT`. */
+  /** The features the class rule lists, with every count resolved to a whole number. */
   features?: Partial<Record<FeatureKind, number>>;
   /**
    * The strategy's one promise: every part of every portal is reachable by a hunter from
