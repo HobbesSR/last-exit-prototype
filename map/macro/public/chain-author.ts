@@ -1,18 +1,21 @@
 import {
   CHAIN_LIBRARY_VERSION,
   CHAIN_TILE_SIZE,
+  COUNT_PARAMS,
   validateLibrary,
 } from "/src/chain/library.ts";
 import type {
   ChainLibrary,
   ChainTileDesign,
   ChainSetPieceSlot,
+  CoreElementCount,
   SegmentPrescription,
 } from "/src/chain/library.ts";
 import { orientDesign } from "/src/chain/declared-grid.ts";
 import { regions, portalViolations } from "/src/chain/regions.ts";
 import type { ResolvedLayout } from "/src/chain/types.ts";
 import { CORE_ELEMENT_KINDS } from "../../kernel/contract.ts";
+import type { CoreElementKind } from "../../kernel/contract.ts";
 import { MIN_PORTAL_LENGTH } from "../../kernel/scale.ts";
 
 const $ = (id: string): HTMLElement => document.getElementById(id)!;
@@ -61,11 +64,95 @@ type Section =
   "classes" | "tiles" | "tileSets" | "setPieces" | "setPieceClasses";
 const KEY = "last-exit-chain-library-v2";
 let library: ChainLibrary = structuredClone(starter);
+let savedDraftWarning = "";
+function declaredRegionTypeIds(raw: unknown): Set<string> {
+  if (
+    !raw ||
+    typeof raw !== "object" ||
+    !("cellClasses" in raw) ||
+    !raw.cellClasses ||
+    typeof raw.cellClasses !== "object" ||
+    Array.isArray(raw.cellClasses)
+  )
+    return new Set();
+  return new Set(
+    Object.values(raw.cellClasses)
+      .filter(
+        (entry): entry is { regionType: string } =>
+          !!entry &&
+          typeof entry === "object" &&
+          "regionType" in entry &&
+          typeof entry.regionType === "string",
+      )
+      .map((entry) => entry.regionType),
+  );
+}
+/** Keep incomplete authoring drafts, but never pass a broken container to render(). */
+function renderableDraft(raw: unknown): raw is ChainLibrary {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return false;
+  const draft = raw as Record<string, unknown>;
+  if (
+    !draft.cellClasses ||
+    typeof draft.cellClasses !== "object" ||
+    Array.isArray(draft.cellClasses) ||
+    !Object.values(draft.cellClasses).every(
+      (entry) => entry !== null && typeof entry === "object",
+    )
+  )
+    return false;
+  for (const field of ["tiles", "tileSets", "setPieces", "setPieceClasses"])
+    if (
+      !Array.isArray(draft[field]) ||
+      !draft[field].every(
+        (entry: unknown) =>
+          entry !== null &&
+          typeof entry === "object" &&
+          typeof (entry as { id?: unknown }).id === "string",
+      )
+    )
+      return false;
+  return (
+    (draft.tiles as ChainLibrary["tiles"]).every(
+      (tile) =>
+        typeof tile.defaultCellClass === "string" &&
+        Array.isArray(tile.orientations) &&
+        (tile.eligibleTiers === undefined ||
+          Array.isArray(tile.eligibleTiers)) &&
+        (tile.eligibleBonus === undefined ||
+          Array.isArray(tile.eligibleBonus)) &&
+        (tile.labels === undefined || Array.isArray(tile.labels)),
+    ) &&
+    (draft.tileSets as ChainLibrary["tileSets"]).every((set) =>
+      Array.isArray(set.members),
+    ) &&
+    (draft.setPieces as ChainLibrary["setPieces"]).every(
+      (piece) =>
+        Array.isArray(piece.tiles) &&
+        piece.tiles.every(
+          (slot) => slot !== null && typeof slot === "object",
+        ) &&
+        (piece.eligibleTiers === undefined ||
+          Array.isArray(piece.eligibleTiers)),
+    ) &&
+    (draft.setPieceClasses as ChainLibrary["setPieceClasses"]).every((group) =>
+      Array.isArray(group.setPieces),
+    )
+  );
+}
 try {
   const saved = localStorage.getItem(KEY);
-  if (saved) library = JSON.parse(saved) as ChainLibrary;
+  if (saved) {
+    const draft: unknown = JSON.parse(saved);
+    const validation = validateLibrary(draft, declaredRegionTypeIds(draft));
+    if (validation.valid || renderableDraft(draft))
+      library = draft as ChainLibrary;
+    else
+      savedDraftWarning =
+        "Saved chain draft was invalid; loaded the starter library.";
+  }
 } catch {
-  /* malformed saved drafts are diagnosed below */
+  savedDraftWarning =
+    "Saved chain draft could not be read; loaded the starter library.";
 }
 let selectedSegment = "v:3,2";
 let selectedCellClass = "hut";
@@ -162,7 +249,7 @@ function numberList(value: string): number[] {
   return csv(value).map(Number);
 }
 function coreFields(value: {
-  coreElements?: Record<string, number | "exitCount">;
+  coreElements?: Partial<Record<CoreElementKind, CoreElementCount>>;
 }): HTMLElement {
   const box = document.createElement("div");
   box.id = "chainCoreElements";
@@ -175,12 +262,25 @@ function coreFields(value: {
     input.className = "chainCoreElements";
     input.dataset.kind = kind;
     input.value = String(value.coreElements?.[kind] ?? "");
-    input.placeholder = "Unspecified, count, or exitCount";
+    input.placeholder = `Count or ${COUNT_PARAMS.join(" / ")}`;
     input.onchange = () => {
       const raw = input.value.trim();
       const next = { ...value.coreElements };
       if (!raw) delete next[kind];
-      else next[kind] = raw === "exitCount" ? "exitCount" : Number(raw);
+      else {
+        const countParam = COUNT_PARAMS.find((name) => name === raw);
+        if (countParam) next[kind] = countParam;
+        else {
+          const count = Number(raw);
+          if (!Number.isSafeInteger(count) || count <= 0) {
+            status(
+              `Core element ${kind} needs a positive whole number or ${COUNT_PARAMS.join(", ")}.`,
+            );
+            return;
+          }
+          next[kind] = count;
+        }
+      }
       if (Object.keys(next).length) value.coreElements = next;
       else delete value.coreElements;
       changed();
@@ -738,15 +838,13 @@ function renderSetPieceClasses(root: HTMLElement): void {
   root.append(coreFields(group));
 }
 function status(prefix = ""): void {
-  const ids = new Set(
-    Object.values(library.cellClasses).map((entry) => entry.regionType),
-  );
-  const result = validateLibrary(library, ids);
+  const result = validateLibrary(library, declaredRegionTypeIds(library));
   $("chainStatus").textContent =
-    `${prefix ? `${prefix}\n` : ""}${result.valid ? "Library valid for declared region type IDs. Strategy availability awaits the B2 catalogue." : `${result.errors.length} validation issue(s):\n${result.errors.join("\n")}`}`;
+    `${prefix ? `${prefix}\n` : ""}${result.valid ? "Library valid for declared region type IDs. Strategy availability is not checked." : `${result.errors.length} validation issue(s):\n${result.errors.join("\n")}`}`;
   $("chainStatus").classList.toggle("invalid", !result.valid);
 }
 function changed(): void {
+  savedDraftWarning = "";
   try {
     localStorage.setItem(KEY, JSON.stringify(library));
   } catch {
@@ -775,7 +873,7 @@ function render(): void {
     if (section() === "setPieceClasses") renderSetPieceClasses(editor);
   }
   area("chainSource").value = JSON.stringify(library, null, 2);
-  status();
+  status(savedDraftWarning);
 }
 function add(): void {
   const base =
@@ -793,7 +891,11 @@ function add(): void {
   while (entries().includes(id)) id = `${base}-${n++}`;
   if (section() === "classes") library.cellClasses[id] = { regionType: id };
   if (section() === "tiles")
-    library.tiles.push({ id, defaultCellClass: "open", orientations: [0] });
+    library.tiles.push({
+      id,
+      defaultCellClass: Object.keys(library.cellClasses)[0] ?? "any",
+      orientations: [0],
+    });
   if (section() === "tileSets")
     library.tileSets.push({
       id,
@@ -817,7 +919,7 @@ function add(): void {
   changed();
 }
 function remove(): void {
-  if (!selectedId || (selectedId === "open" && section() === "classes")) return;
+  if (!selectedId) return;
   if (section() === "classes") delete library.cellClasses[selectedId];
   else {
     const items = list();
@@ -830,36 +932,14 @@ function remove(): void {
   changed();
 }
 function accept(raw: unknown): void {
-  if (
-    !raw ||
-    typeof raw !== "object" ||
-    !("cellClasses" in raw) ||
-    !raw.cellClasses ||
-    typeof raw.cellClasses !== "object"
-  )
-    throw Error("Missing cellClasses");
-  const ids = new Set(
-    Object.values(raw.cellClasses)
-      .filter(
-        (entry): entry is { regionType: string } =>
-          !!entry &&
-          typeof entry === "object" &&
-          "regionType" in entry &&
-          typeof entry.regionType === "string",
-      )
-      .map((entry) => entry.regionType),
-  );
-  const result = validateLibrary(raw, ids);
+  const result = validateLibrary(raw, declaredRegionTypeIds(raw));
   if (!result.valid) throw Error(result.errors.join("\n"));
   library = raw as ChainLibrary;
   selectedId = "";
   changed();
 }
 function download(): void {
-  const ids = new Set(
-    Object.values(library.cellClasses).map((entry) => entry.regionType),
-  );
-  const result = validateLibrary(library, ids);
+  const result = validateLibrary(library, declaredRegionTypeIds(library));
   if (!result.valid) {
     status("Export refused: fix validation issues first.");
     return;
@@ -926,12 +1006,7 @@ declare global {
 window.chainLab = Object.freeze({
   snapshot: () => ({
     library: structuredClone(library),
-    valid: validateLibrary(
-      library,
-      new Set(
-        Object.values(library.cellClasses).map((entry) => entry.regionType),
-      ),
-    ).valid,
+    valid: validateLibrary(library, declaredRegionTypeIds(library)).valid,
     section: section(),
     selectedId,
     portalText: $("chainPreview").textContent,

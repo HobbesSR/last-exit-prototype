@@ -478,6 +478,10 @@ try {
   await page.locator("#chainRegionType").blur();
   await page.locator('.chainCoreElements[data-kind="charger"]').fill("1");
   await page.locator('.chainCoreElements[data-kind="charger"]').blur();
+  await page
+    .locator('.chainCoreElements[data-kind="spawn"]')
+    .fill("contestantCount");
+  await page.locator('.chainCoreElements[data-kind="spawn"]').blur();
 
   await page.locator("#chainSection").selectOption("tiles");
   await page.locator("#chainCellBrush").selectOption("checkpoint");
@@ -504,6 +508,10 @@ try {
     .locator('.chainCoreElements[data-kind="charger"]')
     .fill("exitCount");
   await page.locator('.chainCoreElements[data-kind="charger"]').blur();
+  await page
+    .locator('.chainCoreElements[data-kind="hunter-spawn"]')
+    .fill("hunterCount");
+  await page.locator('.chainCoreElements[data-kind="hunter-spawn"]').blur();
   await page.locator("#chainSection").selectOption("tiles");
   await page.locator("#chainAdd").click();
   await page.locator("#chainSection").selectOption("tileSets");
@@ -532,6 +540,10 @@ try {
   );
   assert.equal(chainDraft.cellClasses.checkpoint.coreElements.charger, 1);
   assert.equal(
+    chainDraft.cellClasses.checkpoint.coreElements.spawn,
+    "contestantCount",
+  );
+  assert.equal(
     chainDraft.tiles[0].legend[chainDraft.tiles[0].cells[0][0]],
     "checkpoint",
   );
@@ -544,6 +556,10 @@ try {
   assert.equal(chainDraft.setPieceClasses[0].placementRule, "charger");
   assert.equal(chainDraft.setPieceClasses[0].quota, 2);
   assert.equal(chainDraft.setPieceClasses[0].coreElements.charger, "exitCount");
+  assert.equal(
+    chainDraft.setPieceClasses[0].coreElements["hunter-spawn"],
+    "hunterCount",
+  );
   assert.equal(chainDraft.tileSets[1].members.includes("new-tile"), true);
   assert.equal(chainDraft.setPieces[1].primaryRegionClass, "checkpoint");
   assert.equal(chainDraft.setPieces[1].tiles[0].tileSetId, "new-set");
@@ -602,13 +618,16 @@ try {
   await page.waitForFunction(() => (window as any).chainLab.snapshot().valid);
   const invalidImport = structuredClone(chainDraft);
   invalidImport.version = -1;
-  await page
-    .locator("#chainImport")
-    .setInputFiles({
-      name: "invalid-chain.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(JSON.stringify(invalidImport)),
-    });
+  await page.locator("#chainImport").setInputFiles({
+    name: "invalid-chain.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(invalidImport)),
+  });
+  await page.waitForFunction(() =>
+    document
+      .getElementById("chainStatus")
+      ?.textContent?.includes("Import refused"),
+  );
   assert.match(
     await page.locator("#chainStatus").innerText(),
     /Import refused/,
@@ -621,6 +640,41 @@ try {
     path: "test-results/chain-authoring.png",
     fullPage: true,
   });
+  await page.locator("#chainSection").selectOption("classes");
+  await page.locator("#chainItem").selectOption("open");
+  await page.locator("#chainDelete").click();
+  await page.locator("#chainSection").selectOption("tiles");
+  await page.locator("#chainAdd").click();
+  assert.equal(
+    (
+      await page.evaluate(() =>
+        (window as any).chainLab.snapshot().library.tiles.at(-1),
+      )
+    ).defaultCellClass,
+    "hut",
+    "a new tile uses the first declared class after a class is removed",
+  );
+  const malformedPage = await browser.newPage();
+  malformedPage.on("pageerror", (error: Error) => errors.push(error.message));
+  await malformedPage.addInitScript(() =>
+    localStorage.setItem(
+      "last-exit-chain-library-v2",
+      JSON.stringify({ version: 2 }),
+    ),
+  );
+  await malformedPage.goto(base, { waitUntil: "domcontentloaded" });
+  await malformedPage.waitForFunction(() => !!(window as any).chainLab);
+  assert.match(
+    await malformedPage.locator("#chainStatus").innerText(),
+    /loaded the starter library/,
+  );
+  assert.equal(
+    await malformedPage.evaluate(
+      () => (window as any).chainLab.snapshot().valid,
+    ),
+    true,
+  );
+  await malformedPage.close();
   assert.deepEqual(errors, []);
   console.log(
     "Browser passed: legacy map and editor checks, chain library authoring, portal warnings, validated export/import, and mobile layout.",
