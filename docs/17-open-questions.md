@@ -123,6 +123,7 @@ is in 50–53. Answers are grouped by topic, each under the question it settled.
   - "I mean the reachability can be determined however it makes sense. As for every shared boundary of subregions neededing a portal, I think maybe just every subregion that has a shared boundary must have at least one portal between (the easiest decomposition strategy would be to just make all the shared segments of two subregions passable). But as long as there is a portal between them somewhere, then we know any other portals in either sub region are reachable from either sub-region."
   - Recorded in 51 stage 6 and 20: every two children that share a boundary have at least one portal between them, somewhere along it. With each child keeping its own portal promise, every portal of either child is then reachable from the other. Reachability over the children is inferred from that, the way the proof infers it over layout regions.
 
+**The library.**
   - (2026-09-29) "I think we may need to once again create a new tile / set piece library. Now each region type essentially gets its own bespoke code, so we can just imagine the decomposers and builders we need and prescribe region types for them. Perhaps we can reuse what exists to some extent, but we shouldn't be bound by it. We're proposing such large changes and ones that essentially put some responsibility on authors, that I think its reasonable to suggest a fresh round of authoring the needed assets."
 
 **The two projects, the SDK and the documentation.**
