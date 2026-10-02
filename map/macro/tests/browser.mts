@@ -84,7 +84,8 @@ try {
   const generate = async () => {
     await page.locator("#generate").click();
     await page.waitForFunction(
-      () => !(document.getElementById("progressModal") as HTMLDialogElement).open,
+      () =>
+        !(document.getElementById("progressModal") as HTMLDialogElement).open,
       null,
       { timeout: 60000 },
     );
@@ -172,15 +173,28 @@ try {
   await page.locator("#mapTab").click();
   await generate();
   assert.match(await page.locator("#status").innerText(), /^Validated/);
-  const { overlays } = await page.evaluate(() => (window as any).mapLab.snapshot());
-  assert.ok(overlays.filledCells > 0, "the stripes have filled-in cells to draw");
-  assert.ok(overlays.constrainedSegments > 0, "the constraint lines have segments to draw");
+  const { overlays } = await page.evaluate(() =>
+    (window as any).mapLab.snapshot(),
+  );
+  assert.ok(
+    overlays.filledCells > 0,
+    "the stripes have filled-in cells to draw",
+  );
+  assert.ok(
+    overlays.constrainedSegments > 0,
+    "the constraint lines have segments to draw",
+  );
   const downloadPromise = page.waitForEvent("download");
   await page.locator("#export").click();
   const downloaded = await downloadPromise;
   // The map names the edited library it was generated from, so it's read with that.
-  const generatedWith = JSON.parse(await page.locator("#librarySource").inputValue());
-  const rebuilt = readArtifact(await readFile(await downloaded.path()), generatedWith);
+  const generatedWith = JSON.parse(
+    await page.locator("#librarySource").inputValue(),
+  );
+  const rebuilt = readArtifact(
+    await readFile(await downloaded.path()),
+    generatedWith,
+  );
   // Structure is derived again on read, so a loaded map has the same overlays.
   assert.deepEqual(overlayCounts(gridViews(rebuilt)), overlays);
   const placed = rebuilt.tiles.find((tile) => tile.templateId === "test-yard");
@@ -224,7 +238,9 @@ try {
     /^Library valid/,
   );
   assert.ok(
-    await page.locator("#defaultCellClass option", { hasText: "shack" }).count(),
+    await page
+      .locator("#defaultCellClass option", { hasText: "shack" })
+      .count(),
     "a declared class is offered as a default",
   );
   // An explicit primitive class remains visible even when it used to equal the
@@ -265,7 +281,11 @@ try {
     "corner cells carry the mark",
   );
   assert.equal(edited.cells[5], "......", "unpainted rows stay default");
-  assert.equal(edited.legend.s, "shack", "legend resolves the mark to the class");
+  assert.equal(
+    edited.legend.s,
+    "shack",
+    "legend resolves the mark to the class",
+  );
   assert.ok(painted.cellClasses.shack, "the class is declared in the library");
   assert.equal(
     await page.locator("#tilePreview div").nth(0).getAttribute("title"),
@@ -441,9 +461,223 @@ try {
     "small viewport retains segment controls",
   );
   await page.screenshot({ path: "test-results/mobile.png", fullPage: true });
+  // B1 authors the chain schema alongside the legacy editor until switch-over.
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.locator("#chainTab").click();
+  assert.equal(await page.locator("#chainViewContainer").isVisible(), true);
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().valid),
+    true,
+  );
+
+  await page.locator("#chainSection").selectOption("classes");
+  await page.locator("#chainAdd").click();
+  await page.locator("#chainId").fill("checkpoint");
+  await page.locator("#chainId").blur();
+  await page.locator("#chainRegionType").fill("checkpoint-builder");
+  await page.locator("#chainRegionType").blur();
+  await page.locator('.chainCoreElements[data-kind="charger"]').fill("1");
+  await page.locator('.chainCoreElements[data-kind="charger"]').blur();
+  await page
+    .locator('.chainCoreElements[data-kind="spawn"]')
+    .fill("contestantCount");
+  await page.locator('.chainCoreElements[data-kind="spawn"]').blur();
+
+  await page.locator("#chainSection").selectOption("tiles");
+  await page.locator("#chainCellBrush").selectOption("checkpoint");
+  await page.locator('#chainGrid [data-cell="0,0"]').click();
+  await page.locator('#chainSegments [data-segment="h:0,0"]').click();
+  await page.locator("#chainSegmentAdjacency").selectOption("any");
+  await page.locator("#chainSegmentPassability").selectOption("any");
+  await page.locator('#chainSegments [data-segment="v:3,4"]').click();
+  await page.locator("#chainSegmentPassability").selectOption("passable");
+  await page.locator('#chainSegments [data-segment="v:1,1"]').click();
+  await page.locator("#chainSegmentPassability").selectOption("passable");
+  assert.match(
+    await page.locator("#chainPreview").innerText(),
+    /same region class/,
+  );
+
+  await page.locator("#chainSection").selectOption("setPieces");
+  await page.locator("#chainPrimaryClass").selectOption("checkpoint");
+  await page.locator("#chainSection").selectOption("setPieceClasses");
+  await page.locator("#chainPlacementRule").selectOption("charger");
+  await page.locator("#chainQuota").fill("2");
+  await page.locator("#chainQuota").blur();
+  await page
+    .locator('.chainCoreElements[data-kind="charger"]')
+    .fill("exitCount");
+  await page.locator('.chainCoreElements[data-kind="charger"]').blur();
+  await page
+    .locator('.chainCoreElements[data-kind="hunter-spawn"]')
+    .fill("hunterCount");
+  await page.locator('.chainCoreElements[data-kind="hunter-spawn"]').blur();
+  await page.locator("#chainSection").selectOption("tiles");
+  await page.locator("#chainAdd").click();
+  await page.locator("#chainSection").selectOption("tileSets");
+  await page.locator("#chainAdd").click();
+  await page
+    .locator("#chainEditor label.chain-check", { hasText: "new-tile" })
+    .locator("input")
+    .check();
+  await page.locator("#chainSection").selectOption("setPieces");
+  await page.locator("#chainAdd").click();
+  await page.locator("#chainPrimaryClass").selectOption("checkpoint");
+  await page.locator("#chainSlotSet0").selectOption("new-set");
+  await page.locator("#chainSlotOrientation0").selectOption("90");
+  await page.locator("#chainSection").selectOption("setPieceClasses");
+  await page.locator("#chainAdd").click();
+  await page
+    .locator("#chainEditor label.chain-check", { hasText: "new-piece" })
+    .locator("input")
+    .check();
+  const chainDraft = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library,
+  );
+  assert.equal(
+    chainDraft.cellClasses.checkpoint.regionType,
+    "checkpoint-builder",
+  );
+  assert.equal(chainDraft.cellClasses.checkpoint.coreElements.charger, 1);
+  assert.equal(
+    chainDraft.cellClasses.checkpoint.coreElements.spawn,
+    "contestantCount",
+  );
+  assert.equal(
+    chainDraft.tiles[0].legend[chainDraft.tiles[0].cells[0][0]],
+    "checkpoint",
+  );
+  assert.deepEqual(chainDraft.tiles[0].segments["h:0,0"], {
+    adjacency: "any",
+    passability: "any",
+  });
+  assert.equal(chainDraft.tiles[0].segments["v:3,4"].passability, "passable");
+  assert.equal(chainDraft.setPieces[0].primaryRegionClass, "checkpoint");
+  assert.equal(chainDraft.setPieceClasses[0].placementRule, "charger");
+  assert.equal(chainDraft.setPieceClasses[0].quota, 2);
+  assert.equal(chainDraft.setPieceClasses[0].coreElements.charger, "exitCount");
+  assert.equal(
+    chainDraft.setPieceClasses[0].coreElements["hunter-spawn"],
+    "hunterCount",
+  );
+  assert.equal(chainDraft.tileSets[1].members.includes("new-tile"), true);
+  assert.equal(chainDraft.setPieces[1].primaryRegionClass, "checkpoint");
+  assert.equal(chainDraft.setPieces[1].tiles[0].tileSetId, "new-set");
+  assert.equal(chainDraft.setPieces[1].tiles[0].orientation, 90);
+  assert.equal(
+    chainDraft.setPieceClasses[1].setPieces.includes("new-piece"),
+    true,
+  );
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().valid),
+    true,
+  );
+
+  const chainDownload = page.waitForEvent("download");
+  await page.locator("#chainExport").click();
+  const exportedChain = await chainDownload;
+  const chainPath = "test-results/chain-library.json";
+  await exportedChain.saveAs(chainPath);
+  assert.deepEqual(JSON.parse(await readFile(chainPath, "utf8")), chainDraft);
+  await page.locator("#chainSection").selectOption("classes");
+  await page.locator("#chainAdd").click();
+  await page.locator("#chainImport").setInputFiles(chainPath);
+  await page.waitForFunction(
+    () => !(window as any).chainLab.snapshot().library.cellClasses["new-class"],
+  );
+  assert.deepEqual(
+    await page.evaluate(() => (window as any).chainLab.snapshot().library),
+    chainDraft,
+  );
+  await page.locator("#chainSection").selectOption("tiles");
+  await page.locator('#chainSegments [data-segment="h:0,0"]').click();
+  await page.locator("#chainSegmentPassability").selectOption("");
+  const unstated = await page.evaluate(
+    () =>
+      (window as any).chainLab.snapshot().library.tiles[0].segments["h:0,0"],
+  );
+  assert.deepEqual(
+    unstated,
+    { adjacency: "any" },
+    "unstated remains distinct from written any",
+  );
+  await page.locator("#chainSegmentPassability").selectOption("any");
+  await page.locator("#chainCellBrush").selectOption("open");
+  await page.locator('#chainGrid [data-cell="3,1"]').click();
+  await page.locator('#chainSegments [data-segment="v:3,0"]').click();
+  await page.locator("#chainSegmentPassability").selectOption("passable");
+  await page.locator('#chainSegments [data-segment="h:1,3"]').click();
+  await page.locator("#chainSegmentPassability").selectOption("passable");
+  assert.match(await page.locator("#chainPreview").innerText(), /right angle/);
+  assert.match(
+    await page.locator("#chainPreview").innerText(),
+    /shorter than a hunter/,
+  );
+  await page.locator("#chainImport").setInputFiles([]);
+  await page.locator("#chainImport").setInputFiles(chainPath);
+  await page.waitForFunction(() => (window as any).chainLab.snapshot().valid);
+  const invalidImport = structuredClone(chainDraft);
+  invalidImport.version = -1;
+  await page.locator("#chainImport").setInputFiles({
+    name: "invalid-chain.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(invalidImport)),
+  });
+  await page.waitForFunction(() =>
+    document
+      .getElementById("chainStatus")
+      ?.textContent?.includes("Import refused"),
+  );
+  assert.match(
+    await page.locator("#chainStatus").innerText(),
+    /Import refused/,
+  );
+  assert.deepEqual(
+    await page.evaluate(() => (window as any).chainLab.snapshot().library),
+    chainDraft,
+  );
+  await page.screenshot({
+    path: "test-results/chain-authoring.png",
+    fullPage: true,
+  });
+  await page.locator("#chainSection").selectOption("classes");
+  await page.locator("#chainItem").selectOption("open");
+  await page.locator("#chainDelete").click();
+  await page.locator("#chainSection").selectOption("tiles");
+  await page.locator("#chainAdd").click();
+  assert.equal(
+    (
+      await page.evaluate(() =>
+        (window as any).chainLab.snapshot().library.tiles.at(-1),
+      )
+    ).defaultCellClass,
+    "hut",
+    "a new tile uses the first declared class after a class is removed",
+  );
+  const malformedPage = await browser.newPage();
+  malformedPage.on("pageerror", (error: Error) => errors.push(error.message));
+  await malformedPage.addInitScript(() =>
+    localStorage.setItem(
+      "last-exit-chain-library-v2",
+      JSON.stringify({ version: 2 }),
+    ),
+  );
+  await malformedPage.goto(base, { waitUntil: "domcontentloaded" });
+  await malformedPage.waitForFunction(() => !!(window as any).chainLab);
+  assert.match(
+    await malformedPage.locator("#chainStatus").innerText(),
+    /loaded the starter library/,
+  );
+  assert.equal(
+    await malformedPage.evaluate(
+      () => (window as any).chainLab.snapshot().valid,
+    ),
+    true,
+  );
+  await malformedPage.close();
   assert.deepEqual(errors, []);
   console.log(
-    "Browser passed: generation, rendering, region overlays, movement, shooting input, the tile gallery, edit modes and the widened segment catch radius, rectangle drags, row strips and the cursor palette, cell and perimeter editing, active-library rebuild, invalid JSON, and mobile layout.",
+    "Browser passed: legacy map and editor checks, chain library authoring, portal warnings, validated export/import, and mobile layout.",
   );
 } finally {
   await browser?.close();

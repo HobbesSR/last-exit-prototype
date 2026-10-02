@@ -5,24 +5,24 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Last Exit / Map Lab</title>
     <link rel="stylesheet" href="/style.css" />
-    <link rel="stylesheet" href="/shared/dev-nav.css">
-  <style>
-    :root {
-      --nav-bg: #0f1317;
-      --nav-border: #1d252c;
-      --nav-text: #7d90a1;
-      --nav-brand: #4da6ff;
-      --nav-divider: #2b353f;
-      --nav-hover-bg: #161c22;
-      --nav-hover-text: #a1b0be;
-      --nav-active-bg: #1d252c;
-      --nav-active-text: #4da6ff;
-    }
-  </style>
-  <script type="module" src="/shared/dev-nav.js"></script>
-</head>
+    <link rel="stylesheet" href="/shared/dev-nav.css" />
+    <style>
+      :root {
+        --nav-bg: #0f1317;
+        --nav-border: #1d252c;
+        --nav-text: #7d90a1;
+        --nav-brand: #4da6ff;
+        --nav-divider: #2b353f;
+        --nav-hover-bg: #161c22;
+        --nav-hover-text: #a1b0be;
+        --nav-active-bg: #1d252c;
+        --nav-active-text: #4da6ff;
+      }
+    </style>
+    <script type="module" src="/shared/dev-nav.js"></script>
+  </head>
   <body>
-  <header>
+    <header>
       <div>
         <span class="eyebrow">LAST EXIT · INDEPENDENT PROTOTYPE</span>
         <h1>Map Lab<span> / 01</span></h1>
@@ -39,17 +39,78 @@
       <button id="authorTab">Tile Editor</button>
       <button id="setsTab">Tile Sets</button>
       <button id="setPiecesTab">Set Pieces</button>
+      <button id="chainTab" type="button">Chain Library</button>
     </nav>
     <main id="mainLayout">
+      <div id="chainViewContainer" class="tab-view" hidden>
+        <div class="chain-heading">
+          <div>
+            <h2>Chain Library</h2>
+            <p>
+              Author the version 2 library. Portal preview covers one tile
+              design; placement across tiles is resolved later.
+            </p>
+          </div>
+          <div class="chain-actions">
+            <button id="chainExport" type="button">Export JSON</button
+            ><label class="chain-file"
+              >Import JSON<input
+                id="chainImport"
+                type="file"
+                accept=".json,application/json"
+            /></label>
+          </div>
+        </div>
+        <div class="chain-layout">
+          <aside class="chain-sidebar">
+            <label
+              >Library section<select id="chainSection">
+                <option value="classes">Cell classes</option>
+                <option value="tiles">Tile designs</option>
+                <option value="tileSets">Tile sets</option>
+                <option value="setPieces">Set pieces</option>
+                <option value="setPieceClasses">Set piece classes</option>
+              </select></label
+            ><label>Entry<select id="chainItem"></select></label>
+            <div class="pair">
+              <button id="chainAdd" type="button">Add</button
+              ><button id="chainDelete" type="button">Delete</button>
+            </div>
+            <p class="hint">
+              Region type IDs are derived from declared classes. Validation
+              checks the schema and references, not whether a strategy exists.
+            </p>
+          </aside>
+          <div class="chain-work">
+            <div id="chainEditor"></div>
+            <div id="chainPreview"></div>
+            <details>
+              <summary>JSON source</summary>
+              <textarea
+                id="chainSource"
+                spellcheck="false"
+                aria-label="Chain library JSON source"
+              ></textarea
+              ><button id="chainApply" type="button">Apply JSON</button>
+            </details>
+            <pre id="chainStatus" role="status"></pre>
+          </div>
+        </div>
+      </div>
       <div id="worldViewContainer" class="tab-view active">
         <aside id="sidebar">
           <section>
             <h2>01 / World recipe</h2>
             <label>Seed<input id="seed" value="last-exit-001" /></label>
-            <label>Generation mode
+            <label
+              >Generation mode
               <select id="mode">
-                <option value="game">Game (12 × 6 zones and required set pieces)</option>
-                <option value="playground">Playground (no game set piece quotas)</option>
+                <option value="game">
+                  Game (12 × 6 zones and required set pieces)
+                </option>
+                <option value="playground">
+                  Playground (no game set piece quotas)
+                </option>
               </select>
             </label>
             <div class="pair">
@@ -157,7 +218,7 @@
               <button id="zoomOut" title="Zoom Out">-</button>
               <span id="zoomLevel">100%</span>
               <button id="zoomIn" title="Zoom In">+</button>
-                <button id="zoomReset" title="Reset Zoom">Reset</button>
+              <button id="zoomReset" title="Reset Zoom">Reset</button>
             </div>
             <div id="mapTooltip" class="map-tooltip" hidden></div>
           </div>
@@ -453,16 +514,45 @@
         </div>
       </form>
     </dialog>
-    
-    <dialog id="progressModal" class="app-dialog" style="padding: 20px; width: 300px; text-align: center;">
-      <h3 style="margin-top: 0;">Generating Map...</h3>
-      <p id="progressStatus" style="font-size: 0.9em; color: #666; margin-bottom: 20px;">Starting...</p>
-      <div style="width: 100%; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin-bottom: 20px;">
-        <div id="progressBar" style="width: 0%; height: 100%; background: #007bff; transition: width 0.1s linear;"></div>
+
+    <dialog
+      id="progressModal"
+      class="app-dialog"
+      style="padding: 20px; width: 300px; text-align: center"
+    >
+      <h3 style="margin-top: 0">Generating Map...</h3>
+      <p
+        id="progressStatus"
+        style="font-size: 0.9em; color: #666; margin-bottom: 20px"
+      >
+        Starting...
+      </p>
+      <div
+        style="
+          width: 100%;
+          height: 10px;
+          background: #eee;
+          border-radius: 5px;
+          overflow: hidden;
+          margin-bottom: 20px;
+        "
+      >
+        <div
+          id="progressBar"
+          style="
+            width: 0%;
+            height: 100%;
+            background: #007bff;
+            transition: width 0.1s linear;
+          "
+        ></div>
       </div>
-      <button id="cancelGeneration" class="primary" style="background: #dc3545;">Cancel Generation</button>
+      <button id="cancelGeneration" class="primary" style="background: #dc3545">
+        Cancel Generation
+      </button>
     </dialog>
 
     <script type="module" src="/app.ts"></script>
+    <script type="module" src="/chain-author.ts"></script>
   </body>
 </html>
