@@ -34,7 +34,7 @@ export function composeRegions(results: readonly BuiltRegion[]): BuiltMap<Region
     }
   }
   // A portal id names one pair across the whole map (51 stage 5), so it appears once on each side and nowhere else.
-  const pairs: PortalPair[] = [], named = new Map<string, string>();
+  const pairs: PortalPair[] = [], named = new Map<string, readonly [string, string]>();
   for (const region of regions) for (const portal of region.brief.portals) {
     const { id } = region.brief, across = new Set<BuiltRegion>();
     for (let i = 0; i < portal.length; i++) {
@@ -50,8 +50,9 @@ export function composeRegions(results: readonly BuiltRegion[]): BuiltMap<Region
     const neighbour = [...across][0]!;
     const paired = neighbour.brief.portals.find(p => p.id === portal.id);
     if (!paired || paired.axis !== portal.axis || paired.x !== portal.x || paired.y !== portal.y || paired.length !== portal.length) throw new Error(`Portal ${portal.id} of region ${id} has no matching portal in region ${neighbour.brief.id}.`);
-    const pair = [id, neighbour.brief.id].sort(byId).join(' and '), earlier = named.get(portal.id);
-    if (earlier && earlier !== pair) throw new Error(`Portal ${portal.id} names two pairs: regions ${earlier}, and regions ${pair}.`);
+    // Compared as a tuple: ids are any strings, so no joined key is unambiguous.
+    const pair = id < neighbour.brief.id ? [id, neighbour.brief.id] as const : [neighbour.brief.id, id] as const, earlier = named.get(portal.id);
+    if (earlier && (earlier[0] !== pair[0] || earlier[1] !== pair[1])) throw new Error(`Portal ${portal.id} names two pairs: ${JSON.stringify(earlier)} and ${JSON.stringify(pair)}.`);
     named.set(portal.id, pair);
     if (id < neighbour.brief.id) pairs.push({ portal: portal.id, a: id, b: neighbour.brief.id });
   }

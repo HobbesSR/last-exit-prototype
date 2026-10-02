@@ -67,9 +67,22 @@ test('a disagreeing pair is refused, not repaired', () => {
   // Both sides of one pair renamed to another pair's id agree with each other, but the id no longer names one pair.
   const other = 'block-00-00~block-00-01~v:5,71', renamed = ['block-01-00', 'block-01-01'].reduce((list, region) =>
     withBrief(list, region, b => (b.portals.find(p => p.id === 'block-01-00~block-01-01~v:5,76').id = other, b)), results);
-  assert.throws(() => composeRegions(renamed), /Portal block-00-00~block-00-01~v:5,71 names two pairs: regions block-00-00 and block-00-01, and regions block-01-00 and block-01-01/);
+  assert.throws(() => composeRegions(renamed), /Portal block-00-00~block-00-01~v:5,71 names two pairs: \["block-00-00","block-00-01"\] and \["block-01-00","block-01-01"\]/);
   const straddling = withBrief(results, 'band', b => (b.portals.find(p => p.id === id).length = 6, b));
   assert.throws(() => composeRegions(straddling), /straddles regions block-00-00 and block-00-01/);
+});
+
+test('a portal id names its pair by both ids, whatever characters they hold', () => {
+  // ('a', 'b and c') and ('a and b', 'c') would join to the same key; they are two pairs.
+  const result = (id, x, y, portals) => {
+    const cells = [{ x, y }];
+    return { version: 'region-2', brief: { id, seed: 1, type: 'example-open', cellSize: SIZE, cells, zones: [{ tier: 1, bonus: 0, lootChance: 0, cells }], portals },
+      elements: [], coreElements: [], loot: [], manifest: {} };
+  };
+  const shared = y => [{ id: 'shared', axis: 'v', x: 1, y, length: 1 }];
+  const map = [result('a', 0, 0, shared(0)), result('b and c', 1, 0, shared(0)), result('a and b', 0, 5, shared(5)), result('c', 1, 5, shared(5))];
+  assert.throws(() => composeRegions(map), /Portal shared names two pairs: \["a","b and c"\] and \["a and b","c"\]/);
+  assert.equal(composeRegions(map.slice(0, 2)).pairs.length, 1);
 });
 
 test('ownership, identity and scale are refused when they disagree', () => {
