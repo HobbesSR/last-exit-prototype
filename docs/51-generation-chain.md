@@ -359,6 +359,12 @@ decomposes splits its own brief into children with the SDK's decomposition
 - **Children:** a region type that decomposes treats its children like
   regions in general. They get passability obligations only, with no ceilings
   and no seals (Corey, 2026-09-29).
+  - **Every two children that share a boundary have at least one portal
+    between them,** somewhere along it (Corey, 2026-10-01). The simplest
+    decomposition makes every shared segment passable. Since each child keeps
+    its own portal promise, a portal between two children makes every portal
+    of either reachable from the other, so the children's portals and the
+    region's own are all mutually reachable, by inference.
 - **Keeping the promise:** a builder keeps the portal rule (stage 5), and
   everything else inside its region is its own business. Nothing in the
   pipeline checks this (principle 9). A builder that breaks it is defective,
