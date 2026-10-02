@@ -296,6 +296,53 @@ number ("M3: …") and the answer is recorded verbatim here.
     features and loot reachable, but a region's interior is its builder's
     business (see the answer on enforcement above).
 
+The region type catalogue (54, B2, #85) raised M18 to M25. Each has a working
+assumption, and 54 marks what rests on it.
+
+18. **M18. The catalogue.** Are 54's types the right set, under the right
+    names: `open`, `cover`, `rubble`, `ruins`, `hall`, `hut`, `depot`,
+    `compound`, `block`, and the core element classes `arrival`, `departure`
+    and `charging`? Is the `warp` core element the hunters' transit station
+    (P-09), and which set piece class would own it? *Assumption:* the set as
+    drafted, with B4 starting from `open`, `cover`, `rubble`, `hut`,
+    `arrival`, `departure` and `charging`. `warp` stays deferred.
+19. **M19. Obstacles under the proof.** A region with one portal owes nothing
+    between portals (M3), so its builder may fill it solid. Is that how a
+    library gets rocks, wrecks and other obstacles, or should a region type
+    with no portals be exempt from M2's "every region in the spawn's
+    component"? *Assumption:* one portal, no exemption, so an obstacle region
+    needs one passable stretch facing its neighbour.
+20. **M20. Contestants' entry points.** The `start` class promises one `spawn`,
+    and the report counts exactly one per instance. The arrival region still
+    has to place a point for every contestant, about 24 eventually. How should
+    those travel? *Assumption:* the `spawn` site stays one per instance, the
+    class rule gives the contestant count as a parameter, and B3 adds the
+    individual points to the result as type output that the report doesn't
+    count.
+21. **M21. Macro-required squeezes.** The design notes say contestant-only
+    choke points "may be something we want to require from a macro level".
+    Macro prescribes no geometry now. *Assumption:* squeezes are builders'
+    choice, and the `rubble` type exists to make them. Macro requires none.
+22. **M22. Spacing across regions.** Some live rules reach past one region:
+    traps at least 850 units from a charger, and a hunter's respawn at least
+    1,000 units from contestants (14). A brief never sees its neighbours.
+    *Assumption:* a charging region keeps its own cells trap-free and nothing
+    more. A wider rule needs either a bigger `charger` set piece or a new
+    channel, and isn't solved yet.
+23. **M23. Locked doors.** Optional keyed areas are accepted (P-06, F-02).
+    *Assumption:* a locked door is never on a route between portals, so a
+    region with one only has it on a pocket. Which types may lock doors is the
+    type's choice.
+24. **M24. A region too small for its type.** Regions take any shape, so some
+    will be too small for their type's main structure. *Assumption:* the
+    builder builds as `cover` would and keeps the promise. A core element
+    class that can't site its core elements leaves the shortfall for the
+    report, and avoiding it is the author's job.
+25. **M25. What open ground may hold.** Every cell of an `open` region is
+    passable. May it hold anything at all besides loot, such as traps, low
+    decoration, or objects that block sight but not bodies? *Assumption:* loot
+    and decoration that blocks neither bodies nor sight. Traps go elsewhere.
+
 ## Product and gameplay — review together when convenient
 
 1. Modular hierarchy: provide hierarchy levels, template sizes, connector contracts and one concrete example. Current street generation remains explicitly interim.
