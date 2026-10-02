@@ -8,7 +8,10 @@ export const CHAIN_TILE_SIZE = 6;
 
 export type Side = "N" | "E" | "S" | "W";
 export type PassabilityPrescription = "passable" | "any";
-export type CoreElementCount = number | "exitCount";
+/** Map params a core element count may name, resolved from the Layout's params (52). */
+export const COUNT_PARAMS = ["exitCount", "contestantCount"] as const;
+export type CountParam = typeof COUNT_PARAMS[number];
+export type CoreElementCount = number | CountParam;
 export type PlacementRule = "start" | "end" | "enormous" | "medium" | "small" | "charger";
 
 /** Each perimeter segment can require the class across its tile boundary. */
@@ -104,19 +107,23 @@ function coreElementErrors(value: unknown, path: string, errors: string[]): void
   }
   for (const [element, count] of Object.entries(value)) {
     if (!CORE_ELEMENTS.has(element as CoreElementKind)) errors.push(`${path}: unknown core element ${element}`);
-    if (!(integer(count) && count > 0) && count !== "exitCount")
-      errors.push(`${path}: core element ${element} count must be a positive integer or exitCount`);
+    if (!(integer(count) && count > 0) && !COUNT_PARAMS.includes(count as CountParam))
+      errors.push(`${path}: core element ${element} count must be a positive integer or one of ${COUNT_PARAMS.join(", ")}`);
   }
 }
 
 /**
- * Why a params' `exitCount` can't resolve a core element count, or `undefined`. A brief's
- * counts are whole numbers (the contract), with no ceiling.
+ * Why the params can't resolve every count a core element may name, or `undefined`. A
+ * brief's counts are whole numbers (the contract), with no ceiling.
  */
-export function exitCountProblem(exitCount: number): string | undefined {
-  return Number.isSafeInteger(exitCount) && exitCount >= 0 ? undefined
-    : `exitCount must be a whole number, not ${exitCount}`;
+export function countParamsProblem(params: Record<CountParam, number>): string | undefined {
+  const bad = COUNT_PARAMS.find((name) => !(Number.isSafeInteger(params[name]) && params[name] >= 0));
+  return bad && `${bad} must be a whole number, not ${params[bad]}`;
 }
+
+/** A core element count as a whole number: as written, or the params' value it names. */
+export const resolveCount = (count: CoreElementCount, params: Record<CountParam, number>): number =>
+  typeof count === "number" ? count : params[count];
 
 function uniqueIds(value: unknown, path: string, errors: string[]): Set<string> {
   const ids = new Set<string>();

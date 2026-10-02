@@ -66,7 +66,8 @@ rules:
 A map records the fingerprint of its library and is read back only with that
 library.
 
-**The chain** is wire version 5 (51 step 9, `map/macro/src/chain/saving.ts`).
+**The chain** is wire version 6 (51 step 9, `map/macro/src/chain/saving.ts`).
+Version 5 is refused by name: its params have no `contestantCount` (#124).
 - Its Layout goes through this form: slot positions, designs and
   orientations, and each set piece instance with its slots, as columns, with
   names in the string table. It records `MACRO_VERSION`.

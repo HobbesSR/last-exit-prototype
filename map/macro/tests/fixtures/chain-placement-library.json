@@ -3,7 +3,7 @@
   "cellClasses": {
     "open": { "regionType": "open-field" },
     "hut": { "regionType": "hut" },
-    "arrival": { "regionType": "arrival", "coreElements": { "spawn": 1 } },
+    "arrival": { "regionType": "arrival", "coreElements": { "spawn": "contestantCount" } },
     "departure": { "regionType": "departure", "coreElements": { "exit": "exitCount", "hunter-spawn": 1 } },
     "charging": { "regionType": "charging", "coreElements": { "charger": 1 } }
   },
@@ -166,7 +166,7 @@
     }
   ],
   "setPieceClasses": [
-    { "id": "start", "placementRule": "start", "quota": 1, "setPieces": ["entry"], "coreElements": { "spawn": 1 } },
+    { "id": "start", "placementRule": "start", "quota": 1, "setPieces": ["entry"], "coreElements": { "spawn": "contestantCount" } },
     { "id": "end", "placementRule": "end", "quota": 1, "setPieces": ["exit-yard"], "coreElements": { "exit": "exitCount", "hunter-spawn": 1 } },
     { "id": "enormous", "placementRule": "enormous", "quota": 3, "setPieces": ["plaza-wide", "plaza-tall", "plaza-square"] },
     { "id": "medium", "placementRule": "medium", "quota": 4, "setPieces": ["hut-cluster"] },

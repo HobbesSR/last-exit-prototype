@@ -11,7 +11,7 @@
  */
 import { CORE_ELEMENT_KINDS } from "../../../kernel/contract.ts";
 import type { CoreElementKind, CoreElementSite, RegionResult } from "../../../kernel/contract.ts";
-import { CHAIN_TILE_SIZE } from "./library.ts";
+import { CHAIN_TILE_SIZE, resolveCount } from "./library.ts";
 import { unprovenComponents } from "./proof.ts";
 import type { Defect, InstanceCoreElementCount, MacroStages, SetPieceInstance } from "./types.ts";
 
@@ -59,7 +59,7 @@ export const measurement: MacroStages["measurement"] = (built, reachability, lay
     const setPieceClass = classes.get(instance.setPieceClass);
     if (!setPieceClass) throw new Error(`instance ${instance.id} has set piece class ${instance.setPieceClass}, which the library doesn't register`);
     return Object.fromEntries(Object.entries(setPieceClass.coreElements ?? {}).map(([kind, count]) =>
-      [kind, count === "exitCount" ? layout.params.exitCount : count]));
+      [kind, resolveCount(count, layout.params)]));
   };
   // Instances never share a slot, so each cell assigns a site to one instance at most.
   const instanceAt = new Map<string, SetPieceInstance>();

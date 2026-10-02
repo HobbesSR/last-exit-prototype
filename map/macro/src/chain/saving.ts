@@ -21,14 +21,15 @@ import type { ChainLibrary } from "./library.ts";
 import { MACRO_VERSION, mapViews } from "./map.ts";
 import type { ChainMap, Layout, MapEngines, Orientation, RegionResult } from "./types.ts";
 
-/** Version 5 is the chain's. The old generators' reader (`artifact.ts`) keeps 4 until the switch-over. */
-export const CHAIN_WIRE_VERSION = 5;
+/** Versions 5 and up are the chain's. The old generators' reader (`artifact.ts`) keeps 4 until the switch-over. */
+export const CHAIN_WIRE_VERSION = 6;
 /** Why each earlier wire version isn't read here. None is migrated. */
 const RETIRED_VERSIONS: Record<number, string> = {
   1: "it is mapgen's old form, which the chain replaced",
   2: "it is mapgen's old form, which the chain replaced",
   3: "it is mapgen's old form, which the chain replaced",
   4: "it holds a map from mapgen's old generators (`decodeArtifact` reads it until the switch-over)",
+  5: "its params have no contestantCount, which a spawn count names since #124; regenerate it from its seed",
 };
 
 /** Placement's draws. Positions and orientations are columns; names go through the string table. */

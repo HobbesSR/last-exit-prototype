@@ -18,7 +18,7 @@ import type { ChainParams, Layout, LayoutRegions, PlacedSlot } from "../src/chai
 import { assertDeterministic, assertPure, assertRecomputable } from "./chain-harness.ts";
 
 const LIBRARY = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;
-const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, lootChance: 0.04, lootTierStep: 0.09 };
+const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, lootChance: 0.04, lootTierStep: 0.09 };
 const SEEDS = ["placement-1", "placement-2", "placement-3", "placement-4"];
 const CELL_SIZE = 4;
 const layouts = new Map(SEEDS.map((seed) => [seed, placement(seed, GAME, LIBRARY)]));
@@ -100,10 +100,11 @@ test("a brief names only its own region: its cells, its class rule, its zones an
     // A portal carries its run and id, and not the regions on each side.
     for (const portal of b.portals) assert.deepEqual(Object.keys(portal).sort(), ["axis", "id", "length", "x", "y"]);
   }
-  // Core element counts are resolved; exitCount comes from the params.
+  // Core element counts are resolved; exitCount and contestantCount come from the params.
   const departure = list.find((b) => b.type === "departure")!;
   assert.deepEqual(departure.coreElements, { exit: GAME.exitCount, "hunter-spawn": 1 });
-  assert.deepEqual(list.find((b) => b.type === "arrival")!.coreElements, { spawn: 1 });
+  // A spawn is one contestant's spawn point (17 M20).
+  assert.deepEqual(list.find((b) => b.type === "arrival")!.coreElements, { spawn: GAME.contestantCount });
   assert.equal(list.find((b) => b.type === "open-field")!.coreElements, undefined);
 });
 
@@ -186,5 +187,6 @@ test("exitCount resolves with no ceiling, and must be a whole number", () => {
     const layout = at(bad);
     assert.throws(() => briefs(layout, derive(layout, HAND), chainZones(layout.params), HAND, 1), /exitCount must be a whole number/);
     assert.throws(() => placement("bad", { ...GAME, exitCount: bad }, LIBRARY), /exitCount must be a whole number/);
+    assert.throws(() => placement("bad", { ...GAME, contestantCount: bad }, LIBRARY), /contestantCount must be a whole number/);
   }
 });

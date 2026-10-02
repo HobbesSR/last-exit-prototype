@@ -85,7 +85,7 @@ with a don't-care value. This is Corey's model (verbatim in 17, 2026-09-27).
   What is intrinsic to the class goes in its entry; what varies with position
   on the map belongs to the tier zone.
 - **Core element classes.** A class whose rule lists core elements its strategy sites
-  (one spawn, `exitCount` exits, one charger) is a **core element class**. It is
+  (`contestantCount` spawns, `exitCount` exits, one charger) is a **core element class**. It is
   painted only inside the set pieces of the set piece class that owns those
   core elements (51, "Core elements").
 - **`cell → class` is total.** Two values are reserved:
@@ -148,14 +148,14 @@ one."
   doesn't read it; it's an editor default.
 - **Set piece class:** a set of set pieces, with the engine placement rule it
   uses, its quota, and the core elements it owns, each with a count per instance
-  (a positive whole number, or `exitCount`).
+  (a positive whole number, or a count param: `exitCount` or `contestantCount`).
   It is the only macro structure the engine treats as first class, and today's
-  code calls it `category`. The shipped rules, unchanged from today, in game
-  mode:
+  code calls it `category`. The shipped rules in game mode, unchanged from
+  today's except for the spawns:
 
 | Set piece class | Rule | Quota | Owns |
 | --- | --- | --- | --- |
-| `start` | touches the western edge | 1 | one spawn |
+| `start` | touches the western edge | 1 | `contestantCount` spawns, one per contestant (17 M20) |
 | `end` | reaches the eastern edge | 1 | `exitCount` exits and one hunter spawn |
 | `enormous` | the middle band, one per vertical third | 3 distinct | nothing |
 | `medium` | the outer thirds | 4 | nothing |

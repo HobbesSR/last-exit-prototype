@@ -19,7 +19,7 @@ import { assertDeterministic, assertPure, assertRecomputable } from "./chain-har
 
 const LIBRARY = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;
 const REGION_TYPES = new Set(Object.values(LIBRARY.cellClasses).map((cellClass) => cellClass.regionType));
-const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, lootChance: 0.04, lootTierStep: 0.09 };
+const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, lootChance: 0.04, lootTierStep: 0.09 };
 const PLAYGROUND: ChainParams = { ...GAME, mode: "playground", zoneWidth: 2, zoneHeight: 1 };
 const COLUMNS = 60;
 const SEEDS = ["placement-1", "placement-2", "placement-3", "placement-4"];
