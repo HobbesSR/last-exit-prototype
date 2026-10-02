@@ -111,7 +111,7 @@ test("joining is transitive, and a portal on one side doesn't join the region be
 });
 
 test("the gate holds every region to the spawn region's component, however small", () => {
-  // The arrival column promises the spawn (its class's features), and nothing reaches it.
+  // The arrival column promises the spawn (its class's core elements), and nothing reaches it.
   const { found, reachability } = hand({ "1,1": "arrival-shut", "2,1": "hut-through", "3,1": "field" });
   assert.deepEqual(reachability.components, [["open@6,6"], ["arrival@11,6"], ["open@12,6", "hut@17,6", "open@18,6"]]);
   assert.deepEqual(proofViolations(reachability, found, HAND), [

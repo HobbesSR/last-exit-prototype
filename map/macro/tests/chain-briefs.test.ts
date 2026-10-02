@@ -2,12 +2,12 @@
  * 51 step 7: Briefs. The fixture's briefs hold to the harnesses and to the contract's
  * shape, and each names only its own region: its cells, the zones they lie in, its class
  * rule, and the portals on its own perimeter. Small hand-placed layouts pin the
- * translation into global cells, the zone split, and the resolved feature counts.
+ * translation into global cells, the zone split, and the resolved core element counts.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { FEATURE_KINDS } from "../../kernel/contract.ts";
+import { CORE_ELEMENT_KINDS } from "../../kernel/contract.ts";
 import type { Cell, RegionBrief } from "../../kernel/contract.ts";
 import { briefs, chainZones } from "../src/chain/briefs.ts";
 import type { ChainLibrary, ChainTileDesign } from "../src/chain/library.ts";
@@ -49,8 +49,8 @@ function contractErrors(brief: RegionBrief): string[] {
     }
   }
   if (zoned.size !== cells.size) errors.push("every cell in one zone");
-  for (const [kind, count] of Object.entries(brief.features ?? {}))
-    if (!FEATURE_KINDS.includes(kind as never) || !Number.isInteger(count) || count! < 0) errors.push(`feature ${kind}`);
+  for (const [kind, count] of Object.entries(brief.coreElements ?? {}))
+    if (!CORE_ELEMENT_KINDS.includes(kind as never) || !Number.isInteger(count) || count! < 0) errors.push(`core element ${kind}`);
   for (const portal of brief.portals) for (let i = 0; i < portal.length; i++) {
     const [lower, upper] = portal.axis === "h"
       ? [`${portal.x + i},${portal.y - 1}`, `${portal.x + i},${portal.y}`]
@@ -100,11 +100,11 @@ test("a brief names only its own region: its cells, its class rule, its zones an
     // A portal carries its run and id, and not the regions on each side.
     for (const portal of b.portals) assert.deepEqual(Object.keys(portal).sort(), ["axis", "id", "length", "x", "y"]);
   }
-  // Feature counts are resolved; exitCount comes from the params.
+  // Core element counts are resolved; exitCount comes from the params.
   const departure = list.find((b) => b.type === "departure")!;
-  assert.deepEqual(departure.features, { exit: GAME.exitCount, "hunter-spawn": 1 });
-  assert.deepEqual(list.find((b) => b.type === "arrival")!.features, { spawn: 1 });
-  assert.equal(list.find((b) => b.type === "open-field")!.features, undefined);
+  assert.deepEqual(departure.coreElements, { exit: GAME.exitCount, "hunter-spawn": 1 });
+  assert.deepEqual(list.find((b) => b.type === "arrival")!.coreElements, { spawn: 1 });
+  assert.equal(list.find((b) => b.type === "open-field")!.coreElements, undefined);
 });
 
 // ── Hand-placed layouts ─────────────────────────────────────────────────────
@@ -160,7 +160,7 @@ test("a region across zones gets one zone context per zone, and a region with no
   assert.deepEqual(open.zones.map((z) => [z.tier, z.cells.length]), [[2, 36], [3, 30]]);
   assert.equal(open.zones.flatMap((z) => z.cells).length, open.cells.length);
   const departure = list.find((b) => b.type === "departure")!;
-  assert.deepEqual(departure.features, { exit: 3, "hunter-spawn": 1 });
+  assert.deepEqual(departure.coreElements, { exit: 3, "hunter-spawn": 1 });
   assert.equal(departure.portals.length, 1);
   const shut = hand({ "1,1": "field" }).list;
   assert.deepEqual(shut.map((b) => b.portals), [[]]);
@@ -180,7 +180,7 @@ test("exitCount resolves with no ceiling, and must be a whole number", () => {
     slots: [{ col: 1, row: 1, design: "departure-west", orientation: 0 }], setPieces: [] });
   const many = at(1000);
   const departure = briefs(many, derive(many, HAND), chainZones(many.params), HAND, 1).find((b) => b.type === "departure")!;
-  assert.deepEqual(departure.features, { exit: 1000, "hunter-spawn": 1 });
+  assert.deepEqual(departure.coreElements, { exit: 1000, "hunter-spawn": 1 });
   assert.deepEqual(contractErrors(departure), []);
   for (const bad of [2.5, -1]) {
     const layout = at(bad);

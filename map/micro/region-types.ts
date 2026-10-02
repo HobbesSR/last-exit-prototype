@@ -1,5 +1,5 @@
 import { generateBriefRegion } from './index.ts';
-import { FEATURE_KINDS } from '../kernel/contract.ts';
+import { CORE_ELEMENT_KINDS } from '../kernel/contract.ts';
 import type { BuiltRegion, RegionBrief, RegionTypeId } from './types.ts';
 
 /** A region type's strategy: its decomposer, if it has one, and its builders (51 stage 6). */
@@ -49,9 +49,9 @@ export function briefErrors(brief: RegionBrief): string[] {
     }
   }
   if (zoned.size !== cells.size) errors.push('Every brief cell needs exactly one zone.');
-  for (const [kind, count] of Object.entries(brief.features ?? {})) {
-    if (!FEATURE_KINDS.includes(kind as never)) errors.push(`Unknown feature ${kind}.`);
-    if (!Number.isSafeInteger(count) || count! < 0) errors.push(`Feature ${kind} needs a whole count.`);
+  for (const [kind, count] of Object.entries(brief.coreElements ?? {})) {
+    if (!CORE_ELEMENT_KINDS.includes(kind as never)) errors.push(`Unknown core element ${kind}.`);
+    if (!Number.isSafeInteger(count) || count! < 0) errors.push(`Core element ${kind} needs a whole count.`);
   }
   return errors;
 }
