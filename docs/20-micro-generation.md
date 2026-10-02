@@ -91,7 +91,10 @@ though a route exists.
 **Registered types.** They are today's builders, with the ids `example-open`,
 `example-depot`, `example-courtyard`, `example-ruins` and `example-entry`. They
 stand in until the catalogue (B2) and its strategies (B3), and the prefix
-keeps a library from binding to them. Each one:
+keeps a library from binding to them. `REGION_TYPES_VERSION` names what the
+registry builds, and a change to what any strategy builds bumps it, so a saved
+map's results are never rebuilt by other strategies silently (51 "Saving").
+Each one:
 - protects its portals' stands and a hunter route between them while it builds
 - sites the brief's core elements before the loot fill, as the entry builder does,
   kind by kind, reachable from the first portal

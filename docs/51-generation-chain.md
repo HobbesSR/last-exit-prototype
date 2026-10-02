@@ -472,6 +472,13 @@ output is a view computed on demand (#69): the resolved layout, the regions,
 the proof, the briefs, the built map and the report. The Map Lab, CLI and MCP
 read views through one accessor, not through fields copied into the map.
 
+In code (step 9), the container is `ChainMap` and the accessor is `mapViews`,
+both in `map/macro/src/chain/map.ts`. The map also records the briefs' cell
+size, an input to the results that the Layout doesn't hold, and the version of
+the strategies that built them. Macro can't build or compose regions (50), so
+the game lends both as `MapEngines`: a version, `build` and `compose`. The
+built map and the report need `compose`; the macro views don't.
+
 ## Saving
 
 A save holds the Layout and, optionally, the region results. Each records its
@@ -479,6 +486,16 @@ inputs and the version of the algorithm that made it. A missing result is
 rebuilt from the Layout, and refused by name on a version mismatch (#70; 17
 "Map generation", saving). Views are never saved. The wire version is bumped,
 and old artifacts are refused by name (53).
+
+What each save records (`map/macro/src/chain/saving.ts`):
+- **The Layout:** its seed, params and library fingerprint, and
+  `MACRO_VERSION`, the version of macro's stages from placement through
+  briefs. A save from another version is refused, since its views would differ.
+- **The results:** the cell size and the `MapEngines` version. They are
+  stored or not, and a save of the Layout alone records the version anyway, so
+  rebuilding them with other strategies is refused by name.
+
+Results that are stored aren't rebuilt, so any engines may read them.
 
 ## Reused, on each side
 
@@ -690,6 +707,19 @@ live game until the switch-over.
    - The tests are `tests/chain-measurement.test.ts`, with a stub builder that
      sites what each brief asks, and `tests/micro-diagnose.test.js`.
 9. The map container, the accessor, saving and the wire version (#69, #70).
+   **Done (#92):** `chain/map.ts` and `chain/saving.ts`.
+   - `generateChainMap` places a layout and builds every brief with the
+     game's engines. `mapViews` computes each view once, on first read.
+   - Saving and its versions are in "Saving" above, and the wire form is in 53.
+   - Region results are stored as the game's own `region-2` data, less their
+     briefs, rather than packed. Macro can't read the game's geometry, so it
+     has nothing to pack them by, and a brief is a view of the Layout. A result
+     whose brief isn't the one its Layout gives is refused when saving.
+   - The game names its registry's strategies `REGION_TYPES_VERSION` in
+     `map/micro/region-types.ts`.
+   - The tests are `tests/chain-map.test.ts`, with stub engines
+     (`tests/chain-stub.ts`), and the root `tests/map-container.test.js`,
+     where the game's builders and `composeRegions` meet macro's map.
 
 **Track C: the contract and composition, in the game.**
 

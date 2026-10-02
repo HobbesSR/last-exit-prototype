@@ -8,8 +8,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { CORE_ELEMENT_KINDS } from "../../kernel/contract.ts";
-import type { BuiltMap, CoreElementSite, PortalPair, RegionBrief, RegionResult } from "../../kernel/contract.ts";
+import type { RegionBrief, RegionResult } from "../../kernel/contract.ts";
 import { briefs, chainZones } from "../src/chain/briefs.ts";
 import type { ChainLibrary, ChainTileDesign } from "../src/chain/library.ts";
 import { measurement } from "../src/chain/measurement.ts";
@@ -19,6 +18,7 @@ import { regions } from "../src/chain/regions.ts";
 import { resolution } from "../src/chain/resolution.ts";
 import type { ChainParams, Layout, LayoutRegions, PlacedSlot, Report, SetPieceInstance } from "../src/chain/types.ts";
 import { assertDeterministic, assertPure, assertRecomputable } from "./chain-harness.ts";
+import { stubBuild, stubCompose } from "./chain-stub.ts";
 
 const LIBRARY = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;
 const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, lootChance: 0.04, lootTierStep: 0.09 };
@@ -27,29 +27,9 @@ const CELL_SIZE = 4;
 const layouts = new Map(SEEDS.map((seed) => [seed, placement(seed, GAME, LIBRARY)]));
 const derive = (layout: Layout, library: ChainLibrary): LayoutRegions => regions(resolution(layout, library), layout.seed);
 
-/** A builder that sites what its brief asks, one site per cell centre in cell order, and nothing else. */
-function stubBuild(brief: RegionBrief): RegionResult {
-  const coreElements: CoreElementSite[] = [];
-  for (const kind of CORE_ELEMENT_KINDS) for (let i = 0; i < (brief.coreElements?.[kind] ?? 0); i++) {
-    const cell = brief.cells[coreElements.length % brief.cells.length]!;
-    coreElements.push({ kind, x: (cell.x + 0.5) * brief.cellSize, y: (cell.y + 0.5) * brief.cellSize });
-  }
-  return { version: "region-2", brief, elements: [], coreElements, loot: [], manifest: {} };
-}
-
-/** What the game's `composeRegions` returns for agreeing results: regions in id order, one pair per shared portal. */
-function compose(results: RegionResult[]): BuiltMap {
-  const sorted = [...results].sort((p, q) => p.brief.id < q.brief.id ? -1 : p.brief.id > q.brief.id ? 1 : 0);
-  const holders = new Map<string, string[]>();
-  for (const { brief } of sorted) for (const portal of brief.portals) holders.set(portal.id, [...holders.get(portal.id) ?? [], brief.id]);
-  const pairs: PortalPair[] = [...holders].map(([portal, [a, b]]) => ({ portal, a: a!, b: b! }))
-    .sort((p, q) => p.portal < q.portal ? -1 : 1);
-  return { cellSize: sorted[0]!.brief.cellSize, regions: sorted, pairs };
-}
-
 function measure(layout: Layout, library: ChainLibrary, build: (brief: RegionBrief) => RegionResult = stubBuild): Report {
   const found = derive(layout, library);
-  const built = compose(briefs(layout, found, chainZones(layout.params), library, CELL_SIZE).map(build));
+  const built = stubCompose(briefs(layout, found, chainZones(layout.params), library, CELL_SIZE).map(build));
   return measurement(built, proof(found), layout, library);
 }
 const kinds = (report: Report): string[] => report.defects.map((defect) => defect.kind);
@@ -58,11 +38,11 @@ test("measurement is pure, deterministic and recomputable from the Layout and th
   const layout = layouts.get(SEEDS[0]!)!;
   const found = derive(layout, LIBRARY);
   const results = briefs(layout, found, chainZones(layout.params), LIBRARY, CELL_SIZE).map(stubBuild);
-  const built = compose(results), reachability = proof(found);
+  const built = stubCompose(results), reachability = proof(found);
   const report = assertPure("measurement", measurement, built, reachability, layout, LIBRARY);
   assert.deepEqual(assertDeterministic("measurement", measurement, built, reachability, layout, LIBRARY), report);
   assertRecomputable("measurement", report, (saved: Layout, list: RegionResult[]) =>
-    measurement(compose(list), proof(derive(saved, LIBRARY)), saved, LIBRARY), layout, results);
+    measurement(stubCompose(list), proof(derive(saved, LIBRARY)), saved, LIBRARY), layout, results);
 });
 
 test("the fixture's maps, built as their briefs ask, keep every promise", () => {
@@ -173,7 +153,7 @@ test("the proof is checked against what was built: unconnected, unbuilt and unpr
 
   // A built map that lost a region, or holds one the proof doesn't know.
   const found = derive(layout, HAND), reachability = proof(found);
-  const built = compose(briefs(layout, found, chainZones(layout.params), HAND, CELL_SIZE).map(stubBuild));
+  const built = stubCompose(briefs(layout, found, chainZones(layout.params), HAND, CELL_SIZE).map(stubBuild));
   const lost = measurement({ ...built, regions: built.regions.filter((r) => r.brief.id !== "charging@18,6") }, reachability, layout, HAND);
   assert.deepEqual(lost.defects.filter((d) => d.kind === "unbuilt-region").map((d) => d.message),
     ["the proof names region charging@18,6, which the built map doesn't hold"]);
@@ -187,7 +167,7 @@ test("metrics are counted from the built map", () => {
   const found = derive(layout, HAND);
   const results = briefs(layout, found, chainZones(layout.params), HAND, CELL_SIZE).map((brief) =>
     ({ ...stubBuild(brief), elements: [1, 2, 3], loot: [{ x: 0, y: 0, tier: 1 }] }));
-  const report = measurement(compose(results), proof(found), layout, HAND);
+  const report = measurement(stubCompose(results), proof(found), layout, HAND);
   assert.deepEqual(report.defects, []);
   assert.deepEqual(report.metrics, { regions: 2, cells: 36, portals: 1, elements: 6, coreElementSites: 1, loot: 2 });
 });
