@@ -168,19 +168,21 @@ saved map is therefore a Layout, optionally with its region results (see
   perimeter segments, and passability prescriptions (`passable`, `any`, or
   unstated) on any segment.
 - **Cell classes** each name a region type, with its parameters. A class's rule
-  also lists the **core elements** its strategy sites. For example, one spawn, or
-  `exitCount` exits. This is the only way a core element reaches a strategy: in its
+  also lists the **core elements** its strategy sites. For example,
+  `contestantCount` spawns, or `exitCount` exits. This is the only way a core element reaches a strategy: in its
   brief, through its class rule. Macro places no points.
 - **Set piece classes** are declared in the library. Each names the engine
   placement rule it uses (today's `start`, `end`, `enormous`, `medium`,
   `small`, plus the new `charger`) and the core elements it owns, each with a count
-  per instance (a number, or a param such as `exitCount`).
+  per instance (a number, or a param: `exitCount`, `contestantCount` or
+  `hunterCount`).
 - **No geometry and no impassable prescription.** Without macro geometry,
   nothing could honour one, and strategies aren't asked to (Corey, 2026-09-27).
   A suggestion channel for builders is deferred (16).
 - **Validity:** every declared class is registered and names a region type,
   and every prescription is well formed. A core element count is a positive whole
-  number or `exitCount`, and the params' `exitCount` is a whole number. There
+  number or a count param (`exitCount`, `contestantCount`, `hunterCount`), and the params'
+  values for them are whole numbers. There
   is no ceiling: how many a strategy can site is its own concern, and the
   report finds any it misses (stage 8). Tile sets and set piece classes are
   sets, so neither lists a member twice. A set piece slot that fixes an
@@ -308,7 +310,7 @@ and evolves from today's `RegionSpec`:
   mapgen's flat indices are translated by its grid width (20, "Next
   boundaries").
 - **zone context:** each cell's tier, bonus and loot chance
-- **core elements** the class rule lists. The `entry` builder's spawn count is the
+- **core elements** the class rule lists. The spawns, one per contestant, are the
   first case: "The contestant entry areas should be treated like a region that
   gets micro generated" (17, September 22).
 - **obligations**, which are passability obligations only (Corey,
@@ -397,8 +399,9 @@ decomposes splits its own brief into children with the SDK's decomposition
   2. **No stray sites.** A site that falls in no instance's slots, or in an
      instance whose class doesn't own that core element, is reported as a defect.
   3. **Exact counts.** Each instance of a class that owns core elements must have
-     exactly the promised count of each core element among its assigned sites: one
-     spawn for `start`, `exitCount` exits and one hunter spawn for `end`, one
+     exactly the promised count of each core element among its assigned sites:
+     `contestantCount` spawns for `start`, `exitCount` exits and `hunterCount`
+     hunter spawns for `end`, one
      charger for `charger`.
 
   Two adjacent instances whose core element regions merged are caught this way.
@@ -427,11 +430,19 @@ macro structure the engine treats as first class.
 
 | Core element | Set piece class | Old tile path |
 | --- | --- | --- |
-| spawn | `start` | the anchor of the lowest slot in the left third, unrelated to set pieces |
+| spawn, one per contestant (`contestantCount`) | `start` | one point: the anchor of the lowest slot in the left third, unrelated to set pieces |
 | exits | `end` | anchors of `exitCount` slots in the right third |
-| hunter spawn | `end`, for simplicity for now | the anchor of the rightmost slot |
+| hunter spawn, one per hunter (`hunterCount`) | `end`, for simplicity for now | one point: the anchor of the rightmost slot |
 | charger | `charger` (new), one per map for now | none |
 | warp | deferred | none |
+
+**A spawn is one contestant's spawn point** (Corey, 2026-10-02, 17 M20). The
+`start` set piece forms one `arrival` region, and its strategy places every
+contestant's spawn point in it, so `start` promises `contestantCount`
+spawns, a map param. The old path's single spawn was a tile anchor, and goes
+with anchors (#124). A hunter spawn is likewise one hunter's spawn point:
+`end` promises `hunterCount` of them (Corey, 2026-10-02: "Yes done the same
+way").
 
 Who is responsible for what:
 
@@ -662,7 +673,7 @@ live game until the switch-over.
      cell units from the params alone, and each brief has one zone context per
      zone its cells lie in.
    - The type and parameters come from the class rule as stated, and the
-     core elements with `exitCount` resolved from the params.
+     core elements with their count params resolved from the params.
    - Portals are the layout portals with the region on one side, as a run and
      an id. The id names the two regions (step 5), so both sides' briefs name a
      shared portal alike; nothing else about the region across is passed.
@@ -671,7 +682,7 @@ live game until the switch-over.
    - A brief's core element counts are whole numbers with no ceiling. Micro's
      `briefErrors` had carried the SDK's 64-slot tool limit (20), which
      macro has no reason to know; it is dropped. Placement and briefs both
-     check that `exitCount` is a whole number (`exitCountProblem`).
+     check that the count params are whole numbers (`countParamsProblem`).
    - `tests/chain-briefs.test.ts` copies micro's `briefErrors` rule, since
      macro and micro don't import each other, and adds that every portal lies
      on the brief's perimeter. A one-off check against micro's own
@@ -783,7 +794,8 @@ reachability is inferred (principle 8).
   - its obligations, such as `open`'s privilege (#61)
 
   The game's example builders and mapgen's six are material, not
-  constraints.
+  constraints. **Drafted (#85):** 54, a working draft. Corey answered its
+  questions, 17 M18 to M25, on 2026-10-02.
 - B3. **The strategies** the catalogue calls for, in `map/micro/`, each
   its own issue.
 - B4. **The new library**, authored against the catalogue:

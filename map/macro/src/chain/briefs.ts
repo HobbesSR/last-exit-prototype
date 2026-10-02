@@ -11,7 +11,7 @@ import type { Cell } from "../../../kernel/cell.ts";
 import type { CoreElementKind, Portal, RegionBrief, ZoneContext } from "../../../kernel/contract.ts";
 import { makeZones } from "../core.ts";
 import { gridSize } from "./declared-grid.ts";
-import { CHAIN_TILE_SIZE, exitCountProblem } from "./library.ts";
+import { CHAIN_TILE_SIZE, countParamsProblem, resolveCount } from "./library.ts";
 import type { ChainParams, LayoutPortal, MacroStages, Zone } from "./types.ts";
 
 /** The tier zones a layout's params give (`makeZones`), in cell units. */
@@ -26,8 +26,8 @@ const briefPortal = ({ id, axis, x, y, length }: LayoutPortal): Portal => ({ id,
 export const briefs: MacroStages["briefs"] = (layout, layoutRegions, zones, library, cellSize) => {
   if (!(Number.isFinite(cellSize) && cellSize > 0)) throw new Error(`cell size must be positive, not ${cellSize}`);
   // Placement refuses such params already; a layout made or loaded elsewhere might not have been through it.
-  const exitCountError = exitCountProblem(layout.params.exitCount);
-  if (exitCountError) throw new Error(exitCountError);
+  const countError = countParamsProblem(layout.params);
+  if (countError) throw new Error(countError);
   // Flat indices translate to cells by the declared grid's width (20, "Next boundaries").
   const { width } = gridSize(layout.params);
   const zoneOf = (cell: Cell): Zone => {
@@ -67,7 +67,7 @@ export const briefs: MacroStages["briefs"] = (layout, layoutRegions, zones, libr
     };
     if (rule.params) brief.parameters = { ...rule.params };
     if (rule.coreElements) brief.coreElements = Object.fromEntries(Object.entries(rule.coreElements).map(([kind, count]) =>
-      [kind, count === "exitCount" ? layout.params.exitCount : count])) as Partial<Record<CoreElementKind, number>>;
+      [kind, resolveCount(count, layout.params)])) as Partial<Record<CoreElementKind, number>>;
     return brief;
   });
 };

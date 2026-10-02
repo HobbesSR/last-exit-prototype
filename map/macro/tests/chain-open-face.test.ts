@@ -20,7 +20,7 @@ import { solveWfc } from "../src/wfc.ts";
 import type { TileOption, WfcGrid } from "../src/wfc.ts";
 
 const LIBRARY = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;
-const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, lootChance: 0.04, lootTierStep: 0.09 };
+const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 const SEEDS = ["open-face-1", "open-face-2", "open-face-3", "open-face-4"];
 
 function violations(layout: Layout, library: ChainLibrary): string[] {

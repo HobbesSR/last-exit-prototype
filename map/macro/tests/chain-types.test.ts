@@ -11,7 +11,7 @@ import type { ChainParams, DeclaredGrid, Layout, MacroStages, Orientation, Resol
 import { assertDeterministic, assertPure, assertRecomputable } from "./chain-harness.ts";
 
 const LIBRARY = JSON.parse(readFileSync(new URL("./fixtures/chain-library.json", import.meta.url), "utf8")) as ChainLibrary;
-const PARAMS: ChainParams = { zoneWidth: 2, zoneHeight: 1, exitCount: 2, lootChance: 0.1, lootTierStep: 0.05 };
+const PARAMS: ChainParams = { zoneWidth: 2, zoneHeight: 1, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.1, lootTierStep: 0.05 };
 const ORIENTATIONS: Orientation[] = [0, 90, 180, 270];
 
 function hash(text: string): number {

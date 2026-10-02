@@ -52,7 +52,18 @@ Deferred within map generation, by Corey's answers in [17](17-open-questions.md)
 - **Zone-driven hazards,** and builders with no region to attach to
   (map-boundary treatment).
 - **The warp feature,** and special access policies such as locked doors on
-  required routes (17, September 22: "parameter passing we can defer"). Playable
+  required routes (17, September 22: "parameter passing we can defer").
+- **Until the chain works top to bottom with core elements** (17 M18, M21 to
+  M23 and M25, 2026-10-02):
+  - reworking authoring, and specially recognized region types (M18)
+  - squeezes required from macro (M21)
+  - elements with mechanics other than core elements, such as traps, sensors
+    and turrets, and how builders incorporate them, including spacing rules
+    that reach across regions (M22)
+  - how to reason about locked doors (M23)
+  - what an `open` region may hold. For now it is pure open cells (M25)
+
+Playable
 elevation (2½D), overlapping floors and finished art remain incomplete under F-04.
 Multi-floor direction is accepted; collision-plane transitions and navigation-mesh
 design remain future engineering work.

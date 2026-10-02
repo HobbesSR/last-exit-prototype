@@ -486,8 +486,8 @@ export function decodeArtifact(
   library: Library = DEFAULT_LIBRARY,
 ): GeneratedMap {
   const wire = input as WireArtifact;
-  // A chain map has no params of its own, so name it before the shape check.
-  if (wire?.format === "last-exit-map" && wire.wire === CHAIN_WIRE_VERSION)
+  // A chain map has no params of its own, so name it before the shape check. Chain versions start at 5.
+  if (wire?.format === "last-exit-map" && wire.wire >= 5 && wire.wire <= CHAIN_WIRE_VERSION)
     throw new Error(
       `wire version ${wire.wire} is a generation chain map; read it with decodeChainMap`,
     );

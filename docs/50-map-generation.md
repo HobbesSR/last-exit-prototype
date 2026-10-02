@@ -3,8 +3,8 @@
 Status: accepted direction, 2026-09-29. Updated: 2026-09-29.
 
 The 5x files are map generation. 50 is the overview and who owns what. 51 is
-the generation chain, 52 the primitives and the library, and 53 artifacts,
-determinism and tools. Micro generation was documented before this area
+the generation chain, 52 the primitives and the library, 53 artifacts,
+determinism and tools, and 54 the region type catalogue. Micro generation was documented before this area
 existed, so its files keep their numbers: 19 (decomposition design) and 20
 (bounded micro generation).
 
@@ -108,7 +108,7 @@ So the test is:
 | Body scale | the `cell` profile: diameters 1.25 and 1.75, door 2, squeeze 1.5; `live`: 12 and 23 world units | radii 0.55 and 0.90 cells, until C0 | must agree | One source of truth (M5): stated once in 52, "Units and scale", and held once in code in `map/kernel/scale.ts`. mapgen and the SDK both read from it (51 C0). |
 | Development tools | micro lab, decomposition lab, generation demo | the Map Lab, CLI, MCP | tailored per level | Keep both, under the shared navigation bar (20). |
 | Questions and backlog | 17, 41 | `QUESTIONS.md`, `NEXT_TASKS.md` | same level | 17 and 41 (folded 2026-09-29). Work in progress lives on Forgejo (34). |
-| Artifacts | `micro-1`, `region-2` (a brief's result, 51 stage 6), `decomposition-1`, `realized-decomposition-1` | wire version 4, JSON and BSON (53) | tailored per level | The macro layout keeps mapgen's wire form, as wire version 5. Region results are stored as the game's own `region-2` data, less their briefs (51 step 9, 53). |
+| Artifacts | `micro-1`, `region-2` (a brief's result, 51 stage 6), `decomposition-1`, `realized-decomposition-1` | wire version 4, JSON and BSON (53) | tailored per level | The macro layout keeps mapgen's wire form, as wire version 6. Region results are stored as the game's own `region-2` data, less their briefs (51 step 9, 53). |
 
 ## Where the code is today
 
@@ -141,6 +141,6 @@ So the test is:
 | A chain stage or its interfaces | 51 |
 | Tiles, set pieces, cell classes, prescriptions, zones | 52 |
 | Artifacts, saving, determinism, the sweep, the Map Lab, CLI and MCP | 53 |
-| A region type, a builder, a decomposer, the SDK | 19, 20, 22 |
+| A region type, a builder, a decomposer, the SDK | 54 (the catalogue, a working draft), then 19, 20, 22 |
 | Open questions, and your verbatim answers | 17, "Map generation" |
 | What's next | 41, and the Forgejo tracker it names |

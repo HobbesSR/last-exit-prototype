@@ -13,7 +13,7 @@ import type { TileOption, WfcCompatibility, WfcGrid } from "../wfc.ts";
 import { orientedDesigns } from "./declared-grid.ts";
 import { openFaceRule } from "./open-face.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
-import { CHAIN_TILE_SIZE, exitCountProblem } from "./library.ts";
+import { CHAIN_TILE_SIZE, countParamsProblem } from "./library.ts";
 import type { ChainLibrary, ChainSetPiece, ChainSetPieceClass, ChainTileDesign, PlacementRule } from "./library.ts";
 import { stream } from "./random.ts";
 import type { Stream } from "./random.ts";
@@ -251,8 +251,8 @@ export const placer = ({ openFace }: { openFace: boolean }): MacroStages["placem
   const mode = params.mode ?? "game";
   if (mode === "game" && (params.zoneWidth !== GAME_ZONE.width || params.zoneHeight !== GAME_ZONE.height))
     throw new Error(`game mode requires ${GAME_ZONE.width} x ${GAME_ZONE.height} tile zones; choose playground mode for others`);
-  const exitCountError = exitCountProblem(params.exitCount);
-  if (exitCountError) throw new Error(exitCountError);
+  const countError = countParamsProblem(params);
+  if (countError) throw new Error(countError);
   const zoneParams = { ...params, tileSize: CHAIN_TILE_SIZE };
   const zones = new Map(makeZones(zoneParams).map((zone) => [zone.id, zone]));
   const mask = layoutSlots(zoneParams);
