@@ -112,10 +112,20 @@ test("set piece classes need a rule, quota and valid feature counts", () => {
   refusal(rule, /missing or unknown placement rule/);
   const count = copy();
   count.setPieceClasses[0]!.features!.spawn = 0;
-  refusal(count, /feature spawn count must be a positive integer/);
+  refusal(count, /feature spawn count must be an integer from 1 to 64/);
   const param = copy();
   param.setPieceClasses[0]!.features!.exit = "missing" as "exitCount";
-  refusal(param, /feature exit count must be a positive integer or exitCount/);
+  refusal(param, /feature exit count must be an integer from 1 to 64, or exitCount/);
+  // The contract's limit: a brief asking for more is one micro refuses (MAX_FEATURE_COUNT).
+  const most = copy();
+  most.setPieceClasses[0]!.features!.spawn = 64;
+  assert.deepEqual(validateLibrary(most, TYPES).errors, []);
+  const over = copy();
+  over.setPieceClasses[0]!.features!.spawn = 65;
+  refusal(over, /feature spawn count must be an integer from 1 to 64/);
+  const cellClass = copy();
+  Object.values(cellClass.cellClasses)[0]!.features = { exit: 65 };
+  refusal(cellClass, /feature exit count must be an integer from 1 to 64/);
 });
 
 test("tile sets and set piece classes are sets: a repeated member is refused", () => {

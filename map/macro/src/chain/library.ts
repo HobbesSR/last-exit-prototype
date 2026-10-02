@@ -1,5 +1,5 @@
 /** The chain's authored library (51 stage 0, 52). It is independent of the old library. */
-import { FEATURE_KINDS } from "../../../kernel/contract.ts";
+import { FEATURE_KINDS, MAX_FEATURE_COUNT } from "../../../kernel/contract.ts";
 import type { FeatureKind } from "../../../kernel/contract.ts";
 import { boundaryRuns } from "../../../kernel/run.ts";
 import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
@@ -104,9 +104,19 @@ function featureErrors(value: unknown, path: string, errors: string[]): void {
   }
   for (const [feature, count] of Object.entries(value)) {
     if (!FEATURES.has(feature as FeatureKind)) errors.push(`${path}: unknown feature ${feature}`);
-    if (!(integer(count) && count > 0) && count !== "exitCount")
-      errors.push(`${path}: feature ${feature} count must be a positive integer or exitCount`);
+    // The contract's limit (`MAX_FEATURE_COUNT`), so a brief made from this rule is one micro accepts.
+    if (!(integer(count) && count > 0 && count <= MAX_FEATURE_COUNT) && count !== "exitCount")
+      errors.push(`${path}: feature ${feature} count must be an integer from 1 to ${MAX_FEATURE_COUNT}, or exitCount`);
   }
+}
+
+/**
+ * Why a params' `exitCount` can't resolve a feature count, or `undefined`. It is held to
+ * the contract's range (`MAX_FEATURE_COUNT`), so a brief it resolves is one micro accepts.
+ */
+export function exitCountProblem(exitCount: number): string | undefined {
+  return Number.isSafeInteger(exitCount) && exitCount >= 0 && exitCount <= MAX_FEATURE_COUNT ? undefined
+    : `exitCount must be an integer from 0 to ${MAX_FEATURE_COUNT}, not ${exitCount}`;
 }
 
 function uniqueIds(value: unknown, path: string, errors: string[]): Set<string> {

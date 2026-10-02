@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { FEATURE_KINDS } from "../../kernel/contract.ts";
+import { FEATURE_KINDS, MAX_FEATURE_COUNT } from "../../kernel/contract.ts";
 import type { Cell, RegionBrief } from "../../kernel/contract.ts";
 import { briefs, chainZones } from "../src/chain/briefs.ts";
 import type { ChainLibrary, ChainTileDesign } from "../src/chain/library.ts";
@@ -50,7 +50,7 @@ function contractErrors(brief: RegionBrief): string[] {
   }
   if (zoned.size !== cells.size) errors.push("every cell in one zone");
   for (const [kind, count] of Object.entries(brief.features ?? {}))
-    if (!FEATURE_KINDS.includes(kind as never) || !Number.isInteger(count) || count! < 0 || count! > 64) errors.push(`feature ${kind}`);
+    if (!FEATURE_KINDS.includes(kind as never) || !Number.isInteger(count) || count! < 0 || count! > MAX_FEATURE_COUNT) errors.push(`feature ${kind}`);
   for (const portal of brief.portals) for (let i = 0; i < portal.length; i++) {
     const [lower, upper] = portal.axis === "h"
       ? [`${portal.x + i},${portal.y - 1}`, `${portal.x + i},${portal.y}`]
@@ -173,4 +173,17 @@ test("briefs refuse a class the library doesn't register, and a cell size that i
   const { hut: _, ...rest } = HAND.cellClasses;
   assert.throws(() => briefs(layout, found, chainZones(PLAYGROUND), { ...HAND, cellClasses: rest }, 1), /class hut/);
   assert.throws(() => briefs(layout, found, chainZones(PLAYGROUND), HAND, 0), /cell size/);
+});
+
+test("an exitCount past the contract's limit is refused by placement and by the translation", () => {
+  // A departure column resolves exitCount; 64 is the contract's most (MAX_FEATURE_COUNT).
+  const at = (exitCount: number): Layout => ({ seed: "hand", params: { ...PLAYGROUND, exitCount }, library: "hand",
+    slots: [{ col: 1, row: 1, design: "departure-west", orientation: 0 }], setPieces: [] });
+  const most = at(64);
+  const departure = briefs(most, derive(most, HAND), chainZones(most.params), HAND, 1).find((b) => b.type === "departure")!;
+  assert.deepEqual(departure.features, { exit: 64, "hunter-spawn": 1 });
+  assert.deepEqual(contractErrors(departure), []);
+  const over = at(65);
+  assert.throws(() => briefs(over, derive(over, HAND), chainZones(over.params), HAND, 1), /exitCount must be an integer from 0 to 64, not 65/);
+  assert.throws(() => placement("over", { ...GAME, exitCount: 65 }, LIBRARY), /exitCount must be an integer from 0 to 64, not 65/);
 });

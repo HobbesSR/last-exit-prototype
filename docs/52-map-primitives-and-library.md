@@ -147,7 +147,8 @@ one."
   2026-09-28). It is the class the set piece mainly forms, and generation
   doesn't read it; it's an editor default.
 - **Set piece class:** a set of set pieces, with the engine placement rule it
-  uses, its quota, and the features it owns, each with a count per instance.
+  uses, its quota, and the features it owns, each with a count per instance
+  (from 1 to the contract's limit of 64, or `exitCount`).
   It is the only macro structure the engine treats as first class, and today's
   code calls it `category`. The shipped rules, unchanged from today, in game
   mode:
