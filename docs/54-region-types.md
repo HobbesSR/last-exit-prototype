@@ -73,7 +73,7 @@ may use these rules as they stand to make a region act as an obstacle (Corey,
 | `compound` | structure | rooms around a walled court with few gates: a pocket with dead ends | — |
 | `block` | district | a city block that decomposes into the types above | — |
 | `arrival` | core element | the contestants' start | `spawn` × `contestantCount` |
-| `departure` | core element | extraction and the hunters' start | `exit` × `exitCount`, `hunter-spawn` |
+| `departure` | core element | extraction and the hunters' start | `exit` × `exitCount`, `hunter-spawn` × `hunterCount` |
 | `charging` | core element | the power-cell charging station (F-03) | `charger` |
 | *transit* | core element, deferred | the hunters' transit stations (P-09) | `warp`, deferred (51) |
 
@@ -258,11 +258,14 @@ report checks those counts per set piece instance (51 stage 8).
 ### `departure`
 
 - **Role:** the far east, where contestants extract and hunters start. The
-  `end` set piece class owns its exits and its hunter spawn.
-- **Strategy:** site `exitCount` extraction points and one hunter spawn, with
-  the hunters' start set back from the exits so the hunt begins as a pursuit.
-- **Core elements:** `exit` × `exitCount`, `hunter-spawn` × 1. 51 keeps the
-  hunter spawn in `end` "for simplicity right now" (Corey, 2026-09-28).
+  `end` set piece class owns its exits and its hunter spawns.
+- **Strategy:** site `exitCount` extraction points and every hunter's spawn
+  point, with the hunters' starts set back from the exits so the hunt begins
+  as a pursuit.
+- **Core elements:** `exit` × `exitCount`, `hunter-spawn` × `hunterCount`,
+  one hunter spawn point per hunter, the same way as spawns (Corey,
+  2026-10-02, 17 M20). 51 keeps the hunter spawns in `end` "for simplicity
+  right now" (Corey, 2026-09-28).
 - **Shape needs:** room for the exits apart from each other. How far apart,
   and whether they share the diamond's narrow tip, is 17 M13.
 - **Formed by:** `end` set pieces only.
