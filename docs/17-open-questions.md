@@ -246,6 +246,9 @@ number ("M3: …") and the answer is recorded verbatim here.
    region may span a hundred tiles. *Assumption:* those are tool limits (20)
    and get raised for macro-sized regions (51 C2). A strategy that can't build
    a large region whole decomposes it.
+   Done under that assumption (#93): one region may hold 65,536 cells and
+   span 512 per axis, and one composition 4,096 regions (20). Decomposition's
+   own bounds are raised when a strategy needs them (B3).
 8. **M8. Guarantees inside a region.** A segment prescribed passable with the
    same region on both sides isn't on a boundary, so it forms no portal and
    the proof doesn't use it.

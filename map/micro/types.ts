@@ -4,7 +4,7 @@ import type { ElementTemplate } from '../../shared/map/element.ts';
 import type { Cell, RegionResult } from '../kernel/contract.ts';
 
 // The brief and the engine-neutral result are the kernel's; this layer adds the game's geometry.
-export type { Cell, CoreElementKind, CoreElementSite, LootSite, Portal, RegionBrief, RegionTypeId, ZoneContext } from '../kernel/contract.ts';
+export type { BuiltMap, Cell, CoreElementKind, CoreElementSite, LootSite, Portal, PortalPair, RegionBrief, RegionTypeId, ZoneContext } from '../kernel/contract.ts';
 
 /**
  * The SDK's explicit-port input (`micro-1`), used by the example builders, the tools and
