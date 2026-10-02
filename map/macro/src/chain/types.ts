@@ -6,12 +6,11 @@
  * Objects hold decisions and are what can be saved: the Layout and the region results.
  * Everything else is a view, recomputed from objects and never stored (51 principle 3).
  */
-import type { Cell } from "../../../kernel/cell.ts";
-import type { CoreElementKind, CoreElementSite, LootSite, Portal, RegionBrief, RegionResult } from "../../../kernel/contract.ts";
+import type { BuiltMap, CoreElementKind, CoreElementSite, Portal, RegionBrief, RegionResult } from "../../../kernel/contract.ts";
 import type { Run } from "../../../kernel/run.ts";
 import type { ChainLibrary, PassabilityPrescription, SegmentPrescription } from "./library.ts";
 
-export type { RegionBrief, RegionResult };
+export type { BuiltMap, RegionBrief, RegionResult };
 
 declare const stageMark: unique symbol;
 /**
@@ -197,18 +196,13 @@ export interface ReachabilityProof extends StageMark<"reachability-proof"> {
 // `RegionResult` is the contract's. Macro reads it without the game's geometry.
 
 // ── 7. Composition: Layout, LayoutRegions, results → BuiltMap (view), in the game ─
-
-export interface BuiltMap<Element = unknown> extends StageMark<"built-map"> {
-  /** World units a cell. */
-  cellSize: number;
-  results: RegionResult<Element>[];
-  /** The game's collision geometry, through the adapter. */
-  elements: Element[];
-  coreElements: CoreElementSite[];
-  loot: LootSite[];
-}
+// `BuiltMap` is the contract's: the game composes it (`composeRegions`), and macro reads
+// it without the game's geometry. It refuses two owners for a cell and a disagreeing
+// portal pair, so the report can assume both hold.
 
 // ── 8. Measurement: BuiltMap, proof, Layout → Report (view) ─────────────────
+// The game diagnoses its builders' portal promises from their geometry
+// (`diagnoseBuiltMap` in `map/micro/diagnose.ts`), which macro can't read.
 
 /** One core element of one set piece instance: what its class promises against the sites assigned to it. */
 export interface InstanceCoreElementCount {
@@ -223,12 +217,25 @@ export interface InstanceCoreElementCount {
  * diagnoses; it never rejects a map (51 stage 8).
  */
 export interface Defect {
-  kind: "missing-core-element" | "extra-core-element" | "stray-site" | "unproven-region" | "broken-promise";
+  kind: DefectKind;
   message: string;
+  /** The set piece instance a core element count or a site belongs to. */
   instance?: string;
-  region?: string;
-  cells?: Cell[];
+  /** The regions the defect lies in, in the built map's order. */
+  regions?: string[];
+  site?: CoreElementSite;
 }
+
+/**
+ * - `missing-core-element`, `extra-core-element`: an instance's sites don't match its
+ *   class's promise. An author's defect, such as two instances whose core element regions
+ *   merged, unless a builder's own count is wrong too.
+ * - `stray-site`: a site in no instance's slots, or in an instance whose class doesn't own it.
+ * - `unproven-region`: the proof doesn't connect a built region to the spawn's (17 M2).
+ * - `unbuilt-region`: the proof names a region the built map doesn't hold.
+ * - `broken-promise`: a builder sited other than its brief asked, or outside its own cells.
+ */
+export type DefectKind = "missing-core-element" | "extra-core-element" | "stray-site" | "unproven-region" | "unbuilt-region" | "broken-promise";
 
 export interface Report extends StageMark<"report"> {
   coreElements: InstanceCoreElementCount[];

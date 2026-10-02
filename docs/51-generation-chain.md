@@ -404,8 +404,9 @@ decomposes splits its own brief into children with the SDK's decomposition
   - the proof connects every layout region to the spawn's (stage 4)
   - every builder kept its promise (stage 6)
 
-  No whole-map flood decides anything. A flood over the built geometry may run
-  as a diagnostic, to help find a defective builder.
+  No whole-map flood decides anything. The game's diagnostic checks each
+  region's portal promise on its own geometry (`diagnoseBuiltMap`), to help
+  find a defective builder.
 - **The report diagnoses; it doesn't reject.** A failure here names a defect,
   either an authoring defect or a builder that broke its contract. It is not
   an invalid map to discard. Tests, batches and the sweep use the report to
@@ -653,7 +654,35 @@ live game until the switch-over.
      on the brief's perimeter. A one-off check against micro's own
      `briefErrors` passed 3,956 briefs over 20 game seeds, at about 4 ms a map.
 8. The report: core elements per instance, and diagnostics that locate defects
-   (C2).
+   (C2). **Done (#91):** `chain/measurement.ts`, and `map/micro/diagnose.ts`
+   in the game.
+   - `measurement(built, proof, layout, library)` reads the kernel's
+     `BuiltMap`, which replaces the chain's placeholder type. It reads core
+     element sites and briefs, never geometry.
+   - Each site is assigned by the slot its cell lies in, and each instance
+     whose class owns core elements gets one count per element, in the
+     kernel's kind order.
+   - It names defects without rejecting the map: an instance short or over
+     its class's promise, a stray site, a region the proof doesn't connect to
+     the spawn's (`unprovenComponents`, the rule `proofViolations` states), a
+     region the proof names that wasn't built or the reverse, and a builder's
+     **broken promise**: sites that differ from what its brief asked, or that
+     lie outside its own cells. Merged instances report only the instance
+     left without, since their builder kept its brief, so the defect is the
+     authors'.
+   - The spawn region is the one whose brief asks for a spawn, the same
+     region the class rule picks for the gate.
+   - Metrics are counted from the built map: regions, cells, portals,
+     elements, core element sites and loot.
+   - **The flood diagnostic is per region.** Macro can't read the game's
+     geometry, so `diagnoseBuiltMap` in the game runs the elective
+     `validatePortalReach` on each region against its own brief and names the
+     regions that broke their portal promise. A region split by its geometry
+     is named; a sealed pocket inside a region isn't, and nothing floods the
+     whole map. It is a separate view from the report, and the tools join
+     them at the switch-over (step 10).
+   - The tests are `tests/chain-measurement.test.ts`, with a stub builder that
+     sites what each brief asks, and `tests/micro-diagnose.test.js`.
 9. The map container, the accessor, saving and the wire version (#69, #70).
 
 **Track C: the contract and composition, in the game.**

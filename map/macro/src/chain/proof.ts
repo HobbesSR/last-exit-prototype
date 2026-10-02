@@ -36,16 +36,25 @@ export const proof: MacroStages["proof"] = (layoutRegions) => {
  * message per component left out, naming its regions.
  */
 export function proofViolations(reachability: ReachabilityProof, layoutRegions: LayoutRegions, library: ChainLibrary): string[] {
-  const { components } = reachability;
-  if (components.length < 2) return [];
   const spawnClasses = new Set(Object.entries(library.cellClasses)
     .filter(([, cellClass]) => cellClass.coreElements?.spawn !== undefined).map(([id]) => id));
   const spawn = layoutRegions.regions.find((region) => spawnClasses.has(region.class));
-  const main = spawn
-    ? components.find((component) => component.includes(spawn.id))!
-    : components.reduce((best, component) => component.length > best.length ? component : best);
-  const anchor = spawn ? `spawn region ${spawn.id}` : `the largest component, from ${main[0]}`;
-  return components.filter((component) => component !== main).map((component) =>
-    `${component.length === 1 ? "region" : "regions"} ${component.join(", ")} ${component.length === 1 ? "has" : "have"} `
-    + `no portal path to ${anchor}`);
+  return unprovenComponents(reachability, spawn?.id).map(({ message }) => message);
+}
+
+/**
+ * The rule `proofViolations` states, for a caller that knows the spawn region by other
+ * means, such as the report from a brief's core elements. Every component but the spawn
+ * region's is left out; with no spawn region, or one the proof doesn't name, every
+ * component but the largest.
+ */
+export function unprovenComponents(reachability: ReachabilityProof, spawnRegion: string | undefined): { regions: string[]; message: string }[] {
+  const { components } = reachability;
+  if (components.length < 2) return [];
+  const spawn = spawnRegion === undefined ? undefined : components.find((component) => component.includes(spawnRegion));
+  const main = spawn ?? components.reduce((best, component) => component.length > best.length ? component : best);
+  const anchor = spawn ? `spawn region ${spawnRegion}` : `the largest component, from ${main[0]}`;
+  return components.filter((component) => component !== main).map((regions) => ({ regions,
+    message: `${regions.length === 1 ? "region" : "regions"} ${regions.join(", ")} ${regions.length === 1 ? "has" : "have"} `
+      + `no portal path to ${anchor}` }));
 }

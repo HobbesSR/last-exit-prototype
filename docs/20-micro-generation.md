@@ -80,7 +80,9 @@ requirement.
 **`portalStands`** gives the hunter positions that cover a portal from inside,
 at most half a cell apart. **`validatePortalReach`** is the elective check over
 final collision geometry. Each stand must be clear. The stands of one portal
-must join. Each portal must reach the first.
+must join. Each portal must reach the first. **`diagnoseBuiltMap`** runs it on
+every region of a composed map and names the regions that fail, as the
+report's diagnostic ([51](51-generation-chain.md) stage 8).
 
 Like the other route checks, it is sampled. The half-cell lattice rarely fits
 a hunter through a gap only two cells wide, so a narrow region can be refused
