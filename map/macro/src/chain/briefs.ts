@@ -2,13 +2,13 @@
  * Briefs (51 stage 5), a view: one `RegionBrief` per layout region, in the macro/micro
  * contract (`map/kernel/contract.ts`). It carries the region's type and parameters from
  * its class rule, its cells in global cell coordinates, the zone context they lie in, the
- * features the class rule lists, and its portals, which are its only obligation. A brief
+ * core elements the class rule lists, and its portals, which are its only obligation. A brief
  * never mentions another region's contents. A portal is its run and its id; the id names
  * the two regions it joins (step 5), so both sides' briefs name a shared portal alike, and
  * nothing else about the region across is passed.
  */
 import type { Cell } from "../../../kernel/cell.ts";
-import type { FeatureKind, Portal, RegionBrief, ZoneContext } from "../../../kernel/contract.ts";
+import type { CoreElementKind, Portal, RegionBrief, ZoneContext } from "../../../kernel/contract.ts";
 import { makeZones } from "../core.ts";
 import { gridSize } from "./declared-grid.ts";
 import { CHAIN_TILE_SIZE, exitCountProblem } from "./library.ts";
@@ -66,8 +66,8 @@ export const briefs: MacroStages["briefs"] = (layout, layoutRegions, zones, libr
       portals: portalsOf.get(region.id)!,
     };
     if (rule.params) brief.parameters = { ...rule.params };
-    if (rule.features) brief.features = Object.fromEntries(Object.entries(rule.features).map(([kind, count]) =>
-      [kind, count === "exitCount" ? layout.params.exitCount : count])) as Partial<Record<FeatureKind, number>>;
+    if (rule.coreElements) brief.coreElements = Object.fromEntries(Object.entries(rule.coreElements).map(([kind, count]) =>
+      [kind, count === "exitCount" ? layout.params.exitCount : count])) as Partial<Record<CoreElementKind, number>>;
     return brief;
   });
 };

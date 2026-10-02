@@ -63,12 +63,12 @@ in the `REGION_TYPES` registry. A brief carries:
 - the region type and its class rule's parameters
 - cells, with `cellSize`
 - each cell's zone (tier, bonus and loot chance)
-- feature counts
+- core element counts
 - portals
 
 Bodies are the kernel's body scale, the `cell` profile.
 
-The strategy returns `region-1`: its elements, feature sites, loot and a
+The strategy returns `region-2`: its elements, core element sites, loot and a
 manifest. It is not checked, because a builder's promise is its own to keep
 (51 principle 9).
 
@@ -91,7 +91,7 @@ though a route exists.
 stand in until the catalogue (B2) and its strategies (B3), and the prefix
 keeps a library from binding to them. Each one:
 - protects its portals' stands and a hunter route between them while it builds
-- sites the brief's features before the loot fill, as the entry builder does,
+- sites the brief's core elements before the loot fill, as the entry builder does,
   kind by kind, reachable from the first portal
 - rolls each cell's loot chance, and gives loot its cell's tier, with no
   budget but the 64-slot tool limit
@@ -445,7 +445,7 @@ including actual movement across a child-region join.
 
 ## Next boundaries
 
-Feature-region placement beyond local entry spacing, primitive material sets, and
+Placing core element regions beyond local entry spacing, primitive material sets, and
 authored segment/vertex metadata still need expansion. The next decomposition
 boundaries are recursive execution of explored trees, which can now reuse flat
 dispatch and negotiation at each level, and a `map/macro/` adapter.

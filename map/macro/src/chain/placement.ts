@@ -257,10 +257,10 @@ export const placer = ({ openFace }: { openFace: boolean }): MacroStages["placem
   const zones = new Map(makeZones(zoneParams).map((zone) => [zone.id, zone]));
   const mask = layoutSlots(zoneParams);
 
-  // A feature class is painted only inside its owning set pieces (51, "Features"), so
+  // A core element class is painted only inside its owning set pieces (51, "Core elements"), so
   // the fill never places a design that paints one.
   const featureClasses = new Set(Object.entries(library.cellClasses)
-    .filter(([, cellClass]) => Object.keys(cellClass.features ?? {}).length).map(([id]) => id));
+    .filter(([, cellClass]) => Object.keys(cellClass.coreElements ?? {}).length).map(([id]) => id));
   const paintsFeature = (tile: ChainTileDesign): boolean =>
     featureClasses.has(tile.defaultCellClass) || Object.values(tile.legend ?? {}).some((id) => featureClasses.has(id));
 

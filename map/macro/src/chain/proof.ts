@@ -1,8 +1,8 @@
 /**
  * Proof (51 stage 4), a view: the components of the region graph, from a union-find over
  * the regions its portals join. It is macro's link in the chain of inference (51
- * principle 8), a claim about guarantees and not geometry, and it names no feature
- * regions: which region holds a feature isn't known before micro.
+ * principle 8), a claim about guarantees and not geometry, and it names no core element
+ * regions: which region holds a core element isn't known before micro.
  */
 import type { ChainLibrary } from "./library.ts";
 import type { LayoutRegions, MacroStages, ReachabilityProof } from "./types.ts";
@@ -32,14 +32,14 @@ export const proof: MacroStages["proof"] = (layoutRegions) => {
 /**
  * Why a proof doesn't hold (17 M2's assumption): every layout region must be in the spawn
  * region's component. A region is a spawn region when its class promises a `spawn`
- * feature. With none, as in playground mode, the largest component stands in for it. One
+ * core element. With none, as in playground mode, the largest component stands in for it. One
  * message per component left out, naming its regions.
  */
 export function proofViolations(reachability: ReachabilityProof, layoutRegions: LayoutRegions, library: ChainLibrary): string[] {
   const { components } = reachability;
   if (components.length < 2) return [];
   const spawnClasses = new Set(Object.entries(library.cellClasses)
-    .filter(([, cellClass]) => cellClass.features?.spawn !== undefined).map(([id]) => id));
+    .filter(([, cellClass]) => cellClass.coreElements?.spawn !== undefined).map(([id]) => id));
   const spawn = layoutRegions.regions.find((region) => spawnClasses.has(region.class));
   const main = spawn
     ? components.find((component) => component.includes(spawn.id))!

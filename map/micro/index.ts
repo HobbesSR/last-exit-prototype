@@ -7,8 +7,8 @@ import { spreadPoints } from './placement.ts';
 import { BUILDERS } from './builders.ts';
 import { capsule, createRegionMask, elementShapes, findRegionRoute, shapesOverlap, travelClear } from './geometry.ts';
 import { portalStands } from './portals.ts';
-import { FEATURE_KINDS } from '../kernel/contract.ts';
-import type { BuilderContext, BuilderId, BuiltRegion, FeatureKind, FeatureSite, Portal, RegionBrief, RegionElement, RegionMask, RegionRandom, MicroResult, RegionRoute, RegionSpec, ResolvedPort } from './types.ts';
+import { CORE_ELEMENT_KINDS } from '../kernel/contract.ts';
+import type { BuilderContext, BuilderId, BuiltRegion, CoreElementKind, CoreElementSite, Portal, RegionBrief, RegionElement, RegionMask, RegionRandom, MicroResult, RegionRoute, RegionSpec, ResolvedPort } from './types.ts';
 export type { RegionSpec, MicroResult } from './types.ts';
 
 const RANK = { none: 0, contestant: 1, hunter: 2 };
@@ -81,12 +81,12 @@ function entryPoints(spec: RegionSpec, mask: RegionMask, elements: RegionElement
 }
 
 /**
- * What a brief adds to the example generator. Portals are kept, never walled; features
+ * What a brief adds to the example generator. Portals are kept, never walled; core elements
  * are sited before the loot fill; loot follows each cell's zone.
  */
 interface BriefTerms {
   portals: Portal[];
-  features: Array<[FeatureKind, number]>;
+  coreElements: Array<[CoreElementKind, number]>;
   zoneAt(x: number, y: number): { tier: number; lootChance: number };
 }
 
@@ -109,14 +109,14 @@ export function generateBriefRegion(brief: RegionBrief, builder: BuilderId): Bui
   const spec = checkedSpec({ id: brief.id, seed: brief.seed, builder, cellSize: brief.cellSize, bodyProfile: 'cell', cells: brief.cells, ports: [],
     ...(Object.keys(parameters).length ? { parameters } : {}), loot: { budget: 64, tier: 1 } });
   const zones = new Map(brief.zones.flatMap(zone => zone.cells.map(c => [`${c.x},${c.y}`, zone] as const)));
-  const features = FEATURE_KINDS.flatMap(kind => brief.features?.[kind] ? [[kind, brief.features[kind]!] as [FeatureKind, number]] : []);
-  const { result, features: sites } = generate(spec, { portals: brief.portals, features, zoneAt: (x, y) => zones.get(`${x},${y}`)! });
+  const coreElements = CORE_ELEMENT_KINDS.flatMap(kind => brief.coreElements?.[kind] ? [[kind, brief.coreElements[kind]!] as [CoreElementKind, number]] : []);
+  const { result, coreElements: sites } = generate(spec, { portals: brief.portals, coreElements, zoneAt: (x, y) => zones.get(`${x},${y}`)! });
   const { builder: _, ...counts } = result.manifest;
-  return { version: 'region-1', brief: structuredClone(brief), elements: result.elements, features: sites, loot: result.loot,
-    manifest: { ...counts, features: sites.length } };
+  return { version: 'region-2', brief: structuredClone(brief), elements: result.elements, coreElements: sites, loot: result.loot,
+    manifest: { ...counts, coreElements: sites.length } };
 }
 
-function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; features: FeatureSite[] } {
+function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; coreElements: CoreElementSite[] } {
   const mask = createRegionMask(spec), resolved = resolvePorts(spec, mask);
   const metrics = microMetrics(spec), radii = metrics.clearance;
   const elements = resolved.elements, ports = resolved.ports, routes: RegionRoute[] = [], blockers = elements.flatMap(e => elementShapes(e));
@@ -199,15 +199,15 @@ function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; 
   // Spawning is what an entry region is for, so its points claim ground before the loot fill.
   const entry = !terms && spec.builder === 'entry' ? entryPoints(spec, mask, elements, root) : undefined;
   spawns.push(...(entry?.points || []).map(p => circle(p.x, p.y, radii.contestant)));
-  // A brief's features are its region's guarantees too, so they are sited first in the same way, kind by kind.
+  // A brief's core elements are its region's guarantees too, so they are sited first in the same way, kind by kind.
   // Loot the builder already placed reserves its ground here too, since a builder's loot calls
   // can land before this runs.
-  const features: FeatureSite[] = [];
-  for (const [kind, count] of terms?.features ?? []) {
+  const coreElements: CoreElementSite[] = [];
+  for (const [kind, count] of terms?.coreElements ?? []) {
     const radius = kind === 'hunter-spawn' ? radii.hunter : radii.contestant;
     const placed = spreadPoints(mask, { count, radius, seed: spec.seed, blockers: elements.flatMap(e => elementShapes(e, true)),
       reservations: [...spawns, ...loot.map(l => circle(l.x, l.y, metrics.lootRadius))], ...(root ? { anchor: root } : {}) });
-    features.push(...placed.points.map(p => ({ kind, x: p.x, y: p.y })));
+    coreElements.push(...placed.points.map(p => ({ kind, x: p.x, y: p.y })));
     spawns.push(...placed.points.map(p => circle(p.x, p.y, radius)));
   }
   const lootRandom = context.random('remaining-loot');
@@ -220,7 +220,7 @@ function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; 
     ...(entry ? { entry } : {}),
     manifest: { builder: spec.builder, cells: mask.cells.length, structures: elements.filter(e => e.template.encloses).length,
       obstacles: parts.filter(p => p.part === 'obstacle').length, gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, attempted, rejected } };
-  return { result, features };
+  return { result, coreElements };
 }
 
 /** Recompute physical claims from emitted geometry; never trust the manifest or saved routes. */

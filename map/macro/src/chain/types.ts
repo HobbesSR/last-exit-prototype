@@ -7,7 +7,7 @@
  * Everything else is a view, recomputed from objects and never stored (51 principle 3).
  */
 import type { Cell } from "../../../kernel/cell.ts";
-import type { FeatureKind, FeatureSite, LootSite, Portal, RegionBrief, RegionResult } from "../../../kernel/contract.ts";
+import type { CoreElementKind, CoreElementSite, LootSite, Portal, RegionBrief, RegionResult } from "../../../kernel/contract.ts";
 import type { Run } from "../../../kernel/run.ts";
 import type { ChainLibrary, PassabilityPrescription, SegmentPrescription } from "./library.ts";
 
@@ -36,7 +36,7 @@ export interface ChainParams {
   zoneWidth: number;
   /** Tiles per zone, north to south. */
   zoneHeight: number;
-  /** Resolves a feature count of `exitCount` (52). */
+  /** Resolves a core element count of `exitCount` (52). */
   exitCount: number;
   /** Loot chance in tier 1, and the step added per tier above it. */
   lootChance: number;
@@ -183,7 +183,7 @@ export interface LayoutRegions extends StageMark<"layout-regions"> {
 
 // ── 4. Proof: LayoutRegions → ReachabilityProof (view) ──────────────────────
 
-/** A claim about guarantees, not geometry (51 stage 4). It names no feature regions. */
+/** A claim about guarantees, not geometry (51 stage 4). It names no core element regions. */
 export interface ReachabilityProof extends StageMark<"reachability-proof"> {
   /** Region ids per component of the region graph. */
   components: string[][];
@@ -204,16 +204,16 @@ export interface BuiltMap<Element = unknown> extends StageMark<"built-map"> {
   results: RegionResult<Element>[];
   /** The game's collision geometry, through the adapter. */
   elements: Element[];
-  features: FeatureSite[];
+  coreElements: CoreElementSite[];
   loot: LootSite[];
 }
 
 // ── 8. Measurement: BuiltMap, proof, Layout → Report (view) ─────────────────
 
-/** One feature of one set piece instance: what its class promises against the sites assigned to it. */
-export interface InstanceFeatureCount {
+/** One core element of one set piece instance: what its class promises against the sites assigned to it. */
+export interface InstanceCoreElementCount {
   instance: string;
-  feature: FeatureKind;
+  element: CoreElementKind;
   promised: number;
   found: number;
 }
@@ -223,7 +223,7 @@ export interface InstanceFeatureCount {
  * diagnoses; it never rejects a map (51 stage 8).
  */
 export interface Defect {
-  kind: "missing-feature" | "extra-feature" | "stray-site" | "unproven-region" | "broken-promise";
+  kind: "missing-core-element" | "extra-core-element" | "stray-site" | "unproven-region" | "broken-promise";
   message: string;
   instance?: string;
   region?: string;
@@ -231,7 +231,7 @@ export interface Defect {
 }
 
 export interface Report extends StageMark<"report"> {
-  features: InstanceFeatureCount[];
+  coreElements: InstanceCoreElementCount[];
   defects: Defect[];
   metrics: Record<string, number>;
 }
