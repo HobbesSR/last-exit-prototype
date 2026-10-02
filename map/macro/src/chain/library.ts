@@ -9,7 +9,7 @@ export const CHAIN_TILE_SIZE = 6;
 export type Side = "N" | "E" | "S" | "W";
 export type PassabilityPrescription = "passable" | "any";
 /** Map params a core element count may name, resolved from the Layout's params (52). */
-export const COUNT_PARAMS = ["exitCount", "contestantCount"] as const;
+export const COUNT_PARAMS = ["exitCount", "contestantCount", "hunterCount"] as const;
 export type CountParam = typeof COUNT_PARAMS[number];
 export type CoreElementCount = number | CountParam;
 export type PlacementRule = "start" | "end" | "enormous" | "medium" | "small" | "charger";

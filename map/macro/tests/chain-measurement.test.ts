@@ -21,7 +21,7 @@ import { assertDeterministic, assertPure, assertRecomputable } from "./chain-har
 import { stubBuild, stubCompose } from "./chain-stub.ts";
 
 const LIBRARY = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;
-const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, lootChance: 0.04, lootTierStep: 0.09 };
+const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 const SEEDS = ["placement-1", "placement-2", "placement-3", "placement-4"];
 const CELL_SIZE = 4;
 const layouts = new Map(SEEDS.map((seed) => [seed, placement(seed, GAME, LIBRARY)]));
@@ -54,13 +54,13 @@ test("the fixture's maps, built as their briefs ask, keep every promise", () => 
     assert.deepEqual([...new Set(report.coreElements.map((count) => count.instance))], owning.map((instance) => instance.id), seed);
     const end = owning.find((instance) => instance.setPieceClass === "end")!;
     assert.deepEqual(report.coreElements.filter((count) => count.instance === end.id),
-      [{ instance: end.id, element: "hunter-spawn", promised: 1, found: 1 }, { instance: end.id, element: "exit", promised: GAME.exitCount, found: GAME.exitCount }], seed);
+      [{ instance: end.id, element: "hunter-spawn", promised: GAME.hunterCount, found: GAME.hunterCount }, { instance: end.id, element: "exit", promised: GAME.exitCount, found: GAME.exitCount }], seed);
     assert.ok(report.coreElements.every((count) => count.found === count.promised), seed);
     // The start instance promises one spawn point per contestant (17 M20).
     const start = owning.find((instance) => instance.setPieceClass === "start")!;
     assert.deepEqual(report.coreElements.filter((count) => count.instance === start.id),
       [{ instance: start.id, element: "spawn", promised: GAME.contestantCount, found: GAME.contestantCount }], seed);
-    assert.equal(report.metrics.coreElementSites, GAME.contestantCount + 1 + GAME.exitCount + 1, seed);
+    assert.equal(report.metrics.coreElementSites, GAME.contestantCount + GAME.hunterCount + GAME.exitCount + 1, seed);
     const found = derive(layout, LIBRARY);
     assert.equal(report.metrics.regions, found.regions.length, seed);
     assert.equal(report.metrics.cells, found.regions.reduce((n, region) => n + region.cells.length, 0), seed);

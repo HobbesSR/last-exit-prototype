@@ -174,13 +174,14 @@ saved map is therefore a Layout, optionally with its region results (see
 - **Set piece classes** are declared in the library. Each names the engine
   placement rule it uses (today's `start`, `end`, `enormous`, `medium`,
   `small`, plus the new `charger`) and the core elements it owns, each with a count
-  per instance (a number, or a param: `exitCount` or `contestantCount`).
+  per instance (a number, or a param: `exitCount`, `contestantCount` or
+  `hunterCount`).
 - **No geometry and no impassable prescription.** Without macro geometry,
   nothing could honour one, and strategies aren't asked to (Corey, 2026-09-27).
   A suggestion channel for builders is deferred (16).
 - **Validity:** every declared class is registered and names a region type,
   and every prescription is well formed. A core element count is a positive whole
-  number or a count param (`exitCount`, `contestantCount`), and the params'
+  number or a count param (`exitCount`, `contestantCount`, `hunterCount`), and the params'
   values for them are whole numbers. There
   is no ceiling: how many a strategy can site is its own concern, and the
   report finds any it misses (stage 8). Tile sets and set piece classes are
@@ -399,7 +400,8 @@ decomposes splits its own brief into children with the SDK's decomposition
      instance whose class doesn't own that core element, is reported as a defect.
   3. **Exact counts.** Each instance of a class that owns core elements must have
      exactly the promised count of each core element among its assigned sites:
-     `contestantCount` spawns for `start`, `exitCount` exits and one hunter spawn for `end`, one
+     `contestantCount` spawns for `start`, `exitCount` exits and `hunterCount`
+     hunter spawns for `end`, one
      charger for `charger`.
 
   Two adjacent instances whose core element regions merged are caught this way.
@@ -430,7 +432,7 @@ macro structure the engine treats as first class.
 | --- | --- | --- |
 | spawn, one per contestant (`contestantCount`) | `start` | one point: the anchor of the lowest slot in the left third, unrelated to set pieces |
 | exits | `end` | anchors of `exitCount` slots in the right third |
-| hunter spawn | `end`, for simplicity for now | the anchor of the rightmost slot |
+| hunter spawn, one per hunter (`hunterCount`) | `end`, for simplicity for now | one point: the anchor of the rightmost slot |
 | charger | `charger` (new), one per map for now | none |
 | warp | deferred | none |
 
@@ -438,7 +440,9 @@ macro structure the engine treats as first class.
 `start` set piece forms one `arrival` region, and its strategy places every
 contestant's spawn point in it, so `start` promises `contestantCount`
 spawns, a map param. The old path's single spawn was a tile anchor, and goes
-with anchors (#124).
+with anchors (#124). A hunter spawn is likewise one hunter's spawn point:
+`end` promises `hunterCount` of them (Corey, 2026-10-02: "Yes done the same
+way").
 
 Who is responsible for what:
 
@@ -669,7 +673,7 @@ live game until the switch-over.
      cell units from the params alone, and each brief has one zone context per
      zone its cells lie in.
    - The type and parameters come from the class rule as stated, and the
-     core elements with `exitCount` and `contestantCount` resolved from the params.
+     core elements with their count params resolved from the params.
    - Portals are the layout portals with the region on one side, as a run and
      an id. The id names the two regions (step 5), so both sides' briefs name a
      shared portal alike; nothing else about the region across is passed.

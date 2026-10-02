@@ -148,15 +148,16 @@ one."
   doesn't read it; it's an editor default.
 - **Set piece class:** a set of set pieces, with the engine placement rule it
   uses, its quota, and the core elements it owns, each with a count per instance
-  (a positive whole number, or a count param: `exitCount` or `contestantCount`).
+  (a positive whole number, or a count param: `exitCount`, `contestantCount`
+  or `hunterCount`).
   It is the only macro structure the engine treats as first class, and today's
   code calls it `category`. The shipped rules in game mode, unchanged from
-  today's except for the spawns:
+  today's except for the spawn and hunter spawn counts:
 
 | Set piece class | Rule | Quota | Owns |
 | --- | --- | --- | --- |
 | `start` | touches the western edge | 1 | `contestantCount` spawns, one per contestant (17 M20) |
-| `end` | reaches the eastern edge | 1 | `exitCount` exits and one hunter spawn |
+| `end` | reaches the eastern edge | 1 | `exitCount` exits and `hunterCount` hunter spawns, one per hunter |
 | `enormous` | the middle band, one per vertical third | 3 distinct | nothing |
 | `medium` | the outer thirds | 4 | nothing |
 | `small` | anywhere | 10 | nothing |

@@ -116,7 +116,7 @@ test("set piece classes need a rule, quota and valid core element counts", () =>
   refusal(count, /core element spawn count must be a positive integer/);
   const param = copy();
   param.setPieceClasses[0]!.coreElements!.exit = "missing" as "exitCount";
-  refusal(param, /core element exit count must be a positive integer or one of exitCount, contestantCount/);
+  refusal(param, /core element exit count must be a positive integer or one of exitCount, contestantCount, hunterCount/);
   // Counts have no ceiling: how many a builder can site is the builder's concern.
   const many = copy();
   many.setPieceClasses[0]!.coreElements!.spawn = 1000;

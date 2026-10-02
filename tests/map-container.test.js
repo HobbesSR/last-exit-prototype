@@ -17,7 +17,7 @@ import { diagnoseBuiltMap } from '../map/micro/diagnose.ts';
  * ground.
  */
 const LIBRARY = JSON.parse(readFileSync(new URL('../map/macro/tests/fixtures/chain-placement-library.json', import.meta.url), 'utf8'));
-const PLAYGROUND = { mode: 'playground', zoneWidth: 2, zoneHeight: 2, exitCount: 2, contestantCount: 8, lootChance: 0.04, lootTierStep: 0.09 };
+const PLAYGROUND = { mode: 'playground', zoneWidth: 2, zoneHeight: 2, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 const REGISTRY = {
   'open-field': REGION_TYPES['example-open'],
   hut: brief => ({ version: 'region-2', brief: structuredClone(brief), elements: [], coreElements: [], loot: [], manifest: {} }),

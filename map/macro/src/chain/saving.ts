@@ -29,7 +29,7 @@ const RETIRED_VERSIONS: Record<number, string> = {
   2: "it is mapgen's old form, which the chain replaced",
   3: "it is mapgen's old form, which the chain replaced",
   4: "it holds a map from mapgen's old generators (`decodeArtifact` reads it until the switch-over)",
-  5: "its params have no contestantCount, which a spawn count names since #124; regenerate it from its seed",
+  5: "its params have no contestantCount or hunterCount, which spawn counts name since #124; regenerate it from its seed",
 };
 
 /** Placement's draws. Positions and orientations are columns; names go through the string table. */
