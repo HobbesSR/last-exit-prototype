@@ -292,7 +292,7 @@ This is the knowledge layer: what the solved placement means.
   (51 track B). The open-face rule enforces it during the solve (stage 1), and
   `proofViolations` states it on the view (step 6).
 
-### 5. Briefs: Layout, LayoutRegions, zones → **RegionBrief[]** (view)
+### 5. Briefs: Layout, LayoutRegions, zones, cell size → **RegionBrief[]** (view)
 
 One brief per layout region, expressed in the macro/micro contract. The
 contract is in the shared map space (`map/kernel/contract.ts`, 17 M1),
@@ -622,7 +622,25 @@ live game until the switch-over.
      moved and added, 200 seeds out of 200 prove connected, with no short
      portal. The open-face rule then added `hut-annex`, so that it has
      something to refuse (step 4).
-7. Briefs, and the translation into the contract (C1).
+7. Briefs, and the translation into the contract (C1). **Done (#90):**
+   `chain/briefs.ts`.
+   - One brief per layout region, in the regions' order. The caller chooses
+     the cell size in world units, so it is the stage's last input
+     (`MacroStages`); it is the game's scale, not macro's.
+   - Cells translate from flat indices by the declared grid's width
+     (`gridSize`), in ascending order. `chainZones` gives the tier zones in
+     cell units from the params alone, and each brief has one zone context per
+     zone its cells lie in.
+   - The type and parameters come from the class rule as stated, and the
+     features with `exitCount` resolved from the params.
+   - Portals are the layout portals with the region on one side, as a run and
+     an id. The id names the two regions (step 5), so both sides' briefs name a
+     shared portal alike; nothing else about the region across is passed.
+   - The library's `Feature` type is gone; it uses the kernel's `FeatureKind`.
+   - `tests/chain-briefs.test.ts` copies micro's `briefErrors` rule, since
+     macro and micro don't import each other, and adds that every portal lies
+     on the brief's perimeter. A one-off check against micro's own
+     `briefErrors` passed 3,956 briefs over 20 game seeds, at about 4 ms a map.
 8. The report: features per instance, and diagnostics that locate defects
    (C2).
 9. The map container, the accessor, saving and the wire version (#69, #70).

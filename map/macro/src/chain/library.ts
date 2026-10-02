@@ -1,4 +1,6 @@
 /** The chain's authored library (51 stage 0, 52). It is independent of the old library. */
+import { FEATURE_KINDS } from "../../../kernel/contract.ts";
+import type { FeatureKind } from "../../../kernel/contract.ts";
 import { boundaryRuns } from "../../../kernel/run.ts";
 import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
 export const CHAIN_LIBRARY_VERSION = 1;
@@ -6,7 +8,6 @@ export const CHAIN_TILE_SIZE = 6;
 
 export type Side = "N" | "E" | "S" | "W";
 export type PassabilityPrescription = "passable" | "any";
-export type Feature = "spawn" | "hunter-spawn" | "exit" | "charger" | "warp";
 export type FeatureCount = number | "exitCount";
 export type PlacementRule = "start" | "end" | "enormous" | "medium" | "small" | "charger";
 
@@ -21,7 +22,7 @@ export interface ChainCellClass {
   regionType: string;
   params?: Record<string, number | string | boolean>;
   /** Features this region's strategy sites; delivery is measured after build. */
-  features?: Partial<Record<Feature, FeatureCount>>;
+  features?: Partial<Record<FeatureKind, FeatureCount>>;
 }
 
 export interface ChainTileDesign {
@@ -64,7 +65,7 @@ export interface ChainSetPieceClass {
   placementRule: PlacementRule;
   quota: number;
   setPieces: string[];
-  features?: Partial<Record<Feature, FeatureCount>>;
+  features?: Partial<Record<FeatureKind, FeatureCount>>;
 }
 
 export interface ChainLibrary {
@@ -88,7 +89,7 @@ const integer = (value: unknown): value is number => Number.isSafeInteger(value)
 const names = (value: unknown): value is string[] => Array.isArray(value) && value.every(name);
 const ORIENTATIONS = new Set([0, 90, 180, 270]);
 const PLACEMENT_RULES = new Set<PlacementRule>(["start", "end", "enormous", "medium", "small", "charger"]);
-const FEATURES = new Set<Feature>(["spawn", "hunter-spawn", "exit", "charger", "warp"]);
+const FEATURES = new Set<FeatureKind>(FEATURE_KINDS);
 
 function unknownFields(value: Record<string, unknown>, allowed: readonly string[], path: string, errors: string[]): void {
   for (const field of Object.keys(value))
@@ -102,7 +103,7 @@ function featureErrors(value: unknown, path: string, errors: string[]): void {
     return;
   }
   for (const [feature, count] of Object.entries(value)) {
-    if (!FEATURES.has(feature as Feature)) errors.push(`${path}: unknown feature ${feature}`);
+    if (!FEATURES.has(feature as FeatureKind)) errors.push(`${path}: unknown feature ${feature}`);
     if (!(integer(count) && count > 0) && count !== "exitCount")
       errors.push(`${path}: feature ${feature} count must be a positive integer or exitCount`);
   }
