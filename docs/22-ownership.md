@@ -45,7 +45,7 @@ It has two halves, plus a kernel between them ([50](50-map-generation.md)):
   (`run.ts`, with the cases every run finder is tested against). Neither level
   owns it, and it imports nothing outside itself, so a consumer at either level
   pulls in nothing else. The contract's result is generic over the game's
-  geometry, so macro can read feature sites without the engine (C1).
+  geometry, so macro can read core element sites without the engine (C1).
 
 The same problem at the same level has one owner:
 - mapgen's own micro layer (`map/macro/src/micro/`) duplicates the game's and

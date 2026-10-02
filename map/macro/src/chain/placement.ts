@@ -13,7 +13,7 @@ import type { TileOption, WfcCompatibility, WfcGrid } from "../wfc.ts";
 import { orientedDesigns } from "./declared-grid.ts";
 import { openFaceRule } from "./open-face.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
-import { CHAIN_TILE_SIZE } from "./library.ts";
+import { CHAIN_TILE_SIZE, exitCountProblem } from "./library.ts";
 import type { ChainLibrary, ChainSetPiece, ChainSetPieceClass, ChainTileDesign, PlacementRule } from "./library.ts";
 import { stream } from "./random.ts";
 import type { Stream } from "./random.ts";
@@ -251,14 +251,16 @@ export const placer = ({ openFace }: { openFace: boolean }): MacroStages["placem
   const mode = params.mode ?? "game";
   if (mode === "game" && (params.zoneWidth !== GAME_ZONE.width || params.zoneHeight !== GAME_ZONE.height))
     throw new Error(`game mode requires ${GAME_ZONE.width} x ${GAME_ZONE.height} tile zones; choose playground mode for others`);
+  const exitCountError = exitCountProblem(params.exitCount);
+  if (exitCountError) throw new Error(exitCountError);
   const zoneParams = { ...params, tileSize: CHAIN_TILE_SIZE };
   const zones = new Map(makeZones(zoneParams).map((zone) => [zone.id, zone]));
   const mask = layoutSlots(zoneParams);
 
-  // A feature class is painted only inside its owning set pieces (51, "Features"), so
+  // A core element class is painted only inside its owning set pieces (51, "Core elements"), so
   // the fill never places a design that paints one.
   const featureClasses = new Set(Object.entries(library.cellClasses)
-    .filter(([, cellClass]) => Object.keys(cellClass.features ?? {}).length).map(([id]) => id));
+    .filter(([, cellClass]) => Object.keys(cellClass.coreElements ?? {}).length).map(([id]) => id));
   const paintsFeature = (tile: ChainTileDesign): boolean =>
     featureClasses.has(tile.defaultCellClass) || Object.values(tile.legend ?? {}).some((id) => featureClasses.has(id));
 

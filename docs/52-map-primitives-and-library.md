@@ -84,10 +84,10 @@ with a don't-care value. This is Corey's model (verbatim in 17, 2026-09-27).
   that fills a region of it, and passes that strategy its parameters (51).
   What is intrinsic to the class goes in its entry; what varies with position
   on the map belongs to the tier zone.
-- **Feature classes.** A class whose rule lists features its strategy sites
-  (one spawn, `exitCount` exits, one charger) is a **feature class**. It is
+- **Core element classes.** A class whose rule lists core elements its strategy sites
+  (one spawn, `exitCount` exits, one charger) is a **core element class**. It is
   painted only inside the set pieces of the set piece class that owns those
-  features (51, "Features").
+  core elements (51, "Core elements").
 - **`cell → class` is total.** Two values are reserved:
   - `""`: outside the mask, where no tile covers the cell
   - `any`: the deferring class. It states nothing, takes the class a
@@ -147,7 +147,8 @@ one."
   2026-09-28). It is the class the set piece mainly forms, and generation
   doesn't read it; it's an editor default.
 - **Set piece class:** a set of set pieces, with the engine placement rule it
-  uses, its quota, and the features it owns, each with a count per instance.
+  uses, its quota, and the core elements it owns, each with a count per instance
+  (a positive whole number, or `exitCount`).
   It is the only macro structure the engine treats as first class, and today's
   code calls it `category`. The shipped rules, unchanged from today, in game
   mode:
@@ -240,4 +241,4 @@ the new library is authored fresh (51 track B). What differs in it:
 - unread side `ports`
 - a `category` field for the set piece class, and a `class` field for the
   primary region class
-- every class bound to `open-field`, and no feature classes
+- every class bound to `open-field`, and no core element classes

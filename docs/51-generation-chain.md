@@ -17,8 +17,8 @@ Corey's directions for the chain (2026-09-28 and 29), verbatim in 17 "Map
 generation":
 - rebuild generation as a series of transforms with clear interfaces
 - name superficially similar objects apart, and make pure readings views
-- set pieces keep their distribution, and features belong to set piece classes
-- region types' builders deliver the features
+- set pieces keep their distribution, and core elements belong to set piece classes
+- region types' builders deliver the core elements
 - macro prescribes no geometry
 - the library is authored fresh against a region type catalogue
 
@@ -81,7 +81,7 @@ generation":
    - The pipeline doesn't validate builders or enforce anything on them. A
      builder's internals are its own business.
    - The only promise is passability between a region's portals. Everything
-     else inside a region, including where its features and loot sit, is
+     else inside a region, including where its core elements and loot sit, is
      the builder's business.
    - A builder that doesn't reliably meet its passability promise is
      defective. That breaks the macro contract, and it is a **non-local
@@ -115,9 +115,9 @@ Each term has one meaning. 52 defines the library's terms in full.
 | **brief** | Everything one region's strategy is handed, expressed in the macro/micro contract (`map/kernel/contract.ts`) | Briefs |
 | **region result** | What one region's strategy returns, in the contract's result type | Build |
 | **built map** | Every region result composed into one map of the game's geometry | Composition |
-| **tile design**, **tile set**, **set piece**, **set piece class**, **feature class**, **primary region class** | See 52 | Library |
+| **tile design**, **tile set**, **set piece**, **set piece class**, **core element class**, **primary region class** | See 52 | Library |
 | **set piece instance** | One placed copy of a set piece: which one, and the slots it covers | Placement |
-| **feature** | A spawn, hunter spawn, exit, charger or warp. A region type's strategy sites it; macro knows only that a set piece class promises it | Build, Measurement |
+| **core element** | A spawn, hunter spawn, exit, charger or warp: a required thing a set piece class promises and the report counts. A region type's strategy sites it; macro knows only that a set piece class promises it. Formerly "feature" (17, 2026-10-01). Optional objects with special mechanics are a separate, later term | Build, Measurement |
 
 Retired, and confined to the old paths until they're deleted:
 - `open` as a segment label. `open` is only a cell class.
@@ -131,6 +131,7 @@ Retired, and confined to the old paths until they're deleted:
 - `walls`, `gap` and segment spans in the library.
 - mapgen's micro layer (`src/micro/`), and its "interiors" of laid classes and
   segments.
+- "feature" for a core element. The old paths keep the word until they go.
 
 ## The chain
 
@@ -167,18 +168,21 @@ saved map is therefore a Layout, optionally with its region results (see
   perimeter segments, and passability prescriptions (`passable`, `any`, or
   unstated) on any segment.
 - **Cell classes** each name a region type, with its parameters. A class's rule
-  also lists the **features** its strategy sites. For example, one spawn, or
-  `exitCount` exits. This is the only way a feature reaches a strategy: in its
+  also lists the **core elements** its strategy sites. For example, one spawn, or
+  `exitCount` exits. This is the only way a core element reaches a strategy: in its
   brief, through its class rule. Macro places no points.
 - **Set piece classes** are declared in the library. Each names the engine
   placement rule it uses (today's `start`, `end`, `enormous`, `medium`,
-  `small`, plus the new `charger`) and the features it owns, each with a count
+  `small`, plus the new `charger`) and the core elements it owns, each with a count
   per instance (a number, or a param such as `exitCount`).
 - **No geometry and no impassable prescription.** Without macro geometry,
   nothing could honour one, and strategies aren't asked to (Corey, 2026-09-27).
   A suggestion channel for builders is deferred (16).
 - **Validity:** every declared class is registered and names a region type,
-  and every prescription is well formed. Tile sets and set piece classes are
+  and every prescription is well formed. A core element count is a positive whole
+  number or `exitCount`, and the params' `exitCount` is a whole number. There
+  is no ceiling: how many a strategy can site is its own concern, and the
+  report finds any it misses (stage 8). Tile sets and set piece classes are
   sets, so neither lists a member twice. A set piece slot that fixes an
   orientation must name a tile set with a member allowing it. A stretch of passable prescriptions
   that lies wholly inside a tile, without reaching the tile's edge, must
@@ -200,7 +204,7 @@ saved map is therefore a Layout, optionally with its region results (see
   Nothing else. The primitive grid isn't stored; it's a view (below).
 - **Solver:**
   - Set pieces first, exactly as today: each class's rule places its quota.
-    That rule is what guarantees every owned feature exists.
+    That rule is what guarantees every owned core element exists.
   - Then WFC for the remaining slots, over adjacency compatibility: a
     neighbour's cell must match each adjacency prescription, or be `any`.
   - Passability prescriptions can't conflict, since neither side can say
@@ -278,7 +282,7 @@ This is the knowledge layer: what the solved placement means.
   `proveReachability` is material for it. Micro groups a region's children in
   a similar way during portal negotiation (`negotiatePortals`), but that
   answers a different question at a different level. Which region will hold a
-  feature isn't known before micro, so the proof names no feature regions.
+  core element isn't known before micro, so the proof names no core element regions.
 - **Meaning:** a claim about guarantees, not geometry. It holds for a built
   map only because each strategy keeps its guarantees (stage 6), and the
   measurement checks it (stage 8).
@@ -292,7 +296,7 @@ This is the knowledge layer: what the solved placement means.
   (51 track B). The open-face rule enforces it during the solve (stage 1), and
   `proofViolations` states it on the view (step 6).
 
-### 5. Briefs: Layout, LayoutRegions, zones → **RegionBrief[]** (view)
+### 5. Briefs: Layout, LayoutRegions, zones, cell size → **RegionBrief[]** (view)
 
 One brief per layout region, expressed in the macro/micro contract. The
 contract is in the shared map space (`map/kernel/contract.ts`, 17 M1),
@@ -304,7 +308,7 @@ and evolves from today's `RegionSpec`:
   mapgen's flat indices are translated by its grid width (20, "Next
   boundaries").
 - **zone context:** each cell's tier, bonus and loot chance
-- **features** the class rule lists. The `entry` builder's spawn count is the
+- **core elements** the class rule lists. The `entry` builder's spawn count is the
   first case: "The contestant entry areas should be treated like a region that
   gets micro generated" (17, September 22).
 - **obligations**, which are passability obligations only (Corey,
@@ -346,7 +350,7 @@ decomposes splits its own brief into children with the SDK's decomposition
   `map/micro/`: its decomposer, if it has one, and its builders, all
   written on the SDK (track B).
 - **Holds:** the contract's result type, evolving from `micro-1`: placed
-  elements and shapes, feature sites, loot, and a manifest counted from what
+  elements and shapes, core element sites, loot, and a manifest counted from what
   landed.
 - **Write scope:** every collider stays inside the region's own cells, which is
   the SDK's containment rule. So no strategy writes a boundary another region
@@ -376,21 +380,21 @@ decomposes splits its own brief into children with the SDK's decomposition
 
 ### 8. Measurement: BuiltMap, proof, Layout → **Report** (view)
 
-- **Features, counted per set piece instance.** This is the first point at
-  which a set piece class's promise can be checked (see "Features"). It works
-  on feature *sites*, not regions:
+- **Core elements, counted per set piece instance.** This is the first point at
+  which a set piece class's promise can be checked (see "Core elements"). It works
+  on core element *sites*, not regions:
   1. **Assign each site.** A site is assigned to the set piece instance whose
      slots contain the cell it stands in. Instances never share a slot, so the
      assignment is unique.
   2. **No stray sites.** A site that falls in no instance's slots, or in an
-     instance whose class doesn't own that feature, is reported as a defect.
-  3. **Exact counts.** Each instance of a class that owns features must have
-     exactly the promised count of each feature among its assigned sites: one
+     instance whose class doesn't own that core element, is reported as a defect.
+  3. **Exact counts.** Each instance of a class that owns core elements must have
+     exactly the promised count of each core element among its assigned sites: one
      spawn for `start`, `exitCount` exits and one hunter spawn for `end`, one
      charger for `charger`.
 
-  Two adjacent instances whose feature regions merged are caught this way.
-  The one strategy sites one set of features, so they all land in one
+  Two adjacent instances whose core element regions merged are caught this way.
+  The one strategy sites one set of core elements, so they all land in one
   instance's slots and the other instance counts zero. The strategy never
   needs to know about instances.
 - **Reachability, by inference** (principle 8, 17 M6). The map is reachable
@@ -406,13 +410,13 @@ decomposes splits its own brief into children with the SDK's decomposition
   find defects.
 - **Metrics:** measured from the built map, not from a tile graph.
 
-## Features
+## Core elements
 
-Features are spawn, hunter spawn, exits, charger and warp. **Features belong
+Core elements are spawn, hunter spawn, exits, charger and warp. **Core elements belong
 to set piece classes** (Corey, 2026-09-28). The set piece class is the only
 macro structure the engine treats as first class.
 
-| Feature | Set piece class | Old tile path |
+| Core element | Set piece class | Old tile path |
 | --- | --- | --- |
 | spawn | `start` | the anchor of the lowest slot in the left third, unrelated to set pieces |
 | exits | `end` | anchors of `exitCount` slots in the right third |
@@ -423,22 +427,22 @@ macro structure the engine treats as first class.
 Who is responsible for what:
 
 - **Macro** places each class's quota by its placement rule. That is all macro
-  knows about features: a placed class instance is trusted to deliver the
-  features its class promises. Macro doesn't pick a region, a cell or a point.
+  knows about core elements: a placed class instance is trusted to deliver the
+  core elements its class promises. Macro doesn't pick a region, a cell or a point.
 - **The authors:**
-  - Every set piece in a class forms at least one region of a feature class:
-    a cell class whose rule lists the features the set piece class owns.
-  - A feature class is painted only inside the set pieces of its owning set
+  - Every set piece in a class forms at least one region of a core element class:
+    a cell class whose rule lists the core elements the set piece class owns.
+  - A core element class is painted only inside the set pieces of its owning set
     piece class. That keeps ordinary fill from forming a region of it, so a
-    feature region always comes from an owning instance.
-- **The region type's strategy** reads the features from its class rule in the
+    core element region always comes from an owning instance.
+- **The region type's strategy** reads the core elements from its class rule in the
   brief, sites them inside its own region, and returns them in its result. It
   never needs to know which set piece instance formed its region.
 - **The report** (stage 8) is the first place a set piece class's promise can
   be seen, per instance. Nothing validates at library load that a set piece
-  class delivers its features, and nothing can until micro is complete. A
-  missing feature is a defect, of an author or a builder. If two adjacent instances' feature
-  regions merge and get one set of features, the instance left without is
+  class delivers its core elements, and nothing can until micro is complete. A
+  missing core element is a defect, of an author or a builder. If two adjacent instances' core element
+  regions merge and get one set of core elements, the instance left without is
   reported. Avoiding that is the authors' job, as above.
 
 Anchors go. They stood in for "somewhere in this tile a body can stand", and
@@ -529,8 +533,8 @@ live game until the switch-over.
      order, and placed largest first. `enormous` takes distinct pieces, one per
      vertical third, and fails explicitly if its class has fewer than its quota.
      Playground mode places no set pieces, as today.
-   - The fill never uses a design that paints a feature class, which is how
-     placement keeps a feature class inside its owning set pieces ("Features").
+   - The fill never uses a design that paints a core element class, which is how
+     placement keeps a core element class inside its owning set pieces ("Core elements").
    - A design's eligible tiers and bonus hold wherever it is placed. A set
      piece slot draws only from its tile set's members eligible in that slot's
      zone, and allowing the slot's orientation where it fixes one. A piece
@@ -609,7 +613,7 @@ live game until the switch-over.
      of their first region, and each lists its regions in their own order.
    - `proofViolations` is the gate's check (17 M2), one message per component
      left out, naming its regions. A spawn region is one whose class promises
-     a `spawn` feature. With none, as in playground mode, the largest
+     a `spawn` core element. With none, as in playground mode, the largest
      component stands in for it. Every region in the spawn region's component
      is the same as one component, so the check never has to choose among
      several spawn regions.
@@ -622,8 +626,31 @@ live game until the switch-over.
      moved and added, 200 seeds out of 200 prove connected, with no short
      portal. The open-face rule then added `hut-annex`, so that it has
      something to refuse (step 4).
-7. Briefs, and the translation into the contract (C1).
-8. The report: features per instance, and diagnostics that locate defects
+7. Briefs, and the translation into the contract (C1). **Done (#90):**
+   `chain/briefs.ts`.
+   - One brief per layout region, in the regions' order. The caller chooses
+     the cell size in world units, so it is the stage's last input
+     (`MacroStages`); it is the game's scale, not macro's.
+   - Cells translate from flat indices by the declared grid's width
+     (`gridSize`), in ascending order. `chainZones` gives the tier zones in
+     cell units from the params alone, and each brief has one zone context per
+     zone its cells lie in.
+   - The type and parameters come from the class rule as stated, and the
+     core elements with `exitCount` resolved from the params.
+   - Portals are the layout portals with the region on one side, as a run and
+     an id. The id names the two regions (step 5), so both sides' briefs name a
+     shared portal alike; nothing else about the region across is passed.
+   - The library's own copy of the kind names is gone; it uses the kernel's
+     (now `CoreElementKind`, #116).
+   - A brief's core element counts are whole numbers with no ceiling. Micro's
+     `briefErrors` had carried the SDK's 64-slot tool limit (20), which
+     macro has no reason to know; it is dropped. Placement and briefs both
+     check that `exitCount` is a whole number (`exitCountProblem`).
+   - `tests/chain-briefs.test.ts` copies micro's `briefErrors` rule, since
+     macro and micro don't import each other, and adds that every portal lies
+     on the brief's perimeter. A one-off check against micro's own
+     `briefErrors` passed 3,956 briefs over 20 game seeds, at about 4 ms a map.
+8. The report: core elements per instance, and diagnostics that locate defects
    (C2).
 9. The map container, the accessor, saving and the wire version (#69, #70).
 
@@ -637,11 +664,12 @@ live game until the switch-over.
   both read body scale from it.
 - C1. **The contract:** region type ids instead of a closed builder list;
   portals as derived check targets, which place no geometry (`resolvePorts`
-  doesn't wall a brief's portals; 17 M3, M4); and features and zone context in
+  doesn't wall a brief's portals; 17 M3, M4); and core elements and zone context in
   the brief; and elective SDK utilities for a builder to check its promises
   (principle 9). **Done (#84):**
   - `contract.ts` holds `RegionBrief`, with portals as kernel `Run`s, and
-    `RegionResult<Element>` (`region-1`). The result is generic over the
+    `RegionResult<Element>` (`region-1`, now `region-2`: #116 renamed its
+    `features` to `coreElements`). The result is generic over the
     game's geometry, so the kernel imports nothing outside itself.
   - `map/micro/region-types.ts` is the registry and `buildRegion` dispatches
     to it. Its only entries are today's example builders, prefixed
@@ -659,14 +687,14 @@ reachability is inferred (principle 8).
 **Track B: the library (content).** It starts after step 2.
 
 - B1. **Map Lab authoring** for the new schema: adjacency and passability
-  prescriptions, feature classes, set piece classes, and a preview of the
+  prescriptions, core element classes, set piece classes, and a preview of the
   portals the passable sections would derive. There are browser tests,
   and no geometry tools.
 - B2. **The region type catalogue**, a document for Corey's review. For each
   region type:
   - its role in play
   - its strategy: the decomposer and the builders, on the SDK
-  - the features it sites, if it is a feature class
+  - the core elements it sites, if it is a core element class
   - its shape needs, such as minimum area and width
   - its obligations, such as `open`'s privilege (#61)
 
@@ -677,7 +705,7 @@ reachability is inferred (principle 8).
 - B4. **The new library**, authored against the catalogue:
   - cell classes, tiles and tile sets
   - set pieces and set piece classes, including `start`, `end` and
-    `charger` with their feature classes
+    `charger` with their core element classes
 
   It starts minimal, with enough to exercise every stage and to play, and
   grows afterwards.

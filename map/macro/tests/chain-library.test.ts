@@ -14,9 +14,10 @@ const refusal = (library: unknown, label: RegExp) => {
 };
 
 test("fixture is valid and the chain has its own version", () => {
-  assert.equal(CHAIN_LIBRARY_VERSION, 1);
+  assert.equal(CHAIN_LIBRARY_VERSION, 2);
   assert.deepEqual(validateLibrary(FIXTURE, TYPES), { valid: true, errors: [] });
-  refusal({ ...copy(), version: 2 }, /unsupported version/);
+  // Version 1 named core elements "features"; it is refused by name, not read.
+  refusal({ ...copy(), version: 1 } as unknown as ChainLibrary, /unsupported version 1/);
 });
 
 test("cell class registry is total and each entry names a known region type", () => {
@@ -106,16 +107,21 @@ test("a written any and unstated passability stay distinct", () => {
   refusal(library, /short passable run v:3,3\.\.3/);
 });
 
-test("set piece classes need a rule, quota and valid feature counts", () => {
+test("set piece classes need a rule, quota and valid core element counts", () => {
   const rule = copy();
   delete (rule.setPieceClasses[0] as Partial<typeof rule.setPieceClasses[number]>).placementRule;
   refusal(rule, /missing or unknown placement rule/);
   const count = copy();
-  count.setPieceClasses[0]!.features!.spawn = 0;
-  refusal(count, /feature spawn count must be a positive integer/);
+  count.setPieceClasses[0]!.coreElements!.spawn = 0;
+  refusal(count, /core element spawn count must be a positive integer/);
   const param = copy();
-  param.setPieceClasses[0]!.features!.exit = "missing" as "exitCount";
-  refusal(param, /feature exit count must be a positive integer or exitCount/);
+  param.setPieceClasses[0]!.coreElements!.exit = "missing" as "exitCount";
+  refusal(param, /core element exit count must be a positive integer or exitCount/);
+  // Counts have no ceiling: how many a builder can site is the builder's concern.
+  const many = copy();
+  many.setPieceClasses[0]!.coreElements!.spawn = 1000;
+  Object.values(many.cellClasses)[0]!.coreElements = { exit: 1000 };
+  assert.deepEqual(validateLibrary(many, TYPES).errors, []);
 });
 
 test("tile sets and set piece classes are sets: a repeated member is refused", () => {
@@ -145,7 +151,7 @@ test("a primary region class must be declared", () => {
   refusal(library, /primaryRegionClass is not declared/);
 });
 
-test("feature promises are not checked for delivery at library load", () => {
+test("core element promises are not checked for delivery at library load", () => {
   const library = copy();
   library.cellClasses.arrival = { regionType: "arrival" };
   assert.deepEqual(validateLibrary(library, TYPES).errors, []);

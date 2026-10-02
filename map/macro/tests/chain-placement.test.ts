@@ -1,7 +1,7 @@
 /**
  * 51 step 4: placement and the `DeclaredGrid` view. The fixture library exercises every
  * placement rule, adjacency prescriptions that constrain the fill (a hut corner needs
- * hut across two of its sides, so corners only stand in clusters), and feature classes
+ * hut across two of its sides, so corners only stand in clusters), and core element classes
  * painted only inside their owning set pieces.
  */
 import assert from "node:assert/strict";
@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { libraryFingerprint } from "../src/core.ts";
 import { declaredGrid, layoutViolations, orientDesign } from "../src/chain/declared-grid.ts";
-import { validateLibrary } from "../src/chain/library.ts";
+import { CHAIN_LIBRARY_VERSION, validateLibrary } from "../src/chain/library.ts";
 import type { ChainLibrary, ChainTileDesign } from "../src/chain/library.ts";
 import { adjacencyCompatibility, adjacencyLinks, placement } from "../src/chain/placement.ts";
 import { solveWfc } from "../src/wfc.ts";
@@ -105,7 +105,7 @@ test("placement rules are today's: west edge, east edge, middle band thirds, out
   }
 });
 
-test("feature classes stand only inside their owning set pieces, and the fill keeps eligible tiers", () => {
+test("core element classes stand only inside their owning set pieces, and the fill keeps eligible tiers", () => {
   const featureDesigns: Record<string, string> = { "arrival-pad": "start", "departure-pad": "end", "charger-pad": "charger" };
   for (const [seed, layout] of layouts) {
     const owner = new Map<string, string>();
@@ -273,7 +273,7 @@ test("an any cell may be asked for one class from two sides, never two classes",
  * it, aims a class from its options. A and C are diagonal: only B's corner joins them.
  */
 const CORNER_LIBRARY: ChainLibrary = {
-  version: 1,
+  version: CHAIN_LIBRARY_VERSION,
   cellClasses: { open: { regionType: "open-field" }, hut: { regionType: "hut" } },
   tiles: [
     { id: "corner-any", defaultCellClass: "open", cells: ["a.....", "......", "......", "......", "......", "......"], legend: { a: "any" }, orientations: [0] },

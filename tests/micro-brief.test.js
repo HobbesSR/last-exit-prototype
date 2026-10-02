@@ -23,7 +23,7 @@ test('a brief dispatches to its region type\'s strategy', () => {
   assert.deepEqual(ran, [['b', 'r1']]);
   assert.throws(() => buildRegion(brief('c'), registry), /Unknown region type c/);
   const result = buildRegion(brief('example-ruins'));
-  assert.equal(result.version, 'region-1');
+  assert.equal(result.version, 'region-2');
   assert.equal(result.brief.type, 'example-ruins');
   assert.ok(Object.isFrozen(REGION_TYPES));
 });
@@ -89,12 +89,12 @@ test('portal stands cover the whole portal from inside the region', () => {
   assert.equal(portalStands({ ...brief(), portals: [{ id: 'short', axis: 'v', x: 0, y: 2, length: 1 }] })[0].points.length, 0);
 });
 
-test('features are sited before loot, and loot follows each cell\'s zone', () => {
-  const input = { ...brief('example-entry'), features: { spawn: 6, 'hunter-spawn': 1, exit: 2 } };
+test('core elements are sited before loot, and loot follows each cell\'s zone', () => {
+  const input = { ...brief('example-entry'), coreElements: { spawn: 6, 'hunter-spawn': 1, exit: 2 } };
   const result = buildRegion(input);
-  const count = kind => result.features.filter(f => f.kind === kind).length;
+  const count = kind => result.coreElements.filter(f => f.kind === kind).length;
   assert.deepEqual([count('spawn'), count('hunter-spawn'), count('exit')], [6, 1, 2]);
-  assert.equal(result.manifest.features, 9);
+  assert.equal(result.manifest.coreElements, 9);
   assert.ok(result.loot.length > 0);
   for (const spot of result.loot) assert.equal(spot.tier, spot.x < 480 ? 1 : 3);
   const none = buildRegion({ ...brief('example-entry'), zones: brief().zones.map(z => ({ ...z, lootChance: 0 })) });
@@ -123,11 +123,11 @@ test('a cell rolls its loot chance once, however often it is offered', () => {
   assert.ok(once.includes(true) && once.includes(false), 'the seeds exercise both outcomes');
 });
 
-test('builder-placed loot never overlaps a later-sited feature spawn', () => {
+test('builder-placed loot never overlaps a later-sited core element spawn', () => {
   const metrics = microMetrics({ cellSize: 40, bodyProfile: 'cell' });
   for (const type of Object.keys(REGION_TYPES)) for (const seed of [1, 2, 3]) {
-    const result = buildRegion({ ...brief(type, seed), features: { spawn: 10 } });
-    for (const spot of result.loot) for (const site of result.features) {
+    const result = buildRegion({ ...brief(type, seed), coreElements: { spawn: 10 } });
+    for (const spot of result.loot) for (const site of result.coreElements) {
       const gap = Math.hypot(spot.x - site.x, spot.y - site.y) - metrics.lootRadius - metrics.clearance.contestant;
       assert.ok(gap >= -1e-6, `${type} seed ${seed}: loot (${spot.x},${spot.y}) overlaps spawn (${site.x},${site.y})`);
     }
@@ -137,8 +137,8 @@ test('builder-placed loot never overlaps a later-sited feature spawn', () => {
 test('a malformed brief is refused by name, before any strategy runs', () => {
   const unzoned = brief(); unzoned.zones[0].cells.pop();
   assert.ok(briefErrors(unzoned).some(e => /exactly one zone/.test(e)));
-  assert.ok(briefErrors({ ...brief(), features: { treasure: 1 } }).some(e => /Unknown feature treasure/.test(e)));
-  assert.ok(briefErrors({ ...brief(), features: { exit: 1.5 } }).some(e => /count/.test(e)));
+  assert.ok(briefErrors({ ...brief(), coreElements: { treasure: 1 } }).some(e => /Unknown core element treasure/.test(e)));
+  assert.ok(briefErrors({ ...brief(), coreElements: { exit: 1.5 } }).some(e => /count/.test(e)));
   assert.throws(() => buildRegion({ ...brief(), portals: undefined }), /Invalid brief/);
   assert.deepEqual(briefErrors(brief()), []);
 });

@@ -11,9 +11,9 @@ export type { Cell };
 /** A region type names the strategy that fills a region of its class. The game's registry resolves it. */
 export type RegionTypeId = string;
 
-/** A spawn, hunter spawn, exit, charger or warp (51 "Features"). */
-export type FeatureKind = 'spawn' | 'hunter-spawn' | 'exit' | 'charger' | 'warp';
-export const FEATURE_KINDS: readonly FeatureKind[] = Object.freeze(['spawn', 'hunter-spawn', 'exit', 'charger', 'warp']);
+/** A spawn, hunter spawn, exit, charger or warp (51 "Core elements"). */
+export type CoreElementKind = 'spawn' | 'hunter-spawn' | 'exit' | 'charger' | 'warp';
+export const CORE_ELEMENT_KINDS: readonly CoreElementKind[] = Object.freeze(['spawn', 'hunter-spawn', 'exit', 'charger', 'warp']);
 
 /**
  * A maximal straight stretch of guaranteed-passable segments on the region's perimeter
@@ -40,8 +40,8 @@ export interface RegionBrief {
   cells: Cell[];
   /** Every cell appears in exactly one zone. */
   zones: ZoneContext[];
-  /** The features the class rule lists, with every count resolved. */
-  features?: Partial<Record<FeatureKind, number>>;
+  /** The core elements the class rule lists, with every count resolved to a whole number. */
+  coreElements?: Partial<Record<CoreElementKind, number>>;
   /**
    * The strategy's one promise: every part of every portal is reachable by a hunter from
    * every other portal, from within the region. One portal carries no requirement.
@@ -51,18 +51,18 @@ export interface RegionBrief {
 
 /** A point in world units, in the frame where cell (x, y) spans [x, x + 1) × [y, y + 1) times `cellSize`. */
 export interface Site { x: number; y: number }
-export interface FeatureSite extends Site { kind: FeatureKind }
+export interface CoreElementSite extends Site { kind: CoreElementKind }
 export interface LootSite extends Site { tier: number }
 
 /**
  * What a strategy returns. Geometry is the game's (`Element`), so macro can read the rest,
- * such as feature sites for the report, without the engine. The manifest counts what landed.
+ * such as core element sites for the report, without the engine. The manifest counts what landed.
  */
 export interface RegionResult<Element = unknown> {
-  version: 'region-1';
+  version: 'region-2';
   brief: RegionBrief;
   elements: Element[];
-  features: FeatureSite[];
+  coreElements: CoreElementSite[];
   loot: LootSite[];
   manifest: Record<string, number>;
 }

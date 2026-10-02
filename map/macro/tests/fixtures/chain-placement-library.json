@@ -1,11 +1,11 @@
 {
-  "version": 1,
+  "version": 2,
   "cellClasses": {
     "open": { "regionType": "open-field" },
     "hut": { "regionType": "hut" },
-    "arrival": { "regionType": "arrival", "features": { "spawn": 1 } },
-    "departure": { "regionType": "departure", "features": { "exit": "exitCount", "hunter-spawn": 1 } },
-    "charging": { "regionType": "charging", "features": { "charger": 1 } }
+    "arrival": { "regionType": "arrival", "coreElements": { "spawn": 1 } },
+    "departure": { "regionType": "departure", "coreElements": { "exit": "exitCount", "hunter-spawn": 1 } },
+    "charging": { "regionType": "charging", "coreElements": { "charger": 1 } }
   },
   "tiles": [
     {
@@ -166,11 +166,11 @@
     }
   ],
   "setPieceClasses": [
-    { "id": "start", "placementRule": "start", "quota": 1, "setPieces": ["entry"], "features": { "spawn": 1 } },
-    { "id": "end", "placementRule": "end", "quota": 1, "setPieces": ["exit-yard"], "features": { "exit": "exitCount", "hunter-spawn": 1 } },
+    { "id": "start", "placementRule": "start", "quota": 1, "setPieces": ["entry"], "coreElements": { "spawn": 1 } },
+    { "id": "end", "placementRule": "end", "quota": 1, "setPieces": ["exit-yard"], "coreElements": { "exit": "exitCount", "hunter-spawn": 1 } },
     { "id": "enormous", "placementRule": "enormous", "quota": 3, "setPieces": ["plaza-wide", "plaza-tall", "plaza-square"] },
     { "id": "medium", "placementRule": "medium", "quota": 4, "setPieces": ["hut-cluster"] },
     { "id": "small", "placementRule": "small", "quota": 10, "setPieces": ["hut-cluster"] },
-    { "id": "charger", "placementRule": "charger", "quota": 1, "setPieces": ["charger-pod"], "features": { "charger": 1 } }
+    { "id": "charger", "placementRule": "charger", "quota": 1, "setPieces": ["charger-pod"], "coreElements": { "charger": 1 } }
   ]
 }

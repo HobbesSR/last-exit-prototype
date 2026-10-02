@@ -1,13 +1,14 @@
 /** The chain's authored library (51 stage 0, 52). It is independent of the old library. */
+import { CORE_ELEMENT_KINDS } from "../../../kernel/contract.ts";
+import type { CoreElementKind } from "../../../kernel/contract.ts";
 import { boundaryRuns } from "../../../kernel/run.ts";
 import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
-export const CHAIN_LIBRARY_VERSION = 1;
+export const CHAIN_LIBRARY_VERSION = 2;
 export const CHAIN_TILE_SIZE = 6;
 
 export type Side = "N" | "E" | "S" | "W";
 export type PassabilityPrescription = "passable" | "any";
-export type Feature = "spawn" | "hunter-spawn" | "exit" | "charger" | "warp";
-export type FeatureCount = number | "exitCount";
+export type CoreElementCount = number | "exitCount";
 export type PlacementRule = "start" | "end" | "enormous" | "medium" | "small" | "charger";
 
 /** Each perimeter segment can require the class across its tile boundary. */
@@ -20,8 +21,8 @@ export interface SegmentPrescription {
 export interface ChainCellClass {
   regionType: string;
   params?: Record<string, number | string | boolean>;
-  /** Features this region's strategy sites; delivery is measured after build. */
-  features?: Partial<Record<Feature, FeatureCount>>;
+  /** Core elements this region's strategy sites; delivery is measured after build. */
+  coreElements?: Partial<Record<CoreElementKind, CoreElementCount>>;
 }
 
 export interface ChainTileDesign {
@@ -64,7 +65,7 @@ export interface ChainSetPieceClass {
   placementRule: PlacementRule;
   quota: number;
   setPieces: string[];
-  features?: Partial<Record<Feature, FeatureCount>>;
+  coreElements?: Partial<Record<CoreElementKind, CoreElementCount>>;
 }
 
 export interface ChainLibrary {
@@ -88,24 +89,33 @@ const integer = (value: unknown): value is number => Number.isSafeInteger(value)
 const names = (value: unknown): value is string[] => Array.isArray(value) && value.every(name);
 const ORIENTATIONS = new Set([0, 90, 180, 270]);
 const PLACEMENT_RULES = new Set<PlacementRule>(["start", "end", "enormous", "medium", "small", "charger"]);
-const FEATURES = new Set<Feature>(["spawn", "hunter-spawn", "exit", "charger", "warp"]);
+const CORE_ELEMENTS = new Set<CoreElementKind>(CORE_ELEMENT_KINDS);
 
 function unknownFields(value: Record<string, unknown>, allowed: readonly string[], path: string, errors: string[]): void {
   for (const field of Object.keys(value))
     if (!allowed.includes(field)) errors.push(`${path}: unknown field ${field}`);
 }
 
-function featureErrors(value: unknown, path: string, errors: string[]): void {
+function coreElementErrors(value: unknown, path: string, errors: string[]): void {
   if (value === undefined) return;
   if (!object(value)) {
-    errors.push(`${path}: features must be an object`);
+    errors.push(`${path}: core elements must be an object`);
     return;
   }
-  for (const [feature, count] of Object.entries(value)) {
-    if (!FEATURES.has(feature as Feature)) errors.push(`${path}: unknown feature ${feature}`);
+  for (const [element, count] of Object.entries(value)) {
+    if (!CORE_ELEMENTS.has(element as CoreElementKind)) errors.push(`${path}: unknown core element ${element}`);
     if (!(integer(count) && count > 0) && count !== "exitCount")
-      errors.push(`${path}: feature ${feature} count must be a positive integer or exitCount`);
+      errors.push(`${path}: core element ${element} count must be a positive integer or exitCount`);
   }
+}
+
+/**
+ * Why a params' `exitCount` can't resolve a core element count, or `undefined`. A brief's
+ * counts are whole numbers (the contract), with no ceiling.
+ */
+export function exitCountProblem(exitCount: number): string | undefined {
+  return Number.isSafeInteger(exitCount) && exitCount >= 0 ? undefined
+    : `exitCount must be a whole number, not ${exitCount}`;
 }
 
 function uniqueIds(value: unknown, path: string, errors: string[]): Set<string> {
@@ -234,11 +244,11 @@ export function validateLibrary(
     if (!object(value) || !name(value.regionType) || !regionTypeIds.has(value.regionType))
       errors.push(`cell class ${id}: names no known region type`);
     if (object(value)) {
-      unknownFields(value, ["regionType", "params", "features"], `cell class ${id}`, errors);
+      unknownFields(value, ["regionType", "params", "coreElements"], `cell class ${id}`, errors);
       if (value.params !== undefined && (!object(value.params) ||
         !Object.values(value.params).every((v) => typeof v === "string" || typeof v === "boolean" || (typeof v === "number" && Number.isFinite(v)))))
         errors.push(`cell class ${id}: malformed params`);
-      featureErrors(value.features, `cell class ${id}`, errors);
+      coreElementErrors(value.coreElements, `cell class ${id}`, errors);
     }
   }
   if (!declared.has("open")) errors.push("cellClasses: missing privileged open class");
@@ -335,7 +345,7 @@ export function validateLibrary(
   uniqueIds(library.setPieceClasses, "setPieceClasses", errors);
   if (Array.isArray(library.setPieceClasses)) for (const raw of library.setPieceClasses) if (object(raw)) {
     const path = `set piece class ${String(raw.id)}`;
-    unknownFields(raw, ["id", "placementRule", "quota", "setPieces", "features"], path, errors);
+    unknownFields(raw, ["id", "placementRule", "quota", "setPieces", "coreElements"], path, errors);
     if (!PLACEMENT_RULES.has(raw.placementRule as PlacementRule)) errors.push(`${path}: missing or unknown placement rule`);
     if (!integer(raw.quota) || raw.quota < 1) errors.push(`${path}: quota must be positive`);
     if (!names(raw.setPieces) || raw.setPieces.length === 0) errors.push(`${path}: missing set pieces`);
@@ -343,7 +353,7 @@ export function validateLibrary(
       for (const id of raw.setPieces) if (!setPieceIds.has(id)) errors.push(`${path}: unknown set piece ${id}`);
       for (const id of repeated(raw.setPieces)) errors.push(`${path}: repeated set piece ${id}`);
     }
-    featureErrors(raw.features, path, errors);
+    coreElementErrors(raw.coreElements, path, errors);
   }
   return { valid: errors.length === 0, errors };
 }
