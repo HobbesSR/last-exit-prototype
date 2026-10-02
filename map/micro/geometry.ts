@@ -17,8 +17,9 @@ export function validShape(shape: Shape): boolean {
 export function createRegionMask(spec: Pick<RegionSpec, 'cells' | 'cellSize'>): RegionMask {
   const cells = [...spec.cells].sort((a, b) => a.y - b.y || a.x - b.x);
   const size = spec.cellSize, owned = new Set(cells.map(c => `${c.x},${c.y}`));
-  const minX = Math.min(...cells.map(c => c.x)), minY = Math.min(...cells.map(c => c.y));
-  const maxX = Math.max(...cells.map(c => c.x)), maxY = Math.max(...cells.map(c => c.y));
+  // A loop, not spread arguments, which a macro-sized region's cells can outgrow.
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const c of cells) { minX = Math.min(minX, c.x); minY = Math.min(minY, c.y); maxX = Math.max(maxX, c.x); maxY = Math.max(maxY, c.y); }
   const has = (x: number, y: number) => owned.has(`${x},${y}`);
   const contains = (shape: Shape): boolean => {
     if (!validShape(shape)) return false;

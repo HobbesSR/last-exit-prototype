@@ -7,6 +7,7 @@ import { spreadPoints } from './placement.ts';
 import { BUILDERS } from './builders.ts';
 import { capsule, createRegionMask, elementShapes, findRegionRoute, shapesOverlap, travelClear } from './geometry.ts';
 import { portalStands } from './portals.ts';
+import { checkedRegionCells, LIMITS } from './limits.ts';
 import { CORE_ELEMENT_KINDS } from '../kernel/contract.ts';
 import type { BuilderContext, BuilderId, BuiltRegion, CoreElementKind, CoreElementSite, Portal, RegionBrief, RegionElement, RegionMask, RegionRandom, MicroResult, RegionRoute, RegionSpec, ResolvedPort } from './types.ts';
 export type { RegionSpec, MicroResult } from './types.ts';
@@ -21,22 +22,8 @@ function checkedSpec(input: RegionSpec): RegionSpec {
   if (input.bodyProfile !== undefined && !['live', 'cell'].includes(input.bodyProfile)) throw new Error('Unknown body profile.');
   if (input.entry && (input.builder !== 'entry' || !Number.isInteger(input.entry.count) || input.entry.count < 0 || input.entry.count > 64)) throw new Error('Entry count must be from 0 to 64 on an entry region.');
   if (!Number.isFinite(input.cellSize) || input.cellSize < 24 || input.cellSize > 200) throw new Error('Cell size must be from 24 to 200 world units.');
-  if (!Array.isArray(input.cells) || !input.cells.length || input.cells.length > 4096) throw new Error('A region needs 1 to 4096 cells.');
-  if (input.cells.some(c => !Number.isInteger(c.x) || !Number.isInteger(c.y) || Math.abs(c.x) > 512 || Math.abs(c.y) > 512)) throw new Error('Cell addresses must be integers between -512 and 512.');
-  const spec = structuredClone(input), keys = new Set(spec.cells.map(c => `${c.x},${c.y}`));
-  if (keys.size !== spec.cells.length) throw new Error('Duplicate region cell.');
-  spec.cells.sort((a, b) => a.y - b.y || a.x - b.x);
-  const mask = createRegionMask(spec);
-  if (mask.bounds.w / spec.cellSize > 64 || mask.bounds.h / spec.cellSize > 64) throw new Error('A region may span at most 64 cells per axis.');
-  const seen = new Set<string>(), queue = [spec.cells[0]];
-  for (let i = 0; i < queue.length; i++) {
-    const c = queue[i], key = `${c.x},${c.y}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) if (mask.has(c.x + dx, c.y + dy) && !seen.has(`${c.x + dx},${c.y + dy}`)) queue.push({ x: c.x + dx, y: c.y + dy });
-  }
-  if (seen.size !== keys.size) throw new Error('Region cells must form one connected area.');
-  if (!Array.isArray(spec.ports) || spec.ports.length > 64) throw new Error('Ports must be a bounded list.');
+  const spec = { ...structuredClone(input), cells: checkedRegionCells(input.cells) }, mask = createRegionMask(spec);
+  if (!Array.isArray(spec.ports) || spec.ports.length > LIMITS.portals) throw new Error('Ports must be a bounded list.');
   for (const [key, low, high] of [['density', 0, 1], ['roomCells', 4, 12], ['decay', 0, 1]] as const) {
     const value = spec.parameters?.[key];
     if (value !== undefined && (!Number.isFinite(value) || value < low || value > high || key === 'roomCells' && !Number.isInteger(value))) throw new Error(`Invalid ${key} parameter.`);

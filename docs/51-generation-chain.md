@@ -371,10 +371,12 @@ decomposes splits its own brief into children with the SDK's decomposition
 
 ### 7. Composition: Layout, LayoutRegions, region results → **BuiltMap** (view), in the game
 
-- **Joins** every region result in one cell coordinate system. That generalizes
-  `composeMicroRegions`, which today composes up to 16 supplied regions, and
-  checks ownership and that the paired obligations on shared boundaries
-  agree.
+- **Joins** every region result in one cell coordinate system, and checks
+  ownership and that the paired obligations on shared boundaries agree: each
+  portal is named alike, with the same run, in both briefs.
+- **Reads** the results alone. Each brief carries its cells and portals, and
+  the game doesn't import macro, so the Layout and LayoutRegions aren't
+  inputs in code.
 - **Emits** the game's collision geometry through the adapter (`adapter.ts`,
   `placeElement`), so the built map is geometry the game can walk.
 
@@ -680,6 +682,23 @@ live game until the switch-over.
     decomposition (20).
 - C2. **Whole-map composition:** generalize `composeMicroRegions` beyond 16
   regions and the per-region bounds, as macro-sized regions need (17 M7).
+  **Done (#93):**
+  - `composeRegions` in `map/micro/compose.ts` joins up to 4,096 `region-2`
+    results into a `BuiltMap`, the kernel's type, so step 8 can read it
+    without the engine. It refuses two owners for a cell, and a portal that
+    faces no owner, straddles two regions, or isn't named alike, with the
+    same run, on its other side. It checks no geometry (principle 9).
+  - The SDK's region bounds are one module, `map/micro/limits.ts`, raised to
+    65,536 cells, 512 per axis and 4,096 portals. The fixture's open ground
+    is one region of about 29,500 cells, 360 across, with about 440 portals.
+    The example open builder fills a 360 × 90 region with 200 portals in
+    about 3.5 s.
+  - `stampBuiltMap` and `builtMapCollision` in `adapter.ts` emit the map's
+    geometry, each region under its id.
+  - `tests/micro-compose-map.test.js` composes a synthetic map of 301
+    regions, one of them 7,000 cells, the same in any order.
+  - Left for B3 (20, "Next boundaries"): decomposition contexts keep their
+    old bounds, and a brief's loot keeps the 64-slot cap.
 
 A whole-map reachability measurement (formerly C3) isn't needed, because
 reachability is inferred (principle 8).

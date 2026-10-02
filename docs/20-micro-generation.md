@@ -136,8 +136,12 @@ with doors closed. There is no claim to validate dynamic player-created obstruct
 `validateMicroRegion` independently checks emitted shapes, canonical boundary
 geometry, floor/ceiling crossings, required entrance connectivity, loot and manifest
 counts. It does not accept a builder's reachability assertion in lieu of geometry.
-The public interface is bounded to 4,096 cells / 64 per axis, 64 ports, 64 loot
-slots and 64 entry points; these are tool limits, not desired match dimensions.
+The public interface is bounded by `limits.ts`: a region of up to 65,536 cells and
+512 per axis, at cell addresses within ±512, with up to 4,096 ports or portals of up to
+512 segments each; and 64 loot slots and 64 entry points. These are tool limits, not
+desired match dimensions. The region bounds were raised from 4,096 cells and 64 per
+axis for macro's regions, whose open ground can be a whole map wide (17 M7, 51 C2).
+One check, `checkedRegionCells`, holds them for builders and the access contract.
 
 ### Segment requirements across hierarchy levels
 
@@ -288,6 +292,17 @@ are preserved annotations; physical access obligations still need downstream
 negotiation and collision checks. Reserved cells remain reserved in a child view;
 later-stage reservation consumption and automatic recursive dispatch are not yet
 provided.
+
+`composeRegions(results)` joins a whole map's brief results, up to 4,096 of them, in
+one cell coordinate system (51 stage 7, C2). It refuses a cell with two owners,
+duplicate ids, mixed cell sizes, and any portal that isn't on its region's perimeter,
+faces cells no region owns, straddles two regions, or isn't named alike, with the same
+run, in the brief on its other side. It returns a `BuiltMap` (the kernel's type):
+regions in id order and each shared portal's pair once, the same whatever order the
+results came in. It checks briefs and ownership only, never geometry: a builder's
+promise is its own to check (51 principle 9). `stampBuiltMap` and `builtMapCollision`
+emit its geometry through the same adapter path as one region, each region's under its
+id as its node. Core element sites stay in the map for the report (51 stage 8).
 
 `composeMicroRegions(specs)` joins up to 16 **supplied** regions in one cell
 coordinate system. It refuses overlapping ownership, duplicate identities,
@@ -460,10 +475,14 @@ specifies it:
 - **Not yet done:** decomposition still negotiates walled `RegionPort`s
   between children, sealed runs included. M4 gives children passability
   obligations only, so that moves to portals when a decomposing strategy
-  needs it (B3).
+  needs it (B3). Decomposition contexts also keep their 4,096-cell and
+  64-per-axis bounds, so a strategy that decomposes a macro-sized region needs
+  them raised then. And a brief's loot is still capped at the 64-slot tool
+  limit, which a large region's per-cell chances can exceed.
 - **mapgen's flat cell indices** are translated into this SDK's global integer
   cell coordinates, with an explicit `cellSize`.
-- **Whole-map composition** extends `composeMicroRegions` (51 C2).
+- **Whole-map composition** is `composeRegions` (51 C2), described above.
+  `composeMicroRegions` stays for decomposition's walled ports until B3.
   Reachability isn't measured over the whole map. It is inferred from the macro
   proof and from each builder keeping its promise (51 principles 8 and 9).
   Nothing enforces that promise. This SDK's validators are elective utilities

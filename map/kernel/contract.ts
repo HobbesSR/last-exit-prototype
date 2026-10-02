@@ -66,3 +66,17 @@ export interface RegionResult<Element = unknown> {
   loot: LootSite[];
   manifest: Record<string, number>;
 }
+
+/** A shared portal, named alike in both regions' briefs, with `a` the lesser region id. */
+export interface PortalPair { portal: string; a: string; b: string }
+
+/**
+ * Every region result joined in one cell coordinate system (51 stage 7). It's a view of
+ * the results, never saved, so it carries no version of its own. Regions are in id order
+ * and pairs in portal id order, whatever order the results came in.
+ */
+export interface BuiltMap<Element = unknown> {
+  cellSize: number;
+  regions: RegionResult<Element>[];
+  pairs: PortalPair[];
+}

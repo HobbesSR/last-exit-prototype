@@ -1,4 +1,5 @@
 import { microMetrics } from './metrics.ts';
+import { checkedRegionCells, LIMITS } from './limits.ts';
 import { capsule, createRegionMask, findRegionRoute, shapesOverlap, travelClear, validShape } from './geometry.ts';
 import type { Shape } from '../../shared/shape.ts';
 import type { Vec2 } from '../../shared/types.ts';
@@ -34,28 +35,14 @@ type AccessContract = Omit<RegionAccessInput, 'blockers' | 'connect'>;
 export function resolveAccessRequirements(input: AccessContract): ResolvedPort[] {
   if (!input || !Number.isFinite(input.cellSize) || input.cellSize < 24 || input.cellSize > 200) throw new Error('Cell size must be from 24 to 200 world units.');
   if (input.bodyProfile !== undefined && input.bodyProfile !== 'live' && input.bodyProfile !== 'cell') throw new Error('Unknown body profile.');
-  if (!Array.isArray(input.cells) || !input.cells.length || input.cells.length > 4096) throw new Error('A region needs 1 to 4096 cells.');
-  if (input.cells.some(c => !c || !Number.isInteger(c.x) || !Number.isInteger(c.y) || Math.abs(c.x) > 512 || Math.abs(c.y) > 512)) throw new Error('Cell addresses must be integers between -512 and 512.');
-  const cells = input.cells.map(c => ({ x: c.x, y: c.y }));
-  const keys = new Set(cells.map(c => `${c.x},${c.y}`));
-  if (keys.size !== cells.length) throw new Error('Duplicate region cell.');
-  const mask = createRegionMask({ cells, cellSize: input.cellSize });
-  if (mask.bounds.w / input.cellSize > 64 || mask.bounds.h / input.cellSize > 64) throw new Error('A region may span at most 64 cells per axis.');
-  const seen = new Set<string>(), queue = [cells[0]!];
-  for (let i = 0; i < queue.length; i++) {
-    const c = queue[i]!, key = `${c.x},${c.y}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) if (mask.has(c.x + dx, c.y + dy)) queue.push({ x: c.x + dx, y: c.y + dy });
-  }
-  if (seen.size !== keys.size) throw new Error('Region cells must form one connected area.');
-  if (!Array.isArray(input.ports) || input.ports.length > 64) throw new Error('Ports must be a bounded list.');
+  const cells = checkedRegionCells(input.cells), mask = createRegionMask({ cells, cellSize: input.cellSize });
+  if (!Array.isArray(input.ports) || input.ports.length > LIMITS.portals) throw new Error('Ports must be a bounded list.');
 
   const metrics = microMetrics(input), named = new Set<string>(), claimed = new Set<string>(), ports: ResolvedPort[] = [];
   for (const p of input.ports) {
     if (!p || typeof p.id !== 'string' || !p.id || named.has(p.id) || !Object.hasOwn(normal, p.side) || !Object.hasOwn(RANK, p.required) || !Object.hasOwn(RANK, p.allowed) || RANK[p.required] > RANK[p.allowed]) throw new Error('Invalid or duplicate port contract.');
     named.add(p.id);
-    if (!p.start || !Number.isInteger(p.start.x) || !Number.isInteger(p.start.y) || !Number.isInteger(p.length) || p.length < 1 || p.length > 64) throw new Error('Invalid port segment run.');
+    if (!p.start || !Number.isInteger(p.start.x) || !Number.isInteger(p.start.y) || !Number.isInteger(p.length) || p.length < 1 || p.length > LIMITS.run) throw new Error('Invalid port segment run.');
     const n = normal[p.side], horizontal = p.side === 'N' || p.side === 'S', size = input.cellSize;
     for (let i = 0; i < p.length; i++) {
       const x = p.start.x + (horizontal ? i : 0), y = p.start.y + (horizontal ? 0 : i), key = `${p.side}:${x},${y}`;
