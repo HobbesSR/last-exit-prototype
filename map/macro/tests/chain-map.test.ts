@@ -20,7 +20,7 @@ import type { ChainMap, ChainParams, MapEngines } from "../src/chain/types.ts";
 import { STUB_ENGINES, stubBuild, stubCompose } from "./chain-stub.ts";
 
 const LIBRARY = JSON.parse(readFileSync(new URL("./fixtures/chain-placement-library.json", import.meta.url), "utf8")) as ChainLibrary;
-const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, lootChance: 0.04, lootTierStep: 0.09 };
+const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 const SEEDS = ["placement-1", "placement-2", "placement-3", "placement-4"];
 const CELL_SIZE = 4;
 /** Stub results with something in every field, so a round trip that dropped one would show. */
@@ -84,7 +84,9 @@ test("every version mismatch is refused by name", () => {
   assert.throws(() => decodeChainMap({ ...wire, wire: 4 }, LIBRARY),
     /wire version 4 isn't a chain map: it holds a map from mapgen's old generators/);
   assert.throws(() => decodeChainMap({ ...wire, wire: 1 }, LIBRARY), /wire version 1 isn't a chain map/);
-  assert.throws(() => decodeChainMap({ ...wire, wire: CHAIN_WIRE_VERSION + 1 }, LIBRARY), /unsupported wire version 6/);
+  assert.throws(() => decodeChainMap({ ...wire, wire: 5 }, LIBRARY),
+    /wire version 5 isn't a chain map: its params have no contestantCount or hunterCount/);
+  assert.throws(() => decodeChainMap({ ...wire, wire: CHAIN_WIRE_VERSION + 1 }, LIBRARY), /unsupported wire version 7/);
   assert.throws(() => decodeChainMap({ ...wire, layout: { ...wire.layout, macro: MACRO_VERSION + 1 } }, LIBRARY),
     /placed by macro version 2, and this reader's stages are version 1/);
   assert.throws(() => decodeChainMap(wire, { ...LIBRARY, setPieces: LIBRARY.setPieces.slice(1) }), /made with a different library/);
@@ -94,7 +96,8 @@ test("every version mismatch is refused by name", () => {
   // Results that are saved aren't rebuilt, so other engines may read them.
   assert.deepEqual(decodeChainMap(wire, LIBRARY, { ...ENGINES, version: "stub-2" }), MAP);
   // The old generators' reader names the chain's version rather than calling it unknown.
-  assert.throws(() => decodeArtifact(wire), /wire version 5 is a generation chain map; read it with decodeChainMap/);
+  assert.throws(() => decodeArtifact(wire), /wire version 6 is a generation chain map; read it with decodeChainMap/);
+  assert.throws(() => decodeArtifact({ ...wire, wire: 5 }), /wire version 5 is a generation chain map/);
 });
 
 test("results that don't match their layout are refused, not saved", () => {

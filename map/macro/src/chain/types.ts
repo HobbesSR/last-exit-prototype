@@ -37,6 +37,10 @@ export interface ChainParams {
   zoneHeight: number;
   /** Resolves a core element count of `exitCount` (52). */
   exitCount: number;
+  /** Resolves a core element count of `contestantCount`: one spawn point per contestant (52, 17 M20). */
+  contestantCount: number;
+  /** Resolves a core element count of `hunterCount`: one hunter spawn per hunter (52). */
+  hunterCount: number;
   /** Loot chance in tier 1, and the step added per tier above it. */
   lootChance: number;
   lootTierStep: number;

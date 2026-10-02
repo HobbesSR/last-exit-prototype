@@ -3,7 +3,7 @@
   "cellClasses": {
     "open": { "regionType": "open-field" },
     "hut": { "regionType": "hut" },
-    "arrival": { "regionType": "arrival", "coreElements": { "spawn": 1 } }
+    "arrival": { "regionType": "arrival", "coreElements": { "spawn": "contestantCount" } }
   },
   "tiles": [
     {
@@ -33,6 +33,6 @@
     }
   ],
   "setPieceClasses": [
-    { "id": "start", "placementRule": "start", "quota": 1, "setPieces": ["entry"], "coreElements": { "spawn": 1 } }
+    { "id": "start", "placementRule": "start", "quota": 1, "setPieces": ["entry"], "coreElements": { "spawn": "contestantCount" } }
   ]
 }

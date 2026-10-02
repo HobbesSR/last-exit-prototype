@@ -342,6 +342,13 @@ assumption, and 54 marks what rests on it.
     decomposer picks the subregion its spawn builder spreads them over.
     There's no anchor and no marker point: the old single spawn was a tile
     anchor (51, "Core elements"). M20 is answered.
+
+    Asked whether a hunter spawn, one per `end` instance though a match has
+    three hunters (F-11), should follow:
+    - (2026-10-02) "Yes done the same way"
+
+    Recorded in 51, 52 and 54: a hunter spawn is one hunter's spawn point,
+    and `end` promises `hunterCount` of them.
 21. **M21. Macro-required squeezes.** The design notes say contestant-only
     choke points "may be something we want to require from a macro level".
     Macro prescribes no geometry now. *Assumption:* squeezes are builders'
