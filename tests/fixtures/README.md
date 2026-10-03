@@ -16,7 +16,7 @@ the point of its shape:
 Before the split, every trace ran on a freshly generated map, so any content change
 invalidated all of them at once and the evidence that the simulation was unchanged
 was destroyed along with it. Map diversity is still covered — by `generated` here,
-and by `playability.test.js`, which routes bots to completion over generated maps.
+and by `slow/bot-objective.test.js`, which routes bots to completion over generated maps.
 
 The scripted cases exercise the input queue, equipment merging/use/drop/pickup,
 charge interruption/completion, occupied doors, PvP, death/respawn, abilities,

@@ -119,16 +119,6 @@ test('bots open a building door to retrieve an indoor objective', () => {
   assert.equal(door.open, true); assert.ok(carriedCell(p));
 });
 
-test('with combat damage neutralized, bots complete the cell objective and fill all three pods through the maze', () => {
-  for (const seed of [1, 9, 4217]) {
-    const s = createGame(seed); s.map.traps = [];
-    // Isolate objective navigation from the separately tested proactive PvP and finite ammo.
-    for (const p of s.players) if (p.role === 'gladiator') p.status = 'eliminated'; else p.shield = 1000000;
-    while (s.phase === 'live') step(s);
-    assert.equal(s.players.filter(p => p.status === 'escaped').length, 3, `seed ${seed}`);
-  }
-});
-
 test('contestant bots initiate close-range fights after opening grace without being attacked first', () => {
   const { s, p } = fixture(), target = s.players[1];
   Object.assign(target, { x: p.x + 85, y: p.y });
