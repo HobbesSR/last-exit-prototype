@@ -811,7 +811,8 @@ reachability is inferred (principle 8).
   `map/macro/content/chain-library.json`, described in 52 ("The chain's
   library"). Its classes bind to the game's own strategies, with no example
   builder. The tests are `tests/chain-content.test.ts` in mapgen, and the
-  root `tests/map-library.test.js` and `tests/slow/map-library.test.js`.
+  root `tests/map-library.test.js` and `tests/slow/map-library.test.js`;
+  `tests/map-container.test.js` saves and reloads a map built from it.
 
 **Switch-over.**
 

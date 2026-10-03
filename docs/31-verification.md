@@ -41,7 +41,8 @@ The chain's authored library (52) is checked against the actual region strategie
 Macro's `tests/chain-content.test.ts` checks the game quotas in 52, distinct
 enormous pieces, and core element regions staying inside their owning instances.
 Root `tests/map-library.test.js` checks 8 and 24 contestants, actual huts, cover
-and rubble, physical access to core elements, and the portal promise within
+and rubble, that each core element is reachable from its region's first portal
+(the strategies' own siting rule in 54, not a contract), and the portal promise within
 each non-open region. `node --test tests/slow/map-library.test.js` checks the
 report on 20 seeds with 8 contestants and 5 with 24; one full diagnostic also
 checks the large open regions. These are bounded samples, not a guarantee for
