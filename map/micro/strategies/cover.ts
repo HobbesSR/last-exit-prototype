@@ -1,5 +1,8 @@
-import { rect } from '../../../shared/shape.ts';
+import { circle, rect } from '../../../shared/shape.ts';
+import type { Shape } from '../../../shared/shape.ts';
+import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
 import { rng } from '../index.ts';
+import { microMetrics } from '../metrics.ts';
 import type { ObstacleKind } from '../../../shared/types.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types.ts';
 
@@ -104,4 +107,29 @@ function drawn(piece: Piece, w: number, h: number, length: number, offset: numbe
     : piece.name === 'barrier' ? [long * (0.7 + length * 0.25), short * 0.3] : [long * 0.95, short * 0.9];
   const a = (long - l) * offset, b = (short - t) / 2;
   return along ? rect(Math.round(a), Math.round(b), Math.round(l), Math.round(t)) : rect(Math.round(b), Math.round(a), Math.round(t), Math.round(l));
+}
+
+/** A sited point that cover and loot must leave standing room around, and a route to. */
+export interface ClearSite { x: number; y: number; radius: number }
+
+/**
+ * `buildCover`'s pieces and loot, less any that would claim a site's standing room. A piece
+ * that would cut a site's route from `root` is dropped too, so a core element region keeps
+ * its sites reachable from its first portal. Dropping cover can't break a portal route.
+ */
+export function coverAround(brief: RegionBrief, sites: readonly ClearSite[], root?: { x: number; y: number }): Pick<BuiltRegion, 'elements' | 'loot'> {
+  const mask = createRegionMask(brief), lootRadius = microMetrics({ cellSize: brief.cellSize, bodyProfile: 'cell' }).lootRadius;
+  const discs = sites.map(site => circle(site.x, site.y, site.radius));
+  const cover = buildCover(brief);
+  const elements: RegionElement[] = [], blockers: Shape[] = [];
+  for (const element of cover.elements) {
+    const shapes = elementShapes(element);
+    if (shapes.some(shape => discs.some(disc => shapesOverlap(shape, disc)))) continue;
+    const next = [...blockers, ...shapes];
+    if (root && sites.some(site => !findRegionRoute(mask, next, root, site, site.radius))) continue;
+    elements.push(element);
+    blockers.push(...shapes);
+  }
+  const loot = cover.loot.filter(site => !discs.some(disc => shapesOverlap(circle(site.x, site.y, lootRadius), disc)));
+  return { elements, loot };
 }

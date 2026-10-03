@@ -313,6 +313,12 @@ report checks those counts per set piece instance (51 stage 8).
 - **Strategy:** site `exitCount` extraction points and every hunter's spawn
   point, with the hunters' starts set back from the exits so the hunt begins
   as a pursuit.
+  **Built (#131):** `map/micro/strategies/departure.ts`. No decomposer yet:
+  it takes the region whole. Exits are spread farthest-first, so they sit as
+  far apart as the region allows, and may share one corridor (17 M13's
+  assumption, keep the tip). Hunters' spawns are spread over the ground at
+  least the set-back from every exit. Cover and loot fill around both, as in
+  `arrival`. What doesn't fit is a shortfall for the report.
 - **Core elements:** `exit` × `exitCount`, `hunter-spawn` × `hunterCount`,
   one hunter spawn point per hunter, the same way as spawns (Corey,
   2026-10-02, 17 M20). 51 keeps the hunter spawns in `end` "for simplicity
@@ -320,7 +326,9 @@ report checks those counts per set piece instance (51 stage 8).
 - **Shape needs:** room for the exits apart from each other. How far apart,
   and whether they share the diamond's narrow tip, is 17 M13.
 - **Formed by:** `end` set pieces only.
-- **Parameters:** exit spacing.
+- **Parameters:** `exitSpacing`, a floor on the distance between exits in
+  cells, none by default. `setBack`, the least distance in cells from a
+  hunter's spawn to any exit: *proposed* 6, one tile.
 
 ### `charging`
 
@@ -364,5 +372,5 @@ keeps those names.
 | `compound` | `example-courtyard`, 19's ring example | `courtyard`, `compound` |
 | `block` | `decomposition/example.ts`, `realize.ts`, `negotiate.ts` | — |
 | `arrival` | `example-entry`, `spreadPoints` | — |
-| `departure` | `spreadPoints` | — |
+| `departure` | `spreadPoints` (built, #131) | — |
 | `charging` | — | — |
