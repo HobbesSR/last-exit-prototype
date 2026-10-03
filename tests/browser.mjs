@@ -2,6 +2,7 @@ import { chromium } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { createArenaServer } from '../server/index.js';
+import { generateMap } from '../shared/map.ts';
 import { listen } from './helpers/listen.js';
 import path from 'node:path';
 import { checkClientControllers } from './client-controllers.mjs';
@@ -356,6 +357,9 @@ try {
   assert.equal(server.rooms.get(mobileInfo.room).game.map.items.find(item => item.droppedBy === mobilePlayer.id && item.weaponType === 'rifle')?.ammo, 7, 'touch world drag preserves source ammo');
   const vr = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":4217}' })).json();
   const geometryGame = server.rooms.get(vr.id).game;
+  // Fixed-coordinate sight/projectile probes exercise the legacy recording geometry.
+  // The normal rooms above and spectator below exercise the live chain map.
+  geometryGame.map = generateMap(4217);
   for (const p of geometryGame.players) p.bot = false;
   Object.assign(geometryGame.players[0], { bot: true, x: 11980, y: 6000, weapon: 1, selectedSlot: 0, inventory: [{ kind: 'weapon', weaponType: 'pistol' }, null, null, null, null] });
   geometryGame.map.gates = []; geometryGame.map.buildings = []; geometryGame.map.traps = []; geometryGame.map.items = [];
@@ -390,6 +394,11 @@ try {
   await visionPage.screenshot({ path: 'test-results/occlusion.png' });
   // Projectiles only move on authoritative frames, so they must be advanced by the elapsed fraction of
   // a tick or they visibly step at 20 Hz. Sample consecutive rendered frames inside one tick.
+  // Let the receive buffer fill after joining, and shoot past the cover instead of
+  // deleting the probe projectile against it after two ticks.
+  await visionPage.waitForFunction(() => window.arenaDebug().tick >= 40);
+  await visionPage.mouse.move(720, 180);
+  await visionPage.waitForTimeout(150);
   await visionPage.mouse.down();
   await visionPage.waitForFunction(() => window.arenaDebug().shots?.length > 0, null, { timeout: 8000 });
   const shotSamples = await visionPage.evaluate(async () => {

@@ -1,8 +1,7 @@
 # 51. The generation chain
 
 Status: accepted 2026-09-28 (PR #80). Integrated with the game's micro half
-2026-09-29 (50). Built through the switch-over, 2026-10-03 (step 10). The live
-game doesn't use it yet (20, 41).
+2026-09-29 (50). Built through the switch-over, 2026-10-03 (step 10). Live matches now use it through the map-layer adapter (14, 20, 22).
 
 This file specifies map generation as a series of checkpoints with clear
 interfaces between them. mapgen owns the macro stages, 0 to 5 and the map-level
@@ -434,7 +433,7 @@ macro structure the engine treats as first class.
 | exits | `end` | anchors of `exitCount` slots in the right third |
 | hunter spawn, one per hunter (`hunterCount`) | `end`, for simplicity for now | one point: the anchor of the rightmost slot |
 | charger | `charger` (new), one per map for now | none |
-| warp | deferred | none |
+| warp | `transit` | one per transit instance |
 
 **A spawn is one contestant's spawn point** (Corey, 2026-10-02, 17 M20). The
 `start` set piece forms one `arrival` region, and its strategy places every
@@ -833,13 +832,13 @@ reachability is inferred (principle 8).
       sweep is in `map/tools/sweep.mts` (53, "Proving a change: the sweep"),
       and deleting the old paths moved no hash.
 
-Replacing the live game's interim street maze is a later, separate checkpoint
-(20, 41).
+The separate live-game checkpoint now uses `map/live.ts` (14, 20, 22).
+Transit is authored as a core element in set pieces and regions, by Corey's
+2026-10-03 direction (17); it is not an adapter-side scatter.
 
 Content is expected to change. The old #47 baseline was no reference for the
 new chain. The bar is that the report shows no defects and maps play acceptably, and
-then the new chain's first baseline is captured, last. The live game can't play
-a chain map until the integration checkpoint, so the first baseline was
+then the new chain's first baseline is captured, last. Before live integration, the first baseline was
 captured on the report and the diagnostic (53); a content change after a
 playtest recaptures it.
 

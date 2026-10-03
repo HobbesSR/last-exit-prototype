@@ -137,7 +137,7 @@ test("the Map Lab's server serves both halves, strips types, and nothing else", 
   assert.equal(page.status, 200);
   assert.match(page.headers.get('content-type'), /html/);
   assert.match(await page.text(), /Map Lab/);
-  for (const served of ['/map/tools/lab/app.ts', '/map/tools/core.ts', '/map/macro/src/chain/map.ts', '/map/micro/compose.ts', '/map/kernel/contract.ts', '/shared/shape.ts']) {
+  for (const served of ['/map/tools/lab/app.ts', '/map/tools/core.ts', '/map/chain.ts', '/map/engines.ts', '/map/macro/src/chain/map.ts', '/map/micro/compose.ts', '/map/kernel/contract.ts', '/shared/shape.ts']) {
     const response = await fetch(`${base}${served}`);
     assert.equal(response.status, 200, served);
     assert.match(response.headers.get('content-type'), /javascript/, served);

@@ -51,8 +51,9 @@ Deferred within map generation, by Corey's answers in [17](17-open-questions.md)
   map ([52](52-map-primitives-and-library.md)).
 - **Zone-driven hazards,** and builders with no region to attach to
   (map-boundary treatment).
-- **The warp feature,** and special access policies such as locked doors on
-  required routes (17, September 22: "parameter passing we can defer").
+- **Special access policies** such as locked doors on required routes
+  (17, September 22: "parameter passing we can defer"). The `warp` core element
+  now supplies authored transit in the live checkpoint (17, 52, 54).
 - **Until the chain works top to bottom with core elements** (17 M18, M21 to
   M23 and M25, 2026-10-02):
   - reworking authoring, and specially recognized region types (M18)

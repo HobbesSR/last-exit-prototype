@@ -20,7 +20,7 @@ export function createGame(seed = 4217, map: GameMap = generateMap(seed), conten
   for (const p of s.players) if (p.role === 'contestant') { p.inventory = Array(SLOT_COUNT).fill(null); p.selectedSlot = 0; }
   s.players.filter(p => p.role === 'contestant').forEach((p, i) => Object.assign(p, map.spawns[i]));
   s.players.filter(p => p.role === 'gladiator').forEach((p, i) => {
-    const station = map.stations.at(-1 - i) ?? map.exit; p.x = station.x; p.y = station.y;
+    const station = map.hunterSpawns?.[i] ?? map.stations.at(-1 - i) ?? map.exit; p.x = station.x; p.y = station.y;
   });
   return s;
 }

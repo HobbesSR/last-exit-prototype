@@ -4,6 +4,7 @@
 import { createGame, step, snapshot, playerView, HZ, DURATION } from '../shared/simulation.ts';
 import * as profiler from '../shared/profiler.ts';
 import { acquireMachineLock } from './helpers/machine-lock.js';
+import { generateLiveMap } from '../map/live.ts';
 
 const args = new Map(process.argv.slice(2).map(a => a.replace(/^--/, '').split('=')).map(([k, v]) => [k, v ?? '1']));
 const number = (key, fallback) => Number(args.get(key) ?? fallback);
@@ -12,7 +13,7 @@ const budget = 1000 / HZ;
 
 await acquireMachineLock('bench');
 profiler.enable(true);
-const games = Array.from({ length: rooms }, (_, i) => createGame(seed + i));
+const games = Array.from({ length: rooms }, (_, i) => createGame(seed + i, args.has('legacy') ? undefined : generateLiveMap(seed + i)));
 const viewers = Array.from({ length: clients }, (_, i) => games[0].players[i % games[0].players.length].id);
 const durations = [];
 const started = performance.now();

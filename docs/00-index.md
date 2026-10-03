@@ -2,7 +2,7 @@
 
 Status: living documentation
 Prototype rules version: `last-exit-0.7`; default content: `content-2`
-Updated: 2026-10-02
+Updated: 2026-10-03
 
 This directory is the canonical product and engineering record for the prototype.
 It is split so a task can load the two or three files it actually needs instead of

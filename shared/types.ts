@@ -229,6 +229,7 @@ export interface GroundItem {
   droppedBy?: PlayerId | undefined;
   pickupAfter?: Tick | undefined;
   nodeId?: NodeId | undefined;
+  tier?: number | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -322,10 +323,18 @@ export interface Route {
   points: Vec2[];
 }
 
+/** Occupied map cells, with each run covering [startX, endXExclusive). Coordinates start at the world origin. */
+export interface PlayableArea {
+  cellSize: World;
+  rows: Array<{ y: number; runs: Array<[number, number]> }>;
+}
+
 export interface GameMap {
   seed: number;
+  generator?: string | undefined;
   width: World;
   height: World;
+  playableArea?: PlayableArea | undefined;
   modules: MapModule[];
   buildings: Building[];
   obstacles: Obstacle[];
@@ -344,13 +353,14 @@ export interface GameMap {
   entry: Vec2;
   exit: Vec2;
   spawns: Vec2[];
+  hunterSpawns?: Vec2[] | undefined;
 }
 
 /**
  * The map fields the geometry code reads. Narrower than {@link GameMap} on purpose: collision and
  * sight queries run during generation, before objectives or spawns exist.
  */
-export type CollisionMap = Pick<GameMap, 'width' | 'height' | 'obstacles' | 'gates'>;
+export type CollisionMap = Pick<GameMap, 'width' | 'height' | 'obstacles' | 'gates' | 'playableArea'>;
 
 /** The map as generation builds it. Each stage's output is absent until that stage has run. */
 export type MapDraft = Omit<GameMap, 'entry' | 'exit' | 'spawns'> & Partial<Pick<GameMap, 'entry' | 'exit' | 'spawns'>>;

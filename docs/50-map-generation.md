@@ -42,8 +42,8 @@ and are history.
 | Elective validation utilities for builders, composing built regions, and adapting them to the live game's geometry | the game | 20 |
 | Machinery builders share: masks, shapes, swept routes, spacing, interface runs, access validation | the SDK, `map/micro/sdk.ts`. Macro calls it where a mechanism fits both scopes | 20, 22 |
 | What macro and micro must share: the contract between them (a region brief and its result), body scale and passage widths, and the definition of a run | the **shared map space**, which neither level owns (Corey, 2026-09-29, M1). It is the kernel, `map/kernel/` (51 C0): `contract.ts`, `scale.ts`, `cell.ts` and `run.ts` | 51, 52 |
-| The Map Lab, CLI and MCP, which show both halves | neither: the tools, `map/tools/`, the one place the two meet (Corey, 2026-10-02, 17 "Where the tools live") | 53 |
-| The live game's current map | the interim street maze, `shared/map/generate.ts`, unchanged until the integration checkpoint | 22 |
+| The Map Lab, CLI and MCP, which show both halves | neither: the tools, `map/tools/`, using the shared map-level assembly (Corey, 2026-10-02, 17 "Where the tools live") | 53 |
+| The live game's current map | `map/live.ts` consumes the authored chain; `shared/map/generate.ts` remains the legacy generator | 22 |
 
 ## The SDK is a library
 
@@ -128,15 +128,14 @@ So the test is:
     MCP (#144, #145).
 - **Imports:**
   - Macro and micro don't import each other, except that macro may call the
-    SDK. Both import the kernel (M1). They meet only in `map/tools/`, and a
-    test holds that.
+    SDK. Both import the kernel (M1). They meet in `map/chain.ts` and `map/engines.ts`; the tools reuse that assembly.
+    A test keeps each half from importing the other outside the SDK exception.
   - The kernel imports nothing outside itself, and a test holds it to that.
   - `map/` builds on the game's portable core in `shared/` (geometry, element
     vocabulary, and micro's live-game adapters). `shared/` never imports
     `map/`, and a test holds that too.
-  - mapgen doesn't import the SDK's builders or strategies; the tools lend
-    them to it as `MapEngines`. The game doesn't import `map/` until the live
-    game adopts the chain.
+  - mapgen doesn't import the SDK's builders or strategies; `map/engines.ts` lends
+    them to it as `MapEngines`. The server invokes `map/live.ts` before creating a match.
 - **Serving:** the Map Lab's server (`map/tools/server.mts`) serves macro,
   micro, the kernel and `shared/` at their repository paths, and the game's
   server serves `/map/micro/` and `/map/kernel/` for the micro labs (53).

@@ -12,7 +12,7 @@ export type PassabilityPrescription = "passable" | "any";
 export const COUNT_PARAMS = ["exitCount", "contestantCount", "hunterCount"] as const;
 export type CountParam = typeof COUNT_PARAMS[number];
 export type CoreElementCount = number | CountParam;
-export type PlacementRule = "start" | "end" | "enormous" | "medium" | "small" | "charger";
+export type PlacementRule = "start" | "end" | "enormous" | "medium" | "small" | "charger" | "transit";
 
 /** Each perimeter segment can require the class across its tile boundary. */
 export interface SegmentPrescription {
@@ -91,7 +91,7 @@ const name = (value: unknown): value is string => typeof value === "string" && v
 const integer = (value: unknown): value is number => Number.isSafeInteger(value);
 const names = (value: unknown): value is string[] => Array.isArray(value) && value.every(name);
 const ORIENTATIONS = new Set([0, 90, 180, 270]);
-const PLACEMENT_RULES = new Set<PlacementRule>(["start", "end", "enormous", "medium", "small", "charger"]);
+const PLACEMENT_RULES = new Set<PlacementRule>(["start", "end", "enormous", "medium", "small", "charger", "transit"]);
 const CORE_ELEMENTS = new Set<CoreElementKind>(CORE_ELEMENT_KINDS);
 
 function unknownFields(value: Record<string, unknown>, allowed: readonly string[], path: string, errors: string[]): void {

@@ -17,7 +17,7 @@ npm run bench:client
 The unit suite has two tiers. `npm test` is the fast tier for iterating on a PR:
 everything under `tests/*.test.js`, about ten seconds. `npm run test:all` adds
 `tests/slow/`: the 200-map route sweep, the bot-match traces against the frozen
-fixture, and bots completing whole matches. Those six tests take about a minute
+fixture, and bots completing whole matches. Those slow tests take about a minute
 and four fifths of the suite's CPU, and their evidence only moves when generation
 or simulation moves. Run `test:all` before opening a PR that touches
 `shared/`, `server/` or map generation the game consumes, and at integration
@@ -184,3 +184,23 @@ benchmarks may use `room.game` to arrange scenarios.
 
 Human multiplayer balance is unverified by any of this. Passing local tests alone
 establishes nothing about the reported slowdown.
+
+## Live-chain checkpoint coverage
+
+`tests/live-map.test.js` checks the runtime adapter, authored core sites, starter
+loot, region/tier ownership, determinism and JSON prediction agreement. The
+boundary tests cover concave edges, holes and whole-body clearance while pinning
+legacy diamond movement. `tests/slow/live-map.test.js` plays combat-neutralized
+bots through all three extraction slots on seeds 1, 9 and 4217. Transit strategy
+and macro library tests check hunter access, standing space, six separate owned
+regions and longitudinal distribution. These samples do not establish human
+balance or exhaustive seed coverage.
+
+The browser suite uses live-chain rooms for normal play, replay, mobile controls
+and buildings. Its fixed-coordinate occlusion/projectile fixture explicitly uses
+a legacy map. The projectile probe waits for the receive buffer to fill and fires
+past its cover so the sampled projectile survives long enough to measure.
+
+`npm run bench` now measures a live-chain match; `--legacy` keeps a comparable
+legacy workload available. Client crowd fixtures use a central transit site when
+there is no street graph, and the dense fixture uses a real building loot site.

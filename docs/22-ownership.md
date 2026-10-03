@@ -25,9 +25,9 @@ Map generation lives in `map/`, apart from the game's portable core in
 `shared/`, which the server and the browser both run (21, 27). Only prediction
 uses both sides today, but the whole simulation is kept portable, so the test
 for belonging in `shared/` is being part of that runtime core. Map generation
-isn't: neither the running server nor the game client loads it. `map/` builds on
-the core's geometry and element vocabulary, and `shared/` never imports `map/`
-until the live game adopts the chain. A test in `tests/micro-common.test.js`
+isn't: the server invokes it before creating a match; the game client consumes
+only its resulting runtime map. `map/` builds on
+the core's geometry and element vocabulary, and `shared/` never imports `map/`, including after live adoption. A test in `tests/micro-common.test.js`
 holds that direction.
 
 It has two halves, plus a kernel between them ([50](50-map-generation.md)):
@@ -57,9 +57,9 @@ switch-over (#146). A problem both levels face, such as boundary runs,
 connectivity or reachability checks, is solved at each level within its own
 scope, with a shared definition where the two must agree (50). mapgen imports the kernel,
 and may import the SDK from `map/micro/` ([17](17-open-questions.md) M1). Otherwise
-macro and micro meet only in `map/tools/`, and a test in `tests/micro-common.test.js`
-holds that. The game
-doesn't import `map/` until the live game adopts the chain.
+macro and micro meet in the map-level assembly (`map/chain.ts`, `map/engines.ts`), and a test in `tests/micro-common.test.js`
+holds that. The server injects a generated map into the game core; the core never imports
+`map/`.
 
 `map/micro/sdk.ts` exposes reusable mask, geometry, route, scale and
 spacing primitives without importing the builder catalogue. `placement` owns
@@ -95,11 +95,12 @@ validated placement/loot and artifact validation, `builders` owns architecture,
 `compose` checks supplied adjacent-region contracts, and `adapter` emits through
 `placeElement`. `examples` supplies shared tool inputs. The CLI and browser lab
 call those modules; neither reimplements generation or imports `map/macro/`.
-The normal `generateMap` path below remains unchanged.
+The legacy `generateMap` path below remains available for stored-map
+characterization and explicit legacy consumers.
 
 `shared/map.ts` is a compatibility facade over `shared/map/`. `generate` runs topology → terrain/passages → spawn reservations/buildings/props → objectives/loot/traps. Every stage receives one generation context: seeded RNG, ID stream, placement helpers, reservations, and intermediate graph/placement data. Creating helpers consumes no random draws or IDs; stage order and loop order preserve the original output. `element` owns what a *group* of bodies is — a placeable assembly of obstacles, gates, loot spots and reservations in local coordinates — and `templates` is the catalogue of them a region generator draws from; a stage that needs a structure stamps a template rather than emitting literals, and a template's part order is frozen for the same reason stage order is. `world` and `graph` provide constants and graph lookup/routing; graph caches are private WeakMaps keyed by map identity and explicitly invalidated during topology changes. `navigation` separately owns runtime grid caches, invalidated by door open/locked state, obstacle-array replacement, or obstacle-count changes. It also owns the clearance a route requires and the straightening applied after a grid search: a grid returns tile centres, so a route at any angle other than a multiple of 45 degrees comes back as a staircase, and walking it waypoint by waypoint makes a bot turn every few ticks. That turning is real simulation motion, so no amount of presentation smoothing can remove it. Straightening and the walkability grid read one clearance value, because smoothing against a narrower radius would cut the very corners the grid was built to keep clear of. In-place obstacle geometry edits without replacement remain outside the existing cache contract. This stage boundary is a future generator replacement point, not a new hierarchy or multi-floor schema.
 
-`shared/map.ts` builds an interim connected street graph with loops and offset passages in a 24,000 × 12,000 arena. This is explicitly not the deferred user-defined hierarchical template system. Coarse block routes guide bots, with bounded local collision-aware A* around the next passage. Generation scores main routes against a ten-minute moving-wall deadline with exploration allowance. Placement reservations protect streets and separate objects.
+The legacy generator exposed by `shared/map.ts` builds a connected street graph with loops and offset passages in a 24,000 × 12,000 arena. This is explicitly not the deferred user-defined hierarchical template system. Coarse block routes guide bots, with bounded local collision-aware A* around the next passage. Generation scores main routes against a ten-minute moving-wall deadline with exploration allowance. Placement reservations protect streets and separate objects.
 
 Building footprints and doors are authoritative map data. `shared/view.ts` owns what a viewer may know — `seesPoint` and `seesActor` apply concealment, viewport and reveals in the order [15](15-information-rules.md) states, and both the world renderer and the minimap call them, because two copies of that rule had already drifted apart. `shared/view.ts` supplies roof concealment; solid geometry and closed doors occlude sight, while windows only block bodies and item reach. The renderer hides roofs for the occupied building. Doors retain local observed-state memory; actual collision still uses authoritative state under the existing prototype trust model.
 
@@ -138,3 +139,18 @@ The six-slot inventory stores ammo on weapons and charge on cells. Validated mov
 Presentation smoothing, shading and the replay playhead are in
 [25](25-pacing-and-rendering.md). What each view is permitted to contain is in
 [24](24-networking-privacy.md).
+
+## Live map assembly
+
+`map/chain.ts` and `map/engines.ts` assemble macro and micro without depending on
+the tools. `map/tools/core.ts` and `engines.ts` keep their existing exports and
+use that entry point. `map/live.ts` converts completed results into a `GameMap`,
+using the shared frame translation and geometry stamping in `micro/adapter.ts`.
+It owns live loot selection and consumes core sites, including authored `warp`
+sites as stations. It does not scatter transit after generation.
+
+`server/match.js` selects content, generates the map, and passes both to
+`createGame`. `createGame` retains its legacy default for callers that explicitly
+exercise the old generator. Initial hunters use `hunterSpawns` when supplied;
+legacy maps keep station-based starting positions. The runtime mask and
+recording compatibility are described in 26. No fixed-tick order changed.

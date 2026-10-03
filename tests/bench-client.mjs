@@ -8,6 +8,7 @@ import { listen } from './helpers/listen.js';
 import { acquireMachineLock } from './helpers/machine-lock.js';
 import { format } from '../shared/profiler.ts';
 import { HZ } from '../shared/simulation.ts';
+import { canOccupy } from '../shared/movement.ts';
 import path from 'node:path';
 import { arrangeCrowd } from './crowd-workload.mjs';
 
@@ -32,9 +33,11 @@ try {
     await page.waitForFunction(() => window.arenaDebug?.().me);
     const info = await page.evaluate(() => window.arenaDebug());
     const game = server.rooms.get(info.room).game;
-    const building = [...game.map.buildings].sort((a, b) => Math.abs(a.x - game.map.width / 2) - Math.abs(b.x - game.map.width / 2))[0];
     const player = game.players.find(p => p.id === info.me.id);
-    Object.assign(player, { x: building.x + 125, y: building.y + 305 });
+    const site = game.map.items.filter(item => item.buildingId && canOccupy(game.map, item.x, item.y, player.role === 'gladiator' ? 23 : 12))
+      .sort((a, b) => Math.abs(a.x - game.map.width / 2) - Math.abs(b.x - game.map.width / 2))[0];
+    if (!site) throw new Error('Dense benchmark needs a usable building interior');
+    Object.assign(player, { x: site.x, y: site.y });
   }
   await page.getByRole('button', { name: 'Start match', exact: true }).click();
   await page.waitForFunction(() => window.arenaDebug?.().tick > 3, null, { timeout: 15000 });

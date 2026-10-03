@@ -181,7 +181,7 @@ export function defaultJobs(): number {
 }
 
 /** What a chain map is made from: macro's stages and library, the game's strategies, and the kernel and core they share. */
-const INPUTS = ['map/macro/src', 'map/macro/content', 'map/micro', 'map/kernel', 'map/tools/engines.ts', 'shared'];
+const INPUTS = ['map/macro/src', 'map/macro/content', 'map/micro', 'map/kernel', 'map/chain.ts', 'map/engines.ts', 'shared'];
 
 /**
  * Entries plus where they came from. The commit is the last one to touch the chain's

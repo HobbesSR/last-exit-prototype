@@ -20,7 +20,7 @@ const workspaceId = createHash("sha256").update(repository).digest("hex");
 const INDEX = "map/tools/lab/index.html";
 /** What may be served: these trees, and these single files, by repository path. */
 const TREES = ["map/tools/lab/", "map/macro/src/", "map/macro/content/", "map/micro/", "map/kernel/", "shared/"];
-const FILES = ["map/tools/core.ts", "map/tools/engines.ts"];
+const FILES = ["map/tools/core.ts", "map/tools/engines.ts", "map/chain.ts", "map/engines.ts"];
 /**
  * Bare specifiers in served modules. A module worker has no import map, so the server
  * resolves them, for the page and the worker alike.
