@@ -266,6 +266,11 @@ number ("M3: …") and the answer is recorded verbatim here.
    segment of an `open` region is passable, but a one-cell neck still carries no
    hunter. *Assumption:* at least the door width wherever it has to carry a
    route, checked when regions are formed.
+   Found in B4 (#97): a passage of exactly 2 cells is too narrow for the SDK's
+   sampled route search. `rubble` threw on a 2-cell neck between two merged
+   banks, though a hunter could cross it. The chain's library keeps every
+   passage at least 3 cells wide (52, "The chain's library"). The assumption
+   still says 2 for what macro must guarantee.
 10. **M10. Where cover goes,** if `open` cells can't hold obstacles.
     *Assumption:* cover comes from other classes placed among open ground
     (trees, rocks, rubble, huts).

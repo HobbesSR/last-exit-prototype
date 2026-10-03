@@ -799,14 +799,19 @@ reachability is inferred (principle 8).
   questions, 17 M18 to M25, on 2026-10-02.
 - B3. **The strategies** the catalogue calls for, in `map/micro/strategies/`,
   each its own issue: #126 to #132 for the minimal set, under #96.
-  **Done:** `open` (#126), `cover` (#127), `rubble` (#128), `hut` (#129), `arrival` (#130).
+  **Done:** `open` (#126), `cover` (#127), `rubble` (#128), `hut` (#129),
+  `arrival` (#130), `departure` (#131), `charging` (#132).
 - B4. **The new library**, authored against the catalogue:
   - cell classes, tiles and tile sets
   - set pieces and set piece classes, including `start`, `end` and
     `charger` with their core element classes
 
   It starts minimal, with enough to exercise every stage and to play, and
-  grows afterwards.
+  grows afterwards. **Minimal set done (#97):**
+  `map/macro/content/chain-library.json`, described in 52 ("The chain's
+  library"). Its classes bind to the game's own strategies, with no example
+  builder. The tests are `tests/chain-content.test.ts` in mapgen, and the
+  root `tests/map-library.test.js` and `tests/slow/map-library.test.js`.
 
 **Switch-over.**
 
