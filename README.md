@@ -125,7 +125,8 @@ combined per-tick cost of all of them, which is the number the loop budget actua
 ## Verification
 
 ```powershell
-npm test
+npm test          # fast tier, for iterating
+npm run test:all  # adds the slow seed sweeps and whole-match runs
 npm run check
 npm run typecheck
 npm run test:browser
