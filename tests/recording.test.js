@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { recordingFit, SCHEMA, MIN_SCHEMA } from '../shared/recording.ts';
+import { recordingFit, SCHEMA, MIN_SCHEMA, minimumReaderForMap } from '../shared/recording.ts';
 import { roomHarness } from './helpers/room-harness.js';
 import { CONTENT_ID } from '../shared/simulation/content.ts';
 import { VERSION } from '../shared/simulation/rules.ts';
@@ -58,7 +58,8 @@ test('the server stamps every recording with the schema pair its readers check',
   const harness = roomHarness();
   const { writer } = harness.live(9);
   assert.equal(writer.header.schema, SCHEMA);
-  assert.equal(writer.header.minSchema, MIN_SCHEMA);
+  assert.equal(writer.header.minSchema, minimumReaderForMap(writer.header.map));
+  assert.equal(writer.header.minSchema, 4, 'masked maps require a reader that draws their playable area');
   assert.equal(recordingFit(writer.header), 'ok', 'what the writer produces is what the reader accepts');
 });
 

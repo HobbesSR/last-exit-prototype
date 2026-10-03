@@ -30,8 +30,8 @@ for (const [seed, contestantCount] of [['library-0', 8], ['library-4', 24]]) tes
   assert.deepEqual(views.report.defects, []);
   const sites = map.results.flatMap(result => result.coreElements.map(site => site.kind));
   const count = kind => sites.filter(site => site === kind).length;
-  assert.deepEqual([count('spawn'), count('exit'), count('hunter-spawn'), count('charger')],
-    [contestantCount, GAME.exitCount, GAME.hunterCount, 1]);
+  assert.deepEqual([count('spawn'), count('exit'), count('hunter-spawn'), count('charger'), count('warp')],
+    [contestantCount, GAME.exitCount, GAME.hunterCount, 1, 6]);
   // Exercise built content, not just class names or manifest counts (54).
   const huts = map.results.filter(result => result.brief.type === 'hut');
   assert.ok(huts.length && huts.every(hut => hut.elements.some(element =>
@@ -48,7 +48,7 @@ for (const [seed, contestantCount] of [['library-0', 8], ['library-4', 24]]) tes
     assert.ok(root, `${brief.type} has an entrance`);
     const { clearance } = microMetrics({ cellSize: brief.cellSize, bodyProfile: 'cell' });
     for (const site of result.coreElements) {
-      const radius = site.kind === 'hunter-spawn' ? clearance.hunter : clearance.contestant;
+      const radius = site.kind === 'hunter-spawn' || site.kind === 'warp' ? clearance.hunter : clearance.contestant;
       assert.ok(findRegionRoute(mask, blockers, root, site, radius), `${seed} ${site.kind} is reachable inside ${brief.id}`);
     }
   }

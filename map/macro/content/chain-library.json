@@ -31,6 +31,12 @@
       "coreElements": {
         "charger": 1
       }
+    },
+    "transit": {
+      "regionType": "transit",
+      "coreElements": {
+        "warp": 1
+      }
     }
   },
   "tiles": [
@@ -375,6 +381,25 @@
         3,
         4
       ]
+    },
+    {
+      "id": "transit-ground",
+      "defaultCellClass": "transit",
+      "segments": {
+        "h:0,3": { "passability": "passable" },
+        "h:0,4": { "passability": "passable" },
+        "h:0,5": { "passability": "passable" },
+        "v:6,3": { "passability": "passable" },
+        "v:6,4": { "passability": "passable" },
+        "v:6,5": { "passability": "passable" },
+        "h:6,3": { "passability": "passable" },
+        "h:6,4": { "passability": "passable" },
+        "h:6,5": { "passability": "passable" },
+        "v:0,3": { "passability": "passable" },
+        "v:0,4": { "passability": "passable" },
+        "v:0,5": { "passability": "passable" }
+      },
+      "orientations": [0]
     }
   ],
   "tileSets": [
@@ -418,6 +443,12 @@
       "id": "charging-grounds",
       "members": [
         "charging-ground"
+      ]
+    },
+    {
+      "id": "transit-grounds",
+      "members": [
+        "transit-ground"
       ]
     }
   ],
@@ -530,6 +561,16 @@
         4
       ],
       "primaryRegionClass": "charging"
+    },
+    {
+      "id": "transit-station",
+      "tiles": [
+        { "dx": 0, "dy": 0, "tileSetId": "transit-grounds" },
+        { "dx": 1, "dy": 0, "tileSetId": "transit-grounds" },
+        { "dx": 0, "dy": 1, "tileSetId": "transit-grounds" },
+        { "dx": 1, "dy": 1, "tileSetId": "transit-grounds" }
+      ],
+      "primaryRegionClass": "transit"
     },
     {
       "id": "hut-yard",
@@ -839,6 +880,13 @@
       "coreElements": {
         "charger": 1
       }
+    },
+    {
+      "id": "transit",
+      "placementRule": "transit",
+      "quota": 6,
+      "setPieces": ["transit-station"],
+      "coreElements": { "warp": 1 }
     }
   ]
 }

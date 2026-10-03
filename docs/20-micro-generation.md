@@ -2,10 +2,12 @@
 
 The game now has a standalone micro-generation implementation in
 `map/micro/`. It accepts explicit regions and resolves them into the same
-obstacles, roofs, windows and doors used by the live game. The default street
-generator does not call it yet. The macro generator, formerly the sibling
+obstacles, roofs, windows and doors used by the live game. Live matches consume
+the chain through `map/live.ts`; the legacy street generator remains available
+for characterization. The macro generator, formerly the sibling
 `last_exit_map` repository, now lives in `map/macro/` with its own tests and docs.
-The game does not import it yet, nor copy its generated artifacts.
+The server invokes the chain before creating the simulation and consumes its
+completed results (22). Cell masks and replay compatibility are described in 26.
 
 This is the current user-directed F-01 work. Macro gives micro an owned area and
 constraints; micro chooses what occupies it. Cells and segments organize that
@@ -127,7 +129,7 @@ under its own name once B3 writes its strategy, in `strategies/`. So far:
 
 Today's builders stand in for the rest, with the ids `example-open`,
 `example-depot`, `example-courtyard`, `example-ruins` and `example-entry`. The
-prefix keeps a library from binding to them. `REGION_TYPES_VERSION` (`types-7`)
+prefix keeps a library from binding to them. `REGION_TYPES_VERSION` (`types-8`)
 names what the registry builds. A change to what any strategy builds bumps it,
 so a saved map's results are never silently rebuilt by other strategies (51
 "Saving"). Each example builder:

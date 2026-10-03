@@ -32,14 +32,14 @@ export const DEFAULT_CHAIN_PARAMS: Readonly<ChainParams> = Object.freeze({
   exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09,
 });
 
-/** The order classes are drawn in: today's order, with `charger` after it. */
-const RULE_ORDER: readonly PlacementRule[] = ["start", "end", "enormous", "medium", "small", "charger"];
+/** Keep the old order, giving distributed transit space before the flexible fill pieces. */
+const RULE_ORDER: readonly PlacementRule[] = ["start", "end", "enormous", "transit", "medium", "small", "charger"];
 
 /** Where an instance's anchor slot may go, in tile units, given the piece's extent. */
 type Filter = (anchor: MaskCell, width: number) => boolean;
 
 /** Today's placement rules (52), over a map `columns` by `rows` tiles. */
-function ruleFilter(rule: PlacementRule, nth: number, columns: number, rows: number): Filter {
+function ruleFilter(rule: PlacementRule, nth: number, quota: number, columns: number, rows: number): Filter {
   switch (rule) {
     case "start": return (c) => c.x === 0;
     case "end": return (c, w) => c.x + w >= columns;
@@ -50,6 +50,14 @@ function ruleFilter(rule: PlacementRule, nth: number, columns: number, rows: num
         c.y >= rows * third / 3 && c.y < rows * (third + 1) / 3;
     }
     case "medium": return (c, w) => c.x < columns / 3 || c.x + w > columns * 2 / 3;
+    case "transit": {
+      // Partition the central 76% into one band per instance. Inset each band's
+      // anchors by a tile so neighboring transit regions cannot join into one.
+      const start = columns * 0.12, span = columns * 0.76;
+      const left = Math.floor(start + nth * span / quota) + 1;
+      const right = Math.floor(start + (nth + 1) * span / quota) - 1;
+      return (c, w) => c.x >= left && c.x + w <= right;
+    }
     case "small":
     case "charger": return () => true;
   }
@@ -67,7 +75,7 @@ function pickSetPieces(library: ChainLibrary, pieces: Map<string, ChainSetPiece>
     const chosen = rule === "enormous"
       ? random.shuffle(members).slice(0, setPieceClass.quota)
       : Array.from({ length: setPieceClass.quota }, () => random.pick(members));
-    chosen.forEach((piece, nth) => picks.push({ setPieceClass, piece, filter: ruleFilter(rule, nth, columns, rows) }));
+    chosen.forEach((piece, nth) => picks.push({ setPieceClass, piece, filter: ruleFilter(rule, nth, setPieceClass.quota, columns, rows) }));
   }
   return picks.sort((a, b) => b.piece.tiles.length - a.piece.tiles.length);
 }

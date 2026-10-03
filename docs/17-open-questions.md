@@ -72,6 +72,31 @@ silently adopted as game contracts.
 
 ## Map generation (folded from mapgen, 2026-09-29)
 
+### Live-chain checkpoint (2026-10-03)
+
+The user's settled direction, preserved verbatim:
+
+> Preserve current player sizes and combat tuning
+>
+> Add distributed transit stations now
+>
+> Distributed transit stations probably need to be made into a core element and set pieces with regions and stuff
+
+For this checkpoint, transit is no longer deferred: author six transit set
+pieces, each in its own transit region, and have each site one warp with a
+hunter standing/access area. A new macro `placementRule` distributes the six
+longitudinally through central bands (52). The live adapter consumes each warp as a station. There is no
+after-generation scatter step. See 14, 20, 22, 51, 52 and 54 for the fact each
+document owns.
+
+The live chain keeps current bodies and combat tuning, uses the 48 world units per
+cell (17,280 × 8,640), and places contestant and hunter spawns from core
+element sites. Missing or colliding required sites fail generation; no corner
+fallback is used. The generated map records owned cells and holes as row runs
+in `playableArea`; older maps without it retain the existing diamond behavior.
+Replay schema 4 with minimum reader 4 applies only to these masked maps; older
+archives remain readable. These are checkpoint implementation decisions, not a human balance finding.
+
 mapgen kept its own questions file until 2026-09-29. It is archived as
 `map/macro/docs/archive/pre-integration/QUESTIONS.md`, and its answers are
 preserved verbatim below with the ones given since. The design they produced
@@ -136,7 +161,7 @@ is in 50–53. Answers are grouped by topic, each under the question it settled.
 **Where the tools live (2026-10-02).** At the switch-over (51 step 10), the Map Lab, CLI and MCP need the game's strategies to build chain maps.
   - Asked where that wiring should live, Corey chose, over a composition module inside `map/` or the tools importing micro from macro: "Move tools to map/tools/". The tools show both halves, so they belong to neither.
   - Chosen with it: step 10 splits into three issues (#144, #145, #146).
-  - Recorded in 22, 50 and 53. A test holds that macro and micro meet only in `map/tools/`.
+  - Recorded in 22, 50 and 53. The live checkpoint extracts their assembly to `map/chain.ts` and `map/engines.ts`; the tools reuse it. A test keeps macro and micro from importing each other outside the SDK exception.
 
 ### Open
 
@@ -315,13 +340,13 @@ assumption, and 54 marks what rests on it.
     and `charging`? Is the `warp` core element the hunters' transit station
     (P-09), and which set piece class would own it? *Assumption:* the set as
     drafted, with B4 starting from `open`, `cover`, `rubble`, `hut`,
-    `arrival`, `departure` and `charging`. `warp` stays deferred.
+    `arrival`, `departure` and `charging`. At that checkpoint `warp` was deferred.
     - (2026-10-02) "M18 stays deferred. Once we have the system generally hooked up top to bottom, we will again rework authoring and specially recognized details."
 
     Recorded in 54: the catalogue stays a working draft. B3 and B4 build its
     minimal set to hook the chain up top to bottom, and authoring and
-    specially recognized details are reworked after that. `warp` stays
-    deferred (16).
+    specially recognized details are reworked after that. The live-chain
+    direction above brings authored `warp`/transit into scope on 2026-10-03.
 19. **M19. Obstacles under the proof.** A region with one portal owes nothing
     between portals (M3), so its builder may fill it solid. Is that how a
     library gets rocks, wrecks and other obstacles, or should a region type

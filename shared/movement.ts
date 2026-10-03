@@ -4,7 +4,7 @@ import { count } from './profiler.ts';
 import { finite } from './numbers.ts';
 import { shapeOf, bounds, nearBounds, edgesOf, body, separate } from './shape.ts';
 import type { Bounded, Edge, Shape } from './shape.ts';
-import type { Box, CollisionMap, GateId, Obstacle, Player, PlayerInput, Vec2, World } from './types.ts';
+import type { Box, CollisionMap, GateId, Obstacle, PlayableArea, Player, PlayerInput, Vec2, World } from './types.ts';
 
 // Geometry is described once in `shape.ts` and consumed here. This module owns what the simulation
 // does with a shape -- occupancy, the movement sweep and sight -- not what a shape is.
@@ -37,6 +37,7 @@ export interface VisibilityPoint extends Vec2 {
 export const TILE = 40; // Navigation sampling only, never a movement or rendering grid.
 export const VISION = 620;
 const shapeCache = new WeakMap<CollisionMap, Geometry>();
+const playableRows = new WeakMap<PlayableArea, Map<number, Array<[number, number]>>>();
 const BUCKET = 200;
 const vec = (x: World, y: World) => new SAT.Vector(x, y);
 /** Resolve a stored record -- an obstacle, or a closed gate's box -- into a reusable collider. */
@@ -66,7 +67,49 @@ function nearbyShapes(map: CollisionMap, x: World, y: World, radius: World): Set
   return found;
 }
 export function gateShape(g: Bounded): Box { const w = g.w || 26, h = g.h || 54; return { x: g.x - w / 2, y: g.y - h / 2, w, h }; }
-export function insideMap(map: Pick<CollisionMap, 'width' | 'height'>, x: World, y: World, radius: World = 0): boolean {
+function occupiedCell(area: PlayableArea, col: number, row: number): boolean {
+  let rows = playableRows.get(area);
+  if (!rows) { rows = new Map(area.rows.map(entry => [entry.y, entry.runs])); playableRows.set(area, rows); }
+  const runs = rows.get(row);
+  if (!runs) return false;
+  // Runs are ordered and disjoint in the map contract.
+  let lo = 0, hi = runs.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (runs[mid][1] <= col) lo = mid + 1; else hi = mid;
+  }
+  return lo < runs.length && runs[lo][0] <= col;
+}
+function voidCellsNear(map: CollisionMap, x: number, y: number, reach: number): Box[] {
+  const area = map.playableArea!;
+  const size = area.cellSize, boxes: Box[] = [];
+  const left = Math.max(0, Math.floor((x - reach) / size));
+  const right = Math.min(Math.ceil(map.width / size) - 1, Math.floor((x + reach) / size));
+  const top = Math.max(0, Math.floor((y - reach) / size));
+  const bottom = Math.min(Math.ceil(map.height / size) - 1, Math.floor((y + reach) / size));
+  for (let row = top; row <= bottom; row++) for (let col = left; col <= right; col++)
+    if (!occupiedCell(area, col, row)) boxes.push({ x: col * size, y: row * size, w: size, h: size });
+  return boxes;
+}
+export function insideMap(map: Pick<CollisionMap, 'width' | 'height' | 'playableArea'>, x: World, y: World, radius: World = 0): boolean {
+  if (map.playableArea) {
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(radius) || radius < 0
+      || x - radius < 0 || y - radius < 0 || x + radius > map.width || y + radius > map.height
+      || x >= map.width || y >= map.height) return false;
+    const area = map.playableArea, size = area.cellSize;
+    if (radius === 0) return occupiedCell(area, Math.floor(x / size), Math.floor(y / size));
+    const left = Math.max(0, Math.floor((x - radius) / size));
+    const right = Math.min(Math.ceil(map.width / size) - 1, Math.floor((x + radius) / size));
+    const top = Math.max(0, Math.floor((y - radius) / size));
+    const bottom = Math.min(Math.ceil(map.height / size) - 1, Math.floor((y + radius) / size));
+    for (let row = top; row <= bottom; row++) for (let col = left; col <= right; col++) {
+      if (occupiedCell(area, col, row)) continue;
+      const nearX = Math.max(col * size, Math.min((col + 1) * size, x));
+      const nearY = Math.max(row * size, Math.min((row + 1) * size, y));
+      if ((x - nearX) ** 2 + (y - nearY) ** 2 < radius ** 2) return false;
+    }
+    return true;
+  }
   const hx = map.width / 2 - 40, hy = map.height / 2 - 40;
   return Math.abs(x - map.width / 2) / hx + Math.abs(y - map.height / 2) / hy + radius * Math.hypot(1 / hx, 1 / hy) <= 1;
 }
@@ -101,6 +144,12 @@ export function movePlayer(map: CollisionMap, p: Player, input: PlayerInput): Pl
 /** Shared SAT sliding for tools and actors with explicit body dimensions. Input is normalized here. */
 export function moveBody<T extends Vec2>(map: CollisionMap, p: T, input: { x?: number | undefined; y?: number | undefined }, radius: number, speed: number): T {
   if (!Number.isFinite(radius) || radius <= 0 || !Number.isFinite(speed) || speed < 0) throw new Error('Invalid movement dimensions.');
+  // Small steps prevent a fast body from crossing a void cell and landing on the far side.
+  if (map.playableArea && speed > map.playableArea.cellSize / 2) {
+    const steps = Math.ceil(speed / (map.playableArea.cellSize / 2));
+    for (let i = 0; i < steps; i++) moveBody(map, p, input, radius, speed / steps);
+    return p;
+  }
   const x = finite(input.x) ? input.x : 0, y = finite(input.y) ? input.y : 0;
   const norm = Math.max(1, Math.hypot(x, y));
   const circle = new SAT.Circle(vec(p.x + x / norm * speed, p.y + y / norm * speed), radius);
@@ -110,15 +159,24 @@ export function moveBody<T extends Vec2>(map: CollisionMap, p: T, input: { x?: n
     const box = gateShape(g);
     if (nearBounds(box, circle.pos.x, circle.pos.y, radius + speed)) colliders.push(collider(box));
   }
+  if (map.playableArea) for (const box of voidCellsNear(map, circle.pos.x, circle.pos.y, radius + speed))
+    colliders.push(collider(box));
   // SAT separation provides continuous sliding along walls and around obstacle corners.
   for (let pass = 0; pass < 3; pass++) for (const o of colliders) {
     response.clear();
     if (separate(circle, o.shape, o.body, response)) circle.pos.sub(response.overlapV);
   }
-  const hx = map.width / 2 - 40, hy = map.height / 2 - 40, len = Math.hypot(1 / hx, 1 / hy);
-  for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
-    const excess = sx * (circle.pos.x - map.width / 2) / hx + sy * (circle.pos.y - map.height / 2) / hy + radius * len - 1;
-    if (excess > 0) { circle.pos.x -= excess * sx / hx / (len * len); circle.pos.y -= excess * sy / hy / (len * len); }
+  if (map.playableArea) {
+    circle.pos.x = Math.max(radius, Math.min(map.width - radius, circle.pos.x));
+    circle.pos.y = Math.max(radius, Math.min(map.height - radius, circle.pos.y));
+    // A deep-void start has no well-defined SAT escape direction. Keep the last valid placement.
+    if (!insideMap(map, circle.pos.x, circle.pos.y, radius)) { circle.pos.x = p.x; circle.pos.y = p.y; }
+  } else {
+    const hx = map.width / 2 - 40, hy = map.height / 2 - 40, len = Math.hypot(1 / hx, 1 / hy);
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+      const excess = sx * (circle.pos.x - map.width / 2) / hx + sy * (circle.pos.y - map.height / 2) / hy + radius * len - 1;
+      if (excess > 0) { circle.pos.x -= excess * sx / hx / (len * len); circle.pos.y -= excess * sy / hy / (len * len); }
+    }
   }
   p.x = Math.round(circle.pos.x * 1000) / 1000; p.y = Math.round(circle.pos.y * 1000) / 1000;
   return p;

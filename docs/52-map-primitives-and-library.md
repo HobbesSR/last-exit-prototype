@@ -152,8 +152,7 @@ one."
   (a positive whole number, or a count param: `exitCount`, `contestantCount`
   or `hunterCount`).
   It is the only macro structure the engine treats as first class, and today's
-  code calls it `category`. The shipped rules in game mode, unchanged from
-  today's except for the spawn and hunter spawn counts:
+  code calls it `category`. The shipped rules in game mode:
 
 | Set piece class | Rule | Quota | Owns |
 | --- | --- | --- | --- |
@@ -162,8 +161,12 @@ one."
 | `enormous` | the middle band, one per vertical third | 3 distinct | nothing |
 | `medium` | the outer thirds | 4 | nothing |
 | `small` | anywhere | 10 | nothing |
-| `charger` (new) | anywhere its tiers allow, for now | 1 | one charger |
+| `charger` | anywhere its tiers allow, for now | 1 | one charger |
+| `transit` | one instance per longitudinal band (below) | 6 | one warp |
 
+  `transit` divides the central 76% of map columns (12% to 88%) into one
+  band per instance. The whole piece fits between rounded edges, inset
+  by one tile on each side, so neighboring transit regions cannot merge.
   Set pieces also filter on eligible tiers. Playground mode may relax any of
   this (51).
 
@@ -252,7 +255,7 @@ stage and to play, and it grows from here. The fixture libraries in
     make one 12 × 12 hut region, with room for a house and its yard (54
     `hut`). The `open` asks close the group, so it can't spread across the
     fill.
-  - `arrival-ground`, `departure-ground` and `charging-ground`: whole tiles of
+  - `arrival-ground`, `departure-ground`, `charging-ground` and `transit-ground`: whole tiles of
     their core element class, passable along half of each side. Placement
     never puts them in the fill (51, "Core elements").
 - **Set pieces:**
@@ -262,6 +265,7 @@ stage and to play, and it grows from here. The fixture libraries in
 | `start` | `landing`: 2 × 3 arrival tiles, 12 × 18 cells, with room for 24 spawns |
 | `end` | `evac`: 2 × 3 departure tiles |
 | `charger` | `charging-station`: 2 × 2 charging tiles, 12 × 12 cells |
+| `transit` | `transit-station`: 2 by 2 transit tiles, 12 by 12 cells |
 | `enormous` | `hut-row` (two hut groups with a column of field between them), `cover-field` (3 × 3 cover tiles), `rubble-lanes` |
 | `medium`, `small` | `hut-yard` (one hut group), `cover-patch` (2 × 2 cover tiles), `rubble-lane` (two banks back to back, six cells deep) |
 
@@ -278,8 +282,8 @@ stage and to play, and it grows from here. The fixture libraries in
   for one cover piece, so it stays clear (54 `cover`). Cover comes mostly from
   the set pieces' 12 × 12 and 18 × 18 regions, so its fill weight is light.
 
-31 describes the library's acceptance checks. The tools read it (51 step 10);
-live-game adoption remains separate work (20, 41).
+31 describes the library's acceptance checks. The tools and live matches use
+the same library through `map/chain.ts`; live conversion is separate (14, 22).
 
 ## The old library
 

@@ -1,12 +1,15 @@
 import { createGame, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { resetInput } from '../shared/simulation/input.ts';
 import { viewLagFrom } from '../shared/simulation/rewind.ts';
+import { generateLiveMap } from '../map/live.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
 
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
 
 // The application's only mutable access to simulation. Returned frames/commands are detached.
 export function createMatch(seed) {
-  const game = createGame(seed);
+  const content = defaultContent();
+  const game = createGame(seed, generateLiveMap(seed, content), content);
   const capacity = role => role === 'gladiator' ? game.content.roster.gladiators.length : game.content.roster.contestants.length;
   return {
     get tick() { return game.tick; },

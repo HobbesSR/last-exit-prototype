@@ -21,12 +21,17 @@
  */
 
 /** The schema this build writes. Bump on any change to recorded structure. */
-export const SCHEMA = 3;
+export const SCHEMA = 4;
 /**
  * The oldest schema this build can read. Zero, because recordings predating the schema field carry
  * no `schema` at all and are still playable; raise it only when support is deliberately dropped.
  */
 export const MIN_SCHEMA = 0;
+
+/** Older renderers assume a diamond, so a recording of a cell-masked arena needs this reader. */
+export function minimumReaderForMap(map: { playableArea?: unknown }): number {
+  return map.playableArea ? 4 : MIN_SCHEMA;
+}
 
 /**
  * Why a recording cannot be played, or `ok`. The wording belongs to whatever is showing it, so this

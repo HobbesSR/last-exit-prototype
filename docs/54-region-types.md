@@ -75,7 +75,7 @@ may use these rules as they stand to make a region act as an obstacle (Corey,
 | `arrival` | core element | the contestants' start | `spawn` × `contestantCount` |
 | `departure` | core element | extraction and the hunters' start | `exit` × `exitCount`, `hunter-spawn` × `hunterCount` |
 | `charging` | core element | the power-cell charging station (F-03) | `charger` |
-| *transit* | core element, deferred | the hunters' transit stations (P-09) | `warp`, deferred (51) |
+| `transit` | core element | the hunters' transit stations (P-09) | `warp` |
 
 **Minimal first set** for B3 and B4, *proposed*: `open`, `cover`, `rubble`,
 `hut`, `arrival`, `departure` and `charging`. That is enough to hook the chain
@@ -300,8 +300,8 @@ report checks those counts per set piece instance (51 stage 8).
   on the map (Corey, 2026-10-02, 17 M20). There's no anchor: the old single
   spawn was a tile anchor (51, "Core elements").
 - **Shape needs:** room for every contestant's point at the spacing chosen.
-  The live game spaces starts 400 units apart, 10 cells at 40 units a cell
-  (14). That is a live tuning value, not a requirement here.
+  The live adapter uses these spread sites directly (14). The old street
+  generator's 400-unit spacing is not a requirement here.
 - **Formed by:** `start` set pieces only.
 - **Parameters:** the spacing.
 - **Material:** the game's `example-entry` and `spreadPoints`.
@@ -353,12 +353,16 @@ report checks those counts per set piece instance (51 stage 8).
   charger: *proposed* 2, which covers the live game's 70-unit charging range
   at 40 units a cell (14).
 
-### *transit* (deferred)
+### `transit`
 
 The hunters' private transit network (P-09), and their respawn points (14).
-51 lists `warp` as a core element and defers it. Whether `warp` is the
-transit station, and which set piece class would own it, stays deferred with
-the catalogue (17 M18).
+Corey brought it into the live checkpoint on 2026-10-03 (17). The `transit`
+set piece class owns one `warp` per instance, and its region strategy sites it.
+`map/micro/strategies/transit.ts` uses hunter clearance and first-portal access,
+then keeps two cells of standing space free of cover and loot. Nearby cover
+uses the existing cover strategy. Insufficient space leaves a report shortfall.
+Macro distributes the authored instances (52); the live adapter only converts
+these sites to stations. Initial hunter spawns remain departure's responsibility.
 
 ## Today's names
 

@@ -68,15 +68,15 @@ function reachedFrom(dir) {
 }
 
 // Map generation builds on the game core, never the reverse (docs 22): nothing in shared/
-// imports map/ until integration wires the two together.
+// imports map/, including after the server adopts chain maps.
 test('the game core imports nothing from map/', () => {
   for (const [file, reached] of reachedFrom('shared'))
     assert.deepEqual(reached.filter(target => /^\/?map\//.test(target)), [], file);
 });
 
 // Macro and micro don't import each other (50), except that macro may call the SDK (22). The
-// tools show both halves, so they join them in map/tools/ (#144), and neither half imports the tools.
-test('macro and micro meet only in map/tools/', () => {
-  for (const [dir, others] of [['map/macro', /^map\/(micro\/(?!sdk\.ts$)|tools\/)/], ['map/micro', /^map\/(macro|tools)\//]])
+// map-level assembly joins both halves; neither half imports that assembly or the tools.
+test('macro and micro stay independent of each other and their assembly', () => {
+  for (const [dir, others] of [['map/macro', /^map\/(micro\/(?!sdk\.ts$)|tools\/|(?:chain|engines|live)\.ts$)/], ['map/micro', /^map\/(?:(?:macro|tools)\/|(?:chain|engines|live)\.ts$)/]])
     for (const [file, reached] of reachedFrom(dir)) assert.deepEqual(reached.filter(target => others.test(target)), [], file);
 });

@@ -4,7 +4,8 @@ import { canOccupy } from '../shared/movement.ts';
 export function arrangeCrowd(game, playerId, { location, ai = true }) {
   const me = game.players.find(p => p.id === playerId);
   const center = { x: game.map.width / 2, y: game.map.height / 2 };
-  const node = game.map.nodes.reduce((best, n) => Math.hypot(n.x - center.x, n.y - center.y) < Math.hypot(best.x - center.x, best.y - center.y) ? n : best);
+  const anchors = game.map.nodes.length ? game.map.nodes : game.map.stations;
+  const node = anchors.reduce((best, n) => Math.hypot(n.x - center.x, n.y - center.y) < Math.hypot(best.x - center.x, best.y - center.y) ? n : best);
   Object.assign(me, { x: node.x, y: node.y, shield: 1000000, input: {} });
   const target = location === 'offscreen' ? { x: node.x + 1200, y: node.y } : node;
   const occupied = [me];

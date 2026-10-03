@@ -152,9 +152,20 @@ export function createHUDController(actions) {
     if (!arenaMap || !state) return;
     const c = $('minimap').getContext('2d'); const sx = 260 / arenaMap.width, sy = 124 / arenaMap.height;
     c.clearRect(0, 0, 260, 124);
-    c.beginPath(); c.moveTo(2, 62); c.lineTo(130, 2); c.lineTo(258, 62); c.lineTo(130, 122); c.closePath(); c.fillStyle = '#304e42'; c.fill(); c.strokeStyle = '#668674'; c.stroke();
-    c.strokeStyle = '#729481'; c.setLineDash([3, 4]); c.beginPath(); c.moveTo(6, 62); c.lineTo(254, 62); c.stroke(); c.setLineDash([]);
-    c.fillStyle = '#f46c7a88'; c.fillRect(0, 0, Math.max(0, state.hazardX * sx), 124);
+    if (arenaMap.playableArea) {
+      const { cellSize, rows } = arenaMap.playableArea;
+      c.beginPath();
+      for (const row of rows) for (const [start, end] of row.runs)
+        c.rect(start * cellSize * sx, row.y * cellSize * sy, (end - start) * cellSize * sx, cellSize * sy);
+      c.fillStyle = '#304e42'; c.fill();
+      c.save(); c.clip();
+      c.fillStyle = '#f46c7a88'; c.fillRect(0, 0, Math.max(0, state.hazardX * sx), 124);
+      c.restore();
+    } else {
+      c.beginPath(); c.moveTo(2, 62); c.lineTo(130, 2); c.lineTo(258, 62); c.lineTo(130, 122); c.closePath(); c.fillStyle = '#304e42'; c.fill(); c.strokeStyle = '#668674'; c.stroke();
+      c.strokeStyle = '#729481'; c.setLineDash([3, 4]); c.beginPath(); c.moveTo(6, 62); c.lineTo(254, 62); c.stroke(); c.setLineDash([]);
+      c.fillStyle = '#f46c7a88'; c.fillRect(0, 0, Math.max(0, state.hazardX * sx), 124);
+    }
     for (const station of arenaMap.stations) { c.fillStyle = '#92d6f0'; c.fillRect(station.x * sx - 2, station.y * sy - 2, 4, 4); }
     for (const station of arenaMap.chargers || []) { c.strokeStyle = '#f4d26c'; c.strokeRect(station.x * sx - 2, station.y * sy - 2, 4, 4); }
     // The server sends more than the eye can reach, so the minimap applies the very same predicate the

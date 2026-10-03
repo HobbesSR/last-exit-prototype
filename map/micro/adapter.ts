@@ -30,7 +30,7 @@ export function stampMicroRegion(context: BaseGenerationContext, result: MicroRe
 /**
  * Emit a composed map's geometry (51 stage 7), each region's under its own id as its node.
  * Nothing is validated first: a builder's promise is its own to check (51 principle 9).
- * Core element sites stay in the map for the report; the game places nothing for them yet.
+ * Core element sites stay in the map for the report; map/live.ts applies gameplay placement policy.
  */
 export function stampBuiltMap(context: BaseGenerationContext, map: BuiltMap<RegionElement>, origin: Vec2): void {
   for (const region of map.regions) stamp(context, region.elements, region.loot, origin, region.brief.id as NodeId);
@@ -38,14 +38,22 @@ export function stampBuiltMap(context: BaseGenerationContext, map: BuiltMap<Regi
 
 /** A composed map's collision, in the real arena's shape/gate schema, sized to its cells with its least corner at the world origin. */
 export function builtMapCollision(map: BuiltMap<RegionElement>): CollisionMap {
+  const { width, height, origin } = builtMapFrame(map);
+  // Stamping draws no randomness, so the context's seed doesn't matter.
+  const context = createGenerationContext(1);
+  context.map.width = width;
+  context.map.height = height;
+  stampBuiltMap(context, map, origin);
+  return { width, height, obstacles: context.map.obstacles, gates: context.map.gates };
+}
+
+/** The shared translation from contract cell coordinates to a world rooted at (0, 0). */
+export function builtMapFrame(map: BuiltMap<RegionElement>): { width: number; height: number; origin: Vec2 } {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const region of map.regions) for (const c of region.brief.cells) { minX = Math.min(minX, c.x); minY = Math.min(minY, c.y); maxX = Math.max(maxX, c.x); maxY = Math.max(maxY, c.y); }
-  // Stamping draws no randomness, so the context's seed doesn't matter.
-  const context = createGenerationContext(1), size = map.cellSize;
-  context.map.width = (maxX - minX + 1) * size;
-  context.map.height = (maxY - minY + 1) * size;
-  stampBuiltMap(context, map, { x: -minX * size, y: -minY * size });
-  return { width: context.map.width, height: context.map.height, obstacles: context.map.obstacles, gates: context.map.gates };
+  if (!Number.isFinite(minX) || !(map.cellSize > 0)) throw new Error('A built map needs cells and a positive cell size.');
+  return { width: (maxX - minX + 1) * map.cellSize, height: (maxY - minY + 1) * map.cellSize,
+    origin: { x: -minX * map.cellSize, y: -minY * map.cellSize } };
 }
 
 /** Isolated preview collision uses the real arena's shape/gate schema and world scale. */

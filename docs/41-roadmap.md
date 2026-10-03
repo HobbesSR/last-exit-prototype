@@ -58,8 +58,9 @@ order is 51's:
 - **Track B:** the region type catalogue, the strategies, and a new library.
 - **Then the switch-over.** Done 2026-10-03 (51 step 10, #144 to #146): the
   Map Lab, CLI and MCP run on the chain from `map/tools/`, its first baseline
-  is captured, and mapgen's old paths are deleted. The live game's adoption
-  is the next checkpoint (20).
+  is captured, and mapgen's old paths are deleted. The live-game checkpoint injects the chain through `map/live.ts`, with
+  explicit mask bounds and authored transit (14, 22, 26, 52). Its live-size
+  passage balance and human multiplayer tuning remain future work.
 
 Work in progress and its order live on the Forgejo tracker, #82, and
 in each step's issue ([34](34-forgejo-workflow.md)). mapgen's former
@@ -87,9 +88,9 @@ trees as physical micro generation. SDK access/boundary utilities now validate
 post-generation crossing and connectivity obligations, inherit complete external
 runs and pair inter-child requirements; nested composition tests exercise this
 contract. Next is recursive execution of explored trees, reusing flat dispatch and
-negotiation at each level, then the `map/macro/` adapter. Future macro integration still needs a
-unit/ownership adapter, explicit port translation and whole-map physical route
-validation; `map/macro/` shares this repository but the game does not import it yet. See [19](19-decomposition-design.md),
+negotiation at each level. The macro/live adapter is now `map/live.ts` (22).
+Reachability remains the chain of per-layer promises in 51, rather than a new
+whole-map enforcement stage. See [19](19-decomposition-design.md),
 [20](20-micro-generation.md) and the recorded choices in [17](17-open-questions.md).
 
 The sequencing below remains the other gameplay backlog, not an instruction to

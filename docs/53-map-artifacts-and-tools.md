@@ -150,7 +150,8 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     placement resolves neighboring tiles. It can load the chain's library to
     edit it.
   - **Serving:** `map/tools/server.mts` serves the lab, macro's `src/` and
-    `content/`, `map/micro/`, `map/kernel/` and `shared/` at their repository
+    `content/`, `map/micro/`, `map/kernel/`, `shared/`, and the two map-level
+    entry modules `map/chain.ts` and `map/engines.ts` at their repository
     paths, and nothing else. It erases types on the way out, and resolves
     the bare `sat` import for the page and its worker alike.
   - The old generators' map view, tile editor and playtest sandbox retired

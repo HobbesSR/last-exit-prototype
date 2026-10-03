@@ -26,8 +26,8 @@ test('three hunter places are advertised, admitted, reclaimed and recorded', asy
     const writer = h.writers.get(room.id);
     assert.equal(writer.header.contentId, 'content-2');
     assert.equal(writer.header.version, 'last-exit-0.7');
-    assert.equal(writer.header.schema, 3);
-    assert.equal(writer.header.minSchema, 0);
+    assert.equal(writer.header.schema, 4);
+    assert.equal(writer.header.minSchema, 4);
     assert.equal(writer.frames[0].state.players.filter(p => p.role === 'gladiator').length, 3);
     assert.equal(writer.frames[0].state.slots, 3);
   } finally { await h.service.close(); }
@@ -53,7 +53,7 @@ test('matchmaking balances occupied fractions against three hunter places and fi
 });
 
 test('match boundary preserves simulation output and returns detached commands, identities and maps', () => {
-  const match = createMatch(9), game = createGame(9);
+  const match = createMatch(9), game = createGame(9, match.map());
   const actor = match.join('human', 'contestant', 'warden', 'Runner');
   joinGame(game, 'human', 'contestant', 'warden', 'Runner'); actor.name = 'Changed';
   const command = { seq: 1, x: 1, interact: true, hp: 999 };

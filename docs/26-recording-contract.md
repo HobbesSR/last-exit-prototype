@@ -1,7 +1,8 @@
 # 26. Recording contract
 
 Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
-default content is `content-2`, and recordings use schema 3 with minimum schema 0.
+default content is `content-2`, and recordings use schema 4. Masked live maps require reader 4; legacy maps keep
+minimum schema 0.
 Storage-only changes must preserve frozen gameplay fixtures.
 
 ## Versioning and compatibility
@@ -131,3 +132,20 @@ idempotent close, continued input/other-room ticks, late joins, sparse playback
 and live status UI. Run full checks/browser suite and isolated server/client
 benchmarks. Owner-only access, retention, BSON, process isolation and crash-file
 salvage remain separate follow-ups.
+
+## Cell-masked maps (schema 4)
+
+`GameMap.playableArea` records the owned cells as sorted row runs, including
+holes, at a stated `cellSize`. Collision, prediction, the arena floor and the
+minimap use it. Its absence retains the old diamond semantics. Maps also carry
+optional `hunterSpawns`, a `generator` label (`chain-live-1`), and generated loot
+`tier` metadata. Old archives keep their original map and frames.
+
+Schema 4 identifies these additions. `minimumReaderForMap` requires reader 4 for
+masked maps because older renderers would draw a diamond with the wrong floor;
+legacy maps keep minimum 0, and this reader still accepts those older archives.
+Simulation rules remain `last-exit-0.7` and tuning remains `content-2`: fixed-tick
+order, input consumption, player sizes, combat and timers are unchanged. The
+intentional new map content is named by `generator` and embedded in full, rather
+than rebuilding an old recording with today's chain. Frozen characterization
+continues to use its stored legacy maps and is not regenerated.

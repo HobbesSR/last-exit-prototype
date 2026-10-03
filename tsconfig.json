@@ -23,5 +23,5 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["shared/**/*.ts", "map/micro/**/*.ts", "map/kernel/**/*.ts"]
+  "include": ["shared/**/*.ts", "map/micro/**/*.ts", "map/kernel/**/*.ts", "map/*.ts"]
 }

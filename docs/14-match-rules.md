@@ -12,8 +12,8 @@ Contestants must complete the power-cell objective before spending one of the th
 The default match contains eight contestant slots, three gladiator slots, three extraction slots, a seeded generated map, and bot occupants for unclaimed player slots. A connection is a viewer until it explicitly claims a contestant or gladiator slot. Spectators consume no slot, start no recording, and have no input authority.
 
 `content-2` implements F-11 by appending BLAZE (Striker) after IRONCLAD (Warden)
-and VESPER (Specter). The existing station assignment puts each hunter at a
-successive station counted back from the end. The name and one-of-each-kit roster
+and VESPER (Specter). The chain's departure region supplies each hunter's initial spawn; transit
+stations are separate redeployment and fast-travel sites. The name and one-of-each-kit roster
 are tuning choices for this checkpoint. Contestant and extraction capacities stay
 unchanged. `contentById('content-1')` retains the two-hunter baseline for frozen
 characterization; `defaultContent()` selects `content-2`. Each selection returns
@@ -48,7 +48,7 @@ Mine radius is 65 with a 120-unit blast and 45 damage; actual movement above 0.5
 
 ## Contestant PvP, bots, spawns and gladiator respawn
 
-Contestants can damage each other with projectiles. Bots retaliate immediately; roughly one third have an opportunistic temperament and may initiate fights after 30 seconds within 180 units, expanding to 320 units after two minutes. They avoid shooting directly through a third contestant and seek collision-clear space away from hunters within 170 units while returning fire. Starts are distributed across four nearby connected blocks, with at least 400 units between players and a pistol near every start. These distances/times are provisional balance values. Gladiators killed during a live match wait 20 seconds, then return at a valid transit station ahead of the wall and at least 1,000 units from active contestants; if none is safe, redeployment waits. Earned upgrades are retained.
+Contestants can damage each other with projectiles. Bots retaliate immediately; roughly one third have an opportunistic temperament and may initiate fights after 30 seconds within 180 units, expanding to 320 units after two minutes. They avoid shooting directly through a third contestant and seek collision-clear space away from hunters within 170 units while returning fire. Starts are spread by the arrival strategy across its region, with a pistol and an uncharged cell within 100 units of every start. The former street map's four-block, 400-unit separation is not a promise of the chain map. These distances/times are provisional balance values. Gladiators killed during a live match wait 20 seconds, then return at a valid transit station ahead of the wall and at least 1,000 units from active contestants; if none is safe, redeployment waits. Earned upgrades are retained.
 
 ## Buildings, doors and windows
 
@@ -73,3 +73,28 @@ storage-failure isolation, not a claim that recording consumes no CPU.
 See [26](26-recording-contract.md) for the queue, recovery and compatibility contract.
 
 The match finishes when all extraction slots are used, no active contestants remain, or the time limit expires. A started room with no connected players or spectators receives a 30-second reconnect grace, then ends and archives cleanly; abandoned playtests must not continue running bots and recording for the entire match. Active contestants left at time expiry become stranded. The exact numbers are tuning defaults and must stay named in code and docs when changed.
+
+## Live chain maps
+
+Live matches use `chain-live-1` (`map/live.ts`): the authored chain library at
+48 world units per cell, yielding a 17,280 by 8,640 map. One physical extraction
+site shares the existing three slots. Core sites supply contestant starts,
+hunter starts, the charger and six distributed transit stations (52, 54).
+Missing, extra or obstructed required starts/exits fail explicitly. The adapter
+also refuses absent charging or the wrong transit count; it supplies no corner
+fallbacks. Stations retain their owning region IDs.
+
+Current player radii (12 contestant, 23 hunter), movement speeds, combat tuning,
+charging time and match deadline remain unchanged by Corey's choice (17).
+The existing west-to-east wall scales its progress to the actual map width.
+The cell-profile contestant-only passage balance is a separate tuning pass;
+this checkpoint does not claim that the smaller live hunter is blocked by every
+1.5-cell squeeze (52).
+
+Generated loot uses its authoritative site and tier metadata. The provisional
+seeded kind weights are cell 3, weapon 3, medkit 1, shield 1, access 1; a weapon
+selects pistol, rifle or scattergun equally. Cells start uncharged. Tier metadata
+does not change weapon statistics or inventory rules; weapon tiers remain
+separate work (17). Traps, sensors and locked-door authoring remain deferred
+for the chain (16), so this library emits none of them. Their existing simulation
+mechanics still apply to stored legacy maps.

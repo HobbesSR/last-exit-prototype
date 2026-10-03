@@ -3,22 +3,18 @@
  * chain maps with the game's engines. Every surface calls these, so they agree on seed,
  * params, library, validation and saved output. It runs in Node and the browser alike.
  */
-import chainLibrary from '../macro/content/chain-library.json' with { type: 'json' };
-import { validateLibrary as validateChainLibrary } from '../macro/src/chain/library.ts';
-import type { ChainLibrary, LibraryValidation } from '../macro/src/chain/library.ts';
-import { generateChainMap, mapViews } from '../macro/src/chain/map.ts';
-import { DEFAULT_CHAIN_PARAMS } from '../macro/src/chain/placement.ts';
+import { checkedLibrary, chainParams, generate, seedText } from '../chain.ts';
+import type { GameChainMap } from '../chain.ts';
+import { mapViews } from '../macro/src/chain/map.ts';
 import { decodeChainMap, readChainMap } from '../macro/src/chain/saving.ts';
-import type { ChainMap, ChainParams, Defect, Report } from '../macro/src/chain/types.ts';
+import type { Defect, Report } from '../macro/src/chain/types.ts';
 import { diagnoseBuiltMap } from '../micro/diagnose.ts';
 import type { BrokenPromise } from '../micro/diagnose.ts';
-import type { RegionElement } from '../micro/types.ts';
-import { DEFAULT_CELL_SIZE, GAME_ENGINES, GAME_REGION_TYPES } from './engines.ts';
+import { GAME_ENGINES } from './engines.ts';
 
-export type ToolMap = ChainMap<RegionElement>;
+export { CHAIN_LIBRARY, chainParams, generate, validateLibrary } from '../chain.ts';
+export type ToolMap = GameChainMap;
 
-/** The chain's library (52, "The chain's library"), which every tool uses unless given another. */
-export const CHAIN_LIBRARY: ChainLibrary = chainLibrary as ChainLibrary;
 
 export const MAX_BATCH_COUNT = 1000;
 export const MAX_JSON_BYTES = 32 * 1024 * 1024;
@@ -35,55 +31,6 @@ export function parseJson(text: unknown, name = 'JSON'): unknown {
   } catch {
     throw new Error(`${name} is not valid JSON`);
   }
-}
-
-type NumericParam = Exclude<keyof ChainParams, 'mode'>;
-const INTEGRAL: readonly NumericParam[] = ['zoneWidth', 'zoneHeight', 'exitCount', 'contestantCount', 'hunterCount'];
-const FRACTIONAL: readonly NumericParam[] = ['lootChance', 'lootTierStep'];
-/** Shorter names the CLI has always taken. */
-const ALIASES: Record<string, NumericParam> = { exits: 'exitCount', contestants: 'contestantCount', hunters: 'hunterCount' };
-
-/** The default params with the given ones over them, refusing a name or value placement can't take. */
-export function chainParams(input: object = {}): ChainParams {
-  assertObject(input, 'params');
-  const params: ChainParams = { ...DEFAULT_CHAIN_PARAMS };
-  for (const [key, value] of Object.entries(input)) {
-    if (value === undefined) continue;
-    if (key === 'mode') {
-      if (value !== 'game' && value !== 'playground') throw new Error('params.mode must be game or playground');
-      params.mode = value;
-      continue;
-    }
-    const target = ALIASES[key] ?? (key as NumericParam);
-    const integral = INTEGRAL.includes(target);
-    if (!integral && !FRACTIONAL.includes(target)) throw new Error(`params.${key} is not a map param`);
-    const n = Number(value);
-    if (!Number.isFinite(n) || n < 0 || (integral && !Number.isInteger(n)))
-      throw new Error(`params.${key} must be ${integral ? 'a whole number' : 'a number'} of at least 0`);
-    params[target] = n;
-  }
-  return params;
-}
-
-export function validateLibrary(library: unknown): LibraryValidation {
-  return validateChainLibrary(library, GAME_REGION_TYPES);
-}
-
-function checkedLibrary(library: unknown = CHAIN_LIBRARY): ChainLibrary {
-  const checked = validateLibrary(library);
-  if (!checked.valid) throw new Error(`invalid library: ${checked.errors.join('; ')}`);
-  return library as ChainLibrary;
-}
-
-function seedText(seed: unknown): string {
-  if (typeof seed !== 'string' && typeof seed !== 'number') throw new Error('seed must be a string or number');
-  return String(seed);
-}
-
-/** A chain map: placed by macro, built by the game's strategies. */
-export function generate(seed: unknown, params: object = {}, library?: unknown, cellSize = DEFAULT_CELL_SIZE): ToolMap {
-  if (!(cellSize > 0)) throw new Error('cell size must be a positive number');
-  return generateChainMap(seedText(seed), chainParams(params), checkedLibrary(library), cellSize, GAME_ENGINES);
 }
 
 /**

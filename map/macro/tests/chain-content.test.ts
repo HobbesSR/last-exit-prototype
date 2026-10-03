@@ -17,12 +17,12 @@ import type { ChainParams, Orientation } from "../src/chain/types.ts";
 
 const LIBRARY = JSON.parse(readFileSync(new URL("../content/chain-library.json", import.meta.url), "utf8")) as ChainLibrary;
 /** The catalogue's minimal set (54), which B3 built. */
-const MINIMAL_SET = new Set(["open", "cover", "rubble", "hut", "arrival", "departure", "charging"]);
+const MINIMAL_SET = new Set(["open", "cover", "rubble", "hut", "arrival", "departure", "charging", "transit"]);
 const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 /** The width of the narrowest passage the content may form: a doorway plus one, as `cover`'s aisle (54). */
 const BLOCK = 3;
 /** The game distribution in 52, independent of the authored quotas. */
-const QUOTAS = { start: 1, end: 1, enormous: 3, medium: 4, small: 10, charger: 1 };
+const QUOTAS = { start: 1, end: 1, enormous: 3, medium: 4, small: 10, charger: 1, transit: 6 };
 const OWNERS = { arrival: "start", departure: "end", charging: "charger" };
 
 test("the library is valid, and paints only the catalogue's minimal set", () => {
@@ -73,6 +73,23 @@ test("game layouts place every class's quota, prove connected, and keep each cor
         const row = Math.floor(Math.floor(cell / resolved.width) / CHAIN_TILE_SIZE);
         assert.ok(slots.has(`${col},${row}`), `${seed} ${type} stays in its ${owner} instance`);
       }
+    }
+    const transitInstances = layout.setPieces.filter(p => p.setPieceClass === "transit");
+    const transitRegions = found.regions.filter(r => r.class === "transit");
+    assert.equal(transitRegions.length, 6, `${seed}: separate transit regions`);
+    const anchors = transitInstances.map(instance => Math.min(...instance.slots.map(s => s.col))).sort((a, b) => a - b);
+    assert.ok(anchors.at(-1)! - anchors[0]! >= 25, `${seed}: stations span the map length`);
+    for (const region of transitRegions) {
+      const owners = transitInstances.filter(instance => {
+        const slots = new Set(instance.slots.map(s => `${s.col},${s.row}`));
+        return region.cells.some(cell => slots.has(`${Math.floor((cell % resolved.width) / CHAIN_TILE_SIZE)},${Math.floor(Math.floor(cell / resolved.width) / CHAIN_TILE_SIZE)}`));
+      });
+      assert.equal(owners.length, 1, `${seed}: a transit region belongs to one instance`);
+      assert.ok(region.cells.every(cell => {
+        const col = Math.floor((cell % resolved.width) / CHAIN_TILE_SIZE);
+        const row = Math.floor(Math.floor(cell / resolved.width) / CHAIN_TILE_SIZE);
+        return owners[0]!.slots.some(slot => slot.col === col && slot.row === row);
+      }), `${seed}: transit cannot merge into another region`);
     }
   }
 });

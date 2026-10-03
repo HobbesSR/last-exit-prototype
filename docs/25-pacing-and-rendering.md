@@ -53,8 +53,8 @@ test counts the driver's own round trips as playback time.
 ## Replay camera
 
 A directed view — a replay, or a spectator with no player of their own — frames the
-whole arena. The arena is 24000 by 12000 units, two orders of magnitude wider than a
-player's view, so at that zoom an unscaled contestant covers about three pixels and
+whole arena. Live chain maps are 17,280 by 8,640 units (legacy maps are 24,000 by 12,000), far wider than a
+player's view, so at that zoom an unscaled contestant covers only a few pixels and
 the roster is unreadable. Markers are therefore enlarged by the ratio the camera is
 zoomed out by, which holds their apparent size steady rather than letting it shrink
 with the camera, and never reduces them below life size. Names hold a fixed pixel

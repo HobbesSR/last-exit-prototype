@@ -7,16 +7,16 @@ in [13](13-accepted-features.md). Implemented numeric defaults are in
 
 | ID | Requirement | Acceptance evidence | Status |
 | --- | --- | --- | --- |
-| P-01 | The arena is elongated left-to-right, diamond-shaped, and larger than one camera view. | World is 24,000 x 12,000; live camera width is less than one third of the world width; generated boundary is diamond-shaped. | Implemented |
-| P-02 | Tile templates will eventually compose the map; movement remains continuous. | Interim street graph uses coarse 1,000-unit blocks with offset passages and continuous geometry. This is not the requested modular hierarchy. | Partial; hierarchy deferred |
+| P-01 | The arena is elongated left-to-right, diamond-shaped, and larger than one camera view. | Live chain is 17,280 by 8,640 with a stepped diamond outline; collision and rendering use its actual owned cells. Live view shows only part of it. | Implemented |
+| P-02 | Tile templates will eventually compose the map; movement remains continuous. | Authored tiles and set pieces feed region strategies through the generation chain (51); the live adapter consumes their geometry (22). | Implemented initial chain |
 | P-03 | The hazard advances from contestant entry toward extraction and pressures both roles. | `hazardX` advances against real time; actors behind it take damage; the match has a fixed duration. | Implemented |
-| P-04 | Contestants are smaller/faster and can use passages that block gladiators. | Continuous circle collision uses contestant radius 12 and gladiator radius 23; generated gaps and tests verify clearance. | Implemented |
+| P-04 | Contestants are smaller/faster and can use passages that block gladiators. | Live radii remain 12 and 23 by user choice. The new cell-profile squeeze balance needs separate tuning (14, 17). Legacy clearance tests remain. | Bodies implemented; live gap balance pending |
 | P-05 | Contestants collect environmental items that affect the current match. | Access charges, weapons, shields, and healing are generated in sections and collected authoritatively. | Implemented |
-| P-06 | Access charges open optional barriers without making keys mandatory for escape. | Some building doors require one key; unlocking is permanent. Street routes require no keys. | Implemented interim |
+| P-06 | Access charges open optional barriers without making keys mandatory for escape. | Legacy locked-door mechanics remain supported; chain doors are currently unlocked (14). | Mechanics implemented; chain authoring pending |
 | P-07 | There are few escape places. | The match begins with three extraction slots; each successful extraction consumes one. | Implemented |
 | P-08 | Gladiators have distinct kits and improve after kills. | Warden, Specter, and Striker have separate abilities; kills raise level, health, damage, and recovery. | Implemented |
-| P-09 | Gladiators have movement options contestants do not. | Transit stations relocate gladiators with cooldown; contestants cannot use them. | Implemented |
-| P-10 | Stealth and detection are legible. | Sensors reveal running contestants; sneak avoids sensors; gladiator scan reveals contestants. Contestants have no innate smoke sprint. | Implemented |
+| P-09 | Gladiators have movement options contestants do not. | Six authored transit regions provide stations for hunter-only travel and safe redeployment (52, 54). | Implemented |
+| P-10 | Stealth and detection are legible. | Gladiator scan reveals contestants; sensor/sneak mechanics remain supported in legacy maps, with chain sensor authoring pending (14). | Partial in live chain |
 | P-11 | Solid obstacles block vision and projectile travel. | Solid walls and closed doors occlude; windows pass sight and shots but block bodies and item interactions. | Implemented |
 | P-12 | Desktop controls separate movement and aim. | WASD/arrow movement and pointer aim; left mouse fires. | Implemented |
 | P-13 | Touch controls support simultaneous movement and aim/fire. | Independent virtual sticks are tested with two concurrent touch contacts. | Implemented |
