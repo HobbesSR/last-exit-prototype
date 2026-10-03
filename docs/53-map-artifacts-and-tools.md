@@ -163,7 +163,7 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
 - **MCP** (`node map/tools/mcp.mts`): bounded stdio tools `map_generate`,
   which returns the wire map with its report, `map_validate`,
   `library_validate`, `map_batch` (at most 5 maps when diagnosed) and
-  `library_get`. It is not registered in any agent client by default.
+  `library_get`. It is registered in the workspace `.agents/mcp_config.json` for agent use.
 - **The game's micro tools** (the micro lab, the decomposition lab, the
   generation demo, and the `micro-region` and `decompose-region` CLIs) are
   in 20. All the browser tools share one navigation bar.
