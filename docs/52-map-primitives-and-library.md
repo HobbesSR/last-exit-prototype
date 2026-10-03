@@ -245,8 +245,8 @@ stage and to play, and it grows from here. The fixture libraries in
 - **Tiles:**
   - `field`: open ground, most of the fill.
   - `cover-ground`: a whole tile of `cover`, passable along every side.
-  - `rubble-bank`: three rows of `rubble` beside three of `open`, with two
-    passable stretches between them.
+  - `rubble-bank`: three rows of `rubble` beside three of `open`, with one
+    three-cell passable stretch between them.
   - `hut-quarter`: a whole tile of `hut`. It asks for `hut` across two sides,
     and for `open` across a passable stretch on each of the other two. Four
     make one 12 × 12 hut region, with room for a house and its yard (54
@@ -277,6 +277,9 @@ stage and to play, and it grows from here. The fixture libraries in
 - **Cover:** a lone `cover-ground` in the fill forms a 6 × 6 region, too small
   for one cover piece, so it stays clear (54 `cover`). Cover comes mostly from
   the set pieces' 12 × 12 and 18 × 18 regions, so its fill weight is light.
+
+31 describes the library's acceptance checks. Tool and live-game adoption
+remain separate work (51 step 10).
 
 ## Today's library
 

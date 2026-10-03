@@ -21,10 +21,16 @@ const MINIMAL_SET = new Set(["open", "cover", "rubble", "hut", "arrival", "depar
 const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 /** The width of the narrowest passage the content may form: a doorway plus one, as `cover`'s aisle (54). */
 const BLOCK = 3;
+/** The game distribution in 52, independent of the authored quotas. */
+const QUOTAS = { start: 1, end: 1, enormous: 3, medium: 4, small: 10, charger: 1 };
+const OWNERS = { arrival: "start", departure: "end", charging: "charger" };
 
 test("the library is valid, and paints only the catalogue's minimal set", () => {
   assert.deepEqual(validateLibrary(LIBRARY, MINIMAL_SET), { valid: true, errors: [] });
   assert.deepEqual(new Set(Object.values(LIBRARY.cellClasses).map((c) => c.regionType)), MINIMAL_SET);
+  for (const [id, rule] of Object.entries(LIBRARY.cellClasses)) assert.equal(rule.regionType, id);
+  assert.deepEqual(Object.fromEntries(LIBRARY.setPieceClasses.map(c => [c.id, c.quota])), QUOTAS);
+  for (const c of LIBRARY.setPieceClasses) assert.equal(c.placementRule, c.id);
 });
 
 test("every design keeps its classes and passable stretches on a three-cell grid", () => {
@@ -34,6 +40,8 @@ test("every design keeps its classes and passable stretches on a three-cell grid
   // portals no shorter than a block, so the portal rule never refuses one.
   for (const design of LIBRARY.tiles) for (const orientation of design.orientations) {
     const { cells, segments } = orientDesign(design, orientation as Orientation), at = `${design.id}@${orientation}`;
+    // A later per-cell resolution of `any` could break the block-width argument.
+    assert.ok(cells.every(cell => MINIMAL_SET.has(cell)), `${at} paints concrete classes`);
     for (let y = 0; y < CHAIN_TILE_SIZE; y++) for (let x = 0; x < CHAIN_TILE_SIZE; x++)
       assert.equal(cells[y * CHAIN_TILE_SIZE + x], cells[(y - y % BLOCK) * CHAIN_TILE_SIZE + x - x % BLOCK], `${at} cell ${x},${y}`);
     const passable = new Set([...segments].filter(([, s]) => s.passability === "passable").map(([key]) => key));
@@ -48,13 +56,23 @@ test("every design keeps its classes and passable stretches on a three-cell grid
 test("game layouts place every class's quota, prove connected, and keep each core element class to its own instance", () => {
   for (const seed of ["library-1", "library-2", "library-3", "library-4"]) {
     const layout = placement(seed, GAME, LIBRARY);
-    const found = regions(resolution(layout, LIBRARY), layout.seed);
+    const resolved = resolution(layout, LIBRARY), found = regions(resolved, layout.seed);
     assert.deepEqual(portalViolations(found), [], seed);
     assert.deepEqual(proofViolations(proof(found), found, LIBRARY), [], seed);
-    for (const { id, quota } of LIBRARY.setPieceClasses)
+    for (const [id, quota] of Object.entries(QUOTAS))
       assert.equal(layout.setPieces.filter((p) => p.setPieceClass === id).length, quota, `${seed} ${id}`);
+    assert.equal(new Set(layout.setPieces.filter(p => p.setPieceClass === "enormous").map(p => p.setPiece)).size, 3, `${seed} distinct enormous pieces`);
     // Each owning class has quota 1, and its pieces form one region of its core element class.
-    for (const type of ["arrival", "departure", "charging"])
-      assert.equal(found.regions.filter((r) => r.class === type).length, 1, `${seed} ${type}`);
+    for (const [type, owner] of Object.entries(OWNERS)) {
+      const matching = found.regions.filter(r => r.class === type);
+      assert.equal(matching.length, 1, `${seed} ${type}`);
+      const instance = layout.setPieces.find(p => p.setPieceClass === owner)!;
+      const slots = new Set(instance.slots.map(s => `${s.col},${s.row}`));
+      for (const cell of matching[0]!.cells) {
+        const col = Math.floor((cell % resolved.width) / CHAIN_TILE_SIZE);
+        const row = Math.floor(Math.floor(cell / resolved.width) / CHAIN_TILE_SIZE);
+        assert.ok(slots.has(`${col},${row}`), `${seed} ${type} stays in its ${owner} instance`);
+      }
+    }
   }
 });

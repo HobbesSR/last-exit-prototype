@@ -37,6 +37,18 @@ show no drift unless the PR declares a content change and recaptures last
 baseline as it lands. Do not resize test grids or relax generation to make a
 check pass.
 
+The chain's authored library (52) is checked against the actual region strategies.
+Macro's `tests/chain-content.test.ts` checks the game quotas in 52, distinct
+enormous pieces, and core element regions staying inside their owning instances.
+Root `tests/map-library.test.js` checks 8 and 24 contestants, actual huts, cover
+and rubble, physical access to core elements, and the portal promise within
+each non-open region. `node --test tests/slow/map-library.test.js` checks the
+report on 20 seeds with 8 contestants and 5 with 24; one full diagnostic also
+checks the large open regions. These are bounded samples, not a guarantee for
+every seed. `tests/map-container.test.js` saves and reloads this library's
+game-size map through JSON, BSON and Layout-only regeneration with the real
+strategy version (53).
+
 Micro-generation changes additionally run `npm run test:micro`: focused contracts
 and seeded builder tests plus all three isolated browser previews. The unit tests also run
 in `npm test`. The lab browser check verifies actual builder content, control

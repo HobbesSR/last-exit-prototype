@@ -16,7 +16,7 @@ const GAME = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, h
 const ENGINES = { version: REGION_TYPES_VERSION, build: brief => buildRegion(brief), compose: composeRegions };
 const SEEDS = Array.from({ length: 20 }, (_, i) => `library-${i}`);
 
-test('20 game-size maps from the library report no defects, with 8 or 24 contestants', () => {
+test('25 game-size maps report no defects: 20 with 8 contestants and 5 with 24', () => {
   for (const contestantCount of [8, 24]) for (const seed of SEEDS.slice(0, contestantCount === 8 ? 20 : 5)) {
     const map = generateChainMap(seed, { ...GAME, contestantCount }, LIBRARY, 48, ENGINES);
     assert.deepEqual(mapViews(map, ENGINES.compose).report.defects, [], `${seed} with ${contestantCount}`);
