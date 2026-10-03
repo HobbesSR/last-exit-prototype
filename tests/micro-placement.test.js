@@ -47,6 +47,15 @@ test('reports an explicit shortfall when capacity cannot meet the request', () =
   assert.ok(result.minimumSpacing === null || result.minimumSpacing >= 36);
 });
 
+test('supports count parameters above the old entry tool limit and explicit spacing', () => {
+  const region = mask(40, 40);
+  const many = spreadPoints(region, { count: 65, radius: 10 });
+  assert.equal(many.points.length, 65);
+  const spaced = spreadPoints(mask(12, 12), { count: 8, radius: 10, minimumSpacing: 160 });
+  for (let i = 0; i < spaced.points.length; i++) for (let j = 0; j < i; j++)
+    assert.ok(distance(spaced.points[i], spaced.points[j]) >= 160);
+});
+
 test('anchor routing rejects an otherwise clear disconnected area', () => {
   const region = mask(6, 3);
   const wall = rect(112, 0, 16, 120);
@@ -57,10 +66,11 @@ test('anchor routing rejects an otherwise clear disconnected area', () => {
 test('rejects invalid placement inputs', () => {
   const region = mask(2, 2);
   for (const options of [
-    { count: -1, radius: 10 }, { count: 65, radius: 10 }, { count: 1.5, radius: 10 },
+    { count: -1, radius: 10 }, { count: Number.MAX_SAFE_INTEGER + 1, radius: 10 }, { count: 1.5, radius: 10 },
     { count: 1, radius: 0 }, { count: 1, radius: NaN }, { count: 1, radius: 10, anchor: { x: Infinity, y: 0 } },
     { count: 1, radius: 10, anchor: { x: 5, y: 5 } },
     { count: 1, radius: 10, seed: 1.5 },
+    { count: 1, radius: 10, minimumSpacing: 19 },
   ]) assert.throws(() => spreadPoints(region, options));
 });
 

@@ -5,12 +5,13 @@ import { findRegionRoute, shapesOverlap, validShape } from './geometry.ts';
 import type { RegionMask } from './types.ts';
 
 const EPS = 1e-7;
-const MAX_COUNT = 64;
 const MAX_CANDIDATES = 16_641;
 
 export interface SpreadPointOptions {
   count: number;
   radius: number;
+  /** Minimum centre-to-centre distance; defaults to two occupant radii. */
+  minimumSpacing?: number;
   /** Optional deterministic layout variation. It only resolves equally good candidates. */
   seed?: number;
   blockers?: Shape[];
@@ -47,8 +48,10 @@ const hash = (value: string): number => {
  */
 export function spreadPoints(mask: RegionMask, options: SpreadPointOptions): SpreadPointResult {
   const { count, radius } = options;
-  if (!Number.isInteger(count) || count < 0 || count > MAX_COUNT) throw new RangeError('placement count must be an integer from 0 through 64');
+  if (!Number.isSafeInteger(count) || count < 0) throw new RangeError('placement count must be a nonnegative safe integer');
   if (!Number.isFinite(radius) || radius <= 0) throw new RangeError('placement radius must be a positive finite number');
+  if (options.minimumSpacing !== undefined && (!Number.isFinite(options.minimumSpacing) || options.minimumSpacing < radius * 2))
+    throw new RangeError('placement minimum spacing must be finite and at least two radii');
   if (options.seed !== undefined && !Number.isSafeInteger(options.seed)) throw new RangeError('placement seed must be a safe integer');
   if (!Number.isFinite(mask.cellSize) || mask.cellSize <= 0) throw new RangeError('region mask cellSize must be a positive finite number');
 
@@ -86,7 +89,7 @@ export function spreadPoints(mask: RegionMask, options: SpreadPointOptions): Spr
   // the same farthest-point score, so it cannot weaken spacing or reachability.
   const tieBreakers = options.seed === undefined ? undefined : candidates.map(point => hash(`${options.seed}:${point.x}:${point.y}`));
   const points: Vec2[] = [];
-  const spacingSquared = (radius * 2) ** 2;
+  const spacingSquared = (options.minimumSpacing ?? radius * 2) ** 2;
 
   while (points.length < count) {
     let chosen = -1, score = -Infinity;
