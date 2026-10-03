@@ -132,6 +132,11 @@ points, and routes that aren't a straight shot.
   every portal, then fills the rest with debris, leaving squeezes as
   contestant shortcuts across it. A one-portal `rubble` region needs no
   hunter route at all, so it can be a contestant-only hideout.
+  **Built (#128):** `map/micro/strategies/rubble.ts` protects the portal
+  approaches and hunter routes, then places seeded debris on a two-cell
+  lattice. The `density` and `squeezeShare` parameters range from 0 to 1.
+  Squeezes are opportunistic; the strategy promises no minimum count.
+  Regions below the proposed shape needs use the `open` builder.
 - **Shape needs:** *proposed*, at least 12 cells and 3 cells across, so that a
   hunter route and a squeeze both fit.
 - **Formed by:** small and medium set pieces, between open areas.

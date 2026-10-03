@@ -34,7 +34,7 @@ test('a chain map built by the game round-trips, whole or from its Layout alone'
   assert.deepEqual(readChainMap(chainMapToBson(map), LIBRARY), map);
   assert.deepEqual(decodeChainMap(JSON.parse(chainMapToJson(map, { results: false })), LIBRARY, ENGINES), map);
   assert.throws(() => decodeChainMap(JSON.parse(chainMapToJson(map, { results: false })), LIBRARY, { ...ENGINES, version: REGION_TYPES_VERSION }),
-    /its results were built by strategies fixture-types-1, not types-1/);
+    error => error.message.includes(`its results were built by strategies ${ENGINES.version}, not ${REGION_TYPES_VERSION}`));
 });
 
 test('the accessor composes with the game, and both diagnostics read the same built map', () => {
