@@ -35,8 +35,8 @@ so pushes are made as the agent and not as the repository owner. If
 is recorded as `corey`, stop and report it rather than pushing.
 
 Each worktree also has an untracked, ignored `.env.local` at its root naming its
-dev ports, e.g. `PORT=3110` and `MAPGEN_PORT=4110`. `npm run dev` and mapgen's
-`npm start` load it, so a server an agent starts to look at by hand or drive
+dev ports, e.g. `PORT=3110` and `MAPGEN_PORT=4110`. `npm run dev` and the Map
+Lab's `npm run lab`, both from the root, load it, so a server an agent starts to look at by hand or drive
 with a browser lands on that agent's own port. An assigned port is used exactly:
 if it is busy the server stops rather than drifting onto a neighbor's port, and
 the busy one is almost always your own earlier server. If `.env.local` is
