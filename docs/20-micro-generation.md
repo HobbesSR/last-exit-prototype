@@ -88,13 +88,15 @@ Like the other route checks, it is sampled. The half-cell lattice rarely fits
 a hunter through a gap only two cells wide, so a narrow region can be refused
 though a route exists.
 
-**Registered types.** They are today's builders, with the ids `example-open`,
-`example-depot`, `example-courtyard`, `example-ruins` and `example-entry`. They
-stand in until the catalogue (B2) and its strategies (B3), and the prefix
-keeps a library from binding to them. `REGION_TYPES_VERSION` names what the
-registry builds, and a change to what any strategy builds bumps it, so a saved
-map's results are never rebuilt by other strategies silently (51 "Saving").
-Each one:
+**Registered types.** A catalogue type ([54](54-region-types.md)) is registered
+under its own name once B3 writes its strategy, in `strategies/`. So far that is
+only `open` (#126), which builds nothing (17 M25): no geometry, core elements or
+loot. Today's builders stand in for the rest, with the ids `example-open`,
+`example-depot`, `example-courtyard`, `example-ruins` and `example-entry`. The
+prefix keeps a library from binding to them. `REGION_TYPES_VERSION` (`types-1`)
+names what the registry builds. A change to what any strategy builds bumps it,
+so a saved map's results are never silently rebuilt by other strategies (51
+"Saving"). Each example builder:
 - protects its portals' stands and a hunter route between them while it builds
 - sites the brief's core elements before the loot fill, as the entry builder does,
   kind by kind, reachable from the first portal
