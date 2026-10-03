@@ -115,10 +115,19 @@ under its own name once B3 writes its strategy, in `strategies/`. So far:
   reachable from the first portal, and cover and loot fill around them through
   the cover strategy's `coverAround`, which `arrival` uses too. A region that
   can't hold them all sites fewer, for the report to name.
+- **`charging` (#132)** takes its region whole. It sites
+  `brief.coreElements.charger` chargers with `spreadPoints` as near the
+  region's middle as a contestant fits, falling back to the first portal's
+  side when the middle can't be walked to. `coverAround` keeps cover and loot
+  off `standing` cells around each (2 by default, a proposal), while the
+  route check uses a contestant's radius (`ClearSite.reach`). Then the cover
+  strategy's `coverNear` adds one container within 2 cells of that ground if
+  no cover stands there, keeping cover's aisles so it can't divide a hunter's
+  ground. A region too small for it gets none.
 
 Today's builders stand in for the rest, with the ids `example-open`,
 `example-depot`, `example-courtyard`, `example-ruins` and `example-entry`. The
-prefix keeps a library from binding to them. `REGION_TYPES_VERSION` (`types-6`)
+prefix keeps a library from binding to them. `REGION_TYPES_VERSION` (`types-7`)
 names what the registry builds. A change to what any strategy builds bumps it,
 so a saved map's results are never silently rebuilt by other strategies (51
 "Saving"). Each example builder:

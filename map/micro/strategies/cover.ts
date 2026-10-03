@@ -109,8 +109,11 @@ function drawn(piece: Piece, w: number, h: number, length: number, offset: numbe
   return along ? rect(Math.round(a), Math.round(b), Math.round(l), Math.round(t)) : rect(Math.round(b), Math.round(a), Math.round(t), Math.round(l));
 }
 
-/** A sited point that cover and loot must leave standing room around, and a route to. */
-export interface ClearSite { x: number; y: number; radius: number }
+/**
+ * A sited point that cover and loot leave clear for `radius` around it. A body of radius
+ * `reach`, by default `radius`, must still be able to walk to it.
+ */
+export interface ClearSite { x: number; y: number; radius: number; reach?: number }
 
 /**
  * `buildCover`'s pieces and loot, less any that would claim a site's standing room. A piece
@@ -126,10 +129,52 @@ export function coverAround(brief: RegionBrief, sites: readonly ClearSite[], roo
     const shapes = elementShapes(element);
     if (shapes.some(shape => discs.some(disc => shapesOverlap(shape, disc)))) continue;
     const next = [...blockers, ...shapes];
-    if (root && sites.some(site => !findRegionRoute(mask, next, root, site, site.radius))) continue;
+    if (root && sites.some(site => !findRegionRoute(mask, next, root, site, site.reach ?? site.radius))) continue;
     elements.push(element);
     blockers.push(...shapes);
   }
   const loot = cover.loot.filter(site => !discs.some(disc => shapesOverlap(circle(site.x, site.y, lootRadius), disc)));
   return { elements, loot };
+}
+
+/**
+ * Makes sure some cover stands within `within` of `site`'s clear disc: if none of `elements`
+ * does, one container is added there, if the region has room. Like `buildCover`'s clusters,
+ * it keeps `AISLE` clear cells from the region's edge and from every other piece, so it
+ * can't divide the ground a hunter can reach. It never cuts `site`'s route from `root`.
+ * Loot it would cover is dropped. The pick among places that qualify is seeded.
+ */
+export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements' | 'loot'>, site: ClearSite, within: number,
+  root?: { x: number; y: number }): Pick<BuiltRegion, 'elements' | 'loot'> {
+  const size = brief.cellSize, mask = createRegionMask(brief), disc = circle(site.x, site.y, site.radius), near = circle(site.x, site.y, site.radius + within);
+  const blockers = cover.elements.flatMap(element => elementShapes(element));
+  if (blockers.some(shape => shapesOverlap(shape, near))) return cover;
+
+  const owned = new Set(brief.cells.map(c => `${c.x},${c.y}`)), taken = new Set<string>();
+  for (const element of cover.elements) {
+    const x0 = Math.round(element.x / size), y0 = Math.round(element.y / size);
+    for (let j = y0; j < y0 + Math.round(element.template.h / size); j++) for (let i = x0; i < x0 + Math.round(element.template.w / size); i++) taken.add(`${i},${j}`);
+  }
+  const clear = (x: number, y: number, w: number, h: number) => {
+    for (let j = y - AISLE; j < y + h + AISLE; j++) for (let i = x - AISLE; i < x + w + AISLE; i++) if (!owned.has(`${i},${j}`) || taken.has(`${i},${j}`)) return false;
+    return true;
+  };
+  const piece = PIECES.find(candidate => candidate.name === 'container')!;
+  const places: RegionElement[] = [];
+  for (const cell of [...brief.cells].sort((a, b) => a.y - b.y || a.x - b.x)) for (const turned of [false, true]) {
+    const w = turned ? piece.h : piece.w, h = turned ? piece.w : piece.h;
+    if (!clear(cell.x, cell.y, w, h)) continue;
+    const element = { label: 'cover-guard', x: cell.x * size, y: cell.y * size,
+      template: { w: w * size, h: h * size, parts: [{ part: 'obstacle' as const, shape: drawn(piece, w * size, h * size, 1, 0.5), kind: piece.kind }] } };
+    const shapes = elementShapes(element);
+    if (shapes.some(shape => shapesOverlap(shape, near)) && !shapes.some(shape => shapesOverlap(shape, disc))) places.push(element);
+  }
+  for (const element of rng(brief.seed, `${brief.id}:cover-near`).shuffle(places)) {
+    const shapes = elementShapes(element);
+    if (root && !findRegionRoute(mask, [...blockers, ...shapes], root, site, site.reach ?? site.radius)) continue;
+    const lootRadius = microMetrics({ cellSize: size, bodyProfile: 'cell' }).lootRadius;
+    return { elements: [...cover.elements, element],
+      loot: cover.loot.filter(loot => !shapes.some(shape => shapesOverlap(shape, circle(loot.x, loot.y, lootRadius)))) };
+  }
+  return cover;
 }
