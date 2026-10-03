@@ -336,11 +336,22 @@ report checks those counts per set piece instance (51 stage 8).
   in range for five seconds (14), so the station is a moment of exposure.
 - **Strategy:** site one charger with standing room around it, and cover close
   enough to make the wait a choice rather than a death.
+  **Built (#132):** `map/micro/strategies/charging.ts`. No decomposer yet: it
+  takes its region whole. The charger stands as near the region's middle as a
+  contestant fits and can walk to from the first portal. Cover and loot keep
+  off the standing room around it. Then, if no cover already stands within 2
+  cells of that room (*proposed*, a doorway's width), one container is added
+  there, keeping cover's aisles, where the region has room. A pad too small
+  for that, like the fixture's 2 × 2, takes its cover from its neighbours.
+  What doesn't fit is a shortfall for the report.
 - **Core elements:** `charger` × 1.
 - **Shape needs:** room for the station and its stand. Spacing rules that
   reach into other regions, such as the live game's traps 850 units from a
   charger (14), are deferred (17 M22).
 - **Formed by:** `charger` set pieces only.
+- **Parameters:** `standing`, the radius in cells kept clear around the
+  charger: *proposed* 2, which covers the live game's 70-unit charging range
+  at 40 units a cell (14).
 
 ### *transit* (deferred)
 
@@ -373,4 +384,4 @@ keeps those names.
 | `block` | `decomposition/example.ts`, `realize.ts`, `negotiate.ts` | — |
 | `arrival` | `example-entry`, `spreadPoints` | — |
 | `departure` | `spreadPoints` (built, #131) | — |
-| `charging` | — | — |
+| `charging` | `spreadPoints` (built, #132) | — |
