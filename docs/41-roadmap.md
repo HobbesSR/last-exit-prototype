@@ -61,6 +61,11 @@ order is 51's:
   is captured, and mapgen's old paths are deleted. The live-game checkpoint injects the chain through `map/live.ts`, with
   explicit mask bounds and authored transit (14, 22, 26, 52). Its live-size
   passage balance and human multiplayer tuning remain future work.
+- **Next: zone plans and larger zones** (tracker #165, 2026-10-03). The diamond
+  becomes one parameterizable zone plan (55). Libraries gain modules and
+  declare the plan and size they are authored for. Set pieces regain footprints
+  near the old library's, with placeholder regions where no strategy exists. 24 × 12
+  and 36 × 18 libraries are hand authored, and live matches stay at 12 × 6.
 
 Work in progress and its order live on the Forgejo tracker, #82, and
 in each step's issue ([34](34-forgejo-workflow.md)). mapgen's former
