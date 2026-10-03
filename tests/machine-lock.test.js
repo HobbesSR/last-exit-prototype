@@ -40,10 +40,12 @@ test('a second holder waits until the first releases', async () => {
 
 test('concurrent processes hold the lock one at a time', async () => {
   const port = await freePort();
+  // Timestamps are written as plain text: console.log colours numbers under FORCE_COLOR, which
+  // agent shells set, and a coloured number parses as NaN.
   const children = Array.from({ length: 4 }, () => contender(port, `
-    console.log('in', performance.timeOrigin + performance.now());
+    process.stdout.write('in ' + (performance.timeOrigin + performance.now()) + '\\n');
     await new Promise(resolve => setTimeout(resolve, 60));
-    console.log('out', performance.timeOrigin + performance.now());
+    process.stdout.write('out ' + (performance.timeOrigin + performance.now()) + '\\n');
     lock.release();`));
   const outputs = await Promise.all(children.map(async child => {
     let text = '';

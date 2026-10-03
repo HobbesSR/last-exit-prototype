@@ -8,11 +8,23 @@ touched. An integration checkpoint runs all of them.
 ```powershell
 npm run check
 npm run typecheck
-npm test
+npm run test:all
 npm run test:browser
 npm run bench
 npm run bench:client
 ```
+
+The unit suite has two tiers. `npm test` is the fast tier for iterating on a PR:
+everything under `tests/*.test.js`, about ten seconds. `npm run test:all` adds
+`tests/slow/`: the 200-map route sweep, the bot-match traces against the frozen
+fixture, and bots completing whole matches. Those six tests take about a minute
+and four fifths of the suite's CPU, and their evidence only moves when generation
+or simulation moves. Run `test:all` before opening a PR that touches
+`shared/`, `server/` or map generation the game consumes, and at integration
+checkpoints. A test belongs in `tests/slow/` when it costs seconds and sweeps
+seeds or plays whole matches. The fast tier keeps a cheap witness of the same
+contract where one exists: the fixture's map hashes and scripted trace stay in
+`characterization.test.js`.
 
 Changes under `map/macro/` run its own suite with `npm run test:mapgen` (typecheck
 plus unit tests, in that directory) and, for editor behavior, `node tests/browser.mts`
@@ -89,7 +101,7 @@ itself** — `createGame(seed, map)` takes the stored one — rather than agains
 whatever the generator currently emits. So a deliberate content change re-baselines
 four hashes and leaves every trace intact, instead of destroying the evidence that
 the simulation is unchanged along with the content it happened to run on. Map
-diversity stays covered by those hashes and by `playability.test.js`, which routes
+diversity stays covered by those hashes and by `slow/bot-objective.test.js`, which routes
 bots to completion over generated maps.
 
 The frozen tests select legacy `content-1` through `contentById` while running under

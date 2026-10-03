@@ -43,9 +43,11 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
   "Accepted" does not imply implemented; resolve concrete open choices through
   existing user answers in `docs/17-open-questions.md` or explicitly recorded
   assumptions appropriate to the task.
-- Run focused checks for changed behavior. Integration checkpoints use
-  `npm run check`, `npm test`, `npm run test:browser`, `npm run bench` and
-  `npm run bench:client` as appropriate to the affected subsystem. Run timing
+- Run focused checks for changed behavior. `npm test` is the fast tier for
+  iterating; `npm run test:all` adds the slow seed sweeps and whole-match runs
+  (`docs/31`). Integration checkpoints use `npm run check`, `npm run test:all`,
+  `npm run test:browser`, `npm run bench` and `npm run bench:client` as
+  appropriate to the affected subsystem. Run timing
   comparisons sequentially without competing tests/benchmarks; repeat suspected
   regressions three times. Do not claim the reported slowdown fixed without evidence.
 - When a rule changes, update its numbered document in the same change.
