@@ -134,6 +134,41 @@ The crowd figure is the one that speaks to the open report below, and it moves t
 way. That is not evidence the report is resolved: this is the same synthetic arrangement
 that never reproduced it, with the same limitations recorded under Crowd diagnostics.
 
+## Live chain-map checkpoint (2026-10-03)
+
+Measured sequentially on Node 24.15.0 at `33618bd`, with no concurrent test or
+benchmark work in this session. `node tests/bench.mjs --json` now generates the
+live map; `--legacy --json` preserves the old generator for comparison. Both use
+seed 4217, one room and one viewer, with normal combat, ending when the match ends.
+Map generation is outside the timed tick loop. Three runs per map:
+
+| Map | Ticks per run | Tick mean, median | Tick p95, median | Worst tick range | Ticks over 50 ms per run |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Live chain | 2,440 | 3.229 ms | 9.812 ms | 50.003-51.100 ms | 2, 2, 1 |
+| Legacy street | 4,232 | 1.121 ms | 3.286 ms | 27.359-30.622 ms | 0, 0, 0 |
+
+The live content costs about 2.9 times as much per tick in this sample and has
+occasional ticks just over budget. Different maps produce different paths,
+encounters and match lengths, so this is a workload comparison, not an isolated
+measurement of mask collision overhead. The median mean still uses about 6.5%
+of the 50 ms budget; that does not guarantee acceptable cost with multiple rooms.
+
+Client checks used headless Chrome at 1440 by 1000 for 12 seconds each. One run
+per location; these are observations, not before/after regressions or a GPU claim.
+The profiler retains at most 600 samples per series.
+
+| Location | Rendered frames | Raw frame mean / p95 | Render JS mean / p95 | State gap mean / p95 |
+| --- | ---: | ---: | ---: | ---: |
+| Entry | 719 | 16.78 / 17.70 ms | 0.46 / 0.60 ms | 50.08 / 70.90 ms |
+| Building interior (`--location=dense`) | 621 | 19.46 / 21.20 ms | 0.36 / 0.50 ms | 50.20 / 76.30 ms |
+| Transit crowd, AI (`--location=crowded --actors=ai --server-profile`) | 700 | 16.91 / 18.70 ms | 0.30 / 0.40 ms | 49.99 / 67.00 ms |
+
+The crowd fixture now anchors on a central authored transit site when no street
+graph exists. AI actors move away; only one actor remained visible in the final
+sample. This does not reproduce the user's sustained crowded-scene slowdown.
+Local raw results are under `test-results/bench-{live,legacy}-{1,2,3}.json` and
+`test-results/bench-client-{live,dense-live,crowd-live}.json`.
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including
