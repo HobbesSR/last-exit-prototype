@@ -22,6 +22,14 @@ import type { ChainParams, Layout, MacroStages, Orientation, PlacedSlot, Segment
 export const PLACEMENT_ATTEMPTS = 50;
 /** Game mode's zone size (52, "Tier zones and the mask"). Playground mode allows others. */
 export const GAME_ZONE = { width: 12, height: 6 } as const;
+/**
+ * A game map's params, as the chain's tests have used them, with the old generator's
+ * exits and loot gradient. The tools start from these, and each can be overridden.
+ */
+export const DEFAULT_CHAIN_PARAMS: Readonly<ChainParams> = Object.freeze({
+  mode: "game", zoneWidth: GAME_ZONE.width, zoneHeight: GAME_ZONE.height,
+  exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09,
+});
 
 /** The order classes are drawn in: today's order, with `charger` after it. */
 const RULE_ORDER: readonly PlacementRule[] = ["start", "end", "enormous", "medium", "small", "charger"];

@@ -59,13 +59,24 @@ test('the shared map space imports nothing outside itself', () => {
   }
 });
 
+/** Each source file under `dir`, with the repository paths its relative imports reach. */
+function reachedFrom(dir) {
+  return readdirSync(dir, { recursive: true }).map(f => `${dir}/${f.split(path.sep).join('/')}`)
+    .filter(f => /\.(ts|mts|js|mjs)$/.test(f) && !/\/(node_modules|test-results)\//.test(f))
+    .map(file => [file, importedModules(readFileSync(file, 'utf8'))
+      .map(spec => spec.startsWith('.') ? path.posix.normalize(path.posix.join(path.posix.dirname(file), spec)) : spec)]);
+}
+
 // Map generation builds on the game core, never the reverse (docs 22): nothing in shared/
 // imports map/ until integration wires the two together.
 test('the game core imports nothing from map/', () => {
-  for (const file of readdirSync('shared', { recursive: true }).map(f => `shared/${f.split(path.sep).join('/')}`).filter(f => /\.(ts|js)$/.test(f))) {
-    const reached = importedModules(readFileSync(file, 'utf8'))
-      .map(spec => spec.startsWith('.') ? path.posix.normalize(path.posix.join(path.posix.dirname(file), spec)) : spec)
-      .filter(target => /^\/?map\//.test(target));
-    assert.deepEqual(reached, [], file);
-  }
+  for (const [file, reached] of reachedFrom('shared'))
+    assert.deepEqual(reached.filter(target => /^\/?map\//.test(target)), [], file);
+});
+
+// Macro and micro don't import each other (50), except that macro may call the SDK (22). The
+// tools show both halves, so they join them in map/tools/ (#144), and neither half imports the tools.
+test('macro and micro meet only in map/tools/', () => {
+  for (const [dir, others] of [['map/macro', /^map\/(micro\/(?!sdk\.ts$)|tools\/)/], ['map/micro', /^map\/(macro|tools)\//]])
+    for (const [file, reached] of reachedFrom(dir)) assert.deepEqual(reached.filter(target => others.test(target)), [], file);
 });

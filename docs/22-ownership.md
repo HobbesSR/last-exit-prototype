@@ -46,6 +46,10 @@ It has two halves, plus a kernel between them ([50](50-map-generation.md)):
   owns it, and it imports nothing outside itself, so a consumer at either level
   pulls in nothing else. The contract's result is generic over the game's
   geometry, so macro can read core element sites without the engine (C1).
+- **The tools** (`map/tools/`) show both halves, so they belong to neither
+  ([17](17-open-questions.md), "Where the tools live"). They are the one place
+  the two meet: `engines.ts` lends the game's strategies to macro's chain as
+  `MapEngines` ([53](53-map-artifacts-and-tools.md)). Neither half imports the tools.
 
 The same problem at the same level has one owner:
 - mapgen's own micro layer (`map/macro/src/micro/`) duplicates the game's and
@@ -55,7 +59,9 @@ The same problem at the same level has one owner:
 Don't extend either. A problem both levels face, such as boundary runs,
 connectivity or reachability checks, is solved at each level within its own
 scope, with a shared definition where the two must agree (50). mapgen imports the kernel,
-and may import the SDK from `map/micro/` ([17](17-open-questions.md) M1). The game
+and may import the SDK from `map/micro/` ([17](17-open-questions.md) M1). Otherwise
+macro and micro meet only in `map/tools/`, and a test in `tests/micro-common.test.js`
+holds that. The game
 doesn't import `map/` until the live game adopts the chain.
 
 `map/micro/sdk.ts` exposes reusable mask, geometry, route, scale and

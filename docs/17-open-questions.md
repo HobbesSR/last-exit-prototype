@@ -133,6 +133,11 @@ is in 50–53. Answers are grouped by topic, each under the question it settled.
   - (2026-09-29) "keep in mind I think we have duplicate things in some cases because they are tailored for the level they are engineered for. Macro and Micro have to solve similar problems but within the boundaries of their scope."
   - (2026-09-29) "Yes mapgen's docs I think have been part of the bane. I think we need to integrate and normalize the documentation and I'm not sure we could have done it without going through the pains we went through to get to where we are now. And I also think we're in a very delicate place where this is probably the best context that understands how to merge the designs of the two coupled projects that were inadvertantly trying to solve the same things. But mapgen evolved towards owning bottom of macro up, and the original game engine owned building aggregate regions down. And that helps generally decide whose work is relevant versus deprecated, but it might take some searching to truly understand."
 
+**Where the tools live (2026-10-02).** At the switch-over (51 step 10), the Map Lab, CLI and MCP need the game's strategies to build chain maps.
+  - Asked where that wiring should live, Corey chose, over a composition module inside `map/` or the tools importing micro from macro: "Move tools to map/tools/". The tools show both halves, so they belong to neither.
+  - Chosen with it: step 10 splits into three issues (#144, #145, #146).
+  - Recorded in 22, 50 and 53. A test holds that macro and micro meet only in `map/tools/`.
+
 ### Open
 
 Each has a working assumption, so work continues without an answer. Answer by

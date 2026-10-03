@@ -50,6 +50,11 @@ every seed. `tests/map-container.test.js` saves and reloads this library's
 game-size map through JSON, BSON and Layout-only regeneration with the real
 strategy version (53).
 
+The tools in `map/tools/` are checked by `tests/map-tools.test.js`, which drives
+the CLI and MCP as subprocesses, and typechecked by `npm run typecheck` under
+their own `map/tools/tsconfig.json`, which checks what they reach in macro as
+macro's own config does.
+
 Micro-generation changes additionally run `npm run test:micro`: focused contracts
 and seeded builder tests plus all three isolated browser previews. The unit tests also run
 in `npm test`. The lab browser check verifies actual builder content, control

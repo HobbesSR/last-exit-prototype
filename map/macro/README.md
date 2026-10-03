@@ -134,6 +134,18 @@ rate without positional bias.
 
 ## Agent interfaces
 
+The chain's CLI and MCP are in [`map/tools/`](../tools/) (docs 53, "Tools"). Run them
+from the repository root, for example:
+
+```powershell
+node map/tools/cli.mts generate --seed experiment-1 --out map.json
+node map/tools/cli.mts validate map.json --diagnose true
+node map/tools/cli.mts batch --seed experiment --count 20
+node map/tools/mcp.mts
+```
+
+The commands below drive the old generators until they are deleted (#146).
+
 ```powershell
 node tools/cli.mts generate --seed experiment-1 --mode game --out map.json
 node tools/cli.mts generate --seed experiment-1 --out map.bson   # or --format bson

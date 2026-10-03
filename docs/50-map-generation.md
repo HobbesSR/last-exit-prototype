@@ -41,6 +41,7 @@ They still describe the code that retires at the chain's switch-over (51).
 | Elective validation utilities for builders, composing built regions, and adapting them to the live game's geometry | the game | 20 |
 | Machinery builders share: masks, shapes, swept routes, spacing, interface runs, access validation | the SDK, `map/micro/sdk.ts`. Macro calls it where a mechanism fits both scopes | 20, 22 |
 | What macro and micro must share: the contract between them (a region brief and its result), body scale and passage widths, and the definition of a run | the **shared map space**, which neither level owns (Corey, 2026-09-29, M1). It is the kernel, `map/kernel/` (51 C0): `contract.ts`, `scale.ts`, `cell.ts` and `run.ts` | 51, 52 |
+| The Map Lab, CLI and MCP, which show both halves | neither: the tools, `map/tools/`, the one place the two meet (Corey, 2026-10-02, 17 "Where the tools live") | 53 |
 | The live game's current map | the interim street maze, `shared/map/generate.ts`, unchanged until the integration checkpoint | 22 |
 
 ## The SDK is a library
@@ -106,7 +107,7 @@ So the test is:
 | Loot | loot budget and candidates | `micro/loot.ts`, `plan/loot.ts` | split by level: macro says how much, the region says where | The SDK. Macro loot planning isn't wanted now: Corey, 2026-09-28, "I don't care about loot prescriptions, that can be added in later". |
 | Macro partition | none, apart from the interim maze | V2 (tiles and WFC), and the planned path's partition | macro only | The chain (51), from tiles. The planned path retires. |
 | Body scale | the `cell` profile: diameters 1.25 and 1.75, door 2, squeeze 1.5; `live`: 12 and 23 world units | radii 0.55 and 0.90 cells, until C0 | must agree | One source of truth (M5): stated once in 52, "Units and scale", and held once in code in `map/kernel/scale.ts`. mapgen and the SDK both read from it (51 C0). |
-| Development tools | micro lab, decomposition lab, generation demo | the Map Lab, CLI, MCP | tailored per level | Keep both, under the shared navigation bar (20). |
+| Development tools | micro lab, decomposition lab, generation demo | the Map Lab, CLI, MCP | tailored per level | Keep both, under the shared navigation bar (20). The whole-map tools move to `map/tools/` at the switch-over (51 step 10). |
 | Questions and backlog | 17, 41 | `QUESTIONS.md`, `NEXT_TASKS.md` | same level | 17 and 41 (folded 2026-09-29). Work in progress lives on Forgejo (34). |
 | Artifacts | `micro-1`, `region-2` (a brief's result, 51 stage 6), `decomposition-1`, `realized-decomposition-1` | wire version 4, JSON and BSON (53) | tailored per level | The macro layout keeps mapgen's wire form, as wire version 6. Region results are stored as the game's own `region-2` data, less their briefs (51 step 9, 53). |
 
@@ -121,14 +122,19 @@ So the test is:
   - `map/macro/` is mapgen.
   - `map/micro/` is the micro SDK, its builders and its labs' modules.
   - `map/kernel/` is the shared map space.
+  - `map/tools/` holds the tools that show both halves. The CLI and MCP are
+    there (#144); the Map Lab follows (#145).
 - **Imports:**
-  - Macro and micro don't import each other. Both import the kernel (M1).
+  - Macro and micro don't import each other, except that macro may call the
+    SDK. Both import the kernel (M1). They meet only in `map/tools/`, and a
+    test holds that.
   - The kernel imports nothing outside itself, and a test holds it to that.
   - `map/` builds on the game's portable core in `shared/` (geometry, element
     vocabulary, and micro's live-game adapters). `shared/` never imports
     `map/`, and a test holds that too.
-  - mapgen doesn't import the SDK's builders or strategies. The game doesn't
-    import `map/` until the live game adopts the chain.
+  - mapgen doesn't import the SDK's builders or strategies; the tools lend
+    them to it as `MapEngines`. The game doesn't import `map/` until the live
+    game adopts the chain.
 - **Serving:** the Map Lab's server serves the kernel at `/kernel/`. The game's
   server serves `/map/micro/` and `/map/kernel/` for the micro labs.
 - *Assumption:* the name `kernel` (17 M1's open part).

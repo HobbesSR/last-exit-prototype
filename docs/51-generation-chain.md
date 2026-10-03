@@ -818,7 +818,12 @@ reachability is inferred (principle 8).
 
 10. Switch the Map Lab, CLI and MCP to the new chain and the new library (it
     needs tracks A, B and C). Capture the new chain's first baseline, then
-    delete mapgen's old paths, its micro layer and the old library.
+    delete mapgen's old paths, its micro layer and the old library. The tools
+    move to `map/tools/` (17, "Where the tools live"), in three issues under #98:
+    - 10a (#144): `map/tools/` with the game's engines, and the CLI and MCP on
+      the chain. **Done:** 53, "Tools".
+    - 10b (#145): the Map Lab on the chain.
+    - 10c (#146): the first baseline, then the deletions.
 
 Replacing the live game's interim street maze is a later, separate checkpoint
 (20, 41).
