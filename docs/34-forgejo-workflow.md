@@ -65,8 +65,10 @@ the agent starts its next branch from fresh `forgejo/main`.
    including which gates ran and which were skipped.
 6. Review others with `list_pull_requests` and `get_pull_request_diff`
    (`git fetch forgejo pull/N/head` if the diff is truncated). Trust the PR
-   author's testing assertions; do not re-run tests they report having passed.
-   Post the verdict with `submit_pull_request_review` (`APPROVED`, `REQUEST_CHANGES` or `COMMENT`);
+   author's testing assertions as evidence when their scope matches the commit,
+   but retain discretion to re-run focused checks if the validation appears stale,
+   incomplete, or mis-scoped. Post the verdict with `submit_pull_request_review`
+   (`APPROVED`, `REQUEST_CHANGES` or `COMMENT`);
    if it reports a pending review, post the verdict with `create_comment`
    instead. Use `create_comment` for discussion.
 7. Humans merge; `main` is protected and needs one approval. Do not merge. After
