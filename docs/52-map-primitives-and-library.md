@@ -1,8 +1,9 @@
 # 52. Map primitives and the library
 
 Status: accepted model, 2026-09-29. The new library schema and validator are
-implemented in `map/macro/src/chain/library.ts` (#83). Today's library schema
-retires with mapgen's old paths.
+implemented in `map/macro/src/chain/library.ts` (#83), and the chain's
+minimal library is authored (#97). Today's library schema retires with
+mapgen's old paths.
 
 This file defines what a map is made of and what the library an author writes
 contains. The chain that consumes it is 51. Original intent is in
@@ -231,6 +232,54 @@ the live game.
 | the contract's `Cell` | global integer cell coordinates `{x, y}`, plus a `cellSize` in world units |
 
 The brief translation (51 stage 5) converts between the last two.
+
+## The chain's library
+
+`map/macro/content/chain-library.json` is the library the chain is authored
+with (B4, #97). It holds 54's minimal set. That is enough to exercise every
+stage and to play, and it grows from here. The fixture libraries in
+`map/macro/tests/fixtures/` stay with the stage tests.
+
+- **Classes:** one per minimal type, each bound to the region type of the
+  same name.
+- **Tiles:**
+  - `field`: open ground, most of the fill.
+  - `cover-ground`: a whole tile of `cover`, passable along every side.
+  - `rubble-bank`: three rows of `rubble` beside three of `open`, with one
+    three-cell passable stretch between them.
+  - `hut-quarter`: a whole tile of `hut`. It asks for `hut` across two sides,
+    and for `open` across a passable stretch on each of the other two. Four
+    make one 12 × 12 hut region, with room for a house and its yard (54
+    `hut`). The `open` asks close the group, so it can't spread across the
+    fill.
+  - `arrival-ground`, `departure-ground` and `charging-ground`: whole tiles of
+    their core element class, passable along half of each side. Placement
+    never puts them in the fill (51, "Core elements").
+- **Set pieces:**
+
+| Set piece class | Set pieces |
+| --- | --- |
+| `start` | `landing`: 2 × 3 arrival tiles, 12 × 18 cells, with room for 24 spawns |
+| `end` | `evac`: 2 × 3 departure tiles |
+| `charger` | `charging-station`: 2 × 2 charging tiles, 12 × 12 cells |
+| `enormous` | `hut-row` (two hut groups with a column of field between them), `cover-field` (3 × 3 cover tiles), `rubble-lanes` |
+| `medium`, `small` | `hut-yard` (one hut group), `cover-patch` (2 × 2 cover tiles), `rubble-lane` (two banks back to back, six cells deep) |
+
+- **The three-cell grid.** Every class boundary in a design lies on a 3-cell
+  grid, and every passable stretch is made of whole 3-cell blocks. So no
+  passage between classes is narrower than 3 cells, a doorway plus one, which
+  the sampled route check can see (17 M9). A passable stretch also still
+  splits into portals of at least 3 where the class across it changes.
+  `tests/chain-content.test.ts` holds every design to this.
+- **Fill weights:** each orientation is its own fill option, so a design
+  with four orientations gets four times its weight. Designs that state
+  adjacency are placed early, so hut quarters need a light weight (0.1).
+- **Cover:** a lone `cover-ground` in the fill forms a 6 × 6 region, too small
+  for one cover piece, so it stays clear (54 `cover`). Cover comes mostly from
+  the set pieces' 12 × 12 and 18 × 18 regions, so its fill weight is light.
+
+31 describes the library's acceptance checks. Tool and live-game adoption
+remain separate work (51 step 10).
 
 ## Today's library
 
