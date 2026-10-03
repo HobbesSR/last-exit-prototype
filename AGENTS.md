@@ -87,5 +87,7 @@ worktree table.
   the primary checkout, on `main`, or in another agent's worktree.
 - Claim issues with `assign_issue`, push with `git push -u forgejo HEAD`, open the
   PR with `create_pull_request` ("Fixes #N", saying what testing you did), and
-  review others' PRs with `submit_pull_request_review`.
+  review others' PRs with `submit_pull_request_review` (trusting the author's
+  testing assertions when the scope matches the commit, while retaining discretion
+  to re-run focused checks if validation appears stale or incomplete).
 - Humans merge. Do not merge.
