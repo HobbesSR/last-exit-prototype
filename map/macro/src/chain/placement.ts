@@ -17,56 +17,29 @@ import type { ChainLibrary, ChainSetPiece, ChainSetPieceClass, ChainTileDesign, 
 import { stream } from "./random.ts";
 import type { Stream } from "./random.ts";
 import type { ChainParams, Layout, MacroStages, Orientation, PlacedSlot, SegmentKey, SetPieceInstance } from "./types.ts";
-import { layoutSlots, makeZones, ZONE_COLUMNS, ZONE_ROWS } from "./zones.ts";
+import { isAuthoredZone, planTiles, zonePlan } from "./zone-plan.ts";
+import type { PlacementFilter, ZonePlan } from "./zone-plan.ts";
+import { layoutSlots, makeZones } from "./zones.ts";
 import type { MapZone, MaskCell } from "./zones.ts";
 
 export const PLACEMENT_ATTEMPTS = 50;
-/** Game mode's zone size (52, "Tier zones and the mask"). Playground mode allows others. */
-export const GAME_ZONE = { width: 12, height: 6 } as const;
 /**
  * A game map's params, as the chain's tests have used them, with the old generator's
  * exits and loot gradient. The tools start from these, and each can be overridden.
  */
+const { defaultZone } = zonePlan();
 export const DEFAULT_CHAIN_PARAMS: Readonly<ChainParams> = Object.freeze({
-  mode: "game", zoneWidth: GAME_ZONE.width, zoneHeight: GAME_ZONE.height,
+  mode: "game", zoneWidth: defaultZone.width, zoneHeight: defaultZone.height,
   exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09,
 });
 
 /** Keep the old order, giving distributed transit space before the flexible fill pieces. */
 const RULE_ORDER: readonly PlacementRule[] = ["start", "end", "enormous", "transit", "medium", "small", "charger"];
 
-/** Where an instance's anchor slot may go, in tile units, given the piece's extent. */
-type Filter = (anchor: MaskCell, width: number) => boolean;
-
-/** Today's placement rules (52), over a map `columns` by `rows` tiles. */
-function ruleFilter(rule: PlacementRule, nth: number, quota: number, columns: number, rows: number): Filter {
-  switch (rule) {
-    case "start": return (c) => c.x === 0;
-    case "end": return (c, w) => c.x + w >= columns;
-    case "enormous": {
-      // The middle band, one instance per vertical third.
-      const third = nth % 3;
-      return (c, w) => c.x > columns / 4 && c.x + w < columns * 3 / 4 &&
-        c.y >= rows * third / 3 && c.y < rows * (third + 1) / 3;
-    }
-    case "medium": return (c, w) => c.x < columns / 3 || c.x + w > columns * 2 / 3;
-    case "transit": {
-      // Partition the central 76% into one band per instance. Inset each band's
-      // anchors by a tile so neighboring transit regions cannot join into one.
-      const start = columns * 0.12, span = columns * 0.76;
-      const left = Math.floor(start + nth * span / quota) + 1;
-      const right = Math.floor(start + (nth + 1) * span / quota) - 1;
-      return (c, w) => c.x >= left && c.x + w <= right;
-    }
-    case "small":
-    case "charger": return () => true;
-  }
-}
-
-interface Pick { setPieceClass: ChainSetPieceClass; piece: ChainSetPiece; filter: Filter }
+interface Pick { setPieceClass: ChainSetPieceClass; piece: ChainSetPiece; filter: PlacementFilter }
 
 /** Every class's quota of set pieces, in placement order: largest first, ties as drawn. */
-function pickSetPieces(library: ChainLibrary, pieces: Map<string, ChainSetPiece>, columns: number, rows: number, random: Stream): Pick[] {
+function pickSetPieces(library: ChainLibrary, pieces: Map<string, ChainSetPiece>, plan: ZonePlan, columns: number, rows: number, random: Stream): Pick[] {
   const picks: Pick[] = [];
   for (const rule of RULE_ORDER) for (const setPieceClass of library.setPieceClasses) {
     if (setPieceClass.placementRule !== rule) continue;
@@ -75,7 +48,7 @@ function pickSetPieces(library: ChainLibrary, pieces: Map<string, ChainSetPiece>
     const chosen = rule === "enormous"
       ? random.shuffle(members).slice(0, setPieceClass.quota)
       : Array.from({ length: setPieceClass.quota }, () => random.pick(members));
-    chosen.forEach((piece, nth) => picks.push({ setPieceClass, piece, filter: ruleFilter(rule, nth, setPieceClass.quota, columns, rows) }));
+    chosen.forEach((piece, nth) => picks.push({ setPieceClass, piece, filter: plan.placementFilter(rule, nth, setPieceClass.quota, columns, rows) }));
   }
   return picks.sort((a, b) => b.piece.tiles.length - a.piece.tiles.length);
 }
@@ -190,7 +163,7 @@ function sample(
   mask: MaskCell[], zones: Map<string, MapZone>, fill: (zone: MapZone) => ChainTileDesign[],
   random: Stream, openFace: boolean, refused: (reason: string) => void,
 ): Layout | Failure {
-  const columns = ZONE_COLUMNS * params.zoneWidth, rows = ZONE_ROWS * params.zoneHeight;
+  const plan = zonePlan(params), { columns, rows } = planTiles(plan, params);
   const designs = new Map(library.tiles.map((tile) => [tile.id, tile]));
   const tileSets = new Map(library.tileSets.map((set) => [set.id, set]));
   const pieces = new Map(library.setPieces.map((piece) => [piece.id, piece]));
@@ -198,7 +171,7 @@ function sample(
   const assigned: Array<{ design: string; orientation: Orientation } | undefined> = new Array(mask.length);
   const instances: SetPieceInstance[] = [];
 
-  const picks = (params.mode ?? "game") === "game" ? pickSetPieces(library, pieces, columns, rows, random) : [];
+  const picks = (params.mode ?? "game") === "game" ? pickSetPieces(library, pieces, plan, columns, rows, random) : [];
   for (const [nth, { setPieceClass, piece, filter }] of picks.entries()) {
     const width = Math.max(...piece.tiles.map((s) => s.dx)) + 1;
     // The members of each slot's tile set eligible in that slot's zone, and allowing the
@@ -266,12 +239,13 @@ function sample(
  */
 export const placer = ({ openFace }: { openFace: boolean }): MacroStages["placement"] => (seed, params, library) => {
   const mode = params.mode ?? "game";
-  if (mode === "game" && (params.zoneWidth !== GAME_ZONE.width || params.zoneHeight !== GAME_ZONE.height))
-    throw new Error(`game mode requires ${GAME_ZONE.width} x ${GAME_ZONE.height} tile zones; choose playground mode for others`);
+  const plan = zonePlan(params);
+  if (mode === "game" && !isAuthoredZone(plan, params))
+    throw new Error(`game mode requires ${plan.authoredZones.map((z) => `${z.width} x ${z.height}`).join(" or ")} tile zones for the ${plan.id} plan; choose playground mode for others`);
   const countError = countParamsProblem(params);
   if (countError) throw new Error(countError);
-  const zones = new Map(makeZones(params).map((zone) => [zone.id, zone]));
-  const mask = layoutSlots(params);
+  const zones = new Map(makeZones(params, plan).map((zone) => [zone.id, zone]));
+  const mask = layoutSlots(params, plan);
 
   // A core element class is painted only inside its owning set pieces (51, "Core elements"), so
   // the fill never places a design that paints one.

@@ -77,7 +77,8 @@ The match finishes when all extraction slots are used, no active contestants rem
 ## Live chain maps
 
 Live matches use `chain-live-1` (`map/live.ts`): the authored chain library at
-48 world units per cell, yielding a 17,280 by 8,640 map. One physical extraction
+48 world units per cell, on the diamond zone plan at its default size (55),
+yielding a 17,280 by 8,640 map. One physical extraction
 site shares the existing three slots. Core sites supply contestant starts,
 hunter starts, the charger and six distributed transit stations (52, 54).
 Missing, extra or obstructed required starts/exits fail explicitly. The adapter

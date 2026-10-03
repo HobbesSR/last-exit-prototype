@@ -152,46 +152,33 @@ one."
   (a positive whole number, or a count param: `exitCount`, `contestantCount`
   or `hunterCount`).
   It is the only macro structure the engine treats as first class, and today's
-  code calls it `category`. The shipped rules in game mode:
+  code calls it `category`. Where each rule may anchor is the zone plan's (55).
+  The shipped 12 × 6 library's classes:
 
 | Set piece class | Rule | Quota | Owns |
 | --- | --- | --- | --- |
-| `start` | touches the western edge | 1 | `contestantCount` spawns, one per contestant (17 M20) |
-| `end` | reaches the eastern edge | 1 | `exitCount` exits and `hunterCount` hunter spawns, one per hunter |
-| `enormous` | the middle band, one per vertical third | 3 distinct | nothing |
-| `medium` | the outer thirds | 4 | nothing |
-| `small` | anywhere | 10 | nothing |
-| `charger` | anywhere its tiers allow, for now | 1 | one charger |
-| `transit` | one instance per longitudinal band (below) | 6 | one warp |
+| `start` | `start` | 1 | `contestantCount` spawns, one per contestant (17 M20) |
+| `end` | `end` | 1 | `exitCount` exits and `hunterCount` hunter spawns, one per hunter |
+| `enormous` | `enormous` | 3 distinct | nothing |
+| `medium` | `medium` | 4 | nothing |
+| `small` | `small` | 10 | nothing |
+| `charger` | `charger` | 1 | one charger |
+| `transit` | `transit` | 6 | one warp |
 
-  `transit` divides the central 76% of map columns (12% to 88%) into one
-  band per instance. The whole piece fits between rounded edges, inset
-  by one tile on each side, so neighboring transit regions cannot merge.
-  Set pieces also filter on eligible tiers. Playground mode may relax any of
-  this (51).
+  Set pieces also filter on eligible tiers. Quotas and membership are authored
+  per plan and size (55). Playground mode may relax any of this (51).
 
 ## Tier zones and the mask
 
 A tier zone is a macro area carrying the progression numbers for everything
-inside it: loot tier, hazard, and the bonus or novelty axis. The zone grid is
-5 × 5, masked to the diamond the design notes draw, with 13 zones occupied:
+inside it: loot tier, hazard, and the bonus or novelty axis. The zone grid, the
+mask, each zone's tier and bonus, and zone sizes are the zone plan's (55).
+Zones are derived from the params and are never stored.
 
-```
-X X 5 X X
-X 3 4 3 X
-1 2 3 4 5
-X 3 4 3 X
-X X 5 X X
-```
-
-- **Size:** each zone is `zoneWidth × zoneHeight` tiles, fixed at 12 × 6 in
-  game mode; playground mode allows smaller zones. The map is exactly the tiles
-  the zones cover, so its boundary stair-steps. Zones are derived from the
-  params and are never stored.
 - **Loot:** `lootChance` rises by tier, and a brief carries it per cell, so a
   region spanning two zones is richer at the end nearer the exit.
-- **Bonus and hazard** aren't folded in yet, and how the diagram combines tier
-  and bonus is 17 M16.
+- **Bonus and hazard** aren't folded in yet, and how tier and bonus combine is
+  17 M16.
 
 ## Units and scale
 
