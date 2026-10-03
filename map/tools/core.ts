@@ -1,9 +1,9 @@
 /**
- * What the CLI and MCP share (53, "Tools"): generate, validate, read and batch chain maps
- * with the game's engines. Both surfaces call these, so they agree on seed, params,
- * library, validation and saved output.
+ * What the Map Lab, CLI and MCP share (53, "Tools"): generate, validate, read and batch
+ * chain maps with the game's engines. Every surface calls these, so they agree on seed,
+ * params, library, validation and saved output. It runs in Node and the browser alike.
  */
-import { readFileSync } from 'node:fs';
+import chainLibrary from '../macro/content/chain-library.json' with { type: 'json' };
 import { validateLibrary as validateChainLibrary } from '../macro/src/chain/library.ts';
 import type { ChainLibrary, LibraryValidation } from '../macro/src/chain/library.ts';
 import { generateChainMap, mapViews } from '../macro/src/chain/map.ts';
@@ -18,8 +18,7 @@ import { DEFAULT_CELL_SIZE, GAME_ENGINES, GAME_REGION_TYPES } from './engines.ts
 export type ToolMap = ChainMap<RegionElement>;
 
 /** The chain's library (52, "The chain's library"), which every tool uses unless given another. */
-export const CHAIN_LIBRARY: ChainLibrary = JSON.parse(
-  readFileSync(new URL('../macro/content/chain-library.json', import.meta.url), 'utf8'));
+export const CHAIN_LIBRARY: ChainLibrary = chainLibrary as ChainLibrary;
 
 export const MAX_BATCH_COUNT = 1000;
 export const MAX_JSON_BYTES = 32 * 1024 * 1024;
@@ -30,7 +29,7 @@ export function assertObject(value: unknown, name = 'value'): Record<string, unk
 }
 
 export function parseJson(text: unknown, name = 'JSON'): unknown {
-  if (typeof text !== 'string' || Buffer.byteLength(text) > MAX_JSON_BYTES) throw new Error(`${name} is too large`);
+  if (typeof text !== 'string' || new TextEncoder().encode(text).length > MAX_JSON_BYTES) throw new Error(`${name} is too large`);
   try {
     return JSON.parse(text);
   } catch {

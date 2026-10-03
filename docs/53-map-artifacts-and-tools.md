@@ -1,7 +1,7 @@
 # 53. Map artifacts, determinism and tools
 
-Status: current for mapgen's old paths and the chain's CLI and MCP; the rules
-carry into the chain (51). Updated 2026-10-02.
+Status: current for mapgen's old paths and the chain's Map Lab, CLI and MCP; the
+rules carry into the chain (51). Updated 2026-10-03.
 
 ## One seed decides the whole map
 
@@ -122,21 +122,39 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
 
 ## Tools
 
-- **Map Lab** (`map/macro/`, `npm run dev`, port 4173 by default): seed and
-  parameter controls, map overlays, route comparison, tile inspection, and
-  library editing and export, including a per-cell class painting grid. It's
-  the primary review surface for macro work. The Chain Library tab (51 B1)
-  authors the version 2 schema, validates import and export, and previews
-  tile-local derived portals and invalid passable prescriptions. Its perimeter
-  preview is provisional until placement resolves neighboring tiles. The older
-  editor remains for the old generator until the switch-over (51 step 10).
 - **The tools live in `map/tools/`,** since they show both halves (17, "Where
   the tools live"). `engines.ts` is the one place the game's strategies are
-  lent to macro as `MapEngines`. `core.ts` is what the CLI and MCP share:
-  params over `DEFAULT_CHAIN_PARAMS`, the chain's library, the report, and
+  lent to macro as `MapEngines`. `core.ts` is what the Map Lab, CLI and MCP
+  share: params over `DEFAULT_CHAIN_PARAMS`, the chain's library (imported as
+  JSON, so it runs in Node and the browser alike), the report, and
   `diagnoseBuiltMap` beside it on request, since it takes about a minute on a
   game map. A game map generates in about 0.6 s, and saves to about 200 KB of
   wire JSON, or 11 KB as the Layout alone.
+- **Map Lab** (`map/tools/lab/`, `npm run lab` from the repository root, port
+  4173 or the worktree's `MAPGEN_PORT`). It's the primary review surface for
+  the chain.
+  - **World:** seed, mode, zone size and spawn counts; the chain's library or
+    the Chain Library tab's draft. Every view comes through `mapViews`: the
+    cells coloured by declared or resolved class, region, proof component or
+    zone tier, with boundaries and portals, the built map's geometry, core
+    element sites, loot and defects over them, and an inspector per cell.
+  - **The report** shows beside `diagnoseBuiltMap`. Generation, reading a
+    save and the diagnostic run in a worker, and the diagnostic runs only on
+    request and can be cancelled.
+  - **Saving:** wire 6 as JSON or BSON, or the Layout alone. A save loads
+    with the library chosen in the lab. Its bytes equal the CLI's for the same
+    seed, which the browser test checks.
+  - **The Chain Library tab** (51 B1) authors the version 2 schema, validates
+    import and export, and previews tile-local derived portals and invalid
+    passable prescriptions. Its perimeter preview is provisional until
+    placement resolves neighboring tiles. It can load the chain's library to
+    edit it.
+  - **Serving:** `map/tools/server.mts` serves the lab, macro's `src/` and
+    `content/`, `map/micro/`, `map/kernel/` and `shared/` at their repository
+    paths, and nothing else. It erases types on the way out, and resolves
+    the bare `sat` import for the page and its worker alike.
+  - The old generators' map view, tile editor and playtest sandbox retired
+    with the move (#145).
 - **CLI** (`node map/tools/cli.mts`, from the repository root): `generate`
   (JSON or BSON, or `--layout-only true`), `validate` (a saved map, read with
   the library it was made from, or a library; `--diagnose true`), `batch`
@@ -146,7 +164,8 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   `library_validate`, `map_batch` (at most 5 maps when diagnosed) and
   `library_get`. It is not registered in any agent client by default.
 - **mapgen's old CLI and MCP** (`map/macro/tools/`) still drive the old
-  generators, with the sweep, until they are deleted (#146).
+  generators, with the sweep, until they are deleted (#146). They have no
+  browser view any more.
 - **The game's micro tools** (the micro lab, the decomposition lab, the
   generation demo, and the `micro-region` and `decompose-region` CLIs) are
   in 20. All the browser tools share one navigation bar.

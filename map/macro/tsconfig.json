@@ -20,5 +20,5 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["src", "tools", "tests", "public"]
+  "include": ["src", "tools", "tests"]
 }

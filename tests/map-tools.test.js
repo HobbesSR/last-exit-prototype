@@ -127,3 +127,29 @@ test('the MCP generates a map, validates it, and bounds what it runs', async () 
   assert.equal(validated.valid, true);
   assert.deepEqual(validated.brokenPromises, []);
 });
+
+test("the Map Lab's server serves both halves, strips types, and nothing else", async (t) => {
+  const child = spawn(process.execPath, ['map/tools/server.mts', '--port', '0'], { stdio: ['ignore', 'pipe', 'pipe'] });
+  t.after(() => child.kill());
+  const [chunk] = await once(child.stdout, 'data');
+  const base = /http:\/\/\S+/.exec(String(chunk))[0];
+  const page = await fetch(`${base}/`);
+  assert.equal(page.status, 200);
+  assert.match(page.headers.get('content-type'), /html/);
+  assert.match(await page.text(), /Map Lab/);
+  for (const served of ['/map/tools/lab/app.ts', '/map/tools/core.ts', '/map/macro/src/chain/map.ts', '/map/micro/compose.ts', '/map/kernel/contract.ts', '/shared/shape.ts']) {
+    const response = await fetch(`${base}${served}`);
+    assert.equal(response.status, 200, served);
+    assert.match(response.headers.get('content-type'), /javascript/, served);
+  }
+  // Types are erased, and the bare `sat` resolves to its wrapped module, for workers too.
+  const shape = await (await fetch(`${base}/shared/shape.ts`)).text();
+  assert.match(shape, /from ["']\/vendor\/sat\.mjs["']/);
+  assert.doesNotMatch(shape, /from ["']sat["']/);
+  assert.match(await (await fetch(`${base}/vendor/sat.mjs`)).text(), /export default module\.exports/);
+  const library = await fetch(`${base}/map/macro/content/chain-library.json`);
+  assert.match(library.headers.get('content-type'), /json/);
+  for (const refused of ['/map/tools/server.mts', '/map/tools/cli.mts', '/map/macro/tools/cli.mts', '/map/macro/node_modules/typescript/package.json',
+    '/package.json', '/.env.local', '/map/tools/lab/%2e%2e/server.mts', '/%2e%2e/%2e%2e/package.json', '/map/tools/lab/..%5c..%5cserver.mts'])
+    assert.ok([403, 404].includes((await fetch(`${base}${refused}`)).status), refused);
+});

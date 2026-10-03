@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Last Exit / Map Lab</title>
+    <link rel="stylesheet" href="/map/tools/lab/style.css" />
+    <link rel="stylesheet" href="/shared/dev-nav.css" />
+    <script type="module" src="/shared/dev-nav.js"></script>
+    <script type="module" src="/map/tools/lab/app.ts"></script>
+  </head>
+  <body>
+    <header>
+      <div>
+        <span class="eyebrow">LAST EXIT · MAP GENERATION</span>
+        <h1>Map Lab<span> / chain</span></h1>
+      </div>
+      <span id="status" role="status">Loading…</span>
+    </header>
+    <nav class="app-nav">
+      <button id="worldTab" type="button" class="active">World</button>
+      <button id="chainTab" type="button">Chain Library</button>
+    </nav>
+    <main>
+      <div id="worldView" class="tab-view">
+        <aside id="sidebar">
+          <section>
+            <h2>Recipe</h2>
+            <label>Seed<input id="seed" value="last-exit-001" /></label>
+            <label
+              >Mode<select id="mode">
+                <option value="game">Game</option>
+                <option value="playground">Playground</option>
+              </select></label
+            >
+            <div class="pair">
+              <label>Zone width<input id="zoneWidth" type="number" min="1" step="1" /></label>
+              <label>Zone height<input id="zoneHeight" type="number" min="1" step="1" /></label>
+            </div>
+            <div class="trio">
+              <label>Exits<input id="exitCount" type="number" min="0" step="1" /></label>
+              <label>Contestants<input id="contestantCount" type="number" min="0" step="1" /></label>
+              <label>Hunters<input id="hunterCount" type="number" min="0" step="1" /></label>
+            </div>
+            <label
+              >Library<select id="librarySource">
+                <option value="bundled">The chain's library</option>
+                <option value="draft">The Chain Library tab's draft</option>
+              </select></label
+            >
+            <div class="pair">
+              <button id="generate" type="button" class="primary">Generate</button
+              ><button id="random" type="button">New seed</button>
+            </div>
+          </section>
+          <section>
+            <h2>Views</h2>
+            <label
+              >Cells<select id="field">
+                <option value="regions">Regions</option>
+                <option value="resolved">Resolved classes</option>
+                <option value="declared">Declared classes</option>
+                <option value="proof">Proof components</option>
+                <option value="zones">Zone tiers</option>
+                <option value="none">None</option>
+              </select></label
+            >
+            <div class="checks">
+              <label><input id="showPortals" type="checkbox" checked /> Boundaries and portals</label>
+              <label><input id="showGeometry" type="checkbox" checked /> Built geometry</label>
+              <label><input id="showSites" type="checkbox" checked /> Core element sites</label>
+              <label><input id="showLoot" type="checkbox" /> Loot</label>
+              <label><input id="showDefects" type="checkbox" checked /> Defects</label>
+            </div>
+            <div id="legend" class="legend"></div>
+          </section>
+          <section>
+            <h2>Save</h2>
+            <div class="pair">
+              <button id="saveJson" type="button">Wire JSON</button
+              ><button id="saveBson" type="button">Wire BSON</button>
+            </div>
+            <button id="saveLayout" type="button" class="full">Layout alone (JSON)</button>
+            <label class="file-button full"
+              >Load a saved map<input id="load" type="file" accept=".json,.bson,application/json,application/octet-stream"
+            /></label>
+            <p class="hint">
+              A map is read with the library it was made from: the one chosen above.
+            </p>
+          </section>
+          <section>
+            <h2>Inspector</h2>
+            <div id="inspector" class="readout">Select a cell.</div>
+          </section>
+        </aside>
+        <div class="world-main">
+          <div id="mapView">
+            <canvas id="map" aria-label="Chain map"></canvas>
+            <div class="zoom-controls">
+              <button id="fit" type="button">Fit</button>
+            </div>
+          </div>
+          <div class="diagnostics">
+            <section id="report" class="panel">
+              <h2>Report</h2>
+              <div id="reportBody">—</div>
+            </section>
+            <section id="diagnostic" class="panel">
+              <h2>diagnoseBuiltMap</h2>
+              <p class="hint">
+                The game's per-region portal check. It runs in a worker and takes
+                about a minute on a game map.
+              </p>
+              <div class="pair">
+                <button id="diagnose" type="button">Run diagnostic</button
+                ><button id="cancelDiagnose" type="button" disabled>Cancel</button>
+              </div>
+              <div id="diagnosticBody">Not run.</div>
+            </section>
+          </div>
+        </div>
+      </div>
+      <div id="chainViewContainer" class="tab-view" hidden>
+        <div class="chain-heading">
+          <div>
+            <h2>Chain Library</h2>
+            <p>
+              Author the version 2 library. Portal preview covers one tile
+              design; placement across tiles is resolved later.
+            </p>
+          </div>
+          <div class="chain-actions">
+            <button id="chainLoadBundled" type="button">Edit the chain's library</button
+            ><button id="chainExport" type="button">Export JSON</button
+            ><label class="chain-file"
+              >Import JSON<input
+                id="chainImport"
+                type="file"
+                accept=".json,application/json"
+            /></label>
+          </div>
+        </div>
+        <div class="chain-layout">
+          <aside class="chain-sidebar">
+            <label
+              >Library section<select id="chainSection">
+                <option value="classes">Cell classes</option>
+                <option value="tiles">Tile designs</option>
+                <option value="tileSets">Tile sets</option>
+                <option value="setPieces">Set pieces</option>
+                <option value="setPieceClasses">Set piece classes</option>
+              </select></label
+            ><label>Entry<select id="chainItem"></select></label>
+            <div class="pair">
+              <button id="chainAdd" type="button">Add</button
+              ><button id="chainDelete" type="button">Delete</button>
+            </div>
+            <p class="hint">
+              Region type IDs are derived from declared classes. Validation
+              checks the schema and references, not whether a strategy exists.
+              Generating from the draft on the World tab checks it against the
+              game's region types.
+            </p>
+          </aside>
+          <div class="chain-work">
+            <div id="chainEditor"></div>
+            <div id="chainPreview"></div>
+            <details>
+              <summary>JSON source</summary>
+              <textarea
+                id="chainSource"
+                spellcheck="false"
+                aria-label="Chain library JSON source"
+              ></textarea
+              ><button id="chainApply" type="button">Apply JSON</button>
+            </details>
+            <pre id="chainStatus" role="status"></pre>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

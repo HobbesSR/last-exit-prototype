@@ -27,9 +27,10 @@ contract where one exists: the fixture's map hashes and scripted trace stay in
 `characterization.test.js`.
 
 Changes under `map/macro/` run its own suite with `npm run test:mapgen` (typecheck
-plus unit tests, in that directory) and, for editor behavior, `node tests/browser.mts`
-from `map/macro/`. On 2026-09-29 the suite is green: 286 tests, 282 pass, 4 todo
-(each todo names a defect in the old tile path that the chain retires). A change
+plus unit tests, in that directory). On 2026-10-03 it is green: 379 tests, 375
+pass, 4 todo (each todo names a defect in the old tile path that the chain
+retires). The Map Lab (`map/tools/lab/`) has its own browser check,
+`node map/tools/tests/lab.browser.mts`, which `npm run test:browser` runs. A change
 to mapgen's old generators also runs the seed sweep from `map/macro/`,
 `node tools/cli.mts sweep --check tests/fixtures/layer-baseline.json`. It must
 show no drift unless the PR declares a content change and recaptures last

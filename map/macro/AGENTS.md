@@ -50,6 +50,6 @@ mapgen and the planned path have each built the same thing more than once
 ## Checks
 
 - `npm test` (typecheck plus unit tests) for core and tooling changes.
-- `node tests/browser.mts` for meaningful Map Lab behaviour. It resolves
-  Playwright from the repository root's dependencies.
+- The Map Lab is in `map/tools/lab/` now; its browser check is
+  `node map/tools/tests/lab.browser.mts`, from the repository root.
 - The seed sweep for any change to the old generators (root 53 and 31).

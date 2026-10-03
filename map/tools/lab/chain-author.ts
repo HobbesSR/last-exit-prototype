@@ -3,20 +3,21 @@ import {
   CHAIN_TILE_SIZE,
   COUNT_PARAMS,
   validateLibrary,
-} from "/src/chain/library.ts";
+} from "../../macro/src/chain/library.ts";
 import type {
   ChainLibrary,
   ChainTileDesign,
   ChainSetPieceSlot,
   CoreElementCount,
   SegmentPrescription,
-} from "/src/chain/library.ts";
-import { orientDesign } from "/src/chain/declared-grid.ts";
-import { regions, portalViolations } from "/src/chain/regions.ts";
-import type { ResolvedLayout } from "/src/chain/types.ts";
+} from "../../macro/src/chain/library.ts";
+import { orientDesign } from "../../macro/src/chain/declared-grid.ts";
+import { regions, portalViolations } from "../../macro/src/chain/regions.ts";
+import type { ResolvedLayout } from "../../macro/src/chain/types.ts";
 import { CORE_ELEMENT_KINDS } from "../../kernel/contract.ts";
 import type { CoreElementKind } from "../../kernel/contract.ts";
 import { MIN_PORTAL_LENGTH } from "../../kernel/scale.ts";
+import { CHAIN_LIBRARY } from "../core.ts";
 
 const $ = (id: string): HTMLElement => document.getElementById(id)!;
 const select = (id: string): HTMLSelectElement => $(id) as HTMLSelectElement;
@@ -953,25 +954,6 @@ function download(): void {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-$("chainTab").onclick = () => {
-  for (const id of [
-    "worldViewContainer",
-    "authorViewContainer",
-    "setsViewContainer",
-    "setPiecesViewContainer",
-  ])
-    $(id).hidden = true;
-  for (const id of ["mapTab", "authorTab", "setsTab", "setPiecesTab"])
-    $(id).classList.remove("active");
-  $("chainViewContainer").hidden = false;
-  $("chainTab").classList.add("active");
-  render();
-};
-for (const id of ["mapTab", "authorTab", "setsTab", "setPiecesTab"])
-  $(id).addEventListener("click", () => {
-    $("chainViewContainer").hidden = true;
-    $("chainTab").classList.remove("active");
-  });
 select("chainSection").onchange = () => {
   selectedId = "";
   render();
@@ -1003,6 +985,13 @@ declare global {
     chainLab: { snapshot: () => unknown };
   }
 }
+/** The draft being authored, for the World tab to generate from. */
+export function chainDraft(): ChainLibrary {
+  return structuredClone(library);
+}
+/** Draw the tab; the lab calls it when the tab is shown. */
+export { render as renderChainLibrary };
+$("chainLoadBundled").onclick = () => accept(structuredClone(CHAIN_LIBRARY));
 window.chainLab = Object.freeze({
   snapshot: () => ({
     library: structuredClone(library),

@@ -4,15 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node --env-file-if-exists=../../.env.local tools/server.mts",
-    "dev": "node --env-file-if-exists=../../.env.local tools/server.mts",
     "test": "npm run typecheck && node --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
     "generate": "node tools/cli.mts generate",
     "batch": "node tools/cli.mts batch",
     "mcp": "node tools/mcp.mts",
-    "test:browser": "node tests/browser.mts",
-    "format": "prettier --write src public tools tests content docs README.md package.json tsconfig.json"
+    "format": "prettier --write src tools tests content docs README.md package.json tsconfig.json"
   },
   "devDependencies": {
     "@types/node": "^22.20.2",
