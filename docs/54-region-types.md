@@ -116,8 +116,27 @@ points, and routes that aren't a straight shot.
 - **Strategy:** no decomposer. A builder scatters small cover: crates,
   barriers, low walls, the odd container, spaced so aisles stay at least a
   door wide. It protects a hunter route between portals while it places
-  pieces, as the example builders do (20).
-- **Shape needs:** none. A region too small for one piece stays clear.
+  pieces.
+  **Built (#127):** `map/micro/strategies/cover.ts`. It protects the route by
+  spacing, not by a route search, so it scales to macro's open ground: a
+  29,500-cell region with over 400 portals builds in well under a second.
+  - **Slots:** they lie on a lattice one tile (6 cells) apart. Each slot is
+    taken with chance `density`, by a cluster of one to three crates,
+    barriers and containers inside a 3 × 3 box.
+  - **The aisle:** a cluster's bounding box keeps 3 clear cells from the next
+    cluster's and from any cell the region doesn't own. That is a door's
+    width plus one, which the sampled route check can see (20).
+  - **Why that keeps the promise:** each box is convex, with a clear ring
+    wider than a hunter around it, so the boxes can't divide the ground
+    outside them, where every portal is. Like `open`, a `cover` region keeps
+    the portal promise exactly when its shape does.
+  - **Loot:** each cell rolls its chance and takes its tier. Loot lands only
+    where the cell and its eight neighbours are owned and free of cover, so
+    it has standing room.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
+- **Shape needs:** none. A region too small for one piece stays clear: a
+  piece needs 3 clear cells on every side.
 - **Formed by:** small set pieces and tile fill among open ground (17 M10).
 - **Parameters:** `density`.
 - **Material:** the game's `example-open` (sparse cover and shelters), and
@@ -313,8 +332,8 @@ keeps those names.
 | Type | The game (`map/micro/`) | mapgen (`src/micro/builders/`, retiring) |
 | --- | --- | --- |
 | `open` | — (it builds nothing) | — |
-| `cover` | `example-open` | `open-field`, `scatter` |
-| `rubble` | `example-ruins` decay | `rubble` |
+| `cover` | `example-open` (built, #127) | `open-field`, `scatter` |
+| `rubble` | `example-ruins` decay (built, #128) | `rubble` |
 | `ruins` | `example-ruins` | — |
 | `hall` | — | `pillar-hall` |
 | `hut` | the room shell in `builders.ts` | `compound` |
