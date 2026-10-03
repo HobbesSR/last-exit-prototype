@@ -1,7 +1,9 @@
 import { generateBriefRegion } from './index.ts';
 import { CORE_ELEMENT_KINDS } from '../kernel/contract.ts';
+import { buildCover } from './strategies/cover.ts';
 import { buildHut } from './strategies/hut.ts';
 import { buildOpen } from './strategies/open.ts';
+import { buildRubble } from './strategies/rubble.ts';
 import type { BuiltRegion, RegionBrief, RegionTypeId } from './types.ts';
 
 /** A region type's strategy: its decomposer, if it has one, and its builders (51 stage 6). */
@@ -15,6 +17,8 @@ export type RegionTypeRegistry = Readonly<Record<RegionTypeId, RegionStrategy>>;
  */
 export const REGION_TYPES: RegionTypeRegistry = Object.freeze({
   open: buildOpen,
+  rubble: buildRubble,
+  cover: buildCover,
   hut: buildHut,
   'example-open': brief => generateBriefRegion(brief, 'open'),
   'example-depot': brief => generateBriefRegion(brief, 'depot'),
@@ -27,7 +31,7 @@ export const REGION_TYPES: RegionTypeRegistry = Object.freeze({
  * Names what `REGION_TYPES` builds. A change to what any of its strategies builds bumps it,
  * so a saved map's results are never rebuilt by other strategies without saying so (51 "Saving").
  */
-export const REGION_TYPES_VERSION = 'types-2';
+export const REGION_TYPES_VERSION = 'types-4';
 
 /**
  * Dispatch a brief to its region type's strategy (51 stage 6). The brief is checked as

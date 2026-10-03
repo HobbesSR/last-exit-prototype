@@ -91,13 +91,19 @@ though a route exists.
 **Registered types.** A catalogue type ([54](54-region-types.md)) is registered
 under its own name once B3 writes its strategy, in `strategies/`. So far:
 - **`open` (#126)** builds nothing (17 M25): no geometry, core elements or loot.
+- **`cover` (#127)** scatters clusters of small cover on a slot lattice. It
+  keeps its aisles by spacing rather than by a route search, so its build time
+  grows with its cells alone ([54](54-region-types.md) `cover`).
+- **`rubble` (#128)** protects hunter routes between portals, then places
+  seeded debris that can leave contestant-only squeezes. It rolls zone loot
+  after geometry.
 - **`hut` (#129)** stands one house in its yard. It picks the house's box by
   a cell-level check of the yard, not by a route search, and a region with no
   box that keeps its promise is left `open` ([54](54-region-types.md) `hut`).
 
 Today's builders stand in for the rest, with the ids `example-open`,
 `example-depot`, `example-courtyard`, `example-ruins` and `example-entry`. The
-prefix keeps a library from binding to them. `REGION_TYPES_VERSION` (`types-2`)
+prefix keeps a library from binding to them. `REGION_TYPES_VERSION` (`types-4`)
 names what the registry builds. A change to what any strategy builds bumps it,
 so a saved map's results are never silently rebuilt by other strategies (51
 "Saving"). Each example builder:
