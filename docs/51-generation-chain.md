@@ -751,7 +751,7 @@ live game until the switch-over.
     game's geometry, so the kernel imports nothing outside itself.
   - `map/micro/region-types.ts` is the registry and `buildRegion` dispatches
     to it. Catalogue types join it as B3 builds them, starting with `open`
-    (#126). Today's example builders, prefixed `example-`, stand in for the
+    (#126) and `cover` (#127). Today's example builders, prefixed `example-`, stand in for the
     rest.
   - `validatePortalReach` in `map/micro/portals.ts` is the elective check.
   - The SDK's explicit-port `RegionSpec` and its `micro-1` result, now
@@ -799,7 +799,7 @@ reachability is inferred (principle 8).
   questions, 17 M18 to M25, on 2026-10-02.
 - B3. **The strategies** the catalogue calls for, in `map/micro/strategies/`,
   each its own issue: #126 to #132 for the minimal set, under #96.
-  **Done:** `open` (#126).
+  **Done:** `open` (#126), `cover` (#127).
 - B4. **The new library**, authored against the catalogue:
   - cell classes, tiles and tile sets
   - set pieces and set piece classes, including `start`, `end` and

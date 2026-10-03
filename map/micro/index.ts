@@ -52,7 +52,8 @@ function resolvePorts(spec: RegionSpec, mask: RegionMask): { ports: ResolvedPort
   return { ports, elements };
 }
 
-function rng(seed: number, name: string): RegionRandom {
+/** A named, seeded random stream. Streams with different names are independent. */
+export function rng(seed: number, name: string): RegionRandom {
   let state = seed >>> 0;
   for (const char of name) state = Math.imul(state ^ char.charCodeAt(0), 16777619) >>> 0;
   const next = () => { state = state + 0x6D2B79F5 | 0; let t = Math.imul(state ^ state >>> 15, 1 | state); t ^= t + Math.imul(t ^ t >>> 7, 61 | t); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
