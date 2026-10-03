@@ -86,6 +86,6 @@ worktree table.
   `<agent>/<feature>` branch started from fresh `forgejo/main`. Never commit in
   the primary checkout, on `main`, or in another agent's worktree.
 - Claim issues with `assign_issue`, push with `git push -u forgejo HEAD`, open the
-  PR with `create_pull_request` ("Fixes #N"), and review others' PRs with
+  PR with `create_pull_request` ("Fixes #N") reporting what testing you did, and review others' PRs with
   `submit_pull_request_review`.
 - Humans merge. Do not merge.
