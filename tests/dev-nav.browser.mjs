@@ -16,8 +16,8 @@ const mapgenProcesses = [];
 let browser;
 
 function startMapgen(gamePort) {
-  const child = spawn(process.execPath, ['tools/server.mts', '--port', '0'], {
-    cwd: path.join(root, 'map/macro'),
+  const child = spawn(process.execPath, ['map/tools/server.mts', '--port', '0'], {
+    cwd: root,
     env: { ...process.env, PORT: String(gamePort), MAPGEN_PORT: '4120' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

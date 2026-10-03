@@ -96,8 +96,8 @@ Worktrees isolate files, not the machine. Agents run gates at the same time, so
 anything a check takes from the machine as a whole must be one it can share.
 
 - **Ports.** Automated checks bind port 0 and use the address actually bound:
-  `tests/helpers/listen.js` in the game, `--port 0` for mapgen's
-  `tools/server.mts`. Never hardcode a port in a check. Dev servers use the
+  `tests/helpers/listen.js` in the game, `--port 0` for the Map Lab's
+  `map/tools/server.mts`. Never hardcode a port in a check. Dev servers use the
   worktree's assigned ports above. Port 3000 is Forgejo; 47913 is the
   benchmark lock.
 - **Scratch files.** Temporary data goes in a fresh `mkdtemp` directory. Outputs

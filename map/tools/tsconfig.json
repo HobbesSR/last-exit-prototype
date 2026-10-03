@@ -1,10 +1,12 @@
 {
   // The tools import both halves, and macro's sources are checked without exact optional
   // properties (map/macro/tsconfig.json), so the tools are checked as macro is, plus
-  // everything they reach in map/micro/ and map/kernel/.
+  // everything they reach in map/micro/ and map/kernel/. The Map Lab runs in a browser.
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "exactOptionalPropertyTypes": false
+    "exactOptionalPropertyTypes": false,
+    "resolveJsonModule": true,
+    "lib": ["es2023", "dom", "dom.iterable"]
   },
   "include": ["./**/*.ts", "./**/*.mts", "../../shared/vendor.d.ts"]
 }

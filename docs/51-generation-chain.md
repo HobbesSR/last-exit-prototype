@@ -822,7 +822,7 @@ reachability is inferred (principle 8).
     move to `map/tools/` (17, "Where the tools live"), in three issues under #98:
     - 10a (#144): `map/tools/` with the game's engines, and the CLI and MCP on
       the chain. **Done:** 53, "Tools".
-    - 10b (#145): the Map Lab on the chain.
+    - 10b (#145): the Map Lab on the chain. **Done:** 53, "Tools".
     - 10c (#146): the first baseline, then the deletions.
 
 Replacing the live game's interim street maze is a later, separate checkpoint

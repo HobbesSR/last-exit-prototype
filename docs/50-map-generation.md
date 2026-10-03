@@ -122,8 +122,8 @@ So the test is:
   - `map/macro/` is mapgen.
   - `map/micro/` is the micro SDK, its builders and its labs' modules.
   - `map/kernel/` is the shared map space.
-  - `map/tools/` holds the tools that show both halves. The CLI and MCP are
-    there (#144); the Map Lab follows (#145).
+  - `map/tools/` holds the tools that show both halves: the Map Lab, CLI and
+    MCP (#144, #145).
 - **Imports:**
   - Macro and micro don't import each other, except that macro may call the
     SDK. Both import the kernel (M1). They meet only in `map/tools/`, and a
@@ -135,8 +135,9 @@ So the test is:
   - mapgen doesn't import the SDK's builders or strategies; the tools lend
     them to it as `MapEngines`. The game doesn't import `map/` until the live
     game adopts the chain.
-- **Serving:** the Map Lab's server serves the kernel at `/kernel/`. The game's
-  server serves `/map/micro/` and `/map/kernel/` for the micro labs.
+- **Serving:** the Map Lab's server (`map/tools/server.mts`) serves macro,
+  micro, the kernel and `shared/` at their repository paths, and the game's
+  server serves `/map/micro/` and `/map/kernel/` for the micro labs (53).
 - *Assumption:* the name `kernel` (17 M1's open part).
 
 ## Reading guide

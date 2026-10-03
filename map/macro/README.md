@@ -1,4 +1,4 @@
-# Last Exit Map Lab
+# Last Exit mapgen (macro)
 
 The macro-generation and 2D traversal prototype, in `map/macro/` of the game repository. The game at the repository root does not import it yet. It reads no game files, only the map kernel in `map/kernel/`. [Original user notes](design_notes.txt) are the source of design intent. Implementation documentation describes current behavior and reversible defaults. The later assistant proposal has been [retired to the archive](docs/archive/retired-design-proposal/README.md).
 
@@ -6,32 +6,26 @@ Design documentation lives in the repository's numbered docs: [50](../docs/50-ma
 
 ## Run
 
-Node 24.15 or newer. No runtime packages are required. Sources are TypeScript;
-Node runs them directly and the dev server erases types on the way to the
-browser, so there is no build step and no compiled copy to drift.
+Node 24.15 or newer. No runtime packages are required. Sources are TypeScript,
+and Node runs them directly, so there is no build step and no compiled copy to drift.
+
+**The Map Lab** moved to [`map/tools/lab/`](../tools/lab/) and shows chain maps
+(docs 53, "Tools"). From the repository root:
 
 ```powershell
-npm start
+npm run lab
 ```
 
-Open **http://127.0.0.1:4173**. A `MAPGEN_PORT` in the repository root's untracked `.env.local` overrides that per worktree, and `npm start -- --port 0` binds any free port and prints it. Choose `game` mode for the fixed 12 x 6 zones and game set-piece quotas, or `playground` mode for the same diamond with smaller zones and no game category quotas. Change the seed, mode, zone dimensions, or exit count, then build. There is nothing to tune about connectivity: seams carry whatever the tiles beside them declare. Click tiles to inspect their design and features; click an exit to compare routes to it. Scroll to zoom, drag to pan, and use Fit map to reset the camera.
+The old generators' map view, tile editor and set editors retired with the move
+(#145). The playtest sandbox this README used to describe had already left the code,
+and is retired too. The old generators stay reachable through `tools/cli.mts`
+until they are deleted (#146), and this README describes them until then.
 
-**Playtest:** start an escape run; WASD/arrows move, mouse aims, click fires, E interacts. Hold E at a charger for five stationary seconds, then reach an exit. Gold is collected by proximity. Two simple pursuers follow hunter-accessible routes; shots tag them and they respawn. The Hunter body selector tests the larger radius and permits transit between T markers. This is a single-player traversal/combat sandbox, not the game's match simulation: no multiplayer, inventory, extraction competition, closing hazard, or final combat balance.
+A tile has no weight field. The current `generate` path reads optional tile `weight` when choosing from WFC candidates (omission means 1). Set-piece slots choose a member from their tile set separately. See [17, "Map generation"](../docs/17-open-questions.md) for the remaining selection-policy question.
 
-**Authoring:** pick a tile from the gallery of previews (or the name filter beside it), then paint its cells and segments on one 6 × 6 surface.
+The old generators' library is [content/default-library.json](content/default-library.json): 30 tile designs, 15 tile sets and 23 set pieces. See [the cleanup audit](docs/archive/editor-cleanup/EDITOR_CLEANUP.md) for the earlier selection behavior.
 
-- **Edit mode** decides what the surface responds to: _Cells + segments_, _Cells_, or _Segments_. The pointer is resolved against the grid rather than against whatever node is under it, so in _Segments_ the nearest line within half a cell wins and thin strips need no precision; in _Cells + segments_ the catch radius is a quarter cell and the middle of each cell stays with the class brush.
-- **Tool** decides the gesture: _Paint_ applies the brush on click or drag, _Rectangle_ drags a box (cells fill it, segments trace its outline, and a drag with no width lays one straight line between vertices), and _Fill_ floods the connected run you clicked.
-- Segments take the active segment brush — `any`, `open`, `wall` or a partial aperture — on contact, so declaring a wall is one click rather than a trip to a control below the fold. The panel under **Segments** still inspects whichever segment was last touched.
-- **Right-click** opens a palette at the cursor offering only what the primitive under it can take, including whole-line, matching-run, perimeter, row, column and flood scopes. **Alt-click** picks up what is already there as the brush.
-- The numbered strips beside the preview cover a whole row or column of cells, or, in _Segments_, a whole grid line. **Patterns** apply the active brush to a whole-tile shape: fill, border ring, interior block, checker and stripes for cells; perimeter, interior, room outline and _Defer all_ for segments.
-- Name or duplicate tiles, declare cell classes, set coarse side ports under Topology hints, edit tile sets and set pieces, or edit the complete library JSON. Update the tile or apply JSON, then **Build map**. The generated-tile inspector links back to its design.
-
-A tile has no weight field in the editor. The current `generate` path reads optional tile `weight` when choosing from WFC candidates (omission means 1). Set-piece slots choose a member from their tile set separately. See [17, "Map generation"](../docs/17-open-questions.md) for the remaining selection-policy question.
-
-The active library starts from [content/default-library.json](content/default-library.json): 30 tile designs, 15 tile sets and 23 set pieces. A valid saved browser library takes precedence. The editor exposes design usage. Reset to shipped library restores the bundled corpus. Browser edits stay in browser storage; export JSON and pass it to the CLI to share the same library. See [the cleanup audit](docs/archive/editor-cleanup/EDITOR_CLEANUP.md) for the earlier selection behavior.
-
-`generate` and `batch` read this library and compose its tiles before discovering regions. Game mode also places its required set pieces. Both expose the shared `mode` parameter: `game` is the default and requires 12 x 6 zones. Its library needs at least one start, one end, three enormous, one medium, and one small definition; each game map places 1/1/3/4/10 instances respectively, reusing medium and small definitions as needed. The resolved mode is recorded on the generated map; `playground` keeps generic generation and validation but bypasses those quotas and permits smaller zones. The browser and MCP interfaces expose the same parameter. `plan` uses a separate region-first generator and does not read the library. All 30 designs can be selected by WFC even when no tile set names them. The `filler`, `park-edges` and `park-centers` tile sets are not referenced by the shipped set pieces; their member tiles remain available to WFC. Set-piece `class` is required by validation but is not consumed by current placement. The tile `anchor` field is read for WFC placements, while set-piece placements currently use tile centers.
+`generate` and `batch` read this library and compose its tiles before discovering regions. Game mode also places its required set pieces. Both expose the shared `mode` parameter: `game` is the default and requires 12 x 6 zones. Its library needs at least one start, one end, three enormous, one medium, and one small definition; each game map places 1/1/3/4/10 instances respectively, reusing medium and small definitions as needed. The resolved mode is recorded on the generated map; `playground` keeps generic generation and validation but bypasses those quotas and permits smaller zones. The old CLI exposes the same parameter. `plan` uses a separate region-first generator and does not read the library. All 30 designs can be selected by WFC even when no tile set names them. The `filler`, `park-edges` and `park-centers` tile sets are not referenced by the shipped set pieces; their member tiles remain available to WFC. Set-piece `class` is required by validation but is not consumed by current placement. The tile `anchor` field is read for WFC placements, while set-piece placements currently use tile centers.
 
 Every tile's 36 cells, 84 segments and 49 vertices are all addressable and all
 have metadata, but only what you actually state is stored. A segment nobody
@@ -41,8 +35,7 @@ A tile design may paint its own cells and place interior barriers.
 `defaultCellClass` is the class for cells it does not paint, and every class a
 design uses is declared once in the library's `cellClasses`; see
 [52](../docs/52-map-primitives-and-library.md) for how cell classes, regions and tier
-zones relate. Paint by hand in JSON, or use the 6 × 6 grid on the authoring tab,
-which re-derives `cells` and `legend` for you:
+zones relate. Paint by hand in JSON:
 
 ```json
 {
@@ -214,6 +207,6 @@ is material.
 - The artifact stores cells and segments as coded grids — an interned palette of the enumerated values plus run-length codes — and everything derivable is left out: vertices appear only where something was stated about them, and cell heights only once a map stops being flat. Read them with `gridViews`, `readCell`, `cellIndexAt` and `segmentIndexAt` rather than decoding by hand; `walls` remains a plain list, holding the closed part of every segment plus any off-lattice micro geometry.
 - Generated maps are treated as immutable by cached path queries. After external edits, call `validateMap` to invalidate caches and verify the artifact before using `findPath`.
 
-Run `npm run typecheck` for types alone; `npm test` runs it first. The unit suite exercises deterministic generation, tile interiors and rotation, cell-level region search, interior-aware clearance, input rejection and CLI/MCP/HTTP behavior. `node tests/browser.mts` additionally runs a headless Chrome smoke check and saves screenshots in `test-results/`; it resolves `@playwright/test` from the repository root, so run `npm ci` there first. Runtime does not depend on Playwright. `npm install` only installs development formatting tools.
+Run `npm run typecheck` for types alone; `npm test` runs it first. The unit suite exercises deterministic generation, tile interiors and rotation, cell-level region search, interior-aware clearance, input rejection and CLI/MCP behavior. The Map Lab's browser check is the repository root's `node map/tools/tests/lab.browser.mts`. `npm install` only installs development formatting tools.
 
 Direction and design are in root [50](../docs/50-map-generation.md)–[53](../docs/53-map-artifacts-and-tools.md). Questions are in [17](../docs/17-open-questions.md), and what's next is in [41](../docs/41-roadmap.md) and on the Forgejo tracker it names.

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { createServer } from "node:net";
 import fs from "node:fs";
 import os from "node:os";
 import { test } from "node:test";
@@ -33,25 +32,6 @@ function run(
     child.stdin.end(input);
   });
 }
-async function unusedPort() {
-  const server = createServer();
-  server.listen(0, "127.0.0.1");
-  await once(server, "listening");
-  const port = (server.address() as { port: number }).port;
-  server.close();
-  await once(server, "close");
-  return port;
-}
-async function startServer() {
-  const port = await unusedPort();
-  const child = spawn(node, ["tools/server.mts", "--port", String(port)], {
-    cwd: root,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  await once(child.stdout, "data");
-  return { child, port };
-}
-
 test("CLI help and generate smoke test", async () => {
   const help = await run("tools/cli.mts", ["help"]);
   assert.equal(help.code, 0);
@@ -67,28 +47,6 @@ test("CLI help and generate smoke test", async () => {
   fs.rmSync(dir, { recursive: true, force: true });
   assert.equal(checked.code, 0, checked.err);
   assert.equal(JSON.parse(checked.out).valid, true);
-});
-
-test("server maps public, source, and content files and blocks traversal", async (t) => {
-  const { child, port } = await startServer();
-  t.after(() => child.kill());
-  const rootPage = await fetch(`http://127.0.0.1:${port}/`);
-  assert.equal(rootPage.status, 200);
-  assert.match(rootPage.headers.get("content-type")!, /html/);
-  const good = await fetch(`http://127.0.0.1:${port}/src/core.ts`);
-  assert.equal(good.status, 200);
-  assert.match(good.headers.get("content-type")!, /javascript/);
-  const content = await fetch(
-    `http://127.0.0.1:${port}/content/default-library.json`,
-  );
-  assert.equal(content.status, 200);
-  assert.match(content.headers.get("content-type")!, /json/);
-  const blocked = await fetch(`http://127.0.0.1:${port}/tools/server.mts`);
-  assert.ok([403, 404].includes(blocked.status));
-  const traversal = await fetch(
-    `http://127.0.0.1:${port}/%2e%2e/tools/server.mts`,
-  );
-  assert.ok([403, 404].includes(traversal.status));
 });
 
 test("MCP initialize, list, call, and unknown method", async () => {
