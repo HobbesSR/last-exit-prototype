@@ -89,11 +89,15 @@ a hunter through a gap only two cells wide, so a narrow region can be refused
 though a route exists.
 
 **Registered types.** A catalogue type ([54](54-region-types.md)) is registered
-under its own name once B3 writes its strategy, in `strategies/`. So far that is
-only `open` (#126), which builds nothing (17 M25): no geometry, core elements or
-loot. Today's builders stand in for the rest, with the ids `example-open`,
+under its own name once B3 writes its strategy, in `strategies/`. So far:
+- **`open` (#126)** builds nothing (17 M25): no geometry, core elements or loot.
+- **`hut` (#129)** stands one house in its yard. It picks the house's box by
+  a cell-level check of the yard, not by a route search, and a region with no
+  box that keeps its promise is left `open` ([54](54-region-types.md) `hut`).
+
+Today's builders stand in for the rest, with the ids `example-open`,
 `example-depot`, `example-courtyard`, `example-ruins` and `example-entry`. The
-prefix keeps a library from binding to them. `REGION_TYPES_VERSION` (`types-1`)
+prefix keeps a library from binding to them. `REGION_TYPES_VERSION` (`types-2`)
 names what the registry builds. A change to what any strategy builds bumps it,
 so a saved map's results are never silently rebuilt by other strategies (51
 "Saving"). Each example builder:

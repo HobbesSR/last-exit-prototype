@@ -11,16 +11,16 @@ import { diagnoseBuiltMap } from '../map/micro/diagnose.ts';
  * 51 step 9 with the game's own engines: macro's chain map, built and composed by the
  * game's strategies. Macro and micro don't import each other (50), so this test is where
  * they meet. The fixture library's region types are bound to the example builders, so that
- * saving carries real geometry, except its huts. A fixture hut is a narrow region with no
- * standing room behind its portals, so it is `open`, the last resort (17 M24), until `hut`
- * has a strategy. A playground map keeps the report clean: at game size the fixture's
- * arrival is too small for its spawns, and its open ground has one-cell necks.
+ * saving carries real geometry, and its huts to `hut`. A fixture hut is a 2 × 3 region, too
+ * small for a house, so `hut` leaves it `open`, the last resort (17 M24). A playground map
+ * keeps the report clean: at game size the fixture's arrival is too small for its spawns,
+ * and its open ground has one-cell necks.
  */
 const LIBRARY = JSON.parse(readFileSync(new URL('../map/macro/tests/fixtures/chain-placement-library.json', import.meta.url), 'utf8'));
 const PLAYGROUND = { mode: 'playground', zoneWidth: 2, zoneHeight: 2, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 const REGISTRY = {
   'open-field': REGION_TYPES['example-open'],
-  hut: REGION_TYPES.open,
+  hut: REGION_TYPES.hut,
   arrival: REGION_TYPES['example-entry'],
   departure: REGION_TYPES['example-entry'],
   charging: REGION_TYPES['example-depot'],
@@ -34,7 +34,7 @@ test('a chain map built by the game round-trips, whole or from its Layout alone'
   assert.deepEqual(readChainMap(chainMapToBson(map), LIBRARY), map);
   assert.deepEqual(decodeChainMap(JSON.parse(chainMapToJson(map, { results: false })), LIBRARY, ENGINES), map);
   assert.throws(() => decodeChainMap(JSON.parse(chainMapToJson(map, { results: false })), LIBRARY, { ...ENGINES, version: REGION_TYPES_VERSION }),
-    /its results were built by strategies fixture-types-1, not types-1/);
+    /its results were built by strategies fixture-types-2, not types-2/);
 });
 
 test('the accessor composes with the game, and both diagnostics read the same built map', () => {
