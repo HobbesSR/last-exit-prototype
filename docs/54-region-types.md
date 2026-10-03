@@ -202,6 +202,29 @@ inside, and windows and doors let sight through.
   building, puts its door where the yard keeps every portal joined, and leaves
   the yard around it. A route through the building counts only through
   unlocked doors.
+  **Built (#129):** `map/micro/strategies/hut.ts`. It reasons in cells, where
+  a hunter is a 2 × 2 block of yard cells, so it needs no route search.
+  - **The size:** a region less than 6 cells across on either axis goes to
+    `open` before any box is tried, even where a box and its doorstep would
+    fit. The L and the ring count by their extent, not by a contained 6 × 6.
+  - **The box:** it tries the region's contained 4 × 4 boxes in a seeded
+    order, and takes the first that stays off every portal's approach (the
+    two cells inward along it), leaves joined every two portals the empty
+    region joined, and has a side whose doorstep the yard joins to a portal.
+    A box with a clear ring 2 cells wide passes the last two by shape alone.
+  - **The house:** it stands a quarter cell inside its box, 3½ cells square,
+    with quarter-cell walls and a roof. The door is a doorway wide, centred on
+    the doorstep's side, and a window as wide faces it. The inset makes a
+    door-wide yard visible to the sampled route check (20). With one door, no
+    route runs through the house.
+  - **Why that keeps the promise:** the house takes only its box, so the yard
+    joins what the empty region joined. A region with no such box, such as
+    the fixture's 2 × 3 huts, goes to `open` (17 M24), so a `hut` region keeps
+    the portal promise exactly when its shape does.
+  - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
+    disc stands clear of the walls and the door, indoors or out.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
 - **Shape needs:** *proposed*, a contained 4 × 4 for the building, in a
   region of at least 6 × 6.
 - **Formed by:** small set pieces, and as a child of `block`.
@@ -336,7 +359,7 @@ keeps those names.
 | `rubble` | `example-ruins` decay (built, #128) | `rubble` |
 | `ruins` | `example-ruins` | — |
 | `hall` | — | `pillar-hall` |
-| `hut` | the room shell in `builders.ts` | `compound` |
+| `hut` | the room shell in `builders.ts` (built, #129) | `compound` |
 | `depot` | `example-depot` | — |
 | `compound` | `example-courtyard`, 19's ring example | `courtyard`, `compound` |
 | `block` | `decomposition/example.ts`, `realize.ts`, `negotiate.ts` | — |

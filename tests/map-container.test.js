@@ -10,17 +10,17 @@ import { diagnoseBuiltMap } from '../map/micro/diagnose.ts';
 /**
  * 51 step 9 with the game's own engines: macro's chain map, built and composed by the
  * game's strategies. Macro and micro don't import each other (50), so this test is where
- * they meet. The fixture library's open ground is `cover`, and its other region types are
- * bound to the example builders, so that saving carries real geometry, except its huts. A fixture hut is a narrow region with no
- * standing room behind its portals, so it is `open`, the last resort (17 M24), until `hut`
- * has a strategy. A playground map keeps the report clean: at game size the fixture's
+ * they meet. The fixture library's open ground is `cover`, its huts are `hut`, and its other
+ * region types are bound to the example builders, so that saving carries real geometry. A
+ * fixture hut is a 2 × 3 region, too small for a house, so `hut` leaves it `open`, the last
+ * resort (17 M24). A playground map keeps the report clean: at game size the fixture's
  * arrival is too small for its spawns, and its open ground has one-cell necks.
  */
 const LIBRARY = JSON.parse(readFileSync(new URL('../map/macro/tests/fixtures/chain-placement-library.json', import.meta.url), 'utf8'));
 const PLAYGROUND = { mode: 'playground', zoneWidth: 2, zoneHeight: 2, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 const REGISTRY = {
   'open-field': REGION_TYPES.cover,
-  hut: REGION_TYPES.open,
+  hut: REGION_TYPES.hut,
   arrival: REGION_TYPES['example-entry'],
   departure: REGION_TYPES['example-entry'],
   charging: REGION_TYPES['example-depot'],
