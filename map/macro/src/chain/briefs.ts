@@ -9,14 +9,14 @@
  */
 import type { Cell } from "../../../kernel/cell.ts";
 import type { CoreElementKind, Portal, RegionBrief, ZoneContext } from "../../../kernel/contract.ts";
-import { makeZones } from "../core.ts";
 import { gridSize } from "./declared-grid.ts";
-import { CHAIN_TILE_SIZE, countParamsProblem, resolveCount } from "./library.ts";
+import { countParamsProblem, resolveCount } from "./library.ts";
 import type { ChainParams, LayoutPortal, MacroStages, Zone } from "./types.ts";
+import { makeZones } from "./zones.ts";
 
 /** The tier zones a layout's params give (`makeZones`), in cell units. */
 export function chainZones(params: ChainParams): Zone[] {
-  return makeZones({ ...params, tileSize: CHAIN_TILE_SIZE }).map(({ id, tier, bonus, lootChance, cells: [x0, y0, x1, y1] }) =>
+  return makeZones(params).map(({ id, tier, bonus, lootChance, cells: [x0, y0, x1, y1] }) =>
     ({ id, tier, bonus, lootChance, cells: { x0, y0, x1, y1 } }));
 }
 

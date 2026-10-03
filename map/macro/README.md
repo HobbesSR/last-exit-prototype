@@ -1,212 +1,37 @@
 # Last Exit mapgen (macro)
 
-The macro-generation and 2D traversal prototype, in `map/macro/` of the game repository. The game at the repository root does not import it yet. It reads no game files, only the map kernel in `map/kernel/`. [Original user notes](design_notes.txt) are the source of design intent. Implementation documentation describes current behavior and reversible defaults. The later assistant proposal has been [retired to the archive](docs/archive/retired-design-proposal/README.md).
+Macro generation for Last Exit, in `map/macro/` of the game repository: the tile library, placement, resolution, layout regions, the reachability proof, region briefs and the report, as the stages of the generation chain. It reads no game files, only the map kernel in `map/kernel/`; the game lends it region strategies through `map/tools/` (root 50). [Original user notes](design_notes.txt) are the source of design intent. The later assistant proposal has been [retired to the archive](docs/archive/retired-design-proposal/README.md).
 
-Design documentation lives in the repository's numbered docs: [50](../docs/50-map-generation.md) (overview and ownership), [51](../docs/51-generation-chain.md) (the generation chain), [52](../docs/52-map-primitives-and-library.md) (the library model), [53](../docs/53-map-artifacts-and-tools.md) (artifacts and tools), and [17](../docs/17-open-questions.md) ("Map generation": questions and answers). This README covers running the current generators. They retire when the chain lands, and mapgen's former docs, archived in [docs/archive/pre-integration](docs/archive/pre-integration/README.md), describe them in depth.
+Design documentation lives in the repository's numbered docs: [50](../docs/50-map-generation.md) (overview and ownership), [51](../docs/51-generation-chain.md) (the generation chain), [52](../docs/52-map-primitives-and-library.md) (the library model), [53](../docs/53-map-artifacts-and-tools.md) (artifacts and tools), and [17](../docs/17-open-questions.md) ("Map generation": questions and answers). What's next is in [41](../docs/41-roadmap.md) and on the Forgejo tracker it names.
+
+## Layout
+
+- `src/chain/`: the chain's stages and views (51), the map container and its one accessor (`map.ts`), and saving in wire version 6 (`saving.ts`).
+- `src/wfc.ts`: the fill's solver, over named relations, with the open-face rule's backjumping (51 step 4).
+- `src/coding.ts` and `src/bson.ts`: the wire form's packing, the library fingerprint, and the in-house BSON codec (53).
+- `content/chain-library.json`: the chain's library (52, "The chain's library").
+- `tests/`: each stage's tests, with fixture libraries that exercise every rule.
+
+mapgen's old generators, `generateMap` and `generatePlannedMap`, with streets, anchors, its own micro layer, its planned path, the old library, CLI, MCP and sweep, were deleted at the switch-over (51 step 10, #146). They are in git history before that change, and the [archived docs](docs/archive/pre-integration/README.md) describe them.
 
 ## Run
 
 Node 24.15 or newer. No runtime packages are required. Sources are TypeScript,
 and Node runs them directly, so there is no build step and no compiled copy to drift.
 
-**The Map Lab** moved to [`map/tools/lab/`](../tools/lab/) and shows chain maps
-(docs 53, "Tools"). From the repository root:
+```powershell
+npm test   # typecheck plus unit tests
+```
+
+The Map Lab, CLI, MCP and the chain's seed sweep are in [`map/tools/`](../tools/) (53, "Tools"). Run them from the repository root:
 
 ```powershell
 npm run lab
-```
-
-The old generators' map view, tile editor and set editors retired with the move
-(#145). The playtest sandbox this README used to describe had already left the code,
-and is retired too. The old generators stay reachable through `tools/cli.mts`
-until they are deleted (#146), and this README describes them until then.
-
-A tile has no weight field. The current `generate` path reads optional tile `weight` when choosing from WFC candidates (omission means 1). Set-piece slots choose a member from their tile set separately. See [17, "Map generation"](../docs/17-open-questions.md) for the remaining selection-policy question.
-
-The old generators' library is [content/default-library.json](content/default-library.json): 30 tile designs, 15 tile sets and 23 set pieces. See [the cleanup audit](docs/archive/editor-cleanup/EDITOR_CLEANUP.md) for the earlier selection behavior.
-
-`generate` and `batch` read this library and compose its tiles before discovering regions. Game mode also places its required set pieces. Both expose the shared `mode` parameter: `game` is the default and requires 12 x 6 zones. Its library needs at least one start, one end, three enormous, one medium, and one small definition; each game map places 1/1/3/4/10 instances respectively, reusing medium and small definitions as needed. The resolved mode is recorded on the generated map; `playground` keeps generic generation and validation but bypasses those quotas and permits smaller zones. The old CLI exposes the same parameter. `plan` uses a separate region-first generator and does not read the library. All 30 designs can be selected by WFC even when no tile set names them. The `filler`, `park-edges` and `park-centers` tile sets are not referenced by the shipped set pieces; their member tiles remain available to WFC. Set-piece `class` is required by validation but is not consumed by current placement. The tile `anchor` field is read for WFC placements, while set-piece placements currently use tile centers.
-
-Every tile's 36 cells, 84 segments and 49 vertices are all addressable and all
-have metadata, but only what you actually state is stored. A segment nobody
-mentioned defers; a vertex nobody constrained defers; only perimeter vertices
-can carry metadata at all, since only they take part in an adjacency contract.
-A tile design may paint its own cells and place interior barriers.
-`defaultCellClass` is the class for cells it does not paint, and every class a
-design uses is declared once in the library's `cellClasses`; see
-[52](../docs/52-map-primitives-and-library.md) for how cell classes, regions and tier
-zones relate. Paint by hand in JSON:
-
-```json
-{
-  "id": "vault-court",
-  "defaultCellClass": "open",
-  "legend": { "v": "vault" },
-  "cells": ["......", "......", "..vv..", "..vv..", "......", "......"],
-  "walls": [{ "x1": 4, "y1": 2, "x2": 4, "y2": 4, "gap": 1.5 }]
-}
-```
-
-`cells` is six rows of six marks, each naming a cell class: `.` takes the
-design's `defaultCellClass`, and any other mark is a `legend` key. Tiles paint
-zones only; the reserved `solid` material class is laid by micro builders and a
-tile may not use it. `walls` are axis-aligned barriers on cell-edge lines,
-and an optional `gap` leaves a centered aperture — a `gap` of 1.5 is a
-contestant-only squeeze _inside_ a tile.
-Interior geometry may run to the tile edge and continue through a seam; see
-[design decisions](docs/archive/pre-integration/DESIGN_DECISIONS.md) for what removing the old one-cell
-margin gave up.
-
-Perimeter primitives are the adjacency contract. `edges` states a contract per
-segment — an array of six a side — and `corners` states one per vertex. Tile
-selection reads each `edges` entry as the class the neighbouring cell must take;
-a segment is meant to carry that alongside a wall type and a passability
-requirement, which issue #33 separates. `primitives` sets metadata on any individual cell,
-segment or vertex and wins over the shorthands:
-
-```json
-{
-  "edges": {
-    "S": ["market", "market", "market", "market", "market", "market"]
-  },
-  "corners": { "N": ["arch", ".", ".", ".", ".", ".", "arch"] },
-  "primitives": {
-    "cells": { "2,2": { "class": "vault" } },
-    "segments": { "h:3,2": "wall" },
-    "vertices": { "0,1": { "class": "post", "height": 0 } }
-  }
-}
-```
-
-`any` is the deferring value: it carries no requirement and adopts
-whatever the seam contract and the neighbouring tile ask for. A concrete value
-is a requirement, and the design is only placed where that requirement holds.
-Unmentioned primitives default to deferring, so an author writes only what they
-actually care about. The shipped library states neighbour class constraints
-through `edges` rather than `ports`, and no perimeter barriers.
-
-Micro generation is a **catalogue** of region builders, documented in
-[the archived MICRO_GENERATION.md](docs/archive/pre-integration/MICRO_GENERATION.md). A builder takes one area
-and the macro parameters in force over it and states cells, segments, vertices,
-off-lattice props, spawns and features inside it -- declarations over the
-lattice, never physical objects. Which builder owns an area is library data, not
-code: a class rule names one.
-
-```json
-"cellClasses": {
-  "yard": { "generator": "compound", "clutterChance": 0.08 },
-  "hall": { "generator": "pillar-hall" }
-}
-```
-
-Six ship: `loot-scatter` (the fallback, every area can take it), `open-field`,
-`compound`, `pillar-hall`, `rubble` and `courtyard`. `node tools/cli.mts
-builders` lists them. Body scale is stated once, in
-[src/micro/scale.ts](src/micro/scale.ts): a contestant is between 1 and 1.5
-segments across and a hunter between 1.5 and 2, so an opening of exactly 1.5
-admits every contestant and no hunter, and that is where contestant-only
-squeezes come from.
-
-Before any builder runs, `planStreets` decides a route network out of the
-composed geometry -- proven lattice paths, not straight lines -- and reserves it.
-What the streets leave is a **block**, and a block is what a builder is handed:
-regions span many tiles, but a building sited across a street is refused cell by
-cell and the builder silently makes nothing. Two contracts then keep a builder
-from breaking the map: containment, which refuses any declaration reaching
-outside the area it owns, and a clearance guard that drops walls until every one
-of the block's openings is mutually reachable again.
-
-Loot density comes from the tier zone a cell sits in: `params.lootChance` in tier 1, rising by `params.lootTierStep` per tier. Micro generation receives it per candidate slot, so a region spanning two zones is richer at the end nearer the exit. A `cellClasses` entry carries only what is intrinsic to the class, such as clutter. The primitive region generator accepts safe candidate cells and a budget, then returns deterministic spawn slots and an actual-count manifest. Required-feature tiles are reserved. Agents can call `generateRegion` in `src/regions.ts` independently.
-
-Regions are a property of cells. Once every tile is laid, a region search walks
-the cell grid and joins neighbours that share a class across a clear segment, so
-a region may be any shape and may span any number of tiles. Micro generation
-then runs once per discovered region, except for material, which has no builder.
-Candidates are offered on a sparse lattice, so the zone's loot density sets the
-rate without positional bias.
-
-## Agent interfaces
-
-The chain's CLI and MCP are in [`map/tools/`](../tools/) (docs 53, "Tools"). Run them
-from the repository root, for example:
-
-```powershell
 node map/tools/cli.mts generate --seed experiment-1 --out map.json
 node map/tools/cli.mts validate map.json --diagnose true
 node map/tools/cli.mts batch --seed experiment --count 20
+node map/tools/cli.mts sweep --check map/tools/fixtures/chain-baseline.json
 node map/tools/mcp.mts
 ```
 
-The commands below drive the old generators until they are deleted (#146).
-
-```powershell
-node tools/cli.mts generate --seed experiment-1 --mode game --out map.json
-node tools/cli.mts generate --seed experiment-1 --out map.bson   # or --format bson
-node tools/cli.mts generate --seed quick-check --mode playground --zone-width 3 --zone-height 2 --out playground.json
-node tools/cli.mts validate map.json
-node tools/cli.mts batch --seed experiment --count 100 --out report.json
-node tools/cli.mts library --out library.json
-node tools/cli.mts generate --seed custom --library library.json --exits 3 --out custom-map.json
-node tools/cli.mts validate custom-map.json --library library.json
-npm test
-```
-
-A map is written in its wire form, as JSON or as BSON; `validate` accepts either
-and decides from the bytes rather than the file name. A V2 map records a
-fingerprint of the library it was generated with and is read back only with that
-library, because its structure is derived from its layout on read; pass
-`--library` for a map made from anything but the shipped one. Batch reports include min,
-max, mean, median and p95 for each numeric metric, plus failing seeds. Failures produce a nonzero exit status. GUI and CLI use the same ES module, library format, and validator. Reproduction requires the seed **and** parameters, library, and generator revision; a seed alone is not a permanent content identifier.
-
-`sweep` generates the pinned seed set (329 maps across both generators, several sizes and a builder-bound library) on worker threads and compares each map's per-layer content hashes with `tests/fixtures/layer-baseline.json`. It reports every drifted seed and which layer moved, and exits nonzero on any drift. `npm test` checks the baseline's small cases on every run. The full check takes about a minute and a half on 8 workers. `--out FILE [--count N]` captures a new baseline, and refuses when `src/` or `content/` has uncommitted changes. See [Map layers](docs/archive/pre-integration/DESIGN_DECISIONS.md#map-layers) for when a new baseline is allowed.
-
-An optional stdio MCP server exposes `map_generate`, `map_validate`, `library_validate`, and `map_batch`. Launch it with `node tools/mcp.mts` from this directory, or configure an MCP client with the path to `map/macro/tools/mcp.mts` in the checkout it should serve (the primary checkout tracks `main`):
-
-```json
-{
-  "command": "node",
-  "args": ["C:/Users/Corey/Documents/Projects/astra_test/map/macro/tools/mcp.mts"]
-}
-```
-
-The MCP server is implemented and protocol-tested but is not automatically registered in any agent client. All tool output is JSON over stdio. It provides generation/validation, not arbitrary filesystem access. Author files using normal filesystem tools, then validate/generate through CLI or MCP.
-
-## Scale and the current generator
-
-This section describes the current generators, which retire when the generation chain lands ([51](../docs/51-generation-chain.md)).
-
-`generate`, `batch`, the GUI and MCP all call `generateMap`. It places
-category-selected set pieces, fills the remaining slots with WFC, composes the
-result, and validates the map. Its tuning metrics are read off the finished map
-by `measureMap`, the same function the planned path uses: route distances are
-tile-graph hops times the tile size. The tile graph can miss a route the lattice
-proves, so even on a valid map every route metric may be `Infinity`, meaning
-unavailable (never `NaN`), with `unroutedExits` counting the exits it could
-not reach. Each batch distribution reports its finite `samples` and its
-`unavailable` count, and describes only the finite ones. `deadEnds` is a
-tile-graph leaf count, `squeezes` a seam a contestant can cross and a hunter
-cannot, and `solidFraction` is zero with the shipped library because no class
-is material.
-
-- Fixed 6×6 tiles. The map is a 5×5 grid of tier zones masked to a diamond, 13 of them occupied; each zone is `zoneWidth`×`zoneHeight` tiles, 12×6 by default, giving a 60×30 slot bounding box and 936 tiles. Cells are abstract segment units, not meters. Contestant radius 0.625, hunter radius 0.875, from the shared map space's scale (root docs 52, "Units and scale").
-- **Nothing imposes a topology.** No spanning tree, no loop or squeeze budget, and no seam is walled or opened to fit a plan. A seam carries exactly what the two designs beside it declare, and an unstated boundary contributes no wall, so an open field crosses tile seams unbroken. What generation still owes is that the result is walkable. `generateMap` does not choose designs for it: where the result is unreachable, validation reports it rather than the generator cutting an opening. Walking metrics exclude transit.
-- `edges` is a report, not a plan. After the tiles are laid, every neighbouring pair is measured: `width` is the widest _continuous_ opening along the seam (two separate one-cell holes are not a two-cell door), `kind` is only a coarse name for that width — squeeze under 2, door under 3, wide at 3 and over — and a pair with no opening has no edge. Passability is decided by the width and the geometry, never by the name. The artifact does not store seams at all; they are rebuilt from the primitives on read, like the wall list.
-- Consequence worth stating plainly: with the shipped library nothing declares a seam barrier except `market-arcade`, so a generated map is close to an open field and the route to an exit is close to a straight line (`Route / direct` ≈ 1.05 over 200 seeds). Friction is now something a library has to author — interior geometry, sealed perimeters, set pieces — rather than something generation adds. See NEXT_TASKS item 1.
-- `ports` — the four coarse side contracts `any`, `closed`, `door`, `wide`, `squeeze` — is **not consulted**. It only ever fed the tile-edge solver, and there is no longer a solver to feed: what a side carries is stated per segment and per vertex, which was always the real vocabulary. The field is still accepted, still round-trips and is still editable under Topology hints, pending the macro-structure pass that decides whether it has a consumer at all. An empty or fully deferring tile is ordinary content.
-- `any` is meant as the deferring value, not a value a seam can carry: a design that defers on a seam should claim nothing there, leaving the design beside it free to state a wall, an opening or a partial aperture. WFC does not honour that yet; it is a `todo` test in `core.test.ts` waiting on perimeter segment records (#33).
-- Two sealing rules are not enforced yet: a design walled on every side that has a neighbour should never be used as fill (#33), and a template that seals its own interior should never be placed (#34). Both are `todo` tests in `core.test.ts`; today `generateMap` places such a design and validation reports the map.
-- In game mode, set pieces are placed by `category` (`start` and `end` at the western and eastern edges, then `enormous`, `medium` and `small`), only on tiers their `eligibleTiers` list. Playground mode places none. WFC then fills every other slot, and a tile design's own `eligibleTiers` restricts which tiers it fills. `eligibleBonus` is accepted and validated but not read. Tier and bonus themselves belong to the placement, not to the template.
-- Each placement carries an `anchor`. A WFC-filled slot takes its design's authored `anchor`, rotated with it, or the tile centre when it has none; a set-piece slot always takes the tile centre. Routes, features and metrics use it rather than the geometric centre. It is not proven standing room when it is placed; validation checks that it is clear of geometry and reached by the lattice flood.
-- Region search runs on cells after all tiles are laid, so regions are nonrectangular, cross tile seams, and one tile may contribute cells to several regions. A region is an area micro generation works in, not an enclosure: its boundary emits no geometry, and filled cells form material regions without a micro builder.
-- Micro generation may return collidable geometry that is not grid aligned, alongside spawn slots. Validation walks each piece through the cells it crosses and rejects anything that leaves the region that produced it; the usual clearance checks then reject anything that severs a proven route. The shipped rules place none — see the clearance note in [design decisions](docs/archive/pre-integration/DESIGN_DECISIONS.md).
-- Navigation is a half-cell lattice of analytically checked swept-disc moves. A lattice route is a real centered route; the converse does not hold, so the check fails closed and may reject a gap a body could physically use.
-- **Reachability is validated against that lattice, not against the tile graph.** One flood per body over the whole map: every tile's standing room must be reached from the spawn, the contestant must reach every exit from its spawn, and the hunter from the hunter spawn. The tile graph only ever asks whether one anchor reaches another across a single shared seam without leaving either tile, so a body that walks around through a third tile is invisible to it — an approximation that was harmless when a solved topology put a centred aperture in every seam, and is not now. The graph survives as a cached coarse view behind `findPath`, which is what route _metrics_ are measured on; it is deliberately conservative and no longer decides validity.
-- Metrics are observations, not guaranteed fun: no target min-cut solver, squeeze-value/flanking constraint, balanced exit approaches, or controlled geometric dead-end budget. `deadEnds` counts degree-one nodes of the measured tile graph and is not a geometric cul-de-sac; `squeezes` counts seams a contestant can walk and a hunter cannot; `sealedSeams` counts neighbouring pairs the designs left with no opening. Two exits near the diamond tip may share their whole approach.
-- The serialized artifact is not the in-memory shape. Every enumerated value — region class, template id, seam kind, feature kind — is interned once into a shared `strings` table and stored as an integer, bulk fields are packed column by column into the narrowest integer lane that holds them, and anything derivable is dropped and rebuilt on read: a tile's id and position, a region's id and area, every seam between tiles, and the entire wall list, both of which follow from the primitives. A V2 map stores its **layout** — each slot's design, orientation and set piece, the classes the designs state with `any` kept, the layout's own segments and the feature slots — and its **interiors**, what micro generation stated over the layout: material and other classes it laid, segments, levels, spawns, vertices, its own features, and each final region's manifest and props. `decodeArtifact(input, library)` derives the **structure** again (anchors, seam constraints and filled-in classes), then the final grid and region partition from layout plus interiors ([Map layers](docs/archive/pre-integration/DESIGN_DECISIONS.md#map-layers)). A planned map stores the plan laid down in place of the V2 layout, and its tiles, anchors and features are measured again on read. Metrics and validation (the **report**) aren't stored: they are measured again on read, so a map is judged by today's rules. It returns a map deep-equal to the one that was generated, except for the metrics that count the generator run (`RUN_METRICS`, such as `microBlocks` and `portsCorrected`), which only a freshly generated map has. This is wire version 4; version 1, 2 and 3 artifacts are refused by version, so regenerate them.
-- BSON carries the packed columns as binary; JSON carries the same structure with plain number arrays. A default map addressing 260,281 primitives is about 1,050 KB as the in-memory shape, 397 KB as wire JSON and 280 KB as BSON, mostly binary payload. The codec is in `src/bson.ts` and has no dependencies — it is checked against the published example documents byte for byte.
-- The artifact stores cells and segments as coded grids — an interned palette of the enumerated values plus run-length codes — and everything derivable is left out: vertices appear only where something was stated about them, and cell heights only once a map stops being flat. Read them with `gridViews`, `readCell`, `cellIndexAt` and `segmentIndexAt` rather than decoding by hand; `walls` remains a plain list, holding the closed part of every segment plus any off-lattice micro geometry.
-- Generated maps are treated as immutable by cached path queries. After external edits, call `validateMap` to invalidate caches and verify the artifact before using `findPath`.
-
-Run `npm run typecheck` for types alone; `npm test` runs it first. The unit suite exercises deterministic generation, tile interiors and rotation, cell-level region search, interior-aware clearance, input rejection and CLI/MCP behavior. The Map Lab's browser check is the repository root's `node map/tools/tests/lab.browser.mts`. `npm install` only installs development formatting tools.
-
-Direction and design are in root [50](../docs/50-map-generation.md)–[53](../docs/53-map-artifacts-and-tools.md). Questions are in [17](../docs/17-open-questions.md), and what's next is in [41](../docs/41-roadmap.md) and on the Forgejo tracker it names.
+`npm install` only installs development formatting tools.

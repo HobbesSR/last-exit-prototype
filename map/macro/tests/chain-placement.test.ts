@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { libraryFingerprint } from "../src/core.ts";
+import { libraryFingerprint } from "../src/coding.ts";
 import { declaredGrid, layoutViolations, orientDesign } from "../src/chain/declared-grid.ts";
 import { CHAIN_LIBRARY_VERSION, validateLibrary } from "../src/chain/library.ts";
 import type { ChainLibrary, ChainTileDesign } from "../src/chain/library.ts";

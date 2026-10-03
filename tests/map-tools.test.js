@@ -149,7 +149,7 @@ test("the Map Lab's server serves both halves, strips types, and nothing else", 
   assert.match(await (await fetch(`${base}/vendor/sat.mjs`)).text(), /export default module\.exports/);
   const library = await fetch(`${base}/map/macro/content/chain-library.json`);
   assert.match(library.headers.get('content-type'), /json/);
-  for (const refused of ['/map/tools/server.mts', '/map/tools/cli.mts', '/map/macro/tools/cli.mts', '/map/macro/node_modules/typescript/package.json',
+  for (const refused of ['/map/tools/server.mts', '/map/tools/cli.mts', '/map/tools/sweep.mts', '/map/macro/package.json', '/map/macro/node_modules/typescript/package.json',
     '/package.json', '/.env.local', '/map/tools/lab/%2e%2e/server.mts', '/%2e%2e/%2e%2e/package.json', '/map/tools/lab/..%5c..%5cserver.mts'])
     assert.ok([403, 404].includes((await fetch(`${base}${refused}`)).status), refused);
 });

@@ -1,7 +1,7 @@
 # 53. Map artifacts, determinism and tools
 
-Status: current for mapgen's old paths and the chain's Map Lab, CLI and MCP; the
-rules carry into the chain (51). Updated 2026-10-03.
+Status: current for the chain (51), its Map Lab, CLI, MCP and sweep. mapgen's
+old paths were deleted at the switch-over (#146). Updated 2026-10-03.
 
 ## One seed decides the whole map
 
@@ -13,26 +13,24 @@ in the chain (Corey, 2026-09-27):
 - Nothing draws from a stream another step shares.
 - Each step is a function of the objects before it, and doesn't change them.
 
-`map/macro/tests/generation-chain.test.ts` pins this for the old paths: the same
-seed gives deep-equal maps, and a saved layout alone regenerates the stored
-interiors. The chain's stages get the same pins from
-`map/macro/tests/chain-harness.ts` (51 step 3): purity, determinism, and that a
-view is recomputable from saved objects.
+The chain's stages are pinned by `map/macro/tests/chain-harness.ts` (51 step
+3): purity, determinism, and that a view is recomputable from saved objects. A
+saved Layout alone rebuilds the same results (51 step 9), and the sweep pins
+every object and view per seed.
 
 ## What is stored
 
 Two rules apply, in order:
 1. **Don't store what can be derived.** In the chain, only the Layout and the
    region results hold decisions, and every other stage output is a view (51).
-2. **Pack what's left** as an interned palette plus run-length codes, in one
-   shared mechanism (`map/macro/src/coding.ts`).
+2. **Pack what's left** in one shared mechanism (`map/macro/src/coding.ts`):
+   a string table for enumerated values, and integer columns.
 
-**Why packing works:** a map addresses tens of thousands of each primitive,
-and their metadata is almost entirely enumerated values drawn from a small
-set. Stored as arrays of objects, an artifact spends most of its bytes
-re-spelling key names and enum members. The values are strongly coherent in
-space, so runs are long: a default map's 130,140 segments draw on a palette of
-eight spans. It stays plain, readable JSON.
+**Why packing works:** a Layout places hundreds of slots, and their content is
+almost entirely enumerated values drawn from a small set: design ids,
+orientations, set piece names. Stored as arrays of objects, an artifact spends
+most of its bytes re-spelling key names and enum members. It stays plain,
+readable JSON.
 
 **Saving** (Corey, 2026-09-27, verbatim in 17): every stage object can be
 saved alone or together, and a missing one is regenerated on read. Each saved
@@ -45,23 +43,13 @@ not done silently (#70, 51 step 9).
 The shape that is convenient in memory is the wrong shape to store.
 Serialization goes through a distinct wire form, which applies the same two
 rules:
-- Everything derivable is dropped and rebuilt on read. Wall lists come from
-  the primitives through the one function used when generating, so geometry
-  can't drift from what implies it.
+- Everything derivable is dropped and rebuilt on read. Every view, and each
+  result's brief, is recomputed from the Layout through the same functions
+  used when generating, so nothing saved can drift from what implies it.
 - Every enumerated value goes once into a shared `strings` table and travels as
   an integer.
 - Every bulk field becomes a column in the narrowest integer lane that holds
   it.
-
-**Today:** wire version 4 carries mapgen's old paths.
-- A V2 map stores its layout (each slot's design, orientation and set piece;
-  the class grid with `any` kept; its own segment grid; feature slots; the
-  library fingerprint) and its interiors.
-- A planned map stores its planned layout instead.
-- `decodeArtifact` rebuilds a map deep-equal to the generated one, less the
-  metrics that count the generator run.
-- Versions 1–3 are refused by version, with no migration and no legacy
-  reader.
 
 A map records the fingerprint of its library and is read back only with that
 library.
@@ -78,8 +66,9 @@ Version 5 is refused by name: its params have no `contestantCount` or
 - `decodeChainMap` rebuilds a map deep-equal to the generated one. A save of
   the Layout alone rebuilds its results with the game's engines, refused by
   name if their version isn't the one the save records.
-- Versions 1–4 are refused by name. `decodeArtifact` keeps reading 4 until
-  the switch-over (step 10), and names version 5 as a chain map.
+- Versions 1–4 are refused by name. Version 4 held mapgen's old generators'
+  maps; its reader, `decodeArtifact`, was deleted with them (#146), and no
+  legacy reader remains.
 
 ## BSON
 
@@ -93,24 +82,35 @@ things stay documents.
   example documents byte for byte.
 - **A closed segment** is the sentinel `-1` in both encodings, because JSON
   can't carry `NaN`.
-- **Sizes**, for a default map of 936 tiles and 260,281 addressed primitives:
-  about 1,050 KB in memory, 397 KB as wire JSON, and 280 KB as BSON.
+- **Sizes**, for a game map: about 190 KB as wire JSON and 180 KB as BSON,
+  or 11 KB and 5.5 KB for the Layout alone. Region results are the game's own
+  `region-2` data and aren't packed, so BSON saves little on them.
 
 ## Proving a change: the sweep
 
-`node tools/cli.mts sweep --check tests/fixtures/layer-baseline.json` (run
-from `map/macro/`) reruns the pinned seed set and compares per-layer content
-hashes: 329 maps across both old generators, several sizes and a builder-bound
-library.
-- `LAYER_FIELDS` in `tools/sweep.mts` is the only code that knows where each
-  field lives, and hashing refuses a field no entry claims.
+`node map/tools/cli.mts sweep --check map/tools/fixtures/chain-baseline.json`
+(from the repository root, about 25 s) reruns the pinned seed set and compares
+per-view content hashes: 224 maps, 120 of them game maps, with spreads over
+spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
+- Each map's two objects, the Layout and the region results, and every view
+  `mapViews` gives (the declared grid, the resolved layout, the regions, the
+  proof, the zones, the briefs, the built map and the report) get one hash
+  each, so a moved hash names the stage that moved. Hashing refuses a map
+  field the sweep doesn't name.
+- `npm test` pins the quick cases against the same baseline
+  (`tests/map-sweep.test.js`).
 - **A behaviour-preserving change** must leave every hash unchanged. A moved
   hash is a stop-and-escalate.
 - **A deliberate content change** says so in its PR, and recaptures the
-  baseline last, after validation and playability pass unmodified.
+  baseline last (`--out`), after the report shows no defects and maps play
+  acceptably. The capture refuses uncommitted changes to the chain's inputs
+  and records the last commit that touched them.
 
-The chain changes content by design. Its first baseline is captured at the
-switch-over (51 step 10), and the old baseline is no reference for it.
+**The first baseline** was captured at the switch-over (#146), at `a496d21`,
+after the report showed no defects over 60 game and 30 playground maps, and
+`diagnoseBuiltMap` none over 3 game maps. Deleting the old paths then moved
+no hash. mapgen's old sweep and its #47 baseline (329 maps over the old
+generators) were deleted with them.
 
 ## Language and build
 
@@ -158,14 +158,12 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
 - **CLI** (`node map/tools/cli.mts`, from the repository root): `generate`
   (JSON or BSON, or `--layout-only true`), `validate` (a saved map, read with
   the library it was made from, or a library; `--diagnose true`), `batch`
-  (sample size, metric distributions, defects and failures) and `library`.
+  (sample size, metric distributions, defects and failures), `library` and
+  `sweep` (above).
 - **MCP** (`node map/tools/mcp.mts`): bounded stdio tools `map_generate`,
   which returns the wire map with its report, `map_validate`,
   `library_validate`, `map_batch` (at most 5 maps when diagnosed) and
   `library_get`. It is not registered in any agent client by default.
-- **mapgen's old CLI and MCP** (`map/macro/tools/`) still drive the old
-  generators, with the sweep, until they are deleted (#146). They have no
-  browser view any more.
 - **The game's micro tools** (the micro lab, the decomposition lab, the
   generation demo, and the `micro-region` and `decompose-region` CLIs) are
   in 20. All the browser tools share one navigation bar.

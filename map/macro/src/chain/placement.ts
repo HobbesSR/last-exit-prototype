@@ -6,8 +6,7 @@
  * A sample whose set pieces don't fit, or whose fill has no solution, is retried, each
  * attempt on its own stream.
  */
-import { layoutSlots, libraryFingerprint, makeZones, ZONE_COLUMNS, ZONE_ROWS } from "../core.ts";
-import type { MaskCell, MapZone } from "../types.ts";
+import { libraryFingerprint } from "../coding.ts";
 import { solveWfc } from "../wfc.ts";
 import type { TileOption, WfcCompatibility, WfcGrid } from "../wfc.ts";
 import { orientedDesigns } from "./declared-grid.ts";
@@ -18,6 +17,8 @@ import type { ChainLibrary, ChainSetPiece, ChainSetPieceClass, ChainTileDesign, 
 import { stream } from "./random.ts";
 import type { Stream } from "./random.ts";
 import type { ChainParams, Layout, MacroStages, Orientation, PlacedSlot, SegmentKey, SetPieceInstance } from "./types.ts";
+import { layoutSlots, makeZones, ZONE_COLUMNS, ZONE_ROWS } from "./zones.ts";
+import type { MapZone, MaskCell } from "./zones.ts";
 
 export const PLACEMENT_ATTEMPTS = 50;
 /** Game mode's zone size (52, "Tier zones and the mask"). Playground mode allows others. */
@@ -261,9 +262,8 @@ export const placer = ({ openFace }: { openFace: boolean }): MacroStages["placem
     throw new Error(`game mode requires ${GAME_ZONE.width} x ${GAME_ZONE.height} tile zones; choose playground mode for others`);
   const countError = countParamsProblem(params);
   if (countError) throw new Error(countError);
-  const zoneParams = { ...params, tileSize: CHAIN_TILE_SIZE };
-  const zones = new Map(makeZones(zoneParams).map((zone) => [zone.id, zone]));
-  const mask = layoutSlots(zoneParams);
+  const zones = new Map(makeZones(params).map((zone) => [zone.id, zone]));
+  const mask = layoutSlots(params);
 
   // A core element class is painted only inside its owning set pieces (51, "Core elements"), so
   // the fill never places a design that paints one.

@@ -1,17 +1,17 @@
 # 51. The generation chain
 
 Status: accepted 2026-09-28 (PR #80). Integrated with the game's micro half
-2026-09-29 (50). Not implemented.
+2026-09-29 (50). Built through the switch-over, 2026-10-03 (step 10). The live
+game doesn't use it yet (20, 41).
 
 This file specifies map generation as a series of checkpoints with clear
 interfaces between them. mapgen owns the macro stages, 0 to 5 and the map-level
 part of 8. The game owns what happens inside a region, stages 6 and 7 (50).
 The pipeline is new, and it reuses existing leaf modules on both sides.
 
-mapgen's old generators, `generateMap` and `generatePlannedMap`, keep working
-until the switch-over (step 10). Then they're deleted, not kept as legacy. The
-archived mapgen docs in `map/macro/docs/archive/pre-integration/` describe them;
-where they disagree with this file about the chain, this file holds.
+mapgen's old generators, `generateMap` and `generatePlannedMap`, were deleted
+at the switch-over (step 10, #146), not kept as legacy. The archived mapgen
+docs in `map/macro/docs/archive/pre-integration/` describe them, as history.
 
 Corey's directions for the chain (2026-09-28 and 29), verbatim in 17 "Map
 generation":
@@ -119,7 +119,7 @@ Each term has one meaning. 52 defines the library's terms in full.
 | **set piece instance** | One placed copy of a set piece: which one, and the slots it covers | Placement |
 | **core element** | A spawn, hunter spawn, exit, charger or warp: a required thing a set piece class promises and the report counts. A region type's strategy sites it; macro knows only that a set piece class promises it. Formerly "feature" (17, 2026-10-01). Optional objects with special mechanics are a separate, later term | Build, Measurement |
 
-Retired, and confined to the old paths until they're deleted:
+Retired, and deleted with the old paths (#146):
 - `open` as a segment label. `open` is only a cell class.
 - a set piece's own `class` field (52 calls it the primary region class).
 - `ports`: the unread tile side sockets, and the planned path's `PerimeterPort`.
@@ -131,7 +131,7 @@ Retired, and confined to the old paths until they're deleted:
 - `walls`, `gap` and segment spans in the library.
 - mapgen's micro layer (`src/micro/`), and its "interiors" of laid classes and
   segments.
-- "feature" for a core element. The old paths keep the word until they go.
+- "feature" for a core element.
 
 ## The chain
 
@@ -191,7 +191,7 @@ saved map is therefore a Layout, optionally with its region results (see
   already be at least a hunter wide, because no neighbour can lengthen the
   portal it will become. This is the #73 design check.
 - **A new library, authored fresh** against the region type catalogue (track
-  B). Today's library stays with the old paths and retires with them.
+  B). The old library was deleted with the old paths (#146).
 
 ### 1. Placement: seed, params, library → **Layout** (object)
 
@@ -251,7 +251,7 @@ This is the knowledge layer: what the solved placement means.
     fits the whole map's scale: on a game map of 64,800 cells and about 300
     regions it takes 14 to 27 ms (step 5). Guarantees are laid over its runs
     afterwards, so macro needs no finder of its own, and mapgen's
-    `findBoundaries` and #73's `passableRuns` retire with the old paths.
+    `findBoundaries` and #73's `passableRuns` retired with the old paths (#146).
   - A boundary becomes a region's external run in its brief, so macro's runs
     and the SDK's definition must agree. A test runs every `RUN_CASES` case
     through the regions stage.
@@ -532,6 +532,12 @@ Results that are stored aren't rebuilt, so any engines may read them.
 
 ## Retired when the chain lands
 
+**Done (#146):** deleted at the switch-over, with mapgen's old CLI, MCP and
+sweep, the #47 baseline, and wire version 4's reader. What the chain uses was
+kept: `wfc.ts` (less the old path's compass matching), `coding.ts` (less the
+old grid codec, plus `libraryFingerprint`) and `bson.ts`. The zone grid and its
+slots moved from `core.ts` to `chain/zones.ts`.
+
 In mapgen:
 - `generateMap`, `generatePlannedMap`, and everything only they use:
   - `planStreets`, blocks and standing room
@@ -541,7 +547,7 @@ In mapgen:
 - mapgen's micro layer (`src/micro/`): its builders, conform, clearance, loot
   and edit contract
 - tile side `ports` and library geometry
-- today's library
+- the old library (`content/default-library.json`)
 
 ## Build order
 
@@ -823,14 +829,19 @@ reachability is inferred (principle 8).
     - 10a (#144): `map/tools/` with the game's engines, and the CLI and MCP on
       the chain. **Done:** 53, "Tools".
     - 10b (#145): the Map Lab on the chain. **Done:** 53, "Tools".
-    - 10c (#146): the first baseline, then the deletions.
+    - 10c (#146): the first baseline, then the deletions. **Done:** the
+      sweep is in `map/tools/sweep.mts` (53, "Proving a change: the sweep"),
+      and deleting the old paths moved no hash.
 
 Replacing the live game's interim street maze is a later, separate checkpoint
 (20, 41).
 
-Content is expected to change. The old #47 baseline is no reference for the
+Content is expected to change. The old #47 baseline was no reference for the
 new chain. The bar is that the report shows no defects and maps play acceptably, and
-then the new chain's first baseline is captured, last.
+then the new chain's first baseline is captured, last. The live game can't play
+a chain map until the integration checkpoint, so the first baseline was
+captured on the report and the diagnostic (53); a content change after a
+playtest recaptures it.
 
 ## Earlier issues
 

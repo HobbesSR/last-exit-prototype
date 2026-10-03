@@ -7,7 +7,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { decodeArtifact } from "../src/artifact.ts";
 import { briefs, chainZones } from "../src/chain/briefs.ts";
 import type { ChainLibrary } from "../src/chain/library.ts";
 import { generateChainMap, mapViews, MACRO_VERSION } from "../src/chain/map.ts";
@@ -82,7 +81,7 @@ test("a save of the Layout alone rebuilds identical results", () => {
 test("every version mismatch is refused by name", () => {
   const wire = encode(MAP);
   assert.throws(() => decodeChainMap({ ...wire, wire: 4 }, LIBRARY),
-    /wire version 4 isn't a chain map: it holds a map from mapgen's old generators/);
+    /wire version 4 isn't a chain map: it holds a map from mapgen's old generators, which retired at the switch-over/);
   assert.throws(() => decodeChainMap({ ...wire, wire: 1 }, LIBRARY), /wire version 1 isn't a chain map/);
   assert.throws(() => decodeChainMap({ ...wire, wire: 5 }, LIBRARY),
     /wire version 5 isn't a chain map: its params have no contestantCount or hunterCount/);
@@ -95,9 +94,6 @@ test("every version mismatch is refused by name", () => {
     /its results were built by strategies stub-1, not stub-2/);
   // Results that are saved aren't rebuilt, so other engines may read them.
   assert.deepEqual(decodeChainMap(wire, LIBRARY, { ...ENGINES, version: "stub-2" }), MAP);
-  // The old generators' reader names the chain's version rather than calling it unknown.
-  assert.throws(() => decodeArtifact(wire), /wire version 6 is a generation chain map; read it with decodeChainMap/);
-  assert.throws(() => decodeArtifact({ ...wire, wire: 5 }), /wire version 5 is a generation chain map/);
 });
 
 test("results that don't match their layout are refused, not saved", () => {

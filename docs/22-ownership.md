@@ -51,12 +51,9 @@ It has two halves, plus a kernel between them ([50](50-map-generation.md)):
   the two meet: `engines.ts` lends the game's strategies to macro's chain as
   `MapEngines` ([53](53-map-artifacts-and-tools.md)). Neither half imports the tools.
 
-The same problem at the same level has one owner:
-- mapgen's own micro layer (`map/macro/src/micro/`) duplicates the game's and
-  retires at the chain's switch-over.
-- mapgen's planned path (`map/macro/src/plan/`) retires with it.
-
-Don't extend either. A problem both levels face, such as boundary runs,
+The same problem at the same level has one owner. mapgen's own micro layer
+and its planned path duplicated the game's, and were deleted at the chain's
+switch-over (#146). A problem both levels face, such as boundary runs,
 connectivity or reachability checks, is solved at each level within its own
 scope, with a shared definition where the two must agree (50). mapgen imports the kernel,
 and may import the SDK from `map/micro/` ([17](17-open-questions.md) M1). Otherwise

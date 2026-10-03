@@ -6,10 +6,7 @@
   "scripts": {
     "test": "npm run typecheck && node --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "generate": "node tools/cli.mts generate",
-    "batch": "node tools/cli.mts batch",
-    "mcp": "node tools/mcp.mts",
-    "format": "prettier --write src tools tests content docs README.md package.json tsconfig.json"
+    "format": "prettier --write src tests content docs README.md package.json tsconfig.json"
   },
   "devDependencies": {
     "@types/node": "^22.20.2",
