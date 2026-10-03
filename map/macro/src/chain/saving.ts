@@ -14,9 +14,8 @@
  */
 import { decodeBson, encodeBson, looksLikeBson } from "../bson.ts";
 import type { BsonValue } from "../bson.ts";
-import { Strings, canonicalJson, packInts, unpackInts, widen } from "../coding.ts";
+import { Strings, canonicalJson, libraryFingerprint, packInts, unpackInts, widen } from "../coding.ts";
 import type { PackedInts } from "../coding.ts";
-import { libraryFingerprint } from "../core.ts";
 import type { ChainLibrary } from "./library.ts";
 import { MACRO_VERSION, mapViews } from "./map.ts";
 import type { ChainMap, Layout, MapEngines, Orientation, RegionResult } from "./types.ts";
@@ -28,7 +27,7 @@ const RETIRED_VERSIONS: Record<number, string> = {
   1: "it is mapgen's old form, which the chain replaced",
   2: "it is mapgen's old form, which the chain replaced",
   3: "it is mapgen's old form, which the chain replaced",
-  4: "it holds a map from mapgen's old generators (`decodeArtifact` reads it until the switch-over)",
+  4: "it holds a map from mapgen's old generators, which retired at the switch-over (#146); regenerate it on the chain",
   5: "its params have no contestantCount or hunterCount, which spawn counts name since #124; regenerate it from its seed",
 };
 

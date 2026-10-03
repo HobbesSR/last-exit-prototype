@@ -5,11 +5,9 @@ start rules, delegation policy and the Forgejo workflow. Run commands from this
 directory unless a step says otherwise.
 
 mapgen owns macro generation: the tile library, placement, regions, the
-reachability proof and region briefs. `map/micro/` owns what fills a region.
-Don't extend mapgen's own micro layer (`src/micro/`), which duplicates
-`map/micro/`, or its planned path (`src/plan/`). Both retire when the
-generation chain lands. Whatever macro and micro must share lives in
-`map/kernel/`, which neither owns (root 50).
+reachability proof and region briefs, as the generation chain's stages in
+`src/chain/`. `map/micro/` owns what fills a region. Whatever macro and micro
+must share lives in `map/kernel/`, which neither owns (root 50).
 
 ## Before substantive work
 
@@ -29,8 +27,8 @@ Read, in this order:
 6. The Forgejo issue you're working on, and its latest handoff.
 
 `docs/archive/pre-integration/` holds mapgen's former docs. They describe the
-old generators (`generateMap`, `generatePlannedMap`) until those retire. Read
-them only when changing that code, and don't take them as current direction.
+old generators (`generateMap`, `generatePlannedMap`), which were deleted at the
+switch-over (#146). They are history, not current direction.
 
 Before adding a mechanism, search both halves for an existing one. The SDK,
 mapgen and the planned path have each built the same thing more than once
@@ -41,8 +39,8 @@ mapgen and the planned path have each built the same thing more than once
 - Proceed with a documented working assumption rather than stopping. Record an
   unanswered design choice in root 17, "Map generation".
 - Work in flat 2D. 2½D is deferred.
-- The GUI, CLI and MCP share the core rather than reimplementing generation.
-- Keep navigation cache invalidation and region validation intact.
+- The Map Lab, CLI and MCP share `map/tools/core.ts` rather than reimplementing
+  generation.
 - Don't call graph connectivity a proof for geometry that hasn't been checked.
 - Use bounded seed batches for generator changes, and report the actual sample
   sizes.
@@ -52,4 +50,6 @@ mapgen and the planned path have each built the same thing more than once
 - `npm test` (typecheck plus unit tests) for core and tooling changes.
 - The Map Lab is in `map/tools/lab/` now; its browser check is
   `node map/tools/tests/lab.browser.mts`, from the repository root.
-- The seed sweep for any change to the old generators (root 53 and 31).
+- The chain's seed sweep for any change to the chain or its inputs, from the
+  repository root: `node map/tools/cli.mts sweep --check
+  map/tools/fixtures/chain-baseline.json` (root 53 and 31).

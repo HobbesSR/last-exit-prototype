@@ -1,6 +1,6 @@
 # 50. Map generation
 
-Status: accepted direction, 2026-09-29. Updated: 2026-09-29.
+Status: accepted direction, 2026-09-29. Updated: 2026-10-03.
 
 The 5x files are map generation. 50 is the overview and who owns what. 51 is
 the generation chain, 52 the primitives and the library, 53 artifacts,
@@ -30,7 +30,8 @@ And on the documentation:
 > mapgen's docs I think have been part of the bane. I think we need to integrate and normalize the documentation and I'm not sure we could have done it without going through the pains we went through to get to where we are now.
 
 mapgen's former docs are archived in `map/macro/docs/archive/pre-integration/`.
-They still describe the code that retires at the chain's switch-over (51).
+They describe the code deleted at the chain's switch-over (51 step 10, #146),
+and are history.
 
 ## Ownership
 
@@ -97,27 +98,28 @@ So the test is:
 
 | Concern | Game (`map/micro/`) | mapgen | Kind | Disposition |
 | --- | --- | --- | --- | --- |
-| Region builders | `builders.ts`: open, depot, courtyard, ruins, entry (examples) | `src/micro/builders/`: open-field, scatter, pillar-hall, compound, rubble, courtyard | same level | New builders per region type, written on the SDK in `map/micro/` (51 track B). mapgen's retire at the switch-over, and either side's may be mined for ideas. |
-| Builder toolbox | the SDK: mask, geometry, placement, `spreadPoints` | `src/micro/`: mask, edit, placement, rng, scale, clearance | same level | The SDK. mapgen's retires. |
-| Boundary contract | `RegionPort` with a floor and a ceiling; `access.ts`, `boundary.ts` | the planned path's `PerimeterPort` and `micro/conform.ts`; the V2 passable labels (PR #78, closed) | the hand-off between levels | One contract, in the shared map space, with passability obligations only (M4). What a portal asks of geometry is 17 M3. mapgen's retire. |
-| Boundary runs and portals | `buildInterfaces`: straight runs between a region's children, with portal candidates | `plan/ports.ts` `findBoundaries`; #73's `passableRuns`: straight runs between layout regions across the whole map | runs shared, portals tailored per level | One finder, the kernel's: both levels call `boundaryRuns` in `map/kernel/run.ts`, because a macro boundary becomes a region's external run in its brief. Macro calls it directly over layout regions (51 stage 3; it fits the whole map's scale, measured in step 5) and lays guarantees over its runs; `buildInterfaces` builds portal candidates on it. Its cases (`RUN_CASES`) pin any other finder. `findBoundaries` and `passableRuns` retire with the old paths. |
+| Region builders | `builders.ts`: open, depot, courtyard, ruins, entry (examples) | `src/micro/builders/`: open-field, scatter, pillar-hall, compound, rubble, courtyard | same level | New builders per region type, written on the SDK in `map/micro/` (51 track B). mapgen's were deleted at the switch-over (#146); either side's may be mined for ideas, from git history for mapgen's. |
+| Builder toolbox | the SDK: mask, geometry, placement, `spreadPoints` | `src/micro/`: mask, edit, placement, rng, scale, clearance | same level | The SDK. mapgen's was deleted (#146). |
+| Boundary contract | `RegionPort` with a floor and a ceiling; `access.ts`, `boundary.ts` | the planned path's `PerimeterPort` and `micro/conform.ts`; the V2 passable labels (PR #78, closed) | the hand-off between levels | One contract, in the shared map space, with passability obligations only (M4). What a portal asks of geometry is 17 M3. mapgen's were deleted (#146). |
+| Boundary runs and portals | `buildInterfaces`: straight runs between a region's children, with portal candidates | `plan/ports.ts` `findBoundaries`; #73's `passableRuns`: straight runs between layout regions across the whole map | runs shared, portals tailored per level | One finder, the kernel's: both levels call `boundaryRuns` in `map/kernel/run.ts`, because a macro boundary becomes a region's external run in its brief. Macro calls it directly over layout regions (51 stage 3; it fits the whole map's scale, measured in step 5) and lays guarantees over its runs; `buildInterfaces` builds portal candidates on it. Its cases (`RUN_CASES`) pin any other finder. `findBoundaries` and `passableRuns` were deleted with the old paths (#146). |
 | Connectivity over regions | the component grouping in `negotiatePortals`: are a region's children joined by its portal policy | `plan/ports.ts` `proveReachability`: are layout regions joined by guarantees | tailored per level | Each level keeps its own. The macro proof is 51 stage 4, and `proveReachability` is material for it. |
-| Decomposition | the SDK's decomposition (19) | the "decomposition belongs to the region type" direction (#76), and streets and blocks | same level: streets and blocks were macro cutting regions | The SDK. Streets and blocks retire. |
-| Checking built geometry | the SDK's access and boundary validators: `shape.ts` swept discs, in world units | `nav.ts`: a half-cell lattice, in cells | tailored per level | Reachability is a chain of inference (Corey, 2026-09-29, M6): macro's proof over guarantees, plus each builder keeping its promise, all the way down (51 principles 8 and 9). Nothing enforces the promises: the SDK validators are elective utilities, and a builder that breaks its promise is defective. mapgen's lattice stays only as a Map Lab diagnostic. |
+| Decomposition | the SDK's decomposition (19) | the "decomposition belongs to the region type" direction (#76), and streets and blocks | same level: streets and blocks were macro cutting regions | The SDK. Streets and blocks were deleted (#146). |
+| Checking built geometry | the SDK's access and boundary validators: `shape.ts` swept discs, in world units | `nav.ts`: a half-cell lattice, in cells | tailored per level | Reachability is a chain of inference (Corey, 2026-09-29, M6): macro's proof over guarantees, plus each builder keeping its promise, all the way down (51 principles 8 and 9). Nothing enforces the promises: the SDK validators are elective utilities, and a builder that breaks its promise is defective. mapgen's lattice was deleted with the old paths (#146); the Map Lab's diagnostic is the game's `diagnoseBuiltMap` (53). |
 | Loot | loot budget and candidates | `micro/loot.ts`, `plan/loot.ts` | split by level: macro says how much, the region says where | The SDK. Macro loot planning isn't wanted now: Corey, 2026-09-28, "I don't care about loot prescriptions, that can be added in later". |
-| Macro partition | none, apart from the interim maze | V2 (tiles and WFC), and the planned path's partition | macro only | The chain (51), from tiles. The planned path retires. |
+| Macro partition | none, apart from the interim maze | V2 (tiles and WFC), and the planned path's partition | macro only | The chain (51), from tiles. The planned path was deleted (#146). |
 | Body scale | the `cell` profile: diameters 1.25 and 1.75, door 2, squeeze 1.5; `live`: 12 and 23 world units | radii 0.55 and 0.90 cells, until C0 | must agree | One source of truth (M5): stated once in 52, "Units and scale", and held once in code in `map/kernel/scale.ts`. mapgen and the SDK both read from it (51 C0). |
-| Development tools | micro lab, decomposition lab, generation demo | the Map Lab, CLI, MCP | tailored per level | Keep both, under the shared navigation bar (20). The whole-map tools move to `map/tools/` at the switch-over (51 step 10). |
+| Development tools | micro lab, decomposition lab, generation demo | the Map Lab, CLI, MCP | tailored per level | Keep both, under the shared navigation bar (20). The whole-map tools moved to `map/tools/` at the switch-over (51 step 10). |
 | Questions and backlog | 17, 41 | `QUESTIONS.md`, `NEXT_TASKS.md` | same level | 17 and 41 (folded 2026-09-29). Work in progress lives on Forgejo (34). |
-| Artifacts | `micro-1`, `region-2` (a brief's result, 51 stage 6), `decomposition-1`, `realized-decomposition-1` | wire version 4, JSON and BSON (53) | tailored per level | The macro layout keeps mapgen's wire form, as wire version 6. Region results are stored as the game's own `region-2` data, less their briefs (51 step 9, 53). |
+| Artifacts | `micro-1`, `region-2` (a brief's result, 51 stage 6), `decomposition-1`, `realized-decomposition-1` | wire version 6, JSON and BSON (53); version 4, the old generators', is refused by name | tailored per level | The macro layout keeps mapgen's wire form, as wire version 6. Region results are stored as the game's own `region-2` data, less their briefs (51 step 9, 53). |
 
 ## Where the code is today
 
 - **The game:** the interim street maze is live. The micro SDK, the example
   builders, the decomposition machinery and three development labs exist but
   aren't called by the live map (20).
-- **mapgen:** two generators, `generateMap` (tiles, WFC and streets) and
-  `generatePlannedMap`, which both retire when the chain lands (51).
+- **mapgen:** the generation chain's macro stages (51), in
+  `map/macro/src/chain/`. Its two old generators, `generateMap` and
+  `generatePlannedMap`, were deleted at the switch-over (#146).
 - **Layout:** map generation is the top-level `map/` (#105):
   - `map/macro/` is mapgen.
   - `map/micro/` is the micro SDK, its builders and its labs' modules.

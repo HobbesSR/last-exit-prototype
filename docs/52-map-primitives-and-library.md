@@ -2,8 +2,8 @@
 
 Status: accepted model, 2026-09-29. The new library schema and validator are
 implemented in `map/macro/src/chain/library.ts` (#83), and the chain's
-minimal library is authored (#97). Today's library schema retires with
-mapgen's old paths.
+minimal library is authored (#97). The old library and its schema were
+deleted with mapgen's old paths (#146).
 
 This file defines what a map is made of and what the library an author writes
 contains. The chain that consumes it is 51. Original intent is in
@@ -134,7 +134,7 @@ its strategy's, and a strategy may decompose its region hierarchically (19).
 - **Tile set:** a set of tile designs, sometimes just one.
 
 Designs don't carry walls, spans, side sockets (`ports`) or anchors any more;
-those belonged to today's schema (see "Today's library").
+those belonged to the old schema (see "The old library").
 
 ## Set pieces and set piece classes
 
@@ -278,14 +278,15 @@ stage and to play, and it grows from here. The fixture libraries in
   for one cover piece, so it stays clear (54 `cover`). Cover comes mostly from
   the set pieces' 12 × 12 and 18 × 18 regions, so its fill weight is light.
 
-31 describes the library's acceptance checks. Tool and live-game adoption
-remain separate work (51 step 10).
+31 describes the library's acceptance checks. The tools read it (51 step 10);
+live-game adoption remains separate work (20, 41).
 
-## Today's library
+## The old library
 
-`map/macro/content/default-library.json` and its schema serve the old paths
-(archived `DESIGN_DECISIONS.md`, `VOCABULARY.md`). The chain doesn't read it;
-the new library is authored fresh (51 track B). What differs in it:
+`map/macro/content/default-library.json` and its schema served the old paths
+(archived `DESIGN_DECISIONS.md`, `VOCABULARY.md`), and were deleted with them
+(#146). The chain never read it; its library was authored fresh (51 track B).
+What differed in it:
 - `edges` strings that name a neighbour's class or a barrier word
 - `walls` with gaps, and segment spans
 - unread side `ports`

@@ -9,6 +9,8 @@ import { looksLikeBson } from '../macro/src/bson.ts';
 import { chainMapToBson, chainMapToJson } from '../macro/src/chain/saving.ts';
 import { CHAIN_LIBRARY, batch, checkMap, generate, parseJson, readMap, validateLibrary } from './core.ts';
 import type { ToolMap } from './core.ts';
+import { captureBaseline, compareSweep, positiveInteger, runSweep, sweepCases } from './sweep.mts';
+import type { SweepBaseline } from './sweep.mts';
 
 const PARAM_FLAGS = '[--mode game|playground] [--zone-width N --zone-height N] [--exits N --contestants N --hunters N] [--loot-chance X --loot-tier-step X]';
 const HELP = `last-exit-map: chain maps (51), built by the game's region types
@@ -18,6 +20,7 @@ Commands:
   validate FILE [--library FILE] [--diagnose true]   (a saved map, read with the library it was made from; or a library)
   batch [--count N] [--seed PREFIX] ${PARAM_FLAGS} [--library FILE] [--diagnose true] [--out FILE]
   library [--out FILE]   (the chain's library)
+  sweep [--jobs N] (--out FILE [--count N] | --check FILE)   (per-view content hashes over a pinned seed set)
   help
 
 --diagnose runs the game's per-region portal check beside the report. It takes about a minute on a game map.`;
@@ -91,6 +94,32 @@ try {
     const report = batch(o.seed ?? 'batch', o.count ?? 20, params(o), readLibrary(o.library), { diagnose: flag(o.diagnose) });
     output(report, o.out);
     if (!report.valid) process.exitCode = 1;
+  } else if (command === 'sweep') {
+    // It runs for minutes, so it is a command rather than part of npm test.
+    const o = options(rest);
+    if (!o.out === !o.check) throw new Error('sweep needs exactly one of --out or --check');
+    // A check reruns exactly what the baseline pinned, so it can't quietly cover less.
+    const baseline = o.check ? (parseJson(fs.readFileSync(o.check, 'utf8'), o.check) as SweepBaseline) : undefined;
+    if (baseline && o.count) throw new Error("--check reruns the baseline's own cases; drop --count");
+    // Both are checked before any map is generated or any file written.
+    const cases = baseline?.provenance.cases ?? sweepCases(o.count ?? 120);
+    const jobs = o.jobs === undefined ? undefined : positiveInteger('jobs', o.jobs);
+    const started = performance.now();
+    void runSweep(cases, jobs).then((entries) => {
+      const seconds = Number(((performance.now() - started) / 1000).toFixed(0));
+      const count = Object.keys(entries).length;
+      if (o.out) {
+        output(captureBaseline(cases, entries), o.out);
+        process.stderr.write(`captured ${count} maps in ${seconds}s\n`);
+        return;
+      }
+      const drift = compareSweep(baseline!, entries);
+      output({ checked: count, seconds, drift });
+      if (drift.length) process.exitCode = 1;
+    }).catch((error: unknown) => {
+      process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+      process.exitCode = 1;
+    });
   } else throw new Error(`unknown command: ${command}`);
 } catch (error) {
   process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);

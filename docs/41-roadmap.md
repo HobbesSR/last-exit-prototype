@@ -56,7 +56,10 @@ order is 51's:
 - **Track A:** the macro chain, in mapgen.
 - **Track C:** the contract and composition, in the game.
 - **Track B:** the region type catalogue, the strategies, and a new library.
-- **Then the switch-over.**
+- **Then the switch-over.** Done 2026-10-03 (51 step 10, #144 to #146): the
+  Map Lab, CLI and MCP run on the chain from `map/tools/`, its first baseline
+  is captured, and mapgen's old paths are deleted. The live game's adoption
+  is the next checkpoint (20).
 
 Work in progress and its order live on the Forgejo tracker, #82, and
 in each step's issue ([34](34-forgejo-workflow.md)). mapgen's former

@@ -3,10 +3,10 @@
  * declared class, and each segment's prescriptions from the design on each side, kept
  * separate, never merged. It also checks placement's validity over that view.
  */
-import { ZONE_COLUMNS, ZONE_ROWS } from "../core.ts";
 import { CHAIN_TILE_SIZE } from "./library.ts";
 import type { ChainLibrary, ChainTileDesign, SegmentPrescription } from "./library.ts";
 import type { ChainParams, DeclaredGrid, DeclaredSegment, MacroStages, Orientation, SegmentKey } from "./types.ts";
+import { ZONE_COLUMNS, ZONE_ROWS } from "./zones.ts";
 
 const S = CHAIN_TILE_SIZE;
 

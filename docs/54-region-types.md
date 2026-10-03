@@ -362,16 +362,16 @@ the catalogue (17 M18).
 
 ## Today's names
 
-Today's library classes (`market`, `depot`, `park`, `landing`, `evac`,
+The old library's classes (`market`, `depot`, `park`, `landing`, `evac`,
 `tree`, `rock`, `rubble`, `hut`), all bound to `open-field`, and its set
 pieces' primary classes (`market`, `industrial`, `landing`, `military`) are
-material only (52, "Today's library"). The chain's fixture libraries use
+material only (52, "The old library"). The chain's fixture libraries use
 `open`, `hut`, `arrival`, `departure` and `charging`, and this catalogue
 keeps those names.
 
 ## Material to mine, by type
 
-| Type | The game (`map/micro/`) | mapgen (`src/micro/builders/`, retiring) |
+| Type | The game (`map/micro/`) | mapgen (`src/micro/builders/`, deleted in #146; in git history) |
 | --- | --- | --- |
 | `open` | — (it builds nothing) | — |
 | `cover` | `example-open` (built, #127) | `open-field`, `scatter` |

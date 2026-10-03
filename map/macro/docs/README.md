@@ -17,7 +17,8 @@ The original statement of intent is [design_notes.txt](../design_notes.txt).
 ## Archive
 
 - [pre-integration/](archive/pre-integration/README.md): mapgen's docs up to
-  2026-09-29. They describe the old generators until those retire.
+  2026-09-29. They describe the old generators, deleted at the switch-over
+  (#146), and are history.
 - [retired-design-proposal/](archive/retired-design-proposal/): an assistant
   proposal separated from the original design notes.
 - [pre-editor-cleanup/](archive/pre-editor-cleanup/) and

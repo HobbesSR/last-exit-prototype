@@ -27,16 +27,16 @@ contract where one exists: the fixture's map hashes and scripted trace stay in
 `characterization.test.js`.
 
 Changes under `map/macro/` run its own suite with `npm run test:mapgen` (typecheck
-plus unit tests, in that directory). On 2026-10-03 it is green: 379 tests, 375
-pass, 4 todo (each todo names a defect in the old tile path that the chain
-retires). The Map Lab (`map/tools/lab/`) has its own browser check,
-`node map/tools/tests/lab.browser.mts`, which `npm run test:browser` runs. A change
-to mapgen's old generators also runs the seed sweep from `map/macro/`,
-`node tools/cli.mts sweep --check tests/fixtures/layer-baseline.json`. It must
-show no drift unless the PR declares a content change and recaptures last
-([53](53-map-artifacts-and-tools.md)). The chain (51) gets its own checks and
-baseline as it lands. Do not resize test grids or relax generation to make a
-check pass.
+plus unit tests, in that directory). On 2026-10-03, after the old paths were
+deleted (#146), it is green: 100 tests. The Map Lab (`map/tools/lab/`) has its
+own browser check, `node map/tools/tests/lab.browser.mts`, which `npm run
+test:browser` runs. A change to the chain or its inputs (macro's stages and
+library, the game's strategies, the kernel, `shared/`) also runs the chain's
+seed sweep from the repository root, `node map/tools/cli.mts sweep --check
+map/tools/fixtures/chain-baseline.json` (224 maps, about 25 s); `npm test`
+pins its quick cases. It must show no drift unless the PR declares a content
+change and recaptures last ([53](53-map-artifacts-and-tools.md)). Do not
+resize test grids or relax generation to make a check pass.
 
 The chain's authored library (52) is checked against the actual region strategies.
 Macro's `tests/chain-content.test.ts` checks the game quotas in 52, distinct
