@@ -61,8 +61,8 @@ the agent starts its next branch from fresh `forgejo/main`.
 4. Run the gates in [31](31-verification.md) for what you touched, then
    `git push -u forgejo HEAD`.
 5. Open the PR with `create_pull_request`, linking the issue ("Fixes #N").
-   Re-running it returns the existing PR. Say in the body which gates ran and
-   which were skipped.
+   Re-running it returns the existing PR. Say in the body what testing you did,
+   including which gates ran and which were skipped.
 6. Review others with `list_pull_requests` and `get_pull_request_diff`
    (`git fetch forgejo pull/N/head` if the diff is truncated). Post the verdict
    with `submit_pull_request_review` (`APPROVED`, `REQUEST_CHANGES` or `COMMENT`);
