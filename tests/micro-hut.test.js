@@ -83,11 +83,13 @@ test('a region with no box that keeps the promise is open, the last resort (17 M
   };
   open(cellsOf(2, 3), [{ id: 'north', axis: 'h', x: 0, y: 0, length: 2 }]);
   open(cellsOf(5, 5), []);
+  // Narrower than 6 on one axis (54): a 4 × 4 box and its doorstep would fit, but the region is too small.
+  for (const [w, h] of [[4, 6], [5, 6], [6, 4], [6, 5], [5, 12]]) open(cellsOf(w, h), [{ id: 'south', axis: 'h', x: 0, y: h, length: 2 }]);
   // Every side has a portal, so every 4 × 4 box would stand on an approach.
   open(cellsOf(6, 6), [{ id: 'n', axis: 'h', x: 2, y: 0, length: 2 }, { id: 's', axis: 'h', x: 2, y: 6, length: 2 },
     { id: 'w', axis: 'v', x: 0, y: 2, length: 2 }, { id: 'e', axis: 'v', x: 6, y: 2, length: 2 }]);
-  // The only box would cut the one 4-wide neck joining the two portals.
-  open(cellsOf(14, 4), [{ id: 'w', axis: 'v', x: 0, y: 1, length: 2 }, { id: 'e', axis: 'v', x: 14, y: 1, length: 2 }]);
+  // The only boxes would cut the one 4-wide neck joining the two portals. The nub makes the region 6 tall without room for a box.
+  open(cellsOf(14, 6, (x, y) => y < 4 || x < 2), [{ id: 'w', axis: 'v', x: 0, y: 1, length: 2 }, { id: 'e', axis: 'v', x: 14, y: 1, length: 2 }]);
 });
 
 test('a hut is deterministic in its seed', () => {

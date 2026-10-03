@@ -10,6 +10,8 @@ import type { BuiltRegion, LootSite, RegionBrief } from '../types.ts';
 
 /** The building's box in cells (54, proposed). */
 const BOX = 4;
+/** The least extent a hut region has on each axis, in cells (54, proposed). Smaller goes to `open`. */
+const REGION = 6;
 /**
  * How far the house stands inside its box, in cells. A yard a door wide between the box and
  * the region's edge is then a quarter cell wider, enough for the sampled route search (20).
@@ -66,6 +68,8 @@ export function buildHut(brief: RegionBrief): BuiltRegion {
 
 /** The box's top-left cell and its door's side, or nothing when no box keeps the region's promise. */
 function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>): { x: number; y: number; door: Side } | undefined {
+  const xs = mask.cells.map(c => c.x), ys = mask.cells.map(c => c.y);
+  if (Math.max(...xs) - Math.min(...xs) + 1 < REGION || Math.max(...ys) - Math.min(...ys) + 1 < REGION) return undefined;
   const key = (x: number, y: number) => `${x},${y}`;
   const fits = (x: number, y: number, inBox: (x: number, y: number) => boolean) => {
     for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) if (!mask.has(i, j) || inBox(i, j)) return false;

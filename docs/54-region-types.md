@@ -204,6 +204,9 @@ inside, and windows and doors let sight through.
   unlocked doors.
   **Built (#129):** `map/micro/strategies/hut.ts`. It reasons in cells, where
   a hunter is a 2 × 2 block of yard cells, so it needs no route search.
+  - **The size:** a region less than 6 cells across on either axis goes to
+    `open` before any box is tried, even where a box and its doorstep would
+    fit. The L and the ring count by their extent, not by a contained 6 × 6.
   - **The box:** it tries the region's contained 4 × 4 boxes in a seeded
     order, and takes the first that stays off every portal's approach (the
     two cells inward along it), leaves joined every two portals the empty
