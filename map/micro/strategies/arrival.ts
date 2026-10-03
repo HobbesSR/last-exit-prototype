@@ -1,6 +1,5 @@
-import { circle } from '../../../shared/shape.ts';
-import { buildCover } from './cover.ts';
-import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
+import { coverAround } from './cover.ts';
+import { createRegionMask } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
 import { spreadPoints } from '../placement.ts';
 import { portalStands } from '../portals.ts';
@@ -26,24 +25,7 @@ export function buildArrival(brief: RegionBrief): BuiltRegion {
   const points = spreadPoints(mask, { count: requested, radius, seed: brief.seed,
     minimumSpacing: Math.max(radius * 2, (spacing ?? 0) * size), ...(root ? { anchor: root } : {}) }).points;
   const coreElements = points.map(point => ({ kind: 'spawn' as const, ...point }));
-  const spawnDiscs = points.map(point => circle(point.x, point.y, radius));
-
-  // Cover's boxes preserve portal access by spacing. Remove any box that claims a
-  // spawn's standing room or severs that spawn's route to the first portal.
-  const cover = buildCover(brief);
-  const elements: BuiltRegion['elements'] = [], blockers: ReturnType<typeof elementShapes> = [];
-  for (const element of cover.elements) {
-    const shapes = elementShapes(element);
-    if (shapes.some(shape => spawnDiscs.some(spawn => shapesOverlap(shape, spawn)))) continue;
-    const next = [...blockers, ...shapes];
-    if (root && points.some(point => !findRegionRoute(mask, next, root, point, radius))) continue;
-    elements.push(element);
-    blockers.push(...shapes);
-  }
-  const loot = cover.loot.filter(site => {
-    const disc = circle(site.x, site.y, metrics.lootRadius);
-    return !spawnDiscs.some(spawn => shapesOverlap(disc, spawn));
-  });
+  const { elements, loot } = coverAround(brief, points.map(point => ({ ...point, radius })), root);
 
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements, loot,
     manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0,
