@@ -343,7 +343,7 @@ try {
   malformedPage.on("pageerror", (error: Error) => errors.push(error.message));
   await malformedPage.addInitScript(() =>
     localStorage.setItem(
-      "last-exit-chain-library-v2",
+      "last-exit-chain-library-v3",
       JSON.stringify({ version: 2 }),
     ),
   );

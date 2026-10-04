@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { generateChainMap, mapViews } from '../map/macro/src/chain/map.ts';
 import { chainMapToBson, chainMapToJson, decodeChainMap, readChainMap } from '../map/macro/src/chain/saving.ts';
 import { buildRegion, REGION_TYPES_VERSION } from '../map/micro/region-types.ts';
@@ -11,7 +10,7 @@ import { composeRegions } from '../map/micro/compose.ts';
  * micro don't import each other (50), so this test is where they meet. Playground mode
  * intentionally places no set pieces; use a game-size map to exercise real core elements.
  */
-const LIBRARY = JSON.parse(readFileSync(new URL('../map/macro/content/chain-library.json', import.meta.url), 'utf8'));
+import { CHAIN_LIBRARY as LIBRARY } from '../map/chain.ts';
 const GAME = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 const ENGINES = { version: REGION_TYPES_VERSION, build: brief => buildRegion(brief), compose: composeRegions };
 const map = generateChainMap('library-container', GAME, LIBRARY, 48, ENGINES);

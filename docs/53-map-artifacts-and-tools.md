@@ -51,11 +51,13 @@ rules:
 - Every bulk field becomes a column in the narrowest integer lane that holds
   it.
 
-A map records the fingerprint of its library and is read back only with that
-library.
+A map embeds its flattened version 3 library and records its fingerprint.
+Reading verifies the embedded content against that fingerprint; no module files
+or external library are needed. An optional supplied library must match too.
 
-**The chain** is wire version 6 (51 step 9, `map/macro/src/chain/saving.ts`).
-Version 5 is refused by name: its params have no `contestantCount` or
+**The chain** is wire version 7 (51 step 9, `map/macro/src/chain/saving.ts`).
+Version 6 is refused by name because it lacks the embedded resolved library
+and authored-size metadata. Version 5 is refused by name: its params have no `contestantCount` or
 `hunterCount` (#124).
 - Its Layout goes through this form: slot positions, designs and
   orientations, and each set piece instance with its slots, as columns, with
@@ -141,10 +143,10 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   - **The report** shows beside `diagnoseBuiltMap`. Generation, reading a
     save and the diagnostic run in a worker, and the diagnostic runs only on
     request and can be cancelled.
-  - **Saving:** wire 6 as JSON or BSON, or the Layout alone. A save loads
-    with the library chosen in the lab. Its bytes equal the CLI's for the same
+  - **Saving:** wire 7 as JSON or BSON, or the Layout alone. A save loads
+    with its embedded library, independently of the current Lab selection. Its bytes equal the CLI's for the same
     seed, which the browser test checks.
-  - **The Chain Library tab** (51 B1) authors the version 2 schema, validates
+  - **The Chain Library tab** (51 B1) authors the version 3 schema, validates
     import and export, and previews tile-local derived portals and invalid
     passable prescriptions. Its perimeter preview is provisional until
     placement resolves neighboring tiles. It can load the chain's library to

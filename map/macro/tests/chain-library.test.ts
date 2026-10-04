@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { CHAIN_LIBRARY_VERSION, validateLibrary } from "../src/chain/library.ts";
+import { CHAIN_LIBRARY_VERSION, resolveLibrary, validateLibrary } from "../src/chain/library.ts";
 import type { ChainLibrary } from "../src/chain/library.ts";
 
 const FIXTURE = JSON.parse(readFileSync(new URL("./fixtures/chain-library.json", import.meta.url), "utf8")) as ChainLibrary;
@@ -14,10 +14,41 @@ const refusal = (library: unknown, label: RegExp) => {
 };
 
 test("fixture is valid and the chain has its own version", () => {
-  assert.equal(CHAIN_LIBRARY_VERSION, 2);
+  assert.equal(CHAIN_LIBRARY_VERSION, 3);
   assert.deepEqual(validateLibrary(FIXTURE, TYPES), { valid: true, errors: [] });
   // Version 1 named core elements "features"; it is refused by name, not read.
   refusal({ ...copy(), version: 1 } as unknown as ChainLibrary, /unsupported version 1/);
+  refusal({ ...copy(), version: 2 } as unknown as ChainLibrary, /unsupported version 2/);
+});
+
+test("recursive diamond includes load a module once in stable order", () => {
+  const root = { name: "diamond", version: 3, zonePlan: "diamond", zoneWidth: 12, zoneHeight: 6,
+    includes: [{ name: "left", version: 3 }, { name: "right", version: 3 }], setPieceClasses: [] };
+  const registry = {
+    base: { name: "base", version: 3, cellClasses: { open: { regionType: "open-field" } },
+      tiles: [{ id: "base", defaultCellClass: "open", orientations: [0] }] },
+    left: { name: "left", version: 3, includes: [{ name: "base", version: 3 }],
+      tiles: [{ id: "left", defaultCellClass: "open", orientations: [0] }] },
+    right: { name: "right", version: 3, includes: [{ name: "base", version: 3 }],
+      tiles: [{ id: "right", defaultCellClass: "open", orientations: [0] }] },
+  };
+  const result = resolveLibrary(root, registry);
+  assert.deepEqual(result.tiles.map((tile) => tile.id), ["base", "left", "right"]);
+  assert.equal("includes" in result, false);
+  assert.deepEqual(validateLibrary(result, new Set(["open-field"])).errors, []);
+});
+
+test("includes reject missing modules, cycles, version conflicts and redefinitions with sources", () => {
+  const root = { name: "diamond", version: 3, zonePlan: "diamond", zoneWidth: 12, zoneHeight: 6,
+    includes: [{ name: "left", version: 3 }], setPieceClasses: [] };
+  assert.throws(() => resolveLibrary(root, {}), /diamond: missing module left@3/);
+  assert.throws(() => resolveLibrary(root, { left: { name: "left", version: 2 } }), /requested version 3, found 2/);
+  assert.throws(() => resolveLibrary(root, { left: { name: "left", version: 3,
+    includes: [{ name: "left", version: 3 }] } }), /include cycle at left@3/);
+  assert.throws(() => resolveLibrary({ ...root, includes: [{ name: "left", version: 3 }, { name: "right", version: 3 }] }, {
+    left: { name: "left", version: 3, tiles: [{ id: "field" }] },
+    right: { name: "right", version: 3, tiles: [{ id: "field" }] },
+  }), /tiles field redefined in right; first defined in left/);
 });
 
 test("cell class registry is total and each entry names a known region type", () => {
@@ -179,4 +210,13 @@ test("tiers, segment addresses and set piece slots have unambiguous bounds", () 
   const slot = copy();
   slot.setPieces[0]!.tiles.push(structuredClone(slot.setPieces[0]!.tiles[0]!));
   refusal(slot, /duplicate slot 0,0/);
+});
+
+test("module definitions cannot be overridden by the including library or own quotas", () => {
+  const top = { name: "top", version: 3, zonePlan: "diamond", zoneWidth: 12, zoneHeight: 6,
+    includes: [{ name: "base", version: 3 }], setPieceClasses: [], cellClasses: { open: { regionType: "open-field" } } };
+  const base = { name: "base", version: 3, cellClasses: top.cellClasses };
+  assert.throws(() => resolveLibrary(top, { base }), /cell class open redefined in top; first defined in base/);
+  assert.throws(() => resolveLibrary(top, { base: { ...base, setPieceClasses: [] } }), /base: unknown field setPieceClasses/);
+  assert.throws(() => resolveLibrary(top, Object.create({ base })), /missing module base/);
 });

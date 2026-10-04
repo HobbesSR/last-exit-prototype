@@ -491,15 +491,9 @@ input("load").onchange = async () => {
   const file = input("load").files?.[0];
   input("load").value = "";
   if (!file) return;
-  let library: unknown;
-  try {
-    library = chosenLibrary();
-  } catch (failure) {
-    return fail(failure);
-  }
   busy = true;
   setStatus(`Reading ${file.name}…`);
-  mapWorker = ask(mapWorker, { kind: "read", saved: new Uint8Array(await file.arrayBuffer()), library }, received);
+  mapWorker = ask(mapWorker, { kind: "read", saved: new Uint8Array(await file.arrayBuffer()) }, received);
 };
 
 // ── Controls ────────────────────────────────────────────────────────────────

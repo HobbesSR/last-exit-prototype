@@ -1,0 +1,94 @@
+{
+  "name": "diamond-12x6",
+  "version": 3,
+  "zonePlan": "diamond",
+  "zoneWidth": 12,
+  "zoneHeight": 6,
+  "includes": [
+    {
+      "name": "common-primitives",
+      "version": 3
+    },
+    {
+      "name": "common-set-pieces",
+      "version": 3
+    }
+  ],
+  "setPieceClasses": [
+    {
+      "id": "start",
+      "placementRule": "start",
+      "quota": 1,
+      "setPieces": [
+        "landing"
+      ],
+      "coreElements": {
+        "spawn": "contestantCount"
+      }
+    },
+    {
+      "id": "end",
+      "placementRule": "end",
+      "quota": 1,
+      "setPieces": [
+        "evac"
+      ],
+      "coreElements": {
+        "exit": "exitCount",
+        "hunter-spawn": "hunterCount"
+      }
+    },
+    {
+      "id": "enormous",
+      "placementRule": "enormous",
+      "quota": 3,
+      "setPieces": [
+        "hut-row",
+        "cover-field",
+        "rubble-lanes"
+      ]
+    },
+    {
+      "id": "medium",
+      "placementRule": "medium",
+      "quota": 4,
+      "setPieces": [
+        "hut-yard",
+        "cover-patch",
+        "rubble-lane"
+      ]
+    },
+    {
+      "id": "small",
+      "placementRule": "small",
+      "quota": 10,
+      "setPieces": [
+        "hut-yard",
+        "cover-patch",
+        "rubble-lane"
+      ]
+    },
+    {
+      "id": "charger",
+      "placementRule": "charger",
+      "quota": 1,
+      "setPieces": [
+        "charging-station"
+      ],
+      "coreElements": {
+        "charger": 1
+      }
+    },
+    {
+      "id": "transit",
+      "placementRule": "transit",
+      "quota": 6,
+      "setPieces": [
+        "transit-station"
+      ],
+      "coreElements": {
+        "warp": 1
+      }
+    }
+  ]
+}

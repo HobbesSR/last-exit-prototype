@@ -6,10 +6,10 @@ Design documentation lives in the repository's numbered docs: [50](../../docs/50
 
 ## Layout
 
-- `src/chain/`: the chain's stages and views (51), the map container and its one accessor (`map.ts`), and saving in wire version 6 (`saving.ts`).
+- `src/chain/`: the chain's stages and views (51), the map container and its one accessor (`map.ts`), and saving in wire version 7 (`saving.ts`).
 - `src/wfc.ts`: the fill's solver, over named relations, with the open-face rule's backjumping (51 step 4).
 - `src/coding.ts` and `src/bson.ts`: the wire form's packing, the library fingerprint, and the in-house BSON codec (53).
-- `content/chain-library.json`: the chain's library (52, "The chain's library").
+- `content/diamond-12x6.json`: the chain's library (52, "The chain's library").
 - `tests/`: each stage's tests, with fixture libraries that exercise every rule.
 
 mapgen's old generators, `generateMap` and `generatePlannedMap`, with streets, anchors, its own micro layer, its planned path, the old library, CLI, MCP and sweep, were deleted at the switch-over (51 step 10, #146). They are in git history before that change, and the [archived docs](docs/archive/pre-integration/README.md) describe them.

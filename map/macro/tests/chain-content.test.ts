@@ -1,5 +1,5 @@
 /**
- * B4 (#97): the chain's own library, `content/chain-library.json`, authored against the
+ * B4 (#97): the chain's own library, `content/diamond-12x6.json`, authored against the
  * catalogue's minimal set (54). Its region types are checked against the game's registry
  * in the root `tests/map-library.test.js`, since macro doesn't import micro (50).
  */
@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { orientDesign, parseKey } from "../src/chain/declared-grid.ts";
-import { CHAIN_TILE_SIZE, validateLibrary } from "../src/chain/library.ts";
+import { CHAIN_TILE_SIZE, resolveLibrary, validateLibrary } from "../src/chain/library.ts";
 import type { ChainLibrary } from "../src/chain/library.ts";
 import { placement } from "../src/chain/placement.ts";
 import { proof, proofViolations } from "../src/chain/proof.ts";
@@ -15,7 +15,10 @@ import { portalViolations, regions } from "../src/chain/regions.ts";
 import { resolution } from "../src/chain/resolution.ts";
 import type { ChainParams, Orientation } from "../src/chain/types.ts";
 
-const LIBRARY = JSON.parse(readFileSync(new URL("../content/chain-library.json", import.meta.url), "utf8")) as ChainLibrary;
+const content = (name: string): unknown => JSON.parse(readFileSync(new URL(`../content/${name}.json`, import.meta.url), "utf8"));
+const LIBRARY: ChainLibrary = resolveLibrary(content("diamond-12x6"), {
+  "common-primitives": content("common-primitives"), "common-set-pieces": content("common-set-pieces"),
+});
 /** The catalogue's minimal set (54), which B3 built. */
 const MINIMAL_SET = new Set(["open", "cover", "rubble", "hut", "arrival", "departure", "charging", "transit"]);
 const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };

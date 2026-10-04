@@ -23,7 +23,11 @@ const $ = (id: string): HTMLElement => document.getElementById(id)!;
 const select = (id: string): HTMLSelectElement => $(id) as HTMLSelectElement;
 const area = (id: string): HTMLTextAreaElement => $(id) as HTMLTextAreaElement;
 const starter: ChainLibrary = {
+  name: "lab-draft",
   version: CHAIN_LIBRARY_VERSION,
+  zonePlan: "diamond",
+  zoneWidth: 12,
+  zoneHeight: 6,
   cellClasses: {
     open: { regionType: "open-field" },
     hut: { regionType: "hut" },
@@ -63,7 +67,7 @@ const starter: ChainLibrary = {
 };
 type Section =
   "classes" | "tiles" | "tileSets" | "setPieces" | "setPieceClasses";
-const KEY = "last-exit-chain-library-v2";
+const KEY = "last-exit-chain-library-v3";
 let library: ChainLibrary = structuredClone(starter);
 let savedDraftWarning = "";
 function declaredRegionTypeIds(raw: unknown): Set<string> {
@@ -950,7 +954,7 @@ function download(): void {
   );
   const link = document.createElement("a");
   link.href = url;
-  link.download = "last-exit-chain-library-v2.json";
+  link.download = "last-exit-chain-library-v3.json";
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

@@ -223,10 +223,39 @@ the live game.
 
 The brief translation (51 stage 5) converts between the last two.
 
+## Library modules and authored sizes
+
+Schema version 3 libraries declare `name`, `zonePlan`, `zoneWidth` and
+`zoneHeight`. Game mode requires its zone dimensions to match that library;
+playground dimensions remain free. Version 2 is refused by name.
+
+A library may include named, versioned modules through
+`includes: [{ name: "common-primitives", version: 3 }]`. Modules carry cell
+classes, tiles, tile sets and set pieces, and may include other modules.
+The top library owns set piece classes and quotas. Modules cannot supply them.
+The version is the schema version; a reference must match the module's version.
+
+`resolveLibrary` takes a registry keyed by module name. It visits includes in
+listed depth-first order and loads a repeated module identity once. Missing
+modules, include cycles and mismatched names or versions are errors. Redefining
+an id in the same category is an error naming both sources, including when the
+top library tries to override a module. Competing definitions belong in separate
+modules, as requested in [17.2.7](17.2.7-zone-plans.md).
+
+Resolution produces an independent flattened library with no includes. Its full
+content, including authored metadata, determines the fingerprint. Saved maps
+embed that resolved library ([53](53-map-artifacts-and-tools.md)). Node's CLI
+loads named module JSON files beside the top library; browser bundles supply the
+same registry through JSON imports. The Lab editor imports and exports resolved
+libraries.
+
 ## The chain's library
 
-`map/macro/content/chain-library.json` is the library the chain is authored
-with (B4, #97). It holds 54's minimal set. That is enough to exercise every
+`map/macro/content/diamond-12x6.json` is the library the chain is authored
+with (B4, #97; modularized in #168). It includes `common-primitives.json`
+and `common-set-pieces.json`, which also includes the primitives. Definitions
+keep their original order and content. The top library owns the classes and
+quotas for the diamond at its declared size. It holds 54's minimal set. That is enough to exercise every
 stage and to play, and it grows from here. The fixture libraries in
 `map/macro/tests/fixtures/` stay with the stage tests.
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
  * The map CLI (53, "Tools"): chain maps, placed by macro and built by the game's
- * strategies, saved in wire version 6.
+ * strategies, saved in wire version 7.
  */
 import fs from 'node:fs';
+import { readLibraryFile } from './library-files.mts';
 import process from 'node:process';
 import { looksLikeBson } from '../macro/src/bson.ts';
 import { chainMapToBson, chainMapToJson } from '../macro/src/chain/saving.ts';
@@ -47,7 +48,7 @@ const flag = (value: string | undefined): boolean => {
 const params = (o: Record<string, string>) =>
   Object.fromEntries(PARAMS.filter(key => o[key] !== undefined).map(key => [key, o[key]]));
 const readLibrary = (file?: string): unknown =>
-  file ? parseJson(fs.readFileSync(file, 'utf8'), file) : CHAIN_LIBRARY;
+  file ? readLibraryFile(file) : CHAIN_LIBRARY;
 
 function write(data: string | Uint8Array, out?: string): void {
   if (out) fs.writeFileSync(out, data);
@@ -68,7 +69,7 @@ function readMapOrLibrary(file: string, library: unknown): { map: ToolMap } | { 
   const bytes = new Uint8Array(fs.readFileSync(file));
   if (looksLikeBson(bytes)) return { map: readMap(bytes, library) };
   const value = parseJson(new TextDecoder().decode(bytes), file) as Record<string, unknown> | null;
-  return value?.format === 'last-exit-map' ? { map: readMap(value, library) } : { library: value };
+  return value?.format === 'last-exit-map' ? { map: readMap(value, library) } : { library: readLibraryFile(file) };
 }
 
 try {
@@ -85,7 +86,7 @@ try {
     const [file, ...flags] = rest;
     if (!file || file.startsWith('--')) throw new Error('validate requires exactly one file');
     const o = options(flags);
-    const read = readMapOrLibrary(file, readLibrary(o.library));
+    const read = readMapOrLibrary(file, o.library ? readLibrary(o.library) : undefined);
     const result = 'map' in read ? checkMap(read.map, { diagnose: flag(o.diagnose) }) : validateLibrary(read.library);
     output(result);
     if (!result.valid) process.exitCode = 1;

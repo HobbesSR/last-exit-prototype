@@ -7,12 +7,16 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { placement } from "../src/chain/placement.ts";
+import { resolveLibrary } from "../src/chain/library.ts";
 import type { ChainLibrary } from "../src/chain/library.ts";
 import type { ChainParams } from "../src/chain/types.ts";
 import { solveWfc } from "../src/wfc.ts";
 import type { TileOption, WfcGrid } from "../src/wfc.ts";
 
-const LIBRARY = JSON.parse(readFileSync(new URL("../content/chain-library.json", import.meta.url), "utf8")) as ChainLibrary;
+const content = (name: string): unknown => JSON.parse(readFileSync(new URL(`../content/${name}.json`, import.meta.url), "utf8"));
+const LIBRARY: ChainLibrary = resolveLibrary(content("diamond-12x6"), {
+  "common-primitives": content("common-primitives"), "common-set-pieces": content("common-set-pieces"),
+});
 
 test("a 20,000-cell chain solves without exhausting the stack", () => {
   const cells = 20000;
