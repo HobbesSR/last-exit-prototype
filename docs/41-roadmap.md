@@ -67,6 +67,10 @@ order is 51's:
   near the old library's, with placeholder regions where no strategy exists. 24 × 12
   and 36 × 18 libraries are hand authored (#171, 52), and live matches stay at
   12 × 6 until pacing and per-tick cost are measured at those sizes.
+- **Then: the building library** (tracker #187, 2026-10-04). Corey's design
+  (#185) becomes one SDK library for building designs, walls and openings
+  ([56](56-buildings.md)), starting with stage L1, which changes no output. Its open choices are
+  M26 to M33 ([17.2.8](17.2.8-building-questions.md)).
 
 Work in progress and its order live on the Forgejo tracker, #82, and
 in each step's issue ([34](34-forgejo-workflow.md)). mapgen's former
