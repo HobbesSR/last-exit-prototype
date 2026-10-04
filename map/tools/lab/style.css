@@ -21,27 +21,21 @@ body {
   display: flex;
   flex-direction: column;
 }
-header {
-  min-height: 72px;
-  padding: 20px 30px;
-  border-bottom: 1px solid #28343e;
+.app-title {
+  margin: 0 20px 0 0;
+  font-size: 16px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  white-space: nowrap;
 }
-.eyebrow {
-  font-size: 10px;
-  letter-spacing: 2px;
-  color: #92a6b3;
-}
-h1 {
-  margin: 5px 0;
-  font-size: 28px;
-  font-weight: 600;
-}
-h1 span {
+.app-title span {
   font-weight: 300;
   color: #617887;
+  margin-left: 4px;
+}
+.app-nav-spacer {
+  flex: 1;
 }
 .header-actions {
   display: flex;
@@ -51,6 +45,8 @@ h1 span {
 #status {
   font-size: 12px;
   color: #91d0b0;
+  display: flex;
+  align-items: center;
 }
 button,
 .file-button {
@@ -434,12 +430,43 @@ main {
   margin: 0 0 4px;
   accent-color: #c8f185;
 }
+.resizer {
+  height: 8px;
+  background: #1a242c;
+  border-top: 1px solid #28343e;
+  border-bottom: 1px solid #28343e;
+  cursor: row-resize;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.resizer::before {
+  content: "";
+  width: 40px;
+  height: 2px;
+  background: #3a4b59;
+  border-radius: 1px;
+}
+.resizer:hover {
+  background: #23313d;
+}
+.resizer:hover::before {
+  background: #4a6173;
+}
+.resizer.collapsed {
+  cursor: pointer;
+}
 .diagnostics {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border-top: 1px solid #28343e;
-  max-height: 38vh;
+  height: 30vh;
+  min-height: 40px;
   overflow: hidden;
+  flex: none;
+}
+.diagnostics.collapsed {
+  display: none !important;
 }
 .panel {
   padding: 0 20px 14px;
@@ -491,9 +518,16 @@ main {
   #mapView {
     min-height: 60vh;
   }
+  .resizer {
+    display: none !important;
+  }
   .diagnostics {
     grid-template-columns: 1fr;
     max-height: none;
+    height: auto !important;
+  }
+  .diagnostics.collapsed {
+    display: grid !important;
   }
   .panel + .panel {
     border-left: 0;
