@@ -9,6 +9,8 @@ import { mkdir, readFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 import { CHAIN_LIBRARY, checkMap, generate } from "../core.ts";
 import { chainMapToBson, chainMapToJson } from "../../macro/src/chain/saving.ts";
+import { mapViews } from "../../macro/src/chain/map.ts";
+import { GAME_ENGINES } from "../engines.ts";
 
 const require = createRequire(import.meta.url);
 let playwright: any;
@@ -75,7 +77,20 @@ try {
   assert.equal(first.regions, reference.results.length);
   assert.equal(first.briefs, reference.results.length);
   assert.equal(first.builtRegions, reference.results.length);
-  assert.ok(first.portals > 0 && first.shapes > 0 && first.sites > 0, "portals, geometry and sites are drawn");
+  assert.ok(first.portals > 0 && first.sites > 0, "portals and sites are drawn");
+  // Each built part is drawn by its own layer: one shape per obstacle or gate, by kind, and a
+  // roof per enclosing element, counted here from the built map itself.
+  const expectedParts = { walls: 0, ruins: 0, cover: 0, windows: 0, doors: 0, roofs: 0 };
+  const obstaclePart = { building: "walls", "ruin-wall": "ruins", container: "cover", crate: "cover", window: "windows" } as const;
+  for (const region of mapViews(reference, GAME_ENGINES.compose).built.regions)
+    for (const element of region.elements) {
+      if (element.template.encloses) expectedParts.roofs++;
+      for (const part of element.template.parts)
+        if (part.part === "obstacle") expectedParts[obstaclePart[part.kind]]++;
+        else if (part.part === "gate") expectedParts.doors++;
+    }
+  assert.deepEqual(first.parts, expectedParts);
+  assert.ok(Object.values(expectedParts).every((n) => n > 0), "the fixed seed has every part");
   assert.equal(first.report.valid, referenceCheck.valid);
   assert.deepEqual(first.report.coreElements, referenceCheck.coreElements);
   assert.match(await page.locator("#reportBody").innerText(), /No defects found/);
@@ -84,9 +99,9 @@ try {
   // The layers are in chain order, with today's defaults on.
   const FIELDS = ["declared", "resolved", "regions", "proof", "zones"];
   assert.deepEqual(first.layers.map((layer: any) => layer.id),
-    ["declared", "resolved", "regions", "portals", "proof", "zones", "geometry", "loot", "sites", "defects", "defectSites"]);
+    ["declared", "resolved", "regions", "portals", "proof", "zones", "walls", "ruins", "cover", "windows", "doors", "roofs", "loot", "sites", "defects", "defectSites"]);
   assert.deepEqual(first.layers.filter((layer: any) => layer.on).map((layer: any) => layer.id),
-    ["regions", "portals", "geometry", "sites", "defects", "defectSites"]);
+    ["regions", "portals", "walls", "ruins", "cover", "windows", "doors", "sites", "defects", "defectSites"]);
   const ALL = first.layers.map((layer: any) => layer.id) as string[];
   assert.deepEqual(first.layers.filter((layer: any) => layer.pass === "marks").map((layer: any) => layer.id),
     ["portals", "loot", "sites", "defectSites"], "each layer draws in one pass, the rest with the areas");
@@ -132,11 +147,12 @@ try {
   for (const id of ALL) await layer(id).uncheck();
   for (const id of ALL) {
     await layer(id).check();
+    await opacity(id, 100);
     const full = await alpha();
     await opacity(id, 50);
     const half = await alpha();
     assert.ok(half <= Math.ceil(full / 2) + 2, `${id} at 50% is at most half as opaque as at 100%: ${half} vs ${full}`);
-    await opacity(id, 100);
+    await opacity(id, first.layers.find((l: any) => l.id === id).opacity * 100);
     await layer(id).uncheck();
   }
   for (const id of ALL) await layer(id).setChecked(first.layers.find((l: any) => l.id === id).on);
@@ -159,6 +175,7 @@ try {
   assert.match(inspected, /^Cell \d+, \d+/);
   assert.match(inspected, /Region .*\nClass/);
   assert.match(inspected, /Proof component \d+/);
+  assert.match(inspected, /Parts: \d+ walls, \d+ ruins, \d+ cover, \d+ windows, \d+ doors, \d+ roofs\nElements: /);
 
   // Its saves are the core's, byte for byte, in both encodings and as the Layout alone.
   const json = await save("#saveJson", "game.json");

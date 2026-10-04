@@ -156,8 +156,8 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     the authored sizes and sets the zone size. Every view comes through `mapViews`.
   - **Layers:** one registry in `app.ts`, in chain order (51): declared and
     resolved classes, regions, boundaries and portals, proof components,
-    zone tiers, built geometry, loot, core element sites, defect regions and
-    defect sites. Each layer names the `mapViews` key it reads, can be
+    zone tiers, the built map's parts, loot, core element sites, defect
+    regions and defect sites. Each layer names the `mapViews` key it reads, can be
     turned on or off, has an opacity, and contributes its own legend
     entries and inspector lines. Any number can be on at once, so an
     earlier stage shows under a later one. Each layer is either areas (a
@@ -167,8 +167,17 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     layer belongs to one pass, so it is laid on once at its opacity: below
     full opacity it is drawn whole on a scratch canvas first, and its own
     parts don't fade unevenly where they overlap. A new layer is one
-    registry entry. Regions, portals, geometry, sites and both defect
-    layers are on by default.
+    registry entry. Every layer is on by default except declared and
+    resolved classes, proof components, zone tiers, roofs and loot.
+  - **The built map's parts** are six layers on `built`, one colour each:
+    building walls, ruin walls and rubble, cover, windows, doors and roofs.
+    Obstacles go by their `ObstacleKind` (`building`, `ruin-wall`,
+    `container` and `crate`, `window`), and a new kind must be given a
+    layer before the lab compiles. Doors are the gates; chain maps place
+    every door closed and unlocked, so they have one colour. A roof is an
+    enclosing element's footprint, at 60% opacity. The inspector gives the
+    selected region's part counts and its elements by name, numbers
+    folded together.
   - **Inspecting:** clicking a cell fills the inspector, and hovering shows
     its first lines. Zoom with the wheel or the buttons; Reset fits the
     map, which the readout calls 100%.
