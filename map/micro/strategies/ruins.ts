@@ -114,7 +114,10 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
 function slab(cx: number, cy: number, size: number, turn: number, length: number): Shape {
   const angle = turn * Math.PI, long = size * (.55 + length * .25), wide = size * WALL * 1.2;
   const cos = Math.cos(angle), sin = Math.sin(angle);
+  // Engines may differ in trig's last bit, so the corners are rounded to a thousandth: the
+  // browser Lab and the server then build the same slab.
+  const round = (n: number) => Math.round(n * 1000) / 1000;
   const points = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) => ({
-    x: u! * long / 2 * cos - v! * wide / 2 * sin, y: u! * long / 2 * sin + v! * wide / 2 * cos }));
+    x: round(u! * long / 2 * cos - v! * wide / 2 * sin), y: round(u! * long / 2 * sin + v! * wide / 2 * cos) }));
   return polygon((cx + .5) * size, (cy + .5) * size, points);
 }

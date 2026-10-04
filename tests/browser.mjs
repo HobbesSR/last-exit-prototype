@@ -471,15 +471,21 @@ try {
   await page.waitForTimeout(150);
   await page.screenshot({ path: 'test-results/ruins.png' });
   assert.equal(await page.evaluate(id => window.arenaDebug().roofs.find(r => r.id === id).visible, interior.id), false, 'roof hides while inside');
-  Object.assign(artPlayer, { x: entrance.x, y: interior.y + interior.h + 55 });
+  // Stand 55 outside the door, on whichever wall it is, and walk in through it. A gate's x and y are its centre.
+  const doorX = entrance.x, doorY = entrance.y;
+  const across = entrance.w > entrance.h, outward = across ? Math.sign(doorY - (interior.y + interior.h / 2)) : Math.sign(doorX - (interior.x + interior.w / 2));
+  const approach = across ? { x: doorX, y: outward > 0 ? interior.y + interior.h + 55 : interior.y - 55, key: outward > 0 ? 'KeyW' : 'KeyS' }
+    : { x: outward > 0 ? interior.x + interior.w + 55 : interior.x - 55, y: doorY, key: outward > 0 ? 'KeyA' : 'KeyD' };
+  Object.assign(artPlayer, { x: approach.x, y: approach.y });
   await page.waitForFunction(id => window.arenaDebug().roofs.find(r => r.id === id)?.visible, interior.id);
   await page.waitForTimeout(150);
   await page.screenshot({ path: 'test-results/building-roof.png' });
   artPlayer.keys = 1;
   await page.keyboard.press('KeyE');
-  await page.keyboard.down('KeyW'); await page.waitForTimeout(850); await page.keyboard.up('KeyW');
+  await page.keyboard.down(approach.key); await page.waitForTimeout(850); await page.keyboard.up(approach.key);
   await page.waitForFunction(id => window.arenaDebug().roofs.find(r => r.id === id)?.visible === false, interior.id);
-  assert.ok(artPlayer.y < interior.y + interior.h, 'opened door and walked into a real building');
+  assert.ok(artPlayer.x > interior.x && artPlayer.x < interior.x + interior.w && artPlayer.y > interior.y && artPlayer.y < interior.y + interior.h,
+    'opened door and walked into a real building');
   await guest.close(); await mobile.close(); await visionPage.close(); await caster.close();
   await page.getByRole('button', { name: 'New arena', exact: true }).click();
   await page.locator('#matchmaking').check(); await page.locator('#role-preference').selectOption('gladiator');

@@ -1,0 +1,3733 @@
+{
+  "schema": 1,
+  "name": "common-set-pieces",
+  "version": 2,
+  "includes": [
+    {
+      "name": "common-primitives",
+      "version": 2
+    }
+  ],
+  "setPieces": [
+    {
+      "id": "landing",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "arrival-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "arrival-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "arrival-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "arrival-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "arrival-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "arrival-grounds"
+        }
+      ],
+      "eligibleTiers": [
+        1
+      ],
+      "primaryRegionClass": "arrival"
+    },
+    {
+      "id": "evac",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "departure-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "departure-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "departure-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "departure-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "departure-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "departure-grounds"
+        }
+      ],
+      "eligibleTiers": [
+        5
+      ],
+      "primaryRegionClass": "departure"
+    },
+    {
+      "id": "charging-station",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "charging-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "charging-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "charging-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "charging-grounds"
+        }
+      ],
+      "eligibleTiers": [
+        2,
+        3,
+        4
+      ],
+      "primaryRegionClass": "charging"
+    },
+    {
+      "id": "transit-station",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "transit-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "transit-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "transit-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "transit-grounds"
+        }
+      ],
+      "primaryRegionClass": "transit"
+    },
+    {
+      "id": "hut-yard",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "hut-quarters",
+          "orientation": 180
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "hut-quarters",
+          "orientation": 270
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "hut-quarters",
+          "orientation": 90
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "hut-quarters",
+          "orientation": 0
+        }
+      ],
+      "primaryRegionClass": "hut"
+    },
+    {
+      "id": "hut-row",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "hut-quarters",
+          "orientation": 180
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "hut-quarters",
+          "orientation": 270
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "hut-quarters",
+          "orientation": 90
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "hut-quarters",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "fields"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "fields"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "hut-quarters",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "hut-quarters",
+          "orientation": 270
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "hut-quarters",
+          "orientation": 90
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "hut-quarters",
+          "orientation": 0
+        }
+      ],
+      "primaryRegionClass": "hut"
+    },
+    {
+      "id": "cover-patch",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "cover-grounds"
+        }
+      ],
+      "primaryRegionClass": "cover"
+    },
+    {
+      "id": "cover-field",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "cover-grounds"
+        }
+      ],
+      "primaryRegionClass": "cover"
+    },
+    {
+      "id": "rubble-lane",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        }
+      ],
+      "primaryRegionClass": "rubble"
+    },
+    {
+      "id": "rubble-lanes",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        }
+      ],
+      "primaryRegionClass": "rubble"
+    },
+    {
+      "id": "market-square",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 9,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 9,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 9,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 9,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 9,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        }
+      ],
+      "primaryRegionClass": "market"
+    },
+    {
+      "id": "plant-works",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 4,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 4,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 5,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 5,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 5,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 5,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 5,
+          "tileSetId": "plant-grounds"
+        }
+      ],
+      "primaryRegionClass": "plant"
+    },
+    {
+      "id": "city-block",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 9,
+          "dy": 0,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 10,
+          "dy": 0,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 11,
+          "dy": 0,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 9,
+          "dy": 1,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 10,
+          "dy": 1,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 11,
+          "dy": 1,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 9,
+          "dy": 2,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 10,
+          "dy": 2,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 11,
+          "dy": 2,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 3,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 9,
+          "dy": 3,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 10,
+          "dy": 3,
+          "tileSetId": "block-grounds"
+        },
+        {
+          "dx": 11,
+          "dy": 3,
+          "tileSetId": "block-grounds"
+        }
+      ],
+      "primaryRegionClass": "block"
+    },
+    {
+      "id": "covered-market",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 5,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 5,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 5,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 5,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 6,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 6,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 6,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 6,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 6,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 6,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 6,
+          "tileSetId": "market-grounds"
+        }
+      ],
+      "primaryRegionClass": "market"
+    },
+    {
+      "id": "depot-yard",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 3,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 4,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 4,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 4,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 5,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 5,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 5,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 5,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 5,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 5,
+          "tileSetId": "depot-grounds"
+        }
+      ],
+      "primaryRegionClass": "depot"
+    },
+    {
+      "id": "walled-base",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 5,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 5,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 5,
+          "tileSetId": "compound-grounds"
+        }
+      ],
+      "primaryRegionClass": "compound"
+    },
+    {
+      "id": "market-row",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        }
+      ],
+      "primaryRegionClass": "market"
+    },
+    {
+      "id": "checkpoint-lane",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 9,
+          "dy": 0,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 10,
+          "dy": 0,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 11,
+          "dy": 0,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 9,
+          "dy": 1,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 10,
+          "dy": 1,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 11,
+          "dy": 1,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 2,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 9,
+          "dy": 2,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 10,
+          "dy": 2,
+          "tileSetId": "checkpoint-grounds"
+        },
+        {
+          "dx": 11,
+          "dy": 2,
+          "tileSetId": "checkpoint-grounds"
+        }
+      ],
+      "primaryRegionClass": "checkpoint"
+    },
+    {
+      "id": "market-court",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 4,
+          "tileSetId": "market-grounds"
+        }
+      ],
+      "primaryRegionClass": "market"
+    },
+    {
+      "id": "barracks",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 2,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 3,
+          "tileSetId": "compound-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 3,
+          "tileSetId": "compound-grounds"
+        }
+      ],
+      "primaryRegionClass": "compound"
+    },
+    {
+      "id": "pillar-hall",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 4,
+          "tileSetId": "hall-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 4,
+          "tileSetId": "hall-grounds"
+        }
+      ],
+      "primaryRegionClass": "hall"
+    },
+    {
+      "id": "plant-row",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        }
+      ],
+      "primaryRegionClass": "plant"
+    },
+    {
+      "id": "park-square",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "park-grounds"
+        }
+      ],
+      "primaryRegionClass": "park"
+    },
+    {
+      "id": "depot-sheds",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 8,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        }
+      ],
+      "primaryRegionClass": "depot"
+    },
+    {
+      "id": "ruins-lot",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "ruins-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "ruins-grounds"
+        }
+      ],
+      "primaryRegionClass": "ruins"
+    },
+    {
+      "id": "plant-tower",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 5,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 5,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 5,
+          "tileSetId": "plant-grounds"
+        }
+      ],
+      "primaryRegionClass": "plant"
+    },
+    {
+      "id": "park-green",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 3,
+          "tileSetId": "park-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 3,
+          "tileSetId": "park-grounds"
+        }
+      ],
+      "primaryRegionClass": "park"
+    },
+    {
+      "id": "depot-lot",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 5,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        },
+        {
+          "dx": 6,
+          "dy": 2,
+          "tileSetId": "depot-grounds"
+        }
+      ],
+      "primaryRegionClass": "depot"
+    },
+    {
+      "id": "cover-yard",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 3,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 3,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 3,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 3,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 4,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 4,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 4,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 4,
+          "tileSetId": "cover-grounds"
+        }
+      ],
+      "primaryRegionClass": "cover"
+    },
+    {
+      "id": "plant-yard",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 3,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        },
+        {
+          "dx": 4,
+          "dy": 2,
+          "tileSetId": "plant-grounds"
+        }
+      ],
+      "primaryRegionClass": "plant"
+    },
+    {
+      "id": "rubble-strip",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 5,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 6,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 7,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        },
+        {
+          "dx": 5,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        },
+        {
+          "dx": 6,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        },
+        {
+          "dx": 7,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        }
+      ],
+      "primaryRegionClass": "rubble"
+    }
+  ]
+}

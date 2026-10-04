@@ -1,7 +1,7 @@
 /** The game's map-level entry point for macro placement and micro construction. */
 import chainLibrary from './macro/content/diamond-12x6.json' with { type: 'json' };
-import commonPrimitives from './macro/content/common-primitives@1.json' with { type: 'json' };
-import commonSetPieces from './macro/content/common-set-pieces@1.json' with { type: 'json' };
+import commonPrimitives from './macro/content/common-primitives@2.json' with { type: 'json' };
+import commonSetPieces from './macro/content/common-set-pieces@2.json' with { type: 'json' };
 import { resolveLibrary, validateLibrary as validateChainLibrary } from './macro/src/chain/library.ts';
 import type { ChainLibrary, LibraryValidation } from './macro/src/chain/library.ts';
 import { generateChainMap } from './macro/src/chain/map.ts';
@@ -14,7 +14,7 @@ export type GameChainMap = ChainMap<RegionElement>;
 
 /** The bundled chain library used unless a caller supplies another. */
 export const CHAIN_LIBRARY: ChainLibrary = resolveLibrary(chainLibrary, {
-  'common-primitives@1': commonPrimitives, 'common-set-pieces@1': commonSetPieces,
+  'common-primitives@2': commonPrimitives, 'common-set-pieces@2': commonSetPieces,
 });
 
 function assertParamsObject(value: unknown): asserts value is Record<string, unknown> {

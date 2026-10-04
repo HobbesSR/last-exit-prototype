@@ -258,15 +258,16 @@ libraries.
 ## The chain's library
 
 `map/macro/content/diamond-12x6.json` is the library the chain is authored
-with (B4, #97; modularized in #168). It includes `common-primitives@1.json`
-and `common-set-pieces@1.json`, which also includes the primitives. Definitions
-keep their original order and content. The top library owns the classes and
-quotas for the diamond at its declared size. It holds 54's minimal set. That is enough to exercise every
-stage and to play, and it grows from here. The fixture libraries in
+with (B4, #97; modularized in #168; set pieces on the old footprints in S5,
+#170). It includes `common-primitives@2.json` and `common-set-pieces@2.json`,
+which also includes the primitives. The top library owns the classes and
+quotas for the diamond at its declared size. It paints every type in 54's
+catalogue, and it grows from here. The fixture libraries in
 `map/macro/tests/fixtures/` stay with the stage tests.
 
-- **Classes:** one per minimal type, each bound to the region type of the
-  same name.
+- **Classes:** one per catalogue type, each bound to the region type of the
+  same name. A drafted type paints its own name and builds what its stand-in
+  builds (54, "Drafted types").
 - **Tiles:**
   - `field`: open ground, most of the fill.
   - `cover-ground`: a whole tile of `cover`, passable along every side.
@@ -277,10 +278,16 @@ stage and to play, and it grows from here. The fixture libraries in
     make one 12 × 12 hut region, with room for a house and its yard (54
     `hut`). The `open` asks close the group, so it can't spread across the
     fill.
+  - `ruins-ground`, `hall-ground`, `depot-ground`, `compound-ground`,
+    `block-ground`, `market-ground`, `plant-ground`, `checkpoint-ground` and
+    `park-ground`: a whole tile of their type, passable along every side as
+    `cover-ground` is. They are weighted 0, so only set pieces place them
+    (below).
   - `arrival-ground`, `departure-ground`, `charging-ground` and `transit-ground`: whole tiles of
     their core element class, passable along half of each side. Placement
     never puts them in the fill (51, "Core elements").
-- **Set pieces:**
+- **Set pieces:** each footprint is a rectangle of one type's ground, except
+  `rubble-strip`. Sizes are in tiles; a tile is 6 cells.
 
 | Set piece class | Set pieces |
 | --- | --- |
@@ -288,9 +295,14 @@ stage and to play, and it grows from here. The fixture libraries in
 | `end` | `evac`: 2 × 3 departure tiles |
 | `charger` | `charging-station`: 2 × 2 charging tiles, 12 × 12 cells |
 | `transit` | `transit-station`: 2 by 2 transit tiles, 12 by 12 cells |
-| `enormous` | `hut-row` (two hut groups with a column of field between them), `cover-field` (3 × 3 cover tiles), `rubble-lanes` |
-| `medium`, `small` | `hut-yard` (one hut group), `cover-patch` (2 × 2 cover tiles), `rubble-lane` (two banks back to back, six cells deep) |
+| `enormous` | `market-square` 10 × 5 and `covered-market` 7 × 7 (`market`), `plant-works` 8 × 6 (`plant`), `city-block` 12 × 4 (`block`), `depot-yard` 9 × 6 (`depot`) |
+| `medium` | `market-row` 9 × 4 and `market-court` 7 × 5 (`market`), `walled-base` 6 × 6 and `barracks` 8 × 4 (`compound`), `checkpoint-lane` 12 × 3 (`checkpoint`), `pillar-hall` 6 × 5 (`hall`) |
+| `small` | `plant-row` 6 × 3, `plant-tower` 3 × 6 and `plant-yard` 5 × 3 (`plant`), `depot-sheds` 9 × 2 and `depot-lot` 7 × 3 (`depot`), `park-square` 4 × 4 and `park-green` 6 × 4 (`park`), `ruins-lot` 5 × 4 (`ruins`), `cover-yard` 4 × 5 (`cover`), `rubble-strip` 8 × 2 (rubble banks back to back, a rubble strip six cells deep between open lanes) |
 
+  `common-set-pieces@2` still defines `hut-yard`, `hut-row`, `cover-patch`,
+  `cover-field`, `rubble-lane` and `rubble-lanes`, the set pieces before S5,
+  for libraries at other sizes. This library's classes no longer draw them,
+  so huts come from the fill's hut quarters.
 - **The three-cell grid.** Every class boundary in a design lies on a 3-cell
   grid, and every passable stretch is made of whole 3-cell blocks. So no
   passage between classes is narrower than 3 cells, a doorway plus one (17
@@ -301,13 +313,45 @@ stage and to play, and it grows from here. The fixture libraries in
   `tests/chain-content.test.ts` holds every design to this.
 - **Fill weights:** each orientation is its own fill option, so a design
   with four orientations gets four times its weight. Designs that state
-  adjacency are placed early, so hut quarters need a light weight (0.1).
+  adjacency are placed early, so hut quarters need a light weight (0.1). A
+  design weighted 0 is no fill option: only a set piece places it. A lone
+  6 × 6 tile of a structure type is too small for its builder, so those
+  grounds are weighted 0.
 - **Cover:** a lone `cover-ground` in the fill forms a 6 × 6 region, too small
   for one cover piece, so it stays clear (54 `cover`). Cover comes mostly from
-  the set pieces' 12 × 12 and 18 × 18 regions, so its fill weight is light.
+  the set pieces, so its fill weight is light.
 
 31 describes the library's acceptance checks. The tools and live matches use
 the same library through `map/chain.ts`; live conversion is separate (14, 22).
+
+### The old footprints (S5)
+
+The old library's set pieces ("The old library", below; recovered from
+`141dece^:map/macro/content/default-library.json`) come back with their slot
+arrangements and their placement rules and quotas unchanged (Corey,
+2026-09-28: "the same distribution as before"). Each old area takes its
+region type from 54's "Today's names":
+
+- `market` pieces become `market`, except one medium piece, which became
+  `hall` so the library paints it.
+- `industrial` pieces become `plant` for the works and `depot` for the sheds
+  and yards.
+- `military` pieces become `compound` for the walled bases and `checkpoint` for
+  the choke, a passage between two fence lines.
+- `landing` pieces outside `start` can't be `arrival`, a core element class
+  (51, "Core elements"). They were plain clearings, so they become `block`
+  (the enormous one), `park`, `cover`, `ruins` and `rubble`.
+
+The old designs were rings of fence and gate tiles around an unclaimed
+middle. They are filled here: the builders now draw enclosures themselves
+(`compound`'s ring, `depot`'s walls), and a ring one tile wide is below every
+structure type's shape needs. So the footprints are larger than the old
+ones. Over 20 game seeds, set pieces covered 12.9% of tiles before and 55.3%
+after: enormous 16.0%, medium 14.6%, small 20.3%, core element pieces 4.2%.
+The old footprints with hollow rings would have covered about 47%.
+
+Every non-`open` type rolls loot, so the default loot gradient was scaled to
+keep loot per map level (14).
 
 ## The old library
 

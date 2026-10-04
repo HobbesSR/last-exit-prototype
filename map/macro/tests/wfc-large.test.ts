@@ -15,7 +15,7 @@ import type { TileOption, WfcGrid } from "../src/wfc.ts";
 
 const content = (name: string): unknown => JSON.parse(readFileSync(new URL(`../content/${name}.json`, import.meta.url), "utf8"));
 const LIBRARY: ChainLibrary = resolveLibrary(content("diamond-12x6"), {
-  "common-primitives@1": content("common-primitives@1"), "common-set-pieces@1": content("common-set-pieces@1"),
+  "common-primitives@2": content("common-primitives@2"), "common-set-pieces@2": content("common-set-pieces@2"),
 });
 
 test("a 20,000-cell chain solves without exhausting the stack", () => {

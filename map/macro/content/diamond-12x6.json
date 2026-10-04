@@ -7,11 +7,11 @@
   "includes": [
     {
       "name": "common-primitives",
-      "version": 1
+      "version": 2
     },
     {
       "name": "common-set-pieces",
-      "version": 1
+      "version": 2
     }
   ],
   "setPieceClasses": [
@@ -43,9 +43,11 @@
       "placementRule": "enormous",
       "quota": 3,
       "setPieces": [
-        "hut-row",
-        "cover-field",
-        "rubble-lanes"
+        "market-square",
+        "plant-works",
+        "city-block",
+        "covered-market",
+        "depot-yard"
       ]
     },
     {
@@ -53,9 +55,12 @@
       "placementRule": "medium",
       "quota": 4,
       "setPieces": [
-        "hut-yard",
-        "cover-patch",
-        "rubble-lane"
+        "walled-base",
+        "market-row",
+        "checkpoint-lane",
+        "market-court",
+        "barracks",
+        "pillar-hall"
       ]
     },
     {
@@ -63,9 +68,16 @@
       "placementRule": "small",
       "quota": 10,
       "setPieces": [
-        "hut-yard",
-        "cover-patch",
-        "rubble-lane"
+        "plant-row",
+        "park-square",
+        "depot-sheds",
+        "ruins-lot",
+        "plant-tower",
+        "park-green",
+        "depot-lot",
+        "cover-yard",
+        "plant-yard",
+        "rubble-strip"
       ]
     },
     {

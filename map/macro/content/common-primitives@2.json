@@ -1,0 +1,1302 @@
+{
+  "schema": 1,
+  "name": "common-primitives",
+  "version": 2,
+  "cellClasses": {
+    "open": {
+      "regionType": "open"
+    },
+    "cover": {
+      "regionType": "cover"
+    },
+    "rubble": {
+      "regionType": "rubble"
+    },
+    "hut": {
+      "regionType": "hut"
+    },
+    "ruins": {
+      "regionType": "ruins"
+    },
+    "hall": {
+      "regionType": "hall"
+    },
+    "depot": {
+      "regionType": "depot"
+    },
+    "compound": {
+      "regionType": "compound"
+    },
+    "block": {
+      "regionType": "block"
+    },
+    "market": {
+      "regionType": "market"
+    },
+    "plant": {
+      "regionType": "plant"
+    },
+    "checkpoint": {
+      "regionType": "checkpoint"
+    },
+    "park": {
+      "regionType": "park"
+    },
+    "arrival": {
+      "regionType": "arrival",
+      "coreElements": {
+        "spawn": "contestantCount"
+      }
+    },
+    "departure": {
+      "regionType": "departure",
+      "coreElements": {
+        "exit": "exitCount",
+        "hunter-spawn": "hunterCount"
+      }
+    },
+    "charging": {
+      "regionType": "charging",
+      "coreElements": {
+        "charger": 1
+      }
+    },
+    "transit": {
+      "regionType": "transit",
+      "coreElements": {
+        "warp": 1
+      }
+    }
+  },
+  "tiles": [
+    {
+      "id": "field",
+      "defaultCellClass": "open",
+      "orientations": [
+        0
+      ],
+      "weight": 6
+    },
+    {
+      "id": "cover-ground",
+      "defaultCellClass": "cover",
+      "segments": {
+        "h:0,0": {
+          "passability": "passable"
+        },
+        "h:0,1": {
+          "passability": "passable"
+        },
+        "h:0,2": {
+          "passability": "passable"
+        },
+        "h:0,3": {
+          "passability": "passable"
+        },
+        "h:0,4": {
+          "passability": "passable"
+        },
+        "h:0,5": {
+          "passability": "passable"
+        },
+        "v:6,0": {
+          "passability": "passable"
+        },
+        "v:6,1": {
+          "passability": "passable"
+        },
+        "v:6,2": {
+          "passability": "passable"
+        },
+        "v:6,3": {
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "passability": "passable"
+        },
+        "h:6,0": {
+          "passability": "passable"
+        },
+        "h:6,1": {
+          "passability": "passable"
+        },
+        "h:6,2": {
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,0": {
+          "passability": "passable"
+        },
+        "v:0,1": {
+          "passability": "passable"
+        },
+        "v:0,2": {
+          "passability": "passable"
+        },
+        "v:0,3": {
+          "passability": "passable"
+        },
+        "v:0,4": {
+          "passability": "passable"
+        },
+        "v:0,5": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0
+      ],
+      "weight": 0.15
+    },
+    {
+      "id": "rubble-bank",
+      "defaultCellClass": "open",
+      "cells": [
+        "rrrrrr",
+        "rrrrrr",
+        "rrrrrr",
+        "......",
+        "......",
+        "......"
+      ],
+      "legend": {
+        "r": "rubble"
+      },
+      "segments": {
+        "h:3,0": {
+          "passability": "passable"
+        },
+        "h:3,1": {
+          "passability": "passable"
+        },
+        "h:3,2": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "weight": 0.3
+    },
+    {
+      "id": "hut-quarter",
+      "defaultCellClass": "hut",
+      "segments": {
+        "h:0,0": {
+          "adjacency": "hut"
+        },
+        "h:0,1": {
+          "adjacency": "hut"
+        },
+        "h:0,2": {
+          "adjacency": "hut"
+        },
+        "h:0,3": {
+          "adjacency": "hut"
+        },
+        "h:0,4": {
+          "adjacency": "hut"
+        },
+        "h:0,5": {
+          "adjacency": "hut"
+        },
+        "v:0,0": {
+          "adjacency": "hut"
+        },
+        "v:0,1": {
+          "adjacency": "hut"
+        },
+        "v:0,2": {
+          "adjacency": "hut"
+        },
+        "v:0,3": {
+          "adjacency": "hut"
+        },
+        "v:0,4": {
+          "adjacency": "hut"
+        },
+        "v:0,5": {
+          "adjacency": "hut"
+        },
+        "v:6,3": {
+          "adjacency": "open",
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "adjacency": "open",
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "adjacency": "open",
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "adjacency": "open",
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "adjacency": "open",
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "adjacency": "open",
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0,
+        90,
+        180,
+        270
+      ],
+      "weight": 0.1
+    },
+    {
+      "id": "ruins-ground",
+      "defaultCellClass": "ruins",
+      "segments": {
+        "h:0,0": {
+          "passability": "passable"
+        },
+        "h:0,1": {
+          "passability": "passable"
+        },
+        "h:0,2": {
+          "passability": "passable"
+        },
+        "h:0,3": {
+          "passability": "passable"
+        },
+        "h:0,4": {
+          "passability": "passable"
+        },
+        "h:0,5": {
+          "passability": "passable"
+        },
+        "v:6,0": {
+          "passability": "passable"
+        },
+        "v:6,1": {
+          "passability": "passable"
+        },
+        "v:6,2": {
+          "passability": "passable"
+        },
+        "v:6,3": {
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "passability": "passable"
+        },
+        "h:6,0": {
+          "passability": "passable"
+        },
+        "h:6,1": {
+          "passability": "passable"
+        },
+        "h:6,2": {
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,0": {
+          "passability": "passable"
+        },
+        "v:0,1": {
+          "passability": "passable"
+        },
+        "v:0,2": {
+          "passability": "passable"
+        },
+        "v:0,3": {
+          "passability": "passable"
+        },
+        "v:0,4": {
+          "passability": "passable"
+        },
+        "v:0,5": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0
+      ],
+      "weight": 0
+    },
+    {
+      "id": "hall-ground",
+      "defaultCellClass": "hall",
+      "segments": {
+        "h:0,0": {
+          "passability": "passable"
+        },
+        "h:0,1": {
+          "passability": "passable"
+        },
+        "h:0,2": {
+          "passability": "passable"
+        },
+        "h:0,3": {
+          "passability": "passable"
+        },
+        "h:0,4": {
+          "passability": "passable"
+        },
+        "h:0,5": {
+          "passability": "passable"
+        },
+        "v:6,0": {
+          "passability": "passable"
+        },
+        "v:6,1": {
+          "passability": "passable"
+        },
+        "v:6,2": {
+          "passability": "passable"
+        },
+        "v:6,3": {
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "passability": "passable"
+        },
+        "h:6,0": {
+          "passability": "passable"
+        },
+        "h:6,1": {
+          "passability": "passable"
+        },
+        "h:6,2": {
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,0": {
+          "passability": "passable"
+        },
+        "v:0,1": {
+          "passability": "passable"
+        },
+        "v:0,2": {
+          "passability": "passable"
+        },
+        "v:0,3": {
+          "passability": "passable"
+        },
+        "v:0,4": {
+          "passability": "passable"
+        },
+        "v:0,5": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0
+      ],
+      "weight": 0
+    },
+    {
+      "id": "depot-ground",
+      "defaultCellClass": "depot",
+      "segments": {
+        "h:0,0": {
+          "passability": "passable"
+        },
+        "h:0,1": {
+          "passability": "passable"
+        },
+        "h:0,2": {
+          "passability": "passable"
+        },
+        "h:0,3": {
+          "passability": "passable"
+        },
+        "h:0,4": {
+          "passability": "passable"
+        },
+        "h:0,5": {
+          "passability": "passable"
+        },
+        "v:6,0": {
+          "passability": "passable"
+        },
+        "v:6,1": {
+          "passability": "passable"
+        },
+        "v:6,2": {
+          "passability": "passable"
+        },
+        "v:6,3": {
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "passability": "passable"
+        },
+        "h:6,0": {
+          "passability": "passable"
+        },
+        "h:6,1": {
+          "passability": "passable"
+        },
+        "h:6,2": {
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,0": {
+          "passability": "passable"
+        },
+        "v:0,1": {
+          "passability": "passable"
+        },
+        "v:0,2": {
+          "passability": "passable"
+        },
+        "v:0,3": {
+          "passability": "passable"
+        },
+        "v:0,4": {
+          "passability": "passable"
+        },
+        "v:0,5": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0
+      ],
+      "weight": 0
+    },
+    {
+      "id": "compound-ground",
+      "defaultCellClass": "compound",
+      "segments": {
+        "h:0,0": {
+          "passability": "passable"
+        },
+        "h:0,1": {
+          "passability": "passable"
+        },
+        "h:0,2": {
+          "passability": "passable"
+        },
+        "h:0,3": {
+          "passability": "passable"
+        },
+        "h:0,4": {
+          "passability": "passable"
+        },
+        "h:0,5": {
+          "passability": "passable"
+        },
+        "v:6,0": {
+          "passability": "passable"
+        },
+        "v:6,1": {
+          "passability": "passable"
+        },
+        "v:6,2": {
+          "passability": "passable"
+        },
+        "v:6,3": {
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "passability": "passable"
+        },
+        "h:6,0": {
+          "passability": "passable"
+        },
+        "h:6,1": {
+          "passability": "passable"
+        },
+        "h:6,2": {
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,0": {
+          "passability": "passable"
+        },
+        "v:0,1": {
+          "passability": "passable"
+        },
+        "v:0,2": {
+          "passability": "passable"
+        },
+        "v:0,3": {
+          "passability": "passable"
+        },
+        "v:0,4": {
+          "passability": "passable"
+        },
+        "v:0,5": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0
+      ],
+      "weight": 0
+    },
+    {
+      "id": "block-ground",
+      "defaultCellClass": "block",
+      "segments": {
+        "h:0,0": {
+          "passability": "passable"
+        },
+        "h:0,1": {
+          "passability": "passable"
+        },
+        "h:0,2": {
+          "passability": "passable"
+        },
+        "h:0,3": {
+          "passability": "passable"
+        },
+        "h:0,4": {
+          "passability": "passable"
+        },
+        "h:0,5": {
+          "passability": "passable"
+        },
+        "v:6,0": {
+          "passability": "passable"
+        },
+        "v:6,1": {
+          "passability": "passable"
+        },
+        "v:6,2": {
+          "passability": "passable"
+        },
+        "v:6,3": {
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "passability": "passable"
+        },
+        "h:6,0": {
+          "passability": "passable"
+        },
+        "h:6,1": {
+          "passability": "passable"
+        },
+        "h:6,2": {
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,0": {
+          "passability": "passable"
+        },
+        "v:0,1": {
+          "passability": "passable"
+        },
+        "v:0,2": {
+          "passability": "passable"
+        },
+        "v:0,3": {
+          "passability": "passable"
+        },
+        "v:0,4": {
+          "passability": "passable"
+        },
+        "v:0,5": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0
+      ],
+      "weight": 0
+    },
+    {
+      "id": "market-ground",
+      "defaultCellClass": "market",
+      "segments": {
+        "h:0,0": {
+          "passability": "passable"
+        },
+        "h:0,1": {
+          "passability": "passable"
+        },
+        "h:0,2": {
+          "passability": "passable"
+        },
+        "h:0,3": {
+          "passability": "passable"
+        },
+        "h:0,4": {
+          "passability": "passable"
+        },
+        "h:0,5": {
+          "passability": "passable"
+        },
+        "v:6,0": {
+          "passability": "passable"
+        },
+        "v:6,1": {
+          "passability": "passable"
+        },
+        "v:6,2": {
+          "passability": "passable"
+        },
+        "v:6,3": {
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "passability": "passable"
+        },
+        "h:6,0": {
+          "passability": "passable"
+        },
+        "h:6,1": {
+          "passability": "passable"
+        },
+        "h:6,2": {
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,0": {
+          "passability": "passable"
+        },
+        "v:0,1": {
+          "passability": "passable"
+        },
+        "v:0,2": {
+          "passability": "passable"
+        },
+        "v:0,3": {
+          "passability": "passable"
+        },
+        "v:0,4": {
+          "passability": "passable"
+        },
+        "v:0,5": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0
+      ],
+      "weight": 0
+    },
+    {
+      "id": "plant-ground",
+      "defaultCellClass": "plant",
+      "segments": {
+        "h:0,0": {
+          "passability": "passable"
+        },
+        "h:0,1": {
+          "passability": "passable"
+        },
+        "h:0,2": {
+          "passability": "passable"
+        },
+        "h:0,3": {
+          "passability": "passable"
+        },
+        "h:0,4": {
+          "passability": "passable"
+        },
+        "h:0,5": {
+          "passability": "passable"
+        },
+        "v:6,0": {
+          "passability": "passable"
+        },
+        "v:6,1": {
+          "passability": "passable"
+        },
+        "v:6,2": {
+          "passability": "passable"
+        },
+        "v:6,3": {
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "passability": "passable"
+        },
+        "h:6,0": {
+          "passability": "passable"
+        },
+        "h:6,1": {
+          "passability": "passable"
+        },
+        "h:6,2": {
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,0": {
+          "passability": "passable"
+        },
+        "v:0,1": {
+          "passability": "passable"
+        },
+        "v:0,2": {
+          "passability": "passable"
+        },
+        "v:0,3": {
+          "passability": "passable"
+        },
+        "v:0,4": {
+          "passability": "passable"
+        },
+        "v:0,5": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0
+      ],
+      "weight": 0
+    },
+    {
+      "id": "checkpoint-ground",
+      "defaultCellClass": "checkpoint",
+      "segments": {
+        "h:0,0": {
+          "passability": "passable"
+        },
+        "h:0,1": {
+          "passability": "passable"
+        },
+        "h:0,2": {
+          "passability": "passable"
+        },
+        "h:0,3": {
+          "passability": "passable"
+        },
+        "h:0,4": {
+          "passability": "passable"
+        },
+        "h:0,5": {
+          "passability": "passable"
+        },
+        "v:6,0": {
+          "passability": "passable"
+        },
+        "v:6,1": {
+          "passability": "passable"
+        },
+        "v:6,2": {
+          "passability": "passable"
+        },
+        "v:6,3": {
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "passability": "passable"
+        },
+        "h:6,0": {
+          "passability": "passable"
+        },
+        "h:6,1": {
+          "passability": "passable"
+        },
+        "h:6,2": {
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,0": {
+          "passability": "passable"
+        },
+        "v:0,1": {
+          "passability": "passable"
+        },
+        "v:0,2": {
+          "passability": "passable"
+        },
+        "v:0,3": {
+          "passability": "passable"
+        },
+        "v:0,4": {
+          "passability": "passable"
+        },
+        "v:0,5": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0
+      ],
+      "weight": 0
+    },
+    {
+      "id": "park-ground",
+      "defaultCellClass": "park",
+      "segments": {
+        "h:0,0": {
+          "passability": "passable"
+        },
+        "h:0,1": {
+          "passability": "passable"
+        },
+        "h:0,2": {
+          "passability": "passable"
+        },
+        "h:0,3": {
+          "passability": "passable"
+        },
+        "h:0,4": {
+          "passability": "passable"
+        },
+        "h:0,5": {
+          "passability": "passable"
+        },
+        "v:6,0": {
+          "passability": "passable"
+        },
+        "v:6,1": {
+          "passability": "passable"
+        },
+        "v:6,2": {
+          "passability": "passable"
+        },
+        "v:6,3": {
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "passability": "passable"
+        },
+        "h:6,0": {
+          "passability": "passable"
+        },
+        "h:6,1": {
+          "passability": "passable"
+        },
+        "h:6,2": {
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,0": {
+          "passability": "passable"
+        },
+        "v:0,1": {
+          "passability": "passable"
+        },
+        "v:0,2": {
+          "passability": "passable"
+        },
+        "v:0,3": {
+          "passability": "passable"
+        },
+        "v:0,4": {
+          "passability": "passable"
+        },
+        "v:0,5": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0
+      ],
+      "weight": 0
+    },
+    {
+      "id": "arrival-ground",
+      "defaultCellClass": "arrival",
+      "segments": {
+        "h:0,3": {
+          "passability": "passable"
+        },
+        "h:0,4": {
+          "passability": "passable"
+        },
+        "h:0,5": {
+          "passability": "passable"
+        },
+        "v:6,3": {
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,3": {
+          "passability": "passable"
+        },
+        "v:0,4": {
+          "passability": "passable"
+        },
+        "v:0,5": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0
+      ],
+      "eligibleTiers": [
+        1
+      ]
+    },
+    {
+      "id": "departure-ground",
+      "defaultCellClass": "departure",
+      "segments": {
+        "h:0,3": {
+          "passability": "passable"
+        },
+        "h:0,4": {
+          "passability": "passable"
+        },
+        "h:0,5": {
+          "passability": "passable"
+        },
+        "v:6,3": {
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,3": {
+          "passability": "passable"
+        },
+        "v:0,4": {
+          "passability": "passable"
+        },
+        "v:0,5": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0
+      ],
+      "eligibleTiers": [
+        5
+      ]
+    },
+    {
+      "id": "charging-ground",
+      "defaultCellClass": "charging",
+      "segments": {
+        "h:0,3": {
+          "passability": "passable"
+        },
+        "h:0,4": {
+          "passability": "passable"
+        },
+        "h:0,5": {
+          "passability": "passable"
+        },
+        "v:6,3": {
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,3": {
+          "passability": "passable"
+        },
+        "v:0,4": {
+          "passability": "passable"
+        },
+        "v:0,5": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0
+      ],
+      "eligibleTiers": [
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "transit-ground",
+      "defaultCellClass": "transit",
+      "segments": {
+        "h:0,3": {
+          "passability": "passable"
+        },
+        "h:0,4": {
+          "passability": "passable"
+        },
+        "h:0,5": {
+          "passability": "passable"
+        },
+        "v:6,3": {
+          "passability": "passable"
+        },
+        "v:6,4": {
+          "passability": "passable"
+        },
+        "v:6,5": {
+          "passability": "passable"
+        },
+        "h:6,3": {
+          "passability": "passable"
+        },
+        "h:6,4": {
+          "passability": "passable"
+        },
+        "h:6,5": {
+          "passability": "passable"
+        },
+        "v:0,3": {
+          "passability": "passable"
+        },
+        "v:0,4": {
+          "passability": "passable"
+        },
+        "v:0,5": {
+          "passability": "passable"
+        }
+      },
+      "orientations": [
+        0
+      ]
+    }
+  ],
+  "tileSets": [
+    {
+      "id": "fields",
+      "members": [
+        "field"
+      ]
+    },
+    {
+      "id": "cover-grounds",
+      "members": [
+        "cover-ground"
+      ]
+    },
+    {
+      "id": "rubble-banks",
+      "members": [
+        "rubble-bank"
+      ]
+    },
+    {
+      "id": "hut-quarters",
+      "members": [
+        "hut-quarter"
+      ]
+    },
+    {
+      "id": "ruins-grounds",
+      "members": [
+        "ruins-ground"
+      ]
+    },
+    {
+      "id": "hall-grounds",
+      "members": [
+        "hall-ground"
+      ]
+    },
+    {
+      "id": "depot-grounds",
+      "members": [
+        "depot-ground"
+      ]
+    },
+    {
+      "id": "compound-grounds",
+      "members": [
+        "compound-ground"
+      ]
+    },
+    {
+      "id": "block-grounds",
+      "members": [
+        "block-ground"
+      ]
+    },
+    {
+      "id": "market-grounds",
+      "members": [
+        "market-ground"
+      ]
+    },
+    {
+      "id": "plant-grounds",
+      "members": [
+        "plant-ground"
+      ]
+    },
+    {
+      "id": "checkpoint-grounds",
+      "members": [
+        "checkpoint-ground"
+      ]
+    },
+    {
+      "id": "park-grounds",
+      "members": [
+        "park-ground"
+      ]
+    },
+    {
+      "id": "arrival-grounds",
+      "members": [
+        "arrival-ground"
+      ]
+    },
+    {
+      "id": "departure-grounds",
+      "members": [
+        "departure-ground"
+      ]
+    },
+    {
+      "id": "charging-grounds",
+      "members": [
+        "charging-ground"
+      ]
+    },
+    {
+      "id": "transit-grounds",
+      "members": [
+        "transit-ground"
+      ]
+    }
+  ]
+}
