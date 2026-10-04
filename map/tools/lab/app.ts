@@ -840,6 +840,7 @@ function applyPaneHeight() {
     if (newH < 40) newH = 40;
     if (newH > maxH) newH = maxH;
     
+    paneHeight = newH; // store the clamped value
     diagnosticsPane.style.height = `${newH}px`;
     diagnosticsPane.style.maxHeight = 'none';
   } else {
@@ -864,7 +865,7 @@ resizer.onkeydown = (event) => {
 let resizerDrag: { startY: number; startHeight: number; moved: boolean } | null = null;
 resizer.onpointerdown = (event) => {
   resizer.setPointerCapture(event.pointerId);
-  resizerDrag = { startY: event.clientY, startHeight: paneHeight || diagnosticsPane.offsetHeight, moved: false };
+  resizerDrag = { startY: event.clientY, startHeight: diagnosticsPane.offsetHeight, moved: false };
 };
 resizer.onpointermove = (event) => {
   if (!resizerDrag) return;
