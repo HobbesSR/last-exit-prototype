@@ -796,6 +796,42 @@ generateMap();
 
 const resizer = $("diagnosticsResizer") as HTMLDivElement;
 const diagnosticsPane = $("diagnosticsPane") as HTMLDivElement;
+const worldMain = document.querySelector(".world-main") as HTMLElement;
+
+const savedResizer = localStorage.getItem("mapLabDiagnostics");
+if (savedResizer) {
+  try {
+    const state = JSON.parse(savedResizer);
+    if (state.collapsed) {
+      resizer.classList.add("collapsed");
+      diagnosticsPane.classList.add("collapsed");
+    }
+    if (state.height) {
+      diagnosticsPane.style.height = `${state.height}px`;
+      diagnosticsPane.style.maxHeight = 'none';
+    }
+  } catch (e) {}
+}
+
+function saveResizerState() {
+  localStorage.setItem("mapLabDiagnostics", JSON.stringify({
+    collapsed: resizer.classList.contains("collapsed"),
+    height: parseInt(diagnosticsPane.style.height) || 0
+  }));
+}
+
+function toggleResizer() {
+  const isCollapsed = resizer.classList.toggle("collapsed");
+  diagnosticsPane.classList.toggle("collapsed", isCollapsed);
+  saveResizerState();
+}
+
+resizer.onkeydown = (event) => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    toggleResizer();
+  }
+};
 
 let resizerDrag: { startY: number; startHeight: number; moved: boolean } | null = null;
 resizer.onpointerdown = (event) => {
@@ -804,7 +840,7 @@ resizer.onpointerdown = (event) => {
 };
 resizer.onpointermove = (event) => {
   if (!resizerDrag) return;
-  const dy = resizerDrag.startY - event.clientY; // drag up -> increase height
+  const dy = resizerDrag.startY - event.clientY;
   if (Math.abs(dy) > 3) {
     if (!resizerDrag.moved) {
       resizer.classList.remove("collapsed");
@@ -813,13 +849,22 @@ resizer.onpointermove = (event) => {
     resizerDrag.moved = true;
   }
   if (!resizerDrag.moved) return;
-  diagnosticsPane.style.height = `${resizerDrag.startHeight + dy}px`;
+
+  const maxH = worldMain.clientHeight - 240 - resizer.offsetHeight;
+  let newH = resizerDrag.startHeight + dy;
+  if (newH < 40) newH = 40;
+  if (newH > maxH) newH = maxH;
+
+  diagnosticsPane.style.height = `${newH}px`;
   diagnosticsPane.style.maxHeight = 'none';
 };
-resizer.onpointerup = () => {
-  if (resizerDrag && !resizerDrag.moved) {
-    const isCollapsed = resizer.classList.toggle("collapsed");
-    diagnosticsPane.classList.toggle("collapsed", isCollapsed);
+const stopDrag = () => {
+  if (resizerDrag) {
+    if (resizerDrag.moved) saveResizerState();
+    else toggleResizer();
   }
   resizerDrag = null;
 };
+resizer.onpointerup = stopDrag;
+resizer.onpointercancel = stopDrag;
+resizer.onlostpointercapture = stopDrag;

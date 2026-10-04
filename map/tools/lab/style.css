@@ -27,6 +27,7 @@ body {
   font-weight: 600;
   display: flex;
   align-items: center;
+  white-space: nowrap;
 }
 .app-title span {
   font-weight: 300;
@@ -517,9 +518,13 @@ main {
   #mapView {
     min-height: 60vh;
   }
+  .resizer {
+    display: none !important;
+  }
   .diagnostics {
     grid-template-columns: 1fr;
     max-height: none;
+    height: auto !important;
   }
   .panel + .panel {
     border-left: 0;
