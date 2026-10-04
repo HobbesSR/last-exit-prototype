@@ -1,10 +1,10 @@
 import { circle } from '../../../shared/shape.ts';
-import { CELL_SCALE } from '../../kernel/scale.ts';
 import { rng } from '../index.ts';
 import { createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
 import { portalStands } from '../portals.ts';
-import { emitWallRun } from '../building/walls.ts';
+import { realizeBuilding } from '../building/realize.ts';
+import { OUTSIDE } from '../building/design.ts';
 import { buildOpen } from './open.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
 import type { BuiltRegion, LootSite, RegionBrief } from '../types.ts';
@@ -142,21 +142,16 @@ function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>):
  * has a roof.
  */
 function house(size: number, door: Side): ElementTemplate {
-  const span = BOX * size;
-  const parts: ElementTemplate['parts'] = [];
-  const gates: ElementTemplate['parts'] = [];
-  for (const side of SIDES) {
-    const horizontal = side === 'N' || side === 'S';
-    // North and south walls run the full span; east and west fit between them.
-    const run = horizontal ? { axis: 'h' as const, x: 0, y: side === 'N' ? 0 : BOX, length: BOX }
-      : { axis: 'v' as const, x: side === 'W' ? 0 : BOX, y: 0, length: BOX };
-    const emitted = emitWallRun(run, { cellSize: size, thickness: WALL, offset: side === 'N' || side === 'W' ? 0 : -WALL,
-      trimStart: horizontal ? 0 : WALL, trimEnd: horizontal ? 0 : WALL,
-      openings: side === door ? [{ center: BOX / 2, length: CELL_SCALE.doorway, kind: 'door' }]
-        : side === OPPOSITE[door] ? [{ center: BOX / 2, length: CELL_SCALE.doorway, kind: 'window' }] : [] });
-    parts.push(...emitted.filter(part => part.part === 'obstacle'));
-    gates.push(...emitted.filter(part => part.part === 'gate'));
-  }
-  parts.push(...gates);
-  return { w: span, h: span, encloses: true, parts };
+  const cells = Array.from({ length: BOX * BOX }, (_, i) => ({ x: i % BOX, y: Math.floor(i / BOX) }));
+  const result = realizeBuilding({
+    spaces: [{ id: 'room', area: { min: BOX * BOX, max: BOX * BOX }, outside: 'prefer', tags: ['house'] }],
+    connections: [
+      { id: 'door', a: 'room', b: OUTSIDE, kind: 'door', side: door },
+      { id: 'window', a: 'room', b: OUTSIDE, kind: 'window', side: OPPOSITE[door] },
+    ],
+  }, { footprint: cells, spaces: [{ id: 'room', cells }] },
+  { cellSize: size, thickness: WALL, encloses: true, exteriorOrder: SIDES, corners: 'horizontal' });
+  // This fixed design always fits. A miss here is an implementation defect, not a new fallback.
+  if (!result.template || result.issues.length || result.misses.length) throw new Error('The fixed hut design could not be realized.');
+  return result.template;
 }

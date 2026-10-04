@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { createRegionMask, elementShapes, findRegionRoute, travelClear } from '../map/micro/geometry.ts';
@@ -28,6 +29,20 @@ const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 const house = result => result.elements.find(element => element.template.encloses);
 const blockers = (result, doors = false) => result.elements.flatMap(element => elementShapes(element, doors));
+
+test('the design-based hut preserves complete L1 output at every door orientation and several cell sizes', () => {
+  // Captured from 21425fd before L2: geometry, part order, placement, loot and manifest.
+  const hash = createHash('sha256'), sides = new Set();
+  for (const cellSize of [1, 7, 40, 53]) for (let seed = 1; seed <= 16; seed++) {
+    const cells = cellsOf(10, 10);
+    const result = buildRegion(brief('l2-compatibility', seed, cells, [], { cellSize }));
+    const gate = house(result).template.parts.find(part => part.part === 'gate');
+    sides.add(gate.x < cellSize ? 'W' : gate.x > 3 * cellSize ? 'E' : gate.y < cellSize ? 'N' : 'S');
+    hash.update(JSON.stringify(result));
+  }
+  assert.deepEqual([...sides].sort(), ['E', 'N', 'S', 'W']);
+  assert.equal(hash.digest('hex'), 'cccf8d24e8727393b08733fb1492ee246a1fbddcd09c592a228116caceec177e');
+});
 
 test('a hut region keeps the portal promise over seeds and masks', () => {
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {

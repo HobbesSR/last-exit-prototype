@@ -5,8 +5,8 @@ Building Geometry Library", is issue #185. Its full text stays there. This
 record holds the parts this project adopts, how each maps onto what exists, the
 departures and why, and the build order. The choices it raised are 17 M26 to
 M33 ([17.2.8](17.2.8-building-questions.md)); M26, M28 and M29 are answered.
-L1's wall-run emitter is implemented; L2–L5 remain planned. Marked proposals
-are not requirements until Corey adopts them.
+L1's wall-run emitter and L2's design passes are implemented; L3–L5 remain
+planned. Marked proposals are not requirements until Corey adopts them.
 
 > **Building topology and building geometry are related but distinct procedural problems.**
 
@@ -55,16 +55,16 @@ it doesn't pick what a type builds (19).
 | --- | --- | --- |
 | Region: a connected cell set, maybe concave, maybe with holes | A brief's cells (20.1); `RegionContext` for decomposition (19) | exists |
 | Cells, segments | 52's primitives. Inside a region they are micro's own, not macro's prescriptions, and a segment is a guide: its geometry may extend past either side (M26) | exists |
-| Span: an ordered path along segments | A chain of the kernel's **runs** (`map/kernel/run.ts`), straight stretches between two owners, joined at corners | runs exist; a span is new |
+| Span: an ordered path along segments | A chain of the kernel's **runs** (`map/kernel/run.ts`), straight stretches between two owners, joined at corners | L2 |
 | Anchor | Element `spot` parts, core element sites, loot sites | partly; a general anchor is new |
-| Zone | Renamed **space** (M27): "zone" already means a tier zone (52) and a zone plan (55) | new |
-| Design graph, space nodes, connections | A building design: plain data | new |
+| Zone | Renamed **space** (M27): "zone" already means a tier zone (52) and a zone plan (55) | L2 |
+| Design graph, space nodes, connections | A building design: plain data | L2 |
 | Space allocation over cells | 19's candidate allocation: contracts with hard feasibility and named soft utility, bounded search, residuals | the machinery exists; adjacency between pieces is new |
 | REQUIRED / PREFERRED / DISCOURAGED / FORBIDDEN | 19's hard feasibility and named soft scores. Rules prune during the search, never a check after it with retries | exists |
 | Residual space resolver | 19's residuals ("Treat the residual as another allocation") | exists |
 | Fallback: ideal, acceptable, fallback | 17 M24: the decomposer hands a piece to another builder, and `open` is the last resort | exists |
 | Boundary extraction | `boundaryRuns` over the spaces and the outside, with the outside as one more owner | exists |
-| Wall run, door, window | Element parts (29): `building` and `window` obstacles, `gate` doors, `encloses` for the roof | L1 wall-run emitter exists; roof assembly stays with the caller |
+| Wall run, door, window | Element parts (29): `building` and `window` obstacles, `gate` doors, `encloses` for the roof | L1 emitter; L2 realization assembles a template |
 | Visual, collision and semantic geometry per primitive | One shape description feeds collision, sight and drawing (29). The library emits shapes once, never a second collision model | exists |
 | Door widths | The kernel's scale (52, "Units and scale"): a doorway is 2 cells | exists |
 | Hierarchical seeds | Named random channels per region (`rng(seed, channel)`) | exists |
@@ -154,17 +154,61 @@ The emitter works in cells and scales once. It refuses a cell size that isn't a
 whole number of world units (52, "Coordinates"), and that integer ratio is what
 lets `hut`, authored in world units, come out exactly the same through it.
 
+## L2 design and realization API
+
+The SDK exports these pure passes from `map/micro/building/`:
+
+- `validateBuildingDesign` checks identities, references and well-formed guidance.
+  Spaces carry an `area` range, an optional `outside` preference and tags.
+  Connections have an id, owners `a` and `b`, a `door`, `open` or `window` kind,
+  and an optional exterior `side`. The reserved owner `outside` includes holes.
+  There is no required flag, and validation does not demand connected spaces or
+  that the allocation meet the area guidance.
+- `deriveBuildingBoundaries` takes a footprint and the spaces' assigned cells.
+  Ownership must partition that footprint without overlaps. It adds exterior
+  neighbor cells as the outside owner, calls the kernel's `boundaryRuns`, and
+  chains runs into spans with ordered, directed steps. Rings close; disconnected
+  boundaries remain separate; junctions terminate paths. Exterior runs split
+  where their inward side changes, including at diagonal touches.
+- `placeBuildingOpenings` chooses the longest suitable straight run, with ties
+  in kernel order, and centers the opening in its usable length. An opening
+  cannot turn a corner. Its default width is the kernel doorway width; explicit
+  widths and corner trims can be supplied to this pass. It reports absent
+  boundaries, insufficient length and overlapping placements as `misses`.
+  An exterior side preference selects that side's runs. A missed connection
+  remains guidance and does not prevent the other walls from being realized.
+- `realizeBuilding` composes the passes and returns their intermediate data,
+  `misses`, structural `issues`, and an element `template` with its world-unit
+  `origin`. Geometry is local to the footprint's bounding-box origin. It emits
+  perimeter walls inward, shared interior walls once, and gates after obstacles.
+  Callers can select exterior assembly order and horizontal ownership of convex
+  corners. Thickness is in `(0, 1]` cells, keeping walls within their cells.
+
+The current element roof is a rectangle. An enclosing realization therefore
+requires a filled rectangular footprint; concave or holed footprints can emit
+walls with `encloses: false`. Unsupported roof requests return an issue and no
+template. Extending roof geometry is outside L2. The caller still owns the
+region's portal promise and the decision to use a realization with misses.
+
+`hut` supplies a one-space 4 × 4 allocation, a door on its selected doorstep
+side, and an opposite window. Its N/E/S/W assembly order, horizontal corner
+ownership and gates-last ordering preserve the previous output exactly.
+Designs, allocations and pass results remain transient plain data (17.2.8 M30).
+No fields or part labels are added to saved elements in this behavior-preserving
+stage; provenance stays in the intermediate space and connection ids until the
+lab and a later element-format decision need it.
+
 ## Build order
 
 The first milestone is #185's §36, cut to fit. Each stage is its own issue
-under the tracker, #187. The first stage changes no output, so the existing
+under the tracker, #187. The first two stages change no output, so the existing
 sweep baseline proves it. Later stages add content and re-baseline last
 (53).
 
 | Stage | Builds | Proof |
 | --- | --- | --- |
 | L1 (#188), implemented | **Walls from runs.** A wall-run emitter takes a run, cell size, thickness, offset and openings, and returns element parts. `hut`, `compound` and `depot` draw their walls through it | the sweep baseline is unchanged |
-| L2 (#189) | **The design and its passes.** The design graph and its validation; boundaries and spans from an allocation; openings placed from connections. `hut` builds its one-room house as a design | the baseline is still unchanged |
+| L2 (#189), implemented | **The design and its passes.** The design graph and its validation; boundaries and spans from an allocation; openings placed from connections. `hut` builds its one-room house as a design | the baseline is still unchanged |
 | L3 (#190) | **Allocation.** Spaces are allocated in a footprint, on 19's allocator or a guillotine split, whichever the tests favour. Its own checks, *proposed*: each space's area is in its range, each space is connected, and the openings join every space. Those are the allocator's internal rules, not part of the region's contract, whose one requirement stays the portal promise. Connections only steer it | focused tests over shapes and seeds for those checks |
 | L4 (#191) | **A building lab.** The micro lab shows a building's design graph, allocation, spans and openings beside its geometry | browser check |
 | L5 (#192) | **Buildings with several spaces.** `hut` grows larger designs where its region allows; `compound`'s ring becomes a design | promise tests over shapes and seeds, then re-baseline |
