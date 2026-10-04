@@ -39,8 +39,10 @@ export function parseJson(text: unknown, name = 'JSON'): unknown {
  * if they aren't the version it records.
  */
 export function readMap(saved: Uint8Array | object, library?: unknown): ToolMap {
-  const checked = checkedLibrary(library);
-  return saved instanceof Uint8Array ? readChainMap(saved, checked, GAME_ENGINES) : decodeChainMap(saved, checked, GAME_ENGINES);
+  const checked = library === undefined ? undefined : checkedLibrary(library);
+  const map = saved instanceof Uint8Array ? readChainMap(saved, checked, GAME_ENGINES) : decodeChainMap(saved, checked, GAME_ENGINES);
+  checkedLibrary(map.library);
+  return map;
 }
 
 export interface MapCheck {

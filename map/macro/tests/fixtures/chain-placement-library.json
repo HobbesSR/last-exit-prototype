@@ -1,5 +1,9 @@
 {
-  "version": 2,
+  "name": "chain-placement-library",
+  "version": 3,
+  "zonePlan": "diamond",
+  "zoneWidth": 12,
+  "zoneHeight": 6,
   "cellClasses": {
     "open": { "regionType": "open-field" },
     "hut": { "regionType": "hut" },

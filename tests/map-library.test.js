@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { validateLibrary } from '../map/macro/src/chain/library.ts';
 import { generateChainMap, mapViews } from '../map/macro/src/chain/map.ts';
 import { buildRegion, REGION_TYPES, REGION_TYPES_VERSION } from '../map/micro/region-types.ts';
@@ -15,7 +14,7 @@ import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
  * core element access and each non-open region's portal promise. The slow suite runs the
  * report batch and a whole-map diagnostic, including the large empty open regions.
  */
-const LIBRARY = JSON.parse(readFileSync(new URL('../map/macro/content/chain-library.json', import.meta.url), 'utf8'));
+import { CHAIN_LIBRARY as LIBRARY } from '../map/chain.ts';
 const GAME = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 const ENGINES = { version: REGION_TYPES_VERSION, build: brief => buildRegion(brief), compose: composeRegions };
 

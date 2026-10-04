@@ -2,8 +2,8 @@
 
 Status: accepted direction, 2026-10-03 (17, "Zone plans and library modules").
 The diamond is implemented as the one plan, in
-`map/macro/src/chain/zone-plan.ts` (#166). Libraries declaring the plan and
-size they are authored for, library modules and the larger sizes are tracked
+`map/macro/src/chain/zone-plan.ts` (#166). Libraries declare their plan and size and resolve shared modules (schema 3,
+[52](52-map-primitives-and-library.md), #168). Larger libraries remain tracked
 in #165.
 
 A **zone plan** is a map's macro shape: the paradigm the live game and the

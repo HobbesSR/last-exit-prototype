@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * The map MCP server (53, "Tools"): bounded stdio tools over the same core as the CLI.
- * Maps travel as wire version 6 JSON.
+ * Maps travel as wire version 7 JSON.
  */
 import readline from 'node:readline';
 import { chainMapToJson } from '../macro/src/chain/saving.ts';
@@ -20,7 +20,7 @@ interface Request {
 type Args = Record<string, unknown>;
 
 const params = { type: 'object', description: 'mode, zoneWidth, zoneHeight, exitCount, contestantCount, hunterCount, lootChance, lootTierStep; omitted ones take the game defaults' };
-const library = { type: 'object', description: "a chain library (version 2); the chain's own library when omitted" };
+const library = { type: 'object', description: "a chain library (version 3); the chain's own library when omitted" };
 const diagnose = { type: 'boolean', description: "also run the game's per-region portal check, about a minute a game map" };
 const tools = [
   {

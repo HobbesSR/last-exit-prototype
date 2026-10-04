@@ -8,7 +8,7 @@ import type { ToolMap } from "../core.ts";
 
 export type LabRequest =
   | { kind: "generate"; seed: string; params: object; library: unknown }
-  | { kind: "read"; saved: Uint8Array; library: unknown }
+  | { kind: "read"; saved: Uint8Array }
   | { kind: "diagnose"; map: ToolMap };
 
 export type LabReply =
@@ -23,7 +23,7 @@ function answer(request: LabRequest): LabReply {
     case "generate":
       return { kind: "map", map: generate(request.seed, request.params, request.library), ms: ms() };
     case "read":
-      return { kind: "map", map: readMap(request.saved, request.library), ms: ms() };
+      return { kind: "map", map: readMap(request.saved), ms: ms() };
     case "diagnose":
       return { kind: "diagnosis", brokenPromises: checkMap(request.map, { diagnose: true }).brokenPromises!, ms: ms() };
   }

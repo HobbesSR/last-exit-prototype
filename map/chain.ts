@@ -1,6 +1,8 @@
 /** The game's map-level entry point for macro placement and micro construction. */
-import chainLibrary from './macro/content/chain-library.json' with { type: 'json' };
-import { validateLibrary as validateChainLibrary } from './macro/src/chain/library.ts';
+import chainLibrary from './macro/content/diamond-12x6.json' with { type: 'json' };
+import commonPrimitives from './macro/content/common-primitives@1.json' with { type: 'json' };
+import commonSetPieces from './macro/content/common-set-pieces@1.json' with { type: 'json' };
+import { resolveLibrary, validateLibrary as validateChainLibrary } from './macro/src/chain/library.ts';
 import type { ChainLibrary, LibraryValidation } from './macro/src/chain/library.ts';
 import { generateChainMap } from './macro/src/chain/map.ts';
 import { DEFAULT_CHAIN_PARAMS } from './macro/src/chain/placement.ts';
@@ -11,7 +13,9 @@ import { DEFAULT_CELL_SIZE, GAME_ENGINES, GAME_REGION_TYPES } from './engines.ts
 export type GameChainMap = ChainMap<RegionElement>;
 
 /** The bundled chain library used unless a caller supplies another. */
-export const CHAIN_LIBRARY: ChainLibrary = chainLibrary as ChainLibrary;
+export const CHAIN_LIBRARY: ChainLibrary = resolveLibrary(chainLibrary, {
+  'common-primitives@1': commonPrimitives, 'common-set-pieces@1': commonSetPieces,
+});
 
 function assertParamsObject(value: unknown): asserts value is Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('params must be an object');

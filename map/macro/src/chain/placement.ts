@@ -17,7 +17,7 @@ import type { ChainLibrary, ChainSetPiece, ChainSetPieceClass, ChainTileDesign, 
 import { stream } from "./random.ts";
 import type { Stream } from "./random.ts";
 import type { ChainParams, Layout, MacroStages, Orientation, PlacedSlot, SegmentKey, SetPieceInstance } from "./types.ts";
-import { isAuthoredZone, planTiles, zonePlan } from "./zone-plan.ts";
+import { planTiles, zonePlan } from "./zone-plan.ts";
 import type { PlacementFilter, ZonePlan } from "./zone-plan.ts";
 import { layoutSlots, makeZones } from "./zones.ts";
 import type { MapZone, MaskCell } from "./zones.ts";
@@ -240,8 +240,9 @@ function sample(
 export const placer = ({ openFace }: { openFace: boolean }): MacroStages["placement"] => (seed, params, library) => {
   const mode = params.mode ?? "game";
   const plan = zonePlan(params);
-  if (mode === "game" && !isAuthoredZone(plan, params))
-    throw new Error(`game mode requires ${plan.authoredZones.map((z) => `${z.width} x ${z.height}`).join(" or ")} tile zones for the ${plan.id} plan; choose playground mode for others`);
+  if (library.zonePlan !== plan.id) throw new Error(`library ${library.name} is authored for ${library.zonePlan}, not ${plan.id}`);
+  if (mode === "game" && (library.zoneWidth !== params.zoneWidth || library.zoneHeight !== params.zoneHeight))
+    throw new Error(`library ${library.name} is authored for ${library.zoneWidth} x ${library.zoneHeight} tile zones, not ${params.zoneWidth} x ${params.zoneHeight}`);
   const countError = countParamsProblem(params);
   if (countError) throw new Error(countError);
   const zones = new Map(makeZones(params, plan).map((zone) => [zone.id, zone]));

@@ -3,8 +3,10 @@ import { CORE_ELEMENT_KINDS } from "../../../kernel/contract.ts";
 import type { CoreElementKind } from "../../../kernel/contract.ts";
 import { boundaryRuns } from "../../../kernel/run.ts";
 import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
-export const CHAIN_LIBRARY_VERSION = 2;
+export const CHAIN_LIBRARY_VERSION = 3;
 export const CHAIN_TILE_SIZE = 6;
+/** Module file format; independent of each module's authored content version. */
+export const CHAIN_MODULE_SCHEMA = 1;
 
 export type Side = "N" | "E" | "S" | "W";
 export type PassabilityPrescription = "passable" | "any";
@@ -73,11 +75,34 @@ export interface ChainSetPieceClass {
 
 export interface ChainLibrary {
   version: typeof CHAIN_LIBRARY_VERSION;
+  name: string;
+  zonePlan: "diamond";
+  zoneWidth: number;
+  zoneHeight: number;
   cellClasses: Record<string, ChainCellClass>;
   tiles: ChainTileDesign[];
   tileSets: ChainTileSet[];
   setPieces: ChainSetPiece[];
   setPieceClasses: ChainSetPieceClass[];
+}
+
+export interface LibraryReference { name: string; version: number }
+/** Source form of a plan/size library. Its classes and quotas are authored here. */
+export interface AuthoredChainLibrary extends Partial<Pick<ChainLibrary, "cellClasses" | "tiles" | "tileSets" | "setPieces">> {
+  name: string;
+  version: number;
+  zonePlan: "diamond";
+  zoneWidth: number;
+  zoneHeight: number;
+  includes?: LibraryReference[];
+  setPieceClasses: ChainSetPieceClass[];
+}
+/** Modules carry reusable definitions only; top libraries own the plan and quotas. */
+export interface ChainLibraryModule extends Partial<Pick<ChainLibrary, "cellClasses" | "tiles" | "tileSets" | "setPieces">> {
+  schema: typeof CHAIN_MODULE_SCHEMA;
+  name: string;
+  version: number;
+  includes?: LibraryReference[];
 }
 
 export interface LibraryValidation {
@@ -93,6 +118,75 @@ const names = (value: unknown): value is string[] => Array.isArray(value) && val
 const ORIENTATIONS = new Set([0, 90, 180, 270]);
 const PLACEMENT_RULES = new Set<PlacementRule>(["start", "end", "enormous", "medium", "small", "charger", "transit"]);
 const CORE_ELEMENTS = new Set<CoreElementKind>(CORE_ELEMENT_KINDS);
+
+/** Resolve named, versioned modules without depending on a filesystem or import system. */
+export function resolveLibrary(top: unknown, registry: Readonly<Record<string, unknown>>): ChainLibrary {
+  if (!object(top) || !name(top.name)) throw new Error("library: missing name");
+  if (top.version !== CHAIN_LIBRARY_VERSION) throw new Error(`library ${top.name}: unsupported version ${String(top.version)}`);
+  if (top.zonePlan !== "diamond" || !integer(top.zoneWidth) || top.zoneWidth < 1 ||
+    !integer(top.zoneHeight) || top.zoneHeight < 1)
+    throw new Error(`library ${top.name}: requires diamond and positive authored zoneWidth/zoneHeight`);
+  const resolved: ChainLibrary = {
+    name: top.name, version: CHAIN_LIBRARY_VERSION, zonePlan: "diamond",
+    zoneWidth: top.zoneWidth, zoneHeight: top.zoneHeight,
+    cellClasses: {}, tiles: [], tileSets: [], setPieces: [], setPieceClasses: [],
+  };
+  const sources = new Map<string, string>();
+  const loaded = new Set<string>();
+  const active = new Set<string>();
+  const lists = ["tiles", "tileSets", "setPieces"] as const;
+  function consume(raw: Record<string, unknown>, source: string, isTop: boolean): void {
+    const allowed = isTop
+      ? ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "includes", "cellClasses", ...lists, "setPieceClasses"]
+      : ["schema", "name", "version", "includes", "cellClasses", ...lists];
+    for (const key of Object.keys(raw)) if (!allowed.includes(key)) throw new Error(`${source}: unknown field ${key}`);
+    if (raw.cellClasses !== undefined && !object(raw.cellClasses)) throw new Error(`${source}: cellClasses must be an object`);
+    if (object(raw.cellClasses)) for (const [id, value] of Object.entries(raw.cellClasses)) {
+      const old = sources.get(`cell class:${id}`);
+      if (old) throw new Error(`cell class ${id} redefined in ${source}; first defined in ${old}`);
+      sources.set(`cell class:${id}`, source);
+      Object.defineProperty(resolved.cellClasses, id, { value: structuredClone(value), enumerable: true, writable: true, configurable: true });
+    }
+    for (const key of lists) {
+      if (raw[key] !== undefined && !Array.isArray(raw[key])) throw new Error(`${source}: ${key} must be an array`);
+      for (const value of (raw[key] as unknown[] | undefined) ?? []) {
+        if (!object(value) || !name(value.id)) throw new Error(`${source}: ${key} entry has no id`);
+        const old = sources.get(`${key}:${value.id}`);
+        if (old) throw new Error(`${key} ${value.id} redefined in ${source}; first defined in ${old}`);
+        sources.set(`${key}:${value.id}`, source);
+        (resolved[key] as unknown[]).push(structuredClone(value));
+      }
+    }
+    if (isTop) {
+      if (!Array.isArray(raw.setPieceClasses)) throw new Error(`${source}: setPieceClasses must be an array`);
+      resolved.setPieceClasses = structuredClone(raw.setPieceClasses) as ChainSetPieceClass[];
+    }
+  }
+  function visit(raw: Record<string, unknown>, source: string, isTop: boolean): void {
+    if (!isTop && raw.schema !== CHAIN_MODULE_SCHEMA)
+      throw new Error(`${source}: unsupported module schema ${String(raw.schema)}; expected ${CHAIN_MODULE_SCHEMA}`);
+    const identity = isTop ? `library:${source}` : source;
+    if (active.has(identity)) throw new Error(`library include cycle at ${identity}`);
+    if (loaded.has(identity)) return;
+    active.add(identity);
+    if (raw.includes !== undefined && !Array.isArray(raw.includes)) throw new Error(`${source}: includes must be an array`);
+    for (const ref of (raw.includes as unknown[] | undefined) ?? []) {
+      if (!object(ref) || !name(ref.name) || !integer(ref.version) || ref.version < 1) throw new Error(`${source}: malformed include`);
+      for (const field of Object.keys(ref)) if (field !== "name" && field !== "version") throw new Error(`${source}: unknown include field ${field}`);
+      const key = `${ref.name}@${ref.version}`;
+      const module = Object.hasOwn(registry, key) ? registry[key] : undefined;
+      if (!object(module)) throw new Error(`${source}: missing module ${ref.name}@${ref.version}`);
+      if (module.name !== ref.name) throw new Error(`${source}: module ${key} names ${String(module.name)}`);
+      if (module.version !== ref.version) throw new Error(`${source}: module ${ref.name} requested version ${ref.version}, found ${String(module.version)}`);
+      visit(module, key, false);
+    }
+    consume(raw, source, isTop);
+    active.delete(identity);
+    loaded.add(identity);
+  }
+  visit(top, top.name, true);
+  return resolved;
+}
 
 function unknownFields(value: Record<string, unknown>, allowed: readonly string[], path: string, errors: string[]): void {
   for (const field of Object.keys(value))
@@ -240,8 +334,12 @@ export function validateLibrary(
 ): LibraryValidation {
   const errors: string[] = [];
   if (!object(library)) return { valid: false, errors: ["library: must be an object"] };
-  unknownFields(library, ["version", "cellClasses", "tiles", "tileSets", "setPieces", "setPieceClasses"], "library", errors);
+  unknownFields(library, ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "cellClasses", "tiles", "tileSets", "setPieces", "setPieceClasses"], "library", errors);
   if (library.version !== CHAIN_LIBRARY_VERSION) errors.push(`library: unsupported version ${String(library.version)}`);
+  if (!name(library.name)) errors.push("library: missing name");
+  if (library.zonePlan !== "diamond") errors.push(`library: unknown zone plan ${String(library.zonePlan)}`);
+  if (!integer(library.zoneWidth) || library.zoneWidth < 1 || !integer(library.zoneHeight) || library.zoneHeight < 1)
+    errors.push("library: authored zoneWidth and zoneHeight must be positive integers");
   if (!integer(minPassableRun) || minPassableRun < 1) errors.push("minimum passable run must be a positive integer");
   const declared = new Set<string>();
   if (!object(library.cellClasses)) errors.push("cellClasses: must be an object");

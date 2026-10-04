@@ -1,7 +1,7 @@
 /**
  * Zone plans (55): the one statement of a map's macro shape. A plan owns the zone grid,
- * which of its zones are occupied, each zone's tier and bonus, the zone sizes it is
- * authored at, and where each set piece placement rule may anchor. Libraries own what
+ * which of its zones are occupied, each zone's tier and bonus, the default zone size,
+ * and where each set piece placement rule may anchor. Libraries own what
  * fills it: designs, set pieces, class membership and quotas, authored per size.
  *
  * "Layout" already names placement's output (51 stage 1), so the shape is a plan.
@@ -30,11 +30,6 @@ export interface ZonePlan {
   bonus(col: number, row: number): number;
   /** The size the game and the tools start from. */
   defaultZone: ZoneSize;
-  /**
-   * The sizes game mode accepts: those a library is authored for. Playground mode
-   * accepts any size (51).
-   */
-  authoredZones: readonly ZoneSize[];
   /** Where the `nth` of `quota` instances of a rule may anchor, on a map `columns` by `rows` tiles. */
   placementFilter(rule: PlacementRule, nth: number, quota: number, columns: number, rows: number): PlacementFilter;
 }
@@ -63,7 +58,6 @@ export const DIAMOND: ZonePlan = Object.freeze({
   tier: (col: number) => col + 1,
   bonus: (_col: number, row: number) => Math.abs(row - CENTRE),
   defaultZone: Object.freeze({ width: 12, height: 6 }),
-  authoredZones: Object.freeze([Object.freeze({ width: 12, height: 6 })]),
   placementFilter(rule: PlacementRule, nth: number, quota: number, columns: number, rows: number): PlacementFilter {
     switch (rule) {
       case "start": return (c) => c.x === 0;
@@ -98,7 +92,3 @@ export function zonePlan(_params?: Pick<ChainParams, "zoneWidth" | "zoneHeight">
 export function planTiles(plan: ZonePlan, p: Pick<ChainParams, "zoneWidth" | "zoneHeight">): { columns: number; rows: number } {
   return { columns: plan.columns * p.zoneWidth, rows: plan.rows * p.zoneHeight };
 }
-
-/** Whether game mode accepts this zone size under the plan. */
-export const isAuthoredZone = (plan: ZonePlan, p: Pick<ChainParams, "zoneWidth" | "zoneHeight">): boolean =>
-  plan.authoredZones.some((z) => z.width === p.zoneWidth && z.height === p.zoneHeight);
