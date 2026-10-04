@@ -20,3 +20,11 @@ export type { CrossingTerms, NegotiatedCrossing, NegotiatedPortals, PortalPolicy
 export type * from './decomposition/types.ts';
 export { emitWallRun } from './building/walls.ts';
 export type { WallOpening, WallRunOptions } from './building/walls.ts';
+export { OUTSIDE, validateBuildingDesign } from './building/design.ts';
+export type { BuildingSpace, BuildingConnection, BuildingDesign, BuildingAllocation, BuildingSide, OpeningKind } from './building/design.ts';
+export { deriveBuildingBoundaries } from './building/boundaries.ts';
+export type { BuildingBoundary, BuildingSpan, SpanStep } from './building/boundaries.ts';
+export { placeBuildingOpenings } from './building/openings.ts';
+export type { PlacedBuildingOpening, MissedBuildingOpening, BuildingOpeningResult, BuildingOpeningOptions, BuildingRunLimits } from './building/openings.ts';
+export { realizeBuilding } from './building/realize.ts';
+export type { BuildingRealization, BuildingRealizationOptions } from './building/realize.ts';
