@@ -97,6 +97,7 @@ existed.
 | [53-map-artifacts-and-tools.md](53-map-artifacts-and-tools.md) | Determinism, what is stored, the wire form and BSON, the sweep, the Map Lab, CLI and MCP |
 | [54-region-types.md](54-region-types.md) | The region type catalogue, a working draft: each type's role, strategy, core elements, shape needs and material |
 | [55-zone-plans.md](55-zone-plans.md) | Zone plans, starting with the diamond: the zone grid, mask, tiers, zone sizes, where placement rules anchor, and who authors what |
+| [56-buildings.md](56-buildings.md) | The building library, a request for comments: building designs, their realization in cells, walls from runs, and the build order |
 
 ## Other places facts live
 
