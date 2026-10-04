@@ -28,3 +28,5 @@ export { placeBuildingOpenings } from './building/openings.ts';
 export type { PlacedBuildingOpening, MissedBuildingOpening, BuildingOpeningResult, BuildingOpeningOptions, BuildingRunLimits } from './building/openings.ts';
 export { realizeBuilding } from './building/realize.ts';
 export type { BuildingRealization, BuildingRealizationOptions } from './building/realize.ts';
+export { allocateBuilding } from './building/allocation.ts';
+export type { BuildingAllocationOptions, BuildingAllocationResult, BuildingAllocationSearch, BuildingAllocationScores } from './building/allocation.ts';
