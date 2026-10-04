@@ -995,6 +995,31 @@ export function chainDraft(): ChainLibrary {
 }
 /** Draw the tab; the lab calls it when the tab is shown. */
 export { render as renderChainLibrary };
+/**
+ * Select a tile design or set piece of `source`, the library a World tab map was made from,
+ * for editing. Where the draft's entry differs or is missing, the draft is replaced with
+ * `source` only if the author agrees, since the draft may hold unexported work.
+ */
+export function openChainEntry(source: ChainLibrary, kind: "tiles" | "setPieces", id: string): void {
+  const wanted = (source[kind] as Array<{ id: string }>).find((entry) => entry.id === id);
+  const held = (library[kind] as Array<{ id: string }>).find((entry) => entry.id === id);
+  select("chainSection").value = kind;
+  if (wanted && JSON.stringify(held) !== JSON.stringify(wanted)) {
+    const noun = kind === "tiles" ? "tile design" : "set piece";
+    const question = held
+      ? `The Chain Library draft's ${noun} ${id} differs from the map's. Replace the draft with the map's library?`
+      : `The Chain Library draft has no ${noun} ${id}. Replace the draft with the map's library?`;
+    if (!confirm(question)) {
+      selectedId = held ? id : "";
+      render();
+      status(held ? `Showing the draft's ${noun} ${id}, not the map's.` : `The draft has no ${noun} ${id}.`);
+      return;
+    }
+    library = structuredClone(source);
+  }
+  selectedId = id;
+  changed();
+}
 /** The bundled library for the World tab's zone size, or the default one where none is authored. */
 $("chainLoadBundled").onclick = () => {
   const width = Number(($("zoneWidth") as HTMLInputElement).value), height = Number(($("zoneHeight") as HTMLInputElement).value);
