@@ -10,16 +10,12 @@
     <script type="module" src="/map/tools/lab/app.ts"></script>
   </head>
   <body>
-    <header>
-      <div>
-        <span class="eyebrow">LAST EXIT · MAP GENERATION</span>
-        <h1>Map Lab<span> / chain</span></h1>
-      </div>
-      <span id="status" role="status">Loading…</span>
-    </header>
     <nav class="app-nav">
+      <h1 class="app-title">Map Lab<span> / chain</span></h1>
       <button id="worldTab" type="button" class="active">World</button>
       <button id="chainTab" type="button">Chain Library</button>
+      <div class="app-nav-spacer"></div>
+      <span id="status" role="status">Loading…</span>
     </nav>
     <main>
       <div id="worldView" class="tab-view">
@@ -92,7 +88,8 @@
             </div>
             <div id="tooltip" class="map-tooltip" hidden></div>
           </div>
-          <div class="diagnostics">
+          <div id="diagnosticsResizer" class="resizer" aria-label="Resize diagnostics pane" title="Drag to resize, click to hide" role="separator" tabindex="0"></div>
+          <div id="diagnosticsPane" class="diagnostics">
             <section id="report" class="panel">
               <h2>Report</h2>
               <div id="reportBody">—</div>
