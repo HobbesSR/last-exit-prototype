@@ -69,7 +69,9 @@ order is 51's:
   12 × 6 until pacing and per-tick cost are measured at those sizes.
 - **Then: the building library** (tracker #187, 2026-10-04). Corey's design
   (#185) becomes one SDK library for building designs, walls and openings
-  ([56](56-buildings.md)), starting with stage L1, which changes no output. Its open choices are
+  ([56](56-buildings.md)). Its first milestone, L1 to L5, is implemented:
+  `hut` builds houses of several spaces and `compound`'s ring is a design. The
+  second milestone's stages are filed next. Its open choices are
   M26 to M33 ([17.2.8](17.2.8-building-questions.md)).
 
 Work in progress and its order live on the Forgejo tracker, #82, and

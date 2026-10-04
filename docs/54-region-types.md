@@ -250,20 +250,31 @@ inside, and windows and doors let sight through.
   building, puts its door where the yard keeps every portal joined, and leaves
   the yard around it. A route through the building counts only through
   unlocked doors.
-  **Built (#129):** `map/micro/strategies/hut.ts`. It reasons in cells, where
-  a hunter is a 2 × 2 block of yard cells, so it needs no route search.
-  - **The size:** a region less than 6 cells across on either axis goes to
-    `open` before any box is tried, even where a box and its doorstep would
-    fit. The L and the ring count by their extent, not by a contained 6 × 6.
-  - **The box:** it tries the region's contained 4 × 4 boxes in a seeded
-    order, and takes the first that stays off every portal's approach (the
-    two cells inward along it), leaves joined every two portals the empty
-    region joined, and has a side whose doorstep the yard joins to a portal.
-    A box with a clear ring 2 cells wide passes the last two by shape alone.
-  - **The house:** it fills its box, 4 cells square, with quarter-cell walls
-    and a roof. The door is a doorway wide, centred on the doorstep's side,
-    and a window as wide faces it. With one door, no route runs through the
-    house.
+  **Built (#129), with larger houses since L5 (#192, 56):**
+  `map/micro/strategies/hut.ts`. It reasons in cells, where a hunter is a
+  2 × 2 block of yard cells, so it needs no route search.
+  - **The designs:** it tries a house of three spaces, then two, then one,
+    then goes to `open` (17 M24). Three spaces take a 6 × 6, 8 × 6 or 9 × 4
+    box, two a 6 × 4 or 7 × 5, either way round, and one a 4 × 4.
+  - **The size:** a box is tried only in a region at least 2 cells wider and
+    taller than it, so a region less than 6 cells across on either axis goes
+    to `open` before any box is tried, even where a box and its doorstep would
+    fit, and one up to 7 across keeps the one-space house. The L and the ring
+    count by their extent, not by a contained rectangle.
+  - **The box:** each design tries its sizes, and each size the region's
+    contained boxes, in a seeded order. It takes the first that stays off
+    every portal's approach (the two cells inward along it), leaves joined
+    every two portals the empty region joined, and has a side whose doorstep
+    the yard joins to a portal. A box with a clear ring 2 cells wide passes
+    the last two by shape alone.
+  - **The house:** it fills its box with quarter-cell walls and a roof. It has
+    one outside door, a doorway wide, on the doorstep's side. The one-space
+    house centres it and faces it with a window as wide. A larger house's
+    spaces are allocated in the box (56 L5), at least 3 × 3 each, joined by
+    interior doors, with windows where they fit. Its door and the doors
+    joining every space must be placed, or the side isn't used. With one
+    outside door, no route runs through the house, and every space is reached
+    through it.
   - **Why that keeps the promise:** the house takes only its box, so the yard
     joins what the empty region joined. A region with no such box, such as
     the fixture's 2 × 3 huts, goes to `open` (17 M24), so a `hut` region keeps
@@ -273,7 +284,8 @@ inside, and windows and doors let sight through.
   - **Core elements:** it sites none. Any its brief lists are left for the
     report.
 - **Shape needs:** *proposed*, a contained 4 × 4 for the building, in a
-  region of at least 6 × 6.
+  region of at least 6 × 6. Two spaces need a region of at least 8 × 6, and
+  three at least 8 × 8 or 11 × 6.
 - **Formed by:** the fill's hut quarters, and as a child of `block` (52).
 - **Parameters:** none yet. Locked doors are deferred (M23).
 - **Material:** the game's room shell in `builders.ts` (real windows, a door
@@ -326,7 +338,8 @@ inside, and windows and doors let sight through.
 - **Strategy:** a builder puts the ring on the region's outline and the court
   inside, and places gates so every portal reaches the court. A region with a
   hole suits it whole, as 19's ring example does.
-  **Built (#160):** `map/micro/strategies/compound.ts`. No decomposer. It
+  **Built (#160), its ring one building design since L5 (#192, 56):**
+  `map/micro/strategies/compound.ts`. No decomposer. It
   stands one compound inside its yard, not on the region's outline: a wall on
   the outline would need a gate at every portal, more than two or three
   wherever the region has more portals. Like `depot`, it keeps the portal
@@ -337,13 +350,17 @@ inside, and windows and doors let sight through.
     quarter-cell walls. The box's edge is their back wall, so the compound's
     outer wall is the rooms'. Each side's middle, between the corners, is
     split into rooms 3 to 5 cells long, as evenly as whole cells allow, each
-    with a door a doorway wide onto the court.
+    with a door a doorway wide onto the court. The rooms and passages are the
+    spaces of one design over the ring's cells, so two rooms share one wall,
+    and each room is its own element with its own roof.
   - **Dead ends:** a 3 × 3 room stands at each corner. It opens only into its
     neighbour along the north or south side, a room or a gate's passage.
   - **Gates:** `gates` sides, drawn from the seed, each have a passage 2
     cells wide through the ring at a seeded place, from a door in the outer
     wall to the court. The passage widens to the corner where what's left
-    would be too short for a room. The rest of the ring is closed.
+    would be too short for a room. A passage keeps its whole width: the walls
+    it shares stand in the rooms beside it. It is open to the court along its
+    length. The rest of the ring is closed.
   - **The court:** the open ground inside the ring, at least 4 × 4. It holds
     nothing but loot.
   - **Doors and passages:** every door is centred in its wall, and each

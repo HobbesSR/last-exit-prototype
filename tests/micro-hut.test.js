@@ -30,18 +30,19 @@ const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 const house = result => result.elements.find(element => element.template.encloses);
 const blockers = (result, doors = false) => result.elements.flatMap(element => elementShapes(element, doors));
 
-test('the design-based hut preserves complete L1 output at every door orientation and several cell sizes', () => {
-  // Captured from 21425fd before L2: geometry, part order, placement, loot and manifest.
+test('a region too small for a larger design keeps the one-space house exactly', () => {
+  // Captured before L5 (fbb383e): geometry, part order, placement, loot and manifest, at every door orientation.
   const hash = createHash('sha256'), sides = new Set();
-  for (const cellSize of [1, 7, 40, 53]) for (let seed = 1; seed <= 16; seed++) {
-    const cells = cellsOf(10, 10);
-    const result = buildRegion(brief('l2-compatibility', seed, cells, [], { cellSize }));
+  for (const [w, h] of [[6, 6], [7, 7], [7, 6], [6, 7]]) for (const cellSize of [1, 7, 40, 53]) for (let seed = 1; seed <= 16; seed++) {
+    const cells = cellsOf(w, h);
+    const result = buildRegion({ id: 'one-space', seed, type: 'hut', cellSize, cells, zones: [{ tier: 3, bonus: 0, lootChance: 0.5, cells }],
+      portals: [{ id: 's', axis: 'h', x: 0, y: h, length: 2 }] });
     const gate = house(result).template.parts.find(part => part.part === 'gate');
     sides.add(gate.x < cellSize ? 'W' : gate.x > 3 * cellSize ? 'E' : gate.y < cellSize ? 'N' : 'S');
     hash.update(JSON.stringify(result));
   }
   assert.deepEqual([...sides].sort(), ['E', 'N', 'S', 'W']);
-  assert.equal(hash.digest('hex'), 'cccf8d24e8727393b08733fb1492ee246a1fbddcd09c592a228116caceec177e');
+  assert.equal(hash.digest('hex'), '1ae018d3d1f8400b66ce1b697b82d6659992dea46a89a1dd22f56854d8c75e57');
 });
 
 test('a hut region keeps the portal promise over seeds and masks', () => {
@@ -53,21 +54,29 @@ test('a hut region keeps the portal promise over seeds and masks', () => {
   }
 });
 
-test('the house is reached through its door, and only through it', () => {
-  const radius = hunterClearance(SIZE);
+test('every space of the house is reached through its one outside door, and only through it', () => {
+  const radius = hunterClearance(SIZE), counts = new Set();
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
-    const result = buildRegion(brief(name, seed, cells, portals)), building = house(result), mask = createRegionMask(result.brief);
-    const gate = building.template.parts.find(part => part.part === 'gate');
-    const centre = { x: building.x + building.template.w / 2, y: building.y + building.template.h / 2 };
-    const door = { x: building.x + gate.x, y: building.y + gate.y };
-    // The doorstep: a hunter's width beyond the door, away from the centre.
-    const out = { x: door.x - Math.sign(centre.x - door.x) * (radius + 1) * (gate.h > gate.w ? 1 : 0), y: door.y - Math.sign(centre.y - door.y) * (radius + 1) * (gate.w > gate.h ? 1 : 0) };
-    assert.ok(travelClear(mask, blockers(result), out, centre, radius), `${name} ${seed}: a hunter walks in through the door`);
+    const traces = [], result = buildRegion(brief(name, seed, cells, portals), undefined, trace => traces.push(trace));
+    const [trace] = traces, building = house(result), mask = createRegionMask(result.brief);
+    counts.add(trace.design.spaces.length);
+    const door = trace.realization.openings.find(opening => opening.connectionId === 'door');
+    assert.equal(trace.realization.openings.filter(o => o.kind === 'door' && (o.a === 'outside' || o.b === 'outside')).length, 1, `${name} ${seed}: one outside door`);
+    // The doorstep: a hunter's width beyond the door's middle, away from the house.
+    const { run, center } = door, side = trace.realization.boundaries.find(b => b.runs.includes(run)).runSides[trace.realization.boundaries.find(b => b.runs.includes(run)).runs.indexOf(run)];
+    const along = (run.axis === 'h' ? run.x : run.y) + center, out = (radius + 1) / SIZE;
+    const step = run.axis === 'h' ? { x: along, y: run.y + (side === 'N' ? -out : out) } : { x: run.x + (side === 'W' ? -out : out), y: along };
+    const at = cell => ({ x: building.x + cell.x * SIZE, y: building.y + cell.y * SIZE });
     const from = portalStands(result.brief, mask)[0].points[0];
-    assert.ok(findRegionRoute(mask, blockers(result), from, out, radius), `${name} ${seed}: the yard reaches the doorstep`);
-    // Closed, the door seals the house: a contestant inside can't get out.
-    assert.equal(findRegionRoute(mask, blockers(result, true), centre, from, 1), null, `${name} ${seed}: the house is enclosed`);
+    assert.ok(findRegionRoute(mask, blockers(result), from, at(step), radius), `${name} ${seed}: the yard reaches the doorstep`);
+    for (const space of trace.allocation.spaces) {
+      const n = space.cells.length, centre = at({ x: space.cells.reduce((s, c) => s + c.x + 0.5, 0) / n, y: space.cells.reduce((s, c) => s + c.y + 0.5, 0) / n });
+      assert.ok(findRegionRoute(mask, blockers(result), at(step), centre, radius), `${name} ${seed}: a hunter walks in to ${space.id}`);
+      // Closed, the doors seal the house: a contestant inside can't get out.
+      assert.equal(findRegionRoute(mask, blockers(result, true), centre, from, 1), null, `${name} ${seed}: ${space.id} is enclosed`);
+    }
   }
+  assert.deepEqual([...counts].sort(), [1, 2, 3], 'the masks hold houses of one, two and three spaces');
 });
 
 test('the house has walls, one door, a window opposite and a roof (52\'s worked case)', () => {
@@ -163,8 +172,8 @@ test('an observer sees the house its element was realized from, and changes noth
     assert.equal(trace.label, building.label);
     assert.deepEqual(trace.origin, { x: building.x, y: building.y });
     assert.deepEqual(trace.realization.template, building.template);
-    assert.deepEqual(trace.design.connections.map(c => c.id), ['door', 'window']);
-    assert.equal(trace.allocation.spaces[0].cells.length, 16);
+    assert.ok(trace.design.connections.some(c => c.id === 'door'));
+    assert.equal(trace.allocation.footprint.length, building.template.w * building.template.h / SIZE / SIZE);
     assert.equal(trace.realization.openings.length, building.template.parts.filter(p => p.part === 'gate' || p.kind === 'window').length);
   }
   // A region too small for a house goes to `open`, which reports no building.

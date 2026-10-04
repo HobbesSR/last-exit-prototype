@@ -108,6 +108,12 @@ spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
   acceptably. The capture refuses uncommitted changes to the chain's inputs
   and records the last commit that touched them.
 
+**L5's re-capture (#192)** followed the building library's first deliberate
+content change, larger `hut` houses and `compound`'s ring as a design (56 L5).
+Only the results, built and report views moved. The report showed no defects
+over 60 game and 30 playground maps, and the per-region diagnosis none over 3
+game maps. The S3 migration's provenance is kept in the recaptured file.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to

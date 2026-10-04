@@ -8,7 +8,7 @@ import type { BuildingRealization } from './realize.ts';
  * never stored with the result (17.2.8 M30). The micro lab draws it beside the geometry.
  */
 export interface BuildingTrace {
-  /** The element the building became, as the result labels it. */
+  /** The element the building became, as the result labels it. A building split by `splitBuilding` gives the label its pieces' labels extend. */
   label: string;
   /** World position of the allocation's cell (0, 0), in the result's frame. */
   origin: Vec2;
