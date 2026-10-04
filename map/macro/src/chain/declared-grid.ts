@@ -6,7 +6,7 @@
 import { CHAIN_TILE_SIZE } from "./library.ts";
 import type { ChainLibrary, ChainTileDesign, SegmentPrescription } from "./library.ts";
 import type { ChainParams, DeclaredGrid, DeclaredSegment, MacroStages, Orientation, SegmentKey } from "./types.ts";
-import { ZONE_COLUMNS, ZONE_ROWS } from "./zones.ts";
+import { planTiles, zonePlan } from "./zone-plan.ts";
 
 const S = CHAIN_TILE_SIZE;
 
@@ -80,7 +80,8 @@ export function orientedDesigns(library: ChainLibrary): (id: string, orientation
 
 /** The map's grid in cells, from the params alone: a cell's flat index is `y * width + x`. */
 export function gridSize(params: ChainParams): { width: number; height: number } {
-  return { width: ZONE_COLUMNS * params.zoneWidth * S, height: ZONE_ROWS * params.zoneHeight * S };
+  const { columns, rows } = planTiles(zonePlan(params), params);
+  return { width: columns * S, height: rows * S };
 }
 
 export const declaredGrid: MacroStages["declaredGrid"] = (layout, library) => {

@@ -53,7 +53,8 @@ test counts the driver's own round trips as playback time.
 ## Replay camera
 
 A directed view — a replay, or a spectator with no player of their own — frames the
-whole arena. Live chain maps are 17,280 by 8,640 units (legacy maps are 24,000 by 12,000), far wider than a
+whole arena. Live chain maps are 17,280 by 8,640 units, the diamond zone plan at its
+default size ([55](55-zone-plans.md)); legacy maps are 24,000 by 12,000. Both are far wider than a
 player's view, so at that zoom an unscaled contestant covers only a few pixels and
 the roster is unreadable. Markers are therefore enlarged by the ratio the camera is
 zoomed out by, which holds their apparent size steady rather than letting it shrink

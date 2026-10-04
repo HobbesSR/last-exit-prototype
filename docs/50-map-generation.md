@@ -147,7 +147,8 @@ So the test is:
 | --- | --- |
 | Anything in map generation | 50, then the design notes (`map/macro/design_notes.txt`), the original statement of intent. Corey's later answers in 17 and the accepted model in 51 govern where they differ |
 | A chain stage or its interfaces | 51 |
-| Tiles, set pieces, cell classes, prescriptions, zones | 52 |
+| Tiles, set pieces, cell classes, prescriptions | 52 |
+| The map's macro shape: the diamond, zones, zone sizes, where placement rules anchor | 55 |
 | Artifacts, saving, determinism, the sweep, the Map Lab, CLI and MCP | 53 |
 | A region type, a builder, a decomposer, the SDK | 54 (the catalogue, a working draft), then 19, 20, 22 |
 | Open questions, and your verbatim answers | 17, "Map generation" |

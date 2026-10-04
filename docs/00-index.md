@@ -21,7 +21,7 @@ and handoffs should cite the number, not a heading.
 | 2x | Engineering: how the implementation is arranged | Changing code structure, protocol, performance or contracts |
 | 3x | Process: how work is verified and handed off | Running acceptance, delegating, or updating documentation |
 | 4x | Plan and history: what is next and what was measured | Choosing the next task, or citing an earlier measurement |
-| 5x | Map generation: macro (`map/macro/`) and how it meets micro (`map/micro/`) | Changing the tile library, placement, regions, the chain, or map artifacts |
+| 5x | Map generation: macro (`map/macro/`) and how it meets micro (`map/micro/`) | Changing the tile library, placement, zone plans, regions, the chain, or map artifacts |
 
 ## Files
 
@@ -82,6 +82,7 @@ existed.
 | [52-map-primitives-and-library.md](52-map-primitives-and-library.md) | Cells, segments and prescriptions, region types, tiles, set pieces and set piece classes, tier zones, scale |
 | [53-map-artifacts-and-tools.md](53-map-artifacts-and-tools.md) | Determinism, what is stored, the wire form and BSON, the sweep, the Map Lab, CLI and MCP |
 | [54-region-types.md](54-region-types.md) | The region type catalogue, a working draft: each type's role, strategy, core elements, shape needs and material |
+| [55-zone-plans.md](55-zone-plans.md) | Zone plans, starting with the diamond: the zone grid, mask, tiers, zone sizes, where placement rules anchor, and who authors what |
 
 ## Other places facts live
 

@@ -535,7 +535,8 @@ Results that are stored aren't rebuilt, so any engines may read them.
 sweep, the #47 baseline, and wire version 4's reader. What the chain uses was
 kept: `wfc.ts` (less the old path's compass matching), `coding.ts` (less the
 old grid codec, plus `libraryFingerprint`) and `bson.ts`. The zone grid and its
-slots moved from `core.ts` to `chain/zones.ts`.
+slots moved from `core.ts` to `chain/zones.ts`; the grid itself is now the zone
+plan's (55, #166).
 
 In mapgen:
 - `generateMap`, `generatePlannedMap`, and everything only they use:
@@ -572,8 +573,9 @@ live game until the switch-over.
    `chain/declared-grid.ts`.
    - Set piece classes are drawn in rule order (`start`, `end`, `enormous`,
      `medium`, `small`, then `charger`, which places anywhere), then by library
-     order, and placed largest first. `enormous` takes distinct pieces, one per
-     vertical third, and fails explicitly if its class has fewer than its quota.
+     order, and placed largest first. Each rule's anchors are the zone plan's
+     (55). `enormous` takes distinct pieces and fails explicitly if its class
+     has fewer than its quota.
      Playground mode places no set pieces, as today.
    - The fill never uses a design that paints a core element class, which is how
      placement keeps a core element class inside its owning set pieces ("Core elements").
