@@ -1,6 +1,6 @@
 /**
  * B4 (#97): the chain's own library, `content/diamond-12x6.json`, authored against the
- * catalogue's minimal set (54). Its region types are checked against the game's registry
+ * catalogue (54), with set pieces on the old library's footprints since S5 (#170). Its region types are checked against the game's registry
  * in the root `tests/map-library.test.js`, since macro doesn't import micro (50).
  */
 import assert from "node:assert/strict";
@@ -17,10 +17,13 @@ import type { ChainParams, Orientation } from "../src/chain/types.ts";
 
 const content = (name: string): unknown => JSON.parse(readFileSync(new URL(`../content/${name}.json`, import.meta.url), "utf8"));
 const LIBRARY: ChainLibrary = resolveLibrary(content("diamond-12x6"), {
-  "common-primitives@1": content("common-primitives@1"), "common-set-pieces@1": content("common-set-pieces@1"),
+  "common-primitives@2": content("common-primitives@2"), "common-set-pieces@2": content("common-set-pieces@2"),
 });
-/** The catalogue's minimal set (54), which B3 built. */
-const MINIMAL_SET = new Set(["open", "cover", "rubble", "hut", "arrival", "departure", "charging", "transit"]);
+/** The catalogue (54): its minimal set, the types B3 built, and the types S4 drafted. */
+const CATALOGUE = new Set([
+  "open", "cover", "rubble", "hut", "arrival", "departure", "charging", "transit",
+  "ruins", "hall", "depot", "compound", "block", "market", "plant", "checkpoint", "park",
+]);
 const GAME: ChainParams = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 /** The width of the narrowest passage the content may form: a doorway plus one, as `cover`'s aisle (54). */
 const BLOCK = 3;
@@ -28,9 +31,9 @@ const BLOCK = 3;
 const QUOTAS = { start: 1, end: 1, enormous: 3, medium: 4, small: 10, charger: 1, transit: 6 };
 const OWNERS = { arrival: "start", departure: "end", charging: "charger" };
 
-test("the library is valid, and paints only the catalogue's minimal set", () => {
-  assert.deepEqual(validateLibrary(LIBRARY, MINIMAL_SET), { valid: true, errors: [] });
-  assert.deepEqual(new Set(Object.values(LIBRARY.cellClasses).map((c) => c.regionType)), MINIMAL_SET);
+test("the library is valid, and paints every type in the catalogue", () => {
+  assert.deepEqual(validateLibrary(LIBRARY, CATALOGUE), { valid: true, errors: [] });
+  assert.deepEqual(new Set(Object.values(LIBRARY.cellClasses).map((c) => c.regionType)), CATALOGUE);
   for (const [id, rule] of Object.entries(LIBRARY.cellClasses)) assert.equal(rule.regionType, id);
   assert.deepEqual(Object.fromEntries(LIBRARY.setPieceClasses.map(c => [c.id, c.quota])), QUOTAS);
   for (const c of LIBRARY.setPieceClasses) assert.equal(c.placementRule, c.id);
@@ -44,7 +47,7 @@ test("every design keeps its classes and passable stretches on a three-cell grid
   for (const design of LIBRARY.tiles) for (const orientation of design.orientations) {
     const { cells, segments } = orientDesign(design, orientation as Orientation), at = `${design.id}@${orientation}`;
     // A later per-cell resolution of `any` could break the block-width argument.
-    assert.ok(cells.every(cell => MINIMAL_SET.has(cell)), `${at} paints concrete classes`);
+    assert.ok(cells.every(cell => CATALOGUE.has(cell)), `${at} paints concrete classes`);
     for (let y = 0; y < CHAIN_TILE_SIZE; y++) for (let x = 0; x < CHAIN_TILE_SIZE; x++)
       assert.equal(cells[y * CHAIN_TILE_SIZE + x], cells[(y - y % BLOCK) * CHAIN_TILE_SIZE + x - x % BLOCK], `${at} cell ${x},${y}`);
     const passable = new Set([...segments].filter(([, s]) => s.passability === "passable").map(([key]) => key));

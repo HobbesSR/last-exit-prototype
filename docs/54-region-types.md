@@ -162,7 +162,7 @@ points, and routes that aren't a straight shot.
   Regions below the proposed shape needs use the `open` builder.
 - **Shape needs:** *proposed*, at least 12 cells and 3 cells across, so that a
   hunter route and a squeeze both fit.
-- **Formed by:** small and medium set pieces, between open areas.
+- **Formed by:** small set pieces (`rubble-strip`) and the fill's rubble banks, between open areas (52).
 - **Parameters:** `density`, and the share of gaps that are squeezes.
 - **Material:** mapgen's `rubble` (its surviving gaps sit in the contestant
   band), and the game's `example-ruins` decay into rotated rubble.
@@ -195,7 +195,7 @@ points, and routes that aren't a straight shot.
   - **Too small:** a region of fewer than 24 cells, or with no owned 3 × 3
     box for a room, goes to `open` (17 M24).
 - **Shape needs:** *proposed*, at least 24 cells.
-- **Formed by:** medium and small set pieces, and as a child of `block`.
+- **Formed by:** small set pieces (`ruins-lot`), and as a child of `block` (52).
 - **Parameters:** `density`, `decay`.
 - **Material:** the game's `example-ruins`.
 
@@ -231,7 +231,7 @@ points, and routes that aren't a straight shot.
     report.
   - **Too small:** a region with no such rectangle goes to `open` (17 M24).
 - **Shape needs:** *proposed*, a contained rectangle of at least 6 × 6.
-- **Formed by:** medium and enormous set pieces.
+- **Formed by:** medium set pieces (`pillar-hall`), and as `market`'s stand-in (52).
 - **Parameters:** `spacing`, whole cells from 4 (5 by default), and
   `roofed`, true or false (false by default).
 - **Material:** mapgen's `pillar-hall`.
@@ -274,7 +274,7 @@ inside, and windows and doors let sight through.
     report.
 - **Shape needs:** *proposed*, a contained 4 × 4 for the building, in a
   region of at least 6 × 6.
-- **Formed by:** small set pieces, and as a child of `block`.
+- **Formed by:** the fill's hut quarters, and as a child of `block` (52).
 - **Parameters:** none yet. Locked doors are deferred (M23).
 - **Material:** the game's room shell in `builders.ts` (real windows, a door
   sized by the profile, optional shelves), and mapgen's `compound`.
@@ -313,7 +313,7 @@ inside, and windows and doors let sight through.
   - **Too small:** a region with no contained 10 × 10 goes to `open` (17
     M24).
 - **Shape needs:** *proposed*, at least 10 × 10.
-- **Formed by:** medium and enormous set pieces.
+- **Formed by:** enormous and small set pieces, where the old library's `industrial` sheds and yards were (52).
 - **Parameters:** `density`, from 0 to 1 (0.55 by default), and `roomCells`,
   whole cells from 6 to 16 (8 by default).
 - **Material:** the game's `example-depot`.
@@ -362,7 +362,7 @@ inside, and windows and doors let sight through.
     M24).
 - **Shape needs:** *proposed*, a compound of at least 10 × 10, with a court of
   at least 4 × 4. As built, that is a contained 16 × 16 with its yard.
-- **Formed by:** medium and enormous set pieces.
+- **Formed by:** medium set pieces, where the old library's walled `military` bases were (52).
 - **Parameters:** `gates`, whole numbers from 1 to 4 (2 by default), one per
   side.
 - **Material:** the game's `example-courtyard`, and mapgen's `courtyard` and
@@ -421,7 +421,7 @@ inside, and windows and doors let sight through.
   touch only the alleys, through their frontages.
 - **Shape needs:** *proposed*, at least two tiles' worth, 72 cells. As built,
   a contained 12 × 12 for one lot with its alley.
-- **Formed by:** enormous set pieces.
+- **Formed by:** enormous set pieces (`city-block`, 52).
 - **Parameters:** none yet. Each lot's type takes its own defaults.
 - **Material:** `decomposition/example.ts` and `decomposition/realize.ts`, the
   demonstration strategy.
@@ -491,7 +491,7 @@ parameters, keeps its promise and sites no core elements.
   density, and hedge runs that leave gaps a door wide.
 - **Stand-in:** `cover`.
 - **Shape needs:** none, as `cover`.
-- **Formed by:** small set pieces and fill among open ground.
+- **Formed by:** small set pieces (52). Its ground is weighted 0, so the fill doesn't place it yet.
 
 ## Core element classes
 

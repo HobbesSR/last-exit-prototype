@@ -92,7 +92,12 @@ The cell-profile contestant-only passage balance is a separate tuning pass;
 this checkpoint does not claim that the smaller live hunter is blocked by every
 1.5-cell squeeze (52).
 
-Generated loot uses its authoritative site and tier metadata. The provisional
+Generated loot uses its authoritative site and tier metadata. Each region type
+rolls a loot chance per cell that starts at 0.015 in tier 1 and rises 0.034 a
+tier (`DEFAULT_CHAIN_PARAMS`); `open` rolls none (54). S5's bigger set pieces
+(#170) put a type that rolls loot on about 55% of the map, up from 13%, so the
+old 0.04 and 0.09 were scaled by 0.37 to keep about 950 sites per live map
+(Corey, 2026-10-04). The provisional
 seeded kind weights are cell 3, weapon 3, medkit 1, shield 1, access 1; a weapon
 selects pistol, rifle or scattergun equally. Cells start uncharged. Tier metadata
 does not change weapon statistics or inventory rules; weapon tiers remain
