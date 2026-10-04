@@ -280,9 +280,36 @@ inside, and windows and doors let sight through.
 - **Strategy:** no decomposer at first. A builder places warehouses on
   contained rectangles and container rows between them, aisles at least a
   door wide.
+  **Built (#159):** `map/micro/strategies/depot.ts`. Like `cover`, it keeps
+  its aisles by spacing, not by a route search, so it scales to enormous set
+  pieces.
+  - **Lanes:** everything lines up on lanes 4 cells apart along one axis,
+    drawn from the seed, at a seeded phase.
+  - **Warehouses:** `roomCells` long and three quarters of that across, at
+    least 5, with quarter-cell walls and a roof. A doorway-wide door is
+    centred on each end. Shelf islands a cell across run down the length,
+    keeping 2 cells from the walls and from each other, so the doors open
+    onto clear ends. They stand at seeded places on the lanes until about
+    `density` of a quarter of the ground is taken.
+  - **Container rows:** two or three 2-cell containers end to end, packed
+    along each lane around the warehouses. Each place that fits one is taken
+    with chance `density`, and the next starts 3 cells on, so the aisles run
+    long and end in hard corners.
+  - **Why that keeps the promise:** every piece's box keeps 3 clear cells
+    from every other piece's and from any cell the region doesn't own, as
+    `cover`'s clusters do. So a `depot` region keeps the portal promise
+    exactly when its shape does.
+  - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
+    disc stands clear of every wall, door, shelf and container, indoors or
+    out.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
+  - **Too small:** a region with no contained 10 × 10 goes to `open` (17
+    M24).
 - **Shape needs:** *proposed*, at least 10 × 10.
 - **Formed by:** medium and enormous set pieces.
-- **Parameters:** `density`, `roomCells`.
+- **Parameters:** `density`, from 0 to 1 (0.55 by default), and `roomCells`,
+  whole cells from 6 to 16 (8 by default).
 - **Material:** the game's `example-depot`.
 
 ### `compound`
@@ -424,7 +451,7 @@ keeps those names.
 | `ruins` | `example-ruins` (built, #157) | — |
 | `hall` | — | `pillar-hall` (built, #158) |
 | `hut` | the room shell in `builders.ts` (built, #129) | `compound` |
-| `depot` | `example-depot` | — |
+| `depot` | `example-depot` (built, #159) | — |
 | `compound` | `example-courtyard`, 19's ring example | `courtyard`, `compound` |
 | `block` | `decomposition/example.ts`, `realize.ts`, `negotiate.ts` | — |
 | `arrival` | `example-entry`, `spreadPoints` | — |
