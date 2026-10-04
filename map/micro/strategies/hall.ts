@@ -57,8 +57,7 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
 
   const protectedShapes = protectedRoutes(brief, mask, 'Hall');
   const staggerRows = draw(brief.seed, 0, 0, CHANNEL.axis) < 0.5;
-  // A stride that divides the period repeats after two rows and leaves a lane open the whole way.
-  const stride = spacing % 2 === 0 ? spacing / 2 + 1 : (spacing - 1) / 2;
+  const stride = staggerStride(spacing);
   // Lines of blocks run along the staggered axis (u) and step across the other (v).
   const [us, ul, vs, vl] = staggerRows ? [box.x, box.w, box.y, box.h] : [box.y, box.h, box.x, box.w];
   // Centre the lattice across: the slack past the last whole line is split between the two ends.
@@ -84,6 +83,23 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: roofed ? 1 : 0, obstacles: pillars.length, gates: 0,
       loot: loot.length, coreElements: 0, pillars: pillars.length } };
+}
+
+/**
+ * How far each line of blocks is offset from the last, in cells: as near half a period as
+ * whole cells allow, sharing no factor with the period. A stride that shares one visits only
+ * some phases, so a lane between them stays open the whole way (spacing 6 with stride 4
+ * visits 0, 4 and 2, never the odd cells). One that shares none visits every phase within a
+ * period's worth of lines.
+ */
+export function staggerStride(spacing: number): number {
+  const gcd = (a: number, b: number): number => b ? gcd(b, a % b) : a;
+  // Odd periods try the lower of the two halves first, even ones the upper, as the stride always has.
+  for (let d = 0; ; d++) {
+    const tries = spacing % 2 ? [(spacing - 1) / 2 - d, (spacing + 1) / 2 + d] : [spacing / 2 + d, spacing / 2 - d];
+    const stride = tries.find(t => t > 0 && t < spacing && gcd(t, spacing) === 1);
+    if (stride) return stride;
+  }
 }
 
 /**

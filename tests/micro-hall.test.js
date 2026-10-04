@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { largestRectangle } from '../map/micro/strategies/hall.ts';
+import { largestRectangle, staggerStride } from '../map/micro/strategies/hall.ts';
 import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
@@ -71,17 +71,26 @@ test('pillars stand on the largest contained rectangle, spaced apart, and the re
 });
 
 test('the stagger breaks every sightline along its axis', () => {
-  const cells = cellsOf(24, 24);
-  for (const seed of SEEDS) {
-    const result = buildRegion(brief('square', seed, cells, []));
-    const shapes = blockers(result).map(bounds);
-    // Pillars on alternate lines are offset, so they don't all share one coordinate on either axis.
-    const xs = new Set(shapes.map(s => s.x)), ys = new Set(shapes.map(s => s.y));
-    const along = xs.size > ys.size ? 'x' : 'y', length = along === 'x' ? 'w' : 'h';
-    // Every line of sight down the other axis, at each half cell, meets a pillar.
-    for (let at = 3 * SIZE; at <= 21 * SIZE; at += SIZE / 2)
-      assert.ok(shapes.some(s => s[along] <= at && at <= s[along] + s[length]), `seed ${seed}: line at ${at / SIZE} is blocked`);
+  // A square deep enough for the stride to visit every phase: a period's worth of lines.
+  for (const [spacing, side] of [[undefined, 24], [6, 48], [10, 110]]) {
+    const cells = cellsOf(side, side);
+    for (const seed of SEEDS) {
+      const result = buildRegion(brief('square', seed, cells, [], spacing && { spacing }));
+      const shapes = blockers(result).map(bounds);
+      // Pillars on alternate lines are offset, so they don't all share one coordinate on either axis.
+      const xs = new Set(shapes.map(s => s.x)), ys = new Set(shapes.map(s => s.y));
+      const along = xs.size > ys.size ? 'x' : 'y', length = along === 'x' ? 'w' : 'h';
+      // Every line of sight down the other axis, at each half cell, meets a pillar.
+      for (let at = 3 * SIZE; at <= (side - 3) * SIZE; at += SIZE / 2)
+        assert.ok(shapes.some(s => s[along] <= at && at <= s[along] + s[length]), `spacing ${spacing} seed ${seed}: line at ${at / SIZE} is blocked`);
+    }
   }
+});
+
+test('the stagger stride shares no factor with the period, and stays as near half of it as that allows', () => {
+  const gcd = (a, b) => b ? gcd(b, a % b) : a;
+  assert.deepEqual([4, 5, 6, 7, 8, 9, 10, 12].map(staggerStride), [3, 2, 5, 3, 5, 4, 7, 7]);
+  for (let spacing = 4; spacing <= 40; spacing++) assert.equal(gcd(staggerStride(spacing), spacing), 1);
 });
 
 test('a roofed hall is one enclosing element over its rectangle', () => {

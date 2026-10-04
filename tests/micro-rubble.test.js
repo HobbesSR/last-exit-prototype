@@ -24,7 +24,7 @@ function brief(seed, irregular = false, parameters) {
 const blockers = result => result.elements.flatMap(element => elementShapes(element));
 
 test('rubble keeps all portal stands and routes clear on rectangular and irregular masks', () => {
-  assert.equal(REGION_TYPES_VERSION, 'types-13');
+  assert.equal(REGION_TYPES_VERSION, 'types-14');
   for (const irregular of [false, true]) for (const seed of [1, 2, 3, 41]) {
     const input = brief(seed, irregular);
     const result = buildRegion(input);

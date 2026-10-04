@@ -49,7 +49,7 @@ export const REGION_TYPES: RegionTypeRegistry = Object.freeze({
  * Names what `REGION_TYPES` builds. A change to what any of its strategies builds bumps it,
  * so a saved map's results are never rebuilt by other strategies without saying so (51 "Saving").
  */
-export const REGION_TYPES_VERSION = 'types-13';
+export const REGION_TYPES_VERSION = 'types-14';
 
 /**
  * Dispatch a brief to its region type's strategy (51 stage 6). The brief is checked as

@@ -212,9 +212,12 @@ points, and routes that aren't a straight shot.
     the rectangle, and the aisle between two pillars is `spacing` less 1½
     cells.
   - **The stagger:** each line of blocks is offset from the last along one
-    axis, drawn from the seed, by about half a period. The stride never
-    divides the period, so a sightline down the other axis meets a pillar
-    within a few lines. That axis keeps clean lanes. Staggering both would
+    axis, drawn from the seed, by as near half a period as whole cells allow
+    while sharing no factor with it: 5 cells at spacing 6, 7 at 10. So the
+    lines visit every phase within a period's worth of them, and a sightline
+    down the other axis meets a pillar. A stride sharing a factor would visit
+    only some phases and leave a lane open the whole way (PR #176 review).
+    That axis keeps clean lanes. Staggering both would
     pinch pillar corners together.
   - **The roof:** with `roofed`, the rectangle is one enclosing element, so a
     roof hides what's under it as a building's does.
