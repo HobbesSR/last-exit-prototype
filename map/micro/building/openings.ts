@@ -19,7 +19,7 @@ export interface BuildingOpeningOptions { width?: number; widths?: Record<string
 
 export const sameBuildingRun = (a: Run, b: Run): boolean => a.axis === b.axis && a.x === b.x && a.y === b.y && a.length === b.length;
 
-/** Center each requested opening on a single straight run; never cross a corner. */
+/** Center each requested opening on a single straight run, on the half cell nearest its middle; never cross a corner. */
 export function placeBuildingOpenings(design: BuildingDesign, boundaries: readonly BuildingBoundary[], options: BuildingOpeningOptions = {}): BuildingOpeningResult {
   const openings: PlacedBuildingOpening[] = [], misses: MissedBuildingOpening[] = [];
   const width = options.width ?? CELL_SCALE.doorway;
@@ -37,7 +37,8 @@ export function placeBuildingOpenings(design: BuildingDesign, boundaries: readon
       const start = limit?.trimStart ?? 0, end = run.length - (limit?.trimEnd ?? 0);
       if (![start, end].every(Number.isFinite) || start < 0 || end > run.length || end < start) throw new RangeError('Invalid opening run limits.');
       if (end - start < length) continue;
-      const center = (start + end) / 2;
+      // On a half cell nearest the middle, so a body on the half-cell lattice lines up with it.
+      const center = Math.min(Math.max(Math.round(start + end) / 2, start + length / 2), end - length / 2);
       const taken = openings.some(opening => opening.a === boundary.a && opening.b === boundary.b
         && sameBuildingRun(opening.run, run)
         && Math.abs(opening.center - center) < (opening.length + length) / 2);

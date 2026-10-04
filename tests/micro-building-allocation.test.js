@@ -341,6 +341,7 @@ test('allocation openings describe default overlap placement before optional cor
   assert.deepEqual(overlap.openings, result.openings, 'allocation reports the default untrimmed placement');
   assert.equal(result.openings[0].run.axis, 'v');
   assert.equal(result.openings[0].center, 1.5);
-  assert.equal(trimmed.openings[0].center, 1.625, 'one trimmed run end shifts its actual door');
+  // The trim leaves 0.25 to 3 for the door; its middle, 1.625, snaps to the half cell 1.5 (56 L5).
+  assert.equal(trimmed.openings[0].center, 1.5, 'a trimmed run end keeps the door on the half-cell lattice');
   assert.deepEqual(result, before, 'alternate realization does not mutate allocation results');
 });
