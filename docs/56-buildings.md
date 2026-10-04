@@ -143,7 +143,7 @@ sweep baseline proves it. Later stages add content and re-baseline last
 | --- | --- | --- |
 | L1 (#188) | **Walls from runs.** A wall-run emitter takes a run, a thickness and openings, and returns element parts. `hut`, `compound` and `depot` draw their walls through it | the sweep baseline is unchanged |
 | L2 (#189) | **The design and its passes.** The design graph and its validation; boundaries and spans from an allocation; openings placed from connections. `hut` builds its one-room house as a design | the baseline is still unchanged |
-| L3 (#190) | **Allocation.** Spaces are allocated in a footprint, on 19's allocator or a guillotine split, whichever the tests favour. Connections steer it; the footprint's promise is the only hard rule | focused tests over shapes and seeds; the building's openings join all its spaces |
+| L3 (#190) | **Allocation.** Spaces are allocated in a footprint, on 19's allocator or a guillotine split, whichever the tests favour. Its own checks, *proposed*: each space's area is in its range, each space is connected, and the openings join every space. Those are the allocator's internal rules, not part of the region's contract, whose one requirement stays the portal promise. Connections only steer it | focused tests over shapes and seeds for those checks |
 | L4 (#191) | **A building lab.** The micro lab shows a building's design graph, allocation, spans and openings beside its geometry | browser check |
 | L5 (#192) | **Buildings with several spaces.** `hut` grows larger designs where its region allows; `compound`'s ring becomes a design | promise tests over shapes and seeds, then re-baseline |
 

@@ -152,7 +152,6 @@ So the test is:
 | The map's macro shape: the diamond, zones, zone sizes, where placement rules anchor | 55 |
 | Artifacts, saving, determinism, the sweep, the Map Lab, CLI and MCP | 53 |
 | A building: its design, spaces, walls and openings | [56](56-buildings.md), then 54 for the type that builds it |
-| A building: its design, spaces, walls and openings | [56](56-buildings.md), then 54 for the type that builds it |
 | A region type, a builder, a decomposer, the SDK | 54 (the catalogue, a working draft), 19 (design), then the relevant part of [20](20-micro-generation.md); [22.2](22.2-map-generation.md) for map ownership |
 | Macro/micro briefs and passability | [51.7](51.7-briefs.md), [20.1](20.1-region-contract.md), and [17.2.4](17.2.4-contract-questions.md) for M1–M5 |
 | Open questions, and your verbatim answers | [17.2](17.2-map-questions.md) routes by topic and M-number; [17.2.7](17.2.7-zone-plans.md) holds the zone-plan answers |
