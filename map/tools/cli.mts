@@ -8,7 +8,7 @@ import { readLibraryFile } from './library-files.mts';
 import process from 'node:process';
 import { looksLikeBson } from '../macro/src/bson.ts';
 import { chainMapToBson, chainMapToJson } from '../macro/src/chain/saving.ts';
-import { CHAIN_LIBRARY, batch, checkMap, generate, parseJson, readMap, validateLibrary } from './core.ts';
+import { CHAIN_LIBRARIES, batch, bundledLibrary, chainParams, checkMap, generate, parseJson, readMap, validateLibrary } from './core.ts';
 import type { ToolMap } from './core.ts';
 import { captureBaseline, compareSweep, positiveInteger, runSweep, sweepCases } from './sweep.mts';
 import type { SweepBaseline } from './sweep.mts';
@@ -20,10 +20,11 @@ Commands:
   generate --seed SEED ${PARAM_FLAGS} [--cell-size N] [--library FILE] [--layout-only true] [--out FILE] [--format json|bson]
   validate FILE [--library FILE] [--diagnose true]   (a saved map, read with the library it was made from; or a library)
   batch [--count N] [--seed PREFIX] ${PARAM_FLAGS} [--library FILE] [--diagnose true] [--out FILE]
-  library [--out FILE]   (the chain's library)
+  library [--zone-width N --zone-height N] [--out FILE]   (the chain's library for a zone size, by default 12 x 6)
   sweep [--jobs N] (--out FILE [--count N] | --check FILE)   (per-view content hashes over a pinned seed set)
   help
 
+Without --library, a map uses the bundled library authored for its zone size: ${CHAIN_LIBRARIES.map((l) => `${l.zoneWidth} x ${l.zoneHeight}`).join(', ')}.
 --diagnose runs the game's per-region portal check beside the report. It takes about a minute on a game map.`;
 
 const PARAMS = ['mode', 'zoneWidth', 'zoneHeight', 'exits', 'contestants', 'hunters', 'lootChance', 'lootTierStep'];
@@ -47,8 +48,9 @@ const flag = (value: string | undefined): boolean => {
 };
 const params = (o: Record<string, string>) =>
   Object.fromEntries(PARAMS.filter(key => o[key] !== undefined).map(key => [key, o[key]]));
+/** A library file, or nothing, so generation takes the bundled library for the map's zone size. */
 const readLibrary = (file?: string): unknown =>
-  file ? readLibraryFile(file) : CHAIN_LIBRARY;
+  file ? readLibraryFile(file) : undefined;
 
 function write(data: string | Uint8Array, out?: string): void {
   if (out) fs.writeFileSync(out, data);
@@ -75,7 +77,10 @@ function readMapOrLibrary(file: string, library: unknown): { map: ToolMap } | { 
 try {
   const [command = 'help', ...rest] = process.argv.slice(2);
   if (command === 'help' || command === '--help' || command === '-h') process.stdout.write(`${HELP}\n`);
-  else if (command === 'library') output(CHAIN_LIBRARY, options(rest).out);
+  else if (command === 'library') {
+    const o = options(rest);
+    output(bundledLibrary(chainParams(params(o))), o.out);
+  }
   else if (command === 'generate') {
     const o = options(rest);
     if (o.seed === undefined) throw new Error('generate requires --seed');

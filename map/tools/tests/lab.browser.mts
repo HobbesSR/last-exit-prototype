@@ -134,8 +134,14 @@ try {
   assert.match(await page.locator("#status").innerText(), /wire version 5 isn't a chain map/);
   assert.equal((await snapshot()).seed, "lab-small");
 
-  // The diagnostic on a game map runs in a worker, so the page stays live and can cancel it.
+  // A larger authored size, picked from the size menu, takes its own library (#171).
   await page.locator("#mode").selectOption("game");
+  await page.locator("#zoneSize").selectOption("24x12");
+  const large = await generateIn("lab-large");
+  assert.deepEqual([large.params.zoneWidth, large.params.zoneHeight], [24, 12]);
+  assert.equal(large.regions, generate("lab-large", { zoneWidth: 24, zoneHeight: 12 }).results.length);
+
+  // The diagnostic on a game map runs in a worker, so the page stays live and can cancel it.
   await page.locator("#zoneWidth").fill("12");
   await page.locator("#zoneHeight").fill("6");
   await generateIn("last-exit-001");

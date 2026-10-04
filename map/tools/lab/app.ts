@@ -3,7 +3,7 @@
  * map is"), with the report beside the game's `diagnoseBuiltMap`. It generates, saves and
  * loads through the same core as the CLI and MCP, so all three agree on a map.
  */
-import { CHAIN_LIBRARY, chainParams, checkMap, validateLibrary } from "../core.ts";
+import { CHAIN_LIBRARIES, bundledLibrary, chainParams, checkMap, validateLibrary } from "../core.ts";
 import type { MapCheck, ToolMap } from "../core.ts";
 import { GAME_ENGINES } from "../engines.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
@@ -71,9 +71,25 @@ function ask(previous: Worker | null, request: LabRequest, reply: (answer: LabRe
 
 // ── Recipe ──────────────────────────────────────────────────────────────────
 
+/** The sizes libraries are authored for (55); any other is custom, for playground mode. */
+const sizeKey = (width: unknown, height: unknown) => `${width}x${height}`;
+for (const library of CHAIN_LIBRARIES) {
+  const option = document.createElement("option");
+  option.value = sizeKey(library.zoneWidth, library.zoneHeight);
+  option.textContent = `${library.zoneWidth} × ${library.zoneHeight} (${library.name})`;
+  select("zoneSize").append(option);
+}
+select("zoneSize").append(Object.assign(document.createElement("option"), { value: "custom", textContent: "Custom" }));
+
+function showSize(): void {
+  const key = sizeKey(input("zoneWidth").value, input("zoneHeight").value);
+  select("zoneSize").value = CHAIN_LIBRARIES.some((l) => sizeKey(l.zoneWidth, l.zoneHeight) === key) ? key : "custom";
+}
+
 function fillParams(params: ChainParams): void {
   select("mode").value = params.mode ?? "game";
   for (const name of NUMERIC) input(name).value = String(params[name]);
+  showSize();
 }
 
 function recipeParams(): ChainParams {
@@ -84,7 +100,7 @@ function recipeParams(): ChainParams {
 }
 
 function chosenLibrary(): unknown {
-  if (select("librarySource").value === "bundled") return CHAIN_LIBRARY;
+  if (select("librarySource").value === "bundled") return bundledLibrary(recipeParams());
   const draft = chainDraft();
   const checked = validateLibrary(draft);
   if (!checked.valid) throw new Error(`the Chain Library tab's draft isn't valid for the game: ${checked.errors.join("; ")}`);
@@ -499,6 +515,13 @@ input("load").onchange = async () => {
 // ── Controls ────────────────────────────────────────────────────────────────
 
 $("generate").onclick = generateMap;
+select("zoneSize").onchange = () => {
+  const library = CHAIN_LIBRARIES.find((l) => sizeKey(l.zoneWidth, l.zoneHeight) === select("zoneSize").value);
+  if (!library) return;
+  input("zoneWidth").value = String(library.zoneWidth);
+  input("zoneHeight").value = String(library.zoneHeight);
+};
+input("zoneWidth").oninput = input("zoneHeight").oninput = showSize;
 $("random").onclick = () => {
   input("seed").value = `exit-${crypto.getRandomValues(new Uint32Array(1))[0]!.toString(36)}`;
   generateMap();

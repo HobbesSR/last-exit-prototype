@@ -65,7 +65,8 @@ order is 51's:
   becomes one parameterizable zone plan (55). Libraries gain modules and
   declare the plan and size they are authored for. Set pieces regain footprints
   near the old library's, with placeholder regions where no strategy exists. 24 × 12
-  and 36 × 18 libraries are hand authored, and live matches stay at 12 × 6.
+  and 36 × 18 libraries are hand authored (#171, 52), and live matches stay at
+  12 × 6 until pacing and per-tick cost are measured at those sizes.
 
 Work in progress and its order live on the Forgejo tracker, #82, and
 in each step's issue ([34](34-forgejo-workflow.md)). mapgen's former

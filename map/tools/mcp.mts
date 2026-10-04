@@ -5,7 +5,7 @@
  */
 import readline from 'node:readline';
 import { chainMapToJson } from '../macro/src/chain/saving.ts';
-import { CHAIN_LIBRARY, MAX_BATCH_COUNT, MAX_JSON_BYTES, assertObject, batch, checkMap, generate, readMap, validateLibrary } from './core.ts';
+import { MAX_BATCH_COUNT, MAX_JSON_BYTES, assertObject, batch, bundledLibrary, chainParams, checkMap, generate, readMap, validateLibrary } from './core.ts';
 
 /** The diagnostic takes about a minute a game map, so a call that runs it is kept short. */
 export const MAX_DIAGNOSED_BATCH = 5;
@@ -20,7 +20,7 @@ interface Request {
 type Args = Record<string, unknown>;
 
 const params = { type: 'object', description: 'mode, zoneWidth, zoneHeight, exitCount, contestantCount, hunterCount, lootChance, lootTierStep; omitted ones take the game defaults' };
-const library = { type: 'object', description: "a chain library (version 3); the chain's own library when omitted" };
+const library = { type: 'object', description: "a chain library (version 3); when omitted, the chain's library authored for the params' zone size" };
 const diagnose = { type: 'boolean', description: "also run the game's per-region portal check, about a minute a game map" };
 const tools = [
   {
@@ -59,8 +59,8 @@ const tools = [
   },
   {
     name: 'library_get',
-    description: "Get the chain's library.",
-    inputSchema: { type: 'object', properties: {} },
+    description: "Get the chain's library for a zone size: 12 x 6 when params are omitted.",
+    inputSchema: { type: 'object', properties: { params } },
   },
 ];
 
@@ -83,7 +83,7 @@ function invoke(name: string, a: Args): unknown {
   }
   if (name === 'map_validate') return checkMap(readMap(assertObject(a.map, 'map'), a.library), { diagnose: a.diagnose === true });
   if (name === 'library_validate') return validateLibrary(a.library);
-  if (name === 'library_get') return CHAIN_LIBRARY;
+  if (name === 'library_get') return bundledLibrary(chainParams(optionalObject(a.params, 'params')));
   if (name === 'map_batch') {
     const count = a.count ?? 20;
     if (a.diagnose === true && Number(count) > MAX_DIAGNOSED_BATCH) throw new Error(`a diagnosed batch takes at most ${MAX_DIAGNOSED_BATCH} maps`);

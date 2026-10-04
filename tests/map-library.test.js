@@ -14,13 +14,15 @@ import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
  * core element access and each non-open region's portal promise. The slow suite runs the
  * report batch and a whole-map diagnostic, including the large empty open regions.
  */
-import { CHAIN_LIBRARY as LIBRARY } from '../map/chain.ts';
+import { CHAIN_LIBRARIES, CHAIN_LIBRARY as LIBRARY } from '../map/chain.ts';
 const GAME = { zoneWidth: 12, zoneHeight: 6, exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.04, lootTierStep: 0.09 };
 const ENGINES = { version: REGION_TYPES_VERSION, build: brief => buildRegion(brief), compose: composeRegions };
 
-test('every class in the library names a region type the game registers', () => {
-  assert.deepEqual(validateLibrary(LIBRARY, new Set(Object.keys(REGION_TYPES))), { valid: true, errors: [] });
-  for (const cellClass of Object.values(LIBRARY.cellClasses)) assert.ok(!cellClass.regionType.startsWith('example-'));
+test('every class in each bundled library names a region type the game registers', () => {
+  for (const library of CHAIN_LIBRARIES) {
+    assert.deepEqual(validateLibrary(library, new Set(Object.keys(REGION_TYPES))), { valid: true, errors: [] }, library.name);
+    for (const cellClass of Object.values(library.cellClasses)) assert.ok(!cellClass.regionType.startsWith('example-'));
+  }
 });
 
 for (const [seed, contestantCount] of [['library-0', 8], ['library-4', 24]]) test(`game-size ${seed} sites and reaches every core element for ${contestantCount} contestants`, () => {

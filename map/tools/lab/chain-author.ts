@@ -17,7 +17,7 @@ import type { ResolvedLayout } from "../../macro/src/chain/types.ts";
 import { CORE_ELEMENT_KINDS } from "../../kernel/contract.ts";
 import type { CoreElementKind } from "../../kernel/contract.ts";
 import { MIN_PORTAL_LENGTH } from "../../kernel/scale.ts";
-import { CHAIN_LIBRARY } from "../core.ts";
+import { CHAIN_LIBRARIES, CHAIN_LIBRARY } from "../core.ts";
 
 const $ = (id: string): HTMLElement => document.getElementById(id)!;
 const select = (id: string): HTMLSelectElement => $(id) as HTMLSelectElement;
@@ -995,7 +995,11 @@ export function chainDraft(): ChainLibrary {
 }
 /** Draw the tab; the lab calls it when the tab is shown. */
 export { render as renderChainLibrary };
-$("chainLoadBundled").onclick = () => accept(structuredClone(CHAIN_LIBRARY));
+/** The bundled library for the World tab's zone size, or the default one where none is authored. */
+$("chainLoadBundled").onclick = () => {
+  const width = Number(($("zoneWidth") as HTMLInputElement).value), height = Number(($("zoneHeight") as HTMLInputElement).value);
+  accept(structuredClone(CHAIN_LIBRARIES.find((l) => l.zoneWidth === width && l.zoneHeight === height) ?? CHAIN_LIBRARY));
+};
 window.chainLab = Object.freeze({
   snapshot: () => ({
     library: structuredClone(library),

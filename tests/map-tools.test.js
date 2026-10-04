@@ -47,10 +47,12 @@ test('a batch reports its sample size, and diagnoses on request', () => {
   assert.equal(report.metrics.regions.samples, 2);
   assert.equal(report.metrics.defects.max, 0);
   // A seed placement can't serve is a failure, not a thrown batch.
-  const failed = batch('tools-fail', 1, { ...SMALL, mode: 'game' });
+  const failed = batch('tools-fail', 1, { ...SMALL, mode: 'game' }, CHAIN_LIBRARY);
   assert.equal(failed.valid, false);
   assert.equal(failed.generated, 0);
   assert.match(failed.failures[0].error, /authored for 12 x 6 tile zones/);
+  // With no library given, a game size no bundled library is authored for is refused before any map.
+  assert.throws(() => batch('tools-fail', 1, { ...SMALL, mode: 'game' }), /no bundled library is authored for 2 x 1 tile zones/);
 });
 
 function run(file, args = [], input) {
@@ -82,6 +84,7 @@ test('the CLI generates, saves, reloads and validates a chain map', async () => 
     // A library validates as one, and a map read with another library is refused by name.
     assert.equal((await run('map/tools/cli.mts', ['library', '--out', library])).code, 0);
     assert.equal(JSON.parse((await run('map/tools/cli.mts', ['validate', library])).out).valid, true);
+    assert.equal(JSON.parse((await run('map/tools/cli.mts', ['library', '--zone-width', '36', '--zone-height', '18'])).out).name, 'diamond-36x18');
     const other = JSON.parse(readFileSync(library, 'utf8'));
     other.tiles = other.tiles.slice().reverse();
     writeFileSync(library, JSON.stringify(other));
@@ -104,6 +107,7 @@ test('the MCP generates a map, validates it, and bounds what it runs', async () 
     call(4, 'library_validate', { library: CHAIN_LIBRARY }),
     call(5, 'map_batch', { count: 6, diagnose: true }),
     call(6, 'map_generate', {}),
+    call(8, 'library_get', { params: { zoneWidth: 24, zoneHeight: 12 } }),
     { jsonrpc: '2.0', id: 7, method: 'nope' },
   ];
   // The server answers each line in turn and exits when its input ends, so no wait is guessed.
@@ -119,6 +123,7 @@ test('the MCP generates a map, validates it, and bounds what it runs', async () 
   assert.equal(replies.get(5).result.isError, true);
   assert.match(body(5).error, /a diagnosed batch takes at most 5 maps/);
   assert.match(body(6).error, /seed must be a string or number/);
+  assert.equal(body(8).name, 'diamond-24x12');
   assert.equal(replies.get(7).error.code, -32601);
   assert.equal(replies.get(null).error.code, -32700);
 
