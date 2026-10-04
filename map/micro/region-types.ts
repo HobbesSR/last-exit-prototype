@@ -38,6 +38,11 @@ export const REGION_TYPES: RegionTypeRegistry = Object.freeze({
   departure: buildDeparture,
   charging: buildCharging,
   transit: buildTransit,
+  // Drafted types (54), each bound to its nearest built strategy until its own is written.
+  market: buildHall,
+  plant: buildDepot,
+  checkpoint: buildCover,
+  park: buildCover,
   'example-open': brief => generateBriefRegion(brief, 'open'),
   'example-depot': brief => generateBriefRegion(brief, 'depot'),
   'example-courtyard': brief => generateBriefRegion(brief, 'courtyard'),
