@@ -23,14 +23,18 @@ const input = (id: string) => $<HTMLInputElement>(id);
 const select = (id: string) => $<HTMLSelectElement>(id);
 const canvas = $<HTMLCanvasElement>("map");
 const ctx = canvas.getContext("2d")!;
+type Context = CanvasRenderingContext2D;
+/** Where a layer below full opacity is drawn before it is laid on the map. */
+const scratch = document.createElement("canvas");
+const scratchCtx = scratch.getContext("2d")!;
 
-type Field = "regions" | "resolved" | "declared" | "proof" | "zones" | "none";
+type Views = MapViews<RegionElement>;
 const NUMERIC = ["zoneWidth", "zoneHeight", "exitCount", "contestantCount", "hunterCount"] as const;
 
 // ── State ───────────────────────────────────────────────────────────────────
 
 let map: ToolMap | null = null;
-let views: MapViews<RegionElement> | null = null;
+let views: Views | null = null;
 let check: MapCheck | null = null;
 let diagnosis: { brokenPromises: BrokenPromise[]; ms: number } | null = null;
 let lastMs = 0;
@@ -39,13 +43,12 @@ let busy = false;
 let selected: { x: number; y: number } | null = null;
 /** Per cell: the index of its region in `views.regions.regions`, or -1 outside the mask. */
 let regionAt = new Int32Array(0);
-/** Drawn once per map and field, in cell units. */
-let cellLayer: HTMLCanvasElement | null = null;
-let defectLayer: HTMLCanvasElement | null = null;
 let geometry: { path: Path2D; shapes: number } | null = null;
 let camera = { zoom: 2, x: 0, y: 0 };
 /** Until the viewer pans or zooms, the map is refitted whenever the canvas resizes. */
 let fitted = true;
+/** The zoom that fits the map, which the zoom readout calls 100%. */
+let fitZoom = 1;
 
 // ── Workers ─────────────────────────────────────────────────────────────────
 
@@ -156,8 +159,7 @@ function show(next: ToolMap): void {
     for (const cell of region.cells) regionAt[cell] = i;
   });
   geometry = buildGeometry();
-  cellLayer = paintField();
-  defectLayer = paintDefects();
+  repaint();
   fit();
   renderReport();
   renderDiagnosis();
@@ -166,13 +168,13 @@ function show(next: ToolMap): void {
 }
 
 /** A steady colour for a name. */
-function colour(name: string, saturation = 42, lightness = 40): [number, number, number] {
+function colour(name: string, saturation = 42, lightness = 40): Rgb {
   let hash = 2166136261;
   for (let i = 0; i < name.length; i++) hash = Math.imul(hash ^ name.charCodeAt(i), 16777619);
   return hsl(((hash >>> 0) % 360) / 360, saturation / 100, lightness / 100);
 }
 
-function hsl(h: number, s: number, l: number): [number, number, number] {
+function hsl(h: number, s: number, l: number): Rgb {
   const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
   const channel = (t: number) => {
     t = (t + 1) % 1;
@@ -182,96 +184,14 @@ function hsl(h: number, s: number, l: number): [number, number, number] {
   return [channel(h + 1 / 3), channel(h), channel(h - 1 / 3)];
 }
 
-const css = ([r, g, b]: [number, number, number]) => `rgb(${r} ${g} ${b})`;
+const css = ([r, g, b]: Rgb) => `rgb(${r} ${g} ${b})`;
 
-/** Each cell's name and colour under the chosen field, or null where nothing is drawn. */
-function fieldOf(field: Field): ((cell: number) => string | null) | null {
-  if (!views) return null;
-  const v = views;
-  switch (field) {
-    case "none": return null;
-    case "declared": return (cell) => v.declaredGrid.cells[cell] || null;
-    case "resolved": return (cell) => v.resolved.cells[cell] || null;
-    case "regions": return (cell) => (regionAt[cell]! >= 0 ? v.regions.regions[regionAt[cell]!]!.id : null);
-    case "proof": {
-      const component = new Map<string, number>();
-      v.proof.components.forEach((ids, i) => ids.forEach((id) => component.set(id, i)));
-      return (cell) => (regionAt[cell]! >= 0 ? `component ${component.get(v.regions.regions[regionAt[cell]!]!.id)}` : null);
-    }
-    case "zones": {
-      const { width } = v.resolved;
-      return (cell) => {
-        if (!v.resolved.cells[cell]) return null;
-        const x = cell % width, y = Math.floor(cell / width);
-        const zone = v.zones.find(({ cells: b }) => x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1);
-        return zone ? `tier ${zone.tier}` : null;
-      };
-    }
-  }
-}
-
-function fieldColour(field: Field, name: string): [number, number, number] {
-  if (field === "declared" && name === "any") return [70, 78, 84];
-  if (field === "zones") return hsl(0.33 - Number(name.slice(5)) * 0.07, 0.45, 0.22 + Number(name.slice(5)) * 0.06);
-  return colour(name);
-}
-
-function paintField(): HTMLCanvasElement | null {
-  if (!views) return null;
-  const field = select("field").value as Field, name = fieldOf(field);
-  const { width, height } = views.resolved;
-  const layer = document.createElement("canvas");
-  layer.width = width;
-  layer.height = height;
-  const image = new ImageData(width, height), seen = new Map<string, [number, number, number]>();
-  if (name)
-    for (let cell = 0; cell < width * height; cell++) {
-      const value = name(cell);
-      if (value === null) continue;
-      let rgb = seen.get(value);
-      if (!rgb) seen.set(value, (rgb = fieldColour(field, value)));
-      image.data.set([...rgb, 255], cell * 4);
-    }
-  layer.getContext("2d")!.putImageData(image, 0, 0);
-  renderLegend(field, seen);
-  return layer;
-}
-
-function renderLegend(field: Field, seen: Map<string, [number, number, number]>): void {
-  const legend = $("legend");
-  if (field === "regions" || seen.size > 40) {
-    legend.textContent = field === "none" ? "" : `${seen.size} ${field === "regions" ? "regions" : "values"}, each its own colour.`;
-    return;
-  }
-  legend.replaceChildren(...[...seen].sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true })).map(([name, rgb]) => {
-    const item = document.createElement("span");
-    item.textContent = name;
-    item.style.setProperty("--swatch", css(rgb));
-    return item;
-  }));
-}
-
-/** Regions any defect or broken promise names, washed red. */
+/** Regions any defect or broken promise names. */
 function defectRegions(): Set<string> {
   const named = new Set<string>();
   for (const defect of check?.defects ?? []) for (const id of defect.regions ?? []) named.add(id);
   for (const broken of diagnosis?.brokenPromises ?? []) named.add(broken.region);
   return named;
-}
-
-function paintDefects(): HTMLCanvasElement | null {
-  if (!views) return null;
-  const { width, height } = views.resolved, named = defectRegions();
-  const layer = document.createElement("canvas");
-  layer.width = width;
-  layer.height = height;
-  if (!named.size) return layer;
-  const image = new ImageData(width, height);
-  views.regions.regions.forEach((region) => {
-    if (named.has(region.id)) for (const cell of region.cells) image.data.set([235, 70, 60, 120], cell * 4);
-  });
-  layer.getContext("2d")!.putImageData(image, 0, 0);
-  return layer;
 }
 
 /** The built map's colliders and gates (`elementShapes`), in cell units. */
@@ -290,7 +210,55 @@ function buildGeometry(): { path: Path2D; shapes: number } {
   return { path, shapes };
 }
 
-// ── Drawing ─────────────────────────────────────────────────────────────────
+function zoneAt(v: Views, x: number, y: number): Views["zones"][number] | undefined {
+  return v.zones.find(({ cells: b }) => x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1);
+}
+
+// ── Layers ──────────────────────────────────────────────────────────────────
+
+type Rgb = [number, number, number];
+type Rgba = [number, number, number, number];
+
+/** The cell a layer reads for the inspector, with its region and that region's result. */
+interface Probe {
+  x: number;
+  y: number;
+  cell: number;
+  region?: Views["regions"]["regions"][number];
+  built?: Views["built"]["regions"][number];
+}
+
+/**
+ * One layer of the map view (53 "Tools"). The registry is in chain order (51), and draws
+ * in two passes: every areas layer, then every marks layer, so a later stage lies over an
+ * earlier one and lines stay readable over areas. A layer belongs to one pass, so it is
+ * laid on the map once, at its opacity.
+ */
+interface Layer {
+  id: string;
+  label: string;
+  /** The view it reads: a `mapViews` key. */
+  stage: keyof Views;
+  on: boolean;
+  /** 0–1, applied to everything the layer draws. */
+  opacity: number;
+  /** Areas (cell fields, fills) or marks (lines, dots). */
+  pass: "areas" | "marks";
+  /** A cell field, for an areas layer: each cell's name, or null where nothing is drawn. Painted once per map into a canvas. */
+  cells?: (v: Views) => (cell: number) => string | null;
+  /** The colour for a name the field gave; a steady colour per name otherwise. */
+  colour?: (name: string) => Rgb | Rgba;
+  /** Say how many values there are instead of listing them. */
+  summarise?: string;
+  /** What the layer draws besides its cells, in its pass. `px` is one screen pixel in cell units. */
+  paint?: (g: Context, v: Views, px: number) => void;
+  /** Legend entries, for a layer without cells. */
+  legend?: () => Array<[string, string]>;
+  /** The inspector's lines for a cell. */
+  inspect?: (v: Views, at: Probe) => string[];
+  /** The layer's painted cells and legend, for the current map. */
+  painted?: { canvas: HTMLCanvasElement; seen: Map<string, Rgb | Rgba> } | null;
+}
 
 const SITE_COLOURS: Record<string, string> = {
   spawn: "#7fd0ff", "hunter-spawn": "#ff7a6b", exit: "#c8f185", charger: "#ffd166", warp: "#c39bff",
@@ -301,62 +269,251 @@ function runLine(path: Path2D, run: { axis: "h" | "v"; x: number; y: number; len
   path.lineTo(run.axis === "h" ? run.x + run.length : run.x, run.axis === "v" ? run.y + run.length : run.y);
 }
 
+function dot(g: Context, x: number, y: number, radius: number): void {
+  g.beginPath();
+  g.arc(x, y, radius, 0, Math.PI * 2);
+}
+
+const LAYERS: Layer[] = [
+  {
+    id: "declared", pass: "areas", label: "Declared classes", stage: "declaredGrid", on: false, opacity: 1,
+    cells: (v) => (cell) => v.declaredGrid.cells[cell] || null,
+    colour: (name) => (name === "any" ? [70, 78, 84] : colour(name)),
+    inspect: (v, { cell }) => [`Declared: ${v.declaredGrid.cells[cell] || "outside the mask"}`],
+  },
+  {
+    id: "resolved", pass: "areas", label: "Resolved classes", stage: "resolved", on: false, opacity: 1,
+    cells: (v) => (cell) => v.resolved.cells[cell] || null,
+    inspect: (v, { cell }) => (v.resolved.cells[cell] ? [`Resolved: ${v.resolved.cells[cell]}`] : []),
+  },
+  {
+    id: "regions", pass: "areas", label: "Regions", stage: "regions", on: true, opacity: 1, summarise: "regions",
+    cells: (v) => (cell) => (regionAt[cell]! >= 0 ? v.regions.regions[regionAt[cell]!]!.id : null),
+    inspect: (_, { region }) => (region ? ["", `Region ${region.id}`, `Class ${region.class}, ${region.cells.length} cells, seed ${region.seed}`] : []),
+  },
+  {
+    id: "portals", pass: "marks", label: "Boundaries and portals", stage: "regions", on: true, opacity: 1,
+    legend: () => [["boundary", "#0b1015"], ["portal", "#e9f7c4"]],
+    paint: (g, v, px) => {
+      const boundaries = new Path2D(), portals = new Path2D();
+      for (const boundary of v.regions.boundaries) runLine(boundaries, boundary.run);
+      for (const portal of v.regions.portals) runLine(portals, portal);
+      g.lineCap = "butt";
+      g.strokeStyle = "#0b1015";
+      g.lineWidth = 1.5 * px;
+      g.stroke(boundaries);
+      g.strokeStyle = "#e9f7c4";
+      g.lineWidth = Math.max(0.25, 3 * px);
+      g.stroke(portals);
+    },
+  },
+  {
+    id: "proof", pass: "areas", label: "Proof components", stage: "proof", on: false, opacity: 1,
+    cells: (v) => {
+      const component = new Map<string, number>();
+      v.proof.components.forEach((ids, i) => ids.forEach((id) => component.set(id, i)));
+      return (cell) => (regionAt[cell]! >= 0 ? `component ${component.get(v.regions.regions[regionAt[cell]!]!.id)}` : null);
+    },
+    inspect: (v, { region }) => (region ? [`Proof component ${v.proof.components.findIndex((ids) => ids.includes(region.id))}`] : []),
+  },
+  {
+    id: "zones", pass: "areas", label: "Zone tiers", stage: "zones", on: false, opacity: 1,
+    cells: (v) => {
+      const { width } = v.resolved;
+      return (cell) => {
+        if (!v.resolved.cells[cell]) return null;
+        const zone = zoneAt(v, cell % width, Math.floor(cell / width));
+        return zone ? `tier ${zone.tier}` : null;
+      };
+    },
+    colour: (name) => hsl(0.33 - Number(name.slice(5)) * 0.07, 0.45, 0.22 + Number(name.slice(5)) * 0.06),
+    inspect: (v, { x, y, cell }) => {
+      const zone = v.resolved.cells[cell] ? zoneAt(v, x, y) : undefined;
+      return zone ? [`Zone ${zone.id}: tier ${zone.tier}, bonus ${zone.bonus}`] : [];
+    },
+  },
+  {
+    id: "geometry", pass: "areas", label: "Built geometry", stage: "built", on: true, opacity: 1,
+    legend: () => [["collider or gate", "#b9c4bf"]],
+    paint: (g) => {
+      if (!geometry) return;
+      g.fillStyle = "#b9c4bfcc";
+      g.fill(geometry.path);
+    },
+    inspect: (_, { built }) => (built ? [`Type ${built.brief.type}, ${built.brief.portals.length} portals`, `${built.elements.length} elements, ${built.loot.length} loot`] : []),
+  },
+  {
+    id: "loot", pass: "marks", label: "Loot", stage: "built", on: false, opacity: 1,
+    legend: () => [["loot", "#f2ca55"]],
+    paint: (g, v, px) => {
+      const { cellSize } = v.built;
+      g.fillStyle = "#f2ca55";
+      for (const region of v.built.regions)
+        for (const loot of region.loot) {
+          dot(g, loot.x / cellSize, loot.y / cellSize, Math.max(0.15, 2 * px));
+          g.fill();
+        }
+    },
+  },
+  {
+    id: "sites", pass: "marks", label: "Core element sites", stage: "built", on: true, opacity: 1,
+    legend: () => Object.entries(SITE_COLOURS),
+    paint: (g, v, px) => {
+      const { cellSize } = v.built;
+      for (const region of v.built.regions)
+        for (const site of region.coreElements) {
+          dot(g, site.x / cellSize, site.y / cellSize, Math.max(0.6, 5 * px));
+          g.fillStyle = SITE_COLOURS[site.kind] ?? "#fff";
+          g.fill();
+          g.strokeStyle = "#0b1015";
+          g.lineWidth = px;
+          g.stroke();
+        }
+    },
+    inspect: (_, { built }) => (built?.coreElements.length ? [`Core elements: ${built.coreElements.map((site) => site.kind).join(", ")}`] : []),
+  },
+  {
+    id: "defects", pass: "areas", label: "Defect regions", stage: "report", on: true, opacity: 1,
+    cells: () => {
+      const named = defectRegions();
+      return (cell) => (regionAt[cell]! >= 0 && named.has(views!.regions.regions[regionAt[cell]!]!.id) ? "defect" : null);
+    },
+    colour: () => [235, 70, 60, 120],
+    inspect: (_, { region }) => region ? [
+      ...(check?.defects ?? []).filter((defect) => defect.regions?.includes(region.id)).map((defect) => `Defect, ${defect.kind}: ${defect.message}`),
+      ...(diagnosis?.brokenPromises ?? []).filter((broken) => broken.region === region.id).map((broken) => `Broken promise: ${broken.errors.join("; ")}`),
+    ] : [],
+  },
+  {
+    id: "defectSites", pass: "marks", label: "Defect sites", stage: "report", on: true, opacity: 1,
+    legend: () => [["defect at a site", "#ff5a4a"]],
+    paint: (g, v, px) => {
+      const { cellSize } = v.built;
+      for (const defect of check?.defects ?? [])
+        if (defect.site) {
+          dot(g, defect.site.x / cellSize, defect.site.y / cellSize, Math.max(1, 9 * px));
+          g.strokeStyle = "#ff5a4a";
+          g.lineWidth = 2 * px;
+          g.stroke();
+        }
+    },
+  },
+];
+
+/** A cell field, painted at one pixel per cell. */
+function paintCells(layer: Layer, v: Views): NonNullable<Layer["painted"]> {
+  const { width, height } = v.resolved;
+  const result = document.createElement("canvas");
+  result.width = width;
+  result.height = height;
+  const name = layer.cells!(v), image = new ImageData(width, height), seen = new Map<string, Rgb | Rgba>();
+  for (let cell = 0; cell < width * height; cell++) {
+    const value = name(cell);
+    if (value === null) continue;
+    let rgba = seen.get(value);
+    if (!rgba) seen.set(value, (rgba = layer.colour?.(value) ?? colour(value)));
+    image.data.set(rgba.length === 4 ? rgba : [...rgba, 255], cell * 4);
+  }
+  result.getContext("2d")!.putImageData(image, 0, 0);
+  return { canvas: result, seen };
+}
+
+/** Forget painted cells, for a new map or a new diagnosis; they're painted again when drawn. */
+function repaint(...ids: string[]): void {
+  for (const layer of LAYERS) if (!ids.length || ids.includes(layer.id)) layer.painted = null;
+  renderLegends();
+}
+
+function painted(layer: Layer): Layer["painted"] {
+  if (!layer.cells || !views) return null;
+  return (layer.painted ??= paintCells(layer, views));
+}
+
+/** The layer list, built once from the registry. */
+function renderLayers(): void {
+  $("layers").replaceChildren(...LAYERS.map((layer) => {
+    const row = element("div", "", "layer");
+    const toggle = element("label");
+    const box = Object.assign(element("input"), { type: "checkbox", id: `layer-${layer.id}`, checked: layer.on });
+    box.onchange = () => {
+      layer.on = box.checked;
+      renderLegends();
+      draw();
+    };
+    toggle.append(box, ` ${layer.label}`, element("span", layer.stage, "stage"));
+    const opacity = Object.assign(element("input"), {
+      type: "range", id: `layer-${layer.id}-opacity`, min: "0", max: "100", value: String(layer.opacity * 100),
+      title: `${layer.label} opacity`,
+    });
+    opacity.oninput = () => {
+      layer.opacity = Number(opacity.value) / 100;
+      draw();
+    };
+    row.append(toggle, opacity, Object.assign(element("div", "", "legend"), { id: `legend-${layer.id}` }));
+    return row;
+  }));
+}
+
+function renderLegends(): void {
+  for (const layer of LAYERS) {
+    const legend = $(`legend-${layer.id}`);
+    if (!legend) continue;
+    const entries = !layer.on || !views ? [] : layer.cells
+      ? [...painted(layer)!.seen].map(([name, rgb]): [string, string] => [name, css(rgb as Rgb)])
+      : layer.legend?.() ?? [];
+    if (layer.summarise || entries.length > 40) {
+      legend.textContent = entries.length ? `${entries.length} ${layer.summarise ?? "values"}, each its own colour.` : "";
+      continue;
+    }
+    legend.replaceChildren(...entries.sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true })).map(([name, swatch]) => {
+      const item = element("span", name);
+      item.style.setProperty("--swatch", swatch);
+      return item;
+    }));
+  }
+}
+
+// ── Drawing ─────────────────────────────────────────────────────────────────
+
 function draw(): void {
   const dpr = devicePixelRatio || 1;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  $("zoomLevel").textContent = `${Math.round((camera.zoom / fitZoom) * 100)}%`;
   if (!views) return;
-  const { zoom, x, y } = camera, px = 1 / zoom;
-  ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, dpr * x, dpr * y);
+  const v = views, { zoom, x, y } = camera, px = 1 / zoom;
+  const transform = [dpr * zoom, 0, 0, dpr * zoom, dpr * x, dpr * y] as const;
+  ctx.setTransform(...transform);
   ctx.imageSmoothingEnabled = false;
-  if (cellLayer) ctx.drawImage(cellLayer, 0, 0);
-  if (input("showDefects").checked && defectLayer) ctx.drawImage(defectLayer, 0, 0);
-  if (input("showGeometry").checked && geometry) {
-    ctx.fillStyle = "#b9c4bfcc";
-    ctx.fill(geometry.path);
-  }
-  if (input("showPortals").checked) {
-    const boundaries = new Path2D(), portals = new Path2D();
-    for (const boundary of views.regions.boundaries) runLine(boundaries, boundary.run);
-    for (const portal of views.regions.portals) runLine(portals, portal);
-    ctx.lineCap = "butt";
-    ctx.strokeStyle = "#0b1015";
-    ctx.lineWidth = 1.5 * px;
-    ctx.stroke(boundaries);
-    ctx.strokeStyle = "#e9f7c4";
-    ctx.lineWidth = Math.max(0.25, 3 * px);
-    ctx.stroke(portals);
-  }
-  const { cellSize } = views.built;
-  if (input("showLoot").checked) {
-    ctx.fillStyle = "#f2ca55";
-    for (const region of views.built.regions)
-      for (const loot of region.loot) {
-        ctx.beginPath();
-        ctx.arc(loot.x / cellSize, loot.y / cellSize, Math.max(0.15, 2 * px), 0, Math.PI * 2);
-        ctx.fill();
-      }
-  }
-  if (input("showSites").checked)
-    for (const region of views.built.regions)
-      for (const site of region.coreElements) {
-        ctx.beginPath();
-        ctx.arc(site.x / cellSize, site.y / cellSize, Math.max(0.6, 5 * px), 0, Math.PI * 2);
-        ctx.fillStyle = SITE_COLOURS[site.kind] ?? "#fff";
-        ctx.fill();
-        ctx.strokeStyle = "#0b1015";
-        ctx.lineWidth = px;
-        ctx.stroke();
-      }
-  if (input("showDefects").checked)
-    for (const defect of check?.defects ?? [])
-      if (defect.site) {
-        ctx.beginPath();
-        ctx.arc(defect.site.x / cellSize, defect.site.y / cellSize, Math.max(1, 9 * px), 0, Math.PI * 2);
-        ctx.strokeStyle = "#ff5a4a";
-        ctx.lineWidth = 2 * px;
-        ctx.stroke();
-      }
+  /**
+   * A layer at full opacity draws straight onto the map. Otherwise it draws opaque on a
+   * scratch canvas that is laid on once at the layer's opacity, so overlapping parts of one
+   * layer (a site's fill and outline, say) don't fade by different amounts.
+   */
+  const composite = (layer: Layer, paint: (g: Context) => void) => {
+    if (layer.opacity >= 1) return paint(ctx);
+    if (scratch.width !== canvas.width || scratch.height !== canvas.height) [scratch.width, scratch.height] = [canvas.width, canvas.height];
+    scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
+    scratchCtx.clearRect(0, 0, scratch.width, scratch.height);
+    scratchCtx.setTransform(...transform);
+    scratchCtx.imageSmoothingEnabled = false;
+    paint(scratchCtx);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = layer.opacity;
+    ctx.drawImage(scratch, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.setTransform(...transform);
+  };
+  const shown = LAYERS.filter((layer) => layer.on && layer.opacity > 0);
+  for (const pass of ["areas", "marks"])
+    for (const layer of shown)
+      if (layer.pass === pass)
+        composite(layer, (g) => {
+          const cells = painted(layer);
+          if (cells) g.drawImage(cells.canvas, 0, 0);
+          layer.paint?.(g, v, px);
+        });
   if (selected) {
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 2 * px;
@@ -377,8 +534,32 @@ function fit(): void {
   const box = canvas.getBoundingClientRect(), { width, height } = views.resolved;
   const zoom = Math.max(0.1, Math.min(box.width / width, box.height / height) * 0.96);
   camera = { zoom, x: (box.width - width * zoom) / 2, y: (box.height - height * zoom) / 2 };
+  fitZoom = zoom;
   fitted = true;
   draw();
+}
+
+/** Zoom by `factor` about a point on the canvas, in CSS pixels. */
+function zoomAbout(factor: number, px: number, py: number): void {
+  const zoom = Math.max(0.1, Math.min(80, camera.zoom * factor));
+  camera = { zoom, x: px - ((px - camera.x) / camera.zoom) * zoom, y: py - ((py - camera.y) / camera.zoom) * zoom };
+  fitted = false;
+  draw();
+}
+
+function zoomCentre(factor: number): void {
+  const box = canvas.getBoundingClientRect();
+  zoomAbout(factor, box.width / 2, box.height / 2);
+}
+
+/** The cell under a pointer, or null off the map. */
+function cellAt(event: { clientX: number; clientY: number }): { x: number; y: number } | null {
+  if (!views) return null;
+  const box = canvas.getBoundingClientRect();
+  const x = Math.floor((event.clientX - box.left - camera.x) / camera.zoom);
+  const y = Math.floor((event.clientY - box.top - camera.y) / camera.zoom);
+  const { width, height } = views.resolved;
+  return x >= 0 && y >= 0 && x < width && y < height ? { x, y } : null;
 }
 
 // ── Panels ──────────────────────────────────────────────────────────────────
@@ -444,7 +625,7 @@ function startDiagnosis(): void {
     if (map !== forMap) return;
     if (reply.kind === "diagnosis") {
       diagnosis = { brokenPromises: reply.brokenPromises, ms: reply.ms };
-      defectLayer = paintDefects();
+      repaint("defects");
       draw();
     } else if (reply.kind === "error") $("diagnosticBody").textContent = `The diagnostic failed: ${reply.message}`;
     renderDiagnosis();
@@ -461,30 +642,29 @@ function cancelDiagnosis(): void {
   renderDiagnosis();
 }
 
-function inspection(): string {
-  if (!views || !selected) return "Select a cell.";
-  const { width } = views.resolved, cell = selected.y * width + selected.x;
-  const lines = [`Cell ${selected.x}, ${selected.y}`, `Declared: ${views.declaredGrid.cells[cell] || "outside the mask"}`];
-  if (!views.resolved.cells[cell]) return lines.join("\n");
-  lines.push(`Resolved: ${views.resolved.cells[cell]}`);
-  const zone = views.zones.find(({ cells: b }) => selected!.x >= b.x0 && selected!.x <= b.x1 && selected!.y >= b.y0 && selected!.y <= b.y1);
-  if (zone) lines.push(`Zone ${zone.id}: tier ${zone.tier}, bonus ${zone.bonus}`);
-  const region = views.regions.regions[regionAt[cell]!];
-  if (!region) return lines.join("\n");
-  const component = views.proof.components.findIndex((ids) => ids.includes(region.id));
-  const built = views.built.regions.find((result) => result.brief.id === region.id);
-  lines.push("", `Region ${region.id}`, `Class ${region.class}, ${region.cells.length} cells, seed ${region.seed}`, `Proof component ${component}`);
-  if (built) {
-    lines.push(`Type ${built.brief.type}, ${built.brief.portals.length} portals`, `${built.elements.length} elements, ${built.loot.length} loot`);
-    if (built.coreElements.length) lines.push(`Core elements: ${built.coreElements.map((site) => site.kind).join(", ")}`);
-  }
-  for (const defect of check?.defects ?? []) if (defect.regions?.includes(region.id)) lines.push(`Defect, ${defect.kind}: ${defect.message}`);
-  for (const broken of diagnosis?.brokenPromises ?? []) if (broken.region === region.id) lines.push(`Broken promise: ${broken.errors.join("; ")}`);
-  return lines.join("\n");
+/** Every layer's lines for a cell, in chain order. */
+function inspection(at: { x: number; y: number } | null): string[] {
+  if (!views || !at) return ["Select a cell."];
+  const v = views, cell = at.y * v.resolved.width + at.x, region = v.regions.regions[regionAt[cell]!];
+  const probe: Probe = { ...at, cell, region, built: region && v.built.regions.find((result) => result.brief.id === region.id) };
+  return [`Cell ${at.x}, ${at.y}`, ...LAYERS.flatMap((layer) => layer.inspect?.(v, probe) ?? [])];
 }
 
 function renderInspector(): void {
-  $("inspector").textContent = inspection();
+  $("inspector").textContent = inspection(selected).join("\n");
+}
+
+const tooltip = $("tooltip");
+
+/** The inspector's first lines for the cell under the pointer. */
+function showTooltip(event: PointerEvent): void {
+  const at = cellAt(event);
+  tooltip.hidden = !at;
+  if (!at) return;
+  tooltip.textContent = inspection(at).filter(Boolean).slice(0, 5).join("\n");
+  const box = $("mapView").getBoundingClientRect();
+  tooltip.style.left = `${event.clientX - box.left + 14}px`;
+  tooltip.style.top = `${event.clientY - box.top + 14}px`;
 }
 
 // ── Saving and loading ──────────────────────────────────────────────────────
@@ -526,14 +706,12 @@ $("random").onclick = () => {
   input("seed").value = `exit-${crypto.getRandomValues(new Uint32Array(1))[0]!.toString(36)}`;
   generateMap();
 };
-$("fit").onclick = fit;
+$("zoomIn").onclick = () => zoomCentre(1.25);
+$("zoomOut").onclick = () => zoomCentre(1 / 1.25);
+$("zoomReset").onclick = fit;
 $("diagnose").onclick = startDiagnosis;
 $("cancelDiagnose").onclick = cancelDiagnosis;
-select("field").onchange = () => {
-  cellLayer = paintField();
-  draw();
-};
-for (const id of ["showPortals", "showGeometry", "showSites", "showLoot", "showDefects"]) input(id).onchange = draw;
+renderLayers();
 input("seed").onkeydown = (event) => {
   if (event.key === "Enter") generateMap();
 };
@@ -555,10 +733,11 @@ canvas.onpointerdown = (event) => {
   drag = { x: event.clientX, y: event.clientY, camera: { ...camera }, moved: false };
 };
 canvas.onpointermove = (event) => {
-  if (!drag) return;
+  if (!drag) return showTooltip(event);
   const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
   if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
   if (!drag.moved) return;
+  tooltip.hidden = true;
   camera = { ...drag.camera, x: drag.camera.x + dx, y: drag.camera.y + dy };
   fitted = false;
   draw();
@@ -567,21 +746,15 @@ canvas.onpointerup = (event) => {
   const click = drag && !drag.moved;
   drag = null;
   if (!click || !views) return;
-  const box = canvas.getBoundingClientRect();
-  const x = Math.floor((event.clientX - box.left - camera.x) / camera.zoom);
-  const y = Math.floor((event.clientY - box.top - camera.y) / camera.zoom);
-  const { width, height } = views.resolved;
-  selected = x >= 0 && y >= 0 && x < width && y < height ? { x, y } : null;
+  selected = cellAt(event);
   renderInspector();
   draw();
 };
+canvas.onpointerleave = () => (tooltip.hidden = true);
 canvas.addEventListener("wheel", (event) => {
   event.preventDefault();
-  const box = canvas.getBoundingClientRect(), px = event.clientX - box.left, py = event.clientY - box.top;
-  const zoom = Math.max(0.1, Math.min(80, camera.zoom * Math.exp(-event.deltaY * 0.0015)));
-  camera = { zoom, x: px - ((px - camera.x) / camera.zoom) * zoom, y: py - ((py - camera.y) / camera.zoom) * zoom };
-  fitted = false;
-  draw();
+  const box = canvas.getBoundingClientRect();
+  zoomAbout(Math.exp(-event.deltaY * 0.0015), event.clientX - box.left, event.clientY - box.top);
 }, { passive: false });
 new ResizeObserver(resize).observe(canvas);
 
@@ -610,6 +783,8 @@ window.mapLab = Object.freeze({
     diagnosing: !!diagnoseWorker,
     diagnosis: diagnosis ? { brokenPromises: diagnosis.brokenPromises } : null,
     inspector: $("inspector").textContent,
+    layers: LAYERS.map(({ id, pass, stage, on, opacity }) => ({ id, pass, stage, on, opacity })),
+    zoom: $("zoomLevel").textContent,
   }),
 });
 

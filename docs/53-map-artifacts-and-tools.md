@@ -1,7 +1,7 @@
 # 53. Map artifacts, determinism and tools
 
 Status: current for the chain (51), its Map Lab, CLI, MCP and sweep. mapgen's
-old paths were deleted at the switch-over (#146). Updated 2026-10-03.
+old paths were deleted at the switch-over (#146). Updated 2026-10-04.
 
 ## One seed decides the whole map
 
@@ -153,10 +153,25 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   the chain.
   - **World:** seed, mode, zone size and spawn counts; the chain's library
     for the zone size or the Chain Library tab's draft. A size menu lists
-    the authored sizes and sets the zone size. Every view comes through `mapViews`: the
-    cells coloured by declared or resolved class, region, proof component or
-    zone tier, with boundaries and portals, the built map's geometry, core
-    element sites, loot and defects over them, and an inspector per cell.
+    the authored sizes and sets the zone size. Every view comes through `mapViews`.
+  - **Layers:** one registry in `app.ts`, in chain order (51): declared and
+    resolved classes, regions, boundaries and portals, proof components,
+    zone tiers, built geometry, loot, core element sites, defect regions and
+    defect sites. Each layer names the `mapViews` key it reads, can be
+    turned on or off, has an opacity, and contributes its own legend
+    entries and inspector lines. Any number can be on at once, so an
+    earlier stage shows under a later one. Each layer is either areas (a
+    cell field, painted once per map into a canvas, or a fill) or marks
+    (lines and dots). Drawing takes every areas layer, then every marks
+    layer, each in registry order, so lines stay readable over areas. A
+    layer belongs to one pass, so it is laid on once at its opacity: below
+    full opacity it is drawn whole on a scratch canvas first, and its own
+    parts don't fade unevenly where they overlap. A new layer is one
+    registry entry. Regions, portals, geometry, sites and both defect
+    layers are on by default.
+  - **Inspecting:** clicking a cell fills the inspector, and hovering shows
+    its first lines. Zoom with the wheel or the buttons; Reset fits the
+    map, which the readout calls 100%.
   - **The report** shows beside `diagnoseBuiltMap`. Generation, reading a
     save and the diagnostic run in a worker, and the diagnostic runs only on
     request and can be cancelled.
