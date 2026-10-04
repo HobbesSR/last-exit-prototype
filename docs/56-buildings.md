@@ -5,8 +5,9 @@ Building Geometry Library", is issue #185. Its full text stays there. This
 record holds the parts this project adopts, how each maps onto what exists, the
 departures and why, and the build order. The choices it raised are 17 M26 to
 M33 ([17.2.8](17.2.8-building-questions.md)); M26, M28 and M29 are answered.
-L1's wall-run emitter, L2's design passes, L3's allocator and L4's lab views
-are implemented; L5 remains planned. Marked proposals are not requirements until Corey adopts them.
+L1's wall-run emitter, L2's design passes, L3's allocator, L4's lab views and
+L5's buildings with several spaces are implemented, so the first milestone is
+complete. Marked proposals are not requirements until Corey adopts them.
 
 > **Building topology and building geometry are related but distinct procedural problems.**
 
@@ -172,7 +173,8 @@ The SDK exports these pure passes from `map/micro/building/`:
   boundaries remain separate; junctions terminate paths. Exterior runs split
   where their inward side changes, including at diagonal touches.
 - `placeBuildingOpenings` chooses the longest suitable straight run, with ties
-  in kernel order, and centers the opening in its usable length. An opening
+  in kernel order, and centers the opening in its usable length, on the half
+  cell nearest that middle (L5). An opening
   cannot turn a corner. Its default width is the kernel doorway width; explicit
   widths and corner trims can be supplied to this pass. It reports absent
   boundaries, insufficient length and overlapping placements as `misses`.
@@ -287,18 +289,90 @@ building it keeps in its result. The `BuildingTrace` it receives holds the
 element's label, the world position of the allocation's cell (0, 0), the cell
 size, and the design, allocation and realization the element was built from.
 `buildRegion(brief, registry, observe)` passes it on. A strategy that builds no
-design ignores it. `hut` reports its house. `block` passes the observer to its
-lots, prefixing each label as it prefixes the lot's elements. The trace is
+design ignores it. `hut` reports its house, and `compound` its ring (L5).
+`block` passes the observer to its lots, prefixing each label as it prefixes
+the lot's elements. The trace is
 handed over while the strategy runs and is never part of the result, so
 nothing is stored (17.2.8 M30), and building with or without an observer gives
 the same result.
 
-The micro lab (20.5) runs the `hut` and `block` region types on a brief made
+The micro lab (20.5) runs the `hut`, `compound` and `block` region types on a brief made
 from its example shape, and draws each trace beside the geometry: the design
 graph, the allocation, spans with their owners, and openings. A connection
 whose two spaces got no opening is marked as unmet guidance, a warning (M29).
 The lab checks the portal promise over the result's geometry. It is the only
 error it shows.
+
+## L5 buildings with several spaces
+
+This is a deliberate content change: it moves the regions' results, the built
+maps and the report, and no view before them. The sweep baseline was
+re-captured last (53).
+
+**`hut`** tries designs largest first: three spaces, then two, then the
+one-space house in its 4 × 4 box, then `open` (M24, M31). The three-space
+boxes are 6 × 6, 8 × 6 and 9 × 4, the two-space 6 × 4 and 7 × 5, each either
+way round. A box is tried only in a region at least 2 cells wider and taller
+than it, as the 4 × 4 needs 6 × 6 (54 `hut`). So a region up to 7 cells across
+keeps the one-space house exactly, and its own random channel keeps its siting
+unchanged. Sizes, then each size's places, go in a seeded order. Each place
+passes `hut`'s checks as before: off the portal approaches, the yard kept
+joined, and doorstep blocks the yard joins to a portal.
+- **The design:** a `front` space holds the one outside door, on the side
+  being tried, and asks for a window. Each `back-n` space asks for a door into
+  the front and a window. Every space prefers the outside and is at least 9
+  cells. `allocateBuilding` partitions the box, seeded per region, and adds
+  joining doors where the asked ones can't reach every space.
+- **What the house must have:** its outside door placed, and its placed
+  interior doors joining every space. A box and side whose house lacks either
+  isn't used. Missed windows and asked interior doors stay misses, guidance
+  the lab marks (M29).
+- **Doorsteps:** where the door sits between cells, both 2 × 2 blocks it
+  spans must be yard a portal reaches.
+- **Why the promise holds:** the house still takes only its box, so the yard
+  joins what the empty region joined. It has one outside door, so no route
+  runs through it.
+
+**`compound`**'s ring of rooms and gate passages is one design over the ring's
+cells. The compound's own layout, unchanged, is the allocation: the guillotine
+search can't partition a ring. Each side's rooms ask for a door onto the court
+(the outside, on their court side), each corner room a door into its
+neighbour along the north or south side, and each passage a door in the outer
+wall and an `open` connection along its whole court face. The realization
+encloses nothing, and `splitBuilding` gives each space its own element and
+each room its own roof. Labels are unchanged (`compound-room-n`,
+`compound-gate-S`). A wall between two rooms is now one wall, where each room
+used to draw its own.
+
+The library gained what these needed:
+- **Half-cell openings.** An opening's center is the half cell nearest the
+  middle of its usable length. A corner trim at one end of a run used to put a
+  door off the half-cell lattice, where a hunter's swept route, as
+  `findRegionRoute` samples it, couldn't line up with it.
+- **Clear spaces.** `realizeBuilding`'s `clear` lists spaces kept clear to
+  their whole cells. A wall one shares with a space not listed stands wholly in
+  that space, so the compound's passages stay a doorway wide. Otherwise an
+  interior wall straddles its guide.
+- **Opening widths.** `realizeBuilding` passes `widths` by connection id to
+  `placeBuildingOpenings`.
+- **Owners and pieces.** A realization's `owners` names the boundary each part
+  stands on. `splitBuilding(realization, allocation, { cellSize, roofed })`, in
+  `building/pieces.ts` and exported through `sdk.ts`, groups parts into one
+  element per space in the allocation's order. A wall on the outside belongs
+  to its space. A wall between spaces belongs to a roofed one where there is
+  one, else the one listed first. A roofed space must fill its bounding box,
+  since a roof is a rectangle. The trace of a split building carries the label
+  its pieces' labels extend, such as `compound`.
+
+**Proof.** The promise tests for `hut` and `compound` pass unmodified, over
+their masks, seeds and gate counts. A hunter walks into every space of a
+house through its one outside door, and every room of a compound is reached
+through its gates. A region up to 7 × 7 builds exactly what it built before
+L5. The report showed no defects over 60 game and 30 playground maps, and the
+per-region diagnosis none over 3 game maps. The micro lab shows a three-space
+house, one with an unmet asked door as a warning, and a compound. Generating
+a game map took about 7% longer (a mean of 326 ms against 303 ms over 60
+maps), the cost of allocating larger houses.
 
 ## Build order
 
@@ -313,7 +387,7 @@ sweep baseline proves it. Later stages add content and re-baseline last
 | L2 (#189), implemented | **The design and its passes.** The design graph and its validation; boundaries and spans from an allocation; openings placed from connections. `hut` builds its one-room house as a design | the baseline is still unchanged |
 | L3 (#190), implemented | **Allocation.** Bounded seeded branching guillotine search assigns usable spaces and a connected interior opening graph, with named soft scores and explicit failure reasons. Its feasibility rules belong to the allocator, not the region contract; connections only steer it | rectangle, L, notch, quadrant and corridor tests, deterministic bounded failure, emitted hunter routes |
 | L4 (#191), implemented | **A building lab.** The micro lab shows a building's design graph, allocation, spans and openings beside its geometry | browser check |
-| L5 (#192) | **Buildings with several spaces.** `hut` grows larger designs where its region allows; `compound`'s ring becomes a design | promise tests over shapes and seeds, then re-baseline |
+| L5 (#192), implemented | **Buildings with several spaces.** `hut` grows larger designs where its region allows; `compound`'s ring becomes a design | promise tests over shapes and seeds, then re-baseline |
 
 The second milestone, #185 §37, takes components and grammar, candidate sites,
 constraint scoring, residual use inside a footprint,

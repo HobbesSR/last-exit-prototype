@@ -52,6 +52,13 @@ interface Box { x: number; y: number; w: number; h: number }
  * side, a room or a passage, so it is a dead end. `gates` sides, drawn from the seed, have a passage through the ring from a gate
  * in the outer wall to the court.
  *
+ * The ring is one building design (56 L5): its rooms and passages are spaces over the ring's
+ * cells, and the layout above is their allocation, since `allocateBuilding`'s guillotine search
+ * can't partition a ring. Walls between spaces are built once. A passage is kept clear, so the
+ * walls it shares stand in the rooms and it stays a doorway wide, and it lies open to the court
+ * along its whole length. `splitBuilding` makes each space its own element, and each room its
+ * own roof. `observe`, when given, sees the ring's design as one `BuildingTrace`, `compound`.
+ *
  * The compound is a convex box with a clear ring wider than a hunter around it, so it can't
  * divide the yard a hunter can reach outside it, where every portal is. So, like `depot`, the
  * region keeps the portal promise exactly when its shape does. A region with no contained
