@@ -3,7 +3,7 @@ import { largestRectangle } from './hall.ts';
 import { cellLoot, draw } from './scatter.ts';
 import { createRegionMask, elementShapes } from '../geometry.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
-import { rect } from '../../../shared/shape.ts';
+import { emitWallRun } from '../building/walls.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
@@ -150,35 +150,32 @@ export function buildCompound(brief: RegionBrief): BuiltRegion {
  */
 function roomTemplate(size: number, { w, h, doorways }: Room): ElementTemplate {
   const parts: ElementTemplate['parts'] = [];
+  const gates = new Map<Doorway, ElementTemplate['parts'][number]>();
   for (const side of SIDES) {
     const horizontal = side === 'N' || side === 'S';
-    const from = horizontal ? 0 : WALL, to = horizontal ? w : h - WALL, across = side === 'N' ? 0 : side === 'S' ? h - WALL : side === 'W' ? 0 : w - WALL;
-    const piece = (a: number, b: number): Shape => horizontal ? rect(a * size, across * size, (b - a) * size, WALL * size) : rect(across * size, a * size, WALL * size, (b - a) * size);
-    let at = from;
-    for (const { at: centre } of doorways.filter(d => d.side === side).sort((a, b) => a.at - b.at)) {
-      if (centre - DOOR / 2 > at) parts.push({ part: 'obstacle', shape: piece(at, centre - DOOR / 2), kind: 'building' });
-      at = centre + DOOR / 2;
-    }
-    if (to > at) parts.push({ part: 'obstacle', shape: piece(at, to), kind: 'building' });
+    const run = horizontal ? { axis: 'h' as const, x: 0, y: side === 'N' ? 0 : h, length: w }
+      : { axis: 'v' as const, x: side === 'W' ? 0 : w, y: 0, length: h };
+    const onSide = doorways.filter(d => d.side === side).sort((a, b) => a.at - b.at);
+    const emitted = emitWallRun(run, { cellSize: size, thickness: WALL, offset: side === 'N' || side === 'W' ? 0 : -WALL,
+      trimStart: horizontal ? 0 : WALL, trimEnd: horizontal ? 0 : WALL,
+      openings: onSide.map(d => ({ center: d.at, length: DOOR,
+        kind: d.door ? 'door' as const : 'open' as const })) });
+    parts.push(...emitted.filter(part => part.part === 'obstacle'));
+    const emittedGates = emitted.filter(part => part.part === 'gate');
+    onSide.filter(d => d.door).forEach((d, i) => gates.set(d, emittedGates[i]!));
   }
-  for (const { side, at } of doorways.filter(d => d.door)) {
-    const edge = side === 'N' || side === 'W' ? WALL / 2 : (side === 'S' ? h : w) - WALL / 2;
-    parts.push(side === 'N' || side === 'S' ? { part: 'gate', x: at * size, y: edge * size, w: DOOR * size, h: WALL * size }
-      : { part: 'gate', x: edge * size, y: at * size, w: WALL * size, h: DOOR * size });
-  }
+  // Door IDs follow the room's doorway list, rather than side order.
+  for (const doorway of doorways.filter(d => d.door)) parts.push(gates.get(doorway)!);
   return { w: w * size, h: h * size, encloses: true, parts };
 }
 
 /** A gate at a passage's mouth: the outer wall either side of it, and a door a doorway wide near its middle. Open to the sky. */
 function gateTemplate(size: number, side: Side, { w, h }: Room): ElementTemplate {
   const horizontal = side === 'N' || side === 'S', length = horizontal ? w : h;
-  const across = side === 'N' || side === 'W' ? 0 : (horizontal ? h : w) - WALL, centre = length / 2;
-  const piece = (a: number, b: number): Shape => horizontal ? rect(a * size, across * size, (b - a) * size, WALL * size) : rect(across * size, a * size, WALL * size, (b - a) * size);
-  const parts: ElementTemplate['parts'] = [];
-  if (centre - DOOR / 2 > 0) parts.push({ part: 'obstacle', shape: piece(0, centre - DOOR / 2), kind: 'building' });
-  if (length > centre + DOOR / 2) parts.push({ part: 'obstacle', shape: piece(centre + DOOR / 2, length), kind: 'building' });
-  const edge = (across + WALL / 2) * size;
-  parts.push(horizontal ? { part: 'gate', x: centre * size, y: edge, w: DOOR * size, h: WALL * size }
-    : { part: 'gate', x: edge, y: centre * size, w: WALL * size, h: DOOR * size });
+  const run = horizontal ? { axis: 'h' as const, x: 0, y: side === 'N' ? 0 : h, length }
+    : { axis: 'v' as const, x: side === 'W' ? 0 : w, y: 0, length };
+  const emitted = emitWallRun(run, { cellSize: size, thickness: WALL, offset: side === 'N' || side === 'W' ? 0 : -WALL,
+    openings: [{ center: length / 2, length: DOOR, kind: 'door' }] });
+  const parts: ElementTemplate['parts'] = [...emitted.filter(part => part.part === 'obstacle'), ...emitted.filter(part => part.part === 'gate')];
   return { w: w * size, h: h * size, parts };
 }

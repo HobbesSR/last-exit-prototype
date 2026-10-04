@@ -18,3 +18,5 @@ export { validateDecompositionPlan } from './decomposition/validate.ts';
 export { negotiatePortals } from './decomposition/negotiate.ts';
 export type { CrossingTerms, NegotiatedCrossing, NegotiatedPortals, PortalPolicy } from './decomposition/negotiate.ts';
 export type * from './decomposition/types.ts';
+export { emitWallRun } from './building/walls.ts';
+export type { WallOpening, WallRunOptions } from './building/walls.ts';

@@ -22,3 +22,7 @@ test('each authored zone size takes its own bundled library, and game mode refus
   assert.strictEqual(bundledLibrary({ mode: 'playground', zoneWidth: 2, zoneHeight: 1 }), CHAIN_LIBRARY);
   assert.throws(() => generate('unauthored', { zoneWidth: 18, zoneHeight: 9 }), /no bundled library is authored for 18 x 9 tile zones; game mode takes 12 x 6, 24 x 12, 36 x 18/);
 });
+
+test('a cell is a whole number of world units', () => {
+  for (const bad of [0, -48, 47.5, NaN]) assert.throws(() => generate('fractional', {}, undefined, bad), /whole number of world units/);
+});

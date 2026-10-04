@@ -37,7 +37,7 @@ function contractErrors(brief: RegionBrief): string[] {
   const errors: string[] = [];
   if (!brief.id || !Number.isSafeInteger(brief.seed)) errors.push("id and integer seed");
   if (!brief.type) errors.push("region type");
-  if (!(brief.cellSize > 0)) errors.push("cell size");
+  if (!(Number.isInteger(brief.cellSize) && brief.cellSize > 0)) errors.push("cell size");
   if (!brief.cells.length) return [...errors, "cells"];
   const cells = new Set(brief.cells.map(key)), zoned = new Set<string>();
   for (const zone of brief.zones) {
@@ -134,7 +134,7 @@ function hand(slots: Record<string, string>): { found: LayoutRegions; list: Regi
   });
   const layout: Layout = { seed: "hand", params: PLAYGROUND, library: "hand", slots: placed, setPieces: [] };
   const found = derive(layout, HAND);
-  return { found, list: briefs(layout, found, chainZones(PLAYGROUND), HAND, 2.5) };
+  return { found, list: briefs(layout, found, chainZones(PLAYGROUND), HAND, 3) };
 }
 
 test("a hand-placed brief has global cells, its class rule's parameters, and the portal on its edge", () => {
@@ -143,7 +143,7 @@ test("a hand-placed brief has global cells, its class rule's parameters, and the
   const hut = list.find((b) => b.id === "hut@11,6")!;
   assert.deepEqual(hut.cells, [6, 7, 8, 9, 10, 11].map((y) => ({ x: 11, y })));
   assert.deepEqual(hut.parameters, { doors: 2, style: "tin", lit: true });
-  assert.equal(hut.cellSize, 2.5);
+  assert.equal(hut.cellSize, 3);
   assert.deepEqual(hut.portals, [{ id: "hut@11,6~open@6,6~v:11,8", axis: "v", x: 11, y: 8, length: 2 }]);
   // The open side holds the same portal, so both briefs name it alike.
   assert.deepEqual(list.find((b) => b.id === "open@6,6")!.portals, hut.portals);
@@ -167,13 +167,13 @@ test("a region across zones gets one zone context per zone, and a region with no
   assert.deepEqual(shut.map((b) => b.portals), [[]]);
 });
 
-test("briefs refuse a class the library doesn't register, and a cell size that isn't positive", () => {
+test("briefs refuse a class the library doesn't register, and a cell size that isn't a positive whole number", () => {
   const layout: Layout = { seed: "hand", params: PLAYGROUND, library: "hand",
     slots: [{ col: 1, row: 1, design: "hut-west", orientation: 0 }], setPieces: [] };
   const found = derive(layout, HAND);
   const { hut: _, ...rest } = HAND.cellClasses;
   assert.throws(() => briefs(layout, found, chainZones(PLAYGROUND), { ...HAND, cellClasses: rest }, 1), /class hut/);
-  assert.throws(() => briefs(layout, found, chainZones(PLAYGROUND), HAND, 0), /cell size/);
+  for (const bad of [0, -1, 2.5]) assert.throws(() => briefs(layout, found, chainZones(PLAYGROUND), HAND, bad), /cell size/);
 });
 
 test("exitCount resolves with no ceiling, and must be a whole number", () => {

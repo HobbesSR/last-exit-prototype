@@ -1,9 +1,10 @@
-import { circle, rect } from '../../../shared/shape.ts';
+import { circle } from '../../../shared/shape.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import { rng } from '../index.ts';
 import { createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
 import { portalStands } from '../portals.ts';
+import { emitWallRun } from '../building/walls.ts';
 import { buildOpen } from './open.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
 import type { BuiltRegion, LootSite, RegionBrief } from '../types.ts';
@@ -141,20 +142,21 @@ function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>):
  * has a roof.
  */
 function house(size: number, door: Side): ElementTemplate {
-  const span = BOX * size, thick = WALL * size, gap = CELL_SCALE.doorway * size;
-  const open0 = (span - gap) / 2, open1 = (span + gap) / 2;
+  const span = BOX * size;
   const parts: ElementTemplate['parts'] = [];
+  const gates: ElementTemplate['parts'] = [];
   for (const side of SIDES) {
     const horizontal = side === 'N' || side === 'S';
     // North and south walls run the full span; east and west fit between them.
-    const from = horizontal ? 0 : thick, to = horizontal ? span : span - thick, across = side === 'N' || side === 'W' ? 0 : span - thick;
-    const piece = (a: number, b: number) => horizontal ? rect(a, across, b - a, thick) : rect(across, a, thick, b - a);
-    if (side !== door && side !== OPPOSITE[door]) { parts.push({ part: 'obstacle', shape: piece(from, to), kind: 'building' }); continue; }
-    parts.push({ part: 'obstacle', shape: piece(from, open0), kind: 'building' });
-    if (side === OPPOSITE[door]) parts.push({ part: 'obstacle', shape: piece(open0, open1), kind: 'window' });
-    parts.push({ part: 'obstacle', shape: piece(open1, to), kind: 'building' });
+    const run = horizontal ? { axis: 'h' as const, x: 0, y: side === 'N' ? 0 : BOX, length: BOX }
+      : { axis: 'v' as const, x: side === 'W' ? 0 : BOX, y: 0, length: BOX };
+    const emitted = emitWallRun(run, { cellSize: size, thickness: WALL, offset: side === 'N' || side === 'W' ? 0 : -WALL,
+      trimStart: horizontal ? 0 : WALL, trimEnd: horizontal ? 0 : WALL,
+      openings: side === door ? [{ center: BOX / 2, length: CELL_SCALE.doorway, kind: 'door' }]
+        : side === OPPOSITE[door] ? [{ center: BOX / 2, length: CELL_SCALE.doorway, kind: 'window' }] : [] });
+    parts.push(...emitted.filter(part => part.part === 'obstacle'));
+    gates.push(...emitted.filter(part => part.part === 'gate'));
   }
-  const middle = span / 2, edge = door === 'N' || door === 'W' ? thick / 2 : span - thick / 2;
-  parts.push(door === 'N' || door === 'S' ? { part: 'gate', x: middle, y: edge, w: gap, h: thick } : { part: 'gate', x: edge, y: middle, w: thick, h: gap });
+  parts.push(...gates);
   return { w: span, h: span, encloses: true, parts };
 }

@@ -223,6 +223,13 @@ the live game.
 
 The brief translation (51 stage 5) converts between the last two.
 
+A cell is a whole number of world units: `cellSize` is a positive integer
+(Corey, 2026-10-04). Builders measure in cells and multiply once, and with an
+integer ratio that agrees exactly with measuring in world units, so no builder
+needs a second arithmetic. `isCellSize` in `map/kernel/scale.ts` is the rule;
+`generate`, macro's briefs stage (and so a loaded map) and the micro SDK's
+region check refuse anything else.
+
 ## Library modules and authored sizes
 
 Schema version 3 libraries declare `name`, `zonePlan`, `zoneWidth` and

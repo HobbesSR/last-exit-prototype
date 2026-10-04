@@ -1,4 +1,5 @@
 import { rect } from '../../../shared/shape.ts';
+import { emitWallRun } from '../building/walls.ts';
 import { buildOpen } from './open.ts';
 import { largestRectangle } from './hall.ts';
 import { cellLoot, draw, fraction } from './scatter.ts';
@@ -135,17 +136,18 @@ const oriented = (size: number, alongX: boolean) => (u: number, v: number, lengt
  */
 function warehouse(size: number, w: number, h: number, alongX: boolean): ElementTemplate {
   const [length, width] = alongX ? [w, h] : [h, w], box = oriented(size, alongX);
-  const door0 = (width - CELL_SCALE.doorway) / 2, door1 = (width + CELL_SCALE.doorway) / 2;
-  const parts: ElementTemplate['parts'] = [
-    { part: 'obstacle', shape: box(0, 0, length, WALL), kind: 'building' },
-    { part: 'obstacle', shape: box(0, width - WALL, length, WALL), kind: 'building' },
-  ];
-  for (const u of [0, length - WALL]) {
-    parts.push({ part: 'obstacle', shape: box(u, WALL, WALL, door0 - WALL), kind: 'building' });
-    parts.push({ part: 'obstacle', shape: box(u, door1, WALL, width - WALL - door1), kind: 'building' });
-    const [gu, gv] = [u + WALL / 2, width / 2];
-    parts.push(alongX ? { part: 'gate', x: gu * size, y: gv * size, w: WALL * size, h: CELL_SCALE.doorway * size }
-      : { part: 'gate', x: gv * size, y: gu * size, w: CELL_SCALE.doorway * size, h: WALL * size });
+  const wall = (at: number, parallel: boolean, opening = false) => {
+    const run = alongX
+      ? parallel ? { axis: 'h' as const, x: 0, y: at, length } : { axis: 'v' as const, x: at, y: 0, length: width }
+      : parallel ? { axis: 'v' as const, x: at, y: 0, length } : { axis: 'h' as const, x: 0, y: at, length: width };
+    return emitWallRun(run, { cellSize: size, thickness: WALL, offset: at === 0 ? 0 : -WALL,
+      trimStart: parallel ? 0 : WALL, trimEnd: parallel ? 0 : WALL,
+      openings: opening ? [{ center: width / 2, length: CELL_SCALE.doorway, kind: 'door' as const }] : [] });
+  };
+  const parts: ElementTemplate['parts'] = [...wall(0, true), ...wall(width, true)];
+  for (const end of [0, length]) {
+    const emitted = wall(end, false, true);
+    parts.push(...emitted.filter(part => part.part === 'obstacle'), ...emitted.filter(part => part.part === 'gate'));
   }
   for (let k = 2; k + 3 <= width; k += 3)
     parts.push({ part: 'obstacle', shape: box(2, k + SHELF_INSET, length - 4, 1 - 2 * SHELF_INSET), kind: 'container' });

@@ -9,6 +9,7 @@
  */
 import type { Cell } from "../../../kernel/cell.ts";
 import type { CoreElementKind, Portal, RegionBrief, ZoneContext } from "../../../kernel/contract.ts";
+import { isCellSize } from "../../../kernel/scale.ts";
 import { gridSize } from "./declared-grid.ts";
 import { countParamsProblem, resolveCount } from "./library.ts";
 import type { ChainParams, LayoutPortal, MacroStages, Zone } from "./types.ts";
@@ -24,7 +25,7 @@ export function chainZones(params: ChainParams): Zone[] {
 const briefPortal = ({ id, axis, x, y, length }: LayoutPortal): Portal => ({ id, axis, x, y, length });
 
 export const briefs: MacroStages["briefs"] = (layout, layoutRegions, zones, library, cellSize) => {
-  if (!(Number.isFinite(cellSize) && cellSize > 0)) throw new Error(`cell size must be positive, not ${cellSize}`);
+  if (!isCellSize(cellSize)) throw new Error(`cell size must be a positive whole number of world units, not ${cellSize}`);
   // Placement refuses such params already; a layout made or loaded elsewhere might not have been through it.
   const countError = countParamsProblem(layout.params);
   if (countError) throw new Error(countError);
