@@ -8,15 +8,17 @@ import type { MapCheck, ToolMap } from "../core.ts";
 import { GAME_ENGINES } from "../engines.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
 import type { MapViews } from "../../macro/src/chain/map.ts";
+import { CHAIN_TILE_SIZE } from "../../macro/src/chain/library.ts";
 import { DEFAULT_CHAIN_PARAMS } from "../../macro/src/chain/placement.ts";
 import { chainMapToBson, chainMapToJson } from "../../macro/src/chain/saving.ts";
-import type { ChainParams } from "../../macro/src/chain/types.ts";
+import type { ChainParams, PlacedSlot, SetPieceInstance } from "../../macro/src/chain/types.ts";
+import type { RegionBrief } from "../../kernel/contract.ts";
 import type { BrokenPromise } from "../../micro/diagnose.ts";
 import { elementShapes } from "../../micro/geometry.ts";
 import type { RegionElement } from "../../micro/types.ts";
 import { outline } from "../../../shared/shape.ts";
 import type { ObstacleKind } from "../../../shared/types.ts";
-import { chainDraft, renderChainLibrary } from "./chain-author.ts";
+import { chainDraft, openChainEntry, renderChainLibrary } from "./chain-author.ts";
 import type { LabReply, LabRequest } from "./worker.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -45,6 +47,10 @@ let selected: { x: number; y: number } | null = null;
 /** Per cell: the index of its region in `views.regions.regions`, or -1 outside the mask. */
 let regionAt = new Int32Array(0);
 let parts: BuiltParts | null = null;
+/** Per tile slot, `col,row`: the placed design and the set piece instance holding it, if any. */
+let slotAt = new Map<string, { slot: PlacedSlot; piece?: SetPieceInstance }>();
+/** Per region id: its brief, and the region cell nearest its centre, where its brief is labelled. */
+let briefOf = new Map<string, { brief: RegionBrief; anchor: { x: number; y: number } }>();
 let camera = { zoom: 2, x: 0, y: 0 };
 /** Until the viewer pans or zooms, the map is refitted whenever the canvas resizes. */
 let fitted = true;
@@ -160,6 +166,10 @@ function show(next: ToolMap): void {
     for (const cell of region.cells) regionAt[cell] = i;
   });
   parts = buildParts(views);
+  slotAt = new Map(map.layout.slots.map((slot) => [`${slot.col},${slot.row}`, { slot }]));
+  for (const piece of map.layout.setPieces)
+    for (const { col, row } of piece.slots) slotAt.get(`${col},${row}`)!.piece = piece;
+  briefOf = new Map(views.briefs.map((brief) => [brief.id, { brief, anchor: centreCell(brief.cells) }]));
   repaint();
   fit();
   renderReport();
@@ -257,6 +267,19 @@ function elementNames(labels: string[]): string {
   return [...named].map(([name, n]) => `${n} ${name}`).join(", ");
 }
 
+/** The cell nearest the cells' mean, so a label lands inside a region of any shape. */
+function centreCell(cells: Array<{ x: number; y: number }>): { x: number; y: number } {
+  const mx = cells.reduce((sum, c) => sum + c.x, 0) / cells.length, my = cells.reduce((sum, c) => sum + c.y, 0) / cells.length;
+  let best = cells[0]!;
+  for (const c of cells) if ((c.x - mx) ** 2 + (c.y - my) ** 2 < (best.x - mx) ** 2 + (best.y - my) ** 2) best = c;
+  return best;
+}
+
+/** What a brief asks for, folded to one phrase: "2 spawn, 1 exit". */
+function assigned(brief: RegionBrief): string {
+  return Object.entries(brief.coreElements ?? {}).filter(([, n]) => n).map(([kind, n]) => `${n} ${kind}`).join(", ");
+}
+
 function zoneAt(v: Views, x: number, y: number): Views["zones"][number] | undefined {
   return v.zones.find(({ cells: b }) => x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1);
 }
@@ -284,8 +307,8 @@ interface Probe {
 interface Layer {
   id: string;
   label: string;
-  /** The view it reads: a `mapViews` key. */
-  stage: keyof Views;
+  /** What it reads: the Layout itself, or a `mapViews` key. */
+  stage: "layout" | keyof Views;
   on: boolean;
   /** 0–1, applied to everything the layer draws. */
   opacity: number;
@@ -303,6 +326,8 @@ interface Layer {
   legend?: () => Array<[string, string]>;
   /** The inspector's lines for a cell. */
   inspect?: (v: Views, at: Probe) => string[];
+  /** Buttons under the inspector for a cell, each opening something elsewhere. */
+  links?: (v: Views, at: Probe) => Array<{ label: string; open: () => void }>;
   /** The layer's painted cells and legend, for the current map. */
   painted?: { canvas: HTMLCanvasElement; seen: Map<string, Rgb | Rgba> } | null;
 }
@@ -321,6 +346,43 @@ function dot(g: Context, x: number, y: number, radius: number): void {
   g.arc(x, y, radius, 0, Math.PI * 2);
 }
 
+/** Text on a dark backing, 11 screen pixels high, with its top left at (x, y) in cell units. */
+function tag(g: Context, text: string, x: number, y: number, px: number, fill: string): void {
+  const size = 11;
+  g.font = `${size * px}px system-ui, sans-serif`;
+  g.textBaseline = "top";
+  const pad = 2 * px, width = g.measureText(text).width;
+  g.fillStyle = "rgb(11 16 21 / 0.78)";
+  g.fillRect(x, y, width + 2 * pad, size * px + 2 * pad);
+  g.fillStyle = fill;
+  g.fillText(text, x + pad, y + pad);
+}
+
+/** The slot holding a cell, with its set piece instance. */
+const slotOf = (x: number, y: number) => slotAt.get(`${Math.floor(x / CHAIN_TILE_SIZE)},${Math.floor(y / CHAIN_TILE_SIZE)}`);
+const TILE_LINE = "#dfe7ea";
+const BRIEF_PORTAL = "#ffb35c";
+const pieceColour = (setPieceClass: string) => css(colour(setPieceClass, 75, 62));
+/** Labels are drawn once a tile is this many screen pixels across. */
+const LABEL_TILE_PX = 72;
+
+/** A heat colour, blue to red, for the map's least to greatest zone loot chance. */
+function heat(v: Views, chance: number): Rgb {
+  const chances = v.zones.map((zone) => zone.lootChance), least = Math.min(...chances), span = Math.max(...chances) - least;
+  const t = span ? (chance - least) / span : 0.5;
+  return hsl(0.66 - 0.66 * t, 0.7, 0.3 + 0.15 * t);
+}
+
+/**
+ * A region type's colour, from its place among the library's region types, so types stay
+ * apart where hashed colours would crowd together, and keep their colour across maps.
+ */
+function typeColour(type: string): Rgb {
+  const types = [...new Set(Object.values(map?.library.cellClasses ?? {}).map((entry) => entry.regionType))].sort();
+  const i = types.indexOf(type);
+  return i < 0 ? colour(type) : hsl((i * 0.618034) % 1, 0.6, i % 2 ? 0.36 : 0.5);
+}
+
 /** One part of the built map, filled in its colour. */
 function partLayer(part: Part, label: string, fill: string, legend: string): Layer {
   return {
@@ -335,6 +397,66 @@ function partLayer(part: Part, label: string, fill: string, legend: string): Lay
 }
 
 const LAYERS: Layer[] = [
+  {
+    id: "layout", pass: "marks", label: "Layout: tiles and set pieces", stage: "layout", on: false, opacity: 1,
+    legend: () => [["tile", TILE_LINE], ...[...new Set(map?.layout.setPieces.map((piece) => piece.setPieceClass))]
+      .map((name): [string, string] => [`set piece, ${name}`, pieceColour(name)])],
+    paint: (g, _, px) => {
+      if (!map) return;
+      const S = CHAIN_TILE_SIZE, labelled = S / px >= LABEL_TILE_PX;
+      const tiles = new Path2D();
+      for (const { col, row } of map.layout.slots) tiles.rect(col * S, row * S, S, S);
+      g.strokeStyle = TILE_LINE;
+      g.lineWidth = px;
+      g.stroke(tiles);
+      // A set piece instance is outlined where its slots meet a slot not its own.
+      for (const piece of map.layout.setPieces) {
+        const own = new Set(piece.slots.map(({ col, row }) => `${col},${row}`)), edge = new Path2D();
+        const side = (x0: number, y0: number, x1: number, y1: number) => {
+          edge.moveTo(x0, y0);
+          edge.lineTo(x1, y1);
+        };
+        for (const { col, row } of piece.slots) {
+          const [x0, y0, x1, y1] = [col * S, row * S, (col + 1) * S, (row + 1) * S];
+          if (!own.has(`${col},${row - 1}`)) side(x0, y0, x1, y0);
+          if (!own.has(`${col},${row + 1}`)) side(x0, y1, x1, y1);
+          if (!own.has(`${col - 1},${row}`)) side(x0, y0, x0, y1);
+          if (!own.has(`${col + 1},${row}`)) side(x1, y0, x1, y1);
+        }
+        g.strokeStyle = pieceColour(piece.setPieceClass);
+        g.lineWidth = 3 * px;
+        g.stroke(edge);
+      }
+      if (!labelled) return;
+      for (const { col, row, design, orientation } of map.layout.slots) {
+        g.save();
+        g.beginPath();
+        g.rect(col * S, row * S, S, S);
+        g.clip();
+        tag(g, `${design} ${orientation}°`, col * S + 3 * px, row * S + 3 * px, px, TILE_LINE);
+        g.restore();
+      }
+      for (const piece of map.layout.setPieces) {
+        const { col, row } = piece.slots.reduce((a, b) => (b.row < a.row || (b.row === a.row && b.col < a.col) ? b : a));
+        tag(g, `${piece.setPiece} (${piece.setPieceClass})`, col * S + 3 * px, row * S + 20 * px, px, pieceColour(piece.setPieceClass));
+      }
+    },
+    inspect: (_, { x, y }) => {
+      const at = slotOf(x, y);
+      if (!at) return [];
+      const { slot, piece } = at;
+      return [`Tile ${slot.design} at ${slot.orientation}°${piece ? `, in set piece ${piece.setPiece} (${piece.setPieceClass})` : ""}`];
+    },
+    links: (_, { x, y }) => {
+      const at = slotOf(x, y), from = map;
+      if (!at || !from) return [];
+      const { slot, piece } = at;
+      return [
+        { label: `Edit tile design ${slot.design}`, open: () => openChainEntry(from.library, "tiles", slot.design) },
+        ...(piece ? [{ label: `Edit set piece ${piece.setPiece}`, open: () => openChainEntry(from.library, "setPieces", piece.setPiece) }] : []),
+      ];
+    },
+  },
   {
     id: "declared", pass: "areas", label: "Declared classes", stage: "declaredGrid", on: false, opacity: 1,
     cells: (v) => (cell) => v.declaredGrid.cells[cell] || null,
@@ -393,12 +515,75 @@ const LAYERS: Layer[] = [
     },
   },
   {
+    id: "bonus", pass: "areas", label: "Zone bonus", stage: "zones", on: false, opacity: 1,
+    cells: (v) => {
+      const { width } = v.resolved;
+      return (cell) => {
+        if (!v.resolved.cells[cell]) return null;
+        const zone = zoneAt(v, cell % width, Math.floor(cell / width));
+        return zone ? `bonus ${zone.bonus}` : null;
+      };
+    },
+    colour: (name) => hsl(0.8 - Number(name.slice(6)) * 0.06, 0.5, 0.22 + Number(name.slice(6)) * 0.12),
+  },
+  {
+    id: "regionType", pass: "areas", label: "Region types", stage: "briefs", on: false, opacity: 1,
+    cells: (v) => (cell) => (regionAt[cell]! >= 0 ? briefOf.get(v.regions.regions[regionAt[cell]!]!.id)?.brief.type ?? null : null),
+    colour: typeColour,
+  },
+  {
+    id: "lootChance", pass: "areas", label: "Loot chance", stage: "briefs", on: false, opacity: 1,
+    cells: (v) => {
+      const { width } = v.resolved, chance = new Map<number, number>();
+      for (const brief of v.briefs)
+        for (const zone of brief.zones) for (const { x, y } of zone.cells) chance.set(y * width + x, zone.lootChance);
+      return (cell) => (chance.has(cell) ? `${Math.round(chance.get(cell)! * 100)}% loot` : null);
+    },
+    colour: (name) => heat(views!, Number.parseInt(name) / 100),
+  },
+  {
+    id: "briefs", pass: "marks", label: "Briefs: portals and core elements", stage: "briefs", on: false, opacity: 1,
+    legend: () => [["portal, as its region's brief states it", BRIEF_PORTAL], ["core elements assigned", "#ffd166"]],
+    paint: (g, v, px) => {
+      // Each region's portals are drawn a little inside it, so a shared portal shows both briefs'
+      // statements. Portal ids are too long to label; the inspector lists them.
+      const { width } = v.resolved, inset = Math.min(0.3, 4 * px), lines = new Path2D();
+      v.regions.regions.forEach((region, own) => {
+        for (const portal of briefOf.get(region.id)?.brief.portals ?? []) {
+          // Cell (x, y) is the run's first cell on its far side (`run.ts`); the region is there or on the near side.
+          const h = portal.axis === "h", inside = regionAt[portal.y * width + portal.x] === own ? inset : -inset;
+          const [x, y] = h ? [portal.x, portal.y + inside] : [portal.x + inside, portal.y];
+          lines.moveTo(x, y);
+          lines.lineTo(h ? x + portal.length : x, h ? y : y + portal.length);
+        }
+      });
+      g.lineCap = "butt";
+      g.strokeStyle = BRIEF_PORTAL;
+      g.lineWidth = Math.max(0.12, 2 * px);
+      g.stroke(lines);
+      for (const { brief, anchor } of briefOf.values()) {
+        const text = assigned(brief);
+        if (text) tag(g, text, anchor.x, anchor.y, px, "#ffd166");
+      }
+    },
+    inspect: (_, { region }) => {
+      const brief = region && briefOf.get(region.id)?.brief;
+      if (!brief) return [];
+      const chances = [...new Set(brief.zones.map((zone) => `${Math.round(zone.lootChance * 100)}%`))];
+      return [
+        `Brief: type ${brief.type}, ${brief.portals.length} portals${brief.portals.length ? ` (${brief.portals.map((portal) => portal.id).join(", ")})` : ""}`,
+        `Assigned core elements: ${assigned(brief) || "none"}`,
+        ...(brief.parameters ? [`Parameters: ${Object.entries(brief.parameters).map(([name, value]) => `${name} ${value}`).join(", ")}`] : []),
+        `Loot chance ${chances.join(", ")}`,
+      ];
+    },
+  },
+  {
     ...partLayer("walls", "Building walls", "#c3ccc7", "building wall"),
     inspect: (_, { built }) => {
       if (!built) return [];
       const own = parts?.regions.get(built.brief.id);
       return [
-        `Type ${built.brief.type}, ${built.brief.portals.length} portals`,
         `${built.elements.length} elements, ${built.loot.length} loot`,
         ...(own ? [`Parts: ${PARTS.map((part) => `${own.count[part]} ${part}`).join(", ")}`, `Elements: ${elementNames(own.labels) || "none"}`] : []),
       ];
@@ -710,16 +895,30 @@ function cancelDiagnosis(): void {
   renderDiagnosis();
 }
 
+function probe(v: Views, at: { x: number; y: number }): Probe {
+  const cell = at.y * v.resolved.width + at.x, region = v.regions.regions[regionAt[cell]!];
+  return { ...at, cell, region, built: region && v.built.regions.find((result) => result.brief.id === region.id) };
+}
+
 /** Every layer's lines for a cell, in chain order. */
 function inspection(at: { x: number; y: number } | null): string[] {
   if (!views || !at) return ["Select a cell."];
-  const v = views, cell = at.y * v.resolved.width + at.x, region = v.regions.regions[regionAt[cell]!];
-  const probe: Probe = { ...at, cell, region, built: region && v.built.regions.find((result) => result.brief.id === region.id) };
-  return [`Cell ${at.x}, ${at.y}`, ...LAYERS.flatMap((layer) => layer.inspect?.(v, probe) ?? [])];
+  const v = views, probed = probe(v, at);
+  return [`Cell ${at.x}, ${at.y}`, ...LAYERS.flatMap((layer) => layer.inspect?.(v, probed) ?? [])];
 }
 
 function renderInspector(): void {
   $("inspector").textContent = inspection(selected).join("\n");
+  const v = views, at = selected;
+  const links = v && at ? LAYERS.flatMap((layer) => layer.links?.(v, probe(v, at)) ?? []) : [];
+  $("inspectorLinks").replaceChildren(...links.map(({ label, open }) => {
+    const button = Object.assign(element("button", label, "full"), { type: "button" });
+    button.onclick = () => {
+      open();
+      showTab(true);
+    };
+    return button;
+  }));
 }
 
 const tooltip = $("tooltip");

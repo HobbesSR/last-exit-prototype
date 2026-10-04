@@ -154,10 +154,11 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   - **World:** seed, mode, zone size and spawn counts; the chain's library
     for the zone size or the Chain Library tab's draft. A size menu lists
     the authored sizes and sets the zone size. Every view comes through `mapViews`.
-  - **Layers:** one registry in `app.ts`, in chain order (51): declared and
-    resolved classes, regions, boundaries and portals, proof components,
-    zone tiers, the built map's parts, loot, core element sites, defect
-    regions and defect sites. Each layer names the `mapViews` key it reads, can be
+  - **Layers:** one registry in `app.ts`, in chain order (51): the Layout,
+    declared and resolved classes, regions, boundaries and portals, proof
+    components, zone tiers and bonus, region types, loot chance, briefs, the
+    built map's parts, loot, core element sites, defect regions and defect
+    sites. Each layer names what it reads (the Layout, or a `mapViews` key), can be
     turned on or off, has an opacity, and contributes its own legend
     entries and inspector lines. Any number can be on at once, so an
     earlier stage shows under a later one. Each layer is either areas (a
@@ -167,8 +168,26 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     layer belongs to one pass, so it is laid on once at its opacity: below
     full opacity it is drawn whole on a scratch canvas first, and its own
     parts don't fade unevenly where they overlap. A new layer is one
-    registry entry. Every layer is on by default except declared and
-    resolved classes, proof components, zone tiers, roofs and loot.
+    registry entry. A layer can also give the inspector buttons that open
+    something elsewhere. On by default: regions, boundaries and portals,
+    the built map's parts other than roofs, core element sites, and the
+    defect layers.
+  - **Macro layers** read the Layout and `mapViews` only. The Layout layer
+    outlines each placed tile and, in its set piece class's colour, each set
+    piece instance; zoomed in far enough, it labels tiles with design and
+    orientation, and instances with set piece and class. It replaces the
+    old lab's tile templates view. Zone bonus sits beside zone tiers. Region
+    types colour each region by `brief.type`, one colour per region type of
+    the map's library, steady across its maps. Loot chance is a heat field
+    from each brief's zone contexts, blue to red across the map's range,
+    with the percentages in the legend. Briefs draw each region's portals as
+    its brief states them, a little inside the region, so a shared portal
+    shows both statements, and label each region with the core elements
+    assigned to it. The inspector names the cell's tile and set piece, and
+    gives the brief's type, portal ids, assigned core elements, parameters
+    and loot chance. Its buttons open the tile design or set piece in the
+    Chain Library tab; where the draft lacks it or differs, it asks before
+    replacing the draft with the map's library.
   - **The built map's parts** are six layers on `built`, one colour each:
     building walls, ruin walls and rubble, cover, windows, doors and roofs.
     Obstacles go by their `ObstacleKind` (`building`, `ruin-wall`,

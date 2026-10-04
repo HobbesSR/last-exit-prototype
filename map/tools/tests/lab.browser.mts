@@ -97,14 +97,14 @@ try {
   await page.screenshot({ path: `${OUT}/world.png` });
 
   // The layers are in chain order, with today's defaults on.
-  const FIELDS = ["declared", "resolved", "regions", "proof", "zones"];
+  const FIELDS = ["declared", "resolved", "regions", "proof", "zones", "bonus", "regionType", "lootChance"];
   assert.deepEqual(first.layers.map((layer: any) => layer.id),
-    ["declared", "resolved", "regions", "portals", "proof", "zones", "walls", "ruins", "cover", "windows", "doors", "roofs", "loot", "sites", "defects", "defectSites"]);
+    ["layout", "declared", "resolved", "regions", "portals", "proof", "zones", "bonus", "regionType", "lootChance", "briefs", "walls", "ruins", "cover", "windows", "doors", "roofs", "loot", "sites", "defects", "defectSites"]);
   assert.deepEqual(first.layers.filter((layer: any) => layer.on).map((layer: any) => layer.id),
     ["regions", "portals", "walls", "ruins", "cover", "windows", "doors", "sites", "defects", "defectSites"]);
   const ALL = first.layers.map((layer: any) => layer.id) as string[];
   assert.deepEqual(first.layers.filter((layer: any) => layer.pass === "marks").map((layer: any) => layer.id),
-    ["portals", "loot", "sites", "defectSites"], "each layer draws in one pass, the rest with the areas");
+    ["layout", "portals", "briefs", "loot", "sites", "defectSites"], "each layer draws in one pass, the rest with the areas");
   const layer = (id: string) => page.locator(`#layer-${id}`);
   const opacity = (id: string, percent: number) => page.locator(`#layer-${id}-opacity`).fill(String(percent));
   // Every cell field alone, as the old exclusive field select showed it.
@@ -112,6 +112,34 @@ try {
     for (const other of FIELDS) await layer(other).setChecked(other === field);
     await page.screenshot({ path: `${OUT}/field-${field}.png` });
   }
+
+  // The macro layers (#201), each alone, with legends read from the same views.
+  const referenceViews = mapViews(reference, GAME_ENGINES.compose);
+  const legend = (id: string) => page.locator(`#legend-${id} span`).allInnerTexts();
+  const sorted = (names: Iterable<string>) => [...new Set(names)].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const MACRO: Record<string, string[]> = {
+    layout: ["tile", ...sorted(reference.layout.setPieces.map((piece) => `set piece, ${piece.setPieceClass}`))],
+    bonus: sorted(referenceViews.zones.map((zone) => `bonus ${zone.bonus}`)),
+    regionType: sorted(referenceViews.briefs.map((brief) => brief.type)),
+    lootChance: sorted(referenceViews.briefs.flatMap((brief) => brief.zones.map((zone) => `${Math.round(zone.lootChance * 100)}% loot`))),
+    briefs: ["core elements assigned", "portal, as its region's brief states it"],
+  };
+  for (const id of ALL) await layer(id).uncheck();
+  for (const [id, expected] of Object.entries(MACRO)) {
+    assert.deepEqual(await legend(id), [], `${id} shows no legend while off`);
+    await layer(id).check();
+    assert.deepEqual(sorted(await legend(id)), sorted(expected), `${id}'s legend`);
+    assert.ok(expected.length > 1 || id === "bonus", `the fixed seed gives ${id} more than one value`);
+    await page.screenshot({ path: `${OUT}/macro-${id}.png` });
+    await layer(id).uncheck();
+  }
+  // Zoomed in, the layout and briefs label tiles, set pieces, portals and assignments.
+  await layer("regionType").check();
+  await layer("layout").check();
+  await layer("briefs").check();
+  for (let i = 0; i < 9; i++) await page.locator("#zoomIn").click();
+  await page.screenshot({ path: `${OUT}/macro-zoomed.png` });
+  await page.locator("#zoomReset").click();
 
   // One layer under another: the canvas centre's pixel, with only cell fields drawn.
   const centre = () => page.evaluate(() => {
@@ -169,12 +197,15 @@ try {
   // Hovering shows the inspector's first lines.
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   assert.equal(await page.locator("#tooltip").isVisible(), true);
-  assert.match(await page.locator("#tooltip").innerText(), /^Cell \d+, \d+\nDeclared/);
+  assert.match(await page.locator("#tooltip").innerText(), /^Cell \d+, \d+\nTile \S+ at \d+°.*\nDeclared/);
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   const inspected = (await snapshot()).inspector as string;
   assert.match(inspected, /^Cell \d+, \d+/);
   assert.match(inspected, /Region .*\nClass/);
   assert.match(inspected, /Proof component \d+/);
+  assert.match(inspected, /\nTile \S+ at \d+°/);
+  assert.match(inspected, /Brief: type \S+, \d+ portals.*\nAssigned core elements: .+\n(Parameters: .*\n)?Loot chance \d+%/);
+  assert.match((await page.locator("#inspectorLinks button").allInnerTexts())[0]!, /^Edit tile design \S+$/);
   assert.match(inspected, /Parts: \d+ walls, \d+ ruins, \d+ cover, \d+ windows, \d+ doors, \d+ roofs\nElements: /);
 
   // Its saves are the core's, byte for byte, in both encodings and as the Layout alone.
@@ -464,6 +495,25 @@ try {
   await page.locator("#generate").click();
   await page.waitForFunction(() => (window as any).mapLab.snapshot().error);
   assert.match(await page.locator("#status").innerText(), /isn't valid for the game/);
+
+  // The inspector opens a cell's tile design in the Chain Library tab. A fresh page's draft is
+  // the starter library, so it asks before replacing the draft with the map's.
+  const linkPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  linkPage.on("pageerror", (error: Error) => errors.push(error.message));
+  const asked: string[] = [];
+  linkPage.on("dialog", (dialog: any) => (asked.push(dialog.message()), dialog.accept()));
+  await linkPage.goto(base, { waitUntil: "domcontentloaded" });
+  await linkPage.waitForFunction(() => (window as any).mapLab?.snapshot().seed === "last-exit-001" && !(window as any).mapLab.snapshot().busy, null, { timeout: 60000 });
+  const linkBox = (await linkPage.locator("#map").boundingBox())!;
+  await linkPage.mouse.click(linkBox.x + linkBox.width / 2, linkBox.y + linkBox.height / 2);
+  const design = /^Edit tile design (\S+)$/.exec(await linkPage.locator("#inspectorLinks button").first().innerText())![1]!;
+  await linkPage.locator("#inspectorLinks button").first().click();
+  assert.equal(await linkPage.locator("#chainViewContainer").isVisible(), true);
+  const opened = await linkPage.evaluate(() => (window as any).chainLab.snapshot());
+  assert.deepEqual([opened.section, opened.selectedId], ["tiles", design]);
+  assert.deepEqual(opened.library, CHAIN_LIBRARY, "the draft is now the map's library");
+  assert.equal(asked.length, 1, "replacing the draft was asked first");
+  await linkPage.close();
 
   await page.setViewportSize({ width: 560, height: 900 });
   await page.locator("#librarySource").selectOption("bundled");
