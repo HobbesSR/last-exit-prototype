@@ -153,3 +153,22 @@ test('a macro-sized hut region with hundreds of portals builds in bounded time',
   assert.ok(portals.length > 200 && cells.length > 29000);
   assert.ok(elapsed < 2000, `${Math.round(elapsed)} ms`);
 });
+
+test('an observer sees the house its element was realized from, and changes nothing', () => {
+  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
+    const traces = [], result = buildRegion(brief(name, seed, cells, portals), undefined, trace => traces.push(trace));
+    assert.deepEqual(result, buildRegion(brief(name, seed, cells, portals)), `${name} ${seed}`);
+    assert.equal(traces.length, 1);
+    const [trace] = traces, building = house(result);
+    assert.equal(trace.label, building.label);
+    assert.deepEqual(trace.origin, { x: building.x, y: building.y });
+    assert.deepEqual(trace.realization.template, building.template);
+    assert.deepEqual(trace.design.connections.map(c => c.id), ['door', 'window']);
+    assert.equal(trace.allocation.spaces[0].cells.length, 16);
+    assert.equal(trace.realization.openings.length, building.template.parts.filter(p => p.part === 'gate' || p.kind === 'window').length);
+  }
+  // A region too small for a house goes to `open`, which reports no building.
+  const traces = [];
+  buildRegion(brief('small', 1, cellsOf(5, 5), []), undefined, trace => traces.push(trace));
+  assert.deepEqual(traces, []);
+});

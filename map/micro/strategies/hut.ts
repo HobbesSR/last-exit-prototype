@@ -5,8 +5,9 @@ import { microMetrics } from '../metrics.ts';
 import { portalStands } from '../portals.ts';
 import { realizeBuilding } from '../building/realize.ts';
 import { OUTSIDE } from '../building/design.ts';
+import type { BuildingDesign } from '../building/design.ts';
 import { buildOpen } from './open.ts';
-import type { ElementTemplate } from '../../../shared/map/element.ts';
+import type { BuildingObserver } from '../building/trace.ts';
 import type { BuiltRegion, LootSite, RegionBrief } from '../types.ts';
 
 /** The building's box in cells (54, proposed). */
@@ -39,13 +40,17 @@ const OPPOSITE: Record<Side, Side> = { N: 'S', S: 'N', E: 'W', W: 'E' };
  * Loot rolls each cell's chance and takes the cell's tier (52, "Tier zones"), where a loot
  * disc stands clear of the walls and the door. A hut sites no core elements; any the brief
  * lists are left for the report to name (51 stage 8).
+ *
+ * `observe`, when given, sees the house's design, allocation and realization (`BuildingTrace`).
  */
-export function buildHut(brief: RegionBrief): BuiltRegion {
+export function buildHut(brief: RegionBrief, observe?: BuildingObserver): BuiltRegion {
   const size = brief.cellSize, mask = createRegionMask(brief);
   const site = siteHut(brief, mask);
   if (!site) return buildOpen(brief);
 
-  const element = { label: 'hut-building', x: site.x * size, y: site.y * size, template: house(size, site.door) };
+  const { design, allocation, realization } = house(size, site.door);
+  const element = { label: 'hut-building', x: site.x * size, y: site.y * size, template: realization.template! };
+  observe?.({ label: element.label, origin: { x: element.x, y: element.y }, cellSize: size, design, allocation, realization });
   const shapes = elementShapes(element, true), radius = microMetrics({ cellSize: size, bodyProfile: 'cell' }).lootRadius;
   const zones = new Map(brief.zones.flatMap(zone => zone.cells.map(c => [`${c.x},${c.y}`, zone] as const)));
   const lootRandom = rng(brief.seed, `${brief.id}:hut-loot`), loot: LootSite[] = [];
@@ -141,17 +146,18 @@ function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>):
  * the opposite wall, each a doorway wide (52's worked case) and centred. It encloses, so it
  * has a roof.
  */
-function house(size: number, door: Side): ElementTemplate {
+function house(size: number, door: Side) {
   const cells = Array.from({ length: BOX * BOX }, (_, i) => ({ x: i % BOX, y: Math.floor(i / BOX) }));
-  const result = realizeBuilding({
+  const design: BuildingDesign = {
     spaces: [{ id: 'room', area: { min: BOX * BOX, max: BOX * BOX }, outside: 'prefer', tags: ['house'] }],
     connections: [
       { id: 'door', a: 'room', b: OUTSIDE, kind: 'door', side: door },
       { id: 'window', a: 'room', b: OUTSIDE, kind: 'window', side: OPPOSITE[door] },
     ],
-  }, { footprint: cells, spaces: [{ id: 'room', cells }] },
-  { cellSize: size, thickness: WALL, encloses: true, exteriorOrder: SIDES, corners: 'horizontal' });
+  };
+  const allocation = { footprint: cells, spaces: [{ id: 'room', cells }] };
+  const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: true, exteriorOrder: SIDES, corners: 'horizontal' });
   // This fixed design always fits. A miss here is an implementation defect, not a new fallback.
-  if (!result.template || result.issues.length || result.misses.length) throw new Error('The fixed hut design could not be realized.');
-  return result.template;
+  if (!realization.template || realization.issues.length || realization.misses.length) throw new Error('The fixed hut design could not be realized.');
+  return { design, allocation, realization };
 }

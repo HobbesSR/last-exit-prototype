@@ -3,6 +3,7 @@ import { buildCover } from './cover.ts';
 import { buildDepot } from './depot.ts';
 import { largestRectangle } from './hall.ts';
 import { buildHut } from './hut.ts';
+import type { BuildingObserver } from '../building/trace.ts';
 import { buildOpen } from './open.ts';
 import { buildRuins } from './ruins.ts';
 import { draw } from './scatter.ts';
@@ -29,7 +30,7 @@ type Side = 'N' | 'E' | 'S' | 'W';
 const CORNERS: ReadonlyArray<readonly [Side, Side]> = [['N', 'W'], ['N', 'E'], ['S', 'E'], ['S', 'W']];
 
 /** The types a lot may hold, and the lots each suits, by its shorter and longer sides (54's shape needs). */
-const LOT_TYPES: ReadonlyArray<{ type: string; build: (brief: RegionBrief) => BuiltRegion; fits: (short: number, long: number) => boolean }> = [
+const LOT_TYPES: ReadonlyArray<{ type: string; build: (brief: RegionBrief, observe?: BuildingObserver) => BuiltRegion; fits: (short: number, long: number) => boolean }> = [
   { type: 'hut', build: buildHut, fits: (_, long) => long <= 12 },
   { type: 'depot', build: buildDepot, fits: short => short >= 10 },
   { type: 'compound', build: buildCompound, fits: short => short >= 16 },
@@ -54,15 +55,16 @@ export interface BlockPlan { lots: RegionBrief[]; alleys: RegionBrief }
  *
  * The children's geometry, loot and manifest counts are gathered into one result, with each
  * element's label prefixed by its child's. A block sites no core elements; any the brief
- * lists are left for the report.
+ * lists are left for the report. `observe` sees the lots' buildings, labelled as their elements are.
  */
-export function buildBlock(brief: RegionBrief): BuiltRegion {
+export function buildBlock(brief: RegionBrief, observe?: BuildingObserver): BuiltRegion {
   const plan = planBlock(brief);
   if (!plan.lots.length) return buildOpen(brief);
-  const results = [...plan.lots.map(lot => LOT_TYPES.find(t => t.type === lot.type)!.build(lot)), buildOpen(plan.alleys)];
+  const name = (child: RegionBrief) => child.id.slice(brief.id.length + 1);
+  const results = [...plan.lots.map(lot => LOT_TYPES.find(t => t.type === lot.type)!.build(lot,
+    observe && (trace => observe({ ...trace, label: `${name(lot)}/${trace.label}` })))), buildOpen(plan.alleys)];
   const manifest: Record<string, number> = {};
   for (const result of results) for (const [key, count] of Object.entries(result.manifest)) manifest[key] = (manifest[key] ?? 0) + count;
-  const name = (child: RegionBrief) => child.id.slice(brief.id.length + 1);
   return { version: 'region-2', brief: structuredClone(brief),
     elements: results.flatMap(result => result.elements.map(element => ({ ...element, label: `${name(result.brief)}/${element.label}` }))),
     coreElements: [], loot: results.flatMap(result => result.loot),

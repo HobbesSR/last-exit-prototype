@@ -155,3 +155,19 @@ test('a macro-sized block with hundreds of portals builds quickly', () => {
   assert.ok(elapsed < 5000, `built in ${Math.round(elapsed)} ms`);
   assert.ok(result.manifest.lots > 50, `${result.manifest.lots} lots`);
 });
+
+test('a block passes its lots\' buildings to an observer, labelled as their elements', () => {
+  let seen = 0;
+  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
+    const traces = [], result = buildRegion(brief(name, seed, cells, portals), undefined, trace => traces.push(trace));
+    for (const trace of traces) {
+      const element = result.elements.find(e => e.label === trace.label);
+      assert.ok(element, `${name} ${seed}: ${trace.label} is an element`);
+      assert.match(trace.label, /^lot-\d+\/hut-building$/);
+      assert.deepEqual(trace.origin, { x: element.x, y: element.y });
+      assert.deepEqual(trace.realization.template, element.template);
+    }
+    seen += traces.length;
+  }
+  assert.ok(seen > 0, 'some lot built a hut');
+});
