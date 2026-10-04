@@ -171,6 +171,25 @@ points, and routes that aren't a straight shot.
   rooms without roofs, in the "cyberpunk urban dystopian ruins" direction (11).
 - **Strategy:** no decomposer. A builder lays discontinuous walls and rotated
   debris around a protected hunter route.
+  **Built (#157):** `map/micro/strategies/ruins.ts`. It protects the portal
+  approaches and hunter routes as `rubble` does, with the helpers both share
+  in `strategies/scatter.ts`, and drops any piece that would touch them.
+  - **Rooms:** slots lie on a lattice 6 cells apart, at a seeded phase. A slot
+    is taken with chance `density` by a roofless room 3 or 4 cells a side,
+    wholly on owned cells, so at least a doorway's width (52) parts two rooms.
+  - **Walls:** a quarter cell thick, as `hut`'s are, laid a cell at a time
+    along the inside of the room's box. Each span falls with chance `decay`;
+    half of the fallen lie as a rotated slab inside their cell, and the rest
+    are gone.
+  - **The doorway:** two cells wide, on a side whose cells beyond are owned
+    two deep, so no room is sealed off. A doorway at a corner takes the
+    meeting wall's end span too, to stay two cells wide.
+  - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
+    disc stands clear of every piece.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
+  - **Too small:** a region of fewer than 24 cells, or with no owned 3 × 3
+    box for a room, goes to `open` (17 M24).
 - **Shape needs:** *proposed*, at least 24 cells.
 - **Formed by:** medium and small set pieces, and as a child of `block`.
 - **Parameters:** `density`, `decay`.
@@ -380,7 +399,7 @@ keeps those names.
 | `open` | — (it builds nothing) | — |
 | `cover` | `example-open` (built, #127) | `open-field`, `scatter` |
 | `rubble` | `example-ruins` decay (built, #128) | `rubble` |
-| `ruins` | `example-ruins` | — |
+| `ruins` | `example-ruins` (built, #157) | — |
 | `hall` | — | `pillar-hall` |
 | `hut` | the room shell in `builders.ts` (built, #129) | `compound` |
 | `depot` | `example-depot` | — |
