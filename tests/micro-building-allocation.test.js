@@ -30,7 +30,7 @@ function patchCenters(cells) {
   });
 }
 
-function checkAllocation(result, design, footprint) {
+function checkAllocation(result, design, footprint, maxSteps = 2000, maxSolutions = 16) {
   assert.equal(result.ok, true, result.reason);
   const expected = new Set(footprint.map(key));
   assert.equal(expected.size, footprint.length, 'fixture owns each cell once');
@@ -55,13 +55,22 @@ function checkAllocation(result, design, footprint) {
   }
   assert.deepEqual(assigned, expected);
   assert.equal(result.search.optimal, false);
-  assert.ok(result.search.steps > 0 && result.search.steps <= 2000);
-  assert.ok(result.search.solutions > 0 && result.search.solutions <= 16);
+  assert.ok(result.search.steps > 0 && result.search.steps <= maxSteps);
+  assert.ok(result.search.solutions > 0 && result.search.solutions <= maxSolutions);
   assert.equal(typeof result.search.budgetExhausted, 'boolean');
   assert.equal(typeof result.scoreComponents.connections, 'number');
   assert.equal(typeof result.scoreComponents.outside, 'number');
   assert.deepEqual(JSON.parse(JSON.stringify(result)), result);
   return result;
+}
+
+function spaceCells(result, id) {
+  return result.allocation.spaces.find(space => space.id === id).cells;
+}
+
+function boundsOf(cells) {
+  return { x0: Math.min(...cells.map(cell => cell.x)), x1: Math.max(...cells.map(cell => cell.x)),
+    y0: Math.min(...cells.map(cell => cell.y)), y1: Math.max(...cells.map(cell => cell.y)) };
 }
 
 function checkRealization(result, footprint) {
@@ -225,4 +234,97 @@ test('search limits retain feasible results, named preferences score them, and s
   checkAllocation(large, designOf(Array.from({ length: 8 }, (_, i) => `room-${i}`)), cellsOf(24, 24));
   const { mask, blockers } = checkRealization(large, large.allocation.footprint);
   checkInteriorAccess(large, mask, blockers);
+});
+
+test('branching cuts fit six exact rooms around an exact corridor with six usable doors', () => {
+  const footprint = cellsOf(12, 11);
+  const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
+  const design = { spaces: [room('corridor', 36, 36), ...ids.map(id => room(id, 16, 16))],
+    connections: ids.map(id => ({ id: `corridor-${id}`, a: 'corridor', b: id, kind: 'door' })) };
+  // A witness is three 4x4 rooms, a 12x3 corridor, then three more 4x4 rooms.
+  const result = checkAllocation(allocateBuilding(design, footprint, { seed: 0, maxSteps: 20000 }),
+    design, footprint, 20000);
+  assert.equal(result.scoreComponents.connections, 6, 'all six requested corridor doors are placed');
+  for (const connection of design.connections)
+    assert.ok(result.openings.some(opening => opening.connectionId === connection.id && opening.kind === 'door'),
+      `${connection.id} has a door`);
+  const { mask, blockers } = checkRealization(result, footprint);
+  checkInteriorAccess(result, mask, blockers);
+  const radius = microMetrics({ cellSize: 40, bodyProfile: 'cell' }).clearance.hunter;
+  const centerOf = id => {
+    const center = patchCenters(spaceCells(result, id))[0];
+    return { x: (center.x + 0.5) * 40, y: (center.y + 0.5) * 40 };
+  };
+  for (const id of ids)
+    assert.ok(findRegionRoute(mask, blockers, centerOf('corridor'), centerOf(id), radius),
+      `hunter crosses corridor-${id}`);
+});
+
+test('a four-room cycle can select four quadrants instead of only parallel slabs', () => {
+  const footprint = cellsOf(12, 12);
+  const design = { spaces: ['a', 'b', 'c', 'd'].map(id => room(id, 36, 36)), connections: [
+    { id: 'ab', a: 'a', b: 'b', kind: 'door' },
+    { id: 'bd', a: 'b', b: 'd', kind: 'door' },
+    { id: 'dc', a: 'd', b: 'c', kind: 'door' },
+    { id: 'ca', a: 'c', b: 'a', kind: 'door' },
+  ] };
+  const quadrantBoxes = new Set([
+    JSON.stringify({ x0: 0, x1: 5, y0: 0, y1: 5 }),
+    JSON.stringify({ x0: 6, x1: 11, y0: 0, y1: 5 }),
+    JSON.stringify({ x0: 0, x1: 5, y0: 6, y1: 11 }),
+    JSON.stringify({ x0: 6, x1: 11, y0: 6, y1: 11 }),
+  ]);
+  let quadrant;
+  for (const seed of [0, 1, 2, 3, 4, 5, 6, 7]) {
+    const result = allocateBuilding(design, footprint, { seed, maxSteps: 20000, maxSolutions: 128 });
+    assert.equal(result.ok, true, `seed ${seed}: ${result.reason}`);
+    if (result.scoreComponents.connections === 4
+      && result.allocation.spaces.every(space => quadrantBoxes.has(JSON.stringify(boundsOf(space.cells))))) {
+      quadrant = checkAllocation(result, design, footprint, 20000, 128);
+      break;
+    }
+  }
+  assert.ok(quadrant, 'at least one seed finds the 2x2 layout and realizes all four cycle doors');
+  const { mask, blockers } = checkRealization(quadrant, footprint);
+  checkInteriorAccess(quadrant, mask, blockers);
+});
+
+test('hub guidance scores authored doors against a realizable five-neighbor witness', () => {
+  const footprint = cellsOf(16, 10);
+  const leaves = ['a', 'b', 'c', 'd', 'e'];
+  const design = { spaces: [room('h', 12, 40), ...leaves.map(id => room(id, 12, 40))],
+    connections: leaves.map(id => ({ id: `h-${id}`, a: 'h', b: id, kind: 'door' })) };
+  // A central 4x10 hub can meet three 6-wide rooms to its left and two to its right.
+  // The score is a soft measure of requested openings, not a claim of optimal search.
+  let best = 0;
+  for (const seed of [0, 1, 2, 3]) {
+    const result = checkAllocation(allocateBuilding(design, footprint, { seed }), design, footprint);
+    const fulfilled = design.connections.filter(connection => result.openings.some(opening =>
+      opening.connectionId === connection.id && opening.kind === 'door')).length;
+    assert.equal(result.scoreComponents.connections, fulfilled, `seed ${seed} scores placed authored doors`);
+    assert.ok(fulfilled >= 4, `seed ${seed} preserves at least four hub requests at the default budget`);
+    best = Math.max(best, fulfilled);
+    const { mask, blockers } = checkRealization(result, footprint);
+    checkInteriorAccess(result, mask, blockers);
+  }
+  assert.ok(best >= 4, `at least four of five hub requests should be achievable; best was ${best}`);
+});
+
+test('allocation openings describe default overlap placement before optional corner trims', () => {
+  const footprint = cellsOf(6, 6, (x, y) => x < 3 || y >= 3);
+  const design = { spaces: [room('a', 27, 27)], connections: [
+    { id: 'entry', a: 'a', b: OUTSIDE, kind: 'door', side: 'E' },
+  ] };
+  const result = checkAllocation(allocateBuilding(design, footprint), design, footprint);
+  const before = structuredClone(result);
+  const overlap = realizeBuilding(result.design, result.allocation, { cellSize: 40, encloses: false });
+  const trimmed = realizeBuilding(result.design, result.allocation,
+    { cellSize: 40, encloses: false, corners: 'horizontal' });
+  assert.deepEqual(overlap.issues, []);
+  assert.deepEqual(trimmed.issues, []);
+  assert.deepEqual(overlap.openings, result.openings, 'allocation reports the default untrimmed placement');
+  assert.equal(result.openings[0].run.axis, 'v');
+  assert.equal(result.openings[0].center, 1.5);
+  assert.equal(trimmed.openings[0].center, 1.625, 'one trimmed run end shifts its actual door');
+  assert.deepEqual(result, before, 'alternate realization does not mutate allocation results');
 });

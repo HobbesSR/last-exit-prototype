@@ -22,6 +22,7 @@ export type BuildingAllocationResult = {
   allocation: BuildingAllocation;
   /** Realize this resolved design: spanning doors precede optional guidance. */
   design: BuildingDesign;
+  /** Untrimmed placement for scoring; realizeBuilding owns option-dependent wall trims. */
   openings: PlacedBuildingOpening[];
   scoreComponents: BuildingAllocationScores;
   search: BuildingAllocationSearch;
@@ -92,13 +93,14 @@ function resolveDesign(design: BuildingDesign, boundaries: BuildingBoundary[], s
 }
 
 /**
- * Bounded seeded guillotine peeling: assign one side of a cut to a space and
- * recurse into the remainder. Failure is not proof that no other partition exists.
+ * Bounded seeded guillotine partitioning: split pending spaces into two groups
+ * and recursively partition both sides of each cut. Failure is not proof that
+ * no other partition exists.
  * Internal feasibility is pruned in this search; the caller owns the region promise.
  */
 export function allocateBuilding(design: BuildingDesign, footprint: readonly Cell[], options: BuildingAllocationOptions = {}): BuildingAllocationResult {
   const search: BuildingAllocationSearch = { steps: 0, solutions: 0, budgetExhausted: false, optimal: false };
-  const fail = (reason: string): BuildingAllocationResult => ({ ok: false, reason, search });
+  const fail = (reason: string): BuildingAllocationResult => ({ ok: false, reason, search: { ...search } });
   const seed = options.seed ?? 0, maxSteps = options.maxSteps ?? 2000, maxSolutions = options.maxSolutions ?? 16;
   if (!Number.isSafeInteger(seed) || !Number.isInteger(maxSteps) || maxSteps < 1 || maxSteps > 20000
     || !Number.isInteger(maxSolutions) || maxSolutions < 1 || maxSolutions > 128) return fail('Invalid seed or search bounds.');
@@ -115,8 +117,6 @@ export function allocateBuilding(design: BuildingDesign, footprint: readonly Cel
   const minArea = (space: BuildingSpace) => Math.max(9, space.area.min);
   if (spaces.some(s => s.area.max < minArea(s)) || sum(spaces.map(minArea)) > cells.length
     || sum(spaces.map(s => s.area.max)) < cells.length) return fail('Space area ranges cannot cover this footprint with usable spaces.');
-  let remainderId = '@remaining';
-  while (spaces.some(s => s.id === remainderId)) remainderId += '-';
   const feasibleCache = new Map<string, boolean>();
   const roomFits = (part: Cell[]) => {
     const key = part.map(cellKey).join(';');
@@ -147,45 +147,85 @@ export function allocateBuilding(design: BuildingDesign, footprint: readonly Cel
     if (!best || score > sum(Object.values(best.scoreComponents)))
       best = { ok: true, allocation, design: resolved, openings, scoreComponents, search };
   };
-  const visit = (remaining: Cell[], pending: BuildingSpace[], assigned: BuildingAllocation['spaces']): void => {
+  type Group = { cells: Cell[]; spaces: BuildingSpace[] };
+  // Every open group owns a disjoint piece, so its whole boundary is an
+  // optimistic interface until subsequent cuts determine the actual owners.
+  const groupIds = Array.from({ length: spaces.length }, (_, i) => {
+    let id = `@group-${i}`;
+    while (spaces.some(s => s.id === id)) id += '-';
+    return id;
+  });
+  const inspect = (groups: Group[], boundaries: BuildingBoundary[]) => {
+    const owners = new Map(groups.flatMap((g, i) => g.spaces.map(s => [s.id, groupIds[i]!] as const)));
+    let potential = 0, secured = 0;
+    const requests = new Map<BuildingBoundary, { count: number; isolated: boolean }>();
+    for (const connection of design.connections) {
+      const a = owners.get(connection.a) ?? OUTSIDE, b = owners.get(connection.b) ?? OUTSIDE;
+      if (a === b) { potential++; continue; }
+      const pair = boundaries.find(pair => samePair(pair, { a, b }));
+      if (!pair?.runs.some((run, i) => run.length >= CELL_SCALE.doorway + 1
+        && (!connection.side || pair.runSides[i] === connection.side))) continue;
+      const request = requests.get(pair) ?? { count: 0, isolated: false };
+      request.count++;
+      request.isolated ||= groups.some(g => g.spaces.length === 1 && (g.spaces[0]!.id === connection.a || g.spaces[0]!.id === connection.b));
+      requests.set(pair, request);
+    }
+    for (const [pair, request] of requests) {
+      // A long seam is not an unlimited supply of future room doorways. This
+      // is a ranking estimate only, never a hard architectural constraint.
+      const capacity = sum(pair.runs.map(run => Math.floor(run.length / (CELL_SCALE.doorway + 1))));
+      const available = Math.min(request.count, capacity);
+      potential += available;
+      if (request.isolated) secured += available;
+    }
+    return { potential, secured };
+  };
+  const visit = (groups: Group[]): void => {
     if (stopped()) return;
-    if (pending.length === 1) {
+    const index = groups.findIndex(g => g.spaces.length > 1);
+    if (index < 0) {
       search.steps++;
-      const space = pending[0]!;
-      if (remaining.length >= minArea(space) && remaining.length <= space.area.max && roomFits(remaining))
-        accept([...assigned, { id: space.id, cells: remaining }]);
+      if (groups.every(g => roomFits(g.cells))) accept(groups.map(g => ({ id: g.spaces[0]!.id, cells: g.cells })));
       return;
     }
-    type Trial = { space: BuildingSpace; part: Cell[]; rest: Cell[]; key: string; distance: number };
+    const current = groups[index]!, pending = current.spaces, remaining = current.cells;
+    type Trial = { groups: Group[]; key: string; distance: number; balance: number; potential: number; secured: number };
     const trials: Trial[] = [];
+    const subsets = Array.from({ length: (1 << pending.length) - 2 }, (_, i) => {
+      const mask = i + 1, left = pending.filter((_, bit) => mask & (1 << bit)), right = pending.filter((_, bit) => !(mask & (1 << bit)));
+      return { mask, left, right, minLeft: sum(left.map(minArea)), maxLeft: sum(left.map(s => s.area.max)),
+        minRight: sum(right.map(minArea)), maxRight: sum(right.map(s => s.area.max)) };
+    });
     for (const axis of ['x', 'y'] as const) {
       const lo = Math.min(...remaining.map(c => c[axis])), hi = Math.max(...remaining.map(c => c[axis]));
       for (let cut = lo + 1; cut <= hi; cut++) {
         const left = remaining.filter(c => c[axis] < cut), right = remaining.filter(c => c[axis] >= cut);
-        for (const [part, rest, side] of [[left, right, 0], [right, left, 1]] as const) for (const space of pending) {
-          const others = pending.filter(s => s.id !== space.id);
-          if (part.length < minArea(space) || part.length > space.area.max
-            || rest.length < sum(others.map(minArea)) || rest.length > sum(others.map(s => s.area.max))) continue;
-          // Balanced area targets guide traversal only; feasibility and named scores decide acceptance.
-          const target = remaining.length * (minArea(space) + space.area.max) / sum(pending.map(s => minArea(s) + s.area.max));
-          trials.push({ space, part, rest, key: JSON.stringify([space.id, axis, cut, side]), distance: Math.abs(part.length - target) });
+        if (connectedComponents(left).length !== 1 || connectedComponents(right).length !== 1) continue;
+        const geometry = [...groups.slice(0, index).map(g => g.cells), left, right, ...groups.slice(index + 1).map(g => g.cells)];
+        const boundaries = deriveBuildingBoundaries({ footprint: cells, spaces: geometry.map((cells, i) => ({ id: groupIds[i]!, cells })) });
+        if (!joined(geometry.map((_, i) => groupIds[i]!), boundaries)) continue;
+        for (const subset of subsets) {
+          if (left.length < subset.minLeft || left.length > subset.maxLeft
+            || right.length < subset.minRight || right.length > subset.maxRight) continue;
+          const next = [...groups.slice(0, index), { cells: left, spaces: subset.left },
+            { cells: right, spaces: subset.right }, ...groups.slice(index + 1)];
+          const guidance = inspect(next, boundaries);
+          const target = remaining.length * (subset.minLeft + subset.maxLeft)
+            / (subset.minLeft + subset.maxLeft + subset.minRight + subset.maxRight);
+          trials.push({ groups: next, key: JSON.stringify([axis, cut, subset.mask]), distance: Math.abs(left.length - target), balance: Math.abs(subset.left.length - subset.right.length), ...guidance });
         }
       }
     }
-    trials.sort((a, b) => a.distance - b.distance || tie(seed, a.key) - tie(seed, b.key) || compareText(a.key, b.key));
+    trials.sort((a, b) => b.potential - a.potential || a.balance - b.balance || b.secured - a.secured || a.distance - b.distance
+      || tie(seed, a.key) - tie(seed, b.key) || compareText(a.key, b.key));
     for (const trial of trials) {
       if (stopped()) return;
       search.steps++;
-      if (!roomFits(trial.part) || connectedComponents(trial.rest).length !== 1) continue;
-      const next = [...assigned, { id: trial.space.id, cells: trial.part }];
-      // An edge to the whole remainder is an optimistic future doorway. If this
-      // graph is disconnected, further cuts cannot restore the missing interface.
-      const partial = [...next, { id: remainderId, cells: trial.rest }];
-      if (!joined(partial.map(s => s.id), deriveBuildingBoundaries({ footprint: cells, spaces: partial }))) continue;
-      visit(trial.rest, pending.filter(s => s.id !== trial.space.id), next);
+      if (trial.groups.some(g => g.spaces.length === 1 && !roomFits(g.cells))) continue;
+      visit(trial.groups);
     }
   };
-  visit(cells, spaces, []);
-  return best ?? fail(search.budgetExhausted ? 'Search budget exhausted without a feasible allocation.'
+  visit([{ cells, spaces }]);
+  return best ? { ...best, search: { ...search } } : fail(search.budgetExhausted ? 'Search budget exhausted without a feasible allocation.'
     : 'No feasible allocation in the guillotine search family.');
 }

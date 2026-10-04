@@ -211,16 +211,20 @@ score components and search diagnostics, or `ok: false` with a reason and the
 same diagnostics. Inputs and outputs are transient plain data. Live strategies
 do not call it until L5; no generated content or saved format changes in L3.
 
-The chosen search is **seeded guillotine peeling with backtracking**: a straight
-cut gives one side to one pending space, then searches the remainder. Either
-axis, side and pending space can be tried. Unlike `allocateCandidates` (20.3),
+The chosen search is **seeded guillotine partitioning with backtracking**: each
+straight cut divides the pending spaces into two nonempty groups whose area
+ranges fit the two sides, then recursively partitions both sides. A singleton
+group becomes a room; larger groups can branch again. Both axes and all proper
+subsets of pending spaces are considered (at most 254 for eight spaces).
+Unlike `allocateCandidates` (20.3),
 this task requires an exact partition into named spaces with usable interfaces;
 the existing allocator scores independent claims and residuals and has no
 cross-piece feasibility hook. Extending that contract for this first consumer
 would couple two different searches. L3 instead reuses canonical cells,
 connectivity and boundary runs in the building SDK. It does not copy the
-candidate allocator or change its policy. Rectangle, L and notch tests exercise
-this narrower search family, including emitted geometry at hunter size.
+candidate allocator or change its policy. Rectangle, L, notch, four-quadrant and
+double-loaded corridor tests exercise branching partitions, including emitted
+geometry at hunter size.
 
 The allocator's internal feasibility rules are area within each space's range,
 connected usable spaces, and a connected graph of interior openings. They do
@@ -240,6 +244,11 @@ connect the tree. The returned **resolved design** puts those connections first;
 pass it with the allocation to `realizeBuilding`, using its default wall
 thickness (0.25 cells). Other requested connections remain in the resolved
 design and may be reported as misses when absent, too short or occupied.
+The returned `openings` and `connections` score use untrimmed placement, matching
+the default overlap corner policy. They are allocation diagnostics, not the
+authoritative placements for every realization option: `corners: 'horizontal'`
+can shift exterior opening centers or cause misses after trimming. Use the
+openings and misses returned by `realizeBuilding` for the chosen wall options.
 No exterior entry is required or synthesized: exterior connections remain
 caller guidance. The caller still chooses a footprint that keeps the region's
 portal promise and owns any validation of its final geometry. Concave roofs
@@ -247,9 +256,13 @@ still require `encloses: false` under L2.
 
 Feasible results are compared by the sum of two named components: `connections`
 counts fulfilled requested openings; `outside` counts met `prefer`/`avoid`
-preferences. Tags have no scoring or gameplay meaning. Balanced area targets
-order candidate cuts, and the seed breaks equal ordering ties. Cells and space
-and connection identities are canonicalized, so caller array order does not
+preferences. Tags have no scoring or gameplay meaning. Trial ordering first
+favors potential requested adjacencies, estimating how many doorways fit along
+each shared seam. It then favors balanced group sizes, connections to isolated
+rooms, and balanced area targets; the seed breaks remaining ties. These are
+soft ranking estimates, never feasibility constraints. Completed candidates
+still use the actual untrimmed opening count, and DFS search is not optimal.
+Cells and space and connection identities are canonicalized, so caller array order does not
 change the result. The allocator never consumes the strategy's random stream.
 
 The footprint is at most 24 × 24 cells and there are at most eight spaces.
@@ -259,9 +272,9 @@ maximum 20,000); `maxSolutions` bounds feasible complete partitions compared
 `budgetExhausted` and `optimal: false`. A result retained before a limit is
 still usable. No-result reasons distinguish invalid input, impossible area
 totals, budget exhaustion and failure within this search family. None of the
-latter two proves that every possible partition is impossible: branching
-guillotine trees and general non-guillotine partitions are outside L3. The
-strategy can choose a smaller design as in M31.
+latter two proves that every possible partition is impossible: general
+non-guillotine partitions remain outside L3. The strategy can choose a smaller
+design as in M31.
 
 ## Build order
 
@@ -274,7 +287,7 @@ sweep baseline proves it. Later stages add content and re-baseline last
 | --- | --- | --- |
 | L1 (#188), implemented | **Walls from runs.** A wall-run emitter takes a run, cell size, thickness, offset and openings, and returns element parts. `hut`, `compound` and `depot` draw their walls through it | the sweep baseline is unchanged |
 | L2 (#189), implemented | **The design and its passes.** The design graph and its validation; boundaries and spans from an allocation; openings placed from connections. `hut` builds its one-room house as a design | the baseline is still unchanged |
-| L3 (#190), implemented | **Allocation.** Bounded seeded guillotine peeling assigns usable spaces and a connected interior opening graph, with named soft scores and explicit failure reasons. Its feasibility rules belong to the allocator, not the region contract; connections only steer it | rectangle, L and notch tests over seeds, deterministic bounded failure, emitted hunter routes |
+| L3 (#190), implemented | **Allocation.** Bounded seeded branching guillotine search assigns usable spaces and a connected interior opening graph, with named soft scores and explicit failure reasons. Its feasibility rules belong to the allocator, not the region contract; connections only steer it | rectangle, L, notch, quadrant and corridor tests, deterministic bounded failure, emitted hunter routes |
 | L4 (#191) | **A building lab.** The micro lab shows a building's design graph, allocation, spans and openings beside its geometry | browser check |
 | L5 (#192) | **Buildings with several spaces.** `hut` grows larger designs where its region allows; `compound`'s ring becomes a design | promise tests over shapes and seeds, then re-baseline |
 
