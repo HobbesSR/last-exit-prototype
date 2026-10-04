@@ -108,6 +108,14 @@ spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
   acceptably. The capture refuses uncommitted changes to the chain's inputs
   and records the last commit that touched them.
 
+**S3 schema migration (#168).** Version 3 adds authored library metadata, so
+its fingerprint changes while placement and construction remain identical.
+`node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
+`3fe884f` and checks all 224 old entries with only the old layout fingerprint
+substituted. All other view hashes must match unchanged. Only after that audit
+were layout hash expectations updated, with migration provenance recorded in
+the baseline. The frozen gameplay characterization fixture is unchanged.
+
 **The first baseline** was captured at the switch-over (#146), at `a496d21`,
 after the report showed no defects over 60 game and 30 playground maps, and
 `diagnoseBuiltMap` none over 3 game maps. Deleting the old paths then moved
