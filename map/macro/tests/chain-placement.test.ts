@@ -119,6 +119,28 @@ test("core element classes stand only inside their owning set pieces, and the fi
   }
 });
 
+test("a design weighted 0 is its set pieces' alone: the fill never places it", () => {
+  const unowned = (layout: Layout, id: string) => {
+    const owned = new Set(layout.setPieces.flatMap((instance) => instance.slots.map((s) => `${s.col},${s.row}`)));
+    return layout.slots.filter((slot) => slot.design === id && !owned.has(`${slot.col},${slot.row}`));
+  };
+  // Weighted 1 by default, hut-corner also stands in the fill.
+  assert.ok(SEEDS.some((seed) => unowned(layouts.get(seed)!, "hut-corner").length > 0));
+
+  const reserved = copy();
+  reserved.tiles.find((t) => t.id === "hut-corner")!.weight = 0;
+  assert.deepEqual(validateLibrary(reserved, REGION_TYPES), { valid: true, errors: [] });
+  for (const seed of SEEDS) {
+    const layout = placement(seed, GAME, reserved);
+    assert.deepEqual(unowned(layout, "hut-corner"), [], seed);
+    assert.ok(layout.slots.some((slot) => slot.design === "hut-corner"), `${seed}: the hut cluster still places it`);
+  }
+
+  const negative = copy();
+  negative.tiles.find((t) => t.id === "hut-corner")!.weight = -1;
+  assert.match(validateLibrary(negative, REGION_TYPES).errors.join("; "), /tile hut-corner: malformed weight/);
+});
+
 test("every design is eligible in its slot's zone, in set pieces as in the fill", () => {
   // Zones are 12 x 6 tiles; tier rises west to east, bonus away from the middle row.
   const zoneOf = (slot: PlacedSlot) => ({ tier: Math.floor(slot.col / 12) + 1, bonus: Math.abs(Math.floor(slot.row / 6) - 2) });

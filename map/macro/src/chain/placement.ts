@@ -249,7 +249,7 @@ export const placer = ({ openFace }: { openFace: boolean }): MacroStages["placem
   const mask = layoutSlots(params, plan);
 
   // A core element class is painted only inside its owning set pieces (51, "Core elements"), so
-  // the fill never places a design that paints one.
+  // the fill never places a design that paints one. Nor one weighted 0, which only set pieces place (52).
   const featureClasses = new Set(Object.entries(library.cellClasses)
     .filter(([, cellClass]) => Object.keys(cellClass.coreElements ?? {}).length).map(([id]) => id));
   const paintsFeature = (tile: ChainTileDesign): boolean =>
@@ -258,7 +258,7 @@ export const placer = ({ openFace }: { openFace: boolean }): MacroStages["placem
   // Problems no retry can fix are reported once, not fifty times.
   const fillByZone = new Map<string, ChainTileDesign[]>();
   for (const zone of zones.values()) {
-    const eligible = library.tiles.filter((tile) => !paintsFeature(tile) && eligibleIn(tile, zone));
+    const eligible = library.tiles.filter((tile) => !paintsFeature(tile) && tile.weight !== 0 && eligibleIn(tile, zone));
     if (!eligible.length) throw new Error(`no tile design is eligible for zone ${zone.id} (tier ${zone.tier}, bonus ${zone.bonus})`);
     fillByZone.set(zone.id, eligible);
   }

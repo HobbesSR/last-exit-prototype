@@ -42,6 +42,7 @@ export interface ChainTileDesign {
   eligibleTiers?: number[];
   eligibleBonus?: number[];
   labels?: string[];
+  /** The fill weight, 1 by default. A design weighted 0 is no fill option: only set pieces place it (52). */
   weight?: number;
 }
 
@@ -371,7 +372,7 @@ export function validateLibrary(
       if (raw[field] !== undefined && (!Array.isArray(raw[field]) || !raw[field].every((v: unknown) => integer(v) && v >= (field === "eligibleTiers" ? 1 : 0) && v <= 5)))
         errors.push(`${path}: malformed ${field}`);
     if (raw.labels !== undefined && !names(raw.labels)) errors.push(`${path}: malformed labels`);
-    if (raw.weight !== undefined && !(typeof raw.weight === "number" && Number.isFinite(raw.weight) && raw.weight > 0))
+    if (raw.weight !== undefined && !(typeof raw.weight === "number" && Number.isFinite(raw.weight) && raw.weight >= 0))
       errors.push(`${path}: malformed weight`);
     if (raw.segments !== undefined && !object(raw.segments)) errors.push(`${path}: segments must be an object`);
     if (object(raw.segments)) for (const [key, value] of Object.entries(raw.segments)) {
