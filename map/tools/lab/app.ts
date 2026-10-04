@@ -790,3 +790,36 @@ window.mapLab = Object.freeze({
 
 fillParams(DEFAULT_CHAIN_PARAMS);
 generateMap();
+
+
+// ── Resizer ─────────────────────────────────────────────────────────────────
+
+const resizer = $("diagnosticsResizer") as HTMLDivElement;
+const diagnosticsPane = $("diagnosticsPane") as HTMLDivElement;
+
+let resizerDrag: { startY: number; startHeight: number; moved: boolean } | null = null;
+resizer.onpointerdown = (event) => {
+  resizer.setPointerCapture(event.pointerId);
+  resizerDrag = { startY: event.clientY, startHeight: diagnosticsPane.offsetHeight, moved: false };
+};
+resizer.onpointermove = (event) => {
+  if (!resizerDrag) return;
+  const dy = resizerDrag.startY - event.clientY; // drag up -> increase height
+  if (Math.abs(dy) > 3) {
+    if (!resizerDrag.moved) {
+      resizer.classList.remove("collapsed");
+      diagnosticsPane.classList.remove("collapsed");
+    }
+    resizerDrag.moved = true;
+  }
+  if (!resizerDrag.moved) return;
+  diagnosticsPane.style.height = `${resizerDrag.startHeight + dy}px`;
+  diagnosticsPane.style.maxHeight = 'none';
+};
+resizer.onpointerup = () => {
+  if (resizerDrag && !resizerDrag.moved) {
+    const isCollapsed = resizer.classList.toggle("collapsed");
+    diagnosticsPane.classList.toggle("collapsed", isCollapsed);
+  }
+  resizerDrag = null;
+};
