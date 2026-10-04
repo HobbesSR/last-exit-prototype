@@ -15,6 +15,7 @@ import type { BrokenPromise } from "../../micro/diagnose.ts";
 import { elementShapes } from "../../micro/geometry.ts";
 import type { RegionElement } from "../../micro/types.ts";
 import { outline } from "../../../shared/shape.ts";
+import type { ObstacleKind } from "../../../shared/types.ts";
 import { chainDraft, renderChainLibrary } from "./chain-author.ts";
 import type { LabReply, LabRequest } from "./worker.ts";
 
@@ -43,7 +44,7 @@ let busy = false;
 let selected: { x: number; y: number } | null = null;
 /** Per cell: the index of its region in `views.regions.regions`, or -1 outside the mask. */
 let regionAt = new Int32Array(0);
-let geometry: { path: Path2D; shapes: number } | null = null;
+let parts: BuiltParts | null = null;
 let camera = { zoom: 2, x: 0, y: 0 };
 /** Until the viewer pans or zooms, the map is refitted whenever the canvas resizes. */
 let fitted = true;
@@ -158,7 +159,7 @@ function show(next: ToolMap): void {
   views.regions.regions.forEach((region, i) => {
     for (const cell of region.cells) regionAt[cell] = i;
   });
-  geometry = buildGeometry();
+  parts = buildParts(views);
   repaint();
   fit();
   renderReport();
@@ -194,20 +195,66 @@ function defectRegions(): Set<string> {
   return named;
 }
 
-/** The built map's colliders and gates (`elementShapes`), in cell units. */
-function buildGeometry(): { path: Path2D; shapes: number } {
-  const path = new Path2D();
-  let shapes = 0;
-  const { cellSize, regions } = views!.built;
-  for (const region of regions)
-    for (const element of region.elements)
-      for (const shape of elementShapes(element, true)) {
-        const points = outline(shape);
-        points.forEach((p, i) => (i ? path.lineTo(p.x / cellSize, p.y / cellSize) : path.moveTo(p.x / cellSize, p.y / cellSize)));
-        path.closePath();
-        shapes++;
+/** The built map's parts, by what they are, each drawn by a layer of its own. */
+type Part = "walls" | "ruins" | "cover" | "windows" | "doors" | "roofs";
+const PARTS: Part[] = ["walls", "ruins", "cover", "windows", "doors", "roofs"];
+/** Every obstacle kind's part, so a new kind can't be drawn as nothing. */
+const OBSTACLE_PART: Record<ObstacleKind, Part> = {
+  building: "walls", "ruin-wall": "ruins", container: "cover", crate: "cover", window: "windows",
+};
+
+interface BuiltParts {
+  /** Each part's shapes, in cell units. */
+  paths: Record<Part, Path2D>;
+  count: Record<Part, number>;
+  /** Per region id: its part counts, and its elements' labels. */
+  regions: Map<string, { count: Record<Part, number>; labels: string[] }>;
+}
+
+const noParts = (): Record<Part, number> => Object.fromEntries(PARTS.map((part) => [part, 0])) as Record<Part, number>;
+
+/**
+ * The built map's colliders and gates (`elementShapes`) and roofs (an enclosing element's
+ * footprint), sorted into parts. `elementShapes` gives one shape per obstacle or gate part,
+ * in part order, so each shape takes the part it came from.
+ */
+function buildParts(v: Views): BuiltParts {
+  const paths = Object.fromEntries(PARTS.map((part) => [part, new Path2D()])) as Record<Part, Path2D>;
+  const count = noParts(), regions: BuiltParts["regions"] = new Map();
+  const { cellSize } = v.built;
+  for (const region of v.built.regions) {
+    const own = { count: noParts(), labels: [] as string[] };
+    regions.set(region.brief.id, own);
+    const add = (part: Part) => {
+      count[part]++;
+      own.count[part]++;
+    };
+    for (const element of region.elements) {
+      own.labels.push(element.label);
+      const drawn = element.template.parts.filter((part) => part.part === "obstacle" || part.part === "gate");
+      elementShapes(element, true).forEach((shape, i) => {
+        const source = drawn[i]!, part = source.part === "obstacle" ? OBSTACLE_PART[source.kind] : "doors";
+        outline(shape).forEach((p, j) => (j ? paths[part].lineTo(p.x / cellSize, p.y / cellSize) : paths[part].moveTo(p.x / cellSize, p.y / cellSize)));
+        paths[part].closePath();
+        add(part);
+      });
+      if (element.template.encloses) {
+        paths.roofs.rect(element.x / cellSize, element.y / cellSize, element.template.w / cellSize, element.template.h / cellSize);
+        add("roofs");
       }
-  return { path, shapes };
+    }
+  }
+  return { paths, count, regions };
+}
+
+/** A region's elements by name, numbers folded: "12 compound-room-#, 1 hut-building". */
+function elementNames(labels: string[]): string {
+  const named = new Map<string, number>();
+  for (const label of labels) {
+    const name = label.replace(/\d+/g, "#");
+    named.set(name, (named.get(name) ?? 0) + 1);
+  }
+  return [...named].map(([name, n]) => `${n} ${name}`).join(", ");
 }
 
 function zoneAt(v: Views, x: number, y: number): Views["zones"][number] | undefined {
@@ -274,6 +321,19 @@ function dot(g: Context, x: number, y: number, radius: number): void {
   g.arc(x, y, radius, 0, Math.PI * 2);
 }
 
+/** One part of the built map, filled in its colour. */
+function partLayer(part: Part, label: string, fill: string, legend: string): Layer {
+  return {
+    id: part, pass: "areas", label, stage: "built", on: true, opacity: 1,
+    legend: () => [[legend, fill]],
+    paint: (g) => {
+      if (!parts) return;
+      g.fillStyle = fill;
+      g.fill(parts.paths[part]);
+    },
+  };
+}
+
 const LAYERS: Layer[] = [
   {
     id: "declared", pass: "areas", label: "Declared classes", stage: "declaredGrid", on: false, opacity: 1,
@@ -333,15 +393,23 @@ const LAYERS: Layer[] = [
     },
   },
   {
-    id: "geometry", pass: "areas", label: "Built geometry", stage: "built", on: true, opacity: 1,
-    legend: () => [["collider or gate", "#b9c4bf"]],
-    paint: (g) => {
-      if (!geometry) return;
-      g.fillStyle = "#b9c4bfcc";
-      g.fill(geometry.path);
+    ...partLayer("walls", "Building walls", "#c3ccc7", "building wall"),
+    inspect: (_, { built }) => {
+      if (!built) return [];
+      const own = parts?.regions.get(built.brief.id);
+      return [
+        `Type ${built.brief.type}, ${built.brief.portals.length} portals`,
+        `${built.elements.length} elements, ${built.loot.length} loot`,
+        ...(own ? [`Parts: ${PARTS.map((part) => `${own.count[part]} ${part}`).join(", ")}`, `Elements: ${elementNames(own.labels) || "none"}`] : []),
+      ];
     },
-    inspect: (_, { built }) => (built ? [`Type ${built.brief.type}, ${built.brief.portals.length} portals`, `${built.elements.length} elements, ${built.loot.length} loot`] : []),
   },
+  partLayer("ruins", "Ruin walls and rubble", "#9b8a72", "ruin wall"),
+  partLayer("cover", "Cover", "#6e9a72", "container or crate"),
+  partLayer("windows", "Windows", "#6fc8ff", "window"),
+  // Chain maps place every door closed and unlocked (micro's adapter), so one colour says it.
+  partLayer("doors", "Doors", "#d66955", "door, closed"),
+  { ...partLayer("roofs", "Roofs", "#7a4f74", "roof"), on: false, opacity: 0.6 },
   {
     id: "loot", pass: "marks", label: "Loot", stage: "built", on: false, opacity: 1,
     legend: () => [["loot", "#f2ca55"]],
@@ -777,7 +845,7 @@ window.mapLab = Object.freeze({
     components: views?.proof.components.length ?? 0,
     briefs: views?.briefs.length ?? 0,
     builtRegions: views?.built.regions.length ?? 0,
-    shapes: geometry?.shapes ?? 0,
+    parts: parts ? { ...parts.count } : null,
     sites: views?.built.regions.reduce((sum, region) => sum + region.coreElements.length, 0) ?? 0,
     report: check ? { valid: check.valid, defects: check.defects.length, coreElements: check.coreElements } : null,
     diagnosing: !!diagnoseWorker,
