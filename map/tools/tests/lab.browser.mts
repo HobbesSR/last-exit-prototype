@@ -81,15 +81,53 @@ try {
   assert.match(await page.locator("#reportBody").innerText(), /No defects found/);
   await page.screenshot({ path: `${OUT}/world.png` });
 
-  // Every view of the map, as the cell field.
-  for (const field of ["resolved", "declared", "proof", "zones", "none", "regions"]) {
-    await page.locator("#field").selectOption(field);
+  // The layers are in chain order, with today's defaults on.
+  const FIELDS = ["declared", "resolved", "regions", "proof", "zones"];
+  assert.deepEqual(first.layers.map((layer: any) => layer.id),
+    ["declared", "resolved", "regions", "portals", "proof", "zones", "geometry", "loot", "sites", "defects"]);
+  assert.deepEqual(first.layers.filter((layer: any) => layer.on).map((layer: any) => layer.id),
+    ["regions", "portals", "geometry", "sites", "defects"]);
+  const layer = (id: string) => page.locator(`#layer-${id}`);
+  const opacity = (id: string, percent: number) => page.locator(`#layer-${id}-opacity`).fill(String(percent));
+  // Every cell field alone, as the old exclusive field select showed it.
+  for (const field of FIELDS) {
+    for (const other of FIELDS) await layer(other).setChecked(other === field);
     await page.screenshot({ path: `${OUT}/field-${field}.png` });
   }
-  await page.locator("#showLoot").check();
+
+  // One layer under another: the canvas centre's pixel, with only cell fields drawn.
+  const centre = () => page.evaluate(() => {
+    const map = document.getElementById("map") as HTMLCanvasElement;
+    return [...map.getContext("2d")!.getImageData(map.width >> 1, map.height >> 1, 1, 1).data];
+  });
+  for (const id of ["portals", "geometry", "sites", "defects", ...FIELDS]) await layer(id).setChecked(id === "regions");
+  const regionsAlone = await centre();
+  assert.equal(regionsAlone[3], 255, "the centre lies in a region");
+  await layer("declared").check();
+  assert.deepEqual(await centre(), regionsAlone, "an opaque later layer hides the one under it");
+  await opacity("regions", 50);
+  const overDeclared = await centre();
+  assert.notDeepEqual(overDeclared, regionsAlone, "a half-opaque layer shows the one under it");
+  await layer("declared").uncheck();
+  const overNothing = await centre();
+  assert.notDeepEqual(overNothing, overDeclared, "turning the lower layer off changes what shows through");
+  assert.ok(overNothing[3]! < 255, "with nothing under it, the half-opaque layer is see-through");
+  await page.screenshot({ path: `${OUT}/stacked.png` });
+  await opacity("regions", 100);
+  for (const id of ["portals", "geometry", "sites", "defects", "loot"]) await layer(id).check();
+
+  // Zoom buttons, and Reset back to the fitted 100%.
+  await page.locator("#zoomIn").click();
+  assert.equal((await snapshot()).zoom, "125%");
+  await page.locator("#zoomReset").click();
+  assert.equal((await snapshot()).zoom, "100%");
 
   // The inspector reads a cell's views.
   const box = (await page.locator("#map").boundingBox())!;
+  // Hovering shows the inspector's first lines.
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  assert.equal(await page.locator("#tooltip").isVisible(), true);
+  assert.match(await page.locator("#tooltip").innerText(), /^Cell \d+, \d+\nDeclared/);
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   const inspected = (await snapshot()).inspector as string;
   assert.match(inspected, /^Cell \d+, \d+/);
@@ -118,7 +156,7 @@ try {
   assert.match(await page.locator("#diagnosticBody").innerText(), /broke their promise|No broken promises/);
 
   // Reading back: the Layout alone is rebuilt by the game's strategies, and BSON reads as JSON does.
-  const comparable = ({ diagnosis, diagnosing, inspector, ...rest }: any) => rest;
+  const comparable = ({ diagnosis, diagnosing, inspector, zoom, layers, ...rest }: any) => rest;
   for (const path of [layout, bson, json]) {
     await page.locator("#load").setInputFiles(path);
     const loaded = await shown("last-exit-001");
@@ -147,7 +185,7 @@ try {
   await generateIn("last-exit-001");
   await page.locator("#diagnose").click();
   assert.equal((await snapshot()).diagnosing, true);
-  await page.locator("#field").selectOption("proof");
+  await page.locator("#layer-proof").check();
   await page.locator("#cancelDiagnose").click();
   const cancelled = await snapshot();
   assert.deepEqual([cancelled.diagnosing, cancelled.diagnosis], [false, null]);
@@ -389,7 +427,7 @@ try {
   await generateIn("lab-mobile");
   await page.screenshot({ path: `${OUT}/mobile.png`, fullPage: true });
   assert.deepEqual(errors, []);
-  console.log("Map Lab browser checks passed: chain maps and their views, saves equal to the core's, read-back, the diagnostic, and chain library authoring.");
+  console.log("Map Lab browser checks passed: chain maps and their layers, saves equal to the core's, read-back, the diagnostic, and chain library authoring.");
 } finally {
   await browser?.close();
   server.kill();

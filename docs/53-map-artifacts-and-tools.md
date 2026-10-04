@@ -1,7 +1,7 @@
 # 53. Map artifacts, determinism and tools
 
 Status: current for the chain (51), its Map Lab, CLI, MCP and sweep. mapgen's
-old paths were deleted at the switch-over (#146). Updated 2026-10-03.
+old paths were deleted at the switch-over (#146). Updated 2026-10-04.
 
 ## One seed decides the whole map
 
@@ -153,10 +153,20 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   the chain.
   - **World:** seed, mode, zone size and spawn counts; the chain's library
     for the zone size or the Chain Library tab's draft. A size menu lists
-    the authored sizes and sets the zone size. Every view comes through `mapViews`: the
-    cells coloured by declared or resolved class, region, proof component or
-    zone tier, with boundaries and portals, the built map's geometry, core
-    element sites, loot and defects over them, and an inspector per cell.
+    the authored sizes and sets the zone size. Every view comes through `mapViews`.
+  - **Layers:** one registry in `app.ts`, in chain order (51): declared and
+    resolved classes, regions, boundaries and portals, proof components,
+    zone tiers, built geometry, loot, core element sites, and defects. Each
+    layer names the `mapViews` key it reads, can be turned on or off, has
+    an opacity, and contributes its own legend entries and inspector
+    lines. Any number can be on at once, so an earlier stage shows under a
+    later one. Drawing takes two passes in registry order: every layer's
+    cells and areas (a cell field is painted once per map into a canvas),
+    then every layer's lines and marks. A new layer is one registry entry.
+    Regions, portals, geometry, sites and defects are on by default.
+  - **Inspecting:** clicking a cell fills the inspector, and hovering shows
+    its first lines. Zoom with the wheel or the buttons; Reset fits the
+    map, which the readout calls 100%.
   - **The report** shows beside `diagnoseBuiltMap`. Generation, reading a
     save and the diagnostic run in a worker, and the diagnostic runs only on
     request and can be cancelled.
