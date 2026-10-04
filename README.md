@@ -46,7 +46,7 @@ generator assignments; inspect residuals and change policy weights. Controls app
 automatically; try the Balanced and Prefer fewer pieces presets. Status explains
 when settings change but the winning allocation stays the same. This is
 separate from the walkable micro geometry preview. See [docs/19](docs/19-decomposition-design.md)
-for the design and [docs/20](docs/20-micro-generation.md) for implemented limits.
+for the design and [20.4](docs/20.4-hierarchical-generation.md) for implemented limits.
 
 For procedural architecture development, open `/micro-lab.html` on the address the dev server printed
 (http://localhost:3100/micro-lab.html by default; an agent worktree uses its assigned port). Generate
@@ -54,7 +54,8 @@ open, depot, courtyard, ruin, or contestant-entry regions; choose live or cell
 body proportions, inspect clearance and numbered entry positions, walk with WASD
 as either role, use E at doors, and export or import a spec/validated result JSON.
 The normal arena remains unchanged. CLI/custom-region usage and the macro contract
-are in [20](docs/20-micro-generation.md).
+are in [20.5](docs/20.5-tools-and-next-boundaries.md) and
+[20.1](docs/20.1-region-contract.md), respectively.
 
 | Action | Keyboard and mouse | Touch |
 | --- | --- | --- |

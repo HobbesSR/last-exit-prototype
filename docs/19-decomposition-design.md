@@ -73,8 +73,8 @@ The user clarified:
 
 > The passable requirement enforcement, if there is any, would have to be a post (sub)-region generation validation step, so that the generators are very free to construct their internals.
 
-Revised 2026-09-29 ([51](51-generation-chain.md) principle 9; Corey's answers
-verbatim in [17](17-open-questions.md), "Map generation"). The contract is a
+Revised 2026-09-29 ([51.1](51.1-principles-and-names.md) principle 9; Corey's answers
+verbatim in [17.2.4](17.2.4-contract-questions.md)). The contract is a
 **promise**, and nothing enforces it:
 - **The promise:** a region keeps every part of every portal on its perimeter
   reachable at hunter size from every other portal, from within. A region

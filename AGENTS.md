@@ -9,8 +9,10 @@ and newer user edits take precedence over stale handoff comments. Do not stage o
 unrelated user changes.
 
 Load the documentation you need, not all of it. `docs/1x` is product, `2x` is
-engineering, `3x` is process, `4x` is plan and history. Cite the number, not a
-heading, in briefs and handoffs.
+engineering, `3x` is process, `4x` is plan and history, `5x` is map generation.
+Large numbered documents are reading guides to decimal children (for example,
+51.7). Follow the relevant route; do not load every child. Cite the most specific
+owning number, not a heading, in briefs and handoffs. See 00 and 33 for numbering.
 
 ## Model delegation requested by the user
 
