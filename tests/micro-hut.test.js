@@ -61,7 +61,7 @@ test('the house has walls, one door, a window opposite and a roof (52\'s worked 
     const result = buildRegion(brief('worked', seed, cells, portals)), building = house(result);
     assert.equal(result.elements.length, 1);
     assert.equal(building.template.encloses, true);
-    assert.equal(building.template.w, 3.5 * SIZE);
+    assert.equal(building.template.w, 4 * SIZE);
     const parts = building.template.parts, gates = parts.filter(p => p.part === 'gate'), windows = parts.filter(p => p.kind === 'window');
     assert.equal(gates.length, 1);
     assert.equal(windows.length, 1);

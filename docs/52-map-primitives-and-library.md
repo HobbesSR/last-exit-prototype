@@ -293,8 +293,10 @@ stage and to play, and it grows from here. The fixture libraries in
 
 - **The three-cell grid.** Every class boundary in a design lies on a 3-cell
   grid, and every passable stretch is made of whole 3-cell blocks. So no
-  passage between classes is narrower than 3 cells, a doorway plus one, which
-  the sampled route check can see (17 M9). A passable stretch also still
+  passage between classes is narrower than 3 cells, a doorway plus one (17
+  M9). The margin dates from a route check that couldn't see a bare doorway;
+  the search now samples whole and half cells (#175), so it is a library
+  choice, not a measurement need. A passable stretch also still
   splits into portals of at least 3 where the class across it changes.
   `tests/chain-content.test.ts` holds every design to this.
 - **Fill weights:** each orientation is its own fill option, so a design

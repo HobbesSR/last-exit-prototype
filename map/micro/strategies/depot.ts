@@ -12,10 +12,9 @@ import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 const MIN_SIDE = 10;
 /**
  * Clear cells around every piece's box, from every other piece and from any cell the region
- * doesn't own, as `cover` keeps. A doorway is 2 (52); the third lets the sampled route search
- * see each aisle (20).
+ * doesn't own, as `cover` keeps: a doorway (52), so a hunter fits each aisle.
  */
-const AISLE = 3;
+const AISLE = CELL_SCALE.doorway;
 const DEFAULT_DENSITY = 0.55;
 /** A warehouse's long side in cells. Its short side is three quarters of that, at least 5. */
 const MIN_ROOM = 6, MAX_ROOM = 16, DEFAULT_ROOM = 8;

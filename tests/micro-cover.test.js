@@ -50,8 +50,8 @@ test('cover comes in clusters, each boxed with an aisle wider than a door to the
     }
     assert.ok(boxes.length < blockers(result).length, `${name} ${seed}: some slots hold clusters`);
     for (const a of boxes) {
-      assert.ok(a.w <= 120 && a.h <= 120, `${name} ${seed}: a cluster outgrew its slot`);
-      for (let y = Math.floor(a.y / 40) - 2; y <= Math.floor((a.y + a.h) / 40) + 2; y++) for (let x = Math.floor(a.x / 40) - 2; x <= Math.floor((a.x + a.w) / 40) + 2; x++)
+      assert.ok(a.w <= 160 && a.h <= 160, `${name} ${seed}: a cluster outgrew its slot`);
+      for (let y = Math.floor(a.y / 40) - 2; y <= Math.ceil((a.y + a.h) / 40) + 1; y++) for (let x = Math.floor(a.x / 40) - 2; x <= Math.ceil((a.x + a.w) / 40) + 1; x++)
         assert.ok(owned.has(`${x},${y}`), `${name} ${seed}: a cluster within a door of unowned cell ${x},${y}`);
     }
   }
