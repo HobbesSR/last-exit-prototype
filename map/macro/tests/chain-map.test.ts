@@ -60,7 +60,8 @@ test("a decoded map equals the generated one, in JSON and in BSON", () => {
 
 test("views are never saved: the wire form holds the Layout and the results less their briefs", () => {
   const wire = encode(MAP);
-  assert.deepEqual(Object.keys(wire).sort(), ["build", "format", "layout", "strings", "wire"]);
+  assert.deepEqual(Object.keys(wire).sort(), ["build", "format", "layout", "library", "strings", "wire"]);
+  assert.deepEqual(wire.library, LIBRARY);
   assert.equal(wire.wire, CHAIN_WIRE_VERSION);
   assert.equal(wire.layout.macro, MACRO_VERSION);
   assert.deepEqual(Object.keys(wire.build).sort(), ["cellSize", "format", "results", "version"]);
@@ -85,7 +86,8 @@ test("every version mismatch is refused by name", () => {
   assert.throws(() => decodeChainMap({ ...wire, wire: 1 }, LIBRARY), /wire version 1 isn't a chain map/);
   assert.throws(() => decodeChainMap({ ...wire, wire: 5 }, LIBRARY),
     /wire version 5 isn't a chain map: its params have no contestantCount or hunterCount/);
-  assert.throws(() => decodeChainMap({ ...wire, wire: CHAIN_WIRE_VERSION + 1 }, LIBRARY), /unsupported wire version 7/);
+  assert.throws(() => decodeChainMap({ ...wire, wire: 6 }, LIBRARY), /wire version 6.*does not embed a resolved version 3 library/);
+  assert.throws(() => decodeChainMap({ ...wire, wire: CHAIN_WIRE_VERSION + 1 }, LIBRARY), /unsupported wire version 8/);
   assert.throws(() => decodeChainMap({ ...wire, layout: { ...wire.layout, macro: MACRO_VERSION + 1 } }, LIBRARY),
     /placed by macro version 2, and this reader's stages are version 1/);
   assert.throws(() => decodeChainMap(wire, { ...LIBRARY, setPieces: LIBRARY.setPieces.slice(1) }), /made with a different library/);
@@ -94,6 +96,23 @@ test("every version mismatch is refused by name", () => {
     /its results were built by strategies stub-1, not stub-2/);
   // Results that are saved aren't rebuilt, so other engines may read them.
   assert.deepEqual(decodeChainMap(wire, LIBRARY, { ...ENGINES, version: "stub-2" }), MAP);
+});
+
+test("saves carry their resolved library without external module files", () => {
+  assert.deepEqual(decodeChainMap(encode(MAP)), MAP);
+  assert.deepEqual(readChainMap(chainMapToBson(MAP)), MAP);
+  assert.deepEqual(decodeChainMap(encode(MAP, false), undefined, ENGINES), MAP);
+  assert.deepEqual(readChainMap(chainMapToBson(MAP, { results: false }), undefined, ENGINES), MAP);
+  const wire = encode(MAP);
+  assert.throws(() => decodeChainMap({ ...wire, library: undefined }), /invalid saved library/);
+  assert.throws(() => decodeChainMap({ ...wire, library: { ...wire.library, version: 2 } }), /invalid saved library.*version 2/);
+  assert.throws(() => decodeChainMap({ ...wire, library: { ...wire.library, includes: [] } }), /invalid saved library.*includes/);
+  const changed = structuredClone(wire);
+  changed.library.tiles[0].weight = 123;
+  assert.throws(() => decodeChainMap(changed), /made with a different library/);
+  assert.throws(() => encodeChainMap({ ...MAP, library: changed.library }), /library does not match its layout fingerprint/);
+  wire.library.tiles[0].weight = 456;
+  assert.notEqual(MAP.library.tiles[0]!.weight, 456, "encoding owns a copy of library content");
 });
 
 test("results that don't match their layout are refused, not saved", () => {

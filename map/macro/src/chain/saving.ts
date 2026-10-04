@@ -17,13 +17,15 @@ import type { BsonValue } from "../bson.ts";
 import { Strings, canonicalJson, libraryFingerprint, packInts, unpackInts, widen } from "../coding.ts";
 import type { PackedInts } from "../coding.ts";
 import type { ChainLibrary } from "./library.ts";
+import { validateLibrary } from "./library.ts";
 import { MACRO_VERSION, mapViews } from "./map.ts";
 import type { ChainMap, Layout, MapEngines, Orientation, RegionResult } from "./types.ts";
 
 /** Versions 5 and up are the chain's. The old generators' reader and version 4 were deleted at the switch-over. */
-export const CHAIN_WIRE_VERSION = 6;
+export const CHAIN_WIRE_VERSION = 7;
 /** Why each earlier wire version isn't read here. None is migrated. */
 const RETIRED_VERSIONS: Record<number, string> = {
+  6: "it does not embed a resolved version 3 library with its authored zone plan and size; regenerate it from its seed",
   1: "it is mapgen's old form, which the chain replaced",
   2: "it is mapgen's old form, which the chain replaced",
   3: "it is mapgen's old form, which the chain replaced",
@@ -56,6 +58,7 @@ interface WireBuild {
 export interface WireChainMap {
   format: "last-exit-map";
   wire: number;
+  library: ChainLibrary;
   strings: string[];
   layout: WireLayout;
   build: WireBuild;
@@ -110,6 +113,8 @@ function unpackLayout(wire: WireLayout, name: (id: number) => string): Layout {
  * derived again on read and a different one would silently change.
  */
 export function encodeChainMap(map: ChainMap, options: SaveOptions = {}): WireChainMap {
+  const library = savedLibrary(map.library);
+  if (libraryFingerprint(library) !== map.layout.library) throw new Error("the map's library does not match its layout fingerprint");
   const strings = new Strings();
   const layout = packLayout(map.layout, strings);
   const build: WireBuild = { version: map.build, cellSize: map.cellSize, format: "region-2" };
@@ -124,14 +129,23 @@ export function encodeChainMap(map: ChainMap, options: SaveOptions = {}): WireCh
       return { elements, coreElements, loot, manifest };
     });
   }
-  return { format: "last-exit-map", wire: CHAIN_WIRE_VERSION, strings: strings.table, layout, build };
+  return { format: "last-exit-map", wire: CHAIN_WIRE_VERSION, library: structuredClone(library), strings: strings.table, layout, build };
+}
+
+/** Structural validation is independent of the installed game's strategy registry. */
+function savedLibrary(input: unknown): ChainLibrary {
+  const classes = (input as Partial<ChainLibrary> | null)?.cellClasses;
+  const types = new Set(Object.values(classes ?? {}).map(value => value?.regionType));
+  const checked = validateLibrary(input, types);
+  if (!checked.valid) throw new Error(`invalid saved library: ${checked.errors.join('; ')}`);
+  return input as ChainLibrary;
 }
 
 /**
  * A map from its wire form, with the library it was made from. A save of the Layout alone
  * rebuilds its results with `engines`, which must be the version that the save records.
  */
-export function decodeChainMap<Element = unknown>(input: unknown, library: ChainLibrary, engines?: MapEngines<Element>): ChainMap<Element> {
+export function decodeChainMap<Element = unknown>(input: unknown, expectedLibrary?: ChainLibrary, engines?: MapEngines<Element>): ChainMap<Element> {
   const wire = input as WireChainMap;
   if (!wire || wire.format !== "last-exit-map" || typeof wire.wire !== "number") throw new Error("not a last-exit-map artifact");
   const retired = RETIRED_VERSIONS[wire.wire];
@@ -140,9 +154,12 @@ export function decodeChainMap<Element = unknown>(input: unknown, library: Chain
   if (!Array.isArray(wire.strings) || !wire.layout || !wire.build) throw new Error("a chain map needs its strings, layout and build");
   if (wire.layout.macro !== MACRO_VERSION)
     throw new Error(`this layout was placed by macro version ${wire.layout.macro}, and this reader's stages are version ${MACRO_VERSION}; regenerate it from its seed`);
+  const library = savedLibrary(wire.library);
   const expected = libraryFingerprint(library);
   if (wire.layout.library !== expected)
     throw new Error(`this map was made with a different library (${wire.layout.library}, not ${expected}); read it with the library it was made from`);
+  if (expectedLibrary && libraryFingerprint(expectedLibrary) !== expected)
+    throw new Error("this map was made with a different library than the supplied library");
   if (wire.build.format !== "region-2") throw new Error(`its results are ${String(wire.build.format)}, and this reader takes region-2`);
   const name = (id: number): string => {
     const value = wire.strings[id];
@@ -180,7 +197,7 @@ export function chainMapToBson(map: ChainMap, options?: SaveOptions): Uint8Array
   return encodeBson(encodeChainMap(map, options) as unknown as Record<string, BsonValue>);
 }
 /** Read either encoding, decided by the bytes rather than by a file name. */
-export function readChainMap<Element = unknown>(bytes: Uint8Array, library: ChainLibrary, engines?: MapEngines<Element>): ChainMap<Element> {
+export function readChainMap<Element = unknown>(bytes: Uint8Array, library?: ChainLibrary, engines?: MapEngines<Element>): ChainMap<Element> {
   const input = looksLikeBson(bytes) ? decodeBson(bytes) : JSON.parse(new TextDecoder().decode(bytes));
   return decodeChainMap(input, library, engines);
 }

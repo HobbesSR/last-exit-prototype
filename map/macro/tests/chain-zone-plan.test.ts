@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { gridSize } from "../src/chain/declared-grid.ts";
-import { DIAMOND, isAuthoredZone, planTiles, zonePlan } from "../src/chain/zone-plan.ts";
+import { DIAMOND, planTiles, zonePlan } from "../src/chain/zone-plan.ts";
 import { layoutSlots, makeZones } from "../src/chain/zones.ts";
 import type { ChainParams } from "../src/chain/types.ts";
 
@@ -28,11 +28,6 @@ test("zones, the mask and the grid size all derive from the plan at any zone siz
     assert.equal(makeZones(params).length, 13);
     assert.equal(layoutSlots(params).length, 13 * zoneWidth * zoneHeight);
   }
-});
-
-test("game mode accepts the sizes the plan is authored at, and the default is one of them", () => {
-  assert.ok(isAuthoredZone(DIAMOND, { zoneWidth: DIAMOND.defaultZone.width, zoneHeight: DIAMOND.defaultZone.height }));
-  assert.ok(!isAuthoredZone(DIAMOND, { zoneWidth: 24, zoneHeight: 12 }));
 });
 
 test("placement filters are fractions of the map, so they scale with zone size", () => {

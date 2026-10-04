@@ -50,7 +50,7 @@ test('a batch reports its sample size, and diagnoses on request', () => {
   const failed = batch('tools-fail', 1, { ...SMALL, mode: 'game' });
   assert.equal(failed.valid, false);
   assert.equal(failed.generated, 0);
-  assert.match(failed.failures[0].error, /game mode requires 12 x 6 tile zones/);
+  assert.match(failed.failures[0].error, /authored for 12 x 6 tile zones/);
 });
 
 function run(file, args = [], input) {
@@ -72,7 +72,7 @@ test('the CLI generates, saves, reloads and validates a chain map', async () => 
     const flags = ['--mode', 'playground', '--zone-width', '2', '--zone-height', '1'];
     assert.match((await run('map/tools/cli.mts', ['help'])).out, /generate --seed SEED/);
     assert.equal((await run('map/tools/cli.mts', ['generate', '--seed', 'cli', ...flags, '--out', json])).code, 0);
-    assert.equal(JSON.parse(readFileSync(json, 'utf8')).wire, 6);
+    assert.equal(JSON.parse(readFileSync(json, 'utf8')).wire, 7);
     assert.equal((await run('map/tools/cli.mts', ['generate', '--seed', 'cli', ...flags, '--layout-only', 'true', '--out', bson])).code, 0);
     for (const file of [json, bson]) {
       const checked = await run('map/tools/cli.mts', ['validate', file]);
@@ -113,7 +113,7 @@ test('the MCP generates a map, validates it, and bounds what it runs', async () 
   assert.ok(replies.get(1).result.capabilities.tools);
   assert.deepEqual(replies.get(2).result.tools.map(tool => tool.name), ['map_generate', 'map_validate', 'library_validate', 'map_batch', 'library_get']);
   const generated = body(3);
-  assert.equal(generated.map.wire, 6);
+  assert.equal(generated.map.wire, 7);
   assert.deepEqual(generated.defects, []);
   assert.equal(body(4).valid, true);
   assert.equal(replies.get(5).result.isError, true);
@@ -147,9 +147,42 @@ test("the Map Lab's server serves both halves, strips types, and nothing else", 
   assert.match(shape, /from ["']\/vendor\/sat\.mjs["']/);
   assert.doesNotMatch(shape, /from ["']sat["']/);
   assert.match(await (await fetch(`${base}/vendor/sat.mjs`)).text(), /export default module\.exports/);
-  const library = await fetch(`${base}/map/macro/content/chain-library.json`);
+  const library = await fetch(`${base}/map/macro/content/diamond-12x6.json`);
   assert.match(library.headers.get('content-type'), /json/);
   for (const refused of ['/map/tools/server.mts', '/map/tools/cli.mts', '/map/tools/sweep.mts', '/map/macro/package.json', '/map/macro/node_modules/typescript/package.json',
     '/package.json', '/.env.local', '/map/tools/lab/%2e%2e/server.mts', '/%2e%2e/%2e%2e/package.json', '/map/tools/lab/..%5c..%5cserver.mts'])
     assert.ok([403, 404].includes((await fetch(`${base}${refused}`)).status), refused);
+});
+
+test('custom saves reload without external libraries and CLI resolves module files', async () => {
+  const custom = structuredClone(CHAIN_LIBRARY);
+  custom.name = 'saved-custom';
+  custom.tiles[0].weight = 2;
+  const map = generate('custom-save', SMALL, custom);
+  assert.deepEqual(readMap(JSON.parse(chainMapToJson(map))), map);
+  assert.deepEqual(readMap(chainMapToBson(map, { results: false })), map);
+  const result = await run('map/tools/cli.mts', ['validate', 'map/macro/content/diamond-12x6.json']);
+  assert.equal(result.code, 0, result.err);
+  assert.equal(JSON.parse(result.out).valid, true);
+});
+
+test('file includes pin content revisions and reuse a parsed top library', async () => {
+  const { readLibraryFile } = await import('../map/tools/library-files.mts');
+  const dir = mkdtempSync(path.join(tmpdir(), 'module-revisions-'));
+  try {
+    const top = { name: 'revisions', version: 3, zonePlan: 'diamond', zoneWidth: 12, zoneHeight: 6,
+      includes: [{ name: 'base', version: 1 }, { name: 'base', version: 2 }], setPieceClasses: [] };
+    for (const version of [1, 2]) writeFileSync(path.join(dir, `base@${version}.json`), JSON.stringify({
+      schema: 1, name: 'base', version, tiles: [{ id: `revision-${version}` }],
+    }));
+    // No top file exists: the CLI's already-parsed object must be used as given.
+    const file = path.join(dir, 'library.json');
+    assert.deepEqual(readLibraryFile(file, top).tiles.map(t => t.id), ['revision-1', 'revision-2']);
+    const missing = { ...top, includes: [{ name: 'base', version: 3 }] };
+    assert.throws(() => readLibraryFile(file, missing), /cannot load module base.*base@3.json/);
+    const invalid = { ...top, includes: [{ name: 'base', version: '../2' }] };
+    assert.throws(() => readLibraryFile(file, invalid), /invalid module content version/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

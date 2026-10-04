@@ -173,7 +173,7 @@ test("playground mode places no set pieces and fills the smaller map validly", (
 });
 
 test("game mode keeps its zone size", () => {
-  assert.throws(() => placement("s", { ...PLAYGROUND, mode: "game" }, LIBRARY), /game mode requires 12 x 6 tile zones/);
+  assert.throws(() => placement("s", { ...PLAYGROUND, mode: "game" }, LIBRARY), /authored for 12 x 6 tile zones/);
 });
 
 test("placement fails explicitly, naming what failed", () => {
@@ -274,6 +274,7 @@ test("an any cell may be asked for one class from two sides, never two classes",
  */
 const CORNER_LIBRARY: ChainLibrary = {
   version: CHAIN_LIBRARY_VERSION,
+  name: "test", zonePlan: "diamond", zoneWidth: 12, zoneHeight: 6,
   cellClasses: { open: { regionType: "open-field" }, hut: { regionType: "hut" } },
   tiles: [
     { id: "corner-any", defaultCellClass: "open", cells: ["a.....", "......", "......", "......", "......", "......"], legend: { a: "any" }, orientations: [0] },
@@ -306,4 +307,13 @@ test("the solver never places a tile that asks an any corner for a second class"
   assert.equal(solveCorner(["aim-open-south"]), null);
   // With no middle tile there is no corner cell, so nothing joins A and C.
   assert.equal(solveCorner(["aim-open-south"], false), "aim-open-south");
+});
+
+test("game mode checks the library's authored size instead of a fixed zone limit", () => {
+  const library: ChainLibrary = { version: CHAIN_LIBRARY_VERSION, name: "authored-test", zonePlan: "diamond",
+    zoneWidth: 24, zoneHeight: 12, cellClasses: { open: { regionType: "open" } },
+    tiles: [{ id: "field", defaultCellClass: "open", orientations: [0] }], tileSets: [], setPieces: [], setPieceClasses: [] };
+  const params = { ...PLAYGROUND, mode: "game" as const, zoneWidth: 24, zoneHeight: 12 };
+  assert.equal(placement("authored-size", params, library).slots.length, 13 * 24 * 12);
+  assert.throws(() => placement("mismatch", { ...params, zoneWidth: 12, zoneHeight: 6 }, library), /authored for 24 x 12.*not 12 x 6/);
 });

@@ -1,0 +1,391 @@
+{
+  "schema": 1,
+  "name": "common-set-pieces",
+  "version": 1,
+  "includes": [
+    {
+      "name": "common-primitives",
+      "version": 1
+    }
+  ],
+  "setPieces": [
+    {
+      "id": "landing",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "arrival-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "arrival-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "arrival-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "arrival-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "arrival-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "arrival-grounds"
+        }
+      ],
+      "eligibleTiers": [
+        1
+      ],
+      "primaryRegionClass": "arrival"
+    },
+    {
+      "id": "evac",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "departure-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "departure-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "departure-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "departure-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "departure-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "departure-grounds"
+        }
+      ],
+      "eligibleTiers": [
+        5
+      ],
+      "primaryRegionClass": "departure"
+    },
+    {
+      "id": "charging-station",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "charging-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "charging-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "charging-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "charging-grounds"
+        }
+      ],
+      "eligibleTiers": [
+        2,
+        3,
+        4
+      ],
+      "primaryRegionClass": "charging"
+    },
+    {
+      "id": "transit-station",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "transit-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "transit-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "transit-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "transit-grounds"
+        }
+      ],
+      "primaryRegionClass": "transit"
+    },
+    {
+      "id": "hut-yard",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "hut-quarters",
+          "orientation": 180
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "hut-quarters",
+          "orientation": 270
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "hut-quarters",
+          "orientation": 90
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "hut-quarters",
+          "orientation": 0
+        }
+      ],
+      "primaryRegionClass": "hut"
+    },
+    {
+      "id": "hut-row",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "hut-quarters",
+          "orientation": 180
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "hut-quarters",
+          "orientation": 270
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "hut-quarters",
+          "orientation": 90
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "hut-quarters",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "fields"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "fields"
+        },
+        {
+          "dx": 3,
+          "dy": 0,
+          "tileSetId": "hut-quarters",
+          "orientation": 180
+        },
+        {
+          "dx": 4,
+          "dy": 0,
+          "tileSetId": "hut-quarters",
+          "orientation": 270
+        },
+        {
+          "dx": 3,
+          "dy": 1,
+          "tileSetId": "hut-quarters",
+          "orientation": 90
+        },
+        {
+          "dx": 4,
+          "dy": 1,
+          "tileSetId": "hut-quarters",
+          "orientation": 0
+        }
+      ],
+      "primaryRegionClass": "hut"
+    },
+    {
+      "id": "cover-patch",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "cover-grounds"
+        }
+      ],
+      "primaryRegionClass": "cover"
+    },
+    {
+      "id": "cover-field",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 0,
+          "dy": 2,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "tileSetId": "cover-grounds"
+        },
+        {
+          "dx": 2,
+          "dy": 2,
+          "tileSetId": "cover-grounds"
+        }
+      ],
+      "primaryRegionClass": "cover"
+    },
+    {
+      "id": "rubble-lane",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        }
+      ],
+      "primaryRegionClass": "rubble"
+    },
+    {
+      "id": "rubble-lanes",
+      "tiles": [
+        {
+          "dx": 0,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 1,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 2,
+          "dy": 0,
+          "tileSetId": "rubble-banks",
+          "orientation": 180
+        },
+        {
+          "dx": 0,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        },
+        {
+          "dx": 1,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        },
+        {
+          "dx": 2,
+          "dy": 1,
+          "tileSetId": "rubble-banks",
+          "orientation": 0
+        }
+      ],
+      "primaryRegionClass": "rubble"
+    }
+  ]
+}
