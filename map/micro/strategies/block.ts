@@ -11,8 +11,8 @@ import type { BuiltRegion, Cell, Portal, RegionBrief } from '../types.ts';
 
 /**
  * Clear cells around every lot, to any cell the region doesn't own and to the next lot, as
- * `depot` keeps around a warehouse. A doorway is 2 (52); the third lets the sampled route
- * search see the alley (20).
+ * `depot` once kept around a warehouse. It is the block's own alley width (54), a doorway and
+ * a cell, and stays 3 where `depot`'s aisle is a doorway.
  */
 const AISLE = 3;
 /** A lot's least side: `hut`'s region (54). */

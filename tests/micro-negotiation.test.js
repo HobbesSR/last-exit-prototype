@@ -70,12 +70,14 @@ test('external obligations pass whole to their owner and are proven across the c
   assert.ok(validateRealization(dropped).some(e => /drops or changes inherited requirement west-gate/.test(e)));
   assert.equal(realizeDecomposition(plan).external, undefined, 'artifacts without obligations keep their earlier shape');
 
-  // Where the sampled lattice misses a doorway barely wider than the hunter, the obligation
-  // is proven by chaining children's own routes through crossings they proved from both sides.
+  // The search samples whole and half cells, so a hunter's route across the doorways is found
+  // directly (#175). The bridged fallback, chaining children's own routes through crossings they
+  // proved from both sides, stays for a gap the samples still miss, and is not needed here.
   const children = r => r.regions.map(region => ({ ...region.spec, blockers: region.elements.flatMap(e => elementShapes(e)) }));
   const composed = validateBoundaryComposition(parent([left, right]), children(realized));
   assert.deepEqual(composed.errors, []);
-  assert.ok(composed.bridged.some(b => b.role === 'hunter' && b.from === 'west-gate' && b.to === 'east-gate' && b.via.length === 3));
+  assert.deepEqual(composed.bridged, []);
+  assert.ok(composed.routes.some(r => r.role === 'hunter' && r.from === 'west-gate' && r.to === 'east-gate'));
   const walled = children(realized), corridor = walled.find(c => c.id === 'neck:0:strip');
   corridor.blockers.push(rect(11.5 * 40, 5 * 40, 8, 3 * 40));
   const broken = validateBoundaryComposition(parent([left, right]), walled);

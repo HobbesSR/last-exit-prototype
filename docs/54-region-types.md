@@ -122,10 +122,10 @@ points, and routes that aren't a straight shot.
   29,500-cell region with over 400 portals builds in well under a second.
   - **Slots:** they lie on a lattice one tile (6 cells) apart. Each slot is
     taken with chance `density`, by a cluster of one to three crates,
-    barriers and containers inside a 3 × 3 box.
-  - **The aisle:** a cluster's bounding box keeps 3 clear cells from the next
-    cluster's and from any cell the region doesn't own. That is a door's
-    width plus one, which the sampled route check can see (20).
+    barriers and containers inside a 4 × 4 box.
+  - **The aisle:** a cluster's bounding box keeps 2 clear cells from the next
+    cluster's and from any cell the region doesn't own. That is a doorway
+    (52), which a hunter fits (20.2).
   - **Why that keeps the promise:** each box is convex, with a clear ring
     wider than a hunter around it, so the boxes can't divide the ground
     outside them, where every portal is. Like `open`, a `cover` region keeps
@@ -256,11 +256,10 @@ inside, and windows and doors let sight through.
     two cells inward along it), leaves joined every two portals the empty
     region joined, and has a side whose doorstep the yard joins to a portal.
     A box with a clear ring 2 cells wide passes the last two by shape alone.
-  - **The house:** it stands a quarter cell inside its box, 3½ cells square,
-    with quarter-cell walls and a roof. The door is a doorway wide, centred on
-    the doorstep's side, and a window as wide faces it. The inset makes a
-    door-wide yard visible to the sampled route check (20). With one door, no
-    route runs through the house.
+  - **The house:** it fills its box, 4 cells square, with quarter-cell walls
+    and a roof. The door is a doorway wide, centred on the doorstep's side,
+    and a window as wide faces it. With one door, no route runs through the
+    house.
   - **Why that keeps the promise:** the house takes only its box, so the yard
     joins what the empty region joined. A region with no such box, such as
     the fixture's 2 × 3 huts, goes to `open` (17 M24), so a `hut` region keeps
@@ -286,7 +285,7 @@ inside, and windows and doors let sight through.
   **Built (#159):** `map/micro/strategies/depot.ts`. Like `cover`, it keeps
   its aisles by spacing, not by a route search, so it scales to enormous set
   pieces.
-  - **Lanes:** everything lines up on lanes 4 cells apart along one axis,
+  - **Lanes:** everything lines up on lanes 3 cells apart along one axis,
     drawn from the seed, at a seeded phase.
   - **Warehouses:** `roomCells` long and three quarters of that across, at
     least 5, with quarter-cell walls and a roof. A doorway-wide door is
@@ -296,9 +295,9 @@ inside, and windows and doors let sight through.
     `density` of a quarter of the ground is taken.
   - **Container rows:** two or three 2-cell containers end to end, packed
     along each lane around the warehouses. Each place that fits one is taken
-    with chance `density`, and the next starts 3 cells on, so the aisles run
+    with chance `density`, and the next starts 2 cells on, so the aisles run
     long and end in hard corners.
-  - **Why that keeps the promise:** every piece's box keeps 3 clear cells
+  - **Why that keeps the promise:** every piece's box keeps 2 clear cells
     from every other piece's and from any cell the region doesn't own, as
     `cover`'s clusters do. So a `depot` region keeps the portal promise
     exactly when its shape does.
@@ -337,14 +336,14 @@ inside, and windows and doors let sight through.
     with a door a doorway wide onto the court.
   - **Dead ends:** a 3 × 3 room stands at each corner. It opens only into its
     neighbour along the north or south side, a room or a gate's passage.
-  - **Gates:** `gates` sides, drawn from the seed, each have a passage 3
+  - **Gates:** `gates` sides, drawn from the seed, each have a passage 2
     cells wide through the ring at a seeded place, from a door in the outer
     wall to the court. The passage widens to the corner where what's left
     would be too short for a room. The rest of the ring is closed.
   - **The court:** the open ground inside the ring, at least 4 × 4. It holds
     nothing but loot.
-  - **The lattice:** every door's centre, and each passage's width, are set
-    so the sampled route search sees a hunter through them (20).
+  - **Doors and passages:** every door is centred in its wall, and each
+    passage is a doorway wide (52), so a hunter passes through them.
   - **Why that keeps the promise:** the box keeps 3 clear cells from any cell
     the region doesn't own, as `depot`'s pieces do. It is convex with a clear
     ring wider than a hunter, so it can't divide the yard, where every portal

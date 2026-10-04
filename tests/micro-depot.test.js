@@ -54,11 +54,11 @@ test('every piece keeps an aisle from the next and from the region\'s edge, all 
     const input = brief(name, seed, cells, portals, { density: 1, roomCells: 6 });
     const result = buildRegion(input), mask = createRegionMask(input), boxes = result.elements.map(cellBox);
     for (const [i, box] of boxes.entries()) {
-      for (let y = box.y - 3; y < box.y + box.h + 3; y++) for (let x = box.x - 3; x < box.x + box.w + 3; x++)
-        assert.ok(mask.has(x, y), `${name} ${seed}: ${result.elements[i].label} keeps 3 owned cells around it`);
+      for (let y = box.y - 2; y < box.y + box.h + 2; y++) for (let x = box.x - 2; x < box.x + box.w + 2; x++)
+        assert.ok(mask.has(x, y), `${name} ${seed}: ${result.elements[i].label} keeps 2 owned cells around it`);
       for (const other of boxes.slice(i + 1)) {
         const gap = Math.max(other.x - (box.x + box.w), box.x - (other.x + other.w), other.y - (box.y + box.h), box.y - (other.y + other.h));
-        assert.ok(gap >= 3, `${name} ${seed}: aisle ${gap}`);
+        assert.ok(gap >= 2, `${name} ${seed}: aisle ${gap}`);
       }
     }
     // Rows and warehouses share one long axis.
