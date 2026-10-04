@@ -90,7 +90,7 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
  * The owned rectangle of largest area, in cells, with both sides at least `least`, or nothing.
  * Ties go to the first in row order, so the choice doesn't depend on the brief's cell order.
  */
-export function largestRectangle(mask: RegionMask, least: number): Box | undefined {
+export function largestRectangle(mask: Pick<RegionMask, 'cellSize' | 'bounds' | 'has'>, least: number): Box | undefined {
   const size = mask.cellSize;
   const x0 = Math.round(mask.bounds.x / size), y0 = Math.round(mask.bounds.y / size);
   const w = Math.round(mask.bounds.w / size), h = Math.round(mask.bounds.h / size);

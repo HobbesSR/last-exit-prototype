@@ -373,13 +373,50 @@ inside, and windows and doors let sight through.
   children and dispatches each to another type's builders: `hut`, `depot` or
   `compound` for rooms, `ruins` or `cover` for lobes, and `open` for the
   circulation left over. Region types may borrow each other's builders (19).
+  **Built (#161):** `map/micro/strategies/block.ts`. It is not built on the
+  SDK's decomposition. That search scores candidate pieces in a bounded beam,
+  and its contexts stop at 4,096 cells and 64 per axis. An enormous set piece
+  outgrows both. Instead, the block splits its region by spacing, as `depot`
+  does, so it needs no route search and scales the same way. It reuses
+  `hall`'s largest-rectangle finder and the other types' strategies. That
+  deviation is recorded here for review.
+  - **The split:** the region's bounding box is split, guillotine fashion,
+    across its longer side at a seeded place. Each split leaves an alley 3
+    cells wide between the parts, and splitting stops once no part is longer
+    than 24 cells.
+  - **Lots:** in each part, the lot is the largest rectangle, at least 6 cells
+    a side, of cells with 3 owned cells all round them. So every lot keeps 3
+    clear cells from any cell the region doesn't own and from every other lot.
+    A part with no such rectangle stays alley.
+  - **Children:** each lot is a `hut` (no side over 12), `depot` (sides at
+    least 10), `compound` (at least 16), `ruins`, or `cover` (at least 9)
+    region. Its type is drawn from those its size suits, and it gets its own
+    seed. The alleys, everything left, are one `open` region. Each child's
+    zones are the block's, cut to its cells. `planBlock` returns the child
+    briefs, and the block's result gathers the children's geometry, loot and
+    manifest counts. Each element's label is prefixed with its lot.
+  - **Frontages:** each lot has two portals onto the alleys, the two whole
+    sides at a seeded corner. Two, not one, so the lot is a passage its
+    strategy must keep joined, rather than a pocket that owes nothing. A `hut`
+    still fits in the far corner of the smallest lot. The alleys hold every
+    frontage and every one of the block's own portals.
+  - **Why that keeps the promise:** a lot is a convex box with a clear ring
+    wider than a hunter around it, in the alleys, so the lots can't divide the
+    alleys, as `depot`'s pieces can't divide its yard. Every one of the block's
+    portals lies on the alleys, so the block keeps its promise exactly when
+    its shape does. Each lot keeps its own promise between its frontages.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
+  - **Too small:** a region with no contained 12 × 12 (a 6 × 6 lot and its
+    alley) goes to `open` (17 M24).
 - **Obligations:** every two children that share a boundary have at least
   one portal between them (51 stage 6, Corey 2026-10-01). Each child keeps its
-  own promise, so the block's portals are joined by inference.
-- **Shape needs:** *proposed*, at least two tiles' worth, 72 cells. Today's
-  decomposition contexts stop at 4,096 cells and 64 per axis, which this type
-  raises when it is built (20, "Next boundaries").
+  own promise, so the block's portals are joined by inference. As built, lots
+  touch only the alleys, through their frontages.
+- **Shape needs:** *proposed*, at least two tiles' worth, 72 cells. As built,
+  a contained 12 × 12 for one lot with its alley.
 - **Formed by:** enormous set pieces.
+- **Parameters:** none yet. Each lot's type takes its own defaults.
 - **Material:** `decomposition/example.ts` and `decomposition/realize.ts`, the
   demonstration strategy.
 
@@ -488,7 +525,7 @@ keeps those names.
 | `hut` | the room shell in `builders.ts` (built, #129) | `compound` |
 | `depot` | `example-depot` (built, #159) | — |
 | `compound` | `example-courtyard`, 19's ring example (built, #160) | `courtyard`, `compound` |
-| `block` | `decomposition/example.ts`, `realize.ts`, `negotiate.ts` | — |
+| `block` | `decomposition/example.ts`, `realize.ts`, `negotiate.ts` (built on spacing instead, #161) | — |
 | `arrival` | `example-entry`, `spreadPoints` | — |
 | `departure` | `spreadPoints` (built, #131) | — |
 | `charging` | `spreadPoints` (built, #132) | — |
