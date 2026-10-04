@@ -169,6 +169,35 @@ sample. This does not reproduce the user's sustained crowded-scene slowdown.
 Local raw results are under `test-results/bench-{live,legacy}-{1,2,3}.json` and
 `test-results/bench-client-{live,dense-live,crowd-live}.json`.
 
+## Client draw cost on a real GPU (2026-10-04)
+
+Measured in **headed** Chrome on this machine's GPU, at the viewport from the user's Sep 13
+diagnostics capture (1996 by 969, device pixel ratio 1.925). Seed 4217, entry location, a bot
+match with the player walking. Three 30-second runs per side, alternated and sequential. The
+before side is `forgejo/main` at `4542b1b`; the after side rasterises static geometry into
+cached tiles ([29](29-geometry-and-drawing.md)).
+
+| Side | Frame interval mean / p95 | fps | Phaser render step mean | Our `update()` mean |
+| --- | ---: | ---: | ---: | ---: |
+| Before | 48.2–48.9 / 66.7 ms | 20.5–20.7 | 46.1–46.8 ms | 1.11–1.12 ms |
+| After | 16.7 / 16.8 ms | 60.0 (vsync) | 3.86–3.95 ms | 1.44–1.47 ms |
+
+Before the change, Phaser's step was nearly the whole frame, and a CPU profile put most of it in
+Earcut and `batchFillPath`. Hiding layers one at a time at 1440 by 1000 confirmed the source:
+roofs, shade and floor changed nothing, and hiding the static chunks took the step from 21 ms to
+0.8 ms. The 5 visible chunks held 15,863 commands. The JavaScript profile had shown 0.45 ms
+because `render.frame` stops before Phaser renders. That is why #180 read the cost as GPU raster;
+`render.draw` now times that pass. After the change, `update()` grows by about 0.4 ms,
+because tiles are rasterised inside it as they come into view; its worst frame was 12 ms. No
+frame exceeded 17 ms on the after side.
+
+The same probe, in a 40-second crowded AI arrangement and in a normal 40-second match, recorded no
+frame over 100 ms on either side. A server tick bench across six seeds (4217, 1, 2, 3, 77, 1234)
+had worst ticks of 45–82 ms, with `sim.repath` at most 8 ms. Neither reproduces the reported
+freezes of one to several seconds. Diagnostics downloads now keep every frame over 250 ms for the
+whole session (`timings.hitches`), so the next capture includes a freeze even if it happened
+minutes before the download.
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including

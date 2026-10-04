@@ -290,7 +290,11 @@ $('download-diagnostics').onclick = () => void downloadDiagnostics();
 $('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) { ws.send(JSON.stringify({ type: 'finish' })); $('finish-recording').disabled = true; } };
 $('watch-match').onclick = () => { if (savedReplay) void replayController.watch(savedReplay.id); };
 icons();
-new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: '#253f3f', antialias: true, scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' }, scene: ArenaScene, audio: { noAudio: true }, render: { preserveDrawingBuffer: true } });
+const game = new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: '#253f3f', antialias: true, scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' }, scene: ArenaScene, audio: { noAudio: true }, render: { preserveDrawingBuffer: true } });
+// Phaser's own render pass runs after the scene's update, outside render.frame. It is where Graphics
+// are tessellated and batched, so it must be timed separately or draw cost is invisible here.
+game.events.on('prerender', () => profiler.start('render.draw'));
+game.events.on('postrender', () => profiler.stop('render.draw'));
 setInterval(inputTick, 50);
 const initialParams = new URLSearchParams(location.search);
 const initialRoom = initialParams.get('room');
