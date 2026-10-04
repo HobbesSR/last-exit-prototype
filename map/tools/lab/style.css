@@ -526,6 +526,9 @@ main {
     max-height: none;
     height: auto !important;
   }
+  .diagnostics.collapsed {
+    display: grid !important;
+  }
   .panel + .panel {
     border-left: 0;
     border-top: 1px solid #28343e;

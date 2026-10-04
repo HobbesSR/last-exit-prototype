@@ -172,7 +172,8 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   - **Inspecting:** clicking a cell fills the inspector, and hovering shows
     its first lines. Zoom with the wheel or the buttons; Reset fits the
     map, which the readout calls 100%.
-  - **The report** shows beside `diagnoseBuiltMap` in a bottom pane that can be resized or collapsed by clicking its top border. Generation, reading a
+  - **The report** shows beside `diagnoseBuiltMap` in a bottom pane that can be
+    resized or collapsed by clicking its top border. Generation, reading a
     save and the diagnostic run in a worker, and the diagnostic runs only on
     request and can be cancelled.
   - **Saving:** wire 7 as JSON or BSON, or the Layout alone. A save loads

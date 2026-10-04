@@ -798,31 +798,59 @@ const resizer = $("diagnosticsResizer") as HTMLDivElement;
 const diagnosticsPane = $("diagnosticsPane") as HTMLDivElement;
 const worldMain = document.querySelector(".world-main") as HTMLElement;
 
-const savedResizer = localStorage.getItem("mapLabDiagnostics");
+let paneCollapsed = false;
+let paneHeight = 0;
+
+const savedResizer = (() => {
+  try { return localStorage.getItem("mapLabDiagnostics"); }
+  catch (e) { return null; }
+})();
+
 if (savedResizer) {
   try {
     const state = JSON.parse(savedResizer);
-    if (state.collapsed) {
-      resizer.classList.add("collapsed");
-      diagnosticsPane.classList.add("collapsed");
-    }
-    if (state.height) {
-      diagnosticsPane.style.height = `${state.height}px`;
-      diagnosticsPane.style.maxHeight = 'none';
-    }
+    if (state.collapsed) paneCollapsed = true;
+    if (state.height) paneHeight = state.height;
   } catch (e) {}
 }
 
 function saveResizerState() {
-  localStorage.setItem("mapLabDiagnostics", JSON.stringify({
-    collapsed: resizer.classList.contains("collapsed"),
-    height: parseInt(diagnosticsPane.style.height) || 0
-  }));
+  try {
+    localStorage.setItem("mapLabDiagnostics", JSON.stringify({
+      collapsed: paneCollapsed,
+      height: paneHeight
+    }));
+  } catch (e) {}
+}
+
+function applyPaneHeight() {
+  if (paneCollapsed) {
+    resizer.classList.add("collapsed");
+    diagnosticsPane.classList.add("collapsed");
+    diagnosticsPane.style.height = '';
+    diagnosticsPane.style.maxHeight = '';
+    return;
+  }
+  resizer.classList.remove("collapsed");
+  diagnosticsPane.classList.remove("collapsed");
+  
+  if (paneHeight) {
+    const maxH = worldMain.clientHeight - 240 - resizer.offsetHeight;
+    let newH = paneHeight;
+    if (newH < 40) newH = 40;
+    if (newH > maxH) newH = maxH;
+    
+    diagnosticsPane.style.height = `${newH}px`;
+    diagnosticsPane.style.maxHeight = 'none';
+  } else {
+    diagnosticsPane.style.height = '';
+    diagnosticsPane.style.maxHeight = '';
+  }
 }
 
 function toggleResizer() {
-  const isCollapsed = resizer.classList.toggle("collapsed");
-  diagnosticsPane.classList.toggle("collapsed", isCollapsed);
+  paneCollapsed = !paneCollapsed;
+  applyPaneHeight();
   saveResizerState();
 }
 
@@ -836,27 +864,21 @@ resizer.onkeydown = (event) => {
 let resizerDrag: { startY: number; startHeight: number; moved: boolean } | null = null;
 resizer.onpointerdown = (event) => {
   resizer.setPointerCapture(event.pointerId);
-  resizerDrag = { startY: event.clientY, startHeight: diagnosticsPane.offsetHeight, moved: false };
+  resizerDrag = { startY: event.clientY, startHeight: paneHeight || diagnosticsPane.offsetHeight, moved: false };
 };
 resizer.onpointermove = (event) => {
   if (!resizerDrag) return;
   const dy = resizerDrag.startY - event.clientY;
   if (Math.abs(dy) > 3) {
     if (!resizerDrag.moved) {
-      resizer.classList.remove("collapsed");
-      diagnosticsPane.classList.remove("collapsed");
+      paneCollapsed = false;
     }
     resizerDrag.moved = true;
   }
   if (!resizerDrag.moved) return;
 
-  const maxH = worldMain.clientHeight - 240 - resizer.offsetHeight;
-  let newH = resizerDrag.startHeight + dy;
-  if (newH < 40) newH = 40;
-  if (newH > maxH) newH = maxH;
-
-  diagnosticsPane.style.height = `${newH}px`;
-  diagnosticsPane.style.maxHeight = 'none';
+  paneHeight = resizerDrag.startHeight + dy;
+  applyPaneHeight();
 };
 const stopDrag = () => {
   if (resizerDrag) {
@@ -865,6 +887,17 @@ const stopDrag = () => {
   }
   resizerDrag = null;
 };
+const cancelDrag = () => {
+  resizerDrag = null;
+};
 resizer.onpointerup = stopDrag;
-resizer.onpointercancel = stopDrag;
-resizer.onlostpointercapture = stopDrag;
+resizer.onpointercancel = cancelDrag;
+resizer.onlostpointercapture = cancelDrag;
+
+// Hook into window resize to re-clamp
+new ResizeObserver(() => {
+  if (!paneCollapsed && paneHeight) applyPaneHeight();
+}).observe(worldMain);
+
+// Initial application
+applyPaneHeight();
