@@ -31,6 +31,7 @@ test('building design validation rejects broken identities and obsolete connecti
     { ...design, connections: [connection('missing', 'door', { b: 'unknown' })] },
     { ...design, connections: [connection('same'), connection('same')] },
     { ...design, connections: [connection('self', 'door', { b: 'room' })] },
+    { ...design, connections: [connection('interior-side', 'open', { b: 'hall', side: 'E' })] },
     { ...design, connections: [connection('obsolete', 'squeeze')] },
     { ...design, connections: [connection('obsolete', 'wall')] },
     { spaces: [{ ...space('room'), area: { min: 3, max: 2 } }], connections: [] },
@@ -139,6 +140,24 @@ test('concave, holed and diagonally touching footprints contain every emitted wa
     assert.equal(roof.template, undefined);
     assert.match(roof.issues.join(' '), /rectangular roof/);
   }
+});
+
+test('concave corners are owned by a wall rather than meeting at a point', () => {
+  const t = 0.25, size = 40, covered = (result, x, y) => result.template.parts.some(part => part.part === 'obstacle'
+    && part.shape.x < x * size && x * size < part.shape.x + part.shape.w && part.shape.y < y * size && y * size < part.shape.y + part.shape.h);
+  for (const [cells, corners] of [
+    [cellsOf(5, 5, (x, y) => x < 2 || y < 2), [[2 - t / 2, 2 - t / 2]]],
+    [cellsOf(6, 6, (x, y) => x < 2 || x >= 4 || y < 2 || y >= 4), [[2 - t / 2, 2 - t / 2], [4 + t / 2, 2 - t / 2], [2 - t / 2, 4 + t / 2], [4 + t / 2, 4 + t / 2]]],
+  ]) for (const mode of ['overlap', 'horizontal']) {
+    const result = realizeBuilding(designOf(), allocationOf(cells), { cellSize: size, thickness: t, encloses: false, corners: mode });
+    for (const [x, y] of corners) assert.ok(covered(result, x, y), `${mode} corner near ${x},${y}`);
+  }
+});
+
+test('corner trims that consume a whole wall run are refused, not emitted', () => {
+  const result = realizeBuilding(designOf(), allocationOf(cellsOf(1, 1)), { cellSize: 40, thickness: 1, encloses: true, corners: 'horizontal' });
+  assert.match(result.issues.join(' '), /Corner trims consume a wall run/);
+  assert.equal(result.template, undefined);
 });
 
 test('invalid ownership is reported before any template can escape its footprint', () => {

@@ -50,17 +50,25 @@ export function realizeBuilding(design: BuildingDesign, allocation: BuildingAllo
     return result;
   }
   const cells = new Set(allocation.footprint.map(c => `${c.x},${c.y}`));
-  const walls: (BuildingRunLimits & { offset: number; side: BuildingSide | null })[] = [];
+  const walls: (BuildingRunLimits & { offset: number; side: BuildingSide | null; extendStart: number; extendEnd: number })[] = [];
   for (const pair of result.boundaries) pair.runs.forEach((run, i) => {
     const side = pair.runSides[i]!;
     const offset = side === 'N' || side === 'W' ? 0 : side === 'S' || side === 'E' ? -thickness : -thickness / 2;
-    let trimStart = 0, trimEnd = 0;
+    let trimStart = 0, trimEnd = 0, extendStart = 0, extendEnd = 0;
     if (options.corners === 'horizontal' && (side === 'E' || side === 'W')) {
       const insideX = run.x - (side === 'E' ? 1 : 0);
       if (!cells.has(`${insideX},${run.y - 1}`)) trimStart = thickness;
       if (!cells.has(`${insideX},${run.y + run.length}`)) trimEnd = thickness;
     }
-    walls.push({ a: pair.a, b: pair.b, run, side, offset, trimStart, trimEnd });
+    // At a concave corner the two inward walls would meet only at a point. The horizontal wall
+    // owns that corner in either mode, reaching into the footprint cell beyond its run.
+    if (side === 'N' || side === 'S') {
+      const inside = side === 'S' ? run.y - 1 : run.y, outside = side === 'S' ? run.y : run.y - 1;
+      const concave = (x: number) => cells.has(`${x},${inside}`) && cells.has(`${x},${outside}`);
+      if (concave(run.x - 1)) extendStart = thickness;
+      if (concave(run.x + run.length)) extendEnd = thickness;
+    }
+    walls.push({ a: pair.a, b: pair.b, run, side, offset, trimStart, trimEnd, extendStart, extendEnd });
   });
   if (walls.some(wall => wall.trimStart + wall.trimEnd > wall.run.length)) {
     result.issues.push('Corner trims consume a wall run.'); return result;
@@ -69,8 +77,9 @@ export function realizeBuilding(design: BuildingDesign, allocation: BuildingAllo
   walls.sort((a, b) => (a.side === null ? 4 : order.indexOf(a.side)) - (b.side === null ? 4 : order.indexOf(b.side)));
   const parts: ElementTemplate['parts'] = [], gates: ElementTemplate['parts'] = [];
   for (const wall of walls) {
-    const openings = result.openings.filter(opening => opening.a === wall.a && opening.b === wall.b && sameBuildingRun(opening.run, wall.run));
-    const emitted = emitWallRun({ ...wall.run, x: wall.run.x - x0, y: wall.run.y - y0 },
+    const openings = result.openings.filter(opening => opening.a === wall.a && opening.b === wall.b && sameBuildingRun(opening.run, wall.run))
+      .map(opening => ({ ...opening, center: opening.center + wall.extendStart }));
+    const emitted = emitWallRun({ ...wall.run, x: wall.run.x - x0 - wall.extendStart, y: wall.run.y - y0, length: wall.run.length + wall.extendStart + wall.extendEnd },
       { cellSize: options.cellSize, thickness, offset: wall.offset, trimStart: wall.trimStart, trimEnd: wall.trimEnd, openings });
     parts.push(...emitted.filter(part => part.part === 'obstacle'));
     gates.push(...emitted.filter(part => part.part === 'gate'));

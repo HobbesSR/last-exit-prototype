@@ -45,6 +45,8 @@ export function validateBuildingDesign(design: BuildingDesign): string[] {
     if (connection.a === connection.b) issues.push(`Self connection: ${connection.id}`);
     if (!['door', 'open', 'window'].includes(connection.kind)) issues.push(`Invalid connection kind: ${connection.id}`);
     if (connection.side !== undefined && !['N', 'E', 'S', 'W'].includes(connection.side)) issues.push(`Invalid side: ${connection.id}`);
+    // Interior boundaries have no exterior side, so the preference could never be met.
+    if (connection.side !== undefined && connection.a !== OUTSIDE && connection.b !== OUTSIDE) issues.push(`A side needs an outside end: ${connection.id}`);
   }
   return issues;
 }

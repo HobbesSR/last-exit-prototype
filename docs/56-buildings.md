@@ -161,7 +161,8 @@ The SDK exports these pure passes from `map/micro/building/`:
 - `validateBuildingDesign` checks identities, references and well-formed guidance.
   Spaces carry an `area` range, an optional `outside` preference and tags.
   Connections have an id, owners `a` and `b`, a `door`, `open` or `window` kind,
-  and an optional exterior `side`. The reserved owner `outside` includes holes.
+  and an optional exterior `side`, which only a connection with an `outside`
+  end may carry. The reserved owner `outside` includes holes.
   There is no required flag, and validation does not demand connected spaces or
   that the allocation meet the area guidance.
 - `deriveBuildingBoundaries` takes a footprint and the spaces' assigned cells.
@@ -182,7 +183,10 @@ The SDK exports these pure passes from `map/micro/building/`:
   `origin`. Geometry is local to the footprint's bounding-box origin. It emits
   perimeter walls inward, shared interior walls once, and gates after obstacles.
   Callers can select exterior assembly order and horizontal ownership of convex
-  corners. Thickness is in `(0, 1]` cells, keeping walls within their cells.
+  corners. At a concave corner the horizontal wall always extends by the wall
+  thickness, so the two inward walls don't meet only at a point. Corner trims
+  that would consume a whole run are refused as an issue. Thickness is in
+  `(0, 1]` cells, keeping walls within their cells.
 
 The current element roof is a rectangle. An enclosing realization therefore
 requires a filled rectangular footprint; concave or holed footprints can emit
