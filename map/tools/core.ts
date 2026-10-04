@@ -3,7 +3,7 @@
  * chain maps with the game's engines. Every surface calls these, so they agree on seed,
  * params, library, validation and saved output. It runs in Node and the browser alike.
  */
-import { checkedLibrary, chainParams, generate, seedText } from '../chain.ts';
+import { bundledLibrary, checkedLibrary, chainParams, generate, seedText } from '../chain.ts';
 import type { GameChainMap } from '../chain.ts';
 import { mapViews } from '../macro/src/chain/map.ts';
 import { decodeChainMap, readChainMap } from '../macro/src/chain/saving.ts';
@@ -12,7 +12,7 @@ import { diagnoseBuiltMap } from '../micro/diagnose.ts';
 import type { BrokenPromise } from '../micro/diagnose.ts';
 import { GAME_ENGINES } from './engines.ts';
 
-export { CHAIN_LIBRARY, chainParams, generate, validateLibrary } from '../chain.ts';
+export { CHAIN_LIBRARIES, CHAIN_LIBRARY, bundledLibrary, chainParams, generate, validateLibrary } from '../chain.ts';
 export type ToolMap = GameChainMap;
 
 
@@ -114,7 +114,10 @@ export interface BatchReport {
   /** No seed failed, and no map has a defect. */
   valid: boolean;
   diagnosed: boolean;
-  /** Each map's report metrics, plus `generateMs` and `defects`. */
+  /**
+   * Each map's report metrics, plus `generateMs`, `defects`, `setPieceShare` (the share of
+   * tiles set pieces cover) and `lootPerTile`.
+   */
   metrics: Record<string, Distribution>;
   /** Seeds whose map was found with defects, and what they were. */
   defective: Array<{ seed: string; defects: string[] }>;
@@ -128,7 +131,7 @@ export function batch(seedPrefix: unknown = 'batch', count: unknown = 20, params
   const prefix = seedText(seedPrefix), n = Number(count);
   if (!Number.isInteger(n) || n < 1 || n > MAX_BATCH_COUNT) throw new Error(`count must be an integer from 1 to ${MAX_BATCH_COUNT}`);
   // Both are checked once, before any map is made.
-  const checked = checkedLibrary(library), resolved = chainParams(params);
+  const resolved = chainParams(params), checked = checkedLibrary(library ?? bundledLibrary(resolved));
   const measured: Array<Record<string, number>> = [];
   const defective: BatchReport['defective'] = [];
   const failures: BatchReport['failures'] = [];
@@ -139,7 +142,12 @@ export function batch(seedPrefix: unknown = 'batch', count: unknown = 20, params
       const map = generate(seed, resolved, checked);
       const generateMs = performance.now() - started;
       const check = checkMap(map, { diagnose });
-      measured.push({ ...check.metrics, generateMs, defects: check.defects.length + (check.brokenPromises?.length ?? 0) });
+      const tiles = map.layout.slots.length;
+      const setPieceTiles = map.layout.setPieces.reduce((sum, instance) => sum + instance.slots.length, 0);
+      measured.push({
+        ...check.metrics, generateMs, setPieceShare: setPieceTiles / tiles, lootPerTile: check.metrics.loot / tiles,
+        defects: check.defects.length + (check.brokenPromises?.length ?? 0),
+      });
       if (!check.valid) defective.push({ seed, defects: [
         ...check.defects.map(defect => `${defect.kind}: ${defect.message}`),
         ...(check.brokenPromises ?? []).map(broken => `broken-promise (diagnostic): ${broken.region}: ${broken.errors.join('; ')}`),

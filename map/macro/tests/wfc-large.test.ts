@@ -10,7 +10,7 @@ import { placement } from "../src/chain/placement.ts";
 import { resolveLibrary } from "../src/chain/library.ts";
 import type { ChainLibrary } from "../src/chain/library.ts";
 import type { ChainParams } from "../src/chain/types.ts";
-import { solveWfc } from "../src/wfc.ts";
+import { solveWfc, wfcIterationCap } from "../src/wfc.ts";
 import type { TileOption, WfcGrid } from "../src/wfc.ts";
 
 const content = (name: string): unknown => JSON.parse(readFileSync(new URL(`../content/${name}.json`, import.meta.url), "utf8"));
@@ -38,4 +38,25 @@ test("a 36 x 18 zone playground places every slot", () => {
   const layout = placement("wfc-large-1", params, LIBRARY);
   assert.ok(layout.slots.length > 8000);
   assert.equal(new Set(layout.slots.map((slot) => `${slot.col},${slot.row}`)).size, layout.slots.length);
+});
+
+test("the search cap scales with the grid, and 12 x 6 zones keep the 10,000 they had", () => {
+  assert.equal(wfcIterationCap(936), 10_000);
+  assert.equal(wfcIterationCap(3744), 37_440);
+  assert.equal(wfcIterationCap(8424), 84_240);
+});
+
+test("options of one kind share an id and a table, however many fixed slots carry them", () => {
+  // Every pre-assigned set piece slot is its own option object; a table per object grew
+  // with the square of them (#171).
+  const cells = 5000;
+  const fixed = (): TileOption => ({ templateId: "ground", orientation: 0, difficulty: 0, weight: 1 });
+  const grid: WfcGrid = Array.from({ length: cells }, (_, i) => ({
+    x: i, y: 0, domain: [fixed()],
+    links: [...(i > 0 ? [{ cell: i - 1, relation: "W" }] : []), ...(i < cells - 1 ? [{ cell: i + 1, relation: "E" }] : [])],
+  }));
+  const solved = solveWfc(grid, cells, 1, () => true, () => 0.5);
+  assert.ok(solved);
+  assert.equal(new Set(solved.map((cell) => cell.domain[0]!.id)).size, 1);
+  assert.equal(new Set(solved.map((cell) => cell.domain[0]!.valid)).size, 1);
 });

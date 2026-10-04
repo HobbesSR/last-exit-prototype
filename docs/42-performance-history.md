@@ -198,6 +198,32 @@ freezes of one to several seconds. Diagnostics downloads now keep every frame ov
 whole session (`timings.hitches`), so the next capture includes a freeze even if it happened
 minutes before the download.
 
+## Map generation at each authored size (2026-10-04)
+
+Measured on Node 24.15.0 on `claude/s6-larger-libraries` (from `602de89`), with
+the bundled library for each size (52, #171): 20 game seeds per size, run one
+size after another with no concurrent test or benchmark work. Generation is
+placement through region building, without the report.
+
+| Zone size | Tiles | Set piece share, median (range) | Loot sites, median | Loot per tile, median | Generation, median (max) | WFC nodes, max / cap |
+| --- | ---: | --- | ---: | ---: | --- | --- |
+| 12 × 6 | 936 | 54.8% (53.1–57.5%) | 974 | 1.04 | 253 ms (444) | 424 / 10,000 |
+| 24 × 12 | 3,744 | 52.1% (50.1–53.5%) | 3,987 | 1.07 | 1,314 ms (2,672) | 1,798 / 37,440 |
+| 36 × 18 | 8,424 | 53.6% (52.3–54.9%) | 9,764 | 1.16 | 4,455 ms (5,669) | 3,760 / 84,240 |
+
+Every map placed on its first attempt with no defects. The search cap is now
+10 nodes a cell and never under 10,000 (`wfcIterationCap`), so 12 × 6 keeps
+its 10,000. Before set pieces covered half the map, a 36 × 18 fill took about
+6,800 nodes, near the old fixed cap.
+
+The WFC solver used to keep a compatibility table per option. Every
+pre-assigned set piece slot is its own option, so the tables grew with the
+square of set piece slots, and a 36 × 18 placement ran out of a 4 GB heap.
+Options of one kind now share an id and a table. The sweep baseline is
+unchanged over 224 maps. The median 12 × 6 generation over the same 20 seeds
+fell from 488 and 503 ms to 265 and 257 ms, two runs each. Live per-tick cost at the larger sizes isn't measured; live
+matches stay at 12 × 6 (55).
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including

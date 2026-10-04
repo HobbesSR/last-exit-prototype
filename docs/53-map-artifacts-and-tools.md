@@ -135,16 +135,19 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
 - **The tools live in `map/tools/`,** since they show both halves (17, "Where
   the tools live"). `engines.ts` is the one place the game's strategies are
   lent to macro as `MapEngines`. `core.ts` is what the Map Lab, CLI and MCP
-  share: params over `DEFAULT_CHAIN_PARAMS`, the chain's library (imported as
-  JSON, so it runs in Node and the browser alike), the report, and
+  share: params over `DEFAULT_CHAIN_PARAMS`, the chain's libraries (imported
+  as JSON, so they run in Node and the browser alike), the report, and
   `diagnoseBuiltMap` beside it on request, since it takes about a minute on a
-  game map. A game map generates in about 0.6 s, and saves to about 200 KB of
-  wire JSON, or 11 KB as the Layout alone.
+  game map. Without a library of its own, a map takes the bundled one
+  authored for its zone size (52). A 12 × 6 game map generates in about
+  0.25 s, and saves to about 200 KB of wire JSON, or 11 KB as the Layout
+  alone; 24 × 12 takes about 1.3 s and 36 × 18 about 4.5 s (42).
 - **Map Lab** (`map/tools/lab/`, `npm run lab` from the repository root, port
   4173 or the worktree's `MAPGEN_PORT`). It's the primary review surface for
   the chain.
-  - **World:** seed, mode, zone size and spawn counts; the chain's library or
-    the Chain Library tab's draft. Every view comes through `mapViews`: the
+  - **World:** seed, mode, zone size and spawn counts; the chain's library
+    for the zone size or the Chain Library tab's draft. A size menu lists
+    the authored sizes and sets the zone size. Every view comes through `mapViews`: the
     cells coloured by declared or resolved class, region, proof component or
     zone tier, with boundaries and portals, the built map's geometry, core
     element sites, loot and defects over them, and an inspector per cell.
@@ -157,8 +160,8 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   - **The Chain Library tab** (51 B1) authors the version 3 schema, validates
     import and export, and previews tile-local derived portals and invalid
     passable prescriptions. Its perimeter preview is provisional until
-    placement resolves neighboring tiles. It can load the chain's library to
-    edit it.
+    placement resolves neighboring tiles. It can load the chain's library for
+    the World tab's zone size to edit it.
   - **Serving:** `map/tools/server.mts` serves the lab, macro's `src/` and
     `content/`, `map/micro/`, `map/kernel/`, `shared/`, and the two map-level
     entry modules `map/chain.ts` and `map/engines.ts` at their repository
@@ -169,14 +172,15 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
 - **CLI** (`node map/tools/cli.mts`, from the repository root): `generate`
   (JSON or BSON, or `--layout-only true`), `validate` (a saved map, read with
   the library it was made from, or a library; `--diagnose true`), `batch`
-  (sample size, metric distributions, defects and failures), `library` and
-  `sweep` (above).
+  (sample size, metric distributions with generation time, set piece share
+  and loot per tile, defects and failures), `library` (for
+  `--zone-width` and `--zone-height`, by default 12 × 6) and `sweep` (above).
   Module files use `name@version.json`; all includes, including nested ones,
   resolve beside the top library file, not relative to the including module.
 - **MCP** (`node map/tools/mcp.mts`): bounded stdio tools `map_generate`,
   which returns the wire map with its report, `map_validate`,
   `library_validate`, `map_batch` (at most 5 maps when diagnosed) and
-  `library_get`. It is registered in the workspace `.agents/mcp_config.json` for agent use.
+  `library_get` (for the zone size in its `params`). It is registered in the workspace `.agents/mcp_config.json` for agent use.
 - **The game's micro tools** (the micro lab, the decomposition lab, the
   generation demo, and the `micro-region` and `decompose-region` CLIs) are
   in 20. All the browser tools share one navigation bar.

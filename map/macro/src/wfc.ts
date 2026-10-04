@@ -93,8 +93,15 @@ export interface WfcOptions {
   accept?: WfcAccept;
 }
 
+/**
+ * The default search cap: 10 nodes a cell, and never under 10,000. A solve makes about one
+ * choice a free cell before any backtracking, so a fixed cap ran out on 36 x 18 zones
+ * (#171). Every game map at 12 x 6 zones keeps the 10,000 it always had.
+ */
+export const wfcIterationCap = (cells: number): number => Math.max(10_000, 10 * cells);
+
 export function solveWfc(grid: WfcGrid, columns: number, rows: number, compatible: WfcCompatibility, random: () => number, options: WfcOptions = {}): WfcGrid | null {
-  return search(grid, columns, rows, compatible, random, options.state ?? { iterations: 0, maxIterations: 10000 }, options.accept);
+  return search(grid, columns, rows, compatible, random, options.state ?? { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, options.accept);
 }
 
 /**
@@ -128,6 +135,10 @@ interface Frame {
 /**
  * Assigns ids and precalculates, for each option and relation, the ids it admits across
  * it. Choices only narrow domains, so it runs once, before the first node.
+ *
+ * Compatibility depends only on template and orientation, so the options of one kind
+ * share an id and one table. Every pre-assigned set piece slot is its own option object,
+ * and a table per option grew with the square of those slots (#171).
  */
 function prepare(grid: WfcGrid, compatible: WfcCompatibility): void {
   const allOpts = new Set<TileOption>();
@@ -136,43 +147,26 @@ function prepare(grid: WfcGrid, compatible: WfcCompatibility): void {
     for (let j = 0; j < cell.domain.length; j++) allOpts.add(cell.domain[j]!);
   }
   const domain = Array.from(allOpts);
+  if (domain.every((opt) => opt.id !== undefined)) return;
 
-  let needsPrecalc = false;
-  let nextId = 0;
+  const byKind = new Map<string, TileOption[]>();
   for (const opt of domain) {
-    if (opt.id === undefined) {
-      opt.id = nextId++;
-      needsPrecalc = true;
-    } else {
-      if (opt.id >= nextId) nextId = opt.id + 1;
-    }
+    const kind = `${opt.templateId}@${opt.orientation}`;
+    const kin = byKind.get(kind);
+    if (kin) kin.push(opt);
+    else byKind.set(kind, [opt]);
   }
-
-  if (needsPrecalc) {
-    const relations = [...new Set(grid.flatMap((c) => c.links.map((link) => link.relation)))];
-    for (const opt of domain) opt.valid = new Map(relations.map((relation) => [relation, new Set<number>()]));
-    // Compatibility depends only on template and orientation, and every
-    // pre-assigned set-piece slot is its own option object, so match each
-    // distinct pair once and share the answer across its options.
-    const byKind = new Map<string, TileOption[]>();
-    for (const opt of domain) {
-      const kind = `${opt.templateId}@${opt.orientation}`;
-      const kin = byKind.get(kind);
-      if (kin) kin.push(opt);
-      else byKind.set(kind, [opt]);
+  const kinds = [...byKind.values()];
+  const relations = [...new Set(grid.flatMap((c) => c.links.map((link) => link.relation)))];
+  kinds.forEach((kin, id) => {
+    const valid = new Map(relations.map((relation) => [relation, new Set<number>()]));
+    for (const opt of kin) {
+      opt.id = id;
+      opt.valid = valid;
     }
-    const kinds = [...byKind.values()];
-    for (const mine of kinds) {
-      const opt = mine[0]!;
-      for (const theirs of kinds) {
-        const nOpt = theirs[0]!;
-        for (const relation of relations) {
-          if (!compatible(opt, relation, nOpt)) continue;
-          for (const o of mine) for (const n of theirs) o.valid!.get(relation)!.add(n.id!);
-        }
-      }
-    }
-  }
+  });
+  for (const mine of kinds) for (const [id, theirs] of kinds.entries()) for (const relation of relations)
+    if (compatible(mine[0]!, relation, theirs[0]!)) mine[0]!.valid!.get(relation)!.add(id);
 }
 
 /**

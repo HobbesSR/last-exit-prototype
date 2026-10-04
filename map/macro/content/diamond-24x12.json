@@ -1,0 +1,115 @@
+{
+  "name": "diamond-24x12",
+  "version": 3,
+  "zonePlan": "diamond",
+  "zoneWidth": 24,
+  "zoneHeight": 12,
+  "includes": [
+    {
+      "name": "common-primitives",
+      "version": 2
+    },
+    {
+      "name": "common-set-pieces",
+      "version": 2
+    },
+    {
+      "name": "district-set-pieces",
+      "version": 1
+    }
+  ],
+  "setPieceClasses": [
+    {
+      "id": "start",
+      "placementRule": "start",
+      "quota": 1,
+      "setPieces": [
+        "landing"
+      ],
+      "coreElements": {
+        "spawn": "contestantCount"
+      }
+    },
+    {
+      "id": "end",
+      "placementRule": "end",
+      "quota": 1,
+      "setPieces": [
+        "evac"
+      ],
+      "coreElements": {
+        "exit": "exitCount",
+        "hunter-spawn": "hunterCount"
+      }
+    },
+    {
+      "id": "enormous",
+      "placementRule": "enormous",
+      "quota": 3,
+      "setPieces": [
+        "market-district",
+        "industrial-estate",
+        "downtown",
+        "garrison",
+        "old-town"
+      ]
+    },
+    {
+      "id": "medium",
+      "placementRule": "medium",
+      "quota": 12,
+      "setPieces": [
+        "market-square",
+        "plant-works",
+        "city-block",
+        "covered-market",
+        "depot-yard"
+      ]
+    },
+    {
+      "id": "small",
+      "placementRule": "small",
+      "quota": 32,
+      "setPieces": [
+        "walled-base",
+        "market-row",
+        "checkpoint-lane",
+        "market-court",
+        "barracks",
+        "pillar-hall",
+        "plant-row",
+        "park-square",
+        "depot-sheds",
+        "ruins-lot",
+        "plant-tower",
+        "park-green",
+        "depot-lot",
+        "cover-yard",
+        "plant-yard",
+        "rubble-strip"
+      ]
+    },
+    {
+      "id": "charger",
+      "placementRule": "charger",
+      "quota": 1,
+      "setPieces": [
+        "charging-station"
+      ],
+      "coreElements": {
+        "charger": 1
+      }
+    },
+    {
+      "id": "transit",
+      "placementRule": "transit",
+      "quota": 6,
+      "setPieces": [
+        "transit-station"
+      ],
+      "coreElements": {
+        "warp": 1
+      }
+    }
+  ]
+}

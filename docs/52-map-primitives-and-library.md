@@ -248,6 +248,12 @@ an id in the same category is an error naming both sources, including when the
 top library tries to override a module. Competing definitions belong in separate
 modules, as requested in [17.2.7](17.2.7-zone-plans.md).
 
+The bundled libraries are `CHAIN_LIBRARIES` in `map/chain.ts`, one per
+authored size. Without a library of its own, a map takes the one authored for
+its zone size (`bundledLibrary`). Game mode refuses a size none is authored
+for, naming the authored sizes; playground mode takes the default library
+there.
+
 Resolution produces an independent flattened library with no includes. Its full
 content, including authored metadata, determines the fingerprint. Saved maps
 embed that resolved library ([53](53-map-artifacts-and-tools.md)). Node's CLI
@@ -352,6 +358,39 @@ The old footprints with hollow rings would have covered about 47%.
 
 Every non-`open` type rolls loot, so the default loot gradient was scaled to
 keep loot per map level (14).
+
+## The larger libraries (S6)
+
+`diamond-24x12.json` and `diamond-36x18.json` (#171) include the same two
+modules and `district-set-pieces@1.json`. A piece that is enormous at one size
+is medium at the next (55):
+
+| Set piece class | 24 × 12 | 36 × 18 |
+| --- | --- | --- |
+| `enormous`, 3 distinct | the districts | the quarters |
+| `medium` | 12 of the 12 × 6 enormous pieces | 8 of the districts |
+| `small` | 32 of the 12 × 6 medium and small pieces | 44 of the 12 × 6 enormous and medium pieces |
+| `start`, `end`, `charger`, `transit` | as at 12 × 6 | as at 12 × 6 |
+
+Core element pieces, their quotas and the six transit stations stay as at
+12 × 6 (17.2.7). Each new footprint is a rectangle of whole grounds,
+split between two or three types so one structure type doesn't fill it alone.
+Sizes are in tiles.
+
+- **Districts** (`district-set-pieces@1`, shared by both sizes):
+  `market-district` 20 × 10 (market and park), `industrial-estate` 18 × 10
+  (plant and depot), `downtown` 20 × 9 (block over a market row), `garrison`
+  16 × 10 (compound over a checkpoint lane) and `old-town` 18 × 10 (ruins,
+  hall and park).
+- **Quarters** (defined in `diamond-36x18.json`, the only library using
+  them): `market-quarter` 30 × 15 (market, park and hall),
+  `industrial-quarter` 28 × 15 (plant and depot), `city-centre` 30 × 14
+  (block over market and park), `military-quarter` 26 × 15 (compound over a
+  checkpoint lane) and `ruined-quarter` 28 × 14 (ruins, cover and park).
+
+Over 20 game seeds each, set pieces cover a median 54.8% of tiles at 12 × 6,
+52.1% at 24 × 12 and 53.6% at 36 × 18. Loot per tile has a median of 1.04,
+1.07 and 1.16 under the default gradient (42).
 
 ## The old library
 

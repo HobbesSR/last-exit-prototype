@@ -3,8 +3,8 @@
 Status: accepted direction, 2026-10-03 (17, "Zone plans and library modules").
 The diamond is implemented as the one plan, in
 `map/macro/src/chain/zone-plan.ts` (#166). Libraries declare their plan and size and resolve shared modules (schema 3,
-[52](52-map-primitives-and-library.md), #168). Larger libraries remain tracked
-in #165.
+[52](52-map-primitives-and-library.md), #168). The diamond is authored at
+12 × 6, 24 × 12 and 36 × 18 (#171).
 
 A **zone plan** is a map's macro shape: the paradigm the live game and the
 generator share about where a match starts, widens, funnels and ends. This
@@ -59,10 +59,12 @@ X X 5 X X
 - **Size:** every zone is `zoneWidth × zoneHeight` tiles, so the map's grid is
   `5 × zoneWidth` by `5 × zoneHeight` tiles. The map is exactly the tiles the
   occupied zones cover, and its boundary stair-steps.
-  - The default and only authored size is 12 × 6. At 6 cells a tile and 48
-    world units a cell, the live map is 17,280 by 8,640 (14).
-  - 24 × 12 and 36 × 18 are planned (#171), with live matches staying at
-    12 × 6 until pacing and per-tick cost are measured (17).
+  - The authored sizes are 12 × 6, the default, 24 × 12 and 36 × 18 (#171),
+    each with its own library (52). At 6 cells a tile and 48 world units a
+    cell, the live map is 17,280 by 8,640 (14).
+  - Live matches stay at 12 × 6 until pacing and per-tick cost are measured
+    at the larger sizes (17). The larger sizes are in generation, the Map
+    Lab, CLI, MCP and tests.
 
 ### Where placement rules anchor
 
