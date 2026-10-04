@@ -320,10 +320,45 @@ inside, and windows and doors let sight through.
 - **Strategy:** a builder puts the ring on the region's outline and the court
   inside, and places gates so every portal reaches the court. A region with a
   hole suits it whole, as 19's ring example does.
-- **Shape needs:** *proposed*, at least 10 × 10, with a court of at least
-  4 × 4.
+  **Built (#160):** `map/micro/strategies/compound.ts`. No decomposer. It
+  stands one compound inside its yard, not on the region's outline: a wall on
+  the outline would need a gate at every portal, more than two or three
+  wherever the region has more portals. Like `depot`, it keeps the portal
+  promise by spacing, not by a route search.
+  - **The box:** the region's largest contained rectangle, inset 3 cells on
+    every side and capped at 24 × 24, at a seeded place inside that.
+  - **The ring:** roofed rooms 3 cells deep along the inside of the box, with
+    quarter-cell walls. The box's edge is their back wall, so the compound's
+    outer wall is the rooms'. Each side's middle, between the corners, is
+    split into rooms 3 to 5 cells long, as evenly as whole cells allow, each
+    with a door a doorway wide onto the court.
+  - **Dead ends:** a 3 × 3 room stands at each corner. It opens only into its
+    neighbour along the north or south side, a room or a gate's passage.
+  - **Gates:** `gates` sides, drawn from the seed, each have a passage 3
+    cells wide through the ring at a seeded place, from a door in the outer
+    wall to the court. The passage widens to the corner where what's left
+    would be too short for a room. The rest of the ring is closed.
+  - **The court:** the open ground inside the ring, at least 4 × 4. It holds
+    nothing but loot.
+  - **The lattice:** every door's centre, and each passage's width, are set
+    so the sampled route search sees a hunter through them (20).
+  - **Why that keeps the promise:** the box keeps 3 clear cells from any cell
+    the region doesn't own, as `depot`'s pieces do. It is convex with a clear
+    ring wider than a hunter, so it can't divide the yard, where every portal
+    is. A `compound` region keeps the portal promise exactly when its shape
+    does. A hole in the region stays in the yard.
+  - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
+    disc stands clear of every wall and door, in the rooms, the court or the
+    yard.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
+  - **Too small:** a region with no contained 16 × 16 goes to `open` (17
+    M24).
+- **Shape needs:** *proposed*, a compound of at least 10 × 10, with a court of
+  at least 4 × 4. As built, that is a contained 16 × 16 with its yard.
 - **Formed by:** medium and enormous set pieces.
-- **Parameters:** gate count.
+- **Parameters:** `gates`, whole numbers from 1 to 4 (2 by default), one per
+  side.
 - **Material:** the game's `example-courtyard`, and mapgen's `courtyard` and
   `compound`.
 
@@ -452,7 +487,7 @@ keeps those names.
 | `hall` | — | `pillar-hall` (built, #158) |
 | `hut` | the room shell in `builders.ts` (built, #129) | `compound` |
 | `depot` | `example-depot` (built, #159) | — |
-| `compound` | `example-courtyard`, 19's ring example | `courtyard`, `compound` |
+| `compound` | `example-courtyard`, 19's ring example (built, #160) | `courtyard`, `compound` |
 | `block` | `decomposition/example.ts`, `realize.ts`, `negotiate.ts` | — |
 | `arrival` | `example-entry`, `spreadPoints` | — |
 | `departure` | `spreadPoints` (built, #131) | — |
