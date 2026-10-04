@@ -72,6 +72,10 @@ may use these rules as they stand to make a region act as an obstacle (Corey,
 | `depot` | structure | warehouses and container aisles: long sightlines, hard corners | — |
 | `compound` | structure | rooms around a walled court with few gates: a pocket with dead ends | — |
 | `block` | district | a city block that decomposes into the types above | — |
+| `market` | drafted | stall rows and narrow lanes: dense, low, sight-breaking cover | — |
+| `plant` | drafted | an industrial works: machinery blocks, pipe runs, long lines | — |
+| `checkpoint` | drafted | a military choke: barriers, a guard post, chicanes across a passage | — |
+| `park` | drafted | overgrown ground: tree clumps and hedges, soft cover, open sight | — |
 | `arrival` | core element | the contestants' start | `spawn` × `contestantCount` |
 | `departure` | core element | extraction and the hunters' start | `exit` × `exitCount`, `hunter-spawn` × `hunterCount` |
 | `charging` | core element | the power-cell charging station (F-03) | `charger` |
@@ -422,6 +426,73 @@ inside, and windows and doors let sight through.
 - **Material:** `decomposition/example.ts` and `decomposition/realize.ts`, the
   demonstration strategy.
 
+## Drafted types
+
+These bring the old library's areas back as types closer to the intended
+world (Corey, 2026-10-03 and 2026-10-04, 17.2.7). Their roles and shape needs
+are drafts until Corey gives art direction on theme and geometry.
+
+Each is registered under its own name and **bound to the nearest built
+strategy** until its own is written. A library paints the type's own name, so
+writing the strategy later rebinds the type in the registry and needs no
+re-authoring. There is no placeholder marking: a stand-in builds what its
+strategy builds, and an existing builder doing something reasonable beats
+plain ground (Corey, 2026-10-04). While bound, a type takes its stand-in's
+parameters, keeps its promise and sites no core elements.
+
+### `market`
+
+- **Role:** the old library's market. Rows of stalls and awnings with narrow
+  lanes between them: dense, low cover that breaks sightlines everywhere and
+  rewards close fights.
+- **Strategy:** *proposed*, stall rows along the region's longer axis on a
+  regular pitch, lanes a door wide (52), with cross-lanes at seeded places so
+  no row is a wall. Awnings are roofs that hide but don't block.
+- **Stand-in:** `hall`. Its staggered lattice is rows and lanes already.
+- **Shape needs:** *proposed*, a contained rectangle of at least 6 × 6, as
+  `hall`.
+- **Formed by:** enormous and medium set pieces, where the old library's
+  `market` pieces were.
+
+### `plant`
+
+- **Role:** the half of the old `industrial` that isn't a warehouse. Big
+  machinery blocks, pipe runs and gantries on a factory floor: hard cover,
+  long lines between machines, and a few tight corners.
+- **Strategy:** *proposed*, machinery as large convex blocks on a coarse
+  grid, joined by low pipe runs that a contestant can slip under and a
+  hunter has to go round (P-04), with an optional roofed shed over part of
+  the floor.
+- **Stand-in:** `depot`. Its container rows and aisles give the long lines
+  and hard corners.
+- **Shape needs:** *proposed*, as `depot`.
+- **Formed by:** enormous and small set pieces, where the old library's
+  `industrial` pieces were.
+
+### `checkpoint`
+
+- **Role:** the half of the old `military` that isn't a walled base. A choke
+  across a passage: barriers, a guard post and staggered chicanes that slow a
+  crossing and break the sightline along it.
+- **Strategy:** *proposed*, chicane barriers across the line between its two
+  farthest portals, alternating sides, with a small roofed post beside them.
+  A one-portal region is a guard post alone.
+- **Stand-in:** `cover`.
+- **Shape needs:** *proposed*, at least two portals and 3 cells across.
+- **Formed by:** medium set pieces, where the old library's `military`
+  pieces were.
+
+### `park`
+
+- **Role:** the old `park` and `tree` classes. Overgrown ground with tree
+  clumps and hedges: soft cover, open sightlines, and the odd hedge line that
+  is a long way round.
+- **Strategy:** *proposed*, clumps of trees (round obstacles) at a seeded
+  density, and hedge runs that leave gaps a door wide.
+- **Stand-in:** `cover`.
+- **Shape needs:** none, as `cover`.
+- **Formed by:** small set pieces and fill among open ground.
+
 ## Core element classes
 
 Each is painted only inside its owning set piece class's set pieces (51,
@@ -515,6 +586,20 @@ material only (52, "The old library"). The chain's fixture libraries use
 `open`, `hut`, `arrival`, `departure` and `charging`, and this catalogue
 keeps those names.
 
+The old names come back like this (17.2.7):
+
+| Old class | Region type |
+| --- | --- |
+| `landing` | `arrival` |
+| `evac` | `departure` |
+| `rock`, `rubble` | `rubble` |
+| `tree`, `park` | `park` |
+| `hut` | `hut` |
+| `depot` | `depot` |
+| `market` | `market` |
+| `industrial` | `depot` for its sheds, `plant` for its works |
+| `military` | `compound` for its walled bases, `checkpoint` for its chokes |
+
 ## Material to mine, by type
 
 | Type | The game (`map/micro/`) | mapgen (`src/micro/builders/`, deleted in #146; in git history) |
@@ -528,6 +613,10 @@ keeps those names.
 | `depot` | `example-depot` (built, #159) | — |
 | `compound` | `example-courtyard`, 19's ring example (built, #160) | `courtyard`, `compound` |
 | `block` | `decomposition/example.ts`, `realize.ts`, `negotiate.ts` (built on spacing instead, #161) | — |
+| `market` | `hall` (its stand-in) | `pillar-hall` |
+| `plant` | `depot` (its stand-in) | — |
+| `checkpoint` | `cover` (its stand-in) | — |
+| `park` | `cover` (its stand-in) | `open-field` |
 | `arrival` | `example-entry`, `spreadPoints` | — |
 | `departure` | `spreadPoints` (built, #131) | — |
 | `charging` | `spreadPoints` (built, #132) | — |
