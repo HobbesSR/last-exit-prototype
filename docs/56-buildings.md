@@ -5,8 +5,8 @@ Building Geometry Library", is issue #185. Its full text stays there. This
 record holds the parts this project adopts, how each maps onto what exists, the
 departures and why, and the build order. The choices it raised are 17 M26 to
 M33 ([17.2.8](17.2.8-building-questions.md)); M26, M28 and M29 are answered.
-Nothing here is implemented yet, and marked proposals are not requirements
-until Corey adopts them.
+L1's wall-run emitter is implemented; L2–L5 remain planned. Marked proposals
+are not requirements until Corey adopts them.
 
 > **Building topology and building geometry are related but distinct procedural problems.**
 
@@ -33,16 +33,17 @@ Nothing else in a design is a requirement:
 
 ## Why now
 
-Three strategies already build rooms, each with its own copy of the walls:
+Three strategies already build rooms, and now share L1's wall-run emitter:
 - `hut` (`map/micro/strategies/hut.ts`) draws four walls with a centred door
   and a window opposite it.
 - `compound` (`compound.ts`) draws a ring of rooms with doors onto a court, and
   gate passages, through its own `roomTemplate` and `gateTemplate`.
 - `depot` (`depot.ts`) draws warehouses with a door at each end.
-- The game's original room shell in `builders.ts` is a fourth.
 
-Each turns "this side of this box has walls with an opening in them" into
-element parts its own way. The library is that machinery done once, so that
+The game's original room shell in `builders.ts` remains a fourth implementation.
+
+Each formerly turned "this side of this box has walls with an opening in them"
+into element parts its own way. The library is that machinery done once, so that
 `block`'s lots and the drafted types (54) can have real buildings without a
 fifth copy. It belongs in the SDK, as a library builders share (50, "The SDK is
 a library"). A region type still owns its strategy. The library is mechanics:
@@ -63,7 +64,7 @@ it doesn't pick what a type builds (19).
 | Residual space resolver | 19's residuals ("Treat the residual as another allocation") | exists |
 | Fallback: ideal, acceptable, fallback | 17 M24: the decomposer hands a piece to another builder, and `open` is the last resort | exists |
 | Boundary extraction | `boundaryRuns` over the spaces and the outside, with the outside as one more owner | exists |
-| Wall run, door, window | Element parts (29): `building` and `window` obstacles, `gate` doors, `encloses` for the roof | parts exist; the wall-run emitter is new |
+| Wall run, door, window | Element parts (29): `building` and `window` obstacles, `gate` doors, `encloses` for the roof | L1 wall-run emitter exists; roof assembly stays with the caller |
 | Visual, collision and semantic geometry per primitive | One shape description feeds collision, sight and drawing (29). The library emits shapes once, never a second collision model | exists |
 | Door widths | The kernel's scale (52, "Units and scale"): a doorway is 2 cells | exists |
 | Hierarchical seeds | Named random channels per region (`rng(seed, channel)`) | exists |
@@ -132,6 +133,28 @@ it doesn't pick what a type builds (19).
 - **No separate collision model.** #185's primitives each emit visual,
   collision and semantic geometry. Here one shape does all three (29).
 
+## L1 wall-run API
+
+`emitWallRun` in `map/micro/building/walls.ts`, exported through `sdk.ts`,
+accepts a kernel `Run` and options for cell size, wall thickness, offset,
+start/end trims and openings. Thickness, offset, trims and opening centres and
+lengths are in cells. The offset locates the wall's near face relative to the
+guide: positive is toward +y for a horizontal run and +x for a vertical run.
+An offset of minus half the thickness straddles the guide. Trims give adjoining
+walls explicit corner ownership.
+
+Openings are sorted along the run. A `door` emits a gate, a `window` emits a
+window obstacle, and `open` leaves a gap. Invalid, overlapping or out-of-bounds
+openings are rejected. Parts follow the run, with gates at their openings;
+callers assemble them in their established order to preserve generated IDs.
+The emitter does not know a region's cells: callers still own containment and
+the portal promise.
+
+The default arithmetic works in cells before scaling. `arithmetic: 'world'`
+scales before cutting wall pieces, preserving templates such as `hut` that
+were authored in world units. This distinction preserves exact floating-point
+coordinates without a content or stored-map version change.
+
 ## Build order
 
 The first milestone is #185's §36, cut to fit. Each stage is its own issue
@@ -141,7 +164,7 @@ sweep baseline proves it. Later stages add content and re-baseline last
 
 | Stage | Builds | Proof |
 | --- | --- | --- |
-| L1 (#188) | **Walls from runs.** A wall-run emitter takes a run, a thickness and openings, and returns element parts. `hut`, `compound` and `depot` draw their walls through it | the sweep baseline is unchanged |
+| L1 (#188), implemented | **Walls from runs.** A wall-run emitter takes a run, cell size, thickness, offset and openings, and returns element parts. `hut`, `compound` and `depot` draw their walls through it | the sweep baseline is unchanged |
 | L2 (#189) | **The design and its passes.** The design graph and its validation; boundaries and spans from an allocation; openings placed from connections. `hut` builds its one-room house as a design | the baseline is still unchanged |
 | L3 (#190) | **Allocation.** Spaces are allocated in a footprint, on 19's allocator or a guillotine split, whichever the tests favour. Its own checks, *proposed*: each space's area is in its range, each space is connected, and the openings join every space. Those are the allocator's internal rules, not part of the region's contract, whose one requirement stays the portal promise. Connections only steer it | focused tests over shapes and seeds for those checks |
 | L4 (#191) | **A building lab.** The micro lab shows a building's design graph, allocation, spans and openings beside its geometry | browser check |
