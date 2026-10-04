@@ -14,5 +14,11 @@ export const CELL_SCALE = Object.freeze({
   clearanceMargin: 0.05,
 });
 
+/**
+ * A cell is a whole number of world units (52, "Coordinates"), so cell arithmetic and
+ * world arithmetic agree exactly on the dyadic fractions builders use (a quarter-cell wall).
+ */
+export const isCellSize = (n: number): boolean => Number.isSafeInteger(n) && n > 0;
+
 /** The shortest straight stretch of passable segments a hunter can pass through (#73). */
 export const MIN_PORTAL_LENGTH = Math.ceil(2 * CELL_SCALE.hunterRadius);

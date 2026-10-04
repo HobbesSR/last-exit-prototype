@@ -57,6 +57,7 @@ test('impossible floors and mismatched region ownership fail before emitting an 
     s => { s.cells.push(s.cells[0]); },
     s => { s.cells = s.cells.filter(c => c.x !== 12); },
     s => { s.parameters.density = NaN; },
+    s => { s.cellSize = 40.5; },
   ]) { const spec = microExample(); mutate(spec); assert.throws(() => generateMicroRegion(spec)); }
   // A contiguous one-cell neck does not admit a hunter, despite a connected cell graph.
   const narrow = microExample();

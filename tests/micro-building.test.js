@@ -35,11 +35,11 @@ test('two openings and corner trims leave only owned wall lengths', () => {
   assert.deepEqual(parts.map(p => p.shape?.y), [55, 70, 80, 90]);
 });
 
-test('world arithmetic keeps the hut wall and gate formulas on both axes', () => {
-  const size = 7.3, span = 4 * size, thick = 0.25 * size, gap = 2 * size;
+test('a whole-number cell size keeps the hut wall and gate formulas on both axes', () => {
+  const size = 37, span = 4 * size, thick = 0.25 * size, gap = 2 * size;
   const open0 = (span - gap) / 2, open1 = (span + gap) / 2;
   const horizontal = emitWallRun({ axis: 'h', x: 0, y: 4, length: 4 },
-    { cellSize: size, thickness: 0.25, offset: -0.25, arithmetic: 'world', openings: [{ center: 2, length: 2, kind: 'door' }] });
+    { cellSize: size, thickness: 0.25, offset: -0.25, openings: [{ center: 2, length: 2, kind: 'door' }] });
   assert.deepEqual(horizontal, [
     { part: 'obstacle', kind: 'building', shape: { kind: 'rect', x: 0, y: span - thick, w: open0, h: thick } },
     { part: 'gate', x: span / 2, y: span - thick / 2, w: gap, h: thick },
@@ -47,7 +47,7 @@ test('world arithmetic keeps the hut wall and gate formulas on both axes', () =>
   ]);
   const vertical = emitWallRun({ axis: 'v', x: 4, y: 0, length: 4 },
     { cellSize: size, thickness: 0.25, offset: -0.25, trimStart: 0.25, trimEnd: 0.25,
-      arithmetic: 'world', openings: [{ center: 2, length: 2, kind: 'window' }] });
+      openings: [{ center: 2, length: 2, kind: 'window' }] });
   assert.deepEqual(vertical, [
     { part: 'obstacle', kind: 'building', shape: { kind: 'rect', x: span - thick, y: thick, w: thick, h: open0 - thick } },
     { part: 'obstacle', kind: 'window', shape: { kind: 'rect', x: span - thick, y: open0, w: thick, h: open1 - open0 } },
@@ -66,4 +66,5 @@ test('invalid or overlapping openings are rejected without mutating input', () =
     [{ center: 1, length: 0, kind: 'door' }],
   ]) assert.throws(() => emitWallRun(h, { ...options, openings: bad }), RangeError);
   assert.throws(() => emitWallRun(h, { ...options, trimStart: 4, trimEnd: 3 }), RangeError);
+  for (const cellSize of [7.3, 0, -10, Infinity]) assert.throws(() => emitWallRun(h, { ...options, cellSize }), RangeError);
 });

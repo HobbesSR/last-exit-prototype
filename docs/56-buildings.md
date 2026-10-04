@@ -150,10 +150,9 @@ callers assemble them in their established order to preserve generated IDs.
 The emitter does not know a region's cells: callers still own containment and
 the portal promise.
 
-The default arithmetic works in cells before scaling. `arithmetic: 'world'`
-scales before cutting wall pieces, preserving templates such as `hut` that
-were authored in world units. This distinction preserves exact floating-point
-coordinates without a content or stored-map version change.
+The emitter works in cells and scales once. It refuses a cell size that isn't a
+whole number of world units (52, "Coordinates"), and that integer ratio is what
+lets `hut`, authored in world units, come out exactly the same through it.
 
 ## Build order
 

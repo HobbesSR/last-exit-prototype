@@ -12,6 +12,7 @@ import { DEFAULT_CHAIN_PARAMS } from './macro/src/chain/placement.ts';
 import type { ChainMap, ChainParams } from './macro/src/chain/types.ts';
 import type { RegionElement } from './micro/types.ts';
 import { DEFAULT_CELL_SIZE, GAME_ENGINES, GAME_REGION_TYPES } from './engines.ts';
+import { isCellSize } from './kernel/scale.ts';
 
 export type GameChainMap = ChainMap<RegionElement>;
 
@@ -91,7 +92,7 @@ export function seedText(seed: unknown): string {
  * bundled library for its zone size unless the caller supplies another.
  */
 export function generate(seed: unknown, params: object = {}, library?: unknown, cellSize = DEFAULT_CELL_SIZE): GameChainMap {
-  if (!(cellSize > 0)) throw new Error('cell size must be a positive number');
+  if (!isCellSize(cellSize)) throw new Error('cell size must be a positive whole number of world units');
   const resolved = chainParams(params);
   return generateChainMap(seedText(seed), resolved, checkedLibrary(library ?? bundledLibrary(resolved)), cellSize, GAME_ENGINES);
 }

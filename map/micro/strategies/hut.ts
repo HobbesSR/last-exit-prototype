@@ -151,7 +151,6 @@ function house(size: number, door: Side): ElementTemplate {
     const run = horizontal ? { axis: 'h' as const, x: 0, y: side === 'N' ? 0 : BOX, length: BOX }
       : { axis: 'v' as const, x: side === 'W' ? 0 : BOX, y: 0, length: BOX };
     const emitted = emitWallRun(run, { cellSize: size, thickness: WALL, offset: side === 'N' || side === 'W' ? 0 : -WALL,
-      arithmetic: 'world',
       trimStart: horizontal ? 0 : WALL, trimEnd: horizontal ? 0 : WALL,
       openings: side === door ? [{ center: BOX / 2, length: CELL_SCALE.doorway, kind: 'door' }]
         : side === OPPOSITE[door] ? [{ center: BOX / 2, length: CELL_SCALE.doorway, kind: 'window' }] : [] });
