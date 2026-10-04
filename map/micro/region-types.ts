@@ -13,10 +13,15 @@ import { buildArrival } from './strategies/arrival.ts';
 import { buildDeparture } from './strategies/departure.ts';
 import { buildCharging } from './strategies/charging.ts';
 import { buildTransit } from './strategies/transit.ts';
+import type { BuildingObserver } from './building/trace.ts';
 import type { BuiltRegion, RegionBrief, RegionTypeId } from './types.ts';
 
-/** A region type's strategy: its decomposer, if it has one, and its builders (51 stage 6). */
-export type RegionStrategy = (brief: RegionBrief) => BuiltRegion;
+/**
+ * A region type's strategy: its decomposer, if it has one, and its builders (51 stage 6).
+ * One that builds from a building design hands each kept building to `observe`, for tools;
+ * the trace is never part of the result (17.2.8 M30).
+ */
+export type RegionStrategy = (brief: RegionBrief, observe?: BuildingObserver) => BuiltRegion;
 export type RegionTypeRegistry = Readonly<Record<RegionTypeId, RegionStrategy>>;
 
 /**
@@ -59,12 +64,13 @@ export const REGION_TYPES_VERSION = 'types-16';
 /**
  * Dispatch a brief to its region type's strategy (51 stage 6). The brief is checked as
  * input. The result is not: a builder's promise is its own to check (51 principle 9).
+ * `observe` is passed to the strategy, which may report the buildings it made.
  */
-export function buildRegion(brief: RegionBrief, registry: RegionTypeRegistry = REGION_TYPES): BuiltRegion {
+export function buildRegion(brief: RegionBrief, registry: RegionTypeRegistry = REGION_TYPES, observe?: BuildingObserver): BuiltRegion {
   const errors = briefErrors(brief);
   if (errors.length) throw new Error(`Invalid brief: ${errors.join(' ')}`);
   if (!Object.hasOwn(registry, brief.type)) throw new Error(`Unknown region type ${brief.type}.`);
-  return registry[brief.type]!(structuredClone(brief));
+  return registry[brief.type]!(structuredClone(brief), observe);
 }
 
 /** The brief's own shape. Region size and scale limits are the SDK's, checked when a builder runs. */

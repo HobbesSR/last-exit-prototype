@@ -90,6 +90,61 @@ try {
   await page.waitForFunction(() => window.microLabDebug().result?.spec.parameters.decay === 1);
   assert.notDeepEqual(await page.evaluate(() => window.microLabDebug().result.elements), intact, 'decay auto-applies and changes physical geometry');
   await page.screenshot({ path: 'test-results/micro-lab-decay-1.png', fullPage: true });
+
+  // A region type that builds from a design: its building views match the build in memory (56 L4).
+  const views = ['Show design graph', 'Show allocation', 'Show spans', 'Show openings'];
+  for (const view of views) assert.equal(await page.getByLabel(view).isDisabled(), true, `${view} is disabled for an example builder`);
+  await page.getByLabel('Region shape').selectOption('rect');
+  await page.getByLabel('Contestant north port').uncheck();
+  await page.getByLabel('Seed').fill('4217');
+  await page.getByLabel('Builder', { exact: true }).selectOption('region:hut');
+  await page.waitForFunction(() => window.microLabDebug().result?.brief?.type === 'hut' && window.microLabDebug().result.brief.seed === 4217);
+  assert.equal(await page.getByLabel('Body scale').isDisabled(), true, 'region types are walked at cell proportions');
+  for (const view of views) await page.getByLabel(view).check();
+  const hut = await page.evaluate(() => window.microLabDebug());
+  assert.equal(hut.result.version, 'region-2');
+  assert.deepEqual(hut.promise, [], 'the hut keeps its portal promise');
+  assert.equal(hut.buildings.length, 1);
+  const [trace] = hut.buildings, building = hut.result.elements.find(element => element.label === trace.label);
+  assert.ok(building, 'the trace names an element of the result');
+  assert.deepEqual(trace.realization.template, building.template, 'the trace is what the element was realized from');
+  assert.equal(Object.hasOwn(hut.result, 'buildings') || JSON.stringify(hut.result).includes('"design"'), false, 'designs are not stored (M30)');
+  const placed = new Set(trace.realization.openings.map(opening => opening.connectionId));
+  assert.deepEqual(hut.drawn, {
+    allocation: { cells: trace.allocation.spaces.reduce((sum, space) => sum + space.cells.length, 0) },
+    spans: { spans: trace.realization.boundaries.reduce((sum, boundary) => sum + boundary.spans.length, 0) },
+    openings: { openings: building.template.parts.filter(part => part.part === 'gate' || part.kind === 'window').length },
+    graph: { nodes: trace.design.spaces.length, edges: trace.design.connections.length, warnings: trace.design.connections.filter(c => !placed.has(c.id)).length },
+  });
+  assert.equal(hut.drawn.allocation.cells, 16);
+  assert.equal(hut.drawn.openings.openings, 2);
+  assert.match(await page.locator('#buildings').textContent(), /hut-building: 1 space, 2 connections, 2 openings/);
+  assert.equal(await page.locator('#buildings .warning, #buildings .error').count(), 0);
+  await page.screenshot({ path: 'test-results/micro-lab-hut.png' });
+  for (const view of views) {
+    await page.getByLabel(view).uncheck();
+    const key = { 'Show design graph': 'graph', 'Show allocation': 'allocation', 'Show spans': 'spans', 'Show openings': 'openings' }[view];
+    assert.equal(Object.hasOwn(await page.evaluate(() => window.microLabDebug().drawn), key), false, `${view} toggles off`);
+  }
+  // A block passes its lot's hut on, labelled as the lot's element.
+  for (const view of views) await page.getByLabel(view).check();
+  await page.getByLabel('Region shape').selectOption('l');
+  await page.getByLabel('Seed').fill('2');
+  await page.getByLabel('Builder', { exact: true }).selectOption('region:block');
+  await page.waitForFunction(() => window.microLabDebug().result?.brief?.type === 'block' && window.microLabDebug().result.brief.seed === 2);
+  const block = await page.evaluate(() => window.microLabDebug());
+  assert.deepEqual(block.buildings.map(b => b.label), ['lot-1/hut-building']);
+  assert.ok(block.result.elements.some(element => element.label === 'lot-1/hut-building'));
+  assert.equal(block.drawn.graph.nodes, 1);
+  await page.screenshot({ path: 'test-results/micro-lab-block.png' });
+  await page.getByLabel('Seed').fill('1');
+  await page.getByRole('button', { name: 'Generate region' }).click();
+  await page.waitForFunction(() => window.microLabDebug().result?.brief?.seed === 1);
+  assert.equal((await page.evaluate(() => window.microLabDebug())).buildings.length, 0);
+  assert.match(await page.locator('#scale-note').textContent(), /no building from a design/);
+  await page.getByLabel('Builder', { exact: true }).selectOption('ruins');
+  await page.waitForFunction(() => window.microLabDebug().result?.spec?.builder === 'ruins');
+  assert.deepEqual((await page.evaluate(() => window.microLabDebug())).buildings, []);
   await page.getByLabel('Body scale').selectOption('live');
   await page.getByRole('button', { name: 'Generate region' }).click();
   await page.waitForFunction(() => window.microLabDebug().result?.spec.bodyProfile === 'live');

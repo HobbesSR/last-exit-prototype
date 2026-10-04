@@ -5,8 +5,8 @@ Building Geometry Library", is issue #185. Its full text stays there. This
 record holds the parts this project adopts, how each maps onto what exists, the
 departures and why, and the build order. The choices it raised are 17 M26 to
 M33 ([17.2.8](17.2.8-building-questions.md)); M26, M28 and M29 are answered.
-L1's wall-run emitter, L2's design passes and L3's allocator are implemented;
-L4–L5 remain planned. Marked proposals are not requirements until Corey adopts them.
+L1's wall-run emitter, L2's design passes, L3's allocator and L4's lab views
+are implemented; L5 remains planned. Marked proposals are not requirements until Corey adopts them.
 
 > **Building topology and building geometry are related but distinct procedural problems.**
 
@@ -68,7 +68,7 @@ it doesn't pick what a type builds (19).
 | Visual, collision and semantic geometry per primitive | One shape description feeds collision, sight and drawing (29). The library emits shapes once, never a second collision model | exists |
 | Door widths | The kernel's scale (52, "Units and scale"): a doorway is 2 cells | exists |
 | Hierarchical seeds | Named random channels per region (`rng(seed, channel)`) | exists |
-| Debug views | The micro lab, decomposition lab and generation demo (20.5) | exist; building views are new |
+| Debug views | The micro lab, decomposition lab and generation demo (20.5) | exist; the micro lab's building views are L4's |
 | Kits | Deferred until art direction (M32) | deferred |
 | Multiple floors, stairs, roof planes | 16's multi-floor direction, after collision planes (M32) | deferred |
 
@@ -279,6 +279,27 @@ latter two proves that every possible partition is impossible: general
 non-guillotine partitions remain outside L3. The strategy can choose a smaller
 design as in M31.
 
+## L4 building views
+
+A strategy may take a second argument, a `BuildingObserver`
+(`building/trace.ts`, exported through `sdk.ts`), and call it once for each
+building it keeps in its result. The `BuildingTrace` it receives holds the
+element's label, the world position of the allocation's cell (0, 0), the cell
+size, and the design, allocation and realization the element was built from.
+`buildRegion(brief, registry, observe)` passes it on. A strategy that builds no
+design ignores it. `hut` reports its house. `block` passes the observer to its
+lots, prefixing each label as it prefixes the lot's elements. The trace is
+handed over while the strategy runs and is never part of the result, so
+nothing is stored (17.2.8 M30), and building with or without an observer gives
+the same result.
+
+The micro lab (20.5) runs the `hut` and `block` region types on a brief made
+from its example shape, and draws each trace beside the geometry: the design
+graph, the allocation, spans with their owners, and openings. A connection
+whose two spaces got no opening is marked as unmet guidance, a warning (M29).
+The lab checks the portal promise over the result's geometry. It is the only
+error it shows.
+
 ## Build order
 
 The first milestone is #185's §36, cut to fit. Each stage is its own issue
@@ -291,7 +312,7 @@ sweep baseline proves it. Later stages add content and re-baseline last
 | L1 (#188), implemented | **Walls from runs.** A wall-run emitter takes a run, cell size, thickness, offset and openings, and returns element parts. `hut`, `compound` and `depot` draw their walls through it | the sweep baseline is unchanged |
 | L2 (#189), implemented | **The design and its passes.** The design graph and its validation; boundaries and spans from an allocation; openings placed from connections. `hut` builds its one-room house as a design | the baseline is still unchanged |
 | L3 (#190), implemented | **Allocation.** Bounded seeded branching guillotine search assigns usable spaces and a connected interior opening graph, with named soft scores and explicit failure reasons. Its feasibility rules belong to the allocator, not the region contract; connections only steer it | rectangle, L, notch, quadrant and corridor tests, deterministic bounded failure, emitted hunter routes |
-| L4 (#191) | **A building lab.** The micro lab shows a building's design graph, allocation, spans and openings beside its geometry | browser check |
+| L4 (#191), implemented | **A building lab.** The micro lab shows a building's design graph, allocation, spans and openings beside its geometry | browser check |
 | L5 (#192) | **Buildings with several spaces.** `hut` grows larger designs where its region allows; `compound`'s ring becomes a design | promise tests over shapes and seeds, then re-baseline |
 
 The second milestone, #185 §37, takes components and grammar, candidate sites,
