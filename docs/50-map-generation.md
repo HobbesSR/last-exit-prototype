@@ -146,10 +146,12 @@ So the test is:
 | Task | Read |
 | --- | --- |
 | Anything in map generation | 50, then the design notes (`map/macro/design_notes.txt`), the original statement of intent. Corey's later answers in 17 and the accepted model in 51 govern where they differ |
-| A chain stage or its interfaces | 51 |
+| A chain stage or its interfaces | [51](51-generation-chain.md) routes to the stage; read [51.1](51.1-principles-and-names.md) for shared invariants and only the needed stage in 51.2–51.10 |
 | Tiles, set pieces, cell classes, prescriptions | 52 |
 | The map's macro shape: the diamond, zones, zone sizes, where placement rules anchor | 55 |
 | Artifacts, saving, determinism, the sweep, the Map Lab, CLI and MCP | 53 |
-| A region type, a builder, a decomposer, the SDK | 54 (the catalogue, a working draft), then 19, 20, 22 |
-| Open questions, and your verbatim answers | 17, "Map generation" |
+| A region type, a builder, a decomposer, the SDK | 54 (the catalogue, a working draft), 19 (design), then the relevant part of [20](20-micro-generation.md); [22.2](22.2-map-generation.md) for map ownership |
+| Macro/micro briefs and passability | [51.7](51.7-briefs.md), [20.1](20.1-region-contract.md), and [17.2.4](17.2.4-contract-questions.md) for M1–M5 |
+| Open questions, and your verbatim answers | [17.2](17.2-map-questions.md) routes by topic and M-number; [17.2.7](17.2.7-zone-plans.md) holds the zone-plan answers |
+| Chain implementation history | [51.14](51.14-build-order.md), then the relevant track; not required for a stage-only task |
 | What's next | 41, and the Forgejo tracker it names |

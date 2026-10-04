@@ -2,7 +2,7 @@
 
 Macro generation for Last Exit, in `map/macro/` of the game repository: the tile library, placement, resolution, layout regions, the reachability proof, region briefs and the report, as the stages of the generation chain. It reads no game files, only the map kernel in `map/kernel/`; the game lends it region strategies through `map/tools/` (root 50). [Original user notes](design_notes.txt) are the source of design intent. The later assistant proposal has been [retired to the archive](docs/archive/retired-design-proposal/README.md).
 
-Design documentation lives in the repository's numbered docs: [50](../docs/50-map-generation.md) (overview and ownership), [51](../docs/51-generation-chain.md) (the generation chain), [52](../docs/52-map-primitives-and-library.md) (the library model), [53](../docs/53-map-artifacts-and-tools.md) (artifacts and tools), and [17](../docs/17-open-questions.md) ("Map generation": questions and answers). What's next is in [41](../docs/41-roadmap.md) and on the Forgejo tracker it names.
+Design documentation lives in the repository's numbered docs: [50](../../docs/50-map-generation.md) (overview and ownership), [51](../../docs/51-generation-chain.md) (the generation chain and guide to individual stages), [52](../../docs/52-map-primitives-and-library.md) (the library model), [53](../../docs/53-map-artifacts-and-tools.md) (artifacts and tools), and [17.2](../../docs/17.2-map-questions.md) (map questions and answers by topic). What's next is in [41](../../docs/41-roadmap.md) and on the Forgejo tracker it names.
 
 ## Layout
 

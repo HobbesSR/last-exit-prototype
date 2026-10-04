@@ -17,13 +17,14 @@ Read, in this order:
 2. Root `docs/50-map-generation.md`: the two halves, who owns what, and a
    reading guide.
 3. The 5x file for the area you're changing:
-   - `docs/51-generation-chain.md`: the chain and its build order
+   - `docs/51-generation-chain.md`: route to 51.1 (invariants), the relevant
+     stage child, or 51.14 (build record); do not load every child
    - `docs/52-map-primitives-and-library.md`: the library model
    - `docs/53-map-artifacts-and-tools.md`: artifacts, determinism, the sweep and
      tools
-4. For anything inside a region: root docs 19 and 20.
-5. Root `docs/17-open-questions.md`, "Map generation": Corey's verbatim answers,
-   and the open questions with their working assumptions.
+4. For anything inside a region: root docs 19 and the relevant child of 20.
+5. Root `docs/17.2-map-questions.md`: route to the relevant verbatim answers
+   and questions with their working assumptions; M-numbers remain unchanged.
 6. The Forgejo issue you're working on, and its latest handoff.
 
 `docs/archive/pre-integration/` holds mapgen's former docs. They describe the
@@ -37,7 +38,7 @@ mapgen and the planned path have each built the same thing more than once
 ## Rules
 
 - Proceed with a documented working assumption rather than stopping. Record an
-  unanswered design choice in root 17, "Map generation".
+  unanswered design choice in the relevant record under root 17.2.
 - Work in flat 2D. 2½D is deferred.
 - The Map Lab, CLI and MCP share `map/tools/core.ts` rather than reimplementing
   generation.

@@ -60,7 +60,7 @@ Micro-generation changes additionally run `npm run test:micro`: focused contract
 and seeded builder tests plus all three isolated browser previews. The unit tests also run
 in `npm test`. The lab browser check verifies actual builder content, control
 variation, artifact download and movement, and saves `test-results/micro-lab.png`.
-CLI batch generation/validation and limits are described in [20](20-micro-generation.md).
+CLI batch generation/validation and limits are described in [20.5](20.5-tools-and-next-boundaries.md).
 Decomposition checks cover immutable contexts and trial claims, graph/topology
 analysis, generator contracts, residual tradeoffs, exact ownership and interface
 accounting, corrupted artifacts, and CLI round trips. Negotiation checks cover

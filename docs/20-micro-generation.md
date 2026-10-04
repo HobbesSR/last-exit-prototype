@@ -16,534 +16,64 @@ of geometry and placement primitives; the shipped architecture builders are
 examples, not an art-style backlog. The child-region decomposer now supplies
 bounded candidate analysis and allocation; its design record is [19](19-decomposition-design.md).
 
-## Input and output
+## Reading guide
 
-`generateMicroRegion(spec)` takes a serializable `RegionSpec`:
+| ID | Topic | Read |
+| --- | --- | --- |
+| 20.1 | Region contract and briefs | [20.1](20.1-region-contract.md) |
+| 20.2 | Geometry and access | [20.2](20.2-geometry-access.md) |
+| 20.3 | Builders and child-region decomposition | [20.3](20.3-builders-decomposition.md) |
+| 20.4 | Hierarchical generation and portal negotiation | [20.4](20.4-hierarchical-generation.md) |
+| 20.5 | Tools and next boundaries | [20.5](20.5-tools-and-next-boundaries.md) |
 
-- Stable region `id`, integer `seed`, and builder class: `open`, `depot`,
-  `courtyard`, `ruins` or `entry`.
-- `cellSize` in game world units and a contiguous, non-overlapping list of cell
-  coordinates. Masks may be concave, holed or span arbitrary tile boundaries.
-  There is no six-cell tile restriction in this layer.
-- Explicit perimeter runs (`ports`): side, first inside cell, length in segments,
-  passage floor (`required`) and ceiling (`allowed`). Passage classes are `none`,
-  `contestant`, `hunter`. A horizontal run advances x; a vertical run advances y.
-- Macro-owned rectangular `reservations`, which must remain free of geometry and
-  loot, plus optional loot budget/tier.
-- Reversible class tuning: `density` in [0,1], integer `roomCells` in [4,12], and
-  `decay` in [0,1]. Density adjusts proposals rather than guaranteeing a coverage
-  fraction; decay affects ruins. The loot tier is metadata, not implemented weapon
-  tier statistics or trap scaling.
-- Optional `bodyProfile: 'live' | 'cell'`. Omission retains the legacy `live`
-  profile. An `entry` region accepts `entry.count`, from 0 through 64, and uses
-  24 when omitted.
+## Earlier heading links
 
-Outputs are JSON-compatible `micro-1` artifacts containing the input, resolved
-ports, proven clearance routes, placed `ElementTemplate` assemblies, budgeted
-loot candidate positions, and counts of actual output and rejected placements.
-An entry result also carries `entry.points`, `requested`, `shortfall`, and
-`minimumSpacing`; a shortfall is explicit rather than represented by invented
-positions.
-There are no timestamps, runtime IDs or shared random draws. Named RNG streams
-separate structural and decoration draws; cell input order is normalized.
+These links preserve bookmarks into the former single file.
 
-The current defaults are 40 world units per cell, 8 loot candidates, tier 1,
-density 0.55, room size 6 cells and decay 0.35. `live` preserves current game
-radii of 12/23 and navigation clearance of 14/25 from `map/navigation.ts`.
-`cell` is an explicit preview/profile choice. Its contestant and hunter sizes,
-its doorway (2 cells) and its contestant-only squeeze (1.5 cells) are stated
-once, in 52, "Units and scale". This is not a conversion of `map/macro/`'s abstract scale. A local artifact
-made with `cell` must not silently change the live game's bodies, clearance,
-capacity, or spawn rules.
+<a id="input-and-output"></a>
 
-### Briefs
+- Input and output: [Input and output](20.1-region-contract.md#input-and-output).
 
-`buildRegion(brief)` in `region-types.ts` takes a `RegionBrief`, the macro/micro
-contract in `map/kernel/contract.ts` ([51](51-generation-chain.md) stage 5). It
-checks the brief's own shape, then dispatches on its region type to a strategy
-in the `REGION_TYPES` registry. A brief carries:
-- the region type and its class rule's parameters
-- cells, with `cellSize`
-- each cell's zone (tier, bonus and loot chance)
-- core element counts
-- portals
+<a id="briefs"></a>
 
-Bodies are the kernel's body scale, the `cell` profile.
+- Briefs: [Briefs](20.1-region-contract.md#briefs).
 
-The strategy returns `region-2`: its elements, core element sites, loot and a
-manifest. It is not checked, because a builder's promise is its own to keep
-(51 principle 9).
+<a id="geometry-and-reachability"></a>
 
-**Portals** are straight runs on the region's perimeter. `resolvePorts` never
-walls them. The promise: every part of every portal is reachable by a hunter
-from every other portal, from within the region. One portal carries no
-requirement.
+- Geometry and reachability: [Geometry and reachability](20.2-geometry-access.md#geometry-and-reachability).
 
-**`portalStands`** gives the hunter positions that cover a portal from inside,
-at most half a cell apart. **`validatePortalReach`** is the elective check over
-final collision geometry. Each stand must be clear. The stands of one portal
-must join. Each portal must reach the first. **`diagnoseBuiltMap`** runs it on
-every region of a composed map and names the regions that fail, as the
-report's diagnostic ([51](51-generation-chain.md) stage 8).
+<a id="segment-requirements-across-hierarchy-levels"></a>
 
-Like the other route checks, it is sampled. The half-cell lattice rarely fits
-a hunter through a gap only two cells wide, so a narrow region can be refused
-though a route exists.
+- Segment requirements across hierarchy levels: [Segment requirements across hierarchy levels](20.2-geometry-access.md#segment-requirements-across-hierarchy-levels).
 
-**Registered types.** A catalogue type ([54](54-region-types.md)) is registered
-under its own name once B3 writes its strategy, in `strategies/`. So far:
-- **`open` (#126)** builds nothing (17 M25): no geometry, core elements or loot.
-- **`cover` (#127)** scatters clusters of small cover on a slot lattice. It
-  keeps its aisles by spacing rather than by a route search, so its build time
-  grows with its cells alone ([54](54-region-types.md) `cover`).
-- **`rubble` (#128)** protects hunter routes between portals, then places
-  seeded debris that can leave contestant-only squeezes. It rolls zone loot
-  after geometry.
-- **`hut` (#129)** stands one house in its yard. It picks the house's box by
-  a cell-level check of the yard, not by a route search, and a region with no
-  box that keeps its promise is left `open` ([54](54-region-types.md) `hut`).
-- **`arrival` (#130)** uses the whole region as its one spawn child and sites
-  `brief.coreElements.spawn` contestant points with the SDK's farthest-point
-  spread before cover and loot claim space. Its optional `spacing` parameter is
-  a minimum point-to-point distance in cells; without it, body clearance is
-  the minimum. Cover keeps its aisle spacing and any piece that occupies a
-  spawn or cuts its route to the first portal is omitted. A constrained region
-  can site fewer points; the macro report names the shortfall.
-- **`departure` (#131)** takes its region whole. It spreads
-  `brief.coreElements.exit` exits first, farthest-first, so they sit as far
-  apart as the region allows; the optional `exitSpacing` parameter (cells) is
-  only a floor. It then spreads `hunter-spawn` points over the ground at least
-  `setBack` cells from every exit, 6 by default, a proposal. Every site is
-  reachable from the first portal, and cover and loot fill around them through
-  the cover strategy's `coverAround`, which `arrival` uses too. A region that
-  can't hold them all sites fewer, for the report to name.
-- **`charging` (#132)** takes its region whole. It sites
-  `brief.coreElements.charger` chargers with `spreadPoints` as near the
-  region's middle as a contestant fits, falling back to the first portal's
-  side when the middle can't be walked to. `coverAround` keeps cover and loot
-  off `standing` cells around each (2 by default, a proposal), while the
-  route check uses a contestant's radius (`ClearSite.reach`). Then the cover
-  strategy's `coverNear` adds one container within 2 cells of that ground if
-  no cover stands there, keeping cover's aisles so it can't divide a hunter's
-  ground. A region too small for it gets none.
+<a id="builders-and-composition"></a>
 
-Today's builders stand in for the rest, with the ids `example-open`,
-`example-depot`, `example-courtyard`, `example-ruins` and `example-entry`. The
-prefix keeps a library from binding to them. `REGION_TYPES_VERSION` (`types-8`)
-names what the registry builds. A change to what any strategy builds bumps it,
-so a saved map's results are never silently rebuilt by other strategies (51
-"Saving"). Each example builder:
-- protects its portals' stands and a hunter route between them while it builds
-- sites the brief's core elements before the loot fill, as the entry builder does,
-  kind by kind, reachable from the first portal
-- rolls each cell's loot chance, and gives loot its cell's tier, with no
-  budget but the 64-slot tool limit
+- Builders and composition: [Builders and composition](20.3-builders-decomposition.md#builders-and-composition).
 
-A brief is not the `RegionSpec` in "Input and output". The explicit-port spec and
-its `micro-1` result (`MicroResult`) stay for the examples, the tools and
-decomposition.
+<a id="child-region-decomposition"></a>
 
-## Geometry and reachability
+- Child-region decomposition: [Child-region decomposition](20.3-builders-decomposition.md#child-region-decomposition).
 
-Unmentioned region boundaries emit nothing. They are ownership boundaries, not
-automatic walls or fences. An explicit port produces only its local jambs or
-closed span; a contestant-only span is 34 world units in the live profile and
-1.5 cells in the cell profile.
-An opening permits crossing, while an actual door remains an interactable object.
-Roofs belong to room assemblies, never to a whole concave region bounding box.
+<a id="combined-decomposition-and-generation"></a>
 
-Before decoration, required entrances are joined inside the mask for each body
-class. The local planner tries direct visibility, then a bounded half-cell search.
-Every edge is checked as a swept disc: two circles and a convex strip, using
-`shape.ts`'s SAT dispatch. It cannot accept a thin wall between clear endpoints.
-Routes and entrance approaches are protected from subsequent placements.
-This is a conservative sampled planner: finding a path establishes a continuous
-clear route; failure does not prove no continuous route exists.
+- Combined decomposition and generation: [Combined decomposition and generation](20.4-hierarchical-generation.md#combined-decomposition-and-generation).
 
-The builder canvas applies whole-assembly placement atomically. Every collider,
-roof footprint and reservation must fit the owned cells. Containment checks the
-whole shape against missing cells, so a diagonal body cannot bridge a hole merely
-because its vertices are inside. Convex polygons and off-grid rotation are supported;
-concave collider decomposition and elevation remain separate work. Rectangular
-architecture can select contained subrectangles without forcing the whole region
-to be rectangular. Invalid placements do not consume IDs or leave half a building.
+<a id="bounded-hierarchical-exploration"></a>
 
-Loot has at most one candidate per cell, standing room at least the active
-contestant clearance, and a route from a required entrance where one exists.
-Accepted loot routes stay protected from
-later placement. The budget is a cap; constrained regions may provide fewer slots,
-and the artifact reports the actual count. No feature is claimed for a missing slot.
-Routes through rooms assume unlocked doors can be opened; preview collision starts
-with doors closed. There is no claim to validate dynamic player-created obstructions.
+- Bounded hierarchical exploration: [Bounded hierarchical exploration](20.4-hierarchical-generation.md#bounded-hierarchical-exploration).
 
-`validateMicroRegion` independently checks emitted shapes, canonical boundary
-geometry, floor/ceiling crossings, required entrance connectivity, loot and manifest
-counts. It does not accept a builder's reachability assertion in lieu of geometry.
-The public interface is bounded by `limits.ts`: a region of up to 65,536 cells and
-512 per axis, at cell addresses within ±512, with up to 4,096 ports or portals of up to
-512 segments each; and 64 loot slots and 64 entry points. These are tool limits, not
-desired match dimensions. The region bounds were raised from 4,096 cells and 64 per
-axis for macro's regions, whose open ground can be a whole map wide (17 M7, 51 C2).
-One check, `checkedRegionCells`, holds them for builders and the access contract.
+<a id="dispatch-and-portal-negotiation"></a>
 
-### Segment requirements across hierarchy levels
+- Dispatch and portal negotiation: [Dispatch and portal negotiation](20.4-hierarchical-generation.md#dispatch-and-portal-negotiation).
 
-`sdk.ts` now exposes `resolveAccessRequirements` and `validateRegionAccess` from
-`access.ts`. They accept the region mask, scale, body profile and `RegionPort`
-requirements independently of any builder. The validator takes final collision
-shapes and recomputes threshold clearance, interior standing and connections
-between every required crossing for each body class. Hunter requirements also
-require contestant access. Optional `allowed` passage is a ceiling, not a promise
-that the crossing exists or participates in required connectivity.
+<a id="physical-demonstration-policy"></a>
 
-The current contract locates a centered aperture within a perimeter segment run;
-the run is not a promise that every point along its length is open. This retains
-the existing two-cell doorway / 1.5-cell squeeze semantics. The validator operates
-on these resolved crossing locations. A different crossing placement must be
-communicated explicitly rather than inferred from a child's interiors.
+- Physical demonstration policy: [Physical demonstration policy](20.4-hierarchical-generation.md#physical-demonstration-policy).
 
-`inheritBoundaryPorts(parent, childFootprints)` passes complete parent runs to
-their owning children in global cell coordinates. It checks exact ownership and
-rejects a run split across multiple children instead of clipping away part of an
-obligation. `pairedBoundaryPort` constructs the neighboring side of a selected
-inter-child interface. Callers choose these interfaces and content parameters.
+<a id="inspect-and-verify"></a>
 
-After generation, `validateBoundaryComposition(parent, children)` checks inherited
-requirements, paired internal contracts, scale, collision containment and each
-child's required connectivity against the combined collision geometry. It then
-checks the parent's external obligations over the combined result: first by a direct
-route, and where the sampled search misses, by a `bridged` chain of children whose
-own checks passed, joined by paired crossings each child proved from its side. The
-two crossing capsules cover the straight line between the paired inside points, so
-the chain is a continuous route. This fallback exists because a hunter in the cell
-profile clears a two-cell doorway by about six world units, which the half-cell
-lattice rarely samples; a direct route across an intermediate child's doorway was
-therefore almost never found. Children need
-only expose their boundary and collision output; the validator needs no knowledge
-of their internal generation strategy. It returns errors and fresh route evidence,
-and never modifies geometry or repairs a contract. At deeper levels the same
-operation applies to each immediate partition (currently up to 16 children).
+- Inspect and verify: [Inspect and verify](20.5-tools-and-next-boundaries.md#inspect-and-verify).
 
-The existing example builders still protect paths during construction as a useful
-heuristic. The examples also check themselves afterward, which is their own
-elective choice ([51](51-generation-chain.md) principle 9): `validateMicroRegion`
-delegates access checks to the independent utility, and the combined demo runs
-the child composition check after generation. Unlocked-door handling remains explicit:
-callers pass blockers representing the assumed door state; existing examples
-assume unlocked doors can open. A failed sampled route search rejects acceptance
-but does not mathematically prove no continuous route exists. This adds SDK
-contracts; it does not yet adapt macro artifacts or physically execute explored trees.
+<a id="next-boundaries"></a>
 
-## Builders and composition
-
-`builders.ts` shares a parameterized room shell with actual windows, an unlocked
-door sized by the active profile and optional shelves. Open ground proposes sparse cover/shelters;
-depots propose warehouses and container aisles; courtyards propose a room ring
-around clear ground; ruins propose discontinuous walls and rotated convex debris.
-Placement counts and tests guard against a builder silently producing no content.
-
-`entry` is deliberately small: after region geometry resolves, it calls the
-reusable `spreadPoints` primitive. It samples a bounded half-cell lattice, keeps
-only circles fully contained and clear of blockers/reservations, then selects
-farthest points with non-overlap at the active contestant clearance. With a
-required entrance it also checks each accepted point is reachable from that root.
-The root is a reachability anchor, so only blockers can invalidate it. Macro
-reservations are passable: entry points stay off them, but one beside the entrance
-does not break placement. Spawning is the entry region's guarantee and loot is not,
-so entry points are placed before the loot fill and see only geometry and macro
-reservations. Loot then takes the leftover room and stays off every entry point; a
-small entry region can hold its full spawn count and no loot. The loot budget never
-moves an entry point (#21). Loot that blocks movement, such as a
-container, would be a standard element placed through the builder and obey the
-element rules, including the protected entrance approach.
-It reports a shortfall when this sampled placement cannot meet the requested
-count. That does not prove maximum packing capacity. It is a local spacing
-result, not a proof that a complete match can support that many players.
-Entry placement uses the region seed to break ties between equally scored
-farthest-point candidates. It preserves the spacing objective and can legitimately
-remain unchanged where the best positions are unique. Omitting the optional seed
-on the reusable `spreadPoints` primitive retains canonical tie ordering.
-Ruin decay now changes intact spans into smaller rotated rubble and adds scatter;
-it is not a parameter of the other builders.
-
-`map/micro/sdk.ts` exports the pure reusable layer: region-mask and shape
-queries, collision/route helpers, `spreadPoints`, and `microMetrics`, with their
-types. It also exports decomposition analysis, immutable region contexts,
-candidate allocation, interface discovery, and independent plan validation.
-These are mechanics: they describe cells and structural facts, but do not select
-the caller's content strategy. It imports neither the builder catalogue nor live
-game state, assigns no gameplay IDs, and does not choose a macro plan. It is a source-level
-SDK for this project, not a separately published package.
-
-## Child-region decomposition
-
-`createRegionContext` accepts one connected four-neighbor polyomino and freezes a
-canonical copy of its cells, reservations, required cells, forbidden cells and
-entrance annotations. Analysis is cached by normalized footprint, and `child()`
-creates a constrained child context by restricting those annotations. This keeps
-context mechanics immutable while callers retain strategy intent.
-
-`analyzeRegion` reports graph and cell facts: connected components, holes and
-boundary ownership, articulation cells, maximal contained rectangles, four-neighbor
-depth, local straight-run width, monotonicity and rectangularity. Depth and local
-width are grid measurements only: neither is a true body-clearance measurement.
-Candidate helpers also grow a bounded predicate/cost-controlled region and propose
-straight, bounded-width neck cuts. They do not construct a skeleton or delete a
-cut from the final ownership plan. Holes are legitimate topology, so a candidate
-is not convexified or split into rectangles merely to make it easier to assign.
-
-The caller supplies candidate footprints and generator contracts. Allocation
-assigns non-overlapping candidates to compatible generators, rather than treating
-geometric convexification as the decomposition objective. A contract uses roles,
-tags, area bounds, hole policy and optional rectangularity as hard feasibility;
-its `utility` returns named soft score components. `requiredTags` are enforced,
-whereas `preferredGenerators` are only candidate metadata. Reserved, assigned and
-forbidden cells have separate ownership roles. The remaining connected components
-are first-class residual regions, scored for unused area, fragmentation, small
-remainders, seams and piece count according to caller policy.
-
-The allocator uses deterministic bounded beam/fork search over bitset claims. It
-reports considered/truncated candidates, expansions, budget exhaustion and
-per-candidate rejection or non-selection reasons. A retained result is explicitly
-non-optimal: a feasible alternative may be absent because of overlap, utility or
-beam pruning. The validator independently recomputes ownership, residuals, cuts,
-interfaces and score accounting; an optional generator registry additionally
-rechecks contract feasibility. It does not certify a physical route, doorway or
-optimal allocation.
-
-Shared boundaries are coalesced into straight interface runs. Runs at least the
-configured width are portal opportunities for later negotiation, never physical
-doors or traversability guarantees. Negotiation and execution of a flat plan are
-described under Dispatch and portal negotiation below; recursive execution and
-macro adapters remain unimplemented.
-
-The concrete example in `decomposition/example.ts` supplies the policy and four
-consumer contracts. On the 252-cell neck example, defaults select two 120-cell
-room footprints and a 12-cell connector grown from a neck cut. Their two shared
-boundaries each have one three-cell straight run. The 252-cell ring example instead
-selects the intact courtyard footprint, preserving its hole. The same allocator
-can prefer less coverage when the caller increases residual-fragmentation cost;
-this tradeoff has a dedicated test. None of these choices is hard-coded into the
-allocator or asserted globally optimal.
-
-Contexts are bounded to 4,096 cells and 64 cells per axis. Analysis retains at
-most 256 maximal rectangles. Allocation evaluates at most 128 candidates against
-16 contracts, retains up to 32 beam states, assigns at most 16 pieces, and stops
-after 20,000 expansions. The example uses smaller defaults. Cuts are full straight
-cross-sections, not a medial-axis or graph-min-cut implementation. Entrance records
-are preserved annotations; physical access obligations still need downstream
-negotiation and collision checks. Reserved cells remain reserved in a child view;
-later-stage reservation consumption and automatic recursive dispatch are not yet
-provided.
-
-`composeRegions(results)` joins a whole map's brief results, up to 4,096 of them, in
-one cell coordinate system (51 stage 7, C2). It refuses a cell with two owners,
-duplicate ids, mixed cell sizes, and any portal that isn't on its region's perimeter,
-faces cells no region owns, straddles two regions, or isn't named alike, with the same
-run, in the brief on its other side, and a portal id that names two pairs. It returns a `BuiltMap` (the kernel's type):
-regions in id order and each shared portal's pair once, the same whatever order the
-results came in. It checks briefs and ownership only, never geometry: a builder's
-promise is its own to check (51 principle 9). `stampBuiltMap` and `builtMapCollision`
-emit its geometry through the same adapter path as one region, each region's under its
-id as its node. Core element sites stay in the map for the report (51 stage 8).
-
-`composeMicroRegions(specs)` joins up to 16 **supplied** regions in one cell
-coordinate system. It refuses overlapping ownership, duplicate identities,
-partial boundary ownership and disagreeing paired floor/ceiling contracts.
-Shared required entrances are also checked against both regions' combined geometry.
-Generation is stable under region ordering. It neither chooses a macro partition
-nor proves a required global spawn-to-exit topology: those remain macro duties.
-An outside port without a supplied neighbor remains an explicit external boundary.
-
-`adapter.ts` stamps validated assemblies through `placeElement`. It retains roof
-ownership and unlocked doors and exposes only the checked loot list as generation
-spots. `regionCollisionMap` uses that same adapter for the preview's real movement
-and collision queries. It does not start a multiplayer match or alter the default
-generator, global RNG order, fixture, snapshot schema or recording version.
-The caller owns placement within the arena's world boundary and collision checks
-against content outside the supplied regions; local validation cannot establish those.
-
-## Combined decomposition and generation
-
-### Bounded hierarchical exploration
-
-`decomposition/explore.ts` is a strategy-level tree explorer alongside the flat
-allocator. Each refinement stores its local plan and partitions its parent exactly;
-assigned pieces and residuals can be considered for further refinement. Reserved
-and forbidden ground stays terminal. Retaining a piece is an explicit alternative
-to subdividing it. Whole-footprint no-op refinements are rejected.
-
-The lab retains a small portfolio under Balanced usefulness, Smaller room groups,
-or Preserve large shapes and holes. Objectives score terminal ownership, rather
-than double-counting both a parent and its children. Each selected branch exposes
-its depth and reason for stopping or refinement. The example proposal family adds
-midpoint rectangle splits to the existing room/courtyard/lobe proposals; this is
-not a universal rectangle decomposition rule.
-
-Search depth is capped at three, retained alternatives at eight and expansions at
-64 (lab defaults: two, four and 24). A `decomposition-exploration-1` export preserves
-the retained trees and named score components, with explicit non-optimal search
-diagnostics. This explores structural allocation hierarchies, not recursive physical
-generation. General dispatch, portal negotiation and macro integration remain separate.
-
-### Dispatch and portal negotiation
-
-`negotiatePortals(parent, children, interfaces, policy)` in `decomposition/negotiate.ts`
-is SDK mechanics. It passes the parent's external `RegionPort`s whole to their owners
-through `inheritBoundaryPorts`, then asks the caller's policy for each interface
-between two children: a passage floor and ceiling, and whether the unused runs are
-`sealed` (a closed contract on each) or `unstated` (no contract, so open ground, which
-promises nothing). A null answer leaves the whole seam unstated. The crossing takes the
-longest run, ties broken by row then column, that the access resolver accepts for the
-body it must carry: its floor, or its ceiling when only permitted. There is no second
-width formula. Interfaces that name ground outside the children, such as reserved
-cells, are skipped and reported. Before any generation it checks that the policy's
-required crossings join children holding external obligations of each class and, when
-`connect` names a class, all children. It returns per-child ports, inherited first,
-plus crossings and components. It neither generates nor repairs.
-
-**The rule for children** ([51](51-generation-chain.md) stage 6, Corey,
-2026-10-01): every two children that share a boundary have at least one portal
-between them. A null policy answer breaks it. `negotiatePortals` doesn't enforce
-it yet; it moves to portals with B3 (#96).
-
-`executeDecomposition(plan, options)` in `micro/execute.ts` is outside the SDK because
-it needs the builder catalogue. A caller `dispatch` maps each allocated piece or
-residual to builder content; null leaves a residual unrealized, and an allocated piece
-must dispatch. It negotiates, generates through `composeMicroRegions` with one seed and
-body profile, and throws unless `validateBoundaryComposition` accepts the result against
-the parent's ports. That check is this demo executor's choice; the chain doesn't
-require it of builders (51 principle 9). Ownership is taken from the plan as given.
-
-### Physical demonstration policy
-
-`decomposition/realize.ts` is an example strategy: one dispatcher and one portal
-policy passed to `executeDecomposition`. It maps rectangular rooms to depots
-(optionally open ground or ruins), courtyard rings to courtyards, generic lobes to
-ruins, and circulation/residual regions to clear entry geometry with zero spawns and
-no loot. Every interface gets one centered hunter crossing, the other runs are sealed,
-and all children must be hunter-connected. An interface with no run that can carry a
-hunter fails explicitly. Its output for the example shapes is byte-identical to the
-earlier hardcoded version. Explicit external `ports` are accepted and recorded as the
-artifact's optional `external` list. `context.entrances` annotations are still rejected,
-because cells plus a width name no side. Converting them is adapter work.
-Reserved/forbidden cells stay excluded. Each child's anchor is an inter-child crossing
-rather than an external port, so the doorway is an endpoint of every saved route.
-
-The demo gives entry regions no loot, so its output is unchanged by placing entry
-points before loot (#21).
-
-The `realized-decomposition-1` artifact includes the original plan, assignments,
-generated children, paired physical portals, anchors and swept routes connecting
-all children for both body sizes. Validation rechecks ownership, local geometry,
-portal pairs, those routes and the boundary composition against `external`
-(absent means none, as in earlier artifacts). Unlocked doors are assumed open for route proofs;
-the walking preview starts with doors closed. This is static connectivity of the
-generated children, not a whole-match spawn-to-exit guarantee.
-
-`decomposition/preview.ts` stamps the children into one collision map and adds
-tool-only collision around missing cells and holes. Those bounds are not exported
-architecture. The default neck demo produces two populated room regions joined
-through a circulation region. Content seeds and density vary micro generation
-without changing the selected decomposition.
-
-## Inspect and verify
-
-Run `npm run dev` and open `/micro-lab.html` on the address it prints: 3100 by
-default, a worktree's assigned port from [34](34-forgejo-workflow.md) otherwise. Choose class, profile, shape and
-seed, tune the parameters, inspect roofs/ports/clearance, walk as either body with
-WASD, open doors with E, and download the result. The lab defaults to the cell
-profile, displays the diameters/doorway/squeeze in cells, and draws numbered entry
-positions. It imports either a `RegionSpec` or a validated `micro-1` result; an
-imported result remains the downloaded artifact until a new example is generated.
-This page is a development preview.
-Example controls now apply automatically; sliders use a short debounce. Controls
-that do not affect the selected builder are disabled. Imported artifacts remain
-intact until a control generates a new example or a new artifact is imported.
-
-```powershell
-node tools/micro-region.mjs --builder=depot --seed=42 --out=test-results/region.json
-node tools/micro-region.mjs --builder=entry --profile=cell --count=24 --out=test-results/entry.json
-node tools/micro-region.mjs --validate=test-results/region.json
-node tools/micro-region.mjs --builder=courtyard --shape=hole --batch=20
-node tools/micro-region.mjs --spec=region-spec.json --out=region.json
-node tools/micro-region.mjs --layout=region-spec-list.json --out=layout.json
-node tools/decompose-region.mjs --shape=neck --out=test-results/decomposition.json --beam=8 --residual-penalty=10 --piece-penalty=3
-node tools/decompose-region.mjs --validate=test-results/decomposition.json
-node --test tests/micro-*.test.js
-node tests/micro-lab.mjs
-node tests/decomposition-lab.mjs
-node tests/generation-demo.mjs
-```
-
-The CLI, browser and adapter share the core. `--profile=cell|live` and `--count=N`
-set the generated example's profile and entry count. `examples.ts` contains hand-authored
-macro inputs for the tools, not a second generation algorithm. The focused suite
-includes four builders × three masks × eight seeds, tuning extremes, actual
-roof/loot counts, thin-wall swept collisions, real-body squeezes, deliberately
-broken artifacts, and adjacent-region contract conflicts. Broader acceptance is
-in [31](31-verification.md). `decompose-region` emits or validates a
-`decomposition-1` plan; `--shape`, `--spec`, `--beam`, `--residual-penalty` and
-`--piece-penalty` select its example/context and caller policy. The decomposition
-lab at `/decomposition-lab.html` is an allocation visual inspector: its seams and
-portal opportunities are structural, not physical geometry. `/micro-lab.html`
-continues to inspect and walk actual micro geometry. Decomposition controls apply
-automatically; presets demonstrate different allocation policies, while status
-explains unchanged winners. Advanced search settings are not style controls.
-
-All browser-based development tools (`/micro-lab.html`, `/decomposition-lab.html`,
-`/generation-demo.html`, and the Map Lab at `http://localhost:4173/`, `npm run lab`) carry a
-shared global navigation bar. The Map Lab link goes to the active Map Lab server's root URL.
-Cross-server links appear only when the peer's configured port is reachable in the
-same worktree. Each tool keeps its own local navigation when the peer is unknown.
-
-Open `/generation-demo.html` for Region, Decomposition, Generated and Walk stages
-of the same example. Inspect each child's assignment and geometry, vary contents,
-seed and density, show seams/routes/roofs, and export the combined artifact. Walk
-uses the game's actual collision movement; WASD/arrows move and E operates doors.
-Ownership outlines distinguish region perimeters from decorative grid gutters;
-these are drawn separately from the generated walls and roofs.
-`npm run test:micro` runs the focused unit tests and all three browser previews,
-including actual movement across a child-region join.
-
-## Next boundaries
-
-Placing core element regions beyond local entry spacing, primitive material sets, and
-authored segment/vertex metadata still need expansion. The next decomposition
-boundaries are recursive execution of explored trees, which can now reuse flat
-dispatch and negotiation at each level, and a `map/macro/` adapter.
-
-`map/macro/` is the input for that adapter. [51](51-generation-chain.md) now
-specifies it:
-- **Briefs** (51 stage 5) are expressed in the macro/micro contract in the
-  shared map space, described under "Briefs" above (C1, #84).
-- **Region type ids** replace the closed builder list.
-- **Portals** are derived stretches that must stay passable. They are used for
-  checking and never laid as geometry ([17](17-open-questions.md) M3, M4).
-- **Not yet done:** decomposition still negotiates walled `RegionPort`s
-  between children, sealed runs included. M4 gives children passability
-  obligations only, so that moves to portals when a decomposing strategy
-  needs it (B3). Decomposition contexts also keep their 4,096-cell and
-  64-per-axis bounds, so a strategy that decomposes a macro-sized region needs
-  them raised then. And a brief's loot is still capped at the 64-slot tool
-  limit, which a large region's per-cell chances can exceed.
-- **mapgen's flat cell indices** are translated into this SDK's global integer
-  cell coordinates, with an explicit `cellSize`.
-- **Whole-map composition** is `composeRegions` (51 C2), described above.
-  `composeMicroRegions` stays for decomposition's walled ports until B3.
-  Reachability isn't measured over the whole map. It is inferred from the macro
-  proof and from each builder keeping its promise (51 principles 8 and 9).
-  Nothing enforces that promise. This SDK's validators are elective utilities
-  a builder may use to check its own work, for example in its tests.
-- **The contract, body scale and the definition of a run** are in the shared
-  map space, `map/kernel/`, which neither level owns (51 C0).
-  `types.ts` re-exports the contract, `microMetrics` reads the scale, and
-  `buildInterfaces` builds on the shared run finder.
-
-It must not treat `map/macro/`'s graph or sampled connectivity as proof of this
-game's physical geometry. mapgen's own micro layer duplicates this
-directory's work and retires, and its planned path retires with it. Where macro
-and micro solve similar problems, such as boundary runs and connectivity, each
-keeps a version fitted to its own scope ([50](50-map-generation.md)).
-The existing generator remains live until that explicit
-integration checkpoint is satisfied.
+- Next boundaries: [Next boundaries](20.5-tools-and-next-boundaries.md#next-boundaries).

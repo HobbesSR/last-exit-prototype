@@ -5,152 +5,35 @@ the rest are conventions this file records so a change lands in the right module
 
 `shared/shape.ts` owns what a shape is: the rect/circle/polygon description, its bounds, outline, edges, SAT body, containment, overlap and transform. It is a dependency-free leaf, and collision, sight and the renderer all read geometry through it rather than from raw `w`/`h`/`r` fields; see [29](29-geometry-and-drawing.md). `shared/map.ts` exposes map generation and routing. `shared/movement.ts` owns what the simulation does with a shape: occupancy, the movement sweep, sight queries and visibility polygons. `shared/simulation.ts` is the public simulation facade and explicit fixed-tick coordinator. `server/index.js` composes the server and serves static assets. `public/client.js` owns application startup, networking, authoritative state, prediction/reconciliation and lobby flow; `public/replay-controller.js` owns recorded-match playback. `public/snapshot-buffer.js` owns the receive buffer and the delayed, interpolated frame drawn from it, and knows nothing of sockets, Phaser or the scene: frames go in and one interpolated frame comes out, which is the seam a state-sync framework would replace. `client.js` decides which frame the renderer sees — the buffered one live, the replay's own playhead when a recording is open — so the scene draws what it is given rather than deciding what is current. `public/arena-scene.js` renders the world and visibility mask. `public/ui.js` owns the client's shared presentation vocabulary — DOM lookup, tick formatting and kit naming read from the authoritative kit table rather than a transcribed copy.
 
-## Shared simulation
+## Reading guide
 
-`movement.moveBody` owns SAT sliding for an explicit radius and speed. Live
-`movePlayer` still owns role, boost, stun and sneak tuning and delegates to it;
-the micro lab passes its selected profile without changing live player state.
+| ID | Topic | Read |
+| --- | --- | --- |
+| 22.1 | Shared simulation | [22.1](22.1-shared-simulation.md) |
+| 22.2 | Map generation and live map assembly | [22.2](22.2-map-generation.md) |
+| 22.3 | Server | [22.3](22.3-server.md) |
+| 22.4 | Client | [22.4](22.4-client.md) |
 
-Simulation internals live in `shared/simulation/`: `rules` defines constants, `content` owns the tunable set a match is pinned to — the roster, weapon, kit and trap tables, and the tick-denominated rules — and hands each match a frozen copy at creation, so a balance change is a versioned event rather than an ambient one; `state` creates players/games and validates joining, `input` owns what a client may send and the per-player queue a tick spends exactly one of, `rewind` owns recent positions and how far back a given attacker's view ran, `loot` owns events/effects/drops/automatic pickups, `lifecycle` owns elimination/respawn/completion, `combat` owns damage/abilities/weapons/projectiles, `interactions` owns doors/transit/charging/extraction, `bots` owns decisions/navigation, and `visibility` owns gameplay sight and snapshots/projections. Functions receive the existing state/player objects directly. No internal module imports the simulation facade. Dependencies flow from bots to combat to lifecycle to loot; lifecycle never imports combat. Rules and geometry helpers are leaves.
+## Earlier heading links
 
-Tick order is part of gameplay: advance time/effects, then iterate players in array order. For each player, attempt respawn, decrement timers, obtain input — one queued input for a client, a fresh decision for a bot, including bot utility use and equipment drops — move, apply slot/move/drop/skill/attack/interact/charge actions, collect loot/reveal at sensors, and apply hazards. Traps, projectiles, and match completion follow the player loop. Extraction preserved that order, mutable state shapes, public exports and wire fields, at the simulation version it was performed under, `last-exit-0.6`. The version has since advanced deliberately; see [24](24-networking-privacy.md).
+These links preserve bookmarks into the former single file.
 
-Power cells are normal unstackable equipment entries with retained charge, not a separate player field. Charging takes 100 ticks. Drop is a one-shot press like interact: spent by the tick that consumes it, and never re-applied by a repeat. Projectile hits can damage other contestants; killed gladiators enter a 400-tick respawning state and return only when a safe transit station is available. These states were introduced under simulation version `last-exit-0.6`; old recordings retain a display fallback for their dedicated cell field.
+<a id="shared-simulation"></a>
 
-`shared/recording.ts` owns recording compatibility — the `schema`/`minSchema` pair a header carries and the decision about whether this build can play a given archive — so `room-service` stamping a recording and `client.js` opening one cannot drift apart on it; see [26](26-recording-contract.md). `shared/vector.ts` and `shared/numbers.ts` are dependency-free leaves: the first owns world-point distance, which map generation, routing, hazards and the simulation had each defined separately; the second owns the numeric guards that client input is validated through. Both are re-exported by `simulation/geometry` and `map/context` so existing consumers import them from the module that owns their stage.
+- Shared simulation: [Shared simulation](22.1-shared-simulation.md#shared-simulation).
 
-## Map generation
+<a id="map-generation"></a>
 
-Map generation lives in `map/`, apart from the game's portable core in
-`shared/`, which the server and the browser both run (21, 27). Only prediction
-uses both sides today, but the whole simulation is kept portable, so the test
-for belonging in `shared/` is being part of that runtime core. Map generation
-isn't: the server invokes it before creating a match; the game client consumes
-only its resulting runtime map. `map/` builds on
-the core's geometry and element vocabulary, and `shared/` never imports `map/`, including after live adoption. A test in `tests/micro-common.test.js`
-holds that direction.
+- Map generation: [Map generation](22.2-map-generation.md#map-generation).
 
-It has two halves, plus a kernel between them ([50](50-map-generation.md)):
-- **Macro, in `map/macro/` ("mapgen"),** owns the tile library, placement,
-  resolution, layout regions, the reachability proof, region briefs, and the
-  map-level checks ([51](51-generation-chain.md)).
-- **Micro, in `map/micro/`,** owns what fills a region: each region
-  type's strategy (decomposer and builders), the SDK machinery they share
-  (including elective validation utilities), and composing the regions.
-  Nothing enforces a builder's contract, and breaking it is a builder defect
-  ([51](51-generation-chain.md) principle 9).
-- **The kernel** (`map/kernel/`, the shared map space of [51](51-generation-chain.md)
-  C0) holds what both must agree on: the macro/micro contract (`contract.ts`),
-  body scale and passage widths (`scale.ts`), and the definition of a run
-  (`run.ts`, with the cases every run finder is tested against). Neither level
-  owns it, and it imports nothing outside itself, so a consumer at either level
-  pulls in nothing else. The contract's result is generic over the game's
-  geometry, so macro can read core element sites without the engine (C1).
-- **The tools** (`map/tools/`) show both halves, so they belong to neither
-  ([17](17-open-questions.md), "Where the tools live"). They are the one place
-  the two meet: `engines.ts` lends the game's strategies to macro's chain as
-  `MapEngines` ([53](53-map-artifacts-and-tools.md)). Neither half imports the tools.
+<a id="server"></a>
 
-The same problem at the same level has one owner. mapgen's own micro layer
-and its planned path duplicated the game's, and were deleted at the chain's
-switch-over (#146). A problem both levels face, such as boundary runs,
-connectivity or reachability checks, is solved at each level within its own
-scope, with a shared definition where the two must agree (50). mapgen imports the kernel,
-and may import the SDK from `map/micro/` ([17](17-open-questions.md) M1). Otherwise
-macro and micro meet in the map-level assembly (`map/chain.ts`, `map/engines.ts`), and a test in `tests/micro-common.test.js`
-holds that. The server injects a generated map into the game core; the core never imports
-`map/`.
+- Server: [Server](22.3-server.md#server).
 
-`map/micro/sdk.ts` exposes reusable mask, geometry, route, scale and
-spacing primitives without importing the builder catalogue. `placement` owns
-bounded farthest-point spacing, while the region generator supplies entry counts,
-clearance and exclusions. It also exposes decomposition mechanics: immutable,
-cached child contexts; polyomino graph measurements and candidate helpers;
-bitset-backed bounded allocation; coalesced structural interfaces; and independent
-plan validation. The SDK owns neither a physical generator assignment nor strategy
-intent. Callers own candidate proposals, generator utility and allocation policy;
-contracts enforce roles/tags/area/hole/rectangle feasibility while `utility`
-scores feasible choices. Reserved, assigned and forbidden ownership remain
-distinct, and an interface is a portal opportunity rather than a door.
+<a id="client"></a>
 
-`decomposition/realize.ts` owns the combined demo's explicit generator-to-builder
-mapping and internal portal policy, then verifies physical child connectivity.
-It is not exported by the generic SDK. `decomposition/preview.ts` stamps its
-validated children into one collision map with tool-only void boundaries.
-`public/generation-demo.js` owns inspection and walking controls, not allocation
-or generation policy. External macro entrance translation remains separate work.
-`decomposition/explore.ts` owns the example's bounded hierarchy proposal/search
-and objective policies; it leaves the flat allocator and generator contracts
-unchanged. `public/decomposition-tree-panel.js` displays retained alternatives and
-branch decisions. A tree node partitions ownership; it is not generated geometry.
-`micro/access.ts` owns builder-independent post-generation access validation and
-canonical crossing resolution. `micro/boundary.ts` owns parent-to-child boundary
-inheritance, paired requirements and post-generation composition validation.
-Builders own construction tactics; validators never repair or weaken obligations.
+- Client: [Client](22.4-client.md#client).
 
-`map/micro/` owns the separate bounded-region path described in
-[20](20-micro-generation.md): `types` re-exports the macro/micro contract from the kernel, `geometry` owns
-mask containment and swept local route queries using `shape.ts`, `index` owns
-validated placement/loot and artifact validation, `builders` owns architecture,
-`compose` checks supplied adjacent-region contracts, and `adapter` emits through
-`placeElement`. `examples` supplies shared tool inputs. The CLI and browser lab
-call those modules; neither reimplements generation or imports `map/macro/`.
-The legacy `generateMap` path below remains available for stored-map
-characterization and explicit legacy consumers.
+<a id="live-map-assembly"></a>
 
-`shared/map.ts` is a compatibility facade over `shared/map/`. `generate` runs topology → terrain/passages → spawn reservations/buildings/props → objectives/loot/traps. Every stage receives one generation context: seeded RNG, ID stream, placement helpers, reservations, and intermediate graph/placement data. Creating helpers consumes no random draws or IDs; stage order and loop order preserve the original output. `element` owns what a *group* of bodies is — a placeable assembly of obstacles, gates, loot spots and reservations in local coordinates — and `templates` is the catalogue of them a region generator draws from; a stage that needs a structure stamps a template rather than emitting literals, and a template's part order is frozen for the same reason stage order is. `world` and `graph` provide constants and graph lookup/routing; graph caches are private WeakMaps keyed by map identity and explicitly invalidated during topology changes. `navigation` separately owns runtime grid caches, invalidated by door open/locked state, obstacle-array replacement, or obstacle-count changes. It also owns the clearance a route requires and the straightening applied after a grid search: a grid returns tile centres, so a route at any angle other than a multiple of 45 degrees comes back as a staircase, and walking it waypoint by waypoint makes a bot turn every few ticks. That turning is real simulation motion, so no amount of presentation smoothing can remove it. Straightening and the walkability grid read one clearance value, because smoothing against a narrower radius would cut the very corners the grid was built to keep clear of. In-place obstacle geometry edits without replacement remain outside the existing cache contract. This stage boundary is a future generator replacement point, not a new hierarchy or multi-floor schema.
-
-The legacy generator exposed by `shared/map.ts` builds a connected street graph with loops and offset passages in a 24,000 × 12,000 arena. This is explicitly not the deferred user-defined hierarchical template system. Coarse block routes guide bots, with bounded local collision-aware A* around the next passage. Generation scores main routes against a ten-minute moving-wall deadline with exploration allowance. Placement reservations protect streets and separate objects.
-
-Building footprints and doors are authoritative map data. `shared/view.ts` owns what a viewer may know — `seesPoint` and `seesActor` apply concealment, viewport and reveals in the order [15](15-information-rules.md) states, and both the world renderer and the minimap call them, because two copies of that rule had already drifted apart. `shared/view.ts` supplies roof concealment; solid geometry and closed doors occlude sight, while windows only block bodies and item reach. The renderer hides roofs for the occupied building. Doors retain local observed-state memory; actual collision still uses authoritative state under the existing prototype trust model.
-
-## Server
-
-Server ownership is explicit: `server/match.js` is the application's sole mutable simulation access, through join/resume/leave/input/advance/end operations and detached snapshot/identity/map queries. `room-service.js` owns room admission, matchmaking, sessions, command queues, match lifecycle and tick debt. Sessions supply delivery and close callbacks; they are ordinary objects without WebSocket dependencies. `room-views.js` owns lobby broadcasts, bounded spectator history and per-view payload reuse. `scheduler.js` owns elapsed-time wakeups. `shared-assets.js` owns delivery of the shared modules to the browser, and is the only server module outside replay storage permitted to read files. `latency.js` owns round-trip measurement per session: it stamps and times its own tokens, and exposes the figure as a bound rather than a client-supplied fact. `match.js` converts that into the simulation's view-lag, so the application reports what it observed and the simulation decides how much rewind it will grant. `websocket.js` owns origins, socket limits and connection events; `protocol.js` owns envelope decoding, rate-window arithmetic and HTTP seed validation. Simulation continues to own state-dependent input validation, and owns the per-player queue a tick spends exactly one input from.
-
-`replay-writer.js` owns gzip, per-frame JSON serialization, bounded buffering, hashing and stream completion. It receives header/frame/command values, never rooms. `replay-store.js` owns filesystem paths, archive metadata and publication. Rooms depend on writer append/failure/abort/finalize operations; backpressure is not a scheduling input. The filesystem adapter supplies a download path only to `http-api.js`, preserving Express's existing file delivery, headers and range behavior; a remote storage adapter would replace this delivery edge as well as storage, without affecting room or match code. No storage product has been selected.
-
-Shutdown is an explicitly owned asynchronous operation. Logical match completion and archive publication are separate: the room service tracks outstanding finalizations even after a room is retired, and `close()` awaits them. Repeated writer/service/server close calls share completion. Server shutdown stops admission and timers before awaiting storage. Rooms finalize concurrently with a five-second deadline, so a stalled adapter cannot block shutdown indefinitely. Replay failure sends a typed `replay-status` message rather than a connection error or saved replay; gameplay continues. The original shutdown race fix and the later storage-failure policy are separate checkpoints.
-
-Empty live rooms retain a 30-second reconnect grace, then finalize a replay with an abandoned event and stop simulation. A viewer—including an authorized spectator—keeps a room live. Raw frame timestamps replace Phaser-smoothed delta for diagnostics and client benchmarks. The bounded always-on client samples can be downloaded without owner credentials or a player list. Profiler per-frame call rates now use the same rolling window as timing samples.
-
-The existing `createArenaServer().rooms` surface retains `room.game` for scenario setup and benchmarks. It is a deliberately retained diagnostic escape hatch, not production process isolation; server application and transport modules are prohibited from using it by boundary tests. Timers, sessions and storage can be replaced with fake time, peers and writers in lifecycle tests. See [41](41-roadmap.md) for follow-on priorities and [17](17-open-questions.md) for batched live-service policy questions. New gameplay direction is recorded as F-11 through F-18 in [13](13-accepted-features.md) and remains separate from this behavior-preserving extraction.
-
-## Client
-
-`public/input-controller.js` owns keyboard, pointer-fire state, touch sticks, inventory selection/rearrangement and one-shot intents. It exposes intent collection, selection/aim reads, reset, action consumption and listener cleanup. The application calculates pointer world aim through the renderer, assigns sequence numbers, sends packets, maintains pending history and predicts movement. Action consumption remains after sending/prediction. Existing application reset call sites (connect/disconnect, new-arena/archive dialogs, replay entry), plus input-owned blur/visibility handlers, retain their prior behavior.
-
-`public/hud-controller.js` owns inventory/status/objective display, tooltips and minimap drawing. Each render receives authoritative state, map, player/replay context, local selection, and explicit visibility polygon/eye/viewport/directed inputs. It emits selection/action callbacks; it never sends commands or mutates authoritative objects. The application connects these callbacks to input intents. Controllers can release their listeners independently. The renderer's injected API and internals are unchanged. `tests/client-controllers.mjs`, run by the browser suite, exercises frozen HUD inputs, concealment, callbacks, one-shot consumption, blocked input, blur/visibility resets and cleanup without a running game client.
-
-Inventory pointer capture, drag threshold and DOM destination hit testing belong
-to the HUD controller. It emits source/destination indices for swaps, or a source
-index for a canvas drop. The input controller translates these to existing
-`moveSlot` or `slot` + `drop` commands; a pending drag drop pins its source and
-discards competing rearrangement until that intent is collected. The application
-cancels gestures with input resets and supplies current live-player eligibility.
-World drops retain authoritative nearby placement, not the pointer's coordinates.
-No simulation, projection or recording fields changed for this gesture feature;
-it landed under `last-exit-0.6` without changing that version.
-
-The six-slot inventory stores ammo on weapons and charge on cells. Validated moveSlot input is queued and applied authoritatively; compatible utility stacks merge and other slots swap. Recording copies each sanitized input as it is accepted, so a command is preserved exactly as the client sent it rather than as some later tick left it, and commands survive alongside outcome frames. The icon HUD supports keyboard and touch rearrangement without client authority over inventory.
-
-`public/replay-controller.js` owns recorded-match playback: opening an archive by id, the timeline it builds, the wall-clock-anchored playhead, follow-subject selection and the `#replay-*` DOM. Three replay features landing in `client.js` in a row (camera/follow, wall-clock timing, schema compatibility) was the repetition that justified pulling this cluster out. It never sends a command or reads the socket; the application supplies map/state swap, full live-state reconciliation for closing back to a live match, the scene (for camera framing and cuts), and the shared toast/connection-label/HUD-refresh functions, the same narrow-dependency shape `input-controller.js` and `hud-controller.js` already use. `client.js` still decides *when* a replay opens (the "Watch match" button, an archive row, a resumed session) and still owns the generic "fetch and save this replay id as a file" download helper shared by the archive browser and the open replay's own download button.
-
-Presentation smoothing, shading and the replay playhead are in
-[25](25-pacing-and-rendering.md). What each view is permitted to contain is in
-[24](24-networking-privacy.md).
-
-## Live map assembly
-
-`map/chain.ts` and `map/engines.ts` assemble macro and micro without depending on
-the tools. `map/tools/core.ts` and `engines.ts` keep their existing exports and
-use that entry point. `map/live.ts` converts completed results into a `GameMap`,
-using the shared frame translation and geometry stamping in `micro/adapter.ts`.
-It owns live loot selection and consumes core sites, including authored `warp`
-sites as stations. It does not scatter transit after generation.
-
-`server/match.js` selects content, generates the map, and passes both to
-`createGame`. `createGame` retains its legacy default for callers that explicitly
-exercise the old generator. Initial hunters use `hunterSpawns` when supplied;
-legacy maps keep station-based starting positions. The runtime mask and
-recording compatibility are described in 26. No fixed-tick order changed.
+- Live map assembly: [Live map assembly](22.2-map-generation.md#live-map-assembly).

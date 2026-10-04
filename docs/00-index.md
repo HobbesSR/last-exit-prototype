@@ -10,9 +10,23 @@ one monolithic document.
 
 ## Numbering
 
-The first digit is the area, the second is the file within it. A number is a stable
-citation: "13" and "2.6" mean the same file for the life of the project, so briefs
-and handoffs should cite the number, not a heading.
+The first digit is the area, the second identifies a document family. A number is
+a stable citation: `13` always identifies 13, and `51.7` identifies one child of
+51. Decimal components are identifiers, not fractions or section positions:
+`51.10` differs from `51.1`, and `2.6` is not an alias for `26`.
+
+Large families have a short parent reading guide and separately loadable children,
+for example `51-generation-chain.md` → `51.7-briefs.md`. Children may have children
+(`17.2.4-contract-questions.md`). Files stay together in `docs/`, so sibling links
+keep the same base. Cite the most specific number that owns the fact, preferably
+as a Markdown link. Stage numbers, question IDs such as M3, and requirement IDs
+such as F-01 remain separate from document numbers.
+
+Start here, follow the relevant parent guide, then load only the parts needed for
+the task. A link is a route to more context, not an instruction to read every
+child or sibling. Read shared invariants when the parent guide calls for them.
+Existing parent filenames and citations remain valid entry points; moved headings
+have landing links there. See [33](33-maintenance.md) for allocation and migration.
 
 | Range | Area | Load it when |
 | --- | --- | --- |
@@ -35,7 +49,7 @@ and handoffs should cite the number, not a heading.
 | [14-match-rules.md](14-match-rules.md) | Implemented defaults: capacities, inventory, objective, traps, timings, lifecycle |
 | [15-information-rules.md](15-information-rules.md) | What each viewer may know: sight, projections, spectators, privacy |
 | [16-deferred.md](16-deferred.md) | Settled decisions, and requirements deliberately postponed to later milestones |
-| [17-open-questions.md](17-open-questions.md) | Undecided product and live-service policy, with the user's verbatim answers |
+| [17-open-questions.md](17-open-questions.md) | Guide to question records: micro (17.1), map generation (17.2), product (17.3), live service (17.4), playtests (17.5); verbatim answers stay in the relevant record |
 | [18-original-prompt.md](18-original-prompt.md) | The preserved original design stream and influences. A source record, not requirements |
 | [19-decomposition-design.md](19-decomposition-design.md) | Accepted decomposition SDK direction: candidate assignment, generator contracts, residuals and interfaces |
 
@@ -43,9 +57,9 @@ and handoffs should cite the number, not a heading.
 
 | File | Holds |
 | --- | --- |
-| [20-micro-generation.md](20-micro-generation.md) | Bounded region contract, procedural architecture, game geometry adapter and micro lab |
+| [20-micro-generation.md](20-micro-generation.md) | Guide to micro contracts, geometry, builders, decomposition and tools; load the relevant 20.x part |
 | [21-stack.md](21-stack.md) | Chosen components, why, and the constraints a replacement must satisfy |
-| [22-ownership.md](22-ownership.md) | Which module owns which decision, and the boundaries tests enforce |
+| [22-ownership.md](22-ownership.md) | Guide to ownership by subsystem and the boundaries tests enforce; load the relevant 22.x part |
 | [23-types.md](23-types.md) | The TypeScript arrangement in `shared/`, branding policy, erasure |
 | [24-networking-privacy.md](24-networking-privacy.md) | Server authority, potential visibility, field contracts, spectator delay |
 | [25-pacing-and-rendering.md](25-pacing-and-rendering.md) | Tick pacing against real time, the receive buffer, presentation smoothing, shading |
@@ -78,7 +92,7 @@ existed.
 | File | Holds |
 | --- | --- |
 | [50-map-generation.md](50-map-generation.md) | The two halves and who owns what, the SDK as a shared library, the duplication ledger, a reading guide |
-| [51-generation-chain.md](51-generation-chain.md) | The chain's stages and their interfaces, features, saving, and the build order |
+| [51-generation-chain.md](51-generation-chain.md) | Pipeline and guide: invariants (51.1), individual stages (51.2–51.10), core elements (51.11), saving (51.12), reuse (51.13), build history (51.14–51.15) |
 | [52-map-primitives-and-library.md](52-map-primitives-and-library.md) | Cells, segments and prescriptions, region types, tiles, set pieces and set piece classes, tier zones, scale |
 | [53-map-artifacts-and-tools.md](53-map-artifacts-and-tools.md) | Determinism, what is stored, the wire form and BSON, the sweep, the Map Lab, CLI and MCP |
 | [54-region-types.md](54-region-types.md) | The region type catalogue, a working draft: each type's role, strategy, core elements, shape needs and material |
