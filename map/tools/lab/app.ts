@@ -230,8 +230,9 @@ interface Probe {
 
 /**
  * One layer of the map view (53 "Tools"). The registry is in chain order (51), and draws
- * in two passes: every layer's cells and fills, then every layer's strokes and marks, so a
- * later stage lies over an earlier one and lines stay readable over areas.
+ * in two passes: every areas layer, then every marks layer, so a later stage lies over an
+ * earlier one and lines stay readable over areas. A layer belongs to one pass, so it is
+ * laid on the map once, at its opacity.
  */
 interface Layer {
   id: string;
@@ -241,16 +242,16 @@ interface Layer {
   on: boolean;
   /** 0–1, applied to everything the layer draws. */
   opacity: number;
-  /** A cell field: each cell's name, or null where nothing is drawn. Painted once per map into a canvas. */
+  /** Areas (cell fields, fills) or marks (lines, dots). */
+  pass: "areas" | "marks";
+  /** A cell field, for an areas layer: each cell's name, or null where nothing is drawn. Painted once per map into a canvas. */
   cells?: (v: Views) => (cell: number) => string | null;
   /** The colour for a name the field gave; a steady colour per name otherwise. */
   colour?: (name: string) => Rgb | Rgba;
   /** Say how many values there are instead of listing them. */
   summarise?: string;
-  /** Areas drawn in the first pass, after the layer's cells. `px` is one screen pixel in cell units. */
-  under?: (g: Context, v: Views, px: number) => void;
-  /** Lines and marks drawn in the second pass. */
-  over?: (g: Context, v: Views, px: number) => void;
+  /** What the layer draws besides its cells, in its pass. `px` is one screen pixel in cell units. */
+  paint?: (g: Context, v: Views, px: number) => void;
   /** Legend entries, for a layer without cells. */
   legend?: () => Array<[string, string]>;
   /** The inspector's lines for a cell. */
@@ -275,25 +276,25 @@ function dot(g: Context, x: number, y: number, radius: number): void {
 
 const LAYERS: Layer[] = [
   {
-    id: "declared", label: "Declared classes", stage: "declaredGrid", on: false, opacity: 1,
+    id: "declared", pass: "areas", label: "Declared classes", stage: "declaredGrid", on: false, opacity: 1,
     cells: (v) => (cell) => v.declaredGrid.cells[cell] || null,
     colour: (name) => (name === "any" ? [70, 78, 84] : colour(name)),
     inspect: (v, { cell }) => [`Declared: ${v.declaredGrid.cells[cell] || "outside the mask"}`],
   },
   {
-    id: "resolved", label: "Resolved classes", stage: "resolved", on: false, opacity: 1,
+    id: "resolved", pass: "areas", label: "Resolved classes", stage: "resolved", on: false, opacity: 1,
     cells: (v) => (cell) => v.resolved.cells[cell] || null,
     inspect: (v, { cell }) => (v.resolved.cells[cell] ? [`Resolved: ${v.resolved.cells[cell]}`] : []),
   },
   {
-    id: "regions", label: "Regions", stage: "regions", on: true, opacity: 1, summarise: "regions",
+    id: "regions", pass: "areas", label: "Regions", stage: "regions", on: true, opacity: 1, summarise: "regions",
     cells: (v) => (cell) => (regionAt[cell]! >= 0 ? v.regions.regions[regionAt[cell]!]!.id : null),
     inspect: (_, { region }) => (region ? ["", `Region ${region.id}`, `Class ${region.class}, ${region.cells.length} cells, seed ${region.seed}`] : []),
   },
   {
-    id: "portals", label: "Boundaries and portals", stage: "regions", on: true, opacity: 1,
+    id: "portals", pass: "marks", label: "Boundaries and portals", stage: "regions", on: true, opacity: 1,
     legend: () => [["boundary", "#0b1015"], ["portal", "#e9f7c4"]],
-    over: (g, v, px) => {
+    paint: (g, v, px) => {
       const boundaries = new Path2D(), portals = new Path2D();
       for (const boundary of v.regions.boundaries) runLine(boundaries, boundary.run);
       for (const portal of v.regions.portals) runLine(portals, portal);
@@ -307,7 +308,7 @@ const LAYERS: Layer[] = [
     },
   },
   {
-    id: "proof", label: "Proof components", stage: "proof", on: false, opacity: 1,
+    id: "proof", pass: "areas", label: "Proof components", stage: "proof", on: false, opacity: 1,
     cells: (v) => {
       const component = new Map<string, number>();
       v.proof.components.forEach((ids, i) => ids.forEach((id) => component.set(id, i)));
@@ -316,7 +317,7 @@ const LAYERS: Layer[] = [
     inspect: (v, { region }) => (region ? [`Proof component ${v.proof.components.findIndex((ids) => ids.includes(region.id))}`] : []),
   },
   {
-    id: "zones", label: "Zone tiers", stage: "zones", on: false, opacity: 1,
+    id: "zones", pass: "areas", label: "Zone tiers", stage: "zones", on: false, opacity: 1,
     cells: (v) => {
       const { width } = v.resolved;
       return (cell) => {
@@ -332,9 +333,9 @@ const LAYERS: Layer[] = [
     },
   },
   {
-    id: "geometry", label: "Built geometry", stage: "built", on: true, opacity: 1,
+    id: "geometry", pass: "areas", label: "Built geometry", stage: "built", on: true, opacity: 1,
     legend: () => [["collider or gate", "#b9c4bf"]],
-    under: (g) => {
+    paint: (g) => {
       if (!geometry) return;
       g.fillStyle = "#b9c4bfcc";
       g.fill(geometry.path);
@@ -342,9 +343,9 @@ const LAYERS: Layer[] = [
     inspect: (_, { built }) => (built ? [`Type ${built.brief.type}, ${built.brief.portals.length} portals`, `${built.elements.length} elements, ${built.loot.length} loot`] : []),
   },
   {
-    id: "loot", label: "Loot", stage: "built", on: false, opacity: 1,
+    id: "loot", pass: "marks", label: "Loot", stage: "built", on: false, opacity: 1,
     legend: () => [["loot", "#f2ca55"]],
-    over: (g, v, px) => {
+    paint: (g, v, px) => {
       const { cellSize } = v.built;
       g.fillStyle = "#f2ca55";
       for (const region of v.built.regions)
@@ -355,9 +356,9 @@ const LAYERS: Layer[] = [
     },
   },
   {
-    id: "sites", label: "Core element sites", stage: "built", on: true, opacity: 1,
+    id: "sites", pass: "marks", label: "Core element sites", stage: "built", on: true, opacity: 1,
     legend: () => Object.entries(SITE_COLOURS),
-    over: (g, v, px) => {
+    paint: (g, v, px) => {
       const { cellSize } = v.built;
       for (const region of v.built.regions)
         for (const site of region.coreElements) {
@@ -372,13 +373,21 @@ const LAYERS: Layer[] = [
     inspect: (_, { built }) => (built?.coreElements.length ? [`Core elements: ${built.coreElements.map((site) => site.kind).join(", ")}`] : []),
   },
   {
-    id: "defects", label: "Defects", stage: "report", on: true, opacity: 1,
+    id: "defects", pass: "areas", label: "Defect regions", stage: "report", on: true, opacity: 1,
     cells: () => {
       const named = defectRegions();
       return (cell) => (regionAt[cell]! >= 0 && named.has(views!.regions.regions[regionAt[cell]!]!.id) ? "defect" : null);
     },
     colour: () => [235, 70, 60, 120],
-    over: (g, v, px) => {
+    inspect: (_, { region }) => region ? [
+      ...(check?.defects ?? []).filter((defect) => defect.regions?.includes(region.id)).map((defect) => `Defect, ${defect.kind}: ${defect.message}`),
+      ...(diagnosis?.brokenPromises ?? []).filter((broken) => broken.region === region.id).map((broken) => `Broken promise: ${broken.errors.join("; ")}`),
+    ] : [],
+  },
+  {
+    id: "defectSites", pass: "marks", label: "Defect sites", stage: "report", on: true, opacity: 1,
+    legend: () => [["defect at a site", "#ff5a4a"]],
+    paint: (g, v, px) => {
       const { cellSize } = v.built;
       for (const defect of check?.defects ?? [])
         if (defect.site) {
@@ -388,10 +397,6 @@ const LAYERS: Layer[] = [
           g.stroke();
         }
     },
-    inspect: (_, { region }) => region ? [
-      ...(check?.defects ?? []).filter((defect) => defect.regions?.includes(region.id)).map((defect) => `Defect, ${defect.kind}: ${defect.message}`),
-      ...(diagnosis?.brokenPromises ?? []).filter((broken) => broken.region === region.id).map((broken) => `Broken promise: ${broken.errors.join("; ")}`),
-    ] : [],
   },
 ];
 
@@ -483,8 +488,8 @@ function draw(): void {
   ctx.imageSmoothingEnabled = false;
   /**
    * A layer at full opacity draws straight onto the map. Otherwise it draws opaque on a
-   * scratch canvas that is laid on once at the layer's opacity, so overlapping marks within
-   * one layer (a site's fill and outline, say) don't fade by different amounts.
+   * scratch canvas that is laid on once at the layer's opacity, so overlapping parts of one
+   * layer (a site's fill and outline, say) don't fade by different amounts.
    */
   const composite = (layer: Layer, paint: (g: Context) => void) => {
     if (layer.opacity >= 1) return paint(ctx);
@@ -501,15 +506,14 @@ function draw(): void {
     ctx.setTransform(...transform);
   };
   const shown = LAYERS.filter((layer) => layer.on && layer.opacity > 0);
-  for (const layer of shown) {
-    const cells = painted(layer);
-    if (cells || layer.under)
-      composite(layer, (g) => {
-        if (cells) g.drawImage(cells.canvas, 0, 0);
-        layer.under?.(g, v, px);
-      });
-  }
-  for (const layer of shown) if (layer.over) composite(layer, (g) => layer.over!(g, v, px));
+  for (const pass of ["areas", "marks"])
+    for (const layer of shown)
+      if (layer.pass === pass)
+        composite(layer, (g) => {
+          const cells = painted(layer);
+          if (cells) g.drawImage(cells.canvas, 0, 0);
+          layer.paint?.(g, v, px);
+        });
   if (selected) {
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 2 * px;
@@ -779,7 +783,7 @@ window.mapLab = Object.freeze({
     diagnosing: !!diagnoseWorker,
     diagnosis: diagnosis ? { brokenPromises: diagnosis.brokenPromises } : null,
     inspector: $("inspector").textContent,
-    layers: LAYERS.map(({ id, stage, on, opacity }) => ({ id, stage, on, opacity })),
+    layers: LAYERS.map(({ id, pass, stage, on, opacity }) => ({ id, pass, stage, on, opacity })),
     zoom: $("zoomLevel").textContent,
   }),
 });

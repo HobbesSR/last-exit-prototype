@@ -84,9 +84,12 @@ try {
   // The layers are in chain order, with today's defaults on.
   const FIELDS = ["declared", "resolved", "regions", "proof", "zones"];
   assert.deepEqual(first.layers.map((layer: any) => layer.id),
-    ["declared", "resolved", "regions", "portals", "proof", "zones", "geometry", "loot", "sites", "defects"]);
+    ["declared", "resolved", "regions", "portals", "proof", "zones", "geometry", "loot", "sites", "defects", "defectSites"]);
   assert.deepEqual(first.layers.filter((layer: any) => layer.on).map((layer: any) => layer.id),
-    ["regions", "portals", "geometry", "sites", "defects"]);
+    ["regions", "portals", "geometry", "sites", "defects", "defectSites"]);
+  const ALL = first.layers.map((layer: any) => layer.id) as string[];
+  assert.deepEqual(first.layers.filter((layer: any) => layer.pass === "marks").map((layer: any) => layer.id),
+    ["portals", "loot", "sites", "defectSites"], "each layer draws in one pass, the rest with the areas");
   const layer = (id: string) => page.locator(`#layer-${id}`);
   const opacity = (id: string, percent: number) => page.locator(`#layer-${id}-opacity`).fill(String(percent));
   // Every cell field alone, as the old exclusive field select showed it.
@@ -100,7 +103,7 @@ try {
     const map = document.getElementById("map") as HTMLCanvasElement;
     return [...map.getContext("2d")!.getImageData(map.width >> 1, map.height >> 1, 1, 1).data];
   });
-  for (const id of ["portals", "geometry", "sites", "defects", ...FIELDS]) await layer(id).setChecked(id === "regions");
+  for (const id of ALL) await layer(id).setChecked(id === "regions");
   const regionsAlone = await centre();
   assert.equal(regionsAlone[3], 255, "the centre lies in a region");
   await layer("declared").check();
@@ -116,11 +119,9 @@ try {
   await page.screenshot({ path: `${OUT}/stacked.png` });
   await opacity("regions", 100);
 
-  // A layer's opacity is uniform: sites overlap their own outlines (and each other), yet at
-  // 50% with nothing under them no pixel is more than half opaque.
-  await layer("regions").uncheck();
-  await layer("sites").check();
-  await opacity("sites", 50);
+  // A layer's opacity is uniform: each is laid on once, so where its own parts overlap (a
+  // site's fill and outline, boundaries and portals, sites on each other) nothing alone at
+  // 50% is more than half opaque.
   const alpha = () => page.evaluate(() => {
     const map = document.getElementById("map") as HTMLCanvasElement;
     const { data } = map.getContext("2d")!.getImageData(0, 0, map.width, map.height);
@@ -128,13 +129,18 @@ try {
     for (let i = 3; i < data.length; i += 4) most = Math.max(most, data[i]!);
     return most;
   });
-  const half = await alpha();
-  assert.ok(half >= 120 && half <= 130, `sites at 50% are at most half opaque, not ${half}/255`);
-  await opacity("sites", 100);
-  assert.equal(await alpha(), 255);
-  await layer("sites").uncheck();
-  await layer("regions").check();
-  for (const id of ["portals", "geometry", "sites", "defects", "loot"]) await layer(id).check();
+  for (const id of ALL) await layer(id).uncheck();
+  for (const id of ALL) {
+    await layer(id).check();
+    const full = await alpha();
+    await opacity(id, 50);
+    const half = await alpha();
+    assert.ok(half <= Math.ceil(full / 2) + 2, `${id} at 50% is at most half as opaque as at 100%: ${half} vs ${full}`);
+    await opacity(id, 100);
+    await layer(id).uncheck();
+  }
+  for (const id of ALL) await layer(id).setChecked(first.layers.find((l: any) => l.id === id).on);
+  await layer("loot").check();
 
   // Zoom buttons, and Reset back to the fitted 100%.
   await page.locator("#zoomIn").click();

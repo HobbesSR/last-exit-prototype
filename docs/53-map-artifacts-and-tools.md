@@ -156,16 +156,19 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     the authored sizes and sets the zone size. Every view comes through `mapViews`.
   - **Layers:** one registry in `app.ts`, in chain order (51): declared and
     resolved classes, regions, boundaries and portals, proof components,
-    zone tiers, built geometry, loot, core element sites, and defects. Each
-    layer names the `mapViews` key it reads, can be turned on or off, has
-    an opacity, and contributes its own legend entries and inspector
-    lines. Any number can be on at once, so an earlier stage shows under a
-    later one. Drawing takes two passes in registry order: every layer's
-    cells and areas (a cell field is painted once per map into a canvas),
-    then every layer's lines and marks. A layer below full opacity is drawn
-    whole and laid on once, so its own marks don't fade unevenly where they
-    overlap. A new layer is one registry entry.
-    Regions, portals, geometry, sites and defects are on by default.
+    zone tiers, built geometry, loot, core element sites, defect regions and
+    defect sites. Each layer names the `mapViews` key it reads, can be
+    turned on or off, has an opacity, and contributes its own legend
+    entries and inspector lines. Any number can be on at once, so an
+    earlier stage shows under a later one. Each layer is either areas (a
+    cell field, painted once per map into a canvas, or a fill) or marks
+    (lines and dots). Drawing takes every areas layer, then every marks
+    layer, each in registry order, so lines stay readable over areas. A
+    layer belongs to one pass, so it is laid on once at its opacity: below
+    full opacity it is drawn whole on a scratch canvas first, and its own
+    parts don't fade unevenly where they overlap. A new layer is one
+    registry entry. Regions, portals, geometry, sites and both defect
+    layers are on by default.
   - **Inspecting:** clicking a cell fills the inspector, and hovering shows
     its first lines. Zoom with the wheel or the buttons; Reset fits the
     map, which the readout calls 100%.
