@@ -835,6 +835,7 @@ function applyPaneHeight() {
   diagnosticsPane.classList.remove("collapsed");
   
   if (paneHeight) {
+    if (!worldMain.clientHeight) return; // Skip clamp when hidden
     const maxH = worldMain.clientHeight - 240 - resizer.offsetHeight;
     let newH = paneHeight;
     if (newH < 40) newH = 40;
