@@ -56,6 +56,7 @@ function checkAllocation(result, design, footprint, maxSteps = 2000, maxSolution
   assert.deepEqual(assigned, expected);
   assert.equal(result.search.optimal, false);
   assert.ok(result.search.steps > 0 && result.search.steps <= maxSteps);
+  assert.ok(result.search.cuts >= 0 && result.search.cuts <= result.search.steps);
   assert.ok(result.search.solutions > 0 && result.search.solutions <= maxSolutions);
   assert.equal(typeof result.search.budgetExhausted, 'boolean');
   assert.equal(typeof result.scoreComponents.connections, 'number');
@@ -190,11 +191,26 @@ test('invalid input and an exhausted search return bounded failures', () => {
   assert.ok(exhausted.search.steps <= 1);
 });
 
+test('evaluated cuts are charged to maxSteps, so a deep dead end stays bounded', () => {
+  // Pairs sum to 144, which rectangles can hold, but 71 and 73 are prime: no room
+  // ever fits, and the failure only shows once a cut isolates a single room.
+  // Uncharged cuts once made this run about 25 s at the default budget.
+  const design = { spaces: Array.from({ length: 8 }, (_, i) => room(`r${i}`, i % 2 ? 73 : 71, i % 2 ? 73 : 71)), connections: [] };
+  const result = allocateBuilding(design, cellsOf(24, 24));
+  assert.equal(result.ok, false);
+  assert.equal(result.search.budgetExhausted, true);
+  assert.equal(result.search.steps, 2000);
+  assert.ok(result.search.cuts > 0 && result.search.cuts < result.search.steps, 'cuts are part of the step budget');
+  const small = allocateBuilding(design, cellsOf(24, 24), { maxSteps: 50 });
+  assert.equal(small.search.steps, 50);
+  assert.ok(small.search.cuts > 0);
+});
+
 test('minimum rooms, thin tails, narrow joins and supplemental id collisions', () => {
   const single = allocateBuilding({ spaces: [room('only', 9, 9)], connections: [] }, cellsOf(3, 3));
   assert.equal(single.ok, true, single.reason);
   assert.deepEqual(single.openings, []);
-  assert.deepEqual(single.search, { steps: 1, solutions: 1, budgetExhausted: false, optimal: false });
+  assert.deepEqual(single.search, { steps: 1, cuts: 0, solutions: 1, budgetExhausted: false, optimal: false });
   const tail = [...cellsOf(3, 3), { x: 3, y: 1 }];
   const thin = allocateBuilding({ spaces: [room('only')], connections: [] }, tail);
   assert.equal(thin.ok, false, 'area alone cannot make a thin appendage usable');

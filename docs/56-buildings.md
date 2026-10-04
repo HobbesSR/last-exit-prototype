@@ -266,10 +266,13 @@ Cells and space and connection identities are canonicalized, so caller array ord
 change the result. The allocator never consumes the strategy's random stream.
 
 The footprint is at most 24 × 24 cells and there are at most eight spaces.
-`maxSteps` bounds candidate trials including rejected cuts (default 2,000,
-maximum 20,000); `maxSolutions` bounds feasible complete partitions compared
-(default 16, maximum 128). Diagnostics report `steps`, `solutions`,
-`budgetExhausted` and `optimal: false`. A result retained before a limit is
+`maxSteps` bounds the work, not only the trials explored (default 2,000,
+maximum 20,000). A cut is first tested against the two groups' area sums,
+which is cheap. One that passes is charged a step before its connectivity and
+boundary checks, and each trial explored is charged another. `maxSolutions`
+bounds feasible complete partitions compared (default 16, maximum 128).
+Diagnostics report `steps`, `cuts` (the evaluated-cut share of `steps`),
+`solutions`, `budgetExhausted` and `optimal: false`. A result retained before a limit is
 still usable. No-result reasons distinguish invalid input, impossible area
 totals, budget exhaustion and failure within this search family. None of the
 latter two proves that every possible partition is impossible: general

@@ -10,12 +10,13 @@ import type { PlacedBuildingOpening } from './openings.ts';
 
 export interface BuildingAllocationOptions {
   seed?: number;
-  /** Candidate trials, including rejected cuts. Default 2000, at most 20000. */
+  /** Explored trials plus evaluated cuts, so it bounds the work. Default 2000, at most 20000. */
   maxSteps?: number;
   /** Feasible complete partitions compared. Default 16, at most 128. */
   maxSolutions?: number;
 }
-export interface BuildingAllocationSearch { steps: number; solutions: number; budgetExhausted: boolean; optimal: false }
+/** `steps` counts explored trials and evaluated cuts; `cuts` is the evaluated-cut share of it. */
+export interface BuildingAllocationSearch { steps: number; cuts: number; solutions: number; budgetExhausted: boolean; optimal: false }
 export interface BuildingAllocationScores { connections: number; outside: number }
 export type BuildingAllocationResult = {
   ok: true;
@@ -99,7 +100,7 @@ function resolveDesign(design: BuildingDesign, boundaries: BuildingBoundary[], s
  * Internal feasibility is pruned in this search; the caller owns the region promise.
  */
 export function allocateBuilding(design: BuildingDesign, footprint: readonly Cell[], options: BuildingAllocationOptions = {}): BuildingAllocationResult {
-  const search: BuildingAllocationSearch = { steps: 0, solutions: 0, budgetExhausted: false, optimal: false };
+  const search: BuildingAllocationSearch = { steps: 0, cuts: 0, solutions: 0, budgetExhausted: false, optimal: false };
   const fail = (reason: string): BuildingAllocationResult => ({ ok: false, reason, search: { ...search } });
   const seed = options.seed ?? 0, maxSteps = options.maxSteps ?? 2000, maxSolutions = options.maxSolutions ?? 16;
   if (!Number.isSafeInteger(seed) || !Number.isInteger(maxSteps) || maxSteps < 1 || maxSteps > 20000
@@ -200,13 +201,18 @@ export function allocateBuilding(design: BuildingDesign, footprint: readonly Cel
       const lo = Math.min(...remaining.map(c => c[axis])), hi = Math.max(...remaining.map(c => c[axis]));
       for (let cut = lo + 1; cut <= hi; cut++) {
         const left = remaining.filter(c => c[axis] < cut), right = remaining.filter(c => c[axis] >= cut);
+        // Area sums are the cheap test. A cut that passes them pays a step before
+        // the connectivity and boundary work, so maxSteps bounds that work too.
+        const fitting = subsets.filter(subset => left.length >= subset.minLeft && left.length <= subset.maxLeft
+          && right.length >= subset.minRight && right.length <= subset.maxRight);
+        if (!fitting.length) continue;
+        if (stopped()) return;
+        search.steps++; search.cuts++;
         if (connectedComponents(left).length !== 1 || connectedComponents(right).length !== 1) continue;
         const geometry = [...groups.slice(0, index).map(g => g.cells), left, right, ...groups.slice(index + 1).map(g => g.cells)];
         const boundaries = deriveBuildingBoundaries({ footprint: cells, spaces: geometry.map((cells, i) => ({ id: groupIds[i]!, cells })) });
         if (!joined(geometry.map((_, i) => groupIds[i]!), boundaries)) continue;
-        for (const subset of subsets) {
-          if (left.length < subset.minLeft || left.length > subset.maxLeft
-            || right.length < subset.minRight || right.length > subset.maxRight) continue;
+        for (const subset of fitting) {
           const next = [...groups.slice(0, index), { cells: left, spaces: subset.left },
             { cells: right, spaces: subset.right }, ...groups.slice(index + 1)];
           const guidance = inspect(next, boundaries);
