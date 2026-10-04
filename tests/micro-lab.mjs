@@ -6,6 +6,9 @@ import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { createArenaServer } from '../server/index.js';
 import { listen } from './helpers/listen.js';
+import { generate } from '../map/tools/core.ts';
+import { mapViews } from '../map/macro/src/chain/map.ts';
+import { briefFragment } from '../map/micro/brief-link.ts';
 
 const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-micro-lab-'));
 await mkdir('test-results', { recursive: true });
@@ -170,6 +173,28 @@ try {
   await page.getByLabel('Builder', { exact: true }).selectOption('ruins');
   await page.waitForFunction(() => window.microLabDebug().result?.spec?.builder === 'ruins');
   assert.deepEqual((await page.evaluate(() => window.microLabDebug())).buildings, []);
+  // A chain map's brief, opened by the Map Lab's link (20.5), builds the region the map stored,
+  // and walks at the game's own scale. A hut's house is traced; a block's compound lot too.
+  const chain = generate('last-exit-001'), briefs = mapViews(chain).briefs;
+  for (const [type, map] of [['hut', chain], ['block', generate('last-exit-009')]]) {
+    const brief = mapViews(map).briefs.find(b => b.type === type), stored = map.results.find(r => r.brief.id === brief.id);
+    await page.goto(`${base}/micro-lab.html${await briefFragment(brief)}`);
+    await page.waitForFunction(id => window.microLabDebug?.().imported === id, brief.id, { timeout: 15000 });
+    const opened = await page.evaluate(() => window.microLabDebug());
+    assert.deepEqual(opened.result, JSON.parse(JSON.stringify(stored)), `the micro lab builds the ${type} the map stored`);
+    assert.deepEqual(opened.promise, [], `the chain ${type} keeps its portal promise`);
+    assert.ok(opened.buildings.length > 0, `the chain ${type}'s buildings are traced`);
+    assert.equal(await page.getByLabel('Body scale').isDisabled(), true, 'an imported brief walks at its own scale');
+    assert.match(await page.locator('#status').textContent(), new RegExp(`Opened from a link\\. Region ${brief.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+    await page.screenshot({ path: `test-results/micro-lab-chain-${type}.png` });
+  }
+  // A saved brief imports as a file, as the Map Lab's "Save this region's brief" writes it.
+  const lone = briefs.find(b => b.type === 'hut');
+  await page.locator('#import').setInputFiles({ name: 'brief.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(lone)) });
+  await page.waitForFunction(id => window.microLabDebug().imported === id, lone.id);
+  assert.deepEqual((await page.evaluate(() => window.microLabDebug().result)), JSON.parse(JSON.stringify(chain.results.find(r => r.brief.id === lone.id))));
+  await page.getByLabel('Builder', { exact: true }).selectOption('ruins');
+  await page.waitForFunction(() => window.microLabDebug().result?.spec?.builder === 'ruins' && window.microLabDebug().imported === null);
   await page.getByLabel('Body scale').selectOption('live');
   await page.getByRole('button', { name: 'Generate region' }).click();
   await page.waitForFunction(() => window.microLabDebug().result?.spec.bodyProfile === 'live');

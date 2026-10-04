@@ -4,9 +4,16 @@ import { realizationCollisionMap } from '/map/micro/decomposition/preview.ts';
 import { moveBody, canOccupy } from '/shared/movement.ts';
 import { microMetrics } from '/map/micro/metrics.ts';
 import { outline, transform } from '/shared/shape.ts';
+import { builtMapCollision, builtMapFrame } from '/map/micro/adapter.ts';
+import { briefFromFragment } from '/map/micro/brief-link.ts';
+import { buildRegion } from '/map/micro/region-types.ts';
+import { portalStands } from '/map/micro/sdk.ts';
+import { planBlock } from '/map/micro/strategies/block.ts';
 
 const $ = id => document.getElementById(id), canvas = $('preview'), ctx = canvas.getContext('2d');
 let result, collision, walker = null, stage = 'walk', selectedId, scale = 1, offset = { x: 0, y: 0 }, timer;
+/** A decomposing region's brief from a link, with what it built (20.5); null while the controls make the example. */
+let linked = null;
 const keys = new Set(), colors = ['#527b79','#6d6a93','#8a7553','#486f5d','#805969','#5d7892'];
 canvas.tabIndex = 0; canvas.addEventListener('pointerdown', () => { if (stage === 'walk') canvas.focus(); });
 const assignment = id => result?.assignments.find(item => item.pieceId === id), region = id => result?.regions.find(item => item.spec.id === id);
@@ -19,7 +26,7 @@ function currentPiece() { if (!walker || !result) return null; const p = local(w
 function populate() { $('piece').replaceChildren(...result.assignments.map(a => { const o = document.createElement('option'); o.value = a.pieceId; o.textContent = `${a.pieceId} — ${a.generator} / ${a.builder}`; return o; })); $('piece').value = selectedId; $('reset').disabled = stage !== 'walk'; $('download').disabled = false; inspect(); }
 function rows(target, values) { $(target).replaceChildren(...values.flatMap(([k, v]) => { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v; return [dt, dd]; })); }
 function inspect() { if (!result) return; const r = region(selectedId), a = assignment(selectedId); rows('inspector', [['Role', a.role], ['Generator', a.generator], ['Builder', a.builder], ['Owned cells', r.spec.cells.length], ['Structures', r.manifest.structures], ['Roof geometry', r.elements.filter(e => e.template.encloses).length], ['Walls / cover', r.manifest.obstacles], ['Loot', r.loot.length], ['Anchor', result.anchors.some(x => x.pieceId === selectedId) ? 'available' : 'none']]); rows('counts', [['Child regions', result.regions.length], ['Physical portals', result.portals.length], ['Gates', collision.map.gates.length], ['Routes', result.routes.length], ['Active piece', currentPiece() || 'none']]); }
-function regenerate(reason) { clearTimeout(timer); clearKeys(); try { const plan = planExample(decompositionExample($('shape').value)); result = realizeDecomposition(plan, { seed: Number($('seed').value), density: Number($('density').value), roomBuilder: $('contents').value }); collision = realizationCollisionMap(result); selectedId = result.assignments.find(a => a.role === 'corridor')?.pieceId || result.assignments[0].pieceId; walker = null; if (stage === 'walk') resetWalker(); populate(); $('status').textContent = `${reason}: ${result.regions.length} child regions and ${result.portals.length} portals. Contents, seed, and density preserve this partition.`; draw(); } catch (error) { result = collision = walker = null; clearDisplay(); $('status').textContent = `Could not realize this example: ${error.message}`; draw(); } }
+function regenerate(reason) { clearTimeout(timer); clearKeys(); linked = null; try { const plan = planExample(decompositionExample($('shape').value)); result = realizeDecomposition(plan, { seed: Number($('seed').value), density: Number($('density').value), roomBuilder: $('contents').value }); collision = realizationCollisionMap(result); selectedId = result.assignments.find(a => a.role === 'corridor')?.pieceId || result.assignments[0].pieceId; walker = null; if (stage === 'walk') resetWalker(); populate(); $('status').textContent = `${reason}: ${result.regions.length} child regions and ${result.portals.length} portals. Contents, seed, and density preserve this partition.`; draw(); } catch (error) { result = collision = walker = null; clearDisplay(); $('status').textContent = `Could not realize this example: ${error.message}`; draw(); } }
 function project(p) { return { x: offset.x + p.x * scale, y: offset.y + p.y * scale }; }
 function path(points) { ctx.beginPath(); points.forEach((p, i) => { const q = project(p); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }); ctx.closePath(); }
 function setupView() { const cells = stage === 'region' ? result.plan.context.cells : result.regions.flatMap(r => r.spec.cells), size = result.plan.context.cellSize, xs = cells.map(c => c.x), ys = cells.map(c => c.y), minX = Math.min(...xs) * size, minY = Math.min(...ys) * size, w = (Math.max(...xs) + 1) * size - minX, h = (Math.max(...ys) + 1) * size - minY, pad = 38; scale = Math.min((canvas.width - pad * 2) / w, (canvas.height - pad * 2) / h); offset = { x: (canvas.width - w * scale) / 2 - minX * scale, y: (canvas.height - h * scale) / 2 - minY * scale }; }
@@ -34,5 +41,56 @@ function editing(t) { return t instanceof HTMLElement && (t.isContentEditable ||
 const movementKeys = ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight'];
 addEventListener('keydown', event => { if (editing(event.target) || stage !== 'walk') return; if (movementKeys.includes(event.code)) { keys.add(event.code); event.preventDefault(); } if (event.code === 'KeyE' && !event.repeat) toggleGate(); }); addEventListener('keyup', event => keys.delete(event.code)); addEventListener('blur', clearKeys); document.addEventListener('visibilitychange', () => { if (document.hidden) clearKeys(); }); document.addEventListener('focusin', event => { if (event.target !== canvas) clearKeys(); });
 setInterval(() => { if (!walker || stage !== 'walk') return; const input = { x: (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0), y: (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) }; if (input.x || input.y) { moveBody(collision.map, walker, input, radius(), walker.role === 'gladiator' ? 8 : 9); draw(); } }, 50);
-['shape','contents'].forEach(id => $(id).addEventListener('change', () => regenerate(id === 'shape' ? 'Changed shape' : 'Changed room contents'))); $('seed').addEventListener('change', () => regenerate('Changed seed')); $('new-seed').addEventListener('click', () => { $('seed').value = String(Math.floor(Math.random() * 900000) + 100000); regenerate('Created new seed'); }); $('density').addEventListener('input', () => { $('density-value').value = Number($('density').value).toFixed(2); clearTimeout(timer); timer = setTimeout(() => regenerate('Changed density'), 180); }); $('role').addEventListener('change', () => { clearKeys(); if (stage === 'walk') { resetWalker(); draw(); } }); $('routes').addEventListener('change', draw); $('roofs').addEventListener('change', draw); $('piece').addEventListener('change', () => { selectedId = $('piece').value; if (stage === 'walk') resetWalker(); draw(); }); $('reset').addEventListener('click', () => { clearKeys(); resetWalker(); draw(); }); document.querySelectorAll('[data-stage]').forEach(button => button.addEventListener('click', () => setStage(button.dataset.stage))); $('download').addEventListener('click', () => { if (!result) return; const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' }), url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = `realized-decomposition-${result.seed}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 0); });
-window.generationDemoDebug = () => structuredClone({ result, walker: walker && { ...walker, local: local(walker) }, currentPiece: currentPiece(), stage }); regenerate('Generated default neck example');
+['shape','contents'].forEach(id => $(id).addEventListener('change', () => regenerate(id === 'shape' ? 'Changed shape' : 'Changed room contents'))); $('seed').addEventListener('change', () => regenerate('Changed seed')); $('new-seed').addEventListener('click', () => { $('seed').value = String(Math.floor(Math.random() * 900000) + 100000); regenerate('Created new seed'); }); $('density').addEventListener('input', () => { $('density-value').value = Number($('density').value).toFixed(2); clearTimeout(timer); timer = setTimeout(() => regenerate('Changed density'), 180); }); $('role').addEventListener('change', () => { clearKeys(); if (stage === 'walk') { resetWalker(); draw(); } }); $('routes').addEventListener('change', draw); $('roofs').addEventListener('change', draw); $('piece').addEventListener('change', () => { selectedId = $('piece').value; if (stage === 'walk') resetWalker(); draw(); }); $('reset').addEventListener('click', () => { clearKeys(); resetWalker(); draw(); }); document.querySelectorAll('[data-stage]').forEach(button => button.addEventListener('click', () => setStage(button.dataset.stage))); $('download').addEventListener('click', () => { if (!result) return; const blob = new Blob([JSON.stringify(linked?.built ?? result, null, 2)], { type: 'application/json' }), url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = linked ? `region-${linked.brief.type}-${linked.brief.seed}.json` : `realized-decomposition-${result.seed}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 0); });
+window.generationDemoDebug = () => structuredClone({ result, linked: linked && { id: linked.brief.id, type: linked.brief.type, built: linked.built }, walker: walker && { ...walker, local: local(walker) }, currentPiece: currentPiece(), stage });
+
+/**
+ * A `block` brief, shown as the demo shows its examples: the region, its lots and alleys
+ * (`planBlock`), the geometry `buildRegion` made for the whole block, and a walk through it.
+ * Each child's elements are the result's under its label prefix, so the demo shows the
+ * block's own result, not one built child by child.
+ */
+function blockView(brief) {
+  const plan = planBlock(brief), built = buildRegion(brief), size = brief.cellSize;
+  const children = plan.lots.length ? [...plan.lots, plan.alleys] : [{ ...brief, id: `${brief.id}/alleys`, type: 'open' }];
+  // Children go by their names within the block, as its elements' labels do: `lot-1`, `alleys`.
+  const name = child => child.id.slice(brief.id.length + 1), owner = new Map();
+  for (const child of children) for (const c of child.cells) owner.set(`${c.x},${c.y}`, name(child));
+  const frame = builtMapFrame({ cellSize: size, regions: [built], pairs: [] });
+  const regions = children.map(child => {
+    const elements = plan.lots.length ? built.elements.filter(e => e.label.startsWith(`${name(child)}/`)) : built.elements;
+    return { spec: { id: name(child), cells: child.cells, cellSize: size, seed: child.seed, bodyProfile: brief.bodyProfile },
+      elements, loot: built.loot.filter(l => owner.get(`${Math.floor(l.x / size)},${Math.floor(l.y / size)}`) === name(child)),
+      manifest: { structures: elements.filter(e => e.template.encloses).length, obstacles: elements.reduce((n, e) => n + e.template.parts.filter(p => p.part === 'obstacle').length, 0) } };
+  });
+  const centre = p => ({ x: (p.x + (p.axis === 'h' ? p.length / 2 : 0)) * size, y: (p.y + (p.axis === 'v' ? p.length / 2 : 0)) * size });
+  const portals = [...new Map(children.flatMap(child => child.portals).map(p => [`${p.axis}:${p.x},${p.y}`, { id: p.id, centre: centre(p) }])).values()];
+  const anchors = children.flatMap(child => { const point = portalStands({ ...child, bodyProfile: brief.bodyProfile }).find(stand => stand.points.length)?.points[0]; return point ? [{ pieceId: name(child), point }] : []; });
+  return {
+    built, collision: { map: builtMapCollision({ cellSize: size, regions: [built], pairs: [] }), origin: frame.origin },
+    result: { version: 'block-view', seed: brief.seed, plan: { context: { id: brief.id, cells: brief.cells, cellSize: size } }, regions, portals, anchors, routes: [],
+      assignments: children.map(child => ({ pieceId: name(child), role: child === plan.alleys || !plan.lots.length ? 'alleys' : 'lot', generator: 'block', builder: child.type })) },
+  };
+}
+/** A link's brief, from the Map Lab's drill-down (20.5). The demo applies to a region that decomposes, a `block`. */
+async function openLinked() {
+  let brief;
+  try { brief = await briefFromFragment(location.hash); } catch (error) { $('status').textContent = `The link's brief can't be read (${error.message}).`; return false; }
+  if (!brief) return false;
+  if (brief.type !== 'block') { $('status').textContent = `Region ${brief.id} is a ${brief.type}, which doesn't decompose; the demo shows a block's. Open it in the micro lab instead.`; return false; }
+  clearTimeout(timer); clearKeys();
+  try {
+    const view = blockView(brief);
+    linked = { brief, built: view.built }; result = view.result; collision = view.collision;
+  } catch (error) { $('status').textContent = `Could not build the linked block: ${error.message}`; return false; }
+  selectedId = result.assignments[0].pieceId; walker = null; if (stage === 'walk') resetWalker(); populate();
+  $('status').textContent = `Block ${brief.id}, seed ${brief.seed}, from a link: ${result.regions.length - 1} lots and their alleys. Example controls make a new example.`;
+  draw(); return true;
+}
+/** The link's block, or the example, keeping the reason a link's brief wasn't shown. */
+async function openLinkedOrExample() {
+  if (await openLinked()) return;
+  const note = $('status').textContent; regenerate('Generated default neck example'); if (location.hash) $('status').textContent = note;
+}
+addEventListener('hashchange', openLinkedOrExample);
+await openLinkedOrExample();

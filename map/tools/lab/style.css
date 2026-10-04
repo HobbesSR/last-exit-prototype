@@ -49,7 +49,8 @@ body {
   align-items: center;
 }
 button,
-.file-button {
+.file-button,
+a.button {
   border: 1px solid #344754;
   background: #182630;
   color: #dfe9ed;
@@ -60,7 +61,8 @@ button,
   font-size: 12px;
 }
 button:hover,
-.file-button:hover {
+.file-button:hover,
+a.button:hover {
   background: #293e4c;
 }
 button.primary {
@@ -536,4 +538,10 @@ main {
 }
 .links:not(:empty) {
   margin-top: 8px;
+}
+a.button {
+  display: block;
+  box-sizing: border-box;
+  text-align: center;
+  text-decoration: none;
 }
