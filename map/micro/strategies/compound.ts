@@ -14,7 +14,7 @@ const MIN_SIDE = 10;
 const MAX_SIDE = 24;
 /**
  * Clear cells around the compound, to any cell the region doesn't own, as `depot` keeps around
- * a warehouse. A doorway is 2 (52); the third lets the sampled route search see the yard (20).
+ * a warehouse once did. It is the compound's own yard margin (54), a doorway and a cell.
  */
 const AISLE = 3;
 /** How deep the ring of rooms is, in cells: a hunter fits inside, between quarter-cell walls. */
@@ -25,14 +25,8 @@ const MIN_GATES = 1, MAX_GATES = 4, DEFAULT_GATES = 2;
 /** Wall thickness, in cells, as `hut`'s are. */
 const WALL = 0.25;
 const DOOR = CELL_SCALE.doorway;
-/** A gate's passage through the ring: a doorway and a cell, so the sampled route search sees it (20). */
-const PASSAGE = AISLE;
-/**
- * Where a door is centred along its wall, `at` cells from the wall's start: on a line of the
- * sampled route search's half-cell lattice, so the search sees a hunter through it (20).
- * Walls start on whole cells.
- */
-const onLattice = (at: number) => Math.floor(at * 2) / 2 + 0.25;
+/** A gate's passage through the ring: a doorway (52). */
+const PASSAGE = DOOR;
 
 type Side = 'N' | 'E' | 'S' | 'W';
 const SIDES: readonly Side[] = ['N', 'E', 'S', 'W'];
@@ -115,7 +109,7 @@ export function buildCompound(brief: RegionBrief): BuiltRegion {
       for (let k = 0; k < count; k++) {
         const t0 = from + Math.floor(span * k / count), t1 = from + Math.floor(span * (k + 1) / count);
         const room = strip(side, t0, t1 - t0);
-        room.doorways.push({ side: OPPOSITE[side], at: onLattice((t1 - t0) / 2), door: true });
+        room.doorways.push({ side: OPPOSITE[side], at: (t1 - t0) / 2, door: true });
         if (t0 === 0) firsts.set(side, room);
         if (t1 === middle) lasts.set(side, room);
         rooms.push(room);
@@ -124,15 +118,15 @@ export function buildCompound(brief: RegionBrief): BuiltRegion {
   }
   // Corner rooms open along the north or south side, into its end room or its passage.
   const corners: Room[] = [
-    { x: bx, y: by, w: DEPTH, h: DEPTH, doorways: [{ side: 'E', at: onLattice(DEPTH / 2), door: true }] },
-    { x: bx + W - DEPTH, y: by, w: DEPTH, h: DEPTH, doorways: [{ side: 'W', at: onLattice(DEPTH / 2), door: true }] },
-    { x: bx, y: by + H - DEPTH, w: DEPTH, h: DEPTH, doorways: [{ side: 'E', at: onLattice(DEPTH / 2), door: true }] },
-    { x: bx + W - DEPTH, y: by + H - DEPTH, w: DEPTH, h: DEPTH, doorways: [{ side: 'W', at: onLattice(DEPTH / 2), door: true }] },
+    { x: bx, y: by, w: DEPTH, h: DEPTH, doorways: [{ side: 'E', at: DEPTH / 2, door: true }] },
+    { x: bx + W - DEPTH, y: by, w: DEPTH, h: DEPTH, doorways: [{ side: 'W', at: DEPTH / 2, door: true }] },
+    { x: bx, y: by + H - DEPTH, w: DEPTH, h: DEPTH, doorways: [{ side: 'E', at: DEPTH / 2, door: true }] },
+    { x: bx + W - DEPTH, y: by + H - DEPTH, w: DEPTH, h: DEPTH, doorways: [{ side: 'W', at: DEPTH / 2, door: true }] },
   ];
-  firsts.get('N')?.doorways.push({ side: 'W', at: onLattice(DEPTH / 2), door: false });
-  lasts.get('N')?.doorways.push({ side: 'E', at: onLattice(DEPTH / 2), door: false });
-  firsts.get('S')?.doorways.push({ side: 'W', at: onLattice(DEPTH / 2), door: false });
-  lasts.get('S')?.doorways.push({ side: 'E', at: onLattice(DEPTH / 2), door: false });
+  firsts.get('N')?.doorways.push({ side: 'W', at: DEPTH / 2, door: false });
+  lasts.get('N')?.doorways.push({ side: 'E', at: DEPTH / 2, door: false });
+  firsts.get('S')?.doorways.push({ side: 'W', at: DEPTH / 2, door: false });
+  lasts.get('S')?.doorways.push({ side: 'E', at: DEPTH / 2, door: false });
 
   const elements: RegionElement[] = [];
   for (const [k, room] of [...corners, ...rooms].entries())
@@ -178,7 +172,7 @@ function roomTemplate(size: number, { w, h, doorways }: Room): ElementTemplate {
 /** A gate at a passage's mouth: the outer wall either side of it, and a door a doorway wide near its middle. Open to the sky. */
 function gateTemplate(size: number, side: Side, { w, h }: Room): ElementTemplate {
   const horizontal = side === 'N' || side === 'S', length = horizontal ? w : h;
-  const across = side === 'N' || side === 'W' ? 0 : (horizontal ? h : w) - WALL, centre = onLattice(length / 2);
+  const across = side === 'N' || side === 'W' ? 0 : (horizontal ? h : w) - WALL, centre = length / 2;
   const piece = (a: number, b: number): Shape => horizontal ? rect(a * size, across * size, (b - a) * size, WALL * size) : rect(across * size, a * size, WALL * size, (b - a) * size);
   const parts: ElementTemplate['parts'] = [];
   if (centre - DOOR / 2 > 0) parts.push({ part: 'obstacle', shape: piece(0, centre - DOOR / 2), kind: 'building' });

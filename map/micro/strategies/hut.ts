@@ -12,11 +12,6 @@ import type { BuiltRegion, LootSite, RegionBrief } from '../types.ts';
 const BOX = 4;
 /** The least extent a hut region has on each axis, in cells (54, proposed). Smaller goes to `open`. */
 const REGION = 6;
-/**
- * How far the house stands inside its box, in cells. A yard a door wide between the box and
- * the region's edge is then a quarter cell wider, enough for the sampled route search (20).
- */
-const INSET = 0.25;
 /** Wall thickness, in cells. */
 const WALL = 0.25;
 /** A hunter fits a 2 × 2 block of cells, and moving it by one cell sweeps a 2 × 3 rectangle. */
@@ -49,7 +44,7 @@ export function buildHut(brief: RegionBrief): BuiltRegion {
   const site = siteHut(brief, mask);
   if (!site) return buildOpen(brief);
 
-  const element = { label: 'hut-building', x: (site.x + INSET) * size, y: (site.y + INSET) * size, template: house(size, site.door) };
+  const element = { label: 'hut-building', x: site.x * size, y: site.y * size, template: house(size, site.door) };
   const shapes = elementShapes(element, true), radius = microMetrics({ cellSize: size, bodyProfile: 'cell' }).lootRadius;
   const zones = new Map(brief.zones.flatMap(zone => zone.cells.map(c => [`${c.x},${c.y}`, zone] as const)));
   const lootRandom = rng(brief.seed, `${brief.id}:hut-loot`), loot: LootSite[] = [];
@@ -146,7 +141,7 @@ function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>):
  * has a roof.
  */
 function house(size: number, door: Side): ElementTemplate {
-  const span = (BOX - 2 * INSET) * size, thick = WALL * size, gap = CELL_SCALE.doorway * size;
+  const span = BOX * size, thick = WALL * size, gap = CELL_SCALE.doorway * size;
   const open0 = (span - gap) / 2, open1 = (span + gap) / 2;
   const parts: ElementTemplate['parts'] = [];
   for (const side of SIDES) {

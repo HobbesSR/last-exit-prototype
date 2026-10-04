@@ -3,6 +3,7 @@ import type { Shape } from '../../../shared/shape.ts';
 import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
 import { rng } from '../index.ts';
 import { microMetrics } from '../metrics.ts';
+import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { ObstacleKind } from '../../../shared/types.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types.ts';
 
@@ -10,9 +11,9 @@ import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types
 const PERIOD = 6;
 /**
  * Clear cells around every cluster's box, from every other cluster and from the region's
- * edge. A doorway is 2 (52); the third lets the sampled route search see each aisle (20).
+ * edge: a doorway (52), so a hunter fits each aisle.
  */
-const AISLE = 3;
+const AISLE = CELL_SCALE.doorway;
 const DENSITY = 0.55;
 /** The most pieces in one slot's cluster. */
 const CLUSTER = 3;

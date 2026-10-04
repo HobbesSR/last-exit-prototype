@@ -67,12 +67,16 @@ export function elementShapes(element: RegionElement, doors = false): Shape[] {
   });
 }
 
-/** Conservative half-cell search, every edge checked as a swept body, not just endpoints. */
+/**
+ * Conservative half-cell search, every edge checked as a swept body, not just endpoints. Samples
+ * lie on whole and half cells from the bounds' corner, so a gap whose edges lie on whole cells is
+ * centred on a sample line, and a 2-cell doorway reads as passable to a hunter (52).
+ */
 export function findRegionRoute(mask: RegionMask, blockers: readonly Shape[], a: Vec2, b: Vec2, radius: number): Vec2[] | null {
   if (travelClear(mask, blockers, a, b, radius)) return [a, b];
   const step = mask.cellSize / 2, box = mask.bounds;
-  const width = Math.round(box.w / step), height = Math.round(box.h / step);
-  const point = (i: number): Vec2 => ({ x: box.x + (i % width + 0.5) * step, y: box.y + (Math.floor(i / width) + 0.5) * step });
+  const width = Math.round(box.w / step) + 1, height = Math.round(box.h / step) + 1;
+  const point = (i: number): Vec2 => ({ x: box.x + i % width * step, y: box.y + Math.floor(i / width) * step });
   const walkable = new Map<number, boolean>();
   const free = (i: number): boolean => {
     if (!walkable.has(i)) { const p = point(i); walkable.set(i, travelClear(mask, blockers, p, p, radius)); }
