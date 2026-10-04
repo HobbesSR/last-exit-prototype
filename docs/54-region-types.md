@@ -171,6 +171,25 @@ points, and routes that aren't a straight shot.
   rooms without roofs, in the "cyberpunk urban dystopian ruins" direction (11).
 - **Strategy:** no decomposer. A builder lays discontinuous walls and rotated
   debris around a protected hunter route.
+  **Built (#157):** `map/micro/strategies/ruins.ts`. It protects the portal
+  approaches and hunter routes as `rubble` does, with the helpers both share
+  in `strategies/scatter.ts`, and drops any piece that would touch them.
+  - **Rooms:** slots lie on a lattice 6 cells apart, at a seeded phase. A slot
+    is taken with chance `density` by a roofless room 3 or 4 cells a side,
+    wholly on owned cells, so at least a doorway's width (52) parts two rooms.
+  - **Walls:** a quarter cell thick, as `hut`'s are, laid a cell at a time
+    along the inside of the room's box. Each span falls with chance `decay`;
+    half of the fallen lie as a rotated slab inside their cell, and the rest
+    are gone.
+  - **The doorway:** two cells wide, on a side whose cells beyond are owned
+    two deep, so no room is sealed off. A doorway at a corner takes the
+    meeting wall's end span too, to stay two cells wide.
+  - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
+    disc stands clear of every piece.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
+  - **Too small:** a region of fewer than 24 cells, or with no owned 3 × 3
+    box for a room, goes to `open` (17 M24).
 - **Shape needs:** *proposed*, at least 24 cells.
 - **Formed by:** medium and small set pieces, and as a child of `block`.
 - **Parameters:** `density`, `decay`.
@@ -183,9 +202,34 @@ points, and routes that aren't a straight shot.
   pursuit.
 - **Strategy:** no decomposer. A builder picks a contained rectangle, lays the
   lattice on it, and keeps the rest of the region clear.
+  **Built (#158):** `map/micro/strategies/hall.ts`. It protects the portal
+  approaches and hunter routes as `rubble` and `ruins` do, and drops any
+  pillar that would touch them.
+  - **The rectangle:** the region's largest contained rectangle with both
+    sides at least 6 cells. Ties go to the first in row order.
+  - **Pillars:** each stands a quarter cell inside a 2 × 2 block of cells, so
+    it is 1½ cells square. Blocks lie `spacing` cells apart, centred across
+    the rectangle, and the aisle between two pillars is `spacing` less 1½
+    cells.
+  - **The stagger:** each line of blocks is offset from the last along one
+    axis, drawn from the seed, by as near half a period as whole cells allow
+    while sharing no factor with it: 5 cells at spacing 6, 7 at 10. So the
+    lines visit every phase within a period's worth of them, and a sightline
+    down the other axis meets a pillar. A stride sharing a factor would visit
+    only some phases and leave a lane open the whole way (PR #176 review).
+    That axis keeps clean lanes. Staggering both would
+    pinch pillar corners together.
+  - **The roof:** with `roofed`, the rectangle is one enclosing element, so a
+    roof hides what's under it as a building's does.
+  - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
+    disc stands clear of every pillar.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
+  - **Too small:** a region with no such rectangle goes to `open` (17 M24).
 - **Shape needs:** *proposed*, a contained rectangle of at least 6 × 6.
 - **Formed by:** medium and enormous set pieces.
-- **Parameters:** `spacing`, and whether it is roofed.
+- **Parameters:** `spacing`, whole cells from 4 (5 by default), and
+  `roofed`, true or false (false by default).
 - **Material:** mapgen's `pillar-hall`.
 
 ## Structures
@@ -239,9 +283,36 @@ inside, and windows and doors let sight through.
 - **Strategy:** no decomposer at first. A builder places warehouses on
   contained rectangles and container rows between them, aisles at least a
   door wide.
+  **Built (#159):** `map/micro/strategies/depot.ts`. Like `cover`, it keeps
+  its aisles by spacing, not by a route search, so it scales to enormous set
+  pieces.
+  - **Lanes:** everything lines up on lanes 4 cells apart along one axis,
+    drawn from the seed, at a seeded phase.
+  - **Warehouses:** `roomCells` long and three quarters of that across, at
+    least 5, with quarter-cell walls and a roof. A doorway-wide door is
+    centred on each end. Shelf islands a cell across run down the length,
+    keeping 2 cells from the walls and from each other, so the doors open
+    onto clear ends. They stand at seeded places on the lanes until about
+    `density` of a quarter of the ground is taken.
+  - **Container rows:** two or three 2-cell containers end to end, packed
+    along each lane around the warehouses. Each place that fits one is taken
+    with chance `density`, and the next starts 3 cells on, so the aisles run
+    long and end in hard corners.
+  - **Why that keeps the promise:** every piece's box keeps 3 clear cells
+    from every other piece's and from any cell the region doesn't own, as
+    `cover`'s clusters do. So a `depot` region keeps the portal promise
+    exactly when its shape does.
+  - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
+    disc stands clear of every wall, door, shelf and container, indoors or
+    out.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
+  - **Too small:** a region with no contained 10 × 10 goes to `open` (17
+    M24).
 - **Shape needs:** *proposed*, at least 10 × 10.
 - **Formed by:** medium and enormous set pieces.
-- **Parameters:** `density`, `roomCells`.
+- **Parameters:** `density`, from 0 to 1 (0.55 by default), and `roomCells`,
+  whole cells from 6 to 16 (8 by default).
 - **Material:** the game's `example-depot`.
 
 ### `compound`
@@ -252,10 +323,45 @@ inside, and windows and doors let sight through.
 - **Strategy:** a builder puts the ring on the region's outline and the court
   inside, and places gates so every portal reaches the court. A region with a
   hole suits it whole, as 19's ring example does.
-- **Shape needs:** *proposed*, at least 10 × 10, with a court of at least
-  4 × 4.
+  **Built (#160):** `map/micro/strategies/compound.ts`. No decomposer. It
+  stands one compound inside its yard, not on the region's outline: a wall on
+  the outline would need a gate at every portal, more than two or three
+  wherever the region has more portals. Like `depot`, it keeps the portal
+  promise by spacing, not by a route search.
+  - **The box:** the region's largest contained rectangle, inset 3 cells on
+    every side and capped at 24 × 24, at a seeded place inside that.
+  - **The ring:** roofed rooms 3 cells deep along the inside of the box, with
+    quarter-cell walls. The box's edge is their back wall, so the compound's
+    outer wall is the rooms'. Each side's middle, between the corners, is
+    split into rooms 3 to 5 cells long, as evenly as whole cells allow, each
+    with a door a doorway wide onto the court.
+  - **Dead ends:** a 3 × 3 room stands at each corner. It opens only into its
+    neighbour along the north or south side, a room or a gate's passage.
+  - **Gates:** `gates` sides, drawn from the seed, each have a passage 3
+    cells wide through the ring at a seeded place, from a door in the outer
+    wall to the court. The passage widens to the corner where what's left
+    would be too short for a room. The rest of the ring is closed.
+  - **The court:** the open ground inside the ring, at least 4 × 4. It holds
+    nothing but loot.
+  - **The lattice:** every door's centre, and each passage's width, are set
+    so the sampled route search sees a hunter through them (20).
+  - **Why that keeps the promise:** the box keeps 3 clear cells from any cell
+    the region doesn't own, as `depot`'s pieces do. It is convex with a clear
+    ring wider than a hunter, so it can't divide the yard, where every portal
+    is. A `compound` region keeps the portal promise exactly when its shape
+    does. A hole in the region stays in the yard.
+  - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
+    disc stands clear of every wall and door, in the rooms, the court or the
+    yard.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
+  - **Too small:** a region with no contained 16 × 16 goes to `open` (17
+    M24).
+- **Shape needs:** *proposed*, a compound of at least 10 × 10, with a court of
+  at least 4 × 4. As built, that is a contained 16 × 16 with its yard.
 - **Formed by:** medium and enormous set pieces.
-- **Parameters:** gate count.
+- **Parameters:** `gates`, whole numbers from 1 to 4 (2 by default), one per
+  side.
 - **Material:** the game's `example-courtyard`, and mapgen's `courtyard` and
   `compound`.
 
@@ -270,13 +376,50 @@ inside, and windows and doors let sight through.
   children and dispatches each to another type's builders: `hut`, `depot` or
   `compound` for rooms, `ruins` or `cover` for lobes, and `open` for the
   circulation left over. Region types may borrow each other's builders (19).
+  **Built (#161):** `map/micro/strategies/block.ts`. It is not built on the
+  SDK's decomposition. That search scores candidate pieces in a bounded beam,
+  and its contexts stop at 4,096 cells and 64 per axis. An enormous set piece
+  outgrows both. Instead, the block splits its region by spacing, as `depot`
+  does, so it needs no route search and scales the same way. It reuses
+  `hall`'s largest-rectangle finder and the other types' strategies. That
+  deviation is recorded here for review.
+  - **The split:** the region's bounding box is split, guillotine fashion,
+    across its longer side at a seeded place. Each split leaves an alley 3
+    cells wide between the parts, and splitting stops once no part is longer
+    than 24 cells.
+  - **Lots:** in each part, the lot is the largest rectangle, at least 6 cells
+    a side, of cells with 3 owned cells all round them. So every lot keeps 3
+    clear cells from any cell the region doesn't own and from every other lot.
+    A part with no such rectangle stays alley.
+  - **Children:** each lot is a `hut` (no side over 12), `depot` (sides at
+    least 10), `compound` (at least 16), `ruins`, or `cover` (at least 9)
+    region. Its type is drawn from those its size suits, and it gets its own
+    seed. The alleys, everything left, are one `open` region. Each child's
+    zones are the block's, cut to its cells. `planBlock` returns the child
+    briefs, and the block's result gathers the children's geometry, loot and
+    manifest counts. Each element's label is prefixed with its lot.
+  - **Frontages:** each lot has two portals onto the alleys, the two whole
+    sides at a seeded corner. Two, not one, so the lot is a passage its
+    strategy must keep joined, rather than a pocket that owes nothing. A `hut`
+    still fits in the far corner of the smallest lot. The alleys hold every
+    frontage and every one of the block's own portals.
+  - **Why that keeps the promise:** a lot is a convex box with a clear ring
+    wider than a hunter around it, in the alleys, so the lots can't divide the
+    alleys, as `depot`'s pieces can't divide its yard. Every one of the block's
+    portals lies on the alleys, so the block keeps its promise exactly when
+    its shape does. Each lot keeps its own promise between its frontages.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
+  - **Too small:** a region with no contained 12 × 12 (a 6 × 6 lot and its
+    alley) goes to `open` (17 M24).
 - **Obligations:** every two children that share a boundary have at least
   one portal between them (51 stage 6, Corey 2026-10-01). Each child keeps its
-  own promise, so the block's portals are joined by inference.
-- **Shape needs:** *proposed*, at least two tiles' worth, 72 cells. Today's
-  decomposition contexts stop at 4,096 cells and 64 per axis, which this type
-  raises when it is built (20, "Next boundaries").
+  own promise, so the block's portals are joined by inference. As built, lots
+  touch only the alleys, through their frontages.
+- **Shape needs:** *proposed*, at least two tiles' worth, 72 cells. As built,
+  a contained 12 × 12 for one lot with its alley.
 - **Formed by:** enormous set pieces.
+- **Parameters:** none yet. Each lot's type takes its own defaults.
 - **Material:** `decomposition/example.ts` and `decomposition/realize.ts`, the
   demonstration strategy.
 
@@ -380,12 +523,12 @@ keeps those names.
 | `open` | — (it builds nothing) | — |
 | `cover` | `example-open` (built, #127) | `open-field`, `scatter` |
 | `rubble` | `example-ruins` decay (built, #128) | `rubble` |
-| `ruins` | `example-ruins` | — |
-| `hall` | — | `pillar-hall` |
+| `ruins` | `example-ruins` (built, #157) | — |
+| `hall` | — | `pillar-hall` (built, #158) |
 | `hut` | the room shell in `builders.ts` (built, #129) | `compound` |
-| `depot` | `example-depot` | — |
-| `compound` | `example-courtyard`, 19's ring example | `courtyard`, `compound` |
-| `block` | `decomposition/example.ts`, `realize.ts`, `negotiate.ts` | — |
+| `depot` | `example-depot` (built, #159) | — |
+| `compound` | `example-courtyard`, 19's ring example (built, #160) | `courtyard`, `compound` |
+| `block` | `decomposition/example.ts`, `realize.ts`, `negotiate.ts` (built on spacing instead, #161) | — |
 | `arrival` | `example-entry`, `spreadPoints` | — |
 | `departure` | `spreadPoints` (built, #131) | — |
 | `charging` | `spreadPoints` (built, #132) | — |
