@@ -18,6 +18,13 @@ export interface BuildingRealizationOptions {
   exteriorOrder?: readonly BuildingSide[];
   /** Horizontal perimeter walls own convex corners; otherwise walls overlap there. */
   corners?: 'horizontal' | 'overlap';
+  /**
+   * Spaces kept clear to their whole cells, such as a passage a doorway wide. A wall one shares
+   * with a space not listed stands wholly in that space instead of straddling the boundary.
+   */
+  clear?: readonly string[];
+  /** Opening widths by connection id, in cells; others are a doorway (`placeBuildingOpenings`). */
+  widths?: Record<string, number>;
 }
 export interface BuildingRealization extends BuildingOpeningResult {
   boundaries: BuildingBoundary[];
@@ -25,6 +32,8 @@ export interface BuildingRealization extends BuildingOpeningResult {
   /** Anchor in world units; template geometry is local to this point. */
   origin?: { x: number; y: number };
   template?: ElementTemplate;
+  /** The boundary each of the template's parts stands on, by index: its two owners. */
+  owners?: { a: string; b: string }[];
 }
 
 /** Realize supplied ownership. It never allocates cells or checks the region's portal promise. */
@@ -50,10 +59,20 @@ export function realizeBuilding(design: BuildingDesign, allocation: BuildingAllo
     return result;
   }
   const cells = new Set(allocation.footprint.map(c => `${c.x},${c.y}`));
+  const owner = new Map(allocation.spaces.flatMap(space => space.cells.map(c => [`${c.x},${c.y}`, space.id] as const)));
+  const clear = new Set(options.clear ?? []);
+  // An interior wall straddles its guide, unless one side is kept clear and the other isn't: then it stands in the other.
+  const interiorOffset = (run: BuildingBoundary['runs'][number]) => {
+    const before = (i: number) => owner.get(run.axis === 'h' ? `${run.x + i},${run.y - 1}` : `${run.x - 1},${run.y + i}`);
+    const after = (i: number) => owner.get(run.axis === 'h' ? `${run.x + i},${run.y}` : `${run.x},${run.y + i}`);
+    const a = before(0), b = after(0);
+    for (let i = 1; i < run.length; i++) if (before(i) !== a || after(i) !== b) return -thickness / 2;
+    return clear.has(a!) === clear.has(b!) ? -thickness / 2 : clear.has(a!) ? 0 : -thickness;
+  };
   const walls: (BuildingRunLimits & { offset: number; side: BuildingSide | null; extendStart: number; extendEnd: number })[] = [];
   for (const pair of result.boundaries) pair.runs.forEach((run, i) => {
     const side = pair.runSides[i]!;
-    const offset = side === 'N' || side === 'W' ? 0 : side === 'S' || side === 'E' ? -thickness : -thickness / 2;
+    const offset = side === 'N' || side === 'W' ? 0 : side === 'S' || side === 'E' ? -thickness : interiorOffset(run);
     let trimStart = 0, trimEnd = 0, extendStart = 0, extendEnd = 0;
     if (options.corners === 'horizontal' && (side === 'E' || side === 'W')) {
       const insideX = run.x - (side === 'E' ? 1 : 0);
@@ -73,18 +92,22 @@ export function realizeBuilding(design: BuildingDesign, allocation: BuildingAllo
   if (walls.some(wall => wall.trimStart + wall.trimEnd > wall.run.length)) {
     result.issues.push('Corner trims consume a wall run.'); return result;
   }
-  Object.assign(result, placeBuildingOpenings(design, result.boundaries, { limits: walls }));
+  Object.assign(result, placeBuildingOpenings(design, result.boundaries, { limits: walls, ...(options.widths ? { widths: options.widths } : {}) }));
   walls.sort((a, b) => (a.side === null ? 4 : order.indexOf(a.side)) - (b.side === null ? 4 : order.indexOf(b.side)));
   const parts: ElementTemplate['parts'] = [], gates: ElementTemplate['parts'] = [];
+  const partOwners: { a: string; b: string }[] = [], gateOwners: { a: string; b: string }[] = [];
   for (const wall of walls) {
     const openings = result.openings.filter(opening => opening.a === wall.a && opening.b === wall.b && sameBuildingRun(opening.run, wall.run))
       .map(opening => ({ ...opening, center: opening.center + wall.extendStart }));
     const emitted = emitWallRun({ ...wall.run, x: wall.run.x - x0 - wall.extendStart, y: wall.run.y - y0, length: wall.run.length + wall.extendStart + wall.extendEnd },
       { cellSize: options.cellSize, thickness, offset: wall.offset, trimStart: wall.trimStart, trimEnd: wall.trimEnd, openings });
-    parts.push(...emitted.filter(part => part.part === 'obstacle'));
-    gates.push(...emitted.filter(part => part.part === 'gate'));
+    for (const part of emitted) {
+      (part.part === 'gate' ? gates : parts).push(part);
+      (part.part === 'gate' ? gateOwners : partOwners).push({ a: wall.a, b: wall.b });
+    }
   }
   parts.push(...gates);
+  result.owners = [...partOwners, ...gateOwners];
   result.origin = { x: x0 * options.cellSize, y: y0 * options.cellSize };
   result.template = { w: (x1 - x0) * options.cellSize, h: (y1 - y0) * options.cellSize, encloses, parts };
   return result;

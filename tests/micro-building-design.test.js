@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { OUTSIDE, validateBuildingDesign, deriveBuildingBoundaries, placeBuildingOpenings, realizeBuilding, createRegionMask, elementShapes } from '../map/micro/sdk.ts';
+import { OUTSIDE, validateBuildingDesign, deriveBuildingBoundaries, placeBuildingOpenings, realizeBuilding, splitBuilding, createRegionMask, elementShapes } from '../map/micro/sdk.ts';
 
 const cellsOf = (w, h, keep = () => true) => Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w) })).filter(c => keep(c.x, c.y));
 const space = id => ({ id, area: { min: 1, max: 100 }, outside: 'prefer', tags: ['guidance'] });
@@ -174,4 +174,52 @@ test('invalid ownership is reported before any template can escape its footprint
     assert.ok(result.issues.length);
     assert.equal(result.template, undefined);
   }
+});
+
+test('openings sit on the half cell nearest their usable middle', () => {
+  const design = designOf(['room'], [connection('entry', 'door', { side: 'E' })]);
+  const cells = cellsOf(6, 6, (x, y) => x < 3 || y >= 3), allocation = allocationOf(cells);
+  // The east run beside the notch is trimmed at its convex end only: 0.25 to 3, whose middle is 1.625.
+  const result = realizeBuilding(design, allocation, { cellSize: 40, encloses: false, corners: 'horizontal' });
+  assert.equal(result.openings[0].center % 0.5, 0);
+  const odd = placeBuildingOpenings(design, deriveBuildingBoundaries(allocationOf(cellsOf(5, 3)))).openings[0];
+  assert.equal(odd.center, 1.5, 'an odd run keeps its exact middle, already a half cell');
+});
+
+test('a clear space keeps its whole cells: a wall it shares stands in its neighbour', () => {
+  const rooms = (x0, w) => cellsOf(8, 3).filter(c => c.x >= x0 && c.x < x0 + w);
+  const allocation = { footprint: cellsOf(8, 3), spaces: [{ id: 'west', cells: rooms(0, 3) }, { id: 'lane', cells: rooms(3, 2) }, { id: 'east', cells: rooms(5, 3) }] };
+  const design = designOf(['west', 'lane', 'east']);
+  const walls = clear => realizeBuilding(design, allocation, { cellSize: 40, encloses: false, clear }).template.parts
+    .filter(p => p.part === 'obstacle' && p.shape.h === 3 * 40).map(p => [p.shape.x / 40, p.shape.w / 40]).sort((a, b) => a[0] - b[0]);
+  assert.deepEqual(walls([]).filter(([x]) => x > 1 && x < 6), [[2.875, 0.25], [4.875, 0.25]], 'interior walls straddle by default');
+  assert.deepEqual(walls(['lane']).filter(([x]) => x > 1 && x < 6), [[2.75, 0.25], [5, 0.25]], 'the lane stays two cells clear');
+  assert.deepEqual(walls(['west', 'lane', 'east']), walls([]), 'two clear spaces still straddle');
+});
+
+test('a realization splits into one element per space, roofing only rectangular spaces asked for', () => {
+  const ring = cellsOf(9, 9, (x, y) => x < 3 || x >= 6 || y < 3 || y >= 6);
+  const box = (x0, y0, w, h) => ring.filter(c => c.x >= x0 && c.x < x0 + w && c.y >= y0 && c.y < y0 + h);
+  const spaces = [{ id: 'north', cells: box(0, 0, 9, 3) }, { id: 'west', cells: box(0, 3, 3, 3) }, { id: 'gap', cells: box(6, 3, 3, 3) }, { id: 'south', cells: box(0, 6, 9, 3) }];
+  const allocation = { footprint: ring, spaces };
+  const design = designOf(spaces.map(s => s.id), [connection('court', 'door', { a: 'north', side: 'S' }), connection('through', 'open', { a: 'gap', b: 'north' }),
+    connection('mouth', 'open', { a: 'gap', side: 'W' })]);
+  const realization = realizeBuilding(design, allocation, { cellSize: 40, encloses: false, widths: { mouth: 3 } });
+  assert.deepEqual([realization.issues, realization.misses], [[], []]);
+  assert.equal(realization.owners.length, realization.template.parts.length);
+  const { pieces, issues } = splitBuilding(realization, allocation, { cellSize: 40, roofed: ['north', 'west', 'south'] });
+  assert.deepEqual(issues, []);
+  assert.deepEqual(pieces.map(p => [p.space, p.origin, p.template.w / 40, p.template.h / 40, !!p.template.encloses]),
+    [['north', { x: 0, y: 0 }, 9, 3, true], ['west', { x: 0, y: 120 }, 3, 3, true], ['gap', { x: 240, y: 120 }, 3, 3, false], ['south', { x: 0, y: 240 }, 9, 3, true]]);
+  assert.equal(pieces.reduce((n, p) => n + p.template.parts.length, 0), realization.template.parts.length, 'every part lands in one piece');
+  // In world units the pieces together are the whole realization.
+  const world = element => elementShapes(element, true).map(s => JSON.stringify(s)).sort();
+  assert.deepEqual(pieces.flatMap(p => world({ x: p.origin.x, y: p.origin.y, template: p.template })).sort(),
+    world({ x: realization.origin.x, y: realization.origin.y, template: realization.template }));
+  // The mouth is open its whole length, so no wall stands on the gap's west side.
+  assert.ok(!pieces[2].template.parts.some(p => p.part === 'obstacle' && p.shape.x === 0 && p.shape.h > p.shape.w));
+  // A wall between a roofed and an unroofed space belongs to the roofed one.
+  assert.ok(pieces[2].template.parts.every(p => p.part !== 'obstacle' || p.shape.y >= 0 && p.shape.y < 120 && p.shape.x >= 0));
+  assert.deepEqual(splitBuilding(realization, { ...allocation, spaces: [...spaces.slice(0, 2), { id: 'gap', cells: [...box(6, 3, 3, 3), ...box(6, 6, 1, 1)] }] },
+    { cellSize: 40, roofed: ['gap'] }).issues.length, 1, 'a roof needs a rectangle');
 });

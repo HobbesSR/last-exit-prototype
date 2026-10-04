@@ -135,3 +135,22 @@ test('a macro-sized compound with hundreds of portals builds quickly', () => {
   const box = compoundBox(result);
   assert.deepEqual([box.w, box.h], [24, 24]);
 });
+
+test('the ring is one design: an observer sees it, and every room has an opening into the court or a neighbour', () => {
+  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS.slice(0, 4)) for (const parameters of PARAMETERS) {
+    const traces = [], input = brief(name, seed, cells, portals, parameters);
+    const result = buildRegion(input, undefined, trace => traces.push(trace));
+    assert.deepEqual(result, buildRegion(input), `${name} ${seed}: observing changes nothing`);
+    assert.equal(traces.length, 1);
+    const [{ label, design, allocation, realization, origin }] = traces;
+    assert.equal(label, 'compound');
+    assert.deepEqual(realization.misses, []);
+    assert.deepEqual(result.elements.map(e => e.label), allocation.spaces.map(s => `compound-${s.id}`));
+    assert.equal(design.spaces.filter(s => s.id.startsWith('room')).length, result.manifest.rooms);
+    // The ring's footprint is the compound's box less its court.
+    const box = compoundBox(result);
+    assert.deepEqual(origin, { x: box.x * SIZE, y: box.y * SIZE });
+    assert.equal(allocation.footprint.length, box.w * box.h - (box.w - 6) * (box.h - 6));
+    for (const space of design.spaces) assert.ok(realization.openings.some(o => o.a === space.id || o.b === space.id), `${name} ${seed}: ${space.id} has an opening`);
+  }
+});

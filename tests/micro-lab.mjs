@@ -116,11 +116,36 @@ try {
     openings: { openings: building.template.parts.filter(part => part.part === 'gate' || part.kind === 'window').length },
     graph: { nodes: trace.design.spaces.length, edges: trace.design.connections.length, warnings: trace.design.connections.filter(c => !placed.has(c.id)).length },
   });
-  assert.equal(hut.drawn.allocation.cells, 16);
-  assert.equal(hut.drawn.openings.openings, 2);
-  assert.match(await page.locator('#buildings').textContent(), /hut-building: 1 space, 2 connections, 2 openings/);
+  // The example rectangle holds a three-space house (56 L5), with every asked connection met.
+  assert.equal(hut.drawn.graph.nodes, 3);
+  assert.equal(hut.drawn.allocation.cells, building.template.w * building.template.h / trace.cellSize ** 2);
+  assert.match(await page.locator('#buildings').textContent(), /hut-building: 3 spaces, \d+ connections, \d+ openings/);
   assert.equal(await page.locator('#buildings .warning, #buildings .error').count(), 0);
   await page.screenshot({ path: 'test-results/micro-lab-hut.png' });
+  // Seed 3's back room only joins the front through the other: the asked door is unmet guidance, a warning (M29).
+  await page.getByLabel('Seed').fill('3');
+  await page.getByRole('button', { name: 'Generate region' }).click();
+  await page.waitForFunction(() => window.microLabDebug().result?.brief?.seed === 3);
+  const missed = await page.evaluate(() => window.microLabDebug());
+  assert.deepEqual(missed.promise, [], 'unmet guidance is not a broken promise');
+  assert.equal(missed.drawn.graph.warnings, 1);
+  assert.equal(await page.locator('#buildings .warning').count(), 1);
+  assert.match(await page.locator('#buildings .warning').textContent(), /Guidance not met: link-1 \(door, front–back-1\)/);
+  assert.equal(await page.locator('#buildings .error').count(), 0);
+  await page.screenshot({ path: 'test-results/micro-lab-hut-unmet.png' });
+  // A compound's ring is one design over its ring's cells, split into one element per space.
+  await page.getByLabel('Seed').fill('1');
+  await page.getByLabel('Builder', { exact: true }).selectOption('region:compound');
+  await page.waitForFunction(() => window.microLabDebug().result?.brief?.type === 'compound' && window.microLabDebug().result.brief.seed === 1);
+  const compound = await page.evaluate(() => window.microLabDebug());
+  assert.deepEqual(compound.promise, [], 'the compound keeps its portal promise');
+  assert.deepEqual(compound.buildings.map(b => b.label), ['compound']);
+  assert.equal(compound.drawn.graph.nodes, compound.result.manifest.rooms + compound.result.manifest.compoundGates);
+  assert.equal(compound.drawn.graph.warnings, 0);
+  await page.screenshot({ path: 'test-results/micro-lab-compound.png' });
+  await page.getByLabel('Seed').fill('4217');
+  await page.getByLabel('Builder', { exact: true }).selectOption('region:hut');
+  await page.waitForFunction(() => window.microLabDebug().result?.brief?.type === 'hut' && window.microLabDebug().result.brief.seed === 4217);
   for (const view of views) {
     await page.getByLabel(view).uncheck();
     const key = { 'Show design graph': 'graph', 'Show allocation': 'allocation', 'Show spans': 'spans', 'Show openings': 'openings' }[view];
@@ -135,7 +160,7 @@ try {
   const block = await page.evaluate(() => window.microLabDebug());
   assert.deepEqual(block.buildings.map(b => b.label), ['lot-1/hut-building']);
   assert.ok(block.result.elements.some(element => element.label === 'lot-1/hut-building'));
-  assert.equal(block.drawn.graph.nodes, 1);
+  assert.equal(block.drawn.graph.nodes, 3);
   await page.screenshot({ path: 'test-results/micro-lab-block.png' });
   await page.getByLabel('Seed').fill('1');
   await page.getByRole('button', { name: 'Generate region' }).click();

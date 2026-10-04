@@ -3,9 +3,12 @@ import { largestRectangle } from './hall.ts';
 import { cellLoot, draw } from './scatter.ts';
 import { createRegionMask, elementShapes } from '../geometry.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
-import { emitWallRun } from '../building/walls.ts';
+import { OUTSIDE } from '../building/design.ts';
+import type { BuildingAllocation, BuildingDesign } from '../building/design.ts';
+import { splitBuilding } from '../building/pieces.ts';
+import { realizeBuilding } from '../building/realize.ts';
+import type { BuildingObserver } from '../building/trace.ts';
 import type { Shape } from '../../../shared/shape.ts';
-import type { ElementTemplate } from '../../../shared/map/element.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 
 /** The catalogue's proposed shape need (54): the compound at least this many cells a side, so its court is at least 4. */
@@ -24,9 +27,8 @@ const MIN_ROOM = 3, MAX_ROOM = 5;
 const MIN_GATES = 1, MAX_GATES = 4, DEFAULT_GATES = 2;
 /** Wall thickness, in cells, as `hut`'s are. */
 const WALL = 0.25;
-const DOOR = CELL_SCALE.doorway;
 /** A gate's passage through the ring: a doorway (52). */
-const PASSAGE = DOOR;
+const PASSAGE = CELL_SCALE.doorway;
 
 type Side = 'N' | 'E' | 'S' | 'W';
 const SIDES: readonly Side[] = ['N', 'E', 'S', 'W'];
@@ -35,9 +37,8 @@ const OPPOSITE: Record<Side, Side> = { N: 'S', S: 'N', E: 'W', W: 'E' };
 /** Per-side draw channels, so no choice shifts another. */
 const CHANNEL = { offset: 1, gateSide: 2, gateAt: 3, room: 4, loot: 5 };
 
-/** A doorway in a room's wall: its side, its centre along that wall in cells, and whether this room holds its door. */
-interface Doorway { side: Side; at: number; door: boolean }
-interface Room { x: number; y: number; w: number; h: number; doorways: Doorway[] }
+/** A box in the compound's own cells. */
+interface Box { x: number; y: number; w: number; h: number }
 
 /**
  * The `compound` region type (54): rooms in a ring around a walled court, with a few gates.
@@ -60,7 +61,7 @@ interface Room { x: number; y: number; w: number; h: number; doorways: Doorway[]
  * every wall and door, in the rooms, the court or the yard. A compound sites no core elements;
  * any the brief lists are left for the report.
  */
-export function buildCompound(brief: RegionBrief): BuiltRegion {
+export function buildCompound(brief: RegionBrief, observe?: BuildingObserver): BuiltRegion {
   const gates = brief.parameters?.gates ?? DEFAULT_GATES;
   if (typeof gates !== 'number' || !Number.isInteger(gates) || gates < MIN_GATES || gates > MAX_GATES)
     throw new RangeError(`Compound gates must be a whole number from ${MIN_GATES} to ${MAX_GATES}.`);
@@ -77,18 +78,20 @@ export function buildCompound(brief: RegionBrief): BuiltRegion {
   const gated = new Set([...SIDES].map((side, i) => ({ side, order: draw(brief.seed, i, 0, CHANNEL.gateSide) }))
     .sort((a, b) => a.order - b.order).slice(0, gates).map(({ side }) => side));
 
-  // A side's middle runs between the corner rooms. `strip` is the box `length` long from `t` along it, `DEPTH` deep.
-  const strip = (side: Side, t: number, length: number): Room => {
+  // The ring in the box's own cells. A side's middle runs between the corner rooms; `strip` is the box `length` long from `t` along it, `DEPTH` deep.
+  const strip = (side: Side, t: number, length: number): Box => {
     switch (side) {
-      case 'N': return { x: bx + DEPTH + t, y: by, w: length, h: DEPTH, doorways: [] };
-      case 'S': return { x: bx + DEPTH + t, y: by + H - DEPTH, w: length, h: DEPTH, doorways: [] };
-      case 'W': return { x: bx, y: by + DEPTH + t, w: DEPTH, h: length, doorways: [] };
-      case 'E': return { x: bx + W - DEPTH, y: by + DEPTH + t, w: DEPTH, h: length, doorways: [] };
+      case 'N': return { x: DEPTH + t, y: 0, w: length, h: DEPTH };
+      case 'S': return { x: DEPTH + t, y: H - DEPTH, w: length, h: DEPTH };
+      case 'W': return { x: 0, y: DEPTH + t, w: DEPTH, h: length };
+      case 'E': return { x: W - DEPTH, y: DEPTH + t, w: DEPTH, h: length };
     }
   };
-  const rooms: Room[] = [], passages: { side: Side; box: Room }[] = [];
-  // The rooms at each end of a side's middle, beside the corner rooms. A passage may take an end instead.
-  const firsts = new Map<Side, Room>(), lasts = new Map<Side, Room>();
+  const rooms: { id: string; box: Box; side?: Side }[] = [
+    { id: 'room-1', box: { x: 0, y: 0, w: DEPTH, h: DEPTH } }, { id: 'room-2', box: { x: W - DEPTH, y: 0, w: DEPTH, h: DEPTH } },
+    { id: 'room-3', box: { x: 0, y: H - DEPTH, w: DEPTH, h: DEPTH } }, { id: 'room-4', box: { x: W - DEPTH, y: H - DEPTH, w: DEPTH, h: DEPTH } },
+  ];
+  const passages: { id: string; box: Box; side: Side }[] = [];
   for (const [i, side] of SIDES.entries()) {
     const middle = (side === 'N' || side === 'S' ? W : H) - 2 * DEPTH;
     // A gate's passage is PASSAGE wide at a seeded place, widened to the corner where what's left is too short for a room.
@@ -97,7 +100,7 @@ export function buildCompound(brief: RegionBrief): BuiltRegion {
       let a = Math.floor(draw(brief.seed, i, 1, CHANNEL.gateAt) * (middle - PASSAGE + 1)), b = a + PASSAGE;
       if (a < MIN_ROOM) a = 0;
       if (middle - b < MIN_ROOM) b = middle;
-      passages.push({ side, box: strip(side, a, b - a) });
+      passages.push({ id: `gate-${side}`, box: strip(side, a, b - a), side });
       segments = [[0, a], [b, middle]];
     }
     const aim = MIN_ROOM + Math.floor(draw(brief.seed, i, 2, CHANNEL.room) * (MAX_ROOM - MIN_ROOM + 1));
@@ -108,74 +111,42 @@ export function buildCompound(brief: RegionBrief): BuiltRegion {
       const count = Math.max(1, Math.min(Math.floor(span / MIN_ROOM), Math.round(span / aim)));
       for (let k = 0; k < count; k++) {
         const t0 = from + Math.floor(span * k / count), t1 = from + Math.floor(span * (k + 1) / count);
-        const room = strip(side, t0, t1 - t0);
-        room.doorways.push({ side: OPPOSITE[side], at: (t1 - t0) / 2, door: true });
-        if (t0 === 0) firsts.set(side, room);
-        if (t1 === middle) lasts.set(side, room);
-        rooms.push(room);
+        rooms.push({ id: `room-${rooms.length + 1}`, box: strip(side, t0, t1 - t0), side });
       }
     }
   }
-  // Corner rooms open along the north or south side, into its end room or its passage.
-  const corners: Room[] = [
-    { x: bx, y: by, w: DEPTH, h: DEPTH, doorways: [{ side: 'E', at: DEPTH / 2, door: true }] },
-    { x: bx + W - DEPTH, y: by, w: DEPTH, h: DEPTH, doorways: [{ side: 'W', at: DEPTH / 2, door: true }] },
-    { x: bx, y: by + H - DEPTH, w: DEPTH, h: DEPTH, doorways: [{ side: 'E', at: DEPTH / 2, door: true }] },
-    { x: bx + W - DEPTH, y: by + H - DEPTH, w: DEPTH, h: DEPTH, doorways: [{ side: 'W', at: DEPTH / 2, door: true }] },
-  ];
-  firsts.get('N')?.doorways.push({ side: 'W', at: DEPTH / 2, door: false });
-  lasts.get('N')?.doorways.push({ side: 'E', at: DEPTH / 2, door: false });
-  firsts.get('S')?.doorways.push({ side: 'W', at: DEPTH / 2, door: false });
-  lasts.get('S')?.doorways.push({ side: 'E', at: DEPTH / 2, door: false });
+  const cellsOf = ({ x, y, w, h }: Box) => Array.from({ length: w * h }, (_, i) => ({ x: x + i % w, y: y + Math.floor(i / w) }));
+  const spaces = [...rooms, ...passages];
+  const allocation: BuildingAllocation = { footprint: spaces.flatMap(s => cellsOf(s.box)), spaces: spaces.map(s => ({ id: s.id, cells: cellsOf(s.box) })) };
+  const at = (x: number, y: number) => spaces.find(({ box }) => x >= box.x && x < box.x + box.w && y >= box.y && y < box.y + box.h)!.id;
+  const widths: Record<string, number> = {};
+  const design: BuildingDesign = {
+    spaces: spaces.map(({ id, box }) => ({ id, area: { min: box.w * box.h, max: box.w * box.h }, outside: 'any',
+      tags: [id.startsWith('gate') ? 'passage' : 'room'] })),
+    connections: [
+      // Each side's rooms open onto the court; each corner room only into its neighbour along the north or south side.
+      ...rooms.filter(room => room.side).map(room => ({ id: `${room.id}-court`, a: room.id, b: OUTSIDE, kind: 'door' as const, side: OPPOSITE[room.side!] })),
+      { id: 'room-1-door', a: 'room-1', b: at(DEPTH, 0), kind: 'door' }, { id: 'room-2-door', a: 'room-2', b: at(W - DEPTH - 1, 0), kind: 'door' },
+      { id: 'room-3-door', a: 'room-3', b: at(DEPTH, H - 1), kind: 'door' }, { id: 'room-4-door', a: 'room-4', b: at(W - DEPTH - 1, H - 1), kind: 'door' },
+      // A passage has a door in the outer wall and lies open to the court along its whole length.
+      ...passages.flatMap(({ id, box, side }) => {
+        widths[`${id}-court`] = side === 'N' || side === 'S' ? box.w : box.h;
+        return [{ id, a: id, b: OUTSIDE, kind: 'door' as const, side }, { id: `${id}-court`, a: id, b: OUTSIDE, kind: 'open' as const, side: OPPOSITE[side] }];
+      }),
+    ],
+  };
+  const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: false, exteriorOrder: SIDES, corners: 'horizontal', clear: passages.map(passage => passage.id), widths });
+  const split = realization.template && splitBuilding(realization, allocation, { cellSize: size, roofed: rooms.map(room => room.id) });
+  // The ring's design always fits. A miss here is an implementation defect, not a new fallback.
+  if (!split || realization.issues.length || realization.misses.length || split.issues.length) throw new Error('The compound ring could not be realized.');
+  observe?.({ label: 'compound', origin: { x: bx * size, y: by * size }, cellSize: size, design, allocation, realization });
 
-  const elements: RegionElement[] = [];
-  for (const [k, room] of [...corners, ...rooms].entries())
-    elements.push({ label: `compound-room-${k + 1}`, x: room.x * size, y: room.y * size, template: roomTemplate(size, room) });
-  for (const { side, box } of passages)
-    elements.push({ label: `compound-gate-${side}`, x: box.x * size, y: box.y * size, template: gateTemplate(size, side, box) });
-
+  const elements: RegionElement[] = split.pieces.map(piece => ({ label: `compound-${piece.space}`,
+    x: bx * size + piece.origin.x, y: by * size + piece.origin.y, template: piece.template }));
   const parts = elements.flatMap(element => element.template.parts);
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const loot = cellLoot(brief, mask, pieces, CHANNEL.loot);
-  const roomCount = corners.length + rooms.length;
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
-    manifest: { cells: brief.cells.length, structures: roomCount, obstacles: parts.filter(p => p.part === 'obstacle').length,
-      gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0, rooms: roomCount, compoundGates: passages.length } };
-}
-
-/**
- * A room `w` × `h` cells: quarter-cell walls on its box's edge, north and south running the
- * full width and east and west between them, each with its doorways a doorway wide. A doorway
- * the room holds the door of gets a gate. It encloses, so it has a roof.
- */
-function roomTemplate(size: number, { w, h, doorways }: Room): ElementTemplate {
-  const parts: ElementTemplate['parts'] = [];
-  const gates = new Map<Doorway, ElementTemplate['parts'][number]>();
-  for (const side of SIDES) {
-    const horizontal = side === 'N' || side === 'S';
-    const run = horizontal ? { axis: 'h' as const, x: 0, y: side === 'N' ? 0 : h, length: w }
-      : { axis: 'v' as const, x: side === 'W' ? 0 : w, y: 0, length: h };
-    const onSide = doorways.filter(d => d.side === side).sort((a, b) => a.at - b.at);
-    const emitted = emitWallRun(run, { cellSize: size, thickness: WALL, offset: side === 'N' || side === 'W' ? 0 : -WALL,
-      trimStart: horizontal ? 0 : WALL, trimEnd: horizontal ? 0 : WALL,
-      openings: onSide.map(d => ({ center: d.at, length: DOOR,
-        kind: d.door ? 'door' as const : 'open' as const })) });
-    parts.push(...emitted.filter(part => part.part === 'obstacle'));
-    const emittedGates = emitted.filter(part => part.part === 'gate');
-    onSide.filter(d => d.door).forEach((d, i) => gates.set(d, emittedGates[i]!));
-  }
-  // Door IDs follow the room's doorway list, rather than side order.
-  for (const doorway of doorways.filter(d => d.door)) parts.push(gates.get(doorway)!);
-  return { w: w * size, h: h * size, encloses: true, parts };
-}
-
-/** A gate at a passage's mouth: the outer wall either side of it, and a door a doorway wide near its middle. Open to the sky. */
-function gateTemplate(size: number, side: Side, { w, h }: Room): ElementTemplate {
-  const horizontal = side === 'N' || side === 'S', length = horizontal ? w : h;
-  const run = horizontal ? { axis: 'h' as const, x: 0, y: side === 'N' ? 0 : h, length }
-    : { axis: 'v' as const, x: side === 'W' ? 0 : w, y: 0, length };
-  const emitted = emitWallRun(run, { cellSize: size, thickness: WALL, offset: side === 'N' || side === 'W' ? 0 : -WALL,
-    openings: [{ center: length / 2, length: DOOR, kind: 'door' }] });
-  const parts: ElementTemplate['parts'] = [...emitted.filter(part => part.part === 'obstacle'), ...emitted.filter(part => part.part === 'gate')];
-  return { w: w * size, h: h * size, parts };
+    manifest: { cells: brief.cells.length, structures: rooms.length, obstacles: parts.filter(p => p.part === 'obstacle').length,
+      gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0, rooms: rooms.length, compoundGates: passages.length } };
 }
