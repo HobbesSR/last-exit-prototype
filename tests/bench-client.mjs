@@ -1,6 +1,7 @@
 // Client frame benchmark: drives a real match in installed Chrome with profiling enabled and reports
-// the browser-side series. GPU work is not measured here; the useful numbers are the JavaScript costs
-// per frame (vision, cover, HUD) and the observed gap between authoritative server states.
+// the browser-side series: our per-frame JavaScript (render.frame), Phaser's own render pass
+// (render.draw), and the observed gap between authoritative server states. GPU execution itself is
+// not measured, and headless Chrome may use software GL; pass --headed for a real GPU.
 import { chromium } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { createArenaServer } from '../server/index.js';

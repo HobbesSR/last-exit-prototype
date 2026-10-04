@@ -119,23 +119,50 @@ used to implement it separately and had drifted; see [15](15-information-rules.m
 Phaser renders everything. There are three kinds of drawn content, and they differ in how often they
 are rebuilt:
 
-1. **Static world geometry** — terrain, obstacles, buildings, stations, hazards. Drawn once in
-   `buildMap()` into per-chunk `Graphics` objects keyed by 1024-unit cell, then only culled per frame
-   by `setVisible`. The retained `Graphics` *is* the cache: its geometry is uploaded once, and a frame
-   costs a visibility flag per chunk, not a redraw.
+1. **Static world geometry** — terrain, obstacles, buildings, stations, hazards. Recorded once in
+   `buildMap()` as a list of drawings indexed by 512-unit cell, then rasterised into a
+   `RenderTexture` per tile the first time a tile comes near the view. A frame costs a textured quad
+   per visible tile.
 2. **Dynamic content** — loot, traps, projectiles, effects, the hazard band, gates. Cleared and
    redrawn every frame into two `Graphics` (`dynamic`, `fixtures`), because it changes every frame.
 3. **Actors** — one `Container` per player holding an SVG image, ring, health bar and name. Retained
    and repositioned, never rebuilt.
 
-So the answer to "would live vector rendering be a performance problem" is that the static half is
-already cached in exactly the way that matters, and the dynamic half is bounded by what is on screen
-rather than by the size of the map. A shape drawn from `outline()` costs the same as the hand-written
-drawing it replaces. What would *not* be free is redrawing static geometry per frame, or building a
-`Graphics` per object rather than per chunk; neither is done today and neither should be introduced.
-If generated content ever makes `buildMap` itself slow, the next step is to build chunks lazily as
-they first come into view, not to cache rasterised textures — a texture cache trades memory and
-sharpness at zoom for a cost that is currently not being paid.
+**A retained `Graphics` is not a cache.** Phaser 3 keeps a `Graphics` as a list of commands and
+replays it on every render: each rounded rectangle becomes a path and each filled polygon is
+triangulated again with Earcut, every frame. This document used to say the opposite, and the static
+layer was culled per 1024-unit chunk on that belief. Measured in headed Chrome on a real GPU
+([42](42-performance-history.md), 2026-10-04), the visible chunks held about 16,000 commands, and Phaser's own render pass
+took 43–47 ms a frame. Our `update()` took about 1 ms, which is all `render.frame` measures.
+Rasterising tiles brought that pass to about 4 ms and the client from about 20 to 60 fps.
+`render.draw` now times Phaser's render pass separately, so this cost can't hide again.
+
+How the tiles are kept:
+
+- **Recorded once, by bounds.** `staticAt(box)` records a drawing's calls once and indexes it under
+  every cell its box touches, padded by `SEAM`. A tile replays every drawing indexed in its cells, in
+  recorded order and without duplicates, and its texture clips them to its own square. So a shape
+  across a seam is drawn whole on both sides, and overlapping translucent shadows are not doubled.
+  The old anchor-keyed chunks let a large shape spill a whole chunk past its anchor.
+- **Tile size follows zoom.** A tile spans `512 << level` units, and the level rises as the camera
+  pulls back, keeping a tile at least `MIN_TILE_PIXELS` across. A player's view uses 512-unit tiles.
+  The whole-arena view uses about fifteen 4,096-unit tiles; at 512 units it would need nearly 600,
+  and building those together froze the page for over 15 seconds under software GL.
+- **One texel per screen pixel.** The resolution is the camera zoom, rounded up to a multiple of
+  1/16, so a tile is always a whole number of texels and a window resize rarely rebuilds anything.
+  Each texture overlaps its neighbours by one texel. Without that, filtering blends a tile's edge
+  with nothing, and the grid shows as faint lines in the whole-arena view.
+- **Built under a frame budget.** Each frame builds tiles for up to `BUILD_MS`, and always at least
+  one. Holes in the view go first, then visible tiles at a stale resolution, then the ring one tile
+  beyond the view, nearest first. A stale tile stays on screen, scaled, until it is replaced.
+  Textures more than `RETAIN_TILES` beyond the view, or at another level, are released, so texture
+  memory is bounded by the view, not the map.
+- **Recreated, not resized.** A texture whose size changes is destroyed and made again.
+  `RenderTexture.resize` in Phaser 3.90 left the redrawn content clipped and offset.
+
+Textures drop the canvas's multisampling, but at one texel per pixel a before-and-after screenshot
+differed in fewer than 20 pixels. Anything that changes per frame belongs in the dynamic layer, not
+in a tile, because a changed tile costs a full rasterise.
 
 An obstacle carrying `points` is drawn from its own outline, so generated geometry needs no matching
 branch in the renderer and cannot be drawn as something other than the body the simulation collides

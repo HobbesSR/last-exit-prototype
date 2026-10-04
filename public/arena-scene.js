@@ -1,13 +1,31 @@
 import { visibilityPolygon, gateShape, insideMap } from '/shared/movement.ts';
 import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt } from '/shared/view.ts';
-import { shapeOf, outline } from '/shared/shape.ts';
-import { observe, start, stop, frame as endProfileFrame } from '/shared/profiler.ts';
+import { shapeOf, outline, bounds } from '/shared/shape.ts';
+import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
 
 const COLORS = { access: 0xf4d26c, med: 0xff8b97, weapon: 0x8bd9f0, shield: 0xa3b9ff, cell: 0xffe98a };
 const PALETTE = [0x8d5669, 0x526f80, 0x8c815a];
 // Eye settling time constant, chosen to match the previous `delta / 40` at 60 Hz.
 const EYE_TAU_MS = 31;
+// Static world geometry is recorded once and rasterised into cached tile textures, so a frame blits a
+// few quads instead of re-tessellating every shape. Phaser's Graphics replays and re-triangulates its
+// whole command list on every render; it is not a cache. Recorded drawings are indexed by CELL squares.
+const CELL = 512;
+// A tile spans CELL << level world units. The level rises as the camera pulls back, so a tile stays at
+// least this many screen pixels across and a whole-arena view needs a handful of tiles, not hundreds.
+const MIN_TILE_PIXELS = 256;
+// Tiles kept rasterised beyond the view, so walking into a tile rarely has to build it on that frame.
+const PREFETCH_TILES = 1, RETAIN_TILES = 3;
+// Tile building allowed per frame. At least one tile is built, the most urgent first.
+const BUILD_MS = 8;
+// Texels per world unit are multiples of 1/16, so a tile is always a whole number of texels.
+const MIN_RESOLUTION = 1 / 16, MAX_RESOLUTION = 2;
+// Each tile's texture overlaps its neighbours by one texel, or filtering blends its edge with nothing
+// and the tile grid shows as faint seams. Drawings this close to a tile are drawn into it.
+const SEAM = 1 / MIN_RESOLUTION;
+// Each Graphics method the static layer draws with, recorded for replay into the tiles it touches.
+const STATIC_DRAWS = ['fillStyle', 'lineStyle', 'fillPoints', 'strokePoints', 'fillRect', 'strokeRect', 'fillRoundedRect', 'strokeRoundedRect', 'lineBetween', 'fillCircle', 'fillEllipse', 'fillTriangle'];
 const obstacleFill = o => o.kind === 'fence' ? 0x53636b : o.kind === 'building' ? 0x92929e : PALETTE[o.color || 0];
 export function makeArenaScene(api) {
   return class ArenaScene extends Phaser.Scene {
@@ -19,9 +37,11 @@ export function makeArenaScene(api) {
       // Terrain, structures and fixtures are drawn everywhere and dimmed where they are out of sight,
       // so the arena stays legible instead of being cut away. Only actors, loot, shots and effects are
       // withheld, and they sit above the shade so anything in view reads at full brightness.
-      this.floor = this.add.graphics(); this.decor = this.add.container(0, 0);
+      this.drawings = []; this.drawingsByCell = new Map(); this.tiles = new Map();
+      this.scratch = this.make.graphics({ x: 0, y: 0, add: false }); this.decor = this.add.container(0, 0);
       this.fixtures = this.add.graphics(); this.shade = this.add.graphics(); this.dynamic = this.add.graphics();
-      this.world.add([this.floor, this.decor, this.fixtures, this.shade, this.dynamic]);
+      // Static tile textures are inserted at index 0, beneath everything here.
+      this.world.add([this.decor, this.fixtures, this.shade, this.dynamic]);
       this.roofs = new Map(); this.roofLayer = this.add.container(0, 0); this.world.add(this.roofLayer);
       this.actors = new Map(); this.labels = []; this.eye = null;
       this.marker = 1; this.nameScale = 1 / LABEL_FONT_PX;
@@ -48,16 +68,85 @@ export function makeArenaScene(api) {
       const label = this.add.text(x, y, text, { fontFamily: 'Arial', fontSize: size, fontStyle: 'bold', color }).setOrigin(0.5);
       this.labels.push(label); this.decor.add(label);
     }
-    chunkAt(x, y) {
-      const key = `${Math.floor(x / 1024)},${Math.floor(y / 1024)}`;
-      if (!this.chunks.has(key)) { const graphics = this.add.graphics(); this.world.addAt(graphics, 1); this.chunks.set(key, graphics); }
-      return this.chunks.get(key);
+    /**
+     * A recorder for one static drawing inside the given world box. Its calls are replayed into every
+     * tile the box touches, and each tile's texture clips them to its own square, so a shape that
+     * straddles a seam is drawn whole on both sides of it.
+     */
+    staticAt(left, top, right, bottom) {
+      const id = this.drawings.length, calls = [];
+      this.drawings.push(calls);
+      for (let cy = Math.floor((top - SEAM) / CELL); cy <= Math.floor((bottom + SEAM) / CELL); cy++) for (let cx = Math.floor((left - SEAM) / CELL); cx <= Math.floor((right + SEAM) / CELL); cx++) {
+        const key = `${cx},${cy}`;
+        if (!this.drawingsByCell.has(key)) this.drawingsByCell.set(key, []);
+        this.drawingsByCell.get(key).push(id);
+      }
+      const recorder = {};
+      for (const method of STATIC_DRAWS) recorder[method] = (...args) => { calls.push(method, args); return recorder; };
+      return recorder;
+    }
+    /** Rasterise the drawings that touch a tile, in the order they were recorded. */
+    rasterise(tile, resolution) {
+      const cells = 1 << tile.level, span = CELL * cells, left = tile.tx * span, top = tile.ty * span;
+      const ids = new Set();
+      for (let cy = tile.ty * cells; cy < (tile.ty + 1) * cells; cy++) for (let cx = tile.tx * cells; cx < (tile.tx + 1) * cells; cx++)
+        for (const id of this.drawingsByCell.get(`${cx},${cy}`) || []) ids.add(id);
+      tile.resolution = resolution;
+      if (!ids.size) { tile.empty = true; return; }
+      // The tile plus one texel of its neighbours on every side; see SEAM.
+      const size = span * resolution + 2, texel = 1 / resolution;
+      // A new texture rather than resize(), which left content clipped and offset in Phaser 3.90.
+      if (tile.texture?.width !== size) {
+        tile.texture?.destroy();
+        tile.texture = this.add.renderTexture(left - texel, top - texel, size, size).setOrigin(0, 0); this.world.addAt(tile.texture, 0);
+      }
+      const g = this.scratch.clear().setScale(resolution);
+      for (const id of [...ids].sort((a, b) => a - b)) { const calls = this.drawings[id]; for (let i = 0; i < calls.length; i += 2) g[calls[i]](...calls[i + 1]); }
+      tile.texture.clear().setScale(texel).draw(g, 1 - left * resolution, 1 - top * resolution);
+      g.clear();
+      count('work.tileRasterise');
+    }
+    /**
+     * Show the tiles the camera can see, rasterise what they lack within a frame budget, and release
+     * textures far from the view or at another level.
+     */
+    updateTiles() {
+      // worldView is only refreshed when the camera renders, a frame behind centerOn, so derive it here.
+      const camera = this.cameras.main, zoom = camera.zoom;
+      const view = { width: camera.width / zoom, height: camera.height / zoom };
+      view.x = camera.scrollX + camera.width / 2 - view.width / 2; view.y = camera.scrollY + camera.height / 2 - view.height / 2;
+      // At least one texel per screen pixel, quantised so a window resize does not rebuild every tile.
+      const resolution = Math.min(MAX_RESOLUTION, Math.max(MIN_RESOLUTION, Math.ceil(zoom * 16) / 16));
+      const level = Math.max(0, Math.ceil(Math.log2(MIN_TILE_PIXELS / (CELL * zoom))));
+      const span = CELL << level;
+      const range = margin => ({ left: Math.floor(view.x / span) - margin, top: Math.floor(view.y / span) - margin, right: Math.floor((view.x + view.width) / span) + margin, bottom: Math.floor((view.y + view.height) / span) + margin });
+      const shown = range(0), wanted = range(PREFETCH_TILES), kept = range(RETAIN_TILES);
+      const within = (tile, r) => tile.tx >= r.left && tile.tx <= r.right && tile.ty >= r.top && tile.ty <= r.bottom;
+      for (const [key, tile] of this.tiles) if (tile.level !== level || !within(tile, kept)) { tile.texture?.destroy(); this.tiles.delete(key); }
+      const centre = { x: (view.x + view.width / 2) / span, y: (view.y + view.height / 2) / span };
+      const queue = [];
+      for (let ty = wanted.top; ty <= wanted.bottom; ty++) for (let tx = wanted.left; tx <= wanted.right; tx++) {
+        const key = `${level}:${tx}:${ty}`;
+        let tile = this.tiles.get(key);
+        if (!tile) this.tiles.set(key, tile = { level, tx, ty, texture: null, resolution: 0, empty: false });
+        const visible = within(tile, shown);
+        tile.texture?.setVisible(visible);
+        // A visible hole first, then a visible tile at a stale resolution, then prefetch.
+        if (!tile.empty && tile.resolution !== resolution) queue.push({ tile, visible, rank: visible ? tile.texture ? 1 : 0 : 2, distance: Math.hypot(tx + 0.5 - centre.x, ty + 0.5 - centre.y) });
+      }
+      queue.sort((a, b) => a.rank - b.rank || a.distance - b.distance);
+      const started = performance.now();
+      for (const [index, { tile, visible }] of queue.entries()) {
+        if (index && performance.now() - started > BUILD_MS) break;
+        this.rasterise(tile, resolution); tile.texture?.setVisible(visible);
+      }
     }
     buildMap() {
-      const map = api.map(); let g = this.floor;
+      const map = api.map(); let g;
       if (!map?.obstacles) return;
-      for (const chunk of this.chunks?.values() || []) chunk.destroy(); this.chunks = new Map();
-      g.clear(); this.labels.forEach(l => l.destroy()); this.labels = [];
+      for (const tile of this.tiles.values()) tile.texture?.destroy();
+      this.drawings = []; this.drawingsByCell = new Map(); this.tiles = new Map();
+      this.labels.forEach(l => l.destroy()); this.labels = [];
       this.gateMemory = new Map(); this.rememberedGates = []; this.eye = null; this.sightMap = { ...map };
       this.actors.forEach(a => a.container.destroy()); this.actors.clear();
       for (const roof of this.roofs.values()) roof.destroy(); this.roofs.clear();
@@ -67,24 +156,24 @@ export function makeArenaScene(api) {
       else this.cameras.main.setBounds(-400, -400, map.width + 800, map.height + 800);
       if (map.playableArea) {
         const { cellSize, rows } = map.playableArea;
-        g.fillStyle(0x39454c);
         for (const row of rows) for (const [start, end] of row.runs)
-          g.fillRect(start * cellSize, row.y * cellSize, (end - start) * cellSize, cellSize);
+          this.staticAt(start * cellSize, row.y * cellSize, end * cellSize, (row.y + 1) * cellSize).fillStyle(0x39454c).fillRect(start * cellSize, row.y * cellSize, (end - start) * cellSize, cellSize);
       } else {
         const diamond = [{ x: 40, y: map.height / 2 }, { x: map.width / 2, y: 40 }, { x: map.width - 40, y: map.height / 2 }, { x: map.width / 2, y: map.height - 40 }];
-        g.fillStyle(0x39454c); g.fillPoints(diamond, true);
+        g = this.staticAt(0, 0, map.width, map.height); g.fillStyle(0x39454c); g.fillPoints(diamond, true);
         g.lineStyle(8, 0x729b9e); g.strokePoints(diamond, true);
       }
       // Broad paths connect generated sections. There are no visible grid cells.
       for (const route of map.streets?.map(st => ({ points: [st.a, st.port, st.b] })) || map.routes || [{ points: [{ x: 160, y: map.height / 2 }, ...map.modules, map.exit] }]) {
         for (let i = 1; i < route.points.length; i++) {
-          const a = route.points[i - 1], b = route.points[i]; g = this.chunkAt((a.x + b.x) / 2, (a.y + b.y) / 2);
+          const a = route.points[i - 1], b = route.points[i], half = map.streets ? 80 : 50;
+          g = this.staticAt(Math.min(a.x, b.x) - half, Math.min(a.y, b.y) - half, Math.max(a.x, b.x) + half, Math.max(a.y, b.y) + half);
           g.lineStyle(map.streets ? 160 : 100, 0x596269); g.lineBetween(a.x, a.y, b.x, b.y);
           g.lineStyle(2, 0xa5bbc0, 0.35); g.lineBetween(a.x, a.y, b.x, b.y);
         }
       }
       for (const m of map.modules) {
-        g = this.chunkAt(m.x, m.y);
+        g = this.staticAt(m.x - 130, m.y - 270, m.x + 130, m.y - 90);
         // These are ground markings, not fake building silhouettes.
         if (m.kind === 'depot') {
           g.lineStyle(2, 0x9daab0, 0.3);
@@ -93,23 +182,27 @@ export function makeArenaScene(api) {
           g.fillStyle(0x44584e, 0.45); g.fillEllipse(m.x, m.y - 210, 220, 100);
         }
         this.label(m.x, m.y - 75, ['SERVICE YARD', 'RUINED DEPOT', 'OVERGROWN BLOCK'][['yard', 'depot', 'garden'].indexOf(m.kind)], '#91b9bc', 13);
-        if (m.interior) { g.fillStyle(0x50505d); g.fillRect(m.interior.x, m.interior.y, m.interior.w, m.interior.h); }
+        if (m.interior) { g = this.staticAt(m.interior.x, m.interior.y, m.interior.x + m.interior.w, m.interior.y + m.interior.h); g.fillStyle(0x50505d); g.fillRect(m.interior.x, m.interior.y, m.interior.w, m.interior.h); }
       }
       for (let i = 0; i < 430; i++) {
         const x = (i * 479 + map.seed * 7) % map.width, y = (i * 193 + map.seed * 13) % map.height;
         if (map.playableArea ? !insideMap(map, x, y, 5) : Math.abs(x - map.width / 2) / (map.width / 2 - 70) + Math.abs(y - map.height / 2) / (map.height / 2 - 70) > 1 || Math.abs(y - map.height / 2) < 70) continue;
-        g = this.chunkAt(x, y);
+        g = this.staticAt(x - 8, y - 8, x + 4, y + 6);
         g.lineStyle(2, 0x568f60, 0.55); g.lineBetween(x - 3, y + 3, x - 5, y - 3); g.lineBetween(x, y + 3, x + 2, y - 5);
       }
       for (const h of map.hazards) {
-        g = this.chunkAt(h.x, h.y);
+        g = this.staticAt(h.x - 4, h.y - 4, h.x + h.w + 4, h.y + h.h + 4);
         g.fillStyle(0x56605a); g.fillRoundedRect(h.x, h.y, h.w, h.h, 10);
         g.lineStyle(3, 0xe9b758); g.strokeRoundedRect(h.x + 4, h.y + 4, h.w - 8, h.h - 8, 7);
         for (let x = h.x + 13; x < h.x + h.w - 12; x += 22) { g.lineStyle(7, 0xe6b357, 0.65); g.lineBetween(x, h.y + 13, x - 4, h.y + h.h - 13); }
       }
-      for (const o of map.obstacles) this.obstacle(this.chunkAt(o.x, o.y), o);
+      for (const o of map.obstacles) {
+        // Wide enough for the drop shadow (+5, +8), the outline stroke and a circle's highlight.
+        const box = bounds(shapeOf(o));
+        this.obstacle(this.staticAt(box.x - 6, box.y - 6, box.x + box.w + 12, box.y + box.h + 14), o);
+      }
       for (const building of map.buildings || []) {
-        const floor = this.chunkAt(building.x, building.y); floor.fillStyle(0x77717a); floor.fillRect(building.x + 18, building.y + 18, building.w - 36, building.h - 36);
+        const floor = this.staticAt(building.x, building.y, building.x + building.w, building.y + building.h); floor.fillStyle(0x77717a); floor.fillRect(building.x + 18, building.y + 18, building.w - 36, building.h - 36);
         const roof = this.add.graphics(); roof.fillStyle(0x323a4b); roof.fillRoundedRect(building.x + 18, building.y + 18, building.w - 36, building.h - 36, 5);
         roof.lineStyle(4, 0x8091a8); roof.strokeRoundedRect(building.x + 20, building.y + 20, building.w - 40, building.h - 40, 4);
         roof.fillStyle(0x4b586b); roof.fillRect(building.x + 35, building.y + 30, building.w - 70, building.h - 60);
@@ -118,11 +211,11 @@ export function makeArenaScene(api) {
         this.roofLayer.add(roof); this.roofs.set(building.id, roof);
       }
       for (const gap of map.gaps) {
-        g = this.chunkAt(gap.x, gap.y);
+        g = this.staticAt(gap.x - 30, gap.y - 10, gap.x - 15, gap.y + 10);
         g.lineStyle(2, 0xd1f4cd); g.lineBetween(gap.x - 27, gap.y - 8, gap.x - 18, gap.y); g.lineBetween(gap.x - 18, gap.y, gap.x - 27, gap.y + 8);
       }
       for (const st of map.stations) {
-        g = this.chunkAt(st.x, st.y);
+        g = this.staticAt(st.x - 43, st.y - 36, st.x + 43, st.y + 36);
         g.fillStyle(0x274c57); g.fillRoundedRect(st.x - 41, st.y - 34, 82, 68, 11);
         g.lineStyle(3, 0x9bd6e6); g.strokeRoundedRect(st.x - 36, st.y - 29, 72, 58, 7);
         g.lineStyle(3, 0x9bd6e6); g.lineBetween(st.x - 12, st.y - 16, st.x - 12, st.y + 16); g.lineBetween(st.x + 12, st.y - 16, st.x + 12, st.y + 16);
@@ -131,14 +224,14 @@ export function makeArenaScene(api) {
       }
       const ex = map.exit;
       for (const st of map.chargers || []) {
-        g = this.chunkAt(st.x, st.y);
+        g = this.staticAt(st.x - 37, st.y - 32, st.x + 37, st.y + 32);
         g.fillStyle(0x273947); g.fillRoundedRect(st.x - 35, st.y - 30, 70, 60, 8);
         g.lineStyle(3, 0xffe98a); g.strokeRoundedRect(st.x - 30, st.y - 25, 60, 50, 6);
         g.fillStyle(0xffe98a); g.fillTriangle(st.x + 4, st.y - 19, st.x - 11, st.y + 2, st.x + 6, st.y + 2);
         g.fillTriangle(st.x - 4, st.y + 19, st.x + 11, st.y - 2, st.x - 6, st.y - 2);
         this.label(st.x, st.y + 45, 'CHARGE CELL · E', '#ffe98a', 11);
       }
-      g = this.chunkAt(ex.x, ex.y);
+      g = this.staticAt(ex.x - 46, ex.y - 44, ex.x + 46, ex.y + 44);
       g.fillStyle(0x264f42); g.fillRoundedRect(ex.x - 44, ex.y - 42, 88, 84, 12);
       g.lineStyle(4, 0xe6f59e); g.strokeRoundedRect(ex.x - 38, ex.y - 36, 76, 72, 8);
       g.lineStyle(6, 0xe6f59e); g.lineBetween(ex.x - 12, ex.y, ex.x + 14, ex.y); g.lineBetween(ex.x + 3, ex.y - 12, ex.x + 15, ex.y); g.lineBetween(ex.x + 15, ex.y, ex.x + 3, ex.y + 12);
@@ -244,11 +337,7 @@ export function makeArenaScene(api) {
       const halfWidth = this.scale.width / this.cameras.main.zoom / 2;
       const halfHeight = this.scale.height / this.cameras.main.zoom / 2;
       const nearView = (x, y, margin = 400) => this.wideView() || !eye || Math.abs(x - eye.x) < halfWidth + margin && Math.abs(y - eye.y) < halfHeight + margin;
-      for (const [key, chunk] of this.chunks) {
-        const [cx, cy] = key.split(',').map(Number);
-        // Geometry can extend one block beyond its anchor; preserve that margin at chunk seams.
-        chunk.setVisible(nearView(cx * 1024 + 512, cy * 1024 + 512, 1500));
-      }
+      start('render.tiles'); this.updateTiles(); stop('render.tiles');
       for (const label of this.labels) label.setVisible(nearView(label.x, label.y));
       this.shade.clear();
       if (api.directed() || !eye) { this.visionPoints = null; this.sight = null; }
