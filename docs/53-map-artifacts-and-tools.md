@@ -171,6 +171,8 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   the library it was made from, or a library; `--diagnose true`), `batch`
   (sample size, metric distributions, defects and failures), `library` and
   `sweep` (above).
+  Module files use `name@version.json`; all includes, including nested ones,
+  resolve beside the top library file, not relative to the including module.
 - **MCP** (`node map/tools/mcp.mts`): bounded stdio tools `map_generate`,
   which returns the wire map with its report, `map_validate`,
   `library_validate`, `map_batch` (at most 5 maps when diagnosed) and

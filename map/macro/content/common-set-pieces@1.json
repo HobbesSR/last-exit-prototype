@@ -1,7 +1,13 @@
 {
+  "schema": 1,
   "name": "common-set-pieces",
-  "version": 3,
-  "includes": [{ "name": "common-primitives", "version": 3 }],
+  "version": 1,
+  "includes": [
+    {
+      "name": "common-primitives",
+      "version": 1
+    }
+  ],
   "setPieces": [
     {
       "id": "landing",

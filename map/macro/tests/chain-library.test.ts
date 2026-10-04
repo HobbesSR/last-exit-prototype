@@ -21,15 +21,15 @@ test("fixture is valid and the chain has its own version", () => {
   refusal({ ...copy(), version: 2 } as unknown as ChainLibrary, /unsupported version 2/);
 });
 
-test("recursive diamond includes load a module once in stable order", () => {
+test("recursive diamond includes load each content revision once in stable order", () => {
   const root = { name: "diamond", version: 3, zonePlan: "diamond", zoneWidth: 12, zoneHeight: 6,
-    includes: [{ name: "left", version: 3 }, { name: "right", version: 3 }], setPieceClasses: [] };
+    includes: [{ name: "left", version: 1 }, { name: "right", version: 2 }], setPieceClasses: [] };
   const registry = {
-    base: { name: "base", version: 3, cellClasses: { open: { regionType: "open-field" } },
+    "base@1": { schema: 1, name: "base", version: 1, cellClasses: { open: { regionType: "open-field" } },
       tiles: [{ id: "base", defaultCellClass: "open", orientations: [0] }] },
-    left: { name: "left", version: 3, includes: [{ name: "base", version: 3 }],
+    "left@1": { schema: 1, name: "left", version: 1, includes: [{ name: "base", version: 1 }],
       tiles: [{ id: "left", defaultCellClass: "open", orientations: [0] }] },
-    right: { name: "right", version: 3, includes: [{ name: "base", version: 3 }],
+    "right@2": { schema: 1, name: "right", version: 2, includes: [{ name: "base", version: 1 }],
       tiles: [{ id: "right", defaultCellClass: "open", orientations: [0] }] },
   };
   const result = resolveLibrary(root, registry);
@@ -38,17 +38,31 @@ test("recursive diamond includes load a module once in stable order", () => {
   assert.deepEqual(validateLibrary(result, new Set(["open-field"])).errors, []);
 });
 
-test("includes reject missing modules, cycles, version conflicts and redefinitions with sources", () => {
+test("module schemas, content revisions, identities and include cycles are checked separately", () => {
   const root = { name: "diamond", version: 3, zonePlan: "diamond", zoneWidth: 12, zoneHeight: 6,
-    includes: [{ name: "left", version: 3 }], setPieceClasses: [] };
-  assert.throws(() => resolveLibrary(root, {}), /diamond: missing module left@3/);
-  assert.throws(() => resolveLibrary(root, { left: { name: "left", version: 2 } }), /requested version 3, found 2/);
-  assert.throws(() => resolveLibrary(root, { left: { name: "left", version: 3,
-    includes: [{ name: "left", version: 3 }] } }), /include cycle at left@3/);
-  assert.throws(() => resolveLibrary({ ...root, includes: [{ name: "left", version: 3 }, { name: "right", version: 3 }] }, {
-    left: { name: "left", version: 3, tiles: [{ id: "field" }] },
-    right: { name: "right", version: 3, tiles: [{ id: "field" }] },
-  }), /tiles field redefined in right; first defined in left/);
+    includes: [{ name: "base", version: 2 }], setPieceClasses: [] };
+  const module = { schema: 1, name: "base", version: 2 };
+  assert.throws(() => resolveLibrary(root, {}), /missing module base@2/);
+  assert.throws(() => resolveLibrary(root, { "base@1": { ...module, version: 1 } }), /missing module base@2/);
+  assert.throws(() => resolveLibrary(root, { "base@2": { ...module, version: 1 } }), /requested version 2, found 1/);
+  assert.throws(() => resolveLibrary(root, { "base@2": { ...module, schema: 99 } }), /unsupported module schema 99/);
+  assert.throws(() => resolveLibrary(root, { "base@2": { ...module, schema: undefined } }), /unsupported module schema undefined/);
+  assert.throws(() => resolveLibrary(root, { "base@2": { ...module, name: "other" } }), /module base@2 names other/);
+  assert.throws(() => resolveLibrary(root, { "base@2": { ...module, includes: root.includes } }), /include cycle at base@2/);
+  for (const version of [0, -1, 1.5, NaN])
+    assert.throws(() => resolveLibrary({ ...root, includes: [{ name: "base", version }] }, {}), /malformed include/);
+});
+
+test("two content revisions coexist but still cannot redefine ids", () => {
+  const root = { name: "diamond", version: 3, zonePlan: "diamond", zoneWidth: 12, zoneHeight: 6,
+    includes: [{ name: "base", version: 1 }, { name: "base", version: 2 }], setPieceClasses: [] };
+  const registry = {
+    "base@1": { schema: 1, name: "base", version: 1, tiles: [{ id: "old" }] },
+    "base@2": { schema: 1, name: "base", version: 2, tiles: [{ id: "new" }] },
+  };
+  assert.deepEqual(resolveLibrary(root, registry).tiles.map(t => t.id), ["old", "new"]);
+  registry["base@2"].tiles[0]!.id = "old";
+  assert.throws(() => resolveLibrary(root, registry), /tiles old redefined in base@2; first defined in base@1/);
 });
 
 test("cell class registry is total and each entry names a known region type", () => {
@@ -214,9 +228,9 @@ test("tiers, segment addresses and set piece slots have unambiguous bounds", () 
 
 test("module definitions cannot be overridden by the including library or own quotas", () => {
   const top = { name: "top", version: 3, zonePlan: "diamond", zoneWidth: 12, zoneHeight: 6,
-    includes: [{ name: "base", version: 3 }], setPieceClasses: [], cellClasses: { open: { regionType: "open-field" } } };
-  const base = { name: "base", version: 3, cellClasses: top.cellClasses };
-  assert.throws(() => resolveLibrary(top, { base }), /cell class open redefined in top; first defined in base/);
-  assert.throws(() => resolveLibrary(top, { base: { ...base, setPieceClasses: [] } }), /base: unknown field setPieceClasses/);
-  assert.throws(() => resolveLibrary(top, Object.create({ base })), /missing module base/);
+    includes: [{ name: "base", version: 1 }], setPieceClasses: [], cellClasses: { open: { regionType: "open-field" } } };
+  const base = { schema: 1, name: "base", version: 1, cellClasses: top.cellClasses };
+  assert.throws(() => resolveLibrary(top, { "base@1": base }), /cell class open redefined in top; first defined in base/);
+  assert.throws(() => resolveLibrary(top, { "base@1": { ...base, setPieceClasses: [] } }), /base@1: unknown field setPieceClasses/);
+  assert.throws(() => resolveLibrary(top, Object.create({ "base@1": base })), /missing module base/);
 });

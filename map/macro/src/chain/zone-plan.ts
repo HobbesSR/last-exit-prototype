@@ -1,6 +1,7 @@
 /**
  * Zone plans (55): the one statement of a map's macro shape. A plan owns the zone grid,
- * which of its zones are occupied, each zone's tier and bonus, the default zone size, and where each set piece placement rule may anchor. Libraries own what
+ * which of its zones are occupied, each zone's tier and bonus, the default zone size,
+ * and where each set piece placement rule may anchor. Libraries own what
  * fills it: designs, set pieces, class membership and quotas, authored per size.
  *
  * "Layout" already names placement's output (51 stage 1), so the shape is a plan.

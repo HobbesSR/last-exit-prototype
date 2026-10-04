@@ -17,7 +17,7 @@ import type { ChainParams, Orientation } from "../src/chain/types.ts";
 
 const content = (name: string): unknown => JSON.parse(readFileSync(new URL(`../content/${name}.json`, import.meta.url), "utf8"));
 const LIBRARY: ChainLibrary = resolveLibrary(content("diamond-12x6"), {
-  "common-primitives": content("common-primitives"), "common-set-pieces": content("common-set-pieces"),
+  "common-primitives@1": content("common-primitives@1"), "common-set-pieces@1": content("common-set-pieces@1"),
 });
 /** The catalogue's minimal set (54), which B3 built. */
 const MINIMAL_SET = new Set(["open", "cover", "rubble", "hut", "arrival", "departure", "charging", "transit"]);

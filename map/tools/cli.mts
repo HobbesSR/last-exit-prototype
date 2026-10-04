@@ -69,7 +69,7 @@ function readMapOrLibrary(file: string, library: unknown): { map: ToolMap } | { 
   const bytes = new Uint8Array(fs.readFileSync(file));
   if (looksLikeBson(bytes)) return { map: readMap(bytes, library) };
   const value = parseJson(new TextDecoder().decode(bytes), file) as Record<string, unknown> | null;
-  return value?.format === 'last-exit-map' ? { map: readMap(value, library) } : { library: readLibraryFile(file) };
+  return value?.format === 'last-exit-map' ? { map: readMap(value, library) } : { library: readLibraryFile(file, value) };
 }
 
 try {

@@ -230,13 +230,19 @@ Schema version 3 libraries declare `name`, `zonePlan`, `zoneWidth` and
 playground dimensions remain free. Version 2 is refused by name.
 
 A library may include named, versioned modules through
-`includes: [{ name: "common-primitives", version: 3 }]`. Modules carry cell
+`includes: [{ name: "common-primitives", version: 1 }]`. Modules carry cell
 classes, tiles, tile sets and set pieces, and may include other modules.
 The top library owns set piece classes and quotas. Modules cannot supply them.
-The version is the schema version; a reference must match the module's version.
+Module files carry `schema: 1` for the file format and a separate positive integer
+`version` for authored content, starting at 1. Revise `version` when definitions
+or include pins change; a format change bumps `schema`. Includes pin exact content
+versions, with no fallback to a different revision. Top and resolved libraries
+retain their existing `version: 3` schema field; their resolved content is
+identified by the fingerprint.
 
-`resolveLibrary` takes a registry keyed by module name. It visits includes in
-listed depth-first order and loads a repeated module identity once. Missing
+`resolveLibrary` takes a registry keyed by `name@version`. It visits includes in
+listed depth-first order and loads a repeated module identity once. Different revisions may coexist in the registry or include graph, but the same
+id still cannot be defined twice. Missing
 modules, include cycles and mismatched names or versions are errors. Redefining
 an id in the same category is an error naming both sources, including when the
 top library tries to override a module. Competing definitions belong in separate
@@ -252,8 +258,8 @@ libraries.
 ## The chain's library
 
 `map/macro/content/diamond-12x6.json` is the library the chain is authored
-with (B4, #97; modularized in #168). It includes `common-primitives.json`
-and `common-set-pieces.json`, which also includes the primitives. Definitions
+with (B4, #97; modularized in #168). It includes `common-primitives@1.json`
+and `common-set-pieces@1.json`, which also includes the primitives. Definitions
 keep their original order and content. The top library owns the classes and
 quotas for the diamond at its declared size. It holds 54's minimal set. That is enough to exercise every
 stage and to play, and it grows from here. The fixture libraries in

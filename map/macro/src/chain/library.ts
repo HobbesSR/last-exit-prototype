@@ -5,6 +5,8 @@ import { boundaryRuns } from "../../../kernel/run.ts";
 import { MIN_PORTAL_LENGTH } from "../../../kernel/scale.ts";
 export const CHAIN_LIBRARY_VERSION = 3;
 export const CHAIN_TILE_SIZE = 6;
+/** Module file format; independent of each module's authored content version. */
+export const CHAIN_MODULE_SCHEMA = 1;
 
 export type Side = "N" | "E" | "S" | "W";
 export type PassabilityPrescription = "passable" | "any";
@@ -97,6 +99,7 @@ export interface AuthoredChainLibrary extends Partial<Pick<ChainLibrary, "cellCl
 }
 /** Modules carry reusable definitions only; top libraries own the plan and quotas. */
 export interface ChainLibraryModule extends Partial<Pick<ChainLibrary, "cellClasses" | "tiles" | "tileSets" | "setPieces">> {
+  schema: typeof CHAIN_MODULE_SCHEMA;
   name: string;
   version: number;
   includes?: LibraryReference[];
@@ -135,7 +138,7 @@ export function resolveLibrary(top: unknown, registry: Readonly<Record<string, u
   function consume(raw: Record<string, unknown>, source: string, isTop: boolean): void {
     const allowed = isTop
       ? ["name", "version", "zonePlan", "zoneWidth", "zoneHeight", "includes", "cellClasses", ...lists, "setPieceClasses"]
-      : ["name", "version", "includes", "cellClasses", ...lists];
+      : ["schema", "name", "version", "includes", "cellClasses", ...lists];
     for (const key of Object.keys(raw)) if (!allowed.includes(key)) throw new Error(`${source}: unknown field ${key}`);
     if (raw.cellClasses !== undefined && !object(raw.cellClasses)) throw new Error(`${source}: cellClasses must be an object`);
     if (object(raw.cellClasses)) for (const [id, value] of Object.entries(raw.cellClasses)) {
@@ -160,20 +163,22 @@ export function resolveLibrary(top: unknown, registry: Readonly<Record<string, u
     }
   }
   function visit(raw: Record<string, unknown>, source: string, isTop: boolean): void {
-    if (raw.version !== CHAIN_LIBRARY_VERSION) throw new Error(`${source}: unsupported version ${String(raw.version)}`);
-    if (!name(raw.name) || raw.name !== source) throw new Error(`${source}: module name mismatch`);
-    const identity = `${source}@${raw.version}`;
+    if (!isTop && raw.schema !== CHAIN_MODULE_SCHEMA)
+      throw new Error(`${source}: unsupported module schema ${String(raw.schema)}; expected ${CHAIN_MODULE_SCHEMA}`);
+    const identity = isTop ? `library:${source}` : source;
     if (active.has(identity)) throw new Error(`library include cycle at ${identity}`);
     if (loaded.has(identity)) return;
     active.add(identity);
     if (raw.includes !== undefined && !Array.isArray(raw.includes)) throw new Error(`${source}: includes must be an array`);
     for (const ref of (raw.includes as unknown[] | undefined) ?? []) {
-      if (!object(ref) || !name(ref.name) || !integer(ref.version)) throw new Error(`${source}: malformed include`);
+      if (!object(ref) || !name(ref.name) || !integer(ref.version) || ref.version < 1) throw new Error(`${source}: malformed include`);
       for (const field of Object.keys(ref)) if (field !== "name" && field !== "version") throw new Error(`${source}: unknown include field ${field}`);
-      const module = Object.hasOwn(registry, ref.name) ? registry[ref.name] : undefined;
+      const key = `${ref.name}@${ref.version}`;
+      const module = Object.hasOwn(registry, key) ? registry[key] : undefined;
       if (!object(module)) throw new Error(`${source}: missing module ${ref.name}@${ref.version}`);
+      if (module.name !== ref.name) throw new Error(`${source}: module ${key} names ${String(module.name)}`);
       if (module.version !== ref.version) throw new Error(`${source}: module ${ref.name} requested version ${ref.version}, found ${String(module.version)}`);
-      visit(module, ref.name, false);
+      visit(module, key, false);
     }
     consume(raw, source, isTop);
     active.delete(identity);

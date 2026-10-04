@@ -7,11 +7,11 @@
   "includes": [
     {
       "name": "common-primitives",
-      "version": 3
+      "version": 1
     },
     {
       "name": "common-set-pieces",
-      "version": 3
+      "version": 1
     }
   ],
   "setPieceClasses": [

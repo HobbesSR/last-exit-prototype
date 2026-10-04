@@ -1,7 +1,7 @@
 /** S3 schema migration witness: compare all content and 224 old hashes before accepting new layout fingerprints. Run from repository root. */
-﻿import assert from 'node:assert/strict';
+import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { generate, CHAIN_LIBRARY } from '../../chain.ts';
 import { libraryFingerprint } from '../../macro/src/coding.ts';
 import { viewHashes } from '../sweep.mts';
@@ -22,5 +22,6 @@ for(const c of baseline.provenance.cases) for(let i=1;i<=c.count;i++) {
  entries[key]=current;
  if(++count%20===0) console.log(`Verified ${count} maps`);
 }
+mkdirSync('test-results', {recursive:true});
 writeFileSync('test-results/s3-audited-entries.json',JSON.stringify(entries,null,2)+'\n');
 console.log(JSON.stringify({verified:count,oldFingerprint,newFingerprint:libraryFingerprint(CHAIN_LIBRARY),contentUnchanged:true}));

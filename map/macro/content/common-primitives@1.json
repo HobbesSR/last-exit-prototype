@@ -1,6 +1,7 @@
 {
+  "schema": 1,
   "name": "common-primitives",
-  "version": 3,
+  "version": 1,
   "cellClasses": {
     "open": {
       "regionType": "open"

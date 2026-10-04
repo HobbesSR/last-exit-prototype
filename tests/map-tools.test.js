@@ -165,3 +165,24 @@ test('custom saves reload without external libraries and CLI resolves module fil
   assert.equal(result.code, 0, result.err);
   assert.equal(JSON.parse(result.out).valid, true);
 });
+
+test('file includes pin content revisions and reuse a parsed top library', async () => {
+  const { readLibraryFile } = await import('../map/tools/library-files.mts');
+  const dir = mkdtempSync(path.join(tmpdir(), 'module-revisions-'));
+  try {
+    const top = { name: 'revisions', version: 3, zonePlan: 'diamond', zoneWidth: 12, zoneHeight: 6,
+      includes: [{ name: 'base', version: 1 }, { name: 'base', version: 2 }], setPieceClasses: [] };
+    for (const version of [1, 2]) writeFileSync(path.join(dir, `base@${version}.json`), JSON.stringify({
+      schema: 1, name: 'base', version, tiles: [{ id: `revision-${version}` }],
+    }));
+    // No top file exists: the CLI's already-parsed object must be used as given.
+    const file = path.join(dir, 'library.json');
+    assert.deepEqual(readLibraryFile(file, top).tiles.map(t => t.id), ['revision-1', 'revision-2']);
+    const missing = { ...top, includes: [{ name: 'base', version: 3 }] };
+    assert.throws(() => readLibraryFile(file, missing), /cannot load module base.*base@3.json/);
+    const invalid = { ...top, includes: [{ name: 'base', version: '../2' }] };
+    assert.throws(() => readLibraryFile(file, invalid), /invalid module content version/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
