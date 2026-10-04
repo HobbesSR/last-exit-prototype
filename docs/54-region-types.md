@@ -202,9 +202,31 @@ points, and routes that aren't a straight shot.
   pursuit.
 - **Strategy:** no decomposer. A builder picks a contained rectangle, lays the
   lattice on it, and keeps the rest of the region clear.
+  **Built (#158):** `map/micro/strategies/hall.ts`. It protects the portal
+  approaches and hunter routes as `rubble` and `ruins` do, and drops any
+  pillar that would touch them.
+  - **The rectangle:** the region's largest contained rectangle with both
+    sides at least 6 cells. Ties go to the first in row order.
+  - **Pillars:** each stands a quarter cell inside a 2 × 2 block of cells, so
+    it is 1½ cells square. Blocks lie `spacing` cells apart, centred across
+    the rectangle, and the aisle between two pillars is `spacing` less 1½
+    cells.
+  - **The stagger:** each line of blocks is offset from the last along one
+    axis, drawn from the seed, by about half a period. The stride never
+    divides the period, so a sightline down the other axis meets a pillar
+    within a few lines. That axis keeps clean lanes. Staggering both would
+    pinch pillar corners together.
+  - **The roof:** with `roofed`, the rectangle is one enclosing element, so a
+    roof hides what's under it as a building's does.
+  - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
+    disc stands clear of every pillar.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
+  - **Too small:** a region with no such rectangle goes to `open` (17 M24).
 - **Shape needs:** *proposed*, a contained rectangle of at least 6 × 6.
 - **Formed by:** medium and enormous set pieces.
-- **Parameters:** `spacing`, and whether it is roofed.
+- **Parameters:** `spacing`, whole cells from 4 (5 by default), and
+  `roofed`, true or false (false by default).
 - **Material:** mapgen's `pillar-hall`.
 
 ## Structures
@@ -400,7 +422,7 @@ keeps those names.
 | `cover` | `example-open` (built, #127) | `open-field`, `scatter` |
 | `rubble` | `example-ruins` decay (built, #128) | `rubble` |
 | `ruins` | `example-ruins` (built, #157) | — |
-| `hall` | — | `pillar-hall` |
+| `hall` | — | `pillar-hall` (built, #158) |
 | `hut` | the room shell in `builders.ts` (built, #129) | `compound` |
 | `depot` | `example-depot` | — |
 | `compound` | `example-courtyard`, 19's ring example | `courtyard`, `compound` |

@@ -5,6 +5,7 @@ import { buildHut } from './strategies/hut.ts';
 import { buildOpen } from './strategies/open.ts';
 import { buildRubble } from './strategies/rubble.ts';
 import { buildRuins } from './strategies/ruins.ts';
+import { buildHall } from './strategies/hall.ts';
 import { buildArrival } from './strategies/arrival.ts';
 import { buildDeparture } from './strategies/departure.ts';
 import { buildCharging } from './strategies/charging.ts';
@@ -24,6 +25,7 @@ export const REGION_TYPES: RegionTypeRegistry = Object.freeze({
   open: buildOpen,
   rubble: buildRubble,
   ruins: buildRuins,
+  hall: buildHall,
   cover: buildCover,
   hut: buildHut,
   arrival: buildArrival,
@@ -41,7 +43,7 @@ export const REGION_TYPES: RegionTypeRegistry = Object.freeze({
  * Names what `REGION_TYPES` builds. A change to what any of its strategies builds bumps it,
  * so a saved map's results are never rebuilt by other strategies without saying so (51 "Saving").
  */
-export const REGION_TYPES_VERSION = 'types-9';
+export const REGION_TYPES_VERSION = 'types-10';
 
 /**
  * Dispatch a brief to its region type's strategy (51 stage 6). The brief is checked as
