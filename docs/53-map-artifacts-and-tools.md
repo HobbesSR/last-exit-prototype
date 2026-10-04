@@ -162,7 +162,9 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     lines. Any number can be on at once, so an earlier stage shows under a
     later one. Drawing takes two passes in registry order: every layer's
     cells and areas (a cell field is painted once per map into a canvas),
-    then every layer's lines and marks. A new layer is one registry entry.
+    then every layer's lines and marks. A layer below full opacity is drawn
+    whole and laid on once, so its own marks don't fade unevenly where they
+    overlap. A new layer is one registry entry.
     Regions, portals, geometry, sites and defects are on by default.
   - **Inspecting:** clicking a cell fills the inspector, and hovering shows
     its first lines. Zoom with the wheel or the buttons; Reset fits the

@@ -23,6 +23,10 @@ const input = (id: string) => $<HTMLInputElement>(id);
 const select = (id: string) => $<HTMLSelectElement>(id);
 const canvas = $<HTMLCanvasElement>("map");
 const ctx = canvas.getContext("2d")!;
+type Context = CanvasRenderingContext2D;
+/** Where a layer below full opacity is drawn before it is laid on the map. */
+const scratch = document.createElement("canvas");
+const scratchCtx = scratch.getContext("2d")!;
 
 type Views = MapViews<RegionElement>;
 const NUMERIC = ["zoneWidth", "zoneHeight", "exitCount", "contestantCount", "hunterCount"] as const;
@@ -244,9 +248,9 @@ interface Layer {
   /** Say how many values there are instead of listing them. */
   summarise?: string;
   /** Areas drawn in the first pass, after the layer's cells. `px` is one screen pixel in cell units. */
-  under?: (v: Views, px: number) => void;
+  under?: (g: Context, v: Views, px: number) => void;
   /** Lines and marks drawn in the second pass. */
-  over?: (v: Views, px: number) => void;
+  over?: (g: Context, v: Views, px: number) => void;
   /** Legend entries, for a layer without cells. */
   legend?: () => Array<[string, string]>;
   /** The inspector's lines for a cell. */
@@ -264,9 +268,9 @@ function runLine(path: Path2D, run: { axis: "h" | "v"; x: number; y: number; len
   path.lineTo(run.axis === "h" ? run.x + run.length : run.x, run.axis === "v" ? run.y + run.length : run.y);
 }
 
-function dot(x: number, y: number, radius: number): void {
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
+function dot(g: Context, x: number, y: number, radius: number): void {
+  g.beginPath();
+  g.arc(x, y, radius, 0, Math.PI * 2);
 }
 
 const LAYERS: Layer[] = [
@@ -289,17 +293,17 @@ const LAYERS: Layer[] = [
   {
     id: "portals", label: "Boundaries and portals", stage: "regions", on: true, opacity: 1,
     legend: () => [["boundary", "#0b1015"], ["portal", "#e9f7c4"]],
-    over: (v, px) => {
+    over: (g, v, px) => {
       const boundaries = new Path2D(), portals = new Path2D();
       for (const boundary of v.regions.boundaries) runLine(boundaries, boundary.run);
       for (const portal of v.regions.portals) runLine(portals, portal);
-      ctx.lineCap = "butt";
-      ctx.strokeStyle = "#0b1015";
-      ctx.lineWidth = 1.5 * px;
-      ctx.stroke(boundaries);
-      ctx.strokeStyle = "#e9f7c4";
-      ctx.lineWidth = Math.max(0.25, 3 * px);
-      ctx.stroke(portals);
+      g.lineCap = "butt";
+      g.strokeStyle = "#0b1015";
+      g.lineWidth = 1.5 * px;
+      g.stroke(boundaries);
+      g.strokeStyle = "#e9f7c4";
+      g.lineWidth = Math.max(0.25, 3 * px);
+      g.stroke(portals);
     },
   },
   {
@@ -330,39 +334,39 @@ const LAYERS: Layer[] = [
   {
     id: "geometry", label: "Built geometry", stage: "built", on: true, opacity: 1,
     legend: () => [["collider or gate", "#b9c4bf"]],
-    under: () => {
+    under: (g) => {
       if (!geometry) return;
-      ctx.fillStyle = "#b9c4bfcc";
-      ctx.fill(geometry.path);
+      g.fillStyle = "#b9c4bfcc";
+      g.fill(geometry.path);
     },
     inspect: (_, { built }) => (built ? [`Type ${built.brief.type}, ${built.brief.portals.length} portals`, `${built.elements.length} elements, ${built.loot.length} loot`] : []),
   },
   {
     id: "loot", label: "Loot", stage: "built", on: false, opacity: 1,
     legend: () => [["loot", "#f2ca55"]],
-    over: (v, px) => {
+    over: (g, v, px) => {
       const { cellSize } = v.built;
-      ctx.fillStyle = "#f2ca55";
+      g.fillStyle = "#f2ca55";
       for (const region of v.built.regions)
         for (const loot of region.loot) {
-          dot(loot.x / cellSize, loot.y / cellSize, Math.max(0.15, 2 * px));
-          ctx.fill();
+          dot(g, loot.x / cellSize, loot.y / cellSize, Math.max(0.15, 2 * px));
+          g.fill();
         }
     },
   },
   {
     id: "sites", label: "Core element sites", stage: "built", on: true, opacity: 1,
     legend: () => Object.entries(SITE_COLOURS),
-    over: (v, px) => {
+    over: (g, v, px) => {
       const { cellSize } = v.built;
       for (const region of v.built.regions)
         for (const site of region.coreElements) {
-          dot(site.x / cellSize, site.y / cellSize, Math.max(0.6, 5 * px));
-          ctx.fillStyle = SITE_COLOURS[site.kind] ?? "#fff";
-          ctx.fill();
-          ctx.strokeStyle = "#0b1015";
-          ctx.lineWidth = px;
-          ctx.stroke();
+          dot(g, site.x / cellSize, site.y / cellSize, Math.max(0.6, 5 * px));
+          g.fillStyle = SITE_COLOURS[site.kind] ?? "#fff";
+          g.fill();
+          g.strokeStyle = "#0b1015";
+          g.lineWidth = px;
+          g.stroke();
         }
     },
     inspect: (_, { built }) => (built?.coreElements.length ? [`Core elements: ${built.coreElements.map((site) => site.kind).join(", ")}`] : []),
@@ -374,14 +378,14 @@ const LAYERS: Layer[] = [
       return (cell) => (regionAt[cell]! >= 0 && named.has(views!.regions.regions[regionAt[cell]!]!.id) ? "defect" : null);
     },
     colour: () => [235, 70, 60, 120],
-    over: (v, px) => {
+    over: (g, v, px) => {
       const { cellSize } = v.built;
       for (const defect of check?.defects ?? [])
         if (defect.site) {
-          dot(defect.site.x / cellSize, defect.site.y / cellSize, Math.max(1, 9 * px));
-          ctx.strokeStyle = "#ff5a4a";
-          ctx.lineWidth = 2 * px;
-          ctx.stroke();
+          dot(g, defect.site.x / cellSize, defect.site.y / cellSize, Math.max(1, 9 * px));
+          g.strokeStyle = "#ff5a4a";
+          g.lineWidth = 2 * px;
+          g.stroke();
         }
     },
     inspect: (_, { region }) => region ? [
@@ -474,20 +478,38 @@ function draw(): void {
   $("zoomLevel").textContent = `${Math.round((camera.zoom / fitZoom) * 100)}%`;
   if (!views) return;
   const v = views, { zoom, x, y } = camera, px = 1 / zoom;
-  ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, dpr * x, dpr * y);
+  const transform = [dpr * zoom, 0, 0, dpr * zoom, dpr * x, dpr * y] as const;
+  ctx.setTransform(...transform);
   ctx.imageSmoothingEnabled = false;
+  /**
+   * A layer at full opacity draws straight onto the map. Otherwise it draws opaque on a
+   * scratch canvas that is laid on once at the layer's opacity, so overlapping marks within
+   * one layer (a site's fill and outline, say) don't fade by different amounts.
+   */
+  const composite = (layer: Layer, paint: (g: Context) => void) => {
+    if (layer.opacity >= 1) return paint(ctx);
+    if (scratch.width !== canvas.width || scratch.height !== canvas.height) [scratch.width, scratch.height] = [canvas.width, canvas.height];
+    scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
+    scratchCtx.clearRect(0, 0, scratch.width, scratch.height);
+    scratchCtx.setTransform(...transform);
+    scratchCtx.imageSmoothingEnabled = false;
+    paint(scratchCtx);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = layer.opacity;
+    ctx.drawImage(scratch, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.setTransform(...transform);
+  };
   const shown = LAYERS.filter((layer) => layer.on && layer.opacity > 0);
   for (const layer of shown) {
-    ctx.globalAlpha = layer.opacity;
     const cells = painted(layer);
-    if (cells) ctx.drawImage(cells.canvas, 0, 0);
-    layer.under?.(v, px);
+    if (cells || layer.under)
+      composite(layer, (g) => {
+        if (cells) g.drawImage(cells.canvas, 0, 0);
+        layer.under?.(g, v, px);
+      });
   }
-  for (const layer of shown) {
-    ctx.globalAlpha = layer.opacity;
-    layer.over?.(v, px);
-  }
-  ctx.globalAlpha = 1;
+  for (const layer of shown) if (layer.over) composite(layer, (g) => layer.over!(g, v, px));
   if (selected) {
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 2 * px;

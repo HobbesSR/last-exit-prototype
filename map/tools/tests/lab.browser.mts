@@ -106,6 +106,7 @@ try {
   await layer("declared").check();
   assert.deepEqual(await centre(), regionsAlone, "an opaque later layer hides the one under it");
   await opacity("regions", 50);
+  assert.equal((await snapshot()).layers.find((l: any) => l.id === "regions").opacity, 0.5, "the slider sets the layer's opacity");
   const overDeclared = await centre();
   assert.notDeepEqual(overDeclared, regionsAlone, "a half-opaque layer shows the one under it");
   await layer("declared").uncheck();
@@ -114,6 +115,25 @@ try {
   assert.ok(overNothing[3]! < 255, "with nothing under it, the half-opaque layer is see-through");
   await page.screenshot({ path: `${OUT}/stacked.png` });
   await opacity("regions", 100);
+
+  // A layer's opacity is uniform: sites overlap their own outlines (and each other), yet at
+  // 50% with nothing under them no pixel is more than half opaque.
+  await layer("regions").uncheck();
+  await layer("sites").check();
+  await opacity("sites", 50);
+  const alpha = () => page.evaluate(() => {
+    const map = document.getElementById("map") as HTMLCanvasElement;
+    const { data } = map.getContext("2d")!.getImageData(0, 0, map.width, map.height);
+    let most = 0;
+    for (let i = 3; i < data.length; i += 4) most = Math.max(most, data[i]!);
+    return most;
+  });
+  const half = await alpha();
+  assert.ok(half >= 120 && half <= 130, `sites at 50% are at most half opaque, not ${half}/255`);
+  await opacity("sites", 100);
+  assert.equal(await alpha(), 255);
+  await layer("sites").uncheck();
+  await layer("regions").check();
   for (const id of ["portals", "geometry", "sites", "defects", "loot"]) await layer(id).check();
 
   // Zoom buttons, and Reset back to the fitted 100%.
