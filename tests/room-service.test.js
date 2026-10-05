@@ -182,3 +182,19 @@ test('a catch-up past the cap leaves a server-stall marker on the recording, and
     assert.ok(writer.frames.every(frame => frame.commands.every(c => c.kind !== 'server-stall')), 'never a recorded command');
   } finally { await h.service.close(); }
 });
+
+test('a stall marker counts the ticks actually simulated when the match ends mid catch-up', async () => {
+  const h = roomHarness();
+  try {
+    const { room, writer } = h.live();
+    h.wake(50);
+    room.game.tick = room.game.content.durationTicks - 1;
+    const before = writer.frames.length;
+    h.wake(50 * 9);
+    const added = writer.frames.length - before, [mark] = writer.marks;
+    assert.ok(added >= 1 && added < 5, 'the batch ended early');
+    assert.equal(mark.owed, 9);
+    assert.equal(mark.simulated, added, 'simulated is the steps taken, not the budget');
+    assert.equal(mark.tick, writer.frames.at(-1).state.tick);
+  } finally { await h.service.close(); }
+});

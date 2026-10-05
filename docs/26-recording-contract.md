@@ -82,7 +82,7 @@ a frame is omitted whole under storage pressure, which is when a stall is most l
 in `dropped`. A crash `.partial` file loses the trailer, which is acceptable.
 
 A mark is `{ tick, kind, ... }`. Only `server-stall` is written so far:
-`{ tick, kind, wakeMs, owed, simulated }`, raised by the room's catch-up step in
+`{ tick, kind, wakeMs, owed, simulated }` (`simulated` is the steps actually taken, fewer than the budget if the match ends), raised by the room's catch-up step in
 `advance` when more ticks are owed than `MAX_CATCHUP` allows. Tick numbers stay
 continuous after a stall (wall time is lost, not ticks), so the mark is the only evidence in
 the replay. Readers treat marks as untrusted: `createReplayTimeline` keeps known kinds at

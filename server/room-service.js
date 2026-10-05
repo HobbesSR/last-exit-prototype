@@ -201,15 +201,15 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
       room.steppedAt = now;
       // Offer every tick to the bounded recorder; storage pressure never delays gameplay.
       // Only the newest state reaches clients after a catch-up batch.
-      let state;
+      let state, simulated = 0;
       for (let i = 0; i < ticks; i++) {
-        state = room.match.advance(); stepped++;
+        state = room.match.advance(); stepped++; simulated++;
         profiler.start('loop.record'); record(room, state); profiler.stop('loop.record');
         remember(room, state);
         if (room.match.phase === 'finished') break;
       }
       // The sim fell behind wall time; tick numbers stay continuous, so only this marker shows it.
-      if (owed > MAX_CATCHUP && state) markDiagnostic(room, { tick: state.tick, kind: 'server-stall', wakeMs: Math.round(elapsed), owed, simulated: ticks });
+      if (owed > MAX_CATCHUP && state) markDiagnostic(room, { tick: state.tick, kind: 'server-stall', wakeMs: Math.round(elapsed), owed, simulated });
       profiler.start('loop.broadcast');
       broadcast(room, state);
       profiler.stop('loop.broadcast');
