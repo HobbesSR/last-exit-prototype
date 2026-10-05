@@ -83,3 +83,17 @@ test('a roster tolerates frames without players', () => {
   assert.deepEqual(createReplayTimeline({ frames: [frame(0), frame(1)] }).roster, []);
   assert.deepEqual(createReplayTimeline({}).roster, []);
 });
+
+test('diagnostic marks keep known kinds at valid ticks, in tick order, and report overflow', () => {
+  const diagnostics = { dropped: 3, marks: [
+    { tick: 9, kind: 'server-stall', wakeMs: 450, owed: 9, simulated: 5 },
+    { tick: 2, kind: 'manual', playerId: 'p1' },
+    { tick: 4, kind: 'made-up' }, { tick: -1, kind: 'manual' }, { tick: 1.5, kind: 'manual' }, null,
+    { tick: 9, kind: 'packet-gap', wakeMs: 'x' }] };
+  const timeline = createReplayTimeline({ frames: [frame(0), frame(9)], diagnostics });
+  assert.deepEqual(timeline.marks.map(m => [m.tick, m.kind]), [[2, 'manual'], [9, 'server-stall'], [9, 'packet-gap']]);
+  assert.equal(timeline.marks[1].wakeMs, 450); assert.equal(timeline.marks[2].wakeMs, undefined);
+  assert.equal(timeline.droppedMarks, 3);
+  const plain = createReplayTimeline({ frames: [frame(0)] });
+  assert.deepEqual(plain.marks, []); assert.equal(plain.droppedMarks, 0);
+});

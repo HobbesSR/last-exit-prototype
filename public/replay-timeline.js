@@ -1,5 +1,15 @@
 const validTick = value => Number.isSafeInteger(value) && value >= 0;
 
+// Diagnostic markers are untrusted file content: keep known kinds with a valid tick, sorted.
+const MARK_KINDS = new Set(['server-stall', 'frame-drop', 'packet-gap', 'manual']);
+const finite = value => Number.isFinite(value) ? value : undefined;
+function parseMarks(diagnostics) {
+  const source = Array.isArray(diagnostics?.marks) ? diagnostics.marks : [];
+  return source.map((mark, order) => ({ mark, order })).filter(({ mark }) => MARK_KINDS.has(mark?.kind) && validTick(mark.tick))
+    .sort((a, b) => a.mark.tick - b.mark.tick || a.order - b.order)
+    .map(({ mark }) => ({ tick: mark.tick, kind: mark.kind, playerId: mark.playerId, wakeMs: finite(mark.wakeMs), owed: finite(mark.owed), simulated: finite(mark.simulated) }));
+}
+
 // Playback is based on authoritative simulation ticks rather than positions in
 // the retained frame array. Omitted states are held, never invented.
 export function createReplayTimeline(recording) {
@@ -46,6 +56,8 @@ export function createReplayTimeline(recording) {
 
   return { frames: retained.map(entry => entry.frame), roster, firstTick, lastTick, endTick,
     complete: recording?.recording?.complete !== false,
+    marks: parseMarks(recording?.diagnostics),
+    droppedMarks: Number.isSafeInteger(recording?.diagnostics?.dropped) && recording.diagnostics.dropped > 0 ? recording.diagnostics.dropped : 0,
     droppedFrames: Number.isSafeInteger(recording?.recording?.droppedFrames) && recording.recording.droppedFrames > 0 ? recording.recording.droppedFrames : 0,
     at };
 }

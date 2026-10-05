@@ -49,6 +49,10 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
       else if (accepted === false || room.writer.droppedFrames > 0) replayStatus(room, 'partial');
     } catch (error) { failRecording(room, error); }
   }
+  // Diagnostics are metadata beside the recording, never a command, and never able to fail it.
+  function markDiagnostic(room, marker) {
+    try { if (!room.recordingError) room.writer?.mark?.(marker); } catch { /* Markers cannot stop the match. */ }
+  }
   function startRecording(room) {
     try {
       const map = room.match.map();
@@ -204,6 +208,8 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
         remember(room, state);
         if (room.match.phase === 'finished') break;
       }
+      // The sim fell behind wall time; tick numbers stay continuous, so only this marker shows it.
+      if (owed > MAX_CATCHUP && state) markDiagnostic(room, { tick: state.tick, kind: 'server-stall', wakeMs: Math.round(elapsed), owed, simulated: ticks });
       profiler.start('loop.broadcast');
       broadcast(room, state);
       profiler.stop('loop.broadcast');

@@ -5,8 +5,9 @@ export function roomHarness({ finalize, reportError, startWriter, ...serviceOpti
   const writers = new Map();
   const replays = { start(header, options) {
     if (startWriter) { const writer = startWriter(header, options); writers.set(header.id, writer); return writer; }
-    const writer = { header: structuredClone(header), frames: [], blocked: false, finishCalls: 0,
+    const writer = { header: structuredClone(header), frames: [], marks: [], blocked: false, finishCalls: 0,
       append(state, commands) { this.frames.push(structuredClone({ state, commands })); },
+      mark(marker) { this.marks.push(structuredClone(marker)); return true; },
       async finish(result) {
         this.finishCalls++;
         if (finalize) await finalize(header.id);

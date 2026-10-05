@@ -26,7 +26,7 @@ test('three hunter places are advertised, admitted, reclaimed and recorded', asy
     const writer = h.writers.get(room.id);
     assert.equal(writer.header.contentId, 'content-2');
     assert.equal(writer.header.version, 'last-exit-0.7');
-    assert.equal(writer.header.schema, 4);
+    assert.equal(writer.header.schema, 5);
     assert.equal(writer.header.minSchema, 4);
     assert.equal(writer.frames[0].state.players.filter(p => p.role === 'gladiator').length, 3);
     assert.equal(writer.frames[0].state.slots, 3);
@@ -165,4 +165,20 @@ test('transport decoding, message budget and seed coercion retain existing accep
   assert.equal(acceptMessageRate(budget, 1100), false); assert.equal(acceptMessageRate(budget, 1101), true);
   assert.equal(roomSeed({ seed: '9' }), 9); assert.equal(roomSeed({}), 4217);
   for (const seed of [0, -1, 2147483648, 1.5, 'bad']) assert.equal(roomSeed({ seed }), null);
+});
+
+test('a catch-up past the cap leaves a server-stall marker on the recording, and normal wakes leave none', async () => {
+  const h = roomHarness();
+  try {
+    const { writer } = h.live();
+    h.wake(50); h.wake(50);
+    assert.deepEqual(writer.marks, []);
+    h.wake(50 * 9);
+    assert.equal(writer.marks.length, 1);
+    const [mark] = writer.marks;
+    assert.equal(mark.kind, 'server-stall');
+    assert.equal(mark.wakeMs, 450); assert.equal(mark.owed, 9); assert.equal(mark.simulated, 5);
+    assert.equal(mark.tick, writer.frames.at(-1).state.tick, 'marked at the last tick the stall simulated');
+    assert.ok(writer.frames.every(frame => frame.commands.every(c => c.kind !== 'server-stall')), 'never a recorded command');
+  } finally { await h.service.close(); }
 });
