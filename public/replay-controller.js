@@ -1,4 +1,4 @@
-import { createReplayTimeline } from '/replay-timeline.js';
+import { clusterMarks, createReplayTimeline, markLabel, markSeekTick } from '/replay-timeline.js';
 import { recordingFit } from '/shared/recording.ts';
 import { $, kitName, time } from '/ui.js';
 
@@ -40,6 +40,46 @@ export function createReplayController({
     const target = followed();
     if (target) toast(`Following ${target.name}`);
   }
+  // Pips sit over the scrubber, positioned within the range thumb's travel. Shape differs by kind as
+  // well as colour, and the tooltip names the mark. Marks too close to draw apart share one pip
+  // showing their count; activating it opens a list so each stays individually selectable.
+  // Choosing a mark seeks to just before it and follows the reporting player, when the roster has them.
+  function chooseMark(mark) {
+    closeMarkMenu();
+    seek(markSeekTick(mark, replay.hz, replayTimeline.firstTick ?? 0));
+    if (mark.playerId !== undefined && replayTimeline.roster.some(p => p.id === mark.playerId)) setFollow(mark.playerId);
+  }
+  function closeMarkMenu() { $('replay-mark-menu').hidden = true; $('replay-mark-menu').replaceChildren(); }
+  function openMarkMenu(cluster, left) {
+    const menu = $('replay-mark-menu');
+    menu.replaceChildren(...cluster.marks.map(mark => {
+      const item = document.createElement('button'), who = replayTimeline.roster.find(p => p.id === mark.playerId);
+      item.className = `mark-${mark.kind}`; item.textContent = who ? `${markLabel(mark)} \u00b7 ${who.name}` : markLabel(mark);
+      item.onclick = () => chooseMark(mark);
+      return item;
+    }));
+    menu.style.left = left; menu.hidden = false; menu.firstChild?.focus();
+  }
+  function renderMarks() {
+    const layer = $('replay-marks'), end = replayTimeline?.endTick;
+    layer.replaceChildren(); closeMarkMenu();
+    if (!replayTimeline || !end) return;
+    const travel = $('replay-track').clientWidth - 16;
+    for (const cluster of clusterMarks(replayTimeline.marks.filter(mark => mark.tick <= end), end, travel)) {
+      const pip = document.createElement('button'), left = `calc(8px + (100% - 16px) * ${cluster.tick / end})`;
+      pip.style.left = left;
+      if (cluster.marks.length === 1) {
+        const [mark] = cluster.marks;
+        pip.className = `mark-${mark.kind}`; pip.title = pip.ariaLabel = markLabel(mark);
+        pip.onclick = () => chooseMark(mark);
+      } else {
+        pip.className = 'mark-cluster'; pip.textContent = String(cluster.marks.length);
+        pip.title = pip.ariaLabel = `${cluster.marks.length} marks near tick ${cluster.tick}`;
+        pip.onclick = () => openMarkMenu(cluster, left);
+      }
+      layer.append(pip);
+    }
+  }
   function applyTick(tick) {
     const sample = replayTimeline?.at(tick);
     if (!sample) return;
@@ -75,7 +115,7 @@ export function createReplayController({
       changeMap(data.map);
       $('outcome').hidden = true; $('archive-dialog').close(); $('live-hud').hidden = true;
       $('replay-controls').hidden = false; $('replay-seek').min = 0; $('replay-seek').max = timeline.endTick; $('replay-seek').value = 0;
-      fillFollowOptions(timeline.roster); setFollow(null);
+      fillFollowOptions(timeline.roster); setFollow(null); renderMarks();
       document.body.classList.add('replaying'); connection('REPLAY'); setPlaying(true); seek(0); getScene()?.updateCamera(true);
     } catch (error) { toast(error.message); }
   }
@@ -89,16 +129,19 @@ export function createReplayController({
     if (playback >= replayTimeline.endTick) setPlaying(false);
   }
   function close() {
-    replay = null; replayTimeline = null; followId = null;
+    replay = null; replayTimeline = null; followId = null; $('replay-marks').replaceChildren();
     $('replay-controls').hidden = true; $('live-hud').hidden = false; document.body.classList.remove('replaying');
     const liveMap = getLiveMap(), liveState = getLiveState();
     if (liveMap && liveState) { changeMap(liveMap); acceptState(liveState); }
     connection(liveConnectionLabel()); getScene()?.updateCamera(true);
   }
   function reset() {
-    replay = null; replayTimeline = null;
+    replay = null; replayTimeline = null; $('replay-marks').replaceChildren();
     document.body.classList.remove('replaying'); $('replay-controls').hidden = true;
   }
+  // The track narrows with the viewport and when the status label appears, which changes which pips collide.
+  new ResizeObserver(() => { if (replayTimeline) renderMarks(); }).observe($('replay-track'));
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('replay-mark-menu').hidden) { closeMarkMenu(); event.stopPropagation(); } }, true);
   $('replay-play').onclick = () => { if (replay && playback >= replayTimeline.endTick) seek(0); setPlaying(!playing); };
   $('replay-seek').oninput = () => { if (replay) seek(Number($('replay-seek').value)); };
   // Without re-anchoring, the time already elapsed would be re-scaled by the new rate and jump.

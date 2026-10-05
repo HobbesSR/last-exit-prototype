@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createReplayTimeline } from '../public/replay-timeline.js';
+import { clusterMarks, createReplayTimeline, markLabel, markSeekTick } from '../public/replay-timeline.js';
 
 const frame = tick => ({ state: { tick, marker: `state-${tick}` } });
 
@@ -96,4 +96,23 @@ test('diagnostic marks keep known kinds at valid ticks, in tick order, and repor
   assert.equal(timeline.droppedMarks, 3);
   const plain = createReplayTimeline({ frames: [frame(0)] });
   assert.deepEqual(plain.marks, []); assert.equal(plain.droppedMarks, 0);
+});
+
+test('a mark seeks two seconds early, never before the first tick, and labels itself', () => {
+  assert.equal(markSeekTick({ tick: 100 }, 20), 60);
+  assert.equal(markSeekTick({ tick: 10 }, 20, 4), 4);
+  assert.equal(markSeekTick({ tick: 10 }, undefined), 10);
+  assert.equal(markLabel({ kind: 'server-stall', tick: 9, wakeMs: 450.4, owed: 9 }), 'Server stall (450 ms wake, 9 ticks owed) at tick 9');
+  assert.equal(markLabel({ kind: 'manual', tick: 2 }), 'Manual mark at tick 2');
+});
+
+test('marks whose pips would overlap share a cluster, by the rendered track width', () => {
+  const marks = [10, 100, 100, 100, 101, 400].map((tick, i) => ({ tick, kind: 'manual', playerId: `p${i}` }));
+  // 1000 ticks over 1000 px with 20 px pips: marks closer than 20 ticks collide.
+  assert.deepEqual(clusterMarks(marks, 1000, 1000).map(c => [c.tick, c.marks.length]), [[10, 1], [100, 4], [400, 1]]);
+  assert.deepEqual(clusterMarks([], 1000, 1000), []);
+  const close = [0, 4].map(tick => ({ tick, kind: 'manual' }));
+  assert.equal(clusterMarks(close, 200, 1000).length, 2, 'a wide track keeps distinct ticks apart');
+  assert.equal(clusterMarks(close, 200, 69).length, 1, 'a narrow track merges them: 4 ticks is about 1 px');
+  assert.equal(clusterMarks(marks, 1000, 0).length, 4, 'without a layout only equal ticks share a pip');
 });

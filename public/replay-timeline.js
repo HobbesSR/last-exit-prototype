@@ -10,6 +10,31 @@ function parseMarks(diagnostics) {
     .map(({ mark }) => ({ tick: mark.tick, kind: mark.kind, playerId: mark.playerId, wakeMs: finite(mark.wakeMs), owed: finite(mark.owed), simulated: finite(mark.simulated) }));
 }
 
+// Where to seek for a mark: a little before it, so the cause is on screen when the viewer arrives.
+export const MARK_LEAD_SECONDS = 2;
+export function markSeekTick(mark, hz, firstTick = 0) {
+  return Math.max(firstTick, mark.tick - Math.round(MARK_LEAD_SECONDS * (Number.isFinite(hz) && hz > 0 ? hz : 0)));
+}
+const MARK_LABELS = { 'server-stall': 'Server stall', 'frame-drop': 'Frame drops', 'packet-gap': 'Packet gap', manual: 'Manual mark' };
+export function markLabel(mark) {
+  const detail = mark.kind === 'server-stall' && mark.wakeMs !== undefined ? ` (${Math.round(mark.wakeMs)} ms wake${mark.owed !== undefined ? `, ${mark.owed} ticks owed` : ''})` : '';
+  return `${MARK_LABELS[mark.kind]}${detail} at tick ${mark.tick}`;
+}
+
+// Marks whose pips would draw on top of each other share one cluster, anchored on its first mark so
+// a long run of nearby marks cannot grow one pip without bound. `travel` is the pixel length the
+// scrubber thumb moves over and `pip` the widest pip, so the threshold follows the rendered layout;
+// a cluster of one is an ordinary mark. Without a usable layout, only equal ticks share a pip.
+export function clusterMarks(marks, endTick, travel, pip = 20) {
+  const width = travel > 0 && endTick > 0 ? Math.max(1, endTick * pip / travel) : 1, clusters = [];
+  for (const mark of marks) {
+    const last = clusters.at(-1);
+    if (last && mark.tick - last.tick < width) last.marks.push(mark);
+    else clusters.push({ tick: mark.tick, marks: [mark] });
+  }
+  return clusters;
+}
+
 // Playback is based on authoritative simulation ticks rather than positions in
 // the retained frame array. Omitted states are held, never invented.
 export function createReplayTimeline(recording) {

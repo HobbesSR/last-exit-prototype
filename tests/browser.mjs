@@ -288,6 +288,49 @@ try {
   await page.waitForFunction(() => Number(document.getElementById('replay-seek').value) === 30, null, { timeout: PLAYBACK_DEADLINE });
   assert.equal(await page.locator('#replay-status').textContent(), 'MISSING DATA · showing tick 24');
   assert.equal(await page.evaluate(() => window.arenaDebug().shots[0].x), originX + 240, 'tail gap holds final projectile position');
+  // Marks at one tick (a server stall and reports from two players) must each stay selectable: they
+  // share a cluster pip that opens a list, and a lone mark elsewhere keeps its own pip.
+  const [markA, markB] = denseReplay.frames[0].state.players.map(p => p.id);
+  routedReplay = { ...denseReplay, diagnostics: { marks: [
+    { tick: 40, kind: 'server-stall', wakeMs: 450, owed: 9, simulated: 5 },
+    { tick: 40, kind: 'manual', playerId: markA }, { tick: 40, kind: 'manual', playerId: markB },
+    { tick: 10, kind: 'frame-drop' }] } };
+  await page.getByRole('button', { name: 'Exit replay' }).click();
+  await page.getByRole('button', { name: 'Replays', exact: true }).click();
+  await openRoutedReplay();
+  await pausePlayback();
+  assert.equal(await page.locator('#replay-marks button').count(), 2, 'a cluster pip and a lone pip');
+  await page.locator('#replay-marks .mark-frame-drop').click();
+  assert.equal(await page.evaluate(() => window.arenaDebug().tick), 0, 'a lone mark seeks two seconds early, clamped to the start');
+  await page.locator('#replay-marks .mark-cluster').click();
+  assert.equal(await page.locator('#replay-mark-menu button').count(), 3, 'every clustered mark is listed');
+  await page.locator('#replay-mark-menu .mark-server-stall').click();
+  assert.equal(await page.evaluate(() => window.arenaDebug().tick), Math.max(0, 40 - 2 * denseReplay.hz));
+  assert.equal(await page.locator('#replay-mark-menu').isHidden(), true);
+  await page.locator('#replay-marks .mark-cluster').click();
+  await page.locator('#replay-mark-menu .mark-manual').nth(1).click();
+  assert.equal(await page.locator('#replay-focus').inputValue(), String(markB), 'each report follows its own player');
+  // Distinct nearby ticks collide on a narrow track, not just equal ones. At any width, every pip must
+  // be the topmost element at its own centre, so none can be hidden or have its click intercepted.
+  const pipsReachable = () => page.evaluate(() => [...document.querySelectorAll('#replay-marks button')].every(pip => {
+    const box = pip.getBoundingClientRect();
+    return document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === pip;
+  }));
+  routedReplay = { ...denseReplay, diagnostics: { marks: [{ tick: 10, kind: 'manual', playerId: markA }, { tick: 14, kind: 'manual', playerId: markB }] } };
+  await page.getByRole('button', { name: 'Exit replay' }).click();
+  await page.getByRole('button', { name: 'Replays', exact: true }).click();
+  await openRoutedReplay();
+  await pausePlayback();
+  assert.equal(await page.locator('#replay-marks button').count(), 2, 'a wide track keeps nearby ticks apart');
+  assert.equal(await pipsReachable(), true, 'every pip is reachable on a wide track');
+  const wideViewport = page.viewportSize();
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.waitForFunction(() => document.querySelectorAll('#replay-marks button').length === 1);
+  assert.equal(await pipsReachable(), true, 'every pip is reachable on a narrow track');
+  await page.locator('#replay-marks .mark-cluster').click();
+  assert.equal(await page.locator('#replay-mark-menu button').count(), 2, 'both nearby marks stay selectable');
+  await page.setViewportSize(wideViewport);
+  await page.waitForFunction(() => document.querySelectorAll('#replay-marks button').length === 2);
   await page.screenshot({ path: 'test-results/replay.png' });
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download replay', exact: true }).click();
