@@ -292,10 +292,14 @@ catalogue, and it grows from here. The fixture libraries in
     `hut`). The `open` asks close the group, so it can't spread across the
     fill.
   - `ruins-ground`, `hall-ground`, `depot-ground`, `compound-ground`,
-    `block-ground`, `market-ground`, `plant-ground`, `checkpoint-ground` and
-    `park-ground`: a whole tile of their type, passable along every side as
-    `cover-ground` is. They are weighted 0, so only set pieces place them
-    (below).
+    `block-ground`, `market-ground`, `plant-ground`, and `checkpoint-ground`: a whole tile of their type, passable along every
+    side as `cover-ground` is. They are weighted 0, so only set pieces place
+    them (below).
+  - `park-ground`: a whole tile of `park`, passable along every side, weighted
+    0.15 as `cover-ground` is (#221). Over the 224 sweep maps that took `park` from
+    297 regions on 139 maps to 1,682 on 211, and its share of cells from 3.6%
+    to 4.4%. Park's own strategy places a tree at most in a lone tile, so the
+    weight is Corey's to veto (17.2.8 M34).
   - `arrival-ground`, `departure-ground`, `charging-ground` and `transit-ground`: whole tiles of
     their core element class, passable along half of each side. Placement
     never puts them in the fill (51, "Core elements").
@@ -329,7 +333,7 @@ catalogue, and it grows from here. The fixture libraries in
   adjacency are placed early, so hut quarters need a light weight (0.1). A
   design weighted 0 is no fill option: only a set piece places it. A lone
   6 × 6 tile of a structure type is too small for its builder, so those
-  grounds are weighted 0.
+  grounds are weighted 0, `park-ground` since #221 excepted.
 - **Cover:** a lone `cover-ground` in the fill forms a 6 × 6 region, too small
   for one cover piece, so it stays clear (54 `cover`). Cover comes mostly from
   the set pieces, so its fill weight is light.

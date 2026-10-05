@@ -69,13 +69,13 @@ may use these rules as they stand to make a region act as an obstacle (Corey,
 | `ruins` | friction | broken walls and part-buildings: maze-like friction and partial sight | — |
 | `hall` | friction | a pillared lattice that breaks sight without blocking a walk | — |
 | `checkpoint` | friction | a military choke: chicane barriers across a passage, a guard post | — |
+| `park` | friction | overgrown ground: tree clumps and hedge runs with door-wide gaps, soft cover, open sight | — |
 | `hut` | structure | one building in its yard: walls, door, windows, roof | — |
 | `depot` | structure | warehouses and container aisles: long sightlines, hard corners | — |
 | `plant` | structure | an industrial works: machinery blocks, pipe runs, long lines | — |
 | `compound` | structure | rooms around a walled court with few gates: a pocket with dead ends | — |
 | `block` | district | a city block that decomposes into the types above | — |
 | `market` | drafted | stall rows and narrow lanes: dense, low, sight-breaking cover | — |
-| `park` | drafted | overgrown ground: tree clumps and hedges, soft cover, open sight | — |
 | `arrival` | core element | the contestants' start | `spawn` × `contestantCount` |
 | `departure` | core element | extraction and the hunters' start | `exit` × `exitCount`, `hunter-spawn` × `hunterCount` |
 | `charging` | core element | the power-cell charging station (F-03) | `charger` |
@@ -289,6 +289,44 @@ inside, and windows and doors let sight through.
   enough to build.
 - **Formed by:** medium set pieces, where the old library's `military`
   pieces were.
+
+### `park`
+
+- **Role:** the old `park` and `tree` classes. Overgrown ground with tree
+  clumps and hedges: soft cover, open sightlines, and hedge lines that wall
+  off stretches of ground except at a gap.
+- **Strategy:** no decomposer and no buildings. Clumps of trees (round
+  obstacles) at a seeded density, and hedge runs that leave a gap a door wide.
+  **Built (#221):** `map/micro/strategies/park.ts`, which keeps its promise by
+  spacing, as `cover` and `plant` do.
+  - **Slots:** a lattice 6 cells apart at a seeded phase. A slot's pieces stay
+    in its first 4 cells, so 2 are aisle.
+  - **Hedges:** with chance `hedges` (default 0.2) a slot starts a hedge run,
+    across or down into the next slot, 10 cells long, in a seeded row of the
+    slot's band. Its two stubs are 0.4 cell thick, of kind `hedge`, which
+    blocks movement and hands but not sight or shots, as `pipe` does
+    (17.2.8 M34, `seeThrough` in `shared/movement.ts`). The gap is 2 cells (a
+    doorway) at a seeded place that leaves at least a cell of hedge each side.
+  - **Clumps:** each other slot holds a clump with chance `density` (default
+    0.6): 1 to 3 trees, each a circle of kind `tree` 1.5 cells across in a
+    2-cell footprint, at seeded places in the slot's band that don't overlap.
+    A tree blocks bodies and sight, so a clump is soft cover, not a wall.
+  - **Why that keeps the promise:** every clump's box and every hedge run's
+    keeps 2 owned cells from every other and from the region's edge, so
+    each is a convex box with a ring wider than a hunter. Such boxes can't
+    divide the ground a hunter can reach outside them, where every portal is,
+    and a hedge's gap only adds ground inside its ring. So the region keeps
+    the promise exactly when its shape does, with no route search. The
+    consequence is that a hedge line is never the only way across: the hunter
+    can go round its ends as well as through its gap.
+  - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
+    disc stands clear of every piece.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
+  - **Too small:** a region too small for a piece stays clear.
+- **Parameters:** `density` and `hedges`, each from 0 to 1.
+- **Shape needs:** none, as `cover`.
+- **Formed by:** small set pieces (52). Its ground is weighted 0.15 in the fill (52, #221), as `cover`'s is, so a lone 6 × 6 tile of it holds a tree at most.
 
 ### `hut`
 
@@ -574,17 +612,6 @@ parameters, keeps its promise and sites no core elements.
 - **Formed by:** enormous and medium set pieces, where the old library's
   `market` pieces were.
 
-### `park`
-
-- **Role:** the old `park` and `tree` classes. Overgrown ground with tree
-  clumps and hedges: soft cover, open sightlines, and the odd hedge line that
-  is a long way round.
-- **Strategy:** *proposed*, clumps of trees (round obstacles) at a seeded
-  density, and hedge runs that leave gaps a door wide.
-- **Stand-in:** `cover`.
-- **Shape needs:** none, as `cover`.
-- **Formed by:** small set pieces (52). Its ground is weighted 0, so the fill doesn't place it yet.
-
 ## Core element classes
 
 Each is painted only inside its owning set piece class's set pieces (51,
@@ -708,7 +735,7 @@ The old names come back like this (17.2.7):
 | `market` | `hall` (its stand-in) | `pillar-hall` |
 | `plant` | `depot`'s warehouse for its shed (built, #219) | — |
 | `checkpoint` | `cover`'s barriers and `depot`'s warehouse for its post (built, #220) | — |
-| `park` | `cover` (its stand-in) | `open-field` |
+| `park` | `cover`'s spacing, its clusters' aisles (built, #221) | `open-field` |
 | `arrival` | `example-entry`, `spreadPoints` | — |
 | `departure` | `spreadPoints` (built, #131) | — |
 | `charging` | `spreadPoints` (built, #132) | — |

@@ -10,9 +10,9 @@ import type { Box, CollisionMap, GateId, Obstacle, PlayableArea, Player, PlayerI
 // does with a shape -- occupancy, the movement sweep and sight -- not what a shape is.
 /**
  * Whether sight and shots pass an obstacle of this kind while bodies and hands do not (29): a
- * window, or a low pipe run, which the game, being 2D, treats the same way (17.2.8 M34).
+ * window, a low pipe run or a hedge, which the game, being 2D, treats the same way (17.2.8 M34).
  */
-export const seeThrough = (kind: string | undefined): boolean => kind === 'window' || kind === 'pipe';
+export const seeThrough = (kind: string | undefined): boolean => kind === 'window' || kind === 'pipe' || kind === 'hedge';
 /** One record resolved to its shape, bounds and SAT body, all kept for as long as the map lives. */
 interface Collider {
   source?: Obstacle;

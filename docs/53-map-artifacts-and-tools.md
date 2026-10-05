@@ -135,6 +135,17 @@ a `checkpoint` region, and the results view on all 224, since
 showed no defects over 60 game and 30 playground maps, and the per-region
 diagnosis none over 3 game maps. The S3 migration's provenance is kept.
 
+**#221's re-capture** followed `park`'s own strategy and its fill weight (54
+`park`, 17.2.8 M34). Every view moved on all 224 maps: `park-ground`'s weight
+went from 0 to 0.15, which changes the library's fingerprint and so the
+Layout, and every stage after it, and `REGION_TYPES_VERSION` went to
+`types-19`. `park` went from 297 regions on 139 maps to 1,682 on 211. The
+report showed no defects over 60 game and 30 playground maps, and the
+per-region diagnosis none over 3 game maps. The S3 migration's provenance is
+kept. A review fix then kept `park`'s hedge thickness and tree radius
+fractional at small cell sizes; it moved the results and built views on 130
+maps, the ones with a `park` region, and nothing else.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to

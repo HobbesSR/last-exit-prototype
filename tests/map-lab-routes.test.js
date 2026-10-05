@@ -13,18 +13,18 @@ const built = (seed, params) => mapViews(generate(seed, params), GAME_ENGINES.co
 const rounded = (n) => (n === null ? null : Math.round(n * 1000) / 1000);
 
 test('route lengths on a small playground are pinned', () => {
-  const map = built('routes-2', { mode: 'playground', zoneWidth: 3, zoneHeight: 2 }), size = map.cellSize;
+  const map = built('routes-5', { mode: 'playground', zoneWidth: 3, zoneHeight: 2 }), size = map.cellSize;
   const measure = measureRoutes(map, { x: 2.5 * size, y: 30 * size }, { x: 87.5 * size, y: 30 * size });
   assert.deepEqual({
     contestant: [rounded(measure.contestant.length), rounded(measure.contestant.walked)],
     hunter: [rounded(measure.hunter.length), rounded(measure.hunter.walked)],
     squeezes: measure.squeezes.map((run) => run.length),
   }, {
-    contestant: [4164.667, 4136.221],
-    hunter: [4164.667, 4135.754],
-    squeezes: [1],
+    contestant: [4164.667, 4131.793],
+    hunter: [4197.804, 4139.911],
+    squeezes: [8],
   });
-  assert.equal(rounded(measure.ratio), 1);
+  assert.equal(rounded(measure.ratio), 1.008);
   for (const route of [measure.contestant, measure.hunter]) {
     assert.deepEqual(route.points[0], measure.from);
     assert.deepEqual(route.points.at(-1), measure.to);

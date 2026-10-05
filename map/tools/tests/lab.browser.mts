@@ -94,7 +94,7 @@ try {
   // Each built part is drawn by its own layer: one shape per obstacle or gate, by kind, and a
   // roof per enclosing element, counted here from the built map itself.
   const expectedParts = { walls: 0, ruins: 0, cover: 0, windows: 0, pipes: 0, doors: 0, roofs: 0 };
-  const obstaclePart = { building: "walls", "ruin-wall": "ruins", container: "cover", crate: "cover", window: "windows", pipe: "pipes" } as const;
+  const obstaclePart = { building: "walls", "ruin-wall": "ruins", container: "cover", crate: "cover", tree: "cover", hedge: "cover", window: "windows", pipe: "pipes" } as const;
   for (const region of mapViews(reference, GAME_ENGINES.compose).built.regions)
     for (const element of region.elements) {
       if (element.template.encloses) expectedParts.roofs++;
