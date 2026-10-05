@@ -252,6 +252,7 @@ export function makeArenaScene(api) {
       }
       if (o.kind === 'window') { g.fillStyle(0x77dbe3, 0.65); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, 0xc1f4f6); g.strokeRect(o.x, o.y, o.w, o.h); return; }
       if (o.kind === 'pipe') { g.fillStyle(0x264439, 0.3); g.fillRect(o.x + 3, o.y + 4, o.w, o.h); g.fillStyle(0x7d6a52); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, 0xc2a57c, 0.6); o.w > o.h ? g.lineBetween(o.x, o.y + 2, o.x + o.w, o.y + 2) : g.lineBetween(o.x + 2, o.y, o.x + 2, o.y + o.h); return; }
+      if (o.kind === 'hedge') { g.fillStyle(0x264439, 0.3); g.fillRect(o.x + 3, o.y + 4, o.w, o.h); g.fillStyle(0x3f7a47); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, 0x79a95d, 0.7); g.strokeRect(o.x, o.y, o.w, o.h); return; }
       if (o.kind === 'ruin-wall') { g.fillStyle(0x303740); g.fillRect(o.x + 5, o.y + 6, o.w, o.h); g.fillStyle(0x77828a); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, 0xa2a9af); g.lineBetween(o.x + 2, o.y + 2, o.x + o.w - 2, o.y + 2); return; }
       if (o.r) {
         g.fillStyle(0x294d39, 0.25); g.fillCircle(o.x + 6, o.y + 8, o.r + 2);

@@ -357,7 +357,7 @@ type Part = "walls" | "ruins" | "cover" | "windows" | "pipes" | "doors" | "roofs
 const PARTS: Part[] = ["walls", "ruins", "cover", "windows", "pipes", "doors", "roofs"];
 /** Every obstacle kind's part, so a new kind can't be drawn as nothing. */
 const OBSTACLE_PART: Record<ObstacleKind, Part> = {
-  building: "walls", "ruin-wall": "ruins", container: "cover", crate: "cover", window: "windows", pipe: "pipes",
+  building: "walls", "ruin-wall": "ruins", container: "cover", crate: "cover", tree: "cover", hedge: "cover", window: "windows", pipe: "pipes",
 };
 
 interface BuiltParts {
@@ -790,7 +790,7 @@ const LAYERS: Layer[] = [
     },
   },
   partLayer("ruins", "Ruin walls and rubble", "#9b8a72", "ruin wall"),
-  partLayer("cover", "Cover", "#6e9a72", "container or crate"),
+  partLayer("cover", "Cover", "#6e9a72", "container, crate, tree or hedge"),
   partLayer("windows", "Windows", "#6fc8ff", "window"),
   partLayer("pipes", "Pipe runs", "#c79a5b", "pipe run"),
   // Chain maps place every door closed and unlocked (micro's adapter), so one colour says it.
