@@ -121,6 +121,13 @@ else moved. The report showed no defects over 60 game and 30 playground maps,
 and the per-region diagnosis none over 3 game maps. The S3 migration's
 provenance is kept.
 
+**#219's re-capture** followed `plant`'s own strategy (54 `plant`, 17.2.8
+M34). The built and report views moved on 161 of 224 maps, the ones with a
+`plant` region, and the results view on all 224, since `REGION_TYPES_VERSION`
+went to `types-17`. Nothing else moved. The report showed no defects over 60
+game and 30 playground maps, and the per-region diagnosis none over 3 game
+maps. The S3 migration's provenance is kept.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to

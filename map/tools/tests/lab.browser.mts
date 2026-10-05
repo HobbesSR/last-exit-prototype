@@ -93,8 +93,8 @@ try {
   assert.ok(first.portals > 0 && first.sites > 0, "portals and sites are drawn");
   // Each built part is drawn by its own layer: one shape per obstacle or gate, by kind, and a
   // roof per enclosing element, counted here from the built map itself.
-  const expectedParts = { walls: 0, ruins: 0, cover: 0, windows: 0, doors: 0, roofs: 0 };
-  const obstaclePart = { building: "walls", "ruin-wall": "ruins", container: "cover", crate: "cover", window: "windows" } as const;
+  const expectedParts = { walls: 0, ruins: 0, cover: 0, windows: 0, pipes: 0, doors: 0, roofs: 0 };
+  const obstaclePart = { building: "walls", "ruin-wall": "ruins", container: "cover", crate: "cover", window: "windows", pipe: "pipes" } as const;
   for (const region of mapViews(reference, GAME_ENGINES.compose).built.regions)
     for (const element of region.elements) {
       if (element.template.encloses) expectedParts.roofs++;
@@ -112,9 +112,9 @@ try {
   // The layers are in chain order, with today's defaults on.
   const FIELDS = ["declared", "resolved", "regions", "proof", "zones", "bonus", "regionType", "lootChance"];
   assert.deepEqual(first.layers.map((layer: any) => layer.id),
-    ["layout", "declared", "resolved", "regions", "portals", "proof", "zones", "bonus", "regionType", "lootChance", "briefs", "lots", "allocation", "spans", "openings", "graph", "walls", "ruins", "cover", "windows", "doors", "roofs", "loot", "sites", "routes", "defects", "defectSites"]);
+    ["layout", "declared", "resolved", "regions", "portals", "proof", "zones", "bonus", "regionType", "lootChance", "briefs", "lots", "allocation", "spans", "openings", "graph", "walls", "ruins", "cover", "windows", "pipes", "doors", "roofs", "loot", "sites", "routes", "defects", "defectSites"]);
   assert.deepEqual(first.layers.filter((layer: any) => layer.on).map((layer: any) => layer.id),
-    ["regions", "portals", "lots", "allocation", "openings", "walls", "ruins", "cover", "windows", "doors", "sites", "routes", "defects", "defectSites"]);
+    ["regions", "portals", "lots", "allocation", "openings", "walls", "ruins", "cover", "windows", "pipes", "doors", "sites", "routes", "defects", "defectSites"]);
   const ALL = first.layers.map((layer: any) => layer.id) as string[];
   assert.deepEqual(first.layers.filter((layer: any) => layer.pass === "marks").map((layer: any) => layer.id),
     ["layout", "portals", "briefs", "lots", "spans", "openings", "graph", "loot", "sites", "routes", "defectSites"], "each layer draws in one pass, the rest with the areas");
@@ -219,7 +219,7 @@ try {
   assert.match(inspected, /\nTile \S+ at \d+°/);
   assert.match(inspected, /Brief: type \S+, \d+ portals.*\nAssigned core elements: .+\n(Parameters: .*\n)?Loot chance \d+%/);
   assert.match((await page.locator("#inspectorLinks button").allInnerTexts())[0]!, /^Edit tile design \S+$/);
-  assert.match(inspected, /Parts: \d+ walls, \d+ ruins, \d+ cover, \d+ windows, \d+ doors, \d+ roofs\nElements: /);
+  assert.match(inspected, /Parts: \d+ walls, \d+ ruins, \d+ cover, \d+ windows, \d+ pipes, \d+ doors, \d+ roofs\nElements: /);
 
   // Its saves are the core's, byte for byte, in both encodings and as the Layout alone.
   const json = await save("#saveJson", "game.json");
