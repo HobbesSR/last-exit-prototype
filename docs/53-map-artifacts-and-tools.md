@@ -224,6 +224,20 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
       panel, and the layer draws a dashed line straight to the target.
     - In effect, the layer draws the portal promise (56, M29) at map
       scale. On a 12 × 6 game map a measurement takes about 70 ms.
+  - **Play in the game** (#205): a room generates its map from its integer
+    seed with the live recipe (`liveChainParams` in `map/live.ts`: game
+    mode, one exit, the default content's roster counts, everything else
+    the default), the bundled library, the game's cell size and the
+    server's strategies. When the shown map is exactly that
+    (`liveMismatch`), the Play panel links to `?seed=<seed>` on the game's
+    dev server (20.5), and the game page creates a room with that seed
+    through `POST /api/rooms`, as its own seed field does. Otherwise the
+    panel lists why not. "Use a room's recipe" sets the recipe, the bundled
+    library and, if needed, a random room seed, and generates. The chain's
+    seed is text, so only a seed that spells its number exactly (`"42"`,
+    not `"042"`) is a room's. Loading other maps (drafts, other params)
+    into a room isn't supported: it would change where a room's map comes
+    from and what its replay records (26).
   - **The built map's parts** are six layers on `built`, one colour each:
     building walls, ruin walls and rubble, cover, windows, doors and roofs.
     Obstacles go by their `ObstacleKind` (`building`, `ruin-wall`,
@@ -249,13 +263,14 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     placement resolves neighboring tiles. It can load the chain's library for
     the World tab's zone size to edit it.
   - **Serving:** `map/tools/server.mts` serves the lab, macro's `src/` and
-    `content/`, `map/micro/`, `map/kernel/`, `shared/`, and the two map-level
-    entry modules `map/chain.ts` and `map/engines.ts` at their repository
+    `content/`, `map/micro/`, `map/kernel/`, `shared/`, the map-level
+    modules `map/chain.ts`, `map/engines.ts` and `map/live.ts`, and the
+    tools' `core.ts`, `engines.ts` and `routes.ts`, at their repository
     paths, and nothing else. It erases types on the way out, and resolves
     the bare `sat` and `pathfinding` imports for the page and its worker
     alike. Each is its CommonJS package wrapped as one ES module.
   - The old generators' map view, tile editor and playtest sandbox retired
-    with the move (#145).
+    with the move (#145). Play in the game replaces the sandbox.
 - **CLI** (`node map/tools/cli.mts`, from the repository root): `generate`
   (JSON or BSON, or `--layout-only true`), `validate` (a saved map, read with
   the library it was made from, or a library; `--diagnose true`), `batch`

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateLiveMap, liveMapFromBuilt } from '../map/live.ts';
+import { generateLiveMap, liveChainParams, liveMapFromBuilt, liveMismatch, liveSeed } from '../map/live.ts';
 import { generate } from '../map/chain.ts';
 import { composeRegions } from '../map/micro/compose.ts';
 import { canOccupy, moveBody } from '../shared/movement.ts';
@@ -42,6 +42,18 @@ test('the adapter is deterministic, content-sized, and is the default match map'
   const earlier = generateLiveMap(1, twoHunters);
   assert.equal(earlier.hunterSpawns.length, twoHunters.roster.gladiators.length);
   assert.equal(earlier.spawns.length, twoHunters.roster.contestants.length);
+});
+
+test('a chain map the Map Lab calls live is the map a room with its seed plays', () => {
+  const chain = generate('1', liveChainParams());
+  assert.deepEqual(liveMismatch(chain), []);
+  assert.deepEqual(liveMapFromBuilt(liveSeed(chain.layout.seed), composeRegions(chain.results)), live());
+  const other = { ...chain, layout: { ...chain.layout, seed: '01', params: { ...chain.layout.params, exitCount: 2 } },
+    library: { ...chain.library, name: 'draft' }, cellSize: 32, build: 'older' };
+  assert.deepEqual(liveMismatch(other).map(reason => reason.split(' ').slice(0, 2).join(' ')),
+    ['the seed', 'exitCount is', 'the library', 'the cell', 'the regions']);
+  for (const seed of ['0', '1e3', '2147483648', '1.5', ' 7', 'last-exit-001']) assert.equal(liveSeed(seed), null, seed);
+  assert.equal(liveSeed('2147483647'), 2147483647);
 });
 
 test('JSON map transfer keeps the mask and both roles can move from authored starts', () => {

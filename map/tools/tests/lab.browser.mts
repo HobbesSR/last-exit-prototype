@@ -5,13 +5,18 @@
  */
 import { createRequire } from "node:module";
 import { spawn } from "node:child_process";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import assert from "node:assert/strict";
 import { CHAIN_LIBRARY, checkMap, generate } from "../core.ts";
 import { chainMapToBson, chainMapToJson } from "../../macro/src/chain/saving.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
 import { GAME_ENGINES } from "../engines.ts";
 import { measureRoutes } from "../routes.ts";
+import { liveChainParams } from "../../live.ts";
+// @ts-expect-error The game server is JavaScript without declarations.
+import { createArenaServer } from "../../../server/index.js";
 
 const require = createRequire(import.meta.url);
 let playwright: any;
@@ -22,8 +27,15 @@ try {
 }
 const OUT = "test-results/map-lab";
 await mkdir(OUT, { recursive: true });
+// The game's server, which the lab links to as its peer (20.5) for "Play in the game".
+const replayDir = await mkdtemp(path.join(tmpdir(), "map-lab-browser-"));
+const game = await createArenaServer({ replayDir, profileSummary: false });
+await new Promise<void>((resolve) => game.http.listen(0, "127.0.0.1", resolve));
+const gameUrl = `http://127.0.0.1:${game.http.address().port}`;
 // Port 0: other worktrees run this check concurrently, so no fixed port is safe.
-const server = spawn(process.execPath, ["map/tools/server.mts", "--port", "0"], { stdio: ["ignore", "pipe", "pipe"] });
+const server = spawn(process.execPath, ["map/tools/server.mts", "--port", "0"], {
+  stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, PORT: String(game.http.address().port) },
+});
 let browser: any;
 try {
   const base = await new Promise<string>((resolve, reject) => {
@@ -603,13 +615,58 @@ try {
   assert.equal(asked.length, 1, "replacing the draft was asked first");
   await linkPage.close();
 
+  // Play in the game (53): the default recipe isn't a room's, and the lab says why. With a
+  // room's recipe and an integer seed it links to a new room on the game's server, which
+  // plays the same map: the same frame and every site where the lab's built view puts it.
+  const playPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  playPage.on("pageerror", (error: Error) => errors.push(error.message));
+  await playPage.goto(base, { waitUntil: "domcontentloaded" });
+  await playPage.waitForFunction(() => (window as any).mapLab?.snapshot().seed === "last-exit-001" && !(window as any).mapLab.snapshot().busy, null, { timeout: 60000 });
+  const notLive = (await playPage.evaluate(() => (window as any).mapLab.snapshot())).play;
+  assert.equal(notLive.href, null);
+  assert.match(notLive.note, /isn't a room seed/);
+  assert.match(notLive.note, /exitCount is 2; a room uses 1/);
+  await playPage.locator("#seed").fill("4217");
+  await playPage.locator("#roomRecipe").click();
+  await playPage.waitForFunction(() => {
+    const lab = (window as any).mapLab.snapshot();
+    return lab.seed === "4217" && !lab.busy && lab.play.href;
+  }, null, { timeout: 60000 });
+  const playable = await playPage.evaluate(() => (window as any).mapLab.snapshot());
+  assert.equal(playable.error, "");
+  assert.equal(playable.play.href, `${gameUrl}/?seed=4217`);
+  const opening = playPage.context().waitForEvent("page");
+  await playPage.locator("#playInGame").click();
+  const room = await opening;
+  room.on("pageerror", (error: Error) => errors.push(`game: ${error.message}`));
+  await room.waitForFunction(() => (window as any).arenaDebug?.().map, null, { timeout: 60000 });
+  const played = await room.evaluate(() => (window as any).arenaDebug().map);
+  const at = (kind: string) => playable.world.sites.filter((site: { kind: string }) => site.kind === kind).map(({ x, y }: { x: number; y: number }) => ({ x, y }));
+  const byPosition = (points: { x: number; y: number }[]) => [...points].sort((a, b) => a.x - b.x || a.y - b.y);
+  assert.equal(played.seed, 4217);
+  assert.deepEqual([played.width, played.height], [playable.world.width, playable.world.height]);
+  assert.deepEqual(played.spawns, at("spawn"));
+  assert.deepEqual(played.hunterSpawns, at("hunter-spawn"));
+  assert.deepEqual([played.exit], at("exit"));
+  assert.deepEqual(byPosition(played.stations), byPosition(at("warp")));
+  assert.deepEqual(byPosition(played.chargers), byPosition(at("charger")));
+  // A room's map doesn't keep regions; its playable mask is every region's cells, so the
+  // regions match when the masks do.
+  assert.deepEqual(played.playableArea, playable.world.playableArea);
+  assert.equal(playable.builtRegions, generate("4217", liveChainParams()).results.length);
+  await room.screenshot({ path: `${OUT}/play-room.png` });
+  await room.close();
+  await playPage.close();
+
   await page.setViewportSize({ width: 560, height: 900 });
   await page.locator("#librarySource").selectOption("bundled");
   await generateIn("lab-mobile");
   await page.screenshot({ path: `${OUT}/mobile.png`, fullPage: true });
   assert.deepEqual(errors, []);
-  console.log("Map Lab browser checks passed: chain maps and their layers, saves equal to the core's, read-back, the diagnostic, drill-down, routes, and chain library authoring.");
+  console.log("Map Lab browser checks passed: chain maps and their layers, saves equal to the core's, read-back, the diagnostic, drill-down, routes, playing a map in the game, and chain library authoring.");
 } finally {
   await browser?.close();
   server.kill();
+  await game.close();
+  await rm(replayDir, { recursive: true, force: true });
 }

@@ -22,6 +22,9 @@ import type { BuildingTrace } from "../../micro/building/trace.ts";
 import type { RouteMeasure } from "../routes.ts";
 import { outline } from "../../../shared/shape.ts";
 import type { ObstacleKind } from "../../../shared/types.ts";
+import { liveChainParams, liveMismatch, liveSeed } from "../../live.ts";
+import { builtMapFrame, builtPlayableArea } from "../../micro/adapter.ts";
+import { MAX_ARENA_SEED } from "../../../shared/simulation/rules.ts";
 import { chainDraft, openChainEntry, renderChainLibrary } from "./chain-author.ts";
 import type { LabReply, LabRequest } from "./worker.ts";
 
@@ -149,6 +152,29 @@ function chosenLibrary(): unknown {
   return draft;
 }
 
+/** Set the recipe to a room's (53 "Play in the game"), with a room seed, and generate. */
+function useRoomRecipe(): void {
+  fillParams(liveChainParams());
+  select("librarySource").value = "bundled";
+  if (liveSeed(input("seed").value) === null)
+    input("seed").value = String(1 + (crypto.getRandomValues(new Uint32Array(1))[0]! % MAX_ARENA_SEED));
+  generateMap();
+}
+
+/** Link to a new room on the game's dev server when this map is the one a room plays, or say why not. */
+function renderPlay(): void {
+  const link = $("playInGame") as HTMLAnchorElement;
+  const reasons = map ? liveMismatch(map) : ["there is no map yet"];
+  const playable = !reasons.length && gameUrl !== null;
+  link.hidden = !playable;
+  if (playable) link.href = `${gameUrl}/?seed=${map!.layout.seed}`;
+  $("playNote").textContent = reasons.length
+    ? `A room wouldn't play this map: ${reasons.join("; ")}.`
+    : gameUrl === null
+      ? "A room would play this map, but the game's dev server isn't running in this worktree."
+      : `Opens a new room with seed ${map!.layout.seed}.`;
+}
+
 function setStatus(text: string, bad = false): void {
   $("status").textContent = text;
   $("status").style.color = bad ? "#f2b787" : "";
@@ -215,6 +241,7 @@ function show(next: ToolMap): void {
   renderRouteChoices();
   renderRoutes();
   renderInspector();
+  renderPlay();
   setStatus(`${map.layout.seed}: ${views.regions.regions.length} regions, ${check.valid ? "no defects" : `${check.defects.length} defects`}, generated in ${(lastMs / 1000).toFixed(2)} s`);
 }
 
@@ -1283,6 +1310,7 @@ $("zoomReset").onclick = fit;
 $("diagnose").onclick = startDiagnosis;
 $("cancelDiagnose").onclick = cancelDiagnosis;
 $("measureRoutes").onclick = measureRoutes;
+$("roomRecipe").onclick = useRoomRecipe;
 renderLayers();
 input("seed").onkeydown = (event) => {
   if (event.key === "Enter") generateMap();
@@ -1371,6 +1399,13 @@ window.mapLab = Object.freeze({
       squeezes: routes.measure?.squeezes.length ?? null, ratio: routes.measure?.ratio ?? null,
       drawn: drawnTraces.routes ?? null, text: $("routesBody").textContent,
     },
+    /** The built map's frame, sites and playable mask in the game's world coordinates, as a room places them. */
+    world: views && (() => {
+      const { width, height, origin } = builtMapFrame(views.built);
+      const sites = views.built.regions.flatMap((region) => region.coreElements.map(({ kind, x, y }) => ({ kind, x: x + origin.x, y: y + origin.y })));
+      return { width, height, sites, playableArea: builtPlayableArea(views.built, origin) };
+    })(),
+    play: { href: ($("playInGame") as HTMLAnchorElement).hidden ? null : ($("playInGame") as HTMLAnchorElement).href, note: $("playNote").textContent },
     links: [...$("inspectorLinks").children].map((link) => ({ label: link.textContent, href: (link as HTMLAnchorElement).href || null })),
   }),
   /** Select a cell, as a click on it does. */
@@ -1388,6 +1423,7 @@ fetch("/dev-nav-config.json", { cache: "no-store" })
   .then((config: { mainUrl?: string | null } | null) => {
     gameUrl = config?.mainUrl ?? null;
     renderInspector();
+    renderPlay();
   })
   .catch(() => {});
 
