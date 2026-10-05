@@ -112,7 +112,8 @@ export type WeaponType = 'pistol' | 'rifle' | 'scattergun';
 export type ItemKind = 'weapon' | 'med' | 'shield' | 'cell' | 'access';
 export type StackKind = 'med' | 'shield';
 export type TrapKind = 'mine' | 'turret' | 'flame' | 'spider';
-export type ObstacleKind = 'ruin-wall' | 'building' | 'window' | 'container' | 'crate';
+/** `window` and `pipe` block bodies but not sight or shots (`seeThrough`, 29). */
+export type ObstacleKind = 'ruin-wall' | 'building' | 'window' | 'container' | 'crate' | 'pipe';
 export type ModuleKind = 'yard' | 'depot' | 'garden';
 export type RouteBand = 'main' | 'top' | 'bottom';
 export type EffectKind = 'shock' | 'scan' | 'slash' | 'loot' | 'upgrade' | 'rail' | 'charge' | 'grapple';

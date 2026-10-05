@@ -353,11 +353,11 @@ function cellOutline(cells: Array<{ x: number; y: number }>): Path2D {
 }
 
 /** The built map's parts, by what they are, each drawn by a layer of its own. */
-type Part = "walls" | "ruins" | "cover" | "windows" | "doors" | "roofs";
-const PARTS: Part[] = ["walls", "ruins", "cover", "windows", "doors", "roofs"];
+type Part = "walls" | "ruins" | "cover" | "windows" | "pipes" | "doors" | "roofs";
+const PARTS: Part[] = ["walls", "ruins", "cover", "windows", "pipes", "doors", "roofs"];
 /** Every obstacle kind's part, so a new kind can't be drawn as nothing. */
 const OBSTACLE_PART: Record<ObstacleKind, Part> = {
-  building: "walls", "ruin-wall": "ruins", container: "cover", crate: "cover", window: "windows",
+  building: "walls", "ruin-wall": "ruins", container: "cover", crate: "cover", window: "windows", pipe: "pipes",
 };
 
 interface BuiltParts {
@@ -792,6 +792,7 @@ const LAYERS: Layer[] = [
   partLayer("ruins", "Ruin walls and rubble", "#9b8a72", "ruin wall"),
   partLayer("cover", "Cover", "#6e9a72", "container or crate"),
   partLayer("windows", "Windows", "#6fc8ff", "window"),
+  partLayer("pipes", "Pipe runs", "#c79a5b", "pipe run"),
   // Chain maps place every door closed and unlocked (micro's adapter), so one colour says it.
   partLayer("doors", "Doors", "#d66955", "door, closed"),
   { ...partLayer("roofs", "Roofs", "#7a4f74", "roof"), on: false, opacity: 0.6 },

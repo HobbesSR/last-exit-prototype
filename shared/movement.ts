@@ -8,6 +8,11 @@ import type { Box, CollisionMap, GateId, Obstacle, PlayableArea, Player, PlayerI
 
 // Geometry is described once in `shape.ts` and consumed here. This module owns what the simulation
 // does with a shape -- occupancy, the movement sweep and sight -- not what a shape is.
+/**
+ * Whether sight and shots pass an obstacle of this kind while bodies and hands do not (29): a
+ * window, or a low pipe run, which the game, being 2D, treats the same way (17.2.8 M34).
+ */
+export const seeThrough = (kind: string | undefined): boolean => kind === 'window' || kind === 'pipe';
 /** One record resolved to its shape, bounds and SAT body, all kept for as long as the map lives. */
 interface Collider {
   source?: Obstacle;
@@ -56,7 +61,7 @@ function geometry(map: CollisionMap): Geometry {
       const key = `${x},${y}`; if (!buckets.has(key)) buckets.set(key, []); buckets.get(key)!.push(entry);
     }
   }
-  cached = { source: map.obstacles, count: map.obstacles.length, shapes, buckets, segments: shapes.filter(o => o.kind !== 'window').flatMap(o => edgesOf(o.shape)) };
+  cached = { source: map.obstacles, count: map.obstacles.length, shapes, buckets, segments: shapes.filter(o => !seeThrough(o.kind)).flatMap(o => edgesOf(o.shape)) };
   shapeCache.set(map, cached); return cached;
 }
 function nearbyShapes(map: CollisionMap, x: World, y: World, radius: World): Set<Collider> {
@@ -118,7 +123,7 @@ export function canOccupy(map: CollisionMap, x: World, y: World, radius: World =
   if (!insideMap(map, x, y, radius)) return false;
   const circle = new SAT.Circle(vec(x, y), radius), response = new SAT.Response();
   for (const o of nearbyShapes(map, x, y, radius)) {
-    if (projectile && o.kind === 'window') continue;
+    if (projectile && seeThrough(o.kind)) continue;
     if (!nearBounds(o.box, x, y, radius)) continue;
     response.clear();
     if (separate(circle, o.shape, o.body, response) && response.overlap > 0.01) return false;
@@ -215,13 +220,13 @@ export function lineClear(map: CollisionMap, a: Vec2, b: Vec2, ignoreGateId: Gat
     && Math.max(edge.a.y, edge.b.y) >= Math.min(a.y, b.y) && Math.min(edge.a.y, edge.b.y) <= Math.max(a.y, b.y)
     && hitRay(a, dx, dy, edge) < length - 0.1);
 }
-// Hands and dropped equipment cannot pass through a window even though sight and shots can.
+// Hands and dropped equipment cannot pass through a window or pipe even though sight and shots can.
 export function reachClear(map: CollisionMap, a: Vec2, b: Vec2): boolean {
   if (!lineClear(map, a, b)) return false;
   const length = Math.hypot(b.x - a.x, b.y - a.y);
   if (length < 0.01) return true;
   const dx = (b.x - a.x) / length, dy = (b.y - a.y) / length;
-  return !geometry(map).shapes.some(o => o.kind === 'window' && edgesOf(o.shape).some(edge => hitRay(a, dx, dy, edge) < length));
+  return !geometry(map).shapes.some(o => seeThrough(o.kind) && edgesOf(o.shape).some(edge => hitRay(a, dx, dy, edge) < length));
 }
 export function visibilityPolygon(map: CollisionMap, origin: Vec2, radius: World = VISION): VisibilityPoint[] {
   count('calls.visibilityPolygon');
