@@ -304,11 +304,20 @@ inside, and windows and doors let sight through.
   - **Lanes:** everything lines up on lanes 3 cells apart along one axis,
     drawn from the seed, at a seeded phase.
   - **Warehouses:** `roomCells` long and three quarters of that across, at
-    least 5, with quarter-cell walls and a roof. A doorway-wide door is
-    centred on each end. Shelf islands a cell across run down the length,
-    keeping 2 cells from the walls and from each other, so the doors open
-    onto clear ends. They stand at seeded places on the lanes until about
-    `density` of a quarter of the ground is taken.
+    least 5, with quarter-cell walls and a roof. They stand at seeded places
+    on the lanes until about `density` of a quarter of the ground is taken.
+    **Designs (#218, 17.2.8 M34):** each box is allocated as a building
+    design (56), trying in a seeded order a floor with an office and a store,
+    or a floor with an office. The floor takes at least half the box and asks
+    for a door on each end. The office asks for a door into the floor, a door
+    out on the far end, where it can front the warehouse, and a window. The
+    store asks for a door into the floor. A design is kept only if at least
+    two doors lead outside, so the warehouse stays a way through, and every
+    space is reached through doors. A box no design fits, such as
+    `roomCells` 6, is one room with a doorway-wide door centred on each end.
+    Shelf islands a cell across run down the floor, keeping 2 cells from its
+    walls and from each other. The interior is guidance and adds nothing to
+    the promise, which the box's clear ring keeps (M29).
   - **Container rows:** two or three 2-cell containers end to end, packed
     along each lane around the warehouses. Each place that fits one is taken
     with chance `density`, and the next starts 2 cells on, so the aisles run
