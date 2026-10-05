@@ -474,12 +474,14 @@ parameters, keeps its promise and sites no core elements.
 ### `plant`
 
 - **Role:** the half of the old `industrial` that isn't a warehouse. Big
-  machinery blocks, pipe runs and gantries on a factory floor: hard cover,
-  long lines between machines, and a few tight corners.
-- **Strategy:** *proposed*, machinery as large convex blocks on a coarse
-  grid, joined by low pipe runs that a contestant can slip under and a
-  hunter has to go round (P-04), with an optional roofed shed over part of
-  the floor.
+  machinery blocks and pipe runs on a factory floor: hard cover, long lines
+  between machines, and a few tight corners.
+- **Strategy:** *proposed* (#219), machinery as large convex blocks on a
+  coarse grid, joined by low pipe runs, with an optional roofed shed over
+  part of the floor. The game is 2D, so a pipe run blocks movement but not
+  sight, like a window, and leaves door-wide gaps both roles can use (17
+  M34). A gap only a contestant fits waits for the squeeze balance (P-04).
+  Gantries wait for collision planes (16).
 - **Stand-in:** `depot`. Its container rows and aisles give the long lines
   and hard corners.
 - **Shape needs:** *proposed*, as `depot`.
