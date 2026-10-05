@@ -68,13 +68,13 @@ may use these rules as they stand to make a region act as an obstacle (Corey,
 | `rubble` | friction | contestant-only squeezes beside a longer hunter route | — |
 | `ruins` | friction | broken walls and part-buildings: maze-like friction and partial sight | — |
 | `hall` | friction | a pillared lattice that breaks sight without blocking a walk | — |
+| `checkpoint` | friction | a military choke: chicane barriers across a passage, a guard post | — |
 | `hut` | structure | one building in its yard: walls, door, windows, roof | — |
 | `depot` | structure | warehouses and container aisles: long sightlines, hard corners | — |
 | `plant` | structure | an industrial works: machinery blocks, pipe runs, long lines | — |
 | `compound` | structure | rooms around a walled court with few gates: a pocket with dead ends | — |
 | `block` | district | a city block that decomposes into the types above | — |
 | `market` | drafted | stall rows and narrow lanes: dense, low, sight-breaking cover | — |
-| `checkpoint` | drafted | a military choke: barriers, a guard post, chicanes across a passage | — |
 | `park` | drafted | overgrown ground: tree clumps and hedges, soft cover, open sight | — |
 | `arrival` | core element | the contestants' start | `spawn` × `contestantCount` |
 | `departure` | core element | extraction and the hunters' start | `exit` × `exitCount`, `hunter-spawn` × `hunterCount` |
@@ -240,6 +240,55 @@ points, and routes that aren't a straight shot.
 
 Buildings give concealment (P-11, F-18): solid walls and roofs hide what's
 inside, and windows and doors let sight through.
+
+### `checkpoint`
+
+- **Role:** the half of the old `military` that isn't a walled base. A choke
+  across a passage: barriers, a guard post and staggered chicanes that slow a
+  crossing and break the sightline along it.
+- **Strategy:** no decomposer. Chicane barriers across the line between its
+  two farthest portals, alternating sides, with a small roofed post beside
+  them. A one-portal region is a guard post alone.
+  **Built (#220):** `map/micro/strategies/checkpoint.ts`. Unlike the spacing
+  types it keeps its promise by pruning during the solve, since a chicane is
+  meant to stand across the route.
+  - **The line:** from one portal's centre to another's, the farthest pair
+    (the first in id order on a tie).
+  - **Barriers:** along the line's longer axis, 5 cells in from either end at
+    a seeded offset of 0 to 2, then every 4 cells. Each is a half-cell wall of
+    kind `ruin-wall`, so it blocks movement and sight. It reaches 4 cells
+    either side of the line, or as far as the region goes, attaches to the
+    region's edge on one side and stops 2 cells (a doorway) short of the
+    other. The sides alternate along the line, from a seeded first side, so a
+    body crossing slaloms. Where the region is wider than the barrier a body
+    can go round it, which slows a crossing without sealing it. A station
+    needs a run of at least 3 owned cells across the line, or it gets no
+    barrier.
+  - **The post:** a roofed box 6 to 8 by 5 or 6 cells, its long side along the
+    line, built as `depot`'s warehouse is (56): a roofed design with shelves
+    on its floor, traced for the lab. It stands nearest the middle of the
+    barriers, off the line, with a 2-cell owned ring clear of the region's
+    edge and of every barrier. With one portal it stands nearest a point 5
+    cells in from the portal, and with none nearest the region's middle.
+  - **Why that keeps the promise:** the empty shape is checked once with the
+    elective flood check (`validatePortalReach`, 20.1), and a region whose own
+    shape fails is `open`. Each barrier is then kept only while the check
+    still finds a hunter route between every pair of portals, and each post
+    candidate likewise, nearest first, up to 6. Nothing is rebuilt: a piece
+    that fails is dropped as the solve goes on. The check's search is
+    sampled, so a miss drops a piece that might have been fine, and a kept
+    piece is always proved.
+  - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
+    disc stands clear of every piece, indoors or out.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
+  - **Too small:** a region with no post and no barrier placed goes to
+    `open` (17 M24).
+- **Shape needs:** *proposed*, a chicane needs two portals and 3 cells across
+  the line, and a post needs a contained 6 × 5 with its ring. Either alone is
+  enough to build.
+- **Formed by:** medium set pieces, where the old library's `military`
+  pieces were.
 
 ### `hut`
 
@@ -525,19 +574,6 @@ parameters, keeps its promise and sites no core elements.
 - **Formed by:** enormous and medium set pieces, where the old library's
   `market` pieces were.
 
-### `checkpoint`
-
-- **Role:** the half of the old `military` that isn't a walled base. A choke
-  across a passage: barriers, a guard post and staggered chicanes that slow a
-  crossing and break the sightline along it.
-- **Strategy:** *proposed*, chicane barriers across the line between its two
-  farthest portals, alternating sides, with a small roofed post beside them.
-  A one-portal region is a guard post alone.
-- **Stand-in:** `cover`.
-- **Shape needs:** *proposed*, at least two portals and 3 cells across.
-- **Formed by:** medium set pieces, where the old library's `military`
-  pieces were.
-
 ### `park`
 
 - **Role:** the old `park` and `tree` classes. Overgrown ground with tree
@@ -671,7 +707,7 @@ The old names come back like this (17.2.7):
 | `block` | `decomposition/example.ts`, `realize.ts`, `negotiate.ts` (built on spacing instead, #161) | — |
 | `market` | `hall` (its stand-in) | `pillar-hall` |
 | `plant` | `depot`'s warehouse for its shed (built, #219) | — |
-| `checkpoint` | `cover` (its stand-in) | — |
+| `checkpoint` | `cover`'s barriers and `depot`'s warehouse for its post (built, #220) | — |
 | `park` | `cover` (its stand-in) | `open-field` |
 | `arrival` | `example-entry`, `spreadPoints` | — |
 | `departure` | `spreadPoints` (built, #131) | — |
