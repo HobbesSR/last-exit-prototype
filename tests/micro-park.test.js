@@ -117,3 +117,17 @@ test('parameters outside 0 to 1 are refused', () => {
   assert.throws(() => buildRegion(brief('field', 1, cells, portals, { density: 2 })), /density/);
   assert.throws(() => buildRegion(brief('field', 1, cells, portals, { hedges: -1 })), /hedges/);
 });
+
+test('pieces keep valid, in-footprint geometry at small and large cell sizes', () => {
+  for (const size of [1, 2, 8, 40, 200]) for (const seed of SEEDS) {
+    const cells = cellsOf(30, 30), input = { ...brief('field', seed, cells, [], { density: 1, hedges: 0.5 }), cellSize: size };
+    input.zones = [{ tier: 3, bonus: 0, lootChance: 0, cells }];
+    const result = buildRegion(input);
+    assert.ok(result.elements.some(kind('hedge')) && result.elements.some(kind('tree')), `size ${size} seed ${seed} has both`);
+    for (const element of result.elements) for (const { shape } of element.template.parts) {
+      const box = bounds(shape);
+      assert.ok(box.w > 0 && box.h > 0, `size ${size}: ${element.label} has area`);
+      assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.w <= element.template.w + 1e-9 && box.y + box.h <= element.template.h + 1e-9, `size ${size}: ${element.label} stays in its footprint`);
+    }
+  }
+});

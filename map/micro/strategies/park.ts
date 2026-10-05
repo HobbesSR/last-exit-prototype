@@ -23,6 +23,9 @@ const CHANNEL = { phaseX: 1, phaseY: 2, hedge: 3, hedgeTurn: 4, hedgeRow: 5, hed
 /** A clump's tries: each draws its own place, so a tree dropped for overlap never shifts the next. */
 const TRY = (n: number, channel: number) => channel * 8 + n;
 
+/** A length to a thousandth of a world unit, so float noise stays out of a saved map without a small cell size rounding a thin piece to nothing. */
+const thousandth = (value: number) => Math.round(value * 1000) / 1000;
+
 type Box = { x: number; y: number; w: number; h: number };
 
 /**
@@ -82,8 +85,8 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
     const gap = 1 + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.hedgeGap) * (HEDGE_LENGTH - AISLE - 1));
     const stubs: [number, number][] = [[0, gap], [gap + AISLE, HEDGE_LENGTH]];
     const parts = stubs.map(([s, e]) => ({ part: 'obstacle' as const, kind: 'hedge' as const,
-      shape: across ? rect(s * size, Math.round((0.5 - HEDGE_THICK / 2) * size), (e - s) * size, Math.round(HEDGE_THICK * size))
-        : rect(Math.round((0.5 - HEDGE_THICK / 2) * size), s * size, Math.round(HEDGE_THICK * size), (e - s) * size) }));
+      shape: across ? rect(s * size, thousandth((0.5 - HEDGE_THICK / 2) * size), (e - s) * size, thousandth(HEDGE_THICK * size))
+        : rect(thousandth((0.5 - HEDGE_THICK / 2) * size), s * size, thousandth(HEDGE_THICK * size), (e - s) * size) }));
     elements.push({ label: `park-hedge-${++hedges}`, x: box.x * size, y: box.y * size, template: { w: box.w * size, h: box.h * size, parts } });
   }
 
@@ -106,7 +109,7 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
     for (const f of footprints) {
       const middle = TREE * size / 2;
       elements.push({ label: `park-tree-${++trees}`, x: f.x * size, y: f.y * size,
-        template: { w: TREE * size, h: TREE * size, parts: [{ part: 'obstacle', kind: 'tree', shape: circle(middle, middle, Math.round(TREE_REACH * size)) }] } });
+        template: { w: TREE * size, h: TREE * size, parts: [{ part: 'obstacle', kind: 'tree', shape: circle(middle, middle, thousandth(TREE_REACH * size)) }] } });
     }
   }
 
