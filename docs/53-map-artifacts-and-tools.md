@@ -128,6 +128,13 @@ went to `types-17`. Nothing else moved. The report showed no defects over 60
 game and 30 playground maps, and the per-region diagnosis none over 3 game
 maps. The S3 migration's provenance is kept.
 
+**#220's re-capture** followed `checkpoint`'s own strategy (54 `checkpoint`,
+17.2.8 M34). The built and report views moved on 88 of 224 maps, the ones with
+a `checkpoint` region, and the results view on all 224, since
+`REGION_TYPES_VERSION` went to `types-18`. Nothing else moved. The report
+showed no defects over 60 game and 30 playground maps, and the per-region
+diagnosis none over 3 game maps. The S3 migration's provenance is kept.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
