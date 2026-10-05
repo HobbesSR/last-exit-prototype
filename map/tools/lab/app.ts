@@ -17,7 +17,7 @@ import type { BrokenPromise } from "../../micro/diagnose.ts";
 import { elementShapes } from "../../micro/geometry.ts";
 import type { RegionElement } from "../../micro/types.ts";
 import { briefFragment } from "../../micro/brief-link.ts";
-import { drawAllocation, drawDesignGraph, drawOpenings, drawSpans, guidanceNotMet, traceSummary } from "../../micro/building/draw.ts";
+import { designsNotUsed, drawAllocation, drawDesignGraph, drawOpenings, drawSpans, guidanceNotMet, traceSummary } from "../../micro/building/draw.ts";
 import type { BuildingTrace } from "../../micro/building/trace.ts";
 import type { RouteMeasure } from "../routes.ts";
 import { outline } from "../../../shared/shape.ts";
@@ -761,7 +761,7 @@ const LAYERS: Layer[] = [
       return [
         "",
         `Drill-down: rebuilt equal to the stored result; ${drill.traces.length} building${drill.traces.length === 1 ? "" : "s"} from designs${drill.lots.length ? `, ${drill.lots.length} lots` : ""}`,
-        ...drill.traces.flatMap((trace) => [traceSummary(trace), ...guidanceNotMet(trace)]),
+        ...drill.traces.flatMap((trace) => [traceSummary(trace), ...designsNotUsed(trace), ...guidanceNotMet(trace)]),
       ];
     },
     links: (_, { region }) => {

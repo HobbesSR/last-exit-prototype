@@ -157,11 +157,11 @@ test('a macro-sized block with hundreds of portals builds quickly', () => {
 });
 
 test('a block passes its lots\' buildings to an observer, labelled as their elements', () => {
-  const seen = { hut: 0, compound: 0 };
+  const seen = { hut: 0, compound: 0, depot: 0 };
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
     const traces = [], result = buildRegion(brief(name, seed, cells, portals), undefined, trace => traces.push(trace));
     for (const trace of traces) {
-      assert.match(trace.label, /^lot-\d+\/(hut-building|compound)$/);
+      assert.match(trace.label, /^lot-\d+\/(hut-building|compound|depot-warehouse-\d+)$/);
       if (trace.label.endsWith('/compound')) {
         // A compound's ring is split into one element per space, each labelled after the trace.
         const pieces = result.elements.filter(e => e.label.startsWith(`${trace.label}-`));
@@ -172,6 +172,13 @@ test('a block passes its lots\' buildings to an observer, labelled as their elem
       const element = result.elements.find(e => e.label === trace.label);
       assert.ok(element, `${name} ${seed}: ${trace.label} is an element`);
       assert.deepEqual(trace.origin, { x: element.x, y: element.y });
+      if (trace.label.includes('/depot-warehouse-')) {
+        // A warehouse is its realization's walls and doors, then its shelves.
+        const { parts, ...box } = trace.realization.template;
+        assert.deepEqual({ ...element.template, parts: element.template.parts.slice(0, parts.length) }, { ...box, parts });
+        seen.depot++;
+        continue;
+      }
       assert.deepEqual(trace.realization.template, element.template);
       seen.hut++;
     }

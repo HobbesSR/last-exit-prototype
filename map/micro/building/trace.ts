@@ -16,6 +16,8 @@ export interface BuildingTrace {
   design: BuildingDesign;
   allocation: BuildingAllocation;
   realization: BuildingRealization;
+  /** Designs the strategy tried before this one and didn't use, each with why. Absent when its first choice was kept. */
+  rejected?: { design: string; reason: string }[];
 }
 /** Called once for each building a strategy keeps in its result. */
 export type BuildingObserver = (trace: BuildingTrace) => void;

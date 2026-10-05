@@ -5,6 +5,7 @@ import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from 
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { bounds, circle } from '../shared/shape.ts';
+import { designsNotUsed } from '../map/micro/building/draw.ts';
 
 const SIZE = 40;
 const cellsOf = (w, h, keep = () => true) => {
@@ -67,24 +68,68 @@ test('every piece keeps an aisle from the next and from the region\'s edge, all 
   }
 });
 
-test('warehouses are roofed, with a door at each end and shelves inside', () => {
+test('warehouses are roofed designs, a way through with every space reached, and shelves on the floor', () => {
   const [cells, portals] = MASKS.field;
+  const designs = new Set();
   let seen = 0;
   for (const seed of SEEDS) {
-    const result = buildRegion(brief('field', seed, cells, portals, { density: 1, roomCells: 12 }));
+    const traces = new Map();
+    const result = buildRegion(brief('field', seed, cells, portals, { density: 1, roomCells: 12 }), undefined, trace => traces.set(trace.label, trace));
     assert.equal(result.manifest.structures, result.manifest.warehouses);
+    assert.equal(result.manifest.designed, traces.size);
     for (const element of result.elements.filter(e => e.label.startsWith('depot-warehouse'))) {
       seen++;
       const { w, h } = cellBox(element);
       assert.deepEqual([Math.max(w, h), Math.min(w, h)], [12, 9]);
       assert.equal(element.template.encloses, true);
-      const gates = element.template.parts.filter(p => p.part === 'gate');
-      assert.equal(gates.length, 2);
-      for (const gate of gates) assert.equal(Math.max(gate.w, gate.h), 2 * SIZE);
-      assert.equal(element.template.parts.filter(p => p.kind === 'container').length, 2);
+      for (const gate of element.template.parts.filter(p => p.part === 'gate')) assert.equal(Math.max(gate.w, gate.h), 2 * SIZE);
+      const trace = traces.get(element.label);
+      assert.ok(trace, `${element.label} is a design`);
+      assert.deepEqual(trace.origin, { x: element.x, y: element.y });
+      designs.add(trace.design.spaces.map(space => space.id).join('+'));
+      // At least two doors outside, and every space reached through doors from outside.
+      const doors = trace.realization.openings.filter(o => o.kind === 'door');
+      assert.ok(doors.filter(o => o.a === 'outside' || o.b === 'outside').length >= 2, `${element.label} is a way through`);
+      const reached = new Set(['outside']);
+      for (let grown = true; grown;) {
+        grown = false;
+        for (const { a, b } of doors) if (reached.has(a) !== reached.has(b)) { reached.add(a); reached.add(b); grown = true; }
+      }
+      assert.equal(reached.size, trace.design.spaces.length + 1);
+      // Shelves stand inside the floor's cells.
+      const floor = new Set(trace.allocation.spaces.find(space => space.id === 'floor').cells.map(c => `${c.x},${c.y}`));
+      const shelves = element.template.parts.filter(p => p.kind === 'container');
+      assert.ok(shelves.length > 0);
+      for (const { shape } of shelves) {
+        const box = bounds(shape);
+        for (const [x, y] of [[box.x, box.y], [box.x + box.w, box.y + box.h]])
+          assert.ok(floor.has(`${Math.floor(Math.min(x, box.x + box.w - 1) / SIZE)},${Math.floor(Math.min(y, box.y + box.h - 1) / SIZE)}`));
+      }
     }
   }
   assert.ok(seen > 0);
+  assert.deepEqual([...designs].sort(), ['floor+office', 'floor+office+store']);
+});
+
+test('a warehouse box too small for several spaces is one room with a door at each end, traced with why', () => {
+  const [cells, portals] = MASKS.field;
+  const traces = new Map();
+  const result = buildRegion(brief('field', 1, cells, portals, { density: 1, roomCells: 6 }), undefined, trace => traces.set(trace.label, trace));
+  const warehouses = result.elements.filter(e => e.label.startsWith('depot-warehouse'));
+  assert.ok(warehouses.length > 0, 'warehouses were built');
+  assert.equal(result.manifest.warehouses, warehouses.length);
+  assert.equal(result.manifest.designed, 0);
+  assert.equal(traces.size, warehouses.length, 'every warehouse is traced');
+  for (const element of warehouses) {
+    const trace = traces.get(element.label);
+    assert.deepEqual(trace.design.spaces.map(space => space.id), ['floor']);
+    assert.equal(trace.realization.openings.filter(o => o.kind === 'door').length, 2);
+    assert.equal(element.template.parts.filter(p => p.part === 'gate').length, 2);
+    // Both designs with several spaces are named, each with its reason, and the lab shows them.
+    assert.deepEqual(trace.rejected.map(r => r.design).sort(), ['floor+office', 'floor+office+store']);
+    for (const { reason } of trace.rejected) assert.ok(reason.length > 0);
+    assert.deepEqual(designsNotUsed(trace), trace.rejected.map(r => `Design not used: ${r.design}, ${r.reason}`));
+  }
 });
 
 test('every aisle is open to a contestant, indoors and out', () => {

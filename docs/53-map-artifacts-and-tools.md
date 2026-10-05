@@ -114,6 +114,13 @@ Only the results, built and report views moved. The report showed no defects
 over 60 game and 30 playground maps, and the per-region diagnosis none over 3
 game maps. The S3 migration's provenance is kept in the recaptured file.
 
+**#218's re-capture** followed `depot`'s move to warehouse designs (54
+`depot`, 17.2.8 M34). The results, built and report views moved on 161 of
+224 maps, since `plant` and `block`'s lots build with `depot` too, and nothing
+else moved. The report showed no defects over 60 game and 30 playground maps,
+and the per-region diagnosis none over 3 game maps. The S3 migration's
+provenance is kept.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
@@ -200,8 +207,10 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     region's traces in world units through `map/micro/building/draw.ts`,
     the drawing the micro lab uses: a `block`'s lots (`planBlock`), each
     building's spaces and allocation, spans, openings and design graph. The
-    inspector summarises each building and lists the guidance it didn't
-    meet, as warnings. Its buttons open the region's brief in the micro lab,
+    inspector summarises each building and names any designs its strategy
+    tried first and didn't use, with why (a trace's `rejected`, such as a
+    `depot` warehouse that fell back to one room). It also lists the guidance
+    the building didn't meet, as warnings. Its buttons open the region's brief in the micro lab,
     and a `block`'s in the generation demo too, on the game's dev server
     when it runs in the same worktree (20.5). They also save the brief as
     JSON, which the micro lab imports.
