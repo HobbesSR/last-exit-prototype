@@ -64,7 +64,8 @@ export function createReplayController({
     const layer = $('replay-marks'), end = replayTimeline?.endTick;
     layer.replaceChildren(); closeMarkMenu();
     if (!replayTimeline || !end) return;
-    for (const cluster of clusterMarks(replayTimeline.marks.filter(mark => mark.tick <= end), end)) {
+    const travel = $('replay-track').clientWidth - 16;
+    for (const cluster of clusterMarks(replayTimeline.marks.filter(mark => mark.tick <= end), end, travel)) {
       const pip = document.createElement('button'), left = `calc(8px + (100% - 16px) * ${cluster.tick / end})`;
       pip.style.left = left;
       if (cluster.marks.length === 1) {
@@ -138,6 +139,8 @@ export function createReplayController({
     replay = null; replayTimeline = null; $('replay-marks').replaceChildren();
     document.body.classList.remove('replaying'); $('replay-controls').hidden = true;
   }
+  // The track narrows with the viewport and when the status label appears, which changes which pips collide.
+  new ResizeObserver(() => { if (replayTimeline) renderMarks(); }).observe($('replay-track'));
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && !$('replay-mark-menu').hidden) { closeMarkMenu(); event.stopPropagation(); } }, true);
   $('replay-play').onclick = () => { if (replay && playback >= replayTimeline.endTick) seek(0); setPlaying(!playing); };
   $('replay-seek').oninput = () => { if (replay) seek(Number($('replay-seek').value)); };

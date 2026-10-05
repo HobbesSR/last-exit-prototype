@@ -310,6 +310,27 @@ try {
   await page.locator('#replay-marks .mark-cluster').click();
   await page.locator('#replay-mark-menu .mark-manual').nth(1).click();
   assert.equal(await page.locator('#replay-focus').inputValue(), String(markB), 'each report follows its own player');
+  // Distinct nearby ticks collide on a narrow track, not just equal ones. At any width, every pip must
+  // be the topmost element at its own centre, so none can be hidden or have its click intercepted.
+  const pipsReachable = () => page.evaluate(() => [...document.querySelectorAll('#replay-marks button')].every(pip => {
+    const box = pip.getBoundingClientRect();
+    return document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === pip;
+  }));
+  routedReplay = { ...denseReplay, diagnostics: { marks: [{ tick: 10, kind: 'manual', playerId: markA }, { tick: 14, kind: 'manual', playerId: markB }] } };
+  await page.getByRole('button', { name: 'Exit replay' }).click();
+  await page.getByRole('button', { name: 'Replays', exact: true }).click();
+  await openRoutedReplay();
+  await pausePlayback();
+  assert.equal(await page.locator('#replay-marks button').count(), 2, 'a wide track keeps nearby ticks apart');
+  assert.equal(await pipsReachable(), true, 'every pip is reachable on a wide track');
+  const wideViewport = page.viewportSize();
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.waitForFunction(() => document.querySelectorAll('#replay-marks button').length === 1);
+  assert.equal(await pipsReachable(), true, 'every pip is reachable on a narrow track');
+  await page.locator('#replay-marks .mark-cluster').click();
+  assert.equal(await page.locator('#replay-mark-menu button').count(), 2, 'both nearby marks stay selectable');
+  await page.setViewportSize(wideViewport);
+  await page.waitForFunction(() => document.querySelectorAll('#replay-marks button').length === 2);
   await page.screenshot({ path: 'test-results/replay.png' });
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download replay', exact: true }).click();

@@ -21,11 +21,12 @@ export function markLabel(mark) {
   return `${MARK_LABELS[mark.kind]}${detail} at tick ${mark.tick}`;
 }
 
-// Marks that would draw on top of each other on the scrubber share one cluster, anchored on its
-// first mark so a long run of nearby marks cannot grow one pip without bound. `span` is the
-// fraction of the track a pip covers; a cluster of one is an ordinary mark.
-export function clusterMarks(marks, endTick, span = 0.015) {
-  const width = Math.max(1, (endTick || 0) * span), clusters = [];
+// Marks whose pips would draw on top of each other share one cluster, anchored on its first mark so
+// a long run of nearby marks cannot grow one pip without bound. `travel` is the pixel length the
+// scrubber thumb moves over and `pip` the widest pip, so the threshold follows the rendered layout;
+// a cluster of one is an ordinary mark. Without a usable layout, only equal ticks share a pip.
+export function clusterMarks(marks, endTick, travel, pip = 20) {
+  const width = travel > 0 && endTick > 0 ? Math.max(1, endTick * pip / travel) : 1, clusters = [];
   for (const mark of marks) {
     const last = clusters.at(-1);
     if (last && mark.tick - last.tick < width) last.marks.push(mark);
