@@ -35,12 +35,13 @@ export function liveSeed(seed: string): number | null {
 }
 
 /**
- * Why a chain map isn't the map a room with its seed plays; empty when it is (53 "Play in
- * the game"). A room's seed is a number, so the seed text must be that number as the chain
- * spells it, and the map must come from the live params, the bundled library, the game's
- * cell size and the strategies the server runs.
+ * Why a chain map's recipe isn't a room's; empty when it is. A room's seed is a number, so
+ * the seed text must be that number as the chain spells it, and the map must state the live
+ * params, the bundled library, the game's cell size and the strategies the server runs. This
+ * reads only what the map states, so it settles a map just generated from that recipe; a
+ * loaded one needs {@link liveMismatch}.
  */
-export function liveMismatch(map: Pick<ChainMap, 'layout' | 'library' | 'cellSize' | 'build'>, content: MatchContent = defaultContent()): string[] {
+export function liveRecipeMismatch(map: Pick<ChainMap, 'layout' | 'library' | 'cellSize' | 'build'>, content: MatchContent = defaultContent()): string[] {
   const reasons: string[] = [], { seed, params } = map.layout;
   if (liveSeed(seed) === null) reasons.push(`the seed ${JSON.stringify(seed)} isn't a room seed: a whole number from 1 to ${MAX_ARENA_SEED}, without leading zeros`);
   const live = liveChainParams(content);
@@ -50,6 +51,20 @@ export function liveMismatch(map: Pick<ChainMap, 'layout' | 'library' | 'cellSiz
   if (map.cellSize !== DEFAULT_CELL_SIZE) reasons.push(`the cell size is ${map.cellSize}; a room uses ${DEFAULT_CELL_SIZE}`);
   if (map.build !== GAME_ENGINES.version) reasons.push(`the regions were built by ${map.build}; a room builds with ${GAME_ENGINES.version}`);
   return reasons;
+}
+
+/**
+ * Why a chain map isn't the map a room with its seed plays; empty when it is (53 "Play in
+ * the game"). Beyond the recipe, the map must be the one its seed generates: a loaded save
+ * can keep its seed and recipe and still carry an edited layout or results. This generates
+ * the map again to compare, so it costs a generation.
+ */
+export function liveMismatch(map: Pick<ChainMap, 'layout' | 'library' | 'cellSize' | 'build' | 'results'>, content: MatchContent = defaultContent()): string[] {
+  const reasons = liveRecipeMismatch(map, content);
+  if (reasons.length) return reasons;
+  const fresh = generate(map.layout.seed, liveChainParams(content), undefined, DEFAULT_CELL_SIZE);
+  const differs = firstDifference(fresh.layout, map.layout, 'layout') ?? firstDifference(fresh.results, map.results, 'results');
+  return differs ? [`the map isn't the one its seed generates (${differs.replace(' rebuilt, ', ' from the seed, ').replace(/ stored$/, ' here')})`] : [];
 }
 
 /** Accept completed region results; keep their geometry and site coordinates authoritative. */

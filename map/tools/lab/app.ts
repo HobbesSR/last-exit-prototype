@@ -22,7 +22,7 @@ import type { BuildingTrace } from "../../micro/building/trace.ts";
 import type { RouteMeasure } from "../routes.ts";
 import { outline } from "../../../shared/shape.ts";
 import type { ObstacleKind } from "../../../shared/types.ts";
-import { liveChainParams, liveMismatch, liveSeed } from "../../live.ts";
+import { liveChainParams, liveSeed } from "../../live.ts";
 import { builtMapFrame, builtPlayableArea } from "../../micro/adapter.ts";
 import { MAX_ARENA_SEED } from "../../../shared/simulation/rules.ts";
 import { chainDraft, openChainEntry, renderChainLibrary } from "./chain-author.ts";
@@ -82,6 +82,8 @@ let drill: {
 } | null = null;
 /** What each drill-down and route layer last drew, for the browser test. */
 let drawnTraces: Record<string, object> = {};
+/** Why a room with the map's seed wouldn't play the map, from the worker (53 "Play in the game"). */
+let live: string[] = [];
 /** The game's dev server, where the micro tools are, when it runs in this worktree (20.5). */
 let gameUrl: string | null = null;
 /**
@@ -164,7 +166,7 @@ function useRoomRecipe(): void {
 /** Link to a new room on the game's dev server when this map is the one a room plays, or say why not. */
 function renderPlay(): void {
   const link = $("playInGame") as HTMLAnchorElement;
-  const reasons = map ? liveMismatch(map) : ["there is no map yet"];
+  const reasons = map ? live : ["there is no map yet"];
   const playable = !reasons.length && gameUrl !== null;
   link.hidden = !playable;
   if (playable) link.href = `${gameUrl}/?seed=${map!.layout.seed}`;
@@ -197,6 +199,7 @@ function received(reply: LabReply): void {
   if (reply.kind === "error") return fail(new Error(reply.message));
   if (reply.kind !== "map") return;
   lastMs = reply.ms;
+  live = reply.live;
   show(reply.map);
 }
 

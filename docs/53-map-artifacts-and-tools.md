@@ -228,11 +228,14 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     seed with the live recipe (`liveChainParams` in `map/live.ts`: game
     mode, one exit, the default content's roster counts, everything else
     the default), the bundled library, the game's cell size and the
-    server's strategies. When the shown map is exactly that
-    (`liveMismatch`), the Play panel links to `?seed=<seed>` on the game's
+    server's strategies. When the shown map is exactly that, the Play panel links to `?seed=<seed>` on the game's
     dev server (20.5), and the game page creates a room with that seed
     through `POST /api/rooms`, as its own seed field does. Otherwise the
-    panel lists why not. "Use a room's recipe" sets the recipe, the bundled
+    panel lists why not. The worker decides. A map it generates is checked
+    by its recipe (`liveRecipeMismatch`). A loaded save is also compared
+    with a fresh generation from its seed (`liveMismatch`), since a save
+    can keep its seed and recipe and still carry an edited layout or
+    results. "Use a room's recipe" sets the recipe, the bundled
     library and, if needed, a random room seed, and generates. The chain's
     seed is text, so only a seed that spells its number exactly (`"42"`,
     not `"042"`) is a room's. Loading other maps (drafts, other params)

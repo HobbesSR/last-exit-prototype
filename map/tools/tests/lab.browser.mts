@@ -5,7 +5,7 @@
  */
 import { createRequire } from "node:module";
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
@@ -656,6 +656,19 @@ try {
   assert.equal(playable.builtRegions, generate("4217", liveChainParams()).results.length);
   await room.screenshot({ path: `${OUT}/play-room.png` });
   await room.close();
+  // A save keeps its seed and recipe when its layout is edited, but a room with that seed
+  // would generate the original, so the lab compares a loaded map with its seed's.
+  const turned = generate("4217", liveChainParams()), slot = turned.layout.slots[0]!;
+  slot.orientation = slot.orientation === 0 ? 90 : 0;
+  await writeFile(`${OUT}/edited-layout.json`, chainMapToJson(turned, { results: false }));
+  await playPage.locator("#load").setInputFiles(`${OUT}/edited-layout.json`);
+  await playPage.waitForFunction(() => {
+    const lab = (window as any).mapLab.snapshot();
+    return !lab.busy && /its seed generates/.test(lab.play.note);
+  }, null, { timeout: 60000 });
+  const edited = (await playPage.evaluate(() => (window as any).mapLab.snapshot())).play;
+  assert.equal(edited.href, null);
+  assert.match(edited.note, /layout\.slots\[0\]\.orientation/);
   await playPage.close();
 
   await page.setViewportSize({ width: 560, height: 900 });
