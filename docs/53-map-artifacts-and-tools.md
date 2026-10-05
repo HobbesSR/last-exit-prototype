@@ -1,7 +1,7 @@
 # 53. Map artifacts, determinism and tools
 
 Status: current for the chain (51), its Map Lab, CLI, MCP and sweep. mapgen's
-old paths were deleted at the switch-over (#146). Updated 2026-10-04.
+old paths were deleted at the switch-over (#146). Updated 2026-10-04 (#204).
 
 ## One seed decides the whole map
 
@@ -159,7 +159,7 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     components, zone tiers and bonus, region types, loot chance, briefs, the
     region drill-down (block lots, spaces and allocation, spans, openings and
     the design graph), the built map's parts, loot, core element sites,
-    defect regions and defect sites. Each layer names what it reads (the Layout, the stored region results,
+    contestant and hunter routes, defect regions and defect sites. Each layer names what it reads (the Layout, the stored region results,
     or a `mapViews` key), can be
     turned on or off, has an opacity, and contributes its own legend
     entries and inspector lines. Any number can be on at once, so an
@@ -174,7 +174,7 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     something elsewhere: in the Chain Library tab, or in a new tab. On by
     default: regions, boundaries and portals, the drill-down's lots,
     allocation and openings, the built map's parts other than roofs, core
-    element sites, and the defect layers.
+    element sites, routes, and the defect layers.
   - **Macro layers** read the Layout and `mapViews` only. The Layout layer
     outlines each placed tile and, in its set piece class's colour, each set
     piece instance; zoomed in far enough, it labels tiles with design and
@@ -205,6 +205,25 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     and a `block`'s in the generation demo too, on the game's dev server
     when it runs in the same worktree (20.5). They also save the brief as
     JSON, which the micro lab imports.
+  - **Routes** (#204): on request, the worker measures the routes a
+    contestant and a hunter take between two points of the built map:
+    any two core element sites, or the selected cell. It's a lab
+    measurement, and feeds neither the report nor the sweep
+    (`map/tools/routes.ts`). Both use the game's own route search
+    (`gridRoute` in `shared/map/route.ts`, which bots use too) on
+    `builtMapCollision`, with doors openable, as for a mover without keys.
+    - **Lengths:** each body's length is its grid route's, through each
+      40-unit navigation tile, and the ratio compares those. Ends snap to
+      the nearest walkable tile within five, as a bot's do, so lengths
+      differ by up to a tile or two of sampling. The panel also gives the
+      length walked along the straightened route the layer draws. That
+      straightening is greedy, so it isn't comparable between bodies.
+    - **Squeezes:** a squeeze is each run of the contestant's route that
+      the hunter's walkability grid blocks.
+    - **Unreachable:** a body without a route is stated as such in the
+      panel, and the layer draws a dashed line straight to the target.
+    - In effect, the layer draws the portal promise (56, M29) at map
+      scale. On a 12 × 6 game map a measurement takes about 70 ms.
   - **The built map's parts** are six layers on `built`, one colour each:
     building walls, ruin walls and rubble, cover, windows, doors and roofs.
     Obstacles go by their `ObstacleKind` (`building`, `ruin-wall`,
@@ -233,7 +252,8 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     `content/`, `map/micro/`, `map/kernel/`, `shared/`, and the two map-level
     entry modules `map/chain.ts` and `map/engines.ts` at their repository
     paths, and nothing else. It erases types on the way out, and resolves
-    the bare `sat` import for the page and its worker alike.
+    the bare `sat` and `pathfinding` imports for the page and its worker
+    alike. Each is its CommonJS package wrapped as one ES module.
   - The old generators' map view, tile editor and playtest sandbox retired
     with the move (#145).
 - **CLI** (`node map/tools/cli.mts`, from the repository root): `generate`

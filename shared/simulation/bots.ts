@@ -1,27 +1,15 @@
-import PF from 'pathfinding';
 import { canOccupy, lineClear, reachClear, TILE } from '../movement.ts';
-import { navigationGrid, straightenPath, blockAt, blockRoute } from '../map.ts';
+import { straightenPath, blockAt, blockRoute } from '../map.ts';
+import { gridRoute } from '../map/route.ts';
 import { count, start, stop } from '../profiler.ts';
 import { carriedCell, syncWeapon } from '../equipment.ts';
 import { HZ } from './rules.ts';
-import { distance, tile, center } from './geometry.ts';
+import { distance, center } from './geometry.ts';
 import { visibleTo } from './visibility.ts';
 import { attack } from './combat.ts';
 import { dropEquipment } from './loot.ts';
-import type { GroundItem, Game, Player, PlayerInput, TileCount, TileIndex, TilePoint, TileStep, Vec2 } from '../types.ts';
+import type { GroundItem, Game, Player, PlayerInput, TileCount, TileIndex, Vec2 } from '../types.ts';
 
-/**
- * The nearest walkable cell to `point`, searched outward.
- *
- * `point` is world-space measured from the grid's own origin, not absolute world space, and the
- * result is a tile offset within `matrix`. Both differ from the absolute world and absolute tile
- * coordinates used either side of the repath below.
- */
-function nearestNode(matrix: number[][], point: Vec2): TilePoint {
-  const t = tile(point);
-  for (let r = 0; r < 5; r++) for (let y = t.y - r; y <= t.y + r; y++) for (let x = t.x - r; x <= t.x + r; x++) if (matrix[y]?.[x] === 0) return { x: x as TileIndex, y: y as TileIndex };
-  return t;
-}
 export function botInput(s: Game, p: Player): PlayerInput {
   const cell = carriedCell(p);
   if (p.inventory) {
@@ -62,16 +50,11 @@ export function botInput(s: Game, p: Player): PlayerInput {
     // The coarse street graph supplies the next block; local collision-aware A* handles its passage.
     const route = blockRoute(s.map, blockAt(s.map, p), blockAt(s.map, target));
     const localTarget = route.length > 1 ? route[1] : target;
-    // Everything from here to `p.path` is tile space: `bx`/`by` are the grid origin in absolute
-    // tiles, and the matrix the finder walks is indexed relative to it.
+    // `bx`/`by` are the search's origin in absolute tiles.
     const bx = Math.max(0, Math.floor((Math.min(p.x, localTarget.x) - 600) / TILE)) as TileIndex;
     const by = Math.max(0, Math.floor((Math.min(p.y, localTarget.y) - 600) / TILE)) as TileIndex;
     const bounds = { x: bx, y: by, width: Math.min(Math.ceil((Math.max(p.x, localTarget.x) + 600) / TILE), Math.ceil(s.map.width / TILE)) - bx as TileCount, height: Math.min(Math.ceil((Math.max(p.y, localTarget.y) + 600) / TILE), Math.ceil(s.map.height / TILE)) - by as TileCount };
-    const matrix = navigationGrid(s.map, p.role, bounds, p.keys > 0 ? 'all' : true);
-    const from = nearestNode(matrix, { x: p.x - bx * TILE, y: p.y - by * TILE });
-    const to = nearestNode(matrix, { x: localTarget.x - bx * TILE, y: localTarget.y - by * TILE });
-    start('sim.repathGrid'); const grid = new PF.Grid(matrix); stop('sim.repathGrid');
-    const steps = new PF.AStarFinder({ allowDiagonal: true, dontCrossCorners: true }).findPath(from.x, from.y, to.x, to.y, grid).slice(1).map(([x, y]): TileStep => [(x + bx) as TileIndex, (y + by) as TileIndex]);
+    const steps = gridRoute(s.map, p.role, bounds, p, localTarget, p.keys > 0 ? 'all' : true) ?? [];
     // A grid route is a staircase wherever it runs at an angle the grid cannot express. Walking it
     // waypoint by waypoint is what makes a bot visibly wobble, so the redundant steps come out here
     // rather than being smoothed over by the renderer, which could not remove real turning anyway.

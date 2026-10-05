@@ -2,7 +2,7 @@
 import { generate } from './chain.ts';
 import { DEFAULT_CELL_SIZE } from './engines.ts';
 import { composeRegions } from './micro/compose.ts';
-import { builtMapFrame, stampBuiltMap } from './micro/adapter.ts';
+import { builtMapFrame, builtPlayableArea, stampBuiltMap } from './micro/adapter.ts';
 import { createGenerationContext } from '../shared/map/context.ts';
 import { canOccupy } from '../shared/movement.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
@@ -25,24 +25,9 @@ export function generateLiveMap(seed: number, content: MatchContent = defaultCon
 /** Accept completed region results; keep their geometry and site coordinates authoritative. */
 export function liveMapFromBuilt(seed: number, built: BuiltMap<RegionElement>, content: MatchContent = defaultContent()): GameMap {
   const context = createGenerationContext(seed), { map } = context;
-  const { width, height, origin } = builtMapFrame(built), size = built.cellSize;
+  const { width, height, origin } = builtMapFrame(built);
   map.width = width; map.height = height; map.generator = LIVE_MAP_VERSION;
-  // Rows preserve concave outlines and holes, instead of imposing a mathematical diamond.
-  const rows = new Map<number, number[]>();
-  for (const region of built.regions) for (const cell of region.brief.cells) {
-    const y = cell.y + origin.y / size, x = cell.x + origin.x / size;
-    if (!rows.has(y)) rows.set(y, []);
-    rows.get(y)!.push(x);
-  }
-  map.playableArea = { cellSize: size, rows: [...rows].sort(([a], [b]) => a - b).map(([y, cells]) => {
-    const runs: [number, number][] = [];
-    for (const x of cells.sort((a, b) => a - b)) {
-      const last = runs.at(-1);
-      if (last && last[1] === x) last[1]++;
-      else runs.push([x, x + 1]);
-    }
-    return { y, runs };
-  }) };
+  map.playableArea = builtPlayableArea(built, origin);
   stampBuiltMap(context, built, origin);
   const world = (p: Vec2): Vec2 => ({ x: p.x + origin.x, y: p.y + origin.y });
   const sites = built.regions.flatMap(region => region.coreElements.map(site => ({ ...world(site), kind: site.kind, nodeId: region.brief.id as NodeId })));

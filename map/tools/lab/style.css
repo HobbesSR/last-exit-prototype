@@ -461,7 +461,7 @@ main {
 }
 .diagnostics {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr;
   height: 30vh;
   min-height: 40px;
   overflow: hidden;
