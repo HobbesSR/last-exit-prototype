@@ -1,4 +1,4 @@
-import { createReplayTimeline } from '/replay-timeline.js';
+import { createReplayTimeline, markLabel, markSeekTick } from '/replay-timeline.js';
 import { recordingFit } from '/shared/recording.ts';
 import { $, kitName, time } from '/ui.js';
 
@@ -40,6 +40,25 @@ export function createReplayController({
     const target = followed();
     if (target) toast(`Following ${target.name}`);
   }
+  // Pips sit over the scrubber, positioned within the range thumb's travel. Shape differs by kind as
+  // well as colour, and the tooltip names the mark. Activating one seeks to just before it and
+  // switches to the player who reported it, when the roster still has them.
+  function renderMarks() {
+    const layer = $('replay-marks'), end = replayTimeline?.endTick;
+    layer.replaceChildren();
+    if (!replayTimeline || !end) return;
+    for (const mark of replayTimeline.marks) {
+      if (mark.tick > end) continue;
+      const pip = document.createElement('button');
+      pip.className = `mark-${mark.kind}`; pip.title = markLabel(mark); pip.ariaLabel = markLabel(mark);
+      pip.style.left = `calc(8px + (100% - 16px) * ${mark.tick / end})`;
+      pip.onclick = () => {
+        seek(markSeekTick(mark, replay.hz, replayTimeline.firstTick ?? 0));
+        if (mark.playerId !== undefined && replayTimeline.roster.some(p => p.id === mark.playerId)) setFollow(mark.playerId);
+      };
+      layer.append(pip);
+    }
+  }
   function applyTick(tick) {
     const sample = replayTimeline?.at(tick);
     if (!sample) return;
@@ -75,7 +94,7 @@ export function createReplayController({
       changeMap(data.map);
       $('outcome').hidden = true; $('archive-dialog').close(); $('live-hud').hidden = true;
       $('replay-controls').hidden = false; $('replay-seek').min = 0; $('replay-seek').max = timeline.endTick; $('replay-seek').value = 0;
-      fillFollowOptions(timeline.roster); setFollow(null);
+      fillFollowOptions(timeline.roster); setFollow(null); renderMarks();
       document.body.classList.add('replaying'); connection('REPLAY'); setPlaying(true); seek(0); getScene()?.updateCamera(true);
     } catch (error) { toast(error.message); }
   }
@@ -89,14 +108,14 @@ export function createReplayController({
     if (playback >= replayTimeline.endTick) setPlaying(false);
   }
   function close() {
-    replay = null; replayTimeline = null; followId = null;
+    replay = null; replayTimeline = null; followId = null; $('replay-marks').replaceChildren();
     $('replay-controls').hidden = true; $('live-hud').hidden = false; document.body.classList.remove('replaying');
     const liveMap = getLiveMap(), liveState = getLiveState();
     if (liveMap && liveState) { changeMap(liveMap); acceptState(liveState); }
     connection(liveConnectionLabel()); getScene()?.updateCamera(true);
   }
   function reset() {
-    replay = null; replayTimeline = null;
+    replay = null; replayTimeline = null; $('replay-marks').replaceChildren();
     document.body.classList.remove('replaying'); $('replay-controls').hidden = true;
   }
   $('replay-play').onclick = () => { if (replay && playback >= replayTimeline.endTick) seek(0); setPlaying(!playing); };

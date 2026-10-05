@@ -88,7 +88,12 @@ continuous after a stall (wall time is lost, not ticks), so the mark is the only
 the replay. Readers treat marks as untrusted: `createReplayTimeline` keeps known kinds at
 valid ticks, in tick order, and reports `droppedMarks`. Client-reported kinds
 (`frame-drop`, `packet-gap`, `manual`) are accepted by the model and wait on a
-protocol message (24). The frozen fixture and `version` are unaffected.
+protocol message (24).
+
+The viewer draws one pip per mark over the scrubber (`#replay-marks`), distinct by shape as
+well as colour (square red stall, triangle orange client drop or gap, circle blue manual), with
+the mark named in its tooltip. Activating a pip seeks `MARK_LEAD_SECONDS` (2) before the tick
+and follows the reporting player when the roster has them. The frozen fixture and `version` are unaffected.
 
 ## Bounded recording
 

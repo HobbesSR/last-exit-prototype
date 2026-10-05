@@ -10,6 +10,17 @@ function parseMarks(diagnostics) {
     .map(({ mark }) => ({ tick: mark.tick, kind: mark.kind, playerId: mark.playerId, wakeMs: finite(mark.wakeMs), owed: finite(mark.owed), simulated: finite(mark.simulated) }));
 }
 
+// Where to seek for a mark: a little before it, so the cause is on screen when the viewer arrives.
+export const MARK_LEAD_SECONDS = 2;
+export function markSeekTick(mark, hz, firstTick = 0) {
+  return Math.max(firstTick, mark.tick - Math.round(MARK_LEAD_SECONDS * (Number.isFinite(hz) && hz > 0 ? hz : 0)));
+}
+const MARK_LABELS = { 'server-stall': 'Server stall', 'frame-drop': 'Frame drops', 'packet-gap': 'Packet gap', manual: 'Manual mark' };
+export function markLabel(mark) {
+  const detail = mark.kind === 'server-stall' && mark.wakeMs !== undefined ? ` (${Math.round(mark.wakeMs)} ms wake${mark.owed !== undefined ? `, ${mark.owed} ticks owed` : ''})` : '';
+  return `${MARK_LABELS[mark.kind]}${detail} at tick ${mark.tick}`;
+}
+
 // Playback is based on authoritative simulation ticks rather than positions in
 // the retained frame array. Omitted states are held, never invented.
 export function createReplayTimeline(recording) {
