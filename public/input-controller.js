@@ -1,7 +1,7 @@
 import { $ } from '/ui.js';
 
 // Device state and one-shot intent only. No socket, sequence, prediction or authoritative writes.
-export function createInputController({ getPlayer, onSelectionChange, onToggleMap, onToggleReplay }) {
+export function createInputController({ getPlayer, onSelectionChange, onToggleMap, onToggleReplay, onMarkLag }) {
   const listeners = new AbortController(), releaseCaptures = [];
   const listen = (target, type, handler) => target.addEventListener(type, handler, { signal: listeners.signal });
   let pulseSkill = false, pulseInteract = false, pointerFire = false, sneakHeld = false, currentAim = 0;
@@ -43,7 +43,7 @@ export function createInputController({ getPlayer, onSelectionChange, onToggleMa
     if (!e.repeat && e.code === 'KeyG') pulseDrop = true;
     if (/^Digit[1-6]$/.test(e.code)) selectSlot(Number(e.code.slice(-1)) - 1);
     if (!e.repeat && e.code === 'KeyR') toggleArrange();
-    if (!e.repeat) { if (e.code === 'KeyQ') pulseSkill = true; if (e.code === 'KeyE') pulseInteract = true; if (e.code === 'KeyM') onToggleMap(); if (e.code === 'Space') onToggleReplay(); }
+    if (!e.repeat) { if (e.code === 'KeyQ') pulseSkill = true; if (e.code === 'KeyE') pulseInteract = true; if (e.code === 'KeyM') onToggleMap(); if (e.code === 'KeyB') onMarkLag(); if (e.code === 'Space') onToggleReplay(); }
   });
   listen(document, 'keyup', e => held.delete(e.code));
   listen(window, 'blur', clearInput);

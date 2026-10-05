@@ -1,7 +1,7 @@
 import { movePlayer } from '/shared/movement.ts';
 import { createInputController } from '/input-controller.js';
 import { createHUDController } from '/hud-controller.js';
-import { notePacket, resetDiagnostics, diagnosticTimings } from '/diagnostics.js';
+import { notePacket, resetDiagnostics, diagnosticTimings, reportDiagnostics, manualMark } from '/diagnostics.js';
 import { makeArenaScene } from '/arena-scene.js';
 import { createReplayController } from '/replay-controller.js';
 import { createSnapshotBuffer } from '/snapshot-buffer.js';
@@ -23,7 +23,8 @@ let lobbyStartsAt = null;
 const inputController = createInputController({
   getPlayer: () => state?.players.find(p => p.id === playerId),
   onSelectionChange: () => updateHUD(), onToggleMap: () => toggleMap(),
-  onToggleReplay: () => { if (replayController.active()) replayController.togglePlay(); }
+  onToggleReplay: () => { if (replayController.active()) replayController.togglePlay(); },
+  onMarkLag: () => markLag()
 });
 const hudController = createHUDController({
   selectSlot: index => inputController.selectSlot(index), arrange: () => inputController.toggleArrange(),
@@ -200,6 +201,12 @@ const ArenaScene = makeArenaScene({
   onFollow: id => replayController.setFollow(id),
   onFrame: () => { if (!replayController.active()) presentation = snapshots.frame() || state; replayController.renderFrame(); }
 });
+// Diagnostic reports ride beside inputs but are metadata: the server records them as marks on the
+// replay and the simulation never sees them. They name the tick this client was drawing.
+reportDiagnostics(() => (replayController.active() || !playerId ? null : presentation?.tick ?? state?.tick ?? null),
+  report => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'diagnostic', ...report })); });
+function markLag() { if (manualMark()) toast('Lag flagged for the replay'); }
+$('mark-lag').onclick = markLag;
 function toggleMap() { overview = !overview; $('map-toggle').classList.toggle('active', overview); scene?.updateCamera(true); }
 function inputTick() {
   if (replayController.active() || !state || !predicted || !ws || ws.readyState !== WebSocket.OPEN || predicted.status !== 'active') { hudController.cancelDrag(); return; }

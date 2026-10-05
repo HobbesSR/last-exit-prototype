@@ -5,6 +5,7 @@ import * as profiler from '../shared/profiler.ts';
 import { createMatch } from './match.js';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
 import { send, broadcast, broadcastLobby, spectatorFrame, remember, SPECTATOR_DELAY_TICKS } from './room-views.js';
+import { normalizeDiagnostic, MAX_DIAGNOSTICS_PER_SESSION, MIN_DIAGNOSTIC_INTERVAL_MS } from './protocol.js';
 import { trackLatency, pingSession, acceptPong, roundTripMs } from './latency.js';
 export const EMPTY_ROOM_GRACE_MS = 30000;
 const MAX_SPECTATORS = 24;
@@ -151,6 +152,16 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
       return;
     }
     if (!room.started) return;
+    if (data.type === 'diagnostic' && session.playerId) {
+      // Metadata about the client's experience: never an input, never read by the simulation.
+      const now = wallNow(), count = session.diagnosticCount || 0;
+      if (count >= MAX_DIAGNOSTICS_PER_SESSION || now - (session.diagnosticAt ?? -Infinity) < MIN_DIAGNOSTIC_INTERVAL_MS) return;
+      const marker = normalizeDiagnostic(data, room.match.tick, session.playerId);
+      if (!marker) return;
+      session.diagnosticCount = count + 1; session.diagnosticAt = now;
+      markDiagnostic(room, marker);
+      return;
+    }
     if (data.type === 'input' && session.playerId) {
       const accepted = room.match.acceptInput(session.playerId, data);
       if (accepted) room.inputs.push(accepted);

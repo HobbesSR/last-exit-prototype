@@ -173,7 +173,7 @@ neutralize combat damage so PvP deaths do not invalidate navigation assertions.
 
 Browser coverage includes keyboard and touch input, six slot icons, move/merge,
 drops, charging and extraction, opening and walking through a real door, roof
-transitions, occlusion, replay and spectators, and diagnostic download. A
+transitions, occlusion, replay and spectators, and diagnostic download. Diagnostic reports are covered by `tests/room-service.test.js` (validation, clamping, limits, never a command) and `tests/diagnostics-episodes.test.js` (episode coalescing). A
 deliberately injected 120 ms browser stall verifies diagnostics preserve long
 frames rather than smoothing them away. The visibility polygon's culling is checked
 against a brute-force implementation of the same rays over sixteen hundred cases,
