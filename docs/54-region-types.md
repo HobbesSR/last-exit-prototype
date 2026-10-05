@@ -70,10 +70,10 @@ may use these rules as they stand to make a region act as an obstacle (Corey,
 | `hall` | friction | a pillared lattice that breaks sight without blocking a walk | — |
 | `hut` | structure | one building in its yard: walls, door, windows, roof | — |
 | `depot` | structure | warehouses and container aisles: long sightlines, hard corners | — |
+| `plant` | structure | an industrial works: machinery blocks, pipe runs, long lines | — |
 | `compound` | structure | rooms around a walled court with few gates: a pocket with dead ends | — |
 | `block` | district | a city block that decomposes into the types above | — |
 | `market` | drafted | stall rows and narrow lanes: dense, low, sight-breaking cover | — |
-| `plant` | drafted | an industrial works: machinery blocks, pipe runs, long lines | — |
 | `checkpoint` | drafted | a military choke: barriers, a guard post, chicanes across a passage | — |
 | `park` | drafted | overgrown ground: tree clumps and hedges, soft cover, open sight | — |
 | `arrival` | core element | the contestants' start | `spawn` × `contestantCount` |
@@ -341,6 +341,49 @@ inside, and windows and doors let sight through.
   whole cells from 6 to 16 (8 by default).
 - **Material:** the game's `example-depot`.
 
+### `plant`
+
+- **Role:** the half of the old `industrial` that isn't a warehouse. Big
+  machinery blocks and pipe runs on a factory floor: hard cover, long lines
+  between machines, and a few tight corners.
+- **Strategy:** no decomposer. Machinery on a coarse grid, joined by low pipe
+  runs, with an optional roofed shed.
+  **Built (#219):** `map/micro/strategies/plant.ts`. Like `depot`, it keeps
+  its promise by spacing.
+  - **Slots:** a lattice 8 cells apart at a seeded phase. A slot's pieces stay
+    in its first 6 cells, so 2 cells of aisle run between slots.
+  - **Shed:** with chance `shed` (default 0.5), a block of two by one, one by
+    two or two by two slots, at the first block in a seeded order whose box
+    keeps a 2-cell owned ring. It is built as `depot`'s warehouse is: a
+    roofed building design (56) with shelves on its floor, traced for the lab.
+  - **Machines:** every other slot holds one with chance `density` (default
+    0.6): a block 2 to 4 cells a side at a seeded place in the slot, half of
+    them with chamfered corners. A machine whose box can't keep a 2-cell owned
+    ring is left out.
+  - **Pipe runs:** neighbouring machines across or down are joined, with
+    chance 0.7, along a row both face, when at least 3 cells part them. The
+    game is 2D, so a pipe blocks movement but not sight or shots, as a window
+    does (obstacle kind `pipe`, 29; 17 M34). Each run leaves one gap a door
+    wide, 2 cells, at a seeded place, which both roles use. A gap only a
+    contestant fits waits for the squeeze balance (P-04). Gantries wait for
+    collision planes (16).
+  - **Why that keeps the promise:** every machine's and the shed's box keeps
+    2 clear cells from every other's and from any cell the region doesn't
+    own, and so does every run's but for the two machines it joins. A run
+    stays in its machines' band and crosses only the aisle between them, so
+    runs never meet. Machines and runs can wall ground in, but every run has
+    its door-wide gap, so no ground is shut off. So a `plant` region keeps
+    the portal promise exactly when its shape does.
+  - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
+    disc stands clear of every piece, indoors or out.
+  - **Core elements:** it sites none. Any its brief lists are left for the
+    report.
+  - **Too small:** a region with no contained 10 × 10 goes to `open` (17
+    M24).
+- **Shape needs:** *proposed*, at least 10 × 10, as `depot`.
+- **Formed by:** enormous and small set pieces, where the old library's
+  `industrial` pieces were.
+
 ### `compound`
 
 - **Role:** rooms in a ring around a walled court, with two or three gates.
@@ -481,23 +524,6 @@ parameters, keeps its promise and sites no core elements.
   `hall`.
 - **Formed by:** enormous and medium set pieces, where the old library's
   `market` pieces were.
-
-### `plant`
-
-- **Role:** the half of the old `industrial` that isn't a warehouse. Big
-  machinery blocks and pipe runs on a factory floor: hard cover, long lines
-  between machines, and a few tight corners.
-- **Strategy:** *proposed* (#219), machinery as large convex blocks on a
-  coarse grid, joined by low pipe runs, with an optional roofed shed over
-  part of the floor. The game is 2D, so a pipe run blocks movement but not
-  sight, like a window, and leaves door-wide gaps both roles can use (17
-  M34). A gap only a contestant fits waits for the squeeze balance (P-04).
-  Gantries wait for collision planes (16).
-- **Stand-in:** `depot`. Its container rows and aisles give the long lines
-  and hard corners.
-- **Shape needs:** *proposed*, as `depot`.
-- **Formed by:** enormous and small set pieces, where the old library's
-  `industrial` pieces were.
 
 ### `checkpoint`
 
@@ -644,7 +670,7 @@ The old names come back like this (17.2.7):
 | `compound` | `example-courtyard`, 19's ring example (built, #160) | `courtyard`, `compound` |
 | `block` | `decomposition/example.ts`, `realize.ts`, `negotiate.ts` (built on spacing instead, #161) | — |
 | `market` | `hall` (its stand-in) | `pillar-hall` |
-| `plant` | `depot` (its stand-in) | — |
+| `plant` | `depot`'s warehouse for its shed (built, #219) | — |
 | `checkpoint` | `cover` (its stand-in) | — |
 | `park` | `cover` (its stand-in) | `open-field` |
 | `arrival` | `example-entry`, `spreadPoints` | — |

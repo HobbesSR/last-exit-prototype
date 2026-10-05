@@ -61,6 +61,22 @@ test('building roofs hide interiors outside, while windows pass sight and bullet
   assert.ok(p.y >= b.y + 29.9, 'body stays behind window');
 });
 
+test('a pipe run, like a window, passes sight and bullets but blocks movement and hands', () => {
+  const { s, p } = fixture();
+  let spot;
+  for (let y = 600; !spot && y < s.map.height; y += 100) for (let x = 600; x < s.map.width; x += 100)
+    if (canOccupy(s.map, x, y, 120)) { spot = { x, y }; break; }
+  s.map.obstacles.push({ id: 'pipe-test', kind: 'pipe', x: spot.x - 60, y: spot.y - 6, w: 120, h: 12 });
+  const north = { x: spot.x, y: spot.y - 50 }, south = { x: spot.x, y: spot.y + 50 };
+  assert.equal(lineClear(s.map, north, south), true);
+  assert.equal(reachClear(s.map, north, south), false);
+  assert.equal(canOccupy(s.map, spot.x, spot.y, 2, false, true), true);
+  assert.equal(canOccupy(s.map, spot.x, spot.y, 12), false);
+  Object.assign(p, north);
+  for (let i = 0; i < 20; i++) movePlayer(s.map, p, { y: 1 });
+  assert.ok(p.y < spot.y - 6, 'body stays behind the pipe');
+});
+
 test('doors open, admit both body sizes, close, and refuse to close on an occupant', () => {
   const { s, p } = fixture(), door = s.map.gates.find(g => !g.locked);
   Object.assign(p, { x: door.x, y: door.y + 55 });

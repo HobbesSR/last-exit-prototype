@@ -172,7 +172,7 @@ const DESIGNS: ReadonlyArray<Design> = [
 /** The last resort: the whole box is the floor, with a door centred on each end. */
 const ONE_ROOM: Design = [{ id: 'floor', share: [1, 1] }];
 
-type Warehouse = { design: BuildingDesign; allocation: BuildingAllocation; realization: BuildingRealization;
+export type Warehouse = { design: BuildingDesign; allocation: BuildingAllocation; realization: BuildingRealization;
   template: ElementTemplate; rejected: { design: string; reason: string }[] };
 
 /**
@@ -182,9 +182,10 @@ type Warehouse = { design: BuildingDesign; allocation: BuildingAllocation; reali
  * window; the store for a door into the floor. A design is kept only if at least two doors
  * lead outside, so the warehouse stays a way through, and every space is reached through a
  * door from outside. Each design passed over is named in `rejected` with why. Missed openings
- * are guidance and stay as misses (M29). Shelves stand on the floor.
+ * are guidance and stay as misses (M29). Shelves stand on the floor. `plant` builds its shed
+ * with it too.
  */
-function warehouse(size: number, w: number, h: number, alongX: boolean, seed: number): Warehouse {
+export function warehouse(size: number, w: number, h: number, alongX: boolean, seed: number): Warehouse {
   const area = w * h, cells = Array.from({ length: area }, (_, i) => ({ x: i % w, y: Math.floor(i / w) }));
   const ends: readonly BuildingSide[] = alongX ? ['W', 'E'] : ['N', 'S'];
   const rejected: Warehouse['rejected'] = [];

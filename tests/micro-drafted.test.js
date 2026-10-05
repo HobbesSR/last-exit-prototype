@@ -21,7 +21,7 @@ const MASKS = {
 };
 
 // 54, "Drafted types": each is its own name, bound to the nearest built strategy.
-const STAND_INS = { market: 'hall', plant: 'depot', checkpoint: 'cover', park: 'cover' };
+const STAND_INS = { market: 'hall', checkpoint: 'cover', park: 'cover' };
 
 test('each drafted type builds what its stand-in builds, under its own name', () => {
   for (const [type, standIn] of Object.entries(STAND_INS)) {
