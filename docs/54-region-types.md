@@ -313,8 +313,10 @@ inside, and windows and doors let sight through.
     out on the far end, where it can front the warehouse, and a window. The
     store asks for a door into the floor. A design is kept only if at least
     two doors lead outside, so the warehouse stays a way through, and every
-    space is reached through doors. A box no design fits, such as
-    `roomCells` 6, is one room with a doorway-wide door centred on each end.
+    space is reached through doors. A box neither fits, such as
+    `roomCells` 6, is a one-room design with a doorway-wide door centred on
+    each end. Every warehouse is traced for the lab, and the trace names the
+    designs passed over and why.
     Shelf islands a cell across run down the floor, keeping 2 cells from its
     walls and from each other. The interior is guidance and adds nothing to
     the promise, which the box's clear ring keeps (M29).

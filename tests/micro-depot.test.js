@@ -5,6 +5,7 @@ import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from 
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { bounds, circle } from '../shared/shape.ts';
+import { designsNotUsed } from '../map/micro/building/draw.ts';
 
 const SIZE = 40;
 const cellsOf = (w, h, keep = () => true) => {
@@ -110,12 +111,25 @@ test('warehouses are roofed designs, a way through with every space reached, and
   assert.deepEqual([...designs].sort(), ['floor+office', 'floor+office+store']);
 });
 
-test('a warehouse box too small for a design is one room with a door at each end', () => {
+test('a warehouse box too small for several spaces is one room with a door at each end, traced with why', () => {
   const [cells, portals] = MASKS.field;
-  const result = buildRegion(brief('field', 1, cells, portals, { density: 1, roomCells: 6 }));
+  const traces = new Map();
+  const result = buildRegion(brief('field', 1, cells, portals, { density: 1, roomCells: 6 }), undefined, trace => traces.set(trace.label, trace));
+  const warehouses = result.elements.filter(e => e.label.startsWith('depot-warehouse'));
+  assert.ok(warehouses.length > 0, 'warehouses were built');
+  assert.equal(result.manifest.warehouses, warehouses.length);
   assert.equal(result.manifest.designed, 0);
-  for (const element of result.elements.filter(e => e.label.startsWith('depot-warehouse')))
+  assert.equal(traces.size, warehouses.length, 'every warehouse is traced');
+  for (const element of warehouses) {
+    const trace = traces.get(element.label);
+    assert.deepEqual(trace.design.spaces.map(space => space.id), ['floor']);
+    assert.equal(trace.realization.openings.filter(o => o.kind === 'door').length, 2);
     assert.equal(element.template.parts.filter(p => p.part === 'gate').length, 2);
+    // Both designs with several spaces are named, each with its reason, and the lab shows them.
+    assert.deepEqual(trace.rejected.map(r => r.design).sort(), ['floor+office', 'floor+office+store']);
+    for (const { reason } of trace.rejected) assert.ok(reason.length > 0);
+    assert.deepEqual(designsNotUsed(trace), trace.rejected.map(r => `Design not used: ${r.design}, ${r.reason}`));
+  }
 });
 
 test('every aisle is open to a contestant, indoors and out', () => {

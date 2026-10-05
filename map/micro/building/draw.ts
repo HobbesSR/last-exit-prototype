@@ -52,8 +52,12 @@ export function traceSummary(trace: BuildingTrace): string {
 export function guidanceNotMet(trace: BuildingTrace): string[] {
   return unmetConnections(trace).map(c => `Guidance not met: ${c.id} (${c.kind}, ${c.a}–${c.b}), ${trace.realization.misses.find(m => m.connectionId === c.id)?.reason ?? 'no opening'}`);
 }
+/** One line per design a strategy tried before this building's and didn't use, with why. */
+export function designsNotUsed(trace: BuildingTrace): string[] {
+  return (trace.rejected ?? []).map(({ design, reason }) => `Design not used: ${design}, ${reason}`);
+}
 
-const gridPoint = (x: number, y: number, size: number, at: Point): Point => ({ x: at.x + x * size, y: at.y + y * size });
+const gridPoint =(x: number, y: number, size: number, at: Point): Point => ({ x: at.x + x * size, y: at.y + y * size });
 const runEnd = (run: { axis: 'h' | 'v'; x: number; y: number; length: number }) => ({ x: run.x + (run.axis === 'h' ? run.length : 0), y: run.y + (run.axis === 'v' ? run.length : 0) });
 /** The centre of some of a building's allocation cells, in world units. */
 function centroid(trace: BuildingTrace, cells: readonly Point[]): Point {

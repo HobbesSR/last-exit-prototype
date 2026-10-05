@@ -207,8 +207,10 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     region's traces in world units through `map/micro/building/draw.ts`,
     the drawing the micro lab uses: a `block`'s lots (`planBlock`), each
     building's spaces and allocation, spans, openings and design graph. The
-    inspector summarises each building and lists the guidance it didn't
-    meet, as warnings. Its buttons open the region's brief in the micro lab,
+    inspector summarises each building and names any designs its strategy
+    tried first and didn't use, with why (a trace's `rejected`, such as a
+    `depot` warehouse that fell back to one room). It also lists the guidance
+    the building didn't meet, as warnings. Its buttons open the region's brief in the micro lab,
     and a `block`'s in the generation demo too, on the game's dev server
     when it runs in the same worktree (20.5). They also save the brief as
     JSON, which the micro lab imports.

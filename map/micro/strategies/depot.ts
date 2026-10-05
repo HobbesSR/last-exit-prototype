@@ -1,5 +1,4 @@
 import { rect } from '../../../shared/shape.ts';
-import { emitWallRun } from '../building/walls.ts';
 import { allocateBuilding } from '../building/allocation.ts';
 import { realizeBuilding } from '../building/realize.ts';
 import type { BuildingRealization } from '../building/realize.ts';
@@ -44,11 +43,10 @@ const CHANNEL = { axis: 1, phase: 2, site: 3, row: 4, length: 5, loot: 6, design
  * Everything lines up on lanes `LANE` cells apart along one axis, drawn from the seed.
  * Warehouses come first: roofed boxes `roomCells` long, at seeded places on the lanes until
  * about `density` of a quarter of the ground is spoken for. Each is a building design (56),
- * largest first: a floor with an office and a store, then a floor with an office. The floor
- * keeps a doorway-wide door at each end, and shelf islands run down its length. A box no
- * design fits is one room with a door at each end (`openFloor`). Container rows follow, two or three containers end to
- * end, packed along each lane around the warehouses. Each place that fits one is taken with
- * chance `density`.
+ * in a seeded order a floor with an office and a store, or a floor with an office, and one
+ * room with a door at each end where neither fits (`warehouse`). Shelf islands run down the
+ * floor. Container rows follow, two or three containers end to end, packed along each lane
+ * around the warehouses. Each place that fits one is taken with chance `density`.
  *
  * Every piece's box keeps `AISLE` clear cells from every other piece's and from any cell the
  * region doesn't own, so no route search is needed. Each box is convex with a clear ring wider
@@ -60,7 +58,8 @@ const CHANNEL = { axis: 1, phase: 2, site: 3, row: 4, length: 5, loot: 6, design
  * every wall, door, shelf and container, indoors or out. A depot sites no core elements; any
  * the brief lists are left for the report.
  *
- * `observe`, when given, sees each designed warehouse's design, allocation and realization.
+ * `observe`, when given, sees each warehouse's design, allocation and realization, and the
+ * designs passed over with why. The manifest's `designed` counts warehouses of several spaces.
  */
 export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): BuiltRegion {
   const density = fraction(brief, 'Depot', 'density', DEFAULT_DENSITY);
@@ -108,12 +107,11 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
     const label = `depot-warehouse-${++warehouses}`;
     const seed = Math.floor(draw(brief.seed, u, v, CHANNEL.design) * 2 ** 31);
     place(label, u, v, room, across, (w, h) => {
-      const built = designedWarehouse(size, w, h, alongX, seed);
-      if (!built) return openFloor(size, w, h, alongX);
-      designed++;
+      const { design, allocation, realization, template, rejected } = warehouse(size, w, h, alongX, seed);
+      if (design.spaces.length > 1) designed++;
       const [x, y] = alongX ? [u, v] : [v, u];
-      observe?.({ label, origin: { x: x * size, y: y * size }, cellSize: size, design: built.design, allocation: built.allocation, realization: built.realization });
-      return built.template;
+      observe?.({ label, origin: { x: x * size, y: y * size }, cellSize: size, design, allocation, realization, ...rejected.length ? { rejected } : {} });
+      return template;
     });
   }
 
@@ -161,47 +159,57 @@ function shelves(size: number, alongX: boolean, u0: number, length: number, v0: 
   return parts;
 }
 
+type Design = ReadonlyArray<{ id: string; share: readonly [number, number] }>;
 /**
- * The warehouse designs, with each space's share of the box (56). The floor takes at least
- * half; an office and a store, each at least 3 × 3, take the rest. Labels and shares are
- * guidance (17.2.8 M28).
+ * The warehouse designs with several spaces, with each space's share of the box (56). The
+ * floor takes at least half; an office and a store, each at least 3 × 3, take the rest.
+ * Labels and shares are guidance (17.2.8 M28).
  */
-const DESIGNS: ReadonlyArray<ReadonlyArray<{ id: string; share: readonly [number, number] }>> = [
+const DESIGNS: ReadonlyArray<Design> = [
   [{ id: 'floor', share: [0.5, 1] }, { id: 'office', share: [0, 0.25] }, { id: 'store', share: [0, 0.25] }],
   [{ id: 'floor', share: [0.5, 1] }, { id: 'office', share: [0, 0.4] }],
 ];
+/** The last resort: the whole box is the floor, with a door centred on each end. */
+const ONE_ROOM: Design = [{ id: 'floor', share: [1, 1] }];
 
-type DesignedWarehouse = { design: BuildingDesign; allocation: BuildingAllocation; realization: BuildingRealization; template: ElementTemplate };
+type Warehouse = { design: BuildingDesign; allocation: BuildingAllocation; realization: BuildingRealization;
+  template: ElementTemplate; rejected: { design: string; reason: string }[] };
 
 /**
- * A warehouse `w` × `h` cells from the first design that fits, in a seeded order, or nothing.
- * The floor is asked for a door on each end; the office for a door into the floor, a door out
- * on the far end, where it can front the warehouse, and a window; the store for a door into
- * the floor. A design is kept only if at least two doors lead outside, so the warehouse stays
- * a way through, and every space is reached through a door from outside. Missed openings are
- * guidance and stay as misses (M29). Shelves stand on the floor.
+ * A warehouse `w` × `h` cells from the first design that fits: the designs with several spaces
+ * in a seeded order, then one room. The floor is asked for a door on each end; the office for
+ * a door into the floor, a door out on the far end, where it can front the warehouse, and a
+ * window; the store for a door into the floor. A design is kept only if at least two doors
+ * lead outside, so the warehouse stays a way through, and every space is reached through a
+ * door from outside. Each design passed over is named in `rejected` with why. Missed openings
+ * are guidance and stay as misses (M29). Shelves stand on the floor.
  */
-function designedWarehouse(size: number, w: number, h: number, alongX: boolean, seed: number): DesignedWarehouse | undefined {
+function warehouse(size: number, w: number, h: number, alongX: boolean, seed: number): Warehouse {
   const area = w * h, cells = Array.from({ length: area }, (_, i) => ({ x: i % w, y: Math.floor(i / w) }));
   const ends: readonly BuildingSide[] = alongX ? ['W', 'E'] : ['N', 'S'];
-  for (const spaces of seed % 2 ? [...DESIGNS].reverse() : DESIGNS) {
+  const rejected: Warehouse['rejected'] = [];
+  for (const spaces of [...seed % 2 ? [...DESIGNS].reverse() : DESIGNS, ONE_ROOM]) {
+    const ids = spaces.map(space => space.id), name = ids.join('+');
+    const reject = (reason: string) => { rejected.push({ design: name, reason }); };
     const asked: BuildingDesign = {
       spaces: spaces.map(({ id, share: [min, max] }) => ({ id, area: { min: Math.max(9, Math.ceil(min * area)), max: Math.floor(max * area) },
         outside: 'prefer' as const, tags: [id] })),
       connections: [
         ...ends.map((side, i) => ({ id: `door-${i + 1}`, a: 'floor', b: OUTSIDE, kind: 'door' as const, side })),
-        ...spaces.slice(1).map(({ id }) => ({ id: `${id}-door`, a: 'floor', b: id, kind: 'door' as const })),
-        { id: 'office-entrance', a: 'office', b: OUTSIDE, kind: 'door', side: ends[1] },
-        { id: 'office-window', a: 'office', b: OUTSIDE, kind: 'window' },
+        ...ids.slice(1).map(id => ({ id: `${id}-door`, a: 'floor', b: id, kind: 'door' as const })),
+        ...ids.includes('office') ? [
+          { id: 'office-entrance', a: 'office', b: OUTSIDE, kind: 'door' as const, side: ends[1] },
+          { id: 'office-window', a: 'office', b: OUTSIDE, kind: 'window' as const },
+        ] : [],
       ],
     };
     const allocated = allocateBuilding(asked, cells, { seed });
-    if (!allocated.ok) continue;
+    if (!allocated.ok) { reject(allocated.reason); continue; }
     const { design, allocation } = allocated;
     const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: true, corners: 'horizontal' });
-    if (!realization.template || realization.issues.length) continue;
+    if (!realization.template || realization.issues.length) { reject(realization.issues.join(' ') || 'it could not be realized'); continue; }
     const exits = realization.openings.filter(({ kind, a, b }) => kind === 'door' && (a === OUTSIDE || b === OUTSIDE));
-    if (exits.length < 2) continue;
+    if (exits.length < 2) { reject(`${exits.length} door${exits.length === 1 ? '' : 's'} out, fewer than two`); continue; }
     const reached = new Set([OUTSIDE]);
     for (let grown = true; grown;) {
       grown = false;
@@ -210,38 +218,16 @@ function designedWarehouse(size: number, w: number, h: number, alongX: boolean, 
         reached.add(a); reached.add(b); grown = true;
       }
     }
-    if (reached.size !== spaces.length + 1) continue;
+    const unreached = ids.filter(id => !reached.has(id));
+    if (unreached.length) { reject(`no door reaches ${unreached.join(', ')}`); continue; }
     const floor = allocation.spaces.find(space => space.id === 'floor')!.cells;
     const us = floor.map(c => alongX ? c.x : c.y), vs = floor.map(c => alongX ? c.y : c.x), u0 = Math.min(...us);
     const template = { ...realization.template, parts: [...realization.template.parts,
       ...shelves(size, alongX, u0, Math.max(...us) + 1 - u0, Math.min(...vs), Math.max(...vs) + 1)] };
-    return { design, allocation, realization, template };
+    return { design, allocation, realization, template, rejected };
   }
-  return undefined;
-}
-
-/**
- * A warehouse `w` × `h` cells as one room, its long side along u: walls on its box's edge, a
- * doorway-wide door centred on each end, and shelves down its length. It encloses, so it has
- * a roof. Used where no design fits the box.
- */
-function openFloor(size: number, w: number, h: number, alongX: boolean): ElementTemplate {
-  const [length, width] = alongX ? [w, h] : [h, w];
-  const wall = (at: number, parallel: boolean, opening = false) => {
-    const run = alongX
-      ? parallel ? { axis: 'h' as const, x: 0, y: at, length } : { axis: 'v' as const, x: at, y: 0, length: width }
-      : parallel ? { axis: 'v' as const, x: at, y: 0, length } : { axis: 'h' as const, x: 0, y: at, length: width };
-    return emitWallRun(run, { cellSize: size, thickness: WALL, offset: at === 0 ? 0 : -WALL,
-      trimStart: parallel ? 0 : WALL, trimEnd: parallel ? 0 : WALL,
-      openings: opening ? [{ center: width / 2, length: CELL_SCALE.doorway, kind: 'door' as const }] : [] });
-  };
-  const parts: ElementTemplate['parts'] = [...wall(0, true), ...wall(width, true)];
-  for (const end of [0, length]) {
-    const emitted = wall(end, false, true);
-    parts.push(...emitted.filter(part => part.part === 'obstacle'), ...emitted.filter(part => part.part === 'gate'));
-  }
-  parts.push(...shelves(size, alongX, 0, length, 0, width));
-  return { w: w * size, h: h * size, encloses: true, parts };
+  // One room with a door on each end always fits a box at least 5 cells a side. A miss here is a defect, not a new fallback.
+  throw new Error(`A ${w} × ${h} warehouse could not be built as one room: ${rejected.at(-1)?.reason}`);
 }
 
 /** A row of containers end to end, `w` × `h` cells with its length along u, each a little inside its 2 cells. */
