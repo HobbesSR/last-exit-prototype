@@ -193,6 +193,16 @@ try {
   await page.locator('#import').setInputFiles({ name: 'brief.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(lone)) });
   await page.waitForFunction(id => window.microLabDebug().imported === id, lone.id);
   assert.deepEqual((await page.evaluate(() => window.microLabDebug().result)), JSON.parse(JSON.stringify(chain.results.find(r => r.brief.id === lone.id))));
+  // A region-2 result is rebuilt from its brief and compared by structure, so key order doesn't matter.
+  const reordered = value => Array.isArray(value) ? value.map(reordered) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).reverse().map(([k, v]) => [k, reordered(v)])) : value;
+  const storedHut = chain.results.find(r => r.brief.id === lone.id);
+  await page.locator('#import').setInputFiles({ name: 'result.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(reordered(storedHut))) });
+  await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Loaded result.json'));
+  assert.doesNotMatch(await page.locator('#status').textContent(), /differs/, 'a reordered but equal result is not reported as different');
+  const altered = structuredClone(storedHut); altered.loot.pop();
+  await page.locator('#import').setInputFiles({ name: 'altered.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(altered)) });
+  await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Loaded altered.json'));
+  assert.match(await page.locator('#status').textContent(), /differs from the file at result\.loot/);
   await page.getByLabel('Builder', { exact: true }).selectOption('ruins');
   await page.waitForFunction(() => window.microLabDebug().result?.spec?.builder === 'ruins' && window.microLabDebug().imported === null);
   await page.getByLabel('Body scale').selectOption('live');

@@ -9,6 +9,7 @@ import type { ToolMap } from "../core.ts";
 import type { RegionBrief } from "../../kernel/contract.ts";
 import { buildRegion } from "../../micro/region-types.ts";
 import { planBlock } from "../../micro/strategies/block.ts";
+import { firstDifference } from "../../micro/difference.ts";
 import type { BuildingTrace } from "../../micro/building/trace.ts";
 
 export type LabRequest =
@@ -22,20 +23,6 @@ export type LabReply =
   | { kind: "diagnosis"; brokenPromises: NonNullable<ReturnType<typeof checkMap>["brokenPromises"]>; ms: number }
   | { kind: "drill"; id: string; traces: BuildingTrace[]; lots: RegionBrief[]; difference: string | null; ms: number }
   | { kind: "error"; message: string };
-
-/** Where two plain values first differ, as a path, or null when they are equal. */
-function firstDifference(a: unknown, b: unknown, at = "result"): string | null {
-  // A JSON round trip reads -0 as 0, so numbers compare with ===.
-  if (a === b || (Number.isNaN(a) && Number.isNaN(b))) return null;
-  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null || Array.isArray(a) !== Array.isArray(b))
-    return `${at}: ${JSON.stringify(a)?.slice(0, 60)} rebuilt, ${JSON.stringify(b)?.slice(0, 60)} stored`;
-  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
-  for (const key of keys) {
-    const found = firstDifference((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key], Array.isArray(a) ? `${at}[${key}]` : `${at}.${key}`);
-    if (found) return found;
-  }
-  return null;
-}
 
 /**
  * Rebuild a region with an observer, as the map built it (53 "Region drill-down"). The

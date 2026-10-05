@@ -4,6 +4,7 @@ import { microExample } from '/map/micro/examples.ts';
 import { buildRegion } from '/map/micro/region-types.ts';
 import { drawAllocation, drawDesignGraph, drawOpenings, drawSpans, guidanceNotMet, traceSummary } from '/map/micro/building/draw.ts';
 import { briefFromFragment } from '/map/micro/brief-link.ts';
+import { firstDifference } from '/map/micro/difference.ts';
 import { canOccupy, moveBody } from '/shared/movement.ts';
 import { microMetrics } from '/map/micro/metrics.ts';
 import { createRegionMask, elementShapes, portalStands, spreadPoints, validatePortalReach } from '/map/micro/sdk.ts';
@@ -200,8 +201,8 @@ $('import').addEventListener('change', async event => {
     const data = JSON.parse(await file.text());
     // A brief, or a region result, which is rebuilt from its brief and compared (20.5).
     if (data.version === 'region-2' || (!data.version && typeof data.type === 'string' && Array.isArray(data.zones))) {
-      if (showImported(data.version ? data.brief : data, `Loaded ${file.name}.`) && data.version && JSON.stringify(result) !== JSON.stringify(data))
-        $('status').textContent += ' Rebuilt from its brief, it differs from the file.';
+      const difference = showImported(data.version ? data.brief : data, `Loaded ${file.name}.`) && data.version ? firstDifference(result, data) : null;
+      if (difference) $('status').textContent += ` Rebuilt from its brief, it differs from the file at ${difference}.`;
       event.target.value = ''; return;
     }
     const candidate = data.version ? data : generateMicroRegion(data);
