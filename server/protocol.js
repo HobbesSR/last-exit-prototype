@@ -1,4 +1,5 @@
 // Transport limits and envelope decoding. Stateful input queueing stays in simulation.
+import { isArenaSeed } from '../shared/simulation/rules.ts';
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
 const MAX_MESSAGES_PER_SECOND = 70;
@@ -12,5 +13,5 @@ export function acceptMessageRate(window, now) {
 }
 export function roomSeed(body) {
   const seed = Number(body?.seed ?? 4217);
-  return Number.isInteger(seed) && seed >= 1 && seed <= 2147483647 ? seed : null;
+  return isArenaSeed(seed) ? seed : null;
 }

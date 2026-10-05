@@ -3,6 +3,9 @@ import type { Kit, KitSpec, Tick } from '../types.ts';
 
 export const VERSION = 'last-exit-0.7';
 export const HZ = 20;
+/** The seeds a room accepts: whole numbers from 1 to this. */
+export const MAX_ARENA_SEED = 2147483647;
+export const isArenaSeed = (seed: number): boolean => Number.isInteger(seed) && seed >= 1 && seed <= MAX_ARENA_SEED;
 /**
  * Ticks the client's receive buffer holds a frame before drawing it. A presentation choice that hit
  * resolution has to know about: it is part of how far behind a player's view runs when they aim.

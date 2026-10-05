@@ -13,6 +13,7 @@ import { firstDifference } from "../../micro/difference.ts";
 import type { BuildingTrace } from "../../micro/building/trace.ts";
 import type { RegionElement } from "../../micro/types.ts";
 import { measureRoutes } from "../routes.ts";
+import { liveMismatch, liveRecipeMismatch } from "../../live.ts";
 import type { RouteMeasure } from "../routes.ts";
 import type { Vec2 } from "../../../shared/types.ts";
 
@@ -24,7 +25,7 @@ export type LabRequest =
   | { kind: "routes"; built: BuiltMap<RegionElement>; from: Vec2; to: Vec2 };
 
 export type LabReply =
-  | { kind: "map"; map: ToolMap; ms: number }
+  | { kind: "map"; map: ToolMap; ms: number; live: string[] }
   | { kind: "diagnosis"; brokenPromises: NonNullable<ReturnType<typeof checkMap>["brokenPromises"]>; ms: number }
   | { kind: "drill"; id: string; traces: BuildingTrace[]; lots: RegionBrief[]; difference: string | null; ms: number }
   | { kind: "routes"; measure: RouteMeasure; ms: number }
@@ -44,10 +45,16 @@ function answer(request: LabRequest): LabReply {
   const started = performance.now();
   const ms = () => performance.now() - started;
   switch (request.kind) {
-    case "generate":
-      return { kind: "map", map: generate(request.seed, request.params, request.library), ms: ms() };
-    case "read":
-      return { kind: "map", map: readMap(request.saved), ms: ms() };
+    // Why a room wouldn't play the map (53 "Play in the game"). A map just generated is its
+    // recipe's by construction; a read one is compared with its seed's, as a save can be edited.
+    case "generate": {
+      const map = generate(request.seed, request.params, request.library);
+      return { kind: "map", map, ms: ms(), live: liveRecipeMismatch(map) };
+    }
+    case "read": {
+      const map = readMap(request.saved);
+      return { kind: "map", map, ms: ms(), live: liveMismatch(map) };
+    }
     case "diagnose":
       return { kind: "diagnosis", brokenPromises: checkMap(request.map, { diagnose: true }).brokenPromises!, ms: ms() };
     case "drill":
