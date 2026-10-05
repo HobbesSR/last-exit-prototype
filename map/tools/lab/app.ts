@@ -19,6 +19,7 @@ import type { RegionElement } from "../../micro/types.ts";
 import { briefFragment } from "../../micro/brief-link.ts";
 import { drawAllocation, drawDesignGraph, drawOpenings, drawSpans, guidanceNotMet, traceSummary } from "../../micro/building/draw.ts";
 import type { BuildingTrace } from "../../micro/building/trace.ts";
+import type { RouteMeasure } from "../routes.ts";
 import { outline } from "../../../shared/shape.ts";
 import type { ObstacleKind } from "../../../shared/types.ts";
 import { chainDraft, openChainEntry, renderChainLibrary } from "./chain-author.ts";
@@ -76,10 +77,15 @@ let drill: {
   /** The brief as a link's fragment (`brief-link.ts`), once encoded. */
   fragment: string | null;
 } | null = null;
-/** What each trace layer last drew, for the browser test. */
+/** What each drill-down and route layer last drew, for the browser test. */
 let drawnTraces: Record<string, object> = {};
 /** The game's dev server, where the micro tools are, when it runs in this worktree (20.5). */
 let gameUrl: string | null = null;
+/**
+ * Contestant and hunter routes between two points of the built map (53 "Routes"), measured on
+ * request in a worker. `from` and `to` name the panel's choices: a site, or the selected cell.
+ */
+let routes: { from: string; to: string; pending: boolean; measure: RouteMeasure | null; error: string; ms: number } | null = null;
 
 // ── Workers ─────────────────────────────────────────────────────────────────
 
@@ -87,6 +93,7 @@ const WORKER_URL = new URL("./worker.ts", import.meta.url);
 let mapWorker: Worker | null = null;
 let diagnoseWorker: Worker | null = null;
 let drillWorker: Worker | null = null;
+let routesWorker: Worker | null = null;
 
 /** One request on a worker of its own, so a newer request or a cancel can terminate it. */
 function ask(previous: Worker | null, request: LabRequest, reply: (answer: LabReply) => void): Worker {
@@ -186,6 +193,9 @@ function show(next: ToolMap): void {
   drillWorker?.terminate();
   drillWorker = null;
   drill = null;
+  routesWorker?.terminate();
+  routesWorker = null;
+  routes = null;
   fillParams(map.layout.params);
   input("seed").value = map.layout.seed;
   const { width, height } = views.resolved;
@@ -202,6 +212,8 @@ function show(next: ToolMap): void {
   fit();
   renderReport();
   renderDiagnosis();
+  renderRouteChoices();
+  renderRoutes();
   renderInspector();
   setStatus(`${map.layout.seed}: ${views.regions.regions.length} regions, ${check.valid ? "no defects" : `${check.defects.length} defects`}, generated in ${(lastMs / 1000).toFixed(2)} s`);
 }
@@ -784,6 +796,49 @@ const LAYERS: Layer[] = [
     inspect: (_, { built }) => (built?.coreElements.length ? [`Core elements: ${built.coreElements.map((site) => site.kind).join(", ")}`] : []),
   },
   {
+    id: "routes", pass: "marks", label: "Routes: contestant and hunter", stage: "built", on: true, opacity: 1,
+    legend: () => [["contestant route", CONTESTANT_ROUTE], ["hunter route", HUNTER_ROUTE], ["squeeze, contestant only", SQUEEZE], ["no route", "#ff5a4a"]],
+    paint: (g, v, px) => {
+      const measure = routes?.measure;
+      if (!measure) return;
+      const { cellSize } = v.built, unit = px * cellSize;
+      g.save();
+      g.scale(1 / cellSize, 1 / cellSize);
+      g.lineCap = g.lineJoin = "round";
+      // The hunter's wider line goes under the contestant's, so both show where they share ground.
+      for (const [route, colour, width] of [[measure.hunter, HUNTER_ROUTE, 7], [measure.contestant, CONTESTANT_ROUTE, 3]] as const) {
+        if (!route.points.length) continue;
+        g.strokeStyle = colour;
+        g.lineWidth = width * unit;
+        g.stroke(routePath(route.points));
+      }
+      // A body with no route gets a dashed line straight to the target, so it can't pass unseen.
+      if (!measure.contestant.points.length || !measure.hunter.points.length) {
+        g.strokeStyle = "#ff5a4a";
+        g.lineWidth = 2 * unit;
+        g.setLineDash([8 * unit, 6 * unit]);
+        g.stroke(routePath([measure.from, measure.to]));
+        g.setLineDash([]);
+      }
+      g.strokeStyle = SQUEEZE;
+      for (const run of measure.squeezes) {
+        g.lineWidth = 4 * unit;
+        g.stroke(routePath(run));
+        dot(g, run[0]!.x, run[0]!.y, 9 * unit);
+        g.lineWidth = 2 * unit;
+        g.stroke();
+      }
+      for (const end of [measure.from, measure.to]) {
+        dot(g, end.x, end.y, 7 * unit);
+        g.strokeStyle = "#ffffff";
+        g.lineWidth = 2 * unit;
+        g.stroke();
+      }
+      g.restore();
+      drawnTraces.routes = { contestant: measure.contestant.points.length, hunter: measure.hunter.points.length, squeezes: measure.squeezes.length };
+    },
+  },
+  {
     id: "defects", pass: "areas", label: "Defect regions", stage: "report", on: true, opacity: 1,
     cells: () => {
       const named = defectRegions();
@@ -1054,6 +1109,95 @@ function cancelDiagnosis(): void {
   renderDiagnosis();
 }
 
+// ── Routes ──────────────────────────────────────────────────────────────────
+
+const SELECTED_CELL = "selected";
+const CONTESTANT_ROUTE = "#7fd0ff";
+const HUNTER_ROUTE = "#ff7a6b";
+const SQUEEZE = "#ffe14d";
+
+/** The built map's core element sites, named by kind and number: "spawn 1", "exit 2". */
+function routeSites(v: Views): Array<{ name: string; x: number; y: number }> {
+  const seen = new Map<string, number>();
+  return v.built.regions.flatMap((region) => region.coreElements).map((site) => {
+    const n = (seen.get(site.kind) ?? 0) + 1;
+    seen.set(site.kind, n);
+    return { name: `${site.kind} ${n}`, x: site.x, y: site.y };
+  });
+}
+
+/** A route end the panel names, in the built map's coordinates; null for an unselected cell. */
+function routeEnd(v: Views, name: string): { x: number; y: number } | null {
+  if (name !== SELECTED_CELL) return routeSites(v).find((site) => site.name === name) ?? null;
+  if (!selected) return null;
+  const { cellSize } = v.built;
+  return { x: (selected.x + 0.5) * cellSize, y: (selected.y + 0.5) * cellSize };
+}
+
+/** The panel's choices for a new map: every site, or the selected cell; a spawn to an exit at first. */
+function renderRouteChoices(): void {
+  const names = views ? routeSites(views).map((site) => site.name) : [];
+  for (const [id, first] of [["routeFrom", "spawn 1"], ["routeTo", "exit 1"]] as const) {
+    select(id).replaceChildren(...[...names, SELECTED_CELL].map((name) =>
+      Object.assign(element("option", name === SELECTED_CELL ? "the selected cell" : name), { value: name })));
+    select(id).value = names.includes(first) ? first : SELECTED_CELL;
+  }
+}
+
+function measureRoutes(): void {
+  if (!views) return;
+  const v = views, from = select("routeFrom").value, to = select("routeTo").value;
+  const a = routeEnd(v, from), b = routeEnd(v, to);
+  routesWorker?.terminate();
+  routesWorker = null;
+  if (!a || !b) {
+    routes = { from, to, pending: false, measure: null, error: "Select a cell on the map first.", ms: 0 };
+    return renderRoutes();
+  }
+  routes = { from, to, pending: true, measure: null, error: "", ms: 0 };
+  const forMap = map, asked = routes;
+  routesWorker = ask(null, { kind: "routes", built: v.built, from: a, to: b }, (reply) => {
+    routesWorker = null;
+    if (map !== forMap || routes !== asked) return;
+    routes = reply.kind === "routes" ? { ...asked, pending: false, measure: reply.measure, ms: reply.ms }
+      : { ...asked, pending: false, error: reply.kind === "error" ? reply.message : "unexpected reply" };
+    renderRoutes();
+    draw();
+  });
+  renderRoutes();
+  draw();
+}
+
+/** A route's line in the panel: its length, or plainly that there's none. */
+function routeLine(name: string, route: RouteMeasure["contestant"]): HTMLElement {
+  return route.length === null
+    ? element("p", `${name} (clearance ${route.clearance}): no route. The target is unreachable for this body.`, "bad")
+    : element("p", `${name} (clearance ${route.clearance}): ${Math.round(route.length).toLocaleString("en")} world units on the grid, ${Math.round(route.walked!).toLocaleString("en")} walked`);
+}
+
+function renderRoutes(): void {
+  const body = $("routesBody");
+  $<HTMLButtonElement>("measureRoutes").disabled = !views;
+  if (!routes) return void (body.textContent = "Not measured.");
+  if (routes.pending) return void (body.textContent = "Measuring…");
+  if (routes.error) return void body.replaceChildren(element("p", `Not measured: ${routes.error}`, "bad"));
+  const { contestant, hunter, squeezes, ratio } = routes.measure!;
+  body.replaceChildren(
+    element("p", `From ${routes.from} to ${routes.to} (${routes.ms.toFixed(0)} ms)`),
+    routeLine("Contestant", contestant),
+    routeLine("Hunter", hunter),
+    ...(ratio !== null ? [element("p", `Hunter / contestant: ${ratio.toFixed(3)}`)] : []),
+    ...(contestant.length !== null ? [element("p", `${squeezes.length} squeeze${squeezes.length === 1 ? "" : "s"} on the contestant's route, where a hunter can't pass`)] : []),
+  );
+}
+
+/** A route as a path, in the built map's coordinates. */
+function routePath(points: Array<{ x: number; y: number }>): Path2D {
+  const path = new Path2D();
+  points.forEach((p, i) => (i ? path.lineTo(p.x, p.y) : path.moveTo(p.x, p.y)));
+  return path;
+}
+
 function probe(v: Views, at: { x: number; y: number }): Probe {
   const cell = at.y * v.resolved.width + at.x, region = v.regions.regions[regionAt[cell]!];
   return { ...at, cell, region, built: region && v.built.regions.find((result) => result.brief.id === region.id) };
@@ -1138,6 +1282,7 @@ $("zoomOut").onclick = () => zoomCentre(1 / 1.25);
 $("zoomReset").onclick = fit;
 $("diagnose").onclick = startDiagnosis;
 $("cancelDiagnose").onclick = cancelDiagnosis;
+$("measureRoutes").onclick = measureRoutes;
 renderLayers();
 input("seed").onkeydown = (event) => {
   if (event.key === "Enter") generateMap();
@@ -1218,6 +1363,13 @@ window.mapLab = Object.freeze({
       id: drill.id, type: drill.type, pending: drill.pending, error: drill.error, difference: drill.difference,
       buildings: drill.traces.map((trace) => trace.label), lots: drill.lots.map((lot) => ({ id: lot.id, type: lot.type })),
       drawn: { ...drawnTraces }, fragment: drill.fragment,
+    },
+    routes: routes && {
+      from: routes.from, to: routes.to, pending: routes.pending, error: routes.error,
+      contestant: routes.measure && { length: routes.measure.contestant.length, points: routes.measure.contestant.points.length },
+      hunter: routes.measure && { length: routes.measure.hunter.length, points: routes.measure.hunter.points.length },
+      squeezes: routes.measure?.squeezes.length ?? null, ratio: routes.measure?.ratio ?? null,
+      drawn: drawnTraces.routes ?? null, text: $("routesBody").textContent,
     },
     links: [...$("inspectorLinks").children].map((link) => ({ label: link.textContent, href: (link as HTMLAnchorElement).href || null })),
   }),

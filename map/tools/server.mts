@@ -20,12 +20,12 @@ const workspaceId = createHash("sha256").update(repository).digest("hex");
 const INDEX = "map/tools/lab/index.html";
 /** What may be served: these trees, and these single files, by repository path. */
 const TREES = ["map/tools/lab/", "map/macro/src/", "map/macro/content/", "map/micro/", "map/kernel/", "shared/"];
-const FILES = ["map/tools/core.ts", "map/tools/engines.ts", "map/chain.ts", "map/engines.ts"];
+const FILES = ["map/tools/core.ts", "map/tools/engines.ts", "map/tools/routes.ts","map/chain.ts", "map/engines.ts"];
 /**
  * Bare specifiers in served modules. A module worker has no import map, so the server
  * resolves them, for the page and the worker alike.
  */
-const BARE: Record<string, string> = { sat: "/vendor/sat.mjs" };
+const BARE: Record<string, string> = { sat: "/vendor/sat.mjs", pathfinding: "/vendor/pathfinding.mjs" };
 const types: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -84,10 +84,51 @@ function serveModule(file: string, res: http.ServerResponse, head: boolean) {
   send(res, head, 200, "text/javascript; charset=utf-8", bareResolved(body));
 }
 
-/** SAT ships as UMD; this runs it with a CommonJS `module` and exports the result. */
-function satModule(): string {
-  const source = fs.readFileSync(path.join(repository, "node_modules/sat/SAT.js"), "utf8");
-  return `const module = { exports: {} }, exports = module.exports;\n${source}\nexport default module.exports;\n`;
+/** Where a `require` from the file `from` leads: a relative file, or a package's main file. */
+function required(from: string, name: string): string {
+  if (!name.startsWith(".")) {
+    const root = path.join(repository, "node_modules", name);
+    const main: string = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).main ?? "index.js";
+    return required(path.join(root, "package.json"), `./${main}`);
+  }
+  const base = path.resolve(path.dirname(from), name);
+  if (fs.existsSync(`${base}.js`)) return `${base}.js`;
+  return fs.existsSync(base) && fs.statSync(base).isFile() ? base : path.join(base, "index.js");
+}
+
+const vendored = new Map<string, string>();
+
+/**
+ * A CommonJS package (SAT, PathFinding.js) as one ES module, for the page and its worker
+ * alike. Every file its `require`s reach is wrapped as a function of `module`, `exports` and
+ * `require`, run once on first use, and the package's exports are the default export.
+ */
+function vendorModule(name: string): string {
+  const cached = vendored.get(name);
+  if (cached) return cached;
+  const ids = new Map<string, number>(), factories: string[] = [];
+  const visit = (file: string): number => {
+    if (ids.has(file)) return ids.get(file)!;
+    const id = factories.push("") - 1;
+    ids.set(file, id);
+    const source = fs.readFileSync(file, "utf8")
+      .replace(/\brequire\((["'])([^"']+)\1\)/g, (_, _quote, target: string) => `require(${visit(required(file, target))})`);
+    factories[id] = `function (module, exports, require) {\n${source}\n}`;
+    return id;
+  };
+  visit(required(path.join(repository, "package.json"), name));
+  const body = `const factories = [${factories.join(",\n")}], loaded = [];
+function require(id) {
+  if (!loaded[id]) {
+    const module = (loaded[id] = { exports: {} });
+    factories[id](module, module.exports, require);
+  }
+  return loaded[id].exports;
+}
+export default require(0);
+`;
+  vendored.set(name, body);
+  return body;
 }
 
 const server = http.createServer(async (req, res) => {
@@ -99,7 +140,8 @@ const server = http.createServer(async (req, res) => {
   }
   const url = req.url || "/";
   if (url === "/favicon.ico") return send(res, head, 204, "image/x-icon", "");
-  if (url === "/vendor/sat.mjs") return send(res, head, 200, "text/javascript; charset=utf-8", satModule());
+  const vendor = Object.keys(BARE).find((name) => BARE[name] === url);
+  if (vendor) return send(res, head, 200, "text/javascript; charset=utf-8", vendorModule(vendor));
   if (url === "/dev-nav-peer.json")
     return send(res, head, 200, "application/json", JSON.stringify({ kind: "mapgen", workspace: workspaceId }));
   if (url === "/dev-nav-config.json") {

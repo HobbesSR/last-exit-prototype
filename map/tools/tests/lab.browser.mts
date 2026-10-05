@@ -11,6 +11,7 @@ import { CHAIN_LIBRARY, checkMap, generate } from "../core.ts";
 import { chainMapToBson, chainMapToJson } from "../../macro/src/chain/saving.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
 import { GAME_ENGINES } from "../engines.ts";
+import { measureRoutes } from "../routes.ts";
 
 const require = createRequire(import.meta.url);
 let playwright: any;
@@ -99,12 +100,12 @@ try {
   // The layers are in chain order, with today's defaults on.
   const FIELDS = ["declared", "resolved", "regions", "proof", "zones", "bonus", "regionType", "lootChance"];
   assert.deepEqual(first.layers.map((layer: any) => layer.id),
-    ["layout", "declared", "resolved", "regions", "portals", "proof", "zones", "bonus", "regionType", "lootChance", "briefs", "lots", "allocation", "spans", "openings", "graph", "walls", "ruins", "cover", "windows", "doors", "roofs", "loot", "sites", "defects", "defectSites"]);
+    ["layout", "declared", "resolved", "regions", "portals", "proof", "zones", "bonus", "regionType", "lootChance", "briefs", "lots", "allocation", "spans", "openings", "graph", "walls", "ruins", "cover", "windows", "doors", "roofs", "loot", "sites", "routes", "defects", "defectSites"]);
   assert.deepEqual(first.layers.filter((layer: any) => layer.on).map((layer: any) => layer.id),
-    ["regions", "portals", "lots", "allocation", "openings", "walls", "ruins", "cover", "windows", "doors", "sites", "defects", "defectSites"]);
+    ["regions", "portals", "lots", "allocation", "openings", "walls", "ruins", "cover", "windows", "doors", "sites", "routes", "defects", "defectSites"]);
   const ALL = first.layers.map((layer: any) => layer.id) as string[];
   assert.deepEqual(first.layers.filter((layer: any) => layer.pass === "marks").map((layer: any) => layer.id),
-    ["layout", "portals", "briefs", "lots", "spans", "openings", "graph", "loot", "sites", "defectSites"], "each layer draws in one pass, the rest with the areas");
+    ["layout", "portals", "briefs", "lots", "spans", "openings", "graph", "loot", "sites", "routes", "defectSites"], "each layer draws in one pass, the rest with the areas");
   const layer = (id: string) => page.locator(`#layer-${id}`);
   const opacity = (id: string, percent: number) => page.locator(`#layer-${id}-opacity`).fill(String(percent));
   // Every cell field alone, as the old exclusive field select showed it.
@@ -546,6 +547,43 @@ try {
   await drillPage.screenshot({ path: `${OUT}/drill-block.png` });
   await drillPage.close();
 
+  // Routes (53 "Routes"): the game's route search for both bodies, measured in the worker on
+  // request. A spawn to the exit on the default seed draws both, with the lengths the tools'
+  // own measurement gives; the void outside the map's mask is plainly unreachable.
+  const routePage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  routePage.on("pageerror", (error: Error) => errors.push(error.message));
+  await routePage.goto(base, { waitUntil: "domcontentloaded" });
+  await routePage.waitForFunction(() => (window as any).mapLab?.snapshot().seed === "last-exit-001" && !(window as any).mapLab.snapshot().busy, null, { timeout: 60000 });
+  const measured = async () => {
+    await routePage.locator("#measureRoutes").click();
+    await routePage.waitForFunction(() => {
+      const routes = (window as any).mapLab.snapshot().routes;
+      return routes && !routes.pending;
+    }, null, { timeout: 30000 });
+    return (await routePage.evaluate(() => (window as any).mapLab.snapshot())).routes;
+  };
+  assert.deepEqual([await routePage.locator("#routeFrom").inputValue(), await routePage.locator("#routeTo").inputValue()], ["spawn 1", "exit 1"]);
+  const routed = await measured();
+  const sites = referenceViews.built.regions.flatMap((region) => region.coreElements);
+  const expected = measureRoutes(referenceViews.built, sites.find((site) => site.kind === "spawn")!, sites.find((site) => site.kind === "exit")!);
+  assert.equal(routed.error, "");
+  for (const body of ["contestant", "hunter"] as const) {
+    assert.ok(Math.abs(routed[body].length - expected[body].length!) < 1e-6, `the ${body}'s length is the core's`);
+    assert.equal(routed[body].points, expected[body].points.length);
+  }
+  assert.equal(routed.squeezes, expected.squeezes.length);
+  assert.deepEqual(routed.drawn, { contestant: expected.contestant.points.length, hunter: expected.hunter.points.length, squeezes: expected.squeezes.length }, "both routes are drawn");
+  assert.match(routed.text, /Contestant \(clearance 14\): [\d,]+ world units on the grid/);
+  assert.match(routed.text, /Hunter \/ contestant: \d\.\d{3}/);
+  await routePage.screenshot({ path: `${OUT}/routes.png` });
+  await routePage.evaluate(() => (window as any).mapLab.select(0, 0));
+  await routePage.locator("#routeTo").selectOption("selected");
+  const lost = await measured();
+  assert.deepEqual([lost.contestant.length, lost.hunter.length, lost.ratio], [null, null, null]);
+  assert.match(lost.text, /Contestant \(clearance 14\): no route/);
+  assert.match(lost.text, /Hunter \(clearance 25\): no route/);
+  await routePage.close();
+
   // The inspector opens a cell's tile design in the Chain Library tab. A fresh page's draft is
   // the starter library, so it asks before replacing the draft with the map's.
   const linkPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -570,7 +608,7 @@ try {
   await generateIn("lab-mobile");
   await page.screenshot({ path: `${OUT}/mobile.png`, fullPage: true });
   assert.deepEqual(errors, []);
-  console.log("Map Lab browser checks passed: chain maps and their layers, saves equal to the core's, read-back, the diagnostic, and chain library authoring.");
+  console.log("Map Lab browser checks passed: chain maps and their layers, saves equal to the core's, read-back, the diagnostic, drill-down, routes, and chain library authoring.");
 } finally {
   await browser?.close();
   server.kill();

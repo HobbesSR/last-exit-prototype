@@ -86,22 +86,23 @@ function travelClear(map: CollisionMap, a: Vec2, b: Vec2, clearance: World): boo
  * the furthest waypoint the body can reach directly, which is the path the route always meant.
  *
  * The result is still tile steps in absolute tile space, so it stays the same shape the snapshot and
- * the recording carry.
+ * the recording carry. `span` is how far along the route to straighten; a mover needs only its
+ * leading part, and a measurement of the whole route passes `Infinity`.
  */
-export function straightenPath(map: CollisionMap, role: Role, origin: Vec2, path: TileStep[], openDoors: DoorPermission = false): TileStep[] {
+export function straightenPath(map: CollisionMap, role: Role, origin: Vec2, path: TileStep[], openDoors: DoorPermission = false, span: World = STRAIGHTEN_SPAN): TileStep[] {
   if (path.length < 2) return path;
   count('work.pathStraighten');
   const navMap = navigationMap(map, openDoors), clearance = navigationClearance(role);
   const kept: TileStep[] = [];
-  let from = origin, index = 0, span = 0;
-  while (index < path.length && span < STRAIGHTEN_SPAN) {
+  let from = origin, index = 0, travelled = 0;
+  while (index < path.length && travelled < span) {
     let best = index;
     for (let ahead = Math.min(path.length - 1, index + LOOKAHEAD); ahead > index; ahead--) {
       if (travelClear(navMap, from, tileCentre(path[ahead]), clearance)) { best = ahead; break; }
     }
     kept.push(path[best]);
     const to = tileCentre(path[best]);
-    span += Math.hypot(to.x - from.x, to.y - from.y);
+    travelled += Math.hypot(to.x - from.x, to.y - from.y);
     from = to;
     index = best + 1;
   }

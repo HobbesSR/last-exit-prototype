@@ -147,11 +147,17 @@ test("the Map Lab's server serves both halves, strips types, and nothing else", 
     assert.equal(response.status, 200, served);
     assert.match(response.headers.get('content-type'), /javascript/, served);
   }
-  // Types are erased, and the bare `sat` resolves to its wrapped module, for workers too.
+  // Types are erased, and the bare `sat` and `pathfinding` resolve to their wrapped modules, for
+  // workers too. Each wrapped package works as an ES module.
   const shape = await (await fetch(`${base}/shared/shape.ts`)).text();
   assert.match(shape, /from ["']\/vendor\/sat\.mjs["']/);
   assert.doesNotMatch(shape, /from ["']sat["']/);
-  assert.match(await (await fetch(`${base}/vendor/sat.mjs`)).text(), /export default module\.exports/);
+  assert.match(await (await fetch(`${base}/shared/map/route.ts`)).text(), /from ["']\/vendor\/pathfinding\.mjs["']/);
+  const vendored = async (name) => (await import(`data:text/javascript,${encodeURIComponent(await (await fetch(`${base}/vendor/${name}.mjs`)).text())}`)).default;
+  const SAT = await vendored('sat'), PF = await vendored('pathfinding');
+  assert.equal(SAT.testCircleCircle(new SAT.Circle(new SAT.Vector(0, 0), 2), new SAT.Circle(new SAT.Vector(3, 0), 2)), true);
+  assert.deepEqual(new PF.AStarFinder({ allowDiagonal: true, dontCrossCorners: true }).findPath(0, 0, 2, 0, new PF.Grid([[0, 1, 0], [0, 0, 0]])),
+    [[0, 0], [0, 1], [1, 1], [2, 1], [2, 0]]);
   const library = await fetch(`${base}/map/macro/content/diamond-12x6.json`);
   assert.match(library.headers.get('content-type'), /json/);
   for (const refused of ['/map/tools/server.mts', '/map/tools/cli.mts', '/map/tools/sweep.mts', '/map/macro/package.json', '/map/macro/node_modules/typescript/package.json',
