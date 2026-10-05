@@ -114,6 +114,13 @@ Only the results, built and report views moved. The report showed no defects
 over 60 game and 30 playground maps, and the per-region diagnosis none over 3
 game maps. The S3 migration's provenance is kept in the recaptured file.
 
+**#218's re-capture** followed `depot`'s move to warehouse designs (54
+`depot`, 17.2.8 M34). The results, built and report views moved on 161 of
+224 maps, since `plant` and `block`'s lots build with `depot` too, and nothing
+else moved. The report showed no defects over 60 game and 30 playground maps,
+and the per-region diagnosis none over 3 game maps. The S3 migration's
+provenance is kept.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
