@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createReplayTimeline, markLabel, markSeekTick } from '../public/replay-timeline.js';
+import { clusterMarks, createReplayTimeline, markLabel, markSeekTick } from '../public/replay-timeline.js';
 
 const frame = tick => ({ state: { tick, marker: `state-${tick}` } });
 
@@ -104,4 +104,11 @@ test('a mark seeks two seconds early, never before the first tick, and labels it
   assert.equal(markSeekTick({ tick: 10 }, undefined), 10);
   assert.equal(markLabel({ kind: 'server-stall', tick: 9, wakeMs: 450.4, owed: 9 }), 'Server stall (450 ms wake, 9 ticks owed) at tick 9');
   assert.equal(markLabel({ kind: 'manual', tick: 2 }), 'Manual mark at tick 2');
+});
+
+test('marks too close to draw apart share a cluster; distant ones stay separate', () => {
+  const marks = [10, 100, 100, 100, 101, 400].map((tick, i) => ({ tick, kind: 'manual', playerId: `p${i}` }));
+  assert.deepEqual(clusterMarks(marks, 1000).map(c => [c.tick, c.marks.length]), [[10, 1], [100, 4], [400, 1]]);
+  assert.deepEqual(clusterMarks([], 1000), []);
+  assert.equal(clusterMarks(marks, 0).length, 4, 'a zero-length track still separates adjacent ticks');
 });

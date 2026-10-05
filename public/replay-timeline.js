@@ -21,6 +21,19 @@ export function markLabel(mark) {
   return `${MARK_LABELS[mark.kind]}${detail} at tick ${mark.tick}`;
 }
 
+// Marks that would draw on top of each other on the scrubber share one cluster, anchored on its
+// first mark so a long run of nearby marks cannot grow one pip without bound. `span` is the
+// fraction of the track a pip covers; a cluster of one is an ordinary mark.
+export function clusterMarks(marks, endTick, span = 0.015) {
+  const width = Math.max(1, (endTick || 0) * span), clusters = [];
+  for (const mark of marks) {
+    const last = clusters.at(-1);
+    if (last && mark.tick - last.tick < width) last.marks.push(mark);
+    else clusters.push({ tick: mark.tick, marks: [mark] });
+  }
+  return clusters;
+}
+
 // Playback is based on authoritative simulation ticks rather than positions in
 // the retained frame array. Omitted states are held, never invented.
 export function createReplayTimeline(recording) {
