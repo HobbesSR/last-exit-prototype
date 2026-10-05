@@ -99,12 +99,12 @@ try {
   // The layers are in chain order, with today's defaults on.
   const FIELDS = ["declared", "resolved", "regions", "proof", "zones", "bonus", "regionType", "lootChance"];
   assert.deepEqual(first.layers.map((layer: any) => layer.id),
-    ["layout", "declared", "resolved", "regions", "portals", "proof", "zones", "bonus", "regionType", "lootChance", "briefs", "walls", "ruins", "cover", "windows", "doors", "roofs", "loot", "sites", "defects", "defectSites"]);
+    ["layout", "declared", "resolved", "regions", "portals", "proof", "zones", "bonus", "regionType", "lootChance", "briefs", "lots", "allocation", "spans", "openings", "graph", "walls", "ruins", "cover", "windows", "doors", "roofs", "loot", "sites", "defects", "defectSites"]);
   assert.deepEqual(first.layers.filter((layer: any) => layer.on).map((layer: any) => layer.id),
-    ["regions", "portals", "walls", "ruins", "cover", "windows", "doors", "sites", "defects", "defectSites"]);
+    ["regions", "portals", "lots", "allocation", "openings", "walls", "ruins", "cover", "windows", "doors", "sites", "defects", "defectSites"]);
   const ALL = first.layers.map((layer: any) => layer.id) as string[];
   assert.deepEqual(first.layers.filter((layer: any) => layer.pass === "marks").map((layer: any) => layer.id),
-    ["layout", "portals", "briefs", "loot", "sites", "defectSites"], "each layer draws in one pass, the rest with the areas");
+    ["layout", "portals", "briefs", "lots", "spans", "openings", "graph", "loot", "sites", "defectSites"], "each layer draws in one pass, the rest with the areas");
   const layer = (id: string) => page.locator(`#layer-${id}`);
   const opacity = (id: string, percent: number) => page.locator(`#layer-${id}-opacity`).fill(String(percent));
   // Every cell field alone, as the old exclusive field select showed it.
@@ -495,6 +495,56 @@ try {
   await page.locator("#generate").click();
   await page.waitForFunction(() => (window as any).mapLab.snapshot().error);
   assert.match(await page.locator("#status").innerText(), /isn't valid for the game/);
+
+  // Drilling into a region rebuilds it in the worker with an observer (53 "Region drill-down").
+  // A hut on the default seed shows its house; a block on last-exit-009 its lots, and the
+  // compound one of them holds. Each rebuild equals the stored result, so its traces are drawn.
+  const drillPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  drillPage.on("pageerror", (error: Error) => errors.push(error.message));
+  await drillPage.goto(base, { waitUntil: "domcontentloaded" });
+  const drillSnapshot = () => drillPage.evaluate(() => (window as any).mapLab.snapshot());
+  const drillShown = (seed: string) => drillPage.waitForFunction((s: string) => {
+    const lab = (window as any).mapLab?.snapshot();
+    return lab && !lab.busy && lab.seed === s;
+  }, seed, { timeout: 60000 });
+  const drillInto = async (brief: { id: string; cells: Array<{ x: number; y: number }> }) => {
+    const cell = brief.cells[Math.floor(brief.cells.length / 2)]!;
+    await drillPage.evaluate(([x, y]: number[]) => (window as any).mapLab.select(x, y), [cell.x, cell.y]);
+    await drillPage.waitForFunction((id: string) => {
+      const drill = (window as any).mapLab.snapshot().drill;
+      return drill?.id === id && !drill.pending && drill.fragment;
+    }, brief.id, { timeout: 30000 });
+    return drillSnapshot();
+  };
+  await drillShown("last-exit-001");
+  const hutBrief = mapViews(reference).briefs.find((brief) => brief.type === "hut")!;
+  for (const id of ["allocation", "spans", "openings", "graph"]) await drillPage.locator(`#layer-${id}`).check();
+  const hutDrill = await drillInto(hutBrief);
+  assert.equal(hutDrill.drill.difference, null, "the hut rebuilds equal to the stored result");
+  assert.deepEqual(hutDrill.drill.buildings, ["hut-building"]);
+  assert.ok(hutDrill.drill.drawn.allocation.cells > 0 && hutDrill.drill.drawn.openings.openings > 0, "the hut's allocation and openings are drawn");
+  assert.ok(hutDrill.drill.drawn.graph.nodes > 0 && hutDrill.drill.drawn.spans.spans > 0, "the hut's design graph and spans are drawn");
+  assert.match(hutDrill.inspector, /Drill-down: rebuilt equal to the stored result; 1 building from designs/);
+  assert.match(hutDrill.inspector, /hut-building: \d+ spaces?, \d+ connections/);
+  assert.ok(hutDrill.links.some((link: { label: string }) => link.label === "Save this region's brief"));
+  await drillPage.screenshot({ path: `${OUT}/drill-hut.png` });
+  // A cell outside every region drills nothing.
+  await drillPage.evaluate(() => (window as any).mapLab.select(0, 0));
+  assert.equal((await drillSnapshot()).drill, null);
+
+  await drillPage.locator("#seed").fill("last-exit-009");
+  await drillPage.locator("#generate").click();
+  await drillShown("last-exit-009");
+  const blockBrief = mapViews(generate("last-exit-009")).briefs.find((brief) => brief.type === "block")!;
+  const blockDrill = await drillInto(blockBrief);
+  assert.equal(blockDrill.drill.difference, null, "the block rebuilds equal to the stored result");
+  assert.deepEqual(blockDrill.drill.lots.map((lot: { type: string }) => lot.type), ["depot", "compound", "cover"]);
+  assert.deepEqual(blockDrill.drill.buildings, ["lot-2/compound"], "the compound lot's ring is traced, labelled as the lot's element");
+  assert.equal(blockDrill.drill.drawn.lots.lots, 3);
+  assert.ok(blockDrill.drill.drawn.graph.nodes > 0);
+  assert.match(blockDrill.inspector, /3 lots/);
+  await drillPage.screenshot({ path: `${OUT}/drill-block.png` });
+  await drillPage.close();
 
   // The inspector opens a cell's tile design in the Chain Library tab. A fresh page's draft is
   // the starter library, so it asks before replacing the draft with the map's.

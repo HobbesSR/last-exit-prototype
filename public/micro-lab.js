@@ -2,9 +2,12 @@ import { generateMicroRegion, validateMicroRegion } from '/map/micro/index.ts';
 import { builtMapCollision, builtMapFrame, regionCollisionMap } from '/map/micro/adapter.ts';
 import { microExample } from '/map/micro/examples.ts';
 import { buildRegion } from '/map/micro/region-types.ts';
+import { drawAllocation, drawDesignGraph, drawOpenings, drawSpans, guidanceNotMet, traceSummary } from '/map/micro/building/draw.ts';
+import { briefFromFragment } from '/map/micro/brief-link.ts';
+import { firstDifference } from '/map/micro/difference.ts';
 import { canOccupy, moveBody } from '/shared/movement.ts';
 import { microMetrics } from '/map/micro/metrics.ts';
-import { createRegionMask, elementShapes, OUTSIDE, portalStands, spreadPoints, validatePortalReach } from '/map/micro/sdk.ts';
+import { createRegionMask, elementShapes, portalStands, spreadPoints, validatePortalReach } from '/map/micro/sdk.ts';
 import { outline, transform } from '/shared/shape.ts';
 
 const $ = id => document.getElementById(id);
@@ -17,9 +20,14 @@ const LOOT_CHANCE = 0.04;
 let result = null, collision = null, avatar = null, keys = new Set(), scale = 1, offset = { x: 0, y: 0 }, origin = MICRO_ORIGIN;
 /** Region types: the buildings their strategy made from designs, held in memory only (17.2.8 M30), and the portal check. */
 let traces = [], promise = null, drawn = {};
+/**
+ * A brief from elsewhere: a Map Lab region's, by link, or a file's (20.5). It is built as the
+ * map built it and walked at the game's own scale, until a control makes a new example.
+ */
+let imported = null;
 const regionType = () => $('builder').value.startsWith('region:') ? $('builder').value.slice(7) : null;
-/** Region results carry a brief; the lab walks them at cell proportions. */
-const specOf = r => r.brief ? { ...r.brief, bodyProfile: 'cell' } : r.spec;
+/** Region results carry a brief. The lab walks its own examples at cell proportions, and an imported brief at its own. */
+const specOf = r => r.brief ? { ...r.brief, bodyProfile: imported ? r.brief.bodyProfile : 'cell' } : r.spec;
 
 function setControlEnabled(control, enabled, note) {
   const label = $(control);
@@ -29,9 +37,9 @@ function setControlEnabled(control, enabled, note) {
   label.classList.toggle('not-applicable', !enabled);
 }
 function updateApplicableControls() {
-  const builder = $('builder').value, entry = builder === 'entry', ruins = builder === 'ruins', type = regionType(), example = !entry && !type;
+  const builder = $('builder').value, entry = builder === 'entry', ruins = builder === 'ruins', type = regionType() ?? imported?.type, example = !entry && !type;
   const typeNote = 'Region types take a brief, not example builder parameters.';
-  setControlEnabled('body-profile-control', !type, type ? 'Region types are walked at cell proportions.' : 'Applies to example builders.');
+  setControlEnabled('body-profile-control', !type, imported ? 'An imported brief is walked at the game\'s own scale.' : type ? 'Region types are walked at cell proportions.' : 'Applies to example builders.');
   setControlEnabled('entry-count-control', entry, entry ? 'Applies to contestant entry layouts.' : 'Applies only to Contestant entry.');
   setControlEnabled('density-control', example, entry ? 'Entry layouts use spacing instead of architecture density.' : type ? typeNote : 'Applies to architecture builders.');
   setControlEnabled('room-cells-control', example, entry ? 'Entry layouts do not place rooms.' : type ? typeNote : 'Applies to architecture builders.');
@@ -70,17 +78,37 @@ function resetAvatar() {
   if (!point) { avatar = null; return; }
   avatar = { role: $('role').value, x: origin.x + point.x, y: origin.y + point.y };
 }
+/** Build a brief through the game's region types, keeping its building traces and checking its portal promise. */
+function buildBrief(brief) {
+  const found = [], built = buildRegion(brief, undefined, trace => found.push(trace));
+  // A lone region: its portals lead off the map, so it pairs with nothing and isn't composed.
+  const map = { cellSize: built.brief.cellSize, regions: [built], pairs: [] };
+  const check = validatePortalReach({ ...built.brief, blockers: built.elements.flatMap(e => elementShapes(e)) });
+  result = built; traces = found; promise = check.errors; origin = builtMapFrame(map).origin; collision = builtMapCollision(map);
+}
+/** Show a brief from elsewhere. A bad one leaves the current region as it was. */
+function showImported(brief, note) {
+  clearTimeout(generationTimer);
+  const before = { result, traces, promise, origin, collision, imported };
+  try {
+    imported = brief; buildBrief(brief);
+  } catch (error) {
+    ({ result, traces, promise, origin, collision, imported } = before);
+    $('status').textContent = `Import rejected: ${error.message}`; return false;
+  }
+  avatar = null; keys.clear(); resetAvatar(); updateApplicableControls();
+  $('download').disabled = false; $('reset').disabled = false;
+  $('status').textContent = `${note} Region ${brief.id}, type ${brief.type}, seed ${brief.seed}. Controls generate a new example.`;
+  diagnostics(); draw();
+  return true;
+}
 function generate() {
   clearTimeout(generationTimer);
+  if (imported) { imported = null; updateApplicableControls(); }
   try {
     const type = regionType();
-    if (type) {
-      const found = [], built = buildRegion(briefFromControls(), undefined, trace => found.push(trace));
-      // A lone region: its portals lead off the map, so it pairs with nothing and isn't composed.
-      const map = { cellSize: built.brief.cellSize, regions: [built], pairs: [] };
-      const check = validatePortalReach({ ...built.brief, blockers: built.elements.flatMap(e => elementShapes(e)) });
-      result = built; traces = found; promise = check.errors; origin = builtMapFrame(map).origin; collision = builtMapCollision(map);
-    } else {
+    if (type) buildBrief(briefFromControls());
+    else {
       result = generateMicroRegion(specFromControls()); traces = []; promise = null; origin = MICRO_ORIGIN;
       collision = regionCollisionMap(result, origin);
     }
@@ -102,15 +130,9 @@ function diagnostics() {
   $('ports').replaceChildren(...(result.brief ? result.brief.portals.map(p => item(`${p.id}: portal ${p.axis === 'h' ? 'across' : 'down'} from (${p.x}, ${p.y}), ${p.length} cells`))
     : result.ports.map(port => item(`${port.id}: ${port.side}, ${port.length} cells (${port.required})`))));
   // The portal promise is the one requirement; unmet connections are guidance (17.2.8 M29).
-  $('buildings').replaceChildren(...(promise?.length ? promise.map(error => item(`Portal promise broken: ${error}`, 'error')) : []), ...traces.flatMap(trace => {
-    const { design, realization } = trace, spaces = design.spaces.length;
-    return [item(`${trace.label}: ${spaces} space${spaces === 1 ? '' : 's'}, ${design.connections.length} connections, ${realization.openings.length} openings, ${spansOf(trace).length} spans`),
-      ...unmet(trace).map(c => item(`Guidance not met: ${c.id} (${c.kind}, ${c.a}–${c.b}), ${realization.misses.find(m => m.connectionId === c.id)?.reason ?? 'no opening'}`, 'warning'))];
-  }));
+  $('buildings').replaceChildren(...(promise?.length ? promise.map(error => item(`Portal promise broken: ${error}`, 'error')) : []),
+    ...traces.flatMap(trace => [item(traceSummary(trace)), ...guidanceNotMet(trace).map(text => item(text, 'warning'))]));
 }
-/** Connections whose two spaces got no opening between them. Guidance, so a warning, never an error. */
-function unmet(trace) { const placed = new Set(trace.realization.openings.map(o => o.connectionId)); return trace.design.connections.filter(c => !placed.has(c.id)); }
-function spansOf(trace) { return trace.realization.boundaries.flatMap(boundary => boundary.spans.map(span => ({ boundary, span }))); }
 function project(point) { return { x: offset.x + point.x * scale, y: offset.y + point.y * scale }; }
 function path(points) { ctx.beginPath(); points.forEach((p, i) => { const q = project(p); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }); ctx.closePath(); }
 function draw() {
@@ -120,7 +142,7 @@ function draw() {
   drawn = {};
   const bounds = result.bounds ?? builtBounds(spec), pad = 44; scale = Math.min((width - pad * 2) / bounds.w, (height - pad * 2) / bounds.h); offset = { x: (width - bounds.w * scale) / 2 - bounds.x * scale, y: (height - bounds.h * scale) / 2 - bounds.y * scale };
   ctx.fillStyle = '#263c37'; for (const cell of spec.cells) { const p = project({ x: cell.x * cellSize, y: cell.y * cellSize }); ctx.fillRect(p.x + .5, p.y + .5, cellSize * scale - 1, cellSize * scale - 1); }
-  if ($('allocation').checked && result.brief) drawAllocation();
+  if ($('allocation').checked && result.brief) drawn.allocation = inWorld(drawAllocation);
   if ($('routes').checked) for (const route of result.routes ?? []) { ctx.strokeStyle = route.role === 'hunter' ? '#e9ad59' : '#72d8d2'; ctx.lineWidth = Math.max(2, route.radius * scale / 4); ctx.beginPath(); route.points.forEach((p, i) => { const q = project(p); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }); ctx.stroke(); }
   for (const element of result.elements) for (const part of element.template.parts) if (part.part === 'obstacle') { const points = outline(transform(part.shape, element.x, element.y)); path(points); ctx.fillStyle = part.kind === 'tree' ? '#567d4e' : '#84918c'; ctx.fill(); ctx.strokeStyle = '#c4d3bd'; ctx.lineWidth = 1; ctx.stroke(); }
   if ($('roofs').checked) for (const element of result.elements) if (element.template.encloses) { const p = project({ x: element.x, y: element.y }); ctx.fillStyle = '#3d2c3bb8'; ctx.fillRect(p.x, p.y, element.template.w * scale, element.template.h * scale); }
@@ -129,9 +151,9 @@ function draw() {
   for (const port of result.ports ?? []) { const p = project(port.centre); ctx.fillStyle = '#e9f7c4'; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill(); }
   for (const portal of result.brief?.portals ?? []) line(gridPoint(portal.x, portal.y, cellSize), gridPoint(portal.x + (portal.axis === 'h' ? portal.length : 0), portal.y + (portal.axis === 'v' ? portal.length : 0), cellSize), '#e9f7c4', 4);
   if (result.brief) {
-    if ($('spans').checked) drawSpans();
-    if ($('openings').checked) drawOpenings();
-    if ($('design-graph').checked) drawDesignGraph();
+    if ($('spans').checked) drawn.spans = inWorld(drawSpans);
+    if ($('openings').checked) drawn.openings = inWorld(drawOpenings);
+    if ($('design-graph').checked) drawn.graph = inWorld(drawDesignGraph);
   }
   for (const [i, point] of (result.entry?.points || []).entries()) { const p = project(point); ctx.beginPath(); ctx.arc(p.x, p.y, microMetrics(spec).body.contestant * scale, 0, Math.PI * 2); ctx.fillStyle = '#a78bd866'; ctx.fill(); ctx.strokeStyle = '#ccafff'; ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), p.x, p.y); }
   if (avatar) { const p = project(local(avatar)); ctx.fillStyle = avatar.role === 'gladiator' ? '#ed7770' : '#8ee1e0'; ctx.beginPath(); ctx.arc(p.x, p.y, walkerRadius() * scale, 0, Math.PI * 2); ctx.fill(); }
@@ -140,83 +162,10 @@ function builtBounds(spec) {
   const xs = spec.cells.map(c => c.x), ys = spec.cells.map(c => c.y), x = Math.min(...xs), y = Math.min(...ys);
   return { x: x * spec.cellSize, y: y * spec.cellSize, w: (Math.max(...xs) + 1 - x) * spec.cellSize, h: (Math.max(...ys) + 1 - y) * spec.cellSize };
 }
-const SPACE_COLOURS = ['#5fa8d3', '#c77dff', '#e9c46a', '#80ed99', '#f28482', '#4cc9f0', '#f4a261', '#b5e48c'];
-const KIND_COLOURS = { door: '#ff8a5c', open: '#7ee08a', window: '#6fc8ff' };
-const WARNING = '#e9ad59';
-const gridPoint = (x, y, size, at = { x: 0, y: 0 }) => ({ x: at.x + x * size, y: at.y + y * size });
-const runEnd = run => ({ x: run.x + (run.axis === 'h' ? run.length : 0), y: run.y + (run.axis === 'v' ? run.length : 0) });
-function line(a, b, colour, width, dash = []) { const p = project(a), q = project(b); ctx.save(); ctx.setLineDash(dash); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore(); }
-function label(point, text, colour) { const p = project(point); ctx.font = '11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 3; ctx.strokeStyle = '#0b1515'; ctx.strokeText(text, p.x, p.y); ctx.fillStyle = colour; ctx.fillText(text, p.x, p.y); }
-/** The centre of some of a building's allocation cells, in world units. */
-function centroid(trace, cells) { const n = cells.length || 1; return gridPoint(cells.reduce((s, c) => s + c.x + .5, 0) / n, cells.reduce((s, c) => s + c.y + .5, 0) / n, trace.cellSize, trace.origin); }
-/** A placed opening's two ends along its run, in world units. */
-function openingEnds(trace, { run, center, length }) {
-  const along = d => gridPoint(run.x + (run.axis === 'h' ? d : 0), run.y + (run.axis === 'v' ? d : 0), trace.cellSize, trace.origin);
-  return [along(center - length / 2), along(center + length / 2)];
-}
-function drawAllocation() {
-  let cells = 0;
-  for (const trace of traces) trace.allocation.spaces.forEach((space, i) => {
-    ctx.fillStyle = `${SPACE_COLOURS[i % SPACE_COLOURS.length]}66`;
-    for (const c of space.cells) { const p = project(gridPoint(c.x, c.y, trace.cellSize, trace.origin)); ctx.fillRect(p.x + 1, p.y + 1, trace.cellSize * scale - 2, trace.cellSize * scale - 2); cells++; }
-  });
-  // Above the centre, where the design graph's node sits.
-  for (const trace of traces) trace.allocation.spaces.forEach((space, i) => { const c = centroid(trace, space.cells); label({ x: c.x, y: c.y - trace.cellSize * .8 }, `${space.cells.length} cells`, SPACE_COLOURS[i % SPACE_COLOURS.length]); });
-  drawn.allocation = { cells };
-}
-/** Each span between two owners, dashed: blue onto the outside, violet between spaces. */
-function drawSpans() {
-  let spans = 0;
-  for (const trace of traces) for (const { boundary, span } of spansOf(trace)) {
-    const colour = boundary.a === OUTSIDE || boundary.b === OUTSIDE ? '#7fb2ff' : '#d38cff', at = (x, y) => gridPoint(x, y, trace.cellSize, trace.origin);
-    for (const { run } of span.steps) { const end = runEnd(run); line(at(run.x, run.y), at(end.x, end.y), colour, 3, [6, 4]); }
-    const { run } = span.steps[0], end = runEnd(run);
-    // A quarter along the first run, clear of an opening centred on it.
-    label(at(run.x + (end.x - run.x) / 4, run.y + (end.y - run.y) / 4), `${boundary.a} | ${boundary.b}`, colour);
-    spans++;
-  }
-  drawn.spans = { spans };
-}
-function drawOpenings() {
-  let openings = 0;
-  for (const trace of traces) for (const opening of trace.realization.openings) {
-    const [a, b] = openingEnds(trace, opening), colour = KIND_COLOURS[opening.kind];
-    line(a, b, colour, 7); label({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, opening.connectionId, colour); openings++;
-  }
-  drawn.openings = { openings };
-}
-/** Spaces as nodes at their cells' centre; connections as edges in their kind's colour, through their opening where placed. */
-function drawDesignGraph() {
-  let nodes = 0, edges = 0, warnings = 0;
-  for (const trace of traces) {
-    const cells = new Map(trace.allocation.spaces.map(s => [s.id, s.cells])), whole = centroid(trace, trace.allocation.footprint);
-    const at = id => cells.get(id)?.length ? centroid(trace, cells.get(id)) : whole;
-    const missing = new Set(unmet(trace).map(c => c.id));
-    for (const connection of trace.design.connections) {
-      const opening = trace.realization.openings.find(o => o.connectionId === connection.id), miss = missing.has(connection.id);
-      const colour = miss ? WARNING : KIND_COLOURS[connection.kind], dash = miss ? [5, 5] : [], outside = connection.a === OUTSIDE || connection.b === OUTSIDE;
-      const inner = connection.a === OUTSIDE ? connection.b : connection.a, from = at(inner);
-      let mid = from, to;
-      if (opening) { const [a, b] = openingEnds(trace, opening); mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
-      if (outside) {
-        // The outside sits a cell beyond the opening, or beyond the footprint on the preferred side when there is none.
-        const dir = opening ? { x: mid.x - from.x, y: mid.y - from.y } : { N: { x: 0, y: -1 }, S: { x: 0, y: 1 }, W: { x: -1, y: 0 }, E: { x: 1, y: 0 } }[connection.side ?? 'N'];
-        const n = Math.hypot(dir.x, dir.y) || 1, reach = opening ? trace.cellSize : trace.cellSize * 3;
-        to = { x: mid.x + dir.x / n * reach, y: mid.y + dir.y / n * reach };
-      } else to = at(connection.a === inner ? connection.b : connection.a);
-      line(from, mid, colour, 2, dash); line(mid, to, colour, 2, dash);
-      if (outside) label(to, miss ? `! ${connection.id}` : OUTSIDE, colour);
-      else if (miss) label(mid, `! ${connection.id}`, colour);
-      edges++; if (miss) warnings++;
-    }
-    for (const space of trace.design.spaces) {
-      const centre = at(space.id), p = project(centre); ctx.fillStyle = '#f1f7ee'; ctx.strokeStyle = '#0b1515'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(p.x, p.y, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      label({ x: centre.x, y: centre.y + 16 / scale }, space.id, '#f1f7ee'); nodes++;
-    }
-  }
-  drawn.graph = { nodes, edges, warnings };
-}
+const gridPoint = (x, y, size) => ({ x: x * size, y: y * size });
+function line(a, b, colour, width) { const p = project(a), q = project(b); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); }
+/** Draw the building traces in world units through the shared drawing (`building/draw.ts`), at the preview's projection. */
+function inWorld(drawTraces) { ctx.save(); ctx.setTransform(scale, 0, 0, scale, offset.x, offset.y); try { return drawTraces(ctx, traces, 1 / scale); } finally { ctx.restore(); } }
 function walkerRadius() { return microMetrics(specOf(result)).body[avatar.role === 'gladiator' ? 'hunter' : 'contestant']; }
 function toggleNearbyGate() {
   if (!avatar || !collision) return;
@@ -244,20 +193,35 @@ for (const id of ['design-graph', 'allocation', 'spans', 'openings']) $(id).addE
 $('builder').addEventListener('change', updateApplicableControls);
 for (const id of ['builder', 'body-profile', 'entry-count', 'region-shape', 'seed', 'loot-budget', 'loot-tier', 'north-port']) $(id).addEventListener('change', generate);
 $('download').addEventListener('click', () => { const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' }), url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = result.brief ? `region-${result.brief.type}-${result.brief.seed}.json` : `micro-region-${result.spec.seed}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 0); });
-window.microLabDebug = () => structuredClone({ result, buildings: traces, promise, drawn, avatar: avatar && { x: avatar.x, y: avatar.y, role: avatar.role }, collision: collision && { obstacles: collision.obstacles.length, gates: collision.gates.length } });
+window.microLabDebug = () => structuredClone({ result, imported: imported?.id ?? null, buildings: traces, promise, drawn, avatar: avatar && { x: avatar.x, y: avatar.y, role: avatar.role }, collision: collision && { obstacles: collision.obstacles.length, gates: collision.gates.length } });
 $('import').addEventListener('change', async event => {
   clearTimeout(generationTimer);
   const file = event.target.files[0]; if (!file) return;
   try {
-    const data = JSON.parse(await file.text()), candidate = data.version ? data : generateMicroRegion(data);
+    const data = JSON.parse(await file.text());
+    // A brief, or a region result, which is rebuilt from its brief and compared (20.5).
+    if (data.version === 'region-2' || (!data.version && typeof data.type === 'string' && Array.isArray(data.zones))) {
+      const difference = showImported(data.version ? data.brief : data, `Loaded ${file.name}.`) && data.version ? firstDifference(result, data) : null;
+      if (difference) $('status').textContent += ` Rebuilt from its brief, it differs from the file at ${difference}.`;
+      event.target.value = ''; return;
+    }
+    const candidate = data.version ? data : generateMicroRegion(data);
     const errors = validateMicroRegion(candidate);
     if (errors.length) throw new Error(errors.join(' '));
     const map = regionCollisionMap(candidate, MICRO_ORIGIN);
-    result = candidate; collision = map; origin = MICRO_ORIGIN; traces = []; promise = null; avatar = null; keys.clear(); resetAvatar();
+    result = candidate; collision = map; origin = MICRO_ORIGIN; traces = []; promise = null; imported = null; avatar = null; keys.clear(); resetAvatar(); updateApplicableControls();
     $('download').disabled = false; $('reset').disabled = false;
     $('status').textContent = `Loaded ${file.name}. Controls generate a new example; download preserves this artifact.`;
     diagnostics(); draw();
   } catch (error) { $('status').textContent = `Import rejected: ${error.message}`; }
   event.target.value = '';
 });
-updateApplicableControls(); generate();
+/** A link's brief, from the Map Lab's drill-down (20.5). */
+async function openLinked() {
+  let brief = null;
+  try { brief = await briefFromFragment(location.hash); } catch (error) { $('status').textContent = `Import rejected: the link's brief can't be read (${error.message}).`; return false; }
+  return !!brief && showImported(brief, 'Opened from a link.');
+}
+addEventListener('hashchange', openLinked);
+updateApplicableControls();
+if (!await openLinked()) generate();

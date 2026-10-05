@@ -6,6 +6,9 @@ import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { createArenaServer } from '../server/index.js';
 import { listen } from './helpers/listen.js';
+import { generate } from '../map/tools/core.ts';
+import { mapViews } from '../map/macro/src/chain/map.ts';
+import { briefFragment } from '../map/micro/brief-link.ts';
 
 const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-generation-demo-'));
 await mkdir('test-results', { recursive: true });
@@ -58,6 +61,28 @@ try {
   const after = await page.evaluate(() => window.generationDemoDebug());
   assert.notEqual(after.currentPiece, before, 'WASD crosses from the corridor anchor into another owned child region');
   await page.screenshot({ path: 'test-results/generation-demo.png', fullPage: true });
+  // A chain map's block, opened by the Map Lab's link (20.5): its lots and alleys, the geometry
+  // the map stored for it, and a walk through it with the game's collision.
+  const blockMap = generate('last-exit-009'), blockBrief = mapViews(blockMap).briefs.find(b => b.type === 'block');
+  await page.goto(`${base}/generation-demo.html${await briefFragment(blockBrief)}`);
+  await page.waitForFunction(id => window.generationDemoDebug?.().linked?.id === id, blockBrief.id, { timeout: 15000 });
+  const block = await page.evaluate(() => window.generationDemoDebug());
+  assert.deepEqual(block.linked.built, JSON.parse(JSON.stringify(blockMap.results.find(r => r.brief.id === blockBrief.id))), 'the demo shows the block the map stored');
+  assert.deepEqual(block.result.assignments.map(a => a.builder), ['depot', 'compound', 'cover', 'open']);
+  assert.equal(block.result.regions.reduce((n, r) => n + r.elements.length, 0), block.linked.built.elements.length, 'every element belongs to one child');
+  assert.ok(block.walker, 'the walk stage places a walker in the block');
+  await page.getByRole('button', { name: 'Decomposition', exact: true }).click();
+  await page.screenshot({ path: 'test-results/generation-demo-block.png', fullPage: true });
+  await page.getByRole('button', { name: 'Walk', exact: true }).click();
+  const start = await page.evaluate(() => window.generationDemoDebug().walker);
+  await page.locator('#preview').click(); await page.keyboard.down('KeyD');
+  await page.waitForFunction(x => window.generationDemoDebug().walker.x !== x, start.x, { timeout: 7000 });
+  await page.keyboard.up('KeyD');
+  // A region that doesn't decompose says so, and the example shows instead.
+  const hutBrief = mapViews(blockMap).briefs.find(b => b.type === 'hut') ?? mapViews(generate('last-exit-001')).briefs.find(b => b.type === 'hut');
+  await page.goto(`${base}/generation-demo.html${await briefFragment(hutBrief)}`);
+  await page.waitForFunction(() => window.generationDemoDebug?.().result?.version === 'realized-decomposition-1');
+  assert.match(await page.locator('#status').textContent(), /doesn't decompose/);
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'mobile demo has no horizontal overflow');
   assert.deepEqual(errors, [], errors.join('\n'));

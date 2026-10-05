@@ -157,8 +157,10 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   - **Layers:** one registry in `app.ts`, in chain order (51): the Layout,
     declared and resolved classes, regions, boundaries and portals, proof
     components, zone tiers and bonus, region types, loot chance, briefs, the
-    built map's parts, loot, core element sites, defect regions and defect
-    sites. Each layer names what it reads (the Layout, or a `mapViews` key), can be
+    region drill-down (block lots, spaces and allocation, spans, openings and
+    the design graph), the built map's parts, loot, core element sites,
+    defect regions and defect sites. Each layer names what it reads (the Layout, the stored region results,
+    or a `mapViews` key), can be
     turned on or off, has an opacity, and contributes its own legend
     entries and inspector lines. Any number can be on at once, so an
     earlier stage shows under a later one. Each layer is either areas (a
@@ -169,9 +171,10 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     full opacity it is drawn whole on a scratch canvas first, and its own
     parts don't fade unevenly where they overlap. A new layer is one
     registry entry. A layer can also give the inspector buttons that open
-    something elsewhere. On by default: regions, boundaries and portals,
-    the built map's parts other than roofs, core element sites, and the
-    defect layers.
+    something elsewhere: in the Chain Library tab, or in a new tab. On by
+    default: regions, boundaries and portals, the drill-down's lots,
+    allocation and openings, the built map's parts other than roofs, core
+    element sites, and the defect layers.
   - **Macro layers** read the Layout and `mapViews` only. The Layout layer
     outlines each placed tile and, in its set piece class's colour, each set
     piece instance; zoomed in far enough, it labels tiles with design and
@@ -188,6 +191,20 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     and loot chance. Its buttons open the tile design or set piece in the
     Chain Library tab; where the draft lacks it or differs, it asks before
     replacing the draft with the map's library.
+  - **Region drill-down** (#203): selecting a cell rebuilds its region in
+    the worker with `buildRegion`'s observer (56 L4), and compares the
+    rebuild with the stored result. Only when they're equal are the traces
+    drawn, because they describe the rebuild. A difference is a defect: the
+    inspector names the first differing path and the defect regions layer
+    marks the region. Five layers on the stored results draw the selected
+    region's traces in world units through `map/micro/building/draw.ts`,
+    the drawing the micro lab uses: a `block`'s lots (`planBlock`), each
+    building's spaces and allocation, spans, openings and design graph. The
+    inspector summarises each building and lists the guidance it didn't
+    meet, as warnings. Its buttons open the region's brief in the micro lab,
+    and a `block`'s in the generation demo too, on the game's dev server
+    when it runs in the same worktree (20.5). They also save the brief as
+    JSON, which the micro lab imports.
   - **The built map's parts** are six layers on `built`, one colour each:
     building walls, ruin walls and rubble, cover, windows, doors and roofs.
     Obstacles go by their `ObstacleKind` (`building`, `ruin-wall`,

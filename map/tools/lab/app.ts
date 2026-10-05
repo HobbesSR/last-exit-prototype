@@ -16,6 +16,9 @@ import type { RegionBrief } from "../../kernel/contract.ts";
 import type { BrokenPromise } from "../../micro/diagnose.ts";
 import { elementShapes } from "../../micro/geometry.ts";
 import type { RegionElement } from "../../micro/types.ts";
+import { briefFragment } from "../../micro/brief-link.ts";
+import { drawAllocation, drawDesignGraph, drawOpenings, drawSpans, guidanceNotMet, traceSummary } from "../../micro/building/draw.ts";
+import type { BuildingTrace } from "../../micro/building/trace.ts";
 import { outline } from "../../../shared/shape.ts";
 import type { ObstacleKind } from "../../../shared/types.ts";
 import { chainDraft, openChainEntry, renderChainLibrary } from "./chain-author.ts";
@@ -56,12 +59,34 @@ let camera = { zoom: 2, x: 0, y: 0 };
 let fitted = true;
 /** The zoom that fits the map, which the zoom readout calls 100%. */
 let fitZoom = 1;
+/**
+ * The selected region, rebuilt with an observer (53 "Region drill-down"): its buildings'
+ * traces, a `block`'s lots, and where the rebuild differs from the stored result, if it does.
+ * Its links to the micro tools carry its brief.
+ */
+let drill: {
+  id: string;
+  type: string;
+  brief: RegionBrief;
+  pending: boolean;
+  traces: BuildingTrace[];
+  lots: RegionBrief[];
+  difference: string | null;
+  error: string;
+  /** The brief as a link's fragment (`brief-link.ts`), once encoded. */
+  fragment: string | null;
+} | null = null;
+/** What each trace layer last drew, for the browser test. */
+let drawnTraces: Record<string, object> = {};
+/** The game's dev server, where the micro tools are, when it runs in this worktree (20.5). */
+let gameUrl: string | null = null;
 
 // ── Workers ─────────────────────────────────────────────────────────────────
 
 const WORKER_URL = new URL("./worker.ts", import.meta.url);
 let mapWorker: Worker | null = null;
 let diagnoseWorker: Worker | null = null;
+let drillWorker: Worker | null = null;
 
 /** One request on a worker of its own, so a newer request or a cancel can terminate it. */
 function ask(previous: Worker | null, request: LabRequest, reply: (answer: LabReply) => void): Worker {
@@ -158,6 +183,9 @@ function show(next: ToolMap): void {
   diagnosis = null;
   error = "";
   selected = null;
+  drillWorker?.terminate();
+  drillWorker = null;
+  drill = null;
   fillParams(map.layout.params);
   input("seed").value = map.layout.seed;
   const { width, height } = views.resolved;
@@ -202,7 +230,84 @@ function defectRegions(): Set<string> {
   const named = new Set<string>();
   for (const defect of check?.defects ?? []) for (const id of defect.regions ?? []) named.add(id);
   for (const broken of diagnosis?.brokenPromises ?? []) named.add(broken.region);
+  if (drill?.difference) named.add(drill.id);
   return named;
+}
+
+// ── Region drill-down ───────────────────────────────────────────────────────
+
+/** Rebuild the selected region in a worker, unless it's the one already drilled. */
+function startDrill(): void {
+  const region = views && selected ? probe(views, selected).region : undefined;
+  if (region?.id === drill?.id) return;
+  const hadDifference = !!drill?.difference;
+  drillWorker?.terminate();
+  drillWorker = null;
+  drill = null;
+  if (hadDifference) repaint("defects");
+  const brief = region && briefOf.get(region.id)?.brief, stored = region && map?.results.find((result) => result.brief.id === region.id);
+  if (!brief || !stored) return;
+  const forMap = map;
+  drill = { id: brief.id, type: brief.type, brief, pending: true, traces: [], lots: [], difference: null, error: "", fragment: null };
+  drillWorker = ask(null, { kind: "drill", brief, stored }, async (reply) => {
+    drillWorker = null;
+    if (map !== forMap || drill?.id !== brief.id) return;
+    if (reply.kind === "error") drill = { ...drill, pending: false, error: reply.message };
+    else if (reply.kind === "drill") {
+      drill = { ...drill, pending: false, traces: reply.traces, lots: reply.lots, difference: reply.difference };
+      if (reply.difference) repaint("defects");
+    }
+    draw();
+    renderInspector();
+    // The links carry the brief, deflated, which is asynchronous; they appear when it's done.
+    const at = drill, fragment = await briefFragment(brief);
+    if (drill !== at) return;
+    drill.fragment = fragment;
+    renderInspector();
+  });
+  renderInspector();
+}
+
+/** Whether the drill-down may be drawn: the region rebuilt equal to the stored result, so its traces are the stored region's. */
+function drillShown(): boolean {
+  return !!drill && !drill.pending && !drill.difference && !drill.error;
+}
+
+function drilled(): BuildingTrace[] {
+  return drillShown() ? drill!.traces : [];
+}
+
+/** A trace layer: drawn in world units, through the drawing the micro lab uses (`building/draw.ts`). */
+function traceLayer(id: string, label: string, pass: Layer["pass"], on: boolean,
+  drawTraces: (g: Context, traces: BuildingTrace[], px: number) => object): Layer {
+  return {
+    id, pass, label, stage: "results", on, opacity: 1,
+    paint: (g, v, px) => {
+      const traces = drilled();
+      if (!traces.length) return;
+      const { cellSize } = v.built;
+      g.save();
+      g.scale(1 / cellSize, 1 / cellSize);
+      drawnTraces[id] = drawTraces(g, traces, px * cellSize);
+      g.restore();
+    },
+  };
+}
+
+/** The outline of a set of cells, where a cell meets one not in the set. */
+function cellOutline(cells: Array<{ x: number; y: number }>): Path2D {
+  const own = new Set(cells.map(({ x, y }) => `${x},${y}`)), edge = new Path2D();
+  const side = (x0: number, y0: number, x1: number, y1: number) => {
+    edge.moveTo(x0, y0);
+    edge.lineTo(x1, y1);
+  };
+  for (const { x, y } of cells) {
+    if (!own.has(`${x},${y - 1}`)) side(x, y, x + 1, y);
+    if (!own.has(`${x},${y + 1}`)) side(x, y + 1, x + 1, y + 1);
+    if (!own.has(`${x - 1},${y}`)) side(x, y, x, y + 1);
+    if (!own.has(`${x + 1},${y}`)) side(x + 1, y, x + 1, y + 1);
+  }
+  return edge;
 }
 
 /** The built map's parts, by what they are, each drawn by a layer of its own. */
@@ -307,8 +412,8 @@ interface Probe {
 interface Layer {
   id: string;
   label: string;
-  /** What it reads: the Layout itself, or a `mapViews` key. */
-  stage: "layout" | keyof Views;
+  /** What it reads: the Layout itself, the stored region results, or a `mapViews` key. */
+  stage: "layout" | "results" | keyof Views;
   on: boolean;
   /** 0–1, applied to everything the layer draws. */
   opacity: number;
@@ -326,11 +431,16 @@ interface Layer {
   legend?: () => Array<[string, string]>;
   /** The inspector's lines for a cell. */
   inspect?: (v: Views, at: Probe) => string[];
-  /** Buttons under the inspector for a cell, each opening something elsewhere. */
-  links?: (v: Views, at: Probe) => Array<{ label: string; open: () => void }>;
+  /**
+   * Buttons under the inspector for a cell, each opening something elsewhere: in this page,
+   * switching to the Chain Library tab when `chain` says so, or at `href` in a new tab.
+   */
+  links?: (v: Views, at: Probe) => Link[];
   /** The layer's painted cells and legend, for the current map. */
   painted?: { canvas: HTMLCanvasElement; seen: Map<string, Rgb | Rgba> } | null;
 }
+
+type Link = { label: string; open: () => void; chain?: boolean } | { label: string; href: string };
 
 const SITE_COLOURS: Record<string, string> = {
   spawn: "#7fd0ff", "hunter-spawn": "#ff7a6b", exit: "#c8f185", charger: "#ffd166", warp: "#c39bff",
@@ -362,6 +472,7 @@ function tag(g: Context, text: string, x: number, y: number, px: number, fill: s
 const slotOf = (x: number, y: number) => slotAt.get(`${Math.floor(x / CHAIN_TILE_SIZE)},${Math.floor(y / CHAIN_TILE_SIZE)}`);
 const TILE_LINE = "#dfe7ea";
 const BRIEF_PORTAL = "#ffb35c";
+const LOT_LINE = "#f4e285";
 const pieceColour = (setPieceClass: string) => css(colour(setPieceClass, 75, 62));
 /** Labels are drawn once a tile is this many screen pixels across. */
 const LABEL_TILE_PX = 72;
@@ -452,8 +563,8 @@ const LAYERS: Layer[] = [
       if (!at || !from) return [];
       const { slot, piece } = at;
       return [
-        { label: `Edit tile design ${slot.design}`, open: () => openChainEntry(from.library, "tiles", slot.design) },
-        ...(piece ? [{ label: `Edit set piece ${piece.setPiece}`, open: () => openChainEntry(from.library, "setPieces", piece.setPiece) }] : []),
+        { label: `Edit tile design ${slot.design}`, open: () => openChainEntry(from.library, "tiles", slot.design), chain: true },
+        ...(piece ? [{ label: `Edit set piece ${piece.setPiece}`, open: () => openChainEntry(from.library, "setPieces", piece.setPiece), chain: true }] : []),
       ];
     },
   },
@@ -578,6 +689,53 @@ const LAYERS: Layer[] = [
       ];
     },
   },
+  {
+    id: "lots", pass: "marks", label: "Drill-down: block lots", stage: "results", on: true, opacity: 1,
+    legend: () => [["lot, a block's child region", LOT_LINE]],
+    paint: (g, _, px) => {
+      if (!drill || !drillShown()) return;
+      g.strokeStyle = LOT_LINE;
+      g.lineWidth = 2 * px;
+      g.setLineDash([6 * px, 4 * px]);
+      for (const lot of drill.lots) g.stroke(cellOutline(lot.cells));
+      g.setLineDash([]);
+      // A lot is a rectangle (54 `block`); its label is clipped to it.
+      for (const lot of drill.lots) {
+        const xs = lot.cells.map((c) => c.x), ys = lot.cells.map((c) => c.y), x = Math.min(...xs), y = Math.min(...ys);
+        g.save();
+        g.beginPath();
+        g.rect(x, y, Math.max(...xs) + 1 - x, Math.max(...ys) + 1 - y);
+        g.clip();
+        tag(g, `${lot.id.slice(drill.id.length + 1)} ${lot.type}`, x + 3 * px, y + 3 * px, px, LOT_LINE);
+        g.restore();
+      }
+      drawnTraces.lots = { lots: drill.lots.length };
+    },
+    inspect: (_, { region }) => {
+      if (!region || drill?.id !== region.id) return [];
+      if (drill.pending) return ["", "Drill-down: rebuilding…"];
+      if (drill.error) return ["", `Drill-down failed: ${drill.error}`];
+      if (drill.difference) return ["", `Defect: rebuilt, the region differs from the stored result, at ${drill.difference}. Its traces aren't drawn.`];
+      return [
+        "",
+        `Drill-down: rebuilt equal to the stored result; ${drill.traces.length} building${drill.traces.length === 1 ? "" : "s"} from designs${drill.lots.length ? `, ${drill.lots.length} lots` : ""}`,
+        ...drill.traces.flatMap((trace) => [traceSummary(trace), ...guidanceNotMet(trace)]),
+      ];
+    },
+    links: (_, { region }) => {
+      if (!region || drill?.id !== region.id || drill.pending) return [];
+      const { brief, fragment } = drill, file = `brief-${brief.id.replace(/[^a-z0-9-]/gi, "_")}.json`;
+      return [
+        ...(gameUrl && fragment ? [{ label: "Open in the micro lab", href: `${gameUrl}/micro-lab.html${fragment}` }] : []),
+        ...(gameUrl && fragment && brief.type === "block" ? [{ label: "Open in the generation demo", href: `${gameUrl}/generation-demo.html${fragment}` }] : []),
+        { label: "Save this region's brief", open: () => download(file, JSON.stringify(brief, null, 2), "application/json") },
+      ];
+    },
+  },
+  traceLayer("allocation", "Drill-down: spaces and allocation", "areas", true, drawAllocation),
+  traceLayer("spans", "Drill-down: spans", "marks", false, drawSpans),
+  traceLayer("openings", "Drill-down: openings", "marks", true, drawOpenings),
+  traceLayer("graph", "Drill-down: design graph", "marks", false, drawDesignGraph),
   {
     ...partLayer("walls", "Building walls", "#c3ccc7", "building wall"),
     inspect: (_, { built }) => {
@@ -736,6 +894,7 @@ function draw(): void {
   $("zoomLevel").textContent = `${Math.round((camera.zoom / fitZoom) * 100)}%`;
   if (!views) return;
   const v = views, { zoom, x, y } = camera, px = 1 / zoom;
+  drawnTraces = {};
   const transform = [dpr * zoom, 0, 0, dpr * zoom, dpr * x, dpr * y] as const;
   ctx.setTransform(...transform);
   ctx.imageSmoothingEnabled = false;
@@ -911,11 +1070,12 @@ function renderInspector(): void {
   $("inspector").textContent = inspection(selected).join("\n");
   const v = views, at = selected;
   const links = v && at ? LAYERS.flatMap((layer) => layer.links?.(v, probe(v, at)) ?? []) : [];
-  $("inspectorLinks").replaceChildren(...links.map(({ label, open }) => {
-    const button = Object.assign(element("button", label, "full"), { type: "button" });
+  $("inspectorLinks").replaceChildren(...links.map((link) => {
+    if ("href" in link) return Object.assign(element("a", link.label, "full button"), { href: link.href, target: "_blank", rel: "noopener" });
+    const button = Object.assign(element("button", link.label, "full"), { type: "button" });
     button.onclick = () => {
-      open();
-      showTab(true);
+      link.open();
+      if (link.chain) showTab(true);
     };
     return button;
   }));
@@ -1014,6 +1174,7 @@ canvas.onpointerup = (event) => {
   drag = null;
   if (!click || !views) return;
   selected = cellAt(event);
+  startDrill();
   renderInspector();
   draw();
 };
@@ -1029,7 +1190,7 @@ new ResizeObserver(resize).observe(canvas);
 
 declare global {
   interface Window {
-    mapLab: { snapshot: () => unknown };
+    mapLab: { snapshot: () => unknown; select: (x: number, y: number) => void };
   }
 }
 window.mapLab = Object.freeze({
@@ -1052,8 +1213,31 @@ window.mapLab = Object.freeze({
     inspector: $("inspector").textContent,
     layers: LAYERS.map(({ id, pass, stage, on, opacity }) => ({ id, pass, stage, on, opacity })),
     zoom: $("zoomLevel").textContent,
+    selected,
+    drill: drill && {
+      id: drill.id, type: drill.type, pending: drill.pending, error: drill.error, difference: drill.difference,
+      buildings: drill.traces.map((trace) => trace.label), lots: drill.lots.map((lot) => ({ id: lot.id, type: lot.type })),
+      drawn: { ...drawnTraces }, fragment: drill.fragment,
+    },
+    links: [...$("inspectorLinks").children].map((link) => ({ label: link.textContent, href: (link as HTMLAnchorElement).href || null })),
   }),
+  /** Select a cell, as a click on it does. */
+  select: (x: number, y: number) => {
+    selected = { x, y };
+    startDrill();
+    renderInspector();
+    draw();
+  },
 });
+
+// The micro tools are on the game's dev server, linked when it runs in this worktree (20.5).
+fetch("/dev-nav-config.json", { cache: "no-store" })
+  .then((response) => (response.ok ? response.json() : null))
+  .then((config: { mainUrl?: string | null } | null) => {
+    gameUrl = config?.mainUrl ?? null;
+    renderInspector();
+  })
+  .catch(() => {});
 
 fillParams(DEFAULT_CHAIN_PARAMS);
 generateMap();
