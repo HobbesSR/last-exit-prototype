@@ -93,7 +93,9 @@ protocol message (24).
 The viewer draws one pip per mark over the scrubber (`#replay-marks`), distinct by shape as
 well as colour (square red stall, triangle orange client drop or gap, circle blue manual), with
 the mark named in its tooltip. Activating a pip seeks `MARK_LEAD_SECONDS` (2) before the tick
-and follows the reporting player when the roster has them. The frozen fixture and `version` are unaffected.
+and follows the reporting player when the roster has them. Marks too close to draw apart
+(`clusterMarks`) share one pip showing their count; it opens a list, so a stall and the
+reports from several players at one tick each stay individually selectable. The frozen fixture and `version` are unaffected.
 
 ## Bounded recording
 
