@@ -1,7 +1,7 @@
 # 26. Recording contract
 
 Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
-default content is `content-2`, and recordings use schema 4. Masked live maps require reader 4; legacy maps keep
+default content is `content-2`, and recordings use schema 5 (4 added masked maps, 5 the diagnostics trailer). Masked live maps require reader 4; legacy maps keep
 minimum schema 0.
 Storage-only changes must preserve frozen gameplay fixtures.
 
@@ -70,6 +70,25 @@ retained `state.tick` values, avoiding an unbounded separate gap list. No surviv
 frames means publication fails. An omitted final state must never be invented;
 `endTick` records the actual match endpoint, even if the last surviving frame is
 earlier. This additive extension does not change simulation version or BSON scope.
+
+## Diagnostic markers (schema 5)
+
+A recording may end with a top-level `diagnostics: { marks, dropped? }` trailer after
+`frames`, written only when there is something to say, as `recording` is. It is additive
+(`minSchema` is unchanged) and never touches frames or the digest, so ordinary recordings
+keep their frame JSON and SHA-256 contract. They are in a trailer, not in frames, because
+a frame is omitted whole under storage pressure, which is when a stall is most likely.
+`writer.mark(marker)` keeps at most `MAX_DIAGNOSTIC_MARKS` (512); later ones are counted
+in `dropped`. A crash `.partial` file loses the trailer, which is acceptable.
+
+A mark is `{ tick, kind, ... }`. Only `server-stall` is written so far:
+`{ tick, kind, wakeMs, owed, simulated }` (`simulated` is the steps actually taken, fewer than the budget if the match ends), raised by the room's catch-up step in
+`advance` when more ticks are owed than `MAX_CATCHUP` allows. Tick numbers stay
+continuous after a stall (wall time is lost, not ticks), so the mark is the only evidence in
+the replay. Readers treat marks as untrusted: `createReplayTimeline` keeps known kinds at
+valid ticks, in tick order, and reports `droppedMarks`. Client-reported kinds
+(`frame-drop`, `packet-gap`, `manual`) are accepted by the model and wait on a
+protocol message (24). The frozen fixture and `version` are unaffected.
 
 ## Bounded recording
 

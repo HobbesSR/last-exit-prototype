@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { createReplayWriter } from '../server/replay-writer.js';
+import { createReplayWriter, MAX_DIAGNOSTIC_MARKS } from '../server/replay-writer.js';
 import { createFileReplayStore } from '../server/replay-store.js';
 
 test('replay writer preserves frame JSON, command ownership, integrity and idempotent publication', async () => {
@@ -26,6 +26,27 @@ test('replay writer preserves frame JSON, command ownership, integrity and idemp
   assert.deepEqual(meta, { id: header.id, seed: 9, createdAt: 100, ticks: 1, frames: 2, sha256: digest.digest('hex'), escaped: 0 });
   assert.deepEqual(published, [meta]); assert.deepEqual(errors, []);
   assert.throws(() => writer.append({}, []), /finalized/);
+});
+
+test('diagnostic markers ride in a bounded trailer and leave the frames and digest untouched', async () => {
+  const run = async marks => {
+    const chunks = [], output = new Writable({ write(chunk, _e, next) { chunks.push(Buffer.from(chunk)); next(); } });
+    const writer = createReplayWriter({ header: { id: 'marks' }, output, publish: async () => {}, onError: () => {} });
+    writer.append({ tick: 0 }, []); writer.append({ tick: 1 }, []);
+    for (const mark of marks) writer.mark(mark);
+    const meta = await writer.finish({ ticks: 1 });
+    return { meta, replay: JSON.parse(gunzipSync(Buffer.concat(chunks))), writer };
+  };
+  const plain = await run([]);
+  assert.equal('diagnostics' in plain.replay, false, 'no trailer when there is nothing to say');
+  const marked = await run([{ tick: 1, kind: 'server-stall' }]);
+  assert.deepEqual(marked.replay.diagnostics, { marks: [{ tick: 1, kind: 'server-stall' }] });
+  assert.equal(marked.meta.sha256, plain.meta.sha256);
+  assert.deepEqual(marked.replay.frames, plain.replay.frames);
+  const flood = await run(Array.from({ length: MAX_DIAGNOSTIC_MARKS + 7 }, (_, tick) => ({ tick, kind: 'manual' })));
+  assert.equal(flood.replay.diagnostics.marks.length, MAX_DIAGNOSTIC_MARKS);
+  assert.equal(flood.replay.diagnostics.dropped, 7);
+  assert.equal(flood.writer.mark({ tick: 1, kind: 'manual' }), false, 'a finished recording takes no more');
 });
 
 test('replay stream and publication failures reject completion without publishing success', async () => {

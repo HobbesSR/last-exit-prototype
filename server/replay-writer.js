@@ -4,6 +4,8 @@ import { pipeline } from 'node:stream/promises';
 
 const DEFAULT_QUEUE_BYTES = 8 * 1024 * 1024;
 const DEFAULT_FINALIZE_TIMEOUT_MS = 5000;
+// Diagnostic markers ride in a trailer, bounded like the frame queue; see docs/26.
+export const MAX_DIAGNOSTIC_MARKS = 512;
 const asError = error => error instanceof Error ? error : new Error(String(error));
 const aborted = signal => { if (signal?.aborted) throw asError(signal.reason || 'Replay recording was aborted'); };
 
@@ -13,7 +15,7 @@ export function createReplayWriter({ header, output, publish, onError = error =>
   if (!Number.isFinite(finalizeTimeoutMs) || finalizeTimeoutMs < 0) throw new RangeError('finalizeTimeoutMs must be non-negative');
   const hash = createHash('sha256'), recorder = createGzip(gzipOptions), controller = new AbortController();
   const recording = pipeline(recorder, output), queue = [];
-  let queuedBytes = 0, writing = null, frames = 0, droppedFrames = 0, ending = false, completion, failed = null, reported = false;
+  let queuedBytes = 0, writing = null, frames = 0, droppedFrames = 0, marks = [], droppedMarks = 0, ending = false, completion, failed = null, reported = false;
   // Observe this independently of finish(), because a live sink can fail mid-match.
   recording.catch(error => fail(error));
 
@@ -66,6 +68,12 @@ export function createReplayWriter({ header, output, publish, onError = error =>
       if (!enqueue(text, true)) { droppedFrames++; return false; }
       hash.update(`${line}\n`); frames++; return true;
     },
+    // Never touches frames or the digest. Past the cap a marker is counted, not kept.
+    mark(marker) {
+      if (completion || ending || failed) return false;
+      if (marks.length >= MAX_DIAGNOSTIC_MARKS) { droppedMarks++; return false; }
+      marks.push(marker); return true;
+    },
     abort(error = new Error('Replay recording was aborted')) { fail(error); return failed; },
     finish(result) {
       if (completion) return completion;
@@ -73,7 +81,13 @@ export function createReplayWriter({ header, output, publish, onError = error =>
       if (!frames) { fail(new Error('Replay has no retained frames')); return rejectedCompletion(); }
       ending = true;
       const endTick = result?.ticks;
-      enqueue(droppedFrames ? `],"recording":${JSON.stringify({ complete: false, droppedFrames, endTick })}}` : ']}');
+      let trailer = ']';
+      if (droppedFrames) trailer += `,"recording":${JSON.stringify({ complete: false, droppedFrames, endTick })}`;
+      if (marks.length || droppedMarks) {
+        try { trailer += `,"diagnostics":${JSON.stringify(droppedMarks ? { marks, dropped: droppedMarks } : { marks })}`; }
+        catch { /* A marker that cannot serialize must not cost the recording. */ }
+      }
+      enqueue(`${trailer}}`);
       endWhenDrained();
       let timer;
       const timeout = new Promise((_, reject) => {
