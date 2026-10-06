@@ -1,6 +1,7 @@
 import { createRoomService } from '../../server/room-service.js';
+import { createRoomDirectory } from '../../server/room-directory.js';
 
-export function roomHarness({ finalize, reportError, startWriter, ...serviceOptions } = {}) {
+export function roomHarness({ finalize, reportError, startWriter, generateMap, ...serviceOptions } = {}) {
   let wall = 1000, monotonic = 0;
   const writers = new Map();
   const replays = { start(header, options) {
@@ -17,15 +18,16 @@ export function roomHarness({ finalize, reportError, startWriter, ...serviceOpti
     writers.set(header.id, writer); return writer;
   } };
   const service = createRoomService({ replays, wallNow: () => wall, reportError, ...serviceOptions });
+  const directory = createRoomDirectory({ host: service, generateMap, devTools: serviceOptions.devTools, reportError });
   const peer = () => {
     const messages = [], closes = [];
     const session = service.connect({ deliver: payload => messages.push(JSON.parse(payload)), close: (...args) => { closes.push(args); service.disconnect(session); } });
-    return { session, messages, closes, send: message => service.receive(session, message) };
+    return { session, messages, closes, send: message => directory.receive(session, message) };
   };
   const joined = (room, extra = {}) => {
     const p = peer(); p.send({ type: 'join', room: room.id, ...extra }); return p;
   };
-  return { service, writers, peer, joined,
+  return { service, directory, writers, peer, joined,
     wake(elapsed, wallElapsed = elapsed) { wall += wallElapsed; monotonic += elapsed; service.advance(elapsed, monotonic); },
     live(seed = 9) {
       const room = service.makeRoom(seed), owner = joined(room, { ownerKey: room.ownerKey });

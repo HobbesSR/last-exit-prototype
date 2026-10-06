@@ -3,46 +3,46 @@ import { HZ, VERSION } from '../shared/simulation/rules.ts';
 import { SCHEMA, minimumReaderForMap } from '../shared/recording.ts';
 import * as profiler from '../shared/profiler.ts';
 import { createMatch } from './match.js';
-import { DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
+import { DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../map/live.ts';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
 import { send, broadcast, broadcastLobby, spectatorFrame, remember, SPECTATOR_DELAY_TICKS } from './room-views.js';
-import { randomSeed, normalizeDiagnostic, MAX_DIAGNOSTICS_PER_SESSION, MIN_DIAGNOSTIC_INTERVAL_MS } from './protocol.js';
+import { normalizeDiagnostic, MAX_DIAGNOSTICS_PER_SESSION, MIN_DIAGNOSTIC_INTERVAL_MS } from './protocol.js';
 import { trackLatency, pingSession, acceptPong, roundTripMs } from './latency.js';
 export const EMPTY_ROOM_GRACE_MS = 30000;
-const FULL = { type: 'error', message: 'All arena slots are occupied. Try matchmaking again after a match ends.' };
 const MAX_SPECTATORS = 24;
 
-// Sessions provide only deliver(serializedPayload, droppable) and close(code, reason); no socket dependency.
-// Only state frames are droppable (protocol.js `deliverable`).
-export function createRoomService({ replays, generateMap = null, devTools = 'none', wallNow = Date.now, reportError = console.error,
+const ROLES = ['contestant', 'gladiator'];
+const byRole = count => Object.fromEntries(ROLES.map(role => [role, count(role)]));
+
+/**
+ * The room host: admission into one room, its pre-start phase, the match, recording and finish, for
+ * every room in this process. Which rooms exist, how many, and who is sent where belong to the
+ * directory (room-directory.js), which sees a room only through its summary.
+ * Sessions provide only deliver(serializedPayload, droppable) and close(code, reason); no socket dependency.
+ * Only state frames are droppable (protocol.js `deliverable`).
+ */
+export function createRoomService({ replays, devTools = 'none', wallNow = Date.now, reportError = console.error,
   replayFinishTimeoutMs = 5000, setTimer = setTimeout, clearTimer = clearTimeout }) {
   const rooms = new Map();
   const finalizations = new Set();
   let closing;
-  // Rooms whose maps are still being generated hold their place against the cap.
-  let generating = 0, matchmadeRoom = null;
-  const hasCapacity = () => !closing && [...rooms.values()].filter(r => !r.finished).length + generating < 8;
   const connect = peer => trackLatency({ ...peer, connectionId: randomUUID(), playerId: null });
+  /** A room on `map`, or generated inline without one (the fake-clock tests); null once closing. */
   function makeRoom(seed, matchmade = false, size = DEFAULT_LIVE_ZONE_SIZE, map) {
-    if (!hasCapacity()) return null;
+    if (closing) return null;
     const id = randomBytes(4).toString('hex');
     const match = createMatch(seed, size, map);
     const room = { id, ownerKey: randomUUID(), size, match, game: match.diagnosticState, clients: new Set(), started: false, createdAt: wallNow(), inputs: [], finished: false, debt: 0, steppedAt: 0, spectators: 0, history: [], matchmade, resumes: new Map() };
     rooms.set(id, room); return room;
   }
-  /**
-   * A new room, its map made by `generateMap` when the service has one (a worker, so no other room's
-   * ticks wait on it): a promise of the room, or null at capacity. Without one, the room is returned
-   * at once, generated inline, which is what the fake-clock tests use.
-   */
-  function createRoom(seed, matchmade = false, size = DEFAULT_LIVE_ZONE_SIZE) {
-    if (!generateMap) return makeRoom(seed, matchmade, size);
-    if (!hasCapacity()) return null;
-    generating++;
-    return generateMap(seed, size).then(map => { generating--; return makeRoom(seed, matchmade, size, map); },
-      error => { generating--; throw error; });
-  }
   const preferredRole = (room, preference) => room.match.preferredRole(preference);
+  /** Every unfinished room's public summary: plain data, never the room, and never its owner key. */
+  const summaries = () => [...rooms.values()].filter(room => !room.finished).map(room => ({
+    id: room.id, kind: room.matchmade ? 'matchmade' : 'private', phase: room.started ? 'live' : 'lobby',
+    size: zoneSizeName(room.size), createdAt: room.createdAt,
+    players: byRole(role => room.match.roster().filter(p => p.role === role).length),
+    open: byRole(role => room.match.openPlaces(role))
+  }));
   // Whether a session may open the dev view, under the server's policy (protocol.js).
   const devAllowed = owner => devTools === 'all' || devTools === 'owner' && owner;
   function replayStatus(room, status) {
@@ -134,26 +134,6 @@ export function createRoomService({ replays, generateMap = null, devTools = 'non
         session.room.match.setViewLag(session.playerId, roundTripMs(session));
       }
       return;
-    }
-    if (data.type === 'match' && !session.room) {
-      const preference = ['contestant', 'gladiator'].includes(data.role) ? data.role : 'any';
-      let room = [...rooms.values()].find(room => room.matchmade && !room.started && !room.finished && preferredRole(room, preference));
-      if (!room) {
-        // Everyone matchmaking while a room's map is generated waits for that one room.
-        const made = matchmadeRoom || createRoom(randomSeed(), true);
-        if (made && typeof made.then === 'function') {
-          if (!matchmadeRoom) {
-            matchmadeRoom = made;
-            made.then(() => { matchmadeRoom = null; }, () => { matchmadeRoom = null; });
-          }
-          made.then(ready => { if (session.closed || session.room) return; if (ready) receive(session, data); else send(session, FULL); },
-            error => { reportError(error); if (!session.closed) send(session, { type: 'error', message: 'The arena could not be generated. Try again.' }); });
-          return;
-        }
-        room = made;
-      }
-      if (!room) return send(session, FULL);
-      data = { ...data, type: 'join', room: room.id, role: preferredRole(room, preference) };
     }
     if (data.type === 'join' && !session.room) {
       const room = rooms.get(data.room);
@@ -312,5 +292,5 @@ export function createRoomService({ replays, generateMap = null, devTools = 'non
     return closing;
   }
 
-  return { rooms, devTools, hasCapacity, makeRoom, createRoom, connect, receive, disconnect, advance, close };
+  return { rooms, devTools, accepting: () => !closing, summaries, makeRoom, connect, receive, disconnect, advance, close };
 }

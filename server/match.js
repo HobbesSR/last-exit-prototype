@@ -13,6 +13,8 @@ export function createMatch(seed, size, map) {
   const content = defaultContent();
   const game = createGame(seed, map ?? generateLiveMap(seed, content, size), content);
   const capacity = role => role === 'gladiator' ? game.content.roster.gladiators.length : game.content.roster.contestants.length;
+  // A place is open while a bot holds it, for a joining player to take over.
+  const openPlaces = role => game.players.filter(p => p.bot && p.status === 'active' && p.role === role).length;
   return {
     get tick() { return game.tick; },
     get phase() { return game.phase; },
@@ -27,8 +29,9 @@ export function createMatch(seed, size, map) {
     get diagnosticState() { return game; },
     roster: () => game.players.filter(p => !p.bot).map(identity),
     player: id => identity(game.players.find(p => p.id === id)),
+    openPlaces,
     preferredRole(preference) {
-      const open = role => game.players.some(p => p.bot && p.status === 'active' && p.role === role);
+      const open = role => openPlaces(role) > 0;
       if (['contestant', 'gladiator'].includes(preference) && open(preference)) return preference;
       const roles = ['contestant', 'gladiator'].filter(open);
       const share = role => game.players.filter(p => p.role === role && !p.bot).length / capacity(role);
