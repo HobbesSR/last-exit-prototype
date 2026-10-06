@@ -7,6 +7,7 @@ import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { createArenaServer } from '../server/index.js';
 import { listen } from './helpers/listen.js';
+import { canOccupy } from '../shared/movement.ts';
 
 const replayDir = await mkdtemp(path.join(tmpdir(), 'last-exit-dev-view-'));
 await mkdir('test-results', { recursive: true });
@@ -73,6 +74,16 @@ try {
   assert.ok(Math.abs(followed.debug.camera.x + followed.debug.cameraWidth / 2 - followed.subject.x) < 60, 'following centres on the subject');
   await dev.keyboard.press('KeyV');
   await dev.waitForFunction(() => window.arenaDebug().viewer === null && window.arenaDebug().vision === null && window.arenaDebug().follow);
+  // T sends the followed player to the open ground under the cursor (#247).
+  const view = await dev.evaluate(() => { const box = document.querySelector('#game canvas').getBoundingClientRect(); return { ...window.arenaDebug(), left: box.left, top: box.top }; });
+  const before = room.game.players.find(p => p.id === subject);
+  const spot = [[300, 0], [-300, 0], [0, 250], [0, -250], [250, 200], [-250, -200]].map(([dx, dy]) => ({ x: Math.round(before.x + dx), y: Math.round(before.y + dy) }))
+    .find(point => canOccupy(room.game.map, point.x, point.y, 12));
+  assert.ok(spot, 'there is open ground near the subject');
+  await dev.mouse.move(view.left + (spot.x - view.camera.x) * view.camera.zoom, view.top + (spot.y - view.camera.y) * view.camera.zoom);
+  await dev.keyboard.press('KeyT');
+  await until(() => Math.hypot(before.x - spot.x, before.y - spot.y) < 3, () => `the subject was teleported to ${JSON.stringify(spot)}: at ${before.x},${before.y}`);
+  await dev.waitForFunction(() => document.getElementById('toast').textContent.endsWith('moved'));
   await dev.keyboard.press('Escape');
   await dev.waitForFunction(() => window.arenaDebug().follow === null);
   await dev.screenshot({ path: 'test-results/dev-view.png' });
@@ -94,6 +105,6 @@ try {
   await page.waitForFunction(() => !window.arenaDebug().paused && document.getElementById('paused-banner').hidden);
   await dev.close();
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: true, checks: ['step out and back', 'dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'pause and resume'] }));
+  console.log(JSON.stringify({ passed: true, checks: ['step out and back', 'dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'teleport', 'pause and resume'] }));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
 finally { await browser.close(); await server.close(); await rm(replayDir, { recursive: true, force: true }); }

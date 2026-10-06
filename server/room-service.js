@@ -184,6 +184,15 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     // Dev controls: any session the server's dev tools policy admits, never a later-joining one it does not.
     if (data.type === 'dev' && session.devTools) {
       if (data.action === 'pause' || data.action === 'resume') setPaused(room, data.action === 'pause');
+      if (data.action === 'teleport') {
+        const moved = room.match.teleport(data.id, data.x, data.y);
+        send(session, moved ? { type: 'teleport', ok: true, id: moved.id, x: moved.x, y: moved.y } : { type: 'teleport', ok: false, id: data.id });
+        if (!moved) return;
+        // Recorded with the next tick's frame, like any command between ticks.
+        room.inputs.push(moved);
+        // A paused room sends no frames, so show the move now rather than on resume.
+        if (room.pausedAt != null) { const state = room.match.snapshot(); remember(room, state); broadcast(room, state); }
+      }
       return;
     }
     if (data.type === 'diagnostic' && session.playerId) {

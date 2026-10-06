@@ -312,6 +312,8 @@ export function makeArenaScene(api) {
       }
       return best;
     }
+    /** The world point under the pointer. */
+    pointerWorld() { const p = this.input.activePointer; return this.cameras.main.getWorldPoint(p.x, p.y); }
     /** Where the camera is now: its centre and zoom, the shape the director works in. */
     cameraView() {
       const camera = this.cameras.main;

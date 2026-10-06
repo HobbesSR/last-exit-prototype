@@ -175,6 +175,9 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       updateLobby(data);
       if (data.started) { if (!devView) { hideLobby(); connection('LIVE'); } }
       else if (playerId) showLobby(data);
+    } else if (data.type === 'teleport') {
+      const who = state?.players.find(p => p.id === data.id)?.name || 'Player';
+      toast(data.ok ? `${who} moved` : `${who} cannot stand there`);
     } else if (data.type === 'paused') {
       setPaused(data.paused);
     } else if (data.type === 'saved') {
@@ -381,6 +384,17 @@ function showDevMode() {
 const watchReplay = id => { leaveDevView(); void replayController.watch(id); };
 $('dev-view').onclick = () => devFeed ? leaveDevView() : enterDevView();
 $('dev-leave').onclick = () => leaveDevView();
+// T sends the followed player, or your own when you have stepped out of it, to the point under the cursor.
+function teleportToCursor() {
+  const id = director.followId() || (devFeed ? playerId : null);
+  if (!id) return toast('Follow a player to teleport them');
+  const point = scene?.pointerWorld();
+  if (point && ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'dev', action: 'teleport', id, x: point.x, y: point.y }));
+}
+addEventListener('keydown', event => {
+  if (event.code !== 'KeyT' || event.repeat || !inDevView() || replayController.active() || event.target.closest?.('input, textarea, select') || document.querySelector('dialog[open]')) return;
+  teleportToCursor();
+});
 // Backquote steps out to the dev view and back, wherever the button is.
 addEventListener('keydown', event => {
   if (event.code !== 'Backquote' || event.repeat || event.target.closest?.('input, textarea, select') || document.querySelector('dialog[open]') || $('dev-view').hidden) return;

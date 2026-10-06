@@ -89,6 +89,8 @@ the replay. Readers treat marks as untrusted: `createReplayTimeline` keeps known
 valid ticks, in tick order, and reports `droppedMarks`. Client-reported kinds
 (`frame-drop`, `packet-gap`, `manual`) arrive as a `diagnostic` message (24) and are written
 as `{ tick, kind, playerId, reportedTick, arrivalTick, startTick?, count?, worstMs? }`.
+A dev teleport (24) is not a mark but a command, `{ type: 'teleport', id, x, y }`, in the
+frame after it, whose state already shows the player there.
 A dev pause (24) is `{ tick, kind: 'pause', pausedMs }`, written when the room resumes or
 ends: no tick passes while paused, so it sits between two consecutive frames and is the
 only sign of the pause in the replay.

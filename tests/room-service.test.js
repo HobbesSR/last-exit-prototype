@@ -210,6 +210,32 @@ test('a dev pause stops only its own room, drops owed time and leaves one mark',
   } finally { await closed.service.close(); }
 });
 
+test('a dev teleport moves any active player to open ground, is recorded, and shows while paused', async () => {
+  const h = roomHarness({ devTools: 'owner' }), { room, owner, writer } = h.live();
+  try {
+    const id = owner.session.playerId, bot = room.game.players.find(p => p.bot && p.status === 'active');
+    const open = room.game.map.spawns[0];
+    const guest = h.joined(room, {}); guest.send({ type: 'dev', action: 'teleport', id: bot.id, x: open.x, y: open.y });
+    assert.ok(!guest.messages.some(m => m.type === 'teleport'), 'a session the policy does not admit cannot teleport');
+    owner.send({ type: 'dev', action: 'teleport', id: bot.id, x: open.x + 0.4, y: open.y });
+    assert.deepEqual(owner.messages.at(-1), { type: 'teleport', ok: true, id: bot.id, x: Math.round(open.x + 0.4), y: open.y });
+    assert.equal(bot.x, Math.round(open.x + 0.4)); assert.deepEqual(bot.path, [], 'a bot plans again from where it lands');
+    h.wake(50);
+    assert.deepEqual(writer.frames.at(-1).commands.find(c => c.type === 'teleport'), { type: 'teleport', id: bot.id, x: Math.round(open.x + 0.4), y: open.y });
+    const wall = room.game.map.obstacles.find(o => !o.points && o.w > 60 && o.h > 60);
+    owner.send({ type: 'dev', action: 'teleport', id, x: wall.x + wall.w / 2, y: wall.y + wall.h / 2 });
+    assert.equal(owner.messages.at(-1).ok, false, 'a body cannot be put inside a wall');
+    for (const bad of [{ id: 'nobody' }, { id, x: NaN }, { id, x: 1e9, y: 1e9 }]) {
+      owner.send({ type: 'dev', action: 'teleport', x: open.x, y: open.y, ...bad });
+      assert.equal(owner.messages.at(-1).ok, false, JSON.stringify(bad));
+    }
+    owner.send({ type: 'dev', action: 'pause' }); const tick = room.match.tick;
+    owner.send({ type: 'dev', action: 'teleport', id, x: open.x, y: open.y + 30 });
+    const shown = owner.messages.filter(m => m.type === 'state').at(-1).state;
+    assert.equal(shown.tick, tick); assert.equal(shown.players.find(p => p.id === id).y, open.y + 30, 'a paused room shows the move at once');
+  } finally { await h.service.close(); }
+});
+
 test('a backed-up socket skips state frames but never a one-off message', () => {
   assert.equal(deliverable(MAX_BUFFERED_BYTES, true), false);
   assert.equal(deliverable(MAX_BUFFERED_BYTES - 1, true), true);
