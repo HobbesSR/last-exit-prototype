@@ -1,15 +1,17 @@
 import { createGame, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { resetInput } from '../shared/simulation/input.ts';
 import { viewLagFrom } from '../shared/simulation/rewind.ts';
+import { teleport } from '../shared/simulation/dev.ts';
 import { generateLiveMap } from '../map/live.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
 
 // The application's only mutable access to simulation. Returned frames/commands are detached.
-export function createMatch(seed, size) {
+// `map` is the same seed and size already generated elsewhere (the room service's worker, #253).
+export function createMatch(seed, size, map) {
   const content = defaultContent();
-  const game = createGame(seed, generateLiveMap(seed, content, size), content);
+  const game = createGame(seed, map ?? generateLiveMap(seed, content, size), content);
   const capacity = role => role === 'gladiator' ? game.content.roster.gladiators.length : game.content.roster.contestants.length;
   return {
     get tick() { return game.tick; },
@@ -67,6 +69,11 @@ export function createMatch(seed, size) {
       // latency carries no trace of the mechanism into snapshots or recordings.
       if (ticks > 0) p.viewLagTicks = ticks; else delete p.viewLagTicks;
       return true;
+    },
+    /** A dev teleport (24), as the command the recording keeps, or null when refused. */
+    teleport(id, x, y) {
+      const at = teleport(game, id, x, y);
+      return at && { type: 'teleport', id, ...at };
     },
     advance() { step(game); return snapshot(game); },
     snapshot: () => snapshot(game),
