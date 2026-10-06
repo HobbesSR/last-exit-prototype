@@ -168,7 +168,8 @@ before those ownership and failure contracts have concrete consumers.
 ## Separate follow-ups
 
 Replay ownership/lifetime and BSON encoding, configurable spectator access/delay,
-and lobby/game-server deployment remain separate follow-ups. The desired owner
+and lobby/game-server deployment remain separate follow-ups. The lobby, matchmaking
+and room design, with its in-process stages, is [22.5](22.5-lobbies-and-matchmaking.md). The desired owner
 exit lifetime still needs a precise relationship to refresh/reconnect grace;
 current archives remain process-wide and persistent. Spectators are still owner
 gated and delayed by default. Do not present either behavior as satisfying the
