@@ -8,9 +8,10 @@ import { defaultContent } from '../shared/simulation/content.ts';
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
 
 // The application's only mutable access to simulation. Returned frames/commands are detached.
-export function createMatch(seed, size) {
+// `map` is the same seed and size already generated elsewhere (the room service's worker, #253).
+export function createMatch(seed, size, map) {
   const content = defaultContent();
-  const game = createGame(seed, generateLiveMap(seed, content, size), content);
+  const game = createGame(seed, map ?? generateLiveMap(seed, content, size), content);
   const capacity = role => role === 'gladiator' ? game.content.roster.gladiators.length : game.content.roster.contestants.length;
   return {
     get tick() { return game.tick; },
