@@ -9,14 +9,20 @@ import { WebSocket } from 'ws';
 import { createArenaServer, EMPTY_ROOM_GRACE_MS } from '../server/index.js';
 import { listen } from './helpers/listen.js';
 
-// A generous cap, not a measurement: a matchmade room's welcome waits on its map, generated on the
-// worker from a random seed, and some seeds take tens of seconds (42).
 function next(ws, type, timeoutMs = 5000) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => { ws.off('message', receive); reject(new Error(`Timed out waiting for ${type}`)); }, timeoutMs);
     function receive(raw) { const data = JSON.parse(raw); if (data.type === type) { clearTimeout(timer); ws.off('message', receive); resolve(data); } }
     ws.on('message', receive);
   });
+}
+/**
+ * A private room whose map is ready. Rooms answer before their maps exist (#258); tests about other
+ * things wait for it here, on the condition, under a generous cap: some seeds take tens of seconds (42).
+ */
+async function createRoom(server, base, body) {
+  const room = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })).json();
+  await server.rooms.get(room.id).ready; return room;
 }
 
 test('abandoned live rooms keep a reconnect grace then stop simulation and finalize their replay', async () => {
@@ -28,7 +34,7 @@ test('abandoned live rooms keep a reconnect grace then stop simulation and final
   };
   try {
     const base = await listen(server);
-    const created = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();
+    const created = await createRoom(server, base, '{"seed":9}');
     const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve));
     const welcome = next(ws, 'welcome'); ws.send(JSON.stringify({ type: 'join', room: created.id, ownerKey: created.ownerKey })); await welcome;
     const live = next(ws, 'state'); ws.send(JSON.stringify({ type: 'start' })); await live;
@@ -50,21 +56,22 @@ test('matchmaking separates private rooms, honors available preferences, falls b
   const server = await createArenaServer({ replayDir: dir });
   try {
     const base = await listen(server);
-    const privateRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();
+    const privateRoom = await createRoom(server, base, '{"seed":9}');
     const clients = [], welcomes = [];
     for (const role of ['gladiator', 'gladiator', 'gladiator', 'gladiator', 'contestant', 'any']) {
       const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve));
-      const welcome = next(ws, 'welcome', 120000); ws.send(JSON.stringify({ type: 'match', role, name: 'Queued' }));
+      const welcome = next(ws, 'welcome'); ws.send(JSON.stringify({ type: 'match', role, name: 'Queued' }));
       clients.push(ws); welcomes.push(await welcome);
     }
     const roomId = welcomes[0].room;
     assert.notEqual(roomId, privateRoom.id);
     assert.ok(welcomes.every(w => w.room === roomId && !w.owner));
-    assert.deepEqual(welcomes.map(w => w.state.players.find(p => p.id === w.id).role), ['gladiator', 'gladiator', 'gladiator', 'contestant', 'contestant', 'contestant']);
     const room = server.rooms.get(roomId); assert.equal(room.started, false);
+    assert.deepEqual(welcomes.map(w => room.seats.player(w.id).role), ['gladiator', 'gladiator', 'gladiator', 'contestant', 'contestant', 'contestant']);
     const listed = await (await fetch(base + '/api/rooms')).json();
     assert.deepEqual(listed.map(r => [r.id, r.kind, r.phase]), [[roomId, 'matchmade', 'lobby']], 'the private room is reached by link, not listed');
     assert.deepEqual(listed[0].players, { contestant: 3, gladiator: 3 });
+    await room.ready;
     const live = next(clients[0], 'state'); room.startsAt = Date.now() - 1;
     assert.equal((await live).state.phase, 'live'); assert.equal(room.started, true);
     assert.deepEqual(await (await fetch(base + '/api/rooms')).json(), [], 'a started room leaves the list');
@@ -77,7 +84,7 @@ test('resume credentials restore the same player even while the previous socket 
   const server = await createArenaServer({ replayDir: dir });
   try {
     const base = await listen(server);
-    const room = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();
+    const room = await createRoom(server, base, '{"seed":9}');
     const join = async extra => {
       const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve));
       const welcome = next(ws, 'welcome'); ws.send(JSON.stringify({ type: 'join', room: room.id, ...extra })); return { ws, welcome: await welcome };
@@ -98,7 +105,7 @@ test('spectators hold no slot, need the owner key, and receive the directed view
   const server = await createArenaServer({ replayDir: dir });
   try {
     const base = await listen(server);
-    const room = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();
+    const room = await createRoom(server, base, '{"seed":9}');
     const open = async () => { const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve)); return ws; };
     const denied = await open();
     const refusal = next(denied, 'error'); denied.send(JSON.stringify({ type: 'join', room: room.id, role: 'spectator' }));
@@ -147,7 +154,7 @@ test('two clients share authority; replay preserves each recorded frame and surv
     assert.equal(refused.status, 400); assert.match((await refused.json()).error, /12x6, 24x12, 36x18/);
     const unseeded = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json();
     assert.ok(Number.isInteger(unseeded.seed) && unseeded.seed !== 4217 && unseeded.size === '12x6');
-    const room = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();
+    const room = await createRoom(server, base, '{"seed":9}');
     assert.equal(room.size, '12x6');
     const a = new WebSocket(base.replace('http:', 'ws:'));
     await new Promise(resolve => a.once('open', resolve));

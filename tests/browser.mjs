@@ -37,12 +37,14 @@ try {
   await page.getByRole('button', { name: 'Start match', exact: true }).waitFor();
   await page.waitForFunction(() => document.querySelector('#lobby-count')?.textContent === '1/8 contestants / 0/3 gladiators');
   const ownerRoom = new URL(page.url()).searchParams.get('room');
-  const ownerPlayer = await page.evaluate(() => window.arenaDebug().me.id);
+  // The lobby opens before the map exists (#258); the player's own view arrives with it.
+  const myId = async () => (await page.waitForFunction(() => window.arenaDebug().me?.id, null, { timeout: 120000 })).jsonValue();
+  const ownerPlayer = await myId();
   assert.equal(new URL(page.url()).searchParams.has('ownerKey'), false, 'invite URL contains no owner credential');
   await page.reload();
   await page.getByRole('button', { name: 'Start match', exact: true }).waitFor();
   assert.equal(new URL(page.url()).searchParams.get('room'), ownerRoom, 'reload retains room and owner controls');
-  assert.equal(await page.evaluate(() => window.arenaDebug().me.id), ownerPlayer, 'reload resumes the same player');
+  assert.equal(await myId(), ownerPlayer, 'reload resumes the same player');
   await ready(page, page.url());
   const before = await page.evaluate(() => window.arenaDebug().me.x);
   await page.keyboard.down('KeyD'); await page.waitForTimeout(650); await page.keyboard.up('KeyD');
@@ -409,6 +411,7 @@ try {
   await mobile.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
   assert.equal(server.rooms.get(mobileInfo.room).game.map.items.find(item => item.droppedBy === mobilePlayer.id && item.weaponType === 'rifle')?.ammo, 7, 'touch world drag preserves source ammo');
   const vr = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":4217}' })).json();
+  await server.rooms.get(vr.id).ready;
   const geometryGame = server.rooms.get(vr.id).game;
   // Fixed-coordinate sight/projectile probes exercise the legacy recording geometry.
   // The normal rooms above and spectator below exercise the live chain map.
@@ -557,6 +560,7 @@ try {
   // A building's floor must sit under its walls: tiles replay drawings in the order recorded, and a floor
   // recorded after the obstacles once painted over every interior wall (#207), leaving the doors floating.
   const wallRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":7}' })).json();
+  await server.rooms.get(wallRoom.id).ready;
   const wallGame = server.rooms.get(wallRoom.id).game;
   const inside = b => wallGame.map.obstacles.filter(o => !o.points && o.kind === 'building' && o.x >= b.x + 20 && o.x < b.x + b.w - 20 && o.y >= b.y + 20 && o.y < b.y + b.h - 20);
   const walled = wallGame.map.buildings.find(b => b.w < 700 && inside(b).length > 2);

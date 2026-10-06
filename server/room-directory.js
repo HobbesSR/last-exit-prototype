@@ -9,21 +9,16 @@ const FULL = { type: 'error', message: 'All arena slots are occupied. Try matchm
  * It holds no simulation and never touches a room: it reads the host's summaries, which are plain
  * data, and answers with a room id. The host is the room service, in this process for now (41).
  */
-export function createRoomDirectory({ host, generateMap = null, devTools = 'none', reportError = console.error }) {
-  // Rooms whose maps are still being generated hold their place against the cap.
-  let generating = 0, matchmadeRoom = null;
-  const hasCapacity = () => host.accepting() && host.summaries().length + generating < MAX_ROOMS;
+export function createRoomDirectory({ host, generateMap = null, devTools = 'none' }) {
+  const hasCapacity = () => host.accepting() && host.summaries().length < MAX_ROOMS;
   /**
-   * A new room, its map made by `generateMap` when the directory has one (a worker, so no other room's
-   * ticks wait on it): a promise of the room, or null at capacity. Without one, the room is returned
-   * at once, generated inline, which is what the fake-clock tests use.
+   * A new room, or null at capacity. It exists, and can be joined, at once: its map is made by
+   * `generateMap` when the directory has one (a worker, so no other room's ticks wait on it) and arrives
+   * later (#258). Without one the map is generated inline, which is what the fake-clock tests use.
    */
   function createRoom(seed, matchmade = false, size = DEFAULT_LIVE_ZONE_SIZE) {
     if (!hasCapacity()) return null;
-    if (!generateMap) return host.makeRoom(seed, matchmade, size);
-    generating++;
-    return generateMap(seed, size).then(map => { generating--; return host.makeRoom(seed, matchmade, size, map); },
-      error => { generating--; throw error; });
+    return host.makeRoom(seed, matchmade, size, generateMap?.(seed, size));
   }
   /**
    * The rooms a lobby browser may show. Everyone sees matchmade rooms still filling; private rooms are
@@ -34,24 +29,11 @@ export function createRoomDirectory({ host, generateMap = null, devTools = 'none
   const list = () => host.summaries().filter(room => devTools === 'all' || room.kind === 'matchmade' && room.phase === 'lobby');
   /** A matchmade room still filling with a place left: whichever role the player prefers, admission falls back. */
   const filling = () => host.summaries().find(room => room.kind === 'matchmade' && room.phase === 'lobby' && room.open.contestant + room.open.gladiator > 0);
-  /**
-   * The room id a matchmaking player should join, creating a room when none is filling: an id, null at
-   * capacity, or a promise of either once the room being generated is ready. The id is chosen afresh
-   * then, since others waiting for the same room may have filled it.
-   */
+  /** The room id a matchmaking player should join, creating a room when none is filling, or null at capacity. */
   function match() {
     const found = filling();
     if (found) return found.id;
-    // Everyone matchmaking while a room's map is generated waits for that one room.
-    const made = matchmadeRoom || createRoom(randomSeed(), true);
-    if (made && typeof made.then === 'function') {
-      if (!matchmadeRoom) {
-        matchmadeRoom = made;
-        made.then(() => { matchmadeRoom = null; }, () => { matchmadeRoom = null; });
-      }
-      return made.then(room => room ? match() : null);
-    }
-    return made ? made.id : null;
+    return createRoom(randomSeed(), true)?.id ?? null;
   }
   /**
    * Session messages, with `match` answered here and joined like any other room id. In one process this
@@ -61,12 +43,6 @@ export function createRoomDirectory({ host, generateMap = null, devTools = 'none
     if (data.type !== 'match' || session.room) return host.receive(session, data);
     if (!host.accepting()) return;
     const answer = match();
-    if (answer && typeof answer.then === 'function') {
-      // Asked again on arrival rather than joining the answered id: earlier arrivals may have filled it.
-      answer.then(id => { if (session.closed || session.room) return; if (id) receive(session, data); else send(session, FULL); },
-        error => { reportError(error); if (!session.closed) send(session, { type: 'error', message: 'The arena could not be generated. Try again.' }); });
-      return;
-    }
     if (!answer) return send(session, FULL);
     const role = ['contestant', 'gladiator'].includes(data.role) ? data.role : 'any';
     host.receive(session, { ...data, type: 'join', room: answer, role });
