@@ -33,16 +33,31 @@ try {
   const { room: roomId, me } = await page.evaluate(() => window.arenaDebug());
   const room = server.rooms.get(roomId), subject = me.id;
 
-  // Opens beside the match, undelayed and unfogged, on the whole arena.
-  const [dev] = await Promise.all([page.context().waitForEvent('page'), page.getByRole('button', { name: 'Open dev view', exact: true }).click()]);
-  watch(dev);
+  // A player steps out to the dev view in place (#246): their socket and slot stay, input stops, and
+  // the view is the undelayed directed one. Stepping back returns to their own fogged view.
+  await page.getByRole('button', { name: 'Dev view', exact: true }).click();
+  await page.waitForFunction(() => window.arenaDebug().devFeed && window.arenaDebug().directed && window.arenaDebug().cameraWidth >= window.arenaDebug().mapWidth);
+  const stepped = await page.evaluate(() => ({ ...window.arenaDebug(), hud: document.getElementById('live-hud').hidden }));
+  assert.equal(stepped.vision, null); assert.equal(stepped.hud, true);
+  assert.ok(room.match.roster().some(p => p.id === subject), 'stepping out keeps the slot');
+  const seqOf = () => room.match.snapshot().players.find(p => p.id === subject).lastSeq;
+  await page.waitForTimeout(300); const parked = seqOf();
+  await page.keyboard.down('KeyD'); await page.waitForTimeout(400); await page.keyboard.up('KeyD');
+  assert.equal(seqOf(), parked, 'no input reaches the player while in the dev view');
+  await page.keyboard.press('Backquote');
+  await page.waitForFunction(() => !window.arenaDebug().devFeed && !window.arenaDebug().directed && window.arenaDebug().vision);
+  await until(() => seqOf() > parked + 3, () => `input resumes after stepping back: ${seqOf()} vs ${parked}`);
+  assert.equal(room.spectators, 0, 'the dev socket closed');
+
+  // A standalone dev tab: undelayed and unfogged, on the whole arena.
+  const dev = await browser.newPage(); watch(dev);
   await dev.setViewportSize({ width: 1440, height: 1000 });
+  await dev.goto(`${base}/?room=${roomId}&dev`);
   await dev.waitForFunction(() => window.arenaDebug?.().dev && window.arenaDebug().tick > 0 && window.arenaDebug().camera, null, { timeout: 15000 });
   const start = await dev.evaluate(() => ({ ...window.arenaDebug(), status: document.getElementById('connection-text').textContent }));
   assert.equal(start.status, 'DEV VIEW'); assert.equal(start.me, undefined, 'the dev view holds no slot');
   assert.ok(room.match.tick - start.tick < 20, `the dev view is not delayed: ${start.tick} vs ${room.match.tick}`);
   assert.equal(start.vision, null); assert.ok(start.cameraWidth >= start.mapWidth, 'the dev view opens on the whole arena');
-  assert.ok(room.match.roster().some(p => p.id === subject), 'the player still holds their slot');
 
   // A free camera: the wheel zooms about the pointer and held keys pan.
   await dev.mouse.move(720, 500); await dev.mouse.wheel(0, -1500);
@@ -79,6 +94,6 @@ try {
   await page.waitForFunction(() => !window.arenaDebug().paused && document.getElementById('paused-banner').hidden);
   await dev.close();
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: true, checks: ['dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'pause and resume'] }));
+  console.log(JSON.stringify({ passed: true, checks: ['step out and back', 'dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'pause and resume'] }));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
 finally { await browser.close(); await server.close(); await rm(replayDir, { recursive: true, force: true }); }

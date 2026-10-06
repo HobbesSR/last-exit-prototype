@@ -347,7 +347,9 @@ export function makeArenaScene(api) {
       const ease = 1 - Math.exp(-delta / EYE_TAU_MS);
       // A followed replay subject drives the same eased eye the player's own view uses, so a followed
       // camera glides exactly like a live one and cuts only when the subject changes or teleports.
-      const focus = api.follow() || self;
+      // A directed view's eye is the followed player or nobody: never the viewer's own player, whose
+      // position would otherwise cull a whole-arena view down to the area around them.
+      const focus = api.directed() ? api.follow() : self;
       if (!focus) this.eye = null;
       else if (!this.eye || Math.hypot(focus.x - this.eye.x, focus.y - this.eye.y) > 150) this.eye = { x: focus.x, y: focus.y };
       else { this.eye.x = Phaser.Math.Linear(this.eye.x, focus.x, ease); this.eye.y = Phaser.Math.Linear(this.eye.y, focus.y, ease); }
@@ -470,7 +472,7 @@ export function makeArenaScene(api) {
       for (const p of state.players) {
         ids.add(p.id); const actor = this.actors.get(p.id) || this.makeActor(p); const own = p.id === api.playerId();
         // Own marks the viewer's player in any view; only a live one is steered by local aim and eye.
-        const controlled = own && !api.replay();
+        const controlled = own && !api.directed();
         // Ordinary dynamic actors, including allies, are occluded. Reveals remain an explicit exception.
         const shown = !fogged || own || seesActor(this.sight, map, viewer, p);
         actor.container.setVisible(p.status === 'active' && shown);
