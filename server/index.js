@@ -8,6 +8,7 @@ import { HZ } from '../shared/simulation/rules.ts';
 import * as profiler from '../shared/profiler.ts';
 import { createFileReplayStore } from './replay-store.js';
 import { createRoomService } from './room-service.js';
+import { createRoomDirectory } from './room-directory.js';
 import { createMapGenerator } from './map-generator.js';
 import { installHttpApi } from './http-api.js';
 import { attachWebSockets } from './websocket.js';
@@ -47,7 +48,8 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   const replays = await createFileReplayStore(replayDir);
   // Maps are generated on a worker thread, so creating a room never stalls the others (#253).
   const maps = createMapGenerator();
-  const service = createRoomService({ replays, generateMap: maps.generate, devTools: policy });
+  const service = createRoomService({ replays, devTools: policy });
+  const directory = createRoomDirectory({ host: service, generateMap: maps.generate, devTools: policy });
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '2kb' }));
@@ -68,8 +70,9 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     }));
   });
   app.use(express.static(path.join(ROOT, 'public')));
-  installHttpApi(app, service, replays);
-  const http = createHttpServer(app), wss = attachWebSockets(http, service);
+  installHttpApi(app, service, directory, replays);
+  // Matchmaking messages go to the directory, which answers with a room for the host to admit into.
+  const http = createHttpServer(app), wss = attachWebSockets(http, { connect: service.connect, receive: directory.receive, disconnect: service.disconnect });
   const stopScheduler = startScheduler(service.advance);
   const summary = setInterval(() => {
     if (!profileSummary || !profiler.profiling() || !profiler.frameCount()) return;

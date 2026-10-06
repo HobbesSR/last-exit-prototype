@@ -62,8 +62,12 @@ test('matchmaking separates private rooms, honors available preferences, falls b
     assert.ok(welcomes.every(w => w.room === roomId && !w.owner));
     assert.deepEqual(welcomes.map(w => w.state.players.find(p => p.id === w.id).role), ['gladiator', 'gladiator', 'gladiator', 'contestant', 'contestant', 'contestant']);
     const room = server.rooms.get(roomId); assert.equal(room.started, false);
+    const listed = await (await fetch(base + '/api/rooms')).json();
+    assert.deepEqual(listed.map(r => [r.id, r.kind, r.phase]), [[roomId, 'matchmade', 'lobby']], 'the private room is reached by link, not listed');
+    assert.deepEqual(listed[0].players, { contestant: 3, gladiator: 3 });
     const live = next(clients[0], 'state'); room.startsAt = Date.now() - 1;
     assert.equal((await live).state.phase, 'live'); assert.equal(room.started, true);
+    assert.deepEqual(await (await fetch(base + '/api/rooms')).json(), [], 'a started room leaves the list');
     clients.forEach(ws => ws.close());
   } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
 });

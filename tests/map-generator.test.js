@@ -29,8 +29,8 @@ test('rooms made by an asynchronous generator hold their place, and matchmakers 
     assert.equal(held.length, 1, 'one room is generated for everyone matchmaking meanwhile');
     assert.equal(h.service.rooms.size, 0); assert.equal(first.session.room, undefined);
     h.service.disconnect(gone.session);
-    for (let i = 0; i < 7; i++) assert.ok(h.service.createRoom(9));
-    assert.equal(h.service.createRoom(9), null, 'a room still generating counts against the cap');
+    for (let i = 0; i < 7; i++) assert.ok(h.directory.createRoom(9));
+    assert.equal(h.directory.createRoom(9), null, 'a room still generating counts against the cap');
     held[0].resolve(); await new Promise(resolve => setImmediate(resolve));
     assert.ok(first.session.room); assert.equal(first.session.room, second.session.room, 'both join the room they waited for');
     assert.equal(gone.session.room, undefined, 'a session that left meanwhile is not admitted');
@@ -46,6 +46,6 @@ test('a generator failure is reported to the matchmaker and frees the place', as
     held[0].reject(new Error('generation broke')); await new Promise(resolve => setImmediate(resolve));
     assert.deepEqual(errors, ['generation broke']);
     assert.match(player.messages.at(-1).message, /could not be generated/);
-    for (let i = 0; i < 8; i++) assert.ok(h.service.createRoom(9), 'the failed room no longer holds a place');
+    for (let i = 0; i < 8; i++) assert.ok(h.directory.createRoom(9), 'the failed room no longer holds a place');
   } finally { await h.service.close(); }
 });

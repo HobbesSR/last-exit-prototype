@@ -24,7 +24,7 @@ test('room shutdown is idempotent and stops accepting or advancing work', async 
   assert.equal(writer.finishCalls, 1); const frames = writer.frames.length;
   h.wake(500); owner.send({ type: 'input', seq: 1, x: 1 });
   assert.equal(writer.frames.length, frames); assert.equal(room.match.phase, 'finished');
-  assert.equal(h.service.hasCapacity(), false); assert.equal(h.service.makeRoom(9), null);
+  assert.equal(h.directory.hasCapacity(), false); assert.equal(h.service.makeRoom(9), null);
 });
 
 test('a failed pending archive reports failure once and allows shutdown to settle', async () => {
