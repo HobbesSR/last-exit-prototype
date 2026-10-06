@@ -12,6 +12,16 @@ const server = await createArenaServer({ replayDir: path.resolve('test-results/r
 const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const errors = [];
+/** Wait until a player has stopped moving on the server and the page shows them where they stopped. */
+async function settled(page, player, timeout = 10000) {
+  let last = null;
+  for (let waited = 0; waited < timeout; waited += 100) {
+    const now = { x: player.x, y: player.y }, shown = await page.evaluate(() => window.arenaDebug().me);
+    if (last && last.x === now.x && last.y === now.y && Math.hypot(shown.x - now.x, shown.y - now.y) < 1) return now;
+    last = now; await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  assert.fail(`player never settled: server ${JSON.stringify({ x: player.x, y: player.y })}`);
+}
 async function ready(page, url = base) {
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
@@ -449,7 +459,7 @@ try {
     for (let i = 0; i < 16; i++) {
       await new Promise(resolve => requestAnimationFrame(resolve));
       const d = window.arenaDebug();
-      out.push({ tick: d.tick, shot: d.shots?.[0] ?? null });
+      out.push({ tick: d.tick, shot: d.shots?.[0] ?? null, starved: d.buffer.starved, snaps: d.buffer.snaps });
     }
     return out;
   });
@@ -458,6 +468,9 @@ try {
   for (let i = 1; i < shotSamples.length; i++) {
     const before = shotSamples[i - 1], after = shotSamples[i];
     if (!before.shot || !after.shot || before.shot.id !== after.shot.id || before.tick !== after.tick) continue;
+    // A frame drawn while the receive buffer was starved, or right after it resynchronised, holds or
+    // jumps on purpose (25). Under load that happens, so it says nothing about interpolation.
+    if (after.starved !== before.starved || after.snaps !== before.snaps) continue;
     sameTickPairs++;
     if (Math.hypot(after.shot.x - before.shot.x, after.shot.y - before.shot.y) > 0.5) advanced++;
   }
@@ -510,7 +523,9 @@ try {
   const interior = artRoom.game.map.buildings.find(b => b.id === entrance.buildingId);
   const indoors = artRoom.game.map.items.find(i => i.buildingId === interior.id);
   Object.assign(artPlayer, { x: indoors.x, y: indoors.y });
-  await page.waitForFunction(x => Math.abs(window.arenaDebug().me.x - x) < 1, indoors.x);
+  // The body may be separated out of a partition, so wait for wherever it settles rather than for the
+  // exact spot: rooms have random seeds, so which buildings put loot against a partition varies.
+  await settled(page, artPlayer);
   await page.waitForTimeout(150);
   await page.screenshot({ path: 'test-results/ruins.png' });
   assert.equal(await page.evaluate(id => window.arenaDebug().roofs.find(r => r.id === id).visible, interior.id), false, 'roof hides while inside');
