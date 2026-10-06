@@ -135,6 +135,9 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   leaveDevView();
   if (ws) { disconnecting = true; ws.close(); }
   clearInput(); pending = []; seq = 0; savedReplay = null; recordingFailed = false; playerId = null;
+  // Nothing of the previous room carries over: a room still generating sends no state until `ready`,
+  // and an error before then must find this room stateless, not the last one's frame.
+  state = null; liveMap = null; liveState = null; predicted = null;
   snapshots.reset(); presentation = null; roundTripMs = null;
   resetDiagnostics();
   owner = false; lobbyPlayers = []; lobbyCapacity = null; lobbyReady = true; lobbyStarting = false; devView = false; devRoster = ''; director.reset(); setPaused(false);
