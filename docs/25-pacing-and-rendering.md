@@ -70,5 +70,6 @@ The subject comes from the recording's roster rather than the displayed frame, s
 player can be chosen before they appear and stays selectable after elimination; when
 the current frame does not contain them the camera holds their last position.
 Changing subject cuts rather than pans, because gliding across the arena would lose
-the subject for seconds. Following does not restore that player's fog: a replay is a
-directed view of a completed match, and what the recording holds is already public.
+the subject for seconds. Following shows that player's own sight by default, as the
+dev view does: the camera director (22.4) owns follow for every directed view, and V
+turns the fog off to show the whole recording around them (24).

@@ -476,7 +476,9 @@ export function makeArenaScene(api) {
         // Own marks the viewer's player in any view; only a live one is steered by local aim and eye.
         const controlled = own && !api.directed();
         // Ordinary dynamic actors, including allies, are occluded. Reveals remain an explicit exception.
-        const shown = !fogged || own || seesActor(this.sight, map, viewer, p);
+        // The player whose sight this is always sees themselves, cloaked or not. In a fogged directed
+        // view that is the followed player, not the viewer's own, who is shown only if in their sight.
+        const shown = !fogged || p.id === viewer?.id || seesActor(this.sight, map, viewer, p);
         actor.container.setVisible(p.status === 'active' && shown);
         // Everyone but the viewer is drawn where the frame says, with no filter of its own. The
         // position already arrived interpolated between two authoritative states, so easing toward

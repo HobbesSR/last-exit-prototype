@@ -17,8 +17,11 @@ export function spectatorFrame(room) {
   const cutoff = Math.max(0, room.match.tick - SPECTATOR_DELAY_TICKS);
   return room.history.findLast(frame => frame.tick <= cutoff) || room.history[0] || room.match.snapshot();
 }
+// One entry per tick: a paused room re-broadcasts its current tick (a dev teleport), and appending each
+// of those would push the delayed frame out of the window and give spectators the present.
 export function remember(room, frame) {
-  room.history.push(frame);
+  if (room.history.at(-1)?.tick === frame.tick) room.history[room.history.length - 1] = frame;
+  else room.history.push(frame);
   while (room.history.length > SPECTATOR_DELAY_TICKS + 2) room.history.shift();
 }
 export function broadcast(room, state) {

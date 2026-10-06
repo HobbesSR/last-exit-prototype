@@ -236,6 +236,20 @@ test('a dev teleport moves any active player to open ground, is recorded, and sh
   } finally { await h.service.close(); }
 });
 
+test('teleports in a paused room never shorten the spectator delay', async () => {
+  const h = roomHarness({ devTools: 'owner' }), { room, owner } = h.live();
+  try {
+    for (let i = 0; i < 100; i++) h.wake(50);
+    const eye = h.joined(room, { role: 'spectator', ownerKey: room.ownerKey });
+    owner.send({ type: 'dev', action: 'pause' });
+    const id = owner.session.playerId, open = room.game.map.spawns[0];
+    for (let i = 0; i < 65; i++) owner.send({ type: 'dev', action: 'teleport', id, x: open.x, y: open.y + (i % 2) * 20 });
+    assert.equal(room.history.filter(frame => frame.tick === room.match.tick).length, 1, 'one history entry per tick');
+    assert.equal(room.history[0].tick, room.match.tick - 61);
+    assert.equal(eye.messages.at(-1).state.tick, room.match.tick - 60, 'the spectator still sees the delayed frame');
+  } finally { await h.service.close(); }
+});
+
 test('a backed-up socket skips state frames but never a one-off message', () => {
   assert.equal(deliverable(MAX_BUFFERED_BYTES, true), false);
   assert.equal(deliverable(MAX_BUFFERED_BYTES - 1, true), true);

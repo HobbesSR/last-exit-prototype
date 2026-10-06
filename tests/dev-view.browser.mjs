@@ -40,6 +40,13 @@ try {
   await page.waitForFunction(() => window.arenaDebug().devFeed && window.arenaDebug().directed && window.arenaDebug().cameraWidth >= window.arenaDebug().mapWidth);
   const stepped = await page.evaluate(() => ({ ...window.arenaDebug(), hud: document.getElementById('live-hud').hidden }));
   assert.equal(stepped.vision, null); assert.equal(stepped.hud, true);
+  // Following someone else in their sight: the stepped-out player is just another actor to them.
+  const body = room.game.players.find(p => p.id === subject);
+  const far = room.game.players.filter(p => p.bot && p.status === 'active').sort((a, b) => Math.hypot(b.x - body.x, b.y - body.y) - Math.hypot(a.x - body.x, a.y - body.y))[0];
+  await page.locator('#dev-focus').selectOption(far.id);
+  await page.waitForFunction(({ far, subject }) => window.arenaDebug().viewer === far && window.arenaDebug().vision
+    && window.arenaDebug().actors.find(a => a.id === subject)?.visible === false, { far: far.id, subject });
+  await page.keyboard.press('Escape');
   assert.ok(room.match.roster().some(p => p.id === subject), 'stepping out keeps the slot');
   const seqOf = () => room.match.snapshot().players.find(p => p.id === subject).lastSeq;
   await page.waitForTimeout(300); const parked = seqOf();
@@ -71,6 +78,11 @@ try {
   await dev.locator('#dev-focus').selectOption(subject);
   await dev.waitForFunction(id => window.arenaDebug().follow === id && window.arenaDebug().viewer === id && window.arenaDebug().vision, subject);
   const followed = await dev.evaluate(id => ({ debug: window.arenaDebug(), subject: window.arenaDebug().actors.find(a => a.id === id) }), subject);
+  // The followed player sees themselves even cloaked, as in their own view.
+  room.game.players.find(p => p.id === subject).cloak = 200;
+  await dev.waitForTimeout(400);
+  assert.equal(await dev.evaluate(id => window.arenaDebug().actors.find(a => a.id === id).visible, subject), true, 'a cloaked followed player stays visible');
+  room.game.players.find(p => p.id === subject).cloak = 0;
   assert.ok(Math.abs(followed.debug.camera.x + followed.debug.cameraWidth / 2 - followed.subject.x) < 60, 'following centres on the subject');
   await dev.keyboard.press('KeyV');
   await dev.waitForFunction(() => window.arenaDebug().viewer === null && window.arenaDebug().vision === null && window.arenaDebug().follow);
