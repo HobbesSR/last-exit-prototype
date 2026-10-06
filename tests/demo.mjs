@@ -52,7 +52,7 @@ try {
   // Rooms now open in a lobby and tick only once the owner starts the match.
   const start = page.getByRole('button', { name: 'Start match', exact: true });
   if (await start.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false)) await start.click();
-  await page.waitForFunction(() => window.arenaDebug?.().tick > 2, null, { timeout: 20000 });
+  await page.waitForFunction(() => window.arenaDebug?.().phase === 'live' && window.arenaDebug().tick > 2, null, { timeout: 20000 });
   const playerId = await page.evaluate(() => window.arenaDebug().me.id);
   const game = [...server.rooms.values()].find(r => r.started).game;
   const me = () => game.players.find(p => p.id === playerId);

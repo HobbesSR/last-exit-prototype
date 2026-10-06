@@ -64,7 +64,7 @@ export function createCameraDirector({ getState, active, camera, onFollow = () =
     if (x || y) pan(x * PAN_SPEED * delta / 1000 / zoom, y * PAN_SPEED * delta / 1000 / zoom);
   }
 
-  const typing = event => event.target.closest?.('input, textarea, select') || document.querySelector('dialog[open]');
+  const typing = event => event.target.closest?.('input, textarea, select') || document.querySelector('dialog:modal');
   addEventListener('keydown', event => {
     if (!active() || typing(event)) return;
     const key = event.code;

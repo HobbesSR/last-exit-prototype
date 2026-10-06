@@ -30,7 +30,7 @@ try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } }); watch(page);
   await page.goto(`${base}/?seed=4217`);
   await page.getByRole('button', { name: 'Start match', exact: true }).click();
-  await page.waitForFunction(() => window.arenaDebug?.().tick > 3);
+  await page.waitForFunction(() => window.arenaDebug?.().phase === 'live' && window.arenaDebug().tick > 3);
   const { room: roomId, me } = await page.evaluate(() => window.arenaDebug());
   const room = server.rooms.get(roomId), subject = me.id;
 
@@ -137,7 +137,7 @@ try {
   await page.getByRole('button', { name: 'Auto', exact: true }).click();
   await page.waitForFunction(() => document.getElementById('lobby-dialog').open && window.arenaDebug().me);
   server.rooms.get(await page.evaluate(() => window.arenaDebug().room)).startsAt = Date.now() - 1;
-  await page.waitForFunction(() => !document.getElementById('lobby-dialog').open && window.arenaDebug().tick > 3);
+  await page.waitForFunction(() => !document.getElementById('lobby-dialog').open && window.arenaDebug().phase === 'live' && window.arenaDebug().tick > 3);
   await browse();
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ passed: true, checks: ['step out and back', 'dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'teleport', 'pause and resume', 'browser dev view', 'browser role after dev view and Auto'] }));

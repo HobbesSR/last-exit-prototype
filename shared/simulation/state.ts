@@ -32,7 +32,8 @@ function rosterBot(s: Game, role: Role, index: number): { id: PlayerId; name: st
   const g = s.content.roster.gladiators[index]!;
   return { id: `g${index}` as PlayerId, name: g.name, kit: g.kit };
 }
-function makePlayer(id: PlayerId, name: string, role: Role, kit: Kit, index: number): Player {
+/** A roster place as a match first holds it, before the map has placed it. */
+export function makePlayer(id: PlayerId, name: string, role: Role, kit: Kit, index: number): Player {
   return { id, name, role, kit, bot: true, x: role === 'contestant' ? 1500 + index * 33 : WORLD_WIDTH - 1700 - index * 130, y: WORLD_HEIGHT / 2 + (role === 'contestant' ? (index % 3 - 1) * 25 : 0), hp: role === 'contestant' ? 100 : 360, maxHp: role === 'contestant' ? 100 : 360, shield: 0, keys: 0, weapon: 0, kills: 0, level: 1, status: 'active', cooldown: 0, attackCd: 0, railCd: 0, cloak: 0, revealed: 0, boost: 0, stun: 0, heading: 0, input: {}, lastSeq: -1 };
 }
 export function joinGame(s: Game, id: PlayerId, role: Role = 'contestant', kit: Kit = 'warden', name = 'You'): Player | null {

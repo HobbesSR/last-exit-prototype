@@ -37,7 +37,7 @@ export function createInputController({ getPlayer, onSelectionChange, onToggleFu
   const held = new Set();
   function clearInput() { moveFrom = null; pendingMove = null; dragDropSource = null; held.clear(); pointerFire = false; sneakHeld = false; pulseSkill = false; pulseInteract = false; pulseDrop = false; selectedSlot = undefined; for (const stick of [movementStick, aimingStick]) Object.assign(stick, { x: 0, y: 0, active: false }); document.querySelectorAll('.virtual-stick span').forEach(el => el.style.transform = ''); }
   listen(document, 'keydown', e => {
-    if (e.target.matches('input,select,textarea') || document.querySelector('dialog[open]')) return;
+    if (e.target.matches('input,select,textarea') || document.querySelector('dialog:modal')) return;
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
     held.add(e.code);
     if (!e.repeat && e.code === 'KeyG') pulseDrop = true;

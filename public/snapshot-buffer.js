@@ -128,7 +128,7 @@ export function createSnapshotBuffer({ hz, delayTicks, clock = () => performance
       if (!next) return trap;
       return { ...next, x: lerp(trap.x, next.x, t), y: lerp(trap.y, next.y, t), heading: lerpAngle(trap.heading ?? 0, next.heading ?? 0, t) };
     });
-    return { ...a, players, traps, hazardX: lerp(a.hazardX, b.hazardX ?? a.hazardX, t), alpha };
+    return { ...a, players, traps, hazardX: a.hazardX == null ? a.hazardX : lerp(a.hazardX, b.hazardX ?? a.hazardX, t), alpha };
   }
 
   const stats = () => ({ depth: frames.length, playhead: playhead(), newest: frames.length ? frames[frames.length - 1].tick : null, rate, starved, snaps, delayTicks });

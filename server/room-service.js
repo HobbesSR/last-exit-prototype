@@ -5,7 +5,9 @@ import * as profiler from '../shared/profiler.ts';
 import { createMatch, createLobby } from './match.js';
 import { DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../map/live.ts';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
-import { send, broadcast, broadcastLobby, spectatorFrame, remember, SPECTATOR_DELAY_TICKS } from './room-views.js';
+import { send, broadcast, broadcastLobby, broadcastWaiting, spectatorFrame, remember, SPECTATOR_DELAY_TICKS } from './room-views.js';
+import { createWaiting, enterWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView } from '../shared/simulation/waiting.ts';
+import { waitingYard } from '../shared/waiting-yard.ts';
 import { normalizeDiagnostic, MAX_DIAGNOSTICS_PER_SESSION, MIN_DIAGNOSTIC_INTERVAL_MS } from './protocol.js';
 import { trackLatency, pingSession, acceptPong, roundTripMs } from './latency.js';
 export const EMPTY_ROOM_GRACE_MS = 30000;
@@ -38,7 +40,9 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     if (closing) return null;
     const id = randomBytes(4).toString('hex'), lobby = createLobby();
     // `seats` answers who holds which place: the lobby's until the match exists, then the match's own.
-    const room = { id, ownerKey: randomUUID(), seed, size, content: lobby.content, seats: lobby, match: null, game: null, clients: new Set(), started: false, createdAt: wallNow(), inputs: [], finished: false, debt: 0, steppedAt: 0, spectators: 0, history: [], matchmade, name, resumes: new Map() };
+    const room = { id, ownerKey: randomUUID(), seed, size, content: lobby.content, seats: lobby, match: null, game: null, clients: new Set(), started: false, createdAt: wallNow(), inputs: [], finished: false, debt: 0, steppedAt: 0, spectators: 0, history: [], matchmade, name, resumes: new Map(),
+      // Where players walk until the start (#236): its own simulation, never recorded, gone once the match starts.
+      waiting: createWaiting(waitingYard()), waitingDebt: 0 };
     rooms.set(id, room);
     if (typeof map?.then === 'function') {
       // Settles once the room has its match or has been given up, and never rejects, so it can be awaited.
@@ -54,7 +58,8 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     match.seat(room.inputs);
     // `game` stays the tests' and benchmarks' escape hatch; nothing here reads it.
     Object.assign(room, { match, seats: match, game: match.diagnosticState });
-    for (const session of room.clients) send(session, { type: 'ready', ...view(room, session) });
+    // Players stay in the waiting area, so only those watching are shown the new map now.
+    for (const session of room.clients) if (!session.playerId) send(session, { type: 'ready', ...view(room, session) });
     broadcastLobby(room);
     if (room.startRequested) startMatch(room);
   }
@@ -70,8 +75,12 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     }
     room.clients.clear();
   }
-  /** What a session is shown of the room's map and state: nothing until the map exists. */
+  /**
+   * What a session is shown of the room's map and state. A player sees the waiting area until the start,
+   * which keeps the match map hidden (17.3 #15); anyone else sees nothing until the map exists.
+   */
   function view(room, session) {
+    if (session.playerId && room.waiting) return { map: room.waiting.map, state: waitingView(room.waiting, session.playerId) };
     if (!room.match) return { map: null, state: null };
     if (session.playerId) return { map: room.match.liveMap(), state: room.match.project(room.match.snapshot(), session.playerId) };
     // A spectator is shown the delayed frame; the dev view the present one.
@@ -141,8 +150,11 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     record(room, room.match.snapshot());
   }
   function startMatch(room) {
-    room.started = true; room.inputs.push({ type: 'start' });
-    startRecording(room); remember(room, room.match.snapshot()); broadcastLobby(room);
+    room.started = true; room.inputs.push({ type: 'start' }); room.waiting = null;
+    startRecording(room); remember(room, room.match.snapshot());
+    // Out of the waiting area and onto the match map, each from their own spawn.
+    for (const session of room.clients) if (session.playerId) send(session, { type: 'ready', ...view(room, session) });
+    broadcastLobby(room);
     broadcast(room, room.match.snapshot());
   }
   function finish(room) {
@@ -220,6 +232,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       const resumeKey = randomUUID(); room.resumes.set(resumeKey, p.id);
       if (room.matchmade && !room.startsAt) room.startsAt = wallNow() + 15000;
       room.inputs.push({ type: resumedId ? 'resume' : 'join', id: p.id, role: p.role, kit: p.kit, name: p.name });
+      if (room.waiting) enterWaiting(room.waiting, p.id, p.role, p.kit, p.name);
       send(session, { type: 'welcome', id: p.id, resumeKey, room: room.id, owner: session.owner, devTools: session.devTools, paused: room.pausedAt != null, started: room.started, ready: !!room.match, matchmade: !!room.matchmade, startsAt: room.startsAt || null, ...view(room, session) });
       if (room.recordingStatus) send(session, room.recordingStatus);
       broadcastLobby(room);
@@ -239,11 +252,13 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       if (!p) return send(session, { type: 'choose', ok: false, message: role ? `No ${role} places remain in this match.` : 'Choose contestant or gladiator.' });
       // Recorded like a join, so a match built after it replays the same seats (`seat`).
       room.inputs.push({ type: 'choose', id: p.id, role: p.role, kit: p.kit });
-      // The view under the lobby belongs to the place they now hold.
-      if (room.match) send(session, { type: 'ready', ...view(room, session) });
+      // Shown in the waiting area from the next frame; the match place itself stays hidden until the start.
+      enterWaiting(room.waiting, p.id, p.role, p.kit, p.name);
       broadcastLobby(room);
       return;
     }
+    // Walking about before the start: the waiting area's own, never a match command, never recorded.
+    if (data.type === 'input' && session.playerId && room.waiting) { waitingInput(room.waiting, session.playerId, data); return; }
     if (!room.started) return;
     // Dev controls: any session the server's dev tools policy admits, never a later-joining one it does not.
     if (data.type === 'dev' && session.devTools) {
@@ -288,6 +303,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     room.clients.delete(session);
     if (!session.playerId) { room.spectators = Math.max(0, room.spectators - 1); return; }
     if (!room.finished && room.seats.leave(session.playerId)) room.inputs.push({ type: 'leave', id: session.playerId });
+    if (room.waiting) leaveWaiting(room.waiting, session.playerId);
     if (!room.finished) broadcastLobby(room);
   }
   function advance(elapsed, now) {
@@ -299,6 +315,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       // The countdown runs while the map generates, but the match waits for it.
       if (room.matchmade && !room.started && room.match && room.startsAt && wallNow() >= room.startsAt && room.clients.size > 0) startMatch(room);
       if ((!room.started || room.finished) && room.clients.size === 0 && wallNow() - room.createdAt > 180000) { rooms.delete(id); continue; }
+      if (room.waiting && !room.finished) { advanceWaiting(room, elapsed); continue; }
       if (!room.started || room.finished) continue;
       // Keep a short reconnect window, but abandoned playtests must not run ten minutes of bots
       // and gzip recording in the background while the owner is testing another arena.
@@ -340,6 +357,16 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     profiler.count('loop.liveRooms', live);
     profiler.count('loop.simSteps', stepped);
     profiler.frame();
+  }
+  // The waiting area keeps the match's tick rate on its own clock, so walking there feels the same.
+  function advanceWaiting(room, elapsed) {
+    if (!room.waiting.players.length) { room.waitingDebt = 0; return; }
+    room.waitingDebt += elapsed;
+    const owed = Math.floor(room.waitingDebt / TICK_MS);
+    if (!owed) return;
+    room.waitingDebt -= owed * TICK_MS;
+    for (let i = 0; i < Math.min(owed, MAX_CATCHUP); i++) stepWaiting(room.waiting);
+    broadcastWaiting(room, waitingView);
   }
   function close() {
     if (!closing) closing = (async () => {
