@@ -12,7 +12,7 @@ import { $, HZ, INTERPOLATION_DELAY_TICKS, kitName, time, fillFollowOptions } fr
 const icon = name => `<i data-lucide="${name}"></i>`;
 const icons = () => window.lucide?.createIcons();
 let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liveState, predicted;
-let seq = 0, pending = [], overview = false, selectedRole = 'contestant', savedReplay, recordingFailed = false;
+let seq = 0, pending = [], selectedRole = 'contestant', savedReplay, recordingFailed = false;
 // This connection is the dev view (24): undelayed and unfogged, with the director's free camera.
 let devView = false, devRoster = '';
 // A dev pause has stopped this room's clock (24): no frames arrive and no input is sent.
@@ -27,7 +27,7 @@ let lobbyCapacity = null;
 let lobbyStartsAt = null;
 const inputController = createInputController({
   getPlayer: () => state?.players.find(p => p.id === playerId),
-  onSelectionChange: () => updateHUD(), onToggleMap: () => toggleMap(),
+  onSelectionChange: () => updateHUD(), onToggleFullscreen: () => toggleFullscreen(),
   onToggleReplay: () => { if (replayController.active()) replayController.togglePlay(); else if (devView) togglePause(); },
   onMarkLag: () => markLag()
 });
@@ -37,7 +37,7 @@ const hudController = createHUDController({
   moveSlot: (from, to) => inputController.moveSlot(from, to), dropSlot: from => inputController.dropSlot(from),
   cancelPointerFire: () => inputController.setPointerFire(false),
   canDrag: () => !replayController.active() && state?.players.some(p => p.id === playerId && p.role === 'contestant' && p.status === 'active'),
-  toggleMap: () => toggleMap()
+  toggleFullscreen: () => toggleFullscreen()
 });
 const director = createCameraDirector({
   // The followed player is found in the frame being drawn, so the camera holds them where their sprite is.
@@ -225,7 +225,7 @@ let scene;
 const ArenaScene = makeArenaScene({
   map: () => arenaMap, state: () => presentationFrame(), playerId: () => playerId,
   self: () => !replayController.active() && predicted ? predicted : state?.players.find(p => p.id === playerId) || null,
-  replay: () => replayController.active(), directed, overview: () => overview, aim: () => inputController.aim(),
+  replay: () => replayController.active(), directed, aim: () => inputController.aim(),
   director, follow: () => directed() ? director.subject() : null,
   // How far into the current authoritative tick the renderer is, so motion that only updates on a
   // server frame can be advanced smoothly between them.
@@ -239,7 +239,8 @@ reportDiagnostics(() => (replayController.active() || !playerId ? null : present
   report => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'diagnostic', ...report })); });
 function markLag() { if (manualMark()) toast('Lag flagged for the replay'); }
 $('mark-lag').onclick = markLag;
-function toggleMap() { overview = !overview; $('map-toggle').classList.toggle('active', overview); scene?.updateCamera(true); }
+function toggleFullscreen() { if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(() => {}); } else { document.exitFullscreen().catch(() => {}); } }
+document.addEventListener('fullscreenchange', () => { const isFull = !!document.fullscreenElement; $('fullscreen-toggle').classList.toggle('active', isFull); $('fullscreen-toggle').innerHTML = `<i data-lucide="${isFull ? 'minimize' : 'maximize'}"></i>`; icons(); });
 function setPaused(value) {
   if (paused === value) return;
   paused = value; $('paused-banner').hidden = !paused;
@@ -398,5 +399,5 @@ window.arenaProfiling = setProfiling;
 // tooling will grow from, and what the tests drive.
 window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, role: 'spectator' });
 // Read-only inspection surface for reproducible browser smoke tests.
-window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: director.followId(), dev: devView, paused, fog: director.fog(), viewer: director.viewer()?.id ?? null, overview, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, map: arenaMap && { seed: arenaMap.seed, width: arenaMap.width, height: arenaMap.height, playableArea: arenaMap.playableArea, exit: arenaMap.exit, spawns: arenaMap.spawns, hunterSpawns: arenaMap.hunterSpawns, stations: arenaMap.stations.map(({ x, y }) => ({ x, y })), chargers: arenaMap.chargers.map(({ x, y }) => ({ x, y })) }, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
+window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: director.followId(), dev: devView, paused, fog: director.fog(), viewer: director.viewer()?.id ?? null, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, map: arenaMap && { seed: arenaMap.seed, width: arenaMap.width, height: arenaMap.height, playableArea: arenaMap.playableArea, exit: arenaMap.exit, spawns: arenaMap.spawns, hunterSpawns: arenaMap.hunterSpawns, stations: arenaMap.stations.map(({ x, y }) => ({ x, y })), chargers: arenaMap.chargers.map(({ x, y }) => ({ x, y })) }, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
   pending: pending.length, inputStalled: state?.players.find(p => p.id === playerId)?.inputStalled ?? null, rtt: roundTripMs });

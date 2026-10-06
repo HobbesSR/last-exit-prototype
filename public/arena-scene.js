@@ -324,8 +324,8 @@ export function makeArenaScene(api) {
       // A directed camera is the director's to point: whole arena, a free view, or a followed player.
       const focus = this.eye || api.follow() || api.self() || state.players[0];
       const { x, y, zoom } = api.directed()
-        ? api.director.frame({ width: this.scale.width, height: this.scale.height, map, focus: this.eye || api.follow(), overview: api.overview() })
-        : { x: focus?.x || map.width / 2, y: focus?.y || map.height / 2, zoom: playerZoom(this.scale.width, this.scale.height, api.overview()) };
+        ? api.director.frame({ width: this.scale.width, height: this.scale.height, map, focus: this.eye || api.follow() })
+        : { x: focus?.x || map.width / 2, y: focus?.y || map.height / 2, zoom: playerZoom(this.scale.width, this.scale.height) };
       const camera = this.cameras.main; camera.setZoom(zoom);
       // The eye is already smoothed, so the camera tracks it directly rather than easing a second time.
       camera.centerOn(x, y);

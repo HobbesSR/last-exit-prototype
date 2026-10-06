@@ -56,7 +56,7 @@ try {
   await dev.waitForFunction(id => window.arenaDebug().follow === id && window.arenaDebug().viewer === id && window.arenaDebug().vision, subject);
   const followed = await dev.evaluate(id => ({ debug: window.arenaDebug(), subject: window.arenaDebug().actors.find(a => a.id === id) }), subject);
   assert.ok(Math.abs(followed.debug.camera.x + followed.debug.cameraWidth / 2 - followed.subject.x) < 60, 'following centres on the subject');
-  await dev.keyboard.press('KeyF');
+  await dev.keyboard.press('KeyV');
   await dev.waitForFunction(() => window.arenaDebug().viewer === null && window.arenaDebug().vision === null && window.arenaDebug().follow);
   await dev.keyboard.press('Escape');
   await dev.waitForFunction(() => window.arenaDebug().follow === null);

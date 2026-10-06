@@ -5,6 +5,7 @@ import { createGame, snapshot } from '../shared/simulation.ts';
 // Exercise the controllers without the application, socket, prediction, or Phaser scene.
 export async function checkClientControllers(browser, base) {
   const page = await browser.newPage();
+  page.on('pageerror', e => { throw e; });
   const html = (await readFile('public/index.html', 'utf8')).replace('<script type="module" src="/client.js"></script>', '');
   await page.route('**/controller-fixture', route => route.fulfill({ contentType: 'text/html', body: html }));
   const game = createGame(4217), me = game.players[0], enemy = game.players[8];
@@ -19,9 +20,9 @@ export async function checkClientControllers(browser, base) {
       const $ = id => document.getElementById(id), me = state.players[0];
       const freeze = value => { if (value && typeof value === 'object') { Object.values(value).forEach(freeze); Object.freeze(value); } return value; };
       freeze(state); freeze(arenaMap);
-      let selectionChanges = 0, mapActions = 0, replayActions = 0;
-      const input = createInputController({ getPlayer: () => me, onSelectionChange: () => selectionChanges++, onToggleMap: () => mapActions++, onToggleReplay: () => replayActions++ });
-      const hud = createHUDController({ selectSlot: input.selectSlot, arrange: input.toggleArrange, skill: input.skill, interact: input.interact, drop: input.drop, moveSlot: input.moveSlot, dropSlot: input.dropSlot, cancelPointerFire: () => input.setPointerFire(false), toggleMap: () => mapActions++ });
+      let selectionChanges = 0, fullscreenActions = 0, replayActions = 0;
+      const input = createInputController({ getPlayer: () => me, onSelectionChange: () => selectionChanges++, onToggleFullscreen: () => fullscreenActions++, onToggleReplay: () => replayActions++ });
+      const hud = createHUDController({ selectSlot: input.selectSlot, arrange: input.toggleArrange, skill: input.skill, interact: input.interact, drop: input.drop, moveSlot: input.moveSlot, dropSlot: input.dropSlot, cancelPointerFire: () => input.setPointerFire(false), toggleFullscreen: () => fullscreenActions++ });
       const key = code => document.body.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
       const collect = blocked => input.collectIntent({ blocked, pointerAim: 0.75 });
       key('KeyD'); key('KeyQ'); key('KeyE'); key('KeyG'); key('Digit6');
@@ -32,7 +33,7 @@ export async function checkClientControllers(browser, base) {
       input.toggleArrange(); input.selectSlot(4); input.drop(); input.skill();
       const blocked = collect(true); input.consumeActions(); const afterBlocked = collect(false);
       input.selectSlot(5); input.interact(); input.reset(); const reset = collect(false);
-      key('KeyM'); key('Space');
+      key('KeyF'); key('Space');
       $('archive-dialog').showModal(); key('KeyD'); key('KeyQ'); key('Digit4'); $('archive-dialog').close();
       const dialog = collect(false);
       // A hidden document must release held input, just like blur.
@@ -100,7 +101,7 @@ export async function checkClientControllers(browser, base) {
         if (reason === 'reset') { hud.cancelDrag(); input.reset(); }
         if (reason === 'replay') render({ replay: true });
         if (reason === 'inactive') render({ state: { ...state, players: [{ ...me, status: 'stranded' }] } });
-        if (reason === 'ui') document.elementFromPoint = () => $('map-toggle');
+        if (reason === 'ui') document.elementFromPoint = () => $('fullscreen-toggle');
         gesture(slot(5), 'pointerup', 28, 10, 75);
         cancelledGestures.push({ reason, intent: collect(false) });
         if (reason === 'dialog') $('archive-dialog').close();
@@ -110,14 +111,14 @@ export async function checkClientControllers(browser, base) {
       const pinnedDrop = collect(false), afterPinnedDrop = collect(false);
       input.dropSlot(5); const blockedDragDrop = collect(true);
       document.elementFromPoint = elementFromPoint;
-      $('arrange-item').click(); $('equipment-slots').children[5].click(); $('drop-item').click(); $('interact').click();
+      $('arrange-item').click(); $('equipment-slots').children[5].click(); $('drop-item').click(); $('interact').click(); $('fullscreen-toggle').click(); key('KeyF');
       const clicked = collect(false);
-      const beforeDestroy = { selectionChanges, mapActions, replayActions };
-      input.destroy(); hud.destroy(); key('KeyD'); key('KeyM'); $('map-toggle').click(); $('drop-item').click();
+      const beforeDestroy = { selectionChanges, fullscreenActions, replayActions };
+      input.destroy(); hud.destroy(); key('KeyD'); key('KeyF'); $('fullscreen-toggle').click(); $('drop-item').click();
       const destroyed = collect(false);
       return { first, second, blurred, arranged, blocked, afterBlocked, reset, dialog, hidden, clicked, draggedMove, draggedDrop, cancelledDrag, tappedSlot, cancelledGestures, pinnedDrop, afterPinnedDrop, blockedDragDrop, destroyed,
         dots: { visible, noSight, cloaked, roof, revealedUnderRoof, outsideViewport, directed }, slots,
-        beforeDestroy, afterDestroy: { selectionChanges, mapActions, replayActions }, buttonsAfterDestroy: $('equipment-slots').children.length,
+        beforeDestroy, afterDestroy: { selectionChanges, fullscreenActions, replayActions }, buttonsAfterDestroy: $('equipment-slots').children.length,
         sneakReleaseCancelled: sneakRelease.defaultPrevented };
     }, { state: snapshot(game), arenaMap: game.map });
     assert.equal(result.first.x, 1); assert.equal(result.first.aim, 0.75); assert.equal(result.first.slot, 5);
@@ -143,7 +144,7 @@ export async function checkClientControllers(browser, base) {
     }
     assert.deepEqual(result.dots, { visible: 2, noSight: 1, cloaked: 1, roof: 1, revealedUnderRoof: 2, outsideViewport: 1, directed: 2 });
     assert.equal(result.slots.length, 6); assert.match(result.slots[5], /^Slot 6: /);
-    assert.deepEqual(result.beforeDestroy, result.afterDestroy); assert.equal(result.buttonsAfterDestroy, 0);
+    assert.deepEqual(result.beforeDestroy, result.afterDestroy); assert.equal(result.beforeDestroy.fullscreenActions, 3); assert.equal(result.buttonsAfterDestroy, 0);
     assert.equal(result.sneakReleaseCancelled, true, 'preserve the original property handler return-false behavior');
   } finally { await page.close(); }
 }

@@ -68,7 +68,7 @@ are in [20.5](docs/20.5-tools-and-next-boundaries.md) and
 | Open/close door / charge cell / extract / rail | E | Hand button |
 | Drop equipment | Drag a slot into the arena, or G for selected item | Drag a slot into the arena, or Drop selected button |
 | Sneak | Hold Shift | Hold footprints button |
-| Local zoom | M | View button |
+| Fullscreen | F | Fullscreen button |
 
 Contestants win by finding a power cell, charging it for five seconds, and carrying it to the extraction site. Three shared slots are available. Live maps use the authored generation chain at 17,280 by 8,640 units, with a ten-minute wall deadline. Each start has a nearby pistol and uncharged cell. Walk over loot to collect it into six equipment slots; weapons have finite ammo, and medkits and shields stack. Use R or Move/merge to rearrange equipment. Contestants can shoot one another and have no innate ability. Gladiators use six distributed blue transit stations with E; Warden has a shockwave, Specter a scan, and Striker a speed burst. Kills improve gladiator damage and ability recovery. Eliminated gladiators respawn after 20 seconds at a safe transit station with earned upgrades retained. Current body sizes and combat tuning are preserved; narrow-gap balance still needs a pass. Traps, sensors and locked doors remain supported in legacy maps but are not authored by the live chain yet.
 
@@ -78,7 +78,7 @@ New arena opens role, kit, callsign, and seed selection, then a lobby the room o
 
 ### Dev view
 
-Under `npm run dev` (and `dev:lan`) the telescope button in the top bar opens the current match's dev view in a new tab, so your own player stays in the match. It shows the whole live map, undelayed and unfogged. Drag or hold WASD/arrows to pan and use the wheel to zoom. Click a player or bot, or pick one from the list, to follow them in their own sight; F toggles that fog, Esc stops following, and 0 returns to the whole arena. The pause button or Space pauses the whole match for everyone in it (not other rooms); the replay shows a mark where it was paused. The same camera controls work in replays. `?room=<id>&dev` opens it directly. The server decides who may: `DEV_TOOLS=none|owner|all` (or `--dev-tools=`), unset meaning nobody.
+Under `npm run dev` (and `dev:lan`) the telescope button in the top bar opens the current match's dev view in a new tab, so your own player stays in the match. It shows the whole live map, undelayed and unfogged. Drag or hold WASD/arrows to pan and use the wheel to zoom. Click a player or bot, or pick one from the list, to follow them in their own sight; V toggles that fog, Esc stops following, and 0 returns to the whole arena. The pause button or Space pauses the whole match for everyone in it (not other rooms); the replay shows a mark where it was paused. The same camera controls work in replays. `?room=<id>&dev` opens it directly. The server decides who may: `DEV_TOOLS=none|owner|all` (or `--dev-tools=`), unset meaning nobody.
 
 Empty live rooms close and save after a 30-second reconnect grace, so repeatedly starting a new arena does not leave entire bot matches running in the background.
 

@@ -45,10 +45,10 @@ export function createCameraDirector({ getState, active, camera, onFollow = () =
   function reset() { view = null; followId = null; held.clear(); }
 
   /** Where the camera points this frame. `focus` is the eased eye on the followed player, if any. */
-  function frame({ width, height, map, focus, overview }) {
+  function frame({ width, height, map, focus }) {
     if (followId && focus) {
       // Their sight is cut to their own screen, so a fogged follow keeps their zoom exactly.
-      const zoom = fog || !view ? playerZoom(width, height, overview) : view.zoom;
+      const zoom = fog || !view ? playerZoom(width, height) : view.zoom;
       return { x: focus.x, y: focus.y, zoom };
     }
     if (view) return view;
@@ -71,7 +71,7 @@ export function createCameraDirector({ getState, active, camera, onFollow = () =
     if (PAN_KEYS[key]) { held.add(key); event.preventDefault(); }
     else if (event.repeat) return;
     else if (key === 'Escape') free();
-    else if (key === 'KeyF') setFog(!fog);
+    else if (key === 'KeyV') setFog(!fog);
     else if (key === 'Digit0' || key === 'Home') whole();
   });
   addEventListener('keyup', event => held.delete(event.code));

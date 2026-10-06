@@ -5,8 +5,8 @@ import { visibilityPolygon, litPoint } from '../shared/movement.ts';
 
 test('full viewport corners are visible across supported sizes and zooms within server coverage', () => {
   const eye = { x: 3000, y: 2000 }, map = { obstacles: [], gates: [] };
-  for (const [width, height] of [[390, 844], [1440, 1000], [2560, 1440], [7680, 2160]]) for (const overview of [false, true]) {
-    const bounds = viewBounds(eye, width, height, playerZoom(width, height, overview));
+  for (const [width, height] of [[390, 844], [1440, 1000], [2560, 1440], [7680, 2160]]) {
+    const bounds = viewBounds(eye, width, height, playerZoom(width, height));
     assert.ok(bounds.width <= MAX_VIEW_WIDTH && bounds.height <= MAX_VIEW_HEIGHT);
     const radius = viewRadius(bounds, eye);
     assert.ok(radius + 100 < POTENTIAL_RADIUS, 'network margin covers interpolation and movement');
