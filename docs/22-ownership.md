@@ -13,6 +13,7 @@ the rest are conventions this file records so a change lands in the right module
 | 22.2 | Map generation and live map assembly | [22.2](22.2-map-generation.md) |
 | 22.3 | Server | [22.3](22.3-server.md) |
 | 22.4 | Client | [22.4](22.4-client.md) |
+| 22.5 | Lobbies, matchmaking and rooms: the design for #237, what each part owns and the stages | [22.5](22.5-lobbies-and-matchmaking.md) |
 
 ## Earlier heading links
 
