@@ -64,9 +64,11 @@ a zone size written `12x6`, `24x12` or `36x18`, the sizes a library is authored
 for (55); the default is `12x6`, and any other value is refused with a 400 naming
 the sizes. The lobby shows the room's size. A 12 × 6 map is 17,280 by 8,640 world
 units; each larger size is two and three times that in each direction.
-Matchmade rooms are always 12 × 6 with a random seed. Generation blocks the
-server for about 2 s at 24 × 12 and 6 s at 36 × 18, and a 36 × 18 room does not
-hold the tick budget alone (42).
+Matchmade rooms are always 12 × 6 with a random seed. The map is generated on a
+worker thread, so other rooms keep running meanwhile (#253); the room exists, and the
+request answers, once its map is ready, which takes seconds at the larger sizes. A
+matchmaker arriving while a matchmade room is generated waits for that room. A
+36 × 18 room does not hold the tick budget alone (42).
 
 ## Matchmaking and lobby
 

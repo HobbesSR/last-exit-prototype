@@ -10,13 +10,16 @@ export function installHttpApi(app, service, replays) {
     emptyLiveRooms: [...rooms.values()].filter(r => r.started && !r.finished && !r.clients.size).length }));
   app.get('/api/profile', (_req, res) => { const pacing = profiler.report().find(s => s.name === 'sim.tickPacing'); res.json({ enabled: profiler.profiling(), tickRate: HZ, budgetMs: 1000 / HZ, effectiveHz: pacing?.mean ? 1000 / pacing.mean : null, frames: profiler.frameCount(), rooms: [...rooms.values()].filter(r => r.started && !r.finished).length, series: profiler.report() }); });
   app.post('/api/profile', (req, res) => { profiler.enable(req.body?.enabled !== false); res.json({ enabled: profiler.profiling() }); });
-  app.post('/api/rooms', (req, res) => {
+  app.post('/api/rooms', async (req, res) => {
     if (!service.hasCapacity()) return res.status(429).json({ error: 'All arena slots are occupied. Try again after a match ends.' });
     const seed = roomSeed(req.body);
     if (seed === null) return res.status(400).json({ error: `Seed must be an integer from 1 to ${MAX_ARENA_SEED}.` });
     const size = roomSize(req.body);
     if (size === null) return res.status(400).json({ error: `Size must be one of ${ROOM_SIZE_NAMES.join(', ')}.` });
-    const room = service.makeRoom(seed, false, size);
+    let room;
+    try { room = await service.createRoom(seed, false, size); }
+    catch (error) { console.error(error); return res.status(500).json({ error: 'The arena could not be generated. Try again.' }); }
+    if (!room) return res.status(429).json({ error: 'All arena slots are occupied. Try again after a match ends.' });
     res.status(201).json({ id: room.id, ownerKey: room.ownerKey, seed, size: zoneSizeName(size) });
   });
   app.get('/api/replays', (_req, res) => res.json(replays.list()));
