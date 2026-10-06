@@ -21,4 +21,4 @@ body.inventory-dragging,#equipment-slots button.dragging{user-select:none}
 @media(max-width:700px){#equipment-slots{bottom:290px;width:calc(100% - 24px)}#equipment-slots button{min-width:0;flex:1;font-size:8px;padding:4px}}
 @media(max-width:700px){#objective{top:108px;width:calc(100% - 24px);font-size:10px}#event-feed{top:166px}#hazard-warning{top:205px}}
 @media(pointer:coarse){#touch-controls{bottom:179px;left:18px;right:18px}.virtual-stick{width:94px;height:94px}}
-@media(max-width:760px) and (min-width:701px){.player-vitals{width:180px}.loadout{gap:4px}.ability-button{width:48px}#minimap-button{width:150px}.inventory{gap:5px}}
+@media(max-width:760px) and (min-width:701px){.player-vitals{width:180px}.loadout{gap:4px}.ability-button{width:48px}#minimap-panel{width:150px}.inventory{gap:5px}}

@@ -144,9 +144,9 @@ try {
   await steer(() => ({ x: me().x + 600, y: me().y }), { timeout: 2600, stop: 0, aim: ahead });
 
   // Pull back to the local overview, then hand the camera to the directed view for the closing shot.
-  await page.keyboard.press('KeyM');
+  
   await page.waitForTimeout(1500);
-  await page.keyboard.press('KeyM');
+  
   await page.waitForTimeout(400);
   try {
     await page.evaluate(() => window.arenaSpectate());
