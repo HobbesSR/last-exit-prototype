@@ -196,13 +196,17 @@ export function makeArenaScene(api) {
         g.lineStyle(3, 0xe9b758); g.strokeRoundedRect(h.x + 4, h.y + 4, h.w - 8, h.h - 8, 7);
         for (let x = h.x + 13; x < h.x + h.w - 12; x += 22) { g.lineStyle(7, 0xe6b357, 0.65); g.lineBetween(x, h.y + 13, x - 4, h.y + h.h - 13); }
       }
+      // Floors go down before the obstacles: tiles replay drawings in the order recorded, so a floor
+      // recorded after the walls painted over every interior wall and left only the doors showing.
+      for (const building of map.buildings || []) {
+        const floor = this.staticAt(building.x, building.y, building.x + building.w, building.y + building.h); floor.fillStyle(0x77717a); floor.fillRect(building.x + 18, building.y + 18, building.w - 36, building.h - 36);
+      }
       for (const o of map.obstacles) {
         // Wide enough for the drop shadow (+5, +8), the outline stroke and a circle's highlight.
         const box = bounds(shapeOf(o));
         this.obstacle(this.staticAt(box.x - 6, box.y - 6, box.x + box.w + 12, box.y + box.h + 14), o);
       }
       for (const building of map.buildings || []) {
-        const floor = this.staticAt(building.x, building.y, building.x + building.w, building.y + building.h); floor.fillStyle(0x77717a); floor.fillRect(building.x + 18, building.y + 18, building.w - 36, building.h - 36);
         const roof = this.add.graphics(); roof.fillStyle(0x323a4b); roof.fillRoundedRect(building.x + 18, building.y + 18, building.w - 36, building.h - 36, 5);
         roof.lineStyle(4, 0x8091a8); roof.strokeRoundedRect(building.x + 20, building.y + 20, building.w - 40, building.h - 40, 4);
         roof.fillStyle(0x4b586b); roof.fillRect(building.x + 35, building.y + 30, building.w - 70, building.h - 60);
