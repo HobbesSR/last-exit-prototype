@@ -557,9 +557,17 @@ try {
   assert.ok(artPlayer.x > interior.x && artPlayer.x < interior.x + interior.w && artPlayer.y > interior.y && artPlayer.y < interior.y + interior.h,
     'opened door and walked into a real building');
   await guest.close(); await mobile.close(); await visionPage.close(); await caster.close();
+  // The deploy dialog lists open rooms (#254): a named room is listed to everyone, its Join usable, and a
+  // server without a dev tools policy offers no dev view.
+  const namedRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":7,"name":"Night shift"}' })).json();
   await page.getByRole('button', { name: 'New arena', exact: true }).click();
-  await page.locator('#matchmaking').check(); await page.locator('#role-preference').selectOption('gladiator');
-  await page.getByRole('button', { name: 'Deploy', exact: true }).click();
+  await page.getByRole('button', { name: 'Join Night shift', exact: true }).waitFor();
+  assert.equal(await page.getByRole('button', { name: 'Join Night shift', exact: true }).isEnabled(), true);
+  assert.equal(await page.getByRole('button', { name: 'Dev view of Night shift', exact: true }).count(), 0);
+  await page.screenshot({ path: 'test-results/room-browser.png' });
+  // Auto is matchmaking.
+  await page.locator('#role-preference').selectOption('gladiator');
+  await page.getByRole('button', { name: 'Auto', exact: true }).click();
   await page.waitForFunction(() => document.getElementById('lobby-dialog').open && window.arenaDebug().me?.role === 'gladiator');
   const matchedRoom = await page.evaluate(() => window.arenaDebug().room);
   assert.equal(server.rooms.get(matchedRoom).matchmade, true);
@@ -597,8 +605,12 @@ try {
   await wallPage.waitForFunction(() => !document.getElementById('deploy-error').hidden && /could not be generated/.test(document.getElementById('deploy-error').textContent));
   assert.deepEqual(await wallPage.evaluate(() => ({ deploy: document.getElementById('loadout-dialog').open, lobby: document.getElementById('lobby-dialog').open })), { deploy: true, lobby: false });
   assert.equal(await wallPage.evaluate(() => window.arenaDebug().tick), undefined, 'the previous arena is not shown as this one');
+  // Back in the deploy dialog, Join enters a listed room's lobby, which shows its name.
+  await wallPage.getByRole('button', { name: 'Join Night shift', exact: true }).click();
+  await wallPage.waitForFunction(id => document.getElementById('lobby-dialog').open && window.arenaDebug().room === id
+    && document.getElementById('lobby-title').textContent === 'Night shift', namedRoom.id);
   await wallPage.close();
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: true, pixels, occlusion, screenshots: ['desktop', 'arena-overview', 'replay', 'loadout', 'gladiator', 'mobile', 'mobile-loadout', 'occlusion', 'spectator'], checks: ['movement', 'ability', 'multiplayer', 'replay seek', 'download', 'kit selection', 'dual-stick multitouch', 'mouse aim', 'occlusion pixels', 'shade not blackout', 'client-side visibility', 'shot interpolation', 'spectator directed view', 'mobile overflow', 'generation failure after an arena', 'assets', 'browser errors'] }, null, 2));
+  console.log(JSON.stringify({ passed: true, pixels, occlusion, screenshots: ['desktop', 'arena-overview', 'replay', 'loadout', 'gladiator', 'mobile', 'mobile-loadout', 'room-browser', 'occlusion', 'spectator'], checks: ['movement', 'ability', 'multiplayer', 'replay seek', 'download', 'kit selection', 'dual-stick multitouch', 'mouse aim', 'occlusion pixels', 'shade not blackout', 'client-side visibility', 'shot interpolation', 'spectator directed view', 'mobile overflow', 'generation failure after an arena', 'room browser join', 'assets', 'browser errors'] }, null, 2));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
 finally { await browser.close(); await server.close(); await maps.close(); }

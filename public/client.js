@@ -90,6 +90,7 @@ function updateLobby(data = {}) {
   const contestants = lobbyPlayers.filter(p => p.role === 'contestant');
   const gladiators = lobbyPlayers.filter(p => p.role === 'gladiator');
   $('lobby-room').textContent = roomId || data.room || '';
+  if ('name' in data) $('lobby-title').textContent = data.name || 'Arena lobby.';
   if (data.size) $('lobby-size').textContent = data.size.replace('x', ' × ');
   const places = role => lobbyCapacity ? `/${lobbyCapacity[role]}` : '';
   $('lobby-count').textContent = `${contestants.length}${places('contestant')} contestants / ${gladiators.length}${places('gladiator')} gladiators`;
@@ -140,9 +141,12 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   state = null; liveMap = null; liveState = null; predicted = null;
   snapshots.reset(); presentation = null; roundTripMs = null;
   resetDiagnostics();
+  $('lobby-title').textContent = 'Arena lobby.';
   owner = false; lobbyPlayers = []; lobbyCapacity = null; lobbyReady = true; lobbyStarting = false; devView = false; devRoster = ''; director.reset(); setPaused(false);
   $('finish-recording').disabled = false;
-  roomId = room; ownerKey = key; selectedRole = role;
+  // `role` is how this connection joins (a role, a matchmaking preference or the dev view); `selectedRole`
+  // stays the deploy dialog's own choice, which only its role buttons set.
+  roomId = room; ownerKey = key;
   connection('CONNECTING');
   const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
   ws = socket;
@@ -207,7 +211,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       toast(data.message); connection('UNAVAILABLE');
       $('deploy-error').textContent = data.message; $('deploy-error').hidden = false;
       // Includes a room given up while its map generated: its lobby is gone, so back to the deploy dialog.
-      if (!playerId || !state) { if ($('lobby-dialog').open) $('lobby-dialog').close(); $('loadout-dialog').showModal(); }
+      if (!playerId || !state) { if ($('lobby-dialog').open) $('lobby-dialog').close(); openDeploy(); }
     }
   });
   socket.addEventListener('close', () => {
@@ -292,18 +296,76 @@ function inputTick() {
   movePlayer(arenaMap, predicted, input); inputController.consumeActions();
   hudController.setSneak(input.sneak);
 }
-async function newArena() {
+/** Runs one way into a room from the deploy dialog, reporting a refusal there; one at a time. */
+async function deploy(enter) {
   if (connecting) return;
   connecting = true; $('deploy-error').hidden = true;
-  try {
-    if ($('matchmaking').checked) {
-      await connect({ matchmake: true, role: $('role-preference').value, kit: $('kit').value, name: $('callsign').value || 'Runner' }); return;
-    }
-    const data = await json('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seed: Number($('seed').value), size: $('map-size').value }) });
-    await connect({ room: data.id, key: data.ownerKey, role: selectedRole, kit: $('kit').value, name: $('callsign').value || 'Runner' });
-  } catch (error) { $('deploy-error').textContent = error.message; $('deploy-error').hidden = false; toast(error.message); }
+  try { await enter(); }
+  catch (error) { $('deploy-error').textContent = error.message; $('deploy-error').hidden = false; toast(error.message); }
   finally { connecting = false; }
 }
+const player = () => ({ kit: $('kit').value, name: $('callsign').value || 'Runner' });
+const newArena = () => deploy(async () => {
+  const body = { seed: Number($('seed').value), size: $('map-size').value, name: $('room-name').value };
+  const data = await json('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  await connect({ room: data.id, key: data.ownerKey, role: selectedRole, ...player() });
+});
+// Auto is matchmaking: the directory picks a matchmade room still filling, or starts one.
+const autoMatch = () => deploy(() => connect({ matchmake: true, role: $('role-preference').value, ...player() }));
+// The lobby browser (22.5): the rooms the directory lists, polled while the deploy dialog is open.
+let listedRooms = [], devPolicy = null, refreshingRooms = false;
+function openDeploy() {
+  if (!$('loadout-dialog').open) $('loadout-dialog').showModal();
+  void refreshRooms();
+}
+async function refreshRooms() {
+  if (refreshingRooms) return;
+  refreshingRooms = true;
+  try {
+    // The dev tools policy is fixed for the server's life, so it is asked once.
+    devPolicy ??= (await json('/api/health')).devTools;
+    listedRooms = await json('/api/rooms');
+  } catch { listedRooms = null; }
+  finally { refreshingRooms = false; }
+  renderRooms();
+}
+// Whether this browser holds a room's owner key, which an `owner` policy asks of a dev view.
+function ownsRoom(id) {
+  try { return !!JSON.parse(sessionStorage.getItem(`last-exit:owner:${id}`))?.key; } catch { return false; }
+}
+function renderRooms() {
+  const target = $('room-list'); target.replaceChildren();
+  if (!listedRooms?.length) {
+    const p = document.createElement('p'); p.className = 'empty-archive';
+    p.textContent = listedRooms ? 'No open rooms. Press Auto, or create one below.' : 'The room list is unavailable.';
+    target.append(p); return;
+  }
+  for (const r of listedRooms) {
+    const row = document.createElement('div'); row.className = 'room-row';
+    const details = document.createElement('div'), title = document.createElement('strong'), sub = document.createElement('small');
+    const label = r.name || `Room ${r.id}`; title.textContent = label;
+    const status = r.phase === 'live' ? 'live' : r.ready ? r.kind === 'matchmade' ? 'filling' : 'lobby' : 'generating';
+    const badge = document.createElement('span'); badge.className = `room-phase phase-${status}`; badge.textContent = status;
+    const count = role => `${r.players[role]}/${r.players[role] + r.open[role]}`;
+    sub.textContent = `${r.size.replace('x', ' × ')} / ${count('contestant')} contestants / ${count('gladiator')} gladiators`;
+    title.append(' ', badge); details.append(title, sub);
+    const actions = document.createElement('div');
+    // A matchmade room places a player wherever there is room; a private one only in the role chosen.
+    const open = r.kind === 'matchmade' ? r.open.contestant + r.open.gladiator : r.open[selectedRole];
+    const join = document.createElement('button'); join.type = 'button'; join.className = 'secondary-button'; join.textContent = 'Join';
+    join.disabled = !open; join.ariaLabel = `Join ${label}`; join.onclick = () => deploy(() => connect({ room: r.id, role: selectedRole, ...player() }));
+    actions.append(join);
+    if (devPolicy === 'all' || devPolicy === 'owner' && ownsRoom(r.id)) {
+      const dev = document.createElement('button'); dev.type = 'button'; dev.className = 'icon-button'; dev.innerHTML = icon('eye');
+      dev.ariaLabel = `Dev view of ${label}`; dev.dataset.tip = 'Dev view';
+      dev.onclick = () => deploy(() => connect({ room: r.id, role: 'dev' }));
+      actions.append(dev);
+    }
+    row.append(details, actions); target.append(row);
+  }
+  icons();
+}
+setInterval(() => { if ($('loadout-dialog').open) void refreshRooms(); }, 2000);
 async function loadArchive() {
   $('replay-list').textContent = 'Loading broadcasts...';
   $('finish-recording').hidden = !owner || !liveState || liveState.phase === 'finished';
@@ -330,25 +392,23 @@ async function downloadReplay(id) {
     const a = document.createElement('a'); a.href = url; a.download = `last-exit-${id}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) { toast(error.message); }
 }
-$('new-game').onclick = $('play-again').onclick = () => { clearInput(); $('deploy-error').hidden = true; $('loadout-dialog').showModal(); };
+$('new-game').onclick = $('play-again').onclick = () => { clearInput(); $('deploy-error').hidden = true; openDeploy(); };
 $('deploy-form').onsubmit = e => { e.preventDefault(); void newArena(); };
+$('auto-match').onclick = () => void autoMatch();
 const randomizeSeed = () => { $('seed').value = 1 + crypto.getRandomValues(new Uint32Array(1))[0] % 2147483646; };
 $('random-seed').onclick = randomizeSeed;
 randomizeSeed();
 document.querySelectorAll('[data-role]').forEach(button => button.onclick = () => {
-  selectedRole = button.dataset.role; $('kit-options').hidden = selectedRole !== 'gladiator';
+  selectedRole = button.dataset.role; showKit();
   document.querySelectorAll('[data-role]').forEach(b => { const selected = b === button; b.classList.toggle('selected', selected); b.setAttribute('aria-pressed', selected); });
+  renderRooms();
 });
+// The kit matters to anyone who may be a gladiator: chosen, or preferred for Auto.
+const showKit = () => { $('kit-options').hidden = selectedRole !== 'gladiator' && $('role-preference').value !== 'gladiator'; };
+$('role-preference').onchange = showKit;
 document.querySelectorAll('.close-dialog').forEach(button => button.onclick = () => button.closest('dialog').close());
 $('share').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('Arena link copied'); } catch { toast('Arena link: ' + location.href); } };
 $('copy-lobby-link').onclick = $('share').onclick;
-$('matchmaking').onchange = () => {
-  const matching = $('matchmaking').checked;
-  $('preference-field').hidden = !matching; $('matchmaking-note').hidden = !matching;
-  $('seed').disabled = matching; $('random-seed').disabled = matching; $('map-size').disabled = matching;
-  document.querySelector('.role-select').hidden = matching;
-  $('kit-options').hidden = !matching && selectedRole !== 'gladiator';
-};
 setInterval(() => {
   if (!lobbyStartsAt || !$('lobby-dialog').open) return;
   const seconds = Math.ceil((lobbyStartsAt - Date.now()) / 1000);

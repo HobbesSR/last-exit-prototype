@@ -153,7 +153,14 @@ test('two clients share authority; replay preserves each recorded frame and surv
     const refused = await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"size":"5x5"}' });
     assert.equal(refused.status, 400); assert.match((await refused.json()).error, /12x6, 24x12, 36x18/);
     const unseeded = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json();
-    assert.ok(Number.isInteger(unseeded.seed) && unseeded.seed !== 4217 && unseeded.size === '12x6');
+    assert.ok(Number.isInteger(unseeded.seed) && unseeded.seed !== 4217 && unseeded.size === '12x6' && unseeded.name === null);
+    const post = body => fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    assert.equal((await post({ name: 'x'.repeat(25) })).status, 400);
+    const named = await (await post({ name: ' Night shift ' })).json();
+    assert.equal(named.name, 'Night shift');
+    const duplicate = await post({ name: 'night shift' });
+    assert.equal(duplicate.status, 409); assert.match((await duplicate.json()).error, /already called/);
+    assert.deepEqual((await (await fetch(base + '/api/rooms')).json()).map(r => [r.id, r.name]), [[named.id, 'Night shift']], 'a named room is listed');
     const room = await createRoom(server, base, '{"seed":9}');
     assert.equal(room.size, '12x6');
     const a = new WebSocket(base.replace('http:', 'ws:'));

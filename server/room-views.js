@@ -3,7 +3,7 @@ import * as profiler from '../shared/profiler.ts';
 export const SPECTATOR_DELAY_TICKS = 60;
 export const send = (session, value) => session.deliver(JSON.stringify(value));
 const lobbyPayload = room => ({
-  type: 'lobby', room: room.id, started: room.started, matchmade: !!room.matchmade, size: zoneSizeName(room.size),
+  type: 'lobby', room: room.id, name: room.name, started: room.started, matchmade: !!room.matchmade, size: zoneSizeName(room.size),
   startsAt: room.startsAt || null,
   // Whether the map exists yet (#258), and whether the owner has asked to start as soon as it does.
   ready: !!room.match, starting: !!room.startRequested,

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MAX_ROOMS } from '../server/room-directory.js';
+import { roomName, MAX_ROOM_NAME } from '../server/protocol.js';
 import { roomHarness } from './helpers/room-harness.js';
 
 test('a room summary is plain public data: kind, phase, size, players and open places by role', async () => {
@@ -9,7 +10,7 @@ test('a room summary is plain public data: kind, phase, size, players and open p
     const player = h.peer(); player.send({ type: 'match', role: 'gladiator', name: 'G' });
     const room = player.session.room, [summary] = h.service.summaries();
     assert.deepEqual(JSON.parse(JSON.stringify(summary)), summary, 'survives the wire unchanged');
-    assert.equal(summary.id, room.id); assert.equal(summary.kind, 'matchmade'); assert.equal(summary.phase, 'lobby');
+    assert.equal(summary.id, room.id); assert.equal(summary.name, null); assert.equal(summary.kind, 'matchmade'); assert.equal(summary.phase, 'lobby');
     assert.equal(summary.size, '12x6'); assert.equal(summary.createdAt, room.createdAt);
     assert.deepEqual(summary.players, { contestant: 0, gladiator: 1 });
     assert.deepEqual(summary.open, { contestant: room.match.capacity('contestant'), gladiator: room.match.capacity('gladiator') - 1 });
@@ -17,20 +18,40 @@ test('a room summary is plain public data: kind, phase, size, players and open p
   } finally { await h.service.close(); }
 });
 
-test('everyone sees matchmade rooms still filling; private and live rooms only when dev tools admit everyone', async () => {
+test('everyone sees named and matchmade rooms not yet started; unnamed private and live rooms only when dev tools admit everyone', async () => {
   for (const devTools of ['none', 'owner', 'all']) {
     const h = roomHarness({ devTools });
     try {
-      const priv = h.directory.createRoom(9), player = h.peer(); player.send({ type: 'match' });
+      const priv = h.directory.createRoom(9), named = h.directory.createRoom(9, false, undefined, 'Night shift');
+      const player = h.peer(); player.send({ type: 'match' });
       const matchmade = player.session.room, listed = () => h.directory.list().map(room => room.id).sort();
-      assert.deepEqual(listed(), devTools === 'all' ? [priv.id, matchmade.id].sort() : [matchmade.id], devTools);
+      assert.deepEqual(listed(), (devTools === 'all' ? [priv.id, named.id, matchmade.id] : [named.id, matchmade.id]).sort(), devTools);
+      assert.equal(h.directory.list().find(room => room.id === named.id).name, 'Night shift');
       h.wake(0, 15000); assert.equal(matchmade.started, true);
-      assert.deepEqual(listed(), devTools === 'all' ? [priv.id, matchmade.id].sort() : [], `${devTools}: live`);
+      const owner = h.joined(named, { ownerKey: named.ownerKey }); owner.send({ type: 'start' }); assert.equal(named.started, true);
+      assert.deepEqual(listed(), devTools === 'all' ? [priv.id, named.id, matchmade.id].sort() : [], `${devTools}: live`);
       if (devTools === 'all') assert.equal(h.directory.list().find(room => room.id === matchmade.id).phase, 'live');
       h.service.disconnect(player.session); h.wake(0); h.wake(0, 30000); assert.equal(matchmade.finished, true);
       assert.ok(!listed().includes(matchmade.id), `${devTools}: a finished room leaves the list`);
     } finally { await h.service.close(); }
   }
+});
+
+test('a room name is trimmed text of at most 24 characters, unique among open rooms whatever its case', async () => {
+  assert.equal(MAX_ROOM_NAME, 24);
+  assert.equal(roomName({}), null); assert.equal(roomName({ name: '  ' }), null);
+  assert.equal(roomName({ name: '  Night   shift ' }), 'Night shift');
+  assert.equal(roomName({ name: 'x'.repeat(24) }), 'x'.repeat(24)); assert.equal(roomName({ name: 'x'.repeat(25) }), false);
+  assert.equal(roomName({ name: 7 }), false); assert.equal(roomName({ name: 'a\u0000b' }), false);
+  const h = roomHarness();
+  try {
+    const first = h.directory.createRoom(9, false, undefined, 'Night shift');
+    assert.equal(h.directory.nameTaken('NIGHT SHIFT'), true);
+    assert.equal(h.directory.createRoom(9, false, undefined, 'night shift'), null, 'taken while the first is open');
+    const owner = h.joined(first, { ownerKey: first.ownerKey }); owner.send({ type: 'start' }); owner.send({ type: 'finish' });
+    assert.equal(first.finished, true);
+    assert.ok(h.directory.createRoom(9, false, undefined, 'night shift'), 'free once that room has finished');
+  } finally { await h.service.close(); }
 });
 
 test('matchmaking fills one room until no place is open, then makes another', async () => {
