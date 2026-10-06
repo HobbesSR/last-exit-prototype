@@ -81,14 +81,14 @@ a frame is omitted whole under storage pressure, which is when a stall is most l
 `writer.mark(marker)` keeps at most `MAX_DIAGNOSTIC_MARKS` (512); later ones are counted
 in `dropped`. A crash `.partial` file loses the trailer, which is acceptable.
 
-A mark is `{ tick, kind, ... }`. Only `server-stall` is written so far:
+A mark is `{ tick, kind, ... }`. `server-stall` is
 `{ tick, kind, wakeMs, owed, simulated }` (`simulated` is the steps actually taken, fewer than the budget if the match ends), raised by the room's catch-up step in
 `advance` when more ticks are owed than `MAX_CATCHUP` allows. Tick numbers stay
 continuous after a stall (wall time is lost, not ticks), so the mark is the only evidence in
 the replay. Readers treat marks as untrusted: `createReplayTimeline` keeps known kinds at
 valid ticks, in tick order, and reports `droppedMarks`. Client-reported kinds
-(`frame-drop`, `packet-gap`, `manual`) are accepted by the model and wait on a
-protocol message (24).
+(`frame-drop`, `packet-gap`, `manual`) arrive as a `diagnostic` message (24) and are written
+as `{ tick, kind, playerId, reportedTick, arrivalTick, startTick?, count?, worstMs? }`.
 
 The viewer draws one pip per mark over the scrubber (`#replay-marks`), distinct by shape as
 well as colour (square red stall, triangle orange client drop or gap, circle blue manual), with

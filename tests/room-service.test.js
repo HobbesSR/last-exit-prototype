@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { roomHarness } from './helpers/room-harness.js';
 import { createMatch } from '../server/match.js';
 import { createGame, joinGame, setInput, step, snapshot } from '../shared/simulation.ts';
-import { parseMessage, acceptMessageRate, roomSeed } from '../server/protocol.js';
+import { parseMessage, acceptMessageRate, roomSeed, MAX_DIAGNOSTICS_PER_SESSION } from '../server/protocol.js';
 
 test('three hunter places are advertised, admitted, reclaimed and recorded', async () => {
   const h = roomHarness(), room = h.service.makeRoom(9);
@@ -196,5 +196,41 @@ test('a stall marker counts the ticks actually simulated when the match ends mid
     assert.equal(mark.owed, 9);
     assert.equal(mark.simulated, added, 'simulated is the steps taken, not the budget');
     assert.equal(mark.tick, writer.frames.at(-1).state.tick);
+  } finally { await h.service.close(); }
+});
+
+test('client diagnostics become recorded marks, never commands, and are validated and limited', async () => {
+  const h = roomHarness();
+  try {
+    const { owner, writer } = h.live();
+    for (let i = 0; i < 12; i++) h.wake(50, 300);
+    const tick = writer.frames.at(-1).state.tick, before = writer.frames.at(-1).commands.length;
+    owner.send({ type: 'diagnostic', kind: 'frame-drop', tick: tick - 3, startTick: tick - 9, count: 7.4, worstMs: 120.6 });
+    assert.equal(writer.marks.length, 1);
+    const [mark] = writer.marks;
+    assert.equal(mark.kind, 'frame-drop'); assert.equal(mark.tick, tick - 3); assert.equal(mark.startTick, tick - 9);
+    assert.equal(mark.count, 7); assert.equal(mark.worstMs, 121); assert.equal(mark.playerId, owner.session.playerId);
+    assert.equal(mark.arrivalTick, tick);
+    assert.equal(writer.frames.at(-1).commands.length, before, 'not routed through the recorded inputs');
+    owner.send({ type: 'diagnostic', kind: 'manual', tick });
+    assert.equal(writer.marks.length, 1, 'rate limited');
+    h.wake(50, 300);
+    owner.send({ type: 'diagnostic', kind: 'bogus', tick }); owner.send({ type: 'diagnostic', kind: 'manual', tick: 'x' });
+    assert.equal(writer.marks.length, 1, 'unknown kind and non-numeric tick are ignored');
+    owner.send({ type: 'diagnostic', kind: 'manual', tick: 1e12, startTick: -5 });
+    assert.equal(writer.marks.length, 2);
+    assert.ok(writer.marks[1].tick <= writer.marks[1].arrivalTick, 'a future tick is clamped to arrival');
+  } finally { await h.service.close(); }
+});
+
+test('diagnostic reports are capped per session and refused from spectators', async () => {
+  const h = roomHarness();
+  try {
+    const { room, owner, writer } = h.live();
+    for (let i = 0; i < MAX_DIAGNOSTICS_PER_SESSION + 5; i++) { h.wake(50, 300); owner.send({ type: 'diagnostic', kind: 'manual', tick: 0 }); }
+    assert.equal(writer.marks.length, MAX_DIAGNOSTICS_PER_SESSION);
+    const watcher = h.peer(); watcher.send({ type: 'join', room: room.id, role: 'spectator' });
+    watcher.send({ type: 'diagnostic', kind: 'manual', tick: 0 });
+    assert.equal(writer.marks.length, MAX_DIAGNOSTICS_PER_SESSION);
   } finally { await h.service.close(); }
 });
