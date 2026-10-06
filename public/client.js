@@ -1,17 +1,26 @@
 import { movePlayer } from '/shared/movement.ts';
 import { createInputController } from '/input-controller.js';
 import { createHUDController } from '/hud-controller.js';
-import { notePacket, resetDiagnostics, diagnosticTimings, reportDiagnostics, manualMark } from '/diagnostics.js';
+import { notePacket, resetDiagnostics, diagnosticTimings, reportDiagnostics, manualMark, forgetTiming } from '/diagnostics.js';
 import { makeArenaScene } from '/arena-scene.js';
 import { createReplayController } from '/replay-controller.js';
+import { createCameraDirector } from '/camera-director.js';
 import { createSnapshotBuffer } from '/snapshot-buffer.js';
 import * as profiler from '/shared/profiler.ts';
-import { $, HZ, INTERPOLATION_DELAY_TICKS, kitName, time } from '/ui.js';
+import { $, HZ, INTERPOLATION_DELAY_TICKS, kitName, time, fillFollowOptions } from '/ui.js';
 
 const icon = name => `<i data-lucide="${name}"></i>`;
 const icons = () => window.lucide?.createIcons();
 let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liveState, predicted;
 let seq = 0, pending = [], selectedRole = 'contestant', savedReplay, recordingFailed = false;
+// This connection is the dev view (24): undelayed and unfogged, with the director's free camera.
+let devView = false, devRoster = '';
+// A player who has stepped out to the dev view (#246) keeps their own socket, and their slot, and
+// watches through this second one. Closing it returns them to their own view.
+let devFeed = null;
+const inDevView = () => devView || !!devFeed;
+// A dev pause has stopped this room's clock (24): no frames arrive and no input is sent.
+let paused = false;
 // Authoritative frames are buffered and read back at a fixed delay, so what is drawn is
 // interpolated between two received states rather than chasing the newest one.
 const snapshots = createSnapshotBuffer({ hz: HZ, delayTicks: INTERPOLATION_DELAY_TICKS });
@@ -23,7 +32,7 @@ let lobbyStartsAt = null;
 const inputController = createInputController({
   getPlayer: () => state?.players.find(p => p.id === playerId),
   onSelectionChange: () => updateHUD(), onToggleFullscreen: () => toggleFullscreen(),
-  onToggleReplay: () => { if (replayController.active()) replayController.togglePlay(); },
+  onToggleReplay: () => { if (replayController.active()) replayController.togglePlay(); else if (inDevView()) togglePause(); },
   onMarkLag: () => markLag()
 });
 const hudController = createHUDController({
@@ -34,17 +43,32 @@ const hudController = createHUDController({
   canDrag: () => !replayController.active() && state?.players.some(p => p.id === playerId && p.role === 'contestant' && p.status === 'active'),
   toggleFullscreen: () => toggleFullscreen()
 });
+const director = createCameraDirector({
+  // The followed player is found in the frame being drawn, so the camera holds them where their sprite is.
+  getState: () => presentationFrame(), active: () => directed(),
+  camera: () => scene?.cameraView() ?? { x: 0, y: 0, zoom: 1 },
+  onFollow: (subject, id) => {
+    $('replay-focus').value = id || ''; $('dev-focus').value = id || '';
+    // A cut, not a pan: gliding a camera across a 24000 unit arena would lose the subject for seconds.
+    scene?.cutTo();
+    if (subject) toast(`Following ${subject.name}`);
+  },
+  onFog: fog => {
+    $('dev-fog').classList.toggle('active', fog); $('dev-fog').setAttribute('aria-pressed', String(fog));
+    toast(fog ? 'Followed players are shown in their own sight' : 'Fog off: followed players see everything');
+  },
+});
 const replayController = createReplayController({
   fetchJSON: json, changeMap, acceptState, updateHUD, clearInput, toast, connection,
   getMap: () => arenaMap, getState: () => state, setState: value => state = value,
   getScene: () => scene, getLiveMap: () => liveMap, getLiveState: () => liveState,
-  liveConnectionLabel: () => ws?.readyState === WebSocket.OPEN ? 'LIVE' : 'OFFLINE',
-  downloadReplay, icon, icons,
+  liveConnectionLabel: () => ws?.readyState === WebSocket.OPEN ? (inDevView() ? 'DEV VIEW' : 'LIVE') : 'OFFLINE',
+  downloadReplay, icon, icons, director,
 });
 let toastTimer, connecting = false, disconnecting = false, lastStateAt = 0, profileOverlay;
 // What the server last measured for this connection, for display only.
 let roundTripMs = null;
-const directed = () => replayController.active() || !playerId;
+const directed = () => replayController.active() || !playerId || !!devFeed;
 function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 3500); }
 function connection(message) { $('connection-text').textContent = message; }
 async function json(url, options) {
@@ -98,12 +122,14 @@ function hideLobby() {
 async function connect({ room, key, role = 'contestant', kit = 'warden', name = 'Runner', matchmake = false }) {
   let saved;
   try { saved = JSON.parse(sessionStorage.getItem(`last-exit:owner:${room}`)); } catch { /* Storage may be unavailable. */ }
-  if (!key && saved?.key) { key = saved.key; role = saved.role; kit = saved.kit; name = saved.name; }
+  // A dev view borrows the owner key for an `owner` policy, but never the owner's player slot.
+  if (!key && saved?.key) { key = saved.key; if (role !== 'dev') { role = saved.role; kit = saved.kit; name = saved.name; } }
+  leaveDevView();
   if (ws) { disconnecting = true; ws.close(); }
   clearInput(); pending = []; seq = 0; savedReplay = null; recordingFailed = false; playerId = null;
   snapshots.reset(); presentation = null; roundTripMs = null;
   resetDiagnostics();
-  owner = false; lobbyPlayers = []; lobbyCapacity = null;
+  owner = false; lobbyPlayers = []; lobbyCapacity = null; devView = false; devRoster = ''; director.reset(); setPaused(false);
   $('finish-recording').disabled = false;
   roomId = room; ownerKey = key; selectedRole = role;
   connection('CONNECTING');
@@ -121,16 +147,17 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
     if (data.type === 'welcome') {
       room = data.room; roomId = room;
       try { if (data.resumeKey) sessionStorage.setItem(`last-exit:resume:${room}`, data.resumeKey); } catch { /* Optional recovery. */ }
-      playerId = data.id; owner = data.owner; liveMap = data.map; liveState = data.state;
-      if (owner) {
+      playerId = data.id; owner = data.owner; liveMap = data.map; liveState = data.state; devView = !!data.dev;
+      $('dev-view').hidden = !data.devTools || devView; $('dev-controls').hidden = !devView;
+      if (owner && !devView) {
         try { sessionStorage.setItem(`last-exit:owner:${room}`, JSON.stringify({ key, role, kit, name })); }
         catch { toast('Owner recovery is unavailable in this browser session. Keep this tab open.'); }
       }
       replayController.reset();
       $('live-hud').hidden = !!data.spectator;
-      changeMap(data.map); acceptState(data.state);
-      history.replaceState(null, '', `?room=${room}`);
-      connection(data.spectator ? 'SPECTATING' : data.started ? 'LIVE' : 'LOBBY'); $('loadout-dialog').close();
+      changeMap(data.map); acceptState(data.state); setPaused(!!data.paused);
+      history.replaceState(null, '', `?room=${room}${devView ? '&dev' : ''}`);
+      connection(devView ? 'DEV VIEW' : data.spectator ? 'SPECTATING' : data.started ? 'LIVE' : 'LOBBY'); $('loadout-dialog').close();
       if (!data.spectator && !data.started) showLobby(data);
     } else if (data.type === 'state') {
       notePacket(event.data.length);
@@ -138,7 +165,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       if (lastStateAt) profiler.observe('net.stateGap', performance.now() - lastStateAt);
       profiler.observe('net.stateBytes', event.data.length, 'n');
       liveState = data.state;
-      if (!replayController.active()) acceptState(data.state);
+      if (!replayController.active() && !devFeed) acceptState(data.state);
     } else if (data.type === 'ping') {
       // Echoed immediately and unmodified. The server times its own round trip; this end
       // states nothing about latency, it only returns a token it could not have held earlier.
@@ -146,8 +173,13 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       roundTripMs = data.rtt ?? null;
     } else if (data.type === 'lobby') {
       updateLobby(data);
-      if (data.started) { hideLobby(); connection('LIVE'); }
+      if (data.started) { if (!devView) { hideLobby(); connection('LIVE'); } }
       else if (playerId) showLobby(data);
+    } else if (data.type === 'teleport') {
+      const who = state?.players.find(p => p.id === data.id)?.name || 'Player';
+      toast(data.ok ? `${who} moved` : `${who} cannot stand there`);
+    } else if (data.type === 'paused') {
+      setPaused(data.paused);
     } else if (data.type === 'saved') {
       if (recordingFailed) return;
       savedReplay = data.replay; $('watch-match').disabled = false;
@@ -171,13 +203,20 @@ function acceptState(next) {
   if (!replayController.active()) snapshots.push(next);
   if (!arenaMap) return;
   arenaMap.gates = state.gates;
+  if (inDevView()) refreshDevRoster();
   const me = state.players.find(p => p.id === playerId);
-  if (me && !replayController.active()) {
+  if (me && !replayController.active() && !devFeed) {
     pending = pending.filter(i => i.seq > me.lastSeq).slice(-20);
     predicted = { ...me };
     if (me.status === 'active') for (const input of pending) movePlayer(arenaMap, predicted, input);
   }
   updateHUD();
+}
+// The dev view's focus list tracks the live roster: players join, and bots fill slots at the start.
+function refreshDevRoster() {
+  const key = state.players.map(p => p.id).join();
+  if (key === devRoster) return;
+  devRoster = key; fillFollowOptions($('dev-focus'), state.players); $('dev-focus').value = director.followId() || '';
 }
 // What the renderer draws: the buffered, interpolated view when live, and the frame a replay's own
 // playhead selects when a recording is open. `state` stays the newest authoritative frame, which is
@@ -194,24 +233,36 @@ let scene;
 const ArenaScene = makeArenaScene({
   map: () => arenaMap, state: () => presentationFrame(), playerId: () => playerId,
   self: () => !replayController.active() && predicted ? predicted : state?.players.find(p => p.id === playerId) || null,
-  replay: () => replayController.active(), directed, aim: () => inputController.aim(), follow: () => replayController.subject(),
+  replay: () => replayController.active(), directed, aim: () => inputController.aim(),
+  director, follow: () => directed() ? director.subject() : null,
   // How far into the current authoritative tick the renderer is, so motion that only updates on a
   // server frame can be advanced smoothly between them.
   frameAlpha: () => replayController.active() ? replayController.frameAlpha() : (presentationFrame()?.alpha ?? 0),
   onReady: value => scene = value, onFire: value => inputController.setPointerFire(value),
-  onFollow: id => replayController.setFollow(id),
   onFrame: () => { if (!replayController.active()) presentation = snapshots.frame() || state; replayController.renderFrame(); }
 });
 // Diagnostic reports ride beside inputs but are metadata: the server records them as marks on the
 // replay and the simulation never sees them. They name the tick this client was drawing.
-reportDiagnostics(() => (replayController.active() || !playerId ? null : presentation?.tick ?? state?.tick ?? null),
+reportDiagnostics(() => (replayController.active() || !playerId || devFeed ? null : presentation?.tick ?? state?.tick ?? null),
   report => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'diagnostic', ...report })); });
 function markLag() { if (manualMark()) toast('Lag flagged for the replay'); }
 $('mark-lag').onclick = markLag;
 function toggleFullscreen() { if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(() => {}); } else { document.exitFullscreen().catch(() => {}); } }
 document.addEventListener('fullscreenchange', () => { const isFull = !!document.fullscreenElement; $('fullscreen-toggle').classList.toggle('active', isFull); $('fullscreen-toggle').innerHTML = `<i data-lucide="${isFull ? 'minimize' : 'maximize'}"></i>`; icons(); });
+function setPaused(value) {
+  if (paused === value) return;
+  paused = value; $('paused-banner').hidden = !paused;
+  // Packet gaps across a pause are the pause, not the network.
+  forgetTiming();
+  if (paused) clearInput();
+  $('dev-pause').innerHTML = icon(paused ? 'play' : 'pause'); $('dev-pause').ariaLabel = paused ? 'Resume match' : 'Pause match';
+  $('dev-pause').dataset.tip = paused ? 'Resume (Space)' : 'Pause (Space)'; icons();
+}
+function togglePause() {
+  if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'dev', action: paused ? 'resume' : 'pause' }));
+}
 function inputTick() {
-  if (replayController.active() || !state || !predicted || !ws || ws.readyState !== WebSocket.OPEN || predicted.status !== 'active') { hudController.cancelDrag(); return; }
+  if (paused || devFeed || replayController.active() || !state || !predicted || !ws || ws.readyState !== WebSocket.OPEN || predicted.status !== 'active') { hudController.cancelDrag(); return; }
   const blocked = document.querySelector('dialog[open]');
   if (blocked) hudController.cancelDrag();
   let pointerAim;
@@ -247,7 +298,7 @@ async function loadArchive() {
       const details = document.createElement('div'); const title = document.createElement('strong'); title.textContent = `Arena ${r.seed}${r.recording?.complete === false ? ' · PARTIAL' : ''}`;
       const sub = document.createElement('small'); sub.textContent = `${time(r.ticks)} / ${r.escaped} escaped / ${new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
       details.append(title, sub); const actions = document.createElement('div');
-      const play = document.createElement('button'); play.className = 'icon-button'; play.ariaLabel = `Play arena ${r.seed}`; play.innerHTML = icon('play'); play.onclick = () => replayController.watch(r.id);
+      const play = document.createElement('button'); play.className = 'icon-button'; play.ariaLabel = `Play arena ${r.seed}`; play.innerHTML = icon('play'); play.onclick = () => watchReplay(r.id);
       const download = document.createElement('button'); download.className = 'icon-button'; download.ariaLabel = `Download arena ${r.seed}`; download.innerHTML = icon('download'); download.onclick = () => downloadReplay(r.id);
       actions.append(play, download); row.append(details, actions); $('replay-list').append(row);
     }
@@ -299,7 +350,62 @@ async function downloadDiagnostics() {
 }
 $('download-diagnostics').onclick = () => void downloadDiagnostics();
 $('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) { ws.send(JSON.stringify({ type: 'finish' })); $('finish-recording').disabled = true; } };
-$('watch-match').onclick = () => { if (savedReplay) void replayController.watch(savedReplay.id); };
+// The dev view opens beside the match rather than in place of it, so a player keeps their slot.
+function enterDevView() {
+  if (devFeed || !playerId || replayController.active() || ws?.readyState !== WebSocket.OPEN) return;
+  clearInput();
+  const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
+  devFeed = socket; showDevMode();
+  socket.addEventListener('open', () => socket.send(JSON.stringify({ type: 'join', room: roomId, ownerKey, role: 'dev' })));
+  socket.addEventListener('message', event => {
+    if (devFeed !== socket) return;
+    const data = JSON.parse(event.data);
+    // Only the frames come from here; pauses, the lobby and replays still arrive on the player's socket.
+    if (data.type === 'welcome') { devRoster = ''; snapshots.reset(); changeMap(data.map); acceptState(data.state); }
+    else if (data.type === 'state') { if (!replayController.active()) acceptState(data.state); }
+    else if (data.type === 'error') { toast(data.message); leaveDevView(); }
+  });
+  socket.addEventListener('close', () => { if (devFeed === socket) leaveDevView(); });
+}
+function leaveDevView() {
+  const socket = devFeed;
+  if (!socket) return;
+  devFeed = null; socket.close(); director.reset(); snapshots.reset();
+  if (liveMap && liveState && !replayController.active()) { changeMap(liveMap); acceptState(liveState); }
+  showDevMode(); scene?.cutTo();
+}
+function showDevMode() {
+  const on = inDevView();
+  $('dev-controls').hidden = !on; $('dev-leave').hidden = !devFeed;
+  if (playerId && !replayController.active()) $('live-hud').hidden = !!devFeed;
+  $('dev-view').classList.toggle('active', !!devFeed); $('dev-view').setAttribute('aria-pressed', String(!!devFeed));
+  if (ws?.readyState === WebSocket.OPEN && !replayController.active()) connection(on ? 'DEV VIEW' : 'LIVE');
+}
+const watchReplay = id => { leaveDevView(); void replayController.watch(id); };
+$('dev-view').onclick = () => devFeed ? leaveDevView() : enterDevView();
+$('dev-leave').onclick = () => leaveDevView();
+// T sends the followed player, or your own when you have stepped out of it, to the point under the cursor.
+function teleportToCursor() {
+  const id = director.followId() || (devFeed ? playerId : null);
+  if (!id) return toast('Follow a player to teleport them');
+  const point = scene?.pointerWorld();
+  if (point && ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'dev', action: 'teleport', id, x: point.x, y: point.y }));
+}
+addEventListener('keydown', event => {
+  if (event.code !== 'KeyT' || event.repeat || !inDevView() || replayController.active() || event.target.closest?.('input, textarea, select') || document.querySelector('dialog[open]')) return;
+  teleportToCursor();
+});
+// Backquote steps out to the dev view and back, wherever the button is.
+addEventListener('keydown', event => {
+  if (event.code !== 'Backquote' || event.repeat || event.target.closest?.('input, textarea, select') || document.querySelector('dialog[open]') || $('dev-view').hidden) return;
+  devFeed ? leaveDevView() : enterDevView();
+});
+$('dev-focus').onchange = () => director.setFollow($('dev-focus').value);
+$('dev-fog').onclick = () => director.setFog(!director.fog());
+$('dev-whole').onclick = () => director.whole();
+// Focus would leave Space pressing this button as well as toggling the pause, which cancels out.
+$('dev-pause').onclick = event => { togglePause(); event.currentTarget.blur(); };
+$('watch-match').onclick = () => { if (savedReplay) watchReplay(savedReplay.id); };
 icons();
 const game = new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: '#253f3f', antialias: true, scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' }, scene: ArenaScene, audio: { noAudio: true }, render: { preserveDrawingBuffer: true } });
 // Phaser's own render pass runs after the scene's update, outside render.frame. It is where Graphics
@@ -312,7 +418,8 @@ const initialRoom = initialParams.get('room');
 // `?seed=` names the arena a new room generates (`?size=24x12` its zone size), as the Map Lab's "Play in the game" link does (53).
 if (initialParams.has('seed')) $('seed').value = initialParams.get('seed');
 if (initialParams.has('size')) $('map-size').value = initialParams.get('size');
-if (initialRoom) void connect({ room: initialRoom, key: initialParams.get('ownerKey') }); else void newArena();
+// `?room=…&dev` opens that room's dev view, as the dev view button does.
+if (initialRoom) void connect({ room: initialRoom, key: initialParams.get('ownerKey'), ...(initialParams.has('dev') ? { role: 'dev' } : {}) }); else void newArena();
 // Profiling is opt-in so instrumented hot paths cost nothing during normal play.
 function renderProfileOverlay() {
   if (!profiler.profiling()) { profileOverlay?.remove(); profileOverlay = null; return; }
@@ -348,5 +455,5 @@ window.arenaProfiling = setProfiling;
 // tooling will grow from, and what the tests drive.
 window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, role: 'spectator' });
 // Read-only inspection surface for reproducible browser smoke tests.
-window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: replayController.followId(), phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, map: arenaMap && { seed: arenaMap.seed, width: arenaMap.width, height: arenaMap.height, playableArea: arenaMap.playableArea, exit: arenaMap.exit, spawns: arenaMap.spawns, hunterSpawns: arenaMap.hunterSpawns, stations: arenaMap.stations.map(({ x, y }) => ({ x, y })), chargers: arenaMap.chargers.map(({ x, y }) => ({ x, y })) }, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
+window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: director.followId(), dev: inDevView(), devFeed: !!devFeed, paused, fog: director.fog(), viewer: director.viewer()?.id ?? null, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, map: arenaMap && { seed: arenaMap.seed, width: arenaMap.width, height: arenaMap.height, playableArea: arenaMap.playableArea, exit: arenaMap.exit, spawns: arenaMap.spawns, hunterSpawns: arenaMap.hunterSpawns, stations: arenaMap.stations.map(({ x, y }) => ({ x, y })), chargers: arenaMap.chargers.map(({ x, y }) => ({ x, y })) }, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
   pending: pending.length, inputStalled: state?.players.find(p => p.id === playerId)?.inputStalled ?? null, rtt: roundTripMs });

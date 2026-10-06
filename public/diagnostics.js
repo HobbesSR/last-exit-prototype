@@ -46,7 +46,8 @@ export function notePacket(bytes) {
 // Animation frames stop while a tab is hidden, so noteFrame never sees the hidden interval; the first
 // frame back would measure all of it as one drop. Both ends of the visibility change therefore end
 // the episodes and forget the previous timestamps.
-const forgetTiming = () => { previousFrame = 0; previousPacket = 0; frameEpisode.close(); packetEpisode.close(); };
+// A dev pause stops the frames a client receives the same way, so it ends them too.
+export const forgetTiming = () => { previousFrame = 0; previousPacket = 0; frameEpisode.close(); packetEpisode.close(); };
 if (typeof document !== 'undefined') document.addEventListener?.('visibilitychange', forgetTiming);
 export function resetDiagnostics() { frameEpisode.reset(); packetEpisode.reset(); frames.length = 0; packets.length = 0; hitches.length = 0; previousPacket = 0; previousFrame = 0; startedAt = performance.now(); }
 const summarize = values => {

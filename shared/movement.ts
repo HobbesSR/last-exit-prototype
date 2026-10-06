@@ -136,14 +136,15 @@ export function canOccupy(map: CollisionMap, x: World, y: World, radius: World =
   }
   return true;
 }
+/** A player's collision radius: what movement slides and what a placed body must fit. */
+export const bodyRadius = (p: Pick<Player, 'role'>): World => p.role === 'gladiator' ? 23 : 12;
 export function movePlayer(map: CollisionMap, p: Player, input: PlayerInput): Player {
   count('calls.movePlayer');
   let speed = p.role === 'contestant' ? 9 : 8;
   if (p.boost) speed *= p.role === 'contestant' ? 1.45 : 1.5;
   if (p.stun) speed *= 0.35;
   if (input.sneak && p.role === 'contestant') speed *= 0.55;
-  const radius = p.role === 'gladiator' ? 23 : 12;
-  return moveBody(map, p, input, radius, speed);
+  return moveBody(map, p, input, bodyRadius(p), speed);
 }
 
 /** Shared SAT sliding for tools and actors with explicit body dimensions. Input is normalized here. */
