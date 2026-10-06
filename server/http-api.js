@@ -12,15 +12,14 @@ export function installHttpApi(app, service, directory, replays) {
   app.post('/api/profile', (req, res) => { profiler.enable(req.body?.enabled !== false); res.json({ enabled: profiler.profiling() }); });
   // Open rooms' public summaries, for the lobby browser (22.5); the directory decides which are listed.
   app.get('/api/rooms', (_req, res) => res.set('Cache-Control', 'no-store').json(directory.list()));
-  app.post('/api/rooms', async (req, res) => {
+  app.post('/api/rooms', (req, res) => {
     if (!directory.hasCapacity()) return res.status(429).json({ error: 'All arena slots are occupied. Try again after a match ends.' });
     const seed = roomSeed(req.body);
     if (seed === null) return res.status(400).json({ error: `Seed must be an integer from 1 to ${MAX_ARENA_SEED}.` });
     const size = roomSize(req.body);
     if (size === null) return res.status(400).json({ error: `Size must be one of ${ROOM_SIZE_NAMES.join(', ')}.` });
-    let room;
-    try { room = await directory.createRoom(seed, false, size); }
-    catch (error) { console.error(error); return res.status(500).json({ error: 'The arena could not be generated. Try again.' }); }
+    // Answered at once: the map generates while the owner waits in the room's lobby (#258).
+    const room = directory.createRoom(seed, false, size);
     if (!room) return res.status(429).json({ error: 'All arena slots are occupied. Try again after a match ends.' });
     res.status(201).json({ id: room.id, ownerKey: room.ownerKey, seed, size: zoneSizeName(size) });
   });

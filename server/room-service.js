@@ -2,7 +2,7 @@ import { randomUUID, randomBytes } from 'node:crypto';
 import { HZ, VERSION } from '../shared/simulation/rules.ts';
 import { SCHEMA, minimumReaderForMap } from '../shared/recording.ts';
 import * as profiler from '../shared/profiler.ts';
-import { createMatch } from './match.js';
+import { createMatch, createLobby } from './match.js';
 import { DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../map/live.ts';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
 import { send, broadcast, broadcastLobby, spectatorFrame, remember, SPECTATOR_DELAY_TICKS } from './room-views.js';
@@ -27,21 +27,63 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   const finalizations = new Set();
   let closing;
   const connect = peer => trackLatency({ ...peer, connectionId: randomUUID(), playerId: null });
-  /** A room on `map`, or generated inline without one (the fake-clock tests); null once closing. */
+  /**
+   * A room, open for joining at once (#258). `map` is the generated map, a promise of it (the worker, so
+   * players wait in the lobby rather than for the room to exist), or absent to generate inline (the
+   * fake-clock tests). Until the map arrives the room has seats but no match, and cannot start.
+   * Null once closing.
+   */
   function makeRoom(seed, matchmade = false, size = DEFAULT_LIVE_ZONE_SIZE, map) {
     if (closing) return null;
-    const id = randomBytes(4).toString('hex');
-    const match = createMatch(seed, size, map);
-    const room = { id, ownerKey: randomUUID(), size, match, game: match.diagnosticState, clients: new Set(), started: false, createdAt: wallNow(), inputs: [], finished: false, debt: 0, steppedAt: 0, spectators: 0, history: [], matchmade, resumes: new Map() };
-    rooms.set(id, room); return room;
+    const id = randomBytes(4).toString('hex'), lobby = createLobby();
+    // `seats` answers who holds which place: the lobby's until the match exists, then the match's own.
+    const room = { id, ownerKey: randomUUID(), seed, size, content: lobby.content, seats: lobby, match: null, game: null, clients: new Set(), started: false, createdAt: wallNow(), inputs: [], finished: false, debt: 0, steppedAt: 0, spectators: 0, history: [], matchmade, resumes: new Map() };
+    rooms.set(id, room);
+    if (typeof map?.then === 'function') {
+      // Settles once the room has its match or has been given up, and never rejects, so it can be awaited.
+      room.ready = map.then(map => openMatch(room, map), error => abandonGeneration(room, error));
+    } else { openMatch(room, map); room.ready = Promise.resolve(); }
+    return room;
   }
-  const preferredRole = (room, preference) => room.match.preferredRole(preference);
+  const current = room => rooms.get(room.id) === room && !room.finished && !closing;
+  function openMatch(room, map) {
+    if (room.match || !current(room)) return;
+    const match = createMatch(room.seed, room.size, map, room.content);
+    // Nothing is recorded before the start, so every command so far is a seat the lobby gave out.
+    match.seat(room.inputs);
+    // `game` stays the tests' and benchmarks' escape hatch; nothing here reads it.
+    Object.assign(room, { match, seats: match, game: match.diagnosticState });
+    for (const session of room.clients) send(session, { type: 'ready', ...view(room, session) });
+    broadcastLobby(room);
+    if (room.startRequested) startMatch(room);
+  }
+  function abandonGeneration(room, error) {
+    // Closing stops the generator, which fails what it held; that is not a fault to report.
+    if (closing) return;
+    reportError(error);
+    if (!current(room)) return;
+    room.finished = true; rooms.delete(room.id);
+    for (const session of room.clients) {
+      session.room = null; session.playerId = null;
+      send(session, { type: 'error', message: 'The arena could not be generated. Try again.' });
+    }
+    room.clients.clear();
+  }
+  /** What a session is shown of the room's map and state: nothing until the map exists. */
+  function view(room, session) {
+    if (!room.match) return { map: null, state: null };
+    if (session.playerId) return { map: room.match.liveMap(), state: room.match.project(room.match.snapshot(), session.playerId) };
+    // A spectator is shown the delayed frame; the dev view the present one.
+    const frame = session.dev ? room.match.snapshot() : spectatorFrame(room);
+    return { map: room.match.spectatorMap(frame), state: room.match.project(frame, null) };
+  }
+  const preferredRole = (room, preference) => room.seats.preferredRole(preference);
   /** Every unfinished room's public summary: plain data, never the room, and never its owner key. */
   const summaries = () => [...rooms.values()].filter(room => !room.finished).map(room => ({
     id: room.id, kind: room.matchmade ? 'matchmade' : 'private', phase: room.started ? 'live' : 'lobby',
-    size: zoneSizeName(room.size), createdAt: room.createdAt,
-    players: byRole(role => room.match.roster().filter(p => p.role === role).length),
-    open: byRole(role => room.match.openPlaces(role))
+    ready: !!room.match, size: zoneSizeName(room.size), createdAt: room.createdAt,
+    players: byRole(role => room.seats.roster().filter(p => p.role === role).length),
+    open: byRole(role => room.seats.openPlaces(role))
   }));
   // Whether a session may open the dev view, under the server's policy (protocol.js).
   const devAllowed = owner => devTools === 'all' || devTools === 'owner' && owner;
@@ -130,7 +172,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     if (data.type === 'pong') {
       // A fresh measurement is the only thing that changes how far a shot is rewound, so it is
       // applied here rather than re-derived every tick.
-      if (acceptPong(session, data, wallNow()) && session.playerId && session.room && !session.room.finished) {
+      if (acceptPong(session, data, wallNow()) && session.playerId && session.room?.match && !session.room.finished) {
         session.room.match.setViewLag(session.playerId, roundTripMs(session));
       }
       return;
@@ -144,8 +186,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
         if (room.spectators >= MAX_SPECTATORS) return send(session, { type: 'error', message: 'This arena has no spectator capacity left.' });
         session.room = room; session.owner = owner; session.dev = true; session.devTools = true; room.spectators++; room.clients.add(session);
         // A spectator without the delay: no slot, no input authority, no recording of its own.
-        const frame = room.match.snapshot();
-        send(session, { type: 'welcome', id: null, spectator: true, dev: true, devTools: true, room: room.id, owner, started: room.started, paused: room.pausedAt != null, map: room.match.spectatorMap(frame), state: room.match.project(frame, null) });
+        send(session, { type: 'welcome', id: null, spectator: true, dev: true, devTools: true, room: room.id, owner, started: room.started, ready: !!room.match, paused: room.pausedAt != null, ...view(room, session) });
         if (room.recordingStatus) send(session, room.recordingStatus);
         return;
       }
@@ -156,20 +197,19 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
         if (room.spectators >= MAX_SPECTATORS) return send(session, { type: 'error', message: 'This arena has no spectator capacity left.' });
         session.room = room; session.owner = owner; session.devTools = devAllowed(owner); room.spectators++; room.clients.add(session);
         // A spectator holds no slot, drives no simulation, and never starts a recording.
-        const frame = spectatorFrame(room);
-        send(session, { type: 'welcome', id: null, spectator: true, spectatorDelayTicks: SPECTATOR_DELAY_TICKS, room: room.id, owner, devTools: session.devTools, paused: room.pausedAt != null, map: room.match.spectatorMap(frame), state: room.match.project(frame, null) });
+        send(session, { type: 'welcome', id: null, spectator: true, spectatorDelayTicks: SPECTATOR_DELAY_TICKS, room: room.id, owner, devTools: session.devTools, ready: !!room.match, paused: room.pausedAt != null, ...view(room, session) });
         if (room.recordingStatus) send(session, room.recordingStatus);
         return;
       }
       const role = room.matchmade ? preferredRole(room, data.role) : data.role === 'gladiator' ? 'gladiator' : 'contestant';
       // Validated against the content this match was pinned to, not whatever the process ships.
-      const kit = room.match.hasKit(data.kit) ? data.kit : 'warden';
+      const kit = room.seats.hasKit(data.kit) ? data.kit : 'warden';
       const resumedId = typeof data.resumeKey === 'string' ? room.resumes.get(data.resumeKey) : null;
-      let p = resumedId && room.match.player(resumedId);
+      let p = resumedId && room.seats.player(resumedId);
       if (p) {
         for (const old of room.clients) if (old.playerId === p.id) { room.clients.delete(old); old.room = null; old.close(1000, 'Session resumed'); }
-        p = room.match.resume(resumedId);
-      } else p = role && room.match.join(session.connectionId, role, kit, typeof data.name === 'string' ? data.name.trim() || 'Player' : 'Player');
+        p = room.seats.resume(resumedId);
+      } else p = role && room.seats.join(session.connectionId, role, kit, typeof data.name === 'string' ? data.name.trim() || 'Player' : 'Player');
       if (!p) return send(session, { type: 'error', message: `No ${role} places remain in this match.` });
       session.room = room; session.owner = owner; session.devTools = devAllowed(owner); session.playerId = p.id;
       room.clients.add(session);
@@ -177,7 +217,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       const resumeKey = randomUUID(); room.resumes.set(resumeKey, p.id);
       if (room.matchmade && !room.startsAt) room.startsAt = wallNow() + 15000;
       room.inputs.push({ type: resumedId ? 'resume' : 'join', id: p.id, role: p.role, kit: p.kit, name: p.name });
-      send(session, { type: 'welcome', id: p.id, resumeKey, room: room.id, owner: session.owner, devTools: session.devTools, paused: room.pausedAt != null, started: room.started, matchmade: !!room.matchmade, startsAt: room.startsAt || null, map: room.match.liveMap(), state: room.match.project(room.match.snapshot(), p.id) });
+      send(session, { type: 'welcome', id: p.id, resumeKey, room: room.id, owner: session.owner, devTools: session.devTools, paused: room.pausedAt != null, started: room.started, ready: !!room.match, matchmade: !!room.matchmade, startsAt: room.startsAt || null, ...view(room, session) });
       if (room.recordingStatus) send(session, room.recordingStatus);
       broadcastLobby(room);
       return;
@@ -185,7 +225,9 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     const room = session.room;
     if (!room || room.finished) return;
     if (data.type === 'start' && session.owner && !room.started) {
-      startMatch(room);
+      // An early start waits for the map rather than being refused.
+      if (room.match) startMatch(room);
+      else { room.startRequested = true; broadcastLobby(room); }
       return;
     }
     if (!room.started) return;
@@ -231,7 +273,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     if (!room) return;
     room.clients.delete(session);
     if (!session.playerId) { room.spectators = Math.max(0, room.spectators - 1); return; }
-    if (!room.finished && room.match.leave(session.playerId)) room.inputs.push({ type: 'leave', id: session.playerId });
+    if (!room.finished && room.seats.leave(session.playerId)) room.inputs.push({ type: 'leave', id: session.playerId });
     if (!room.finished) broadcastLobby(room);
   }
   function advance(elapsed, now) {
@@ -240,7 +282,8 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     let live = 0, stepped = 0;
     for (const [id, room] of rooms) {
       for (const session of room.clients) pingSession(session, wallNow(), send);
-      if (room.matchmade && !room.started && room.startsAt && wallNow() >= room.startsAt && room.clients.size > 0) startMatch(room);
+      // The countdown runs while the map generates, but the match waits for it.
+      if (room.matchmade && !room.started && room.match && room.startsAt && wallNow() >= room.startsAt && room.clients.size > 0) startMatch(room);
       if ((!room.started || room.finished) && room.clients.size === 0 && wallNow() - room.createdAt > 180000) { rooms.delete(id); continue; }
       if (!room.started || room.finished) continue;
       // Keep a short reconnect window, but abandoned playtests must not run ten minutes of bots

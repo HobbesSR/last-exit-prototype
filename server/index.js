@@ -42,14 +42,15 @@ function printListeningUrls(host, port) {
   }
 }
 
-export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true, devTools = process.env.DEV_TOOLS } = {}) {
+/** `generateMap` replaces the worker, for tests that need to control generation. */
+export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true, devTools = process.env.DEV_TOOLS, generateMap } = {}) {
   profiler.enable(profile);
   const policy = devToolsPolicy(devTools);
   const replays = await createFileReplayStore(replayDir);
   // Maps are generated on a worker thread, so creating a room never stalls the others (#253).
-  const maps = createMapGenerator();
+  const maps = generateMap ? null : createMapGenerator();
   const service = createRoomService({ replays, devTools: policy });
-  const directory = createRoomDirectory({ host: service, generateMap: maps.generate, devTools: policy });
+  const directory = createRoomDirectory({ host: service, generateMap: generateMap ?? maps.generate, devTools: policy });
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '2kb' }));
@@ -87,7 +88,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
       // Stop admitting connections before waiting for potentially slow archive publication.
       const socketsClosed = new Promise(resolve => wss.close(resolve));
       const httpClosed = http.listening ? new Promise(resolve => http.close(resolve)) : Promise.resolve();
-      closing = Promise.all([service.close(), socketsClosed, httpClosed, maps.close()]).then(() => undefined);
+      closing = Promise.all([service.close(), socketsClosed, httpClosed, maps?.close()]).then(() => undefined);
     }
     return closing;
   }

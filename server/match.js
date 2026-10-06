@@ -7,26 +7,16 @@ import { defaultContent } from '../shared/simulation/content.ts';
 
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
 
-// The application's only mutable access to simulation. Returned frames/commands are detached.
-// `map` is the same seed and size already generated elsewhere (the room service's worker, #253).
-export function createMatch(seed, size, map) {
-  const content = defaultContent();
-  const game = createGame(seed, map ?? generateLiveMap(seed, content, size), content);
+// Who holds which place, over any game's roster: the match's own, or a lobby's before its map exists.
+function seatsOf(game) {
   const capacity = role => role === 'gladiator' ? game.content.roster.gladiators.length : game.content.roster.contestants.length;
   // A place is open while a bot holds it, for a joining player to take over.
   const openPlaces = role => game.players.filter(p => p.bot && p.status === 'active' && p.role === role).length;
-  return {
-    get tick() { return game.tick; },
-    get phase() { return game.phase; },
-    get seed() { return game.seed; },
-    /** Which content set this match was pinned to, for the recording header to name. */
-    get contentId() { return game.content.id; },
+  const seats = {
     /** Whether this match's content offers a kit, rather than whatever the process happens to ship. */
     hasKit: kit => Object.hasOwn(game.content.kits, kit),
     /** How many of a role a match holds, counted from the roster rather than repeated as a number. */
     capacity,
-    // Compatibility escape hatch for existing scenario/benchmark tools, not application code.
-    get diagnosticState() { return game; },
     roster: () => game.players.filter(p => !p.bot).map(identity),
     player: id => identity(game.players.find(p => p.id === id)),
     openPlaces,
@@ -52,6 +42,46 @@ export function createMatch(seed, size, map) {
       // A bot sees the world directly and is compensated for nothing.
       p.bot = true; resetInput(p); delete p.viewLagTicks; return true;
     },
+    /**
+     * Take the seats a lobby gave out before this match existed, by replaying its recorded roster
+     * commands in order: joining takes no randomness, so the result is what live joins would have left.
+     */
+    seat(commands) {
+      for (const c of commands) {
+        if (c.type === 'join') seats.join(c.id, c.role, c.kit, c.name);
+        else if (c.type === 'resume') seats.resume(c.id);
+        else if (c.type === 'leave') seats.leave(c.id);
+      }
+    }
+  };
+  return seats;
+}
+
+// A map with no places on it. A lobby's game exists only for its roster, which createGame builds from
+// content alone; positions come from the map and are never read before the real match takes over.
+const NOWHERE = { spawns: [], stations: [], exit: { x: 0, y: 0 } };
+
+/**
+ * The seats of a room whose map is still being generated (#258): the same roster the match will have,
+ * from the same content, with no simulation behind it. The room hands its commands to the match's `seat`.
+ */
+export function createLobby(content = defaultContent()) {
+  return { content, ...seatsOf(createGame(0, NOWHERE, content)) };
+}
+
+// The application's only mutable access to simulation. Returned frames/commands are detached.
+// `map` is the same seed and size already generated elsewhere (the room service's worker, #253).
+export function createMatch(seed, size, map, content = defaultContent()) {
+  const game = createGame(seed, map ?? generateLiveMap(seed, content, size), content);
+  return {
+    get tick() { return game.tick; },
+    get phase() { return game.phase; },
+    get seed() { return game.seed; },
+    /** Which content set this match was pinned to, for the recording header to name. */
+    get contentId() { return game.content.id; },
+    ...seatsOf(game),
+    // Compatibility escape hatch for existing scenario/benchmark tools, not application code.
+    get diagnosticState() { return game; },
     acceptInput(id, command) {
       // The recording carries the input exactly as it was queued, not whichever one a tick has most
       // recently spent: those are no longer the same thing.

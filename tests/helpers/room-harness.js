@@ -18,7 +18,7 @@ export function roomHarness({ finalize, reportError, startWriter, generateMap, .
     writers.set(header.id, writer); return writer;
   } };
   const service = createRoomService({ replays, wallNow: () => wall, reportError, ...serviceOptions });
-  const directory = createRoomDirectory({ host: service, generateMap, devTools: serviceOptions.devTools, reportError });
+  const directory = createRoomDirectory({ host: service, generateMap, devTools: serviceOptions.devTools });
   const peer = () => {
     const messages = [], closes = [];
     const session = service.connect({ deliver: payload => messages.push(JSON.parse(payload)), close: (...args) => { closes.push(args); service.disconnect(session); } });

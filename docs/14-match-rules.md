@@ -65,9 +65,11 @@ for (55); the default is `12x6`, and any other value is refused with a 400 namin
 the sizes. The lobby shows the room's size. A 12 × 6 map is 17,280 by 8,640 world
 units; each larger size is two and three times that in each direction.
 Matchmade rooms are always 12 × 6 with a random seed. The map is generated on a
-worker thread, so other rooms keep running meanwhile (#253); the room exists, and the
-request answers, once its map is ready, which takes seconds at the larger sizes. A
-matchmaker arriving while a matchmade room is generated waits for that room. A
+worker thread, so other rooms keep running meanwhile (#253). The room exists, and
+the request answers, at once (#258): players join its lobby while the map is
+generated, which takes seconds at the larger sizes and tens of seconds for some
+seeds (42), and the lobby says so. The owner's start, and a matchmade room's
+countdown, wait for the map: a start pressed early happens when it is ready. A
 36 × 18 room does not hold the tick budget alone (42).
 
 ## Matchmaking and lobby

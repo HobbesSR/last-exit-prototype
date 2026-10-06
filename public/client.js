@@ -29,6 +29,8 @@ let lobbyPlayers = [];
 // Advertised by the room rather than transcribed here: the roster that decides them is match content.
 let lobbyCapacity = null;
 let lobbyStartsAt = null;
+// Whether the room's map exists yet (#258), and whether the owner's start is waiting on it.
+let lobbyReady = true, lobbyStarting = false;
 const inputController = createInputController({
   getPlayer: () => state?.players.find(p => p.id === playerId),
   onSelectionChange: () => updateHUD(), onToggleFullscreen: () => toggleFullscreen(),
@@ -81,6 +83,8 @@ function clearInput() { hudController.cancelDrag(); inputController.reset(); }
 function changeMap(map) { arenaMap = structuredClone(map); if (scene?.ready) scene.buildMap(); }
 function updateLobby(data = {}) {
   lobbyStartsAt = data.startsAt || null;
+  if ('ready' in data) lobbyReady = data.ready;
+  lobbyStarting = !!data.starting;
   if (data.players) lobbyPlayers = data.players;
   if (data.capacity) lobbyCapacity = data.capacity;
   const contestants = lobbyPlayers.filter(p => p.role === 'contestant');
@@ -104,10 +108,14 @@ function updateLobby(data = {}) {
   render($('lobby-contestants'), contestants, 'Open contestant slots will be bots.');
   render($('lobby-gladiators'), gladiators, 'Open gladiator slots will be bots.');
   $('start-match').hidden = !owner;
-  $('start-match').disabled = !owner || data.started;
-  $('lobby-waiting').hidden = owner;
-  $('lobby-waiting').textContent = data.matchmade ? 'Match found. Preparing the arena…' : 'Waiting for the room owner to start the match.';
+  $('start-match').disabled = !owner || data.started || lobbyStarting;
+  $('lobby-waiting').hidden = owner && lobbyReady;
+  $('lobby-waiting').textContent = lobbyWaiting(data.matchmade);
   icons();
+}
+function lobbyWaiting(matchmade) {
+  if (!lobbyReady) return lobbyStarting || matchmade ? 'Generating the arena. The match starts when it is ready.' : 'Generating the arena…';
+  return matchmade ? 'Match found. Preparing the arena…' : 'Waiting for the room owner to start the match.';
 }
 function showLobby(data) {
   updateLobby(data);
@@ -127,9 +135,12 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   leaveDevView();
   if (ws) { disconnecting = true; ws.close(); }
   clearInput(); pending = []; seq = 0; savedReplay = null; recordingFailed = false; playerId = null;
+  // Nothing of the previous room carries over: a room still generating sends no state until `ready`,
+  // and an error before then must find this room stateless, not the last one's frame.
+  state = null; liveMap = null; liveState = null; predicted = null;
   snapshots.reset(); presentation = null; roundTripMs = null;
   resetDiagnostics();
-  owner = false; lobbyPlayers = []; lobbyCapacity = null; devView = false; devRoster = ''; director.reset(); setPaused(false);
+  owner = false; lobbyPlayers = []; lobbyCapacity = null; lobbyReady = true; lobbyStarting = false; devView = false; devRoster = ''; director.reset(); setPaused(false);
   $('finish-recording').disabled = false;
   roomId = room; ownerKey = key; selectedRole = role;
   connection('CONNECTING');
@@ -155,10 +166,15 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       }
       replayController.reset();
       $('live-hud').hidden = !!data.spectator;
-      changeMap(data.map); acceptState(data.state); setPaused(!!data.paused);
+      // A room whose map is still generating sends it later, in `ready`.
+      if (data.map) { changeMap(data.map); acceptState(data.state); }
+      setPaused(!!data.paused);
       history.replaceState(null, '', `?room=${room}${devView ? '&dev' : ''}`);
       connection(devView ? 'DEV VIEW' : data.spectator ? 'SPECTATING' : data.started ? 'LIVE' : 'LOBBY'); $('loadout-dialog').close();
       if (!data.spectator && !data.started) showLobby(data);
+    } else if (data.type === 'ready') {
+      liveMap = data.map; liveState = data.state;
+      if (!replayController.active() && !devFeed) { changeMap(data.map); acceptState(data.state); }
     } else if (data.type === 'state') {
       notePacket(event.data.length);
       // Gap between authoritative frames: separates server pacing from client render cost.
@@ -190,7 +206,8 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
     } else if (data.type === 'error') {
       toast(data.message); connection('UNAVAILABLE');
       $('deploy-error').textContent = data.message; $('deploy-error').hidden = false;
-      if (!playerId || !state) $('loadout-dialog').showModal();
+      // Includes a room given up while its map generated: its lobby is gone, so back to the deploy dialog.
+      if (!playerId || !state) { if ($('lobby-dialog').open) $('lobby-dialog').close(); $('loadout-dialog').showModal(); }
     }
   });
   socket.addEventListener('close', () => {
@@ -333,7 +350,9 @@ $('matchmaking').onchange = () => {
   $('kit-options').hidden = !matching && selectedRole !== 'gladiator';
 };
 setInterval(() => {
-  if (lobbyStartsAt && $('lobby-dialog').open) $('lobby-waiting').textContent = `Match starts in ${Math.max(0, Math.ceil((lobbyStartsAt - Date.now()) / 1000))}s. Open slots will be filled by bots.`;
+  if (!lobbyStartsAt || !$('lobby-dialog').open) return;
+  const seconds = Math.ceil((lobbyStartsAt - Date.now()) / 1000);
+  $('lobby-waiting').textContent = seconds <= 0 && !lobbyReady ? lobbyWaiting(true) : `Match starts in ${Math.max(0, seconds)}s. Open slots will be filled by bots.`;
 }, 250);
 $('start-match').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) ws.send(JSON.stringify({ type: 'start' })); };
 $('archive').onclick = () => { clearInput(); $('archive-dialog').showModal(); void loadArchive(); };
@@ -361,7 +380,7 @@ function enterDevView() {
     if (devFeed !== socket) return;
     const data = JSON.parse(event.data);
     // Only the frames come from here; pauses, the lobby and replays still arrive on the player's socket.
-    if (data.type === 'welcome') { devRoster = ''; snapshots.reset(); changeMap(data.map); acceptState(data.state); }
+    if ((data.type === 'welcome' || data.type === 'ready') && data.map) { devRoster = ''; snapshots.reset(); changeMap(data.map); acceptState(data.state); }
     else if (data.type === 'state') { if (!replayController.active()) acceptState(data.state); }
     else if (data.type === 'error') { toast(data.message); leaveDevView(); }
   });

@@ -271,7 +271,10 @@ delay during the request was 21–33 ms at 36 × 18 and 16 ms at 12 × 6, where 
 been the whole generation. Generation itself is no faster: seed 77 at 36 × 18 took
 about 28 s both on the worker and inline, far over the 6 s above, so generation
 time varies widely by seed and that figure is not a bound. One worker serves the
-process, so two large rooms created together wait in turn. The tick cost of a
+process, so two large rooms created together wait in turn. Since #258 the request
+answers at once and players wait in the room's lobby instead; driving seed 77 at
+36 × 18 in a browser, the POST answered in 28 ms, the lobby was open under 1 s
+later, and the match went live about 32 s after the request. The tick cost of a
 36 × 18 room above is unchanged.
 
 ## The reported slowdown is still open

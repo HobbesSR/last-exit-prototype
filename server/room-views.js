@@ -5,9 +5,11 @@ export const send = (session, value) => session.deliver(JSON.stringify(value));
 const lobbyPayload = room => ({
   type: 'lobby', room: room.id, started: room.started, matchmade: !!room.matchmade, size: zoneSizeName(room.size),
   startsAt: room.startsAt || null,
+  // Whether the map exists yet (#258), and whether the owner has asked to start as soon as it does.
+  ready: !!room.match, starting: !!room.startRequested,
   // Counted from the match's own roster, so a lobby never advertises places a match does not hold.
-  capacity: { contestant: room.match.capacity('contestant'), gladiator: room.match.capacity('gladiator') },
-  players: room.match.roster().map(p => ({ id: p.id, name: p.name, role: p.role, kit: p.kit }))
+  capacity: { contestant: room.seats.capacity('contestant'), gladiator: room.seats.capacity('gladiator') },
+  players: room.seats.roster().map(p => ({ id: p.id, name: p.name, role: p.role, kit: p.kit }))
 });
 export function broadcastLobby(room) {
   const payload = JSON.stringify(lobbyPayload(room));

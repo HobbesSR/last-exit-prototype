@@ -6,9 +6,18 @@ import { generateMap } from '../shared/map.ts';
 import { listen } from './helpers/listen.js';
 import path from 'node:path';
 import { checkClientControllers } from './client-controllers.mjs';
+import { createMapGenerator } from '../server/map-generator.js';
 
 await mkdir('test-results', { recursive: true });
-const server = await createArenaServer({ replayDir: path.resolve('test-results/replays') });
+// The real worker, except that a check can hold the next generation and fail it when it chooses.
+const maps = createMapGenerator();
+let holdNextGeneration = false, failHeldGeneration = null;
+const failableMaps = (seed, size) => {
+  if (!holdNextGeneration) return maps.generate(seed, size);
+  holdNextGeneration = false;
+  return new Promise((_resolve, reject) => { failHeldGeneration = () => reject(new Error('generation failure arranged by the browser suite')); });
+};
+const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps });
 const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const errors = [];
@@ -37,12 +46,14 @@ try {
   await page.getByRole('button', { name: 'Start match', exact: true }).waitFor();
   await page.waitForFunction(() => document.querySelector('#lobby-count')?.textContent === '1/8 contestants / 0/3 gladiators');
   const ownerRoom = new URL(page.url()).searchParams.get('room');
-  const ownerPlayer = await page.evaluate(() => window.arenaDebug().me.id);
+  // The lobby opens before the map exists (#258); the player's own view arrives with it.
+  const myId = async () => (await page.waitForFunction(() => window.arenaDebug().me?.id, null, { timeout: 120000 })).jsonValue();
+  const ownerPlayer = await myId();
   assert.equal(new URL(page.url()).searchParams.has('ownerKey'), false, 'invite URL contains no owner credential');
   await page.reload();
   await page.getByRole('button', { name: 'Start match', exact: true }).waitFor();
   assert.equal(new URL(page.url()).searchParams.get('room'), ownerRoom, 'reload retains room and owner controls');
-  assert.equal(await page.evaluate(() => window.arenaDebug().me.id), ownerPlayer, 'reload resumes the same player');
+  assert.equal(await myId(), ownerPlayer, 'reload resumes the same player');
   await ready(page, page.url());
   const before = await page.evaluate(() => window.arenaDebug().me.x);
   await page.keyboard.down('KeyD'); await page.waitForTimeout(650); await page.keyboard.up('KeyD');
@@ -409,6 +420,7 @@ try {
   await mobile.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
   assert.equal(server.rooms.get(mobileInfo.room).game.map.items.find(item => item.droppedBy === mobilePlayer.id && item.weaponType === 'rifle')?.ammo, 7, 'touch world drag preserves source ammo');
   const vr = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":4217}' })).json();
+  await server.rooms.get(vr.id).ready;
   const geometryGame = server.rooms.get(vr.id).game;
   // Fixed-coordinate sight/projectile probes exercise the legacy recording geometry.
   // The normal rooms above and spectator below exercise the live chain map.
@@ -557,6 +569,7 @@ try {
   // A building's floor must sit under its walls: tiles replay drawings in the order recorded, and a floor
   // recorded after the obstacles once painted over every interior wall (#207), leaving the doors floating.
   const wallRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":7}' })).json();
+  await server.rooms.get(wallRoom.id).ready;
   const wallGame = server.rooms.get(wallRoom.id).game;
   const inside = b => wallGame.map.obstacles.filter(o => !o.points && o.kind === 'building' && o.x >= b.x + 20 && o.x < b.x + b.w - 20 && o.y >= b.y + 20 && o.y < b.y + b.h - 20);
   const walled = wallGame.map.buildings.find(b => b.w < 700 && inside(b).length > 2);
@@ -573,8 +586,19 @@ try {
     return { wall: sample(cx, cy), before: sample(cx - across[0], cy - across[1]), after: sample(cx + across[0], cy + across[1]) };
   }, wallBox);
   assert.ok(String(wallPixels.wall) !== String(wallPixels.before) && String(wallPixels.wall) !== String(wallPixels.after), `an interior wall is drawn over its building's floor: ${JSON.stringify({ wallBox, wallPixels })}`);
+  // A page that has played one arena deploys another whose map cannot be generated (#258): the lobby it
+  // was admitted to is gone, so it returns to the deploy dialog, not the last arena's frame.
+  holdNextGeneration = true;
+  await wallPage.getByRole('button', { name: 'New arena', exact: true }).click();
+  await wallPage.getByRole('button', { name: 'Deploy', exact: true }).click();
+  await wallPage.waitForFunction(() => document.getElementById('lobby-dialog').open && /Generating/.test(document.getElementById('lobby-waiting').textContent));
+  failHeldGeneration();
+  // The error text is set whatever the page then does with it, so wait for that before asking what is open.
+  await wallPage.waitForFunction(() => !document.getElementById('deploy-error').hidden && /could not be generated/.test(document.getElementById('deploy-error').textContent));
+  assert.deepEqual(await wallPage.evaluate(() => ({ deploy: document.getElementById('loadout-dialog').open, lobby: document.getElementById('lobby-dialog').open })), { deploy: true, lobby: false });
+  assert.equal(await wallPage.evaluate(() => window.arenaDebug().tick), undefined, 'the previous arena is not shown as this one');
   await wallPage.close();
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: true, pixels, occlusion, screenshots: ['desktop', 'arena-overview', 'replay', 'loadout', 'gladiator', 'mobile', 'mobile-loadout', 'occlusion', 'spectator'], checks: ['movement', 'ability', 'multiplayer', 'replay seek', 'download', 'kit selection', 'dual-stick multitouch', 'mouse aim', 'occlusion pixels', 'shade not blackout', 'client-side visibility', 'shot interpolation', 'spectator directed view', 'mobile overflow', 'assets', 'browser errors'] }, null, 2));
+  console.log(JSON.stringify({ passed: true, pixels, occlusion, screenshots: ['desktop', 'arena-overview', 'replay', 'loadout', 'gladiator', 'mobile', 'mobile-loadout', 'occlusion', 'spectator'], checks: ['movement', 'ability', 'multiplayer', 'replay seek', 'download', 'kit selection', 'dual-stick multitouch', 'mouse aim', 'occlusion pixels', 'shade not blackout', 'client-side visibility', 'shot interpolation', 'spectator directed view', 'mobile overflow', 'generation failure after an arena', 'assets', 'browser errors'] }, null, 2));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
-finally { await browser.close(); await server.close(); }
+finally { await browser.close(); await server.close(); await maps.close(); }
