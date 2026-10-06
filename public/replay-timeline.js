@@ -1,13 +1,13 @@
 const validTick = value => Number.isSafeInteger(value) && value >= 0;
 
 // Diagnostic markers are untrusted file content: keep known kinds with a valid tick, sorted.
-const MARK_KINDS = new Set(['server-stall', 'frame-drop', 'packet-gap', 'manual']);
+const MARK_KINDS = new Set(['server-stall', 'frame-drop', 'packet-gap', 'manual', 'pause']);
 const finite = value => Number.isFinite(value) ? value : undefined;
 function parseMarks(diagnostics) {
   const source = Array.isArray(diagnostics?.marks) ? diagnostics.marks : [];
   return source.map((mark, order) => ({ mark, order })).filter(({ mark }) => MARK_KINDS.has(mark?.kind) && validTick(mark.tick))
     .sort((a, b) => a.mark.tick - b.mark.tick || a.order - b.order)
-    .map(({ mark }) => ({ tick: mark.tick, kind: mark.kind, playerId: mark.playerId, wakeMs: finite(mark.wakeMs), owed: finite(mark.owed), simulated: finite(mark.simulated), count: finite(mark.count), worstMs: finite(mark.worstMs) }));
+    .map(({ mark }) => ({ tick: mark.tick, kind: mark.kind, playerId: mark.playerId, wakeMs: finite(mark.wakeMs), owed: finite(mark.owed), simulated: finite(mark.simulated), count: finite(mark.count), worstMs: finite(mark.worstMs), pausedMs: finite(mark.pausedMs) }));
 }
 
 // Where to seek for a mark: a little before it, so the cause is on screen when the viewer arrives.
@@ -15,12 +15,13 @@ export const MARK_LEAD_SECONDS = 2;
 export function markSeekTick(mark, hz, firstTick = 0) {
   return Math.max(firstTick, mark.tick - Math.round(MARK_LEAD_SECONDS * (Number.isFinite(hz) && hz > 0 ? hz : 0)));
 }
-const MARK_LABELS = { 'server-stall': 'Server stall', 'frame-drop': 'Frame drops', 'packet-gap': 'Packet gap', manual: 'Manual mark' };
+const MARK_LABELS = { 'server-stall': 'Server stall', 'frame-drop': 'Frame drops', 'packet-gap': 'Packet gap', manual: 'Manual mark', pause: 'Dev pause' };
 export function markLabel(mark) {
   const detail = mark.kind === 'server-stall' && mark.wakeMs !== undefined ? ` (${Math.round(mark.wakeMs)} ms wake${mark.owed !== undefined ? `, ${mark.owed} ticks owed` : ''})` : '';
   const report = mark.kind === 'frame-drop' || mark.kind === 'packet-gap'
     ? (mark.worstMs !== undefined ? ` (worst ${Math.round(mark.worstMs)} ms${mark.count > 1 ? `, ${mark.count} in a row` : ''})` : '') : '';
-  return `${MARK_LABELS[mark.kind]}${detail}${report} at tick ${mark.tick}`;
+  const paused = mark.kind === 'pause' && mark.pausedMs !== undefined ? ` (${(mark.pausedMs / 1000).toFixed(1)} s)` : '';
+  return `${MARK_LABELS[mark.kind]}${detail}${report}${paused} at tick ${mark.tick}`;
 }
 
 // Marks whose pips would draw on top of each other share one cluster, anchored on its first mark so

@@ -1,5 +1,5 @@
 import { WebSocket, WebSocketServer } from 'ws';
-import { MAX_MESSAGE_BYTES, MAX_BUFFERED_BYTES, parseMessage, acceptMessageRate } from './protocol.js';
+import { MAX_MESSAGE_BYTES, deliverable, parseMessage, acceptMessageRate } from './protocol.js';
 
 export function attachWebSockets(http, service) {
   const wss = new WebSocketServer({ server: http, maxPayload: MAX_MESSAGE_BYTES });
@@ -11,7 +11,7 @@ export function attachWebSockets(http, service) {
       catch { return ws.close(1008); }
     }
     const session = service.connect({
-      deliver: payload => { if (ws.readyState === WebSocket.OPEN && ws.bufferedAmount < MAX_BUFFERED_BYTES) ws.send(payload); },
+      deliver: (payload, droppable = false) => { if (ws.readyState === WebSocket.OPEN && deliverable(ws.bufferedAmount, droppable)) ws.send(payload); },
       close: (code, reason) => ws.close(code, reason)
     });
     const rate = { start: Date.now(), messages: 0 };

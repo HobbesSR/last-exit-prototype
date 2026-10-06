@@ -104,6 +104,7 @@ test('a mark seeks two seconds early, never before the first tick, and labels it
   assert.equal(markSeekTick({ tick: 10 }, undefined), 10);
   assert.equal(markLabel({ kind: 'server-stall', tick: 9, wakeMs: 450.4, owed: 9 }), 'Server stall (450 ms wake, 9 ticks owed) at tick 9');
   assert.equal(markLabel({ kind: 'manual', tick: 2 }), 'Manual mark at tick 2');
+  assert.equal(markLabel({ kind: 'pause', tick: 40, pausedMs: 12345 }), 'Dev pause (12.3 s) at tick 40');
   assert.equal(markLabel({ kind: 'frame-drop', tick: 5, worstMs: 120, count: 7 }), 'Frame drops (worst 120 ms, 7 in a row) at tick 5');
 });
 

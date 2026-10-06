@@ -90,7 +90,10 @@ every TypeScript module erases cleanly, which is what Node does instead of parsi
 it. `npm run typecheck` is the separate, stronger pass: `tsc --noEmit` over
 `shared/` under `strict`. Browser tests drive installed Google Chrome through
 Playwright and start an isolated temporary server; screenshots land in
-`test-results/`.
+`test-results/`. `tests/browser.mjs` is one long scenario whose sections share
+pages and rooms, so it takes minutes; a feature that needs only its own server and
+tabs gets its own script, as `tests/dev-view.browser.mjs` (the dev view, 24) does,
+so it can be iterated on in seconds. `npm run test:browser` runs them all.
 
 Run timing comparisons sequentially, with no competing tests or benchmarks, and
 repeat a suspected regression three times before believing it. Do not claim the

@@ -1,6 +1,7 @@
 import { createGame, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { resetInput } from '../shared/simulation/input.ts';
 import { viewLagFrom } from '../shared/simulation/rewind.ts';
+import { teleport } from '../shared/simulation/dev.ts';
 import { generateLiveMap } from '../map/live.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 
@@ -67,6 +68,11 @@ export function createMatch(seed, size) {
       // latency carries no trace of the mechanism into snapshots or recordings.
       if (ticks > 0) p.viewLagTicks = ticks; else delete p.viewLagTicks;
       return true;
+    },
+    /** A dev teleport (24), as the command the recording keeps, or null when refused. */
+    teleport(id, x, y) {
+      const at = teleport(game, id, x, y);
+      return at && { type: 'teleport', id, ...at };
     },
     advance() { step(game); return snapshot(game); },
     snapshot: () => snapshot(game),
