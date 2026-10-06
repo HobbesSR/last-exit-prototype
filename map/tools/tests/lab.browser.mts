@@ -635,7 +635,7 @@ try {
   }, null, { timeout: 60000 });
   const playable = await playPage.evaluate(() => (window as any).mapLab.snapshot());
   assert.equal(playable.error, "");
-  assert.equal(playable.play.href, `${gameUrl}/?seed=4217`);
+  assert.equal(playable.play.href, `${gameUrl}/?seed=4217&size=12x6`);
   const opening = playPage.context().waitForEvent("page");
   await playPage.locator("#playInGame").click();
   const room = await opening;
@@ -657,6 +657,32 @@ try {
   assert.equal(playable.builtRegions, generate("4217", liveChainParams()).results.length);
   await room.screenshot({ path: `${OUT}/play-room.png` });
   await room.close();
+  // A larger authored size is a room's too, and the link carries it: the room opens at the size
+  // the lab shows, not the form's default.
+  await playPage.locator("#zoneSize").selectOption("24x12");
+  await playPage.locator("#generate").click();
+  await playPage.waitForFunction(() => {
+    const lab = (window as any).mapLab.snapshot();
+    return lab.seed === "4217" && !lab.busy && lab.play.href?.endsWith("&size=24x12");
+  }, null, { timeout: 120000 });
+  const bigMap = await playPage.evaluate(() => (window as any).mapLab.snapshot());
+  assert.equal(bigMap.play.href, `${gameUrl}/?seed=4217&size=24x12`);
+  const openingBig = playPage.context().waitForEvent("page");
+  await playPage.locator("#playInGame").click();
+  const bigRoom = await openingBig;
+  bigRoom.on("pageerror", (error: Error) => errors.push(`game: ${error.message}`));
+  await bigRoom.waitForFunction(() => (window as any).arenaDebug?.().map, null, { timeout: 120000 });
+  const bigPlayed = await bigRoom.evaluate(() => (window as any).arenaDebug().map);
+  assert.deepEqual([bigPlayed.width, bigPlayed.height], [bigMap.world.width, bigMap.world.height]);
+  assert.deepEqual(bigPlayed.spawns, bigMap.world.sites.filter((site: { kind: string }) => site.kind === "spawn").map(({ x, y }: { x: number; y: number }) => ({ x, y })));
+  assert.deepEqual(bigPlayed.playableArea, bigMap.world.playableArea);
+  await bigRoom.close();
+  await playPage.locator("#zoneSize").selectOption("12x6");
+  await playPage.locator("#generate").click();
+  await playPage.waitForFunction(() => {
+    const lab = (window as any).mapLab.snapshot();
+    return lab.seed === "4217" && !lab.busy && lab.play.href?.endsWith("&size=12x6");
+  }, null, { timeout: 60000 });
   // A save keeps its seed and recipe when its layout is edited, but a room with that seed
   // would generate the original, so the lab compares a loaded map with its seed's.
   const turned = generate("4217", liveChainParams()), slot = turned.layout.slots[0]!;

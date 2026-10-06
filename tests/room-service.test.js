@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { roomHarness } from './helpers/room-harness.js';
 import { createMatch } from '../server/match.js';
 import { createGame, joinGame, setInput, step, snapshot } from '../shared/simulation.ts';
-import { parseMessage, acceptMessageRate, roomSeed, MAX_DIAGNOSTICS_PER_SESSION } from '../server/protocol.js';
+import { parseMessage, acceptMessageRate, roomSeed, roomSize, MAX_DIAGNOSTICS_PER_SESSION } from '../server/protocol.js';
 
 test('three hunter places are advertised, admitted, reclaimed and recorded', async () => {
   const h = roomHarness(), room = h.service.makeRoom(9);
@@ -163,8 +163,12 @@ test('transport decoding, message budget and seed coercion retain existing accep
   const budget = { start: 100, messages: 0 };
   for (let i = 0; i < 70; i++) assert.equal(acceptMessageRate(budget, 100), true);
   assert.equal(acceptMessageRate(budget, 1100), false); assert.equal(acceptMessageRate(budget, 1101), true);
-  assert.equal(roomSeed({ seed: '9' }), 9); assert.equal(roomSeed({}), 4217);
+  assert.equal(roomSeed({ seed: '9' }), 9); assert.equal(roomSeed({}, () => 77), 77);
+  assert.notEqual(roomSeed({}), roomSeed({}));
   for (const seed of [0, -1, 2147483648, 1.5, 'bad']) assert.equal(roomSeed({ seed }), null);
+  assert.deepEqual(roomSize({}), { zoneWidth: 12, zoneHeight: 6 });
+  assert.deepEqual(roomSize({ size: '36x18' }), { zoneWidth: 36, zoneHeight: 18 });
+  for (const size of ['13x6', '12 x 6', 12, null, '']) assert.equal(roomSize({ size }), null, String(size));
 });
 
 test('a catch-up past the cap leaves a server-stall marker on the recording, and normal wakes leave none', async () => {
@@ -233,4 +237,14 @@ test('diagnostic reports are capped per session and refused from spectators', as
     watcher.send({ type: 'diagnostic', kind: 'manual', tick: 0 });
     assert.equal(writer.marks.length, MAX_DIAGNOSTICS_PER_SESSION);
   } finally { await h.service.close(); }
+});
+
+test('a room created at a larger size starts, advertises it and records that map', () => {
+  const h = roomHarness(), size = { zoneWidth: 24, zoneHeight: 12 };
+  const room = h.service.makeRoom(9, false, size), owner = h.joined(room, { ownerKey: room.ownerKey });
+  assert.equal(owner.messages.find(m => m.type === 'lobby').size, '24x12');
+  owner.send({ type: 'start' });
+  const { header } = h.writers.get(room.id);
+  assert.deepEqual([header.map.width, header.map.height], [34560, 17280]);
+  assert.equal(room.game.map.width, 34560);
 });

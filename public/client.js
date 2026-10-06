@@ -62,6 +62,7 @@ function updateLobby(data = {}) {
   const contestants = lobbyPlayers.filter(p => p.role === 'contestant');
   const gladiators = lobbyPlayers.filter(p => p.role === 'gladiator');
   $('lobby-room').textContent = roomId || data.room || '';
+  if (data.size) $('lobby-size').textContent = data.size.replace('x', ' × ');
   const places = role => lobbyCapacity ? `/${lobbyCapacity[role]}` : '';
   $('lobby-count').textContent = `${contestants.length}${places('contestant')} contestants / ${gladiators.length}${places('gladiator')} gladiators`;
   const render = (target, list, empty) => {
@@ -229,7 +230,7 @@ async function newArena() {
     if ($('matchmaking').checked) {
       await connect({ matchmake: true, role: $('role-preference').value, kit: $('kit').value, name: $('callsign').value || 'Runner' }); return;
     }
-    const data = await json('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seed: Number($('seed').value) }) });
+    const data = await json('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seed: Number($('seed').value), size: $('map-size').value }) });
     await connect({ room: data.id, key: data.ownerKey, role: selectedRole, kit: $('kit').value, name: $('callsign').value || 'Runner' });
   } catch (error) { $('deploy-error').textContent = error.message; $('deploy-error').hidden = false; toast(error.message); }
   finally { connecting = false; }
@@ -262,7 +263,9 @@ async function downloadReplay(id) {
 }
 $('new-game').onclick = $('play-again').onclick = () => { clearInput(); $('deploy-error').hidden = true; $('loadout-dialog').showModal(); };
 $('deploy-form').onsubmit = e => { e.preventDefault(); void newArena(); };
-$('random-seed').onclick = () => { $('seed').value = 1 + crypto.getRandomValues(new Uint32Array(1))[0] % 2147483646; };
+const randomizeSeed = () => { $('seed').value = 1 + crypto.getRandomValues(new Uint32Array(1))[0] % 2147483646; };
+$('random-seed').onclick = randomizeSeed;
+randomizeSeed();
 document.querySelectorAll('[data-role]').forEach(button => button.onclick = () => {
   selectedRole = button.dataset.role; $('kit-options').hidden = selectedRole !== 'gladiator';
   document.querySelectorAll('[data-role]').forEach(b => { const selected = b === button; b.classList.toggle('selected', selected); b.setAttribute('aria-pressed', selected); });
@@ -273,7 +276,7 @@ $('copy-lobby-link').onclick = $('share').onclick;
 $('matchmaking').onchange = () => {
   const matching = $('matchmaking').checked;
   $('preference-field').hidden = !matching; $('matchmaking-note').hidden = !matching;
-  $('seed').disabled = matching; $('random-seed').disabled = matching;
+  $('seed').disabled = matching; $('random-seed').disabled = matching; $('map-size').disabled = matching;
   document.querySelector('.role-select').hidden = matching;
   $('kit-options').hidden = !matching && selectedRole !== 'gladiator';
 };
@@ -305,8 +308,9 @@ game.events.on('postrender', () => profiler.stop('render.draw'));
 setInterval(inputTick, 50);
 const initialParams = new URLSearchParams(location.search);
 const initialRoom = initialParams.get('room');
-// `?seed=` names the arena a new room generates, as the Map Lab's "Play in the game" link does (53).
+// `?seed=` names the arena a new room generates (`?size=24x12` its zone size), as the Map Lab's "Play in the game" link does (53).
 if (initialParams.has('seed')) $('seed').value = initialParams.get('seed');
+if (initialParams.has('size')) $('map-size').value = initialParams.get('size');
 if (initialRoom) void connect({ room: initialRoom, key: initialParams.get('ownerKey') }); else void newArena();
 // Profiling is opt-in so instrumented hot paths cost nothing during normal play.
 function renderProfileOverlay() {

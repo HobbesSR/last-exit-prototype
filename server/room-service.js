@@ -3,9 +3,10 @@ import { HZ, VERSION } from '../shared/simulation/rules.ts';
 import { SCHEMA, minimumReaderForMap } from '../shared/recording.ts';
 import * as profiler from '../shared/profiler.ts';
 import { createMatch } from './match.js';
+import { DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
 import { send, broadcast, broadcastLobby, spectatorFrame, remember, SPECTATOR_DELAY_TICKS } from './room-views.js';
-import { normalizeDiagnostic, MAX_DIAGNOSTICS_PER_SESSION, MIN_DIAGNOSTIC_INTERVAL_MS } from './protocol.js';
+import { randomSeed, normalizeDiagnostic, MAX_DIAGNOSTICS_PER_SESSION, MIN_DIAGNOSTIC_INTERVAL_MS } from './protocol.js';
 import { trackLatency, pingSession, acceptPong, roundTripMs } from './latency.js';
 export const EMPTY_ROOM_GRACE_MS = 30000;
 const MAX_SPECTATORS = 24;
@@ -18,11 +19,11 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
   let closing;
   const hasCapacity = () => !closing && [...rooms.values()].filter(r => !r.finished).length < 8;
   const connect = peer => trackLatency({ ...peer, connectionId: randomUUID(), playerId: null });
-  function makeRoom(seed, matchmade = false) {
+  function makeRoom(seed, matchmade = false, size = DEFAULT_LIVE_ZONE_SIZE) {
     if (!hasCapacity()) return null;
     const id = randomBytes(4).toString('hex');
-    const match = createMatch(seed);
-    const room = { id, ownerKey: randomUUID(), match, game: match.diagnosticState, clients: new Set(), started: false, createdAt: wallNow(), inputs: [], finished: false, debt: 0, steppedAt: 0, spectators: 0, history: [], matchmade, resumes: new Map() };
+    const match = createMatch(seed, size);
+    const room = { id, ownerKey: randomUUID(), size, match, game: match.diagnosticState, clients: new Set(), started: false, createdAt: wallNow(), inputs: [], finished: false, debt: 0, steppedAt: 0, spectators: 0, history: [], matchmade, resumes: new Map() };
     rooms.set(id, room); return room;
   }
   const preferredRole = (room, preference) => room.match.preferredRole(preference);
@@ -104,7 +105,7 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
     if (data.type === 'match' && !session.room) {
       const preference = ['contestant', 'gladiator'].includes(data.role) ? data.role : 'any';
       let room = [...rooms.values()].find(room => room.matchmade && !room.started && !room.finished && preferredRole(room, preference));
-      if (!room) room = makeRoom(randomBytes(4).readUInt32BE() % 2147483646 + 1, true);
+      if (!room) room = makeRoom(randomSeed(), true);
       if (!room) return send(session, { type: 'error', message: 'All arena slots are occupied. Try matchmaking again after a match ends.' });
       data = { ...data, type: 'join', room: room.id, role: preferredRole(room, preference) };
     }

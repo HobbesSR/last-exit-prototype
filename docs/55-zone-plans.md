@@ -62,9 +62,11 @@ X X 5 X X
   - The authored sizes are 12 × 6, the default, 24 × 12 and 36 × 18 (#171),
     each with its own library (52). At 6 cells a tile and 48 world units a
     cell, the live map is 17,280 by 8,640 (14).
-  - Live matches stay at 12 × 6 until pacing and per-tick cost are measured
-    at the larger sizes (17). The larger sizes are in generation, the Map
-    Lab, CLI, MCP and tests.
+  - A room can be created at any authored size as a lobby choice (#184, 14);
+    the default and matchmade rooms stay 12 × 6. Per-tick and client cost
+    at each size is in 42: 36 × 18 exceeds the tick budget at p95 for a
+    single room. The larger sizes are also in generation, the Map Lab, CLI,
+    MCP and tests.
 
 ### Where placement rules anchor
 

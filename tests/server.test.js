@@ -137,7 +137,12 @@ test('two clients share authority; replay preserves each recorded frame and surv
     const base = await listen(server);
     assert.equal((await fetch(base + '/api/health')).status, 200);
     assert.equal((await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":-1}' })).status, 400);
+    const refused = await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"size":"5x5"}' });
+    assert.equal(refused.status, 400); assert.match((await refused.json()).error, /12x6, 24x12, 36x18/);
+    const unseeded = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json();
+    assert.ok(Number.isInteger(unseeded.seed) && unseeded.seed !== 4217 && unseeded.size === '12x6');
     const room = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9}' })).json();
+    assert.equal(room.size, '12x6');
     const a = new WebSocket(base.replace('http:', 'ws:'));
     await new Promise(resolve => a.once('open', resolve));
     const welcomeA = next(a, 'welcome'); a.send(JSON.stringify({ type: 'join', room: room.id, ownerKey: room.ownerKey, name: 'A' }));

@@ -4,16 +4,20 @@
 import { createGame, step, snapshot, playerView, HZ, DURATION } from '../shared/simulation.ts';
 import * as profiler from '../shared/profiler.ts';
 import { acquireMachineLock } from './helpers/machine-lock.js';
-import { generateLiveMap } from '../map/live.ts';
+import { generateLiveMap, liveZoneSize, zoneSizeName, DEFAULT_LIVE_ZONE_SIZE, LIVE_ZONE_SIZES } from '../map/live.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
 
 const args = new Map(process.argv.slice(2).map(a => a.replace(/^--/, '').split('=')).map(([k, v]) => [k, v ?? '1']));
 const number = (key, fallback) => Number(args.get(key) ?? fallback);
 const seed = number('seed', 4217), ticks = number('ticks', DURATION), rooms = number('rooms', 1), clients = number('clients', 1);
 const budget = 1000 / HZ;
+const [zoneWidth, zoneHeight] = (args.get('size') ?? zoneSizeName(DEFAULT_LIVE_ZONE_SIZE)).split('x').map(Number);
+const size = liveZoneSize({ zoneWidth, zoneHeight });
+if (!size) { console.error(`--size must be one of ${LIVE_ZONE_SIZES.map(zoneSizeName).join(', ')}`); process.exit(2); }
 
 await acquireMachineLock('bench');
 profiler.enable(true);
-const games = Array.from({ length: rooms }, (_, i) => createGame(seed + i, args.has('legacy') ? undefined : generateLiveMap(seed + i)));
+const games = Array.from({ length: rooms }, (_, i) => createGame(seed + i, args.has('legacy') ? undefined : generateLiveMap(seed + i, defaultContent(), size)));
 const viewers = Array.from({ length: clients }, (_, i) => games[0].players[i % games[0].players.length].id);
 const durations = [];
 const started = performance.now();
@@ -36,12 +40,12 @@ const sorted = [...durations].sort((a, b) => a - b);
 const at = q => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))];
 const mean = sorted.reduce((a, b) => a + b, 0) / sorted.length;
 const over = durations.filter(d => d > budget).length;
-const stats = { seed, rooms, clients, ticks: completed, wallMs: wall, meanMs: mean, p50Ms: at(0.5), p95Ms: at(0.95), p99Ms: at(0.99), maxMs: sorted[sorted.length - 1],
+const stats = { seed, size: zoneSizeName(size), rooms, clients, ticks: completed, wallMs: wall, meanMs: mean, p50Ms: at(0.5), p95Ms: at(0.95), p99Ms: at(0.99), maxMs: sorted[sorted.length - 1],
   budgetMs: budget, budgetUsedPct: mean / budget * 100, overBudgetTicks: over, sustainableHz: 1000 / at(0.95), roomHeadroom: Math.floor(budget / (at(0.95) / rooms)) };
 
 if (args.has('json')) { console.log(JSON.stringify({ stats, series: profiler.report() }, null, 2)); process.exit(0); }
 const ms = v => `${v.toFixed(3)} ms`;
-console.log(`Last Exit tick benchmark — seed ${seed}, ${rooms} room(s), ${clients} viewer(s), ${completed} ticks in ${wall.toFixed(0)} ms`);
+console.log(`Last Exit tick benchmark — seed ${seed}, ${zoneSizeName(size)}, ${rooms} room(s), ${clients} viewer(s), ${completed} ticks in ${wall.toFixed(0)} ms`);
 console.log(`tick cost   mean ${ms(mean)}   p50 ${ms(stats.p50Ms)}   p95 ${ms(stats.p95Ms)}   p99 ${ms(stats.p99Ms)}   max ${ms(stats.maxMs)}`);
 console.log(`budget      ${ms(budget)} at ${HZ} Hz — mean uses ${stats.budgetUsedPct.toFixed(1)}%, ${over} of ${completed} ticks over budget`);
 console.log(`headroom    sustainable ${stats.sustainableHz.toFixed(0)} Hz at p95, about ${stats.roomHeadroom} concurrent room(s) inside budget`);
