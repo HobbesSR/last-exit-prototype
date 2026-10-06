@@ -4,6 +4,9 @@ import { MAX_ARENA_SEED, isArenaSeed } from '../shared/simulation/rules.ts';
 import { DEFAULT_LIVE_ZONE_SIZE, LIVE_ZONE_SIZES, zoneSizeName } from '../map/live.ts';
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
+// A state frame is superseded by the next, so a backed-up socket skips it. Anything else (a pause, a
+// lobby change, a saved replay) is said once and must arrive, however far behind the socket is.
+export const deliverable = (bufferedBytes, droppable) => !droppable || bufferedBytes < MAX_BUFFERED_BYTES;
 const MAX_MESSAGES_PER_SECOND = 70;
 export function parseMessage(raw) {
   const data = JSON.parse(raw); // Caller closes malformed JSON with the established policy code.

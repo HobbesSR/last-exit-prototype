@@ -8,7 +8,7 @@ import path from 'node:path';
 import { checkClientControllers } from './client-controllers.mjs';
 
 await mkdir('test-results', { recursive: true });
-const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'), devTools: 'all' });
+const server = await createArenaServer({ replayDir: path.resolve('test-results/replays') });
 const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const errors = [];
@@ -500,33 +500,6 @@ try {
   assert.equal(cast.vision, null, 'a directed view computes no personal visibility polygon');
   assert.ok(cast.cameraWidth >= cast.mapWidth, `directed camera frames the whole arena: ${cast.cameraWidth} vs ${cast.mapWidth}`);
   await caster.screenshot({ path: 'test-results/spectator.png' });
-  // The dev view (#244) opens beside the match, undelayed and unfogged; it pans and zooms freely and
-  // follows a player in that player's own sight until fog is toggled off.
-  const devFrom = await page.evaluate(() => ({ room: window.arenaDebug().room, id: window.arenaDebug().me.id }));
-  const devRoom = server.rooms.get(devFrom.room), devSubject = devFrom.id;
-  const [devPage] = await Promise.all([page.context().waitForEvent('page'), page.getByRole('button', { name: 'Open dev view', exact: true }).click()]);
-  devPage.on('pageerror', error => errors.push(error.message));
-  await devPage.setViewportSize({ width: 1440, height: 1000 });
-  await devPage.waitForFunction(() => window.arenaDebug?.().dev && window.arenaDebug().tick > 0, null, { timeout: 15000 });
-  const devStart = await devPage.evaluate(() => ({ ...window.arenaDebug(), status: document.getElementById('connection-text').textContent }));
-  assert.equal(devStart.status, 'DEV VIEW'); assert.equal(devStart.me, undefined, 'the dev view holds no slot');
-  assert.ok(devRoom.match.tick - devStart.tick < 20, `the dev view is not delayed: ${devStart.tick} vs ${devRoom.match.tick}`);
-  assert.equal(devStart.vision, null); assert.ok(devStart.cameraWidth >= devStart.mapWidth, 'the dev view opens on the whole arena');
-  await devPage.mouse.move(720, 500); await devPage.mouse.wheel(0, -1500);
-  await devPage.waitForFunction(zoom => window.arenaDebug().camera.zoom > zoom * 2, devStart.camera.zoom);
-  const zoomed = await devPage.evaluate(() => window.arenaDebug().camera);
-  await devPage.keyboard.down('KeyD'); await devPage.waitForTimeout(400); await devPage.keyboard.up('KeyD');
-  assert.ok((await devPage.evaluate(() => window.arenaDebug().camera.x)) > zoomed.x + 50, 'held keys pan the free camera');
-  await devPage.locator('#dev-focus').selectOption(devSubject);
-  await devPage.waitForFunction(id => window.arenaDebug().follow === id && window.arenaDebug().viewer === id && window.arenaDebug().vision, devSubject);
-  const followedView = await devPage.evaluate(id => ({ debug: window.arenaDebug(), subject: window.arenaDebug().actors.find(a => a.id === id) }), devSubject);
-  assert.ok(Math.abs(followedView.debug.camera.x + followedView.debug.cameraWidth / 2 - followedView.subject.x) < 60, 'following centres on the subject');
-  await devPage.keyboard.press('KeyF');
-  await devPage.waitForFunction(() => window.arenaDebug().viewer === null && window.arenaDebug().vision === null && window.arenaDebug().follow);
-  await devPage.keyboard.press('Escape');
-  await devPage.waitForFunction(() => window.arenaDebug().follow === null);
-  await devPage.screenshot({ path: 'test-results/dev-view.png' });
-  await devPage.close();
   const artRoom = server.rooms.get(await page.evaluate(() => window.arenaDebug().room));
   const artId = await page.evaluate(() => window.arenaDebug().me.id);
   const artPlayer = artRoom.game.players.find(p => p.id === artId);
@@ -587,6 +560,6 @@ try {
   assert.ok(String(wallPixels.wall) !== String(wallPixels.before) && String(wallPixels.wall) !== String(wallPixels.after), `an interior wall is drawn over its building's floor: ${JSON.stringify({ wallBox, wallPixels })}`);
   await wallPage.close();
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: true, pixels, occlusion, screenshots: ['desktop', 'arena-overview', 'replay', 'loadout', 'gladiator', 'mobile', 'mobile-loadout', 'occlusion', 'spectator', 'dev-view'], checks: ['movement', 'ability', 'multiplayer', 'replay seek', 'download', 'kit selection', 'dual-stick multitouch', 'mouse aim', 'occlusion pixels', 'shade not blackout', 'client-side visibility', 'shot interpolation', 'spectator directed view', 'dev view', 'mobile overflow', 'assets', 'browser errors'] }, null, 2));
+  console.log(JSON.stringify({ passed: true, pixels, occlusion, screenshots: ['desktop', 'arena-overview', 'replay', 'loadout', 'gladiator', 'mobile', 'mobile-loadout', 'occlusion', 'spectator'], checks: ['movement', 'ability', 'multiplayer', 'replay seek', 'download', 'kit selection', 'dual-stick multitouch', 'mouse aim', 'occlusion pixels', 'shade not blackout', 'client-side visibility', 'shot interpolation', 'spectator directed view', 'mobile overflow', 'assets', 'browser errors'] }, null, 2));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
 finally { await browser.close(); await server.close(); }

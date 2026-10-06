@@ -89,9 +89,12 @@ the replay. Readers treat marks as untrusted: `createReplayTimeline` keeps known
 valid ticks, in tick order, and reports `droppedMarks`. Client-reported kinds
 (`frame-drop`, `packet-gap`, `manual`) arrive as a `diagnostic` message (24) and are written
 as `{ tick, kind, playerId, reportedTick, arrivalTick, startTick?, count?, worstMs? }`.
+A dev pause (24) is `{ tick, kind: 'pause', pausedMs }`, written when the room resumes or
+ends: no tick passes while paused, so it sits between two consecutive frames and is the
+only sign of the pause in the replay.
 
 The viewer draws one pip per mark over the scrubber (`#replay-marks`), distinct by shape as
-well as colour (square red stall, triangle orange client drop or gap, circle blue manual), with
+well as colour (square red stall, triangle orange client drop or gap, circle blue manual, narrow lime bar for a dev pause), with
 the mark named in its tooltip. Activating a pip seeks `MARK_LEAD_SECONDS` (2) before the tick
 and follows the reporting player when the roster has them. Marks whose pips
 would overlap (`clusterMarks`, from the rendered thumb travel and pip width, recomputed when

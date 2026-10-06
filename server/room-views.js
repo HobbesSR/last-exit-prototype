@@ -28,7 +28,7 @@ export function broadcast(room, state) {
     const key = session.playerId || (session.dev ? 'dev' : 'spectator');
     let payload = payloads.get(key);
     if (payload === undefined) payloads.set(key, payload = JSON.stringify({ type: 'state', state: room.match.project(session.playerId || session.dev ? state : delayed, session.playerId) }));
-    session.deliver(payload);
+    session.deliver(payload, true);
   }
   profiler.count('loop.viewsBuilt', payloads.size); profiler.count('loop.viewsSent', room.clients.size);
 }

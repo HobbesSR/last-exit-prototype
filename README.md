@@ -78,7 +78,7 @@ New arena opens role, kit, callsign, and seed selection, then a lobby the room o
 
 ### Dev view
 
-Under `npm run dev` (and `dev:lan`) the telescope button in the top bar opens the current match's dev view in a new tab, so your own player stays in the match. It shows the whole live map, undelayed and unfogged. Drag or hold WASD/arrows to pan and use the wheel to zoom. Click a player or bot, or pick one from the list, to follow them in their own sight; F toggles that fog, Esc stops following, and 0 returns to the whole arena. The same camera controls work in replays. `?room=<id>&dev` opens it directly. The server decides who may: `DEV_TOOLS=none|owner|all` (or `--dev-tools=`), unset meaning nobody.
+Under `npm run dev` (and `dev:lan`) the telescope button in the top bar opens the current match's dev view in a new tab, so your own player stays in the match. It shows the whole live map, undelayed and unfogged. Drag or hold WASD/arrows to pan and use the wheel to zoom. Click a player or bot, or pick one from the list, to follow them in their own sight; F toggles that fog, Esc stops following, and 0 returns to the whole arena. The pause button or Space pauses the whole match for everyone in it (not other rooms); the replay shows a mark where it was paused. The same camera controls work in replays. `?room=<id>&dev` opens it directly. The server decides who may: `DEV_TOOLS=none|owner|all` (or `--dev-tools=`), unset meaning nobody.
 
 Empty live rooms close and save after a 30-second reconnect grace, so repeatedly starting a new arena does not leave entire bot matches running in the background.
 

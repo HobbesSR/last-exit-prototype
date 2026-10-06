@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { roomHarness } from './helpers/room-harness.js';
 import { createMatch } from '../server/match.js';
 import { createGame, joinGame, setInput, step, snapshot } from '../shared/simulation.ts';
-import { parseMessage, acceptMessageRate, roomSeed, roomSize, devToolsPolicy, MAX_DIAGNOSTICS_PER_SESSION } from '../server/protocol.js';
+import { parseMessage, acceptMessageRate, roomSeed, roomSize, devToolsPolicy, deliverable, MAX_BUFFERED_BYTES, MAX_DIAGNOSTICS_PER_SESSION } from '../server/protocol.js';
 
 test('three hunter places are advertised, admitted, reclaimed and recorded', async () => {
   const h = roomHarness(), room = h.service.makeRoom(9);
@@ -175,6 +175,50 @@ test('the dev view follows the server policy and sees the current directed frame
     h.service.disconnect(dev.session); h.service.disconnect(spectator.session);
     assert.equal(room.spectators, 0);
   } finally { await h.service.close(); }
+});
+
+test('a dev pause stops only its own room, drops owed time and leaves one mark', async () => {
+  const h = roomHarness({ devTools: 'all' }), { room, owner, writer } = h.live(), other = h.live(10);
+  try {
+    const dev = h.joined(room, { role: 'dev' });
+    h.wake(100); const tick = room.match.tick;
+    dev.send({ type: 'dev', action: 'pause' });
+    assert.deepEqual(owner.messages.at(-1), { type: 'paused', paused: true, tick });
+    const otherTick = other.room.match.tick;
+    for (let i = 0; i < 40; i++) h.wake(50);
+    assert.equal(room.match.tick, tick, 'a paused room runs no tick');
+    assert.ok(other.room.match.tick > otherTick + 30, 'another room keeps running');
+    owner.send({ type: 'input', seq: 1, x: 1 });
+    assert.equal(h.joined(room, {}).messages.find(m => m.type === 'welcome').paused, true, 'a joiner learns the room is paused');
+    dev.send({ type: 'dev', action: 'pause' }); dev.send({ type: 'dev', action: 'resume' });
+    assert.deepEqual(writer.marks, [{ tick, kind: 'pause', pausedMs: 2000 }]);
+    h.wake(100);
+    assert.equal(room.match.tick, tick + 2, 'resuming does not catch up the paused time');
+    assert.ok(!writer.marks.some(m => m.kind === 'server-stall'));
+    dev.send({ type: 'dev', action: 'pause' }); owner.send({ type: 'finish' });
+    await room.finalization;
+    assert.equal(writer.marks.filter(m => m.kind === 'pause').length, 2, 'ending a paused match settles its pause');
+  } finally { await h.service.close(); }
+
+  const closed = roomHarness({ devTools: 'owner' }), shut = closed.live();
+  try {
+    const guest = closed.joined(shut.room, {}), before = shut.room.match.tick;
+    guest.send({ type: 'dev', action: 'pause' }); closed.wake(100);
+    assert.ok(shut.room.match.tick > before, 'a session the policy does not admit cannot pause');
+    shut.owner.send({ type: 'dev', action: 'pause' });
+    assert.equal(shut.room.pausedAt != null, true, 'under `owner`, the owner can');
+  } finally { await closed.service.close(); }
+});
+
+test('a backed-up socket skips state frames but never a one-off message', () => {
+  assert.equal(deliverable(MAX_BUFFERED_BYTES, true), false);
+  assert.equal(deliverable(MAX_BUFFERED_BYTES - 1, true), true);
+  assert.equal(deliverable(MAX_BUFFERED_BYTES * 4, false), true);
+  const h = roomHarness(), { room } = h.live(), flags = [];
+  const session = h.service.connect({ deliver: (payload, droppable) => flags.push([JSON.parse(payload).type, droppable]), close() {} });
+  h.service.receive(session, { type: 'join', room: room.id }); h.wake(50);
+  assert.deepEqual(flags.filter(([type]) => type !== 'ping'), [['welcome', undefined], ['lobby', undefined], ['state', true]]);
+  return h.service.close();
 });
 
 test('the dev tools policy accepts only its named values', () => {
