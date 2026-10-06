@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-globalThis.document = { hidden: false };
+const listeners = [];
+globalThis.document = { hidden: false, addEventListener: (type, fn) => { if (type === 'visibilitychange') listeners.push(fn); } };
+const setHidden = hidden => { document.hidden = hidden; listeners.forEach(fn => fn()); };
 const { noteFrame, notePacket, reportDiagnostics, manualMark, resetDiagnostics } = await import('../public/diagnostics.js');
 
 const withClock = run => {
@@ -44,5 +46,17 @@ test('packet gaps report on their own and a manual mark needs a tick to name', (
     assert.deepEqual(reports.map(r => [r.kind, r.count, r.worstMs]), [['packet-gap', 1, 300]]);
     assert.equal(manualMark(), true); assert.deepEqual(reports.at(-1), { kind: 'manual', tick: 40 });
     tick = null; assert.equal(manualMark(), false);
+  });
+});
+
+test('returning to a tab whose frames stopped while hidden reports nothing for the time away', () => {
+  withClock(advance => {
+    const reports = [];
+    reportDiagnostics(() => 5, report => reports.push(report)); resetDiagnostics();
+    noteFrame(); advance(16); noteFrame(); notePacket(10);
+    setHidden(true); advance(10000); setHidden(false);
+    noteFrame(); notePacket(10);
+    for (let i = 0; i < 30; i++) { advance(16); noteFrame(); advance(50); notePacket(10); }
+    assert.deepEqual(reports, []);
   });
 });
