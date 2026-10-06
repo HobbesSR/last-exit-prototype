@@ -310,7 +310,7 @@ export function makeArenaScene(api) {
       const state = api.state(), map = api.map(); if (!state || !map) return;
       const wide = this.wideView();
       const focus = this.eye || api.follow() || api.self() || state.players[0];
-      const zoom = wide ? Math.min((this.scale.width - 40) / map.width, (this.scale.height - 150) / map.height) : playerZoom(this.scale.width, this.scale.height, api.overview());
+      const zoom = wide ? Math.min((this.scale.width - 40) / map.width, (this.scale.height - 150) / map.height) : playerZoom(this.scale.width, this.scale.height);
       const camera = this.cameras.main; camera.setZoom(zoom);
       const x = wide ? map.width / 2 : focus?.x || map.width / 2;
       const y = wide ? map.height / 2 : focus?.y || map.height / 2;

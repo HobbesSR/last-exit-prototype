@@ -13,8 +13,8 @@ export const MAX_VIEW_WIDTH = 2400;
 export const MAX_VIEW_HEIGHT = 1600;
 export const POTENTIAL_RADIUS = Math.ceil(Math.hypot(MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT) / 2) + 250;
 const PLAYER_ZOOM = 1.12;
-export function playerZoom(width: number, height: number, overview = false): number {
-  return Math.max(overview ? 0.85 : PLAYER_ZOOM, width / MAX_VIEW_WIDTH, height / MAX_VIEW_HEIGHT);
+export function playerZoom(width: number, height: number): number {
+  return Math.max(PLAYER_ZOOM, width / MAX_VIEW_WIDTH, height / MAX_VIEW_HEIGHT);
 }
 
 // A directed camera frames the whole arena, which is two orders of magnitude wider than a player's

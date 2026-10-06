@@ -79,7 +79,7 @@ try {
   const gestureDrop = server.rooms.get(ownerRoom).game.map.items.find(item => item.droppedBy === ownerPlayer && item.weaponType === 'rifle');
   assert.equal(gestureDrop?.ammo, 7, 'world drag drops the unselected source with its ammunition');
   await page.screenshot({ path: 'test-results/desktop.png' });
-  await page.getByRole('button', { name: 'Toggle local zoom', exact: true }).click();
+  
   await page.waitForTimeout(200);
   await page.screenshot({ path: 'test-results/arena-overview.png' });
   const view = await page.evaluate(() => window.arenaDebug());
@@ -478,7 +478,7 @@ try {
   const runner = geometryGame.players.find(p => p.id === runnerId);
   runner.x = 15000; runner.y = 6000; geometryGame.map.traps = [];
   lurker.x = 15720; lurker.y = 6300;
-  await visionPage.getByRole('button', { name: 'Toggle local zoom', exact: true }).click();
+  
   await visionPage.waitForFunction(id => window.arenaDebug().me.x > 14900 && window.arenaDebug().actors.find(a => a.id === id)?.visible, lurker.id);
   assert.ok(Math.hypot(lurker.x - runner.x, lurker.y - runner.y) > 620, 'visible actor is beyond the former circular cutoff');
   await visionPage.screenshot({ path: 'test-results/viewport-visibility.png' });

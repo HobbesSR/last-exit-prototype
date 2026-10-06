@@ -32,7 +32,7 @@ export async function checkClientControllers(browser, base) {
       input.toggleArrange(); input.selectSlot(4); input.drop(); input.skill();
       const blocked = collect(true); input.consumeActions(); const afterBlocked = collect(false);
       input.selectSlot(5); input.interact(); input.reset(); const reset = collect(false);
-      key('KeyM'); key('Space');
+      key('KeyF'); key('Space');
       $('archive-dialog').showModal(); key('KeyD'); key('KeyQ'); key('Digit4'); $('archive-dialog').close();
       const dialog = collect(false);
       // A hidden document must release held input, just like blur.
@@ -100,7 +100,7 @@ export async function checkClientControllers(browser, base) {
         if (reason === 'reset') { hud.cancelDrag(); input.reset(); }
         if (reason === 'replay') render({ replay: true });
         if (reason === 'inactive') render({ state: { ...state, players: [{ ...me, status: 'stranded' }] } });
-        if (reason === 'ui') document.elementFromPoint = () => $('map-toggle');
+        if (reason === 'ui') document.elementFromPoint = () => $('fullscreen-toggle');
         gesture(slot(5), 'pointerup', 28, 10, 75);
         cancelledGestures.push({ reason, intent: collect(false) });
         if (reason === 'dialog') $('archive-dialog').close();
@@ -113,7 +113,7 @@ export async function checkClientControllers(browser, base) {
       $('arrange-item').click(); $('equipment-slots').children[5].click(); $('drop-item').click(); $('interact').click();
       const clicked = collect(false);
       const beforeDestroy = { selectionChanges, mapActions, replayActions };
-      input.destroy(); hud.destroy(); key('KeyD'); key('KeyM'); $('map-toggle').click(); $('drop-item').click();
+      input.destroy(); hud.destroy(); key('KeyD'); key('KeyF'); $('fullscreen-toggle').click(); $('drop-item').click();
       const destroyed = collect(false);
       return { first, second, blurred, arranged, blocked, afterBlocked, reset, dialog, hidden, clicked, draggedMove, draggedDrop, cancelledDrag, tappedSlot, cancelledGestures, pinnedDrop, afterPinnedDrop, blockedDragDrop, destroyed,
         dots: { visible, noSight, cloaked, roof, revealedUnderRoof, outsideViewport, directed }, slots,
