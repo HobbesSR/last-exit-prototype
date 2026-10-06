@@ -144,16 +144,21 @@ function lobbyWaiting(matchmade) {
   if (!lobbyReady) return lobbyStarting || matchmade ? 'Generating the arena. The match starts when it is ready.' : 'Generating the arena…';
   return matchmade ? 'Match found. Preparing the arena…' : 'Waiting for the room owner to start the match.';
 }
+// A player's own HUD shows only while they play: not in the lobby, nor while stepped out to the dev view,
+// which the non-modal lobby lets them do before the start (#267 review).
+function showPlayerHud() {
+  if (playerId && !replayController.active()) $('live-hud').hidden = !!devFeed || $('lobby-dialog').open;
+}
 function showLobby(data) {
   updateLobby(data);
-  $('live-hud').hidden = true;
   // Not modal: people walk about the waiting area while it is open (#236).
   if (!$('lobby-dialog').open) $('lobby-dialog').show();
-  connection(owner ? 'LOBBY' : 'WAITING');
+  showPlayerHud();
+  if (!devFeed) connection(owner ? 'LOBBY' : 'WAITING');
 }
 function hideLobby() {
   if ($('lobby-dialog').open) $('lobby-dialog').close();
-  $('live-hud').hidden = false;
+  showPlayerHud();
 }
 async function connect({ room, key, role = 'contestant', kit = 'warden', name = 'Runner', matchmake = false }) {
   let saved;
@@ -222,7 +227,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       roundTripMs = data.rtt ?? null;
     } else if (data.type === 'lobby') {
       updateLobby(data);
-      if (data.started) { if (!devView) { hideLobby(); connection('LIVE'); } }
+      if (data.started) { if (!devView) { hideLobby(); connection(devFeed ? 'DEV VIEW' : 'LIVE'); } }
       else if (playerId) showLobby(data);
     } else if (data.type === 'choose') {
       if (!data.ok) toast(data.message);
@@ -502,7 +507,7 @@ function leaveDevView() {
 function showDevMode() {
   const on = inDevView();
   $('dev-controls').hidden = !on; $('dev-leave').hidden = !devFeed;
-  if (playerId && !replayController.active()) $('live-hud').hidden = !!devFeed;
+  showPlayerHud();
   $('dev-view').classList.toggle('active', !!devFeed); $('dev-view').setAttribute('aria-pressed', String(!!devFeed));
   if (ws?.readyState === WebSocket.OPEN && !replayController.active()) connection(on ? 'DEV VIEW' : 'LIVE');
 }

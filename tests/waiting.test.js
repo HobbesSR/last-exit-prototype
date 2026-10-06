@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { roomHarness } from './helpers/room-harness.js';
 import { waitingYard } from '../shared/waiting-yard.ts';
-import { createWaiting, enterWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView } from '../shared/simulation/waiting.ts';
+import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView } from '../shared/simulation/waiting.ts';
 import { canOccupy } from '../shared/movement.ts';
 
 const frames = peer => peer.messages.filter(m => m.type === 'state').map(m => m.state);
@@ -26,7 +26,8 @@ test('the waiting simulation walks people, shows everyone, and keeps their place
   assert.ok(walked.x > start.x, 'moved east'); assert.equal(walked.lastSeq, 4, 'the queue holds four, so the first was dropped');
   assert.equal(walked.hp, walked.maxHp, 'an attack does nothing here');
 
-  enterWaiting(w, 'a', 'gladiator', 'specter', 'Ada');
+  assert.equal(changeWaiting(w, 'nobody', 'gladiator', 'specter'), null);
+  changeWaiting(w, 'a', 'gladiator', 'specter');
   const changed = w.players.find(p => p.id === 'a');
   assert.deepEqual({ x: changed.x, y: changed.y, role: changed.role, kit: changed.kit, lastSeq: changed.lastSeq }, { x: walked.x, y: walked.y, role: 'gladiator', kit: 'specter', lastSeq: 4 });
   assert.equal(w.players.length, 2, 'the same person, not another');
@@ -103,5 +104,24 @@ test('a room still generating its map already has a waiting yard', async () => {
     await room.ready;
     assert.ok(room.match);
     assert.ok(!runner.messages.some(m => m.type === 'ready'), 'the map arriving does not reveal it');
+  } finally { await h.service.close(); }
+});
+
+test('a resume replacing a live connection starts the yard input afresh, where the old one stood', async () => {
+  const h = roomHarness(), room = h.service.makeRoom(9);
+  try {
+    h.joined(room, { ownerKey: room.ownerKey, name: 'Owner' });
+    const runner = h.joined(room, { name: 'Runner' }), welcome = runner.messages.find(m => m.type === 'welcome');
+    for (let seq = 0; seq < 40; seq++) { runner.send({ type: 'input', seq, x: 1 }); h.wake(50); }
+    const yard = () => room.waiting.players.find(p => p.id === welcome.id);
+    const stood = yard().x;
+    // The old socket is still attached when the new one resumes (#267 review).
+    const back = h.joined(room, { resumeKey: welcome.resumeKey });
+    assert.equal(back.session.playerId, welcome.id);
+    const resumed = back.messages.find(m => m.type === 'welcome').state.players.find(p => p.id === welcome.id);
+    assert.deepEqual({ x: resumed.x, lastSeq: resumed.lastSeq }, { x: stood, lastSeq: -1 }, 'where they stood, with nothing acknowledged');
+    for (let seq = 0; seq < 12; seq++) { back.send({ type: 'input', seq, x: -1 }); h.wake(50); }
+    assert.equal(yard().lastSeq, 11, 'the new connection numbers from zero');
+    assert.ok(yard().x < stood, 'and walks the way it asks');
   } finally { await h.service.close(); }
 });

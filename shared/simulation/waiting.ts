@@ -29,10 +29,25 @@ export function createWaiting(map: WaitingMap): Waiting {
 }
 
 /**
- * Bring someone into the waiting area, or show a change of role, kit or name on someone already there.
- * Someone already there keeps where they stand, unless a bigger body no longer fits there.
+ * Bring someone into the waiting area on a new connection: a join, or a resume, which may replace a
+ * connection still attached. Their input starts afresh, since the new connection numbers its inputs
+ * from zero. Someone already there keeps where they stand.
  */
 export function enterWaiting(w: Waiting, id: PlayerId, role: Role, kit: Kit, name: string): Player {
+  return place(w, id, role, kit, name, false);
+}
+
+/**
+ * Show a change of role or kit (#235) on someone already waiting, over the same connection, so their
+ * input queue and its sequence numbers carry on and prediction is undisturbed.
+ */
+export function changeWaiting(w: Waiting, id: PlayerId, role: Role, kit: Kit): Player | null {
+  const old = w.players.find(p => p.id === id);
+  return old ? place(w, id, role, kit, old.name, true) : null;
+}
+
+// Someone already there keeps where they stand, unless a bigger body no longer fits there.
+function place(w: Waiting, id: PlayerId, role: Role, kit: Kit, name: string, continuing: boolean): Player {
   const old = w.players.find(p => p.id === id);
   const p = makePlayer(id, name.slice(0, 16), role, kit, 0);
   p.bot = false; resetInput(p);
@@ -40,8 +55,8 @@ export function enterWaiting(w: Waiting, id: PlayerId, role: Role, kit: Kit, nam
   const at = old && canOccupy(w.map, old.x, old.y, bodyRadius(p)) ? old : arrival();
   p.x = at.x; p.y = at.y;
   if (old) {
-    // The queue and its sequence numbers are the same person's, so prediction carries on undisturbed.
-    Object.assign(p, { heading: old.heading, input: old.input, lastSeq: old.lastSeq, receivedSeq: old.receivedSeq, inputQueue: old.inputQueue, inputTick: old.inputTick, inputStalled: old.inputStalled });
+    p.heading = old.heading;
+    if (continuing) Object.assign(p, { input: old.input, lastSeq: old.lastSeq, receivedSeq: old.receivedSeq, inputQueue: old.inputQueue, inputTick: old.inputTick, inputStalled: old.inputStalled });
     w.players[w.players.indexOf(old)] = p;
   } else w.players.push(p);
   return p;

@@ -136,10 +136,21 @@ try {
   await page.locator('#role-preference').selectOption('any');
   await page.getByRole('button', { name: 'Auto', exact: true }).click();
   await page.waitForFunction(() => document.getElementById('lobby-dialog').open && window.arenaDebug().me);
+  // Stepped out to the dev view from the lobby (it is not modal, #236), the start must not lay the player's
+  // own HUD over the directed view, and stepping back shows it (#267 review).
+  const hud = () => page.evaluate(() => document.getElementById('live-hud').hidden);
+  await page.locator('#dev-view').click();
+  await page.waitForFunction(() => window.arenaDebug().devFeed);
+  assert.equal(await hud(), true, 'no player HUD in the lobby');
   server.rooms.get(await page.evaluate(() => window.arenaDebug().room)).startsAt = Date.now() - 1;
-  await page.waitForFunction(() => !document.getElementById('lobby-dialog').open && window.arenaDebug().phase === 'live' && window.arenaDebug().tick > 3);
+  await page.waitForFunction(() => !document.getElementById('lobby-dialog').open && window.arenaDebug().devFeed && window.arenaDebug().phase === 'live' && window.arenaDebug().tick > 3);
+  assert.equal(await hud(), true, 'the start keeps it hidden under the dev view');
+  assert.equal(await page.locator('#connection-text').textContent(), 'DEV VIEW');
+  await page.locator('#dev-view').click();
+  await page.waitForFunction(() => !window.arenaDebug().devFeed && window.arenaDebug().phase === 'live');
+  assert.equal(await hud(), false, 'stepping back shows it');
   await browse();
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: true, checks: ['step out and back', 'dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'teleport', 'pause and resume', 'browser dev view', 'browser role after dev view and Auto'] }));
+  console.log(JSON.stringify({ passed: true, checks: ['step out and back', 'dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'teleport', 'pause and resume', 'browser dev view', 'browser role after dev view and Auto', 'dev view across the start'] }));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
 finally { await browser.close(); await server.close(); await rm(replayDir, { recursive: true, force: true }); }

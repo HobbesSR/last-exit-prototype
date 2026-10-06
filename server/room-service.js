@@ -6,7 +6,7 @@ import { createMatch, createLobby } from './match.js';
 import { DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../map/live.ts';
 import { TICK_MS, MAX_CATCHUP } from './scheduler.js';
 import { send, broadcast, broadcastLobby, broadcastWaiting, spectatorFrame, remember, SPECTATOR_DELAY_TICKS } from './room-views.js';
-import { createWaiting, enterWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView } from '../shared/simulation/waiting.ts';
+import { createWaiting, enterWaiting, changeWaiting, leaveWaiting, waitingInput, stepWaiting, waitingView } from '../shared/simulation/waiting.ts';
 import { waitingYard } from '../shared/waiting-yard.ts';
 import { normalizeDiagnostic, MAX_DIAGNOSTICS_PER_SESSION, MIN_DIAGNOSTIC_INTERVAL_MS } from './protocol.js';
 import { trackLatency, pingSession, acceptPong, roundTripMs } from './latency.js';
@@ -253,7 +253,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       // Recorded like a join, so a match built after it replays the same seats (`seat`).
       room.inputs.push({ type: 'choose', id: p.id, role: p.role, kit: p.kit });
       // Shown in the waiting area from the next frame; the match place itself stays hidden until the start.
-      enterWaiting(room.waiting, p.id, p.role, p.kit, p.name);
+      changeWaiting(room.waiting, p.id, p.role, p.kit);
       broadcastLobby(room);
       return;
     }
