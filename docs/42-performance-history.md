@@ -263,10 +263,16 @@ the server running behind, not the client. The draw figures vary by run position
 unseeded set exited with an uncaught exception that was not captured and did not
 recur in five further runs; treat as unexplained.
 
-Room creation blocks the server's main thread for the generation time (about 2 s
-at 24 × 12 and 6 s at 36 × 18, #184) and has not been moved off it. The 36 × 18
-choice is therefore available to play and measure live, but is not yet something to
-offer on a server that hosts other rooms.
+Room creation blocked the server's main thread for the generation time (about 2 s
+at 24 × 12 and 6 s at 36 × 18, #184). Since #253 the server generates on a worker
+thread. Measured 2026-10-06 on the development machine, creating seed 77 rooms
+through `POST /api/rooms` on an otherwise idle server: the event loop's longest
+delay during the request was 21–33 ms at 36 × 18 and 16 ms at 12 × 6, where it had
+been the whole generation. Generation itself is no faster: seed 77 at 36 × 18 took
+about 28 s both on the worker and inline, far over the 6 s above, so generation
+time varies widely by seed and that figure is not a bound. One worker serves the
+process, so two large rooms created together wait in turn. The tick cost of a
+36 × 18 room above is unchanged.
 
 ## The reported slowdown is still open
 
