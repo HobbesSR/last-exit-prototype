@@ -1,4 +1,4 @@
-﻿import { lineClear } from '/shared/movement.ts';
+import { lineClear } from '/shared/movement.ts';
 import { seesActor } from '/shared/view.ts';
 import { carriedCell, SLOT_COUNT } from '/shared/equipment.ts';
 import { slotPresentation } from '/equipment-ui.js';
@@ -62,14 +62,17 @@ export function createHUDController(actions) {
   }
   listen(window, 'blur', cancelDrag);
   listen(document, 'visibilitychange', () => { if (document.hidden) cancelDrag(); });
+  const suppressedTooltipClicks = new WeakSet();
   for (const [id, action] of [['skill', 'skill'], ['interact', 'interact'], ['drop-item', 'drop'], ['arrange-item', 'arrange'], ['map-toggle', 'toggleMap'], ['minimap-button', 'toggleMap']]) {
-    listen($(id), 'click', () => actions[action]());
+    listen($(id), 'click', e => {
+      if (suppressedTooltipClicks.delete($(id))) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+      actions[action]();
+    });
   }
-
   const showTooltip = (target) => {
     const tip = $('tooltip'); setText(tip, target.dataset.tip); setHidden(tip, false);
-    const box = target.getBoundingClientRect(); tip.style.left = ${Math.max(8, Math.min(innerWidth - tip.offsetWidth - 8, box.left + box.width / 2 - tip.offsetWidth / 2))}px;
-    tip.style.top = ${box.top > tip.offsetHeight + 14 ? box.top - tip.offsetHeight - 9 : box.bottom + 9}px;
+    const box = target.getBoundingClientRect(); tip.style.left = `${Math.max(8, Math.min(innerWidth - tip.offsetWidth - 8, box.left + box.width / 2 - tip.offsetWidth / 2))}px`;
+    tip.style.top = `${box.top > tip.offsetHeight + 14 ? box.top - tip.offsetHeight - 9 : box.bottom + 9}px`;
   };
   listen(document, 'pointerover', e => {
     const target = e.target.closest('[data-tip]'); if (!target || e.pointerType === 'touch') return;
@@ -86,6 +89,7 @@ export function createHUDController(actions) {
     touchTipTimeout = setTimeout(() => {
       activeTouchTip = target;
       showTooltip(target);
+      suppressedTooltipClicks.add(target);
       if (navigator.vibrate) navigator.vibrate(50);
     }, 500);
   });
@@ -102,25 +106,6 @@ export function createHUDController(actions) {
   listen(document, 'contextmenu', e => {
     if (e.target.closest('[data-tip]')) e.preventDefault();
   });
-
-  let mColors = null;
-  const getMinimapColors = () => {
-    if (mColors) return mColors;
-    const style = getComputedStyle(document.body);
-    return mColors = {
-      wall: style.getPropertyValue('--minimap-wall').trim() || '#304e42',
-      hazard: style.getPropertyValue('--minimap-hazard').trim() || '#f46c7a88',
-      border: style.getPropertyValue('--minimap-border').trim() || '#668674',
-      dash: style.getPropertyValue('--minimap-dash').trim() || '#729481',
-      station: style.getPropertyValue('--minimap-station').trim() || '#92d6f0',
-      charger: style.getPropertyValue('--minimap-charger').trim() || '#f4d26c',
-      me: style.getPropertyValue('--minimap-me').trim() || '#ffffff',
-      gladiator: style.getPropertyValue('--coral').trim() || '#ff7d8a',
-      contestant: style.getPropertyValue('--lime').trim() || '#c5f16f',
-      exit: style.getPropertyValue('--minimap-exit').trim() || '#deff99',
-    };
-  };
-
   function hud({ state, arenaMap, playerId, replay, savedReplay, selection: { moveFrom }, visibility }) {
     const me = state.players.find(p => p.id === playerId) || (replay ? state.players[0] : null);
     dragEnabled = false;
@@ -129,7 +114,7 @@ export function createHUDController(actions) {
     setText($('slots'), state.slots);
     setText($('seed-label'), arenaMap.seed);
     setText($('sector'), String(Math.min(arenaMap.modules.length, 1 + Math.floor((me?.x || 0) / arenaMap.width * arenaMap.modules.length))).padStart(2, '0'));
-    setText($('remaining'), ${state.contestantsActive ?? state.players.filter(p => p.role === 'contestant' && p.status === 'active').length} CONTESTANTS);
+    setText($('remaining'), `${state.contestantsActive ?? state.players.filter(p => p.role === 'contestant' && p.status === 'active').length} CONTESTANTS`);
     
     const feedTexts = state.events.slice(-3).map(e => e.text);
     const feedStr = feedTexts.join('|');
@@ -177,40 +162,40 @@ export function createHUDController(actions) {
       const chargeTicks = state.cellChargeTicks || 100;
       setText($('objective'), !cell ? 'EXPLORE FOR A POWER CELL · requires one inventory slot'
         : cell.charge >= chargeTicks ? 'CELL CHARGED · bring it to the escape pods · E to escape'
-        : me.charging ? CHARGING % · stay still
-        : CELL % · find a charging station · E to charge);
+        : me.charging ? `CHARGING ${Math.floor(cell.charge / chargeTicks * 100)}% · stay still`
+        : `CELL ${Math.floor(cell.charge / chargeTicks * 100)}% · find a charging station · E to charge`);
       
-      const portraitSrc = /assets/.svg;
+      const portraitSrc = `/assets/${gladiator ? 'warden' : 'contestant'}.svg`;
       if ($('portrait').getAttribute('src') !== portraitSrc) $('portrait').src = portraitSrc;
       
       setText($('player-name'), gladiator ? kitName(me.kit).toUpperCase() : me.name.toUpperCase());
-      setText($('player-level'), gladiator ? LV  : 'RUNNER');
+      setText($('player-level'), gladiator ? `LV ${me.level}` : 'RUNNER');
       
-      const hpW = ${100 * me.hp / me.maxHp}%;
+      const hpW = `${100 * me.hp / me.maxHp}%`;
       if ($('health-bar').style.width !== hpW) $('health-bar').style.width = hpW;
       const hpBg = me.hp < me.maxHp * 0.3 ? '#ff8185' : '#c5f16f';
       if ($('health-bar').style.background !== hpBg) $('health-bar').style.background = hpBg;
       
-      setText($('health-value'), ${me.hp} HP);
-      setText($('shield-value'), gladiator ? ${me.kills} KILLS : ${me.shield} SHIELD);
+      setText($('health-value'), `${me.hp} HP`);
+      setText($('shield-value'), gladiator ? `${me.kills} KILLS` : `${me.shield} SHIELD`);
       setText($('keys'), me.keys); 
       setText($('weapon'), gladiator ? me.level : me.weapon);
       
       const skillName = gladiator ? kitSkill(me.kit) : kitSkill(null);
-      const skillTip = ${skillName} (Q);
+      const skillTip = `${skillName} (Q)`;
       if ($('skill').dataset.tip !== skillTip) $('skill').dataset.tip = skillTip;
       
-      setText($('skill-cd'), me.cooldown ? ${(me.cooldown / HZ).toFixed(1)}s : 'READY');
+      setText($('skill-cd'), me.cooldown ? `${(me.cooldown / HZ).toFixed(1)}s` : 'READY');
       $('skill').classList.toggle('active', me.boost > 0 || me.cloak > 0);
       
       const skillDisabled = me.cooldown > 0 || me.status !== 'active';
       if ($('skill').disabled !== skillDisabled) $('skill').disabled = skillDisabled;
       
-      setText($('interact-label'), gladiator ? (me.railCd ? ${(me.railCd / HZ).toFixed(1)}s : 'RAIL') : 'USE');
+      setText($('interact-label'), gladiator ? (me.railCd ? `${(me.railCd / HZ).toFixed(1)}s` : 'RAIL') : 'USE');
       const nearbyDoor = arenaMap.gates.find(g => g.kind === 'door' && Math.hypot(g.x - me.x, g.y - me.y) < 85 && lineClear(arenaMap, me, g, g.id));
       if (nearbyDoor) setText($('interact-label'), nearbyDoor.open ? 'CLOSE' : nearbyDoor.locked ? 'UNLOCK' : 'OPEN');
       
-      const interactTip = nearbyDoor ? ${nearbyDoor.open ? 'Close door' : nearbyDoor.locked ? 'Unlock door · one key' : 'Open door'} (E) : 'Use / charge / extract / transit (E)';
+      const interactTip = nearbyDoor ? `${nearbyDoor.open ? 'Close door' : nearbyDoor.locked ? 'Unlock door · one key' : 'Open door'} (E)` : 'Use / charge / extract / transit (E)';
       if ($('interact').dataset.tip !== interactTip) $('interact').dataset.tip = interactTip;
       
       setHidden($('sneak'), gladiator);
@@ -222,20 +207,38 @@ export function createHUDController(actions) {
         const escaped = me.status === 'escaped';
         setText($('outcome-label'), escaped ? 'EXTRACTION CONFIRMED' : state.phase === 'finished' ? 'BROADCAST COMPLETE' : 'CONTESTANT ELIMINATED');
         setText($('outcome-title'), escaped ? 'You made it out.' : gladiator ? 'The hunt is over.' : 'End of the line.');
-        setText($('outcome-detail'), gladiator ? ${me.kills} eliminations.  contestants escaped. : escaped ? ${state.slots} escape slots remain. : ${3 - state.slots} escaped.  exits unclaimed.);
+        setText($('outcome-detail'), gladiator ? `${me.kills} eliminations. ${3 - state.slots} contestants escaped.` : escaped ? `${state.slots} escape slots remain.` : `${3 - state.slots} escaped. ${state.slots} exits unclaimed.`);
         
         const watchDisabled = !savedReplay;
         if ($('watch-match').disabled !== watchDisabled) $('watch-match').disabled = watchDisabled;
         
         if (me.status === 'respawning' && state.phase !== 'finished') {
           setText($('outcome-label'), 'GLADIATOR REDEPLOYMENT');
-          setText($('outcome-title'), Returning in s);
+          setText($('outcome-title'), `Returning in ${Math.max(0, Math.ceil((me.respawnAt - state.tick) / HZ))}s`);
           setText($('outcome-detail'), 'Earned upgrades are retained. Waiting for a safe transit station.');
         }
       }
     }
     profiler.start('render.minimap'); drawMinimap({ arenaMap, state, playerId, visibility }); profiler.stop('render.minimap');
   }
+  let mColors = null;
+  const getMinimapColors = () => {
+    if (mColors) return mColors;
+    const style = getComputedStyle(document.body);
+    return mColors = {
+      wall: style.getPropertyValue('--minimap-wall').trim() || '#304e42',
+      hazard: style.getPropertyValue('--minimap-hazard').trim() || '#f46c7a88',
+      border: style.getPropertyValue('--minimap-border').trim() || '#668674',
+      dash: style.getPropertyValue('--minimap-dash').trim() || '#729481',
+      station: style.getPropertyValue('--minimap-station').trim() || '#92d6f0',
+      charger: style.getPropertyValue('--minimap-charger').trim() || '#f4d26c',
+      me: style.getPropertyValue('--minimap-me').trim() || '#ffffff',
+      gladiator: style.getPropertyValue('--coral').trim() || '#ff7d8a',
+      contestant: style.getPropertyValue('--lime').trim() || '#c5f16f',
+      exit: style.getPropertyValue('--minimap-exit').trim() || '#deff99',
+    };
+  };
+
   function drawMinimap({ arenaMap, state, playerId, visibility }) {
     if (!arenaMap || !state) return;
     const cols = getMinimapColors();
@@ -276,6 +279,6 @@ export function createHUDController(actions) {
     },
     setSneak: value => $('sneak').classList.toggle('active', value),
     cancelDrag,
-    destroy() { cancelDrag(); listeners.abort(); for (const button of buttons) button.remove(); setHidden($('tooltip'), true); }
+    destroy() { cancelDrag(); listeners.abort(); for (const button of buttons) button.remove(); $('tooltip').hidden = true; }
   };
 }
