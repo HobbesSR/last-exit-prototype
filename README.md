@@ -68,7 +68,7 @@ are in [20.5](docs/20.5-tools-and-next-boundaries.md) and
 | Open/close door / charge cell / extract / rail | E | Hand button |
 | Drop equipment | Drag a slot into the arena, or G for selected item | Drag a slot into the arena, or Drop selected button |
 | Sneak | Hold Shift | Hold footprints button |
-| Local zoom | M | View button |
+| Fullscreen | F | Fullscreen button |
 
 Contestants win by finding a power cell, charging it for five seconds, and carrying it to the extraction site. Three shared slots are available. Live maps use the authored generation chain at 17,280 by 8,640 units, with a ten-minute wall deadline. Each start has a nearby pistol and uncharged cell. Walk over loot to collect it into six equipment slots; weapons have finite ammo, and medkits and shields stack. Use R or Move/merge to rearrange equipment. Contestants can shoot one another and have no innate ability. Gladiators use six distributed blue transit stations with E; Warden has a shockwave, Specter a scan, and Striker a speed burst. Kills improve gladiator damage and ability recovery. Eliminated gladiators respawn after 20 seconds at a safe transit station with earned upgrades retained. Current body sizes and combat tuning are preserved; narrow-gap balance still needs a pass. Traps, sensors and locked doors remain supported in legacy maps but are not authored by the live chain yet.
 

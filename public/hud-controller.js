@@ -69,7 +69,7 @@ export function createHUDController(actions) {
       e.preventDefault(); e.stopImmediatePropagation();
     }
   }, { capture: true, signal: listeners.signal });
-  for (const [id, action] of [['skill', 'skill'], ['interact', 'interact'], ['drop-item', 'drop'], ['arrange-item', 'arrange'], ['map-toggle', 'toggleMap'], ['minimap-button', 'toggleMap']]) {
+  for (const [id, action] of [['skill', 'skill'], ['interact', 'interact'], ['drop-item', 'drop'], ['arrange-item', 'arrange'], ['fullscreen-toggle', 'toggleFullscreen']]) {
     listen($(id), 'click', () => actions[action]());
   }
   const showTooltip = (target) => {
