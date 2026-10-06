@@ -62,12 +62,15 @@ export function createHUDController(actions) {
   }
   listen(window, 'blur', cancelDrag);
   listen(document, 'visibilitychange', () => { if (document.hidden) cancelDrag(); });
-  const suppressedTooltipClicks = new WeakSet();
+  let suppressNextClick = false;
+  document.addEventListener('click', e => {
+    if (suppressNextClick) {
+      suppressNextClick = false;
+      e.preventDefault(); e.stopImmediatePropagation();
+    }
+  }, { capture: true, signal: listeners.signal });
   for (const [id, action] of [['skill', 'skill'], ['interact', 'interact'], ['drop-item', 'drop'], ['arrange-item', 'arrange'], ['map-toggle', 'toggleMap'], ['minimap-button', 'toggleMap']]) {
-    listen($(id), 'click', e => {
-      if (suppressedTooltipClicks.delete($(id))) { e.preventDefault(); e.stopImmediatePropagation(); return; }
-      actions[action]();
-    });
+    listen($(id), 'click', () => actions[action]());
   }
   const showTooltip = (target) => {
     const tip = $('tooltip'); setText(tip, target.dataset.tip); setHidden(tip, false);
@@ -89,7 +92,6 @@ export function createHUDController(actions) {
     touchTipTimeout = setTimeout(() => {
       activeTouchTip = target;
       showTooltip(target);
-      suppressedTooltipClicks.add(target);
       if (navigator.vibrate) navigator.vibrate(50);
     }, 500);
   });
@@ -97,11 +99,20 @@ export function createHUDController(actions) {
     clearTimeout(touchTipTimeout);
     if (activeTouchTip) { setHidden($('tooltip'), true); activeTouchTip = null; }
   };
-  listen(document, 'pointerup', cancelTouchTip);
+  listen(document, 'pointerup', e => {
+    if (activeTouchTip && e.pointerType === 'touch') {
+      suppressNextClick = true;
+      setTimeout(() => { suppressNextClick = false; }, 0);
+    }
+    cancelTouchTip();
+  });
   listen(document, 'pointercancel', cancelTouchTip);
   listen(document, 'pointermove', e => {
     if (e.pointerType !== 'touch') return;
-    if (Math.hypot(e.clientX - touchStartX, e.clientY - touchStartY) > 8) clearTimeout(touchTipTimeout);
+    if (Math.hypot(e.clientX - touchStartX, e.clientY - touchStartY) > 8) {
+      clearTimeout(touchTipTimeout);
+      cancelTouchTip();
+    }
   });
   listen(document, 'contextmenu', e => {
     if (e.target.closest('[data-tip]')) e.preventDefault();
