@@ -23,7 +23,7 @@ async function ready(page, url = base) {
 try {
   await checkClientControllers(browser, base);
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  await page.goto(base);
+  await page.goto(`${base}/?seed=4217`);
   await page.getByRole('button', { name: 'Start match', exact: true }).waitFor();
   await page.waitForFunction(() => document.querySelector('#lobby-count')?.textContent === '1/8 contestants / 0/3 gladiators');
   const ownerRoom = new URL(page.url()).searchParams.get('room');

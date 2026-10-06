@@ -1,6 +1,7 @@
 import { HZ, MAX_ARENA_SEED, VERSION } from '../shared/simulation/rules.ts';
 import * as profiler from '../shared/profiler.ts';
-import { roomSeed } from './protocol.js';
+import { roomSeed, roomSize, ROOM_SIZE_NAMES } from './protocol.js';
+import { zoneSizeName } from '../map/live.ts';
 
 export function installHttpApi(app, service, replays) {
   const { rooms } = service;
@@ -13,8 +14,10 @@ export function installHttpApi(app, service, replays) {
     if (!service.hasCapacity()) return res.status(429).json({ error: 'All arena slots are occupied. Try again after a match ends.' });
     const seed = roomSeed(req.body);
     if (seed === null) return res.status(400).json({ error: `Seed must be an integer from 1 to ${MAX_ARENA_SEED}.` });
-    const room = service.makeRoom(seed);
-    res.status(201).json({ id: room.id, ownerKey: room.ownerKey, seed });
+    const size = roomSize(req.body);
+    if (size === null) return res.status(400).json({ error: `Size must be one of ${ROOM_SIZE_NAMES.join(', ')}.` });
+    const room = service.makeRoom(seed, false, size);
+    res.status(201).json({ id: room.id, ownerKey: room.ownerKey, seed, size: zoneSizeName(size) });
   });
   app.get('/api/replays', (_req, res) => res.json(replays.list()));
   app.get('/api/replays/:id', (req, res) => {

@@ -221,8 +221,52 @@ pre-assigned set piece slot is its own option, so the tables grew with the
 square of set piece slots, and a 36 × 18 placement ran out of a 4 GB heap.
 Options of one kind now share an id and a table. The sweep baseline is
 unchanged over 224 maps. The median 12 × 6 generation over the same 20 seeds
-fell from 488 and 503 ms to 265 and 257 ms, two runs each. Live per-tick cost at the larger sizes isn't measured; live
-matches stay at 12 × 6 (55).
+fell from 488 and 503 ms to 265 and 257 ms, two runs each. Live per-tick cost at the larger sizes is measured
+below.
+
+## Live matches at each authored size (2026-10-05)
+
+Measured on Node 24.15.0 on `claude/lobby-params` (from `2a971cb`) once rooms
+could be created at each authored size (#184, 14). Seed 4217, the default roster,
+one room and one viewer; each size three times, one run after another with no
+concurrent work. `npm run bench -- --size=24x12` and `npm run bench:client --
+--size=24x12` take the size; the client benchmark now pins `seed=4217` because the
+deploy dialog otherwise picks a random seed (#234).
+
+Server, a bot-only match run to its end (`npm run bench`):
+
+| Zone size | Ticks to the end | Mean tick | p95 tick (runs) | Over budget | Rooms inside 50 ms at p95 |
+| --- | ---: | ---: | --- | ---: | ---: |
+| 12 × 6 | 2,334 | 3.6–3.8 ms | 12.9–13.3 ms | 3–5 of 2,334 | 3 |
+| 24 × 12 | 4,287 | 7.8–8.4 ms | 18.1–20.0 ms | 1 of 4,287 | 2 |
+| 36 × 18 | 6,313 | 22.8–23.8 ms | 52.1–54.2 ms | 349–388 of 6,313 | 0 |
+
+A 36 × 18 room alone exceeds the 50 ms tick budget at p95 and overruns on about
+6% of ticks, so the server can't sustain 20 Hz there on this machine, and a
+second room would compound it. A 24 × 12 room costs about twice a 12 × 6 one.
+Matches also run longer (1.8 and 2.7 times the ticks of a 12 × 6 match), which
+17.2.7 predicted for counts that don't grow with the map.
+
+Client, in installed headless Chrome with the player walking right for 12 s
+(`npm run bench:client`; render figures are means over the three runs):
+
+| Zone size | Frame time p95 | `render.frame` | `render.draw` | State gap p95 | State size per frame |
+| --- | --- | --- | --- | --- | ---: |
+| 12 × 6 | 17.5 ms | 0.89 ms | 2.5 ms | 70–73 ms | 15 KiB |
+| 24 × 12 | 17.5–17.6 ms | 1.98 ms | 1.4 ms | 66–74 ms | 47 KiB |
+| 36 × 18 | 17.5–17.6 ms | 1.07 ms | 0.82 ms | 138–154 ms | 77 KiB |
+
+Rendering holds 60 fps at every size; the minimap and camera cost is under
+0.04 ms. What degrades is delivery: the state size grows about fivefold with
+loot and the 36 × 18 state gap p95 reaches about three server ticks, which is
+the server running behind, not the client. The draw figures vary by run position and were not isolated. One 36 × 18 client run in the first,
+unseeded set exited with an uncaught exception that was not captured and did not
+recur in five further runs; treat as unexplained.
+
+Room creation blocks the server's main thread for the generation time (about 2 s
+at 24 × 12 and 6 s at 36 × 18, #184) and has not been moved off it. The 36 × 18
+choice is therefore available to play and measure live, but is not yet something to
+offer on a server that hosts other rooms.
 
 ## The reported slowdown is still open
 

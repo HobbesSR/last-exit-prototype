@@ -23,7 +23,7 @@ const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: !args.has('headed') });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
-  await page.goto(`${base}/?profile=1`);
+  await page.goto(`${base}/?profile=1&seed=${args.get('seed') ?? 4217}${args.has('size') ? `&size=${args.get('size')}` : ''}`);
   let workload;
   if (['crowded', 'offscreen'].includes(args.get('location'))) {
     await page.waitForFunction(() => window.arenaDebug?.().me);

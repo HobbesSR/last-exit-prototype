@@ -54,6 +54,20 @@ Contestants can damage each other with projectiles. Bots retaliate immediately; 
 
 Outside a building its roof conceals interior actors and loot, even through a window. Inside, the roof disappears and ordinary wall/window/door sight applies to the outside world. Windows block movement and reaching for items; sight and bullets pass through. Doors can be opened and closed with E by either role, but cannot close onto an active body. These are provisional visibility semantics pending the batched review.
 
+## Room creation
+
+`POST /api/rooms` takes an optional `seed` and an optional `size`. With no seed
+the room draws a random one from 1 to 2147483647 (#234), so general play varies;
+a named seed reproduces a map, and the room's seed is in its recording. The
+deploy dialog starts with a random seed, and `?seed=` still names one. `size` is
+a zone size written `12x6`, `24x12` or `36x18`, the sizes a library is authored
+for (55); the default is `12x6`, and any other value is refused with a 400 naming
+the sizes. The lobby shows the room's size. A 12 × 6 map is 17,280 by 8,640 world
+units; each larger size is two and three times that in each direction.
+Matchmade rooms are always 12 × 6 with a random seed. Generation blocks the
+server for about 2 s at 24 × 12 and 6 s at 36 × 18, and a 36 × 18 room does not
+hold the tick budget alone (42).
+
 ## Matchmaking and lobby
 
 Matchmaking only considers unstarted matchmade rooms on this server. It honors an available preferred role; otherwise it fills the role with the lower occupied fraction, with contestant as the tie-breaker. A 15-second countdown begins with the first join, then bots fill vacancies. Private rooms are excluded and remain owner-started. Session-stored rotating resume credentials reclaim the same actor; owner credentials restore lobby/finish authority and never enter shared invite links.

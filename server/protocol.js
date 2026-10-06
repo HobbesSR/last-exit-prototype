@@ -1,5 +1,7 @@
 // Transport limits and envelope decoding. Stateful input queueing stays in simulation.
-import { isArenaSeed } from '../shared/simulation/rules.ts';
+import { randomInt } from 'node:crypto';
+import { MAX_ARENA_SEED, isArenaSeed } from '../shared/simulation/rules.ts';
+import { DEFAULT_LIVE_ZONE_SIZE, LIVE_ZONE_SIZES, zoneSizeName } from '../map/live.ts';
 export const MAX_MESSAGE_BYTES = 2048;
 export const MAX_BUFFERED_BYTES = 512 * 1024;
 const MAX_MESSAGES_PER_SECOND = 70;
@@ -11,9 +13,17 @@ export function acceptMessageRate(window, now) {
   if (now - window.start > 1000) { window.start = now; window.messages = 0; }
   return ++window.messages <= MAX_MESSAGES_PER_SECOND;
 }
-export function roomSeed(body) {
-  const seed = Number(body?.seed ?? 4217);
+export const randomSeed = () => randomInt(1, MAX_ARENA_SEED + 1);
+// A room asked for no seed gets a fresh one, so general play varies; naming one reproduces a map.
+export function roomSeed(body, draw = randomSeed) {
+  const seed = Number(body?.seed ?? draw());
   return isArenaSeed(seed) ? seed : null;
+}
+export const ROOM_SIZE_NAMES = LIVE_ZONE_SIZES.map(zoneSizeName);
+// The size a room is created at, written like `24x12`; null when the request names one that isn't authored.
+export function roomSize(body) {
+  if (body?.size === undefined) return DEFAULT_LIVE_ZONE_SIZE;
+  return LIVE_ZONE_SIZES.find(size => zoneSizeName(size) === body.size) ?? null;
 }
 
 // Client-reported diagnostics end up in a recording others download, so every field is checked

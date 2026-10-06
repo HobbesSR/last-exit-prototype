@@ -1,5 +1,5 @@
 /** Chain-to-runtime conversion. Gameplay placement policy belongs here, never in the server. */
-import { bundledLibrary, chainParams, generate } from './chain.ts';
+import { CHAIN_LIBRARIES, bundledLibrary, chainParams, generate } from './chain.ts';
 import { DEFAULT_CELL_SIZE, GAME_ENGINES } from './engines.ts';
 import { composeRegions } from './micro/compose.ts';
 import { builtMapFrame, builtPlayableArea, stampBuiltMap } from './micro/adapter.ts';
@@ -18,13 +18,26 @@ export const TRANSIT_STATION_COUNT = 6;
 const LOOT_KINDS: readonly ItemKind[] = ['cell', 'cell', 'cell', 'weapon', 'weapon', 'weapon', 'med', 'shield', 'access'];
 const WEAPON_TYPES: readonly WeaponType[] = ['pistol', 'rifle', 'scattergun'];
 
+/** A map's size in tile zones. */
+export interface ZoneSize { zoneWidth: number; zoneHeight: number }
+
+/** The sizes a room can be created at: the ones a library is authored for (51). The first is the default. */
+export const LIVE_ZONE_SIZES: readonly ZoneSize[] = Object.freeze(CHAIN_LIBRARIES.map(({ zoneWidth, zoneHeight }) => Object.freeze({ zoneWidth, zoneHeight })));
+export const DEFAULT_LIVE_ZONE_SIZE: ZoneSize = LIVE_ZONE_SIZES[0]!;
+
+/** The authored size a request names, or undefined when none is. */
+export const liveZoneSize = (size: Partial<ZoneSize>): ZoneSize | undefined =>
+  LIVE_ZONE_SIZES.find(({ zoneWidth, zoneHeight }) => zoneWidth === size.zoneWidth && zoneHeight === size.zoneHeight);
+/** How a size is written in a request and shown to a player, such as `24x12`. */
+export const zoneSizeName = ({ zoneWidth, zoneHeight }: ZoneSize): string => `${zoneWidth}x${zoneHeight}`;
+
 /** The chain params a room generates with. The existing game has one extraction location with three shared slots. */
-export function liveChainParams(content: MatchContent = defaultContent()): ChainParams {
-  return chainParams({ mode: 'game', exitCount: 1, contestantCount: content.roster.contestants.length, hunterCount: content.roster.gladiators.length });
+export function liveChainParams(content: MatchContent = defaultContent(), size: ZoneSize = DEFAULT_LIVE_ZONE_SIZE): ChainParams {
+  return chainParams({ mode: 'game', zoneWidth: size.zoneWidth, zoneHeight: size.zoneHeight, exitCount: 1, contestantCount: content.roster.contestants.length, hunterCount: content.roster.gladiators.length });
 }
 
-export function generateLiveMap(seed: number, content: MatchContent = defaultContent()): GameMap {
-  const chain = generate(seed, liveChainParams(content), undefined, DEFAULT_CELL_SIZE);
+export function generateLiveMap(seed: number, content: MatchContent = defaultContent(), size: ZoneSize = DEFAULT_LIVE_ZONE_SIZE): GameMap {
+  const chain = generate(seed, liveChainParams(content, size), undefined, DEFAULT_CELL_SIZE);
   return liveMapFromBuilt(seed, composeRegions(chain.results), content);
 }
 
@@ -44,7 +57,9 @@ export function liveSeed(seed: string): number | null {
 export function liveRecipeMismatch(map: Pick<ChainMap, 'layout' | 'library' | 'cellSize' | 'build'>, content: MatchContent = defaultContent()): string[] {
   const reasons: string[] = [], { seed, params } = map.layout;
   if (liveSeed(seed) === null) reasons.push(`the seed ${JSON.stringify(seed)} isn't a room seed: a whole number from 1 to ${MAX_ARENA_SEED}, without leading zeros`);
-  const live = liveChainParams(content);
+  const size = liveZoneSize(params);
+  if (!size) return [...reasons, `${params.zoneWidth} x ${params.zoneHeight} zones isn't a size a room can use: ${LIVE_ZONE_SIZES.map(zoneSizeName).join(', ')}`];
+  const live = liveChainParams(content, size);
   for (const key of Object.keys(live) as (keyof ChainParams)[])
     if (params[key] !== live[key]) reasons.push(`${key} is ${params[key]}; a room uses ${live[key]}`);
   if (firstDifference(map.library, bundledLibrary(live))) reasons.push(`the library isn't the bundled one`);
@@ -62,7 +77,7 @@ export function liveRecipeMismatch(map: Pick<ChainMap, 'layout' | 'library' | 'c
 export function liveMismatch(map: Pick<ChainMap, 'layout' | 'library' | 'cellSize' | 'build' | 'results'>, content: MatchContent = defaultContent()): string[] {
   const reasons = liveRecipeMismatch(map, content);
   if (reasons.length) return reasons;
-  const fresh = generate(map.layout.seed, liveChainParams(content), undefined, DEFAULT_CELL_SIZE);
+  const fresh = generate(map.layout.seed, liveChainParams(content, liveZoneSize(map.layout.params)), undefined, DEFAULT_CELL_SIZE);
   const differs = firstDifference(fresh.layout, map.layout, 'layout') ?? firstDifference(fresh.results, map.results, 'results');
   return differs ? [`the map isn't the one its seed generates (${differs.replace(' rebuilt, ', ' from the seed, ').replace(/ stored$/, ' here')})`] : [];
 }

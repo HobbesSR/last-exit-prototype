@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateLiveMap, liveChainParams, liveMapFromBuilt, liveMismatch, liveRecipeMismatch, liveSeed } from '../map/live.ts';
+import { generateLiveMap, liveChainParams, liveMapFromBuilt, liveMismatch, liveRecipeMismatch, liveSeed, liveZoneSize, LIVE_ZONE_SIZES } from '../map/live.ts';
 import { generate } from '../map/chain.ts';
 import { composeRegions } from '../map/micro/compose.ts';
 import { canOccupy, moveBody } from '../shared/movement.ts';
@@ -117,4 +117,17 @@ test('the adapter rejects missing and extra required core sites', () => {
   const exitRegion = extra.regions.find(region => region.coreElements.some(site => site.kind === 'exit'));
   exitRegion.coreElements.push({ ...exitRegion.coreElements.find(site => site.kind === 'exit') });
   assert.throws(() => liveMapFromBuilt(1, extra), /one exit/);
+});
+
+test('a room can be generated at each authored size, and only those', () => {
+  assert.deepEqual(LIVE_ZONE_SIZES.map(({ zoneWidth, zoneHeight }) => `${zoneWidth}x${zoneHeight}`), ['12x6', '24x12', '36x18']);
+  assert.deepEqual(generateLiveMap(1, defaultContent(), LIVE_ZONE_SIZES[0]), live());
+  const size = LIVE_ZONE_SIZES[1], map = generateLiveMap(1, defaultContent(), size);
+  assert.deepEqual([map.width, map.height], [34560, 17280]);
+  const chain = generate('1', liveChainParams(defaultContent(), size));
+  assert.deepEqual(liveRecipeMismatch(chain), []);
+  assert.equal(liveZoneSize({ zoneWidth: 24, zoneHeight: 6 }), undefined);
+  assert.throws(() => generateLiveMap(1, defaultContent(), { zoneWidth: 24, zoneHeight: 6 }), /no bundled library/);
+  const playground = generate('1', { ...liveChainParams(), mode: 'playground', zoneWidth: 20, zoneHeight: 9 });
+  assert.match(liveRecipeMismatch(playground).join(), /20 x 9 zones isn't a size a room can use/);
 });
