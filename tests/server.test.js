@@ -9,9 +9,11 @@ import { WebSocket } from 'ws';
 import { createArenaServer, EMPTY_ROOM_GRACE_MS } from '../server/index.js';
 import { listen } from './helpers/listen.js';
 
-function next(ws, type) {
+// A generous cap, not a measurement: a matchmade room's welcome waits on its map, generated on the
+// worker from a random seed, and some seeds take tens of seconds (42).
+function next(ws, type, timeoutMs = 5000) {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => { ws.off('message', receive); reject(new Error(`Timed out waiting for ${type}`)); }, 5000);
+    const timer = setTimeout(() => { ws.off('message', receive); reject(new Error(`Timed out waiting for ${type}`)); }, timeoutMs);
     function receive(raw) { const data = JSON.parse(raw); if (data.type === type) { clearTimeout(timer); ws.off('message', receive); resolve(data); } }
     ws.on('message', receive);
   });
@@ -52,7 +54,7 @@ test('matchmaking separates private rooms, honors available preferences, falls b
     const clients = [], welcomes = [];
     for (const role of ['gladiator', 'gladiator', 'gladiator', 'gladiator', 'contestant', 'any']) {
       const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve));
-      const welcome = next(ws, 'welcome'); ws.send(JSON.stringify({ type: 'match', role, name: 'Queued' }));
+      const welcome = next(ws, 'welcome', 120000); ws.send(JSON.stringify({ type: 'match', role, name: 'Queued' }));
       clients.push(ws); welcomes.push(await welcome);
     }
     const roomId = welcomes[0].room;

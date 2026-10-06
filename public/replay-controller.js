@@ -1,45 +1,19 @@
 import { clusterMarks, createReplayTimeline, markLabel, markSeekTick } from '/replay-timeline.js';
 import { recordingFit } from '/shared/recording.ts';
-import { $, kitName, time } from '/ui.js';
+import { $, fillFollowOptions, time } from '/ui.js';
 
-// Recorded-match playback: timeline, wall-clock-anchored playhead, follow subject and the
-// replay-* DOM. The application supplies the shared arena/state/scene it must read or restore
-// and never has this module send a command or touch the socket.
+// Recorded-match playback: timeline, wall-clock-anchored playhead and the replay-* DOM. The camera
+// director owns who is followed. The application supplies the shared arena/state/scene it must read
+// or restore and never has this module send a command or touch the socket.
 export function createReplayController({
   fetchJSON, changeMap, acceptState, updateHUD, clearInput, toast, connection,
   getMap, getState, setState, getScene, getLiveMap, getLiveState, liveConnectionLabel,
-  downloadReplay, icon, icons,
+  downloadReplay, icon, icons, director,
 }) {
-  let replay = null, replayTimeline = null, playback = 0, playing = true, followId = null;
+  let replay = null, replayTimeline = null, playback = 0, playing = true;
   // Where playback was when the clock was last anchored, and when that was. Every jump re-anchors.
   let playbackFrom = 0, playbackAt = 0;
-  // The recorded roster may name players the current frame no longer contains.
-  const followed = () => followId && replay ? getState()?.players.find(p => p.id === followId) || null : null;
-
-  // The roster comes from the recording rather than the displayed frame, so a subject can be
-  // chosen before they appear and stays selectable after they are eliminated.
-  function fillFollowOptions(roster = []) {
-    const select = $('replay-focus');
-    const whole = document.createElement('option'); whole.value = ''; whole.textContent = 'Whole arena';
-    const groups = [['contestant', 'Contestants'], ['gladiator', 'Gladiators']].map(([role, label]) => {
-      const group = document.createElement('optgroup'); group.label = label;
-      for (const player of roster.filter(p => p.role === role)) {
-        const option = document.createElement('option'); option.value = player.id;
-        option.textContent = player.role === 'gladiator' ? `${player.name} / ${kitName(player.kit)}` : player.name;
-        group.append(option);
-      }
-      return group;
-    }).filter(group => group.childElementCount);
-    select.replaceChildren(whole, ...groups);
-  }
-  function setFollow(id) {
-    followId = id || null;
-    $('replay-focus').value = followId || '';
-    // A cut, not a pan: gliding a camera across a 24000 unit arena would lose the subject for seconds.
-    getScene()?.cutTo();
-    const target = followed();
-    if (target) toast(`Following ${target.name}`);
-  }
+  const setFollow = id => director.setFollow(id);
   // Pips sit over the scrubber, positioned within the range thumb's travel. Shape differs by kind as
   // well as colour, and the tooltip names the mark. Marks too close to draw apart share one pip
   // showing their count; activating it opens a list so each stays individually selectable.
@@ -115,7 +89,9 @@ export function createReplayController({
       changeMap(data.map);
       $('outcome').hidden = true; $('archive-dialog').close(); $('live-hud').hidden = true;
       $('replay-controls').hidden = false; $('replay-seek').min = 0; $('replay-seek').max = timeline.endTick; $('replay-seek').value = 0;
-      fillFollowOptions(timeline.roster); setFollow(null); renderMarks();
+      // The roster comes from the recording rather than the displayed frame, so a subject can be
+      // chosen before they appear and stays selectable after they are eliminated.
+      fillFollowOptions($('replay-focus'), timeline.roster); director.reset(); setFollow(null); renderMarks();
       document.body.classList.add('replaying'); connection('REPLAY'); setPlaying(true); seek(0); getScene()?.updateCamera(true);
     } catch (error) { toast(error.message); }
   }
@@ -129,7 +105,7 @@ export function createReplayController({
     if (playback >= replayTimeline.endTick) setPlaying(false);
   }
   function close() {
-    replay = null; replayTimeline = null; followId = null; $('replay-marks').replaceChildren();
+    replay = null; replayTimeline = null; director.reset(); $('replay-marks').replaceChildren();
     $('replay-controls').hidden = true; $('live-hud').hidden = false; document.body.classList.remove('replaying');
     const liveMap = getLiveMap(), liveState = getLiveState();
     if (liveMap && liveState) { changeMap(liveMap); acceptState(liveState); }
@@ -150,8 +126,8 @@ export function createReplayController({
   $('replay-download').onclick = () => { if (replay) void downloadReplay(replay.id); };
   $('replay-close').onclick = close;
   return {
-    active: () => !!replay, followId: () => followId, subject: followed, frameAlpha: () => replayTimeline?.at(playback)?.alpha ?? 0,
-    watch, renderFrame, togglePlay: () => setPlaying(!playing), setFollow, reset,
+    active: () => !!replay, frameAlpha: () => replayTimeline?.at(playback)?.alpha ?? 0,
+    watch, renderFrame, togglePlay: () => setPlaying(!playing), reset,
     // Lets the application skip a refetch when downloading the replay already open here.
     cachedData: id => replay?.id === id ? replay : null,
   };

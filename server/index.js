@@ -14,6 +14,7 @@ import { attachWebSockets } from './websocket.js';
 import { startScheduler } from './scheduler.js';
 import { serveSharedModules } from './shared-assets.js';
 import { getDevNavConfig } from '../shared/dev-nav-server.js';
+import { devToolsPolicy } from './protocol.js';
 export { EMPTY_ROOM_GRACE_MS } from './room-service.js';
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const WORKSPACE_ID = createHash('sha256').update(path.resolve(ROOT)).digest('hex');
@@ -40,12 +41,13 @@ function printListeningUrls(host, port) {
   }
 }
 
-export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true } = {}) {
+export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true, devTools = process.env.DEV_TOOLS } = {}) {
   profiler.enable(profile);
+  const policy = devToolsPolicy(devTools);
   const replays = await createFileReplayStore(replayDir);
   // Maps are generated on a worker thread, so creating a room never stalls the others (#253).
   const maps = createMapGenerator();
-  const service = createRoomService({ replays, generateMap: maps.generate });
+  const service = createRoomService({ replays, generateMap: maps.generate, devTools: policy });
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '2kb' }));
@@ -89,7 +91,9 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   return { http, close, rooms: service.rooms, profiler };
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const arena = await createArenaServer();
+  // `--dev-tools=all` (what `npm run dev` passes) outranks DEV_TOOLS from the environment or .env.local.
+  const devTools = process.argv.find(arg => arg.startsWith('--dev-tools='))?.slice('--dev-tools='.length);
+  const arena = await createArenaServer(devTools === undefined ? {} : { devTools });
   const lan = process.argv.includes('--lan') || process.env.LAN === '1';
   const host = process.env.HOST || (lan ? '0.0.0.0' : '127.0.0.1');
   // 3000 is taken by the local Forgejo. An explicit PORT (e.g. a worktree's .env.local) is
