@@ -5,7 +5,7 @@ import { zoneSizeName } from '../map/live.ts';
 
 export function installHttpApi(app, service, replays) {
   const { rooms } = service;
-  app.get('/api/health', (_req, res) => res.json({ ok: true, version: VERSION, tickRate: HZ, profiling: profiler.profiling(),
+  app.get('/api/health', (_req, res) => res.json({ ok: true, version: VERSION, tickRate: HZ, profiling: profiler.profiling(), devTools: service.devTools,
     liveRooms: [...rooms.values()].filter(r => r.started && !r.finished).length,
     emptyLiveRooms: [...rooms.values()].filter(r => r.started && !r.finished && !r.clients.size).length }));
   app.get('/api/profile', (_req, res) => { const pacing = profiler.report().find(s => s.name === 'sim.tickPacing'); res.json({ enabled: profiler.profiling(), tickRate: HZ, budgetMs: 1000 / HZ, effectiveHz: pacing?.mean ? 1000 / pacing.mean : null, frames: profiler.frameCount(), rooms: [...rooms.values()].filter(r => r.started && !r.finished).length, series: profiler.report() }); });

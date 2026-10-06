@@ -26,6 +26,15 @@ export function roomSize(body) {
   return LIVE_ZONE_SIZES.find(size => zoneSizeName(size) === body.size) ?? null;
 }
 
+// Who may open the dev view (24): nobody, a room's owner, or anyone. The view is a wallhack, so a
+// server started without a policy offers it to nobody; `npm run dev` asks for `all`.
+export const DEV_TOOLS_POLICIES = ['none', 'owner', 'all'];
+export function devToolsPolicy(value) {
+  if (value === undefined || value === '') return 'none';
+  if (!DEV_TOOLS_POLICIES.includes(value)) throw new Error(`DEV_TOOLS must be one of ${DEV_TOOLS_POLICIES.join(', ')}, not ${JSON.stringify(value)}.`);
+  return value;
+}
+
 // Client-reported diagnostics end up in a recording others download, so every field is checked
 // and clamped here. A report names the tick the client was rendering, which lags the server by
 // the receive buffer and round trip, so it is held within a bound of the tick it arrived at.

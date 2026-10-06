@@ -4,14 +4,17 @@ import { createHUDController } from '/hud-controller.js';
 import { notePacket, resetDiagnostics, diagnosticTimings, reportDiagnostics, manualMark } from '/diagnostics.js';
 import { makeArenaScene } from '/arena-scene.js';
 import { createReplayController } from '/replay-controller.js';
+import { createCameraDirector } from '/camera-director.js';
 import { createSnapshotBuffer } from '/snapshot-buffer.js';
 import * as profiler from '/shared/profiler.ts';
-import { $, HZ, INTERPOLATION_DELAY_TICKS, kitName, time } from '/ui.js';
+import { $, HZ, INTERPOLATION_DELAY_TICKS, kitName, time, fillFollowOptions } from '/ui.js';
 
 const icon = name => `<i data-lucide="${name}"></i>`;
 const icons = () => window.lucide?.createIcons();
 let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liveState, predicted;
 let seq = 0, pending = [], overview = false, selectedRole = 'contestant', savedReplay, recordingFailed = false;
+// This connection is the dev view (24): undelayed and unfogged, with the director's free camera.
+let devView = false, devRoster = '';
 // Authoritative frames are buffered and read back at a fixed delay, so what is drawn is
 // interpolated between two received states rather than chasing the newest one.
 const snapshots = createSnapshotBuffer({ hz: HZ, delayTicks: INTERPOLATION_DELAY_TICKS });
@@ -34,12 +37,26 @@ const hudController = createHUDController({
   canDrag: () => !replayController.active() && state?.players.some(p => p.id === playerId && p.role === 'contestant' && p.status === 'active'),
   toggleMap: () => toggleMap()
 });
+const director = createCameraDirector({
+  getState: () => state, active: () => directed(),
+  camera: () => scene?.cameraView() ?? { x: 0, y: 0, zoom: 1 },
+  onFollow: (subject, id) => {
+    $('replay-focus').value = id || ''; $('dev-focus').value = id || '';
+    // A cut, not a pan: gliding a camera across a 24000 unit arena would lose the subject for seconds.
+    scene?.cutTo();
+    if (subject) toast(`Following ${subject.name}`);
+  },
+  onFog: fog => {
+    $('dev-fog').classList.toggle('active', fog); $('dev-fog').setAttribute('aria-pressed', String(fog));
+    toast(fog ? 'Followed players are shown in their own sight' : 'Fog off: followed players see everything');
+  },
+});
 const replayController = createReplayController({
   fetchJSON: json, changeMap, acceptState, updateHUD, clearInput, toast, connection,
   getMap: () => arenaMap, getState: () => state, setState: value => state = value,
   getScene: () => scene, getLiveMap: () => liveMap, getLiveState: () => liveState,
-  liveConnectionLabel: () => ws?.readyState === WebSocket.OPEN ? 'LIVE' : 'OFFLINE',
-  downloadReplay, icon, icons,
+  liveConnectionLabel: () => ws?.readyState === WebSocket.OPEN ? (devView ? 'DEV VIEW' : 'LIVE') : 'OFFLINE',
+  downloadReplay, icon, icons, director,
 });
 let toastTimer, connecting = false, disconnecting = false, lastStateAt = 0, profileOverlay;
 // What the server last measured for this connection, for display only.
@@ -98,12 +115,13 @@ function hideLobby() {
 async function connect({ room, key, role = 'contestant', kit = 'warden', name = 'Runner', matchmake = false }) {
   let saved;
   try { saved = JSON.parse(sessionStorage.getItem(`last-exit:owner:${room}`)); } catch { /* Storage may be unavailable. */ }
-  if (!key && saved?.key) { key = saved.key; role = saved.role; kit = saved.kit; name = saved.name; }
+  // A dev view borrows the owner key for an `owner` policy, but never the owner's player slot.
+  if (!key && saved?.key) { key = saved.key; if (role !== 'dev') { role = saved.role; kit = saved.kit; name = saved.name; } }
   if (ws) { disconnecting = true; ws.close(); }
   clearInput(); pending = []; seq = 0; savedReplay = null; recordingFailed = false; playerId = null;
   snapshots.reset(); presentation = null; roundTripMs = null;
   resetDiagnostics();
-  owner = false; lobbyPlayers = []; lobbyCapacity = null;
+  owner = false; lobbyPlayers = []; lobbyCapacity = null; devView = false; devRoster = ''; director.reset();
   $('finish-recording').disabled = false;
   roomId = room; ownerKey = key; selectedRole = role;
   connection('CONNECTING');
@@ -121,16 +139,17 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
     if (data.type === 'welcome') {
       room = data.room; roomId = room;
       try { if (data.resumeKey) sessionStorage.setItem(`last-exit:resume:${room}`, data.resumeKey); } catch { /* Optional recovery. */ }
-      playerId = data.id; owner = data.owner; liveMap = data.map; liveState = data.state;
-      if (owner) {
+      playerId = data.id; owner = data.owner; liveMap = data.map; liveState = data.state; devView = !!data.dev;
+      $('dev-view').hidden = !data.devTools || devView; $('dev-controls').hidden = !devView;
+      if (owner && !devView) {
         try { sessionStorage.setItem(`last-exit:owner:${room}`, JSON.stringify({ key, role, kit, name })); }
         catch { toast('Owner recovery is unavailable in this browser session. Keep this tab open.'); }
       }
       replayController.reset();
       $('live-hud').hidden = !!data.spectator;
       changeMap(data.map); acceptState(data.state);
-      history.replaceState(null, '', `?room=${room}`);
-      connection(data.spectator ? 'SPECTATING' : data.started ? 'LIVE' : 'LOBBY'); $('loadout-dialog').close();
+      history.replaceState(null, '', `?room=${room}${devView ? '&dev' : ''}`);
+      connection(devView ? 'DEV VIEW' : data.spectator ? 'SPECTATING' : data.started ? 'LIVE' : 'LOBBY'); $('loadout-dialog').close();
       if (!data.spectator && !data.started) showLobby(data);
     } else if (data.type === 'state') {
       notePacket(event.data.length);
@@ -146,7 +165,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       roundTripMs = data.rtt ?? null;
     } else if (data.type === 'lobby') {
       updateLobby(data);
-      if (data.started) { hideLobby(); connection('LIVE'); }
+      if (data.started) { if (!devView) { hideLobby(); connection('LIVE'); } }
       else if (playerId) showLobby(data);
     } else if (data.type === 'saved') {
       if (recordingFailed) return;
@@ -171,6 +190,7 @@ function acceptState(next) {
   if (!replayController.active()) snapshots.push(next);
   if (!arenaMap) return;
   arenaMap.gates = state.gates;
+  if (devView) refreshDevRoster();
   const me = state.players.find(p => p.id === playerId);
   if (me && !replayController.active()) {
     pending = pending.filter(i => i.seq > me.lastSeq).slice(-20);
@@ -178,6 +198,12 @@ function acceptState(next) {
     if (me.status === 'active') for (const input of pending) movePlayer(arenaMap, predicted, input);
   }
   updateHUD();
+}
+// The dev view's focus list tracks the live roster: players join, and bots fill slots at the start.
+function refreshDevRoster() {
+  const key = state.players.map(p => p.id).join();
+  if (key === devRoster) return;
+  devRoster = key; fillFollowOptions($('dev-focus'), state.players); $('dev-focus').value = director.followId() || '';
 }
 // What the renderer draws: the buffered, interpolated view when live, and the frame a replay's own
 // playhead selects when a recording is open. `state` stays the newest authoritative frame, which is
@@ -194,12 +220,12 @@ let scene;
 const ArenaScene = makeArenaScene({
   map: () => arenaMap, state: () => presentationFrame(), playerId: () => playerId,
   self: () => !replayController.active() && predicted ? predicted : state?.players.find(p => p.id === playerId) || null,
-  replay: () => replayController.active(), directed, overview: () => overview, aim: () => inputController.aim(), follow: () => replayController.subject(),
+  replay: () => replayController.active(), directed, overview: () => overview, aim: () => inputController.aim(),
+  director, follow: () => directed() ? director.subject() : null,
   // How far into the current authoritative tick the renderer is, so motion that only updates on a
   // server frame can be advanced smoothly between them.
   frameAlpha: () => replayController.active() ? replayController.frameAlpha() : (presentationFrame()?.alpha ?? 0),
   onReady: value => scene = value, onFire: value => inputController.setPointerFire(value),
-  onFollow: id => replayController.setFollow(id),
   onFrame: () => { if (!replayController.active()) presentation = snapshots.frame() || state; replayController.renderFrame(); }
 });
 // Diagnostic reports ride beside inputs but are metadata: the server records them as marks on the
@@ -298,6 +324,11 @@ async function downloadDiagnostics() {
 }
 $('download-diagnostics').onclick = () => void downloadDiagnostics();
 $('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) { ws.send(JSON.stringify({ type: 'finish' })); $('finish-recording').disabled = true; } };
+// The dev view opens beside the match rather than in place of it, so a player keeps their slot.
+$('dev-view').onclick = () => open(`/?room=${encodeURIComponent(roomId)}&dev`, '_blank');
+$('dev-focus').onchange = () => director.setFollow($('dev-focus').value);
+$('dev-fog').onclick = () => director.setFog(!director.fog());
+$('dev-whole').onclick = () => director.whole();
 $('watch-match').onclick = () => { if (savedReplay) void replayController.watch(savedReplay.id); };
 icons();
 const game = new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: '#253f3f', antialias: true, scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' }, scene: ArenaScene, audio: { noAudio: true }, render: { preserveDrawingBuffer: true } });
@@ -311,7 +342,8 @@ const initialRoom = initialParams.get('room');
 // `?seed=` names the arena a new room generates (`?size=24x12` its zone size), as the Map Lab's "Play in the game" link does (53).
 if (initialParams.has('seed')) $('seed').value = initialParams.get('seed');
 if (initialParams.has('size')) $('map-size').value = initialParams.get('size');
-if (initialRoom) void connect({ room: initialRoom, key: initialParams.get('ownerKey') }); else void newArena();
+// `?room=…&dev` opens that room's dev view, as the dev view button does.
+if (initialRoom) void connect({ room: initialRoom, key: initialParams.get('ownerKey'), ...(initialParams.has('dev') ? { role: 'dev' } : {}) }); else void newArena();
 // Profiling is opt-in so instrumented hot paths cost nothing during normal play.
 function renderProfileOverlay() {
   if (!profiler.profiling()) { profileOverlay?.remove(); profileOverlay = null; return; }
@@ -347,5 +379,5 @@ window.arenaProfiling = setProfiling;
 // tooling will grow from, and what the tests drive.
 window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, role: 'spectator' });
 // Read-only inspection surface for reproducible browser smoke tests.
-window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: replayController.followId(), overview, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, map: arenaMap && { seed: arenaMap.seed, width: arenaMap.width, height: arenaMap.height, playableArea: arenaMap.playableArea, exit: arenaMap.exit, spawns: arenaMap.spawns, hunterSpawns: arenaMap.hunterSpawns, stations: arenaMap.stations.map(({ x, y }) => ({ x, y })), chargers: arenaMap.chargers.map(({ x, y }) => ({ x, y })) }, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
+window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: director.followId(), dev: devView, fog: director.fog(), viewer: director.viewer()?.id ?? null, overview, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, map: arenaMap && { seed: arenaMap.seed, width: arenaMap.width, height: arenaMap.height, playableArea: arenaMap.playableArea, exit: arenaMap.exit, spawns: arenaMap.spawns, hunterSpawns: arenaMap.hunterSpawns, stations: arenaMap.stations.map(({ x, y }) => ({ x, y })), chargers: arenaMap.chargers.map(({ x, y }) => ({ x, y })) }, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
   pending: pending.length, inputStalled: state?.players.find(p => p.id === playerId)?.inputStalled ?? null, rtt: roundTripMs });

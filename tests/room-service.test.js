@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { roomHarness } from './helpers/room-harness.js';
 import { createMatch } from '../server/match.js';
 import { createGame, joinGame, setInput, step, snapshot } from '../shared/simulation.ts';
-import { parseMessage, acceptMessageRate, roomSeed, roomSize, MAX_DIAGNOSTICS_PER_SESSION } from '../server/protocol.js';
+import { parseMessage, acceptMessageRate, roomSeed, roomSize, devToolsPolicy, MAX_DIAGNOSTICS_PER_SESSION } from '../server/protocol.js';
 
 test('three hunter places are advertised, admitted, reclaimed and recorded', async () => {
   const h = roomHarness(), room = h.service.makeRoom(9);
@@ -141,6 +141,46 @@ test('fake sessions retain owner checks, spectator delay and safe live-session r
   assert.notEqual(resumed.messages[0].resumeKey, welcome.resumeKey);
   assert.ok(room.match.roster().some(p => p.id === resumed.session.playerId));
   await h.service.close();
+});
+
+test('the dev view follows the server policy and sees the current directed frame', async () => {
+  const closed = roomHarness(), shut = closed.live();
+  try {
+    const refused = closed.joined(shut.room, { role: 'dev', ownerKey: shut.room.ownerKey });
+    assert.match(refused.messages[0].message, /not enabled/);
+    assert.equal(shut.owner.messages.find(m => m.type === 'welcome').devTools, false, 'players are told when the dev view is off');
+  } finally { await closed.service.close(); }
+
+  const owned = roomHarness({ devTools: 'owner' }), mine = owned.live();
+  try {
+    assert.match(owned.joined(mine.room, { role: 'dev' }).messages[0].message, /owner key/);
+    assert.equal(owned.joined(mine.room, { role: 'dev', ownerKey: mine.room.ownerKey }).session.dev, true);
+    assert.equal(owned.joined(mine.room, {}).messages.find(m => m.type === 'welcome').devTools, false, 'a joiner without the key is not offered it');
+  } finally { await owned.service.close(); }
+
+  const h = roomHarness({ devTools: 'all' }), { room, owner, writer } = h.live();
+  try {
+    assert.equal(owner.messages.find(m => m.type === 'welcome').devTools, true);
+    const dev = h.joined(room, { role: 'dev' }), welcome = dev.messages[0];
+    assert.equal(welcome.dev, true); assert.equal(welcome.id, null); assert.equal(welcome.state.directed, true);
+    assert.equal(dev.session.playerId, null); assert.equal(room.match.roster().length, 1, 'the dev view holds no slot');
+    const spectator = h.joined(room, { role: 'spectator', ownerKey: room.ownerKey });
+    for (let i = 0; i < 70; i++) h.wake(50);
+    const live = dev.messages.at(-1).state, delayed = spectator.messages.at(-1).state;
+    assert.equal(live.tick, room.match.tick, 'the dev view is not delayed');
+    assert.equal(live.directed, true); assert.ok(live.players.every(p => 'x' in p));
+    assert.ok(room.match.tick - delayed.tick >= 55, 'the ordinary spectator delay is unchanged');
+    dev.send({ type: 'input', seq: 1, x: 1 }); dev.send({ type: 'start' }); h.wake(50);
+    assert.ok(!writer.frames.at(-1).commands.length, 'a dev view sends no commands');
+    h.service.disconnect(dev.session); h.service.disconnect(spectator.session);
+    assert.equal(room.spectators, 0);
+  } finally { await h.service.close(); }
+});
+
+test('the dev tools policy accepts only its named values', () => {
+  assert.equal(devToolsPolicy(undefined), 'none'); assert.equal(devToolsPolicy(''), 'none');
+  for (const value of ['none', 'owner', 'all']) assert.equal(devToolsPolicy(value), value);
+  assert.throws(() => devToolsPolicy('yes'), /DEV_TOOLS must be one of none, owner, all/);
 });
 
 test('matchmaking deadlines and abandonment are testable without sockets or real waiting', async () => {

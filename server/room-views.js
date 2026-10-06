@@ -24,9 +24,10 @@ export function remember(room, frame) {
 export function broadcast(room, state) {
   const payloads = new Map(), delayed = spectatorFrame(room);
   for (const session of room.clients) {
-    const key = session.playerId || 'spectator';
+    // The dev view is the directed view without the delay: every dev session shares one payload.
+    const key = session.playerId || (session.dev ? 'dev' : 'spectator');
     let payload = payloads.get(key);
-    if (payload === undefined) payloads.set(key, payload = JSON.stringify({ type: 'state', state: room.match.project(session.playerId ? state : delayed, session.playerId) }));
+    if (payload === undefined) payloads.set(key, payload = JSON.stringify({ type: 'state', state: room.match.project(session.playerId || session.dev ? state : delayed, session.playerId) }));
     session.deliver(payload);
   }
   profiler.count('loop.viewsBuilt', payloads.size); profiler.count('loop.viewsSent', room.clients.size);

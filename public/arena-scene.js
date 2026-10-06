@@ -52,13 +52,24 @@ export function makeArenaScene(api) {
       this.crosshair = this.add.graphics();
       this.input.on('pointerdown', p => {
         if (!p.leftButtonDown()) return;
-        if (!api.replay()) { api.onFire(true); return; }
+        if (!api.directed()) { api.onFire(true); return; }
         // Clicking a marker is the fastest way to pick a subject out of a crowd; the roster select
-        // covers anyone too small, too distant or not currently on screen to hit.
+        // covers anyone too small, too distant or not currently on screen to hit. Anywhere else drags.
         const target = this.playerAt(p);
-        if (target) api.onFollow(target.id);
+        if (target) api.director.setFollow(target.id);
+        else this.drag = { x: p.x, y: p.y };
       });
-      this.input.on('pointerup', () => api.onFire(false));
+      this.input.on('pointermove', p => {
+        if (!this.drag || !p.isDown || !api.directed()) return;
+        const zoom = this.cameras.main.zoom;
+        api.director.pan((this.drag.x - p.x) / zoom, (this.drag.y - p.y) / zoom);
+        this.drag = { x: p.x, y: p.y };
+      });
+      this.input.on('pointerup', () => { this.drag = null; api.onFire(false); });
+      this.input.on('wheel', (p, _objects, _dx, dy) => {
+        if (!api.directed() || !dy) return;
+        api.director.zoomAt(Math.exp(-dy / 600), this.cameras.main.getWorldPoint(p.x, p.y));
+      });
       this.game.canvas.addEventListener('contextmenu', e => e.preventDefault());
       this.game.canvas.style.cursor = 'crosshair';
       this.scale.on('resize', () => this.updateCamera(true));
@@ -301,19 +312,21 @@ export function makeArenaScene(api) {
       }
       return best;
     }
-    // A directed camera frames the whole arena unless it has been given a subject to follow, which it
-    // shows at the zoom that player had in the match.
-    wideView() { return api.directed() && !api.follow(); }
-    /** Drop the smoothed eye so the next frame cuts to a new subject instead of gliding across the map. */
-    cutTo() { this.eye = null; this.updateCamera(true); }
+    /** Where the camera is now: its centre and zoom, the shape the director works in. */
+    cameraView() {
+      const camera = this.cameras.main;
+      return { x: camera.scrollX + camera.width / 2, y: camera.scrollY + camera.height / 2, zoom: camera.zoom };
+    }
+    /** Drop the smoothed eye and the old subject's gate memory, so the next frame cuts to a new subject. */
+    cutTo() { this.eye = null; this.gateMemory?.clear(); this.updateCamera(true); }
     updateCamera(snap = false) {
       const state = api.state(), map = api.map(); if (!state || !map) return;
-      const wide = this.wideView();
+      // A directed camera is the director's to point: whole arena, a free view, or a followed player.
       const focus = this.eye || api.follow() || api.self() || state.players[0];
-      const zoom = wide ? Math.min((this.scale.width - 40) / map.width, (this.scale.height - 150) / map.height) : playerZoom(this.scale.width, this.scale.height, api.overview());
+      const { x, y, zoom } = api.directed()
+        ? api.director.frame({ width: this.scale.width, height: this.scale.height, map, focus: this.eye || api.follow(), overview: api.overview() })
+        : { x: focus?.x || map.width / 2, y: focus?.y || map.height / 2, zoom: playerZoom(this.scale.width, this.scale.height, api.overview()) };
       const camera = this.cameras.main; camera.setZoom(zoom);
-      const x = wide ? map.width / 2 : focus?.x || map.width / 2;
-      const y = wide ? map.height / 2 : focus?.y || map.height / 2;
       // The eye is already smoothed, so the camera tracks it directly rather than easing a second time.
       camera.centerOn(x, y);
       this.marker = api.directed() ? markerScale(zoom) : 1;
@@ -339,14 +352,20 @@ export function makeArenaScene(api) {
       else if (!this.eye || Math.hypot(focus.x - this.eye.x, focus.y - this.eye.y) > 150) this.eye = { x: focus.x, y: focus.y };
       else { this.eye.x = Phaser.Math.Linear(this.eye.x, focus.x, ease); this.eye.y = Phaser.Math.Linear(this.eye.y, focus.y, ease); }
       const eye = this.eye;
+      // Whose sight the view is cut to: the player's own, a followed player's in a fogged directed
+      // view, or nobody's, which is the unfogged directed view.
+      const fogged = !api.directed() || !!api.director.viewer();
+      const viewer = api.directed() ? api.director.viewer() : self;
+      // Raw frame time, not Phaser's smoothed and clamped delta, so a slow client pans as far as a fast one.
+      if (api.directed()) api.director.step(rawDelta ?? delta);
       start('render.camera'); this.updateCamera(); stop('render.camera');
       const halfWidth = this.scale.width / this.cameras.main.zoom / 2;
       const halfHeight = this.scale.height / this.cameras.main.zoom / 2;
-      const nearView = (x, y, margin = 400) => this.wideView() || !eye || Math.abs(x - eye.x) < halfWidth + margin && Math.abs(y - eye.y) < halfHeight + margin;
+      const nearView = (x, y, margin = 400) => !eye || Math.abs(x - eye.x) < halfWidth + margin && Math.abs(y - eye.y) < halfHeight + margin;
       start('render.tiles'); this.updateTiles(); stop('render.tiles');
       for (const label of this.labels) label.setVisible(nearView(label.x, label.y));
       this.shade.clear();
-      if (api.directed() || !eye) { this.visionPoints = null; this.sight = null; }
+      if (!fogged || !eye) { this.visionPoints = null; this.sight = null; }
       else {
         start('render.vision');
         this.viewBounds = viewBounds(eye, this.scale.width, this.scale.height, this.cameras.main.zoom);
@@ -361,14 +380,14 @@ export function makeArenaScene(api) {
         stop('render.vision');
       }
       // The server now sends a wider set than the eye can reach, so the renderer resolves the geometry.
-      // Sight itself is a shared rule; a directed view opts out of it rather than reimplementing it.
-      const lit = (x, y) => api.directed() || seesPoint(this.sight, map, x, y);
+      // Sight itself is a shared rule; an unfogged view opts out of it rather than reimplementing it.
+      const lit = (x, y) => !fogged || seesPoint(this.sight, map, x, y);
       const inside = eye && buildingAt(map, eye);
-      for (const building of map.buildings || []) this.roofs.get(building.id).setVisible(!api.directed() && building.id !== inside?.id && nearView(building.x + building.w / 2, building.y + building.h / 2));
+      for (const building of map.buildings || []) this.roofs.get(building.id).setVisible(fogged && building.id !== inside?.id && nearView(building.x + building.w / 2, building.y + building.h / 2));
       const g = this.dynamic; g.clear();
       const fixed = this.fixtures; fixed.clear();
       start('render.world');
-      for (const gate of api.directed() ? state.gates : this.rememberedGates) {
+      for (const gate of fogged ? this.rememberedGates : state.gates) {
         if (!nearView(gate.x, gate.y)) continue;
         if (gate.kind === 'door') {
           const box = gateShape(gate); fixed.lineStyle(3, gate.stale ? 0x687789 : 0xe8bc74);
@@ -453,7 +472,7 @@ export function makeArenaScene(api) {
         // Own marks the viewer's player in any view; only a live one is steered by local aim and eye.
         const controlled = own && !api.replay();
         // Ordinary dynamic actors, including allies, are occluded. Reveals remain an explicit exception.
-        const shown = api.directed() || own || seesActor(this.sight, map, self, p);
+        const shown = !fogged || own || seesActor(this.sight, map, viewer, p);
         actor.container.setVisible(p.status === 'active' && shown);
         // Everyone but the viewer is drawn where the frame says, with no filter of its own. The
         // position already arrived interpolated between two authoritative states, so easing toward

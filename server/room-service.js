@@ -12,7 +12,7 @@ export const EMPTY_ROOM_GRACE_MS = 30000;
 const MAX_SPECTATORS = 24;
 
 // Sessions provide only deliver(serializedPayload) and close(code, reason); no socket dependency.
-export function createRoomService({ replays, wallNow = Date.now, reportError = console.error,
+export function createRoomService({ replays, devTools = 'none', wallNow = Date.now, reportError = console.error,
   replayFinishTimeoutMs = 5000, setTimer = setTimeout, clearTimer = clearTimeout }) {
   const rooms = new Map();
   const finalizations = new Set();
@@ -27,6 +27,8 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
     rooms.set(id, room); return room;
   }
   const preferredRole = (room, preference) => room.match.preferredRole(preference);
+  // Whether a session may open the dev view, under the server's policy (protocol.js).
+  const devAllowed = owner => devTools === 'all' || devTools === 'owner' && owner;
   function replayStatus(room, status) {
     if (room.recordingStatus?.status === status || room.recordingStatus?.status === 'failed') return;
     room.recordingStatus = { type: 'replay-status', status, message: status === 'failed'
@@ -113,6 +115,16 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
       const room = rooms.get(data.room);
       if (!room || room.finished) return send(session, { type: 'error', message: 'This arena has ended or no longer exists. Start a new match.' });
       const owner = data.ownerKey === room.ownerKey;
+      if (data.role === 'dev') {
+        if (!devAllowed(owner)) return send(session, { type: 'error', message: devTools === 'owner' ? 'The dev view of this arena requires its owner key.' : 'The dev view is not enabled on this server.' });
+        if (room.spectators >= MAX_SPECTATORS) return send(session, { type: 'error', message: 'This arena has no spectator capacity left.' });
+        session.room = room; session.owner = owner; session.dev = true; room.spectators++; room.clients.add(session);
+        // A spectator without the delay: no slot, no input authority, no recording of its own.
+        const frame = room.match.snapshot();
+        send(session, { type: 'welcome', id: null, spectator: true, dev: true, devTools: true, room: room.id, owner, started: room.started, map: room.match.spectatorMap(frame), state: room.match.project(frame, null) });
+        if (room.recordingStatus) send(session, room.recordingStatus);
+        return;
+      }
       if (data.role === 'spectator') {
         // The directed view is unfogged, so it is a wallhack for anyone also holding a player slot.
         // Keep owner authorization even with a delayed stream; there is no public spectator UX yet.
@@ -121,7 +133,7 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
         session.room = room; session.owner = owner; room.spectators++; room.clients.add(session);
         // A spectator holds no slot, drives no simulation, and never starts a recording.
         const frame = spectatorFrame(room);
-        send(session, { type: 'welcome', id: null, spectator: true, spectatorDelayTicks: SPECTATOR_DELAY_TICKS, room: room.id, owner, map: room.match.spectatorMap(frame), state: room.match.project(frame, null) });
+        send(session, { type: 'welcome', id: null, spectator: true, spectatorDelayTicks: SPECTATOR_DELAY_TICKS, room: room.id, owner, devTools: devAllowed(owner), map: room.match.spectatorMap(frame), state: room.match.project(frame, null) });
         if (room.recordingStatus) send(session, room.recordingStatus);
         return;
       }
@@ -141,7 +153,7 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
       const resumeKey = randomUUID(); room.resumes.set(resumeKey, p.id);
       if (room.matchmade && !room.startsAt) room.startsAt = wallNow() + 15000;
       room.inputs.push({ type: resumedId ? 'resume' : 'join', id: p.id, role: p.role, kit: p.kit, name: p.name });
-      send(session, { type: 'welcome', id: p.id, resumeKey, room: room.id, owner: session.owner, started: room.started, matchmade: !!room.matchmade, startsAt: room.startsAt || null, map: room.match.liveMap(), state: room.match.project(room.match.snapshot(), p.id) });
+      send(session, { type: 'welcome', id: p.id, resumeKey, room: room.id, owner: session.owner, devTools: devAllowed(session.owner), started: room.started, matchmade: !!room.matchmade, startsAt: room.startsAt || null, map: room.match.liveMap(), state: room.match.project(room.match.snapshot(), p.id) });
       if (room.recordingStatus) send(session, room.recordingStatus);
       broadcastLobby(room);
       return;
@@ -240,5 +252,5 @@ export function createRoomService({ replays, wallNow = Date.now, reportError = c
     return closing;
   }
 
-  return { rooms, hasCapacity, makeRoom, connect, receive, disconnect, advance, close };
+  return { rooms, devTools, hasCapacity, makeRoom, connect, receive, disconnect, advance, close };
 }
