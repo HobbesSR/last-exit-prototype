@@ -38,6 +38,23 @@ test('rooms made by an asynchronous generator hold their place, and matchmakers 
   } finally { await h.service.close(); }
 });
 
+test('a matchmaking answer that waits on generation is still a room id, or null at capacity', async () => {
+  const { generateMap, held } = heldGenerator(), h = roomHarness({ generateMap });
+  try {
+    const first = h.directory.match(), second = h.directory.match();
+    assert.equal(typeof first.then, 'function'); assert.equal(held.length, 1, 'one room for every waiter');
+    held[0].resolve();
+    const [id, again] = await Promise.all([first, second]);
+    assert.equal(typeof id, 'string'); assert.equal(again, id);
+    assert.deepEqual(h.directory.list().map(room => room.id), [id]);
+    assert.equal(h.directory.match(), id, 'a room still filling is answered at once');
+  } finally { await h.service.close(); }
+  const closing = roomHarness({ generateMap });
+  const pending = closing.directory.match(); await closing.service.close();
+  held.at(-1).resolve();
+  assert.equal(await pending, null, 'a room that could not be opened answers null');
+});
+
 test('a generator failure is reported to the matchmaker and frees the place', async () => {
   const { generateMap, held } = heldGenerator(), errors = [];
   const h = roomHarness({ generateMap, reportError: error => errors.push(error.message) });

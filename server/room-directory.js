@@ -36,7 +36,8 @@ export function createRoomDirectory({ host, generateMap = null, devTools = 'none
   const filling = () => host.summaries().find(room => room.kind === 'matchmade' && room.phase === 'lobby' && room.open.contestant + room.open.gladiator > 0);
   /**
    * The room id a matchmaking player should join, creating a room when none is filling: an id, null at
-   * capacity, or a promise to ask again once the room being generated is ready.
+   * capacity, or a promise of either once the room being generated is ready. The id is chosen afresh
+   * then, since others waiting for the same room may have filled it.
    */
   function match() {
     const found = filling();
@@ -48,7 +49,7 @@ export function createRoomDirectory({ host, generateMap = null, devTools = 'none
         matchmadeRoom = made;
         made.then(() => { matchmadeRoom = null; }, () => { matchmadeRoom = null; });
       }
-      return made;
+      return made.then(room => room ? match() : null);
     }
     return made ? made.id : null;
   }
@@ -61,7 +62,8 @@ export function createRoomDirectory({ host, generateMap = null, devTools = 'none
     if (!host.accepting()) return;
     const answer = match();
     if (answer && typeof answer.then === 'function') {
-      answer.then(ready => { if (session.closed || session.room) return; if (ready) receive(session, data); else send(session, FULL); },
+      // Asked again on arrival rather than joining the answered id: earlier arrivals may have filled it.
+      answer.then(id => { if (session.closed || session.room) return; if (id) receive(session, data); else send(session, FULL); },
         error => { reportError(error); if (!session.closed) send(session, { type: 'error', message: 'The arena could not be generated. Try again.' }); });
       return;
     }
