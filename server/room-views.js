@@ -15,6 +15,10 @@ export function broadcastLobby(room) {
   const payload = JSON.stringify(lobbyPayload(room));
   for (const session of room.clients) session.deliver(payload);
 }
+/** Each player's frame of the waiting area (#236); those watching see the match map, not this. */
+export function broadcastWaiting(room, view) {
+  for (const session of room.clients) if (session.playerId) session.deliver(JSON.stringify({ type: 'state', state: view(room.waiting, session.playerId) }), true);
+}
 export function spectatorFrame(room) {
   const cutoff = Math.max(0, room.match.tick - SPECTATOR_DELAY_TICKS);
   return room.history.findLast(frame => frame.tick <= cutoff) || room.history[0] || room.match.snapshot();

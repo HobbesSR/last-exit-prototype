@@ -246,12 +246,15 @@ export function makeArenaScene(api) {
         g.fillTriangle(st.x - 4, st.y + 19, st.x + 11, st.y - 2, st.x - 6, st.y - 2);
         this.label(st.x, st.y + 45, 'CHARGE CELL · E', '#ffe98a', 11);
       }
-      g = this.staticAt(ex.x - 46, ex.y - 44, ex.x + 46, ex.y + 44);
-      g.fillStyle(0x264f42); g.fillRoundedRect(ex.x - 44, ex.y - 42, 88, 84, 12);
-      g.lineStyle(4, 0xe6f59e); g.strokeRoundedRect(ex.x - 38, ex.y - 36, 76, 72, 8);
-      g.lineStyle(6, 0xe6f59e); g.lineBetween(ex.x - 12, ex.y, ex.x + 14, ex.y); g.lineBetween(ex.x + 3, ex.y - 12, ex.x + 15, ex.y); g.lineBetween(ex.x + 15, ex.y, ex.x + 3, ex.y + 12);
-      this.label(ex.x, ex.y - 60, 'LAST EXIT', '#e6f3a1', 14);
-      this.label(map.entry?.x || 340, (map.entry?.y || map.height / 2) - 70, 'CONTESTANT ENTRY', '#b4d6cf', 12);
+      // The waiting area before a match (#236) has no exit and no entry to mark.
+      if (ex) {
+        g = this.staticAt(ex.x - 46, ex.y - 44, ex.x + 46, ex.y + 44);
+        g.fillStyle(0x264f42); g.fillRoundedRect(ex.x - 44, ex.y - 42, 88, 84, 12);
+        g.lineStyle(4, 0xe6f59e); g.strokeRoundedRect(ex.x - 38, ex.y - 36, 76, 72, 8);
+        g.lineStyle(6, 0xe6f59e); g.lineBetween(ex.x - 12, ex.y, ex.x + 14, ex.y); g.lineBetween(ex.x + 3, ex.y - 12, ex.x + 15, ex.y); g.lineBetween(ex.x + 15, ex.y, ex.x + 3, ex.y + 12);
+        this.label(ex.x, ex.y - 60, 'LAST EXIT', '#e6f3a1', 14);
+        this.label(map.entry?.x || 340, (map.entry?.y || map.height / 2) - 70, 'CONTESTANT ENTRY', '#b4d6cf', 12);
+      }
       this.updateCamera(true);
     }
     obstacle(g, o) {
@@ -466,8 +469,11 @@ export function makeArenaScene(api) {
         const a = Math.max(0, e.life - alpha) / 12; g.lineStyle(3, ['shock', 'slash'].includes(e.kind) ? 0xff777e : ['scan', 'rail'].includes(e.kind) ? 0x96dcf4 : 0xeafdc1, a); g.strokeCircle(e.x, e.y, e.radius * (1 - a * 0.7));
         if (e.kind === 'smoke') { g.fillStyle(0xeaf4de, a * 0.45); g.fillCircle(e.x, e.y, e.radius * (1 - a * 0.6)); }
       }
-      fixed.fillStyle(0xd65065, 0.68); fixed.fillRect(-80, -80, Math.max(0, state.hazardX + 80), map.height + 160);
-      fixed.lineStyle(4, 0xffaaa1); fixed.lineBetween(state.hazardX, -80, state.hazardX, map.height + 80);
+      // The waiting area before a match (#236) has no advancing hazard.
+      if (state.hazardX != null) {
+        fixed.fillStyle(0xd65065, 0.68); fixed.fillRect(-80, -80, Math.max(0, state.hazardX + 80), map.height + 160);
+        fixed.lineStyle(4, 0xffaaa1); fixed.lineBetween(state.hazardX, -80, state.hazardX, map.height + 80);
+      }
       stop('render.world');
       start('render.actors');
       const ids = new Set();

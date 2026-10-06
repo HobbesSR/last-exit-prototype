@@ -144,15 +144,21 @@ function lobbyWaiting(matchmade) {
   if (!lobbyReady) return lobbyStarting || matchmade ? 'Generating the arena. The match starts when it is ready.' : 'Generating the arena…';
   return matchmade ? 'Match found. Preparing the arena…' : 'Waiting for the room owner to start the match.';
 }
+// A player's own HUD shows only while they play: not in the lobby, nor while stepped out to the dev view,
+// which the non-modal lobby lets them do before the start (#267 review).
+function showPlayerHud() {
+  if (playerId && !replayController.active()) $('live-hud').hidden = !!devFeed || $('lobby-dialog').open;
+}
 function showLobby(data) {
   updateLobby(data);
-  $('live-hud').hidden = true;
-  if (!$('lobby-dialog').open) $('lobby-dialog').showModal();
-  connection(owner ? 'LOBBY' : 'WAITING');
+  // Not modal: people walk about the waiting area while it is open (#236).
+  if (!$('lobby-dialog').open) $('lobby-dialog').show();
+  showPlayerHud();
+  if (!devFeed) connection(owner ? 'LOBBY' : 'WAITING');
 }
 function hideLobby() {
   if ($('lobby-dialog').open) $('lobby-dialog').close();
-  $('live-hud').hidden = false;
+  showPlayerHud();
 }
 async function connect({ room, key, role = 'contestant', kit = 'warden', name = 'Runner', matchmake = false }) {
   let saved;
@@ -204,7 +210,9 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       if (!data.spectator && !data.started) showLobby(data);
     } else if (data.type === 'ready') {
       liveMap = data.map; liveState = data.state;
-      if (!replayController.active() && !devFeed) { changeMap(data.map); acceptState(data.state); }
+      // A new map starts its own ticks, as at the start when players leave the waiting area (#236), so
+      // neither buffered frames nor inputs predicted on the old map carry over.
+      if (!replayController.active() && !devFeed) { snapshots.reset(); pending = []; changeMap(data.map); acceptState(data.state); }
     } else if (data.type === 'state') {
       notePacket(event.data.length);
       // Gap between authoritative frames: separates server pacing from client render cost.
@@ -219,7 +227,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       roundTripMs = data.rtt ?? null;
     } else if (data.type === 'lobby') {
       updateLobby(data);
-      if (data.started) { if (!devView) { hideLobby(); connection('LIVE'); } }
+      if (data.started) { if (!devView) { hideLobby(); connection(devFeed ? 'DEV VIEW' : 'LIVE'); } }
       else if (playerId) showLobby(data);
     } else if (data.type === 'choose') {
       if (!data.ok) toast(data.message);
@@ -238,8 +246,13 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
     } else if (data.type === 'error') {
       toast(data.message); connection('UNAVAILABLE');
       $('deploy-error').textContent = data.message; $('deploy-error').hidden = false;
-      // Includes a room given up while its map generated: its lobby is gone, so back to the deploy dialog.
-      if (!playerId || !state) { if ($('lobby-dialog').open) $('lobby-dialog').close(); openDeploy(); }
+      // Includes a room given up while its map generated: its lobby and waiting yard are gone, so back to
+      // the deploy dialog.
+      if (!playerId || !state || state.phase === 'waiting') {
+        if (state?.phase === 'waiting') { state = null; liveState = null; predicted = null; snapshots.reset(); }
+        if ($('lobby-dialog').open) $('lobby-dialog').close();
+        openDeploy();
+      }
     }
   });
   socket.addEventListener('close', () => {
@@ -312,7 +325,7 @@ function togglePause() {
 }
 function inputTick() {
   if (paused || devFeed || replayController.active() || !state || !predicted || !ws || ws.readyState !== WebSocket.OPEN || predicted.status !== 'active') { hudController.cancelDrag(); return; }
-  const blocked = document.querySelector('dialog[open]');
+  const blocked = document.querySelector('dialog:modal');
   if (blocked) hudController.cancelDrag();
   let pointerAim;
   if (scene?.ready) {
@@ -494,7 +507,7 @@ function leaveDevView() {
 function showDevMode() {
   const on = inDevView();
   $('dev-controls').hidden = !on; $('dev-leave').hidden = !devFeed;
-  if (playerId && !replayController.active()) $('live-hud').hidden = !!devFeed;
+  showPlayerHud();
   $('dev-view').classList.toggle('active', !!devFeed); $('dev-view').setAttribute('aria-pressed', String(!!devFeed));
   if (ws?.readyState === WebSocket.OPEN && !replayController.active()) connection(on ? 'DEV VIEW' : 'LIVE');
 }
@@ -509,12 +522,12 @@ function teleportToCursor() {
   if (point && ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'dev', action: 'teleport', id, x: point.x, y: point.y }));
 }
 addEventListener('keydown', event => {
-  if (event.code !== 'KeyT' || event.repeat || !inDevView() || replayController.active() || event.target.closest?.('input, textarea, select') || document.querySelector('dialog[open]')) return;
+  if (event.code !== 'KeyT' || event.repeat || !inDevView() || replayController.active() || event.target.closest?.('input, textarea, select') || document.querySelector('dialog:modal')) return;
   teleportToCursor();
 });
 // Backquote steps out to the dev view and back, wherever the button is.
 addEventListener('keydown', event => {
-  if (event.code !== 'Backquote' || event.repeat || event.target.closest?.('input, textarea, select') || document.querySelector('dialog[open]') || $('dev-view').hidden) return;
+  if (event.code !== 'Backquote' || event.repeat || event.target.closest?.('input, textarea, select') || document.querySelector('dialog:modal') || $('dev-view').hidden) return;
   devFeed ? leaveDevView() : enterDevView();
 });
 $('dev-focus').onchange = () => director.setFollow($('dev-focus').value);

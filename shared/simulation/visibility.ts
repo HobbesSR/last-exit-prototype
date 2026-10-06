@@ -30,7 +30,7 @@ export function visibleTo(s: Game, viewer: Player | null | undefined, target: Pl
 // private (inventory, ability timers, whether a slot is a bot) or unread by the renderer, so it never
 // leaves the server for anyone but the player it describes. Recordings keep the full state.
 const OBSERVED = ['id', 'role', 'kit', 'name', 'x', 'y', 'heading', 'status', 'hp', 'maxHp', 'shield', 'weapon', 'cloak', 'revealed'];
-const observed = (p: Player) => Object.fromEntries(OBSERVED.map(key => [key, p[key as keyof Player]]));
+export const observed = (p: Player) => Object.fromEntries(OBSERVED.map(key => [key, p[key as keyof Player]]));
 export function playerView(s: Game, frame: Snapshot, id: PlayerId) {
   start('sim.playerView');
   try { return buildPlayerView(s, frame, id); } finally { stop('sim.playerView'); }

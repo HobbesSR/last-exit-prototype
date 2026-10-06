@@ -42,7 +42,8 @@ test('a room is joinable while its map generates, and the seats it gave out are 
     assert.deepEqual(h.service.summaries().map(s => [s.id, s.phase, s.ready]), [[room.id, 'lobby', false]]);
     const { owner, striker, late, back } = crowd(h, room);
     const welcome = owner.messages.find(m => m.type === 'welcome');
-    assert.equal(welcome.ready, false); assert.equal(welcome.map, null); assert.equal(welcome.state, null);
+    // A player waits in the yard meanwhile (#236), shown nothing of the arena.
+    assert.equal(welcome.ready, false); assert.equal(welcome.map.generator, 'waiting-yard-1'); assert.equal(welcome.state.phase, 'waiting');
     assert.deepEqual(h.service.summaries()[0].players, { contestant: 1, gladiator: 2 });
     assert.equal(back.session.playerId, striker.session.playerId, 'a resume keeps its place');
 

@@ -34,7 +34,7 @@ export function createHUDController(actions) {
     });
     listen(button, 'pointerdown', e => {
       suppressedClicks.delete(button);
-      if (drag || !dragEnabled || (e.pointerType !== 'touch' && e.button !== 0) || document.querySelector('dialog[open]') || actions.canDrag?.() === false || button.dataset.occupied !== 'true') return;
+      if (drag || !dragEnabled || (e.pointerType !== 'touch' && e.button !== 0) || document.querySelector('dialog:modal') || actions.canDrag?.() === false || button.dataset.occupied !== 'true') return;
       drag = { button, pointerId: e.pointerId, source: index, x: e.clientX, y: e.clientY, moved: false };
       button.setPointerCapture(e.pointerId);
     });
@@ -50,7 +50,7 @@ export function createHUDController(actions) {
       const active = drag; cancelDrag();
       if (!active.moved) return;
       suppressedClicks.add(button); e.preventDefault();
-      if (!dragEnabled || document.querySelector('dialog[open]') || actions.canDrag?.() === false) return;
+      if (!dragEnabled || document.querySelector('dialog:modal') || actions.canDrag?.() === false) return;
       const destination = slotAtPoint(e.clientX, e.clientY);
       if (destination !== null && destination !== active.source) actions.moveSlot(active.source, destination);
       else if (document.elementFromPoint(e.clientX, e.clientY) === document.querySelector('#game canvas')) actions.dropSlot(active.source);
@@ -120,6 +120,10 @@ export function createHUDController(actions) {
   function hud({ state, arenaMap, playerId, replay, savedReplay, selection: { moveFrom }, visibility }) {
     const me = state.players.find(p => p.id === playerId) || (replay ? state.players[0] : null);
     dragEnabled = false;
+    // The waiting area before a match (#236) has no clock, objective, loadout or outcome to show.
+    const waiting = state.phase === 'waiting';
+    $('arena').classList.toggle('waiting', waiting);
+    if (waiting) { cancelDrag(); return; }
     if (!me) { cancelDrag(); setHidden($('arrange-item'), true); setHidden($('objective'), true); setHidden($('equipment-slots'), true); setHidden($('drop-item'), true); }
     setText($('clock'), time((state.duration || 2400) - state.tick));
     setText($('slots'), state.slots);
@@ -136,7 +140,7 @@ export function createHUDController(actions) {
     
     if (me) {
       const gladiator = me.role === 'gladiator';
-      dragEnabled = !gladiator && !replay && me.status === 'active' && !document.querySelector('dialog[open]');
+      dragEnabled = !gladiator && !replay && me.status === 'active' && !document.querySelector('dialog:modal');
       if (!dragEnabled) cancelDrag();
       const cell = carriedCell(me) || me.cell; // Older recordings stored a dedicated cell.
       setHidden($('drop-item'), gladiator || !!replay || me.status !== 'active');
@@ -280,7 +284,7 @@ export function createHUDController(actions) {
       c.fillStyle = p.id === playerId ? cols.me : p.role === 'gladiator' ? cols.gladiator : cols.contestant;
       c.beginPath(); c.arc(p.x * sx, p.y * sy, p.id === playerId ? 3.5 : 2, 0, Math.PI * 2); c.fill();
     }
-    c.strokeStyle = cols.exit; c.strokeRect(arenaMap.exit.x * sx - 3, arenaMap.exit.y * sy - 4, 6, 8);
+    if (arenaMap.exit) { c.strokeStyle = cols.exit; c.strokeRect(arenaMap.exit.x * sx - 3, arenaMap.exit.y * sy - 4, 6, 8); }
   }
   return {
     render(props) {

@@ -93,7 +93,9 @@ test('resume credentials restore the same player even while the previous socket 
     const p = server.rooms.get(room.id).game.players.find(p => p.id === a.welcome.id); p.hp = 215;
     const b = await join({ ownerKey: room.ownerKey, resumeKey: a.welcome.resumeKey });
     assert.equal(b.welcome.id, a.welcome.id); assert.equal(b.welcome.owner, true);
-    assert.equal(b.welcome.state.players.find(p => p.id === b.welcome.id).hp, 215);
+    // Before the start a player is shown the waiting area (#236); the place resumed is the match's own.
+    assert.equal(server.rooms.get(room.id).game.players.find(p => p.id === b.welcome.id), p); assert.equal(p.hp, 215);
+    assert.ok(b.welcome.state.players.some(p => p.id === b.welcome.id));
     assert.notEqual(b.welcome.resumeKey, a.welcome.resumeKey, 'resume token rotates');
     assert.equal(p.bot, false); assert.equal(p.kit, 'striker');
     const guest = await join({}); assert.notEqual(guest.welcome.id, b.welcome.id); assert.equal(guest.welcome.owner, false);

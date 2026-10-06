@@ -49,7 +49,10 @@ test('a player changes role and kit in the lobby, freeing their place to its ros
     runner.send({ type: 'choose', role: 'gladiator', kit: 'striker' });
     assert.deepEqual(room.match.player(id), { id, name: 'Runner', role: 'gladiator', kit: 'striker' }, 'the same player, now a hunter');
     assert.equal(runner.messages.at(-1).type, 'lobby');
-    assert.ok(runner.messages.findLast(m => m.type === 'ready').state.players.some(p => p.id === id && p.role === 'gladiator'), 'shown from the new place');
+    // Shown in their new role in the waiting area (#236), never from the match place itself before the start.
+    assert.ok(!runner.messages.some(m => m.type === 'ready'));
+    h.wake(50);
+    assert.ok(runner.messages.findLast(m => m.type === 'state').state.players.some(p => p.id === id && p.role === 'gladiator' && p.kit === 'striker'), 'shown in the new role');
     assert.deepEqual(owner.messages.findLast(m => m.type === 'lobby').players.find(p => p.id === id), { id, name: 'Runner', role: 'gladiator', kit: 'striker' });
     const players = room.game.players;
     assert.equal(new Set(players.map(p => p.id)).size, players.length, 'identifiers stay unique');

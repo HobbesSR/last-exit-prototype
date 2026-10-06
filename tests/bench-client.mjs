@@ -41,7 +41,7 @@ try {
     Object.assign(player, { x: site.x, y: site.y });
   }
   await page.getByRole('button', { name: 'Start match', exact: true }).click();
-  await page.waitForFunction(() => window.arenaDebug?.().tick > 3, null, { timeout: 15000 });
+  await page.waitForFunction(() => window.arenaDebug?.().phase === 'live' && window.arenaDebug().tick > 3, null, { timeout: 15000 });
   await page.evaluate(() => { window.arenaProfiling(false); window.arenaProfiling(true); });
   if (args.has('server-profile')) server.profiler.reset();
   const measuredAt = performance.now();

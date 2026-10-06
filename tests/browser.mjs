@@ -37,7 +37,7 @@ async function ready(page, url = base) {
   await page.goto(url);
   const start = page.getByRole('button', { name: 'Start match', exact: true });
   if (await start.waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false)) await start.click();
-  await page.waitForFunction(() => window.arenaDebug?.().tick > 3, null, { timeout: 15000 });
+  await page.waitForFunction(() => window.arenaDebug?.().phase === 'live' && window.arenaDebug().tick > 3, null, { timeout: 15000 });
 }
 try {
   await checkClientControllers(browser, base);
@@ -46,9 +46,17 @@ try {
   await page.getByRole('button', { name: 'Start match', exact: true }).waitFor();
   await page.waitForFunction(() => document.querySelector('#lobby-count')?.textContent === '1/8 contestants / 0/3 gladiators');
   const ownerRoom = new URL(page.url()).searchParams.get('room');
-  // The lobby opens before the map exists (#258); the player's own view arrives with it.
+  // The lobby opens before the map exists (#258), with the player already in the waiting yard (#236).
   const myId = async () => (await page.waitForFunction(() => window.arenaDebug().me?.id, null, { timeout: 120000 })).jsonValue();
   const ownerPlayer = await myId();
+  // Until the start players walk about a waiting yard (#236): the lobby stays open and the arena hidden.
+  await page.waitForFunction(() => window.arenaDebug().phase === 'waiting');
+  assert.equal(await page.evaluate(() => window.arenaDebug().map.width), 1400, 'the yard, not the arena');
+  const waitingX = await page.evaluate(() => window.arenaDebug().me.x);
+  await page.keyboard.down('KeyD'); await page.waitForTimeout(650); await page.keyboard.up('KeyD');
+  await page.waitForFunction(x => window.arenaDebug().me.x > x + 40, waitingX, { timeout: 5000 });
+  assert.equal(await page.evaluate(() => document.getElementById('lobby-dialog').open), true, 'walking leaves the lobby open');
+  await page.screenshot({ path: 'test-results/waiting-yard.png' });
   assert.equal(new URL(page.url()).searchParams.has('ownerKey'), false, 'invite URL contains no owner credential');
   await page.reload();
   await page.getByRole('button', { name: 'Start match', exact: true }).waitFor();
@@ -589,7 +597,7 @@ try {
   assert.equal(await choice.locator('#lobby-kit').inputValue(), 'specter');
   await page.screenshot({ path: 'test-results/lobby-choice.png' });
   server.rooms.get(matchedRoom).startsAt = Date.now() - 1;
-  await page.waitForFunction(() => !document.getElementById('lobby-dialog').open && window.arenaDebug().tick > 3);
+  await page.waitForFunction(() => !document.getElementById('lobby-dialog').open && window.arenaDebug().phase === 'live' && window.arenaDebug().tick > 3);
   // A building's floor must sit under its walls: tiles replay drawings in the order recorded, and a floor
   // recorded after the obstacles once painted over every interior wall (#207), leaving the doors floating.
   const wallRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":7}' })).json();
@@ -627,6 +635,6 @@ try {
     && document.getElementById('lobby-title').textContent === 'Night shift', namedRoom.id);
   await wallPage.close();
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: true, pixels, occlusion, screenshots: ['desktop', 'arena-overview', 'replay', 'loadout', 'gladiator', 'mobile', 'mobile-loadout', 'room-browser', 'lobby-choice', 'occlusion', 'spectator'], checks: ['movement', 'ability', 'multiplayer', 'replay seek', 'download', 'kit selection', 'dual-stick multitouch', 'mouse aim', 'occlusion pixels', 'shade not blackout', 'client-side visibility', 'shot interpolation', 'spectator directed view', 'mobile overflow', 'generation failure after an arena', 'room browser join', 'lobby role and kit', 'assets', 'browser errors'] }, null, 2));
+  console.log(JSON.stringify({ passed: true, pixels, occlusion, screenshots: ['desktop', 'arena-overview', 'replay', 'loadout', 'gladiator', 'mobile', 'mobile-loadout', 'room-browser', 'waiting-yard', 'lobby-choice', 'occlusion', 'spectator'], checks: ['movement', 'ability', 'multiplayer', 'replay seek', 'download', 'kit selection', 'dual-stick multitouch', 'mouse aim', 'occlusion pixels', 'shade not blackout', 'client-side visibility', 'shot interpolation', 'spectator directed view', 'mobile overflow', 'generation failure after an arena', 'room browser join', 'waiting yard', 'lobby role and kit', 'assets', 'browser errors'] }, null, 2));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
 finally { await browser.close(); await server.close(); await maps.close(); }
