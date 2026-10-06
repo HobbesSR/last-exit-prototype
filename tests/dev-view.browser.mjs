@@ -116,7 +116,30 @@ try {
   await until(() => room.pausedAt == null && room.match.tick > pausedAt, () => 'Space resumed the room');
   await page.waitForFunction(() => !window.arenaDebug().paused && document.getElementById('paused-banner').hidden);
   await dev.close();
+
+  // The lobby browser (#254) offers a dev view of a listed room under this policy. The role Join uses
+  // is the dialog's own choice: entering a dev view, or Auto with no preference, must not replace it.
+  const named = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9,"name":"Night shift"}' })).json();
+  const browse = async () => {
+    await page.getByRole('button', { name: 'New arena', exact: true }).click();
+    const join = page.getByRole('button', { name: 'Join Night shift', exact: true });
+    await join.waitFor();
+    // Wait out a refresh, so the row is drawn after whatever the last connection did.
+    const drawn = await join.elementHandle(); await page.waitForFunction(old => !old.isConnected, drawn);
+    assert.equal(await join.isEnabled(), true, 'Join stays usable for the role the dialog shows');
+    assert.equal(await page.locator('[data-role][aria-pressed="true"]').getAttribute('data-role'), 'contestant');
+  };
+  await browse();
+  await page.getByRole('button', { name: 'Dev view of Night shift', exact: true }).click();
+  await page.waitForFunction(id => window.arenaDebug().dev && window.arenaDebug().room === id, named.id);
+  await browse();
+  await page.locator('#role-preference').selectOption('any');
+  await page.getByRole('button', { name: 'Auto', exact: true }).click();
+  await page.waitForFunction(() => document.getElementById('lobby-dialog').open && window.arenaDebug().me);
+  server.rooms.get(await page.evaluate(() => window.arenaDebug().room)).startsAt = Date.now() - 1;
+  await page.waitForFunction(() => !document.getElementById('lobby-dialog').open && window.arenaDebug().tick > 3);
+  await browse();
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: true, checks: ['step out and back', 'dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'teleport', 'pause and resume'] }));
+  console.log(JSON.stringify({ passed: true, checks: ['step out and back', 'dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'teleport', 'pause and resume', 'browser dev view', 'browser role after dev view and Auto'] }));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
 finally { await browser.close(); await server.close(); await rm(replayDir, { recursive: true, force: true }); }

@@ -144,7 +144,9 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   $('lobby-title').textContent = 'Arena lobby.';
   owner = false; lobbyPlayers = []; lobbyCapacity = null; lobbyReady = true; lobbyStarting = false; devView = false; devRoster = ''; director.reset(); setPaused(false);
   $('finish-recording').disabled = false;
-  roomId = room; ownerKey = key; selectedRole = role;
+  // `role` is how this connection joins (a role, a matchmaking preference or the dev view); `selectedRole`
+  // stays the deploy dialog's own choice, which only its role buttons set.
+  roomId = room; ownerKey = key;
   connection('CONNECTING');
   const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
   ws = socket;
