@@ -169,12 +169,12 @@ function renderPlay(): void {
   const reasons = map ? live : ["there is no map yet"];
   const playable = !reasons.length && gameUrl !== null;
   link.hidden = !playable;
-  if (playable) link.href = `${gameUrl}/?seed=${map!.layout.seed}`;
+  if (playable) link.href = `${gameUrl}/?seed=${map!.layout.seed}&size=${sizeKey(map!.layout.params.zoneWidth, map!.layout.params.zoneHeight)}`;
   $("playNote").textContent = reasons.length
     ? `A room wouldn't play this map: ${reasons.join("; ")}.`
     : gameUrl === null
       ? "A room would play this map, but the game's dev server isn't running in this worktree."
-      : `Opens a new room with seed ${map!.layout.seed}.`;
+      : `Opens a new room with seed ${map!.layout.seed} at ${map!.layout.params.zoneWidth} × ${map!.layout.params.zoneHeight}.`;
 }
 
 function setStatus(text: string, bad = false): void {

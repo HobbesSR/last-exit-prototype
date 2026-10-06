@@ -17,7 +17,7 @@ npm run bench:client
 The unit suite has two tiers. `npm test` is the fast tier for iterating on a PR:
 everything under `tests/*.test.js`, about ten seconds. `npm run test:all` adds
 `tests/slow/`: the 200-map route sweep, the bot-match traces against the frozen
-fixture, and bots completing whole matches. Those slow tests take about a minute
+fixture, and bots completing whole matches. Those slow tests take about five minutes, most of it one 36 × 18 room (below)
 and four fifths of the suite's CPU, and their evidence only moves when generation
 or simulation moves. Run `test:all` before opening a PR that touches
 `shared/`, `server/` or map generation the game consumes, and at integration
@@ -196,8 +196,12 @@ boundary tests cover concave edges, holes and whole-body clearance while pinning
 legacy diamond movement. `tests/slow/live-map.test.js` plays combat-neutralized
 bots through all three extraction slots on seeds 1, 9 and 4217. Transit strategy
 and macro library tests check hunter access, standing space, six separate owned
-regions and longitudinal distribution. These samples do not establish human
-balance or exhaustive seed coverage.
+regions and longitudinal distribution. `tests/slow/room-sizes.test.js` runs a bot
+match to its end in a room at each authored size (14), checks every tick was
+recorded in order, and reads sparse frames back through the replay timeline; it
+takes about 11 s, 1 min and 4.5 min at 12 × 6, 24 × 12 and 36 × 18, nearly all
+of the slow tier's wall time. These samples do not establish human balance or
+exhaustive seed coverage.
 
 The browser suite uses live-chain rooms for normal play, replay, mobile controls
 and buildings. Its fixed-coordinate occlusion/projectile fixture explicitly uses
