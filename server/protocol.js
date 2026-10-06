@@ -28,6 +28,16 @@ export function roomSize(body) {
   if (body?.size === undefined) return DEFAULT_LIVE_ZONE_SIZE;
   return LIVE_ZONE_SIZES.find(size => zoneSizeName(size) === body.size) ?? null;
 }
+// A room's name (17.4 #9): free text, trimmed, at most MAX_ROOM_NAME characters. Null when the request
+// names none, false when the one it names is not a string, too long, or holds control characters.
+export const MAX_ROOM_NAME = 24;
+export function roomName(body) {
+  if (body?.name == null) return null;
+  if (typeof body.name !== 'string') return false;
+  const name = body.name.trim().replace(/\s+/g, ' ');
+  if (!name) return null;
+  return [...name].length <= MAX_ROOM_NAME && !/\p{Cc}/u.test(name) ? name : false;
+}
 
 // Who may open the dev view (24): nobody, a room's owner, or anyone. The view is a wallhack, so a
 // server started without a policy offers it to nobody; `npm run dev` asks for `all`.

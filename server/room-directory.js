@@ -11,22 +11,24 @@ const FULL = { type: 'error', message: 'All arena slots are occupied. Try matchm
  */
 export function createRoomDirectory({ host, generateMap = null, devTools = 'none' }) {
   const hasCapacity = () => host.accepting() && host.summaries().length < MAX_ROOMS;
+  /** Whether an open room already has this name: names are unique while their room is open (17.4 #9). */
+  const nameTaken = name => host.summaries().some(room => room.name?.toLowerCase() === name.toLowerCase());
   /**
-   * A new room, or null at capacity. It exists, and can be joined, at once: its map is made by
-   * `generateMap` when the directory has one (a worker, so no other room's ticks wait on it) and arrives
-   * later (#258). Without one the map is generated inline, which is what the fake-clock tests use.
+   * A new room, or null at capacity or when its name is taken. It exists, and can be joined, at once: its
+   * map is made by `generateMap` when the directory has one (a worker, so no other room's ticks wait on it)
+   * and arrives later (#258). Without one the map is generated inline, which is what the fake-clock tests use.
    */
-  function createRoom(seed, matchmade = false, size = DEFAULT_LIVE_ZONE_SIZE) {
-    if (!hasCapacity()) return null;
-    return host.makeRoom(seed, matchmade, size, generateMap?.(seed, size));
+  function createRoom(seed, matchmade = false, size = DEFAULT_LIVE_ZONE_SIZE, name = null) {
+    if (!hasCapacity() || name && nameTaken(name)) return null;
+    return host.makeRoom(seed, matchmade, size, generateMap?.(seed, size), name);
   }
   /**
-   * The rooms a lobby browser may show. Everyone sees matchmade rooms still filling; private rooms are
-   * reached by link, and live ones only through the dev view (17.4 #9), so a server whose dev tools
-   * policy admits every session lists every open room. Under `owner` admission needs a room's own key,
-   * which an anonymous listing does not have.
+   * The rooms a lobby browser may show (17.4 #9). Everyone sees rooms not yet started that are matchmade
+   * or named; an unnamed private room is reached by its link. Live rooms are watched only through the dev
+   * view, so a server whose dev tools policy admits every session lists every open room. Under `owner`
+   * admission needs a room's own key, which an anonymous listing does not have.
    */
-  const list = () => host.summaries().filter(room => devTools === 'all' || room.kind === 'matchmade' && room.phase === 'lobby');
+  const list = () => host.summaries().filter(room => devTools === 'all' || room.phase === 'lobby' && (room.kind === 'matchmade' || room.name));
   /** A matchmade room still filling with a place left: whichever role the player prefers, admission falls back. */
   const filling = () => host.summaries().find(room => room.kind === 'matchmade' && room.phase === 'lobby' && room.open.contestant + room.open.gladiator > 0);
   /** The room id a matchmaking player should join, creating a room when none is filling, or null at capacity. */
@@ -47,5 +49,5 @@ export function createRoomDirectory({ host, generateMap = null, devTools = 'none
     const role = ['contestant', 'gladiator'].includes(data.role) ? data.role : 'any';
     host.receive(session, { ...data, type: 'join', room: answer, role });
   }
-  return { hasCapacity, createRoom, list, match, receive };
+  return { hasCapacity, nameTaken, createRoom, list, match, receive };
 }

@@ -31,13 +31,14 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
    * A room, open for joining at once (#258). `map` is the generated map, a promise of it (the worker, so
    * players wait in the lobby rather than for the room to exist), or absent to generate inline (the
    * fake-clock tests). Until the map arrives the room has seats but no match, and cannot start.
+   * `name` lists a private room in the lobby browser (17.4 #9); the directory has checked it.
    * Null once closing.
    */
-  function makeRoom(seed, matchmade = false, size = DEFAULT_LIVE_ZONE_SIZE, map) {
+  function makeRoom(seed, matchmade = false, size = DEFAULT_LIVE_ZONE_SIZE, map, name = null) {
     if (closing) return null;
     const id = randomBytes(4).toString('hex'), lobby = createLobby();
     // `seats` answers who holds which place: the lobby's until the match exists, then the match's own.
-    const room = { id, ownerKey: randomUUID(), seed, size, content: lobby.content, seats: lobby, match: null, game: null, clients: new Set(), started: false, createdAt: wallNow(), inputs: [], finished: false, debt: 0, steppedAt: 0, spectators: 0, history: [], matchmade, resumes: new Map() };
+    const room = { id, ownerKey: randomUUID(), seed, size, content: lobby.content, seats: lobby, match: null, game: null, clients: new Set(), started: false, createdAt: wallNow(), inputs: [], finished: false, debt: 0, steppedAt: 0, spectators: 0, history: [], matchmade, name, resumes: new Map() };
     rooms.set(id, room);
     if (typeof map?.then === 'function') {
       // Settles once the room has its match or has been given up, and never rejects, so it can be awaited.
@@ -80,7 +81,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   const preferredRole = (room, preference) => room.seats.preferredRole(preference);
   /** Every unfinished room's public summary: plain data, never the room, and never its owner key. */
   const summaries = () => [...rooms.values()].filter(room => !room.finished).map(room => ({
-    id: room.id, kind: room.matchmade ? 'matchmade' : 'private', phase: room.started ? 'live' : 'lobby',
+    id: room.id, name: room.name, kind: room.matchmade ? 'matchmade' : 'private', phase: room.started ? 'live' : 'lobby',
     ready: !!room.match, size: zoneSizeName(room.size), createdAt: room.createdAt,
     players: byRole(role => room.seats.roster().filter(p => p.role === role).length),
     open: byRole(role => room.seats.openPlaces(role))
