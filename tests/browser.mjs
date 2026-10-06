@@ -575,12 +575,18 @@ try {
   // The lobby lets a player change role and kit until the start (#235); the view under it follows.
   const choice = page.locator('#lobby-choice');
   assert.equal(await choice.locator('#lobby-kit').isVisible(), true, 'a gladiator sees their kit');
+  // A kit picked in the lobby survives reselecting the role held and a spell as a contestant (#264 review);
+  // the deploy dialog holds another kit, which neither may send.
+  assert.notEqual(await page.locator('#kit').inputValue(), 'specter');
+  await choice.locator('#lobby-kit').selectOption('specter');
+  await page.waitForFunction(() => window.arenaDebug().me?.kit === 'specter');
+  await choice.getByRole('button', { name: 'Gladiator', exact: true }).click();
   await choice.getByRole('button', { name: 'Contestant', exact: true }).click();
   await page.waitForFunction(() => window.arenaDebug().me?.role === 'contestant' && document.getElementById('lobby-kit').hidden);
   await choice.getByRole('button', { name: 'Gladiator', exact: true }).click();
   await page.waitForFunction(() => window.arenaDebug().me?.role === 'gladiator');
-  await choice.locator('#lobby-kit').selectOption('specter');
-  await page.waitForFunction(() => window.arenaDebug().me?.kit === 'specter');
+  assert.equal(await page.evaluate(() => window.arenaDebug().me.kit), 'specter');
+  assert.equal(await choice.locator('#lobby-kit').inputValue(), 'specter');
   await page.screenshot({ path: 'test-results/lobby-choice.png' });
   server.rooms.get(matchedRoom).startsAt = Date.now() - 1;
   await page.waitForFunction(() => !document.getElementById('lobby-dialog').open && window.arenaDebug().tick > 3);

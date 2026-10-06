@@ -31,6 +31,8 @@ let lobbyCapacity = null;
 let lobbyStartsAt = null;
 // Whether the room's map exists yet (#258), and whether the owner's start is waiting on it.
 let lobbyReady = true, lobbyStarting = false;
+// The gladiator kit this player last held or picked in the lobby, kept across a spell as a contestant.
+let lobbyKit = 'warden';
 const inputController = createInputController({
   getPlayer: () => state?.players.find(p => p.id === playerId),
   onSelectionChange: () => updateHUD(), onToggleFullscreen: () => toggleFullscreen(),
@@ -126,8 +128,9 @@ function showChoice(started) {
     // Another side is open while it holds fewer people than places.
     button.disabled = !mine && !!lobbyCapacity && lobbyPlayers.filter(p => p.role === role).length >= lobbyCapacity[role];
   }
+  if (me.role === 'gladiator') lobbyKit = me.kit;
   $('lobby-kit').hidden = me.role !== 'gladiator';
-  $('lobby-kit').value = me.kit;
+  $('lobby-kit').value = lobbyKit;
   // An owner reconnecting without a resume key rejoins as they now are, not as they first deployed.
   if (owner) {
     try {
@@ -165,7 +168,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   snapshots.reset(); presentation = null; roundTripMs = null;
   resetDiagnostics();
   $('lobby-title').textContent = 'Arena lobby.';
-  owner = false; lobbyPlayers = []; lobbyCapacity = null; lobbyReady = true; lobbyStarting = false; devView = false; devRoster = ''; director.reset(); setPaused(false);
+  owner = false; lobbyPlayers = []; lobbyCapacity = null; lobbyReady = true; lobbyStarting = false; lobbyKit = kit; devView = false; devRoster = ''; director.reset(); setPaused(false);
   $('finish-recording').disabled = false;
   // `role` is how this connection joins (a role, a matchmaking preference or the dev view); `selectedRole`
   // stays the deploy dialog's own choice, which only its role buttons set.
@@ -434,11 +437,13 @@ const showKit = () => { $('kit-options').hidden = selectedRole !== 'gladiator' &
 $('role-preference').onchange = showKit;
 $('lobby-kit').innerHTML = $('kit').innerHTML;
 document.querySelectorAll('[data-lobby-role]').forEach(button => button.onclick = () => {
-  const role = button.dataset.lobbyRole;
-  // Switching to gladiator brings the kit picked when deploying; a contestant's kit is never shown.
-  choose(role, role === 'gladiator' ? $('kit').value : undefined);
+  const role = button.dataset.lobbyRole, me = lobbyPlayers.find(p => p.id === playerId);
+  // The role already held asks nothing, so it cannot send a kit that is not the player's own.
+  if (!me || role === me.role) return;
+  // Back to gladiator with the lobby's latest kit; a contestant's kit is never shown.
+  choose(role, role === 'gladiator' ? lobbyKit : undefined);
 });
-$('lobby-kit').onchange = () => choose('gladiator', $('lobby-kit').value);
+$('lobby-kit').onchange = () => { lobbyKit = $('lobby-kit').value; choose('gladiator', lobbyKit); };
 document.querySelectorAll('.close-dialog').forEach(button => button.onclick = () => button.closest('dialog').close());
 $('share').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('Arena link copied'); } catch { toast('Arena link: ' + location.href); } };
 $('copy-lobby-link').onclick = $('share').onclick;
