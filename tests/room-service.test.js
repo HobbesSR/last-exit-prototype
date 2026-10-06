@@ -14,9 +14,13 @@ test('three hunter places are advertised, admitted, reclaimed and recorded', asy
     assert.deepEqual(lobby.capacity, { contestant: 8, gladiator: 3 });
     assert.equal(lobby.players.filter(p => p.role === 'gladiator').length, 3);
     assert.ok(hunters.every(p => p.session.playerId));
+    // Before the start a full side places the player on the other, where the lobby lets them change (#235).
     const fourth = h.joined(room, { role: 'gladiator' });
-    assert.match(fourth.messages[0].message, /No gladiator places/);
-    assert.equal(fourth.session.playerId, null);
+    assert.equal(room.match.player(fourth.session.playerId).role, 'contestant');
+    fourth.send({ type: 'choose', role: 'gladiator', kit: 'specter' });
+    assert.match(fourth.messages.at(-1).message, /No gladiator places/);
+    assert.equal(fourth.messages.at(-1).ok, false);
+    h.service.disconnect(fourth.session);
     const third = hunters[2], welcome = third.messages.find(m => m.type === 'welcome');
     h.service.disconnect(third.session);
     const resumed = h.joined(room, { resumeKey: welcome.resumeKey });
@@ -30,6 +34,58 @@ test('three hunter places are advertised, admitted, reclaimed and recorded', asy
     assert.equal(writer.header.minSchema, 4);
     assert.equal(writer.frames[0].state.players.filter(p => p.role === 'gladiator').length, 3);
     assert.equal(writer.frames[0].state.slots, 3);
+  } finally { await h.service.close(); }
+});
+
+test('a player changes role and kit in the lobby, freeing their place to its roster bot, until the start', async () => {
+  const h = roomHarness(), room = h.service.makeRoom(9);
+  try {
+    const owner = h.joined(room, { ownerKey: room.ownerKey, name: 'Owner' });
+    const runner = h.joined(room, { name: 'Runner' }), id = runner.session.playerId;
+    const fresh = createGame(9, room.match.map(), room.content).players;
+    const before = room.match.player(id);
+    assert.equal(before.role, 'contestant');
+
+    runner.send({ type: 'choose', role: 'gladiator', kit: 'striker' });
+    assert.deepEqual(room.match.player(id), { id, name: 'Runner', role: 'gladiator', kit: 'striker' }, 'the same player, now a hunter');
+    assert.equal(runner.messages.at(-1).type, 'lobby');
+    assert.ok(runner.messages.findLast(m => m.type === 'ready').state.players.some(p => p.id === id && p.role === 'gladiator'), 'shown from the new place');
+    assert.deepEqual(owner.messages.findLast(m => m.type === 'lobby').players.find(p => p.id === id), { id, name: 'Runner', role: 'gladiator', kit: 'striker' });
+    const players = room.game.players;
+    assert.equal(new Set(players.map(p => p.id)).size, players.length, 'identifiers stay unique');
+    // The contestant place they left is its roster bot again, where it stood.
+    const place = ({ id, name, role, kit, bot, x, y }) => ({ id, name, role, kit, bot, x, y });
+    const left = players.filter(p => p.role === 'contestant')[1], bot = fresh.filter(p => p.role === 'contestant')[1];
+    assert.deepEqual(place(left), place(bot));
+
+    runner.send({ type: 'choose', role: 'gladiator', kit: 'specter' });
+    assert.equal(room.match.player(id).kit, 'specter', 'a kit changes in place');
+    runner.send({ type: 'choose', role: 'gladiator', kit: 'no-such-kit' });
+    assert.equal(room.match.player(id).kit, 'specter', 'a kit the content lacks is ignored');
+    runner.send({ type: 'choose', role: 'spectator' });
+    assert.equal(runner.messages.at(-1).ok, false);
+    assert.equal(room.match.player(id).role, 'gladiator');
+
+    owner.send({ type: 'start' });
+    const commands = h.writers.get(room.id).frames[0].commands;
+    assert.deepEqual(commands.filter(c => c.type === 'choose'), [
+      { type: 'choose', id, role: 'gladiator', kit: 'striker' },
+      { type: 'choose', id, role: 'gladiator', kit: 'specter' },
+      { type: 'choose', id, role: 'gladiator', kit: 'specter' }
+    ]);
+    runner.send({ type: 'choose', role: 'contestant' });
+    assert.equal(room.match.player(id).role, 'gladiator', 'no change once the match has started');
+  } finally { await h.service.close(); }
+});
+
+test('a private match already under way admits only the role asked for', async () => {
+  const h = roomHarness();
+  try {
+    const { room } = h.live();
+    for (let i = 0; i < 3; i++) h.joined(room, { role: 'gladiator' });
+    const late = h.joined(room, { role: 'gladiator' });
+    assert.match(late.messages[0].message, /No gladiator places/);
+    assert.equal(late.session.playerId, null);
   } finally { await h.service.close(); }
 });
 

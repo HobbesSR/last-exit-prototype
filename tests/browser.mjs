@@ -572,6 +572,16 @@ try {
   const matchedRoom = await page.evaluate(() => window.arenaDebug().room);
   assert.equal(server.rooms.get(matchedRoom).matchmade, true);
   assert.equal(await page.locator('#start-match').isVisible(), false);
+  // The lobby lets a player change role and kit until the start (#235); the view under it follows.
+  const choice = page.locator('#lobby-choice');
+  assert.equal(await choice.locator('#lobby-kit').isVisible(), true, 'a gladiator sees their kit');
+  await choice.getByRole('button', { name: 'Contestant', exact: true }).click();
+  await page.waitForFunction(() => window.arenaDebug().me?.role === 'contestant' && document.getElementById('lobby-kit').hidden);
+  await choice.getByRole('button', { name: 'Gladiator', exact: true }).click();
+  await page.waitForFunction(() => window.arenaDebug().me?.role === 'gladiator');
+  await choice.locator('#lobby-kit').selectOption('specter');
+  await page.waitForFunction(() => window.arenaDebug().me?.kit === 'specter');
+  await page.screenshot({ path: 'test-results/lobby-choice.png' });
   server.rooms.get(matchedRoom).startsAt = Date.now() - 1;
   await page.waitForFunction(() => !document.getElementById('lobby-dialog').open && window.arenaDebug().tick > 3);
   // A building's floor must sit under its walls: tiles replay drawings in the order recorded, and a floor
@@ -611,6 +621,6 @@ try {
     && document.getElementById('lobby-title').textContent === 'Night shift', namedRoom.id);
   await wallPage.close();
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: true, pixels, occlusion, screenshots: ['desktop', 'arena-overview', 'replay', 'loadout', 'gladiator', 'mobile', 'mobile-loadout', 'room-browser', 'occlusion', 'spectator'], checks: ['movement', 'ability', 'multiplayer', 'replay seek', 'download', 'kit selection', 'dual-stick multitouch', 'mouse aim', 'occlusion pixels', 'shade not blackout', 'client-side visibility', 'shot interpolation', 'spectator directed view', 'mobile overflow', 'generation failure after an arena', 'room browser join', 'assets', 'browser errors'] }, null, 2));
+  console.log(JSON.stringify({ passed: true, pixels, occlusion, screenshots: ['desktop', 'arena-overview', 'replay', 'loadout', 'gladiator', 'mobile', 'mobile-loadout', 'room-browser', 'lobby-choice', 'occlusion', 'spectator'], checks: ['movement', 'ability', 'multiplayer', 'replay seek', 'download', 'kit selection', 'dual-stick multitouch', 'mouse aim', 'occlusion pixels', 'shade not blackout', 'client-side visibility', 'shot interpolation', 'spectator directed view', 'mobile overflow', 'generation failure after an arena', 'room browser join', 'lobby role and kit', 'assets', 'browser errors'] }, null, 2));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
 finally { await browser.close(); await server.close(); await maps.close(); }

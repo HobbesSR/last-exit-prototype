@@ -108,12 +108,35 @@ function updateLobby(data = {}) {
   };
   render($('lobby-contestants'), contestants, 'Open contestant slots will be bots.');
   render($('lobby-gladiators'), gladiators, 'Open gladiator slots will be bots.');
+  showChoice(data.started);
   $('start-match').hidden = !owner;
   $('start-match').disabled = !owner || data.started || lobbyStarting;
   $('lobby-waiting').hidden = owner && lobbyReady;
   $('lobby-waiting').textContent = lobbyWaiting(data.matchmade);
   icons();
 }
+// A player's own role and kit, changeable until the start (#235). The room holds the choice; this only asks.
+function showChoice(started) {
+  const me = lobbyPlayers.find(p => p.id === playerId);
+  $('lobby-choice').hidden = !me || !!started;
+  if (!me) return;
+  for (const button of document.querySelectorAll('[data-lobby-role]')) {
+    const role = button.dataset.lobbyRole, mine = role === me.role;
+    button.setAttribute('aria-pressed', String(mine));
+    // Another side is open while it holds fewer people than places.
+    button.disabled = !mine && !!lobbyCapacity && lobbyPlayers.filter(p => p.role === role).length >= lobbyCapacity[role];
+  }
+  $('lobby-kit').hidden = me.role !== 'gladiator';
+  $('lobby-kit').value = me.kit;
+  // An owner reconnecting without a resume key rejoins as they now are, not as they first deployed.
+  if (owner) {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(`last-exit:owner:${roomId}`));
+      if (saved) sessionStorage.setItem(`last-exit:owner:${roomId}`, JSON.stringify({ ...saved, role: me.role, kit: me.kit }));
+    } catch { /* Storage may be unavailable. */ }
+  }
+}
+const choose = (role, kit) => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'choose', role, kit })); };
 function lobbyWaiting(matchmade) {
   if (!lobbyReady) return lobbyStarting || matchmade ? 'Generating the arena. The match starts when it is ready.' : 'Generating the arena…';
   return matchmade ? 'Match found. Preparing the arena…' : 'Waiting for the room owner to start the match.';
@@ -195,6 +218,8 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       updateLobby(data);
       if (data.started) { if (!devView) { hideLobby(); connection('LIVE'); } }
       else if (playerId) showLobby(data);
+    } else if (data.type === 'choose') {
+      if (!data.ok) toast(data.message);
     } else if (data.type === 'teleport') {
       const who = state?.players.find(p => p.id === data.id)?.name || 'Player';
       toast(data.ok ? `${who} moved` : `${who} cannot stand there`);
@@ -350,8 +375,9 @@ function renderRooms() {
     sub.textContent = `${r.size.replace('x', ' × ')} / ${count('contestant')} contestants / ${count('gladiator')} gladiators`;
     title.append(' ', badge); details.append(title, sub);
     const actions = document.createElement('div');
-    // A matchmade room places a player wherever there is room; a private one only in the role chosen.
-    const open = r.kind === 'matchmade' ? r.open.contestant + r.open.gladiator : r.open[selectedRole];
+    // Before the start a player is placed wherever there is room and can change in the lobby (#235); a
+    // private match already under way admits only the role chosen.
+    const open = r.phase === 'lobby' || r.kind === 'matchmade' ? r.open.contestant + r.open.gladiator : r.open[selectedRole];
     const join = document.createElement('button'); join.type = 'button'; join.className = 'secondary-button'; join.textContent = 'Join';
     join.disabled = !open; join.ariaLabel = `Join ${label}`; join.onclick = () => deploy(() => connect({ room: r.id, role: selectedRole, ...player() }));
     actions.append(join);
@@ -406,6 +432,13 @@ document.querySelectorAll('[data-role]').forEach(button => button.onclick = () =
 // The kit matters to anyone who may be a gladiator: chosen, or preferred for Auto.
 const showKit = () => { $('kit-options').hidden = selectedRole !== 'gladiator' && $('role-preference').value !== 'gladiator'; };
 $('role-preference').onchange = showKit;
+$('lobby-kit').innerHTML = $('kit').innerHTML;
+document.querySelectorAll('[data-lobby-role]').forEach(button => button.onclick = () => {
+  const role = button.dataset.lobbyRole;
+  // Switching to gladiator brings the kit picked when deploying; a contestant's kit is never shown.
+  choose(role, role === 'gladiator' ? $('kit').value : undefined);
+});
+$('lobby-kit').onchange = () => choose('gladiator', $('lobby-kit').value);
 document.querySelectorAll('.close-dialog').forEach(button => button.onclick = () => button.closest('dialog').close());
 $('share').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('Arena link copied'); } catch { toast('Arena link: ' + location.href); } };
 $('copy-lobby-link').onclick = $('share').onclick;
