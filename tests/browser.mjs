@@ -539,6 +539,26 @@ try {
   assert.equal(await page.locator('#start-match').isVisible(), false);
   server.rooms.get(matchedRoom).startsAt = Date.now() - 1;
   await page.waitForFunction(() => !document.getElementById('lobby-dialog').open && window.arenaDebug().tick > 3);
+  // A building's floor must sit under its walls: tiles replay drawings in the order recorded, and a floor
+  // recorded after the obstacles once painted over every interior wall (#207), leaving the doors floating.
+  const wallRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":7}' })).json();
+  const wallGame = server.rooms.get(wallRoom.id).game;
+  const inside = b => wallGame.map.obstacles.filter(o => !o.points && o.kind === 'building' && o.x >= b.x + 20 && o.x < b.x + b.w - 20 && o.y >= b.y + 20 && o.y < b.y + b.h - 20);
+  const walled = wallGame.map.buildings.find(b => b.w < 700 && inside(b).length > 2);
+  assert.ok(walled, 'a seeded live map has a building with interior walls');
+  const wallPage = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+  await ready(wallPage, `${base}/?room=${wallRoom.id}&ownerKey=${encodeURIComponent(wallRoom.ownerKey)}`);
+  const wallBox = inside(walled).find(o => o.w >= 8 && o.h >= 24);
+  Object.assign(wallGame.players.find(p => p.id === wallRoom.playerId) || wallGame.players[0], { x: walled.x + walled.w / 2, y: walled.y + walled.h / 2 });
+  await wallPage.waitForTimeout(1500);
+  const wallPixels = await wallPage.evaluate(box => {
+    const d = window.arenaDebug(), canvas = document.querySelector('#game canvas'), gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
+    const sample = (x, y) => { const px = Math.round((x - d.camera.x) * d.camera.zoom), py = Math.round((y - d.camera.y) * d.camera.zoom); const rgba = new Uint8Array(4); gl.readPixels(px, gl.drawingBufferHeight - py - 1, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rgba); return [...rgba].slice(0, 3); };
+    const cx = box.x + box.w / 2, cy = box.y + box.h / 2, across = box.h > box.w ? [30, 0] : [0, 30];
+    return { wall: sample(cx, cy), before: sample(cx - across[0], cy - across[1]), after: sample(cx + across[0], cy + across[1]) };
+  }, wallBox);
+  assert.ok(String(wallPixels.wall) !== String(wallPixels.before) && String(wallPixels.wall) !== String(wallPixels.after), `an interior wall is drawn over its building's floor: ${JSON.stringify({ wallBox, wallPixels })}`);
+  await wallPage.close();
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ passed: true, pixels, occlusion, screenshots: ['desktop', 'arena-overview', 'replay', 'loadout', 'gladiator', 'mobile', 'mobile-loadout', 'occlusion', 'spectator'], checks: ['movement', 'ability', 'multiplayer', 'replay seek', 'download', 'kit selection', 'dual-stick multitouch', 'mouse aim', 'occlusion pixels', 'shade not blackout', 'client-side visibility', 'shot interpolation', 'spectator directed view', 'mobile overflow', 'assets', 'browser errors'] }, null, 2));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
