@@ -1,5 +1,6 @@
 import { createGame, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { resetInput } from '../shared/simulation/input.ts';
+import { changeSeat } from '../shared/simulation/state.ts';
 import { viewLagFrom } from '../shared/simulation/rewind.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { generateLiveMap } from '../map/live.ts';
@@ -28,6 +29,8 @@ function seatsOf(game) {
       return roles.sort((a, b) => share(a) - share(b))[0];
     },
     join: (id, role, kit, name) => identity(joinGame(game, id, role, kit, name)),
+    /** A joined player's change of role or kit before the start (#235), or null when that role is full. */
+    choose: (id, role, kit) => identity(changeSeat(game, id, role, kit)),
     resume(id) {
       const p = game.players.find(p => p.id === id);
       if (!p) return null;
@@ -50,6 +53,7 @@ function seatsOf(game) {
       for (const c of commands) {
         if (c.type === 'join') seats.join(c.id, c.role, c.kit, c.name);
         else if (c.type === 'resume') seats.resume(c.id);
+        else if (c.type === 'choose') seats.choose(c.id, c.role, c.kit);
         else if (c.type === 'leave') seats.leave(c.id);
       }
     }

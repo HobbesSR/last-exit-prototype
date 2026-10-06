@@ -202,7 +202,9 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
         if (room.recordingStatus) send(session, room.recordingStatus);
         return;
       }
-      const role = room.matchmade ? preferredRole(room, data.role) : data.role === 'gladiator' ? 'gladiator' : 'contestant';
+      const asked = data.role === 'gladiator' ? 'gladiator' : 'contestant';
+      // Before the start a full side falls back to the other, since the lobby lets a player change (#235).
+      const role = room.matchmade ? preferredRole(room, data.role) : room.started ? asked : preferredRole(room, asked);
       // Validated against the content this match was pinned to, not whatever the process ships.
       const kit = room.seats.hasKit(data.kit) ? data.kit : 'warden';
       const resumedId = typeof data.resumeKey === 'string' ? room.resumes.get(data.resumeKey) : null;
@@ -229,6 +231,17 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       // An early start waits for the map rather than being refused.
       if (room.match) startMatch(room);
       else { room.startRequested = true; broadcastLobby(room); }
+      return;
+    }
+    if (data.type === 'choose' && session.playerId && !room.started) {
+      const role = ROLES.includes(data.role) ? data.role : null;
+      const p = role && room.seats.choose(session.playerId, role, data.kit);
+      if (!p) return send(session, { type: 'choose', ok: false, message: role ? `No ${role} places remain in this match.` : 'Choose contestant or gladiator.' });
+      // Recorded like a join, so a match built after it replays the same seats (`seat`).
+      room.inputs.push({ type: 'choose', id: p.id, role: p.role, kit: p.kit });
+      // The view under the lobby belongs to the place they now hold.
+      if (room.match) send(session, { type: 'ready', ...view(room, session) });
+      broadcastLobby(room);
       return;
     }
     if (!room.started) return;

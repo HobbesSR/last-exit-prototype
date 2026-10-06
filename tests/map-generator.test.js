@@ -22,12 +22,14 @@ function heldGenerator() {
 }
 
 const settle = () => new Promise(resolve => setImmediate(resolve));
-// The joins, a leave and a resume, in the order a lobby might see them.
+// The joins, a leave, a resume and changes of role, in the order a lobby might see them.
 function crowd(h, room) {
   const owner = h.joined(room, { ownerKey: room.ownerKey, name: 'Owner' });
   const striker = h.joined(room, { role: 'gladiator', kit: 'striker', name: 'Striker' });
   const gone = h.joined(room, { name: 'Gone' }); h.service.disconnect(gone.session);
   const late = h.joined(room, { name: 'Late' });
+  late.send({ type: 'choose', role: 'gladiator', kit: 'specter' });
+  owner.send({ type: 'choose', role: 'gladiator' }); owner.send({ type: 'choose', role: 'contestant' });
   const back = h.joined(room, { resumeKey: striker.messages.find(m => m.type === 'welcome').resumeKey });
   return { owner, striker, late, back };
 }
@@ -41,7 +43,7 @@ test('a room is joinable while its map generates, and the seats it gave out are 
     const { owner, striker, late, back } = crowd(h, room);
     const welcome = owner.messages.find(m => m.type === 'welcome');
     assert.equal(welcome.ready, false); assert.equal(welcome.map, null); assert.equal(welcome.state, null);
-    assert.deepEqual(h.service.summaries()[0].players, { contestant: 2, gladiator: 1 });
+    assert.deepEqual(h.service.summaries()[0].players, { contestant: 1, gladiator: 2 });
     assert.equal(back.session.playerId, striker.session.playerId, 'a resume keeps its place');
 
     owner.send({ type: 'start' });

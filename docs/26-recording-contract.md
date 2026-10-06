@@ -91,6 +91,8 @@ valid ticks, in tick order, and reports `droppedMarks`. Client-reported kinds
 as `{ tick, kind, playerId, reportedTick, arrivalTick, startTick?, count?, worstMs? }`.
 A dev teleport (24) is not a mark but a command, `{ type: 'teleport', id, x, y }`, in the
 frame after it, whose state already shows the player there.
+A change of role or kit in the lobby (#235) is a command, `{ type: 'choose', id, role, kit }`,
+beside the joins in the first frame, which already shows the player in their chosen place.
 A dev pause (24) is `{ tick, kind: 'pause', pausedMs }`, written when the room resumes or
 ends: no tick passes while paused, so it sits between two consecutive frames and is the
 only sign of the pause in the replay.
