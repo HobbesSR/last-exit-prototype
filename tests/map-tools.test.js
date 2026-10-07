@@ -9,6 +9,7 @@ import { chainMapToBson, chainMapToJson } from '../map/macro/src/chain/saving.ts
 import { CHAIN_LIBRARY, batch, chainParams, checkMap, generate, readMap, validateLibrary } from '../map/tools/core.ts';
 import { GAME_ENGINES } from '../map/tools/engines.ts';
 import { REGION_TYPES_VERSION } from '../map/micro/region-types.ts';
+import { createArenaServer } from '../server/index.js';
 
 /**
  * Step 10a (#144): the CLI and MCP in map/tools/, on the chain and the game's engines.
@@ -133,12 +134,13 @@ test('the MCP generates a map, validates it, and bounds what it runs', async () 
   assert.deepEqual(validated.brokenPromises, []);
 });
 
-test("the Map Lab's server serves both halves, strips types, and nothing else", async (t) => {
-  const child = spawn(process.execPath, ['map/tools/server.mts', '--port', '0'], { stdio: ['ignore', 'pipe', 'pipe'] });
-  t.after(() => child.kill());
-  const [chunk] = await once(child.stdout, 'data');
-  const base = /http:\/\/\S+/.exec(String(chunk))[0];
-  const page = await fetch(`${base}/`);
+test("the developer tools serve the map lab, strip types, and nothing else", async (t) => {
+  const replayDir = mkdtempSync(path.join(tmpdir(), 'test-tools-'));
+  const arena = await createArenaServer({ replayDir, profileSummary: false, devTools: 'all' });
+  await new Promise(resolve => arena.http.listen(0, '127.0.0.1', resolve));
+  t.after(async () => { await arena.close(); rmSync(replayDir, { recursive: true, force: true }); });
+  const base = `http://127.0.0.1:${arena.http.address().port}`;
+  const page = await fetch(`${base}/dev/map`);
   assert.equal(page.status, 200);
   assert.match(page.headers.get('content-type'), /html/);
   assert.match(await page.text(), /Map Lab/);

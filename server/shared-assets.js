@@ -18,9 +18,9 @@ function bareResolved(source) {
 export function serveSharedModules(root, resolveBare = false) {
   const cache = new Map();
   return async function sharedModules(req, res, next) {
-    const requested = path.join(root, path.normalize(req.path));
-    // path.normalize resolves '..' segments; confirm the result stayed inside the shared tree.
-    if (!requested.startsWith(root + path.sep) || !requested.endsWith('.ts') || requested.endsWith('.d.ts')) return next();
+    const normalizedRoot = path.normalize(root).replace(/[\\/]$/, '');
+    const requested = path.join(normalizedRoot, path.normalize(req.path));
+    if (!requested.startsWith(normalizedRoot + path.sep) || !requested.endsWith('.ts') || requested.endsWith('.d.ts')) return next();
     try {
       const { mtimeMs, size } = await stat(requested);
       const cached = cache.get(requested);
@@ -33,7 +33,8 @@ export function serveSharedModules(root, resolveBare = false) {
       }
       cache.set(requested, { mtimeMs, size, code, resolveBare });
       res.type('text/javascript').send(code);
-    } catch {
+    } catch (e) {
+      console.error("serveSharedModules error for", requested, e);
       next();
     }
   };

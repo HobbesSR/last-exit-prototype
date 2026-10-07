@@ -68,7 +68,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use('/vendor/lucide', express.static(path.join(ROOT, 'node_modules/lucide/dist/umd')));
   app.use('/vendor/sat', express.static(path.join(ROOT, 'node_modules/sat')));
 
-  app.use('/shared', serveSharedModules(path.join(ROOT, 'shared')));
+  app.use('/shared', serveSharedModules(path.join(ROOT, 'shared'), true));
   app.get('/shared/dev-nav.js', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.js')));
   app.get('/shared/dev-nav.css', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.css')));
 
@@ -76,15 +76,17 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     app.get('/vendor/sat.mjs', async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule('sat')); });
     app.get('/vendor/pathfinding.mjs', async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule('pathfinding')); });
 
-    app.use('/map/micro', serveSharedModules(path.join(ROOT, 'map/micro')));
-    app.use('/map/kernel', serveSharedModules(path.join(ROOT, 'map/kernel')));
-    app.use('/map/macro', serveSharedModules(path.join(ROOT, 'map/macro')));
+    app.use('/map/micro', serveSharedModules(path.join(ROOT, 'map/micro'), true));
+    app.use('/map/kernel', serveSharedModules(path.join(ROOT, 'map/kernel'), true));
+    app.use('/map/macro', serveSharedModules(path.join(ROOT, 'map/macro'), true));
+    app.use('/map/macro/content', express.static(path.join(ROOT, 'map/macro/content')));
+    app.use('/map/tools', serveSharedModules(path.join(ROOT, 'map/tools'), true));
     app.use('/map/tools/lab', serveSharedModules(path.join(ROOT, 'map/tools/lab'), true));
     app.use('/map/tools/lab', express.static(path.join(ROOT, 'map/tools/lab')));
     
     // Serve top-level Map files used by the lab (like chain.ts, engines.ts, etc.)
     app.get(/^\/map\/[^/]+\.ts$/, (req, res, next) => {
-      serveSharedModules(path.join(ROOT, 'map'), false)(req, res, next);
+      serveSharedModules(ROOT, true)(req, res, next);
     });
     app.get('/dev', (req, res) => res.sendFile(path.join(ROOT, 'public/dev/index.html')));
     app.get('/dev/map', (req, res) => res.sendFile(path.join(ROOT, 'map/tools/lab/index.html')));

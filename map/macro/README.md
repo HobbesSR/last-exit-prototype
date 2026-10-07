@@ -26,7 +26,6 @@ npm test   # typecheck plus unit tests
 The Map Lab, CLI, MCP and the chain's seed sweep are in [`map/tools/`](../tools/) (53, "Tools"). Run them from the repository root:
 
 ```powershell
-npm run lab
 node map/tools/cli.mts generate --seed experiment-1 --out map.json
 node map/tools/cli.mts validate map.json --diagnose true
 node map/tools/cli.mts batch --seed experiment --count 20

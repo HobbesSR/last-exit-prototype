@@ -17,7 +17,7 @@ const failableMaps = (seed, size) => {
   holdNextGeneration = false;
   return new Promise((_resolve, reject) => { failHeldGeneration = () => reject(new Error('generation failure arranged by the browser suite')); });
 };
-const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps });
+const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps, devTools: 'all' });
 const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const errors = [];

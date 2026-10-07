@@ -66,6 +66,4 @@ export function renderDevNav(mainUrl, mapgenUrl) {
   else document.addEventListener('DOMContentLoaded', insert);
 }
 
-// Map lab is now integrated into the game server, so we can just render the nav.
-// We no longer need to fetch /dev-nav-config.json since everything is on the same host.
 renderDevNav('', '');
