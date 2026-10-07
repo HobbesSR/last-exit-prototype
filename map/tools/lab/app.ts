@@ -768,8 +768,8 @@ const LAYERS: Layer[] = [
       if (!region || drill?.id !== region.id || drill.pending) return [];
       const { brief, fragment } = drill, file = `brief-${brief.id.replace(/[^a-z0-9-]/gi, "_")}.json`;
       return [
-        ...(gameUrl && fragment ? [{ label: "Open in the micro lab", href: `${gameUrl}/micro-lab.html${fragment}` }] : []),
-        ...(gameUrl && fragment && brief.type === "block" ? [{ label: "Open in the generation demo", href: `${gameUrl}/generation-demo.html${fragment}` }] : []),
+        ...(gameUrl !== null && fragment ? [{ label: "Open in the Preview Lab", href: `${gameUrl}/dev/micro${fragment}` }] : []),
+        ...(gameUrl !== null && fragment && brief.type === "block" ? [{ label: "Open in the Generation Trace", href: `${gameUrl}/dev/micro/generation${fragment}` }] : []),
         { label: "Save this region's brief", open: () => download(file, JSON.stringify(brief, null, 2), "application/json") },
       ];
     },
