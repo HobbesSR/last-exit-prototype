@@ -12,7 +12,7 @@ import { briefFragment } from '../map/micro/brief-link.ts';
 
 const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-micro-lab-'));
 await mkdir('test-results', { recursive: true });
-const server = await createArenaServer({ replayDir, profileSummary: false });
+const server = await createArenaServer({ replayDir, profileSummary: false, devTools: 'all' });
 const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
@@ -20,7 +20,7 @@ try {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) errors.push(message.text()); });
-  await page.goto(`${base}/micro-lab.html`);
+  await page.goto(`${base}/dev/micro`);
   await page.waitForFunction(() => window.microLabDebug?.().result, null, { timeout: 15000 });
   assert.equal(errors.length, 0, errors.join('\n'));
   const initial = await page.evaluate(() => window.microLabDebug());
@@ -178,7 +178,7 @@ try {
   const chain = generate('last-exit-001'), briefs = mapViews(chain).briefs;
   for (const [type, map] of [['hut', chain], ['block', generate('last-exit-009')]]) {
     const brief = mapViews(map).briefs.find(b => b.type === type), stored = map.results.find(r => r.brief.id === brief.id);
-    await page.goto(`${base}/micro-lab.html${await briefFragment(brief)}`);
+    await page.goto(`${base}/dev/micro${await briefFragment(brief)}`);
     await page.waitForFunction(id => window.microLabDebug?.().imported === id, brief.id, { timeout: 15000 });
     const opened = await page.evaluate(() => window.microLabDebug());
     assert.deepEqual(opened.result, JSON.parse(JSON.stringify(stored)), `the micro lab builds the ${type} the map stored`);

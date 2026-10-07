@@ -768,8 +768,8 @@ const LAYERS: Layer[] = [
       if (!region || drill?.id !== region.id || drill.pending) return [];
       const { brief, fragment } = drill, file = `brief-${brief.id.replace(/[^a-z0-9-]/gi, "_")}.json`;
       return [
-        ...(gameUrl && fragment ? [{ label: "Open in the micro lab", href: `${gameUrl}/micro-lab.html${fragment}` }] : []),
-        ...(gameUrl && fragment && brief.type === "block" ? [{ label: "Open in the generation demo", href: `${gameUrl}/generation-demo.html${fragment}` }] : []),
+        ...(gameUrl !== null && fragment ? [{ label: "Open in the Preview Lab", href: `${gameUrl}/dev/micro${fragment}` }] : []),
+        ...(gameUrl !== null && fragment && brief.type === "block" ? [{ label: "Open in the Generation Trace", href: `${gameUrl}/dev/micro/generation${fragment}` }] : []),
         { label: "Save this region's brief", open: () => download(file, JSON.stringify(brief, null, 2), "application/json") },
       ];
     },
@@ -1421,15 +1421,10 @@ window.mapLab = Object.freeze({
   },
 });
 
-// The micro tools are on the game's dev server, linked when it runs in this worktree (20.5).
-fetch("/dev-nav-config.json", { cache: "no-store" })
-  .then((response) => (response.ok ? response.json() : null))
-  .then((config: { mainUrl?: string | null } | null) => {
-    gameUrl = config?.mainUrl ?? null;
-    renderInspector();
-    renderPlay();
-  })
-  .catch(() => {});
+// The map lab now runs directly on the game server, so the game is at the root.
+gameUrl = "";
+renderInspector();
+renderPlay();
 
 fillParams(DEFAULT_CHAIN_PARAMS);
 generateMap();

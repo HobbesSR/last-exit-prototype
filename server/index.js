@@ -15,7 +15,6 @@ import { installHttpApi } from './http-api.js';
 import { attachWebSockets } from './websocket.js';
 import { startScheduler } from './scheduler.js';
 import { serveSharedModules } from './shared-assets.js';
-import { getDevNavConfig } from '../shared/dev-nav-server.js';
 import { devToolsPolicy } from './protocol.js';
 export { EMPTY_ROOM_GRACE_MS } from './room-service.js';
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
@@ -30,8 +29,12 @@ function lanUrls(port) {
   }
   return urls;
 }
-function printListeningUrls(host, port) {
-  console.log(`Last Exit is running at http://${host}:${port}`);
+function printListeningUrls(host, port, policy) {
+  const localHost = host === '0.0.0.0' || host === '::' ? '127.0.0.1' : host;
+  console.log(`Last Exit is running at http://${localHost}:${port}`);
+  if (policy !== 'none') {
+    console.log(`Developer Portal is available at http://${localHost}:${port}/dev`);
+  }
   if (host === '0.0.0.0' || host === '::') {
     const urls = lanUrls(port);
     if (urls.length) {
@@ -64,19 +67,33 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use('/vendor/phaser', express.static(path.join(ROOT, 'node_modules/phaser/dist')));
   app.use('/vendor/lucide', express.static(path.join(ROOT, 'node_modules/lucide/dist/umd')));
   app.use('/vendor/sat', express.static(path.join(ROOT, 'node_modules/sat')));
-  app.use('/shared', serveSharedModules(path.join(ROOT, 'shared')));
+
+  // The game client maps bare `sat` through an import map. Only the dev labs, whose workers cannot use
+  // one, need the imports rewritten, so a server without dev tools serves the shared modules untouched.
+  app.use('/shared', serveSharedModules(path.join(ROOT, 'shared'), policy !== 'none'));
   app.get('/shared/dev-nav.js', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.js')));
   app.get('/shared/dev-nav.css', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.css')));
-  // The micro labs load map generation's micro half and the kernel it builds on (docs 50).
-  app.use('/map/micro', serveSharedModules(path.join(ROOT, 'map/micro')));
-  app.use('/map/kernel', serveSharedModules(path.join(ROOT, 'map/kernel')));
-  app.get('/dev-nav-peer.json', (_req, res) => res.json({ kind: 'game', workspace: WORKSPACE_ID }));
-  app.get('/dev-nav-config.json', async (req, res) => {
-    res.set('Cache-Control', 'no-store').json(await getDevNavConfig({
-      kind: 'game', host: req.hostname, localPort: req.socket.localPort,
-      peerPort: process.env.MAPGEN_PORT, workspaceId: WORKSPACE_ID,
-    }));
-  });
+
+  if (policy !== 'none') {
+    app.get('/vendor/sat.mjs', async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule('sat')); });
+    app.get('/vendor/pathfinding.mjs', async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule('pathfinding')); });
+
+    app.use('/map/micro', serveSharedModules(path.join(ROOT, 'map/micro'), true));
+    app.use('/map/kernel', serveSharedModules(path.join(ROOT, 'map/kernel'), true));
+    app.use('/map/macro', serveSharedModules(path.join(ROOT, 'map/macro'), true));
+    app.use('/map/macro/content', express.static(path.join(ROOT, 'map/macro/content')));
+    app.use('/map/tools', serveSharedModules(path.join(ROOT, 'map/tools'), true));
+    app.use('/map/tools/lab', serveSharedModules(path.join(ROOT, 'map/tools/lab'), true));
+    app.use('/map/tools/lab', express.static(path.join(ROOT, 'map/tools/lab')));
+    
+    // Serve top-level Map files used by the lab (like chain.ts, engines.ts, etc.)
+    app.get(/^\/map\/[^/]+\.ts$/, serveSharedModules(ROOT, true));
+    app.get('/dev', (req, res) => res.sendFile(path.join(ROOT, 'public/dev/index.html')));
+    app.get('/dev/map', (req, res) => res.sendFile(path.join(ROOT, 'map/tools/lab/index.html')));
+    app.get('/dev/micro', (req, res) => res.sendFile(path.join(ROOT, 'public/micro-lab.html')));
+    app.get('/dev/micro/decomposition', (req, res) => res.sendFile(path.join(ROOT, 'public/decomposition-lab.html')));
+    app.get('/dev/micro/generation', (req, res) => res.sendFile(path.join(ROOT, 'public/generation-demo.html')));
+  }
   app.use(express.static(path.join(ROOT, 'public')));
   installHttpApi(app, service, directory, replays, pool);
   // Matchmaking messages go to the directory, which answers with a room for the host to admit into.
@@ -100,7 +117,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     }
     return closing;
   }
-  return { http, close, rooms: service.rooms, profiler };
+  return { http, close, rooms: service.rooms, profiler, policy };
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   // `--dev-tools=all` (what `npm run dev` passes) outranks DEV_TOOLS from the environment or .env.local.
@@ -121,7 +138,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     else { console.error(error); process.exit(1); }
   });
   // The bound port, not the requested one: PORT=0 asks the OS for any free port.
-  arena.http.on('listening', () => printListeningUrls(host, arena.http.address().port));
+  arena.http.on('listening', () => printListeningUrls(host, arena.http.address().port, arena.policy));
   arena.http.listen(port, host);
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await arena.close(); process.exit(0); });
 }

@@ -29,7 +29,7 @@ const OUT = "test-results/map-lab";
 await mkdir(OUT, { recursive: true });
 // The game's server, which the lab links to as its peer (20.5) for "Play in the game".
 const replayDir = await mkdtemp(path.join(tmpdir(), "map-lab-browser-"));
-const game = await createArenaServer({ replayDir, profileSummary: false });
+const game = await createArenaServer({ replayDir, profileSummary: false, devTools: 'all' });
 await new Promise<void>((resolve) => game.http.listen(0, "127.0.0.1", resolve));
 const gameUrl = `http://127.0.0.1:${game.http.address().port}`;
 // A room's player waits in the yard (#236) until its owner starts the match, so the first map a
@@ -40,27 +40,10 @@ async function matchMap(room: any, seed: number, timeout: number) {
   await room.waitForFunction((seed: number) => (window as any).arenaDebug?.().map?.seed === seed, seed, { timeout });
   return room.evaluate(() => (window as any).arenaDebug().map);
 }
-// Port 0: other worktrees run this check concurrently, so no fixed port is safe.
-const server = spawn(process.execPath, ["map/tools/server.mts", "--port", "0"], {
-  stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, PORT: String(game.http.address().port) },
-});
+// The Map Lab now runs on the game server itself.
+const base = gameUrl + '/dev/map';
 let browser: any;
 try {
-  const base = await new Promise<string>((resolve, reject) => {
-    const timer = setTimeout(() => reject(Error("Server timeout")), 10000);
-    let printed = "";
-    server.stdout!.on("data", (chunk) => {
-      printed += chunk;
-      const url = /^(http:\/\/\S+)\r?\n/.exec(printed)?.[1];
-      if (!url) return;
-      clearTimeout(timer);
-      resolve(url);
-    });
-    server.once("exit", (code) => {
-      clearTimeout(timer);
-      reject(Error(`Server exited ${code}`));
-    });
-  });
   browser = await playwright.chromium.launch({ channel: "chrome", headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
   const errors: string[] = [];
@@ -712,7 +695,6 @@ try {
   console.log("Map Lab browser checks passed: chain maps and their layers, saves equal to the core's, read-back, the diagnostic, drill-down, routes, playing a map in the game, and chain library authoring.");
 } finally {
   await browser?.close();
-  server.kill();
   await game.close();
   await rm(replayDir, { recursive: true, force: true });
 }

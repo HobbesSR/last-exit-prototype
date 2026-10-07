@@ -1,53 +1,69 @@
 export function renderDevNav(mainUrl, mapgenUrl) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'global-tool-wrapper';
+
   const nav = document.createElement('nav');
   nav.className = 'global-tool-nav';
 
-  const links = [];
-  if (mainUrl) {
-    links.push({ href: `${mainUrl}/micro-lab.html`, text: 'Micro Lab', match: 'micro-lab' });
-    links.push({ href: `${mainUrl}/decomposition-lab.html`, text: 'Decomposition', match: 'decomposition' });
-    links.push({ href: `${mainUrl}/generation-demo.html`, text: 'Demo', match: 'generation' });
-  }
-  if (mapgenUrl) {
-    links.push({ href: `${mapgenUrl}/`, text: 'Map Lab', match: 'mapgen' });
-  }
+  const links = [
+    { href: '/dev', text: 'Overview', match: 'dev-portal' },
+    { href: '/dev/map', text: 'Macro Map', match: 'dev/map' },
+    { href: '/dev/micro', text: 'Micro Maps', match: 'dev/micro' }
+  ];
 
   let linksHtml = '';
+  let currentPageName = 'Tools';
+  let isMicro = location.pathname.startsWith('/dev/micro');
+
   for (const link of links) {
     let active = false;
-    if (link.match === 'mapgen') {
-      active = location.port === new URL(mapgenUrl).port;
+    if (link.match === 'dev-portal') {
+      active = location.pathname === '/dev' || location.pathname === '/dev/';
     } else {
-      active = location.pathname.includes(link.match);
+      active = location.pathname.startsWith(link.href);
     }
-    const target = (link.match === 'mapgen' && !active) ? ' target="_blank"' : '';
-    const arrow = (link.match === 'mapgen' && !active) ? ' &nearr;' : '';
-    linksHtml += `<a href="${link.href}"${active ? ' class="active"' : ''}${target}>${link.text}${arrow}</a>\n`;
+    
+    if (active) {
+      currentPageName = link.text;
+    }
+
+    linksHtml += `<a href="${link.href}"${active ? ' class="active"' : ''}>${link.text}</a>\n`;
   }
 
-  const brandUrl = mainUrl ? `${mainUrl}/` : '/';
-
   nav.innerHTML = `
-    <div class="brand"><a href="${brandUrl}" class="home-link">LAST <b>EXIT</b></a> <span class="divider">/</span> <span>DEVELOPMENT TOOLS</span></div>
+    <div class="brand-breadcrumbs">
+      <a href="/" title="Back to Game">LAST EXIT</a>
+      <span class="divider">/</span>
+      <span class="current-page">${currentPageName}</span>
+    </div>
     <div class="links">
       ${linksHtml}
     </div>
   `;
-  const insert = () => document.body.insertBefore(nav, document.body.firstChild);
+  wrapper.appendChild(nav);
+
+  if (isMicro) {
+    const subNav = document.createElement('nav');
+    subNav.className = 'app-nav';
+    
+    const subLinks = [
+      { href: '/dev/micro', text: 'Preview Lab', exact: true },
+      { href: '/dev/micro/decomposition', text: 'Decomposition', exact: true },
+      { href: '/dev/micro/generation', text: 'Generation Trace', exact: true }
+    ];
+    
+    let subLinksHtml = '';
+    for (const link of subLinks) {
+      const active = location.pathname === link.href || location.pathname === link.href + '/';
+      subLinksHtml += `<a href="${link.href}" class="sub-tab${active ? ' active' : ''}">${link.text}</a>`;
+    }
+    subNav.innerHTML = subLinksHtml;
+    wrapper.appendChild(subNav);
+  }
+
+  const insert = () => document.body.insertBefore(wrapper, document.body.firstChild);
   if (document.body) insert();
   else document.addEventListener('DOMContentLoaded', insert);
 }
 
-const config = await fetch("/dev-nav-config.json", {
-  cache: "no-store",
-  signal: AbortSignal.timeout(1500),
-})
-  .then(response => {
-    if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
-    return response.json();
-  })
-  .catch(error => {
-    console.warn("Development navigation config could not be loaded.", error);
-    return null;
-  });
-if (config) renderDevNav(config.mainUrl, config.mapgenUrl);
+renderDevNav('', '');

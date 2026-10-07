@@ -137,9 +137,7 @@ So the test is:
     `map/`, and a test holds that too.
   - mapgen doesn't import the SDK's builders or strategies; `map/engines.ts` lends
     them to it as `MapEngines`. The server invokes `map/live.ts` before creating a match.
-- **Serving:** the Map Lab's server (`map/tools/server.mts`) serves macro,
-  micro, the kernel and `shared/` at their repository paths, and the game's
-  server serves `/map/micro/` and `/map/kernel/` for the micro labs (53).
+- **Serving:** the game server (`server/index.js`) hosts all of the Map Labs and developer tools directly under the `/dev/` route hierarchy, serving map generator code via ES modules (53).
 - *Assumption:* the name `kernel` (17 M1's open part).
 
 ## Reading guide

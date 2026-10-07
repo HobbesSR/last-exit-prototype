@@ -180,9 +180,8 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   authored for its zone size (52). A 12 × 6 game map generates in about
   0.25 s, and saves to about 200 KB of wire JSON, or 11 KB as the Layout
   alone; 24 × 12 takes about 1.3 s and 36 × 18 about 4.5 s (42).
-- **Map Lab** (`map/tools/lab/`, `npm run lab` from the repository root, port
-  4173 or the worktree's `MAPGEN_PORT`). It's the primary review surface for
-  the chain.
+- **Map Lab** (`map/tools/lab/`, `/dev/map` from the game server's `/dev` portal).
+  It's the primary review surface for the chain.
   - **World:** seed, mode, zone size and spawn counts; the chain's library
     for the zone size or the Chain Library tab's draft. A size menu lists
     the authored sizes and sets the zone size. Every view comes through `mapViews`.
@@ -299,11 +298,10 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     passable prescriptions. Its perimeter preview is provisional until
     placement resolves neighboring tiles. It can load the chain's library for
     the World tab's zone size to edit it.
-  - **Serving:** `map/tools/server.mts` serves the lab, macro's `src/` and
-    `content/`, `map/micro/`, `map/kernel/`, `shared/`, the map-level
+  - **Serving:** The game server (`server/index.js`) serves the lab at `/dev/map` when `devTools` is enabled, alongside macro's `content/`, `map/micro/`, `map/kernel/`, `shared/`, the map-level
     modules `map/chain.ts`, `map/engines.ts` and `map/live.ts`, and the
     tools' `core.ts`, `engines.ts` and `routes.ts`, at their repository
-    paths, and nothing else. It erases types on the way out, and resolves
+    paths. It erases types on the way out, and resolves
     the bare `sat` and `pathfinding` imports for the page and its worker
     alike. Each is its CommonJS package wrapped as one ES module.
   - The old generators' map view, tile editor and playtest sandbox retired
