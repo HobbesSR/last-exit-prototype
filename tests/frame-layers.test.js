@@ -43,6 +43,26 @@ test('a layer is rekeyed when its changes outgrow the budget or its order would 
   assert.deepEqual(encoder.encode({ items: [{ id: 1 }, { id: 1 }] }).items, { plain: [{ id: 1 }, { id: 1 }] }, 'ids that are not distinct go whole');
 });
 
+test('a session given a keyframe late rebuilds every later frame, including a return to the keyframe (#269 review)', () => {
+  const encoder = createLayerEncoder(), closed = { id: 'door-28', open: false }, other = { id: 'door-29', open: false };
+  const frames = [[closed, other], [{ ...closed, open: true }, other], [{ ...closed, open: true }], [closed, other]];
+  // `early` from the first frame; `late` joins at the second; `delayed` misses the first two, as after skips.
+  const sessions = { early: 0, late: 1, delayed: 2 };
+  const held = Object.fromEntries(Object.keys(sessions).map(name => [name, {}]));
+  const decoders = Object.fromEntries(Object.keys(sessions).map(name => [name, createLayerDecoder()]));
+  let k;
+  frames.forEach((gates, i) => {
+    const encoded = encoder.encode({ gates });
+    k ??= encoded.gates.k;
+    assert.equal(encoded.gates.k, k, 'one keyframe throughout');
+    for (const [name, from] of Object.entries(sessions)) {
+      if (i < from) continue;
+      const decoded = decoders[name].decode(wire(encoded, { gates }, held[name]));
+      assert.deepEqual(decoded.gates, gates, `${name}, frame ${i}`); assert.equal(decoded.stale, undefined);
+    }
+  });
+});
+
 test('changes against a keyframe the decoder lacks keep the last list and say which layer is stale', () => {
   const decoder = createLayerDecoder();
   const gates = [{ id: 'a', open: false }];

@@ -18,22 +18,24 @@
 //
 // On the wire a layer is one of:
 //   [ ... ]                        a plain list, as before: waiting frames, welcomes, recordings
-//   { k, all: [ ... ] }            keyframe k, the whole layer
 //   { k, set?: [ ... ], drop?: [ids] }   keyframe k with these entries replaced or added, and these removed
+//   { k, all: [ ... ], set?, drop? }     the same, carrying keyframe k itself for a session that lacks it
+// A keyframe never changes once cut: `all` is always the layer as it was then, and the current frame is
+// that plus the same changes every other session on the view is sent.
 // Keyframe numbers are unique in the process, so one never matches a table from another view or room.
 
 export const LAYERS = ['items', 'gates'] as const;
 export type Layer = typeof LAYERS[number];
 type Id = string | number;
 type Entry = { id: Id };
-export type LayerWire = Entry[] | { k: number; all: Entry[] } | { k: number; set?: Entry[]; drop?: Id[] };
+export type LayerWire = Entry[] | { k: number; all?: Entry[]; set?: Entry[]; drop?: Id[] };
 
 // A keyframe is cut once the change set reaches this share of the layer (or a floor, for small layers):
 // past it, re-sending the whole layer once costs less than carrying the changes every tick.
 const REKEY_SHARE = 1 / 32, REKEY_FLOOR = 16;
 let versions = 0;
 
-type Table = { k: number; ids: Id[]; byId: Map<Id, Entry> };
+type Table = { k: number; all: Entry[]; ids: Id[]; byId: Map<Id, Entry> };
 export type EncodedLayer = { k: number; all: () => LayerWire; changes: LayerWire } | { plain: Entry[] };
 
 /** The server's side, one per view: what each layer is relative to, and both forms of it. */
@@ -46,10 +48,10 @@ export function createLayerEncoder() {
       const byId = new Map(list.map(entry => [entry.id, entry]));
       // Entries without distinct ids cannot be addressed by a change, so that layer goes whole.
       if (byId.size !== list.length || byId.has(undefined as never)) { tables.delete(layer); return { plain: list }; }
-      tables.set(layer, table = { k: ++versions, ids: list.map(entry => entry.id), byId });
+      tables.set(layer, table = { k: ++versions, all: list, ids: list.map(entry => entry.id), byId });
     }
-    const k = table!.k;
-    return { k, all: () => ({ k, all: list }), changes: changes ?? { k } };
+    const { k, all } = table!, current = changes ?? { k };
+    return { k, all: () => ({ ...current, all }), changes: current };
   }
   return {
     /** Each layer the frame holds, encoded; layers it does not hold are left out. */
@@ -105,12 +107,10 @@ export function createLayerDecoder() {
         const wire = state[layer] as LayerWire | undefined;
         if (!wire || Array.isArray(wire)) continue;
         let list: Entry[];
-        if ('all' in wire) { list = wire.all; tables.set(layer, { k: wire.k, all: list, last: list }); }
-        else {
-          const table = tables.get(layer);
-          if (!table || table.k !== wire.k) { stale.push(layer); list = table?.last ?? []; }
-          else table.last = list = rebuild(table.all, wire.set, wire.drop);
-        }
+        if (wire.all) tables.set(layer, { k: wire.k, all: wire.all, last: wire.all });
+        const table = tables.get(layer);
+        if (!table || table.k !== wire.k) { stale.push(layer); list = table?.last ?? []; }
+        else table.last = list = rebuild(table.all, wire.set, wire.drop);
         (state as Record<string, unknown>)[layer] = list;
       }
       return stale.length ? Object.assign(state, { stale }) : state;
@@ -119,7 +119,8 @@ export function createLayerDecoder() {
 }
 
 function rebuild(all: Entry[], set: Entry[] = [], drop: Id[] = []) {
-  if (!set.length && !drop.length) return all;
+  // A copy even when nothing changed: the keyframe is kept for later frames, and a reader may reorder its list.
+  if (!set.length && !drop.length) return all.slice();
   const gone = new Set(drop), changed = new Map(set.map(entry => [entry.id, entry]));
   const list: Entry[] = [];
   for (const entry of all) if (!gone.has(entry.id)) { list.push(changed.get(entry.id) ?? entry); changed.delete(entry.id); }
