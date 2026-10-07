@@ -2,7 +2,7 @@ import { createRoomService } from '../../server/room-service.js';
 import { createRoomDirectory } from '../../server/room-directory.js';
 import { createLayerDecoder } from '../../shared/frame-layers.ts';
 
-export function roomHarness({ finalize, reportError, startWriter, generateMap, ...serviceOptions } = {}) {
+export function roomHarness({ finalize, reportError, startWriter, generateMap, pool, ...serviceOptions } = {}) {
   let wall = 1000, monotonic = 0;
   const writers = new Map();
   const replays = { start(header, options) {
@@ -19,7 +19,7 @@ export function roomHarness({ finalize, reportError, startWriter, generateMap, .
     writers.set(header.id, writer); return writer;
   } };
   const service = createRoomService({ replays, wallNow: () => wall, reportError, ...serviceOptions });
-  const directory = createRoomDirectory({ host: service, generateMap, devTools: serviceOptions.devTools });
+  const directory = createRoomDirectory({ host: service, generateMap, pool, devTools: serviceOptions.devTools });
   const peer = () => {
     const messages = [], closes = [], layers = createLayerDecoder();
     // Frames are kept decoded, as the client reads them, and `sizes` keeps what each payload weighed.

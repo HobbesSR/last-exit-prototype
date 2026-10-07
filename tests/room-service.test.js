@@ -346,8 +346,7 @@ test('transport decoding, message budget and seed coercion retain existing accep
   const budget = { start: 100, messages: 0 };
   for (let i = 0; i < 70; i++) assert.equal(acceptMessageRate(budget, 100), true);
   assert.equal(acceptMessageRate(budget, 1100), false); assert.equal(acceptMessageRate(budget, 1101), true);
-  assert.equal(roomSeed({ seed: '9' }), 9); assert.equal(roomSeed({}, () => 77), 77);
-  assert.notEqual(roomSeed({}), roomSeed({}));
+  assert.equal(roomSeed({ seed: '9' }), 9); assert.equal(roomSeed({}), undefined, 'none named: the directory chooses');
   for (const seed of [0, -1, 2147483648, 1.5, 'bad']) assert.equal(roomSeed({ seed }), null);
   assert.deepEqual(roomSize({}), { zoneWidth: 12, zoneHeight: 6 });
   assert.deepEqual(roomSize({ size: '36x18' }), { zoneWidth: 36, zoneHeight: 18 });

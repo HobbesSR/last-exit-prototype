@@ -277,6 +277,14 @@ answers at once and players wait in the room's lobby instead; driving seed 77 at
 later, and the match went live about 32 s after the request. The tick cost of a
 36 × 18 room above is unchanged.
 
+Since #266 the server keeps two maps ready per size on a second worker (17.4 #10).
+Measured 2026-10-06 on the development machine, starting a server with the pool on:
+it filled one map of each size first (12 × 6 at 0.7 s, 24 × 12 at 5.8 s, 36 × 18 at
+17.3 s) and both of each at 37.6 s. A 36 × 18 room created after that answered in
+15 ms with its match already built, and the pool began refilling that size. The
+whole process heap was 36 MB with six maps held; a map's JSON is about 0.23 MB at
+12 × 6, 0.79 MB at 24 × 12 and 1.96 MB at 36 × 18 (seed 12345).
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including
