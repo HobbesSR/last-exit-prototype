@@ -67,20 +67,18 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use('/vendor/phaser', express.static(path.join(ROOT, 'node_modules/phaser/dist')));
   app.use('/vendor/lucide', express.static(path.join(ROOT, 'node_modules/lucide/dist/umd')));
   app.use('/vendor/sat', express.static(path.join(ROOT, 'node_modules/sat')));
-  app.get('/vendor/sat.mjs', async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule('sat')); });
-  app.get('/vendor/pathfinding.mjs', async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule('pathfinding')); });
 
   app.use('/shared', serveSharedModules(path.join(ROOT, 'shared')));
   app.get('/shared/dev-nav.js', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.js')));
   app.get('/shared/dev-nav.css', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.css')));
 
   if (policy !== 'none') {
+    app.get('/vendor/sat.mjs', async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule('sat')); });
+    app.get('/vendor/pathfinding.mjs', async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule('pathfinding')); });
+
     app.use('/map/micro', serveSharedModules(path.join(ROOT, 'map/micro')));
-    app.use('/map/micro', express.static(path.join(ROOT, 'map/micro')));
     app.use('/map/kernel', serveSharedModules(path.join(ROOT, 'map/kernel')));
-    app.use('/map/kernel', express.static(path.join(ROOT, 'map/kernel')));
     app.use('/map/macro', serveSharedModules(path.join(ROOT, 'map/macro')));
-    app.use('/map/macro', express.static(path.join(ROOT, 'map/macro')));
     app.use('/map/tools/lab', serveSharedModules(path.join(ROOT, 'map/tools/lab'), true));
     app.use('/map/tools/lab', express.static(path.join(ROOT, 'map/tools/lab')));
     
@@ -93,12 +91,6 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     app.get('/dev/micro', (req, res) => res.sendFile(path.join(ROOT, 'public/micro-lab.html')));
     app.get('/dev/micro/decomposition', (req, res) => res.sendFile(path.join(ROOT, 'public/decomposition-lab.html')));
     app.get('/dev/micro/generation', (req, res) => res.sendFile(path.join(ROOT, 'public/generation-demo.html')));
-
-    app.get('/dev-nav-peer.json', (_req, res) => res.json({ kind: 'game', workspace: WORKSPACE_ID }));
-    app.get('/dev-nav-config.json', async (req, res) => {
-      // Map lab is now integrated, so we override the config to point to ourselves
-      res.set('Cache-Control', 'no-store').json({ mainUrl: "", mapgenUrl: "/map/tools/lab" });
-    });
   }
   app.use(express.static(path.join(ROOT, 'public')));
   installHttpApi(app, service, directory, replays, pool);

@@ -1421,15 +1421,10 @@ window.mapLab = Object.freeze({
   },
 });
 
-// The micro tools are on the game's dev server, linked when it runs in this worktree (20.5).
-fetch("/dev-nav-config.json", { cache: "no-store" })
-  .then((response) => (response.ok ? response.json() : null))
-  .then((config: { mainUrl?: string | null } | null) => {
-    gameUrl = config?.mainUrl ?? null;
-    renderInspector();
-    renderPlay();
-  })
-  .catch(() => {});
+// The map lab now runs directly on the game server, so the game is at the root.
+gameUrl = "";
+renderInspector();
+renderPlay();
 
 fillParams(DEFAULT_CHAIN_PARAMS);
 generateMap();
