@@ -35,8 +35,7 @@ so pushes are made as the agent and not as the repository owner. If
 is recorded as `corey`, stop and report it rather than pushing.
 
 Each worktree also has an untracked, ignored `.env.local` at its root naming its
-dev ports, e.g. `PORT=3110` and `MAPGEN_PORT=4110`. `npm run dev` and the Map
-Lab's `npm run lab`, both from the root, load it, so a server an agent starts to look at by hand or drive
+dev port, e.g. `PORT=3110`. `npm run dev` from the root loads it, so a server an agent starts to look at by hand or drive
 with a browser lands on that agent's own port. An assigned port is used exactly:
 if it is busy the server stops rather than drifting onto a neighbor's port, and
 the busy one is almost always your own earlier server. If `.env.local` is
@@ -89,7 +88,7 @@ git -C ../astra_test.agents/<agent> config --worktree user.name  <account>
 git -C ../astra_test.agents/<agent> config --worktree user.email <commit email>
 git -C ../astra_test.agents/<agent> config --worktree remote.forgejo.pushurl \
   http://<account>:<token>@localhost:3000/corey/astra_test.git
-printf 'PORT=<game port>\nMAPGEN_PORT=<mapgen port>\n' > ../astra_test.agents/<agent>/.env.local
+printf 'PORT=<game port>\n' > ../astra_test.agents/<agent>/.env.local
 (cd ../astra_test.agents/<agent> && npm ci && npm --prefix mapgen ci)
 ```
 

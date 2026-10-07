@@ -12,13 +12,13 @@ import { briefFragment } from '../map/micro/brief-link.ts';
 
 const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-generation-demo-'));
 await mkdir('test-results', { recursive: true });
-const server = await createArenaServer({ replayDir, profileSummary: false });
+const server = await createArenaServer({ replayDir, profileSummary: false, devTools: 'all' });
 const base = await listen(server), browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1200, height: 900 } }), errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) errors.push(message.text()); });
-  await page.goto(`${base}/generation-demo.html`);
+  await page.goto(`${base}/dev/micro/generation`);
   await page.waitForFunction(() => window.generationDemoDebug?.().result, null, { timeout: 15000 });
   await assert.doesNotReject(() => page.getByText('ownership boundary', { exact: false }).waitFor());
   const initial = await page.evaluate(() => window.generationDemoDebug());
@@ -64,7 +64,7 @@ try {
   // A chain map's block, opened by the Map Lab's link (20.5): its lots and alleys, the geometry
   // the map stored for it, and a walk through it with the game's collision.
   const blockMap = generate('last-exit-009'), blockBrief = mapViews(blockMap).briefs.find(b => b.type === 'block');
-  await page.goto(`${base}/generation-demo.html${await briefFragment(blockBrief)}`);
+  await page.goto(`${base}/dev/micro/generation${await briefFragment(blockBrief)}`);
   await page.waitForFunction(id => window.generationDemoDebug?.().linked?.id === id, blockBrief.id, { timeout: 15000 });
   const block = await page.evaluate(() => window.generationDemoDebug());
   assert.deepEqual(block.linked.built, JSON.parse(JSON.stringify(blockMap.results.find(r => r.brief.id === blockBrief.id))), 'the demo shows the block the map stored');
@@ -80,7 +80,7 @@ try {
   await page.keyboard.up('KeyD');
   // A region that doesn't decompose says so, and the example shows instead.
   const hutBrief = mapViews(blockMap).briefs.find(b => b.type === 'hut') ?? mapViews(generate('last-exit-001')).briefs.find(b => b.type === 'hut');
-  await page.goto(`${base}/generation-demo.html${await briefFragment(hutBrief)}`);
+  await page.goto(`${base}/dev/micro/generation${await briefFragment(hutBrief)}`);
   await page.waitForFunction(() => window.generationDemoDebug?.().result?.version === 'realized-decomposition-1');
   assert.match(await page.locator('#status').textContent(), /doesn't decompose/);
   await page.setViewportSize({ width: 390, height: 844 });

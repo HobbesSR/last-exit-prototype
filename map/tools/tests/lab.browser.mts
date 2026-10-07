@@ -29,7 +29,7 @@ const OUT = "test-results/map-lab";
 await mkdir(OUT, { recursive: true });
 // The game's server, which the lab links to as its peer (20.5) for "Play in the game".
 const replayDir = await mkdtemp(path.join(tmpdir(), "map-lab-browser-"));
-const game = await createArenaServer({ replayDir, profileSummary: false });
+const game = await createArenaServer({ replayDir, profileSummary: false, devTools: 'all' });
 await new Promise<void>((resolve) => game.http.listen(0, "127.0.0.1", resolve));
 const gameUrl = `http://127.0.0.1:${game.http.address().port}`;
 // A room's player waits in the yard (#236) until its owner starts the match, so the first map a

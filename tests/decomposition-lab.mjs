@@ -9,7 +9,7 @@ import { listen } from './helpers/listen.js';
 
 const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-decomposition-lab-'));
 await mkdir('test-results', { recursive: true });
-const server = await createArenaServer({ replayDir, profileSummary: false });
+const server = await createArenaServer({ replayDir, profileSummary: false, devTools: 'all' });
 const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 try {
@@ -17,7 +17,7 @@ try {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) errors.push(message.text()); });
-  await page.goto(`${base}/decomposition-lab.html`);
+  await page.goto(`${base}/dev/micro/decomposition`);
   await page.waitForFunction(() => window.decompositionLabDebug?.().plan, null, { timeout: 15000 });
   const initial = await page.evaluate(() => window.decompositionLabDebug());
   assert.equal(initial.plan.version, 'decomposition-1');

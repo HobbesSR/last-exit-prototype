@@ -19,6 +19,8 @@ const vendored = new Map();
 
 /**
  * A CommonJS package as one ES module, for the browser.
+ * Note: This hand-rolled bundler handles simple `require()` calls for these two packages.
+ * It does not support circular dependencies, dynamic imports, or JSON files.
  */
 export function vendorModule(name) {
   const cached = vendored.get(name);

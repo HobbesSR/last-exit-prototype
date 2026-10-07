@@ -180,9 +180,8 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   authored for its zone size (52). A 12 × 6 game map generates in about
   0.25 s, and saves to about 200 KB of wire JSON, or 11 KB as the Layout
   alone; 24 × 12 takes about 1.3 s and 36 × 18 about 4.5 s (42).
-- **Map Lab** (`map/tools/lab/`, `npm run lab` from the repository root, port
-  4173 or the worktree's `MAPGEN_PORT`). It's the primary review surface for
-  the chain.
+- **Map Lab** (`map/tools/lab/`, `/dev/map` from the game server's `/dev` portal).
+  It's the primary review surface for the chain.
   - **World:** seed, mode, zone size and spawn counts; the chain's library
     for the zone size or the Chain Library tab's draft. A size menu lists
     the authored sizes and sets the zone size. Every view comes through `mapViews`.

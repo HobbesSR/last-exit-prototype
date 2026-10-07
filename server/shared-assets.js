@@ -15,7 +15,7 @@ function bareResolved(source) {
 // Stripping is not compilation: types are replaced with spaces, so line and column positions are
 // preserved exactly and a browser stack trace still points at the real source line. That is why
 // there is no bundle, no output directory and no source map to keep in sync.
-export function serveSharedModules(root) {
+export function serveSharedModules(root, resolveBare = false) {
   const cache = new Map();
   return async function sharedModules(req, res, next) {
     const requested = path.join(root, path.normalize(req.path));
@@ -25,13 +25,13 @@ export function serveSharedModules(root) {
       const { mtimeMs, size } = await stat(requested);
       const cached = cache.get(requested);
       let code;
-      if (cached?.mtimeMs === mtimeMs && cached.size === size) {
+      if (cached?.mtimeMs === mtimeMs && cached.size === size && cached.resolveBare === resolveBare) {
         code = cached.code;
       } else {
         const stripped = stripTypeScriptTypes(await readFile(requested, 'utf8'), { mode: 'strip' });
-        code = bareResolved(stripped);
+        code = resolveBare ? bareResolved(stripped) : stripped;
       }
-      cache.set(requested, { mtimeMs, size, code });
+      cache.set(requested, { mtimeMs, size, code, resolveBare });
       res.type('text/javascript').send(code);
     } catch {
       next();

@@ -29,10 +29,10 @@ function lanUrls(port) {
   }
   return urls;
 }
-function printListeningUrls(host, port, devTools) {
+function printListeningUrls(host, port, policy) {
   const localHost = host === '0.0.0.0' || host === '::' ? '127.0.0.1' : host;
   console.log(`Last Exit is running at http://${localHost}:${port}`);
-  if (devTools !== undefined) {
+  if (policy !== 'none') {
     console.log(`Developer Portal is available at http://${localHost}:${port}/dev`);
   }
   if (host === '0.0.0.0' || host === '::') {
@@ -74,22 +74,32 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.get('/shared/dev-nav.js', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.js')));
   app.get('/shared/dev-nav.css', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.css')));
 
-  // Serve all of /map (micro, macro, kernel, tools, and root .ts files like chain.ts)
-  // TypeScript files get stripped, everything else is served statically
-  app.use('/map', serveSharedModules(path.join(ROOT, 'map')));
-  app.use('/map', express.static(path.join(ROOT, 'map')));
+  if (policy !== 'none') {
+    app.use('/map/micro', serveSharedModules(path.join(ROOT, 'map/micro')));
+    app.use('/map/micro', express.static(path.join(ROOT, 'map/micro')));
+    app.use('/map/kernel', serveSharedModules(path.join(ROOT, 'map/kernel')));
+    app.use('/map/kernel', express.static(path.join(ROOT, 'map/kernel')));
+    app.use('/map/macro', serveSharedModules(path.join(ROOT, 'map/macro')));
+    app.use('/map/macro', express.static(path.join(ROOT, 'map/macro')));
+    app.use('/map/tools/lab', serveSharedModules(path.join(ROOT, 'map/tools/lab'), true));
+    app.use('/map/tools/lab', express.static(path.join(ROOT, 'map/tools/lab')));
+    
+    // Serve top-level Map files used by the lab (like chain.ts, engines.ts, etc.)
+    app.get(/^\/map\/[^/]+\.ts$/, (req, res, next) => {
+      serveSharedModules(path.join(ROOT, 'map'), false)(req, res, next);
+    });
+    app.get('/dev', (req, res) => res.sendFile(path.join(ROOT, 'public/dev/index.html')));
+    app.get('/dev/map', (req, res) => res.sendFile(path.join(ROOT, 'map/tools/lab/index.html')));
+    app.get('/dev/micro', (req, res) => res.sendFile(path.join(ROOT, 'public/micro-lab.html')));
+    app.get('/dev/micro/decomposition', (req, res) => res.sendFile(path.join(ROOT, 'public/decomposition-lab.html')));
+    app.get('/dev/micro/generation', (req, res) => res.sendFile(path.join(ROOT, 'public/generation-demo.html')));
 
-  app.get('/dev', (req, res) => res.sendFile(path.join(ROOT, 'public/dev/index.html')));
-  app.get('/dev/map', (req, res) => res.sendFile(path.join(ROOT, 'map/tools/lab/index.html')));
-  app.get('/dev/micro', (req, res) => res.sendFile(path.join(ROOT, 'public/micro-lab.html')));
-  app.get('/dev/micro/decomposition', (req, res) => res.sendFile(path.join(ROOT, 'public/decomposition-lab.html')));
-  app.get('/dev/micro/generation', (req, res) => res.sendFile(path.join(ROOT, 'public/generation-demo.html')));
-
-  app.get('/dev-nav-peer.json', (_req, res) => res.json({ kind: 'game', workspace: WORKSPACE_ID }));
-  app.get('/dev-nav-config.json', async (req, res) => {
-    // Map lab is now integrated, so we override the config to point to ourselves
-    res.set('Cache-Control', 'no-store').json({ mainUrl: "", mapgenUrl: "/map/tools/lab" });
-  });
+    app.get('/dev-nav-peer.json', (_req, res) => res.json({ kind: 'game', workspace: WORKSPACE_ID }));
+    app.get('/dev-nav-config.json', async (req, res) => {
+      // Map lab is now integrated, so we override the config to point to ourselves
+      res.set('Cache-Control', 'no-store').json({ mainUrl: "", mapgenUrl: "/map/tools/lab" });
+    });
+  }
   app.use(express.static(path.join(ROOT, 'public')));
   installHttpApi(app, service, directory, replays, pool);
   // Matchmaking messages go to the directory, which answers with a room for the host to admit into.
@@ -113,7 +123,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     }
     return closing;
   }
-  return { http, close, rooms: service.rooms, profiler };
+  return { http, close, rooms: service.rooms, profiler, policy };
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   // `--dev-tools=all` (what `npm run dev` passes) outranks DEV_TOOLS from the environment or .env.local.
@@ -134,7 +144,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     else { console.error(error); process.exit(1); }
   });
   // The bound port, not the requested one: PORT=0 asks the OS for any free port.
-  arena.http.on('listening', () => printListeningUrls(host, arena.http.address().port, devTools));
+  arena.http.on('listening', () => printListeningUrls(host, arena.http.address().port, arena.policy));
   arena.http.listen(port, host);
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await arena.close(); process.exit(0); });
 }
