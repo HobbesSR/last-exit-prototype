@@ -32,6 +32,14 @@ const replayDir = await mkdtemp(path.join(tmpdir(), "map-lab-browser-"));
 const game = await createArenaServer({ replayDir, profileSummary: false });
 await new Promise<void>((resolve) => game.http.listen(0, "127.0.0.1", resolve));
 const gameUrl = `http://127.0.0.1:${game.http.address().port}`;
+// A room's player waits in the yard (#236) until its owner starts the match, so the first map a
+// room shows is the yard's. The linked room is the page's own, so it starts the match and waits
+// for the map it was asked for.
+async function matchMap(room: any, seed: number, timeout: number) {
+  await room.getByRole("button", { name: "Start match", exact: true }).click({ timeout });
+  await room.waitForFunction((seed: number) => (window as any).arenaDebug?.().map?.seed === seed, seed, { timeout });
+  return room.evaluate(() => (window as any).arenaDebug().map);
+}
 // Port 0: other worktrees run this check concurrently, so no fixed port is safe.
 const server = spawn(process.execPath, ["map/tools/server.mts", "--port", "0"], {
   stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, PORT: String(game.http.address().port) },
@@ -640,8 +648,7 @@ try {
   await playPage.locator("#playInGame").click();
   const room = await opening;
   room.on("pageerror", (error: Error) => errors.push(`game: ${error.message}`));
-  await room.waitForFunction(() => (window as any).arenaDebug?.().map, null, { timeout: 60000 });
-  const played = await room.evaluate(() => (window as any).arenaDebug().map);
+  const played = await matchMap(room, 4217, 60000);
   const at = (kind: string) => playable.world.sites.filter((site: { kind: string }) => site.kind === kind).map(({ x, y }: { x: number; y: number }) => ({ x, y }));
   const byPosition = (points: { x: number; y: number }[]) => [...points].sort((a, b) => a.x - b.x || a.y - b.y);
   assert.equal(played.seed, 4217);
@@ -671,8 +678,7 @@ try {
   await playPage.locator("#playInGame").click();
   const bigRoom = await openingBig;
   bigRoom.on("pageerror", (error: Error) => errors.push(`game: ${error.message}`));
-  await bigRoom.waitForFunction(() => (window as any).arenaDebug?.().map, null, { timeout: 120000 });
-  const bigPlayed = await bigRoom.evaluate(() => (window as any).arenaDebug().map);
+  const bigPlayed = await matchMap(bigRoom, 4217, 120000);
   assert.deepEqual([bigPlayed.width, bigPlayed.height], [bigMap.world.width, bigMap.world.height]);
   assert.deepEqual(bigPlayed.spawns, bigMap.world.sites.filter((site: { kind: string }) => site.kind === "spawn").map(({ x, y }: { x: number; y: number }) => ({ x, y })));
   assert.deepEqual(bigPlayed.playableArea, bigMap.world.playableArea);
