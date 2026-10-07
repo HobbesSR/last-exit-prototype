@@ -41,7 +41,7 @@ async function matchMap(room: any, seed: number, timeout: number) {
   return room.evaluate(() => (window as any).arenaDebug().map);
 }
 // The Map Lab now runs on the game server itself.
-const base = gameUrl;
+const base = gameUrl + '/dev/map';
 let browser: any;
 try {
   browser = await playwright.chromium.launch({ channel: "chrome", headless: true });
@@ -73,7 +73,7 @@ try {
   };
 
   // A game map from the chain's library, on load.
-  await page.goto(`${base}/dev/map`, { waitUntil: "domcontentloaded" });
+  await page.goto(base, { waitUntil: "domcontentloaded" });
   const first = await shown("last-exit-001");
   const reference = generate("last-exit-001");
   const referenceCheck = checkMap(reference);
