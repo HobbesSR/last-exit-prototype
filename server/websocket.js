@@ -11,7 +11,11 @@ export function attachWebSockets(http, service) {
       catch { return ws.close(1008); }
     }
     const session = service.connect({
-      deliver: (payload, droppable = false) => { if (ws.readyState === WebSocket.OPEN && deliverable(ws.bufferedAmount, droppable)) ws.send(payload); },
+      // Says whether the payload went, so a skipped state frame is known not to have delivered a keyframe.
+      deliver: (payload, droppable = false) => {
+        if (ws.readyState !== WebSocket.OPEN || !deliverable(ws.bufferedAmount, droppable)) return false;
+        ws.send(payload); return true;
+      },
       close: (code, reason) => ws.close(code, reason)
     });
     const rate = { start: Date.now(), messages: 0 };

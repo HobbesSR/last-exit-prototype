@@ -8,11 +8,20 @@ import { createHash } from 'node:crypto';
 import { WebSocket } from 'ws';
 import { createArenaServer, EMPTY_ROOM_GRACE_MS } from '../server/index.js';
 import { listen } from './helpers/listen.js';
+import { createLayerDecoder } from '../shared/frame-layers.ts';
 
+// A socket's layer decoder; a state frame read here is decoded as the client would (#250). Frames that
+// arrive while nothing waits are not decoded, so read layers only from a session's first frame or keyframes.
+const decoders = new WeakMap();
 function next(ws, type, timeoutMs = 5000) {
+  if (!decoders.has(ws)) decoders.set(ws, createLayerDecoder());
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => { ws.off('message', receive); reject(new Error(`Timed out waiting for ${type}`)); }, timeoutMs);
-    function receive(raw) { const data = JSON.parse(raw); if (data.type === type) { clearTimeout(timer); ws.off('message', receive); resolve(data); } }
+    function receive(raw) {
+      const data = JSON.parse(raw);
+      if (data.type === 'state') decoders.get(ws).decode(data.state);
+      if (data.type === type) { clearTimeout(timer); ws.off('message', receive); resolve(data); }
+    }
     ws.on('message', receive);
   });
 }
@@ -170,7 +179,9 @@ test('two clients share authority; replay preserves each recorded frame and surv
     const welcomeA = next(a, 'welcome'); a.send(JSON.stringify({ type: 'join', room: room.id, ownerKey: room.ownerKey, name: 'A' }));
     const wa = await welcomeA; assert.equal(wa.owner, true);
     assert.equal(wa.started, false);
-    const received = []; a.on('message', raw => { const data = JSON.parse(raw); if (data.type === 'state') received.push(data.state); });
+    // Decoded as the client does, so the check below covers what layered items and gates rebuild to (#250).
+    const received = [], layers = createLayerDecoder();
+    a.on('message', raw => { const data = JSON.parse(raw); if (data.type === 'state') received.push(layers.decode(data.state)); });
     const b = new WebSocket(base.replace('http:', 'ws:'));
     await new Promise(resolve => b.once('open', resolve));
     const welcomeB = next(b, 'welcome'); b.send(JSON.stringify({ type: 'join', room: room.id, role: 'gladiator' }));
