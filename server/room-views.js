@@ -1,5 +1,6 @@
 import { zoneSizeName } from '../map/live.ts';
 import * as profiler from '../shared/profiler.ts';
+import { createLayerEncoder } from '../shared/frame-layers.ts';
 export const SPECTATOR_DELAY_TICKS = 60;
 export const send = (session, value) => session.deliver(JSON.stringify(value));
 const lobbyPayload = room => ({
@@ -31,13 +32,35 @@ export function remember(room, frame) {
   while (room.history.length > SPECTATOR_DELAY_TICKS + 2) room.history.shift();
 }
 export function broadcast(room, state) {
-  const payloads = new Map(), delayed = spectatorFrame(room);
+  const views = new Map(), payloads = new Map(), delayed = spectatorFrame(room);
   for (const session of room.clients) {
     // The dev view is the directed view without the delay: every dev session shares one payload.
     const key = session.playerId || (session.dev ? 'dev' : 'spectator');
-    let payload = payloads.get(key);
-    if (payload === undefined) payloads.set(key, payload = JSON.stringify({ type: 'state', state: room.match.project(session.playerId || session.dev ? state : delayed, session.playerId) }));
-    session.deliver(payload, true);
+    let view = views.get(key);
+    if (view === undefined) {
+      const projected = room.match.project(session.playerId || session.dev ? state : delayed, session.playerId);
+      views.set(key, view = { state: projected, layers: encoderFor(room, key).encode(projected) });
+    }
+    // Items and gates go as changes against a keyframe, and whole to a session not yet delivered that
+    // keyframe (shared/frame-layers.ts). Sessions in the same place share one payload.
+    const held = session.layerKeys ||= {};
+    const whole = Object.entries(view.layers).filter(([layer, encoded]) => 'k' in encoded && held[layer] !== encoded.k).map(([layer]) => layer);
+    const variant = `${key}|${whole}`;
+    let payload = payloads.get(variant);
+    if (payload === undefined) {
+      const frame = { ...view.state };
+      for (const [layer, encoded] of Object.entries(view.layers)) frame[layer] = 'plain' in encoded ? encoded.plain : whole.includes(layer) ? encoded.all() : encoded.changes;
+      payloads.set(variant, payload = JSON.stringify({ type: 'state', state: frame }));
+    }
+    if (session.deliver(payload, true) !== false) for (const layer of whole) held[layer] = view.layers[layer].k;
   }
-  profiler.count('loop.viewsBuilt', payloads.size); profiler.count('loop.viewsSent', room.clients.size);
+  // A view nobody holds any more (a player who left) takes its keyframes with it.
+  for (const key of room.layerEncoders?.keys() ?? []) if (!views.has(key)) room.layerEncoders.delete(key);
+  profiler.count('loop.viewsBuilt', views.size); profiler.count('loop.viewsSent', room.clients.size);
+}
+function encoderFor(room, key) {
+  const encoders = room.layerEncoders ||= new Map();
+  let encoder = encoders.get(key);
+  if (!encoder) encoders.set(key, encoder = createLayerEncoder());
+  return encoder;
 }

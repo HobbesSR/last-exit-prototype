@@ -1,5 +1,6 @@
 import { createRoomService } from '../../server/room-service.js';
 import { createRoomDirectory } from '../../server/room-directory.js';
+import { createLayerDecoder } from '../../shared/frame-layers.ts';
 
 export function roomHarness({ finalize, reportError, startWriter, generateMap, ...serviceOptions } = {}) {
   let wall = 1000, monotonic = 0;
@@ -20,9 +21,12 @@ export function roomHarness({ finalize, reportError, startWriter, generateMap, .
   const service = createRoomService({ replays, wallNow: () => wall, reportError, ...serviceOptions });
   const directory = createRoomDirectory({ host: service, generateMap, devTools: serviceOptions.devTools });
   const peer = () => {
-    const messages = [], closes = [];
-    const session = service.connect({ deliver: payload => messages.push(JSON.parse(payload)), close: (...args) => { closes.push(args); service.disconnect(session); } });
-    return { session, messages, closes, send: message => directory.receive(session, message) };
+    const messages = [], closes = [], layers = createLayerDecoder();
+    // Frames are kept decoded, as the client reads them, and `sizes` keeps what each payload weighed.
+    const deliver = payload => { const data = JSON.parse(payload); if (data.type === 'state') layers.decode(data.state); messages.push(data); sizes.push(payload.length); };
+    const sizes = [];
+    const session = service.connect({ deliver, close: (...args) => { closes.push(args); service.disconnect(session); } });
+    return { session, messages, sizes, closes, send: message => directory.receive(session, message) };
   };
   const joined = (room, extra = {}) => {
     const p = peer(); p.send({ type: 'join', room: room.id, ...extra }); return p;

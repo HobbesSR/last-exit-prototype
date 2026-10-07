@@ -7,6 +7,7 @@ import { createReplayController } from '/replay-controller.js';
 import { createCameraDirector } from '/camera-director.js';
 import { createSnapshotBuffer } from '/snapshot-buffer.js';
 import * as profiler from '/shared/profiler.ts';
+import { createLayerDecoder } from '/shared/frame-layers.ts';
 import { $, HZ, INTERPOLATION_DELAY_TICKS, kitName, time, fillFollowOptions } from '/ui.js';
 
 const icon = name => `<i data-lucide="${name}"></i>`;
@@ -181,7 +182,8 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   roomId = room; ownerKey = key;
   connection('CONNECTING');
   const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
-  ws = socket;
+  // Items and gates arrive as changes against a keyframe this socket was sent (shared/frame-layers.ts).
+  ws = socket; const layers = createLayerDecoder();
   socket.addEventListener('open', () => {
     disconnecting = false;
     let resumeKey;
@@ -214,7 +216,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       // neither buffered frames nor inputs predicted on the old map carry over.
       if (!replayController.active() && !devFeed) { snapshots.reset(); pending = []; changeMap(data.map); acceptState(data.state); }
     } else if (data.type === 'state') {
-      notePacket(event.data.length);
+      notePacket(event.data.length); layers.decode(data.state);
       // Gap between authoritative frames: separates server pacing from client render cost.
       if (lastStateAt) profiler.observe('net.stateGap', performance.now() - lastStateAt);
       profiler.observe('net.stateBytes', event.data.length, 'n');
@@ -485,14 +487,14 @@ function enterDevView() {
   if (devFeed || !playerId || replayController.active() || ws?.readyState !== WebSocket.OPEN) return;
   clearInput();
   const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
-  devFeed = socket; showDevMode();
+  devFeed = socket; showDevMode(); const layers = createLayerDecoder();
   socket.addEventListener('open', () => socket.send(JSON.stringify({ type: 'join', room: roomId, ownerKey, role: 'dev' })));
   socket.addEventListener('message', event => {
     if (devFeed !== socket) return;
     const data = JSON.parse(event.data);
     // Only the frames come from here; pauses, the lobby and replays still arrive on the player's socket.
     if ((data.type === 'welcome' || data.type === 'ready') && data.map) { devRoster = ''; snapshots.reset(); changeMap(data.map); acceptState(data.state); }
-    else if (data.type === 'state') { if (!replayController.active()) acceptState(data.state); }
+    else if (data.type === 'state') { layers.decode(data.state); if (!replayController.active()) acceptState(data.state); }
     else if (data.type === 'error') { toast(data.message); leaveDevView(); }
   });
   socket.addEventListener('close', () => { if (devFeed === socket) leaveDevView(); });

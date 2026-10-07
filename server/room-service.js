@@ -21,7 +21,7 @@ const byRole = count => Object.fromEntries(ROLES.map(role => [role, count(role)]
  * every room in this process. Which rooms exist, how many, and who is sent where belong to the
  * directory (room-directory.js), which sees a room only through its summary.
  * Sessions provide only deliver(serializedPayload, droppable) and close(code, reason); no socket dependency.
- * Only state frames are droppable (protocol.js `deliverable`).
+ * Only state frames are droppable (protocol.js `deliverable`); deliver returns false for one it skipped.
  */
 export function createRoomService({ replays, devTools = 'none', wallNow = Date.now, reportError = console.error,
   replayFinishTimeoutMs = 5000, setTimer = setTimeout, clearTimer = clearTimeout }) {
