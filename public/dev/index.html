@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Last Exit | Developer Portal</title>
+  <link rel="stylesheet" href="/shared/dev-nav.css">
+  <script type="module" src="/shared/dev-nav.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background: #172a2b;
+      color: #e5f0ec;
+      font-family: system-ui, sans-serif;
+    }
+    .portal-container {
+      max-width: 800px;
+      margin: 4rem auto;
+      padding: 0 2rem;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .eyebrow {
+      color: #72d8d2;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    .card {
+      background: #1e3636;
+      border: 1px solid #27403d;
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .card:hover {
+      background: #233e3e;
+      border-color: #72d8d2;
+    }
+    .card h2 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.25rem;
+      color: #fff;
+    }
+    .card p {
+      margin: 0;
+      color: #8da59e;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="portal-container">
+    <span class="eyebrow">DEVELOPMENT TOOLS</span>
+    <h1>Developer Portal</h1>
+    <p>All map generation and physical simulation labs, now available on the game server.</p>
+    
+    <div class="grid">
+      <a href="/dev/micro" class="card">
+        <h2>Preview Lab</h2>
+        <p>Generate a local region (like a Depot or Ruins) and test its physics.</p>
+      </a>
+      <a href="/dev/micro/decomposition" class="card">
+        <h2>Decomposition</h2>
+        <p>Inspect how large parent regions are partitioned into building footprints.</p>
+      </a>
+      <a href="/dev/micro/generation" class="card">
+        <h2>Generation Trace</h2>
+        <p>End-to-end trace: decompose a region, generate geometry, and walk it.</p>
+      </a>
+      <a href="/dev/map" class="card">
+        <h2>Map Lab (Macro)</h2>
+        <p>Whole-map generator and chain inspector. Preview the entire chain.</p>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

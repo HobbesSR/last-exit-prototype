@@ -2,6 +2,13 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { stripTypeScriptTypes } from 'node:module';
 
+const BARE = { sat: "/vendor/sat.mjs", pathfinding: "/vendor/pathfinding.mjs" };
+
+function bareResolved(source) {
+  return source.replace(/(\bfrom\s*|\bimport\s*)(["'])([^"'./][^"']*)\2/g, (match, keyword, quote, name) =>
+    BARE[name] ? `${keyword}${quote}${BARE[name]}${quote}` : match);
+}
+
 // The browser imports the shared simulation modules directly, the same source the server runs.
 // Node strips their types on its own; this does the equivalent for the client, per request.
 //
@@ -17,9 +24,13 @@ export function serveSharedModules(root) {
     try {
       const { mtimeMs, size } = await stat(requested);
       const cached = cache.get(requested);
-      const code = cached?.mtimeMs === mtimeMs && cached.size === size
-        ? cached.code
-        : stripTypeScriptTypes(await readFile(requested, 'utf8'), { mode: 'strip' });
+      let code;
+      if (cached?.mtimeMs === mtimeMs && cached.size === size) {
+        code = cached.code;
+      } else {
+        const stripped = stripTypeScriptTypes(await readFile(requested, 'utf8'), { mode: 'strip' });
+        code = bareResolved(stripped);
+      }
       cache.set(requested, { mtimeMs, size, code });
       res.type('text/javascript').send(code);
     } catch {

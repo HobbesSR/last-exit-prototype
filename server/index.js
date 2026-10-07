@@ -15,7 +15,6 @@ import { installHttpApi } from './http-api.js';
 import { attachWebSockets } from './websocket.js';
 import { startScheduler } from './scheduler.js';
 import { serveSharedModules } from './shared-assets.js';
-import { getDevNavConfig } from '../shared/dev-nav-server.js';
 import { devToolsPolicy } from './protocol.js';
 export { EMPTY_ROOM_GRACE_MS } from './room-service.js';
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
@@ -30,8 +29,12 @@ function lanUrls(port) {
   }
   return urls;
 }
-function printListeningUrls(host, port) {
-  console.log(`Last Exit is running at http://${host}:${port}`);
+function printListeningUrls(host, port, devTools) {
+  const localHost = host === '0.0.0.0' || host === '::' ? '127.0.0.1' : host;
+  console.log(`Last Exit is running at http://${localHost}:${port}`);
+  if (devTools !== undefined) {
+    console.log(`Developer Portal is available at http://${localHost}:${port}/dev`);
+  }
   if (host === '0.0.0.0' || host === '::') {
     const urls = lanUrls(port);
     if (urls.length) {
@@ -64,18 +67,28 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use('/vendor/phaser', express.static(path.join(ROOT, 'node_modules/phaser/dist')));
   app.use('/vendor/lucide', express.static(path.join(ROOT, 'node_modules/lucide/dist/umd')));
   app.use('/vendor/sat', express.static(path.join(ROOT, 'node_modules/sat')));
+  app.get('/vendor/sat.mjs', async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule('sat')); });
+  app.get('/vendor/pathfinding.mjs', async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule('pathfinding')); });
+
   app.use('/shared', serveSharedModules(path.join(ROOT, 'shared')));
   app.get('/shared/dev-nav.js', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.js')));
   app.get('/shared/dev-nav.css', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.css')));
-  // The micro labs load map generation's micro half and the kernel it builds on (docs 50).
-  app.use('/map/micro', serveSharedModules(path.join(ROOT, 'map/micro')));
-  app.use('/map/kernel', serveSharedModules(path.join(ROOT, 'map/kernel')));
+
+  // Serve all of /map (micro, macro, kernel, tools, and root .ts files like chain.ts)
+  // TypeScript files get stripped, everything else is served statically
+  app.use('/map', serveSharedModules(path.join(ROOT, 'map')));
+  app.use('/map', express.static(path.join(ROOT, 'map')));
+
+  app.get('/dev', (req, res) => res.sendFile(path.join(ROOT, 'public/dev/index.html')));
+  app.get('/dev/map', (req, res) => res.sendFile(path.join(ROOT, 'map/tools/lab/index.html')));
+  app.get('/dev/micro', (req, res) => res.sendFile(path.join(ROOT, 'public/micro-lab.html')));
+  app.get('/dev/micro/decomposition', (req, res) => res.sendFile(path.join(ROOT, 'public/decomposition-lab.html')));
+  app.get('/dev/micro/generation', (req, res) => res.sendFile(path.join(ROOT, 'public/generation-demo.html')));
+
   app.get('/dev-nav-peer.json', (_req, res) => res.json({ kind: 'game', workspace: WORKSPACE_ID }));
   app.get('/dev-nav-config.json', async (req, res) => {
-    res.set('Cache-Control', 'no-store').json(await getDevNavConfig({
-      kind: 'game', host: req.hostname, localPort: req.socket.localPort,
-      peerPort: process.env.MAPGEN_PORT, workspaceId: WORKSPACE_ID,
-    }));
+    // Map lab is now integrated, so we override the config to point to ourselves
+    res.set('Cache-Control', 'no-store').json({ mainUrl: "", mapgenUrl: "/map/tools/lab" });
   });
   app.use(express.static(path.join(ROOT, 'public')));
   installHttpApi(app, service, directory, replays, pool);
@@ -121,7 +134,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     else { console.error(error); process.exit(1); }
   });
   // The bound port, not the requested one: PORT=0 asks the OS for any free port.
-  arena.http.on('listening', () => printListeningUrls(host, arena.http.address().port));
+  arena.http.on('listening', () => printListeningUrls(host, arena.http.address().port, devTools));
   arena.http.listen(port, host);
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await arena.close(); process.exit(0); });
 }
