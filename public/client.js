@@ -349,7 +349,9 @@ async function deploy(enter) {
 }
 const player = () => ({ kit: $('kit').value, name: $('callsign').value || 'Runner' });
 const newArena = () => deploy(async () => {
-  const body = { seed: Number($('seed').value), size: $('map-size').value, name: $('room-name').value };
+  // A blank seed lets the server choose, which serves a map from its pool at once (#266); a named one reproduces that map.
+  const seed = $('seed').value === '' ? undefined : Number($('seed').value);
+  const body = { seed, size: $('map-size').value, name: $('room-name').value };
   const data = await json('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   await connect({ room: data.id, key: data.ownerKey, role: selectedRole, ...player() });
 });
@@ -439,9 +441,7 @@ async function downloadReplay(id) {
 $('new-game').onclick = $('play-again').onclick = () => { clearInput(); $('deploy-error').hidden = true; openDeploy(); };
 $('deploy-form').onsubmit = e => { e.preventDefault(); void newArena(); };
 $('auto-match').onclick = () => void autoMatch();
-const randomizeSeed = () => { $('seed').value = 1 + crypto.getRandomValues(new Uint32Array(1))[0] % 2147483646; };
-$('random-seed').onclick = randomizeSeed;
-randomizeSeed();
+$('random-seed').onclick = () => { $('seed').value = ''; };
 document.querySelectorAll('[data-role]').forEach(button => button.onclick = () => {
   selectedRole = button.dataset.role; showKit();
   document.querySelectorAll('[data-role]').forEach(b => { const selected = b === button; b.classList.toggle('selected', selected); b.setAttribute('aria-pressed', selected); });

@@ -9,7 +9,7 @@ const FULL = { type: 'error', message: 'All arena slots are occupied. Try matchm
  * It holds no simulation and never touches a room: it reads the host's summaries, which are plain
  * data, and answers with a room id. The host is the room service, in this process for now (41).
  */
-export function createRoomDirectory({ host, generateMap = null, devTools = 'none' }) {
+export function createRoomDirectory({ host, generateMap = null, pool = null, devTools = 'none' }) {
   const hasCapacity = () => host.accepting() && host.summaries().length < MAX_ROOMS;
   /** Whether an open room already has this name: names are unique while their room is open (17.4 #9). */
   const nameTaken = name => host.summaries().some(room => room.name?.toLowerCase() === name.toLowerCase());
@@ -17,9 +17,14 @@ export function createRoomDirectory({ host, generateMap = null, devTools = 'none
    * A new room, or null at capacity or when its name is taken. It exists, and can be joined, at once: its
    * map is made by `generateMap` when the directory has one (a worker, so no other room's ticks wait on it)
    * and arrives later (#258). Without one the map is generated inline, which is what the fake-clock tests use.
+   * A room that names no seed takes a ready map from the pool when it has one of that size (#266), and
+   * otherwise draws a fresh seed; a named seed is always generated, since it asks for that exact map.
    */
-  function createRoom(seed, matchmade = false, size = DEFAULT_LIVE_ZONE_SIZE, name = null) {
+  function createRoom(seed = undefined, matchmade = false, size = DEFAULT_LIVE_ZONE_SIZE, name = null) {
     if (!hasCapacity() || name && nameTaken(name)) return null;
+    const pooled = seed === undefined ? pool?.take(size) : null;
+    if (pooled) return host.makeRoom(pooled.seed, matchmade, size, pooled.map, name);
+    seed ??= randomSeed();
     return host.makeRoom(seed, matchmade, size, generateMap?.(seed, size), name);
   }
   /**
@@ -35,7 +40,7 @@ export function createRoomDirectory({ host, generateMap = null, devTools = 'none
   function match() {
     const found = filling();
     if (found) return found.id;
-    return createRoom(randomSeed(), true)?.id ?? null;
+    return createRoom(undefined, true)?.id ?? null;
   }
   /**
    * Session messages, with `match` answered here and joined like any other room id. In one process this

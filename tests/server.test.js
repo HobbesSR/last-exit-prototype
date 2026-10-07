@@ -9,6 +9,7 @@ import { WebSocket } from 'ws';
 import { createArenaServer, EMPTY_ROOM_GRACE_MS } from '../server/index.js';
 import { listen } from './helpers/listen.js';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
+import { generateLiveMap } from '../map/live.ts';
 
 // A socket's layer decoder; a state frame read here is decoded as the client would (#250). Frames that
 // arrive while nothing waits are not decoded, so read layers only from a session's first frame or keyframes.
@@ -58,6 +59,22 @@ test('abandoned live rooms keep a reconnect grace then stop simulation and final
     assert.ok(replay.frames.at(-1).commands.some(c => c.type === 'abandoned'));
     const tick = room.game.tick; await new Promise(r => setTimeout(r, 100)); assert.equal(room.game.tick, tick);
     const health = await (await fetch(base + '/api/health')).json(); assert.equal(health.emptyLiveRooms, 0);
+  } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
+});
+test('a room created with no seed is answered with a pooled map\'s seed, and health reports the pool', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-pool-'));
+  // Every size gets the small map: only the default size is taken here, and the large ones are slow inline.
+  const asked = [], generateMap = seed => { asked.push(seed); return Promise.resolve(generateLiveMap(seed)); };
+  const server = await createArenaServer({ replayDir: dir, generateMap, mapPool: 1 });
+  try {
+    const base = await listen(server), health = async () => (await (await fetch(base + '/api/health')).json()).mapPool;
+    const deadline = Date.now() + 30000;
+    while (Object.values(await health()).some(count => count < 1)) { assert.ok(Date.now() < deadline, 'pool never filled'); await new Promise(r => setTimeout(r, 15)); }
+    const pooledSeed = asked[0], before = asked.length;
+    const created = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json();
+    assert.equal(created.seed, pooledSeed, 'the default size\'s pooled map');
+    assert.ok(server.rooms.get(created.id).match, 'ready at once');
+    assert.equal(asked.length, before + 1, 'only the pool\'s refill was generated');
   } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
 });
 test('matchmaking separates private rooms, honors available preferences, falls back, and starts automatically', async () => {

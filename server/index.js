@@ -10,6 +10,7 @@ import { createFileReplayStore } from './replay-store.js';
 import { createRoomService } from './room-service.js';
 import { createRoomDirectory } from './room-directory.js';
 import { createMapGenerator } from './map-generator.js';
+import { createMapPool, MAP_POOL_SIZE } from './map-pool.js';
 import { installHttpApi } from './http-api.js';
 import { attachWebSockets } from './websocket.js';
 import { startScheduler } from './scheduler.js';
@@ -42,15 +43,21 @@ function printListeningUrls(host, port) {
   }
 }
 
-/** `generateMap` replaces the worker, for tests that need to control generation. */
-export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true, devTools = process.env.DEV_TOOLS, generateMap } = {}) {
+/**
+ * `generateMap` replaces the worker, for tests that need to control generation. `mapPool` is how many maps
+ * to keep ready per size (#266); none unless asked, so tests and benchmarks run without background generation.
+ */
+export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true, devTools = process.env.DEV_TOOLS, generateMap, mapPool = 0 } = {}) {
   profiler.enable(profile);
   const policy = devToolsPolicy(devTools);
   const replays = await createFileReplayStore(replayDir);
   // Maps are generated on a worker thread, so creating a room never stalls the others (#253).
   const maps = generateMap ? null : createMapGenerator();
+  // The pool refills on its own worker, so a room asking for a particular seed never queues behind it.
+  const poolMaps = mapPool > 0 && !generateMap ? createMapGenerator() : null;
+  const pool = mapPool > 0 ? createMapPool({ generate: generateMap ?? poolMaps.generate, perSize: mapPool }) : null;
   const service = createRoomService({ replays, devTools: policy });
-  const directory = createRoomDirectory({ host: service, generateMap: generateMap ?? maps.generate, devTools: policy });
+  const directory = createRoomDirectory({ host: service, generateMap: generateMap ?? maps.generate, pool, devTools: policy });
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '2kb' }));
@@ -71,7 +78,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     }));
   });
   app.use(express.static(path.join(ROOT, 'public')));
-  installHttpApi(app, service, directory, replays);
+  installHttpApi(app, service, directory, replays, pool);
   // Matchmaking messages go to the directory, which answers with a room for the host to admit into.
   const http = createHttpServer(app), wss = attachWebSockets(http, { connect: service.connect, receive: directory.receive, disconnect: service.disconnect });
   const stopScheduler = startScheduler(service.advance);
@@ -88,7 +95,8 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
       // Stop admitting connections before waiting for potentially slow archive publication.
       const socketsClosed = new Promise(resolve => wss.close(resolve));
       const httpClosed = http.listening ? new Promise(resolve => http.close(resolve)) : Promise.resolve();
-      closing = Promise.all([service.close(), socketsClosed, httpClosed, maps?.close()]).then(() => undefined);
+      pool?.close();
+      closing = Promise.all([service.close(), socketsClosed, httpClosed, maps?.close(), poolMaps?.close()]).then(() => undefined);
     }
     return closing;
   }
@@ -97,7 +105,9 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   // `--dev-tools=all` (what `npm run dev` passes) outranks DEV_TOOLS from the environment or .env.local.
   const devTools = process.argv.find(arg => arg.startsWith('--dev-tools='))?.slice('--dev-tools='.length);
-  const arena = await createArenaServer(devTools === undefined ? {} : { devTools });
+  // MAP_POOL sets how many maps are kept ready per size (#266); 0 turns the pool off.
+  const mapPool = process.env.MAP_POOL ? Number(process.env.MAP_POOL) : MAP_POOL_SIZE;
+  const arena = await createArenaServer(devTools === undefined ? { mapPool } : { devTools, mapPool });
   const lan = process.argv.includes('--lan') || process.env.LAN === '1';
   const host = process.env.HOST || (lan ? '0.0.0.0' : '127.0.0.1');
   // 3000 is taken by the local Forgejo. An explicit PORT (e.g. a worktree's .env.local) is

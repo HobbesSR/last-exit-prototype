@@ -17,9 +17,11 @@ export function acceptMessageRate(window, now) {
   return ++window.messages <= MAX_MESSAGES_PER_SECOND;
 }
 export const randomSeed = () => randomInt(1, MAX_ARENA_SEED + 1);
-// A room asked for no seed gets a fresh one, so general play varies; naming one reproduces a map.
-export function roomSeed(body, draw = randomSeed) {
-  const seed = Number(body?.seed ?? draw());
+// The seed a request names, which reproduces a map. Undefined when it names none: the directory then gives
+// the room a fresh one, from the map pool when it can (#266), so general play varies. Null when invalid.
+export function roomSeed(body) {
+  if (body?.seed == null) return undefined;
+  const seed = Number(body.seed);
   return isArenaSeed(seed) ? seed : null;
 }
 export const ROOM_SIZE_NAMES = LIVE_ZONE_SIZES.map(zoneSizeName);
