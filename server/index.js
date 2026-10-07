@@ -68,7 +68,9 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use('/vendor/lucide', express.static(path.join(ROOT, 'node_modules/lucide/dist/umd')));
   app.use('/vendor/sat', express.static(path.join(ROOT, 'node_modules/sat')));
 
-  app.use('/shared', serveSharedModules(path.join(ROOT, 'shared'), true));
+  // The game client maps bare `sat` through an import map. Only the dev labs, whose workers cannot use
+  // one, need the imports rewritten, so a server without dev tools serves the shared modules untouched.
+  app.use('/shared', serveSharedModules(path.join(ROOT, 'shared'), policy !== 'none'));
   app.get('/shared/dev-nav.js', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.js')));
   app.get('/shared/dev-nav.css', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.css')));
 
@@ -85,9 +87,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     app.use('/map/tools/lab', express.static(path.join(ROOT, 'map/tools/lab')));
     
     // Serve top-level Map files used by the lab (like chain.ts, engines.ts, etc.)
-    app.get(/^\/map\/[^/]+\.ts$/, (req, res, next) => {
-      serveSharedModules(ROOT, true)(req, res, next);
-    });
+    app.get(/^\/map\/[^/]+\.ts$/, serveSharedModules(ROOT, true));
     app.get('/dev', (req, res) => res.sendFile(path.join(ROOT, 'public/dev/index.html')));
     app.get('/dev/map', (req, res) => res.sendFile(path.join(ROOT, 'map/tools/lab/index.html')));
     app.get('/dev/micro', (req, res) => res.sendFile(path.join(ROOT, 'public/micro-lab.html')));

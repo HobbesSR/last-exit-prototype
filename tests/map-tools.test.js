@@ -160,6 +160,11 @@ test("the developer tools serve the map lab, strip types, and nothing else", asy
   assert.equal(SAT.testCircleCircle(new SAT.Circle(new SAT.Vector(0, 0), 2), new SAT.Circle(new SAT.Vector(3, 0), 2)), true);
   assert.deepEqual(new PF.AStarFinder({ allowDiagonal: true, dontCrossCorners: true }).findPath(0, 0, 2, 0, new PF.Grid([[0, 1, 0], [0, 0, 0]])),
     [[0, 0], [0, 1], [1, 1], [2, 1], [2, 0]]);
+  // Without a dev tools policy the game client's shared modules are untouched (it maps `sat` by import map).
+  const plain = await createArenaServer({ replayDir, profileSummary: false });
+  await new Promise(resolve => plain.http.listen(0, '127.0.0.1', resolve));
+  t.after(() => plain.close());
+  assert.match(await (await fetch(`http://127.0.0.1:${plain.http.address().port}/shared/shape.ts`)).text(), /from ['"]sat['"]/);
   const library = await fetch(`${base}/map/macro/content/diamond-12x6.json`);
   assert.match(library.headers.get('content-type'), /json/);
   for (const refused of ['/map/tools/server.mts', '/map/tools/cli.mts', '/map/tools/sweep.mts', '/map/macro/package.json', '/map/macro/node_modules/typescript/package.json',

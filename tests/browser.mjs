@@ -17,7 +17,7 @@ const failableMaps = (seed, size) => {
   holdNextGeneration = false;
   return new Promise((_resolve, reject) => { failHeldGeneration = () => reject(new Error('generation failure arranged by the browser suite')); });
 };
-const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps, devTools: 'all' });
+const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps });
 const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const errors = [];
@@ -566,12 +566,12 @@ try {
     'opened door and walked into a real building');
   await guest.close(); await mobile.close(); await visionPage.close(); await caster.close();
   // The deploy dialog lists open rooms (#254): a named room is listed to everyone, its Join usable, and a
-  // server with a dev tools policy offers a dev view.
+  // server without a dev tools policy offers no dev view.
   const namedRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":7,"name":"Night shift"}' })).json();
   await page.getByRole('button', { name: 'New arena', exact: true }).click();
   await page.getByRole('button', { name: 'Join Night shift', exact: true }).waitFor();
   assert.equal(await page.getByRole('button', { name: 'Join Night shift', exact: true }).isEnabled(), true);
-  assert.equal(await page.getByRole('button', { name: 'Dev view of Night shift', exact: true }).count(), 1);
+  assert.equal(await page.getByRole('button', { name: 'Dev view of Night shift', exact: true }).count(), 0);
   await page.screenshot({ path: 'test-results/room-browser.png' });
   // Auto is matchmaking.
   await page.locator('#role-preference').selectOption('gladiator');
