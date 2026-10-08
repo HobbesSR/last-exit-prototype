@@ -22,7 +22,8 @@
     "test:micro": "node --test tests/micro-*.test.js && node tests/micro-lab.mjs && node tests/decomposition-lab.mjs && node tests/generation-demo.mjs",
     "test:mapgen": "npm --prefix map/macro test",
     "micro": "node tools/micro-region.mjs",
-    "decompose": "node tools/decompose-region.mjs"
+    "decompose": "node tools/decompose-region.mjs",
+    "forgejo:usage": "node tools/forgejo-usage.mjs"
   },
   "dependencies": {
     "express": "^5.1.0",
