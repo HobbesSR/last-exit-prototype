@@ -63,7 +63,7 @@ the agent starts its next branch from fresh `forgejo/main`.
    Re-running it returns the existing PR. Say in the body what testing you did,
    including which gates ran and which were skipped.
 6. Review others with `list_pull_requests` and `get_pull_request_diff`
-   (`git fetch forgejo pull/N/head` if the diff is truncated). Trust the PR
+   (`stat` for the file list, `file` or `offset`/`limit` for parts). Trust the PR
    author's testing assertions as evidence when their scope matches the commit,
    but retain discretion to re-run focused checks if the validation appears stale,
    incomplete, or mis-scoped. Post the verdict with `submit_pull_request_review`
@@ -76,6 +76,35 @@ the agent starts its next branch from fresh `forgejo/main`.
 
 To stop partway through a task, post a handoff comment on the issue or pull
 request as [32](32-delegation.md) describes; the next session resumes from it.
+
+## Reading Forgejo economically
+
+The Forgejo MCP server (`forgejo_studio/forgejo-mcp/`, outside this repo; its shaping
+functions and tests are in `shape.js` and `shape.test.js`, run with `node --test`) returns
+compact text, not raw API JSON. Writes return
+`{number, html_url}`; lists are one line per item (`limit`/`page`);
+`get_issue_details` takes `part` (`summary`, `body`, `comments`, `all`) with
+comment `offset`/`limit`/`since` (use `since` for what is new after a handoff);
+`get_pull_request_reviews` gives one line per review, and `review_id` fetches one
+in full; `get_pull_request_diff` takes `stat`, `file` and `offset`/`limit`.
+Nothing is silently truncated: a partial result states its total and next offset.
+
+Read-only text over about 6K characters is written to `.forgejo-cache/` (gitignored,
+in the server's working directory, or `FORGEJO_CACHE_DIR`) and the call returns a digest
+and the path. Open it with `Read` (offset/limit) or `Grep` only where needed.
+
+Tool results stay in context until it is compacted or cleared, and are re-read each
+turn. So:
+
+- For a Forgejo read expected over about 8K characters where the lead needs only a
+  summary (a long thread or a PR's reviews, review prep over a diff, a scan across many
+  issues), use a read-only subagent ([32](32-delegation.md)). It does not claim, comment,
+  push or open PRs. Ask it for quoted text on decisions and to say what it skipped.
+- Keep local: the issue text for the task you are implementing (a digest can drop
+  nuance), and every write.
+- A one-off read followed by a quick move on is cheaper done locally.
+- Rely on the handoff comment and `/clear` at task boundaries rather than a
+  session that grows without end.
 
 ## Setting up a worktree
 

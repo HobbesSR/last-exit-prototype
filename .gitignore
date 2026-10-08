@@ -3,3 +3,4 @@ replays/
 test-results/
 *.log
 .env.local
+.forgejo-cache/
