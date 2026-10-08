@@ -79,10 +79,12 @@ request as [32](32-delegation.md) describes; the next session resumes from it.
 
 ## Reading Forgejo economically
 
-The Forgejo MCP server (`forgejo_studio/forgejo-mcp/`, outside this repo; its shaping
+The Forgejo MCP server (`forgejo_studio/forgejo-mcp/`, its own git repo outside this one; its shaping
 functions and tests are in `shape.js` and `shape.test.js`, run with `node --test`) returns
-compact text, not raw API JSON. Writes return
-`{number, html_url}`; lists are one line per item (`limit`/`page`);
+compact text, not raw API JSON. Writes return a compact identifier and URL
+(`{number, html_url}`, or `{id, ...}` for reviews; idempotent ones add a `_note`);
+lists are one line per item (`limit`/`page`);
+Lists and comments follow every API page before paging locally.
 `get_issue_details` takes `part` (`summary`, `body`, `comments`, `all`) with
 comment `offset`/`limit`/`since` (use `since` for what is new after a handoff);
 `get_pull_request_reviews` gives one line per review, and `review_id` fetches one
