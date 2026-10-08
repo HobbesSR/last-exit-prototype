@@ -6,10 +6,16 @@ import { recordingFit } from '../../shared/recording.ts';
 import { createReplayTimeline } from '../../public/replay-timeline.js';
 import { TICK_MS } from '../../server/scheduler.js';
 
+// The smallest size runs by default. A larger one costs about 1 min (24x12) and 4.5 min (36x18) of
+// one core and finds little the smallest does not, so it needs a reason: ROOM_SIZES=all, or a list
+// such as ROOM_SIZES=36x18. Run it when a change targets size-dependent generation or room limits.
+const wanted = process.env.ROOM_SIZES?.split(',').map(name => name.trim());
+const sizes = wanted ? LIVE_ZONE_SIZES.filter(size => wanted.includes('all') || wanted.includes(zoneSizeName(size))) : LIVE_ZONE_SIZES.slice(0, 1);
+
 // Every authored size has to play to its end, record and replay (#184, 14). A bot match runs
 // whole; the recording keeps the header, every 200th frame and the last, which the replay timeline
 // holds sparse frames for, so a 36 x 18 match does not have to fit in memory twice.
-for (const size of LIVE_ZONE_SIZES) {
+for (const size of sizes) {
   test(`a ${zoneSizeName(size)} room plays to its end, records and replays`, async () => {
     const kept = [];
     let header, last, count = 0;

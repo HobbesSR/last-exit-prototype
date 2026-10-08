@@ -15,11 +15,13 @@ npm run bench:client
 ```
 
 The unit suite has two tiers. `npm test` is the fast tier for iterating on a PR:
-everything under `tests/*.test.js`, about ten seconds. `npm run test:all` adds
+everything under `tests/*.test.js`, about two minutes wall time (measured 2026-10-07: 5.5 minutes
+summed, run in parallel across files). `npm run test:all` adds
 `tests/slow/`: the 200-map route sweep, the bot-match traces against the frozen
-fixture, and bots completing whole matches. Those slow tests take about five minutes, most of it one 36 × 18 room (below)
-and four fifths of the suite's CPU, and their evidence only moves when generation
-or simulation moves. Run `test:all` before opening a PR that touches
+fixture, and bots completing whole matches. Those slow tests sum to about four minutes
+by default, and their evidence only moves when generation or simulation moves.
+`tests/slow/room-sizes.test.js` runs only the 12 × 6 room unless asked
+(`ROOM_SIZES=all`, or a list such as `ROOM_SIZES=24x12,36x18`; below). Run `test:all` before opening a PR that touches
 `shared/`, `server/` or map generation the game consumes, and at integration
 checkpoints. A test belongs in `tests/slow/` when it costs seconds and sweeps
 seeds or plays whole matches. The fast tier keeps a cheap witness of the same
@@ -94,6 +96,15 @@ Playwright and start an isolated temporary server; screenshots land in
 pages and rooms, so it takes minutes; a feature that needs only its own server and
 tabs gets its own script, as `tests/dev-view.browser.mjs` (the dev view, 24) does,
 so it can be iterated on in seconds. `npm run test:browser` runs them all.
+
+`npm run test:times` times every unit test file alone, slowest first, and marks files over
+budget (15 s fast tier, 60 s slow tier) with their slowest tests; `-- --strict` exits 1 on
+any, and file paths limit it. Run it when adding or growing a test file. A file over budget is
+optimized (share a generated map across tests, build fewer rooms), split into files
+that run in parallel, or has its largest cases gated behind an environment variable as
+`room-sizes` does. Files already over budget when this was added: `room-service`,
+`room-directory`, `server`, `map-generator` and the slow `map-library`; they are the first
+candidates, not a precedent.
 
 Run timing comparisons sequentially, with no competing tests or benchmarks, and
 repeat a suspected regression three times before believing it. Do not claim the
@@ -202,8 +213,9 @@ and macro library tests check hunter access, standing space, six separate owned
 regions and longitudinal distribution. `tests/slow/room-sizes.test.js` runs a bot
 match to its end in a room at each authored size (14), checks every tick was
 recorded in order, and reads sparse frames back through the replay timeline; it
-takes about 11 s, 1 min and 4.5 min at 12 × 6, 24 × 12 and 36 × 18, nearly all
-of the slow tier's wall time. These samples do not establish human balance or
+takes about 11 s, 1 min and 4.5 min at 12 × 6, 24 × 12 and 36 × 18. Only 12 × 6 runs
+by default, since the larger sizes rarely find what it misses; set `ROOM_SIZES` when a change
+targets size-dependent generation, room limits or recording. These samples do not establish human balance or
 exhaustive seed coverage.
 
 The browser suite uses live-chain rooms for normal play, replay, mobile controls
