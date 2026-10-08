@@ -52,6 +52,9 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
   appropriate to the affected subsystem. Run timing
   comparisons sequentially without competing tests/benchmarks; repeat suspected
   regressions three times. Do not claim the reported slowdown fixed without evidence.
+- A new or grown test file stays under 15 s (fast tier) or 60 s (`tests/slow/`); check it with
+  `npm run test:times -- <file>`. Optimize, split or gate expensive cases behind an environment
+  variable rather than adding minutes to every run (`docs/31`).
 - When a rule changes, update its numbered document in the same change.
   `docs/33-maintenance.md` says where each kind of fact belongs.
 
