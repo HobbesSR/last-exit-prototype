@@ -105,6 +105,9 @@ turn. So:
 - Keep local: the issue text for the task you are implementing (a digest can drop
   nuance), and every write.
 - A one-off read followed by a quick move on is cheaper done locally.
+- To measure the effect, run `npm run forgejo:usage` (`tools/forgejo-usage.mjs`): per-tool
+  call counts and result sizes from your Claude Code transcripts. `-- --split <ISO date>`
+  compares before and after a date. Only Claude Code transcripts are read.
 - Rely on the handoff comment and `/clear` at task boundaries rather than a
   session that grows without end.
 
