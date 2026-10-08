@@ -10,6 +10,11 @@ import { TICK_MS } from '../../server/scheduler.js';
 // one core and finds little the smallest does not, so it needs a reason: ROOM_SIZES=all, or a list
 // such as ROOM_SIZES=36x18. Run it when a change targets size-dependent generation or room limits.
 const wanted = process.env.ROOM_SIZES?.split(',').map(name => name.trim());
+const sizeNames = LIVE_ZONE_SIZES.map(zoneSizeName);
+const invalid = wanted?.filter(name => name !== 'all' && !sizeNames.includes(name));
+if (invalid?.length) {
+  throw new Error(`Invalid ROOM_SIZES value(s): ${invalid.map(name => JSON.stringify(name)).join(', ')}. Supported values: all, ${sizeNames.join(', ')}`);
+}
 const sizes = wanted ? LIVE_ZONE_SIZES.filter(size => wanted.includes('all') || wanted.includes(zoneSizeName(size))) : LIVE_ZONE_SIZES.slice(0, 1);
 
 // Every authored size has to play to its end, record and replay (#184, 14). A bot match runs

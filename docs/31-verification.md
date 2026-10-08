@@ -21,7 +21,8 @@ summed, run in parallel across files). `npm run test:all` adds
 fixture, and bots completing whole matches. Those slow tests sum to about four minutes
 by default, and their evidence only moves when generation or simulation moves.
 `tests/slow/room-sizes.test.js` runs only the 12 × 6 room unless asked
-(`ROOM_SIZES=all`, or a list such as `ROOM_SIZES=24x12,36x18`; below). Run `test:all` before opening a PR that touches
+(`ROOM_SIZES=all`, or a list such as `ROOM_SIZES=24x12,36x18`; invalid or empty values fail with
+the supported values). Run `test:all` before opening a PR that touches
 `shared/`, `server/` or map generation the game consumes, and at integration
 checkpoints. A test belongs in `tests/slow/` when it costs seconds and sweeps
 seeds or plays whole matches. The fast tier keeps a cheap witness of the same
@@ -105,6 +106,9 @@ that run in parallel, or has its largest cases gated behind an environment varia
 `room-sizes` does. Files already over budget when this was added: `room-service`,
 `room-directory`, `server`, `map-generator` and the slow `map-library`; they are the first
 candidates, not a precedent.
+
+The timing command exits 1 when any test process fails, cannot launch, or terminates
+by signal, even without `--strict`. It prints the failure reason and captured test output.
 
 Run timing comparisons sequentially, with no competing tests or benchmarks, and
 repeat a suspected regression three times before believing it. Do not claim the
