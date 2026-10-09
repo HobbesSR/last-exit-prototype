@@ -3,8 +3,9 @@ import type { BuildingObserver } from '../building/trace.ts';
 import { buildOpen } from './open.ts';
 import { largestRectangle } from './hall.ts';
 import { warehouse } from './depot.ts';
-import { cellLoot, draw, fraction } from './scatter.ts';
-import { createRegionMask, elementShapes } from '../geometry.ts';
+import { cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
+import { createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
+import { boundaryBoxFilter, boxesAgainstHints, portalMargin, hintedCells } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
@@ -12,8 +13,7 @@ import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 /** The catalogue's proposed shape need (54), as `depot`'s: a contained square at least this many cells a side. */
 const MIN_SIDE = 10;
 /**
- * Clear cells around every piece's box, from every other piece and from any cell the region
- * doesn't own, and the width of every gap in a pipe run: a doorway (52), so a hunter fits each.
+ * Clear cells between pieces and across every pipe gap: a doorway (52), so a hunter fits each.
  */
 const AISLE = CELL_SCALE.doorway;
 /** Cells from one slot to the next. A slot's pieces stay in its first `BAND` cells, so the rest is aisle. */
@@ -51,12 +51,10 @@ type Box = { x: number; y: number; w: number; h: number };
  * `JOINED`, by a pipe run along a row both face. A pipe blocks movement but not sight, as a
  * window does (17.2.8 M34), and leaves one gap a door wide, `AISLE` cells, at a seeded place.
  *
- * Every machine's and shed's box keeps `AISLE` clear cells from every other's and from any cell
- * the region doesn't own, and so does every pipe run's but for the machines it joins. A run
- * stays in its machines' band and crosses only the aisle between them, so runs never meet. The
- * machines and runs can wall off ground between them, but every run has its gap, so no ground
- * is shut off, and like `depot` the region keeps the portal promise exactly when its shape does.
- * A region with no contained `MIN_SIDE` square goes to `open` (17 M24).
+ * Machines and the shed keep `AISLE` clear cells from other pieces. Pipe runs bridge
+ * neighbouring machines through a door-wide gap, with owned aisles around each run.
+ * Candidate footprints stay clear of portal approaches; concave masks also protect a
+ * hunter corridor. A region with no contained `MIN_SIDE` square goes to `open` (17 M24).
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear of
  * every piece, indoors or out. A plant sites no core elements; any the brief lists are left for
@@ -67,16 +65,24 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
   const shedChance = fraction(brief, 'Plant', 'shed', DEFAULT_SHED);
   const mask = createRegionMask(brief), size = brief.cellSize;
   if (!largestRectangle(mask, MIN_SIDE)) return buildOpen(brief);
+  const reserved = new Set([...portalMargin(brief, 1), ...portalMargin({ ...brief, hints: [] }, 2)].map(c => `${c.x},${c.y}`));
+  const boundary = boundaryBoxFilter(brief, AISLE), rectangular = boundary.rectangular;
+  const protectedShapes = !rectangular && brief.portals.length <= 32 ? protectedRoutes(brief, mask, 'Plant') : [];
+  const useConservativeEdge = !rectangular && brief.portals.length > 32;
 
-  // Every cell of a box and its ring of AISLE cells is owned.
+
+  // A piece must stay owned and clear of portals; the lattice preserves inter-piece aisles.
   const clear = ({ x, y, w, h }: Box) => {
-    for (let j = Math.floor(y) - AISLE; j < Math.ceil(y + h) + AISLE; j++)
-      for (let i = Math.floor(x) - AISLE; i < Math.ceil(x + w) + AISLE; i++) if (!mask.has(i, j)) return false;
-    return true;
+    for (let j = Math.floor(y); j < Math.ceil(y + h); j++)
+      for (let i = Math.floor(x); i < Math.ceil(x + w); i++) if (!mask.has(i, j) || reserved.has(`${i},${j}`)) return false;
+    return (!(rectangular || useConservativeEdge) || boundary.fits({ x, y, w, h }))
+      && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
   };
 
   // Slot origins over the mask's bounds, in row order, so nothing depends on the brief's cell order.
   const phase = { x: Math.floor(draw(brief.seed, 0, 0, CHANNEL.phaseX) * PERIOD), y: Math.floor(draw(brief.seed, 0, 0, CHANNEL.phaseY) * PERIOD) };
+  const firstHint = hintedCells(brief)[0];
+  if (firstHint) { phase.x = ((firstHint.x % PERIOD) + PERIOD) % PERIOD; phase.y = ((firstHint.y % PERIOD) + PERIOD) % PERIOD; }
   const span = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
   for (const { x, y } of mask.cells) Object.assign(span, { x0: Math.min(span.x0, x), y0: Math.min(span.y0, y), x1: Math.max(span.x1, x), y1: Math.max(span.y1, y) });
   const first = (min: number, offset: number) => offset + Math.floor((min - offset) / PERIOD) * PERIOD;
@@ -95,8 +101,9 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
   if (draw(brief.seed, 0, 0, CHANNEL.shed) < shedChance) {
     const [across, down] = SHEDS[Math.floor(draw(brief.seed, 0, 0, CHANNEL.shedSize) * SHEDS.length)]!;
     const box = (slot: { x: number; y: number }): Box => ({ x: slot.x, y: slot.y, w: across * PERIOD - AISLE, h: down * PERIOD - AISLE });
-    const site = slots.map(slot => ({ slot, order: draw(brief.seed, slot.x, slot.y, CHANNEL.shedOrder) }))
-      .sort((a, b) => a.order - b.order || a.slot.y - b.slot.y || a.slot.x - b.slot.x).find(({ slot }) => clear(box(slot)));
+    const hintedSheds = new Set(boxesAgainstHints(brief, across * PERIOD - AISLE, down * PERIOD - AISLE).map(b => key(b.x, b.y)));
+    const site = slots.map(slot => ({ slot, order: draw(brief.seed, slot.x, slot.y, CHANNEL.shedOrder), hinted: hintedSheds.has(key(slot.x, slot.y)) }))
+      .sort((a, b) => Number(b.hinted) - Number(a.hinted) || a.order - b.order || a.slot.y - b.slot.y || a.slot.x - b.slot.x).find(({ slot }) => clear(box(slot)));
     if (site) {
       const shed = box(site.slot), label = 'plant-shed-1';
       for (let j = 0; j < down; j++) for (let i = 0; i < across; i++) shedSlots.add(key(site.slot.x + i * PERIOD, site.slot.y + j * PERIOD));
@@ -110,14 +117,19 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
     }
   }
 
-  // A machine in each slot that rolls under `density`, if its box keeps its ring.
+  // A machine in each slot that rolls under `density`, if its footprint fits.
   const machines = new Map<string, Box>();
+  const hintedMachines = new Map<string, ReturnType<typeof boxesAgainstHints>>();
   for (const slot of slots) {
     if (shedSlots.has(key(slot.x, slot.y)) || draw(brief.seed, slot.x, slot.y, CHANNEL.machine) >= density) continue;
     const side = (channel: number) => MACHINE_MIN + Math.floor(draw(brief.seed, slot.x, slot.y, channel) * (MACHINE_MAX - MACHINE_MIN + 1));
     const w = side(CHANNEL.width), h = side(CHANNEL.height);
-    const box = { x: slot.x + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.jitterX) * (BAND - w + 1)),
-      y: slot.y + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.jitterY) * (BAND - h + 1)), w, h };
+    const hintKey = `${w},${h}`;
+    if (!hintedMachines.has(hintKey)) hintedMachines.set(hintKey, boxesAgainstHints(brief, w, h));
+    const hint = hintedMachines.get(hintKey)!.find(candidate => candidate.x >= slot.x && candidate.y >= slot.y
+      && candidate.x + w <= slot.x + BAND && candidate.y + h <= slot.y + BAND);
+    const box = { x: hint?.x ?? slot.x + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.jitterX) * (BAND - w + 1)),
+      y: hint?.y ?? slot.y + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.jitterY) * (BAND - h + 1)), w, h };
     if (!clear(box)) continue;
     machines.set(key(slot.x, slot.y), box);
     const chamfered = draw(brief.seed, slot.x, slot.y, CHANNEL.chamfer) < CHAMFERED;
@@ -141,6 +153,11 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
       const v = v0 + Math.floor(roll('row') * (v1 - v0)), gap = Math.floor(roll('gap') * (length - AISLE + 1));
       const run: Box = across ? { x: u0, y: v, w: length, h: 1 } : { x: v, y: u0, w: 1, h: length };
       if (!clear(run)) continue;
+      // Keep full owned aisles around pipes so each door-wide gap opens on both sides.
+      let runRing = true;
+      for (let y = Math.floor(run.y) - AISLE; y < Math.ceil(run.y + run.h) + AISLE; y++)
+        for (let x = Math.floor(run.x) - AISLE; x < Math.ceil(run.x + run.w) + AISLE; x++) if (!mask.has(x, y)) runRing = false;
+      if (!runRing) continue;
       // Local to the run's box, which reaches SEAT into each machine.
       const stubs: [number, number][] = [[-SEAT, gap], [gap + AISLE, length + SEAT]];
       const parts = stubs.filter(([s, e]) => e - s > SEAT).map(([s, e]) => ({ part: 'obstacle' as const, kind: 'pipe' as const,

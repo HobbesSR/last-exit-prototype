@@ -1,3 +1,4 @@
+import { portalMargin } from '../map/micro/hints.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
@@ -50,15 +51,16 @@ test('plants are deterministic and independent of the order of the brief\'s cell
   }
 });
 
-test('machines and the shed keep an aisle from each other and the edge, and pipes from all but what they join', () => {
+test('machines and the shed keep an aisle from each other and respect portal margins, and pipes from all but what they join', () => {
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS)
     for (const parameters of [{ density: 1, shed: 0 }, { density: 1, shed: 1 }]) {
       const input = brief(name, seed, cells, portals, parameters);
       const result = buildRegion(input), mask = createRegionMask(input);
+      const reserved = new Set(portalMargin(input, 1).map(c => `${c.x},${c.y}`));
       const solid = result.elements.filter(e => !kind('pipe')(e)).map(e => ({ label: e.label, box: cellBox(e) }));
       for (const [i, { label, box }] of solid.entries()) {
-        for (let y = box.y - 2; y < box.y + box.h + 2; y++) for (let x = box.x - 2; x < box.x + box.w + 2; x++)
-          assert.ok(mask.has(x, y), `${name} ${seed}: ${label} keeps 2 owned cells around it`);
+        for (let y = box.y; y < box.y + box.h; y++) for (let x = box.x; x < box.x + box.w; x++)
+          assert.ok(mask.has(x, y) && !reserved.has(`${x},${y}`), `${name} ${seed}: ${label} footprint`);
         for (const other of solid.slice(i + 1)) assert.ok(gapBetween(box, other.box) >= 2, `${name} ${seed}: ${label} and ${other.label}`);
       }
       const cellsOfShape = shape => { const b = bounds(shape); return { x: b.x / SIZE, y: b.y / SIZE, w: b.w / SIZE, h: b.h / SIZE }; };
@@ -198,4 +200,37 @@ test('a macro-sized plant with hundreds of portals builds quickly', () => {
   const result = buildRegion(brief('macro', 3, cells, portals));
   assert.ok(performance.now() - started < 3000, `built in ${Math.round(performance.now() - started)} ms`);
   assert.ok(result.manifest.machines > 100 && result.manifest.pipes > 50);
+});
+
+test('plant can place geometry against a hinted edge while protecting portals', () => {
+  const cells = cellsOf(40, 30);
+  const portals = [{ id: 'west', axis: 'v', x: 0, y: 10, length: 3 }, { id: 'east', axis: 'v', x: 40, y: 10, length: 3 }];
+  const hints = [{ axis: 'h', x: 0, y: 0, length: 40 }];
+  const input = { ...brief('hinted', 1, cells, portals, { density: 1, shed: 1 }), hints };
+  const result = buildRegion(input);
+  assert.ok(result.elements.some(element => element.y === 0), 'a piece reaches the hinted north edge');
+  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
+});
+
+test('large concave plant with many portals keeps a safe hinted attachment', () => {
+  const cells = cellsOf(80, 30, (x, y) => y < 15 || x < 45);
+  const portals = Array.from({ length: 33 }, (_, i) => ({ id: `north-${i}`, axis: 'h', x: i * 2, y: 0, length: 2 }));
+  portals.push({ id: 'south', axis: 'h', x: 8, y: 30, length: 2 });
+  const input = { ...brief('many-concave', 4, cells, portals, { density: 1, shed: 1 }), hints: [{ axis: 'v', x: 0, y: 17, length: 12 }] };
+  const result = buildRegion(input);
+  assert.ok(result.elements.some(element => element.x === 0), 'a piece reaches the hinted west edge');
+  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
+});
+
+test('thin rectangular plant keeps a hunter aisle between opposite sides', () => {
+  const cells = cellsOf(10, 18);
+  const portals = [{ id: 'north', axis: 'h', x: 1, y: 0, length: 2 },
+    { id: 'south', axis: 'h', x: 1, y: 18, length: 2 }];
+  const input = brief('thin', 7, cells, portals, { density: 1, shed: 1 });
+  const result = buildRegion(input);
+  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
+  for (const element of result.elements) {
+    const x = element.x / SIZE, width = element.template.w / SIZE;
+    assert.ok(x >= 2 || 10 - x - width >= 2, `${element.label} leaves an aisle on one side`);
+  }
 });

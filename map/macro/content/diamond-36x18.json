@@ -7,15 +7,15 @@
   "includes": [
     {
       "name": "common-primitives",
-      "version": 2
+      "version": 3
     },
     {
       "name": "common-set-pieces",
-      "version": 2
+      "version": 3
     },
     {
       "name": "district-set-pieces",
-      "version": 1
+      "version": 2
     }
   ],
   "setPieces": [

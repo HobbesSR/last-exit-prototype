@@ -2,6 +2,8 @@ import { circle, rect } from '../../../shared/shape.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
 import { rng } from '../index.ts';
+import { boundaryBoxFilter, portalMargin, boxesAgainstHints, hintedCells } from '../hints.ts';
+import { protectedRoutes } from './scatter.ts';
 import { microMetrics } from '../metrics.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { ObstacleKind } from '../../../shared/types.ts';
@@ -10,8 +12,7 @@ import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types
 /** Cells between slots, one tile, so pieces read as sited rather than strewn. */
 const PERIOD = 6;
 /**
- * Clear cells around every cluster's box, from every other cluster and from the region's
- * edge: a doorway (52), so a hunter fits each aisle.
+ * Clear cells between clusters: a doorway (52), so a hunter fits each aisle.
  */
 const AISLE = CELL_SCALE.doorway;
 const DENSITY = 0.55;
@@ -37,11 +38,9 @@ function densityOf(brief: RegionBrief): number {
  *
  * Slots lie on a lattice `PERIOD` cells apart. A slot is taken with chance `density`, by a
  * cluster of up to `CLUSTER` crates, barriers and the odd container, at jittered spots in it.
- * Every cluster's bounding box keeps `AISLE` clear cells from the next slot's and from any
- * cell the region doesn't own, so no route search is needed. Each box is convex with a clear
- * ring wider than a hunter around it, and such boxes can't divide the ground a hunter can
- * reach outside them, where every portal is. So, like `open`, the region keeps the portal
- * promise exactly when its shape does. A region too small for one piece stays clear.
+ * Neighbouring slots keep an aisle between clusters. Candidate boxes stay owned and clear
+ * of portal approaches; concave masks also protect one hunter corridor. Hinted runs guide
+ * the first piece in each eligible slot. A region too small for a piece stays clear.
  *
  * Loot rolls each cell's chance and takes the cell's tier (52, "Tier zones"). It lands at a
  * cell whose neighbours are all owned and free of cover, so it has standing room. Cover sites
@@ -51,11 +50,23 @@ export function buildCover(brief: RegionBrief): BuiltRegion {
   const density = densityOf(brief), size = brief.cellSize;
   const owned = new Set(brief.cells.map(c => `${c.x},${c.y}`)), footprints = new Set<string>();
   const cells = [...brief.cells].sort((a, b) => a.y - b.y || a.x - b.x);
+  const reserved = new Set([...portalMargin(brief, 1), ...portalMargin({ ...brief, hints: [] }, 2)].map(c => `${c.x},${c.y}`));
+  const mask = createRegionMask(brief);
+  const boundary = boundaryBoxFilter(brief, AISLE), rectangular = boundary.rectangular;
+  const protectedShapes = !rectangular && brief.portals.length <= 32 ? protectedRoutes(brief, mask, 'Cover') : [];
+  const useConservativeEdge = !rectangular && brief.portals.length > 32;
+
+  const hinted = new Map<string, { x: number; y: number }[]>();
+  for (const piece of PIECES) for (const [w, h] of [[piece.w, piece.h], [piece.h, piece.w]])
+    hinted.set(`${w},${h}`, boxesAgainstHints(brief, w, h));
   const slots = rng(brief.seed, `${brief.id}:cover-slots`), phase = { x: slots.int(0, PERIOD - 1), y: slots.int(0, PERIOD - 1) };
+  const firstHint = hintedCells(brief)[0];
+  if (firstHint) { phase.x = ((firstHint.x % PERIOD) + PERIOD) % PERIOD; phase.y = ((firstHint.y % PERIOD) + PERIOD) % PERIOD; }
   const onLattice = (value: number, offset: number) => ((value - offset) % PERIOD + PERIOD) % PERIOD === 0;
   const clear = (x: number, y: number, w: number, h: number) => {
-    for (let j = y - AISLE; j < y + h + AISLE; j++) for (let i = x - AISLE; i < x + w + AISLE; i++) if (!owned.has(`${i},${j}`)) return false;
-    return true;
+    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!owned.has(`${i},${j}`) || reserved.has(`${i},${j}`)) return false;
+    return (!(rectangular || useConservativeEdge) || boundary.fits({ x, y, w, h }))
+      && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
   };
   const occupied = (x: number, y: number, w: number, h: number) => {
     for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (footprints.has(`${i},${j}`)) return true;
@@ -70,13 +81,16 @@ export function buildCover(brief: RegionBrief): BuiltRegion {
     const draws = Array.from({ length: CLUSTER }, () => ({ pick: slots.next(), turned: slots.next() < 0.5, jx: slots.next(), jy: slots.next(), length: slots.next(), offset: slots.next() }));
     if (!taken) continue;
     // A cluster stays inside the slot's first PERIOD - AISLE cells, so neighbouring clusters keep the aisle.
-    // Its bounding box, which is convex, keeps the aisle from the region's edge as it grows.
+    // Its bounding box stays owned and clear of portal approaches as it grows.
     let box: { x0: number; y0: number; x1: number; y1: number } | undefined;
     for (const { pick, turned, jx, jy, length, offset } of draws.slice(0, wanted)) {
       let piece = PIECES[0]!;
       for (let sum = 0, i = 0; i < PIECES.length; i++) if (pick < (sum += PIECES[i]!.weight)) { piece = PIECES[i]!; break; }
       const w = turned ? piece.h : piece.w, h = turned ? piece.w : piece.h;
-      const x = slot.x + Math.floor(jx * (PERIOD - AISLE - w + 1)), y = slot.y + Math.floor(jy * (PERIOD - AISLE - h + 1));
+      const hint = box ? undefined : hinted.get(`${w},${h}`)?.find(candidate => candidate.x >= slot.x && candidate.y >= slot.y
+        && candidate.x + w <= slot.x + PERIOD - AISLE && candidate.y + h <= slot.y + PERIOD - AISLE);
+      const x = hint?.x ?? slot.x + Math.floor(jx * (PERIOD - AISLE - w + 1));
+      const y = hint?.y ?? slot.y + Math.floor(jy * (PERIOD - AISLE - h + 1));
       const grown = box ? { x0: Math.min(box.x0, x), y0: Math.min(box.y0, y), x1: Math.max(box.x1, x + w), y1: Math.max(box.y1, y + h) } : { x0: x, y0: y, x1: x + w, y1: y + h };
       if (occupied(x, y, w, h) || !clear(grown.x0, grown.y0, grown.x1 - grown.x0, grown.y1 - grown.y0)) continue;
       box = grown;
@@ -141,8 +155,7 @@ export function coverAround(brief: RegionBrief, sites: readonly ClearSite[], roo
 /**
  * Makes sure some cover stands within `within` of `site`'s clear disc: if none of `elements`
  * does, one container is added there, if the region has room. Like `buildCover`'s clusters,
- * it keeps `AISLE` clear cells from the region's edge and from every other piece, so it
- * can't divide the ground a hunter can reach. It never cuts `site`'s route from `root`.
+ * it keeps `AISLE` clear cells from every other piece and leaves portal approaches clear. It never cuts `site`'s route from `root`.
  * Loot it would cover is dropped. The pick among places that qualify is seeded.
  */
 export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements' | 'loot'>, site: ClearSite, within: number,
@@ -152,13 +165,20 @@ export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements
   if (blockers.some(shape => shapesOverlap(shape, near))) return cover;
 
   const owned = new Set(brief.cells.map(c => `${c.x},${c.y}`)), taken = new Set<string>();
+  const reserved = new Set([...portalMargin(brief, 1), ...portalMargin({ ...brief, hints: [] }, 2)].map(c => `${c.x},${c.y}`));
+  const boundary = boundaryBoxFilter(brief, AISLE), rectangular = boundary.rectangular;
+  const protectedShapes = !rectangular && brief.portals.length <= 32 ? protectedRoutes(brief, mask, 'Cover') : [];
+  const useConservativeEdge = !rectangular && brief.portals.length > 32;
+
   for (const element of cover.elements) {
     const x0 = Math.round(element.x / size), y0 = Math.round(element.y / size);
     for (let j = y0; j < y0 + Math.round(element.template.h / size); j++) for (let i = x0; i < x0 + Math.round(element.template.w / size); i++) taken.add(`${i},${j}`);
   }
   const clear = (x: number, y: number, w: number, h: number) => {
-    for (let j = y - AISLE; j < y + h + AISLE; j++) for (let i = x - AISLE; i < x + w + AISLE; i++) if (!owned.has(`${i},${j}`) || taken.has(`${i},${j}`)) return false;
-    return true;
+    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!owned.has(`${i},${j}`) || reserved.has(`${i},${j}`)) return false;
+    for (let j = y - AISLE; j < y + h + AISLE; j++) for (let i = x - AISLE; i < x + w + AISLE; i++) if (taken.has(`${i},${j}`)) return false;
+    return (!(rectangular || useConservativeEdge) || boundary.fits({ x, y, w, h }))
+      && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
   };
   const piece = PIECES.find(candidate => candidate.name === 'container')!;
   const places: RegionElement[] = [];

@@ -19,8 +19,8 @@ import type { ChainParams, Orientation } from "../src/chain/types.ts";
 
 const content = (name: string): unknown => JSON.parse(readFileSync(new URL(`../content/${name}.json`, import.meta.url), "utf8"));
 const MODULES = {
-  "common-primitives@2": content("common-primitives@2"), "common-set-pieces@2": content("common-set-pieces@2"),
-  "district-set-pieces@1": content("district-set-pieces@1"),
+  "common-primitives@3": content("common-primitives@3"), "common-set-pieces@3": content("common-set-pieces@3"),
+  "district-set-pieces@2": content("district-set-pieces@2"),
 };
 /** The catalogue (54): its minimal set, the types B3 built, and the types S4 drafted. */
 const CATALOGUE = new Set([
@@ -79,6 +79,30 @@ test("every design keeps its classes and passable stretches on a three-cell grid
         assert.ok(passable.has(axis === "v" ? `v:${x},${i}` : `h:${i},${y}`), `${at} ${key} is part of a whole block`);
     }
   }
+});
+
+test("perimeter authorship distinguishes deferral, opening guarantees, and occupancy hints", () => {
+  const tiles = new Map(SIZES[0]!.library.tiles.map(tile => [tile.id, tile]));
+  const sideKeys = [
+    (i: number) => `h:0,${i}`, (i: number) => `v:6,${i}`,
+    (i: number) => `h:6,${i}`, (i: number) => `v:0,${i}`,
+  ];
+  const values = (id: string, side: (i: number) => string) =>
+    Array.from({ length: 6 }, (_, i) => tiles.get(id)!.segments?.[side(i)]?.passability);
+  for (const id of ["field", "rubble-bank"])
+    for (const side of sideKeys) assert.deepEqual(values(id, side), Array(6).fill("any"), `${id} defers explicitly`);
+  for (const id of ["cover-ground", "ruins-ground", "hall-ground", "depot-ground", "compound-ground",
+    "block-ground", "market-ground", "plant-ground", "checkpoint-ground", "park-ground",
+    "arrival-ground", "departure-ground", "charging-ground", "transit-ground"])
+    for (const side of sideKeys) assert.deepEqual(values(id, side), [
+      ...Array(3).fill("not-passable-hint"), ...Array(3).fill("passable"),
+    ], `${id} has an aligned three-cell opening`);
+  for (const side of [sideKeys[0]!, sideKeys[3]!])
+    assert.deepEqual(values("hut-quarter", side), Array(6).fill("any"), "hut joining sides defer");
+  for (const side of [sideKeys[1]!, sideKeys[2]!])
+    assert.deepEqual(values("hut-quarter", side), [
+      ...Array(3).fill("not-passable-hint"), ...Array(3).fill("passable"),
+    ], "hut open-facing sides retain their openings");
 });
 
 for (const { name, library: LIBRARY, quotas: QUOTAS, seeds } of SIZES) test(`${name} game layouts place every class's quota, prove connected, and keep each core element class to its own instance`, () => {

@@ -7,6 +7,7 @@ import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from 
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { circle } from '../shared/shape.ts';
+import { hintErrors, hintedCells } from '../map/micro/hints.ts';
 
 const SIZE = 40;
 const cellsOf = (w, h, keep = () => true) => {
@@ -32,10 +33,16 @@ const SEEDS = [1, 2, 3, 4];
 const blockers = result => result.elements.flatMap(element => elementShapes(element));
 const key = c => `${c.x},${c.y}`;
 const sameRun = (p, q) => p.axis === q.axis && p.x === q.x && p.y === q.y && p.length === q.length;
+const built = new Map();
+const sample = input => {
+  const id = JSON.stringify(input);
+  if (!built.has(id)) built.set(id, buildRegion(input));
+  return built.get(id);
+};
 
 test('a block keeps the portal promise over seeds and masks', () => {
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
-    const result = buildRegion(brief(name, seed, cells, portals));
+    const result = sample(brief(name, seed, cells, portals));
     assert.ok(result.manifest.lots >= 2, `${name} seed ${seed} has lots`);
     const check = validatePortalReach({ ...result.brief, blockers: blockers(result) });
     assert.deepEqual(check.errors, [], `${name} seed ${seed}`);
@@ -64,7 +71,7 @@ test('a block\'s children partition it, and every two that share a boundary have
   }
 });
 
-test('every lot keeps an alley to the block\'s edge and to every other lot, and suits its type', () => {
+test('every lot suits its type and keeps the three-cell alley between lots', () => {
   const types = new Set();
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
     const input = brief(name, seed, cells, portals), mask = createRegionMask(input), { lots } = planBlock(input);
@@ -81,7 +88,6 @@ test('every lot keeps an alley to the block\'s edge and to every other lot, and 
       if (type === 'depot') assert.ok(short >= 10);
       if (type === 'compound') assert.ok(short >= 16);
       for (let y = box.y - 3; y < box.y + box.h + 3; y++) for (let x = box.x - 3; x < box.x + box.w + 3; x++) {
-        assert.ok(mask.has(x, y), `${name} ${seed}: lot ${k + 1} keeps 3 owned cells around it`);
         boxes.forEach((other, j) => assert.ok(j === k || !(x >= other.x && x < other.x + other.w && y >= other.y && y < other.y + other.h),
           `${name} ${seed}: lots ${k + 1} and ${j + 1} are an alley apart`));
       }
@@ -90,19 +96,19 @@ test('every lot keeps an alley to the block\'s edge and to every other lot, and 
   assert.deepEqual([...types].sort(), ['compound', 'cover', 'depot', 'hut', 'ruins']);
 });
 
-test('every lot keeps its own promise between its frontages, and a hunter reaches it from the block\'s first portal', () => {
-  const radius = hunterClearance(SIZE);
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS.slice(0, 1)) {
-    const input = brief(name, seed, cells, portals), result = buildRegion(input), mask = createRegionMask(input), shapes = blockers(result);
-    const from = portalStands(input, mask)[0].points[0];
-    for (const lot of planBlock(input).lots) {
-      const own = buildRegion(lot);
-      assert.deepEqual(validatePortalReach({ ...lot, blockers: blockers(own) }).errors, [], `${name} ${seed}: ${lot.id} (${lot.type})`);
-      // Its own promise joins the frontages, so one stand inside them stands for the lot.
-      const point = portalStands(lot)[0].points[0];
-      assert.ok(findRegionRoute(mask, shapes, from, point, radius), `${name} ${seed}: ${lot.id} (${lot.type}) at ${point.x},${point.y}`);
-    }
-  }
+test('lots use hinted edges and inherit only their own hinted segments', () => {
+  const cells = cellsOf(32, 24), input = brief('hinted', 1, cells, [
+    { id: 'east', axis: 'v', x: 32, y: 10, length: 3 }, { id: 'south', axis: 'h', x: 20, y: 24, length: 3 },
+  ]);
+  input.hints = [{ axis: 'h', x: 0, y: 0, length: 32 }, { axis: 'v', x: 0, y: 0, length: 24 }];
+  const { lots, alleys } = planBlock(input), children = [...lots, alleys];
+  assert.ok(lots.some(lot => lot.cells.some(c => c.x === 0 && c.y === 0)), 'a lot reaches the hinted corner');
+  for (const child of children) assert.deepEqual(hintErrors(child), [], child.id);
+  const all = children.flatMap(child => hintedCells(child).map(key));
+  assert.equal(new Set(all).size, all.length, 'no hint cell is assigned twice');
+  assert.deepEqual(new Set(all), new Set(hintedCells(input).map(key)), 'the parent hints survive the split');
+  const result = buildRegion(input);
+  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
 });
 
 test('blocks are deterministic and independent of the order of the brief\'s cells', () => {
@@ -135,7 +141,7 @@ test('blocks roll loot by zone and keep every site clear of geometry', () => {
 });
 
 test('a region with no room for a lot is left open, and a lot\'s name never takes a block portal\'s', () => {
-  const thin = buildRegion(brief('thin', 1, cellsOf(60, 11), [{ id: 'west', axis: 'v', x: 0, y: 0, length: 2 }]));
+  const thin = buildRegion(brief('thin', 1, cellsOf(60, 5), [{ id: 'west', axis: 'v', x: 0, y: 0, length: 2 }]));
   assert.equal(thin.manifest.lots, undefined);
   assert.equal(thin.elements.length, 0);
   const [cells] = MASKS.field;
