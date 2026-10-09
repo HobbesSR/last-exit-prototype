@@ -5,6 +5,7 @@ import { createRegionMask, elementShapes } from '../map/micro/geometry.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
 import { seeThrough } from '../shared/movement.ts';
 import { bounds } from '../shared/shape.ts';
+import { portalMargin } from '../map/micro/hints.ts';
 
 const SIZE = 40;
 const cellsOf = (w, h, keep = () => true) => {
@@ -75,23 +76,24 @@ test('a tree is round, and a hedge blocks bodies but not sight', () => {
   assert.equal(seeThrough('tree'), false);
 });
 
-test('clumps and hedge runs keep an aisle from each other and the edge, and each run has one door-wide gap', () => {
+test('clumps and hedge runs keep an aisle from each other and respect portal margins, and each run has one door-wide gap', () => {
   let runs = 0;
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
     const input = brief(name, seed, cells, portals, DENSE);
     const result = buildRegion(input), mask = createRegionMask(input);
+    const reserved = new Set(portalMargin(input, 1).map(c => `${c.x},${c.y}`));
     // A clump is its trees together, boxed; a hedge run is its element's box.
     const hedgeBoxes = result.elements.filter(kind('hedge')).map(e => ({ label: e.label, box: boxOf(e) }));
     const trees = result.elements.filter(kind('tree')).map(boxOf);
     for (const tree of trees) {
-      for (let y = tree.y - 2; y < tree.y + tree.h + 2; y++) for (let x = tree.x - 2; x < tree.x + tree.w + 2; x++)
-        assert.ok(mask.has(x, y), `${name} ${seed}: a tree keeps 2 owned cells around it`);
+      for (let y = tree.y; y < tree.y + tree.h; y++) for (let x = tree.x; x < tree.x + tree.w; x++)
+        assert.ok(mask.has(x, y) && !reserved.has(`${x},${y}`), `${name} ${seed}: tree footprint`);
       for (const { label, box } of hedgeBoxes) assert.ok(gapBetween(tree, box) >= 2, `${name} ${seed}: a tree and ${label}`);
     }
     for (const [i, { label, box }] of hedgeBoxes.entries()) {
       runs++;
-      for (let y = box.y - 2; y < box.y + box.h + 2; y++) for (let x = box.x - 2; x < box.x + box.w + 2; x++)
-        assert.ok(mask.has(x, y), `${name} ${seed}: ${label} keeps 2 owned cells around it`);
+      for (let y = box.y; y < box.y + box.h; y++) for (let x = box.x; x < box.x + box.w; x++)
+        assert.ok(mask.has(x, y) && !reserved.has(`${x},${y}`), `${name} ${seed}: ${label} footprint`);
       for (const other of hedgeBoxes.slice(i + 1)) assert.ok(gapBetween(box, other.box) >= 2, `${label} and ${other.label}`);
       const element = result.elements.find(e => e.label === label), across = box.w > box.h;
       const stubs = element.template.parts.map(({ shape }) => bounds(shape)).map(b => across ? [b.x / SIZE, (b.x + b.w) / SIZE] : [b.y / SIZE, (b.y + b.h) / SIZE])
@@ -129,5 +131,38 @@ test('pieces keep valid, in-footprint geometry at small and large cell sizes', (
       assert.ok(box.w > 0 && box.h > 0, `size ${size}: ${element.label} has area`);
       assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.w <= element.template.w + 1e-9 && box.y + box.h <= element.template.h + 1e-9, `size ${size}: ${element.label} stays in its footprint`);
     }
+  }
+});
+
+test('park can place geometry against a hinted edge while protecting portals', () => {
+  const cells = cellsOf(40, 30);
+  const portals = [{ id: 'west', axis: 'v', x: 0, y: 10, length: 3 }, { id: 'east', axis: 'v', x: 40, y: 10, length: 3 }];
+  const hints = [{ axis: 'h', x: 0, y: 0, length: 40 }];
+  const input = { ...brief('hinted', 1, cells, portals, { density: 1, hedges: 0 }), hints };
+  const result = buildRegion(input);
+  assert.ok(result.elements.some(element => element.y === 0), 'a piece reaches the hinted north edge');
+  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
+});
+
+test('large concave park with many portals keeps a safe hinted attachment', () => {
+  const cells = cellsOf(80, 30, (x, y) => y < 15 || x < 45);
+  const portals = Array.from({ length: 33 }, (_, i) => ({ id: `north-${i}`, axis: 'h', x: i * 2, y: 0, length: 2 }));
+  portals.push({ id: 'south', axis: 'h', x: 8, y: 30, length: 2 });
+  const input = { ...brief('many-concave', 4, cells, portals, { density: 1, hedges: 0 }), hints: [{ axis: 'v', x: 0, y: 17, length: 12 }] };
+  const result = buildRegion(input);
+  assert.ok(result.elements.some(element => element.x === 0), 'a piece reaches the hinted west edge');
+  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
+});
+
+test('thin rectangular park keeps a hunter aisle between opposite sides', () => {
+  const cells = cellsOf(4, 18);
+  const portals = [{ id: 'north', axis: 'h', x: 1, y: 0, length: 2 },
+    { id: 'south', axis: 'h', x: 1, y: 18, length: 2 }];
+  const input = brief('thin', 7, cells, portals, { density: 1, hedges: 1 });
+  const result = buildRegion(input);
+  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
+  for (const element of result.elements) {
+    const x = element.x / SIZE, width = element.template.w / SIZE;
+    assert.ok(x >= 2 || 4 - x - width >= 2, `${element.label} leaves an aisle on one side`);
   }
 });

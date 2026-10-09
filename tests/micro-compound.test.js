@@ -48,6 +48,28 @@ test('a compound region keeps the portal promise over seeds, masks and gate coun
   }
 });
 
+test('a hinted perimeter can hold the ring without blocking portal or gate access', () => {
+  const cells = cellsOf(18, 18), portals = [{ id: 'south', axis: 'h', x: 7, y: 18, length: 3 }];
+  const input = { ...brief('hinted', 3, cells, portals), hints: [{ axis: 'h', x: 0, y: 0, length: 18 }] };
+  const result = buildRegion(input), box = compoundBox(result);
+  assert.equal(box.y, 0);
+  assert.ok(result.manifest.rooms >= 4);
+  assert.deepEqual(validatePortalReach({ ...result.brief, blockers: blockers(result) }).errors, []);
+});
+
+test('a 24 by 18 yard keeps an intermediate ring size between its portals', () => {
+  const cells = cellsOf(24, 18), portals = [
+    { id: 'west', axis: 'v', x: 0, y: 8, length: 2 },
+    { id: 'east', axis: 'v', x: 24, y: 8, length: 2 },
+  ];
+  for (const seed of [1, 2, 3, 4]) {
+    const result = buildRegion(brief(`fill-${seed}`, seed, cells, portals));
+    const box = compoundBox(result);
+    assert.ok(box.w * box.h >= 240, `${seed}: ${box.w} by ${box.h} ring`);
+    assert.deepEqual(validatePortalReach({ ...result.brief, blockers: blockers(result) }).errors, []);
+  }
+});
+
 test('compounds are deterministic and independent of the order of the brief\'s cells', () => {
   const [cells, portals] = MASKS.field;
   for (const seed of SEEDS) {
@@ -56,13 +78,11 @@ test('compounds are deterministic and independent of the order of the brief\'s c
   }
 });
 
-test('one compound keeps an aisle to the region\'s edge, with roofed rooms around a clear court and its gates', () => {
+test('one compound has roofed rooms around a clear court and its gates', () => {
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS.slice(0, 4)) for (const parameters of PARAMETERS) {
     const input = brief(name, seed, cells, portals, parameters);
-    const result = buildRegion(input), mask = createRegionMask(input), box = compoundBox(result);
+    const result = buildRegion(input), box = compoundBox(result);
     assert.ok(box.w >= 10 && box.h >= 10 && box.w <= 24 && box.h <= 24, `${name} ${seed}: ${box.w} × ${box.h}`);
-    for (let y = box.y - 3; y < box.y + box.h + 3; y++) for (let x = box.x - 3; x < box.x + box.w + 3; x++)
-      assert.ok(mask.has(x, y), `${name} ${seed}: the compound keeps 3 owned cells around it`);
     const court = rect((box.x + 3) * SIZE, (box.y + 3) * SIZE, (box.w - 6) * SIZE, (box.h - 6) * SIZE);
     assert.ok(result.elements.flatMap(element => elementShapes(element, true)).every(shape => !shapesOverlap(court, shape)), `${name} ${seed}: clear court`);
     const gates = result.elements.filter(element => element.label.startsWith('compound-gate'));
@@ -115,12 +135,12 @@ test('compounds roll loot by zone and keep every site clear of walls and doors',
   }
 });
 
-test('a compound checks its gate count, and a region with no contained 16 × 16 goes to open', () => {
+test('a compound checks its gate count, and a region too narrow for its court goes to open', () => {
   const [cells, portals] = MASKS.field;
   assert.throws(() => buildRegion(brief('field', 1, cells, portals, { gates: 0 })), /gates/);
   assert.throws(() => buildRegion(brief('field', 1, cells, portals, { gates: 5 })), /gates/);
   assert.throws(() => buildRegion(brief('field', 1, cells, portals, { gates: 1.5 })), /gates/);
-  const thin = buildRegion(brief('thin', 1, cellsOf(40, 15), [{ id: 'west', axis: 'v', x: 0, y: 0, length: 2 }]));
+  const thin = buildRegion(brief('thin', 1, cellsOf(40, 9), [{ id: 'west', axis: 'v', x: 0, y: 0, length: 2 }]));
   assert.equal(thin.manifest.rooms, undefined);
   assert.equal(thin.elements.length, 0);
 });

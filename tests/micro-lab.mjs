@@ -154,15 +154,15 @@ try {
     const key = { 'Show design graph': 'graph', 'Show allocation': 'allocation', 'Show spans': 'spans', 'Show openings': 'openings' }[view];
     assert.equal(Object.hasOwn(await page.evaluate(() => window.microLabDebug().drawn), key), false, `${view} toggles off`);
   }
-  // A block passes its lot's hut on, labelled as the lot's element.
+  // A block passes its lot's warehouse on, labelled as the lot's element.
   for (const view of views) await page.getByLabel(view).check();
   await page.getByLabel('Region shape').selectOption('l');
   await page.getByLabel('Seed').fill('2');
   await page.getByLabel('Builder', { exact: true }).selectOption('region:block');
   await page.waitForFunction(() => window.microLabDebug().result?.brief?.type === 'block' && window.microLabDebug().result.brief.seed === 2);
   const block = await page.evaluate(() => window.microLabDebug());
-  assert.deepEqual(block.buildings.map(b => b.label), ['lot-1/hut-building']);
-  assert.ok(block.result.elements.some(element => element.label === 'lot-1/hut-building'));
+  assert.deepEqual(block.buildings.map(b => b.label), ['lot-1/depot-warehouse-1']);
+  assert.ok(block.result.elements.some(element => element.label === 'lot-1/depot-warehouse-1'));
   assert.equal(block.drawn.graph.nodes, 3);
   await page.screenshot({ path: 'test-results/micro-lab-block.png' });
   await page.getByLabel('Seed').fill('1');

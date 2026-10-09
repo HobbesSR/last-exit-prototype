@@ -436,3 +436,11 @@ What differed in it:
 - a `category` field for the set piece class, and a `class` field for the
   primary region class
 - every class bound to `open-field`, and no core element classes
+
+Inspection for #241/#243/#298 also traced the former `last_exit_map` library
+(at `141dece^`) for rotated partial regions and selected fence, corner and gate
+tiles. Those shapes show a useful way to compose irregular regions without
+forcing openings along every side. This pass adopts selective guaranteed
+openings and deferred/hinted perimeter segments; it retains the current
+three-cell tile grid, shapes and weights. Shape diversity and reweighting
+belong to the separate #214 follow-up.

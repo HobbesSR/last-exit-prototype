@@ -6,7 +6,7 @@ export { resolveAccessRequirements, validateRegionAccess } from './access.ts';
 export type { RegionAccessInput, RegionAccessResult } from './access.ts';
 export { portalStands, validatePortalReach } from './portals.ts';
 export type { PortalReachInput, PortalReachResult, PortalStands } from './portals.ts';
-export { boxesAgainstHints, hintedCells, hintErrors, portalMargin } from './hints.ts';
+export { boundaryBoxFilter, boxesAgainstHints, hintedCells, hintErrors, portalMargin } from './hints.ts';
 export type { CellBox, HintedRegion } from './hints.ts';
 export { inheritBoundaryPorts, pairedBoundaryPort, validateBoundaryComposition } from './boundary.ts';
 export type { RegionBoundary, ChildBoundary } from './boundary.ts';

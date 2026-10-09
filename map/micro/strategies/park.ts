@@ -1,13 +1,13 @@
 import { circle, rect } from '../../../shared/shape.ts';
-import { cellLoot, draw, fraction } from './scatter.ts';
-import { createRegionMask, elementShapes } from '../geometry.ts';
+import { cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
+import { createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
+import { boundaryBoxFilter, boxesAgainstHints, portalMargin, hintedCells } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 
 /**
- * Clear cells around every piece's box, from every other piece and from any cell the region
- * doesn't own, and the width of the gap in a hedge run: a doorway (52), so a hunter fits each.
+ * Clear cells between pieces and across each hedge gap: a doorway (52), so a hunter fits each.
  */
 const AISLE = CELL_SCALE.doorway;
 /** Cells from one slot to the next. A slot's pieces stay in its first `BAND` cells, so the rest is aisle. */
@@ -39,11 +39,10 @@ type Box = { x: number; y: number; w: number; h: number };
  * Each other slot holds a clump with chance `density`: up to `CLUMP` trees, round obstacles
  * `TREE` cells across, at seeded places in the slot's first `BAND` cells.
  *
- * Every clump's box, which is convex, and every hedge run's keeps `AISLE` clear cells from every
- * other's and from any cell the region doesn't own. Such boxes can't divide the ground a hunter
- * can reach outside them, where every portal is, and a hedge's gap only adds ground inside its
- * ring. So, like `cover`, the region keeps the portal promise exactly when its shape does, with
- * no route search. A region too small for a piece stays clear.
+ * Clumps and hedge runs keep `AISLE` clear cells from other slots. Candidate footprints
+ * stay owned and clear of portal approaches; concave masks also protect a hunter corridor.
+ * A hedge's door-wide gap leaves a crossing through the run. Hinted runs guide the first
+ * tree in eligible slots. A region too small for a piece stays clear.
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear of
  * every piece. A park sites no core elements; any the brief lists are left for the report.
@@ -51,15 +50,23 @@ type Box = { x: number; y: number; w: number; h: number };
 export function buildPark(brief: RegionBrief): BuiltRegion {
   const density = fraction(brief, 'Park', 'density', DEFAULT_DENSITY), hedgeChance = fraction(brief, 'Park', 'hedges', DEFAULT_HEDGES);
   const mask = createRegionMask(brief), size = brief.cellSize;
+  const reserved = new Set([...portalMargin(brief, 1), ...portalMargin({ ...brief, hints: [] }, 2)].map(c => `${c.x},${c.y}`));
+  const boundary = boundaryBoxFilter(brief, AISLE), rectangular = boundary.rectangular;
+  const protectedShapes = !rectangular && brief.portals.length <= 32 ? protectedRoutes(brief, mask, 'Park') : [];
+  const useConservativeEdge = !rectangular && brief.portals.length > 32;
 
-  // Every cell of a box and its ring of AISLE cells is owned.
+
+  // A piece must stay owned and clear of portals; the lattice preserves inter-piece aisles.
   const clear = ({ x, y, w, h }: Box) => {
-    for (let j = y - AISLE; j < y + h + AISLE; j++) for (let i = x - AISLE; i < x + w + AISLE; i++) if (!mask.has(i, j)) return false;
-    return true;
+    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!mask.has(i, j) || reserved.has(`${i},${j}`)) return false;
+    return (!(rectangular || useConservativeEdge) || boundary.fits({ x, y, w, h }))
+      && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
   };
 
   // Slot origins over the mask's bounds, in row order, so nothing depends on the brief's cell order.
   const phase = { x: Math.floor(draw(brief.seed, 0, 0, CHANNEL.phaseX) * PERIOD), y: Math.floor(draw(brief.seed, 0, 0, CHANNEL.phaseY) * PERIOD) };
+  const firstHint = hintedCells(brief)[0];
+  if (firstHint) { phase.x = ((firstHint.x % PERIOD) + PERIOD) % PERIOD; phase.y = ((firstHint.y % PERIOD) + PERIOD) % PERIOD; }
   const span = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
   for (const { x, y } of mask.cells) Object.assign(span, { x0: Math.min(span.x0, x), y0: Math.min(span.y0, y), x1: Math.max(span.x1, x), y1: Math.max(span.y1, y) });
   const first = (min: number, offset: number) => offset + Math.floor((min - offset) / PERIOD) * PERIOD;
@@ -67,12 +74,13 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
   for (let y = first(span.y0, phase.y); y <= span.y1; y += PERIOD)
     for (let x = first(span.x0, phase.x); x <= span.x1; x += PERIOD) slots.push({ x, y });
   const key = (x: number, y: number) => `${x},${y}`;
+  const hintedTrees = new Set(boxesAgainstHints(brief, TREE, TREE).map(b => key(b.x, b.y)));
 
   const elements: RegionElement[] = [];
   const taken = new Set<string>();
   let hedges = 0, trees = 0, clumps = 0;
 
-  // Hedge runs first: each takes its slot and the next, if both are free and the run keeps its ring.
+  // Hedge runs first: each takes its slot and the next, if both are free and its footprint fits.
   for (const slot of slots) {
     if (taken.has(key(slot.x, slot.y)) || draw(brief.seed, slot.x, slot.y, CHANNEL.hedge) >= hedgeChance) continue;
     const across = draw(brief.seed, slot.x, slot.y, CHANNEL.hedgeTurn) < 0.5;
@@ -90,14 +98,16 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
     elements.push({ label: `park-hedge-${++hedges}`, x: box.x * size, y: box.y * size, template: { w: box.w * size, h: box.h * size, parts } });
   }
 
-  // A clump in each other slot that rolls under `density`, if its box keeps its ring.
+  // A clump in each other slot that rolls under `density`, if its footprint fits.
   for (const slot of slots) {
     if (taken.has(key(slot.x, slot.y)) || draw(brief.seed, slot.x, slot.y, CHANNEL.clump) >= density) continue;
     const wanted = 1 + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.count) * CLUMP);
     const footprints: Box[] = [];
     for (let n = 0; n < CLUMP && footprints.length < wanted; n++) {
-      const x = slot.x + Math.floor(draw(brief.seed, slot.x, slot.y, TRY(n, CHANNEL.treeX)) * (BAND - TREE + 1));
-      const y = slot.y + Math.floor(draw(brief.seed, slot.x, slot.y, TRY(n, CHANNEL.treeY)) * (BAND - TREE + 1));
+      const hint = n === 0 ? [...hintedTrees].map(address => address.split(',').map(Number)).find(([x, y]) =>
+        x! >= slot.x && y! >= slot.y && x! + TREE <= slot.x + BAND && y! + TREE <= slot.y + BAND) : undefined;
+      const x = hint?.[0] ?? slot.x + Math.floor(draw(brief.seed, slot.x, slot.y, TRY(n, CHANNEL.treeX)) * (BAND - TREE + 1));
+      const y = hint?.[1] ?? slot.y + Math.floor(draw(brief.seed, slot.x, slot.y, TRY(n, CHANNEL.treeY)) * (BAND - TREE + 1));
       if (footprints.some(f => x < f.x + f.w && x + TREE > f.x && y < f.y + f.h && y + TREE > f.y)) continue;
       footprints.push({ x, y, w: TREE, h: TREE });
     }

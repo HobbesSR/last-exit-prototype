@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { createRegionMask, elementShapes, findRegionRoute, travelClear } from '../map/micro/geometry.ts';
@@ -30,19 +29,22 @@ const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 const house = result => result.elements.find(element => element.template.encloses);
 const blockers = (result, doors = false) => result.elements.flatMap(element => elementShapes(element, doors));
 
-test('a region too small for a larger design keeps the one-space house exactly', () => {
-  // Captured before L5 (fbb383e): geometry, part order, placement, loot and manifest, at every door orientation.
-  const hash = createHash('sha256'), sides = new Set();
+test('small regions use a house with a reachable outside door', () => {
+  const sides = new Set();
   for (const [w, h] of [[6, 6], [7, 7], [7, 6], [6, 7]]) for (const cellSize of [1, 7, 40, 53]) for (let seed = 1; seed <= 16; seed++) {
     const cells = cellsOf(w, h);
     const result = buildRegion({ id: 'one-space', seed, type: 'hut', cellSize, cells, zones: [{ tier: 3, bonus: 0, lootChance: 0.5, cells }],
       portals: [{ id: 's', axis: 'h', x: 0, y: h, length: 2 }] });
-    const gate = house(result).template.parts.find(part => part.part === 'gate');
+    const building = house(result);
+    assert.ok(building);
+    assert.deepEqual(validatePortalReach({ ...result.brief, blockers: blockers(result) }).errors, []);
+    assert.ok(building.template.parts.some(part => part.part === 'gate'));
+    assert.ok(building.template.parts.some(part => part.kind === 'window'));
+    const gate = building.template.parts.find(part => part.part === 'gate');
     sides.add(gate.x < cellSize ? 'W' : gate.x > 3 * cellSize ? 'E' : gate.y < cellSize ? 'N' : 'S');
-    hash.update(JSON.stringify(result));
+    assert.deepEqual(buildRegion({ ...result.brief, cells: [...cells].reverse() }).elements, result.elements);
   }
-  assert.deepEqual([...sides].sort(), ['E', 'N', 'S', 'W']);
-  assert.equal(hash.digest('hex'), '1ae018d3d1f8400b66ce1b697b82d6659992dea46a89a1dd22f56854d8c75e57');
+  assert.ok(sides.size >= 3, 'the seed chooses among multiple door orientations');
 });
 
 test('a hut region keeps the portal promise over seeds and masks', () => {
@@ -52,6 +54,15 @@ test('a hut region keeps the portal promise over seeds and masks', () => {
     const check = validatePortalReach({ ...result.brief, blockers: blockers(result) });
     assert.deepEqual(check.errors, [], `${name} seed ${seed}`);
   }
+});
+
+test('a hinted edge can hold the house while its portal and doorstep stay clear', () => {
+  const cells = cellsOf(8, 8), portals = [{ id: 'south', axis: 'h', x: 3, y: 8, length: 2 }];
+  const input = brief('hinted', 2, cells, portals, { hints: [{ axis: 'h', x: 0, y: 0, length: 8 }] });
+  const result = buildRegion(input), building = house(result);
+  assert.ok(building);
+  assert.equal(building.y, 0);
+  assert.deepEqual(validatePortalReach({ ...result.brief, blockers: blockers(result) }).errors, []);
 });
 
 test('every space of the house is reached through its one outside door, and only through it', () => {
@@ -106,9 +117,7 @@ test('a region with no box that keeps the promise is open, the last resort (17 M
     assert.deepEqual([result.elements, result.loot, result.coreElements], [[], [], []]);
   };
   open(cellsOf(2, 3), [{ id: 'north', axis: 'h', x: 0, y: 0, length: 2 }]);
-  open(cellsOf(5, 5), []);
-  // Narrower than 6 on one axis (54): a 4 × 4 box and its doorstep would fit, but the region is too small.
-  for (const [w, h] of [[4, 6], [5, 6], [6, 4], [6, 5], [5, 12]]) open(cellsOf(w, h), [{ id: 'south', axis: 'h', x: 0, y: h, length: 2 }]);
+  open(cellsOf(4, 4), []);
   // Every side has a portal, so every 4 × 4 box would stand on an approach.
   open(cellsOf(6, 6), [{ id: 'n', axis: 'h', x: 2, y: 0, length: 2 }, { id: 's', axis: 'h', x: 2, y: 6, length: 2 },
     { id: 'w', axis: 'v', x: 0, y: 2, length: 2 }, { id: 'e', axis: 'v', x: 6, y: 2, length: 2 }]);

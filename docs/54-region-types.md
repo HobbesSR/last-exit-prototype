@@ -121,26 +121,30 @@ points, and routes that aren't a straight shot.
   barriers, low walls, the odd container, spaced so aisles stay at least a
   door wide. It protects a hunter route between portals while it places
   pieces.
-  **Built (#127):** `map/micro/strategies/cover.ts`. It protects the route by
-  spacing, not by a route search, so it scales to macro's open ground: a
-  29,500-cell region with over 400 portals builds in well under a second.
+  **Built (#127):** `map/micro/strategies/cover.ts`. It keeps slot spacing and
+  uses boundary or corridor checks according to the mask (20.3). Its large
+  concave mode avoids a route search for every portal.
   - **Slots:** they lie on a lattice one tile (6 cells) apart. Each slot is
     taken with chance `density`, by a cluster of one to three crates,
     barriers and containers inside a 4 × 4 box.
   - **The aisle:** a cluster's bounding box keeps 2 clear cells from the next
-    cluster's and from any cell the region doesn't own. That is a doorway
-    (52), which a hunter fits (20.2).
-  - **Why that keeps the promise:** each box is convex, with a clear ring
-    wider than a hunter around it, so the boxes can't divide the ground
-    outside them, where every portal is. Like `open`, a `cover` region keeps
-    the portal promise exactly when its shape does.
+    cluster. Its footprint must be owned and stays out of portal approaches.
+    Hinted boundary sites may use a perimeter cell instead of the old blanket
+    edge ring.
+  - **Why that keeps the promise:** rectangular masks use the separated slot
+    boxes and the protected portal approaches. Concave masks with up to 32
+    portals also protect a sampled hunter corridor while placing pieces. Above
+    32 portals, a conservative boundary rule allows attachment along one
+    hinted side or two adjacent hinted sides, but retains a 2-cell owned ring
+    elsewhere and forbids attachment across opposite sides. This bounded mode
+    is a spacing argument, not a proof that every non-portal pocket remains
+    connected; `validatePortalReach` remains the independent promise check.
   - **Loot:** each cell rolls its chance and takes its tier. Loot lands only
     where the cell and its eight neighbours are owned and free of cover, so
     it has standing room.
   - **Core elements:** it sites none. Any its brief lists are left for the
     report.
-- **Shape needs:** none. A region too small for one piece stays clear: a
-  piece needs 3 clear cells on every side.
+- **Shape needs:** none. A region too small for a piece stays clear.
 - **Formed by:** small set pieces and tile fill among open ground (17 M10).
 - **Parameters:** `density`.
 - **Material:** the game's `example-open` (sparse cover and shelters), and
@@ -254,8 +258,8 @@ inside, and windows and doors let sight through.
   meant to stand across the route.
   - **The line:** from one portal's centre to another's, the farthest pair
     (the first in id order on a tie).
-  - **Barriers:** along the line's longer axis, 5 cells in from either end at
-    a seeded offset of 0 to 2, then every 4 cells. Each is a half-cell wall of
+  - **Barriers:** along the line's longer axis, starting 1 cell in plus a
+    seeded offset of 0 to 2, then every 4 cells. Each is a half-cell wall of
     kind `ruin-wall`, so it blocks movement and sight. It reaches 4 cells
     either side of the line, or as far as the region goes, attaches to the
     region's edge on one side and stops 2 cells (a doorway) short of the
@@ -267,17 +271,20 @@ inside, and windows and doors let sight through.
   - **The post:** a roofed box 6 to 8 by 5 or 6 cells, its long side along the
     line, built as `depot`'s warehouse is (56): a roofed design with shelves
     on its floor, traced for the lab. It stands nearest the middle of the
-    barriers, off the line, with a 2-cell owned ring clear of the region's
-    edge and of every barrier. With one portal it stands nearest a point 5
-    cells in from the portal, and with none nearest the region's middle.
+    barriers, off the line. Its footprint must be owned and cannot occupy the
+    one-cell portal margin; it may sit flush against a hinted perimeter run.
+    Hinted boxes are tried before distance ordering. It keeps 2 cells clear of
+    barriers. With one portal it ranks from a point 5 cells in from that portal,
+    and with none from the region's middle.
   - **Why that keeps the promise:** the empty shape is checked once with the
     elective flood check (`validatePortalReach`, 20.1), and a region whose own
-    shape fails is `open`. Each barrier is then kept only while the check
-    still finds a hunter route between every pair of portals, and each post
-    candidate likewise, nearest first, up to 6. Nothing is rebuilt: a piece
-    that fails is dropped as the solve goes on. The check's search is
-    sampled, so a miss drops a piece that might have been fine, and a kept
-    piece is always proved.
+    shape fails is `open`. Swept routes connect nearby portals into a tree and
+    join each portal's stands. A trial piece cannot block a threshold crossing;
+    paths it cannot touch are reused, and affected paths are searched again.
+    Barriers and posts are kept only while this evidence holds. Post sites are
+    tried hinted first then nearest, up to 6. Failed pieces are dropped, with
+    the previously accepted evidence retained. The independent final-geometry
+    validator is unchanged and still checks the whole portal in tests.
   - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
     disc stands clear of every piece, indoors or out.
   - **Core elements:** it sites none. Any its brief lists are left for the
@@ -285,7 +292,7 @@ inside, and windows and doors let sight through.
   - **Too small:** a region with no post and no barrier placed goes to
     `open` (17 M24).
 - **Shape needs:** *proposed*, a chicane needs two portals and 3 cells across
-  the line, and a post needs a contained 6 × 5 with its ring. Either alone is
+  the line, and a post needs a contained 6 × 5 footprint. Either alone is
   enough to build.
 - **Formed by:** medium set pieces, where the old library's `military`
   pieces were.
@@ -311,14 +318,13 @@ inside, and windows and doors let sight through.
     0.6): 1 to 3 trees, each a circle of kind `tree` 1.5 cells across in a
     2-cell footprint, at seeded places in the slot's band that don't overlap.
     A tree blocks bodies and sight, so a clump is soft cover, not a wall.
-  - **Why that keeps the promise:** every clump's box and every hedge run's
-    keeps 2 owned cells from every other and from the region's edge, so
-    each is a convex box with a ring wider than a hunter. Such boxes can't
-    divide the ground a hunter can reach outside them, where every portal is,
-    and a hedge's gap only adds ground inside its ring. So the region keeps
-    the promise exactly when its shape does, with no route search. The
-    consequence is that a hedge line is never the only way across: the hunter
-    can go round its ends as well as through its gap.
+  - **Why that keeps the promise:** clumps and hedge runs keep 2 cells from
+    other pieces and avoid portal approaches. Rectangular masks keep an aisle
+    on at least one side of each axis. Concave masks protect hunter corridors
+    up to 32 portals; larger masks keep an owned ring except at one or two
+    adjacent fully hinted boundary sides. The SDK's `boundaryBoxFilter`
+    supplies the shared boundary-spacing rule (20.3). Hints guide the slot
+    phase and tree sites; they never require an obstacle.
   - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
     disc stands clear of every piece.
   - **Core elements:** it sites none. Any its brief lists are left for the
@@ -343,17 +349,15 @@ inside, and windows and doors let sight through.
   - **The designs:** it tries a house of three spaces, then two, then one,
     then goes to `open` (17 M24). Three spaces take a 6 × 6, 8 × 6 or 9 × 4
     box, two a 6 × 4 or 7 × 5, either way round, and one a 4 × 4.
-  - **The size:** a box is tried only in a region at least 2 cells wider and
-    taller than it, so a region less than 6 cells across on either axis goes
-    to `open` before any box is tried, even where a box and its doorstep would
-    fit, and one up to 7 across keeps the one-space house. The L and the ring
-    count by their extent, not by a contained rectangle.
-  - **The box:** each design tries its sizes, and each size the region's
-    contained boxes, in a seeded order. It takes the first that stays off
-    every portal's approach (the two cells inward along it), leaves joined
-    every two portals the empty region joined, and has a side whose doorstep
-    the yard joins to a portal. A box with a clear ring 2 cells wide passes
-    the last two by shape alone.
+  - **The box:** each design tries its sizes, then contained boxes in a seeded
+    order, with `boxesAgainstHints` candidates first. There is no extra
+    two-cell extent prefilter: a house can fit flush with the region boundary
+    when its footprint and doorstep fit. Candidates avoid the cells beside
+    portals and the two-cell hunter-standing approach. A bounded cell-level
+    flood check keeps the empty yard's portal-connected standing blocks joined
+    and requires a doorstep reachable from a portal. When the box has a
+    2-cell owned ring, the yard connectivity follows by spacing; otherwise the
+    flood check decides it directly.
   - **The house:** it fills its box with quarter-cell walls and a roof. It has
     one outside door, a doorway wide, on the doorstep's side. The one-space
     house centres it and faces it with a window as wide. A larger house's
@@ -370,9 +374,9 @@ inside, and windows and doors let sight through.
     disc stands clear of the walls and the door, indoors or out.
   - **Core elements:** it sites none. Any its brief lists are left for the
     report.
-- **Shape needs:** *proposed*, a contained 4 × 4 for the building, in a
-  region of at least 6 × 6. Two spaces need a region of at least 8 × 6, and
-  three at least 8 × 8 or 11 × 6.
+- **Shape needs:** *proposed*, a contained 4 × 4 for the one-space house; the
+  larger designs use their listed box sizes. The region needs no extra extent
+  margin around the house.
 - **Formed by:** the fill's hut quarters, and as a child of `block` (52).
 - **Parameters:** none yet. Locked doors are deferred (M23).
 - **Material:** the game's room shell in `builders.ts` (real windows, a door
@@ -386,8 +390,8 @@ inside, and windows and doors let sight through.
   contained rectangles and container rows between them, aisles at least a
   door wide.
   **Built (#159):** `map/micro/strategies/depot.ts`. Like `cover`, it keeps
-  its aisles by spacing, not by a route search, so it scales to enormous set
-  pieces.
+  aisles between pieces by spacing, with portal approaches kept clear and
+  concave-mask corridor or boundary checks as `cover` uses.
   - **Lanes:** everything lines up on lanes 3 cells apart along one axis,
     drawn from the seed, at a seeded phase.
   - **Warehouses:** `roomCells` long and three quarters of that across, at
@@ -406,15 +410,15 @@ inside, and windows and doors let sight through.
     designs passed over and why.
     Shelf islands a cell across run down the floor, keeping 2 cells from its
     walls and from each other. The interior is guidance and adds nothing to
-    the promise, which the box's clear ring keeps (M29).
+    the portal promise (M29).
   - **Container rows:** two or three 2-cell containers end to end, packed
     along each lane around the warehouses. Each place that fits one is taken
     with chance `density`, and the next starts 2 cells on, so the aisles run
     long and end in hard corners.
-  - **Why that keeps the promise:** every piece's box keeps 2 clear cells
-    from every other piece's and from any cell the region doesn't own, as
-    `cover`'s clusters do. So a `depot` region keeps the portal promise
-    exactly when its shape does.
+  - **Why that keeps the promise:** pieces keep 2 cells from each other and
+    stay out of portal approaches. Hinted warehouse boxes are tried first.
+    Rectangular masks and concave masks use the same boundary-spacing and
+    corridor rules as `cover` (20.3), rather than a blanket edge ring.
   - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
     disc stands clear of every wall, door, shelf and container, indoors or
     out.
@@ -441,12 +445,12 @@ inside, and windows and doors let sight through.
     in its first 6 cells, so 2 cells of aisle run between slots.
   - **Shed:** with chance `shed` (default 0.5), a block of two by one, one by
     two or two by two slots, at the first block in a seeded order whose box
-    keeps a 2-cell owned ring. It is built as `depot`'s warehouse is: a
+    stays owned and clear of portal approaches and protected routes. It is built as `depot`'s warehouse is: a
     roofed building design (56) with shelves on its floor, traced for the lab.
   - **Machines:** every other slot holds one with chance `density` (default
     0.6): a block 2 to 4 cells a side at a seeded place in the slot, half of
-    them with chamfered corners. A machine whose box can't keep a 2-cell owned
-    ring is left out.
+    them with chamfered corners. Hints guide slot phase and box positions;
+    candidates that fail the boundary or route clearance checks are left out.
   - **Pipe runs:** neighbouring machines across or down are joined, with
     chance 0.7, along a row both face, when at least 3 cells part them. The
     game is 2D, so a pipe blocks movement but not sight or shots, as a window
@@ -455,8 +459,9 @@ inside, and windows and doors let sight through.
     contestant fits waits for the squeeze balance (P-04). Gantries wait for
     collision planes (16).
   - **Why that keeps the promise:** every machine's and the shed's box keeps
-    2 clear cells from every other's and from any cell the region doesn't
-    own, and so does every run's but for the two machines it joins. A run
+    2 clear cells from other pieces, and so does every run's but for the two
+    machines it joins. Portal approaches and concave-mask corridors or
+    conservative boundary spacing are checked as `cover` does (20.3). A run
     stays in its machines' band and crosses only the aisle between them, so
     runs never meet. Machines and runs can wall ground in, but every run has
     its door-wide gap, so no ground is shut off. So a `plant` region keeps
@@ -481,12 +486,14 @@ inside, and windows and doors let sight through.
   hole suits it whole, as 19's ring example does.
   **Built (#160), its ring one building design since L5 (#192, 56):**
   `map/micro/strategies/compound.ts`. No decomposer. It
-  stands one compound inside its yard, not on the region's outline: a wall on
-  the outline would need a gate at every portal, more than two or three
-  wherever the region has more portals. Like `depot`, it keeps the portal
-  promise by spacing, not by a route search.
-  - **The box:** the region's largest contained rectangle, inset 3 cells on
-    every side and capped at 24 × 24, at a seeded place inside that.
+  stands one compound in a contained box. The box can touch hinted perimeter
+  while portal approaches and usable gate doorsteps stay clear.
+  - **The box:** sizes start at the largest contained rectangle, capped at
+    24 × 24, then shrink by two cells per axis down to 10 × 10. At each size
+    up to 16 hinted boxes precede a centered site and seeded alternatives.
+    Small-yard alternatives are capped at 64; large fields try 12. Candidates
+    must keep the yard's hunter standing blocks connected and have enough
+    gate sides reachable from that yard. There is no three-cell inset.
   - **The ring:** roofed rooms 3 cells deep along the inside of the box, with
     quarter-cell walls. The box's edge is their back wall, so the compound's
     outer wall is the rooms'. Each side's middle, between the corners, is
@@ -506,20 +513,19 @@ inside, and windows and doors let sight through.
     nothing but loot.
   - **Doors and passages:** every door is centred in its wall, and each
     passage is a doorway wide (52), so a hunter passes through them.
-  - **Why that keeps the promise:** the box keeps 3 clear cells from any cell
-    the region doesn't own, as `depot`'s pieces do. It is convex with a clear
-    ring wider than a hunter, so it can't divide the yard, where every portal
-    is. A `compound` region keeps the portal promise exactly when its shape
-    does. A hole in the region stays in the yard.
+  - **Why that keeps the promise:** the builder floods the hunter's 2 × 2
+    standing blocks in the yard around each candidate. Portal approaches
+    must remain connected, and each chosen gate needs a reachable doorstep.
+    Its existing ring design then connects every room to the court and gates.
   - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
     disc stands clear of every wall and door, in the rooms, the court or the
     yard.
   - **Core elements:** it sites none. Any its brief lists are left for the
     report.
-  - **Too small:** a region with no contained 16 × 16 goes to `open` (17
-    M24).
+  - **Too small:** a region with no usable contained box of at least 10 × 10
+    goes to `open` (17 M24).
 - **Shape needs:** *proposed*, a compound of at least 10 × 10, with a court of
-  at least 4 × 4. As built, that is a contained 16 × 16 with its yard.
+  at least 4 × 4, plus usable portal approaches and gate doorsteps.
 - **Formed by:** medium set pieces, where the old library's walled `military` bases were (52).
 - **Parameters:** `gates`, whole numbers from 1 to 4 (2 by default), one per
   side.
@@ -548,31 +554,35 @@ inside, and windows and doors let sight through.
     across its longer side at a seeded place. Each split leaves an alley 3
     cells wide between the parts, and splitting stops once no part is longer
     than 24 cells.
-  - **Lots:** in each part, the lot is the largest rectangle, at least 6 cells
-    a side, of cells with 3 owned cells all round them. So every lot keeps 3
-    clear cells from any cell the region doesn't own and from every other lot.
-    A part with no such rectangle stays alley.
+  - **Lots:** each part tries rectangles at least 6 cells a side that may
+    attach to one or two adjacent boundary sides. Hinted attachments take
+    preference, then larger area. Other sides keep two owned cells for
+    circulation; opposite-side attachments are refused. The three-cell
+    splits between lots remain unchanged. A part with no viable rectangle
+    stays alley.
   - **Children:** each lot is a `hut` (no side over 12), `depot` (sides at
     least 10), `compound` (at least 16), `ruins`, or `cover` (at least 9)
     region. Its type is drawn from those its size suits, and it gets its own
     seed. The alleys, everything left, are one `open` region. Each child's
-    zones are the block's, cut to its cells. `planBlock` returns the child
+    zones are the block's, cut to its cells. Parent hints are clipped to the
+    child owning each hinted boundary segment. `planBlock` returns the child
     briefs, and the block's result gathers the children's geometry, loot and
     manifest counts. Each element's label is prefixed with its lot.
   - **Frontages:** each lot has two portals onto the alleys, the two whole
-    sides at a seeded corner. Two, not one, so the lot is a passage its
+    sides at a seeded corner with two owned cells beyond both sides. Two,
+    not one, so the lot is a passage its
     strategy must keep joined, rather than a pocket that owes nothing. A `hut`
     still fits in the far corner of the smallest lot. The alleys hold every
     frontage and every one of the block's own portals.
-  - **Why that keeps the promise:** a lot is a convex box with a clear ring
-    wider than a hunter around it, in the alleys, so the lots can't divide the
-    alleys, as `depot`'s pieces can't divide its yard. Every one of the block's
-    portals lies on the alleys, so the block keeps its promise exactly when
-    its shape does. Each lot keeps its own promise between its frontages.
+  - **Why that keeps the promise:** a convex lot can make a notch at an edge
+    or corner, but cannot bridge opposite boundary sides. Its other sides
+    keep a hunter-wide path around it. Lots stay separated by three-cell
+    splits; parent portal approaches stay in the alleys. Each lot keeps its
+    own promise between frontages that face owned alley cells.
   - **Core elements:** it sites none. Any its brief lists are left for the
     report.
-  - **Too small:** a region with no contained 12 × 12 (a 6 × 6 lot and its
-    alley) goes to `open` (17 M24).
+  - **Too small:** a region with no viable 6 × 6 lot and its two usable
+    frontages goes to `open` (17 M24).
 - **Obligations:** every two children that share a boundary have at least
   one portal between them (51 stage 6, Corey 2026-10-01). Each child keeps its
   own promise, so the block's portals are joined by inference. As built, lots

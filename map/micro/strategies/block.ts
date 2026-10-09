@@ -8,12 +8,12 @@ import { buildOpen } from './open.ts';
 import { buildRuins } from './ruins.ts';
 import { draw } from './scatter.ts';
 import { createRegionMask } from '../geometry.ts';
+import { portalMargin } from '../hints.ts';
+import { portalStands } from '../portals.ts';
 import type { BuiltRegion, Cell, Portal, RegionBrief } from '../types.ts';
 
 /**
- * Clear cells around every lot, to any cell the region doesn't own and to the next lot, as
- * `depot` once kept around a warehouse. It is the block's own alley width (54), a doorway and
- * a cell, and stays 3 where `depot`'s aisle is a doorway.
+ * Clear cells between lots. This alley width is independent of perimeter placement.
  */
 const AISLE = 3;
 /** A lot's least side: `hut`'s region (54). */
@@ -76,32 +76,52 @@ export function buildBlock(brief: RegionBrief, observe?: BuildingObserver): Buil
  *
  * The region's bounding box is split, guillotine fashion, across its longer side at a seeded
  * place, leaving an alley `AISLE` cells wide between the parts, until no part is longer than
- * `MAX_LOT`. In each part, the lot is the largest rectangle, at least `MIN_LOT` a side, of cells
- * with `AISLE` owned cells all round them. So every lot keeps `AISLE` clear cells from any cell
- * the region doesn't own and from every other lot, and every portal of the block's own lies on
- * the alleys. A lot's type is drawn from those its size suits, and its frontages are the two
- * sides at a seeded corner, so a `hut` fits in the far corner of the smallest lot.
+ * `MAX_LOT`. Each part tries rectangles that may attach to one or two adjacent boundary
+ * sides. Hinted sides take preference. The remaining sides keep two owned cells for
+ * circulation, and the parent portals stay in the alleys. A lot's type is drawn from
+ * those its size suits, and two sides with standing room form its frontages.
  *
- * Why that keeps the promise: a lot is a convex box with a clear ring wider than a hunter
- * around it, in the alleys, so the lots can't divide the alleys, as `depot`'s pieces can't
- * divide its yard. The alleys keep the block's portals joined exactly when the block's shape
- * does. Each lot touches only the alleys, through its frontages, so every two children that
- * share a boundary have a portal between them.
+ * A convex lot may make a notch at an edge or corner, but cannot bridge opposite boundary
+ * sides; its other sides keep a hunter-wide path around it. Three-cell splits separate
+ * lots. Each frontage faces owned alley cells, so children keep their own promises.
  */
 export function planBlock(brief: RegionBrief): BlockPlan {
   const mask = createRegionMask(brief), size = brief.cellSize;
   const x0 = Math.round(mask.bounds.x / size), y0 = Math.round(mask.bounds.y / size);
   const W = Math.round(mask.bounds.w / size), H = Math.round(mask.bounds.h / size);
 
-  // Owned cells in each window, by a prefix sum, to find the cells with AISLE owned cells all round.
-  const sums = new Int32Array((W + 1) * (H + 1));
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
-    sums[(y + 1) * (W + 1) + x + 1] = (mask.has(x0 + x, y0 + y) ? 1 : 0) + sums[y * (W + 1) + x + 1]! + sums[(y + 1) * (W + 1) + x]! - sums[y * (W + 1) + x]!;
-  const side = 2 * AISLE + 1;
-  const inner = (x: number, y: number) => {
-    const ax = x - x0 - AISLE, ay = y - y0 - AISLE, bx = ax + side, by = ay + side;
-    if (ax < 0 || ay < 0 || bx > W || by > H) return false;
-    return sums[by * (W + 1) + bx]! - sums[ay * (W + 1) + bx]! - sums[by * (W + 1) + ax]! + sums[ay * (W + 1) + ax]! === side * side;
+  // Keep portal approaches and frontage standing room in the circulation. Lots may
+  // reach other perimeter segments; the three-cell alleys between lots are unchanged.
+  const margin = new Set(portalMargin(brief, 1).map(c => `${c.x},${c.y}`));
+  for (const { portal: p, inward } of portalStands(brief, mask)) for (let i = 0; i < p.length; i++) for (let d = 0; d < 2; d++) {
+    const offset = inward.x + inward.y > 0 ? d : -1 - d;
+    margin.add(p.axis === 'h' ? `${p.x + i},${p.y + offset}` : `${p.x + offset},${p.y + i}`);
+  }
+  const inner = (x: number, y: number, attach: readonly Side[]) => {
+    if (!mask.has(x, y) || margin.has(`${x},${y}`)) return false;
+    for (let j = y - 2; j <= y + 2; j++) for (let i = x - 2; i <= x + 2; i++) {
+      if (mask.has(i, j)) continue;
+      if (!(attach.includes('N') && j < y || attach.includes('S') && j > y || attach.includes('W') && i < x || attach.includes('E') && i > x)) return false;
+    }
+    return true;
+  };
+  const hintedSide = (lot: Box, side: Side) => {
+    const p = run(lot, side);
+    for (let i = 0; i < p.length; i++) {
+      const x = p.x + (p.axis === 'h' ? i : 0), y = p.y + (p.axis === 'v' ? i : 0);
+      if (!(brief.hints ?? []).some(hint => hint.axis === p.axis && (p.axis === 'h' ? hint.y === y && x >= hint.x && x < hint.x + hint.length
+        : hint.x === x && y >= hint.y && y < hint.y + hint.length))) return false;
+    }
+    return true;
+  };
+  const safeAttachment = (lot: Box) => {
+    const sides = new Set((['N', 'E', 'S', 'W'] as Side[]).filter(side => !frontageFits(lot, side)));
+    if (sides.has('N') && sides.has('S') || sides.has('E') && sides.has('W')) return false;
+    for (let y = lot.y - 2; y < lot.y + lot.h + 2; y++) for (let x = lot.x - 2; x < lot.x + lot.w + 2; x++) {
+      if (mask.has(x, y)) continue;
+      if (!(sides.has('N') && y < lot.y || sides.has('S') && y >= lot.y + lot.h || sides.has('W') && x < lot.x || sides.has('E') && x >= lot.x + lot.w)) return false;
+    }
+    return true;
   };
 
   const parts: Box[] = [], pending: Box[] = [{ x: x0, y: y0, w: W, h: H }];
@@ -115,8 +135,21 @@ export function planBlock(brief: RegionBrief): BlockPlan {
       across ? { ...box, x: box.x + cut + AISLE, w: box.w - cut - AISLE } : { ...box, y: box.y + cut + AISLE, h: box.h - cut - AISLE });
   }
   // Row order, so lots are numbered alike whatever order the split ran in.
-  const lots = parts.map(part => largestRectangle({ cellSize: 1, bounds: part, has: inner }, MIN_LOT))
-    .filter((lot): lot is Box => !!lot).sort((a, b) => a.y - b.y || a.x - b.x);
+  const frontageFits = (lot: Box, side: Side) => {
+    const p = run(lot, side);
+    for (let i = 0; i < p.length; i++) for (let d = 1; d <= 2; d++) {
+      const x = p.axis === 'h' ? p.x + i : p.x + (side === 'W' ? -d : d - 1);
+      const y = p.axis === 'v' ? p.y + i : p.y + (side === 'N' ? -d : d - 1);
+      if (!mask.has(x, y)) return false;
+    }
+    return true;
+  };
+  const corners = (lot: Box) => CORNERS.filter(corner => corner.every(side => frontageFits(lot, side)));
+  const lots = parts.map(part => CORNERS.map(attach => largestRectangle({ cellSize: 1, bounds: part, has: (x, y) => inner(x, y, attach) }, MIN_LOT))
+    .filter((lot): lot is Box => !!lot && safeAttachment(lot) && corners(lot).length > 0)
+    .sort((a, b) => Number((['N', 'E', 'S', 'W'] as Side[]).some(side => hintedSide(b, side)))
+      - Number((['N', 'E', 'S', 'W'] as Side[]).some(side => hintedSide(a, side))) || b.w * b.h - a.w * a.h || a.y - b.y || a.x - b.x)[0])
+    .filter((lot): lot is Box => !!lot && safeAttachment(lot) && corners(lot).length > 0).sort((a, b) => a.y - b.y || a.x - b.x);
 
   const taken = new Set(brief.portals.map(portal => portal.id));
   const unique = (id: string) => { while (taken.has(id)) id += '+'; taken.add(id); return id; };
@@ -133,14 +166,38 @@ export function planBlock(brief: RegionBrief): BlockPlan {
     for (let y = lot.y; y < lot.y + lot.h; y++) for (let x = lot.x; x < lot.x + lot.w; x++) { cells.push({ x, y }); claimed.add(`${x},${y}`); }
     const short = Math.min(lot.w, lot.h), long = Math.max(lot.w, lot.h), suited = LOT_TYPES.filter(t => t.fits(short, long));
     const type = suited[Math.floor(draw(brief.seed, lot.x, lot.y, CHANNEL.type) * suited.length)]!.type;
-    const corner = CORNERS[Math.floor(draw(brief.seed, lot.x, lot.y, CHANNEL.frontage) * CORNERS.length)]!;
+    const choices = corners(lot);
+    const corner = choices[Math.floor(draw(brief.seed, lot.x, lot.y, CHANNEL.frontage) * choices.length)]!;
     const portals = corner.map((side): Portal => ({ id: unique(`lot-${k + 1}-${side}`), ...run(lot, side) }));
     frontages.push(...portals);
-    return { id: `${brief.id}/lot-${k + 1}`, seed: childSeed(lot.x, lot.y), type, cellSize: size, cells, zones: restrict(cells), portals };
+    return { id: `${brief.id}/lot-${k + 1}`, seed: childSeed(lot.x, lot.y), type, cellSize: size, cells, zones: restrict(cells), portals,
+      ...(brief.hints ? { hints: inheritedHints(brief, cells) } : {}) };
   });
   const alleyCells = mask.cells.filter(c => !claimed.has(`${c.x},${c.y}`)).map(c => ({ x: c.x, y: c.y }));
   return { lots: children, alleys: { id: `${brief.id}/alleys`, seed: childSeed(x0, y0), type: 'open', cellSize: size, cells: alleyCells,
-    zones: restrict(alleyCells), portals: [...structuredClone(brief.portals), ...frontages.map(portal => ({ ...portal }))] } };
+    zones: restrict(alleyCells), portals: [...structuredClone(brief.portals), ...frontages.map(portal => ({ ...portal }))],
+    ...(brief.hints ? { hints: inheritedHints(brief, alleyCells) } : {}) } };
+}
+
+/** Clip the parent's hinted segments to the child owning its inside cell. */
+function inheritedHints(parent: RegionBrief, cells: Cell[]): NonNullable<RegionBrief['hints']> {
+  const parentCells = new Set(parent.cells.map(c => `${c.x},${c.y}`)), owned = new Set(cells.map(c => `${c.x},${c.y}`));
+  const hints: NonNullable<RegionBrief['hints']> = [];
+  for (const hint of parent.hints ?? []) {
+    let start = -1;
+    for (let i = 0; i <= hint.length; i++) {
+      const x = hint.axis === 'h' ? hint.x + i : hint.x, y = hint.axis === 'v' ? hint.y + i : hint.y;
+      const before = hint.axis === 'h' ? `${x},${y - 1}` : `${x - 1},${y}`, after = `${x},${y}`;
+      const key = parentCells.has(before) ? before : after;
+      const keep = i < hint.length && owned.has(key);
+      if (keep && start < 0) start = i;
+      if (!keep && start >= 0) {
+        hints.push({ axis: hint.axis, x: hint.x + (hint.axis === 'h' ? start : 0), y: hint.y + (hint.axis === 'v' ? start : 0), length: i - start });
+        start = -1;
+      }
+    }
+  }
+  return hints;
 }
 
 /** The run along one whole side of a box, in cells. */

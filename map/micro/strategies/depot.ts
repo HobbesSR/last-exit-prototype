@@ -7,8 +7,9 @@ import type { BuildingAllocation, BuildingDesign, BuildingSide } from '../buildi
 import type { BuildingObserver } from '../building/trace.ts';
 import { buildOpen } from './open.ts';
 import { largestRectangle } from './hall.ts';
-import { cellLoot, draw, fraction } from './scatter.ts';
-import { createRegionMask, elementShapes } from '../geometry.ts';
+import { cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
+import { createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
+import { boundaryBoxFilter, boxesAgainstHints, portalMargin, hintedCells } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
@@ -17,8 +18,7 @@ import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 /** The catalogue's proposed shape need (54): a contained square at least this many cells a side. */
 const MIN_SIDE = 10;
 /**
- * Clear cells around every piece's box, from every other piece and from any cell the region
- * doesn't own, as `cover` keeps: a doorway (52), so a hunter fits each aisle.
+ * Clear cells between pieces, as `cover` keeps: a doorway (52), so a hunter fits each aisle.
  */
 const AISLE = CELL_SCALE.doorway;
 const DEFAULT_DENSITY = 0.55;
@@ -48,11 +48,10 @@ const CHANNEL = { axis: 1, phase: 2, site: 3, row: 4, length: 5, loot: 6, design
  * floor. Container rows follow, two or three containers end to end, packed along each lane
  * around the warehouses. Each place that fits one is taken with chance `density`.
  *
- * Every piece's box keeps `AISLE` clear cells from every other piece's and from any cell the
- * region doesn't own, so no route search is needed. Each box is convex with a clear ring wider
- * than a hunter around it, and such boxes can't divide the ground a hunter can reach outside
- * them, where every portal is. So, like `cover`, the region keeps the portal promise exactly
- * when its shape does. A region with no contained `MIN_SIDE` square goes to `open` (17 M24).
+ * Every piece's box keeps `AISLE` clear cells from other pieces. Candidate footprints stay
+ * owned and clear of portal approaches; concave masks also protect a hunter corridor.
+ * Hinted runs receive priority when a warehouse can fit against them. A region with no
+ * contained `MIN_SIDE` square goes to `open` (17 M24).
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear of
  * every wall, door, shelf and container, indoors or out. A depot sites no core elements; any
@@ -68,17 +67,26 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
     throw new RangeError(`Depot roomCells must be a whole number of cells from ${MIN_ROOM} to ${MAX_ROOM}.`);
   const mask = createRegionMask(brief), size = brief.cellSize;
   if (!largestRectangle(mask, MIN_SIDE)) return buildOpen(brief);
+  const reserved = new Set([...portalMargin(brief, 1), ...portalMargin({ ...brief, hints: [] }, 2)].map(c => `${c.x},${c.y}`));
+  const boundary = boundaryBoxFilter(brief, AISLE), rectangular = boundary.rectangular;
+  const protectedShapes = !rectangular && brief.portals.length <= 32 ? protectedRoutes(brief, mask, 'Depot') : [];
+  const useConservativeEdge = !rectangular && brief.portals.length > 32;
+
 
   // Lines run along u. `alongX` maps (u, v) to (x, y), or else to (y, x).
   const alongX = draw(brief.seed, 0, 0, CHANNEL.axis) < 0.5;
   const taken = new Set<string>();
   const cellAt = (u: number, v: number) => alongX ? `${u},${v}` : `${v},${u}`;
   const owns = (u: number, v: number) => alongX ? mask.has(u, v) : mask.has(v, u);
-  // A box of `length` along u and `width` across, its ring of AISLE cells owned and untaken.
+  // A box must be owned and clear of portal approaches; only other pieces need an aisle.
   const clear = (u: number, v: number, length: number, width: number) => {
+    for (let j = v; j < v + width; j++) for (let i = u; i < u + length; i++)
+      if (!owns(i, j) || reserved.has(cellAt(i, j))) return false;
     for (let j = v - AISLE; j < v + width + AISLE; j++) for (let i = u - AISLE; i < u + length + AISLE; i++)
-      if (!owns(i, j) || taken.has(cellAt(i, j))) return false;
-    return true;
+      if (taken.has(cellAt(i, j))) return false;
+    const [x, y, w, h] = alongX ? [u, v, length, width] : [v, u, width, length];
+    return (!(rectangular || useConservativeEdge) || boundary.fits({ x, y, w, h }))
+      && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
   };
   const take = (u: number, v: number, length: number, width: number) => {
     for (let j = v; j < v + width; j++) for (let i = u; i < u + length; i++) taken.add(cellAt(i, j));
@@ -92,15 +100,20 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   };
 
   // Lanes run along u, one every LANE cells across, at a seeded phase. Warehouses and rows both start on one.
-  const phase = Math.floor(draw(brief.seed, 0, 1, CHANNEL.phase) * LANE);
+  const firstHint = hintedCells(brief)[0];
+  const hintedLane = firstHint && (alongX ? firstHint.y : firstHint.x);
+  const phase = hintedLane === undefined ? Math.floor(draw(brief.seed, 0, 1, CHANNEL.phase) * LANE) : ((hintedLane % LANE) + LANE) % LANE;
   const onLane = (v: number) => ((v - phase) % LANE + LANE) % LANE === 0;
 
   // Warehouses, at seeded places on the lanes, in an order that doesn't depend on the brief's cell order.
   const across = Math.max(5, Math.round(room * 3 / 4));
   const target = Math.max(1, Math.round(density * cells.length / (4 * room * across)));
   let warehouses = 0, designed = 0;
-  if (density > 0) for (const { u, v } of cells.filter(c => onLane(c.v)).map(c => ({ ...c, order: draw(brief.seed, c.u, c.v, CHANNEL.site) }))
-    .sort((a, b) => a.order - b.order || a.v - b.v || a.u - b.u)) {
+  const hintedWarehouses = new Set(boxesAgainstHints(brief, alongX ? room : across, alongX ? across : room)
+    .map(b => alongX ? `${b.x},${b.y}` : `${b.y},${b.x}`));
+  if (density > 0) for (const { u, v } of cells.filter(c => onLane(c.v)).map(c => ({ ...c, order: draw(brief.seed, c.u, c.v, CHANNEL.site),
+    hinted: hintedWarehouses.has(`${c.u},${c.v}`) }))
+    .sort((a, b) => Number(b.hinted) - Number(a.hinted) || a.order - b.order || a.v - b.v || a.u - b.u)) {
     if (warehouses === target) break;
     if (!clear(u, v, room, across)) continue;
     take(u, v, room, across);

@@ -2,6 +2,8 @@ import { buildOpen } from './open.ts';
 import { largestRectangle } from './hall.ts';
 import { cellLoot, draw } from './scatter.ts';
 import { createRegionMask, elementShapes } from '../geometry.ts';
+import { boxesAgainstHints, portalMargin } from '../hints.ts';
+import { portalStands } from '../portals.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import { OUTSIDE } from '../building/design.ts';
 import type { BuildingAllocation, BuildingDesign } from '../building/design.ts';
@@ -15,11 +17,6 @@ import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 const MIN_SIDE = 10;
 /** The compound's sides are capped, so an enormous region holds one compound in a wide yard. */
 const MAX_SIDE = 24;
-/**
- * Clear cells around the compound, to any cell the region doesn't own, as `depot` keeps around
- * a warehouse once did. It is the compound's own yard margin (54), a doorway and a cell.
- */
-const AISLE = 3;
 /** How deep the ring of rooms is, in cells: a hunter fits inside, between quarter-cell walls. */
 const DEPTH = 3;
 /** The least length of a room along its side, in cells, and the range a side's rooms aim for. */
@@ -40,13 +37,110 @@ const CHANNEL = { offset: 1, gateSide: 2, gateAt: 3, room: 4, loot: 5 };
 /** A box in the compound's own cells. */
 interface Box { x: number; y: number; w: number; h: number }
 
+/** Keep the yard's portal blocks joined and leave a reachable doorstep at each chosen gate. */
+function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, space: Box, gates: number):
+  (Box & { gated: Set<Side> }) | undefined {
+  const key = (x: number, y: number) => `${x},${y}`;
+  const reserved = new Set(portalMargin(brief, 1).map(c => key(c.x, c.y)));
+  const entrances: { x: number; y: number }[] = [];
+  for (const { portal: { axis, x, y, length }, inward } of portalStands(brief, mask)) {
+    for (let i = 0; i < length; i++) for (let depth = 0; depth < 2; depth++) {
+      const d = inward.x + inward.y > 0 ? depth : -1 - depth;
+      reserved.add(axis === 'h' ? key(x + i, y + d) : key(x + d, y + i));
+    }
+    for (let i = 0; i + 2 <= length; i++) {
+      const d = inward.x + inward.y > 0 ? 0 : -2;
+      entrances.push(axis === 'h' ? { x: x + i, y: y + d } : { x: x + d, y: y + i });
+    }
+  }
+  const gateOrder = [...SIDES].map((side, i) => ({ side, order: draw(brief.seed, i, 0, CHANNEL.gateSide) }))
+    .sort((a, b) => a.order - b.order).map(v => v.side);
+  const sizes: [number, number][] = [];
+  // Keep as much of the designed ring as the yard allows. Each step removes one cell
+  // from each side, enough to open a new hunter-width route without exhaustive sizes.
+  for (let w = Math.min(space.w, MAX_SIDE), h = Math.min(space.h, MAX_SIDE);
+    w >= MIN_SIDE && h >= MIN_SIDE; w -= 2, h -= 2) sizes.push([w, h]);
+  if (!sizes.some(([w, h]) => w === MIN_SIDE && h === MIN_SIDE)) sizes.push([MIN_SIDE, MIN_SIDE]);
+  for (const [w, h] of sizes) {
+    if (w < MIN_SIDE || h < MIN_SIDE) continue;
+    const seen = new Set<string>(), sites: Box[] = [];
+    const add = (x: number, y: number) => {
+      if (seen.has(key(x, y))) return;
+      seen.add(key(x, y)); sites.push({ x, y, w, h });
+    };
+    // Hints take priority. A few deterministic interior positions cover a large field without
+    // searching every placement; a small yard can afford its complete set of positions.
+    const hinted = boxesAgainstHints(brief, w, h)
+      .sort((a, b) => draw(brief.seed, a.x, a.y, CHANNEL.offset) - draw(brief.seed, b.x, b.y, CHANNEL.offset))
+      .slice(0, 16);
+    for (const b of hinted) add(b.x, b.y);
+    const nx = space.w - w + 1, ny = space.h - h + 1;
+    add(space.x + Math.floor((nx - 1) / 2), space.y + Math.floor((ny - 1) / 2));
+    const preferred = sites.length;
+    if (nx <= 20 && ny <= 20) {
+      for (let y = space.y; y < space.y + ny; y++) for (let x = space.x; x < space.x + nx; x++) add(x, y);
+    } else {
+      for (let i = 0; i < 12; i++) add(space.x + Math.floor(draw(brief.seed, i, 0, CHANNEL.offset) * nx),
+        space.y + Math.floor(draw(brief.seed, i, 1, CHANNEL.offset) * ny));
+    }
+    // Limit probes on a small yard too; the centered site and the hinted sites
+    // precede the seeded alternatives.
+    if (nx <= 20 && ny <= 20) {
+      sites.splice(preferred, sites.length - preferred, ...sites.slice(preferred).sort((a, b) =>
+        draw(brief.seed, a.x, a.y, CHANNEL.offset) - draw(brief.seed, b.x, b.y, CHANNEL.offset)));
+      sites.length = Math.min(sites.length, preferred + 64);
+    }
+    for (const box of sites) {
+      const inside = (x: number, y: number) => x >= box.x && x < box.x + w && y >= box.y && y < box.y + h;
+      let valid = true;
+      for (let y = box.y; y < box.y + h && valid; y++) for (let x = box.x; x < box.x + w; x++)
+        if (!mask.has(x, y) || reserved.has(key(x, y))) { valid = false; break; }
+      if (!valid) continue;
+      const fits = (x: number, y: number) => !inside(x, y) && !inside(x + 1, y) && !inside(x, y + 1) && !inside(x + 1, y + 1)
+        && mask.has(x, y) && mask.has(x + 1, y) && mask.has(x, y + 1) && mask.has(x + 1, y + 1);
+      // A gate needs a two-cell yard stand at its actual passage. Reject sites
+      // without enough such sides before walking the yard, the costly check.
+      const gateSteps = gateOrder.map(side => {
+        const middle = (side === 'N' || side === 'S' ? w : h) - 2 * DEPTH;
+        let a = Math.floor(draw(brief.seed, SIDES.indexOf(side), 1, CHANNEL.gateAt) * (middle - PASSAGE + 1));
+        let b = a + PASSAGE;
+        if (a < MIN_ROOM) a = 0;
+        if (middle - b < MIN_ROOM) b = middle;
+        const steps: string[] = [];
+        for (let t = a; t + 2 <= b; t++) {
+          const x = side === 'W' ? box.x - 2 : side === 'E' ? box.x + w : box.x + DEPTH + t;
+          const y = side === 'N' ? box.y - 2 : side === 'S' ? box.y + h : box.y + DEPTH + t;
+          if (fits(x, y)) steps.push(key(x, y));
+        }
+        return { side, steps };
+      }).filter(v => v.steps.length);
+      if (gateSteps.length < gates) continue;
+      const start = entrances[0] ?? mask.cells.find(c => fits(c.x, c.y));
+      if (!start || !fits(start.x, start.y)) continue;
+      const reached = new Set([key(start.x, start.y)]), queue = [start];
+      for (let head = 0; head < queue.length; head++) {
+        const { x, y } = queue[head]!;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+          const nx = x + dx, ny = y + dy, k = key(nx, ny);
+          if (reached.has(k) || !fits(nx, ny)) continue;
+          reached.add(k); queue.push({ x: nx, y: ny });
+        }
+      }
+      if (entrances.some(e => !reached.has(key(e.x, e.y)))) continue;
+      const accessible = gateSteps.filter(v => v.steps.some(step => reached.has(step))).map(v => v.side);
+      if (accessible.length >= gates) return { ...box, gated: new Set(accessible.slice(0, gates)) };
+    }
+  }
+  return undefined;
+}
+
 /**
  * The `compound` region type (54): rooms in a ring around a walled court, with a few gates.
  * A pocket that rewards a contestant who knows its gates and traps one who doesn't. It has no
  * decomposer.
  *
- * One compound stands in the region's largest contained rectangle, inset `AISLE` cells and
- * capped at `MAX_SIDE`, at a seeded place. Its outer edge is the back wall of a ring of roofed
+ * One compound stands in a contained rectangle, capped at `MAX_SIDE`, with a connected yard
+ * and accessible gates. Its outer edge is the back wall of a ring of roofed
  * rooms `DEPTH` cells deep, with a square room at each corner. Each side's rooms open
  * onto the court. Each corner room opens only into its neighbour along the north or south
  * side, a room or a passage, so it is a dead end. `gates` sides, drawn from the seed, have a passage through the ring from a gate
@@ -59,10 +153,8 @@ interface Box { x: number; y: number; w: number; h: number }
  * along its whole length. `splitBuilding` makes each space its own element, and each room its
  * own roof. `observe`, when given, sees the ring's design as one `BuildingTrace`, `compound`.
  *
- * The compound is a convex box with a clear ring wider than a hunter around it, so it can't
- * divide the yard a hunter can reach outside it, where every portal is. So, like `depot`, the
- * region keeps the portal promise exactly when its shape does. A region with no contained
- * square of `MIN_SIDE` plus the aisle on each side goes to `open` (17 M24).
+ * Candidate boxes are checked against the portal approaches and the hunter's yard blocks.
+ * A region with no usable box of `MIN_SIDE` goes to `open` (17 M24).
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear of
  * every wall and door, in the rooms, the court or the yard. A compound sites no core elements;
@@ -73,17 +165,11 @@ export function buildCompound(brief: RegionBrief, observe?: BuildingObserver): B
   if (typeof gates !== 'number' || !Number.isInteger(gates) || gates < MIN_GATES || gates > MAX_GATES)
     throw new RangeError(`Compound gates must be a whole number from ${MIN_GATES} to ${MAX_GATES}.`);
   const mask = createRegionMask(brief), size = brief.cellSize;
-  const space = largestRectangle(mask, MIN_SIDE + 2 * AISLE);
+  const space = largestRectangle(mask, MIN_SIDE);
   if (!space) return buildOpen(brief);
-
-  // The compound's box in cells, at a seeded place inside the aisle. The rectangle is in cells too.
-  const sx = space.x + AISLE, sy = space.y + AISLE, sw = space.w - 2 * AISLE, sh = space.h - 2 * AISLE;
-  const W = Math.min(sw, MAX_SIDE), H = Math.min(sh, MAX_SIDE);
-  const bx = sx + Math.floor(draw(brief.seed, 0, 0, CHANNEL.offset) * (sw - W + 1));
-  const by = sy + Math.floor(draw(brief.seed, 0, 1, CHANNEL.offset) * (sh - H + 1));
-
-  const gated = new Set([...SIDES].map((side, i) => ({ side, order: draw(brief.seed, i, 0, CHANNEL.gateSide) }))
-    .sort((a, b) => a.order - b.order).slice(0, gates).map(({ side }) => side));
+  const site = siteCompound(brief, mask, space, gates);
+  if (!site) return buildOpen(brief);
+  const { x: bx, y: by, w: W, h: H, gated } = site;
 
   // The ring in the box's own cells. A side's middle runs between the corner rooms; `strip` is the box `length` long from `t` along it, `DEPTH` deep.
   const strip = (side: Side, t: number, length: number): Box => {

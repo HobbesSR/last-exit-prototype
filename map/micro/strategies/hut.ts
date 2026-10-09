@@ -3,6 +3,7 @@ import { rng } from '../index.ts';
 import { createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
 import { portalStands } from '../portals.ts';
+import { boxesAgainstHints, portalMargin } from '../hints.ts';
 import { allocateBuilding } from '../building/allocation.ts';
 import { realizeBuilding } from '../building/realize.ts';
 import type { BuildingRealization } from '../building/realize.ts';
@@ -14,8 +15,6 @@ import type { BuiltRegion, LootSite, RegionBrief } from '../types.ts';
 
 /** The one-space house's box in cells (54, proposed). */
 const BOX = 4;
-/** The clear cells a region needs beyond a box's extent on each axis: 6 for the 4 × 4 (54, proposed). Less goes to a smaller design or to `open`. */
-const MARGIN = 2;
 /** Wall thickness, in cells. */
 const WALL = 0.25;
 /** A hunter fits a 2 × 2 block of cells, and moving it by one cell sweeps a 2 × 3 rectangle. */
@@ -41,7 +40,7 @@ type House = Built & { steps: number[] };
  *
  * The builder works in cells, where a hunter is a 2 × 2 block of yard cells. It tries designs
  * largest first: three spaces, then two, then the one-space house in a 4 × 4 box. Each design
- * tries its boxes, and a region at least `MARGIN` cells wider and taller than the box, in a
+ * tries its boxes in a
  * seeded order. It takes the first contained box that:
  * - stays off every portal's approach, the two cells inward along it, where its hunter stands are
  * - leaves every two portals that the empty region joined still joined through the yard
@@ -133,6 +132,7 @@ function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, 
 
   // Each portal's approach: the cells two deep inward along it, and the blocks a hunter stands on there.
   const approach = new Set<string>(), entrances: string[] = [];
+  for (const cell of portalMargin(brief, 1)) approach.add(key(cell.x, cell.y));
   for (const { portal: { axis, x, y, length }, inward } of portalStands(brief, mask)) {
     const blocks: string[] = [];
     for (let i = 0; i < length; i++) for (let d = 0; d < BODY; d++) {
@@ -150,9 +150,13 @@ function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, 
   let empty: Map<string, number> | undefined;
   const random = rng(brief.seed, channel);
   for (const [w, h] of random.shuffle(boxes)) {
-    if (width < w + MARGIN || height < h + MARGIN) continue;
+    if (width < w || height < h) continue;
     empty ??= label(() => false);
-    const places = random.shuffle(mask.rectangles(w, h)).map(box => ({ x: Math.round(box.x / mask.cellSize), y: Math.round(box.y / mask.cellSize) }));
+    const hinted = boxesAgainstHints(brief, w, h);
+    const seen = new Set(hinted.map(box => key(box.x, box.y)));
+    const places = [...random.shuffle(hinted), ...random.shuffle(mask.rectangles(w, h))
+      .map(box => ({ x: Math.round(box.x / mask.cellSize), y: Math.round(box.y / mask.cellSize) }))
+      .filter(box => !seen.has(key(box.x, box.y)))];
     for (const { x, y } of places) {
       const sides = random.shuffle(SIDES);
       const inBox = (i: number, j: number) => i >= x && i < x + w && j >= y && j < y + h;
