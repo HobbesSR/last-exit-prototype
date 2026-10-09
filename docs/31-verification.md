@@ -30,7 +30,9 @@ contract where one exists: the fixture's map hashes and scripted trace stay in
 `characterization.test.js`.
 
 Changes under `map/macro/` run its own suite with `npm run test:mapgen` (typecheck
-plus unit tests, in that directory). On 2026-10-03, after the old paths were
+plus unit tests, in that directory). Its `tests/slow/` holds the larger authored-size
+quota checks and runs in that same default macro suite; the seeds and assertions
+are shared with the fast content checks, not reduced to fit the timing budget. On 2026-10-03, after the old paths were
 deleted (#146), it is green: 100 tests. The Map Lab (`map/tools/lab/`) has its
 own browser check, `node map/tools/tests/lab.browser.mts`, which `npm run
 test:browser` runs. A change to the chain or its inputs (macro's stages and

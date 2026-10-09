@@ -369,7 +369,10 @@ catalogue, and it grows from here. The fixture libraries in
   cell nor a concrete painted cell manufactures an adjacency prescription: an
   author must state one. Rotations merge the painted bands into irregular regions.
   A centered 4 by 4 rubble prototype left one-cell borders and failed hunter portal
-  access. Bands and bends retain the three-cell authored grid instead.
+  access under the region-local mask. That does not establish unplayability in
+  assembled geometry: [17.2.5](17.2.5-macro-questions.md) records a centered-feature
+  witness that actual movement traverses. Bands and bends retain the three-cell
+  authored grid; the clearance-sharing question is still under review.
 - **Cover:** a lone `cover-ground` in the fill forms a 6 × 6 region, too small
   for one cover piece, so it stays clear (54 `cover`). Cover comes mostly from
   the set pieces; its increased fill weight is intended to form larger joined
