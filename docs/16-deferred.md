@@ -41,7 +41,8 @@ Deferred within map generation, by Corey's answers in [17](17-open-questions.md)
   passable because hunters can break it. How validation reports routes that
   need a fence broken is decided then.
 - **An impassable directive** to builders: at most an architectural suggestion,
-  "if at all" (2026-09-28).
+  "if at all" (2026-09-28). On 2026-10-08 the suggestion was accepted as a
+  not-passable hint with no obligation (52); a *requirement* stays out.
 - **Ceilings and sealed runs**, from macro or between a region's children:
   "we'll add that in later if we need it, let's keep in simple" (2026-09-29).
   Obligations are passability only.

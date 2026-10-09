@@ -168,6 +168,22 @@ An obstacle carrying `points` is drawn from its own outline, so generated geomet
 branch in the renderer and cannot be drawn as something other than the body the simulation collides
 with. Per-kind styling — palettes, highlights, hatching — stays presentation and stays in the scene.
 
+## Drawing planes (decided 2026-10-08, not yet built)
+
+Drawn content belongs to a plane, and the plane decides what it occludes:
+- **Ground:** floors, markings and thresholds.
+- **Objects:** walls, trunks and actors.
+- **Overhead:** roofs and canopies, above the actors.
+
+Overhead items occlude what the viewer can already see; they never change what
+the viewer may *know*. Sight stays the shared rule above (`seesPoint`, `roofConceals`),
+so fading a roof or a crown is cosmetic. A tree therefore keeps its trunk as the
+collision and sight shape and gains a wider crown on the overhead plane, which
+partly hides a player who steps under it. Roofs fade as the viewer reaches a
+threshold, and the rooms of one connected roof reveal together (#233; #290, #291,
+#292). A fading plane must be baked into retained tiles or textures with an alpha
+per group, never redrawn as `Graphics` each frame (above).
+
 ## What a physics system would need next
 
 The shape module is the primitive layer for it, and deliberately stops short of being one:
