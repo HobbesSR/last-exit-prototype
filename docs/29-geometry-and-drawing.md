@@ -168,7 +168,7 @@ An obstacle carrying `points` is drawn from its own outline, so generated geomet
 branch in the renderer and cannot be drawn as something other than the body the simulation collides
 with. Per-kind styling — palettes, highlights, hatching — stays presentation and stays in the scene.
 
-## Drawing planes (decided 2026-10-08, not yet built)
+## Drawing planes
 
 Drawn content belongs to a plane, and the plane decides what it occludes:
 - **Ground:** floors, markings and thresholds.
@@ -177,12 +177,22 @@ Drawn content belongs to a plane, and the plane decides what it occludes:
 
 Overhead items occlude what the viewer can already see; they never change what
 the viewer may *know*. Sight stays the shared rule above (`seesPoint`, `roofConceals`),
-so fading a roof or a crown is cosmetic. A tree therefore keeps its trunk as the
-collision and sight shape and gains a wider crown on the overhead plane, which
-partly hides a player who steps under it. Roofs fade as the viewer reaches a
-threshold, and the rooms of one connected roof reveal together (#233; #290, #291,
-#292). A fading plane must be baked into retained tiles or textures with an alpha
-per group, never redrawn as `Graphics` each frame (above).
+so fading a roof or a crown is cosmetic. A tree keeps its trunk as the collision
+and sight shape; its translucent crown is drawn at 1.9 times the trunk radius on
+the overhead plane and partly hides a player who steps under it. This styling
+reads `kind` and radius from existing records; explicit asset parts remain future
+work. Ground and static objects share the static tile cache in recorded order;
+actors are retained objects above it, and overhead textures sit above actors.
+
+The overhead cache uses the same camera-dependent tile level, resolution and
+frame budget as static geometry. Roofs have one alpha group per building; crowns
+share a canopy group. Roof textures are cropped to their building's footprint.
+Group visibility and alpha update retained `RenderTexture` quads without replaying
+the drawing commands. Offscreen textures are released beyond the retention ring,
+and map replacement clears both caches. No overhead `Graphics` is rendered each
+frame. Roofs still hide immediately inside their building or in an unfogged
+directed view; threshold fades, connected roof groups, overhangs and inside zoom
+remain #291. None of these presentation changes alters `roofConceals` or sight.
 
 ## What a physics system would need next
 

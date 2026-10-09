@@ -285,6 +285,26 @@ it filled one map of each size first (12 × 6 at 0.7 s, 24 × 12 at 5.8 s, 36 ×
 whole process heap was 36 MB with six maps held; a map's JSON is about 0.23 MB at
 12 × 6, 0.79 MB at 24 × 12 and 1.96 MB at 36 × 18 (seed 12345).
 
+## Retained overhead textures (#290)
+
+Measured 2026-10-08 on Corey's Windows development machine in installed Chrome,
+1440 by 1000 viewport, seed 4217, default entry workload walking right for 12 s.
+Runs were sequential with no competing tests or benchmarks. Before and after each
+used one headless run (`npm run bench:client`) and one headed run
+(`node tests/bench-client.mjs --headed`).
+
+| Mode | `render.draw` mean before / after | p95 before / after |
+| --- | --- | --- |
+| Headless | 2.245 / 0.438 ms | 2.700 / 0.700 ms |
+| Headed | 2.526 / 0.498 ms | 3.800 / 0.900 ms |
+
+Both versions held about 60 fps. Afterward, `render.tiles` mean was 0.105–0.108 ms;
+its largest frame was 9.1–13.9 ms while building newly needed tiles. Roof art now
+uses cached textured quads and tree crowns share cached overhead tiles; alpha
+changes do not rasterise. These are short entry-path samples, not whole-map or
+crowd measurements. `render.draw` times Phaser's CPU render pass, not GPU execution;
+headless Chrome may use software GL. This does not resolve the reported slowdown.
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including
