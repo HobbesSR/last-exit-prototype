@@ -186,13 +186,21 @@ actors are retained objects above it, and overhead textures sit above actors.
 
 The overhead cache uses the same camera-dependent tile level, resolution and
 frame budget as static geometry. Roofs have one alpha group per building; crowns
-share a canopy group. Roof textures are cropped to their building's footprint.
+share a canopy group. Roof textures are cropped to the roof's own extent, which overhangs
+the walls by `ROOF_OVERHANG` on every side except one where another room of its group abuts.
 Group visibility and alpha update retained `RenderTexture` quads without replaying
 the drawing commands. Offscreen textures are released beyond the retention ring,
 and map replacement clears both caches. No overhead `Graphics` is rendered each
-frame. Roofs still hide immediately inside their building or in an unfogged
-directed view; threshold fades, connected roof groups, overhangs and inside zoom
-remain #291. None of these presentation changes alters `roofConceals` or sight.
+frame.
+
+Roof presentation (`shared/view.ts`, so the renderer reads one rule). A roof group is derived at
+load from buildings whose boxes share an edge with a door on it (`roofGroups`); the roof SDK later
+replaces this derivation with groups the builders declare. A group fades together: the target
+opacity (`roofTargetAlpha`) is zero while the viewer is inside any room of the group, and otherwise
+falls from opaque to `ROOF_FADE_FLOOR` as the viewer nears one of the group's doors or windows
+(`openingDistance`, within `ROOF_FADE_RANGE`). The client eases toward the target in real time, and a
+roof that reaches zero stops being drawn. While the viewer is indoors a player camera zooms in by
+`INSIDE_ZOOM`, eased; a directed camera is not touched. None of these presentation changes alters `roofConceals` or sight.
 
 ## What a physics system would need next
 
