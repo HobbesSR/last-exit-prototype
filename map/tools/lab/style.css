@@ -168,16 +168,216 @@ button.active {
   flex-direction: row !important;
   align-items: center;
 }
-.chain-grid {
+.chain-paint-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #111e27;
+  border: 1px solid #344754;
+  border-radius: 5px;
+  padding: 10px;
+}
+.chain-palette-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.chain-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.chain-swatch-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  background: #182630;
+  border: 1px solid #344754;
+  border-radius: 4px;
+  color: #e2e9ee;
+  cursor: pointer;
+}
+.chain-swatch-button:hover {
+  background: #223746;
+}
+.chain-swatch-button.active {
+  border-color: #7fd4dd;
+  background: #1d3a42;
+  box-shadow: 0 0 0 1px #7fd4dd;
+}
+.chain-swatch-button .swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+}
+.chain-tool-group {
+  display: flex;
+  gap: 4px;
+}
+.chain-tool-group button {
+  padding: 4px 9px;
+  font-size: 11px;
+  background: #182630;
+  border: 1px solid #344754;
+  border-radius: 4px;
+  color: #c5d4de;
+  cursor: pointer;
+}
+.chain-tool-group button:hover {
+  background: #223746;
+}
+.chain-tool-group button.active {
+  border-color: #7fd4dd;
+  background: #1d3a42;
+  color: #eaf7f9;
+}
+.chain-tile-stage {
   display: grid;
-  grid-template-columns: repeat(6, minmax(60px, 1fr));
-  width: min(100%, 560px);
+  grid-template-columns: 24px minmax(240px, 360px);
+  grid-template-rows: 24px minmax(240px, 360px);
+  gap: 3px;
+  position: relative;
+  user-select: none;
+  width: fit-content;
+}
+.chain-gutter.cols {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
   gap: 3px;
 }
-.chain-grid button {
-  min-height: 52px;
+.chain-gutter.rows {
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  grid-template-rows: repeat(6, 1fr);
+  gap: 3px;
+}
+.chain-gutter button {
+  background: #14242b;
+  border: 1px solid #2c464f;
+  color: #9fb6c2;
+  font-size: 10px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  cursor: pointer;
+}
+.chain-gutter button:hover {
+  background: #28525c;
+  color: #eaf7f9;
+}
+.chain-grid {
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  width: min(100%, 360px);
+  aspect-ratio: 1;
+  gap: 3px;
+  position: relative;
+  touch-action: none;
+}
+.chain-cell {
+  background: #2a5960;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  cursor: crosshair;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #f0f6fa;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+  min-height: 0;
+}
+.chain-cell:hover {
+  outline: 2px solid #7fd4dd;
+  outline-offset: -1px;
+  z-index: 2;
+}
+.chain-rect-ghost {
+  position: absolute;
+  z-index: 5;
+  border: 1px dashed #f4f7db;
+  background: rgba(244, 247, 219, 0.2);
+  pointer-events: none;
+}
+.chain-hover-readout {
+  font-family: monospace;
+  font-size: 11px;
+  color: #8fa5b4;
+  min-height: 18px;
+  margin-top: 2px;
+}
+.chain-popup {
+  position: fixed;
+  z-index: 100;
+  background: #102027;
+  border: 1px solid #33555c;
+  border-radius: 4px;
+  padding: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 140px;
+}
+.chain-popup h4 {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: #8fa5b4;
+}
+.chain-popup .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.chain-popup hr {
+  border: 0;
+  border-top: 1px solid #1d2c35;
+  margin: 2px 0;
+}
+.chain-popup button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  border: 1px solid #2c464f;
+  background: #14242b;
+  color: #eaf7f9;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.chain-popup button:hover {
+  background: #28525c;
+}
+.chain-popup button.active {
+  border-color: #7fd4dd;
+  background: #1d3a42;
+}
+.chain-popup .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
 }
 .chain-segments {
   display: grid;

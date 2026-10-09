@@ -453,6 +453,55 @@ try {
     await page.evaluate(() => (window as any).chainLab.snapshot().library),
     chainDraft,
   );
+
+  // Interactive tile stage tests (#303): swatches, gutters, eyedropper, patterns, and clear
+  await page.locator("#chainSection").selectOption("tiles");
+  await page.locator('.chain-swatch-button[data-class="arrival"]').click();
+  assert.equal(await page.locator("#chainCellBrush").inputValue(), "arrival");
+  // Column gutter click paints column 0 with arrival
+  await page.locator(".chain-gutter.cols button").first().click();
+  let stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  const arrivalMark = Object.entries(stageTile.legend ?? {}).find(
+    ([, v]) => v === "arrival",
+  )?.[0];
+  assert.ok(arrivalMark, "arrival is recorded in the legend");
+  assert.equal(stageTile.cells[0][0], arrivalMark);
+  assert.equal(stageTile.cells[5][0], arrivalMark);
+
+  // Eyedropper Alt-click on cell (5, 5) which is "hut"
+  await page
+    .locator('#chainGrid [data-cell="5,5"]')
+    .click({ modifiers: ["Alt"] });
+  assert.equal(await page.locator("#chainCellBrush").inputValue(), "hut");
+
+  // Pattern tool (Perimeter)
+  await page
+    .locator(".chain-tool-group button", { hasText: "Perimeter" })
+    .click();
+  stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  const hutMark = Object.entries(stageTile.legend ?? {}).find(
+    ([, v]) => v === "hut",
+  )?.[0];
+  assert.equal(stageTile.cells[0][5], hutMark);
+
+  // Clear painting resets cells and legend
+  await page
+    .locator(".chain-tool-group button", { hasText: "Clear painting" })
+    .click();
+  stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  assert.equal(stageTile.cells, undefined, "clearing painting removes cells");
+  assert.equal(stageTile.legend, undefined, "clearing painting removes legend");
+
+  // Restore chainDraft for subsequent class-deletion assertions
+  await page.locator("#chainImport").setInputFiles([]);
+  await page.locator("#chainImport").setInputFiles(chainPath);
+  await page.waitForFunction(() => (window as any).chainLab.snapshot().valid);
   await page.screenshot({
     path: `${OUT}/chain-authoring.png`,
     fullPage: true,
