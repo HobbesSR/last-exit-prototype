@@ -76,6 +76,14 @@ and authored-size metadata. Version 5 is refused by name: its params have no `co
   maps; its reader, `decodeArtifact`, was deleted with them (#146), and no
   legacy reader remains.
 
+**#214 content checkpoint:** the bundled module revisions advance to primitives 4,
+set pieces 4 and districts 3. Fill weights and deferring rubble tiles deliberately
+change placement and its downstream views. `REGION_TYPES_VERSION` advances to
+`types-21` for this content checkpoint, following the generation-batch policy
+(31, #295); macro and wire versions stay at 2 and 8. The frozen legacy behaviour
+fixture is unchanged. The chain sweep is recaptured once, after validation, from
+the committed inputs, preserving the pinned cases.
+
 ## BSON
 
 BSON can carry raw binary, so the packed columns travel as bytes. BSON encodes

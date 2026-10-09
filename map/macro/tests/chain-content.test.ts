@@ -19,8 +19,8 @@ import type { ChainParams, Orientation } from "../src/chain/types.ts";
 
 const content = (name: string): unknown => JSON.parse(readFileSync(new URL(`../content/${name}.json`, import.meta.url), "utf8"));
 const MODULES = {
-  "common-primitives@3": content("common-primitives@3"), "common-set-pieces@3": content("common-set-pieces@3"),
-  "district-set-pieces@2": content("district-set-pieces@2"),
+  "common-primitives@4": content("common-primitives@4"), "common-set-pieces@4": content("common-set-pieces@4"),
+  "district-set-pieces@3": content("district-set-pieces@3"),
 };
 /** The catalogue (54): its minimal set, the types B3 built, and the types S4 drafted. */
 const CATALOGUE = new Set([
@@ -61,15 +61,15 @@ test("each library authors a larger size's enormous pieces larger than its mediu
   }
 });
 
-test("every design keeps its classes and passable stretches on a three-cell grid", () => {
-  // Class boundaries on the grid keep every passage at least three cells wide, so open ground
-  // has no neck a hunter can't cross (17 M9), and the sampled route check sees every passage.
-  // A passable stretch made of whole blocks splits, where the class across changes, into
-  // portals no shorter than a block, so the portal rule never refuses one.
+test("every design keeps its declared classes and passable stretches on a three-cell grid", () => {
+  // Authored concrete boundaries and openings use three-cell blocks (17 M9). This checks
+  // authorship, not a proof of the final geometry: adjacency asks can settle `any` cells
+  // individually. Placement and the authored clear-tile access tests check those results.
   for (const { library: LIBRARY } of SIZES) for (const design of LIBRARY.tiles) for (const orientation of design.orientations) {
     const { cells, segments } = orientDesign(design, orientation as Orientation), at = `${design.id}@${orientation}`;
-    // A later per-cell resolution of `any` could break the block-width argument.
-    assert.ok(cells.every(cell => CATALOGUE.has(cell)), `${at} paints concrete classes`);
+    // Deferring cells are authored in whole blocks too. Neighbor asks may settle them per cell;
+    // placement still rejects conflicting asks and short derived portals (51.3, 51.4).
+    assert.ok(cells.every(cell => cell === "any" || CATALOGUE.has(cell)), `${at} paints declared classes`);
     for (let y = 0; y < CHAIN_TILE_SIZE; y++) for (let x = 0; x < CHAIN_TILE_SIZE; x++)
       assert.equal(cells[y * CHAIN_TILE_SIZE + x], cells[(y - y % BLOCK) * CHAIN_TILE_SIZE + x - x % BLOCK], `${at} cell ${x},${y}`);
     const passable = new Set([...segments].filter(([, s]) => s.passability === "passable").map(([key]) => key));
@@ -89,7 +89,7 @@ test("perimeter authorship distinguishes deferral, opening guarantees, and occup
   ];
   const values = (id: string, side: (i: number) => string) =>
     Array.from({ length: 6 }, (_, i) => tiles.get(id)!.segments?.[side(i)]?.passability);
-  for (const id of ["field", "rubble-bank"])
+  for (const id of ["field", "rubble-bank", "clear-rubble-bank", "clear-rubble-bend"])
     for (const side of sideKeys) assert.deepEqual(values(id, side), Array(6).fill("any"), `${id} defers explicitly`);
   for (const id of ["cover-ground", "ruins-ground", "hall-ground", "depot-ground", "compound-ground",
     "block-ground", "market-ground", "plant-ground", "checkpoint-ground", "park-ground",

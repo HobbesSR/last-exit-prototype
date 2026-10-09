@@ -32,7 +32,7 @@ export const PLACEMENT_ATTEMPTS = 50;
 const { defaultZone } = zonePlan();
 export const DEFAULT_CHAIN_PARAMS: Readonly<ChainParams> = Object.freeze({
   mode: "game", zoneWidth: defaultZone.width, zoneHeight: defaultZone.height,
-  exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.015, lootTierStep: 0.034,
+  exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.012, lootTierStep: 0.027,
 });
 
 /** Keep the old order, giving distributed transit space before the flexible fill pieces. */

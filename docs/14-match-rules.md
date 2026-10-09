@@ -110,8 +110,11 @@ The cell-profile contestant-only passage balance is a separate tuning pass;
 this checkpoint does not claim that the smaller live hunter is blocked by every
 1.5-cell squeeze (52).
 
-Generated loot uses its authoritative site and tier metadata. Each region type
-rolls a loot chance per cell that starts at 0.015 in tier 1 and rises 0.034 a
+Generated loot uses its authoritative site and tier metadata. #214 lowers the
+default gradient from 0.015 plus 0.034 per tier to 0.012 plus 0.027: the more
+varied fill paints more regions that roll loot, so the roughly 20% reduction
+keeps item supply near the earlier budget. Explicit caller overrides still apply. Each region type
+rolls a loot chance per cell that starts at 0.012 in tier 1 and rises 0.027 a
 tier (`DEFAULT_CHAIN_PARAMS`); `open` rolls none (54). S5's bigger set pieces
 (#170) put a type that rolls loot on about 55% of the map, up from 13%, so the
 old 0.04 and 0.09 were scaled by 0.37 to keep about 950 sites per live map

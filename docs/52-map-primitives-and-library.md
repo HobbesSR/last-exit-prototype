@@ -288,7 +288,7 @@ libraries.
 
 `map/macro/content/diamond-12x6.json` is the library the chain is authored
 with (B4, #97; modularized in #168; set pieces on the old footprints in S5,
-#170). It includes `common-primitives@3.json` and `common-set-pieces@3.json`,
+#170). It includes `common-primitives@4.json` and `common-set-pieces@4.json`,
 which also includes the primitives. The top library owns the classes and
 quotas for the diamond at its declared size. It paints every type in 54's
 catalogue, and it grows from here. The fixture libraries in
@@ -298,8 +298,8 @@ catalogue, and it grows from here. The fixture libraries in
   same name. A drafted type paints its own name and builds what its stand-in
   builds (54, "Drafted types").
 - **Tiles:**
-  - `field`: open ground, most of the fill. Its perimeter explicitly states
-    `any`, allowing a neighboring tile's passable promise or hint to resolve it.
+  - `field`: plain open ground, a light fallback in the fill (weight 2.5, down
+    from 6 in #214). Its perimeter explicitly states `any`, allowing a neighboring tile's passable promise or hint to resolve it.
   - `cover-ground`: a whole tile of `cover`, with a three-segment passable
     stretch and a three-segment not-passable hint on each side.
   - `rubble-bank`: three rows of `rubble` beside three of `open`, with one
@@ -316,7 +316,8 @@ catalogue, and it grows from here. The fixture libraries in
     `block-ground`, `market-ground`, `plant-ground`, and `checkpoint-ground`: a whole tile of their type, with the same aligned three-segment passable stretch and complementary hint as `cover-ground`. They are weighted 0, so only set pieces place
     them (below).
   - `park-ground`: a whole tile of `park`, with the same perimeter pattern, weighted
-    0.15 as `cover-ground` is (#221). Over the 224 sweep maps that took `park` from
+    0.6 since #214 (`cover-ground` is 0.4). The earlier 0.15 weight (#221)
+    took `park`, over the 224 sweep maps, from
     297 regions on 139 maps to 1,682 on 211, and its share of cells from 3.6%
     to 4.4%. Park's own strategy places a tree at most in a lone tile, so the
     weight is Corey's to veto (17.2.8 M34).
@@ -337,27 +338,42 @@ catalogue, and it grows from here. The fixture libraries in
 | `medium` | `market-row` 9 × 4 and `market-court` 7 × 5 (`market`), `walled-base` 6 × 6 and `barracks` 8 × 4 (`compound`), `checkpoint-lane` 12 × 3 (`checkpoint`), `pillar-hall` 6 × 5 (`hall`) |
 | `small` | `plant-row` 6 × 3, `plant-tower` 3 × 6 and `plant-yard` 5 × 3 (`plant`), `depot-sheds` 9 × 2 and `depot-lot` 7 × 3 (`depot`), `park-square` 4 × 4 and `park-green` 6 × 4 (`park`), `ruins-lot` 5 × 4 (`ruins`), `cover-yard` 4 × 5 (`cover`), `rubble-strip` 8 × 2 (rubble banks back to back, a rubble strip six cells deep between open lanes) |
 
-  `common-set-pieces@3` still defines `hut-yard`, `hut-row`, `cover-patch`,
+  `common-set-pieces@4` still defines `hut-yard`, `hut-row`, `cover-patch`,
   `cover-field`, `rubble-lane` and `rubble-lanes`, the set pieces before S5,
   for libraries at other sizes. This library's classes no longer draw them,
   so huts come from the fill's hut quarters.
-- **The three-cell grid.** Every class boundary in a design lies on a 3-cell
-  grid, and every passable stretch is made of whole 3-cell blocks. So no
-  passage between classes is narrower than 3 cells, a doorway plus one (17
-  M9). The margin dates from a route check that couldn't see a bare doorway;
+- **The three-cell grid.** Every declared class boundary in a design lies on a 3-cell
+  grid, and every passable stretch is made of whole 3-cell blocks. Concrete
+  authored passages are at least 3 cells wide, a doorway plus one (17 M9). The margin dates from a route check that couldn't see a bare doorway;
   the search now samples whole and half cells (#175), so it is a library
-  choice, not a measurement need. A passable stretch also still
-  splits into portals of at least 3 where the class across it changes.
-  `tests/chain-content.test.ts` holds every design to this.
+  choice, not a measurement need. Between concrete blocks, a passable stretch
+  also splits into portals of at least 3 where the class across it changes.
+  `map/macro/tests/chain-content.test.ts` holds every design to this. Deferring
+  cells can resolve individually under adjacency asks; this authored-grid check
+  alone does not prove their resolved geometry. Placement checks conflicting asks
+  and portal widths, and `tests/map-clear-tiles.test.js` exercises actual resolution
+  and built access.
 - **Fill weights:** each orientation is its own fill option, so a design
-  with four orientations gets four times its weight. Designs that state
-  adjacency are placed early, so hut quarters need a light weight (0.1). A
+  with four orientations gets four times its weight. Hut quarters have weight
+  0.3 since #214; their adjacency asks need compatible ground around the cluster,
+  so their frequency also depends on the other weights. A
   design weighted 0 is no fill option: only a set piece places it. A lone
   6 × 6 tile of a structure type is too small for its builder, so those
   grounds are weighted 0, `park-ground` since #221 excepted.
+- **Clear fill tiles (#214):** `clear-rubble-bank` paints a three-cell-wide rubble
+  band; `clear-rubble-bend` paints three quarters of the tile as an L. Their remaining
+  cells are `any`, including parts of the perimeter. Each has four rotations at
+  weight 0.15 per rotation and explicitly defers perimeter passability. A three-cell
+  internal opening connects the rubble to the deferred ground. Neighbor adjacency
+  asks settle individual `any` cells; unasked cells become `open`. Neither an `any`
+  cell nor a concrete painted cell manufactures an adjacency prescription: an
+  author must state one. Rotations merge the painted bands into irregular regions.
+  A centered 4 by 4 rubble prototype left one-cell borders and failed hunter portal
+  access. Bands and bends retain the three-cell authored grid instead.
 - **Cover:** a lone `cover-ground` in the fill forms a 6 × 6 region, too small
   for one cover piece, so it stays clear (54 `cover`). Cover comes mostly from
-  the set pieces, so its fill weight is light.
+  the set pieces; its increased fill weight is intended to form larger joined
+  cover regions.
 
 31 describes the library's acceptance checks. The tools and live matches use
 the same library through `map/chain.ts`; live conversion is separate (14, 22).
@@ -394,7 +410,7 @@ keep loot per map level (14).
 ## The larger libraries (S6)
 
 `diamond-24x12.json` and `diamond-36x18.json` (#171) include the same two
-modules and `district-set-pieces@2.json`. A piece that is enormous at one size
+modules and `district-set-pieces@3.json`. A piece that is enormous at one size
 is medium at the next (55):
 
 | Set piece class | 24 × 12 | 36 × 18 |
@@ -409,7 +425,7 @@ Core element pieces, their quotas and the six transit stations stay as at
 split between two or three types so one structure type doesn't fill it alone.
 Sizes are in tiles.
 
-- **Districts** (`district-set-pieces@2`, shared by both sizes):
+- **Districts** (`district-set-pieces@3`, shared by both sizes):
   `market-district` 20 × 10 (market and park), `industrial-estate` 18 × 10
   (plant and depot), `downtown` 20 × 9 (block over a market row), `garrison`
   16 × 10 (compound over a checkpoint lane) and `old-town` 18 × 10 (ruins,
@@ -442,5 +458,11 @@ Inspection for #241/#243/#298 also traced the former `last_exit_map` library
 tiles. Those shapes show a useful way to compose irregular regions without
 forcing openings along every side. This pass adopts selective guaranteed
 openings and deferred/hinted perimeter segments; it retains the current
-three-cell tile grid, shapes and weights. Shape diversity and reweighting
-belong to the separate #214 follow-up.
+three-cell tile grid, shapes and weights. The #214 follow-up adds rotated rubble
+bands and bends with deferred cells and
+reduces the dominance of plain fields. Over the same 12 game seeds (`fill-214-1`
+through `fill-214-12`), fields fell from 77.0% to 42.7% of fill slots and resolved
+open cells from 39.8% to 28.4%. Cover, park and rubble together placed 591 obstacles
+before and 1,369 after. Their obstacle-free share stayed about 97�98%: this changes
+where regions occur, not their builders' density. Three full-map portal diagnoses
+found no broken promises. These are bounded samples, not a guarantee for every seed.
