@@ -149,6 +149,21 @@ simulation version `last-exit-0.7`. The shipped default `content-2` adds the thi
 hunter; see [14](14-match-rules.md) for the roster and [26](26-recording-contract.md)
 for the version decision. This checkpoint must not alter any fixture bytes.
 
+What the `generated` hashes cover is the **legacy generator**, `generateMap` in
+`shared/map/generate.ts`, not the chain. So changes to the chain's library,
+placement or strategies never move this fixture. They move the chain's own seed
+sweep, `map/tools/fixtures/chain-baseline.json`, and `REGION_TYPES_VERSION`
+([53](53-map-artifacts-and-tools.md)). Only simulation changes (bot behaviour,
+or state added to a player and so to snapshots and projections) move the traces.
+
+**Batching baseline-moving work.** The sweep is cheap enough to run on every
+change as a drift diagnostic (about 25 s), but a deliberate content change recaptures
+it once, last. When several such changes belong together, collect them on one
+integration branch, check each with focused tests and the diagnostic, and
+recapture once with a single `REGION_TYPES_VERSION` decision, so the first one to
+merge does not leave the sweep check failing on `main`. A change that is meant to
+be behaviour-preserving never recaptures. The 2026-10 batch is tracked in #295.
+
 Never regenerate a fixture to make a refactor pass: a behaviour-preserving change
 must reproduce it exactly. Regenerating is correct only for a deliberate content or
 rules change that has been decided, and it restarts the evidence — the current
