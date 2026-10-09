@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * The map CLI (53, "Tools"): chain maps, placed by macro and built by the game's
- * strategies, saved in wire version 7.
+ * strategies, saved in wire version 8.
  */
 import fs from 'node:fs';
 import { readLibraryFile } from './library-files.mts';

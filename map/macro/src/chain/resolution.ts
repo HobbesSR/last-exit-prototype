@@ -4,10 +4,17 @@
  * each side stated kept as provenance. Nothing is decided here, so nothing is saved.
  */
 import { adjacencyAsks, declaredGrid, segmentCells } from "./declared-grid.ts";
+import type { PassabilityPrescription } from "./library.ts";
 import type { DeclaredSegment, MacroStages, ResolvedSegment, SegmentKey, StatedPassability } from "./types.ts";
 
 /** What an `any` cell resolves to when no adjacency prescription asks it for a class. */
 export const DEFAULT_RESOLVED_CLASS = "open";
+
+/** Derived crossing promise for two cells on the map; hints never require a barrier. */
+export function guaranteesPassability(lower: PassabilityPrescription | undefined,
+  upper: PassabilityPrescription | undefined): boolean {
+  return lower === "passable" || upper === "passable" || (lower === "any" && upper === "any");
+}
 
 export const resolution: MacroStages["resolution"] = (layout, library) => {
   const grid = declaredGrid(layout, library);
@@ -31,7 +38,7 @@ export const resolution: MacroStages["resolution"] = (layout, library) => {
       cell === undefined ? null : passability ?? "unstated";
     // A segment facing the map's outside has nothing across it, so it is never guaranteed.
     const across = lower !== undefined && upper !== undefined;
-    const passable = sides.lower?.passability === "passable" || sides.upper?.passability === "passable";
+    const passable = guaranteesPassability(sides.lower?.passability, sides.upper?.passability);
     segments[key] = {
       guarantee: across && passable ? "guaranteed" : "none",
       stated: [stated(lower, sides.lower?.passability), stated(upper, sides.upper?.passability)],

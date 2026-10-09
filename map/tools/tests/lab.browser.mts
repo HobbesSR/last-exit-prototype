@@ -298,6 +298,13 @@ try {
   await page.locator("#chainSegmentPassability").selectOption("any");
   await page.locator('#chainSegments [data-segment="v:3,4"]').click();
   await page.locator("#chainSegmentPassability").selectOption("passable");
+  await page.locator('#chainSegments [data-segment="v:0,1"]').click();
+  assert.equal(
+    await page.locator('#chainSegmentPassability option[value="not-passable-hint"]').textContent(),
+    "Prefer occupied (hint)",
+  );
+  assert.match(await page.locator("#chainEditor").innerText(), /never an impassability requirement/);
+  await page.locator("#chainSegmentPassability").selectOption("not-passable-hint");
   await page.locator('#chainSegments [data-segment="v:1,1"]').click();
   await page.locator("#chainSegmentPassability").selectOption("passable");
   assert.match(
@@ -359,6 +366,7 @@ try {
     passability: "any",
   });
   assert.equal(chainDraft.tiles[0].segments["v:3,4"].passability, "passable");
+  assert.equal(chainDraft.tiles[0].segments["v:0,1"].passability, "not-passable-hint");
   assert.equal(chainDraft.setPieces[0].primaryRegionClass, "checkpoint");
   assert.equal(chainDraft.setPieceClasses[0].placementRule, "charger");
   assert.equal(chainDraft.setPieceClasses[0].quota, 2);
@@ -397,6 +405,8 @@ try {
     chainDraft,
   );
   await page.locator("#chainSection").selectOption("tiles");
+  await page.locator('#chainSegments [data-segment="v:0,1"]').click();
+  assert.equal(await page.locator("#chainSegmentPassability").inputValue(), "not-passable-hint");
   await page.locator('#chainSegments [data-segment="h:0,0"]').click();
   await page.locator("#chainSegmentPassability").selectOption("");
   const unstated = await page.evaluate(

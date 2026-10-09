@@ -149,7 +149,12 @@ test("a written any and unstated passability stay distinct", () => {
   assert.equal(tile.segments!["v:3,5"], undefined);
   const library = copy();
   library.tiles[0]!.segments!["v:3,2"]!.passability = "any";
-  refusal(library, /short passable run v:3,3\.\.3/);
+  assert.deepEqual(validateLibrary(library, TYPES).errors, []);
+  // Inside a tile a written any is stated on both sides and continues the portal.
+  library.tiles[0]!.segments = { "v:3,2": { passability: "any" } };
+  refusal(library, /short passable run v:3,2\.\.2/);
+  library.tiles[0]!.segments!["v:3,2"]!.passability = "not-passable-hint";
+  assert.deepEqual(validateLibrary(library, TYPES).errors, []);
 });
 
 test("set piece classes need a rule, quota and valid core element counts", () => {

@@ -9,7 +9,7 @@ export const CHAIN_TILE_SIZE = 6;
 export const CHAIN_MODULE_SCHEMA = 1;
 
 export type Side = "N" | "E" | "S" | "W";
-export type PassabilityPrescription = "passable" | "any";
+export type PassabilityPrescription = "passable" | "any" | "not-passable-hint";
 /** Map params a core element count may name, resolved from the Layout's params (52). */
 export const COUNT_PARAMS = ["exitCount", "contestantCount", "hunterCount"] as const;
 export type CountParam = typeof COUNT_PARAMS[number];
@@ -303,7 +303,7 @@ function shortInteriorRuns(tile: Record<string, unknown>, classes: string[], min
     const uncertain = Array.from({ length: run.length }, (_, i) => {
       const offset = start + i;
       const prescription = segments[`${run.axis}:${line},${offset}`];
-      if (!object(prescription) || prescription.passability !== "passable") return false;
+      if (!object(prescription) || (prescription.passability !== "passable" && prescription.passability !== "any")) return false;
       const adjacent = run.axis === "v"
         ? [{ x: line - 1, y: offset }, { x: line, y: offset }]
         : [{ x: offset, y: line - 1 }, { x: offset, y: line }];
@@ -320,7 +320,7 @@ function shortInteriorRuns(tile: Record<string, unknown>, classes: string[], min
     for (let offset = start; offset <= end; offset++) {
       const key = `${run.axis}:${line},${offset}`;
       const prescription = segments[key];
-      if (offset < end && object(prescription) && prescription.passability === "passable") {
+      if (offset < end && object(prescription) && (prescription.passability === "passable" || prescription.passability === "any")) {
         if (from < 0) from = offset;
       } else finish(offset);
     }
@@ -389,7 +389,7 @@ export function validateLibrary(
         if (!isClass(value.adjacency, declared))
           errors.push(`${path}: malformed adjacency ${key}: ${String(value.adjacency)}`);
       }
-      if (value.passability !== undefined && value.passability !== "passable" && value.passability !== "any")
+      if (value.passability !== undefined && value.passability !== "passable" && value.passability !== "any" && value.passability !== "not-passable-hint")
         errors.push(`${path}: malformed passability ${key}: ${String(value.passability)}`);
     }
     if (integer(minPassableRun) && minPassableRun > 0 && classes.every(name))

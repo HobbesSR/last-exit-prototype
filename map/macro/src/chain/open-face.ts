@@ -29,7 +29,7 @@ import { orientedDesigns } from "./declared-grid.ts";
 import type { OrientedDesign } from "./declared-grid.ts";
 import { CHAIN_TILE_SIZE } from "./library.ts";
 import type { ChainLibrary } from "./library.ts";
-import { DEFAULT_RESOLVED_CLASS } from "./resolution.ts";
+import { DEFAULT_RESOLVED_CLASS, guaranteesPassability } from "./resolution.ts";
 import type { Orientation, SegmentKey } from "./types.ts";
 
 const S = CHAIN_TILE_SIZE;
@@ -132,26 +132,32 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
     /**
      * Whether an `any` cell (x, y) could resolve to `wanted` if `option` were placed in
      * its slot: some design beside it asks for `wanted`, or none asks and `wanted` is the
-     * default. A design beside it that isn't placed yet might ask for anything.
+     * default. Unplaced neighbours can ask only for classes in their remaining options.
      */
     const anyCouldBe = (x: number, y: number, option: TileOption, wanted: string): boolean => {
       const slot = slotOf(x, y);
-      let asked = false;
+      let asked = false, couldAskWanted = false;
       for (const [dx, dy] of SIDES) {
         const beside = slotOf(x + dx, y + dy);
         if (beside < 0) continue;
-        if (beside !== slot && !design(beside)) return true;
+        if (beside !== slot && !design(beside)) {
+          const asks = solving[beside]!.domain.map((candidate) =>
+            stated(x + dx, y + dy, ...between(x, y, dx, dy), candidate)?.adjacency);
+          if (asks.includes(wanted)) couldAskWanted = true;
+          if (asks.every((required) => required !== undefined && required !== "any")) asked = true;
+          continue;
+        }
         const required = stated(x + dx, y + dy, ...between(x, y, dx, dy), beside === slot ? option : undefined)?.adjacency;
         if (required === undefined || required === "any") continue;
         if (required === wanted) return true;
         asked = true;
       }
-      return !asked && wanted === DEFAULT_RESOLVED_CLASS;
+      return couldAskWanted || (!asked && wanted === DEFAULT_RESOLVED_CLASS);
     };
     /**
      * Whether the settled cell (x, y), of class `own`, could still join the cell beside it
      * in an unplaced slot: some option left for that slot puts `own` there, or an `any`
-     * cell that could resolve to it, or either side states the segment passable. Domains
+     * cell that could resolve to it, or the paired prescriptions guarantee passage. Domains
      * only narrow, so a face that can't join now never will.
      */
     const couldJoin = (x: number, y: number, dx: number, dy: number, own: string): boolean => {
@@ -161,13 +167,13 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
       return solving[slotOf(nx, ny)]!.domain.some((option) => {
         const across = turned(option).cells[local];
         return across === own || (across === "any" && anyCouldBe(nx, ny, option, own))
-          || stated(nx, ny, ...key, option)?.passability === "passable";
+          || guaranteesPassability(stated(x, y, ...key)?.passability, stated(nx, ny, ...key, option)?.passability);
       });
     };
-    /** Either side prescribes the segment passable. Both cells must be in placed slots. */
+    /** Derived guarantee after both segment prescriptions are known. Both slots are placed. */
     const guaranteed = (x: number, y: number, dx: number, dy: number): boolean => {
       const key = between(x, y, dx, dy);
-      return stated(x, y, ...key)?.passability === "passable" || stated(x + dx, y + dy, ...key)?.passability === "passable";
+      return guaranteesPassability(stated(x, y, ...key)?.passability, stated(x + dx, y + dy, ...key)?.passability);
     };
 
     // Cells within `margin` of a placed slot, each once.
@@ -252,8 +258,9 @@ export function openFaceRule(library: ChainLibrary, grid: WfcGrid, columns: numb
           if (across === OUTSIDE) continue;
           if (across === UNSETTLED) {
             const beside = slotOf(x + dx, y + dy);
-            // An unsettled `any` cell in a placed slot could still take any class.
-            if (design(beside) || couldJoin(x, y, dx, dy, own)) { open = true; break; }
+            // Even a placed `any` cell can join only through a possible class or a
+            // derived guarantee. A hint doesn't turn an unsettled class into passage.
+            if (couldJoin(x, y, dx, dy, own)) { open = true; break; }
             closed.add(beside);
             continue;
           }
