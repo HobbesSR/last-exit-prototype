@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM } from '../shared/view.ts';
+import { roofGroups, roofOverhang, roofTargetAlpha, openingDistance, ROOF_FADE_RANGE, ROOF_FADE_FLOOR, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM } from '../shared/view.ts';
 import { visibilityPolygon, litPoint } from '../shared/movement.ts';
 
 test('full viewport corners are visible across supported sizes and zooms within server coverage', () => {
@@ -82,4 +82,39 @@ test('sight applies concealment, viewport and reveals in the order the informati
   assert.equal(seesActor(sight, roofed, gladiator, target({ revealed: 12, cloak: 8 })), true, 'a reveal beats cloak');
   assert.equal(seesActor(null, open, gladiator, target({ revealed: 12 })), true, 'a reveal needs no sight polygon');
   assert.equal(seesActor(sight, roofed, gladiator, target()), false, 'an unrevealed actor is still concealed');
+});
+
+test('roof groups join abutting rooms that share a door, and nothing else', () => {
+  const room = (id, x, y, w = 200, h = 200) => ({ id, x, y, w, h });
+  const door = (x, y, w, h, buildingId) => ({ id: `door-${x}-${y}`, x, y, w, h, kind: 'door', open: false, locked: false, buildingId });
+  const buildings = [room('a', 0, 0), room('b', 200, 0), room('c', 0, 200), room('d', 600, 0), room('e', 800, 0)];
+  // a|b door on the shared vertical edge; c touches a but has no door onto it; d and e touch with no door.
+  const gates = [door(190, 80, 20, 40, 'a'), door(900, 20, 20, 40, 'e'), door(680, -9, 40, 18, 'd')];
+  const groups = roofGroups({ buildings, gates });
+  assert.deepEqual(groups.get('a').map(b => b.id), ['a', 'b']);
+  assert.equal(groups.get('a'), groups.get('b'), 'members share one group');
+  assert.deepEqual(groups.get('c').map(b => b.id), ['c']);
+  assert.deepEqual(groups.get('d').map(b => b.id), ['d']);
+  assert.deepEqual(groups.get('e').map(b => b.id), ['e'], 'an exterior door joins nothing');
+  assert.equal(roofGroups({ buildings: undefined, gates: [] }).size, 0, 'a map without buildings has no groups');
+});
+
+test('a roof overhangs every side except where its group abuts', () => {
+  const a = { id: 'a', x: 0, y: 0, w: 200, h: 200 }, b = { id: 'b', x: 200, y: 0, w: 200, h: 200 };
+  assert.deepEqual(roofOverhang(a, [a]), { n: ROOF_OVERHANG, e: ROOF_OVERHANG, s: ROOF_OVERHANG, w: ROOF_OVERHANG });
+  assert.deepEqual(roofOverhang(a, [a, b]), { n: ROOF_OVERHANG, e: 0, s: ROOF_OVERHANG, w: ROOF_OVERHANG });
+  assert.deepEqual(roofOverhang(b, [a, b]), { n: ROOF_OVERHANG, e: ROOF_OVERHANG, s: ROOF_OVERHANG, w: 0 });
+});
+
+test('roofs fade toward an opening and vanish for a viewer inside', () => {
+  assert.equal(roofTargetAlpha(true, 0), 0);
+  assert.equal(roofTargetAlpha(false, Infinity), 1, 'a roof with no opening never fades');
+  assert.equal(roofTargetAlpha(false, ROOF_FADE_RANGE), 1);
+  assert.equal(roofTargetAlpha(false, 0), ROOF_FADE_FLOOR, 'it stays partly opaque at the threshold');
+  assert.ok(roofTargetAlpha(false, ROOF_FADE_RANGE / 2) < 1 && roofTargetAlpha(false, ROOF_FADE_RANGE / 2) > ROOF_FADE_FLOOR);
+  const group = [{ id: 'a', x: 0, y: 0, w: 200, h: 200 }];
+  const map = { gates: [{ x: 90, y: 190, w: 20, h: 20, buildingId: 'a' }], obstacles: [{ kind: 'window', x: 0, y: 50, w: 10, h: 60, buildingId: 'a' }, { kind: 'window', x: 500, y: 0, w: 10, h: 60, buildingId: 'z' }] };
+  assert.equal(openingDistance(map, group, { x: 100, y: 260 }), 50);
+  assert.equal(openingDistance(map, group, { x: -30, y: 80 }), 30, 'windows count, and other buildings\' do not');
+  assert.equal(openingDistance({ gates: [], obstacles: [] }, group, { x: 0, y: 0 }), Infinity);
 });

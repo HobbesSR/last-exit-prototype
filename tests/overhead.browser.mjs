@@ -72,10 +72,26 @@ try {
   const roofAlpha = await page.evaluate(() => {
     const s = window.fixture.scene, group = s.roofs.get('house'), textures = [...group.textures];
     s.setOverheadGroup('roof:house', true, 0.5);
-    s.update(performance.now(), 16);
     return textures.length > 0 && textures.every(t => group.textures.has(t) && t.alpha === 0.5);
   });
   assert.equal(roofAlpha, true, 'roof groups also reuse textures for alpha changes');
+  // Roof fade and inside zoom: the viewer walks to the door, then in, then out again.
+  const frames = (n = 60) => page.evaluate(async n => { const s = window.fixture.scene; s.cutTo(); for (let i = 0; i < n; i++) { s.update(performance.now(), 16); await new Promise(r => setTimeout(r, 20)); } const g = s.roofs.get('house');
+    return { alpha: g.alpha, visible: g.visible, zoom: s.cameras.main.zoom, textures: [...g.textures].map(t => t.alpha) }; }, n);
+  await page.evaluate(() => { const f = window.fixture; f.map.gates.push({ id: 'door', x: 280, y: 296, w: 40, h: 18, open: false, locked: false, kind: 'door', buildingId: 'house' }); f.player.x = 700; f.player.y = 700; });
+  const far = await frames();
+  assert.equal(far.alpha, 1, 'a roof away from every opening stays opaque');
+  await page.evaluate(() => { const f = window.fixture; f.player.x = 300; f.player.y = 340; });
+  const near = await frames();
+  assert.ok(near.alpha < 0.5 && near.alpha > 0, `approaching a door fades the roof (${near.alpha})`);
+  assert.ok(near.textures.every(a => a === near.alpha), 'fading reuses the cached textures');
+  await page.evaluate(() => { const f = window.fixture; f.player.x = 300; f.player.y = 200; });
+  const inside = await frames();
+  assert.equal(inside.alpha, 0); assert.equal(inside.visible, false, 'a roof fully faded stops being drawn');
+  assert.ok(inside.zoom > far.zoom * 1.1, `the camera eases closer indoors (${far.zoom} -> ${inside.zoom})`);
+  await page.evaluate(() => { const f = window.fixture; f.player.x = 700; f.player.y = 700; });
+  const out = await frames();
+  assert.equal(out.alpha, 1); assert.equal(out.visible, true); assert.ok(Math.abs(out.zoom / far.zoom - 1) < 0.01, `leaving restores the zoom (${far.zoom} -> ${out.zoom})`);
   // Pan far enough to release the original textures, then rebuild the map with no overhead art.
   const cleanup = await page.evaluate(() => {
     const f = window.fixture, s = f.scene;
