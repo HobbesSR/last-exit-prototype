@@ -29,7 +29,7 @@ const derive = (layout: Layout, library: ChainLibrary): LayoutRegions => regions
 
 function measure(layout: Layout, library: ChainLibrary, build: (brief: RegionBrief) => RegionResult = stubBuild): Report {
   const found = derive(layout, library);
-  const built = stubCompose(briefs(layout, found, chainZones(layout.params), library, CELL_SIZE).map(build));
+  const built = stubCompose(briefs(layout, resolution(layout, library), found, chainZones(layout.params), library, CELL_SIZE).map(build));
   return measurement(built, proof(found), layout, library);
 }
 const kinds = (report: Report): string[] => report.defects.map((defect) => defect.kind);
@@ -37,7 +37,7 @@ const kinds = (report: Report): string[] => report.defects.map((defect) => defec
 test("measurement is pure, deterministic and recomputable from the Layout and the results", () => {
   const layout = layouts.get(SEEDS[0]!)!;
   const found = derive(layout, LIBRARY);
-  const results = briefs(layout, found, chainZones(layout.params), LIBRARY, CELL_SIZE).map(stubBuild);
+  const results = briefs(layout, resolution(layout, LIBRARY), found, chainZones(layout.params), LIBRARY, CELL_SIZE).map(stubBuild);
   const built = stubCompose(results), reachability = proof(found);
   const report = assertPure("measurement", measurement, built, reachability, layout, LIBRARY);
   assert.deepEqual(assertDeterministic("measurement", measurement, built, reachability, layout, LIBRARY), report);
@@ -157,7 +157,7 @@ test("the proof is checked against what was built: unconnected, unbuilt and unpr
 
   // A built map that lost a region, or holds one the proof doesn't know.
   const found = derive(layout, HAND), reachability = proof(found);
-  const built = stubCompose(briefs(layout, found, chainZones(layout.params), HAND, CELL_SIZE).map(stubBuild));
+  const built = stubCompose(briefs(layout, resolution(layout, HAND), found, chainZones(layout.params), HAND, CELL_SIZE).map(stubBuild));
   const lost = measurement({ ...built, regions: built.regions.filter((r) => r.brief.id !== "charging@18,6") }, reachability, layout, HAND);
   assert.deepEqual(lost.defects.filter((d) => d.kind === "unbuilt-region").map((d) => d.message),
     ["the proof names region charging@18,6, which the built map doesn't hold"]);
@@ -169,7 +169,7 @@ test("the proof is checked against what was built: unconnected, unbuilt and unpr
 test("metrics are counted from the built map", () => {
   const layout = hand({ "1,1": "arrival-west" }, [instance("entry", "start", [1, 1])]);
   const found = derive(layout, HAND);
-  const results = briefs(layout, found, chainZones(layout.params), HAND, CELL_SIZE).map((brief) =>
+  const results = briefs(layout, resolution(layout, HAND), found, chainZones(layout.params), HAND, CELL_SIZE).map((brief) =>
     ({ ...stubBuild(brief), elements: [1, 2, 3], loot: [{ x: 0, y: 0, tier: 1 }] }));
   const report = measurement(stubCompose(results), proof(found), layout, HAND);
   assert.deepEqual(report.defects, []);

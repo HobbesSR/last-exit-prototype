@@ -85,7 +85,8 @@ with a don't-care value. This is Corey's model (verbatim in 17, 2026-09-27).
   - The full symmetric table and version decisions are in [51.4](51.4-resolution.md).
     `passable` wins over hints; hint with unstated remains a hint without a
     guarantee. The Map Lab authors the value without requiring any geometry.
-  - Brief delivery and SDK helpers remain separate work (#287; 20.1 and 20.3).
+  - The brief carries the hinted runs and the SDK offers helpers for them (#287;
+    20.1, 20.3, 51.7). Builders adopt them one at a time.
 - **When geometry returns:** a label will imply values on several dimensions.
   - `wall` implies not passable.
   - A fence blocks movement but is passable, because hunters can break fences

@@ -192,7 +192,7 @@ export interface ReachabilityProof extends StageMark<"reachability-proof"> {
   components: string[][];
 }
 
-// ── 5. Briefs: Layout, LayoutRegions, zones, cell size → RegionBrief[] (view) 
+// ── 5. Briefs: Layout, ResolvedLayout, LayoutRegions, zones, cell size → RegionBrief[] (view) 
 // `RegionBrief` is the contract's (`map/kernel/contract.ts`). The caller chooses the
 // cell size, in world units, since it is the game's scale and not macro's.
 
@@ -284,6 +284,6 @@ export interface MacroStages {
   resolution: Stage<[layout: Layout, library: ChainLibrary], ResolvedLayout>;
   regions: Stage<[resolved: ResolvedLayout, seed: string], LayoutRegions>;
   proof: Stage<[regions: LayoutRegions], ReachabilityProof>;
-  briefs: Stage<[layout: Layout, regions: LayoutRegions, zones: Zone[], library: ChainLibrary, cellSize: number], RegionBrief[]>;
+  briefs: Stage<[layout: Layout, resolved: ResolvedLayout, regions: LayoutRegions, zones: Zone[], library: ChainLibrary, cellSize: number], RegionBrief[]>;
   measurement: Stage<[built: BuiltMap, proof: ReachabilityProof, layout: Layout, library: ChainLibrary], Report>;
 }

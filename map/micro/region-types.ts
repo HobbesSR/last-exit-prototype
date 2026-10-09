@@ -1,4 +1,5 @@
 import { generateBriefRegion } from './index.ts';
+import { hintErrors } from './hints.ts';
 import { CORE_ELEMENT_KINDS } from '../kernel/contract.ts';
 import { buildCover } from './strategies/cover.ts';
 import { buildHut } from './strategies/hut.ts';
@@ -95,6 +96,7 @@ export function briefErrors(brief: RegionBrief): string[] {
     }
   }
   if (zoned.size !== cells.size) errors.push('Every brief cell needs exactly one zone.');
+  errors.push(...hintErrors(brief));
   for (const [kind, count] of Object.entries(brief.coreElements ?? {})) {
     if (!CORE_ELEMENT_KINDS.includes(kind as never)) errors.push(`Unknown core element ${kind}.`);
     if (!Number.isSafeInteger(count) || count! < 0) errors.push(`Core element ${kind} needs a whole count.`);

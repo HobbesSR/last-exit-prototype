@@ -24,7 +24,7 @@ const CELL_SIZE = 4;
 const layouts = new Map(SEEDS.map((seed) => [seed, placement(seed, GAME, LIBRARY)]));
 const derive = (layout: Layout, library: ChainLibrary): LayoutRegions => regions(resolution(layout, library), layout.seed);
 const brief = (layout: Layout, library: ChainLibrary, cellSize: number): RegionBrief[] =>
-  briefs(layout, derive(layout, library), chainZones(layout.params), library, cellSize);
+  briefs(layout, resolution(layout, library), derive(layout, library), chainZones(layout.params), library, cellSize);
 const key = (cell: Cell): string => `${cell.x},${cell.y}`;
 
 /**
@@ -62,16 +62,16 @@ function contractErrors(brief: RegionBrief): string[] {
 
 test("briefs are pure, deterministic and recomputable from the Layout", () => {
   const layout = layouts.get(SEEDS[0]!)!;
-  const found = derive(layout, LIBRARY), zones = chainZones(layout.params);
-  const list = assertPure("briefs", briefs, layout, found, zones, LIBRARY, CELL_SIZE);
-  assert.deepEqual(assertDeterministic("briefs", briefs, layout, found, zones, LIBRARY, CELL_SIZE), list);
+  const found = derive(layout, LIBRARY), resolved = resolution(layout, LIBRARY), zones = chainZones(layout.params);
+  const list = assertPure("briefs", briefs, layout, resolved, found, zones, LIBRARY, CELL_SIZE);
+  assert.deepEqual(assertDeterministic("briefs", briefs, layout, resolved, found, zones, LIBRARY, CELL_SIZE), list);
   assertRecomputable("briefs", list, brief, layout, LIBRARY, CELL_SIZE);
 });
 
 test("the fixture's briefs meet the contract, one per region, covering the map once", () => {
   for (const [seed, layout] of layouts) {
     const found = derive(layout, LIBRARY);
-    const list = briefs(layout, found, chainZones(layout.params), LIBRARY, CELL_SIZE);
+    const list = briefs(layout, resolution(layout, LIBRARY), found, chainZones(layout.params), LIBRARY, CELL_SIZE);
     assert.deepEqual(list.map((b) => b.id), found.regions.map((r) => r.id), seed);
     for (const b of list) assert.deepEqual(contractErrors(b), [], `${seed} ${b.id}`);
     // Every cell of the mask is in exactly one brief.
@@ -89,7 +89,7 @@ test("the fixture's briefs meet the contract, one per region, covering the map o
 test("a brief names only its own region: its cells, its class rule, its zones and its portals", () => {
   const layout = layouts.get(SEEDS[1]!)!;
   const found = derive(layout, LIBRARY);
-  const list = briefs(layout, found, chainZones(layout.params), LIBRARY, CELL_SIZE);
+  const list = briefs(layout, resolution(layout, LIBRARY), found, chainZones(layout.params), LIBRARY, CELL_SIZE);
   const width = 5 * GAME.zoneWidth * 6;
   for (const [i, region] of found.regions.entries()) {
     const b = list[i]!;
@@ -112,7 +112,14 @@ test("a brief names only its own region: its cells, its class rule, its zones an
 
 const column = (mark: string) => Array.from({ length: 6 }, () => `.....${mark}`);
 const passable = (...keys: string[]) => Object.fromEntries(keys.map((k) => [k, { passability: "passable" as const }]));
+const hinted = (...keys: string[]) => Object.fromEntries(keys.map((k) => [k, { passability: "not-passable-hint" as const }]));
 const HAND_TILES: ChainTileDesign[] = [
+  // The hut column's west face is hinted, except for a doorway that is passable.
+  { id: "hut-hinted", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, orientations: [0],
+    segments: { ...hinted("v:5,0", "v:5,1", "v:5,4", "v:5,5"), ...passable("v:5,2", "v:5,3") } },
+  // A hut column on the tile's west edge, hinted all along it.
+  { id: "hut-edge", defaultCellClass: "open", cells: Array.from({ length: 6 }, () => "h....."), legend: { h: "hut" },
+    orientations: [0], segments: hinted(...[0, 1, 2, 3, 4, 5].map((y) => `v:0,${y}`)) },
   { id: "field", defaultCellClass: "open", orientations: [0] },
   { id: "hut-west", defaultCellClass: "open", cells: column("h"), legend: { h: "hut" }, orientations: [0],
     segments: passable("v:5,2", "v:5,3") },
@@ -134,7 +141,7 @@ function hand(slots: Record<string, string>): { found: LayoutRegions; list: Regi
   });
   const layout: Layout = { seed: "hand", params: PLAYGROUND, library: "hand", slots: placed, setPieces: [] };
   const found = derive(layout, HAND);
-  return { found, list: briefs(layout, found, chainZones(PLAYGROUND), HAND, 3) };
+  return { found, list: briefs(layout, resolution(layout, HAND), found, chainZones(PLAYGROUND), HAND, 3) };
 }
 
 test("a hand-placed brief has global cells, its class rule's parameters, and the portal on its edge", () => {
@@ -151,6 +158,57 @@ test("a hand-placed brief has global cells, its class rule's parameters, and the
   assert.deepEqual(hut.zones.map(({ tier, bonus, lootChance }) => ({ tier, bonus, lootChance })),
     [{ tier: 2, bonus: 1, lootChance: GAME.lootChance + GAME.lootTierStep }]);
   assert.deepEqual(list.map(contractErrors), [[], []]);
+});
+
+test("hinted perimeter stretches reach both briefs as maximal runs, apart from the portal", () => {
+  const { list } = hand({ "1,1": "hut-hinted" });
+  const hut = list.find((b) => b.id === "hut@11,6")!, open = list.find((b) => b.id === "open@6,6")!;
+  const runs = [{ axis: "v", x: 11, y: 6, length: 2 }, { axis: "v", x: 11, y: 10, length: 2 }];
+  assert.deepEqual(hut.hints, runs);
+  assert.deepEqual(open.hints, runs);
+  assert.deepEqual(hut.portals.map(({ id: _, ...run }) => run), [{ axis: "v", x: 11, y: 8, length: 2 }]);
+  assert.deepEqual(list.map(contractErrors), [[], []]);
+  // Unhinted libraries leave the field off, so their briefs keep their shape.
+  assert.equal(hand({ "1,1": "hut-west" }).list.every((b) => b.hints === undefined), true);
+});
+
+test("a hint facing no region, here an unplaced slot, is one run, and is not a portal", () => {
+  const { list } = hand({ "1,1": "hut-edge" });
+  const hut = list.find((b) => b.type === "hut")!;
+  assert.deepEqual(hut.hints, [{ axis: "v", x: 6, y: 6, length: 6 }]);
+  assert.deepEqual(hut.portals, []);
+});
+
+test("a hint is split where a concave region passes to the other side of its line", () => {
+  // A 4 × 4 block of hut slots at columns and rows 4 to 7, with (6,5) and (5,6) absent, is one region.
+  // Slot (5,5) hints its east face and (6,6) its west face; both lie on cell line x = 36, with the
+  // region west of the first six segments and east of the last six.
+  const side = (id: string, key: string): ChainTileDesign =>
+    ({ id, defaultCellClass: "hut", orientations: [0], segments: hinted(...[0, 1, 2, 3, 4, 5].map((i) => `v:${key},${i}`)) });
+  const library: ChainLibrary = { ...HAND, tiles: [...HAND.tiles, { id: "hut-full", defaultCellClass: "hut", orientations: [0] },
+    side("hint-east", "6"), side("hint-west", "0")] };
+  const slots: PlacedSlot[] = [];
+  for (let row = 4; row <= 7; row++) for (let col = 4; col <= 7; col++) {
+    if ((col === 6 && row === 5) || (col === 5 && row === 6)) continue;
+    slots.push({ col, row, design: col === 5 && row === 5 ? "hint-east" : col === 6 && row === 6 ? "hint-west" : "hut-full", orientation: 0 });
+  }
+  // Zones of 2 × 2 slots put the block in the occupied middle of the zone diamond.
+  const params = { ...PLAYGROUND, zoneWidth: 2, zoneHeight: 2 };
+  const layout: Layout = { seed: "hand", params, library: "hand", slots, setPieces: [] };
+  const list = briefs(layout, resolution(layout, library), derive(layout, library), chainZones(params), library, 3);
+  assert.equal(list.length, 1);
+  assert.deepEqual(list[0]!.hints, [{ axis: "v", x: 36, y: 30, length: 6 }, { axis: "v", x: 36, y: 36, length: 6 }]);
+  assert.deepEqual(contractErrors(list[0]!), []);
+});
+
+test("a hint under a passable side is a portal, not a hint", () => {
+  const library: ChainLibrary = { ...HAND, tiles: [...HAND.tiles, { id: "hut-both", defaultCellClass: "open", cells: column("h"),
+    legend: { h: "hut" }, orientations: [0], segments: { "v:5,2": { passability: "passable" }, "v:5,3": { passability: "not-passable-hint" } } }] };
+  const layout: Layout = { seed: "hand", params: PLAYGROUND, library: "hand",
+    slots: [{ col: 1, row: 1, design: "hut-both", orientation: 0 }], setPieces: [] };
+  const [first] = briefs(layout, resolution(layout, library), derive(layout, library), chainZones(PLAYGROUND), library, 3);
+  assert.deepEqual(first!.portals.map(({ id: _, ...run }) => run), [{ axis: "v", x: 11, y: 8, length: 1 }]);
+  assert.deepEqual(first!.hints, [{ axis: "v", x: 11, y: 9, length: 1 }]);
 });
 
 test("a region across zones gets one zone context per zone, and a region with no portal lists none", () => {
@@ -172,20 +230,20 @@ test("briefs refuse a class the library doesn't register, and a cell size that i
     slots: [{ col: 1, row: 1, design: "hut-west", orientation: 0 }], setPieces: [] };
   const found = derive(layout, HAND);
   const { hut: _, ...rest } = HAND.cellClasses;
-  assert.throws(() => briefs(layout, found, chainZones(PLAYGROUND), { ...HAND, cellClasses: rest }, 1), /class hut/);
-  for (const bad of [0, -1, 2.5]) assert.throws(() => briefs(layout, found, chainZones(PLAYGROUND), HAND, bad), /cell size/);
+  assert.throws(() => briefs(layout, resolution(layout, HAND), found, chainZones(PLAYGROUND), { ...HAND, cellClasses: rest }, 1), /class hut/);
+  for (const bad of [0, -1, 2.5]) assert.throws(() => briefs(layout, resolution(layout, HAND), found, chainZones(PLAYGROUND), HAND, bad), /cell size/);
 });
 
 test("exitCount resolves with no ceiling, and must be a whole number", () => {
   const at = (exitCount: number): Layout => ({ seed: "hand", params: { ...PLAYGROUND, exitCount }, library: "hand",
     slots: [{ col: 1, row: 1, design: "departure-west", orientation: 0 }], setPieces: [] });
   const many = at(1000);
-  const departure = briefs(many, derive(many, HAND), chainZones(many.params), HAND, 1).find((b) => b.type === "departure")!;
+  const departure = briefs(many, resolution(many, HAND), derive(many, HAND), chainZones(many.params), HAND, 1).find((b) => b.type === "departure")!;
   assert.deepEqual(departure.coreElements, { exit: 1000, "hunter-spawn": PLAYGROUND.hunterCount });
   assert.deepEqual(contractErrors(departure), []);
   for (const bad of [2.5, -1]) {
     const layout = at(bad);
-    assert.throws(() => briefs(layout, derive(layout, HAND), chainZones(layout.params), HAND, 1), /exitCount must be a whole number/);
+    assert.throws(() => briefs(layout, resolution(layout, HAND), derive(layout, HAND), chainZones(layout.params), HAND, 1), /exitCount must be a whole number/);
     assert.throws(() => placement("bad", { ...GAME, exitCount: bad }, LIBRARY), /exitCount must be a whole number/);
     assert.throws(() => placement("bad", { ...GAME, contestantCount: bad }, LIBRARY), /contestantCount must be a whole number/);
     assert.throws(() => placement("bad", { ...GAME, hunterCount: bad }, LIBRARY), /hunterCount must be a whole number/);

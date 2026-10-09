@@ -36,7 +36,7 @@ test("the map holds the Layout, the results and the library, and the accessor re
   assert.deepEqual(Object.keys(MAP).sort(), ["build", "cellSize", "layout", "library", "results"]);
   const views = mapViews(MAP, stubCompose);
   const resolved = resolution(MAP.layout, LIBRARY), found = regions(resolved, MAP.layout.seed);
-  const given = briefs(MAP.layout, found, chainZones(MAP.layout.params), LIBRARY, CELL_SIZE);
+  const given = briefs(MAP.layout, resolved, found, chainZones(MAP.layout.params), LIBRARY, CELL_SIZE);
   assert.deepEqual(views.resolved, resolved);
   assert.deepEqual(views.regions, found);
   assert.deepEqual(views.proof, proof(found));

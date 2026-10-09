@@ -63,7 +63,7 @@ export function mapViews<Element>(map: ChainMap<Element>, compose?: MapEngines<E
     get regions() { return once("regions", () => regions(views.resolved, layout.seed)); },
     get proof() { return once("proof", () => proof(views.regions)); },
     get zones() { return once("zones", () => chainZones(layout.params)); },
-    get briefs() { return once("briefs", () => briefs(layout, views.regions, views.zones, library, map.cellSize)); },
+    get briefs() { return once("briefs", () => briefs(layout, views.resolved, views.regions, views.zones, library, map.cellSize)); },
     get built() {
       return once("built", () => {
         if (!compose) throw new Error("the built map needs the game's compose; pass it to mapViews");
