@@ -736,11 +736,116 @@ try {
   await page.locator("#chainImport").setInputFiles([]);
   await page.locator("#chainImport").setInputFiles(chainPath);
   await page.waitForFunction(() => (window as any).chainLab.snapshot().valid);
+  // Visual tile gallery, thumbnails, and template cloning tests (#305)
+  // 1. Gallery cards rendering and active state
+  assert.ok(
+    await page.locator("#chainTileGallerySection").isVisible(),
+    "tile gallery section is visible when section is tiles",
+  );
+  const initialTileCount = await page.locator("#tileGallery .tile-card").count();
+  assert.ok(initialTileCount > 0, "tile gallery renders cards for library tiles");
+  const initialSelectedTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().selectedId,
+  );
+  assert.ok(
+    await page
+      .locator(`#tileGallery .tile-card[data-tile="${initialSelectedTile}"]`)
+      .evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "active tile card corresponds to selectedId",
+  );
+  assert.equal(
+    await page.locator(`#tileGallery .tile-card[data-tile="${initialSelectedTile}"] figure i`).count(),
+    36,
+    "tile thumbnail renders 36 cells",
+  );
+
+  // 2. Select different tile from gallery
+  const secondTileCard = page.locator("#tileGallery .tile-card").nth(1);
+  const secondTileId = (await secondTileCard.getAttribute("data-tile"))!;
+  await secondTileCard.click();
+  assert.equal(
+    await page.locator("#chainItem").inputValue(),
+    secondTileId,
+    "clicking gallery card updates dropdown selection",
+  );
+  assert.ok(
+    await secondTileCard.evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "clicked gallery card receives active class",
+  );
+
+  // 3. Search and filter gallery cards
+  await page.locator("#tileFilter").fill(initialSelectedTile);
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").count(),
+    1,
+    "filtering by tile ID narrows gallery to matching card",
+  );
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").getAttribute("data-tile"),
+    initialSelectedTile,
+    "filtered card has expected ID",
+  );
+
+  await page.locator("#tileFilter").fill("nonexistent-tile-query-xyz");
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").count(),
+    0,
+    "non-matching filter hides all cards",
+  );
+  assert.match(
+    await page.locator("#tileGallery .gallery-empty").innerText(),
+    /No tile matches/,
+    "empty notice is shown for non-matching query",
+  );
+
+  await page.locator("#tileFilter").fill("");
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").count(),
+    initialTileCount,
+    "clearing filter restores all tile cards",
+  );
+
+  // 4. Duplicate / Clone tile
+  await page.locator("#cloneTemplate").click();
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").count(),
+    initialTileCount + 1,
+    "cloning tile appends new card to gallery",
+  );
+  const clonedTileId = await page.evaluate(
+    () => (window as any).chainLab.snapshot().selectedId,
+  );
+  assert.match(
+    clonedTileId,
+    new RegExp(`^${secondTileId}-\\d+$`),
+    "cloned tile ID uses suffixed base",
+  );
+  assert.ok(
+    await page
+      .locator(`#tileGallery .tile-card[data-tile="${clonedTileId}"]`)
+      .evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "cloned tile card is active in gallery",
+  );
+
+  // 5. Delete tile with confirmation
+  page.once("dialog", (dialog: any) => dialog.accept());
+  await page.locator("#chainDelete").click();
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").count(),
+    initialTileCount,
+    "deleting tile removes card from gallery",
+  );
+
   await page.screenshot({
     path: `${OUT}/chain-authoring.png`,
     fullPage: true,
   });
   await page.locator("#chainSection").selectOption("classes");
+  assert.equal(
+    await page.locator("#chainTileGallerySection").isVisible(),
+    false,
+    "tile gallery is hidden outside tiles section",
+  );
   await page.locator("#chainItem").selectOption("open");
   await page.locator("#chainDelete").click();
   await page.locator("#chainSection").selectOption("tiles");
@@ -898,6 +1003,12 @@ try {
   assert.deepEqual([opened.section, opened.selectedId], ["tiles", design]);
   assert.deepEqual(opened.library, CHAIN_LIBRARY, "the draft is now the map's library");
   assert.equal(asked.length, 1, "replacing the draft was asked first");
+  assert.ok(
+    await linkPage
+      .locator(`#tileGallery .tile-card[data-tile="${design}"]`)
+      .evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "tile gallery reflects active card when opened from world view shortcut",
+  );
   await linkPage.close();
 
   // Play in the game (53): the default recipe isn't a room's, and the lab says why. With a

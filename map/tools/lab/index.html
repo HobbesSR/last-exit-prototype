@@ -165,6 +165,7 @@
             ><label>Entry<select id="chainItem"></select></label>
             <div class="pair">
               <button id="chainAdd" type="button">Add</button
+              ><button id="chainClone" type="button">Duplicate</button
               ><button id="chainDelete" type="button">Delete</button>
             </div>
             <p class="hint">
@@ -175,6 +176,18 @@
             </p>
           </aside>
           <div class="chain-work">
+            <div id="chainTileGallerySection" class="chain-gallery-container" style="display: none;">
+              <div class="gallery-head">
+                <label class="grow"
+                  >Find tiles<input
+                    id="tileFilter"
+                    placeholder="filter by ID, class, or label..."
+                    spellcheck="false"
+                /></label>
+                <button id="cloneTemplate" type="button">Duplicate tile</button>
+              </div>
+              <div id="tileGallery" aria-label="Tile gallery"></div>
+            </div>
             <div id="chainEditor"></div>
             <div id="chainPreview"></div>
             <details>

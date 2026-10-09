@@ -314,7 +314,9 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     the World tab's zone size to edit it. Tile design authoring features an
     interactive canvas stage with row and column gutters, swatches for declared
     cell classes, continuous drag-painting, flood fill, rectangle fill,
-    Alt-click eyedropper sampling, quick patterns, and a right-click context palette (#303).
+    Alt-click eyedropper sampling, quick patterns, and a right-click context palette (#303);
+    on-stage segment passability overlays and drag stamping (#304); and a visual tile
+    thumbnail gallery with search/filtering, template cloning, and World view inspection links (#305).
   - **Serving:** The game server (`server/index.js`) serves the lab at `/dev/map` when `devTools` is enabled, alongside macro's `content/`, `map/micro/`, `map/kernel/`, `shared/`, the map-level
     modules `map/chain.ts`, `map/engines.ts` and `map/live.ts`, and the
     tools' `core.ts`, `engines.ts` and `routes.ts`, at their repository

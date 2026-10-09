@@ -633,6 +633,115 @@ function tileCells(tile: ChainTileDesign): string[] {
   const oriented = orientDesign(tile, 0);
   return oriented.cells;
 }
+function tileThumbnail(t: ChainTileDesign): HTMLElement {
+  const figure = document.createElement("figure");
+  const cells = tileCells(t);
+  for (let i = 0; i < CHAIN_TILE_SIZE * CHAIN_TILE_SIZE; i++) {
+    const el = document.createElement("i");
+    const cellClass = cells[i] ?? t.defaultCellClass;
+    el.style.background = classColor(cellClass);
+    figure.append(el);
+  }
+  for (const [key, p] of Object.entries(t.segments ?? {})) {
+    const { isPerimeter, line, offset } = segmentDescriptor(key);
+    const axis = key.startsWith("v") ? "v" : "h";
+    if (p.passability) {
+      const bar = document.createElement("b");
+      bar.className = p.passability === "not-passable-hint" ? "wall" : p.passability;
+      if (axis === "v") {
+        bar.style.left = `${(line / CHAIN_TILE_SIZE) * 100}%`;
+        bar.style.top = `${(offset / CHAIN_TILE_SIZE) * 100}%`;
+        bar.style.width = "2px";
+        bar.style.height = `${(1 / CHAIN_TILE_SIZE) * 100}%`;
+        bar.style.transform = "translateX(-50%)";
+      } else {
+        bar.style.left = `${(offset / CHAIN_TILE_SIZE) * 100}%`;
+        bar.style.top = `${(line / CHAIN_TILE_SIZE) * 100}%`;
+        bar.style.width = `${(1 / CHAIN_TILE_SIZE) * 100}%`;
+        bar.style.height = "2px";
+        bar.style.transform = "translateY(-50%)";
+      }
+      figure.append(bar);
+    }
+    if (isPerimeter && p.adjacency) {
+      const dot = document.createElement("span");
+      dot.className = "adj-dot";
+      if (p.adjacency === "any") {
+        dot.classList.add("any");
+      } else {
+        dot.style.background = classColor(p.adjacency);
+      }
+      if (axis === "v") {
+        dot.style.left = `${(line / CHAIN_TILE_SIZE) * 100}%`;
+        dot.style.top = `${((offset + 0.5) / CHAIN_TILE_SIZE) * 100}%`;
+      } else {
+        dot.style.left = `${((offset + 0.5) / CHAIN_TILE_SIZE) * 100}%`;
+        dot.style.top = `${(line / CHAIN_TILE_SIZE) * 100}%`;
+      }
+      figure.append(dot);
+    }
+  }
+  return figure;
+}
+
+function renderGallery(): void {
+  const container = document.getElementById("chainTileGallerySection");
+  if (!container) return;
+  if (section() !== "tiles") {
+    container.style.display = "none";
+    return;
+  }
+  container.style.display = "flex";
+  const gallery = document.getElementById("tileGallery");
+  if (!gallery) return;
+
+  const filter = (
+    (document.getElementById("tileFilter") as HTMLInputElement | null)?.value ?? ""
+  ).trim().toLowerCase();
+
+  const shown = library.tiles.filter((t) => {
+    if (!filter) return true;
+    if (t.id.toLowerCase().includes(filter)) return true;
+    if (t.defaultCellClass.toLowerCase().includes(filter)) return true;
+    if (t.labels?.some((l) => l.toLowerCase().includes(filter))) return true;
+    if (
+      Object.values(t.legend ?? {}).some((c) =>
+        c.toLowerCase().includes(filter),
+      )
+    )
+      return true;
+    return false;
+  });
+
+  if (!shown.length) {
+    const empty = document.createElement("p");
+    empty.className = "gallery-empty";
+    empty.textContent = `No tile matches "${filter}".`;
+    gallery.replaceChildren(empty);
+    return;
+  }
+
+  gallery.replaceChildren(
+    ...shown.map((t) => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "tile-card";
+      card.dataset.tile = t.id;
+      const isActive = t.id === selectedId;
+      card.classList.toggle("active", isActive);
+      card.title = `${t.id} · default ${t.defaultCellClass}${t.labels?.length ? ` · [${t.labels.join(", ")}]` : ""}`;
+      const name = document.createElement("span");
+      name.className = "tile-card-name";
+      name.textContent = t.id;
+      card.append(tileThumbnail(t), name);
+      card.onclick = () => {
+        selectedId = t.id;
+        render();
+      };
+      return card;
+    }),
+  );
+}
 function updateTileCells(tile: ChainTileDesign, cells: string[]): void {
   const classes = [
     ...new Set(cells.filter((id) => id !== tile.defaultCellClass)),
@@ -1918,6 +2027,7 @@ function render(): void {
   if (!names.includes(selectedId)) selectedId = names[0] ?? "";
   select("chainItem").replaceChildren(...names.map((id) => option(id)));
   select("chainItem").value = selectedId;
+  renderGallery();
   const editor = $("chainEditor");
   editor.replaceChildren();
   $("chainPreview").replaceChildren();
@@ -1979,8 +2089,86 @@ function add(): void {
   selectedId = id;
   changed();
 }
+function clone(): void {
+  if (!selectedId) return;
+  if (section() === "tiles") {
+    const found = library.tiles.find((t) => t.id === selectedId);
+    if (!found) return;
+    const copy = structuredClone(found);
+    const base = copy.id;
+    let n = 1;
+    while (library.tiles.some((t) => t.id === `${base}-${n}`)) n++;
+    copy.id = `${base}-${n}`;
+    library.tiles.push(copy);
+    selectedId = copy.id;
+    changed();
+    return;
+  }
+  if (section() === "tileSets") {
+    const found = library.tileSets.find((t) => t.id === selectedId);
+    if (!found) return;
+    const copy = structuredClone(found);
+    const base = copy.id;
+    let n = 1;
+    while (library.tileSets.some((t) => t.id === `${base}-${n}`)) n++;
+    copy.id = `${base}-${n}`;
+    library.tileSets.push(copy);
+    selectedId = copy.id;
+    changed();
+    return;
+  }
+  if (section() === "setPieces") {
+    const found = library.setPieces.find((t) => t.id === selectedId);
+    if (!found) return;
+    const copy = structuredClone(found);
+    const base = copy.id;
+    let n = 1;
+    while (library.setPieces.some((t) => t.id === `${base}-${n}`)) n++;
+    copy.id = `${base}-${n}`;
+    library.setPieces.push(copy);
+    selectedId = copy.id;
+    changed();
+    return;
+  }
+  if (section() === "setPieceClasses") {
+    const found = library.setPieceClasses.find((t) => t.id === selectedId);
+    if (!found) return;
+    const copy = structuredClone(found);
+    const base = copy.id;
+    let n = 1;
+    while (library.setPieceClasses.some((t) => t.id === `${base}-${n}`)) n++;
+    copy.id = `${base}-${n}`;
+    library.setPieceClasses.push(copy);
+    selectedId = copy.id;
+    changed();
+    return;
+  }
+  if (section() === "classes") {
+    const found = library.cellClasses[selectedId];
+    if (!found) return;
+    const copy = structuredClone(found);
+    const base = selectedId;
+    let n = 1;
+    while (library.cellClasses[`${base}-${n}`]) n++;
+    const newId = `${base}-${n}`;
+    copy.regionType = newId;
+    library.cellClasses[newId] = copy;
+    selectedId = newId;
+    changed();
+    return;
+  }
+}
 function remove(): void {
   if (!selectedId) return;
+  if (section() === "tiles") {
+    const setsUsing = library.tileSets
+      .filter((s) => s.members.includes(selectedId))
+      .map((s) => s.id);
+    const msg = setsUsing.length
+      ? `Delete tile design "${selectedId}"? It is referenced in tile set(s): ${setsUsing.join(", ")}.`
+      : `Delete tile design "${selectedId}"?`;
+    if (!confirm(msg)) return;
+  }
   if (section() === "classes") delete library.cellClasses[selectedId];
   else {
     const items = list();
@@ -2023,7 +2211,10 @@ select("chainItem").onchange = () => {
   render();
 };
 $("chainAdd").onclick = add;
+$("chainClone").onclick = clone;
+$("cloneTemplate").onclick = clone;
 $("chainDelete").onclick = remove;
+$("tileFilter").addEventListener("input", () => renderGallery());
 $("chainExport").onclick = download;
 $("chainApply").onclick = () => {
   try {
