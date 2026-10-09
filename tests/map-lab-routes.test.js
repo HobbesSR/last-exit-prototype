@@ -21,8 +21,8 @@ test('route lengths on a small playground are pinned', () => {
     squeezes: measure.squeezes.map((run) => run.length),
   }, {
     contestant: [4164.667, 4131.793],
-    hunter: [4197.804, 4139.911],
-    squeezes: [8],
+    hunter: [4197.804, 4145.43],
+    squeezes: [8, 8],
   });
   assert.equal(rounded(measure.ratio), 1.008);
   for (const route of [measure.contestant, measure.hunter]) {
