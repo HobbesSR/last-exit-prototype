@@ -47,6 +47,15 @@ export interface RegionBrief {
    * every other portal, from within the region. One portal carries no requirement.
    */
   portals: Portal[];
+  /**
+   * Stretches of the region's perimeter where the library hints that the designer wants
+   * the edge occupied (52, "not-passable hint"), as maximal runs. Guidance, never a
+   * requirement: the portals stay the only obligation, and a builder that ignores a hint
+   * is still correct. A run lies on the perimeter with the region's cells on one side,
+   * like a portal's, and no hint overlaps a portal. It faces a single owner (another
+   * region, or the map's edge and mask) and names none. Absent when nothing is hinted.
+   */
+  hints?: Run[];
 }
 
 /** A point in world units, in the frame where cell (x, y) spans [x, x + 1) × [y, y + 1) times `cellSize`. */

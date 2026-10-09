@@ -104,9 +104,9 @@ These landing links preserve bookmarks into the former single file.
 
 - 4. Proof: LayoutRegions → **ReachabilityProof** (view): [51.6](51.6-proof.md#4-proof-layoutregions--reachabilityproof-view).
 
-<a id="5-briefs-layout-layoutregions-zones-cell-size--regionbrief-view"></a>
+<a id="5-briefs-layout-resolvedlayout-layoutregions-zones-cell-size--regionbrief-view"></a>
 
-- 5. Briefs: Layout, LayoutRegions, zones, cell size → **RegionBrief[]** (view): [51.7](51.7-briefs.md#5-briefs-layout-layoutregions-zones-cell-size--regionbrief-view).
+- 5. Briefs: Layout, ResolvedLayout, LayoutRegions, zones, cell size → **RegionBrief[]** (view): [51.7](51.7-briefs.md#5-briefs-layout-resolvedlayout-layoutregions-zones-cell-size--regionbrief-view).
 
 <a id="6-build-each-regionbrief--regionresult-object-in-the-game"></a>
 
