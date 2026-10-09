@@ -179,6 +179,28 @@ test("a hint facing no region, here an unplaced slot, is one run, and is not a p
   assert.deepEqual(hut.portals, []);
 });
 
+test("a hint is split where a concave region passes to the other side of its line", () => {
+  // A 4 × 4 block of hut slots at columns and rows 4 to 7, with (6,5) and (5,6) absent, is one region.
+  // Slot (5,5) hints its east face and (6,6) its west face; both lie on cell line x = 36, with the
+  // region west of the first six segments and east of the last six.
+  const side = (id: string, key: string): ChainTileDesign =>
+    ({ id, defaultCellClass: "hut", orientations: [0], segments: hinted(...[0, 1, 2, 3, 4, 5].map((i) => `v:${key},${i}`)) });
+  const library: ChainLibrary = { ...HAND, tiles: [...HAND.tiles, { id: "hut-full", defaultCellClass: "hut", orientations: [0] },
+    side("hint-east", "6"), side("hint-west", "0")] };
+  const slots: PlacedSlot[] = [];
+  for (let row = 4; row <= 7; row++) for (let col = 4; col <= 7; col++) {
+    if ((col === 6 && row === 5) || (col === 5 && row === 6)) continue;
+    slots.push({ col, row, design: col === 5 && row === 5 ? "hint-east" : col === 6 && row === 6 ? "hint-west" : "hut-full", orientation: 0 });
+  }
+  // Zones of 2 × 2 slots put the block in the occupied middle of the zone diamond.
+  const params = { ...PLAYGROUND, zoneWidth: 2, zoneHeight: 2 };
+  const layout: Layout = { seed: "hand", params, library: "hand", slots, setPieces: [] };
+  const list = briefs(layout, resolution(layout, library), derive(layout, library), chainZones(params), library, 3);
+  assert.equal(list.length, 1);
+  assert.deepEqual(list[0]!.hints, [{ axis: "v", x: 36, y: 30, length: 6 }, { axis: "v", x: 36, y: 36, length: 6 }]);
+  assert.deepEqual(contractErrors(list[0]!), []);
+});
+
 test("a hint under a passable side is a portal, not a hint", () => {
   const library: ChainLibrary = { ...HAND, tiles: [...HAND.tiles, { id: "hut-both", defaultCellClass: "open", cells: column("h"),
     legend: { h: "hut" }, orientations: [0], segments: { "v:5,2": { passability: "passable" }, "v:5,3": { passability: "not-passable-hint" } } }] };

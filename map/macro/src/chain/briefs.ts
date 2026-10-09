@@ -31,12 +31,13 @@ const SIDES = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
 /**
  * A region's hinted perimeter as maximal runs (52). A perimeter segment is hinted when a
  * side states `not-passable-hint` and the pair of sides guarantees no passage. A run ends
- * where the owner across changes, as `boundaryRuns` ends one, and the map's edge and
+ * where the owner across changes, as `boundaryRuns` ends one, or where the region
+ * passes to the other side of the line (a concave region can), and the map's edge and
  * masked-out cells count as one owner, so a hint at the edge stays one run.
  */
 function hintedRuns(cells: Cell[], resolved: ResolvedLayout, owners: Int32Array, self: number): Run[] {
   const { width, height } = resolved;
-  const found: { axis: "h" | "v"; line: number; across: number; at: number }[] = [];
+  const found: { axis: "h" | "v"; line: number; side: number; across: number; at: number }[] = [];
   for (const { x, y } of cells) for (const [dx, dy] of SIDES) {
     const nx = x + dx, ny = y + dy, outside = nx < 0 || ny < 0 || nx >= width || ny >= height;
     const across = outside ? -1 : owners[ny * width + nx]!;
@@ -44,16 +45,16 @@ function hintedRuns(cells: Cell[], resolved: ResolvedLayout, owners: Int32Array,
     const axis = dx ? "v" : "h", line = dx ? x + Math.max(dx, 0) : y + Math.max(dy, 0);
     const segment = resolved.segments[(dx ? `v:${line},${y}` : `h:${x},${line}`) as SegmentKey];
     if (segment?.guarantee !== "none" || !segment.stated.includes("not-passable-hint")) continue;
-    found.push({ axis, line, across, at: dx ? y : x });
+    found.push({ axis, line, side: dx + dy, across, at: dx ? y : x });
   }
-  found.sort((p, q) => p.axis.localeCompare(q.axis) || p.line - q.line || p.across - q.across || p.at - q.at);
+  found.sort((p, q) => p.axis.localeCompare(q.axis) || p.line - q.line || p.side - q.side || p.across - q.across || p.at - q.at);
   const runs: Run[] = [];
   for (let i = 0; i < found.length;) {
     const first = found[i]!;
     let length = 1;
     i++;
     while (i < found.length && found[i]!.axis === first.axis && found[i]!.line === first.line
-      && found[i]!.across === first.across && found[i]!.at === first.at + length) { length++; i++; }
+      && found[i]!.side === first.side && found[i]!.across === first.across && found[i]!.at === first.at + length) { length++; i++; }
     runs.push(first.axis === "h" ? { axis: "h", x: first.at, y: first.line, length } : { axis: "v", x: first.line, y: first.at, length });
   }
   return runs.sort((p, q) => p.axis.localeCompare(q.axis) || p.y - q.y || p.x - q.x);

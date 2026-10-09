@@ -43,6 +43,17 @@ test('the portal margin leaves out cells beside a hint', () => {
   assert.equal(hinted.length, plain.length - 2);
 });
 
+test('a run that changes sides along a concave region is refused', () => {
+  // Seven cells around (1, 0) and (1, 1): the region lies left of line x = 1 at row 0, right of it at row 1.
+  const cells = [[0, 0], [0, -1], [1, -1], [2, -1], [2, 0], [2, 1], [1, 1]].map(([x, y]) => ({ x, y }));
+  const split = { cells, hints: [{ axis: 'v', x: 1, y: 0, length: 2 }] };
+  assert.match(hintErrors(split)[0], /one side/);
+  // Each half alone is fine, and boxes are offered against both.
+  const halves = { cells, hints: [{ axis: 'v', x: 1, y: 0, length: 1 }, { axis: 'v', x: 1, y: 1, length: 1 }] };
+  assert.deepEqual(hintErrors(halves), []);
+  assert.deepEqual(boxesAgainstHints(halves, 1, 1).map(key), ['0,0', '1,1']);
+});
+
 test('hints are checked as input: runs on the perimeter that avoid the portals', () => {
   assert.deepEqual(hintErrors(region), []);
   assert.deepEqual(hintErrors({ cells: region.cells }), []);

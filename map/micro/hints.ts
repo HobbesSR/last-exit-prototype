@@ -19,13 +19,17 @@ const keyOf = (x: number, y: number): string => `${x},${y}`;
 function stretchesOf(run: { axis: 'h' | 'v'; x: number; y: number; length: number }, owned: ReadonlySet<string>): Stretch[] {
   const { axis, x, y, length } = run;
   if (axis !== 'h' && axis !== 'v' || ![x, y, length].every(Number.isInteger) || length < 1 || length > LIMITS.run) throw new Error('A hint is not a run.');
-  return Array.from({ length }, (_, i) => {
+  const stretches = Array.from({ length }, (_, i) => {
     const before = axis === 'h' ? { x: x + i, y: y - 1 } : { x: x - 1, y: y + i }, after = axis === 'h' ? { x: x + i, y } : { x, y: y + i };
     const b = owned.has(keyOf(before.x, before.y)), a = owned.has(keyOf(after.x, after.y));
     if (a === b) throw new Error('A hint must lie on the region\'s perimeter, with the region on one side.');
     return a ? { cell: after, inward: axis === 'h' ? { x: 0, y: 1 } : { x: 1, y: 0 } }
       : { cell: before, inward: axis === 'h' ? { x: 0, y: -1 } : { x: -1, y: 0 } };
   });
+  // A concave region can lie on both sides of one line, so a run must keep to one.
+  if (stretches.some(s => s.inward.x !== stretches[0]!.inward.x || s.inward.y !== stretches[0]!.inward.y))
+    throw new Error('A hint must keep the region on one side along its whole length.');
+  return stretches;
 }
 
 const ownedOf = (region: HintedRegion): Set<string> => new Set(region.cells.map(c => keyOf(c.x, c.y)));
