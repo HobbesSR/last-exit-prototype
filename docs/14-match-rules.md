@@ -113,7 +113,8 @@ this checkpoint does not claim that the smaller live hunter is blocked by every
 Generated loot uses its authoritative site and tier metadata. #214 lowers the
 default gradient from 0.015 plus 0.034 per tier to 0.012 plus 0.027: the more
 varied fill paints more regions that roll loot, so the roughly 20% reduction
-keeps item supply near the earlier budget. Explicit caller overrides still apply. Each region type
+keeps item supply near the earlier budget. Explicit caller overrides still apply.
+Each region type
 rolls a loot chance per cell that starts at 0.012 in tier 1 and rises 0.027 a
 tier (`DEFAULT_CHAIN_PARAMS`); `open` rolls none (54). S5's bigger set pieces
 (#170) put a type that rolls loot on about 55% of the map, up from 13%, so the

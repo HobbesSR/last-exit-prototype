@@ -82,7 +82,8 @@ change placement and its downstream views. `REGION_TYPES_VERSION` advances to
 `types-21` for this content checkpoint, following the generation-batch policy
 (31, #295); macro and wire versions stay at 2 and 8. The frozen legacy behaviour
 fixture is unchanged. The chain sweep is recaptured once, after validation, from
-the committed inputs, preserving the pinned cases.
+the committed inputs, preserving the pinned cases. The 224-map capture records
+input commit `15b3fb3`; the prior #311 checkpoint remains `8c1a79d` in history.
 
 ## BSON
 
