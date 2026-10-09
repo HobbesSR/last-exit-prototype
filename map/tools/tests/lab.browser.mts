@@ -331,9 +331,8 @@ try {
   await page.locator("#chainSection").selectOption("tileSets");
   await page.locator("#chainAdd").click();
   await page
-    .locator("#chainEditor label.chain-check", { hasText: "new-tile" })
-    .locator("input")
-    .check();
+    .locator('#setAvailableGallery .tile-card[data-tile="new-tile"]')
+    .click();
   await page.locator("#chainSection").selectOption("setPieces");
   await page.locator("#chainAdd").click();
   await page.locator("#chainPrimaryClass").selectOption("checkpoint");
@@ -927,6 +926,232 @@ try {
     setsReferencingAfter,
     setsReferencingBefore,
     "tile set members list was updated automatically with the renamed tile ID",
+  );
+
+  // Visual Tile Sets manager with membership and available tile galleries (#306)
+  await page.locator("#chainSection").selectOption("tileSets");
+  assert.equal(
+    await page.locator("#chainTileGallerySection").isVisible(),
+    false,
+    "tile design gallery is hidden in tileSets section",
+  );
+  assert.ok(
+    await page.locator("#setMembersGallery").isVisible(),
+    "members gallery is visible in tileSets section",
+  );
+  assert.ok(
+    await page.locator("#setAvailableGallery").isVisible(),
+    "available gallery is visible in tileSets section",
+  );
+
+  const selectedSetId = await page.evaluate(
+    () => (window as any).chainLab.snapshot().selectedId,
+  );
+  const activeSetInfo = await page.evaluate((id: string) => {
+    const snap = (window as any).chainLab.snapshot();
+    const set = snap.library.tileSets.find((s: any) => s.id === id);
+    return {
+      membersCount: set.members.length,
+      availableCount: snap.library.tiles.length - set.members.length,
+      firstMember: set.members[0],
+    };
+  }, selectedSetId);
+
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    activeSetInfo.membersCount,
+    "members gallery renders cards for set members",
+  );
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    activeSetInfo.availableCount,
+    "available gallery renders cards for non-member tiles",
+  );
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card figure i").count(),
+    activeSetInfo.membersCount * 36,
+    "member cards render 6x6 thumbnail grids",
+  );
+
+  // Add an available tile to the set
+  const firstAvailableCard = page.locator("#setAvailableGallery .tile-card").first();
+  const tileToAdd = (await firstAvailableCard.getAttribute("data-tile"))!;
+  await firstAvailableCard.click();
+
+  assert.equal(
+    await page.evaluate(
+      (args: { setId: string; tileId: string }) => {
+        const snap = (window as any).chainLab.snapshot();
+        const set = snap.library.tileSets.find((s: any) => s.id === args.setId);
+        return set.members.includes(args.tileId);
+      },
+      { setId: selectedSetId, tileId: tileToAdd },
+    ),
+    true,
+    "clicking available tile adds it to set members",
+  );
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    activeSetInfo.membersCount + 1,
+    "members gallery count increments",
+  );
+  assert.ok(
+    await page.locator(`#setMembersGallery .tile-card[data-tile="${tileToAdd}"]`).isVisible(),
+    "added tile is visible in members gallery",
+  );
+  assert.equal(
+    await page.locator(`#setAvailableGallery .tile-card[data-tile="${tileToAdd}"]`).count(),
+    0,
+    "added tile is removed from available gallery",
+  );
+
+  // When all tiles are in the set, available gallery shows notice
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    0,
+    "no tiles left in available gallery",
+  );
+  assert.match(
+    await page.locator("#setAvailableGallery .gallery-empty").innerText(),
+    /All library tiles are members of this set/,
+    "empty notice is shown when all tiles are members",
+  );
+
+  // Remove the newly added tile from the set
+  await page.locator(`#setMembersGallery .tile-card[data-tile="${tileToAdd}"]`).click();
+  assert.equal(
+    await page.evaluate(
+      (args: { setId: string; tileId: string }) => {
+        const snap = (window as any).chainLab.snapshot();
+        const set = snap.library.tileSets.find((s: any) => s.id === args.setId);
+        return set.members.includes(args.tileId);
+      },
+      { setId: selectedSetId, tileId: tileToAdd },
+    ),
+    false,
+    "clicking member tile removes it from set members",
+  );
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    activeSetInfo.membersCount,
+    "members gallery count decrements",
+  );
+  assert.ok(
+    await page.locator(`#setAvailableGallery .tile-card[data-tile="${tileToAdd}"]`).isVisible(),
+    "removed tile returns to available gallery",
+  );
+
+  // Filter available gallery
+  await page.locator("#setAvailableFilter").fill("nonexistent-tile-xyz");
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    0,
+    "non-matching query yields no cards",
+  );
+  assert.match(
+    await page.locator("#setAvailableGallery .gallery-empty").innerText(),
+    /No available tiles match/,
+    "empty notice is shown for matching query with no results",
+  );
+  await page.locator("#setAvailableFilter").fill(tileToAdd);
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    1,
+    "filter narrows to matching available card",
+  );
+  await page.locator("#setAvailableFilter").fill("");
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    activeSetInfo.availableCount,
+    "clearing filter restores available cards",
+  );
+
+  // Non-empty set validation enforcement
+  await page.locator("#chainAdd").click();
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    1,
+    "newly added tile set has exactly 1 initial member",
+  );
+  // Try to remove the only member
+  await page.locator("#setMembersGallery .tile-card").first().click();
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    1,
+    "attempting to remove the only member is prevented",
+  );
+  assert.match(
+    await page.locator("#chainStatus").innerText(),
+    /must have at least one member to remain valid/,
+    "status bar warns that tile set must have at least one member",
+  );
+
+  // Add a second member and then removal is allowed
+  const secondTileToAdd = (await page.locator("#setAvailableGallery .tile-card").first().getAttribute("data-tile"))!;
+  await page.locator("#setAvailableGallery .tile-card").first().click();
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    2,
+    "set now has 2 members",
+  );
+  await page.locator(`#setMembersGallery .tile-card[data-tile="${secondTileToAdd}"]`).click();
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    1,
+    "removing member when multiple exist succeeds",
+  );
+
+  // Clean up: delete the test set
+  page.once("dialog", (dialog: any) => dialog.accept());
+  await page.locator("#chainDelete").click();
+
+  // Test renaming a tile set that is referenced in set pieces
+  await page.locator("#chainItem").selectOption("new-set");
+  const piecesReferencing = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    return snap.library.setPieces
+      .filter((p: any) => p.tiles.some((slot: any) => slot.tileSetId === "new-set"))
+      .map((p: any) => p.id);
+  });
+  assert.ok(piecesReferencing.length > 0, "new-set is referenced in setPieces");
+
+  // Dismiss rename
+  page.once("dialog", (dialog: any) => dialog.dismiss());
+  await page.locator("#chainId").fill("new-set-aborted");
+  await page.locator("#chainId").blur();
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().selectedId),
+    "new-set",
+    "canceling rename keeps original set ID",
+  );
+
+  // Accept rename
+  let renameDialogText = "";
+  page.once("dialog", (dialog: any) => {
+    renameDialogText = dialog.message();
+    dialog.accept();
+  });
+  await page.locator("#chainId").fill("new-set-renamed");
+  await page.locator("#chainId").blur();
+  assert.equal(
+    renameDialogText,
+    `Rename tile set "new-set" to "new-set-renamed"? It is referenced in set piece(s): ${piecesReferencing.join(", ")}. References will be updated automatically.`,
+    "rename dialog warns about referenced set pieces",
+  );
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().selectedId),
+    "new-set-renamed",
+    "selectedId updated to new-set-renamed",
+  );
+  const updatedSlotSet = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === "new-piece");
+    return piece?.tiles[0]?.tileSetId;
+  });
+  assert.equal(
+    updatedSlotSet,
+    "new-set-renamed",
+    "set piece slot tileSetId was updated automatically",
   );
 
   await page.screenshot({
