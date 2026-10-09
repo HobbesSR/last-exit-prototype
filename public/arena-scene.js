@@ -37,12 +37,18 @@ export function makeArenaScene(api) {
       // Terrain, structures and fixtures are drawn everywhere and dimmed where they are out of sight,
       // so the arena stays legible instead of being cut away. Only actors, loot, shots and effects are
       // withheld, and they sit above the shade so anything in view reads at full brightness.
+      // Ground and static objects share baked tiles in their recorded draw order; actors join the
+      // object plane at runtime. The overhead plane has separate tiles so each group owns its alpha.
       this.drawings = []; this.drawingsByCell = new Map(); this.tiles = new Map();
+      this.overheadDrawings = []; this.overheadByCell = new Map(); this.overheadTiles = new Map(); this.overheadGroups = new Map();
       this.scratch = this.make.graphics({ x: 0, y: 0, add: false }); this.decor = this.add.container(0, 0);
       this.fixtures = this.add.graphics(); this.shade = this.add.graphics(); this.dynamic = this.add.graphics();
       // Static tile textures are inserted at index 0, beneath everything here.
       this.world.add([this.decor, this.fixtures, this.shade, this.dynamic]);
-      this.roofs = new Map(); this.roofLayer = this.add.container(0, 0); this.world.add(this.roofLayer);
+      this.roofs = new Map();
+      this.overheadLayer = this.add.container(0, 0);
+      this.overheadCanopies = this.add.container(0, 0); this.overheadRoofs = this.add.container(0, 0);
+      this.overheadLayer.add([this.overheadCanopies, this.overheadRoofs]); this.world.add(this.overheadLayer);
       this.actors = new Map(); this.labels = []; this.eye = null;
       this.marker = 1; this.nameScale = 1 / LABEL_FONT_PX;
       this.vision = this.make.graphics({ x: 0, y: 0, add: false });
@@ -84,13 +90,19 @@ export function makeArenaScene(api) {
      * tile the box touches, and each tile's texture clips them to its own square, so a shape that
      * straddles a seam is drawn whole on both sides of it.
      */
-    staticAt(left, top, right, bottom) {
-      const id = this.drawings.length, calls = [];
-      this.drawings.push(calls);
+    staticAt(left, top, right, bottom, group = null) {
+      const drawings = group === null ? this.drawings : this.overheadDrawings;
+      const byCell = group === null ? this.drawingsByCell : this.overheadByCell;
+      const id = drawings.length, calls = [];
+      drawings.push(calls);
       for (let cy = Math.floor((top - SEAM) / CELL); cy <= Math.floor((bottom + SEAM) / CELL); cy++) for (let cx = Math.floor((left - SEAM) / CELL); cx <= Math.floor((right + SEAM) / CELL); cx++) {
         const key = `${cx},${cy}`;
-        if (!this.drawingsByCell.has(key)) this.drawingsByCell.set(key, []);
-        this.drawingsByCell.get(key).push(id);
+        if (!byCell.has(key)) byCell.set(key, group === null ? [] : new Map());
+        if (group === null) byCell.get(key).push(id);
+        else {
+          if (!byCell.get(key).has(group)) byCell.get(key).set(group, []);
+          byCell.get(key).get(group).push(id);
+        }
       }
       const recorder = {};
       for (const method of STATIC_DRAWS) recorder[method] = (...args) => { calls.push(method, args); return recorder; };
@@ -98,24 +110,52 @@ export function makeArenaScene(api) {
     }
     /** Rasterise the drawings that touch a tile, in the order they were recorded. */
     rasterise(tile, resolution) {
-      const cells = 1 << tile.level, span = CELL * cells, left = tile.tx * span, top = tile.ty * span;
+      const cells = 1 << tile.level, span = CELL * cells, tileLeft = tile.tx * span, tileTop = tile.ty * span;
+      const overhead = tile.group !== null;
+      const drawings = overhead ? this.overheadDrawings : this.drawings;
+      const byCell = overhead ? this.overheadByCell : this.drawingsByCell;
       const ids = new Set();
       for (let cy = tile.ty * cells; cy < (tile.ty + 1) * cells; cy++) for (let cx = tile.tx * cells; cx < (tile.tx + 1) * cells; cx++)
-        for (const id of this.drawingsByCell.get(`${cx},${cy}`) || []) ids.add(id);
+        for (const id of (overhead ? byCell.get(`${cx},${cy}`)?.get(tile.group) : byCell.get(`${cx},${cy}`)) || []) ids.add(id);
       tile.resolution = resolution;
       if (!ids.size) { tile.empty = true; return; }
       // The tile plus one texel of its neighbours on every side; see SEAM.
-      const size = span * resolution + 2, texel = 1 / resolution;
+      // A roof gets only the texels in its footprint, not a full tile's worth of transparent space.
+      const box = overhead ? this.overheadGroups.get(tile.group).bounds : null;
+      const pixelLeft = Math.floor(Math.max(tileLeft, box?.x ?? tileLeft) * resolution);
+      const pixelTop = Math.floor(Math.max(tileTop, box?.y ?? tileTop) * resolution);
+      const pixelRight = Math.ceil(Math.min(tileLeft + span, box ? box.x + box.w : tileLeft + span) * resolution);
+      const pixelBottom = Math.ceil(Math.min(tileTop + span, box ? box.y + box.h : tileTop + span) * resolution);
+      if (pixelRight <= pixelLeft || pixelBottom <= pixelTop) { tile.empty = true; return; }
+      const width = pixelRight - pixelLeft + 2, height = pixelBottom - pixelTop + 2, texel = 1 / resolution;
       // A new texture rather than resize(), which left content clipped and offset in Phaser 3.90.
-      if (tile.texture?.width !== size) {
+      if (tile.texture?.width !== width || tile.texture?.height !== height) {
+        if (overhead && tile.texture) this.overheadGroups.get(tile.group).textures.delete(tile.texture);
         tile.texture?.destroy();
-        tile.texture = this.add.renderTexture(left - texel, top - texel, size, size).setOrigin(0, 0); this.world.addAt(tile.texture, 0);
+        tile.texture = this.add.renderTexture((pixelLeft - 1) * texel, (pixelTop - 1) * texel, width, height).setOrigin(0, 0);
+        if (overhead) {
+          const group = this.overheadGroups.get(tile.group);
+          (group.kind === 'roof' ? this.overheadRoofs : this.overheadCanopies).add(tile.texture);
+          group.textures.add(tile.texture);
+        }
+        else this.world.addAt(tile.texture, 0);
       }
       const g = this.scratch.clear().setScale(resolution);
-      for (const id of [...ids].sort((a, b) => a - b)) { const calls = this.drawings[id]; for (let i = 0; i < calls.length; i += 2) g[calls[i]](...calls[i + 1]); }
-      tile.texture.clear().setScale(texel).draw(g, 1 - left * resolution, 1 - top * resolution);
+      for (const id of [...ids].sort((a, b) => a - b)) { const calls = drawings[id]; for (let i = 0; i < calls.length; i += 2) g[calls[i]](...calls[i + 1]); }
+      tile.texture.clear().setScale(texel).draw(g, 1 - pixelLeft, 1 - pixelTop);
       g.clear();
       count('work.tileRasterise');
+    }
+    overheadGroup(id, kind, bounds) {
+      const group = { kind, bounds, visible: true, alpha: 1, textures: new Set() };
+      this.overheadGroups.set(id, group);
+      return group;
+    }
+    setOverheadGroup(id, visible, alpha = this.overheadGroups.get(id)?.alpha ?? 1) {
+      const group = this.overheadGroups.get(id);
+      if (!group) return;
+      group.visible = visible; group.alpha = alpha;
+      for (const texture of group.textures) texture.setVisible(visible && texture.overheadShown).setAlpha(alpha);
     }
     /**
      * Show the tiles the camera can see, rasterise what they lack within a frame budget, and release
@@ -133,34 +173,70 @@ export function makeArenaScene(api) {
       const range = margin => ({ left: Math.floor(view.x / span) - margin, top: Math.floor(view.y / span) - margin, right: Math.floor((view.x + view.width) / span) + margin, bottom: Math.floor((view.y + view.height) / span) + margin });
       const shown = range(0), wanted = range(PREFETCH_TILES), kept = range(RETAIN_TILES);
       const within = (tile, r) => tile.tx >= r.left && tile.tx <= r.right && tile.ty >= r.top && tile.ty <= r.bottom;
-      for (const [key, tile] of this.tiles) if (tile.level !== level || !within(tile, kept)) { tile.texture?.destroy(); this.tiles.delete(key); }
+      for (const cache of [this.tiles, this.overheadTiles]) for (const [key, tile] of cache) {
+        if (tile.level !== level || !within(tile, kept)) {
+          if (tile.group !== null && tile.texture) this.overheadGroups.get(tile.group).textures.delete(tile.texture);
+          tile.texture?.destroy(); cache.delete(key);
+        } else if (tile.texture) {
+          const visible = within(tile, shown);
+          if (tile.group === null) tile.texture.setVisible(visible);
+          else {
+            const group = this.overheadGroups.get(tile.group);
+            tile.texture.overheadShown = visible;
+            tile.texture.setVisible(visible && group.visible).setAlpha(group.alpha);
+          }
+        }
+      }
       const centre = { x: (view.x + view.width / 2) / span, y: (view.y + view.height / 2) / span };
       const queue = [];
       for (let ty = wanted.top; ty <= wanted.bottom; ty++) for (let tx = wanted.left; tx <= wanted.right; tx++) {
         const key = `${level}:${tx}:${ty}`;
         let tile = this.tiles.get(key);
-        if (!tile) this.tiles.set(key, tile = { level, tx, ty, texture: null, resolution: 0, empty: false });
+        if (!tile) this.tiles.set(key, tile = { level, tx, ty, group: null, texture: null, resolution: 0, empty: false });
         const visible = within(tile, shown);
         tile.texture?.setVisible(visible);
         // A visible hole first, then a visible tile at a stale resolution, then prefetch.
         if (!tile.empty && tile.resolution !== resolution) queue.push({ tile, visible, rank: visible ? tile.texture ? 1 : 0 : 2, distance: Math.hypot(tx + 0.5 - centre.x, ty + 0.5 - centre.y) });
+        // Only materialise overhead groups that actually have art in this tile.
+        const groups = new Set(), cells = 1 << level;
+        for (let cy = ty * cells; cy < (ty + 1) * cells; cy++) for (let cx = tx * cells; cx < (tx + 1) * cells; cx++)
+          for (const group of this.overheadByCell.get(`${cx},${cy}`)?.keys() || []) groups.add(group);
+        for (const group of groups) {
+          const overheadKey = `${group}:${key}`;
+          let overheadTile = this.overheadTiles.get(overheadKey);
+          if (!overheadTile) this.overheadTiles.set(overheadKey, overheadTile = { level, tx, ty, group, texture: null, resolution: 0, empty: false });
+          const groupState = this.overheadGroups.get(group);
+          if (overheadTile.texture) overheadTile.texture.overheadShown = visible;
+          overheadTile.texture?.setVisible(visible && groupState.visible).setAlpha(groupState.alpha);
+          if (groupState.visible && !overheadTile.empty && overheadTile.resolution !== resolution)
+            queue.push({ tile: overheadTile, visible, rank: visible ? overheadTile.texture ? 1 : 0 : 2, distance: Math.hypot(tx + 0.5 - centre.x, ty + 0.5 - centre.y) });
+        }
       }
       queue.sort((a, b) => a.rank - b.rank || a.distance - b.distance);
       const started = performance.now();
       for (const [index, { tile, visible }] of queue.entries()) {
         if (index && performance.now() - started > BUILD_MS) break;
-        this.rasterise(tile, resolution); tile.texture?.setVisible(visible);
+        this.rasterise(tile, resolution);
+        if (tile.group === null) tile.texture?.setVisible(visible);
+        else {
+          const group = this.overheadGroups.get(tile.group);
+          if (tile.texture) {
+            tile.texture.overheadShown = visible;
+            tile.texture.setVisible(visible && group.visible).setAlpha(group.alpha);
+          }
+        }
       }
     }
     buildMap() {
       const map = api.map(); let g;
       if (!map?.obstacles) return;
-      for (const tile of this.tiles.values()) tile.texture?.destroy();
+      for (const cache of [this.tiles, this.overheadTiles]) for (const tile of cache.values()) tile.texture?.destroy();
       this.drawings = []; this.drawingsByCell = new Map(); this.tiles = new Map();
+      this.overheadDrawings = []; this.overheadByCell = new Map(); this.overheadTiles = new Map(); this.overheadGroups.clear();
       this.labels.forEach(l => l.destroy()); this.labels = [];
       this.gateMemory = new Map(); this.rememberedGates = []; this.eye = null; this.sightMap = { ...map };
       this.actors.forEach(a => a.container.destroy()); this.actors.clear();
-      for (const roof of this.roofs.values()) roof.destroy(); this.roofs.clear();
+      this.roofs.clear();
       // Chain starts can be right by the western edge. Follow must still centre on
       // that subject at every viewport/zoom; its authoritative position is bounded.
       if (map.playableArea) this.cameras.main.removeBounds();
@@ -217,13 +293,25 @@ export function makeArenaScene(api) {
         const box = bounds(shapeOf(o));
         this.obstacle(this.staticAt(box.x - 6, box.y - 6, box.x + box.w + 12, box.y + box.h + 14), o);
       }
+      const crownPad = map.obstacles.reduce((pad, o) => o.kind === 'tree' && o.r ? Math.max(pad, o.r * 1.9 + 8) : pad, 8);
+      this.overheadGroup('canopy', 'canopy', { x: -crownPad, y: -crownPad, w: map.width + crownPad * 2, h: map.height + crownPad * 2 });
+      for (const o of map.obstacles) if (o.kind === 'tree' && o.r) {
+        // The simulation still sees the original trunk circle. The wider crown is presentation only.
+        const radius = o.r * 1.9, crown = this.staticAt(o.x - radius - 8, o.y - radius - 8, o.x + radius + 8, o.y + radius + 8, 'canopy');
+        crown.fillStyle(0x244b39, 0.5); crown.fillCircle(o.x + 3, o.y + 5, radius);
+        crown.fillStyle(0x3f7747, 0.42); crown.fillCircle(o.x - 3, o.y - 3, radius * 0.86);
+        crown.fillStyle(0x78a962, 0.25); crown.fillEllipse(o.x - radius * 0.35, o.y - radius * 0.4, radius * 0.9, radius * 0.65);
+      }
       for (const building of map.buildings || []) {
-        const roof = this.add.graphics(); roof.fillStyle(0x323a4b); roof.fillRoundedRect(building.x + 18, building.y + 18, building.w - 36, building.h - 36, 5);
+        const key = `roof:${building.id}`;
+        const roofState = this.overheadGroup(key, 'roof', { x: building.x, y: building.y, w: building.w, h: building.h });
+        this.roofs.set(building.id, roofState);
+        const roof = this.staticAt(building.x + 16, building.y + 16, building.x + building.w - 16, building.y + building.h - 16, key);
+        roof.fillStyle(0x323a4b); roof.fillRoundedRect(building.x + 18, building.y + 18, building.w - 36, building.h - 36, 5);
         roof.lineStyle(4, 0x8091a8); roof.strokeRoundedRect(building.x + 20, building.y + 20, building.w - 40, building.h - 40, 4);
         roof.fillStyle(0x4b586b); roof.fillRect(building.x + 35, building.y + 30, building.w - 70, building.h - 60);
         roof.lineStyle(2, 0x748298); for (let y = building.y + 40; y < building.y + building.h - 30; y += 24) roof.lineBetween(building.x + 35, y, building.x + building.w - 35, y);
         roof.fillStyle(0x273240); roof.fillRect(building.x + 70, building.y + 70, 60, 40);
-        this.roofLayer.add(roof); this.roofs.set(building.id, roof);
       }
       for (const gap of map.gaps) {
         g = this.staticAt(gap.x - 30, gap.y - 10, gap.x - 15, gap.y + 10);
@@ -274,9 +362,14 @@ export function makeArenaScene(api) {
       if (o.kind === 'ruin-wall') { g.fillStyle(0x303740); g.fillRect(o.x + 5, o.y + 6, o.w, o.h); g.fillStyle(0x77828a); g.fillRect(o.x, o.y, o.w, o.h); g.lineStyle(2, 0xa2a9af); g.lineBetween(o.x + 2, o.y + 2, o.x + o.w - 2, o.y + 2); return; }
       if (o.r) {
         g.fillStyle(0x294d39, 0.25); g.fillCircle(o.x + 6, o.y + 8, o.r + 2);
-        g.fillStyle(o.kind === 'tree' ? 0x315e46 : 0x5c6e68); g.fillCircle(o.x, o.y, o.r);
-        g.fillStyle(o.kind === 'tree' ? 0x4e8b50 : 0x899b91); g.fillCircle(o.x - 3, o.y - 4, o.r - 5);
-        g.fillStyle(o.kind === 'tree' ? 0x79a95d : 0xb0bdb0); g.fillEllipse(o.x - 8, o.y - 9, o.r * 0.9, o.r * 0.65);
+        if (o.kind === 'tree') {
+          g.fillStyle(0x4b392c); g.fillCircle(o.x, o.y, o.r);
+          g.fillStyle(0x766047); g.fillCircle(o.x - o.r * 0.18, o.y - o.r * 0.2, o.r * 0.54);
+        } else {
+          g.fillStyle(0x5c6e68); g.fillCircle(o.x, o.y, o.r);
+          g.fillStyle(0x899b91); g.fillCircle(o.x - 3, o.y - 4, o.r - 5);
+          g.fillStyle(0xb0bdb0); g.fillEllipse(o.x - 8, o.y - 9, o.r * 0.9, o.r * 0.65);
+        }
         return;
       }
       g.fillStyle(0x264439, 0.3); g.fillRoundedRect(o.x + 5, o.y + 8, o.w, o.h, 6);
@@ -300,7 +393,7 @@ export function makeArenaScene(api) {
       if (p.role === 'contestant' && p.id !== api.playerId()) sprite.setTint([0xffffff, 0x9de6df, 0xfbdba2, 0xb9bdff][p.name.length % 4]);
       const ring = this.add.graphics(), bar = this.add.graphics();
       const name = this.add.text(0, -35, p.id === api.playerId() && !api.replay() ? 'YOU' : p.name, { fontFamily: 'Arial', fontSize: LABEL_FONT_PX, fontStyle: 'bold', color: '#f8fce9', stroke: '#294a3e', strokeThickness: 8 }).setOrigin(0.5).setScale(this.nameScale);
-      const container = this.add.container(p.x, p.y, [ring, sprite, bar, name]); this.world.add(container); this.world.bringToTop(this.roofLayer);
+      const container = this.add.container(p.x, p.y, [ring, sprite, bar, name]); this.world.add(container); this.world.bringToTop(this.overheadLayer);
       const actor = { sprite, ring, bar, name, container }; this.actors.set(p.id, actor); return actor;
     }
     /** The active player nearest a pointer, within a fixed screen distance of it, or null. */
@@ -369,6 +462,11 @@ export function makeArenaScene(api) {
       const halfWidth = this.scale.width / this.cameras.main.zoom / 2;
       const halfHeight = this.scale.height / this.cameras.main.zoom / 2;
       const nearView = (x, y, margin = 400) => !eye || Math.abs(x - eye.x) < halfWidth + margin && Math.abs(y - eye.y) < halfHeight + margin;
+      const inside = eye && buildingAt(map, eye);
+      for (const building of map.buildings || []) {
+        const roof = this.roofs.get(building.id);
+        roof.visible = fogged && building.id !== inside?.id && nearView(building.x + building.w / 2, building.y + building.h / 2);
+      }
       start('render.tiles'); this.updateTiles(); stop('render.tiles');
       for (const label of this.labels) label.setVisible(nearView(label.x, label.y));
       this.shade.clear();
@@ -389,8 +487,6 @@ export function makeArenaScene(api) {
       // The server now sends a wider set than the eye can reach, so the renderer resolves the geometry.
       // Sight itself is a shared rule; an unfogged view opts out of it rather than reimplementing it.
       const lit = (x, y) => !fogged || seesPoint(this.sight, map, x, y);
-      const inside = eye && buildingAt(map, eye);
-      for (const building of map.buildings || []) this.roofs.get(building.id).setVisible(fogged && building.id !== inside?.id && nearView(building.x + building.w / 2, building.y + building.h / 2));
       const g = this.dynamic; g.clear();
       const fixed = this.fixtures; fixed.clear();
       start('render.world');

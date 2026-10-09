@@ -213,6 +213,11 @@ against a brute-force implementation of the same rays over sixteen hundred cases
 including origins placed exactly on obstacle corners and edges, and must match it
 vertex for vertex.
 
+`tests/overhead.browser.mjs` uses a small controlled map with real Phaser textures
+to check that a crown occludes an actor beyond the trunk, intermediate group alpha
+changes pixels without rasterising or replacing textures, and camera culling and
+map replacement release overhead textures. It runs in `test:browser`.
+
 Boundary tests enforce ownership, not just behavior: server application code may
 not use the diagnostic `room.game` escape hatch, transport may not reach the
 simulation, and rooms may not reach gzip or filesystem details. Tests and
