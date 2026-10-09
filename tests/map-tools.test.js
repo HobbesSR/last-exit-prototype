@@ -75,7 +75,7 @@ test('the CLI generates, saves, reloads and validates a chain map', async () => 
     const flags = ['--mode', 'playground', '--zone-width', '2', '--zone-height', '1'];
     assert.match((await run('map/tools/cli.mts', ['help'])).out, /generate --seed SEED/);
     assert.equal((await run('map/tools/cli.mts', ['generate', '--seed', 'cli', ...flags, '--out', json])).code, 0);
-    assert.equal(JSON.parse(readFileSync(json, 'utf8')).wire, 7);
+    assert.equal(JSON.parse(readFileSync(json, 'utf8')).wire, 8);
     assert.equal((await run('map/tools/cli.mts', ['generate', '--seed', 'cli', ...flags, '--layout-only', 'true', '--out', bson])).code, 0);
     for (const file of [json, bson]) {
       const checked = await run('map/tools/cli.mts', ['validate', file]);
@@ -118,7 +118,7 @@ test('the MCP generates a map, validates it, and bounds what it runs', async () 
   assert.ok(replies.get(1).result.capabilities.tools);
   assert.deepEqual(replies.get(2).result.tools.map(tool => tool.name), ['map_generate', 'map_validate', 'library_validate', 'map_batch', 'library_get']);
   const generated = body(3);
-  assert.equal(generated.map.wire, 7);
+  assert.equal(generated.map.wire, 8);
   assert.deepEqual(generated.defects, []);
   assert.equal(body(4).valid, true);
   assert.equal(replies.get(5).result.isError, true);

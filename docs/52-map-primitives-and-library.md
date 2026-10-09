@@ -14,8 +14,8 @@ contains. The chain that consumes it is 51. Original intent is in
 Map generation emits **declarations over a lattice**, never physical game
 objects:
 - A cell classed `hut` declares that the `hut` region type owns that cell.
-- A passability prescription declares that a body must be able to cross a
-  segment.
+- A passability prescription states a crossing promise or optional architectural
+  guidance on a segment.
 
 Physical objects are made by region strategies (51 stage 6). Appearance will
 be carried by a **primitive set**: tile metadata naming what ground, walls,
@@ -49,7 +49,7 @@ with a don't-care value. This is Corey's model (verbatim in 17, 2026-09-27).
 | Dimension | Says | Values in the chain |
 | --- | --- | --- |
 | **Adjacency**, one per side | which class the cell on that side must be | a class, or `any` |
-| **Passability** | whether a body must be able to cross | `passable`, `any`, or unstated; a not-passable **hint** is decided but not yet built (below) |
+| **Passability** | a crossing promise or architectural guidance | `passable`, `any`, `not-passable-hint`, or unstated (below) |
 | **Geometry** | what stands on the segment, per channel (movement, sight, projectiles) | none: macro prescribes no geometry for now (16) |
 
 - **Adjacency** is stated on a tile's perimeter segments. Inside a tile both
@@ -66,12 +66,12 @@ with a don't-care value. This is Corey's model (verbatim in 17, 2026-09-27).
     portals they will form in mind (51 stage 3).
   - Unstated is kept distinct from a written `any`, so later steps can tell
     them apart (17, "Map generation": segment prescriptions).
-  - Neither implies anything: "just because something isn't marked passable
+  - Unstated implies no guarantee: "just because something isn't marked passable
     doesn't mean it won't be passable. It just means we can prove its
     passable."
 - **No impassable requirement.** Without macro geometry, nothing could
   honour one, and builders aren't asked to (17).
-- **A not-passable hint (decided 2026-10-08, not yet built: #286, #287).** A
+- **A not-passable hint (`not-passable-hint`, mechanism #286).** A
   perimeter segment may carry a hint that the designer wants that stretch
   occupied. It is guidance, not a requirement: builders keep the portal promise
   as their only obligation, and nothing refuses a builder that ignores it. As a
@@ -82,8 +82,10 @@ with a don't-care value. This is Corey's model (verbatim in 17, 2026-09-27).
     guarantee; a hint never guarantees anything.
   - Unstated stays distinct from `any`. Passability checks, including the
     open-face rule, run after segment properties are derived (51 stage 1).
-  - The SDK gives builders helpers for the hint (20.3), and the brief carries
-    it (20.1).
+  - The full symmetric table and version decisions are in [51.4](51.4-resolution.md).
+    `passable` wins over hints; hint with unstated remains a hint without a
+    guarantee. The Map Lab authors the value without requiring any geometry.
+  - Brief delivery and SDK helpers remain separate work (#287; 20.1 and 20.3).
 - **When geometry returns:** a label will imply values on several dimensions.
   - `wall` implies not passable.
   - A fence blocks movement but is passable, because hunters can break fences

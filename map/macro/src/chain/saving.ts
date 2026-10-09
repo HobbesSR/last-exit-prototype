@@ -22,9 +22,10 @@ import { MACRO_VERSION, mapViews } from "./map.ts";
 import type { ChainMap, Layout, MapEngines, Orientation, RegionResult } from "./types.ts";
 
 /** Versions 5 and up are the chain's. The old generators' reader and version 4 were deleted at the switch-over. */
-export const CHAIN_WIRE_VERSION = 7;
+export const CHAIN_WIRE_VERSION = 8;
 /** Why each earlier wire version isn't read here. None is migrated. */
 const RETIRED_VERSIONS: Record<number, string> = {
+  7: "its macro stages predate any+any passability guarantees and not-passable hints; regenerate it from its seed",
   6: "it does not embed a resolved version 3 library with its authored zone plan and size; regenerate it from its seed",
   1: "it is mapgen's old form, which the chain replaced",
   2: "it is mapgen's old form, which the chain replaced",

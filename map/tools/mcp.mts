@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * The map MCP server (53, "Tools"): bounded stdio tools over the same core as the CLI.
- * Maps travel as wire version 7 JSON.
+ * Maps travel as wire version 8 JSON.
  */
 import readline from 'node:readline';
 import { chainMapToJson } from '../macro/src/chain/saving.ts';

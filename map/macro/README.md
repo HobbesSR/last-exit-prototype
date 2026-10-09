@@ -6,7 +6,7 @@ Design documentation lives in the repository's numbered docs: [50](../../docs/50
 
 ## Layout
 
-- `src/chain/`: the chain's stages and views (51), the map container and its one accessor (`map.ts`), and saving in wire version 7 (`saving.ts`).
+- `src/chain/`: the chain's stages and views (51), the map container and its one accessor (`map.ts`), and saving in wire version 8 (`saving.ts`).
 - `src/wfc.ts`: the fill's solver, over named relations, with the open-face rule's backjumping (51 step 4).
 - `src/coding.ts` and `src/bson.ts`: the wire form's packing, the library fingerprint, and the in-house BSON codec (53).
 - `content/diamond-12x6.json`: the chain's library (52, "The chain's library").

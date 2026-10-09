@@ -87,9 +87,10 @@ test("every version mismatch is refused by name", () => {
   assert.throws(() => decodeChainMap({ ...wire, wire: 5 }, LIBRARY),
     /wire version 5 isn't a chain map: its params have no contestantCount or hunterCount/);
   assert.throws(() => decodeChainMap({ ...wire, wire: 6 }, LIBRARY), /wire version 6.*does not embed a resolved version 3 library/);
-  assert.throws(() => decodeChainMap({ ...wire, wire: CHAIN_WIRE_VERSION + 1 }, LIBRARY), /unsupported wire version 8/);
+  assert.throws(() => decodeChainMap({ ...wire, wire: 7 }, LIBRARY), /wire version 7.*predate any\+any passability/);
+  assert.throws(() => decodeChainMap({ ...wire, wire: CHAIN_WIRE_VERSION + 1 }, LIBRARY), /unsupported wire version 9/);
   assert.throws(() => decodeChainMap({ ...wire, layout: { ...wire.layout, macro: MACRO_VERSION + 1 } }, LIBRARY),
-    /placed by macro version 2, and this reader's stages are version 1/);
+    /placed by macro version 3, and this reader's stages are version 2/);
   assert.throws(() => decodeChainMap(wire, { ...LIBRARY, setPieces: LIBRARY.setPieces.slice(1) }), /made with a different library/);
   assert.throws(() => decodeChainMap({ ...wire, build: { ...wire.build, format: "region-1" } }, LIBRARY), /its results are region-1/);
   assert.throws(() => decodeChainMap(encode(MAP, false), LIBRARY, { ...ENGINES, version: "stub-2" }),

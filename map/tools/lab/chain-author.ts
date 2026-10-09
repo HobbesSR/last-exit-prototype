@@ -219,12 +219,15 @@ function choice(
   values: string[],
   value: string,
   change: (value: string) => void,
+  labels: Record<string, string> = {},
 ): HTMLElement {
   const wrap = document.createElement("label");
   wrap.textContent = label;
   const input = document.createElement("select");
   input.id = id;
-  input.replaceChildren(...values.map((v) => option(v, v || "Unspecified")));
+  input.replaceChildren(
+    ...values.map((v) => option(v, labels[v] ?? (v || "Unspecified"))),
+  );
   input.value = value;
   input.onchange = () => {
     change(input.value);
@@ -571,9 +574,13 @@ function renderTiles(root: HTMLElement): void {
     choice(
       "Passability",
       "chainSegmentPassability",
-      ["", "any", "passable"],
+      ["", "any", "passable", "not-passable-hint"],
       prescription.passability ?? "",
       (v) => set("passability", v),
+      { "not-passable-hint": "Prefer occupied (hint)" },
+    ),
+    paragraph(
+      "Passable guarantees a crossing. Any is a written don't-care statement; two facing any statements guarantee a crossing. Prefer occupied is optional architectural guidance, never an impassability requirement. A facing passable statement still guarantees a crossing; any facing this hint does not. Unspecified stays distinct from any.",
     ),
   );
   root.append(controls);
@@ -594,7 +601,7 @@ function renderPreview(tile: ChainTileDesign): void {
     const sameClass: string[] = [],
       perimeter: string[] = [];
     for (const [key, prescription] of design.segments) {
-      if (prescription.passability !== "passable") continue;
+      if (prescription.passability !== "passable" && prescription.passability !== "any") continue;
       const [axis, coord] = key.split(":");
       const [x, y] = coord!.split(",").map(Number);
       const edge =
@@ -613,7 +620,7 @@ function renderPreview(tile: ChainTileDesign): void {
       if (first === second) sameClass.push(key);
       segments[key] = {
         guarantee: "guaranteed",
-        stated: ["passable", "passable"],
+        stated: [prescription.passability, prescription.passability],
       };
     }
     const resolved = {

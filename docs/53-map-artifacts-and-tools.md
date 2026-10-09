@@ -55,7 +55,11 @@ A map embeds its flattened version 3 library and records its fingerprint.
 Reading verifies the embedded content against that fingerprint; no module files
 or external library are needed. An optional supplied library must match too.
 
-**The chain** is wire version 7 (51 step 9, `map/macro/src/chain/saving.ts`).
+**The chain** is wire version 8 (`map/macro/src/chain/saving.ts`, #286).
+Version 7 is refused by name because macro version 2 derives `any`+`any`
+passability guarantees; old saved views must not be silently reinterpreted.
+Library schema 3 and module schema 1 are retained for the optional hint value
+([51.4](51.4-resolution.md)); fingerprints still cover all authored content.
 Version 6 is refused by name because it lacks the embedded resolved library
 and authored-size metadata. Version 5 is refused by name: its params have no `contestantCount` or
 `hunterCount` (#124).
@@ -290,7 +294,7 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     resized or collapsed by clicking its top border. Generation, reading a
     save and the diagnostic run in a worker, and the diagnostic runs only on
     request and can be cancelled.
-  - **Saving:** wire 7 as JSON or BSON, or the Layout alone. A save loads
+  - **Saving:** wire 8 as JSON or BSON, or the Layout alone. A save loads
     with its embedded library, independently of the current Lab selection. Its bytes equal the CLI's for the same
     seed, which the browser test checks.
   - **The Chain Library tab** (51 B1) authors the version 3 schema, validates
