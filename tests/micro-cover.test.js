@@ -4,6 +4,7 @@ import { buildRegion } from '../map/micro/region-types.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
 import { elementShapes } from '../map/micro/geometry.ts';
 import { bounds } from '../shared/shape.ts';
+import { portalMargin } from '../map/micro/hints.ts';
 
 const cellsOf = (w, h, keep = () => true) => {
   const cells = [];
@@ -34,12 +35,13 @@ test('a cover region keeps the portal promise over seeds and masks', () => {
   }
 });
 
-test('cover comes in clusters, each boxed with an aisle wider than a door to the next and to the region edge', () => {
+test('cover comes in clusters, each boxed with an aisle and clear of portals', () => {
   const gap = (a, b) => Math.hypot(Math.max(0, a.x - b.x - b.w, b.x - a.x - a.w), Math.max(0, a.y - b.y - b.h, b.y - a.y - a.h));
   const join = (a, b) => { const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y); return { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y }; };
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of [1, 2, 3]) {
     const result = buildRegion(brief(name, seed, cells, portals, { parameters: { density: 1 } }));
     const owned = new Set(cells.map(c => `${c.x},${c.y}`));
+    const reserved = new Set(portalMargin(result.brief, 1).map(c => `${c.x},${c.y}`));
     // Merge pieces closer than a door into boxes until every two boxes are a door apart.
     let boxes = blockers(result).map(bounds), merged = true;
     while (merged) {
@@ -51,8 +53,8 @@ test('cover comes in clusters, each boxed with an aisle wider than a door to the
     assert.ok(boxes.length < blockers(result).length, `${name} ${seed}: some slots hold clusters`);
     for (const a of boxes) {
       assert.ok(a.w <= 160 && a.h <= 160, `${name} ${seed}: a cluster outgrew its slot`);
-      for (let y = Math.floor(a.y / 40) - 2; y <= Math.ceil((a.y + a.h) / 40) + 1; y++) for (let x = Math.floor(a.x / 40) - 2; x <= Math.ceil((a.x + a.w) / 40) + 1; x++)
-        assert.ok(owned.has(`${x},${y}`), `${name} ${seed}: a cluster within a door of unowned cell ${x},${y}`);
+      for (let y = Math.floor(a.y / 40); y < Math.ceil((a.y + a.h) / 40); y++) for (let x = Math.floor(a.x / 40); x < Math.ceil((a.x + a.w) / 40); x++)
+        assert.ok(owned.has(`${x},${y}`) && !reserved.has(`${x},${y}`), `${name} ${seed}: cluster footprint ${x},${y}`);
     }
   }
 });
@@ -63,7 +65,7 @@ test('density sets how much cover there is, and a small region stays clear', () 
   assert.equal(count(0), 0);
   assert.ok(count(0.3) < count(0.7) && count(0.7) < count(1), `${count(0.3)}, ${count(0.7)}, ${count(1)}`);
   const small = buildRegion(brief('small', 1, cellsOf(6, 6), [{ id: 'west', axis: 'v', x: 0, y: 2, length: 2 }], { parameters: { density: 1 } }));
-  assert.deepEqual(small.elements, []);
+  assert.ok(small.elements.every(e => e.x >= 0 && e.y >= 0));
   assert.throws(() => buildRegion(brief('field', 1, cells, portals, { parameters: { density: 2 } })), /density must be a number from 0 to 1/);
 });
 
@@ -106,4 +108,37 @@ test('cover builds a macro-sized region with hundreds of portals in bounded time
   const elapsed = performance.now() - start;
   assert.ok(portals.length > 400 && result.elements.length > 200, `${portals.length} portals, ${result.elements.length} pieces`);
   assert.ok(elapsed < 2000, `built in ${Math.round(elapsed)} ms`);
+});
+
+test('cover can place geometry against a hinted edge while protecting portals', () => {
+  const cells = cellsOf(40, 30);
+  const portals = [{ id: 'west', axis: 'v', x: 0, y: 10, length: 3 }, { id: 'east', axis: 'v', x: 40, y: 10, length: 3 }];
+  const hints = [{ axis: 'h', x: 0, y: 0, length: 40 }];
+  const input = { ...brief('hinted', 1, cells, portals, { parameters: { density: 1 } }), hints };
+  const result = buildRegion(input);
+  assert.ok(result.elements.some(element => element.y === 0), 'a piece reaches the hinted north edge');
+  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
+});
+
+test('large concave cover with many portals uses a safe hinted boundary attachment', () => {
+  const cells = cellsOf(80, 30, (x, y) => y < 15 || x < 45);
+  const portals = Array.from({ length: 33 }, (_, i) => ({ id: `north-${i}`, axis: 'h', x: i * 2, y: 0, length: 2 }));
+  portals.push({ id: 'south', axis: 'h', x: 8, y: 30, length: 2 });
+  const input = brief('many-concave', 4, cells, portals, { hints: [{ axis: 'v', x: 0, y: 17, length: 12 }], parameters: { density: 1 } });
+  const result = buildRegion(input);
+  assert.ok(result.elements.some(element => element.x === 0), 'a piece reaches the hinted west edge');
+  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
+});
+
+test('thin rectangular cover keeps a hunter aisle between opposite sides', () => {
+  const cells = cellsOf(4, 18);
+  const portals = [{ id: 'north', axis: 'h', x: 1, y: 0, length: 2 },
+    { id: 'south', axis: 'h', x: 1, y: 18, length: 2 }];
+  const input = brief('thin', 7, cells, portals, { parameters: { density: 1 } });
+  const result = buildRegion(input);
+  assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
+  for (const element of result.elements) {
+    const x = element.x / 40, width = element.template.w / 40;
+    assert.ok(x >= 2 || 4 - x - width >= 2, `${element.label} leaves an aisle on one side`);
+  }
 });

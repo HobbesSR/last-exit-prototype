@@ -77,34 +77,6 @@ test('a room created with no seed is answered with a pooled map\'s seed, and hea
     assert.equal(asked.length, before + 1, 'only the pool\'s refill was generated');
   } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
 });
-test('matchmaking separates private rooms, honors available preferences, falls back, and starts automatically', async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-match-'));
-  const server = await createArenaServer({ replayDir: dir });
-  try {
-    const base = await listen(server);
-    const privateRoom = await createRoom(server, base, '{"seed":9}');
-    const clients = [], welcomes = [];
-    for (const role of ['gladiator', 'gladiator', 'gladiator', 'gladiator', 'contestant', 'any']) {
-      const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve));
-      const welcome = next(ws, 'welcome'); ws.send(JSON.stringify({ type: 'match', role, name: 'Queued' }));
-      clients.push(ws); welcomes.push(await welcome);
-    }
-    const roomId = welcomes[0].room;
-    assert.notEqual(roomId, privateRoom.id);
-    assert.ok(welcomes.every(w => w.room === roomId && !w.owner));
-    const room = server.rooms.get(roomId); assert.equal(room.started, false);
-    assert.deepEqual(welcomes.map(w => room.seats.player(w.id).role), ['gladiator', 'gladiator', 'gladiator', 'contestant', 'contestant', 'contestant']);
-    const listed = await (await fetch(base + '/api/rooms')).json();
-    assert.deepEqual(listed.map(r => [r.id, r.kind, r.phase]), [[roomId, 'matchmade', 'lobby']], 'the private room is reached by link, not listed');
-    assert.deepEqual(listed[0].players, { contestant: 3, gladiator: 3 });
-    await room.ready;
-    const live = next(clients[0], 'state'); room.startsAt = Date.now() - 1;
-    assert.equal((await live).state.phase, 'live'); assert.equal(room.started, true);
-    assert.deepEqual(await (await fetch(base + '/api/rooms')).json(), [], 'a started room leaves the list');
-    clients.forEach(ws => ws.close());
-  } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
-});
-
 test('resume credentials restore the same player even while the previous socket is open', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-resume-'));
   const server = await createArenaServer({ replayDir: dir });

@@ -7,6 +7,35 @@ export type HintedRegion = Pick<RegionBrief, 'cells'> & Partial<Pick<RegionBrief
 /** A box of whole cells: `x`, `y` its top-left cell, `w` and `h` its size. */
 export interface CellBox { x: number; y: number; w: number; h: number }
 
+/**
+ * Cache a boundary-spacing predicate for many placement trials. In a rectangle, a box
+ * leaves an aisle on at least one side of each axis. In a concave mask, it keeps an
+ * owned ring except where one or two adjacent sides attach to fully hinted boundary.
+ * This is a placement heuristic; it neither checks portal approaches nor validates
+ * the final geometry. Callers keep those checks and between-piece spacing separately.
+ */
+export function boundaryBoxFilter(region: HintedRegion, aisle: number): { rectangular: boolean; fits: (box: CellBox) => boolean } {
+  if (!Number.isInteger(aisle) || aisle < 1) throw new Error('An aisle needs a positive whole width.');
+  const owned = ownedOf(region), hinted = new Set(hintedCells(region).map(c => keyOf(c.x, c.y)));
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const c of region.cells) { x0 = Math.min(x0, c.x); y0 = Math.min(y0, c.y); x1 = Math.max(x1, c.x + 1); y1 = Math.max(y1, c.y + 1); }
+  const rectangular = region.cells.length > 0 && (x1 - x0) * (y1 - y0) === region.cells.length;
+  const has = (x: number, y: number) => owned.has(keyOf(x, y));
+  return { rectangular, fits({ x, y, w, h }) {
+    if (![x, y, w, h].every(Number.isInteger) || w < 1 || h < 1) return false;
+    if (rectangular) return x >= x0 && y >= y0 && x + w <= x1 && y + h <= y1
+      && !((x - x0 < aisle && x1 - x - w < aisle) || (y - y0 < aisle && y1 - y - h < aisle));
+    const north = Array.from({ length: w }, (_, i) => hinted.has(keyOf(x + i, y)) && !has(x + i, y - 1)).every(Boolean);
+    const south = Array.from({ length: w }, (_, i) => hinted.has(keyOf(x + i, y + h - 1)) && !has(x + i, y + h)).every(Boolean);
+    const west = Array.from({ length: h }, (_, i) => hinted.has(keyOf(x, y + i)) && !has(x - 1, y + i)).every(Boolean);
+    const east = Array.from({ length: h }, (_, i) => hinted.has(keyOf(x + w - 1, y + i)) && !has(x + w, y + i)).every(Boolean);
+    if (north && south || west && east) return false;
+    for (let j = y - aisle; j < y + h + aisle; j++) for (let i = x - aisle; i < x + w + aisle; i++)
+      if (!has(i, j) && !(j < y && north) && !(j >= y + h && south) && !(i < x && west) && !(i >= x + w && east)) return false;
+    return true;
+  } };
+}
+
 /** One segment of a run: the region's cell beside it, and which way the region lies from it. */
 interface Stretch { cell: Cell; inward: Cell }
 

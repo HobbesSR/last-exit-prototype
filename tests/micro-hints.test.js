@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { boxesAgainstHints, hintedCells, hintErrors, portalMargin } from '../map/micro/hints.ts';
+import { boundaryBoxFilter, boxesAgainstHints, hintedCells, hintErrors, portalMargin } from '../map/micro/hints.ts';
 import { briefErrors } from '../map/micro/region-types.ts';
 
 const cellsOf = (w, h, x0 = 0, y0 = 0) => Array.from({ length: w * h }, (_, i) => ({ x: x0 + i % w, y: y0 + Math.floor(i / w) }));
@@ -11,6 +11,26 @@ const region = {
   hints: [{ axis: 'v', x: 0, y: 1, length: 2 }, { axis: 'h', x: 5, y: 0, length: 3 }],
   portals: [{ id: 'p', axis: 'h', x: 1, y: 6, length: 3 }],
 };
+
+test('boundary spacing permits an edge attachment without bridging a rectangular region', () => {
+  const filter = boundaryBoxFilter({ cells: cellsOf(8, 6) }, 2);
+  assert.equal(filter.rectangular, true);
+  assert.equal(filter.fits({ x: 0, y: 0, w: 4, h: 4 }), true);
+  assert.equal(filter.fits({ x: 0, y: 0, w: 7, h: 4 }), false);
+  assert.equal(filter.fits({ x: 0, y: 0, w: 4, h: 5 }), false);
+  assert.equal(filter.fits({ x: -1, y: 0, w: 4, h: 4 }), false);
+});
+
+test('a concave region allows a fully hinted corner while keeping its remaining ring owned', () => {
+  const cells = cellsOf(10, 10).filter(c => c.x < 6 || c.y < 6);
+  const filter = boundaryBoxFilter({ cells, hints: [
+    { axis: 'h', x: 0, y: 0, length: 10 }, { axis: 'v', x: 0, y: 0, length: 10 },
+  ] }, 2);
+  assert.equal(filter.rectangular, false);
+  assert.equal(filter.fits({ x: 0, y: 0, w: 3, h: 3 }), true);
+  assert.equal(boundaryBoxFilter({ cells }, 2).fits({ x: 0, y: 0, w: 3, h: 3 }), false);
+  assert.equal(filter.fits({ x: 0, y: 0, w: 5, h: 5 }), false, 'the missing diagonal ring cannot be excused by an attachment');
+});
 
 test('hintedCells are the region cells beside hinted segments, in row order, once each', () => {
   assert.deepEqual(hintedCells(region).map(key), ['5,0', '6,0', '7,0', '0,1', '0,2']);

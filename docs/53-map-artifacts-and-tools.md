@@ -150,6 +150,16 @@ kept. A review fix then kept `park`'s hedge thickness and tree radius
 fractional at small cell sizes; it moved the results and built views on 130
 maps, the ones with a `park` region, and nothing else.
 
+**#241/#243/#298's re-capture** follows the authored deferred/hinted tile
+perimeters (52) and boundary-aware builders (54), with one bump to
+`types-20`. The 224-map capture records input commit `8c1a79d`. Every view
+except zones and most proofs changes: zones stay identical, and proof hashes
+move on 9 maps as deferred segments resolve additional passability. Before
+capture, 35 game maps across all three authored sizes reported no defects,
+every region of one game map passed the independent portal diagnostic, and
+combat-neutralized bots filled all three extraction slots on representative
+live maps. The frozen gameplay characterization fixture is unchanged.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
@@ -202,8 +212,8 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     cell field, painted once per map into a canvas, or a fill) or marks
     (lines and dots). Drawing takes every areas layer, then every marks
     layer, each in registry order, so lines stay readable over areas. A
-    layer belongs to one pass, so it is laid on once at its opacity: below
-    full opacity it is drawn whole on a scratch canvas first, and its own
+    layer belongs to one pass, so it is laid on once at its opacity: at every
+    opacity it is drawn whole on the same scratch canvas first, and its own
     parts don't fade unevenly where they overlap. A new layer is one
     registry entry. A layer can also give the inspector buttons that open
     something elsewhere: in the Chain Library tab, or in a new tab. On by

@@ -670,9 +670,9 @@ try {
   const blockBrief = mapViews(generate("last-exit-009")).briefs.find((brief) => brief.type === "block")!;
   const blockDrill = await drillInto(blockBrief);
   assert.equal(blockDrill.drill.difference, null, "the block rebuilds equal to the stored result");
-  assert.deepEqual(blockDrill.drill.lots.map((lot: { type: string }) => lot.type), ["depot", "compound", "cover"]);
-  assert.deepEqual(blockDrill.drill.buildings, ["lot-1/depot-warehouse-1", "lot-2/compound"],
-    "the depot lot's warehouse and the compound lot's ring are traced, labelled as the lots' elements");
+  assert.deepEqual(blockDrill.drill.lots.map((lot: { type: string }) => lot.type), ["cover", "ruins", "depot"]);
+  assert.deepEqual(blockDrill.drill.buildings, ["lot-3/depot-warehouse-1"],
+    "the depot lot's warehouse is traced, labelled as the lot's element");
   assert.equal(blockDrill.drill.drawn.lots.lots, 3);
   assert.ok(blockDrill.drill.drawn.graph.nodes > 0);
   assert.match(blockDrill.inspector, /3 lots/);
