@@ -1180,6 +1180,21 @@ try {
     "referencing slots were stripped from set piece on tile set deletion",
   );
 
+  // A set piece left with empty tiles is rejected by validateLibrary
+  const draftValidityAfterStrip = await page.evaluate(() => {
+    return (window as any).chainLab.snapshot().valid;
+  });
+  assert.equal(
+    draftValidityAfterStrip,
+    false,
+    "a set piece left with 0 tile slots is rejected by validateLibrary",
+  );
+  assert.match(
+    await page.locator("#chainStatus").innerText(),
+    /set piece new-piece: missing tile slots/,
+    "status bar flags missing tile slots on the stripped set piece",
+  );
+
   await page.screenshot({
     path: `${OUT}/chain-authoring.png`,
     fullPage: true,
