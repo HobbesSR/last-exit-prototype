@@ -985,12 +985,12 @@ function draw(): void {
   ctx.setTransform(...transform);
   ctx.imageSmoothingEnabled = false;
   /**
-   * A layer at full opacity draws straight onto the map. Otherwise it draws opaque on a
-   * scratch canvas that is laid on once at the layer's opacity, so overlapping parts of one
+   * Every layer draws opaque on the same scratch canvas, then is laid on once at its
+   * opacity. The same rasterization at 100% and 50% keeps thin geometry consistent;
+   * overlapping parts of one
    * layer (a site's fill and outline, say) don't fade by different amounts.
    */
   const composite = (layer: Layer, paint: (g: Context) => void) => {
-    if (layer.opacity >= 1) return paint(ctx);
     if (scratch.width !== canvas.width || scratch.height !== canvas.height) [scratch.width, scratch.height] = [canvas.width, canvas.height];
     scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
     scratchCtx.clearRect(0, 0, scratch.width, scratch.height);

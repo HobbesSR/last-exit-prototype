@@ -212,8 +212,8 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     cell field, painted once per map into a canvas, or a fill) or marks
     (lines and dots). Drawing takes every areas layer, then every marks
     layer, each in registry order, so lines stay readable over areas. A
-    layer belongs to one pass, so it is laid on once at its opacity: below
-    full opacity it is drawn whole on a scratch canvas first, and its own
+    layer belongs to one pass, so it is laid on once at its opacity: at every
+    opacity it is drawn whole on the same scratch canvas first, and its own
     parts don't fade unevenly where they overlap. A new layer is one
     registry entry. A layer can also give the inspector buttons that open
     something elsewhere: in the Chain Library tab, or in a new tab. On by
