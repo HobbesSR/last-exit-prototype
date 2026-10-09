@@ -288,7 +288,7 @@ libraries.
 
 `map/macro/content/diamond-12x6.json` is the library the chain is authored
 with (B4, #97; modularized in #168; set pieces on the old footprints in S5,
-#170). It includes `common-primitives@2.json` and `common-set-pieces@2.json`,
+#170). It includes `common-primitives@3.json` and `common-set-pieces@3.json`,
 which also includes the primitives. The top library owns the classes and
 quotas for the diamond at its declared size. It paints every type in 54's
 catalogue, and it grows from here. The fixture libraries in
@@ -298,26 +298,31 @@ catalogue, and it grows from here. The fixture libraries in
   same name. A drafted type paints its own name and builds what its stand-in
   builds (54, "Drafted types").
 - **Tiles:**
-  - `field`: open ground, most of the fill.
-  - `cover-ground`: a whole tile of `cover`, passable along every side.
+  - `field`: open ground, most of the fill. Its perimeter explicitly states
+    `any`, allowing a neighboring tile's passable promise or hint to resolve it.
+  - `cover-ground`: a whole tile of `cover`, with a three-segment passable
+    stretch and a three-segment not-passable hint on each side.
   - `rubble-bank`: three rows of `rubble` beside three of `open`, with one
-    three-cell passable stretch between them.
+    three-cell passable stretch between them. Its perimeter explicitly states
+    `any`; the interior promise is unchanged.
   - `hut-quarter`: a whole tile of `hut`. It asks for `hut` across two sides,
-    and for `open` across a passable stretch on each of the other two. Four
+    and for `open` across a passable stretch on each of the other two. The
+    joining sides state `any` for passability; the complementary segments on
+    the open-facing sides carry a not-passable hint. Four
     make one 12 × 12 hut region, with room for a house and its yard (54
     `hut`). The `open` asks close the group, so it can't spread across the
     fill.
   - `ruins-ground`, `hall-ground`, `depot-ground`, `compound-ground`,
-    `block-ground`, `market-ground`, `plant-ground`, and `checkpoint-ground`: a whole tile of their type, passable along every
-    side as `cover-ground` is. They are weighted 0, so only set pieces place
+    `block-ground`, `market-ground`, `plant-ground`, and `checkpoint-ground`: a whole tile of their type, with the same aligned three-segment passable stretch and complementary hint as `cover-ground`. They are weighted 0, so only set pieces place
     them (below).
-  - `park-ground`: a whole tile of `park`, passable along every side, weighted
+  - `park-ground`: a whole tile of `park`, with the same perimeter pattern, weighted
     0.15 as `cover-ground` is (#221). Over the 224 sweep maps that took `park` from
     297 regions on 139 maps to 1,682 on 211, and its share of cells from 3.6%
     to 4.4%. Park's own strategy places a tree at most in a lone tile, so the
     weight is Corey's to veto (17.2.8 M34).
   - `arrival-ground`, `departure-ground`, `charging-ground` and `transit-ground`: whole tiles of
-    their core element class, passable along half of each side. Placement
+    their core element class, retaining the three-segment passable stretch on
+    each side and hinting the complementary three segments. Placement
     never puts them in the fill (51, "Core elements").
 - **Set pieces:** each footprint is a rectangle of one type's ground, except
   `rubble-strip`. Sizes are in tiles; a tile is 6 cells.
@@ -332,7 +337,7 @@ catalogue, and it grows from here. The fixture libraries in
 | `medium` | `market-row` 9 × 4 and `market-court` 7 × 5 (`market`), `walled-base` 6 × 6 and `barracks` 8 × 4 (`compound`), `checkpoint-lane` 12 × 3 (`checkpoint`), `pillar-hall` 6 × 5 (`hall`) |
 | `small` | `plant-row` 6 × 3, `plant-tower` 3 × 6 and `plant-yard` 5 × 3 (`plant`), `depot-sheds` 9 × 2 and `depot-lot` 7 × 3 (`depot`), `park-square` 4 × 4 and `park-green` 6 × 4 (`park`), `ruins-lot` 5 × 4 (`ruins`), `cover-yard` 4 × 5 (`cover`), `rubble-strip` 8 × 2 (rubble banks back to back, a rubble strip six cells deep between open lanes) |
 
-  `common-set-pieces@2` still defines `hut-yard`, `hut-row`, `cover-patch`,
+  `common-set-pieces@3` still defines `hut-yard`, `hut-row`, `cover-patch`,
   `cover-field`, `rubble-lane` and `rubble-lanes`, the set pieces before S5,
   for libraries at other sizes. This library's classes no longer draw them,
   so huts come from the fill's hut quarters.
@@ -389,7 +394,7 @@ keep loot per map level (14).
 ## The larger libraries (S6)
 
 `diamond-24x12.json` and `diamond-36x18.json` (#171) include the same two
-modules and `district-set-pieces@1.json`. A piece that is enormous at one size
+modules and `district-set-pieces@2.json`. A piece that is enormous at one size
 is medium at the next (55):
 
 | Set piece class | 24 × 12 | 36 × 18 |
@@ -404,7 +409,7 @@ Core element pieces, their quotas and the six transit stations stay as at
 split between two or three types so one structure type doesn't fill it alone.
 Sizes are in tiles.
 
-- **Districts** (`district-set-pieces@1`, shared by both sizes):
+- **Districts** (`district-set-pieces@2`, shared by both sizes):
   `market-district` 20 × 10 (market and park), `industrial-estate` 18 × 10
   (plant and depot), `downtown` 20 × 9 (block over a market row), `garrison`
   16 × 10 (compound over a checkpoint lane) and `old-town` 18 × 10 (ruins,
