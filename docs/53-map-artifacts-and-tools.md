@@ -311,7 +311,10 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     import and export, and previews tile-local derived portals and invalid
     passable prescriptions. Its perimeter preview is provisional until
     placement resolves neighboring tiles. It can load the chain's library for
-    the World tab's zone size to edit it.
+    the World tab's zone size to edit it. Tile design authoring features an
+    interactive canvas stage with row and column gutters, swatches for declared
+    cell classes, continuous drag-painting, flood fill, rectangle fill,
+    Alt-click eyedropper sampling, quick patterns, and a right-click context palette (#303).
   - **Serving:** The game server (`server/index.js`) serves the lab at `/dev/map` when `devTools` is enabled, alongside macro's `content/`, `map/micro/`, `map/kernel/`, `shared/`, the map-level
     modules `map/chain.ts`, `map/engines.ts` and `map/live.ts`, and the
     tools' `core.ts`, `engines.ts` and `routes.ts`, at their repository
