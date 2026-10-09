@@ -492,6 +492,155 @@ button.active {
   color: #a0aec0;
   border: 1px solid #3a4552;
 }
+.chain-gallery-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #111e27;
+  border: 1px solid #344754;
+  border-radius: 5px;
+  padding: 10px;
+}
+.gallery-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+.gallery-head label.grow {
+  flex: 1;
+}
+.gallery-head label {
+  font-size: 11px;
+  color: #8da4b1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.gallery-head input {
+  background: #0e1b24;
+  border: 1px solid #344754;
+  border-radius: 4px;
+  padding: 6px 10px;
+  color: #e2e9ee;
+  font: inherit;
+  font-size: 12px;
+}
+.gallery-head button {
+  padding: 6px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+#tileGallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid #1c2b36;
+  border-radius: 4px;
+  background: #0a141b;
+}
+.tile-card {
+  border: 1px solid #283e4a;
+  background: #0f1d25;
+  border-radius: 4px;
+  padding: 5px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 82px;
+  box-sizing: border-box;
+  transition: border-color 0.1s ease, background 0.1s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+.tile-card:hover {
+  border-color: #4a7585;
+  background: #162933;
+}
+.tile-card.active {
+  border-color: #7fd4dd !important;
+  background: #193842 !important;
+  box-shadow: 0 0 6px rgba(127, 212, 221, 0.4);
+}
+.tile-card figure {
+  margin: 0;
+  position: relative;
+  width: 66px;
+  height: 66px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  background: #0a1419;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.tile-card figure i {
+  display: block;
+}
+.tile-card figure b {
+  position: absolute;
+  pointer-events: none;
+}
+.tile-card figure b.passable {
+  background: #83d7a4 !important;
+}
+.tile-card figure b.wall {
+  background: #e2807f !important;
+}
+.tile-card figure b.any {
+  background: repeating-linear-gradient(
+    45deg,
+    #78909d,
+    #78909d 1px,
+    transparent 1px,
+    transparent 3px
+  ) !important;
+}
+.tile-card figure span.adj-dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  border: 0.5px solid rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.tile-card figure span.adj-dot.any {
+  background: repeating-linear-gradient(
+    45deg,
+    #78909d,
+    #78909d 1px,
+    transparent 1px,
+    transparent 3px
+  ) !important;
+}
+.tile-card .tile-card-name {
+  font-size: 10px;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #b0c4cf;
+}
+.tile-card.active .tile-card-name {
+  color: #e2f7fc;
+  font-weight: 600;
+}
+.gallery-empty {
+  font-size: 12px;
+  color: #78909d;
+  font-style: italic;
+  padding: 14px;
+  margin: 0;
+  width: 100%;
+  text-align: center;
+}
 .chain-segments {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
