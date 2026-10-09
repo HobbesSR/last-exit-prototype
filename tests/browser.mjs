@@ -548,7 +548,8 @@ try {
   await settled(page, artPlayer);
   await page.waitForTimeout(150);
   await page.screenshot({ path: 'test-results/ruins.png' });
-  assert.equal(await page.evaluate(id => window.arenaDebug().roofs.find(r => r.id === id).visible, interior.id), false, 'roof hides while inside');
+  // The roof fades away rather than vanishing, so wait for it to finish (#291).
+  await page.waitForFunction(id => !window.arenaDebug().roofs.find(r => r.id === id).visible, interior.id, { timeout: 5000 });
   // Stand 55 outside the door, on whichever wall it is, and walk in through it. A gate's x and y are its centre.
   const doorX = entrance.x, doorY = entrance.y;
   const across = entrance.w > entrance.h, outward = across ? Math.sign(doorY - (interior.y + interior.h / 2)) : Math.sign(doorX - (interior.x + interior.w / 2));

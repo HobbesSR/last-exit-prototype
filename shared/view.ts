@@ -90,3 +90,78 @@ export function roofConceals(map: RoofMap, eye: Vec2, point: Vec2): boolean {
   const building = buildingAt(map, point);
   return !!building && buildingAt(map, eye)?.id !== building.id;
 }
+
+// ---------------------------------------------------------------------------
+// Roof presentation. Cosmetic only: none of this changes `roofConceals` or what a viewer may know.
+// ---------------------------------------------------------------------------
+
+/** How far apart two walls may sit and still count as one shared edge (wall thickness is thinner). */
+const ROOF_EDGE = 2;
+/** Distance from a door or window at which a roof starts to fade, and how transparent it gets there. */
+export const ROOF_FADE_RANGE = 160;
+export const ROOF_FADE_FLOOR = 0.4;
+/** Roofs extend this far past the walls they cover, except where another room of the group abuts. */
+export const ROOF_OVERHANG = 12;
+/** Extra camera zoom while the viewer stands inside a building. */
+export const INSIDE_ZOOM = 1.15;
+
+type Side = 'n' | 'e' | 's' | 'w';
+type RoofBox = Pick<Building, 'id' | 'x' | 'y' | 'w' | 'h'>;
+
+/** The side of `a` that `b` abuts, if their boxes share an edge of positive length. */
+function abutting(a: RoofBox, b: RoofBox): Side | null {
+  const xOverlap = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const yOverlap = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  if (xOverlap > 0 && Math.abs(a.y + a.h - b.y) <= ROOF_EDGE) return 's';
+  if (xOverlap > 0 && Math.abs(b.y + b.h - a.y) <= ROOF_EDGE) return 'n';
+  if (yOverlap > 0 && Math.abs(a.x + a.w - b.x) <= ROOF_EDGE) return 'e';
+  if (yOverlap > 0 && Math.abs(b.x + b.w - a.x) <= ROOF_EDGE) return 'w';
+  return null;
+}
+
+/**
+ * Buildings that read as one roof: boxes that share an edge with a door on it. Until builders declare
+ * roof groups, this derives them from the map; the declared form then replaces this function.
+ * Every building maps to its group's members (itself alone when ungrouped), in map order.
+ */
+export function roofGroups(map: Pick<GameMap, 'buildings' | 'gates'>): Map<string, Building[]> {
+  const buildings = map.buildings || [], parent = new Map<string, string>();
+  const find = (id: string): string => { const p = parent.get(id) ?? id; return p === id ? id : (parent.set(id, find(p)), parent.get(id)!); };
+  for (const gate of map.gates) {
+    const near = buildings.filter(b => gate.x < b.x + b.w + ROOF_EDGE && gate.x + gate.w > b.x - ROOF_EDGE
+      && gate.y < b.y + b.h + ROOF_EDGE && gate.y + gate.h > b.y - ROOF_EDGE);
+    for (const a of near) for (const b of near) if (a.id < b.id && abutting(a, b)) parent.set(find(b.id), find(a.id));
+  }
+  const members = new Map<string, Building[]>();
+  for (const b of buildings) { const root = find(b.id); (members.get(root) ?? members.set(root, []).get(root)!).push(b); }
+  const groups = new Map<string, Building[]>();
+  for (const list of members.values()) for (const b of list) groups.set(b.id, list);
+  return groups;
+}
+
+/** How far each side of a building's roof overhangs: none where a room of the same group abuts it. */
+export function roofOverhang(building: RoofBox, group: readonly RoofBox[]): Record<Side, number> {
+  const out: Record<Side, number> = { n: ROOF_OVERHANG, e: ROOF_OVERHANG, s: ROOF_OVERHANG, w: ROOF_OVERHANG };
+  for (const other of group) if (other.id !== building.id) { const side = abutting(building, other); if (side) out[side] = 0; }
+  return out;
+}
+
+/** Roof opacity target: gone for a viewer inside the group, fading toward the floor near an opening. */
+export function roofTargetAlpha(inside: boolean, openingDistance: number): number {
+  if (inside) return 0;
+  const near = Math.min(1, Math.max(0, 1 - openingDistance / ROOF_FADE_RANGE));
+  return 1 - (1 - ROOF_FADE_FLOOR) * near;
+}
+
+/** Nearest door or window of the group to a point, for the fade; Infinity when it has none. */
+export function openingDistance(map: Pick<GameMap, 'gates' | 'obstacles'>, group: readonly RoofBox[], point: Vec2): number {
+  const ids = new Set(group.map(b => b.id));
+  let best = Infinity;
+  const consider = (box: { x: number; y: number; w: number; h: number }) => {
+    const dx = Math.max(box.x - point.x, 0, point.x - box.x - box.w), dy = Math.max(box.y - point.y, 0, point.y - box.y - box.h);
+    best = Math.min(best, Math.hypot(dx, dy));
+  };
+  for (const g of map.gates) if (g.buildingId && ids.has(g.buildingId)) consider(g);
+  for (const o of map.obstacles) if (o.kind === 'window' && o.buildingId && ids.has(o.buildingId)) consider(o);
+  return best;
+}
