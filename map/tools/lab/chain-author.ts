@@ -165,8 +165,13 @@ let selectedId = "";
 type PaintTool = "paint" | "fill" | "rect";
 let selectedPaintTool: PaintTool = "paint";
 let activePopup: HTMLElement | null = null;
+let popupDismissListener: ((evt: MouseEvent) => void) | null = null;
 
 function closePopup(): void {
+  if (popupDismissListener) {
+    document.removeEventListener("pointerdown", popupDismissListener);
+    popupDismissListener = null;
+  }
   if (activePopup) {
     activePopup.remove();
     activePopup = null;
@@ -412,6 +417,35 @@ function classColor(name: string): string {
   if (name === "any") return "#34495e";
   return `hsl(${hash(name) % 360} 35% 38%)`;
 }
+function plotLine(
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+): Array<{ x: number; y: number }> {
+  const points: Array<{ x: number; y: number }> = [];
+  const dx = Math.abs(x1 - x0);
+  const dy = Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1;
+  const sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+  let cx = x0;
+  let cy = y0;
+  while (true) {
+    points.push({ x: cx, y: cy });
+    if (cx === x1 && cy === y1) break;
+    const e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      cx += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      cy += sy;
+    }
+  }
+  return points;
+}
 function tileCells(tile: ChainTileDesign): string[] {
   const oriented = orientDesign(tile, 0);
   return oriented.cells;
@@ -574,6 +608,10 @@ function renderTiles(root: HTMLElement): void {
   swatchesContainer.className = "chain-swatches";
 
   const swatchButtons: HTMLButtonElement[] = [];
+  const colGutterButtons: HTMLButtonElement[] = [];
+  const rowGutterButtons: HTMLButtonElement[] = [];
+  const patternButtons: Array<{ btn: HTMLButtonElement; desc: string }> = [];
+
   const updateSwatches = () => {
     for (const btn of swatchButtons) {
       btn.classList.toggle("active", btn.dataset.class === selectedCellClass);
@@ -583,6 +621,15 @@ function renderTiles(root: HTMLElement): void {
     ) as HTMLSelectElement | null;
     if (selectEl && selectEl.value !== selectedCellClass) {
       selectEl.value = selectedCellClass;
+    }
+    for (let x = 0; x < colGutterButtons.length; x++) {
+      colGutterButtons[x]!.title = `Paint column ${x} with ${selectedCellClass}`;
+    }
+    for (let y = 0; y < rowGutterButtons.length; y++) {
+      rowGutterButtons[y]!.title = `Paint row ${y} with ${selectedCellClass}`;
+    }
+    for (const pb of patternButtons) {
+      pb.btn.title = `${pb.desc} with ${selectedCellClass}`;
     }
   };
 
@@ -715,6 +762,7 @@ function renderTiles(root: HTMLElement): void {
       setCells(tile, getCoords(), selectedCellClass);
       changed();
     };
+    patternButtons.push({ btn: pb, desc: title });
     patternGroup.append(pb);
   }
 
@@ -757,6 +805,7 @@ function renderTiles(root: HTMLElement): void {
       setCells(tile, coords, selectedCellClass);
       changed();
     };
+    colGutterButtons.push(gb);
     colsGutter.append(gb);
   }
 
@@ -775,6 +824,7 @@ function renderTiles(root: HTMLElement): void {
       setCells(tile, coords, selectedCellClass);
       changed();
     };
+    rowGutterButtons.push(gb);
     rowsGutter.append(gb);
   }
 
@@ -805,16 +855,12 @@ function renderTiles(root: HTMLElement): void {
       button.textContent = cellVal;
       button.style.background = classColor(cellVal);
       button.title = `Cell ${x},${y} · ${cellVal}${cellVal === tile.defaultCellClass ? " (default)" : ""}`;
-      button.onclick = () => {
-        setCell(tile, x, y, selectedCellClass);
-        changed();
-      };
       cellButtons.set(`${x},${y}`, button);
       grid.append(button);
     }
 
   let isDragging = false;
-  let lastPainted = "";
+  let lastPaintedCoord: { x: number; y: number } | null = null;
   let rectStart: { x: number; y: number } | null = null;
 
   const updateGhost = (x0: number, y0: number, x1: number, y1: number) => {
@@ -901,7 +947,7 @@ function renderTiles(root: HTMLElement): void {
     if (selectedPaintTool === "paint") {
       e.preventDefault();
       isDragging = true;
-      lastPainted = `${x},${y}`;
+      lastPaintedCoord = { x, y };
       paintSingleCell(x, y);
       setCell(tile, x, y, selectedCellClass);
       try {
@@ -929,12 +975,19 @@ function renderTiles(root: HTMLElement): void {
       return;
     }
 
-    if (selectedPaintTool === "paint" && coords) {
-      const key = `${coords.x},${coords.y}`;
-      if (key !== lastPainted) {
-        lastPainted = key;
-        paintSingleCell(coords.x, coords.y);
-        setCell(tile, coords.x, coords.y, selectedCellClass);
+    if (selectedPaintTool === "paint" && coords && lastPaintedCoord) {
+      if (coords.x !== lastPaintedCoord.x || coords.y !== lastPaintedCoord.y) {
+        const line = plotLine(
+          lastPaintedCoord.x,
+          lastPaintedCoord.y,
+          coords.x,
+          coords.y,
+        );
+        for (const pt of line) {
+          paintSingleCell(pt.x, pt.y);
+          setCell(tile, pt.x, pt.y, selectedCellClass);
+        }
+        lastPaintedCoord = { x: coords.x, y: coords.y };
       }
     }
   });
@@ -968,7 +1021,7 @@ function renderTiles(root: HTMLElement): void {
 
     if (selectedPaintTool === "paint") {
       isDragging = false;
-      lastPainted = "";
+      lastPaintedCoord = null;
       try {
         grid.releasePointerCapture(e.pointerId);
       } catch {
@@ -1063,14 +1116,15 @@ function renderTiles(root: HTMLElement): void {
     document.body.append(popup);
     activePopup = popup;
 
-    const onDismiss = (evt: MouseEvent) => {
+    popupDismissListener = (evt: MouseEvent) => {
       if (!popup.contains(evt.target as Node)) {
         closePopup();
-        document.removeEventListener("pointerdown", onDismiss);
       }
     };
     setTimeout(() => {
-      document.addEventListener("pointerdown", onDismiss);
+      if (popupDismissListener) {
+        document.addEventListener("pointerdown", popupDismissListener);
+      }
     }, 0);
   });
 

@@ -498,6 +498,75 @@ try {
   assert.equal(stageTile.cells, undefined, "clearing painting removes cells");
   assert.equal(stageTile.legend, undefined, "clearing painting removes legend");
 
+  // Fill tool: flood fill stops at class boundaries
+  await page.locator('.chain-swatch-button[data-class="arrival"]').click();
+  await page.locator(".chain-gutter.cols button").nth(3).click();
+  await page.locator('.chain-tool-group button[data-tool="fill"]').click();
+  await page.locator('.chain-swatch-button[data-class="hut"]').click();
+  await page.locator('#chainGrid [data-cell="0,0"]').click();
+  stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  const hutMarkAfterFill = Object.entries(stageTile.legend ?? {}).find(
+    ([, v]) => v === "hut",
+  )?.[0];
+  const arrivalMarkAfterFill = Object.entries(stageTile.legend ?? {}).find(
+    ([, v]) => v === "arrival",
+  )?.[0];
+  assert.ok(hutMarkAfterFill, "hut mark exists in legend after fill");
+  assert.ok(arrivalMarkAfterFill, "arrival mark exists in legend after fill");
+  assert.equal(stageTile.cells[0][0], hutMarkAfterFill);
+  assert.equal(stageTile.cells[0][2], hutMarkAfterFill);
+  assert.equal(stageTile.cells[5][0], hutMarkAfterFill);
+  assert.equal(stageTile.cells[5][2], hutMarkAfterFill);
+  assert.equal(stageTile.cells[0][3], arrivalMarkAfterFill);
+  assert.equal(stageTile.cells[5][3], arrivalMarkAfterFill);
+  assert.equal(stageTile.cells[0][4], ".");
+  assert.equal(stageTile.cells[5][5], ".");
+
+  // Rect tool: reverse drag from bottom-right (4,4) to top-left (2,2)
+  await page.locator('.chain-tool-group button[data-tool="rect"]').click();
+  await page.locator('.chain-swatch-button[data-class="arrival"]').click();
+  const cell44 = page.locator('#chainGrid [data-cell="4,4"]');
+  const cell22 = page.locator('#chainGrid [data-cell="2,2"]');
+  const box44 = (await cell44.boundingBox())!;
+  const box22 = (await cell22.boundingBox())!;
+  await page.mouse.move(box44.x + box44.width / 2, box44.y + box44.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box22.x + box22.width / 2, box22.y + box22.height / 2);
+  await page.mouse.up();
+
+  stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  const arrivalMarkAfterRect = Object.entries(stageTile.legend ?? {}).find(
+    ([, v]) => v === "arrival",
+  )?.[0];
+  for (let ry = 2; ry <= 4; ry++) {
+    for (let rx = 2; rx <= 4; rx++) {
+      assert.equal(
+        stageTile.cells[ry][rx],
+        arrivalMarkAfterRect,
+        `cell ${rx},${ry} in rect is arrival`,
+      );
+    }
+  }
+  assert.equal(
+    stageTile.cells[1][1],
+    hutMarkAfterFill,
+    "cell 1,1 outside rect remains hut",
+  );
+
+  // Clear painting resets cells and legend
+  await page
+    .locator(".chain-tool-group button", { hasText: "Clear painting" })
+    .click();
+  stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  assert.equal(stageTile.cells, undefined, "clearing painting removes cells");
+  assert.equal(stageTile.legend, undefined, "clearing painting removes legend");
+
   // Restore chainDraft for subsequent class-deletion assertions
   await page.locator("#chainImport").setInputFiles([]);
   await page.locator("#chainImport").setInputFiles(chainPath);
