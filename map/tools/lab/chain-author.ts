@@ -459,36 +459,63 @@ function allPerimeterSegments(): string[] {
   }
   return keys;
 }
+function segmentDescriptor(key: string): { isPerimeter: boolean; line: number; offset: number } {
+  const [, rest] = key.split(":");
+  const [lineStr, offsetStr] = rest!.split(",");
+  const line = Number(lineStr);
+  const offset = Number(offsetStr);
+  const isPerimeter = line === 0 || line === CHAIN_TILE_SIZE;
+  return { isPerimeter, line, offset };
+}
+
+function segmentTooltip(key: string, tile: ChainTileDesign): string {
+  const { isPerimeter } = segmentDescriptor(key);
+  const p = tile.segments?.[key];
+  const passability = p?.passability ?? "unstated";
+  let tooltip = `Segment ${key} (${isPerimeter ? "perimeter" : "interior"}) · passability: ${passability}`;
+  if (isPerimeter && p?.adjacency) {
+    tooltip += ` · adjacency: ${p.adjacency}`;
+  }
+  return tooltip;
+}
+
+function setSegmentProp(
+  tile: ChainTileDesign,
+  key: string,
+  dimension: "adjacency" | "passability",
+  value: string | undefined,
+): void {
+  tile.segments ??= {};
+  const next = (tile.segments[key] ??= {});
+  if (value) {
+    if (dimension === "adjacency") {
+      next.adjacency = value;
+    } else {
+      next.passability = value as PassabilityPrescription;
+    }
+  } else {
+    delete next[dimension];
+  }
+  if (!Object.keys(next).length) delete tile.segments[key];
+  if (!Object.keys(tile.segments).length) delete tile.segments;
+}
+
 function setSegmentPassability(
   tile: ChainTileDesign,
   key: string,
   passability: PassabilityPrescription | undefined,
 ): void {
-  tile.segments ??= {};
-  const next = (tile.segments[key] ??= {});
-  if (passability) {
-    next.passability = passability;
-  } else {
-    delete next.passability;
-  }
-  if (!Object.keys(next).length) delete tile.segments[key];
-  if (!Object.keys(tile.segments).length) delete tile.segments;
+  setSegmentProp(tile, key, "passability", passability);
 }
+
 function setSegmentAdjacency(
   tile: ChainTileDesign,
   key: string,
   adjacency: string | undefined,
 ): void {
-  tile.segments ??= {};
-  const next = (tile.segments[key] ??= {});
-  if (adjacency) {
-    next.adjacency = adjacency;
-  } else {
-    delete next.adjacency;
-  }
-  if (!Object.keys(next).length) delete tile.segments[key];
-  if (!Object.keys(tile.segments).length) delete tile.segments;
+  setSegmentProp(tile, key, "adjacency", adjacency);
 }
+
 function applySegmentBrush(
   tile: ChainTileDesign,
   key: string,
@@ -496,6 +523,7 @@ function applySegmentBrush(
 ): void {
   setSegmentPassability(tile, key, brush === "unstated" ? undefined : brush);
 }
+
 function getNearestSegment(
   grid: HTMLElement,
   clientX: number,
@@ -509,7 +537,7 @@ function getNearestSegment(
   const hLine = Math.min(Math.max(Math.round(v), 0), CHAIN_TILE_SIZE);
   const dv = Math.abs(u - vLine);
   const dh = Math.abs(v - hLine);
-  if (Math.min(dv, dh) <= 0.5) {
+  if (Math.min(dv, dh) <= 0.25) {
     if (dv <= dh) {
       const offset = Math.min(Math.max(Math.floor(v), 0), CHAIN_TILE_SIZE - 1);
       return `v:${vLine},${offset}`;
@@ -520,14 +548,14 @@ function getNearestSegment(
   }
   return null;
 }
+
 function openSegmentPopup(
   clientX: number,
   clientY: number,
   key: string,
   tile: ChainTileDesign,
 ): void {
-  const line = Number(key.split(":")[1]!.split(",")[0]);
-  const isPerimeter = line === 0 || line === CHAIN_TILE_SIZE;
+  const { isPerimeter } = segmentDescriptor(key);
   const p = tile.segments?.[key] ?? {};
 
   const popup = document.createElement("div");
@@ -832,12 +860,6 @@ function renderTiles(root: HTMLElement): void {
     ["rect", "Rect", "Drag a box to fill covered cells"],
     ["segment", "Segments", "Click or drag across boundaries to stamp segment passability"],
   ];
-  const toolButtons: HTMLButtonElement[] = [];
-  const updateTools = () => {
-    for (const b of toolButtons) {
-      b.classList.toggle("active", b.dataset.tool === selectedPaintTool);
-    }
-  };
   for (const [t, label, title] of toolDefs) {
     const b = document.createElement("button");
     b.type = "button";
@@ -850,7 +872,6 @@ function renderTiles(root: HTMLElement): void {
       render();
     };
     toolGroup.append(b);
-    toolButtons.push(b);
   }
 
   const patternGroup = document.createElement("div");
@@ -998,7 +1019,7 @@ function renderTiles(root: HTMLElement): void {
     ],
     [
       "Clear Segments",
-      "Remove all segment prescriptions",
+      "Remove all segment prescriptions (both passability and perimeter adjacency)",
       (t) => {
         delete t.segments;
       },
@@ -1109,8 +1130,7 @@ function renderTiles(root: HTMLElement): void {
     btn: HTMLButtonElement,
     key: string,
   ) => {
-    const l = Number(key.split(":")[1]!.split(",")[0]);
-    const isPerimeter = l === 0 || l === CHAIN_TILE_SIZE;
+    const { isPerimeter } = segmentDescriptor(key);
     const p = tile.segments?.[key];
     const passability = p?.passability;
     const adjacency = p?.adjacency;
@@ -1140,12 +1160,7 @@ function renderTiles(root: HTMLElement): void {
       btn.append(dot);
     }
 
-    const perimeterLabel = isPerimeter ? "perimeter" : "interior";
-    let tooltip = `Segment ${key} (${perimeterLabel}) · passability: ${passability ?? "unstated"}`;
-    if (isPerimeter && adjacency) {
-      tooltip += ` · adjacency: ${adjacency}`;
-    }
-    btn.title = tooltip;
+    btn.title = segmentTooltip(key, tile);
   };
 
   for (const axis of ["v", "h"] as const) {
@@ -1336,12 +1351,7 @@ function renderTiles(root: HTMLElement): void {
     if (selectedPaintTool === "segment") {
       const segKey = getNearestSegment(grid, e.clientX, e.clientY);
       if (segKey) {
-        const p = tile.segments?.[segKey];
-        const lineVal = Number(segKey.split(":")[1]!.split(",")[0]);
-        const isPerim = lineVal === 0 || lineVal === CHAIN_TILE_SIZE;
-        let tooltip = `Segment ${segKey} (${isPerim ? "perimeter" : "interior"}) · passability: ${p?.passability ?? "unstated"}`;
-        if (isPerim && p?.adjacency) tooltip += ` · adjacency: ${p.adjacency}`;
-        hoverReadout.textContent = tooltip;
+        hoverReadout.textContent = segmentTooltip(segKey, tile);
       } else {
         hoverReadout.textContent = "";
       }
@@ -1577,19 +1587,16 @@ function renderTiles(root: HTMLElement): void {
       }
   root.append(segments);
   const prescription = tile.segments?.[selectedSegment] ?? {};
-  const line = Number(selectedSegment.split(":")[1]!.split(",")[0]);
-  const perimeter = line === 0 || line === CHAIN_TILE_SIZE;
+  const { isPerimeter: perimeter } = segmentDescriptor(selectedSegment);
   const controls = document.createElement("div");
   controls.className = "chain-segment-controls";
   const set = (dimension: keyof SegmentPrescription, value: string) => {
-    tile.segments ??= {};
-    const next = (tile.segments[selectedSegment] ??= {});
-    if (value) {
-      if (dimension === "adjacency") next.adjacency = value;
-      else next.passability = value as SegmentPrescription["passability"];
-    } else delete next[dimension];
-    if (!Object.keys(next).length) delete tile.segments[selectedSegment];
-    if (!Object.keys(tile.segments).length) delete tile.segments;
+    setSegmentProp(
+      tile,
+      selectedSegment,
+      dimension as "adjacency" | "passability",
+      value || undefined,
+    );
     changed();
   };
   const titleP = paragraph(`Selected ${selectedSegment}`);
@@ -1620,22 +1627,8 @@ function renderTiles(root: HTMLElement): void {
       (v) => set("passability", v),
       { "not-passable-hint": "Prefer occupied (hint)" },
     ),
-  );
-  const apertureLabel = document.createElement("label");
-  apertureLabel.textContent = "Open span / aperture";
-  const apertureInput = document.createElement("input");
-  apertureInput.id = "chainSegmentAperture";
-  apertureInput.type = "text";
-  apertureInput.placeholder = "0.25-0.75";
-  apertureInput.disabled = true;
-  apertureInput.value = "";
-  apertureInput.title =
-    "Aperture geometry is deferred to micro/region strategies in chain v3 (docs 52)";
-  apertureLabel.append(apertureInput);
-  controls.append(
-    apertureLabel,
     paragraph(
-      "Passable guarantees a crossing. Any is a written don't-care statement; two facing any statements guarantee a crossing. Prefer occupied is optional architectural guidance, never an impassability requirement. Physical aperture geometry is deferred in chain v3 (docs 52).",
+      "Passable guarantees a crossing. Any is a written don't-care statement; two facing any statements guarantee a crossing. Prefer occupied is optional architectural guidance, never an impassability requirement. A facing passable statement still guarantees a crossing; any facing this hint does not. Unspecified stays distinct from any. Open span / aperture geometry is deferred to micro/region strategies in chain v3 (docs 20.2, 52).",
     ),
   );
   root.append(controls);

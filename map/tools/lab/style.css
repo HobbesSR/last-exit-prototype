@@ -399,7 +399,7 @@ button.active {
   border: 0;
   padding: 0;
   border-radius: 2px;
-  pointer-events: auto;
+  pointer-events: none;
   cursor: pointer;
   z-index: 10;
   opacity: 0.92;
@@ -412,6 +412,9 @@ button.active {
 .chain-stage-segment.h {
   height: 8px;
   transform: translateY(-50%);
+}
+.chain-tile-stage.mode-segment .chain-stage-segment {
+  pointer-events: auto;
 }
 .chain-tile-stage.mode-segment .chain-stage-segment.v {
   width: 12px;
