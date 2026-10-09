@@ -23,6 +23,7 @@
     "test:mapgen": "npm --prefix map/macro test",
     "micro": "node tools/micro-region.mjs",
     "decompose": "node tools/decompose-region.mjs",
+    "fill": "node tools/builder-fill.mjs",
     "forgejo:usage": "node tools/forgejo-usage.mjs"
   },
   "dependencies": {
