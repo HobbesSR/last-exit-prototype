@@ -162,6 +162,24 @@ try {
 let selectedSegment = "v:3,2";
 let selectedCellClass = "hut";
 let selectedId = "";
+type PaintTool = "paint" | "fill" | "rect";
+let selectedPaintTool: PaintTool = "paint";
+let activePopup: HTMLElement | null = null;
+let popupDismissListener: ((evt: MouseEvent) => void) | null = null;
+
+function closePopup(): void {
+  if (popupDismissListener) {
+    document.removeEventListener("pointerdown", popupDismissListener);
+    popupDismissListener = null;
+  }
+  if (activePopup) {
+    activePopup.remove();
+    activePopup = null;
+  }
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closePopup();
+});
 
 function section(): Section {
   return select("chainSection").value as Section;
@@ -391,18 +409,48 @@ function renderClasses(root: HTMLElement): void {
   };
   root.append(add, coreFields(entry));
 }
+function hash(s: unknown): number {
+  return [...String(s)].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 0);
+}
+function classColor(name: string): string {
+  if (name === "open") return "#5a6268";
+  if (name === "any") return "#34495e";
+  return `hsl(${hash(name) % 360} 35% 38%)`;
+}
+function plotLine(
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+): Array<{ x: number; y: number }> {
+  const points: Array<{ x: number; y: number }> = [];
+  const dx = Math.abs(x1 - x0);
+  const dy = Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1;
+  const sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy;
+  let cx = x0;
+  let cy = y0;
+  while (true) {
+    points.push({ x: cx, y: cy });
+    if (cx === x1 && cy === y1) break;
+    const e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      cx += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      cy += sy;
+    }
+  }
+  return points;
+}
 function tileCells(tile: ChainTileDesign): string[] {
   const oriented = orientDesign(tile, 0);
   return oriented.cells;
 }
-function setCell(
-  tile: ChainTileDesign,
-  x: number,
-  y: number,
-  value: string,
-): void {
-  const cells = tileCells(tile);
-  cells[y * CHAIN_TILE_SIZE + x] = value;
+function updateTileCells(tile: ChainTileDesign, cells: string[]): void {
   const classes = [
     ...new Set(cells.filter((id) => id !== tile.defaultCellClass)),
   ];
@@ -420,6 +468,65 @@ function setCell(
   );
   if (classes.length) tile.legend = legend;
   else delete tile.legend;
+}
+function setCell(
+  tile: ChainTileDesign,
+  x: number,
+  y: number,
+  value: string,
+): void {
+  const cells = tileCells(tile);
+  cells[y * CHAIN_TILE_SIZE + x] = value;
+  updateTileCells(tile, cells);
+}
+function setCells(
+  tile: ChainTileDesign,
+  coords: Array<{ x: number; y: number }>,
+  value: string,
+): void {
+  const cells = tileCells(tile);
+  for (const { x, y } of coords) {
+    cells[y * CHAIN_TILE_SIZE + x] = value;
+  }
+  updateTileCells(tile, cells);
+}
+function floodFill(
+  tile: ChainTileDesign,
+  startX: number,
+  startY: number,
+  value: string,
+): void {
+  const cells = tileCells(tile);
+  const target = cells[startY * CHAIN_TILE_SIZE + startX];
+  if (target === value) return;
+  const queue: Array<[number, number]> = [[startX, startY]];
+  const seen = new Set<string>([`${startX},${startY}`]);
+  while (queue.length > 0) {
+    const [x, y] = queue.shift()!;
+    cells[y * CHAIN_TILE_SIZE + x] = value;
+    for (const [dx, dy] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ] as const) {
+      const nx = x + dx,
+        ny = y + dy;
+      if (
+        nx >= 0 &&
+        nx < CHAIN_TILE_SIZE &&
+        ny >= 0 &&
+        ny < CHAIN_TILE_SIZE
+      ) {
+        const key = `${nx},${ny}`;
+        if (!seen.has(key) && cells[ny * CHAIN_TILE_SIZE + nx] === target) {
+          seen.add(key);
+          queue.push([nx, ny]);
+        }
+      }
+    }
+  }
+  updateTileCells(tile, cells);
 }
 function renderTiles(root: HTMLElement): void {
   const tile = current() as ChainTileDesign;
@@ -489,31 +596,542 @@ function renderTiles(root: HTMLElement): void {
       "number",
     ),
   );
-  root.append(
-    heading("Paint cells"),
-    choice("Brush class", "chainCellBrush", classes, selectedCellClass, (v) => {
+  root.append(heading("Paint cells"));
+
+  const palette = document.createElement("div");
+  palette.className = "chain-paint-palette";
+
+  const swatchRow = document.createElement("div");
+  swatchRow.className = "chain-palette-row";
+
+  const swatchesContainer = document.createElement("div");
+  swatchesContainer.className = "chain-swatches";
+
+  const swatchButtons: HTMLButtonElement[] = [];
+  const colGutterButtons: HTMLButtonElement[] = [];
+  const rowGutterButtons: HTMLButtonElement[] = [];
+  const patternButtons: Array<{ btn: HTMLButtonElement; desc: string }> = [];
+
+  const updateSwatches = () => {
+    for (const btn of swatchButtons) {
+      btn.classList.toggle("active", btn.dataset.class === selectedCellClass);
+    }
+    const selectEl = document.getElementById(
+      "chainCellBrush",
+    ) as HTMLSelectElement | null;
+    if (selectEl && selectEl.value !== selectedCellClass) {
+      selectEl.value = selectedCellClass;
+    }
+    for (let x = 0; x < colGutterButtons.length; x++) {
+      colGutterButtons[x]!.title = `Paint column ${x} with ${selectedCellClass}`;
+    }
+    for (let y = 0; y < rowGutterButtons.length; y++) {
+      rowGutterButtons[y]!.title = `Paint row ${y} with ${selectedCellClass}`;
+    }
+    for (const pb of patternButtons) {
+      pb.btn.title = `${pb.desc} with ${selectedCellClass}`;
+    }
+  };
+
+  for (const c of classes) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chain-swatch-button";
+    btn.dataset.class = c;
+    btn.classList.toggle("active", c === selectedCellClass);
+    const dot = document.createElement("span");
+    dot.className = "swatch";
+    dot.style.background = classColor(c);
+    const label = document.createElement("span");
+    label.textContent = c;
+    btn.append(dot, label);
+    btn.onclick = () => {
+      selectedCellClass = c;
+      updateSwatches();
+    };
+    swatchesContainer.append(btn);
+    swatchButtons.push(btn);
+  }
+
+  const brushSelect = choice(
+    "Brush class",
+    "chainCellBrush",
+    classes,
+    selectedCellClass,
+    (v) => {
       selectedCellClass = v;
-    }),
+      updateSwatches();
+    },
   );
+
+  swatchRow.append(brushSelect, swatchesContainer);
+
+  const toolsRow = document.createElement("div");
+  toolsRow.className = "chain-palette-row";
+
+  const toolGroup = document.createElement("div");
+  toolGroup.className = "chain-tool-group";
+  const toolDefs: Array<[PaintTool, string, string]> = [
+    ["paint", "Paint", "Click or drag to apply the active brush"],
+    ["fill", "Fill", "Flood-fill connected cells of matching class"],
+    ["rect", "Rect", "Drag a box to fill covered cells"],
+  ];
+  const toolButtons: HTMLButtonElement[] = [];
+  const updateTools = () => {
+    for (const b of toolButtons) {
+      b.classList.toggle("active", b.dataset.tool === selectedPaintTool);
+    }
+  };
+  for (const [t, label, title] of toolDefs) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.tool = t;
+    b.textContent = label;
+    b.title = title;
+    b.classList.toggle("active", t === selectedPaintTool);
+    b.onclick = () => {
+      selectedPaintTool = t;
+      updateTools();
+    };
+    toolGroup.append(b);
+    toolButtons.push(b);
+  }
+
+  const patternGroup = document.createElement("div");
+  patternGroup.className = "chain-tool-group";
+  const patternDefs: Array<
+    [string, string, () => Array<{ x: number; y: number }>]
+  > = [
+    [
+      "Perimeter",
+      "Outer ring of 20 perimeter cells",
+      () => {
+        const out: Array<{ x: number; y: number }> = [];
+        for (let y = 0; y < CHAIN_TILE_SIZE; y++)
+          for (let x = 0; x < CHAIN_TILE_SIZE; x++)
+            if (
+              x === 0 ||
+              y === 0 ||
+              x === CHAIN_TILE_SIZE - 1 ||
+              y === CHAIN_TILE_SIZE - 1
+            )
+              out.push({ x, y });
+        return out;
+      },
+    ],
+    [
+      "Interior",
+      "Inner 4 × 4 cells",
+      () => {
+        const out: Array<{ x: number; y: number }> = [];
+        for (let y = 1; y < CHAIN_TILE_SIZE - 1; y++)
+          for (let x = 1; x < CHAIN_TILE_SIZE - 1; x++)
+            out.push({ x, y });
+        return out;
+      },
+    ],
+    [
+      "Checker",
+      "Alternating cells",
+      () => {
+        const out: Array<{ x: number; y: number }> = [];
+        for (let y = 0; y < CHAIN_TILE_SIZE; y++)
+          for (let x = 0; x < CHAIN_TILE_SIZE; x++)
+            if ((x + y) % 2 === 0) out.push({ x, y });
+        return out;
+      },
+    ],
+    [
+      "Fill all",
+      "All 36 cells",
+      () => {
+        const out: Array<{ x: number; y: number }> = [];
+        for (let y = 0; y < CHAIN_TILE_SIZE; y++)
+          for (let x = 0; x < CHAIN_TILE_SIZE; x++)
+            out.push({ x, y });
+        return out;
+      },
+    ],
+  ];
+  for (const [lbl, title, getCoords] of patternDefs) {
+    const pb = document.createElement("button");
+    pb.type = "button";
+    pb.textContent = lbl;
+    pb.title = `${title} with ${selectedCellClass}`;
+    pb.onclick = () => {
+      setCells(tile, getCoords(), selectedCellClass);
+      changed();
+    };
+    patternButtons.push({ btn: pb, desc: title });
+    patternGroup.append(pb);
+  }
+
+  const clearBtn = document.createElement("button");
+  clearBtn.type = "button";
+  clearBtn.textContent = "Clear painting";
+  clearBtn.title = "Reset all cells to default cell class";
+  clearBtn.onclick = () => {
+    delete tile.cells;
+    delete tile.legend;
+    changed();
+  };
+  patternGroup.append(clearBtn);
+
+  toolsRow.append(toolGroup, patternGroup);
+  palette.append(swatchRow, toolsRow);
+
+  root.append(
+    palette,
+    paragraph(
+      "Click or drag to apply the active brush · Alt-click to eyedropper sample · Right-click for quick palette · Gutter buttons cover a whole row or column.",
+    ),
+  );
+
+  const stage = document.createElement("div");
+  stage.className = "chain-tile-stage";
+
+  const colsGutter = document.createElement("div");
+  colsGutter.className = "chain-gutter cols";
+  for (let x = 0; x < CHAIN_TILE_SIZE; x++) {
+    const gb = document.createElement("button");
+    gb.type = "button";
+    gb.textContent = String(x);
+    gb.title = `Paint column ${x} with ${selectedCellClass}`;
+    gb.onclick = () => {
+      const coords = Array.from({ length: CHAIN_TILE_SIZE }, (_, y) => ({
+        x,
+        y,
+      }));
+      setCells(tile, coords, selectedCellClass);
+      changed();
+    };
+    colGutterButtons.push(gb);
+    colsGutter.append(gb);
+  }
+
+  const rowsGutter = document.createElement("div");
+  rowsGutter.className = "chain-gutter rows";
+  for (let y = 0; y < CHAIN_TILE_SIZE; y++) {
+    const gb = document.createElement("button");
+    gb.type = "button";
+    gb.textContent = String(y);
+    gb.title = `Paint row ${y} with ${selectedCellClass}`;
+    gb.onclick = () => {
+      const coords = Array.from({ length: CHAIN_TILE_SIZE }, (_, x) => ({
+        x,
+        y,
+      }));
+      setCells(tile, coords, selectedCellClass);
+      changed();
+    };
+    rowGutterButtons.push(gb);
+    rowsGutter.append(gb);
+  }
+
   const grid = document.createElement("div");
   grid.id = "chainGrid";
   grid.className = "chain-grid";
+
+  const ghost = document.createElement("div");
+  ghost.className = "chain-rect-ghost";
+  ghost.hidden = true;
+  grid.append(ghost);
+
+  const hoverReadout = document.createElement("div");
+  hoverReadout.className = "chain-hover-readout";
+
   const cells = tileCells(tile);
+  const cellButtons: Map<string, HTMLButtonElement> = new Map();
+
   for (let y = 0; y < CHAIN_TILE_SIZE; y++)
     for (let x = 0; x < CHAIN_TILE_SIZE; x++) {
+      const cellVal = cells[y * CHAIN_TILE_SIZE + x]!;
       const button = document.createElement("button");
       button.type = "button";
+      button.className = "chain-cell";
       button.dataset.cell = `${x},${y}`;
-      button.textContent = cells[y * CHAIN_TILE_SIZE + x]!;
-      button.title = `Cell ${x},${y}`;
-      button.onclick = () => {
-        setCell(tile, x, y, selectedCellClass);
-        changed();
-      };
+      button.dataset.x = String(x);
+      button.dataset.y = String(y);
+      button.textContent = cellVal;
+      button.style.background = classColor(cellVal);
+      button.title = `Cell ${x},${y} · ${cellVal}${cellVal === tile.defaultCellClass ? " (default)" : ""}`;
+      cellButtons.set(`${x},${y}`, button);
       grid.append(button);
     }
+
+  let isDragging = false;
+  let lastPaintedCoord: { x: number; y: number } | null = null;
+  let rectStart: { x: number; y: number } | null = null;
+
+  const updateGhost = (x0: number, y0: number, x1: number, y1: number) => {
+    const minX = Math.min(x0, x1);
+    const maxX = Math.max(x0, x1);
+    const minY = Math.min(y0, y1);
+    const maxY = Math.max(y0, y1);
+    ghost.style.left = `${(minX / CHAIN_TILE_SIZE) * 100}%`;
+    ghost.style.top = `${(minY / CHAIN_TILE_SIZE) * 100}%`;
+    ghost.style.width = `${((maxX - minX + 1) / CHAIN_TILE_SIZE) * 100}%`;
+    ghost.style.height = `${((maxY - minY + 1) / CHAIN_TILE_SIZE) * 100}%`;
+    ghost.hidden = false;
+  };
+
+  const getCellCoords = (
+    e: PointerEvent | MouseEvent,
+  ): { x: number; y: number } | null => {
+    const target = (e.target as HTMLElement | null)?.closest?.(
+      "[data-cell]",
+    ) as HTMLElement | null;
+    if (target?.dataset.cell) {
+      const [cx, cy] = target.dataset.cell.split(",").map(Number);
+      if (cx !== undefined && cy !== undefined) return { x: cx, y: cy };
+    }
+    const r = grid.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return null;
+    const u = Math.floor(
+      ((e.clientX - r.left) / r.width) * CHAIN_TILE_SIZE,
+    );
+    const v = Math.floor(
+      ((e.clientY - r.top) / r.height) * CHAIN_TILE_SIZE,
+    );
+    if (u >= 0 && u < CHAIN_TILE_SIZE && v >= 0 && v < CHAIN_TILE_SIZE) {
+      return { x: u, y: v };
+    }
+    return null;
+  };
+
+  const paintSingleCell = (x: number, y: number) => {
+    cells[y * CHAIN_TILE_SIZE + x] = selectedCellClass;
+    const btn = cellButtons.get(`${x},${y}`);
+    if (btn) {
+      btn.textContent = selectedCellClass;
+      btn.style.background = classColor(selectedCellClass);
+      btn.title = `Cell ${x},${y} · ${selectedCellClass}${selectedCellClass === tile.defaultCellClass ? " (default)" : ""}`;
+    }
+  };
+
+  grid.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    closePopup();
+    const coords = getCellCoords(e);
+    if (!coords) return;
+    const { x, y } = coords;
+
+    if (e.altKey) {
+      e.preventDefault();
+      const sampled = cells[y * CHAIN_TILE_SIZE + x]!;
+      selectedCellClass = sampled;
+      updateSwatches();
+      return;
+    }
+
+    if (selectedPaintTool === "fill") {
+      e.preventDefault();
+      floodFill(tile, x, y, selectedCellClass);
+      changed();
+      return;
+    }
+
+    if (selectedPaintTool === "rect") {
+      e.preventDefault();
+      isDragging = true;
+      rectStart = { x, y };
+      updateGhost(x, y, x, y);
+      try {
+        grid.setPointerCapture(e.pointerId);
+      } catch {
+        /* pointer capture optional */
+      }
+      return;
+    }
+
+    if (selectedPaintTool === "paint") {
+      e.preventDefault();
+      isDragging = true;
+      lastPaintedCoord = { x, y };
+      paintSingleCell(x, y);
+      setCell(tile, x, y, selectedCellClass);
+      try {
+        grid.setPointerCapture(e.pointerId);
+      } catch {
+        /* pointer capture optional */
+      }
+    }
+  });
+
+  grid.addEventListener("pointermove", (e) => {
+    const coords = getCellCoords(e);
+    if (coords) {
+      const { x, y } = coords;
+      const cur = cells[y * CHAIN_TILE_SIZE + x] ?? tile.defaultCellClass;
+      hoverReadout.textContent = `Cell ${x},${y} · ${cur}${cur === tile.defaultCellClass ? " (default)" : ""}`;
+    } else {
+      hoverReadout.textContent = "";
+    }
+
+    if (!isDragging) return;
+
+    if (selectedPaintTool === "rect" && rectStart && coords) {
+      updateGhost(rectStart.x, rectStart.y, coords.x, coords.y);
+      return;
+    }
+
+    if (selectedPaintTool === "paint" && coords && lastPaintedCoord) {
+      if (coords.x !== lastPaintedCoord.x || coords.y !== lastPaintedCoord.y) {
+        const line = plotLine(
+          lastPaintedCoord.x,
+          lastPaintedCoord.y,
+          coords.x,
+          coords.y,
+        );
+        for (const pt of line) {
+          paintSingleCell(pt.x, pt.y);
+          setCell(tile, pt.x, pt.y, selectedCellClass);
+        }
+        lastPaintedCoord = { x: coords.x, y: coords.y };
+      }
+    }
+  });
+
+  const onPointerEnd = (e: PointerEvent) => {
+    if (!isDragging) return;
+    if (selectedPaintTool === "rect" && rectStart) {
+      const coords = getCellCoords(e) ?? rectStart;
+      const minX = Math.min(rectStart.x, coords.x);
+      const maxX = Math.max(rectStart.x, coords.x);
+      const minY = Math.min(rectStart.y, coords.y);
+      const maxY = Math.max(rectStart.y, coords.y);
+      const toPaint: Array<{ x: number; y: number }> = [];
+      for (let cy = minY; cy <= maxY; cy++) {
+        for (let cx = minX; cx <= maxX; cx++) {
+          toPaint.push({ x: cx, y: cy });
+        }
+      }
+      setCells(tile, toPaint, selectedCellClass);
+      ghost.hidden = true;
+      rectStart = null;
+      isDragging = false;
+      try {
+        grid.releasePointerCapture(e.pointerId);
+      } catch {
+        /* release optional */
+      }
+      changed();
+      return;
+    }
+
+    if (selectedPaintTool === "paint") {
+      isDragging = false;
+      lastPaintedCoord = null;
+      try {
+        grid.releasePointerCapture(e.pointerId);
+      } catch {
+        /* release optional */
+      }
+      changed();
+    }
+  };
+
+  grid.addEventListener("pointerup", onPointerEnd);
+  grid.addEventListener("pointercancel", onPointerEnd);
+  grid.addEventListener("pointerleave", () => {
+    hoverReadout.textContent = "";
+  });
+
+  grid.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    closePopup();
+    const coords = getCellCoords(e);
+    if (!coords) return;
+    const { x, y } = coords;
+    const currentClass = cells[y * CHAIN_TILE_SIZE + x]!;
+
+    const popup = document.createElement("div");
+    popup.className = "chain-popup";
+    popup.style.left = `${e.clientX + 4}px`;
+    popup.style.top = `${e.clientY + 4}px`;
+
+    const title = document.createElement("h4");
+    title.textContent = `Cell ${x},${y} (${currentClass})`;
+    popup.append(title);
+
+    const pickBtn = document.createElement("button");
+    pickBtn.type = "button";
+    pickBtn.textContent = `Pick up "${currentClass}"`;
+    pickBtn.onclick = () => {
+      selectedCellClass = currentClass;
+      updateSwatches();
+      closePopup();
+    };
+    popup.append(pickBtn, document.createElement("hr"));
+
+    const swatchContainer = document.createElement("div");
+    swatchContainer.className = "row";
+    for (const c of classes) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.classList.toggle("active", c === currentClass);
+      const dot = document.createElement("span");
+      dot.className = "swatch";
+      dot.style.background = classColor(c);
+      const span = document.createElement("span");
+      span.textContent = c;
+      b.append(dot, span);
+      b.onclick = () => {
+        selectedCellClass = c;
+        setCell(tile, x, y, c);
+        closePopup();
+        changed();
+      };
+      swatchContainer.append(b);
+    }
+    popup.append(swatchContainer, document.createElement("hr"));
+
+    const fillRowBtn = document.createElement("button");
+    fillRowBtn.type = "button";
+    fillRowBtn.textContent = `Fill row ${y} with ${selectedCellClass}`;
+    fillRowBtn.onclick = () => {
+      const rowCoords = Array.from(
+        { length: CHAIN_TILE_SIZE },
+        (_, cx) => ({ x: cx, y }),
+      );
+      setCells(tile, rowCoords, selectedCellClass);
+      closePopup();
+      changed();
+    };
+
+    const fillColBtn = document.createElement("button");
+    fillColBtn.type = "button";
+    fillColBtn.textContent = `Fill col ${x} with ${selectedCellClass}`;
+    fillColBtn.onclick = () => {
+      const colCoords = Array.from(
+        { length: CHAIN_TILE_SIZE },
+        (_, cy) => ({ x, y: cy }),
+      );
+      setCells(tile, colCoords, selectedCellClass);
+      closePopup();
+      changed();
+    };
+
+    popup.append(fillRowBtn, fillColBtn);
+    document.body.append(popup);
+    activePopup = popup;
+
+    popupDismissListener = (evt: MouseEvent) => {
+      if (!popup.contains(evt.target as Node)) {
+        closePopup();
+      }
+    };
+    setTimeout(() => {
+      if (popupDismissListener) {
+        document.addEventListener("pointerdown", popupDismissListener);
+      }
+    }, 0);
+  });
+
+  stage.append(colsGutter, rowsGutter, grid);
   root.append(
-    grid,
+    stage,
+    hoverReadout,
     heading("Segment prescriptions"),
     paragraph(
       "Select any interior or perimeter segment. Adjacency is available only on the perimeter. Written any remains distinct from an unstated field.",
@@ -865,6 +1483,7 @@ function changed(): void {
   render();
 }
 function render(): void {
+  closePopup();
   const names = entries();
   if (!names.includes(selectedId)) selectedId = names[0] ?? "";
   select("chainItem").replaceChildren(...names.map((id) => option(id)));
