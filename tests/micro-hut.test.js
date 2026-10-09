@@ -30,7 +30,6 @@ const house = result => result.elements.find(element => element.template.enclose
 const blockers = (result, doors = false) => result.elements.flatMap(element => elementShapes(element, doors));
 
 test('small regions use a house with a reachable outside door', () => {
-  const sides = new Set();
   for (const [w, h] of [[6, 6], [7, 7], [7, 6], [6, 7]]) for (const cellSize of [1, 7, 40, 53]) for (let seed = 1; seed <= 16; seed++) {
     const cells = cellsOf(w, h);
     const result = buildRegion({ id: 'one-space', seed, type: 'hut', cellSize, cells, zones: [{ tier: 3, bonus: 0, lootChance: 0.5, cells }],
@@ -40,11 +39,21 @@ test('small regions use a house with a reachable outside door', () => {
     assert.deepEqual(validatePortalReach({ ...result.brief, blockers: blockers(result) }).errors, []);
     assert.ok(building.template.parts.some(part => part.part === 'gate'));
     assert.ok(building.template.parts.some(part => part.kind === 'window'));
-    const gate = building.template.parts.find(part => part.part === 'gate');
-    sides.add(gate.x < cellSize ? 'W' : gate.x > 3 * cellSize ? 'E' : gate.y < cellSize ? 'N' : 'S');
     assert.deepEqual(buildRegion({ ...result.brief, cells: [...cells].reverse() }).elements, result.elements);
   }
-  assert.ok(sides.size >= 3, 'the seed chooses among multiple door orientations');
+});
+
+test('one-space houses retain all four outside door orientations', () => {
+  const sides = new Set();
+  for (const [w, h] of [[5, 6], [6, 5]]) for (let seed = 1; seed <= 16; seed++) {
+    const input = brief('one-space-doors', seed, cellsOf(w, h), []);
+    const building = house(buildRegion(input));
+    assert.ok(building);
+    const gate = building.template.parts.find(part => part.part === 'gate');
+    assert.ok(gate);
+    sides.add(gate.x < SIZE ? 'W' : gate.x > building.template.w - SIZE ? 'E' : gate.y < SIZE ? 'N' : 'S');
+  }
+  assert.deepEqual([...sides].sort(), ['E', 'N', 'S', 'W']);
 });
 
 test('a hut region keeps the portal promise over seeds and masks', () => {
