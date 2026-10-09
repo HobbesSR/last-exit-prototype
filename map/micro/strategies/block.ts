@@ -145,11 +145,17 @@ export function planBlock(brief: RegionBrief): BlockPlan {
     return true;
   };
   const corners = (lot: Box) => CORNERS.filter(corner => corner.every(side => frontageFits(lot, side)));
-  const lots = parts.map(part => CORNERS.map(attach => largestRectangle({ cellSize: 1, bounds: part, has: (x, y) => inner(x, y, attach) }, MIN_LOT))
-    .filter((lot): lot is Box => !!lot && safeAttachment(lot) && corners(lot).length > 0)
-    .sort((a, b) => Number((['N', 'E', 'S', 'W'] as Side[]).some(side => hintedSide(b, side)))
-      - Number((['N', 'E', 'S', 'W'] as Side[]).some(side => hintedSide(a, side))) || b.w * b.h - a.w * a.h || a.y - b.y || a.x - b.x)[0])
-    .filter((lot): lot is Box => !!lot && safeAttachment(lot) && corners(lot).length > 0).sort((a, b) => a.y - b.y || a.x - b.x);
+  const hasHintedSide = (lot: Box) => (['N', 'E', 'S', 'W'] as Side[]).some(side => hintedSide(lot, side));
+  const lotForPart = (part: Box): Box | undefined => {
+    const candidates = CORNERS.map(attach => largestRectangle({ cellSize: 1, bounds: part,
+      has: (x, y) => inner(x, y, attach) }, MIN_LOT))
+      .filter((lot): lot is Box => !!lot && safeAttachment(lot) && corners(lot).length > 0);
+    candidates.sort((a, b) => Number(hasHintedSide(b)) - Number(hasHintedSide(a))
+      || b.w * b.h - a.w * a.h || a.y - b.y || a.x - b.x);
+    return candidates[0];
+  };
+  const lots = parts.map(lotForPart).filter((lot): lot is Box => !!lot)
+    .sort((a, b) => a.y - b.y || a.x - b.x);
 
   const taken = new Set(brief.portals.map(portal => portal.id));
   const unique = (id: string) => { while (taken.has(id)) id += '+'; taken.add(id); return id; };

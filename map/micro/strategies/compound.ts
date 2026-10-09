@@ -117,6 +117,10 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
       if (gateSteps.length < gates) continue;
       const start = entrances[0] ?? mask.cells.find(c => fits(c.x, c.y));
       if (!start || !fits(start.x, start.y)) continue;
+      // This flood belongs only to this candidate box: each node is an owned 2x2
+      // hunter stand outside it, and adjacent nodes sweep an owned 2x3 rectangle.
+      // Sharing that reached set among portals and gate steps is safe while the box
+      // is fixed; the next candidate recomputes it instead of reusing yard evidence.
       const reached = new Set([key(start.x, start.y)]), queue = [start];
       for (let head = 0; head < queue.length; head++) {
         const { x, y } = queue[head]!;

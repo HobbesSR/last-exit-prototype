@@ -68,7 +68,10 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
   const mask = createRegionMask(brief), size = brief.cellSize;
   const stands = portalStands(brief, mask), radius = hunterClearance(size);
   // Only accepted pieces remain in `elements`, so each trial extends the accepted
-  // blocker prefix. A piece off all cached swept routes cannot invalidate that proof.
+  // blocker prefix. Cached capsules cover actual hunter sweeps: the portal tree plus
+  // each portal's joined stands proves connectivity. A new piece disjoint from every
+  // capsule cannot break those routes; affected routes are searched against all blockers.
+  // Rejected trials leave both the accepted prefix and its proof unchanged.
   type Evidence = { a: Point; b: Point; swept: Shape[] };
   let acceptedCount = 0, proof: Evidence[] | undefined;
   const evidence = (points: Point[]): Evidence => ({ a: points[0]!, b: points[points.length - 1]!,
