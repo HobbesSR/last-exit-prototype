@@ -326,6 +326,18 @@ function rename(next: string): void {
     status(`Name must be unique and nonempty: ${next}`);
     return;
   }
+  if (section() === "tiles") {
+    const setsUsing = library.tileSets
+      .filter((s) => s.members.includes(old))
+      .map((s) => s.id);
+    if (setsUsing.length) {
+      const msg = `Rename tile design "${old}" to "${next}"? It is referenced in tile set(s): ${setsUsing.join(", ")}. References will be updated automatically.`;
+      if (!confirm(msg)) {
+        render();
+        return;
+      }
+    }
+  }
   if (section() === "classes") {
     library.cellClasses[next] = library.cellClasses[old]!;
     delete library.cellClasses[old];
@@ -2089,74 +2101,33 @@ function add(): void {
   selectedId = id;
   changed();
 }
+function uniqueId(base: string, exists: (id: string) => boolean): string {
+  let n = 1;
+  while (exists(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
+}
+
 function clone(): void {
   if (!selectedId) return;
-  if (section() === "tiles") {
-    const found = library.tiles.find((t) => t.id === selectedId);
-    if (!found) return;
-    const copy = structuredClone(found);
-    const base = copy.id;
-    let n = 1;
-    while (library.tiles.some((t) => t.id === `${base}-${n}`)) n++;
-    copy.id = `${base}-${n}`;
-    library.tiles.push(copy);
-    selectedId = copy.id;
-    changed();
-    return;
-  }
-  if (section() === "tileSets") {
-    const found = library.tileSets.find((t) => t.id === selectedId);
-    if (!found) return;
-    const copy = structuredClone(found);
-    const base = copy.id;
-    let n = 1;
-    while (library.tileSets.some((t) => t.id === `${base}-${n}`)) n++;
-    copy.id = `${base}-${n}`;
-    library.tileSets.push(copy);
-    selectedId = copy.id;
-    changed();
-    return;
-  }
-  if (section() === "setPieces") {
-    const found = library.setPieces.find((t) => t.id === selectedId);
-    if (!found) return;
-    const copy = structuredClone(found);
-    const base = copy.id;
-    let n = 1;
-    while (library.setPieces.some((t) => t.id === `${base}-${n}`)) n++;
-    copy.id = `${base}-${n}`;
-    library.setPieces.push(copy);
-    selectedId = copy.id;
-    changed();
-    return;
-  }
-  if (section() === "setPieceClasses") {
-    const found = library.setPieceClasses.find((t) => t.id === selectedId);
-    if (!found) return;
-    const copy = structuredClone(found);
-    const base = copy.id;
-    let n = 1;
-    while (library.setPieceClasses.some((t) => t.id === `${base}-${n}`)) n++;
-    copy.id = `${base}-${n}`;
-    library.setPieceClasses.push(copy);
-    selectedId = copy.id;
-    changed();
-    return;
-  }
   if (section() === "classes") {
     const found = library.cellClasses[selectedId];
     if (!found) return;
     const copy = structuredClone(found);
-    const base = selectedId;
-    let n = 1;
-    while (library.cellClasses[`${base}-${n}`]) n++;
-    const newId = `${base}-${n}`;
+    const newId = uniqueId(selectedId, (id) => id in library.cellClasses);
     copy.regionType = newId;
     library.cellClasses[newId] = copy;
     selectedId = newId;
     changed();
     return;
   }
+  const items = list();
+  const found = items.find((t) => t.id === selectedId);
+  if (!found) return;
+  const copy = structuredClone(found);
+  copy.id = uniqueId(copy.id, (id) => items.some((t) => t.id === id));
+  items.push(copy);
+  selectedId = copy.id;
+  changed();
 }
 function remove(): void {
   if (!selectedId) return;

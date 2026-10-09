@@ -805,13 +805,14 @@ try {
     "clearing filter restores all tile cards",
   );
 
-  // 4. Duplicate / Clone tile
-  await page.locator("#cloneTemplate").click();
+  // 4. Duplicate / Clone tile while filter is active
+  await page.locator("#tileFilter").fill(secondTileId);
   assert.equal(
     await page.locator("#tileGallery .tile-card").count(),
-    initialTileCount + 1,
-    "cloning tile appends new card to gallery",
+    1,
+    "filtering narrows to single target card",
   );
+  await page.locator("#cloneTemplate").click();
   const clonedTileId = await page.evaluate(
     () => (window as any).chainLab.snapshot().selectedId,
   );
@@ -820,6 +821,11 @@ try {
     new RegExp(`^${secondTileId}-\\d+$`),
     "cloned tile ID uses suffixed base",
   );
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").count(),
+    2,
+    "cloned tile matches filter prefix and remains visible alongside parent",
+  );
   assert.ok(
     await page
       .locator(`#tileGallery .tile-card[data-tile="${clonedTileId}"]`)
@@ -827,13 +833,100 @@ try {
     "cloned tile card is active in gallery",
   );
 
-  // 5. Delete tile with confirmation
+  await page.locator("#tileFilter").fill("");
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").count(),
+    initialTileCount + 1,
+    "clearing filter restores all tile cards including clone",
+  );
+
+  // 5. Delete cloned tile with confirmation
   page.once("dialog", (dialog: any) => dialog.accept());
   await page.locator("#chainDelete").click();
   assert.equal(
     await page.locator("#tileGallery .tile-card").count(),
     initialTileCount,
     "deleting tile removes card from gallery",
+  );
+
+  // 6. Rename tile referenced in tile sets with confirmation warning and automatic reference update
+  const tileToRename = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const referencedTile = snap.library.tiles.find((t: any) =>
+      snap.library.tileSets.some((s: any) => s.members.includes(t.id)),
+    );
+    return referencedTile?.id;
+  });
+  assert.ok(tileToRename, "found a tile referenced in tileSets");
+  await page.locator("#chainItem").selectOption(tileToRename);
+  const setsReferencingBefore = await page.evaluate(
+    (tileId: string) => {
+      const snap = (window as any).chainLab.snapshot();
+      return snap.library.tileSets
+        .filter((s: any) => s.members.includes(tileId))
+        .map((s: any) => s.id);
+    },
+    tileToRename,
+  );
+  assert.ok(setsReferencingBefore.length > 0, "tile is referenced by at least one tile set");
+
+  // First dismiss (cancel) rename confirmation dialog
+  page.once("dialog", (dialog: any) => dialog.dismiss());
+  await page.locator("#chainId").fill(`${tileToRename}-aborted`);
+  await page.locator("#chainId").blur();
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().selectedId),
+    tileToRename,
+    "canceling dialog preserves original tile ID",
+  );
+  assert.equal(
+    await page.locator("#chainId").inputValue(),
+    tileToRename,
+    "input reverts to original tile ID after cancel",
+  );
+
+  // Now accept rename confirmation dialog
+  const renamedTileId = `${tileToRename}-renamed`;
+  let renameDialogMsg = "";
+  page.once("dialog", (dialog: any) => {
+    renameDialogMsg = dialog.message();
+    dialog.accept();
+  });
+  await page.locator("#chainId").fill(renamedTileId);
+  await page.locator("#chainId").blur();
+
+  assert.equal(
+    renameDialogMsg,
+    `Rename tile design "${tileToRename}" to "${renamedTileId}"? It is referenced in tile set(s): ${setsReferencingBefore.join(", ")}. References will be updated automatically.`,
+    "rename confirmation dialog message matches expected warning",
+  );
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().selectedId),
+    renamedTileId,
+    "selected ID is updated to renamed tile ID",
+  );
+  assert.equal(
+    await page.locator("#chainItem").inputValue(),
+    renamedTileId,
+    "selector dropdown reflects renamed tile",
+  );
+  assert.ok(
+    await page.locator(`#tileGallery .tile-card[data-tile="${renamedTileId}"]`).isVisible(),
+    "tile gallery reflects renamed tile card",
+  );
+  const setsReferencingAfter = await page.evaluate(
+    (nextId: string) => {
+      const snap = (window as any).chainLab.snapshot();
+      return snap.library.tileSets
+        .filter((s: any) => s.members.includes(nextId))
+        .map((s: any) => s.id);
+    },
+    renamedTileId,
+  );
+  assert.deepEqual(
+    setsReferencingAfter,
+    setsReferencingBefore,
+    "tile set members list was updated automatically with the renamed tile ID",
   );
 
   await page.screenshot({
