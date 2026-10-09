@@ -379,6 +379,116 @@ button.active {
   border: 1px solid rgba(0, 0, 0, 0.4);
   flex-shrink: 0;
 }
+.chain-seg-brushes button .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+  margin-right: 4px;
+  vertical-align: -1px;
+}
+.chain-segment-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 8;
+}
+.chain-stage-segment {
+  position: absolute;
+  box-sizing: border-box;
+  border: 0;
+  padding: 0;
+  border-radius: 2px;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 10;
+  opacity: 0.92;
+  transition: outline 0.1s ease, box-shadow 0.1s ease;
+}
+.chain-stage-segment.v {
+  width: 8px;
+  transform: translateX(-50%);
+}
+.chain-stage-segment.h {
+  height: 8px;
+  transform: translateY(-50%);
+}
+.chain-tile-stage.mode-segment .chain-stage-segment.v {
+  width: 12px;
+}
+.chain-tile-stage.mode-segment .chain-stage-segment.h {
+  height: 12px;
+}
+.chain-stage-segment.passable {
+  background: #83d7a4 !important;
+}
+.chain-stage-segment.wall {
+  background: #e2807f !important;
+}
+.chain-stage-segment.any {
+  background: repeating-linear-gradient(
+    45deg,
+    #78909d,
+    #78909d 2px,
+    transparent 2px,
+    transparent 4px
+  ) !important;
+}
+.chain-stage-segment.unstated {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+}
+.chain-stage-segment.perimeter.unstated {
+  border: 1px dashed rgba(127, 212, 221, 0.4);
+}
+.chain-stage-segment:hover {
+  outline: 2px solid #7fd4dd;
+  z-index: 25;
+}
+.chain-stage-segment.selected {
+  outline: 2px solid #f4f7db !important;
+  box-shadow: 0 0 8px rgba(244, 247, 219, 0.85);
+  z-index: 30 !important;
+}
+.chain-adj-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.chain-adj-dot.any {
+  background: repeating-linear-gradient(
+    45deg,
+    #78909d,
+    #78909d 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+.chain-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 10px;
+  border-radius: 3px;
+  margin-left: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.chain-badge.perimeter {
+  background: #1c3d44;
+  color: #7fd4dd;
+  border: 1px solid #2d5d67;
+}
+.chain-badge.interior {
+  background: #252b33;
+  color: #a0aec0;
+  border: 1px solid #3a4552;
+}
 .chain-segments {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));

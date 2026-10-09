@@ -9,6 +9,7 @@ import type {
   ChainTileDesign,
   ChainSetPieceSlot,
   CoreElementCount,
+  PassabilityPrescription,
   SegmentPrescription,
 } from "../../macro/src/chain/library.ts";
 import { orientDesign } from "../../macro/src/chain/declared-grid.ts";
@@ -162,8 +163,10 @@ try {
 let selectedSegment = "v:3,2";
 let selectedCellClass = "hut";
 let selectedId = "";
-type PaintTool = "paint" | "fill" | "rect";
+type PaintTool = "paint" | "fill" | "rect" | "segment";
+type SegmentBrush = PassabilityPrescription | "unstated";
 let selectedPaintTool: PaintTool = "paint";
+let selectedSegmentBrush: SegmentBrush = "passable";
 let activePopup: HTMLElement | null = null;
 let popupDismissListener: ((evt: MouseEvent) => void) | null = null;
 
@@ -446,6 +449,158 @@ function plotLine(
   }
   return points;
 }
+function allPerimeterSegments(): string[] {
+  const keys: string[] = [];
+  for (let offset = 0; offset < CHAIN_TILE_SIZE; offset++) {
+    keys.push(`v:0,${offset}`);
+    keys.push(`v:${CHAIN_TILE_SIZE},${offset}`);
+    keys.push(`h:0,${offset}`);
+    keys.push(`h:${CHAIN_TILE_SIZE},${offset}`);
+  }
+  return keys;
+}
+function setSegmentPassability(
+  tile: ChainTileDesign,
+  key: string,
+  passability: PassabilityPrescription | undefined,
+): void {
+  tile.segments ??= {};
+  const next = (tile.segments[key] ??= {});
+  if (passability) {
+    next.passability = passability;
+  } else {
+    delete next.passability;
+  }
+  if (!Object.keys(next).length) delete tile.segments[key];
+  if (!Object.keys(tile.segments).length) delete tile.segments;
+}
+function setSegmentAdjacency(
+  tile: ChainTileDesign,
+  key: string,
+  adjacency: string | undefined,
+): void {
+  tile.segments ??= {};
+  const next = (tile.segments[key] ??= {});
+  if (adjacency) {
+    next.adjacency = adjacency;
+  } else {
+    delete next.adjacency;
+  }
+  if (!Object.keys(next).length) delete tile.segments[key];
+  if (!Object.keys(tile.segments).length) delete tile.segments;
+}
+function applySegmentBrush(
+  tile: ChainTileDesign,
+  key: string,
+  brush: SegmentBrush,
+): void {
+  setSegmentPassability(tile, key, brush === "unstated" ? undefined : brush);
+}
+function getNearestSegment(
+  grid: HTMLElement,
+  clientX: number,
+  clientY: number,
+): string | null {
+  const rect = grid.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return null;
+  const u = ((clientX - rect.left) / rect.width) * CHAIN_TILE_SIZE;
+  const v = ((clientY - rect.top) / rect.height) * CHAIN_TILE_SIZE;
+  const vLine = Math.min(Math.max(Math.round(u), 0), CHAIN_TILE_SIZE);
+  const hLine = Math.min(Math.max(Math.round(v), 0), CHAIN_TILE_SIZE);
+  const dv = Math.abs(u - vLine);
+  const dh = Math.abs(v - hLine);
+  if (Math.min(dv, dh) <= 0.5) {
+    if (dv <= dh) {
+      const offset = Math.min(Math.max(Math.floor(v), 0), CHAIN_TILE_SIZE - 1);
+      return `v:${vLine},${offset}`;
+    } else {
+      const offset = Math.min(Math.max(Math.floor(u), 0), CHAIN_TILE_SIZE - 1);
+      return `h:${hLine},${offset}`;
+    }
+  }
+  return null;
+}
+function openSegmentPopup(
+  clientX: number,
+  clientY: number,
+  key: string,
+  tile: ChainTileDesign,
+): void {
+  const line = Number(key.split(":")[1]!.split(",")[0]);
+  const isPerimeter = line === 0 || line === CHAIN_TILE_SIZE;
+  const p = tile.segments?.[key] ?? {};
+
+  const popup = document.createElement("div");
+  popup.className = "chain-popup";
+  popup.style.left = `${clientX + 4}px`;
+  popup.style.top = `${clientY + 4}px`;
+
+  const title = document.createElement("h4");
+  title.textContent = `Segment ${key} (${isPerimeter ? "perimeter" : "interior"})`;
+  popup.append(title);
+
+  const passabilities: Array<{
+    id: PassabilityPrescription | "unstated";
+    label: string;
+  }> = [
+    { id: "passable", label: "Passable" },
+    { id: "not-passable-hint", label: "Wall (hint)" },
+    { id: "any", label: "Any (deferred)" },
+    { id: "unstated", label: "Clear passability" },
+  ];
+
+  for (const opt of passabilities) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = opt.label;
+    if ((opt.id === "unstated" && !p.passability) || p.passability === opt.id) {
+      btn.classList.add("active");
+    }
+    btn.onclick = () => {
+      applySegmentBrush(tile, key, opt.id);
+      closePopup();
+      changed();
+    };
+    popup.append(btn);
+  }
+
+  if (isPerimeter) {
+    popup.append(document.createElement("hr"));
+    const adjTitle = document.createElement("h4");
+    adjTitle.textContent = "Across-tile adjacency";
+    popup.append(adjTitle);
+
+    const adjChoices = ["", "any", ...Object.keys(library.cellClasses)];
+    for (const c of adjChoices) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = c === "" ? "Clear adjacency" : `Adjacency: ${c}`;
+      if ((c === "" && !p.adjacency) || p.adjacency === c) {
+        btn.classList.add("active");
+      }
+      btn.onclick = () => {
+        setSegmentAdjacency(tile, key, c === "" ? undefined : c);
+        closePopup();
+        changed();
+      };
+      popup.append(btn);
+    }
+  }
+
+  document.body.append(popup);
+  activePopup = popup;
+
+  popupDismissListener = (evt: MouseEvent) => {
+    if (!popup.contains(evt.target as Node)) {
+      closePopup();
+    }
+  };
+  setTimeout(() => {
+    if (popupDismissListener) {
+      document.addEventListener("pointerdown", popupDismissListener);
+    }
+  }, 0);
+}
 function tileCells(tile: ChainTileDesign): string[] {
   const oriented = orientDesign(tile, 0);
   return oriented.cells;
@@ -675,6 +830,7 @@ function renderTiles(root: HTMLElement): void {
     ["paint", "Paint", "Click or drag to apply the active brush"],
     ["fill", "Fill", "Flood-fill connected cells of matching class"],
     ["rect", "Rect", "Drag a box to fill covered cells"],
+    ["segment", "Segments", "Click or drag across boundaries to stamp segment passability"],
   ];
   const toolButtons: HTMLButtonElement[] = [];
   const updateTools = () => {
@@ -691,7 +847,7 @@ function renderTiles(root: HTMLElement): void {
     b.classList.toggle("active", t === selectedPaintTool);
     b.onclick = () => {
       selectedPaintTool = t;
-      updateTools();
+      render();
     };
     toolGroup.append(b);
     toolButtons.push(b);
@@ -778,7 +934,90 @@ function renderTiles(root: HTMLElement): void {
   patternGroup.append(clearBtn);
 
   toolsRow.append(toolGroup, patternGroup);
-  palette.append(swatchRow, toolsRow);
+
+  const segRow = document.createElement("div");
+  segRow.className = "chain-palette-row";
+
+  const segBrushGroup = document.createElement("div");
+  segBrushGroup.className = "chain-tool-group chain-seg-brushes";
+  const segBrushes: Array<[SegmentBrush, string, string, string]> = [
+    ["passable", "Passable", "#83d7a4", "Stamp passable crossing guarantee"],
+    ["not-passable-hint", "Wall (hint)", "#e2807f", "Stamp prefer occupied hint"],
+    ["any", "Any", "repeating-linear-gradient(45deg, #78909d, #78909d 2px, transparent 2px, transparent 4px)", "Stamp written deferred any"],
+    ["unstated", "Clear", "#2c464f", "Clear segment passability"],
+  ];
+  for (const [sb, label, swatch, title] of segBrushes) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.segBrush = sb;
+    b.title = title;
+    b.classList.toggle("active", selectedSegmentBrush === sb && selectedPaintTool === "segment");
+    const dot = document.createElement("span");
+    dot.className = "swatch";
+    dot.style.background = swatch;
+    const lbl = document.createElement("span");
+    lbl.textContent = label;
+    b.append(dot, lbl);
+    b.onclick = () => {
+      selectedSegmentBrush = sb;
+      selectedPaintTool = "segment";
+      render();
+    };
+    segBrushGroup.append(b);
+  }
+
+  const segPatternGroup = document.createElement("div");
+  segPatternGroup.className = "chain-tool-group";
+  const segPatterns: Array<[string, string, (t: ChainTileDesign) => void]> = [
+    [
+      "Perim Walls",
+      "Set all perimeter segments to wall hint",
+      (t) => {
+        for (const k of allPerimeterSegments()) {
+          applySegmentBrush(t, k, "not-passable-hint");
+        }
+      },
+    ],
+    [
+      "Perim Passable",
+      "Set all perimeter segments to passable",
+      (t) => {
+        for (const k of allPerimeterSegments()) {
+          applySegmentBrush(t, k, "passable");
+        }
+      },
+    ],
+    [
+      "Perim Any",
+      "Set all perimeter segments to any",
+      (t) => {
+        for (const k of allPerimeterSegments()) {
+          applySegmentBrush(t, k, "any");
+        }
+      },
+    ],
+    [
+      "Clear Segments",
+      "Remove all segment prescriptions",
+      (t) => {
+        delete t.segments;
+      },
+    ],
+  ];
+  for (const [lbl, title, applyPat] of segPatterns) {
+    const pb = document.createElement("button");
+    pb.type = "button";
+    pb.textContent = lbl;
+    pb.title = title;
+    pb.onclick = () => {
+      applyPat(tile);
+      changed();
+    };
+    segPatternGroup.append(pb);
+  }
+
+  segRow.append(segBrushGroup, segPatternGroup);
+  palette.append(swatchRow, toolsRow, segRow);
 
   root.append(
     palette,
@@ -789,6 +1028,7 @@ function renderTiles(root: HTMLElement): void {
 
   const stage = document.createElement("div");
   stage.className = "chain-tile-stage";
+  stage.classList.toggle("mode-segment", selectedPaintTool === "segment");
 
   const colsGutter = document.createElement("div");
   colsGutter.className = "chain-gutter cols";
@@ -859,8 +1099,122 @@ function renderTiles(root: HTMLElement): void {
       grid.append(button);
     }
 
+  const segmentOverlay = document.createElement("div");
+  segmentOverlay.id = "chainSegmentOverlay";
+  segmentOverlay.className = "chain-segment-overlay";
+
+  const stageSegmentButtons: Map<string, HTMLButtonElement> = new Map();
+
+  const updateStageSegmentButton = (
+    btn: HTMLButtonElement,
+    key: string,
+  ) => {
+    const l = Number(key.split(":")[1]!.split(",")[0]);
+    const isPerimeter = l === 0 || l === CHAIN_TILE_SIZE;
+    const p = tile.segments?.[key];
+    const passability = p?.passability;
+    const adjacency = p?.adjacency;
+
+    btn.className = "chain-stage-segment";
+    btn.classList.add(key.startsWith("v") ? "v" : "h");
+    if (isPerimeter) btn.classList.add("perimeter");
+    else btn.classList.add("interior");
+
+    if (passability === "passable") btn.classList.add("passable");
+    else if (passability === "not-passable-hint") btn.classList.add("wall");
+    else if (passability === "any") btn.classList.add("any");
+    else btn.classList.add("unstated");
+
+    if (selectedSegment === key) btn.classList.add("selected");
+
+    btn.replaceChildren();
+    if (isPerimeter && adjacency) {
+      const dot = document.createElement("span");
+      dot.className = "chain-adj-dot";
+      if (adjacency === "any") {
+        dot.classList.add("any");
+      } else {
+        dot.style.background = classColor(adjacency);
+      }
+      dot.title = `Adjacency: ${adjacency}`;
+      btn.append(dot);
+    }
+
+    const perimeterLabel = isPerimeter ? "perimeter" : "interior";
+    let tooltip = `Segment ${key} (${perimeterLabel}) · passability: ${passability ?? "unstated"}`;
+    if (isPerimeter && adjacency) {
+      tooltip += ` · adjacency: ${adjacency}`;
+    }
+    btn.title = tooltip;
+  };
+
+  for (const axis of ["v", "h"] as const) {
+    for (let l = 0; l <= CHAIN_TILE_SIZE; l++) {
+      for (let offset = 0; offset < CHAIN_TILE_SIZE; offset++) {
+        const key = `${axis}:${l},${offset}`;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.stageSegment = key;
+        button.dataset.axis = axis;
+        button.dataset.line = String(l);
+        button.dataset.offset = String(offset);
+
+        const linePct = (l / CHAIN_TILE_SIZE) * 100;
+        const offsetPct = (offset / CHAIN_TILE_SIZE) * 100;
+        const lengthPct = (1 / CHAIN_TILE_SIZE) * 100;
+
+        if (axis === "v") {
+          button.style.left = `${linePct}%`;
+          button.style.top = `${offsetPct}%`;
+          button.style.height = `${lengthPct}%`;
+        } else {
+          button.style.left = `${offsetPct}%`;
+          button.style.top = `${linePct}%`;
+          button.style.width = `${lengthPct}%`;
+        }
+
+        updateStageSegmentButton(button, key);
+
+        button.addEventListener("pointerenter", () => {
+          hoverReadout.textContent = button.title;
+        });
+        button.addEventListener("pointerleave", () => {
+          hoverReadout.textContent = "";
+        });
+
+        button.addEventListener("pointerdown", (e) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          e.stopPropagation();
+          closePopup();
+          selectedSegment = key;
+          if (selectedPaintTool === "segment") {
+            applySegmentBrush(tile, key, selectedSegmentBrush);
+            changed();
+          } else {
+            render();
+          }
+        });
+
+        button.addEventListener("contextmenu", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          closePopup();
+          selectedSegment = key;
+          openSegmentPopup(e.clientX, e.clientY, key, tile);
+        });
+
+        stageSegmentButtons.set(key, button);
+        segmentOverlay.append(button);
+      }
+    }
+  }
+
+  grid.append(segmentOverlay);
+
   let isDragging = false;
   let lastPaintedCoord: { x: number; y: number } | null = null;
+  let lastPointerPos: { x: number; y: number } | null = null;
   let rectStart: { x: number; y: number } | null = null;
 
   const updateGhost = (x0: number, y0: number, x1: number, y1: number) => {
@@ -912,6 +1266,26 @@ function renderTiles(root: HTMLElement): void {
   grid.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
     closePopup();
+
+    if (selectedPaintTool === "segment") {
+      e.preventDefault();
+      isDragging = true;
+      lastPointerPos = { x: e.clientX, y: e.clientY };
+      const segKey = getNearestSegment(grid, e.clientX, e.clientY);
+      if (segKey) {
+        selectedSegment = segKey;
+        applySegmentBrush(tile, segKey, selectedSegmentBrush);
+        const btn = stageSegmentButtons.get(segKey);
+        if (btn) updateStageSegmentButton(btn, segKey);
+      }
+      try {
+        grid.setPointerCapture(e.pointerId);
+      } catch {
+        /* pointer capture optional */
+      }
+      return;
+    }
+
     const coords = getCellCoords(e);
     if (!coords) return;
     const { x, y } = coords;
@@ -959,6 +1333,38 @@ function renderTiles(root: HTMLElement): void {
   });
 
   grid.addEventListener("pointermove", (e) => {
+    if (selectedPaintTool === "segment") {
+      const segKey = getNearestSegment(grid, e.clientX, e.clientY);
+      if (segKey) {
+        const p = tile.segments?.[segKey];
+        const lineVal = Number(segKey.split(":")[1]!.split(",")[0]);
+        const isPerim = lineVal === 0 || lineVal === CHAIN_TILE_SIZE;
+        let tooltip = `Segment ${segKey} (${isPerim ? "perimeter" : "interior"}) · passability: ${p?.passability ?? "unstated"}`;
+        if (isPerim && p?.adjacency) tooltip += ` · adjacency: ${p.adjacency}`;
+        hoverReadout.textContent = tooltip;
+      } else {
+        hoverReadout.textContent = "";
+      }
+      if (!isDragging || !lastPointerPos) return;
+      const dx = e.clientX - lastPointerPos.x;
+      const dy = e.clientY - lastPointerPos.y;
+      const dist = Math.hypot(dx, dy);
+      const steps = Math.max(1, Math.ceil(dist / 8));
+      for (let s = 1; s <= steps; s++) {
+        const px = lastPointerPos.x + (dx * s) / steps;
+        const py = lastPointerPos.y + (dy * s) / steps;
+        const hitKey = getNearestSegment(grid, px, py);
+        if (hitKey) {
+          applySegmentBrush(tile, hitKey, selectedSegmentBrush);
+          selectedSegment = hitKey;
+          const btn = stageSegmentButtons.get(hitKey);
+          if (btn) updateStageSegmentButton(btn, hitKey);
+        }
+      }
+      lastPointerPos = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
     const coords = getCellCoords(e);
     if (coords) {
       const { x, y } = coords;
@@ -994,6 +1400,19 @@ function renderTiles(root: HTMLElement): void {
 
   const onPointerEnd = (e: PointerEvent) => {
     if (!isDragging) return;
+
+    if (selectedPaintTool === "segment") {
+      isDragging = false;
+      lastPointerPos = null;
+      try {
+        grid.releasePointerCapture(e.pointerId);
+      } catch {
+        /* release optional */
+      }
+      changed();
+      return;
+    }
+
     if (selectedPaintTool === "rect" && rectStart) {
       const coords = getCellCoords(e) ?? rectStart;
       const minX = Math.min(rectStart.x, coords.x);
@@ -1134,16 +1553,16 @@ function renderTiles(root: HTMLElement): void {
     hoverReadout,
     heading("Segment prescriptions"),
     paragraph(
-      "Select any interior or perimeter segment. Adjacency is available only on the perimeter. Written any remains distinct from an unstated field.",
+      "Select any interior or perimeter segment on stage or in the list. Adjacency is available only on the perimeter. Written any remains distinct from an unstated field.",
     ),
   );
   const segments = document.createElement("div");
   segments.id = "chainSegments";
   segments.className = "chain-segments";
   for (const axis of ["v", "h"] as const)
-    for (let line = 0; line <= CHAIN_TILE_SIZE; line++)
+    for (let l = 0; l <= CHAIN_TILE_SIZE; l++)
       for (let offset = 0; offset < CHAIN_TILE_SIZE; offset++) {
-        const key = `${axis}:${line},${offset}`;
+        const key = `${axis}:${l},${offset}`;
         const button = document.createElement("button");
         button.type = "button";
         button.dataset.segment = key;
@@ -1173,11 +1592,15 @@ function renderTiles(root: HTMLElement): void {
     if (!Object.keys(tile.segments).length) delete tile.segments;
     changed();
   };
-  controls.append(
-    paragraph(
-      `Selected ${selectedSegment} · ${perimeter ? "perimeter" : "interior"}`,
-    ),
-  );
+  const titleP = paragraph(`Selected ${selectedSegment}`);
+  const badge = document.createElement("span");
+  badge.className = `chain-badge ${perimeter ? "perimeter" : "interior"}`;
+  badge.textContent = perimeter
+    ? "Perimeter (adjacency & passability)"
+    : "Interior (passability only)";
+  titleP.append(badge);
+  controls.append(titleP);
+
   if (perimeter)
     controls.append(
       choice(
@@ -1197,8 +1620,22 @@ function renderTiles(root: HTMLElement): void {
       (v) => set("passability", v),
       { "not-passable-hint": "Prefer occupied (hint)" },
     ),
+  );
+  const apertureLabel = document.createElement("label");
+  apertureLabel.textContent = "Open span / aperture";
+  const apertureInput = document.createElement("input");
+  apertureInput.id = "chainSegmentAperture";
+  apertureInput.type = "text";
+  apertureInput.placeholder = "0.25-0.75";
+  apertureInput.disabled = true;
+  apertureInput.value = "";
+  apertureInput.title =
+    "Aperture geometry is deferred to micro/region strategies in chain v3 (docs 52)";
+  apertureLabel.append(apertureInput);
+  controls.append(
+    apertureLabel,
     paragraph(
-      "Passable guarantees a crossing. Any is a written don't-care statement; two facing any statements guarantee a crossing. Prefer occupied is optional architectural guidance, never an impassability requirement. A facing passable statement still guarantees a crossing; any facing this hint does not. Unspecified stays distinct from any.",
+      "Passable guarantees a crossing. Any is a written don't-care statement; two facing any statements guarantee a crossing. Prefer occupied is optional architectural guidance, never an impassability requirement. Physical aperture geometry is deferred in chain v3 (docs 52).",
     ),
   );
   root.append(controls);

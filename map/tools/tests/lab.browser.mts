@@ -567,6 +567,106 @@ try {
   assert.equal(stageTile.cells, undefined, "clearing painting removes cells");
   assert.equal(stageTile.legend, undefined, "clearing painting removes legend");
 
+  // Interactive segment editor tests (#304): on-stage segments, indicators, brush, patterns
+  // 1. On-stage segment selection and visual indicators
+  const stageSegV01 = page.locator(
+    '.chain-stage-segment[data-stage-segment="v:0,1"]',
+  );
+  await stageSegV01.click();
+  assert.ok(
+    await stageSegV01.evaluate((el: HTMLElement) => el.classList.contains("selected")),
+    "clicked stage segment has selected class",
+  );
+  assert.equal(
+    await page.locator("#chainSegmentPassability").inputValue(),
+    "not-passable-hint",
+    "inspector reflects selected stage segment passability",
+  );
+  assert.ok(
+    await stageSegV01.evaluate((el: HTMLElement) => el.classList.contains("wall")),
+    "not-passable-hint segment has wall class",
+  );
+  assert.match(
+    await page.locator(".chain-segment-controls .chain-badge").innerText(),
+    /Perimeter/i,
+    "perimeter badge is shown",
+  );
+  assert.ok(
+    await page.locator("#chainSegmentAperture").isDisabled(),
+    "aperture control is present and disabled in chain v3",
+  );
+
+  // 2. Change passability via inspector and check on-stage indicator changes
+  await page.locator("#chainSegmentPassability").selectOption("passable");
+  assert.ok(
+    await stageSegV01.evaluate((el: HTMLElement) => el.classList.contains("passable")),
+    "passable segment has passable class",
+  );
+  await page.locator("#chainSegmentPassability").selectOption("any");
+  assert.ok(
+    await stageSegV01.evaluate((el: HTMLElement) => el.classList.contains("any")),
+    "any segment has any class",
+  );
+
+  // 3. Adjacency dot indicator on perimeter segment
+  await page.locator("#chainSegmentAdjacency").selectOption("arrival");
+  assert.ok(
+    await stageSegV01.locator(".chain-adj-dot").isVisible(),
+    "perimeter segment with adjacency displays adjacency indicator dot",
+  );
+
+  // 4. Segment tool and segment brushes
+  await page.locator('.chain-tool-group button[data-tool="segment"]').click();
+  await page
+    .locator('.chain-seg-brushes button[data-seg-brush="passable"]')
+    .click();
+  const stageSegH13 = page.locator(
+    '.chain-stage-segment[data-stage-segment="h:1,3"]',
+  );
+  await stageSegH13.click();
+  assert.ok(
+    await stageSegH13.evaluate((el: HTMLElement) => el.classList.contains("passable")),
+    "clicking with passable segment brush sets passable state",
+  );
+  stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  assert.equal(
+    stageTile.segments?.["h:1,3"]?.passability,
+    "passable",
+    "tile snapshot records passable prescription on h:1,3",
+  );
+
+  // 5. Segment patterns: Perim Walls and Clear Segments
+  await page
+    .locator(".chain-tool-group button", { hasText: "Perim Walls" })
+    .click();
+  stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  assert.equal(
+    stageTile.segments?.["v:0,0"]?.passability,
+    "not-passable-hint",
+    "Perim Walls sets v:0,0 to wall hint",
+  );
+  assert.equal(
+    stageTile.segments?.["h:6,5"]?.passability,
+    "not-passable-hint",
+    "Perim Walls sets h:6,5 to wall hint",
+  );
+
+  await page
+    .locator(".chain-tool-group button", { hasText: "Clear Segments" })
+    .click();
+  stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  assert.equal(
+    stageTile.segments,
+    undefined,
+    "Clear Segments removes all segment prescriptions",
+  );
+
   // Restore chainDraft for subsequent class-deletion assertions
   await page.locator("#chainImport").setInputFiles([]);
   await page.locator("#chainImport").setInputFiles(chainPath);
