@@ -11,6 +11,22 @@ import { hunterClearance, portalStands, validatePortalReach } from '../map/micro
 import { composeRegions } from '../map/micro/compose.ts';
 import { builtMapCollision, builtMapFrame } from '../map/micro/adapter.ts';
 import { moveBody, canOccupy } from '../shared/movement.ts';
+import { rect } from '../shared/shape.ts';
+
+test('clear opposite portal approaches do not excuse a separating wall', () => {
+  const region = {
+    cellSize: 40,
+    cells: Array.from({ length: 48 }, (_, i) => ({ x: i % 8, y: Math.floor(i / 8) })),
+    portals: [
+      { id: 'west', axis: 'v', x: 0, y: 2, length: 2 },
+      { id: 'east', axis: 'v', x: 8, y: 2, length: 2 },
+    ],
+  };
+  assert.equal(validatePortalReach({ ...region, blockers: [] }).valid, true);
+  const divided = validatePortalReach({ ...region, blockers: [rect(140, 0, 40, 240)] });
+  assert.equal(divided.valid, false);
+  assert.deepEqual(divided.errors, ['Portal east is unreachable from portal west.']);
+});
 
 // #214: distinguish a region-local clearance promise from actual assembled movement.
 // This is a diagnostic witness, not permission for a builder to rely on unknown neighbours.

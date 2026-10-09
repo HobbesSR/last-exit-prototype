@@ -372,7 +372,8 @@ catalogue, and it grows from here. The fixture libraries in
   access under the region-local mask. That does not establish unplayability in
   assembled geometry: [17.2.5](17.2.5-macro-questions.md) records a centered-feature
   witness that actual movement traverses. Bands and bends retain the three-cell
-  authored grid; the clearance-sharing question is still under review.
+  authored grid; the automatic portal-margin proposal is still under review
+  ([17.2.4](17.2.4-contract-questions.md)).
 - **Cover:** a lone `cover-ground` in the fill forms a 6 × 6 region, too small
   for one cover piece, so it stays clear (54 `cover`). Cover comes mostly from
   the set pieces; its increased fill weight is intended to form larger joined
