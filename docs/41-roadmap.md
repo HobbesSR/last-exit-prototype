@@ -167,6 +167,13 @@ before those ownership and failure contracts have concrete consumers.
 
 ## Separate follow-ups
 
+Map fill work: [#313](http://localhost:3000/corey/astra_test/issues/313) implements
+the accepted passable-margin contract in [20.6](20.6-passable-margins.md), then
+[#214](http://localhost:3000/corey/astra_test/issues/214) finalises centered feature
+tiles, fill weights and the final content checkpoint. The #214 candidate branch
+is a recoverable checkpoint, not the implementation of #313. Its Forgejo handoff
+records the branch, commits, actual validation and pickup order.
+
 Replay ownership/lifetime and BSON encoding, configurable spectator access/delay,
 and lobby/game-server deployment remain separate follow-ups. The lobby, matchmaking
 and room design, with its in-process stages, is [22.5](22.5-lobbies-and-matchmaking.md). The desired owner
