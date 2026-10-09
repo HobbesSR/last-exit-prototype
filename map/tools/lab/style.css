@@ -530,16 +530,61 @@ button.active {
   font-size: 12px;
   white-space: nowrap;
 }
-#tileGallery {
+#tileGallery,
+#setMembersGallery,
+#setAvailableGallery,
+.chain-gallery-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   max-height: 220px;
+  min-height: 80px;
   overflow-y: auto;
   padding: 6px;
   border: 1px solid #1c2b36;
   border-radius: 4px;
   background: #0a141b;
+}
+.chain-sets-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 6px;
+}
+.chain-sets-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.chain-sets-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.chain-sets-section-head h4 {
+  margin: 0;
+  font-size: 13px;
+  color: #c9d8e0;
+}
+.member-card {
+  border-color: #244638;
+}
+.tile-card.member-card:hover {
+  border-color: #e2807f;
+  background: #2a1617;
+}
+.tile-card.available-card:hover {
+  border-color: #83d7a4;
+  background: #142820;
+}
+.orphan-thumbnail {
+  margin: 0;
+  width: 66px;
+  height: 66px;
+  background: #2a1215;
+  border: 1px dashed #e2807f;
+  border-radius: 2px;
 }
 .tile-card {
   border: 1px solid #283e4a;

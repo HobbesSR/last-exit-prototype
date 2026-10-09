@@ -338,6 +338,18 @@ function rename(next: string): void {
       }
     }
   }
+  if (section() === "tileSets") {
+    const piecesUsing = library.setPieces
+      .filter((p) => p.tiles.some((slot) => slot.tileSetId === old))
+      .map((p) => p.id);
+    if (piecesUsing.length) {
+      const msg = `Rename tile set "${old}" to "${next}"? It is referenced in set piece(s): ${piecesUsing.join(", ")}. References will be updated automatically.`;
+      if (!confirm(msg)) {
+        render();
+        return;
+      }
+    }
+  }
   if (section() === "classes") {
     library.cellClasses[next] = library.cellClasses[old]!;
     delete library.cellClasses[old];
@@ -1857,28 +1869,181 @@ function renderPreview(tile: ChainTileDesign): void {
     box.append(paragraph(`Preview unavailable: ${String(error)}`));
   }
 }
+let tileSetFilter = "";
+
 function renderTileSets(root: HTMLElement): void {
   const entry = current() as ChainLibrary["tileSets"][number];
   if (!entry) return;
-  root.append(
-    heading("Members"),
-    paragraph("Select one or more tile designs."),
+
+  const container = document.createElement("div");
+  container.className = "chain-sets-container";
+
+  container.append(
+    paragraph(
+      "Click tiles in the Available list to add them, or click tiles in the Members list to remove them.",
+    ),
   );
-  for (const tile of library.tiles) {
-    const label = document.createElement("label");
-    label.className = "chain-check";
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.checked = entry.members.includes(tile.id);
-    input.onchange = () => {
-      entry.members = input.checked
-        ? [...entry.members, tile.id]
-        : entry.members.filter((id) => id !== tile.id);
-      changed();
-    };
-    label.append(input, tile.id);
-    root.append(label);
+
+  // Members section
+  const membersSection = document.createElement("div");
+  membersSection.className = "chain-sets-section";
+
+  const membersHead = document.createElement("div");
+  membersHead.className = "chain-sets-section-head";
+  const membersTitle = document.createElement("h4");
+  membersTitle.id = "setMembersTitle";
+  membersTitle.textContent = `Members (${entry.members.length})`;
+  membersHead.append(membersTitle);
+
+  const membersGallery = document.createElement("div");
+  membersGallery.id = "setMembersGallery";
+  membersGallery.className = "chain-gallery-grid";
+  membersGallery.setAttribute("aria-label", "Tiles in this set");
+
+  membersSection.append(membersHead, membersGallery);
+
+  // Available section
+  const availableSection = document.createElement("div");
+  availableSection.className = "chain-sets-section";
+
+  const availableHead = document.createElement("div");
+  availableHead.className = "chain-sets-section-head";
+  const availableTitle = document.createElement("h4");
+  availableTitle.textContent = "Available Tiles";
+
+  const filterWrap = document.createElement("label");
+  filterWrap.className = "grow";
+  const filterInput = document.createElement("input");
+  filterInput.id = "setAvailableFilter";
+  filterInput.placeholder = "filter by ID, class, or label...";
+  filterInput.spellcheck = false;
+  filterInput.value = tileSetFilter;
+  filterWrap.append(filterInput);
+
+  availableHead.append(availableTitle, filterWrap);
+
+  const availableGallery = document.createElement("div");
+  availableGallery.id = "setAvailableGallery";
+  availableGallery.className = "chain-gallery-grid";
+  availableGallery.setAttribute("aria-label", "Available tiles");
+
+  availableSection.append(availableHead, availableGallery);
+
+  container.append(membersSection, availableSection);
+  root.append(container);
+
+  function populateMembers(): void {
+    membersTitle.textContent = `Members (${entry.members.length})`;
+    if (!entry.members.length) {
+      const empty = document.createElement("p");
+      empty.className = "gallery-empty";
+      empty.textContent =
+        "No tiles in this set. Chain validation requires at least one member.";
+      membersGallery.replaceChildren(empty);
+      return;
+    }
+
+    const cards = entry.members.map((memberId) => {
+      const tile = library.tiles.find((t) => t.id === memberId);
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "tile-card member-card";
+      card.dataset.tile = memberId;
+      card.title = `Click to remove "${memberId}" from set`;
+
+      const name = document.createElement("span");
+      name.className = "tile-card-name";
+      name.textContent = memberId;
+
+      if (tile) {
+        card.append(tileThumbnail(tile), name);
+      } else {
+        const placeholder = document.createElement("figure");
+        placeholder.className = "orphan-thumbnail";
+        card.append(placeholder, name);
+      }
+
+      card.onclick = () => {
+        if (entry.members.length <= 1) {
+          status(`Tile set "${entry.id}" must have at least one member to remain valid.`);
+          return;
+        }
+        entry.members = entry.members.filter((id) => id !== memberId);
+        changed();
+      };
+      return card;
+    });
+
+    membersGallery.replaceChildren(...cards);
   }
+
+  function populateAvailable(): void {
+    const inSet = new Set(entry.members);
+    const available = library.tiles.filter((t) => !inSet.has(t.id));
+    const filter = tileSetFilter.trim().toLowerCase();
+
+    if (!available.length) {
+      const empty = document.createElement("p");
+      empty.className = "gallery-empty";
+      empty.textContent = "All library tiles are members of this set.";
+      availableGallery.replaceChildren(empty);
+      return;
+    }
+
+    const matching = available.filter((t) => {
+      if (!filter) return true;
+      if (t.id.toLowerCase().includes(filter)) return true;
+      if (t.defaultCellClass.toLowerCase().includes(filter)) return true;
+      if (t.labels?.some((l) => l.toLowerCase().includes(filter))) return true;
+      if (
+        Object.values(t.legend ?? {}).some((c) =>
+          c.toLowerCase().includes(filter),
+        )
+      )
+        return true;
+      return false;
+    });
+
+    if (!matching.length) {
+      const empty = document.createElement("p");
+      empty.className = "gallery-empty";
+      empty.textContent = `No available tiles match "${tileSetFilter}".`;
+      availableGallery.replaceChildren(empty);
+      return;
+    }
+
+    const cards = matching.map((t) => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "tile-card available-card";
+      card.dataset.tile = t.id;
+      card.title = `Click to add "${t.id}" to set`;
+
+      const name = document.createElement("span");
+      name.className = "tile-card-name";
+      name.textContent = t.id;
+
+      card.append(tileThumbnail(t), name);
+
+      card.onclick = () => {
+        if (!entry.members.includes(t.id)) {
+          entry.members.push(t.id);
+          changed();
+        }
+      };
+      return card;
+    });
+
+    availableGallery.replaceChildren(...cards);
+  }
+
+  filterInput.oninput = () => {
+    tileSetFilter = filterInput.value;
+    populateAvailable();
+  };
+
+  populateMembers();
+  populateAvailable();
 }
 function slotEditor(
   slot: ChainSetPieceSlot,
@@ -2139,6 +2304,17 @@ function remove(): void {
       ? `Delete tile design "${selectedId}"? It is referenced in tile set(s): ${setsUsing.join(", ")}.`
       : `Delete tile design "${selectedId}"?`;
     if (!confirm(msg)) return;
+  }
+  if (section() === "tileSets") {
+    const piecesUsing = library.setPieces
+      .filter((p) => p.tiles.some((t) => t.tileSetId === selectedId))
+      .map((p) => p.id);
+    const msg = piecesUsing.length
+      ? `Delete tile set "${selectedId}"? It is referenced in set piece(s): ${piecesUsing.join(", ")}. Referencing slot(s) will be removed automatically.`
+      : `Delete tile set "${selectedId}"?`;
+    if (!confirm(msg)) return;
+    for (const piece of library.setPieces)
+      piece.tiles = piece.tiles.filter((t) => t.tileSetId !== selectedId);
   }
   if (section() === "classes") delete library.cellClasses[selectedId];
   else {
