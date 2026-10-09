@@ -2310,7 +2310,7 @@ function remove(): void {
       .filter((p) => p.tiles.some((t) => t.tileSetId === selectedId))
       .map((p) => p.id);
     const msg = piecesUsing.length
-      ? `Delete tile set "${selectedId}"? It is referenced in set piece(s): ${piecesUsing.join(", ")}.`
+      ? `Delete tile set "${selectedId}"? It is referenced in set piece(s): ${piecesUsing.join(", ")}. Referencing slot(s) will be removed automatically.`
       : `Delete tile set "${selectedId}"?`;
     if (!confirm(msg)) return;
     for (const piece of library.setPieces)

@@ -570,13 +570,13 @@ button.active {
 .member-card {
   border-color: #244638;
 }
-.member-card:hover {
-  border-color: #e2807f !important;
-  background: #2a1617 !important;
+.tile-card.member-card:hover {
+  border-color: #e2807f;
+  background: #2a1617;
 }
-.available-card:hover {
-  border-color: #83d7a4 !important;
-  background: #142820 !important;
+.tile-card.available-card:hover {
+  border-color: #83d7a4;
+  background: #142820;
 }
 .orphan-thumbnail {
   margin: 0;

@@ -1005,11 +1005,14 @@ try {
     "added tile is removed from available gallery",
   );
 
-  // When all tiles are in the set, available gallery shows notice
+  // Add all remaining available tiles to test "All library tiles are members" state robustly
+  while ((await page.locator("#setAvailableGallery .tile-card").count()) > 0) {
+    await page.locator("#setAvailableGallery .tile-card").first().click();
+  }
   assert.equal(
     await page.locator("#setAvailableGallery .tile-card").count(),
     0,
-    "no tiles left in available gallery",
+    "no tiles left in available gallery after adding all",
   );
   assert.match(
     await page.locator("#setAvailableGallery .gallery-empty").innerText(),
@@ -1152,6 +1155,29 @@ try {
     updatedSlotSet,
     "new-set-renamed",
     "set piece slot tileSetId was updated automatically",
+  );
+
+  // Test delete cascade strips referencing slots from set pieces
+  let deleteCascadeDialogText = "";
+  page.once("dialog", (dialog: any) => {
+    deleteCascadeDialogText = dialog.message();
+    dialog.accept();
+  });
+  await page.locator("#chainDelete").click();
+  assert.match(
+    deleteCascadeDialogText,
+    /Referencing slot\(s\) will be removed automatically/,
+    "delete dialog warns about stripping slots from set pieces",
+  );
+  const slotsAfterDelete = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === "new-piece");
+    return piece?.tiles.filter((slot: any) => slot.tileSetId === "new-set-renamed").length ?? 0;
+  });
+  assert.equal(
+    slotsAfterDelete,
+    0,
+    "referencing slots were stripped from set piece on tile set deletion",
   );
 
   await page.screenshot({
