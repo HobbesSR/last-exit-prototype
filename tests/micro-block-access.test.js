@@ -54,4 +54,3 @@ test('every lot keeps its own promise between its frontages, and a hunter reache
     }
   }
 });
-

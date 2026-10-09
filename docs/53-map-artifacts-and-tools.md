@@ -150,6 +150,16 @@ kept. A review fix then kept `park`'s hedge thickness and tree radius
 fractional at small cell sizes; it moved the results and built views on 130
 maps, the ones with a `park` region, and nothing else.
 
+**#241/#243/#298's re-capture** follows the authored deferred/hinted tile
+perimeters (52) and boundary-aware builders (54), with one bump to
+`types-20`. The 224-map capture records input commit `8c1a79d`. Every view
+except zones and most proofs changes: zones stay identical, and proof hashes
+move on 9 maps as deferred segments resolve additional passability. Before
+capture, 35 game maps across all three authored sizes reported no defects,
+every region of one game map passed the independent portal diagnostic, and
+combat-neutralized bots filled all three extraction slots on representative
+live maps. The frozen gameplay characterization fixture is unchanged.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
