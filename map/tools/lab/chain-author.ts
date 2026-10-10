@@ -185,9 +185,12 @@ document.addEventListener("keydown", (e) => {
     closePopup();
     return;
   }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (document.getElementById("chainViewContainer")?.hidden) return;
+
   const target = e.target as HTMLElement | null;
   if (target && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)) return;
-  if (target && (target as any).isContentEditable) return;
+  if (target && target.isContentEditable) return;
 
   const k = e.key.toLowerCase();
 
@@ -202,8 +205,10 @@ document.addEventListener("keydown", (e) => {
       searchInput = document.getElementById("setPiecePaletteFilter");
     }
     if (searchInput) {
-      e.preventDefault();
       searchInput.focus();
+      if (document.activeElement === searchInput) {
+        e.preventDefault();
+      }
       return;
     }
   }
@@ -239,8 +244,12 @@ document.addEventListener("keydown", (e) => {
   } else if (section() === "setPieces") {
     if (k >= "1" && k <= "9") {
       const idx = parseInt(k, 10) - 1;
-      if (idx < library.tileSets.length) {
-        activeLayoutBrush = library.tileSets[idx]!.id;
+      const filter = setPiecePaletteFilter.trim().toLowerCase();
+      const matching = library.tileSets
+        .map((s) => s.id)
+        .filter((id) => !filter || id.toLowerCase().includes(filter));
+      if (idx < matching.length) {
+        activeLayoutBrush = matching[idx]!;
         render();
       }
     }
@@ -1328,12 +1337,6 @@ function renderTiles(root: HTMLElement): void {
       button.textContent = cellVal;
       button.style.background = classColor(cellVal);
       button.title = `Cell ${x},${y} · ${cellVal}${cellVal === tile.defaultCellClass ? " (default)" : ""}`;
-      button.addEventListener("pointerenter", () => {
-        hoverReadout.textContent = button.title;
-      });
-      button.addEventListener("pointerleave", () => {
-        hoverReadout.textContent = "";
-      });
       cellButtons.set(`${x},${y}`, button);
       grid.append(button);
     }

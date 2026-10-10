@@ -611,22 +611,21 @@ try {
 
   // 2. Numeric brush switching (1..9)
   const swatchesCount = await page.locator(".chain-swatches .chain-swatch-button").count();
-  if (swatchesCount >= 2) {
-    const secondClass = await page.locator(".chain-swatches .chain-swatch-button").nth(1).getAttribute("data-class");
-    await page.keyboard.press("2");
-    assert.equal(
-      await page.locator(".chain-swatches .chain-swatch-button.active").getAttribute("data-class"),
-      secondClass,
-      "pressing '2' selects second declared cell class",
-    );
-    const firstClass = await page.locator(".chain-swatches .chain-swatch-button").nth(0).getAttribute("data-class");
-    await page.keyboard.press("1");
-    assert.equal(
-      await page.locator(".chain-swatches .chain-swatch-button.active").getAttribute("data-class"),
-      firstClass,
-      "pressing '1' selects first declared cell class",
-    );
-  }
+  assert.ok(swatchesCount >= 2, "palette has at least 2 cell classes");
+  const secondClass = await page.locator(".chain-swatches .chain-swatch-button").nth(1).getAttribute("data-class");
+  await page.keyboard.press("2");
+  assert.equal(
+    await page.locator(".chain-swatches .chain-swatch-button.active").getAttribute("data-class"),
+    secondClass,
+    "pressing '2' selects second declared cell class",
+  );
+  const firstClass = await page.locator(".chain-swatches .chain-swatch-button").nth(0).getAttribute("data-class");
+  await page.keyboard.press("1");
+  assert.equal(
+    await page.locator(".chain-swatches .chain-swatch-button.active").getAttribute("data-class"),
+    firstClass,
+    "pressing '1' selects first declared cell class",
+  );
 
   // 3. Search focus shortcut (/)
   await page.keyboard.press("/");
@@ -1250,6 +1249,9 @@ try {
     "status bar flags missing tile slots on the stripped set piece",
   );
 
+  // Add a second tile set to test set piece palette filtering and numeric hotkeys
+  await page.locator("#chainAdd").click();
+
   // Visual Set Pieces layout grid editor (#315)
   await page.locator("#chainSection").selectOption("setPieces");
   await page.locator("#chainItem").selectOption("new-piece");
@@ -1268,7 +1270,7 @@ try {
 
   // 1. Palette filtering and selection
   const initialPaletteCount = await page.locator("#setPiecePaletteList .chain-layout-palette-item").count();
-  assert.ok(initialPaletteCount > 0, "palette lists tile sets");
+  assert.ok(initialPaletteCount >= 2, "palette lists at least 2 tile sets");
   const firstPaletteItem = page.locator("#setPiecePaletteList .chain-layout-palette-item").first();
   const firstPaletteSet = (await firstPaletteItem.getAttribute("data-tileset"))!;
   await firstPaletteItem.click();
@@ -1277,18 +1279,39 @@ try {
     "clicked palette item becomes active brush",
   );
 
-  await page.locator("#setPiecePaletteFilter").fill(firstPaletteSet);
+  const secondPaletteItem = page.locator("#setPiecePaletteList .chain-layout-palette-item").nth(1);
+  const secondPaletteSet = (await secondPaletteItem.getAttribute("data-tileset"))!;
+
+  await page.locator("#setPiecePaletteFilter").fill(secondPaletteSet);
   assert.equal(
     await page.locator("#setPiecePaletteList .chain-layout-palette-item").count(),
     1,
     "filtering palette narrows to matching tile set",
   );
+  await page.locator("#setPiecePaletteFilter").blur();
+  await page.keyboard.press("1");
+  const activePaletteSet = await page
+    .locator("#setPiecePaletteList .chain-layout-palette-item.active")
+    .getAttribute("data-tileset");
+  assert.equal(
+    activePaletteSet,
+    secondPaletteSet,
+    "pressing '1' with filter applied selects the first filtered tile set",
+  );
+
+  await page.keyboard.press("/");
+  assert.ok(
+    await page.locator("#setPiecePaletteFilter").evaluate((el: HTMLElement) => el === document.activeElement),
+    "pressing '/' focuses set piece palette filter",
+  );
+
   await page.locator("#setPiecePaletteFilter").fill("");
   assert.equal(
     await page.locator("#setPiecePaletteList .chain-layout-palette-item").count(),
     initialPaletteCount,
     "clearing palette filter restores all items",
   );
+  await firstPaletteItem.click();
 
   // 2. Eligible tiers checkboxes (tiers 1-5)
   const tier1Box = page.locator('#chainEligibleTiers input[data-tier="1"]');
