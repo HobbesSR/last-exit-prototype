@@ -117,8 +117,8 @@ export function createHUDController(actions) {
   listen(document, 'contextmenu', e => {
     if (e.target.closest('[data-tip]')) e.preventDefault();
   });
-  function hud({ state, arenaMap, playerId, view, replay = false, dev = false, savedReplay, selection: { moveFrom }, visibility }) {
-    const me = state.players.find(p => p.id === playerId) || (replay ? state.players[0] : null);
+  function hud({ state, arenaMap, playerId, view, savedReplay, selection: { moveFrom }, visibility }) {
+    const me = state.players.find(p => p.id === playerId) || (view === 'replay' ? state.players[0] : null);
     dragEnabled = false;
     // The waiting area before a match (#236) has no clock, objective, loadout or outcome to show.
     const waiting = state.phase === 'waiting';
@@ -138,9 +138,8 @@ export function createHUDController(actions) {
       $('event-feed').dataset.feed = feedStr;
     }
     
-    const activeView = view || (replay ? 'replay' : dev ? 'dev' : waiting ? 'lobby' : (me && (me.status !== 'active' || state.phase === 'finished')) ? 'outcome' : 'play');
-    const isPlay = activeView === 'play';
-    const isOutcome = activeView === 'outcome';
+    const isPlay = view === 'play';
+    const isOutcome = view === 'outcome';
 
     if (me) {
       const gladiator = me.role === 'gladiator';

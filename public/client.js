@@ -311,7 +311,7 @@ function updateDevLeaveLabel() {
 }
 function updateHUD() {
   updateDevLeaveLabel();
-  hudController.render({ state, arenaMap, playerId, view: currentView(), replay: replayController.active(), dev: inDevView(), savedReplay,
+  hudController.render({ state, arenaMap, playerId, view: currentView(), savedReplay,
     selection: inputController.selection(),
     visibility: { directed: directed(), sight: scene?.sight }
   });
@@ -541,7 +541,6 @@ function leaveDevView() {
 function showDevMode() {
   const on = inDevView();
   $('dev-controls').hidden = !on; $('dev-leave').hidden = !devFeed;
-  updateDevLeaveLabel();
   updateHUD();
   $('dev-view').classList.toggle('active', !!devFeed); $('dev-view').setAttribute('aria-pressed', String(!!devFeed));
   if (ws?.readyState === WebSocket.OPEN && !replayController.active()) connection(on ? 'DEV VIEW' : 'LIVE');

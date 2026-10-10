@@ -49,7 +49,7 @@ export async function checkClientControllers(browser, base) {
       });
       const sight = { eye, points, bounds: { x: 11500, y: 5500, width: 1000, height: 1000 } };
       const visibility = { directed: false, sight };
-      const props = { state, arenaMap, playerId: me.id, replay: false, savedReplay: null, selection: input.selection(), visibility };
+      const props = { state, arenaMap, playerId: me.id, view: 'play', savedReplay: null, selection: input.selection(), visibility };
       const canvas = $('minimap').getContext('2d'), arc = canvas.arc.bind(canvas); let dots = 0;
       canvas.arc = (...args) => { dots++; arc(...args); };
       function render(extra) { dots = 0; hud.render({ ...props, ...extra }); return dots; }
@@ -68,9 +68,9 @@ export async function checkClientControllers(browser, base) {
       const eliminatedState = { ...state, players: [{ ...me, status: 'eliminated' }] };
       render({ state: eliminatedState, view: 'outcome' });
       const deathOutcomeVisible = !$('outcome').hidden;
-      render({ state: eliminatedState, view: 'dev', dev: true });
+      render({ state: eliminatedState, view: 'dev' });
       const deathOutcomeHiddenInDev = $('outcome').hidden;
-      render({ state: eliminatedState, view: 'replay', replay: true });
+      render({ state: eliminatedState, view: 'replay' });
       const deathOutcomeHiddenInReplay = $('outcome').hidden;
       render({ state: eliminatedState, view: 'outcome' });
       const deathOutcomeRestored = !$('outcome').hidden;
@@ -108,7 +108,7 @@ export async function checkClientControllers(browser, base) {
         if (reason === 'blur') window.dispatchEvent(new Event('blur'));
         if (reason === 'dialog') $('archive-dialog').showModal();
         if (reason === 'reset') { hud.cancelDrag(); input.reset(); }
-        if (reason === 'replay') render({ replay: true });
+        if (reason === 'replay') render({ view: 'replay' });
         if (reason === 'inactive') render({ state: { ...state, players: [{ ...me, status: 'stranded' }] } });
         if (reason === 'ui') document.elementFromPoint = () => $('fullscreen-toggle');
         gesture(slot(5), 'pointerup', 28, 10, 75);
