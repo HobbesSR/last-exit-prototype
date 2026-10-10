@@ -1,9 +1,20 @@
 import { bounds, circle, rect } from '../../../shared/shape.ts';
-import { capsule, findRegionRoute, shapesOverlap } from '../geometry.ts';
+import { capsule, createAccessMask, createFillMask, findRegionRoute, shapesOverlap } from '../geometry.ts';
 import { hunterClearance, portalStands } from '../portals.ts';
 import { microMetrics } from '../metrics.ts';
 import type { Shape } from '../../../shared/shape.ts';
-import type { LootSite, RegionBrief, RegionMask } from '../types.ts';
+import type { BuiltRegion, LootSite, RegionBrief, RegionMask } from '../types.ts';
+import { buildOpen } from './open.ts';
+
+/** A themed fill too fragmented for structures can still offer zone loot in its usable patches. */
+export function unfilledRegion(brief: RegionBrief, channel: number): BuiltRegion {
+  const result = buildOpen(brief);
+  if (brief.fillCells !== undefined) {
+    result.loot = cellLoot(brief, createFillMask(brief), [], channel);
+    result.manifest.loot = result.loot.length;
+  }
+  return result;
+}
 
 /*
  * What the strategies that scatter pieces around protected routes share: `rubble` and
@@ -36,6 +47,7 @@ export function draw(seed: number, x: number, y: number, channel: number): numbe
  * in what it throws.
  */
 export function protectedRoutes(brief: RegionBrief, mask: RegionMask, type: string): Shape[] {
+  mask = createAccessMask(brief);
   const radius = hunterClearance(brief.cellSize), stands = portalStands(brief, mask);
   const kept: Shape[] = [];
   if (stands.length < 2) return kept;
@@ -45,7 +57,7 @@ export function protectedRoutes(brief: RegionBrief, mask: RegionMask, type: stri
     // protection shape per half-cell sample on a long portal.
     const line = (portal.axis === 'h' ? portal.y : portal.x) * brief.cellSize;
     const start = (portal.axis === 'h' ? portal.x : portal.y) * brief.cellSize;
-    const margin = 2 * (radius + 1);
+    const margin = brief.clearCells === undefined ? 2 * (radius + 1) : radius;
     kept.push(portal.axis === 'h'
       ? rect(start, line - margin, portal.length * brief.cellSize, 2 * margin)
       : rect(line - margin, start, 2 * margin, portal.length * brief.cellSize));
@@ -54,7 +66,7 @@ export function protectedRoutes(brief: RegionBrief, mask: RegionMask, type: stri
   for (const { portal, points } of stands.slice(1)) {
     const route = findRegionRoute(mask, [], root, points[0]!, radius);
     if (!route) throw new Error(`${type} region ${brief.id} cannot join portal ${portal.id} in its empty shape.`);
-    for (let i = 1; i < route.length; i++) kept.push(...capsule(route[i - 1]!, route[i]!, radius + 1));
+    for (let i = 1; i < route.length; i++) kept.push(...capsule(route[i - 1]!, route[i]!, brief.clearCells === undefined ? radius + 1 : radius));
   }
   return kept;
 }

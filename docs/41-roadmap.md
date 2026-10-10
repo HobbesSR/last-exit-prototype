@@ -105,6 +105,12 @@ Reachability remains the chain of per-layer promises in 51, rather than a new
 whole-map enforcement stage. See [19](19-decomposition-design.md),
 [20](20-micro-generation.md) and the recorded choices in [17](17-open-questions.md).
 
+The passable-margin contract (20.6, #313) is implemented. Macro version 3
+derives reduced fill, known-clear access context and internal guaranteed runs;
+`types-21` builders and child handoffs use those constraints. #214 resumes
+against this policy after #313 merges, with its saved authorship work requiring
+new shape/tuning validation and a final content checkpoint.
+
 The sequencing below remains the other gameplay backlog, not an instruction to
 leave the current micro-generation effort for reward tiers.
 

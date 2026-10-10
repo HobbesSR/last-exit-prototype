@@ -1,7 +1,6 @@
 import { rect } from '../../../shared/shape.ts';
-import { buildOpen } from './open.ts';
-import { cellLoot, draw, protectedRoutes } from './scatter.ts';
-import { createRegionMask, shapesOverlap } from '../geometry.ts';
+import { unfilledRegion, cellLoot, draw, protectedRoutes } from './scatter.ts';
+import { createAccessMask, createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
 import type { BuiltRegion, RegionBrief, RegionMask } from '../types.ts';
@@ -51,11 +50,11 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
   const roofed = brief.parameters?.roofed ?? false;
   if (typeof roofed !== 'boolean') throw new TypeError('Hall roofed must be true or false.');
 
-  const mask = createRegionMask(brief), size = brief.cellSize;
+  const mask = createFillMask(brief), size = brief.cellSize;
   const box = largestRectangle(mask, MIN_SIDE);
-  if (!box) return buildOpen(brief);
+  if (!box) return unfilledRegion(brief, CHANNEL.loot);
 
-  const protectedShapes = protectedRoutes(brief, mask, 'Hall');
+  const protectedShapes = protectedRoutes(brief, createAccessMask(brief), 'Hall');
   const staggerRows = draw(brief.seed, 0, 0, CHANNEL.axis) < 0.5;
   const stride = staggerStride(spacing);
   // Lines of blocks run along the staggered axis (u) and step across the other (v).
@@ -79,7 +78,7 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
 
   const elements = parts.length || roofed ? [{ label: 'hall', x: box.x * size, y: box.y * size,
     template: { w: box.w * size, h: box.h * size, ...(roofed ? { encloses: true } : {}), parts } }] : [];
-  const loot = cellLoot(brief, mask, pillars, CHANNEL.loot);
+  const loot = cellLoot(brief, createRegionMask(brief), pillars, CHANNEL.loot);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: roofed ? 1 : 0, obstacles: pillars.length, gates: 0,
       loot: loot.length, coreElements: 0, pillars: pillars.length } };

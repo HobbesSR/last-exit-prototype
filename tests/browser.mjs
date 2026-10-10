@@ -533,13 +533,20 @@ try {
   assert.equal(cast.vision, null, 'a directed view computes no personal visibility polygon');
   assert.ok(cast.cameraWidth >= cast.mapWidth, `directed camera frames the whole arena: ${cast.cameraWidth} vs ${cast.mapWidth}`);
   await caster.screenshot({ path: 'test-results/spectator.png' });
+  // Roof and door interaction needs an occupied building, independent of whether
+  // automatic internal margins permit one in a live seed. Install the retained
+  // geometry fixture before a resumed welcome; earlier checks use the live chain.
   const artRoom = server.rooms.get(await page.evaluate(() => window.arenaDebug().room));
+  artRoom.game.map = generateMap(4217);
+  await ready(page, page.url());
+  for (const player of artRoom.game.players) player.bot = false;
   const artId = await page.evaluate(() => window.arenaDebug().me.id);
   const artPlayer = artRoom.game.players.find(p => p.id === artId);
   // Several archetypes are in the catalogue, so every position here comes from the building rather
   // than a fixed offset: one lands inside a partition or a stack and the body is separated straight
   // back out, and the door is not in the same place in all of them.
   const entrance = artRoom.game.map.gates.find(g => g.buildingId && !g.locked && artRoom.game.map.items.some(i => i.buildingId === g.buildingId));
+  assert.ok(entrance, 'the roof/door fixture has an unlocked entrance and indoor loot');
   const interior = artRoom.game.map.buildings.find(b => b.id === entrance.buildingId);
   const indoors = artRoom.game.map.items.find(i => i.buildingId === interior.id);
   Object.assign(artPlayer, { x: indoors.x, y: indoors.y });
@@ -604,9 +611,17 @@ try {
   const wallRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":7}' })).json();
   await server.rooms.get(wallRoom.id).ready;
   const wallGame = server.rooms.get(wallRoom.id).game;
+  // A fixed floor/partition witness keeps the draw-order regression independent
+  // of which multi-room houses a live seed can fit under internal clear margins.
+  wallGame.map = generateMap(7);
+  wallGame.map.buildings = [{ id: 'floor-wall-fixture', x: 11800, y: 5800, w: 400, h: 400 }];
+  wallGame.map.obstacles = [11970, 11920, 11870].map((x, i) => ({
+    id: `floor-wall-${i}`, buildingId: 'floor-wall-fixture', kind: 'building', x, y: 5850, w: 12, h: 220,
+  }));
+  wallGame.map.gates = []; wallGame.map.items = []; wallGame.map.traps = [];
   const inside = b => wallGame.map.obstacles.filter(o => !o.points && o.kind === 'building' && o.x >= b.x + 20 && o.x < b.x + b.w - 20 && o.y >= b.y + 20 && o.y < b.y + b.h - 20);
   const walled = wallGame.map.buildings.find(b => b.w < 700 && inside(b).length > 2);
-  assert.ok(walled, 'a seeded live map has a building with interior walls');
+  assert.ok(walled, 'the floor/partition fixture has a building with interior walls');
   const wallPage = await browser.newPage({ viewport: { width: 1200, height: 900 } });
   await ready(wallPage, `${base}/?room=${wallRoom.id}&ownerKey=${encodeURIComponent(wallRoom.ownerKey)}`);
   const wallBox = inside(walled).find(o => o.w >= 8 && o.h >= 24);

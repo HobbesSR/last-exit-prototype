@@ -1,5 +1,5 @@
 /** Reusable geometry/placement tools. No catalogue, live game state, IDs or macro planner. */
-export { createRegionMask, capsule, elementShapes, findRegionRoute, shapesOverlap, travelClear, validShape } from './geometry.ts';
+export { createRegionMask, createFillMask, createAccessMask, capsule, elementShapes, findRegionRoute, shapesOverlap, travelClear, validShape } from './geometry.ts';
 export { spreadPoints } from './placement.ts';
 export { microMetrics } from './metrics.ts';
 export { resolveAccessRequirements, validateRegionAccess } from './access.ts';
@@ -35,3 +35,5 @@ export type { BuildingPiece, BuildingPieceOptions } from './building/pieces.ts';
 export type { BuildingObserver, BuildingTrace } from './building/trace.ts';
 export { allocateBuilding } from './building/allocation.ts';
 export type { BuildingAllocationOptions, BuildingAllocationResult, BuildingAllocationSearch, BuildingAllocationScores } from './building/allocation.ts';
+
+export { inheritBriefMargins, validateFillConstraints } from './margins.ts';

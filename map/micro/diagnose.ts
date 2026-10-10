@@ -1,4 +1,5 @@
 import { elementShapes } from './geometry.ts';
+import { validateFillConstraints } from './margins.ts';
 import { validatePortalReach } from './portals.ts';
 import type { BuiltMap, RegionElement } from './types.ts';
 
@@ -17,7 +18,9 @@ export interface BrokenPromise { region: string; errors: string[] }
  */
 export function diagnoseBuiltMap(map: BuiltMap<RegionElement>): BrokenPromise[] {
   return map.regions.flatMap(({ brief, elements }) => {
-    const { errors } = validatePortalReach({ ...brief, blockers: elements.flatMap(element => elementShapes(element)) });
+    const blockers = elements.flatMap(element => elementShapes(element));
+    const reach = validatePortalReach({ ...brief, blockers });
+    const errors = [...validateFillConstraints(brief, elements.flatMap(element => elementShapes(element, true))), ...reach.errors];
     return errors.length ? [{ region: brief.id, errors }] : [];
   });
 }

@@ -1,9 +1,8 @@
 import { rect } from '../../../shared/shape.ts';
 import type { BuildingObserver } from '../building/trace.ts';
-import { buildOpen } from './open.ts';
 import { warehouse } from './depot.ts';
-import { cellLoot, draw } from './scatter.ts';
-import { capsule, createRegionMask, elementShapes, findRegionRoute, shapesOverlap, travelClear } from '../geometry.ts';
+import { unfilledRegion, cellLoot, draw } from './scatter.ts';
+import { capsule, createAccessMask, createFillMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap, travelClear } from '../geometry.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../portals.ts';
 import { boxesAgainstHints, portalMargin } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
@@ -65,8 +64,9 @@ const centre = (portal: Portal): Point => portal.axis === 'h'
  * for the report. `observe`, when given, sees the post's design as `depot` reports its warehouses.
  */
 export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver): BuiltRegion {
-  const mask = createRegionMask(brief), size = brief.cellSize;
-  const stands = portalStands(brief, mask), radius = hunterClearance(size);
+  const mask = createFillMask(brief), accessMask = createAccessMask(brief), size = brief.cellSize;
+  if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
+  const stands = portalStands(brief, accessMask), radius = hunterClearance(size);
   // Only accepted pieces remain in `elements`, so each trial extends the accepted
   // blocker prefix. Cached capsules cover actual hunter sweeps: the portal tree plus
   // each portal's joined stands proves connectivity. A new piece disjoint from every
@@ -76,8 +76,9 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
   let acceptedCount = 0, proof: Evidence[] | undefined;
   const evidence = (points: Point[]): Evidence => ({ a: points[0]!, b: points[points.length - 1]!,
     swept: points.slice(1).flatMap((p, i) => capsule(points[i]!, p, radius)) });
-  const crossings = stands.flatMap(({ inward, points }) => points.flatMap(point => capsule(
-    { x: point.x - inward.x * 2 * (radius + 1), y: point.y - inward.y * 2 * (radius + 1) }, point, radius)));
+  const crossings = stands.flatMap(({ inward, points }) => points.flatMap(point => brief.clearCells === undefined ? capsule(
+    { x: point.x - inward.x * 2 * (radius + 1), y: point.y - inward.y * 2 * (radius + 1) }, point, radius)
+    : capsule(point, point, radius)));
   const holds = (blockers: readonly Shape[]) => {
     if (stands.length < 2) return true;
     const added = blockers.slice(acceptedCount);
@@ -88,7 +89,7 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
       const next: Evidence[] = [];
       for (const path of proof) {
         if (!added.some(shape => path.swept.some(sweep => shapesOverlap(shape, sweep)))) { next.push(path); continue; }
-        const route = findRegionRoute(mask, blockers, path.a, path.b, radius);
+        const route = findRegionRoute(accessMask, blockers, path.a, path.b, radius);
         if (!route) return false;
         next.push(evidence(route));
       }
@@ -109,14 +110,14 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
         if (d < distance) { distance = d; pair = [a, b]; }
       }
       const [a, b] = pair!, p = stands[a]!.points[0]!, q = stands[b]!.points[0]!;
-      const route = findRegionRoute(mask, blockers, p, q, radius);
+      const route = findRegionRoute(accessMask, blockers, p, q, radius);
       const fallback = checked.routes.find(r => r.to === stands[b]!.portal.id)?.points;
       if (!route && !fallback) { proof = undefined; acceptedCount = blockers.length; return true; }
       paths.push(evidence(route ?? fallback!)); connected.add(b);
     }
     for (const { points } of stands) for (let i = 1; i < points.length; i++) {
       const a = points[i - 1]!, b = points[i]!;
-      const route = travelClear(mask, blockers, a, b, radius) ? [a, b] : findRegionRoute(mask, blockers, a, b, radius);
+      const route = travelClear(accessMask, blockers, a, b, radius) ? [a, b] : findRegionRoute(accessMask, blockers, a, b, radius);
       if (!route) { proof = undefined; acceptedCount = blockers.length; return true; }
       paths.push(evidence(route));
     }
@@ -124,7 +125,7 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
     acceptedCount = blockers.length;
     return true;
   };
-  if (!holds([])) return buildOpen(brief);
+  if (!holds([])) return unfilledRegion(brief, CHANNEL.loot);
 
   const elements: RegionElement[] = [];
   const blockers = (): Shape[] => elements.flatMap(element => elementShapes(element));
@@ -171,14 +172,14 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
   const owned = mask.cells, bounds = mask.bounds;
   const anchor: Point = barriers.length ? { x: barriers.reduce((s, c) => s + c.x + c.w / 2, 0) / barriers.length, y: barriers.reduce((s, c) => s + c.y + c.h / 2, 0) / barriers.length }
     : line ? { x: (line[0].x + line[1].x) / 2, y: (line[0].y + line[1].y) / 2 }
-    : brief.portals.length === 1 ? inward(brief.portals[0]!, mask) : { x: (bounds.x + bounds.w / 2) / size, y: (bounds.y + bounds.h / 2) / size };
+    : brief.portals.length === 1 ? inward(brief.portals[0]!, createRegionMask(brief)) : { x: (bounds.x + bounds.w / 2) / size, y: (bounds.y + bounds.h / 2) / size };
   const longSide = LONG[Math.floor(draw(brief.seed, 0, 0, CHANNEL.long) * LONG.length)]!, shortSide = SHORT[Math.floor(draw(brief.seed, 0, 0, CHANNEL.short) * SHORT.length)]!;
   const [pw, ph] = lineAlongX ? [longSide, shortSide] : [shortSide, longSide];
   const touches = (box: Box, other: Box) => box.x < other.x + other.w + AISLE && box.x + box.w + AISLE > other.x && box.y < other.y + other.h + AISLE && box.y + box.h + AISLE > other.y;
   const onLine = (box: Box) => !!line && Array.from({ length: Math.ceil(farthest * 2) + 1 }, (_, i) => i / Math.max(1, Math.ceil(farthest * 2)))
     .some(t => { const p = { x: line![0].x + (line![1].x - line![0].x) * t, y: line![0].y + (line![1].y - line![0].y) * t };
       return p.x > box.x - AISLE && p.x < box.x + box.w + AISLE && p.y > box.y - AISLE && p.y < box.y + box.h + AISLE; });
-  const portalKeepout = new Set(portalMargin(brief, 1).map(({ x, y }) => `${x},${y}`));
+  const portalKeepout = new Set((brief.fillCells === undefined ? portalMargin(brief, 1) : []).map(({ x, y }) => `${x},${y}`));
   const fits = ({ x, y, w, h }: Box) => {
     for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!mask.has(i, j) || portalKeepout.has(`${i},${j}`)) return false;
     return true;
@@ -204,10 +205,10 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
     posts = 1;
     break;
   }
-  if (!posts && !barriers.length) return buildOpen(brief);
+  if (!posts && !barriers.length) return unfilledRegion(brief, CHANNEL.loot);
 
   const parts = elements.flatMap(element => element.template.parts);
-  const loot = cellLoot(brief, mask, elements.flatMap(element => elementShapes(element, true)), CHANNEL.loot);
+  const loot = cellLoot(brief, createRegionMask(brief), elements.flatMap(element => elementShapes(element, true)), CHANNEL.loot);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: posts, obstacles: parts.filter(p => p.part === 'obstacle').length,
       gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0,

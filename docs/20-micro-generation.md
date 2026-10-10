@@ -25,6 +25,7 @@ bounded candidate analysis and allocation; its design record is [19](19-decompos
 | 20.3 | Builders and child-region decomposition | [20.3](20.3-builders-decomposition.md) |
 | 20.4 | Hierarchical generation and portal negotiation | [20.4](20.4-hierarchical-generation.md) |
 | 20.5 | Tools and next boundaries | [20.5](20.5-tools-and-next-boundaries.md) |
+| 20.6 | Guaranteed passability and automatic clear margins | [20.6](20.6-passable-margins.md) |
 
 ## Earlier heading links
 

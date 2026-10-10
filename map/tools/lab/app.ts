@@ -695,6 +695,45 @@ const LAYERS: Layer[] = [
     colour: (name) => heat(views!, Number.parseInt(name) / 100),
   },
   {
+    id: "reducedFill", pass: "areas", label: "Reduced fill: guaranteed clear cells", stage: "briefs", on: false, opacity: 1,
+    legend: () => [["owned cell excluded from geometry fill", "#347b90"]],
+    cells: (v) => {
+      const { width } = v.resolved, excluded = new Set<number>();
+      for (const brief of v.briefs) {
+        const fill = new Set((brief.fillCells ?? brief.cells).map(({ x, y }) => y * width + x));
+        for (const { x, y } of brief.cells) if (!fill.has(y * width + x)) excluded.add(y * width + x);
+      }
+      return (cell) => excluded.has(cell) ? "guaranteed clear" : null;
+    },
+    colour: () => [52, 123, 144, 140],
+    inspect: (_, { region, x, y }) => {
+      const brief = region && briefOf.get(region.id)?.brief;
+      if (!brief) return [];
+      const fill = brief.fillCells ?? brief.cells;
+      return brief.cells.some((cell) => cell.x === x && cell.y === y) && !fill.some((cell) => cell.x === x && cell.y === y)
+        ? ["Reduced fill: this owned cell is guaranteed clear; geometry cannot occupy it."] : [];
+    },
+  },
+  {
+    id: "internalGuaranteed", pass: "marks", label: "Internal guaranteed runs", stage: "briefs", on: false, opacity: 1,
+    legend: () => [["internal passability requirement", "#ffac6b"]],
+    paint: (g, v, px) => {
+      const lines = new Path2D();
+      for (const brief of v.briefs) for (const run of brief.internalGuaranteed ?? []) {
+        lines.moveTo(run.x, run.y);
+        lines.lineTo(run.axis === "h" ? run.x + run.length : run.x,
+          run.axis === "v" ? run.y + run.length : run.y);
+      }
+      g.strokeStyle = "#ffac6b";
+      g.lineWidth = Math.max(0.12, 2 * px);
+      g.stroke(lines);
+    },
+    inspect: (_, { region }) => {
+      const runs = region && briefOf.get(region.id)?.brief.internalGuaranteed;
+      return runs?.length ? [`${runs.length} internal guaranteed run${runs.length === 1 ? "" : "s"}; each keeps its clear footprint without creating an external portal.`] : [];
+    },
+  },
+  {
     id: "briefs", pass: "marks", label: "Briefs: portals and core elements", stage: "briefs", on: false, opacity: 1,
     legend: () => [["portal, as its region's brief states it", BRIEF_PORTAL], ["core elements assigned", "#ffd166"]],
     paint: (g, v, px) => {
@@ -726,6 +765,8 @@ const LAYERS: Layer[] = [
       return [
         `Brief: type ${brief.type}, ${brief.portals.length} portals${brief.portals.length ? ` (${brief.portals.map((portal) => portal.id).join(", ")})` : ""}`,
         `Assigned core elements: ${assigned(brief) || "none"}`,
+        `Reduced fill: ${(brief.fillCells ?? brief.cells).length}/${brief.cells.length} owned cells; ${(brief.clearCells ?? []).length} known-clear access cells`,
+        `Internal guaranteed runs: ${(brief.internalGuaranteed ?? []).length}`,
         ...(brief.parameters ? [`Parameters: ${Object.entries(brief.parameters).map(([name, value]) => `${name} ${value}`).join(", ")}`] : []),
         `Loot chance ${chances.join(", ")}`,
       ];

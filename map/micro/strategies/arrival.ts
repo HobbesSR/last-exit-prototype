@@ -1,5 +1,5 @@
 import { coverAround } from './cover.ts';
-import { createRegionMask } from '../geometry.ts';
+import { createAccessMask, createRegionMask } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
 import { spreadPoints } from '../placement.ts';
 import { portalStands } from '../portals.ts';
@@ -20,9 +20,10 @@ export function buildArrival(brief: RegionBrief): BuiltRegion {
     throw new RangeError(`Region ${brief.id}: arrival spacing must be a positive number of cells.`);
 
   const mask = createRegionMask(brief);
-  const root = portalStands(brief, mask).find(portal => portal.points.length)?.points[0];
+  const accessMask = createAccessMask(brief);
+  const root = portalStands(brief, accessMask).find(portal => portal.points.length)?.points[0];
   const requested = brief.coreElements?.spawn ?? 0;
-  const points = spreadPoints(mask, { count: requested, radius, seed: brief.seed,
+  const points = spreadPoints(mask, { count: requested, radius, seed: brief.seed, accessMask,
     minimumSpacing: Math.max(radius * 2, (spacing ?? 0) * size), ...(root ? { anchor: root } : {}) }).points;
   const coreElements = points.map(point => ({ kind: 'spawn' as const, ...point }));
   const { elements, loot } = coverAround(brief, points.map(point => ({ ...point, radius })), root);

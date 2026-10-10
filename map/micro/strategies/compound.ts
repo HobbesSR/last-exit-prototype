@@ -1,7 +1,6 @@
-import { buildOpen } from './open.ts';
 import { largestRectangle } from './hall.ts';
-import { cellLoot, draw } from './scatter.ts';
-import { createRegionMask, elementShapes } from '../geometry.ts';
+import { unfilledRegion, cellLoot, draw } from './scatter.ts';
+import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { boxesAgainstHints, portalMargin } from '../hints.ts';
 import { portalStands } from '../portals.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
@@ -38,18 +37,18 @@ const CHANNEL = { offset: 1, gateSide: 2, gateAt: 3, room: 4, loot: 5 };
 interface Box { x: number; y: number; w: number; h: number }
 
 /** Keep the yard's portal blocks joined and leave a reachable doorstep at each chosen gate. */
-function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, space: Box, gates: number):
+function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, accessMask: ReturnType<typeof createRegionMask>, space: Box, gates: number):
   (Box & { gated: Set<Side> }) | undefined {
   const key = (x: number, y: number) => `${x},${y}`;
-  const reserved = new Set(portalMargin(brief, 1).map(c => key(c.x, c.y)));
+  const reserved = new Set((brief.fillCells === undefined ? portalMargin(brief, 1) : []).map(c => key(c.x, c.y)));
   const entrances: { x: number; y: number }[] = [];
-  for (const { portal: { axis, x, y, length }, inward } of portalStands(brief, mask)) {
-    for (let i = 0; i < length; i++) for (let depth = 0; depth < 2; depth++) {
+  for (const { portal: { axis, x, y, length }, inward } of portalStands(brief, accessMask)) {
+    if (brief.clearCells === undefined) for (let i = 0; i < length; i++) for (let depth = 0; depth < 2; depth++) {
       const d = inward.x + inward.y > 0 ? depth : -1 - depth;
       reserved.add(axis === 'h' ? key(x + i, y + d) : key(x + d, y + i));
     }
     for (let i = 0; i + 2 <= length; i++) {
-      const d = inward.x + inward.y > 0 ? 0 : -2;
+      const d = brief.clearCells === undefined ? (inward.x + inward.y > 0 ? 0 : -2) : -1;
       entrances.push(axis === 'h' ? { x: x + i, y: y + d } : { x: x + d, y: y + i });
     }
   }
@@ -97,7 +96,7 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
         if (!mask.has(x, y) || reserved.has(key(x, y))) { valid = false; break; }
       if (!valid) continue;
       const fits = (x: number, y: number) => !inside(x, y) && !inside(x + 1, y) && !inside(x, y + 1) && !inside(x + 1, y + 1)
-        && mask.has(x, y) && mask.has(x + 1, y) && mask.has(x, y + 1) && mask.has(x + 1, y + 1);
+        && accessMask.has(x, y) && accessMask.has(x + 1, y) && accessMask.has(x, y + 1) && accessMask.has(x + 1, y + 1);
       // A gate needs a two-cell yard stand at its actual passage. Reject sites
       // without enough such sides before walking the yard, the costly check.
       const gateSteps = gateOrder.map(side => {
@@ -115,7 +114,7 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
         return { side, steps };
       }).filter(v => v.steps.length);
       if (gateSteps.length < gates) continue;
-      const start = entrances[0] ?? mask.cells.find(c => fits(c.x, c.y));
+      const start = entrances[0] ?? accessMask.cells.find(c => fits(c.x, c.y));
       if (!start || !fits(start.x, start.y)) continue;
       // This flood belongs only to this candidate box: each node is an owned 2x2
       // hunter stand outside it, and adjacent nodes sweep an owned 2x3 rectangle.
@@ -168,11 +167,11 @@ export function buildCompound(brief: RegionBrief, observe?: BuildingObserver): B
   const gates = brief.parameters?.gates ?? DEFAULT_GATES;
   if (typeof gates !== 'number' || !Number.isInteger(gates) || gates < MIN_GATES || gates > MAX_GATES)
     throw new RangeError(`Compound gates must be a whole number from ${MIN_GATES} to ${MAX_GATES}.`);
-  const mask = createRegionMask(brief), size = brief.cellSize;
+  const mask = createFillMask(brief), size = brief.cellSize;
   const space = largestRectangle(mask, MIN_SIDE);
-  if (!space) return buildOpen(brief);
-  const site = siteCompound(brief, mask, space, gates);
-  if (!site) return buildOpen(brief);
+  if (!space) return unfilledRegion(brief, CHANNEL.loot);
+  const site = siteCompound(brief, mask, createAccessMask(brief), space, gates);
+  if (!site) return unfilledRegion(brief, CHANNEL.loot);
   const { x: bx, y: by, w: W, h: H, gated } = site;
 
   // The ring in the box's own cells. A side's middle runs between the corner rooms; `strip` is the box `length` long from `t` along it, `DEPTH` deep.
@@ -242,7 +241,7 @@ export function buildCompound(brief: RegionBrief, observe?: BuildingObserver): B
     x: bx * size + piece.origin.x, y: by * size + piece.origin.y, template: piece.template }));
   const parts = elements.flatMap(element => element.template.parts);
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
-  const loot = cellLoot(brief, mask, pieces, CHANNEL.loot);
+  const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: rooms.length, obstacles: parts.filter(p => p.part === 'obstacle').length,
       gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0, rooms: rooms.length, compoundGates: passages.length } };

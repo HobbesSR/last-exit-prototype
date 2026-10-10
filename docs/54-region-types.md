@@ -349,6 +349,8 @@ inside, and windows and doors let sight through.
   - **The designs:** it tries a house of three spaces, then two, then one,
     then goes to `open` (17 M24). Three spaces take a 6 × 6, 8 × 6 or 9 × 4
     box, two a 6 × 4 or 7 × 5, either way round, and one a 4 × 4.
+    With automatic margins (20.6), compact single-room boxes also try
+    4 by 3, 3 by 4 and 3 by 3 cells; walls and door widths stay the same.
   - **The box:** each design tries its sizes, then contained boxes in a seeded
     order, with `boxesAgainstHints` candidates first. There is no extra
     two-cell extent prefilter: a house can fit flush with the region boundary

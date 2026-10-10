@@ -1,5 +1,5 @@
 import { coverAround, coverNear } from './cover.ts';
-import { createRegionMask, findRegionRoute } from '../geometry.ts';
+import { createAccessMask, createRegionMask, findRegionRoute } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
 import { spreadPoints } from '../placement.ts';
 import { portalStands } from '../portals.ts';
@@ -30,12 +30,13 @@ export function buildCharging(brief: RegionBrief): BuiltRegion {
   if (typeof standing !== 'number' || !Number.isFinite(standing) || standing <= 0)
     throw new RangeError(`Region ${brief.id}: charging standing must be a positive number of cells.`);
   const mask = createRegionMask(brief), radius = clearance.contestant, count = brief.coreElements?.charger ?? 0;
-  const root = portalStands(brief, mask).find(portal => portal.points.length)?.points[0];
+  const accessMask = createAccessMask(brief);
+  const root = portalStands(brief, accessMask).find(portal => portal.points.length)?.points[0];
 
   // The middle first; if a contestant can't walk there from the first portal, the nearest place it can.
   let chargers = spreadPoints(mask, { count, radius, seed: brief.seed }).points;
-  if (root && chargers.some(point => !findRegionRoute(mask, [], root, point, radius)))
-    chargers = spreadPoints(mask, { count, radius, seed: brief.seed, anchor: root }).points;
+  if (root && chargers.some(point => !findRegionRoute(accessMask, [], root, point, radius)))
+    chargers = spreadPoints(mask, { count, radius, seed: brief.seed, accessMask, anchor: root }).points;
 
   const sites = chargers.map(point => ({ ...point, radius: Math.max(standing * size, radius), reach: radius }));
   let cover = coverAround(brief, sites, root);

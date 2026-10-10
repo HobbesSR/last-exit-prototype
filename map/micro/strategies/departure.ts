@@ -1,6 +1,6 @@
 import { circle } from '../../../shared/shape.ts';
 import { coverAround } from './cover.ts';
-import { createRegionMask } from '../geometry.ts';
+import { createAccessMask, createRegionMask } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
 import { spreadPoints } from '../placement.ts';
 import { portalStands } from '../portals.ts';
@@ -31,15 +31,16 @@ export function buildDeparture(brief: RegionBrief): BuiltRegion {
   const size = brief.cellSize, { clearance } = microMetrics({ cellSize: size, bodyProfile: 'cell' });
   const exitSpacing = cellsParameter(brief, 'exitSpacing') ?? 0, setBack = (cellsParameter(brief, 'setBack') ?? SET_BACK) * size;
   const mask = createRegionMask(brief);
-  const root = portalStands(brief, mask).find(portal => portal.points.length)?.points[0];
+  const accessMask = createAccessMask(brief);
+  const root = portalStands(brief, accessMask).find(portal => portal.points.length)?.points[0];
   const anchor = root ? { anchor: root } : {};
 
-  const exits = spreadPoints(mask, { count: brief.coreElements?.exit ?? 0, radius: clearance.contestant, seed: brief.seed,
+  const exits = spreadPoints(mask, { count: brief.coreElements?.exit ?? 0, radius: clearance.contestant, seed: brief.seed, accessMask,
     minimumSpacing: Math.max(clearance.contestant * 2, exitSpacing * size), ...anchor }).points;
   // A hunter's disc touching this ring's disc has its centre exactly `setBack` from the exit.
   // The ring never shrinks below a contestant, so no hunter stands on an exit.
   const ring = Math.max(setBack - clearance.hunter, clearance.contestant);
-  const hunters = spreadPoints(mask, { count: brief.coreElements?.['hunter-spawn'] ?? 0, radius: clearance.hunter, seed: brief.seed,
+  const hunters = spreadPoints(mask, { count: brief.coreElements?.['hunter-spawn'] ?? 0, radius: clearance.hunter, seed: brief.seed, accessMask,
     reservations: exits.map(exit => circle(exit.x, exit.y, ring)), ...anchor }).points;
 
   const coreElements = [
