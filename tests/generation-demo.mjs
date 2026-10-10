@@ -68,7 +68,7 @@ try {
   await page.waitForFunction(id => window.generationDemoDebug?.().linked?.id === id, blockBrief.id, { timeout: 15000 });
   const block = await page.evaluate(() => window.generationDemoDebug());
   assert.deepEqual(block.linked.built, JSON.parse(JSON.stringify(blockMap.results.find(r => r.brief.id === blockBrief.id))), 'the demo shows the block the map stored');
-  assert.deepEqual(block.result.assignments.map(a => a.builder), ['cover', 'ruins', 'depot', 'open']);
+  assert.deepEqual(block.result.assignments.map(a => a.builder), ['ruins', 'cover', 'cover', 'open']);
   assert.equal(block.result.regions.reduce((n, r) => n + r.elements.length, 0), block.linked.built.elements.length, 'every element belongs to one child');
   assert.ok(block.walker, 'the walk stage places a walker in the block');
   await page.getByRole('button', { name: 'Decomposition', exact: true }).click();

@@ -189,6 +189,17 @@ The libraries now use immutable modules `common-primitives@4`,
 samples across the three authored sizes and three independent full-map portal
 diagnoses passed. The frozen gameplay characterization fixture is unchanged.
 
+**#325's re-capture** pins `types-23` at input commit `a4c17b9`, retaining the
+same 224 cases. Depots reserve a nearby-portal
+spanning tree instead of a first-portal star (20.3, 54). Results hashes change
+on all 224 cases because the builder version changes; built and report hashes
+move on the 150 cases with changed depot content. Layout, declared grid, resolved
+segments, regions, proof, zones and briefs remain identical. The same 20
+`last-exit-001` through `last-exit-020` maps report no defects and all their
+depots pass independent fill and hunter-access checks; full-map diagnoses of
+002, 008 and 014 also pass. Macro version 3 and wire version 8 remain unchanged.
+The frozen gameplay characterization fixture is unchanged.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
