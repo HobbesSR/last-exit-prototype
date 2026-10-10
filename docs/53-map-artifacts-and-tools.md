@@ -163,6 +163,14 @@ every region of one game map passed the independent portal diagnostic, and
 combat-neutralized bots filled all three extraction slots on representative
 live maps. The frozen gameplay characterization fixture is unchanged.
 
+**#313's re-capture** pins automatic guaranteed-segment margins (20.6), macro
+version 3 and `types-21`, at input commit `485ca14`. It retains the same 224
+cases and unchanged authored libraries. Only results, briefs, built and report
+hashes change on all 224 maps; layout, declared grid, resolved segments,
+regions, proof and zones stay identical. This is the prerequisite policy
+checkpoint; #214's later authored shapes and tuning require their own review
+and final checkpoint. The frozen gameplay characterization fixture is unchanged.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
