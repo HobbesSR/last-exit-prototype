@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
+import { createAccessMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { circle } from '../shared/shape.ts';
@@ -25,14 +25,14 @@ const radiusOf = site => site.kind === 'hunter-spawn' ? clearance.hunter : clear
 
 /** Every site stands clear inside the region, clear of cover and loot, and is reachable from the first portal. */
 function assertSitesClear(result, label) {
-  const mask = createRegionMask(result.brief), blockers = blockersOf(result);
-  const root = portalStands(result.brief, mask).find(portal => portal.points.length)?.points[0];
+  const mask = createRegionMask(result.brief), access = createAccessMask(result.brief), blockers = blockersOf(result);
+  const root = portalStands(result.brief).find(portal => portal.points.length)?.points[0];
   for (const site of result.coreElements) {
     const stand = circle(site.x, site.y, radiusOf(site));
     assert.ok(mask.contains(stand), `${label}: ${site.kind} ${site.x},${site.y} fits inside owned cells`);
     assert.ok(blockers.every(shape => !shapesOverlap(stand, shape)), `${label}: cover clears ${site.kind} ${site.x},${site.y}`);
     assert.ok(result.loot.every(loot => !shapesOverlap(stand, circle(loot.x, loot.y, lootRadius))), `${label}: loot clears ${site.kind}`);
-    if (root) assert.ok(findRegionRoute(mask, blockers, root, site, radiusOf(site)), `${label}: ${site.kind} ${site.x},${site.y} reached from the first portal`);
+    if (root) assert.ok(findRegionRoute(access, blockers, root, site, radiusOf(site)), `${label}: ${site.kind} ${site.x},${site.y} reached from the first portal`);
   }
 }
 

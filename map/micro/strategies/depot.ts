@@ -7,8 +7,8 @@ import type { BuildingAllocation, BuildingDesign, BuildingSide } from '../buildi
 import type { BuildingObserver } from '../building/trace.ts';
 import { largestRectangle } from './hall.ts';
 import { unfilledRegion, cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
-import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
-import { boundaryBoxFilter, boxesAgainstHints, portalMargin, hintedCells } from '../hints.ts';
+import { createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
+import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
@@ -67,10 +67,10 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   const mask = createFillMask(brief), size = brief.cellSize;
   if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
   if (!largestRectangle(mask, MIN_SIDE)) return unfilledRegion(brief, CHANNEL.loot);
-  const reserved = new Set((brief.fillCells === undefined ? [...portalMargin(brief, 1), ...portalMargin({ ...brief, hints: [] }, 2)] : []).map(c => `${c.x},${c.y}`));
-  const boundary = boundaryBoxFilter(brief, AISLE), rectangular = boundary.rectangular;
-  const protectedShapes = (brief.fillCells !== undefined || !rectangular) && brief.portals.length <= 32 ? protectedRoutes(brief, createAccessMask(brief), 'Depot') : [];
-  const useConservativeEdge = !rectangular && brief.portals.length > 32;
+  // Routes between portals are protected; past 32 portals that search is too dear, and
+  // boxes keep an aisle from the boundary instead.
+  const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
+  const protectedShapes = routed ? protectedRoutes(brief, 'Depot') : [];
 
 
   // Lines run along u. `alongX` maps (u, v) to (x, y), or else to (y, x).
@@ -81,11 +81,11 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   // A box must be owned and clear of portal approaches; only other pieces need an aisle.
   const clear = (u: number, v: number, length: number, width: number) => {
     for (let j = v; j < v + width; j++) for (let i = u; i < u + length; i++)
-      if (!owns(i, j) || reserved.has(cellAt(i, j))) return false;
+      if (!owns(i, j)) return false;
     for (let j = v - AISLE; j < v + width + AISLE; j++) for (let i = u - AISLE; i < u + length + AISLE; i++)
       if (taken.has(cellAt(i, j))) return false;
     const [x, y, w, h] = alongX ? [u, v, length, width] : [v, u, width, length];
-    return ((brief.fillCells !== undefined && brief.portals.length <= 32) || !(rectangular || useConservativeEdge) || boundary.fits({ x, y, w, h }))
+    return (routed || boundary.fits({ x, y, w, h }))
       && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
   };
   const take = (u: number, v: number, length: number, width: number) => {

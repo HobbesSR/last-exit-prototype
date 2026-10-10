@@ -2,7 +2,7 @@ import { circle, rect } from '../../../shared/shape.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import { createAccessMask, createFillMask, elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
 import { rng } from '../index.ts';
-import { boundaryBoxFilter, portalMargin, boxesAgainstHints, hintedCells } from '../hints.ts';
+import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
 import { protectedRoutes } from './scatter.ts';
 import { microMetrics } from '../metrics.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
@@ -48,13 +48,12 @@ function densityOf(brief: RegionBrief): number {
  */
 export function buildCover(brief: RegionBrief): BuiltRegion {
   const density = densityOf(brief), size = brief.cellSize;
-  const owned = new Set((brief.fillCells ?? brief.cells).map(c => `${c.x},${c.y}`)), footprints = new Set<string>();
+  const owned = new Set(createFillMask(brief).cells.map(c => `${c.x},${c.y}`)), footprints = new Set<string>();
   const cells = [...brief.cells].sort((a, b) => a.y - b.y || a.x - b.x);
-  const reserved = new Set((brief.fillCells === undefined ? [...portalMargin(brief, 1), ...portalMargin({ ...brief, hints: [] }, 2)] : []).map(c => `${c.x},${c.y}`));
-  const mask = createFillMask(brief);
-  const boundary = boundaryBoxFilter(brief, AISLE), rectangular = boundary.rectangular;
-  const protectedShapes = (brief.fillCells !== undefined || !rectangular) && brief.portals.length <= 32 ? protectedRoutes(brief, createAccessMask(brief), 'Cover') : [];
-  const useConservativeEdge = !rectangular && brief.portals.length > 32;
+  // Routes between portals are protected; past 32 portals that search is too dear, and
+  // boxes keep an aisle from the boundary instead.
+  const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
+  const protectedShapes = routed ? protectedRoutes(brief, 'Cover') : [];
 
   const hinted = new Map<string, { x: number; y: number }[]>();
   for (const piece of PIECES) for (const [w, h] of [[piece.w, piece.h], [piece.h, piece.w]])
@@ -64,8 +63,8 @@ export function buildCover(brief: RegionBrief): BuiltRegion {
   if (firstHint) { phase.x = ((firstHint.x % PERIOD) + PERIOD) % PERIOD; phase.y = ((firstHint.y % PERIOD) + PERIOD) % PERIOD; }
   const onLattice = (value: number, offset: number) => ((value - offset) % PERIOD + PERIOD) % PERIOD === 0;
   const clear = (x: number, y: number, w: number, h: number) => {
-    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!owned.has(`${i},${j}`) || reserved.has(`${i},${j}`)) return false;
-    return ((brief.fillCells !== undefined && brief.portals.length <= 32) || !(rectangular || useConservativeEdge) || boundary.fits({ x, y, w, h }))
+    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!owned.has(`${i},${j}`)) return false;
+    return (routed || boundary.fits({ x, y, w, h }))
       && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
   };
   const occupied = (x: number, y: number, w: number, h: number) => {
@@ -165,25 +164,25 @@ export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements
   const blockers = cover.elements.flatMap(element => elementShapes(element));
   if (blockers.some(shape => shapesOverlap(shape, near))) return cover;
 
-  const owned = new Set((brief.fillCells ?? brief.cells).map(c => `${c.x},${c.y}`)), taken = new Set<string>();
-  const reserved = new Set((brief.fillCells === undefined ? [...portalMargin(brief, 1), ...portalMargin({ ...brief, hints: [] }, 2)] : []).map(c => `${c.x},${c.y}`));
-  const boundary = boundaryBoxFilter(brief, AISLE), rectangular = boundary.rectangular;
-  const protectedShapes = (brief.fillCells !== undefined || !rectangular) && brief.portals.length <= 32 ? protectedRoutes(brief, mask, 'Cover') : [];
-  const useConservativeEdge = !rectangular && brief.portals.length > 32;
+  const fill = createFillMask(brief).cells, owned = new Set(fill.map(c => `${c.x},${c.y}`)), taken = new Set<string>();
+  // Routes between portals are protected; past 32 portals that search is too dear, and
+  // boxes keep an aisle from the boundary instead.
+  const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
+  const protectedShapes = routed ? protectedRoutes(brief, 'Cover') : [];
 
   for (const element of cover.elements) {
     const x0 = Math.round(element.x / size), y0 = Math.round(element.y / size);
     for (let j = y0; j < y0 + Math.round(element.template.h / size); j++) for (let i = x0; i < x0 + Math.round(element.template.w / size); i++) taken.add(`${i},${j}`);
   }
   const clear = (x: number, y: number, w: number, h: number) => {
-    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!owned.has(`${i},${j}`) || reserved.has(`${i},${j}`)) return false;
+    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!owned.has(`${i},${j}`)) return false;
     for (let j = y - AISLE; j < y + h + AISLE; j++) for (let i = x - AISLE; i < x + w + AISLE; i++) if (taken.has(`${i},${j}`)) return false;
-    return ((brief.fillCells !== undefined && brief.portals.length <= 32) || !(rectangular || useConservativeEdge) || boundary.fits({ x, y, w, h }))
+    return (routed || boundary.fits({ x, y, w, h }))
       && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
   };
   const piece = PIECES.find(candidate => candidate.name === 'container')!;
   const places: RegionElement[] = [];
-  for (const cell of [...(brief.fillCells ?? brief.cells)].sort((a, b) => a.y - b.y || a.x - b.x)) for (const turned of [false, true]) {
+  for (const cell of [...fill].sort((a, b) => a.y - b.y || a.x - b.x)) for (const turned of [false, true]) {
     const w = turned ? piece.h : piece.w, h = turned ? piece.w : piece.h;
     if (!clear(cell.x, cell.y, w, h)) continue;
     const element = { label: 'cover-guard', x: cell.x * size, y: cell.y * size,

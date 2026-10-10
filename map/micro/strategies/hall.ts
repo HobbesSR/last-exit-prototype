@@ -1,6 +1,6 @@
 import { rect } from '../../../shared/shape.ts';
 import { unfilledRegion, cellLoot, draw, protectedRoutes } from './scatter.ts';
-import { createAccessMask, createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
+import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
 import type { BuiltRegion, RegionBrief, RegionMask } from '../types.ts';
@@ -54,7 +54,7 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
   const box = largestRectangle(mask, MIN_SIDE);
   if (!box) return unfilledRegion(brief, CHANNEL.loot);
 
-  const protectedShapes = protectedRoutes(brief, createAccessMask(brief), 'Hall');
+  const protectedShapes = protectedRoutes(brief, 'Hall');
   const staggerRows = draw(brief.seed, 0, 0, CHANNEL.axis) < 0.5;
   const stride = staggerStride(spacing);
   // Lines of blocks run along the staggered axis (u) and step across the other (v).

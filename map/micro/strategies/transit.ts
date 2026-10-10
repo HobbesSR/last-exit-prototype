@@ -17,7 +17,7 @@ export function buildTransit(brief: RegionBrief): BuiltRegion {
     throw new RangeError(`Region ${brief.id}: transit standing must be a positive number of cells.`);
   const mask = createRegionMask(brief), radius = clearance.hunter, count = brief.coreElements?.warp ?? 0;
   const accessMask = createAccessMask(brief);
-  const root = portalStands(brief, accessMask).find(portal => portal.points.length)?.points[0];
+  const root = portalStands(brief).find(portal => portal.points.length)?.points[0];
 
   let warps = spreadPoints(mask, { count, radius, seed: brief.seed }).points;
   if (root && warps.some(point => !findRegionRoute(accessMask, [], root, point, radius)))

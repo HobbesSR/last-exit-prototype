@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
+import { createAccessMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { circle } from '../shared/shape.ts';
@@ -20,8 +20,8 @@ const brief = (id, seed, cells, portals = [], extra = {}) => ({
 });
 
 function assertTransit(result, label) {
-  const mask = createRegionMask(result.brief), blockers = result.elements.flatMap(elementShapes);
-  const root = portalStands(result.brief, mask).find(portal => portal.points.length)?.points[0];
+  const mask = createRegionMask(result.brief), access = createAccessMask(result.brief), blockers = result.elements.flatMap(elementShapes);
+  const root = portalStands(result.brief).find(portal => portal.points.length)?.points[0];
   const sites = result.coreElements.filter(site => site.kind === 'warp');
   assert.equal(sites.length, 1, `${label}: one warp`);
   assert.equal(result.manifest.coreElements, 1);
@@ -30,7 +30,7 @@ function assertTransit(result, label) {
   const room = circle(site.x, site.y, 2 * SIZE);
   assert.ok(blockers.every(shape => !shapesOverlap(room, shape)), `${label}: standing room clear of cover`);
   assert.ok(result.loot.every(loot => !shapesOverlap(room, circle(loot.x, loot.y, lootRadius))), `${label}: standing room clear of loot`);
-  if (root) assert.ok(findRegionRoute(mask, blockers, root, site, clearance.hunter), `${label}: hunter reaches warp from first portal`);
+  if (root) assert.ok(findRegionRoute(access, blockers, root, site, clearance.hunter), `${label}: hunter reaches warp from first portal`);
   assert.deepEqual(validatePortalReach({ ...result.brief, blockers }).errors, [], `${label}: portal promise`);
 }
 

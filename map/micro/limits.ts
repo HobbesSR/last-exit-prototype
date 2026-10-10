@@ -1,4 +1,7 @@
-import type { Cell } from './types.ts';
+import { withClearMargins } from '../kernel/margins.ts';
+import type { MarginRegion } from '../kernel/margins.ts';
+import type { Cell, Portal, RegionBrief } from './types.ts';
+import type { Run } from '../kernel/run.ts';
 
 /**
  * The SDK's tool limits (20). They bound the work one call can do; they aren't contract
@@ -43,4 +46,31 @@ export function checkedRegionCells(cells: readonly Cell[]): Cell[] {
   }
   if (seen.size !== keys.size) throw new Error('Region cells must form one connected area.');
   return sorted;
+}
+
+/** Check a portal list against the limits: bounded, unique ids, each a whole run within `LIMITS.run`. */
+export function checkedPortals(portals: readonly Portal[]): readonly Portal[] {
+  if (!Array.isArray(portals) || portals.length > LIMITS.portals) throw new Error('Portals must be a bounded list.');
+  const ids = new Set<string>();
+  for (const portal of portals) {
+    if (!portal || typeof portal.id !== 'string' || !portal.id || ids.has(portal.id)) throw new Error('Portals need unique ids.');
+    ids.add(portal.id);
+    if (!boundedRun(portal)) throw new Error(`Portal ${portal.id} is not a run.`);
+  }
+  return portals;
+}
+
+const boundedRun = ({ axis, x, y, length }: Run): boolean =>
+  (axis === 'h' || axis === 'v') && [x, y, length].every(Number.isInteger) && length >= 1 && length <= LIMITS.run;
+
+/**
+ * A region's clear margins (20.6), with its portals and internal runs held to the limits
+ * first, so a malformed or oversized run is refused before any margin is derived.
+ */
+export function checkedMargins<R extends MarginRegion>(region: R): R & Required<Pick<RegionBrief, 'fillCells' | 'clearCells'>> {
+  checkedPortals(region.portals);
+  const internal = region.internalGuaranteed ?? [];
+  if (!Array.isArray(internal) || internal.length > LIMITS.portals || !internal.every(run => run && boundedRun(run)))
+    throw new Error('Internal guaranteed runs must be a bounded list of runs.');
+  return withClearMargins(region);
 }

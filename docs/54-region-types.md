@@ -122,18 +122,18 @@ points, and routes that aren't a straight shot.
   door wide. It protects a hunter route between portals while it places
   pieces.
   **Built (#127):** `map/micro/strategies/cover.ts`. It keeps slot spacing and
-  uses boundary or corridor checks according to the mask (20.3). Its large
-  concave mode avoids a route search for every portal.
+  uses boundary or corridor checks according to its portal count (20.3). Its
+  boundary mode, past 32 portals, avoids a route search for every portal.
   - **Slots:** they lie on a lattice one tile (6 cells) apart. Each slot is
     taken with chance `density`, by a cluster of one to three crates,
     barriers and containers inside a 4 × 4 box.
   - **The aisle:** a cluster's bounding box keeps 2 clear cells from the next
-    cluster. Its footprint must be owned and stays out of portal approaches.
+    cluster. Its footprint must lie in the reduced fill, off every clear margin (20.6).
     Hinted boundary sites may use a perimeter cell instead of the old blanket
     edge ring.
-  - **Why that keeps the promise:** rectangular masks use the separated slot
-    boxes and the protected portal approaches. Concave masks with up to 32
-    portals also protect a sampled hunter corridor while placing pieces. Above
+  - **Why that keeps the promise:** the clear margins keep every portal's
+    approach, and masks with up to 32 portals also protect a sampled hunter
+    corridor while placing pieces. Above
     32 portals, a conservative boundary rule allows attachment along one
     hinted side or two adjacent hinted sides, but retains a 2-cell owned ring
     elsewhere and forbids attachment across opposite sides. This bounded mode
@@ -213,8 +213,8 @@ points, and routes that aren't a straight shot.
   **Built (#158):** `map/micro/strategies/hall.ts`. It protects the portal
   approaches and hunter routes as `rubble` and `ruins` do, and drops any
   pillar that would touch them.
-  - **The rectangle:** the region's largest contained rectangle with both
-    sides at least 6 cells. Ties go to the first in row order.
+  - **The rectangle:** the largest rectangle in the reduced fill (20.6) with
+    both sides at least 6 cells. Ties go to the first in row order.
   - **Pillars:** each stands a quarter cell inside a 2 × 2 block of cells, so
     it is 1½ cells square. Blocks lie `spacing` cells apart, centred across
     the rectangle, and the aisle between two pillars is `spacing` less 1½
@@ -320,8 +320,8 @@ inside, and windows and doors let sight through.
     A tree blocks bodies and sight, so a clump is soft cover, not a wall.
   - **Why that keeps the promise:** clumps and hedge runs keep 2 cells from
     other pieces and avoid portal approaches. Rectangular masks keep an aisle
-    on at least one side of each axis. Concave masks protect hunter corridors
-    up to 32 portals; larger masks keep an owned ring except at one or two
+    on at least one side of each axis. Masks protect hunter corridors up to
+    32 portals; larger masks keep an owned ring except at one or two
     adjacent fully hinted boundary sides. The SDK's `boundaryBoxFilter`
     supplies the shared boundary-spacing rule (20.3). Hints guide the slot
     phase and tree sites; they never require an obstacle.
@@ -354,8 +354,9 @@ inside, and windows and doors let sight through.
   - **The box:** each design tries its sizes, then contained boxes in a seeded
     order, with `boxesAgainstHints` candidates first. There is no extra
     two-cell extent prefilter: a house can fit flush with the region boundary
-    when its footprint and doorstep fit. Candidates avoid the cells beside
-    portals and the two-cell hunter-standing approach. A bounded cell-level
+    when its footprint and doorstep fit. Candidates lie in the reduced fill,
+    off every portal's clear margin (20.6), where a hunter stands straddling
+    the seam. A bounded cell-level
     flood check keeps the empty yard's portal-connected standing blocks joined
     and requires a doorstep reachable from a portal. When the box has a
     2-cell owned ring, the yard connectivity follows by spacing; otherwise the
@@ -392,8 +393,8 @@ inside, and windows and doors let sight through.
   contained rectangles and container rows between them, aisles at least a
   door wide.
   **Built (#159):** `map/micro/strategies/depot.ts`. Like `cover`, it keeps
-  aisles between pieces by spacing, with portal approaches kept clear and
-  concave-mask corridor or boundary checks as `cover` uses.
+  aisles between pieces by spacing, in the reduced fill, with corridor or
+  boundary checks as `cover` uses.
   - **Lanes:** everything lines up on lanes 3 cells apart along one axis,
     drawn from the seed, at a seeded phase.
   - **Warehouses:** `roomCells` long and three quarters of that across, at

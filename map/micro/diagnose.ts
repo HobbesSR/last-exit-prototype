@@ -18,9 +18,10 @@ export interface BrokenPromise { region: string; errors: string[] }
  */
 export function diagnoseBuiltMap(map: BuiltMap<RegionElement>): BrokenPromise[] {
   return map.regions.flatMap(({ brief, elements }) => {
+    // Doors don't block a hunter, but they are geometry, so they must stay in the fill.
     const blockers = elements.flatMap(element => elementShapes(element));
-    const reach = validatePortalReach({ ...brief, blockers });
-    const errors = [...validateFillConstraints(brief, elements.flatMap(element => elementShapes(element, true))), ...reach.errors];
+    const placed = elements.flatMap(element => elementShapes(element, true));
+    const errors = [...validateFillConstraints(brief, placed), ...validatePortalReach({ ...brief, blockers }).errors];
     return errors.length ? [{ region: brief.id, errors }] : [];
   });
 }
