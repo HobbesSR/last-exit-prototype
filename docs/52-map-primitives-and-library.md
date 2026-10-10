@@ -412,11 +412,17 @@ existing outputs are never overwritten. The current inputs reconstruct 27
 variants and 521 slot references. Future content changes still require reviewed
 module versions; the tool supports authored copies with matching includes.
 
-Larger fill areas do not ensure a warehouse in every depot. Some sampled depots
-still have only container rows, and one has no content despite an available
-interior rectangle. Strategy investigation is tracked in
-[#325](http://localhost:3000/corey/astra_test/issues/325); retained portal routes
-and clear margins remain requirements.
+Larger fill areas do not ensure a warehouse in every depot. #325 traced three
+sparse witnesses to the first-portal star of protected routes, which crossed
+every owned warehouse-sized rectangle in either orientation and every lane
+phase. Depots now reserve a nearby-portal tree (20.3, 54). On the same 20 game
+seeds (`last-exit-001` through `last-exit-020`), depots with warehouses rise
+from 19 of 43 to 43 of 43, warehouses from 47 to 118, and container rows from
+252 to 560; the one empty depot gains content. The obstacle-only fill diagnostic
+counts 5,836 occupied cells instead of 2,415 across 43,308 owned depot cells.
+This measure excludes roofs and doors and is not a warehouse-floor coverage
+measure. Clear margins and the all-portals reachability promise remain unchanged.
+These are bounded samples, not a requirement that every depot have a warehouse.
 
 31 describes the library's acceptance checks. The tools and live matches use
 the same library through `map/chain.ts`; live conversion is separate (14, 22).

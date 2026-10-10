@@ -67,10 +67,10 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   const mask = createFillMask(brief), size = brief.cellSize;
   if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
   if (!largestRectangle(mask, MIN_SIDE)) return unfilledRegion(brief, CHANNEL.loot);
-  // Routes between portals are protected; past 32 portals that search is too dear, and
+  // Nearby portal routes are protected; past 32 portals that search is too dear, and
   // boxes keep an aisle from the boundary instead.
   const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
-  const protectedShapes = routed ? protectedRoutes(brief, 'Depot') : [];
+  const protectedShapes = routed ? protectedRoutes(brief, 'Depot', 'nearby') : [];
 
 
   // Lines run along u. `alongX` maps (u, v) to (x, y), or else to (y, x).
