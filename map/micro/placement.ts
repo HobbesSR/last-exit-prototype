@@ -19,6 +19,8 @@ export interface SpreadPointOptions {
   reservations?: Shape[];
   /** Reachability root. Only blockers can invalidate it; a passable reservation beside it cannot. */
   anchor?: Vec2;
+  /** Known-clear access context; candidate occupants still belong to `mask`. */
+  accessMask?: RegionMask;
 }
 
 export interface SpreadPointResult {
@@ -66,7 +68,7 @@ export function spreadPoints(mask: RegionMask, options: SpreadPointOptions): Spr
   const exclusions = [...blockers, ...reservations];
   if (options.anchor) {
     const anchorDisc = circle(options.anchor.x, options.anchor.y, radius);
-    if (!mask.contains(anchorDisc) || blockers.some(shape => shapesOverlap(anchorDisc, shape))) throw new RangeError('placement anchor is not clear inside the region');
+    if (!(options.accessMask ?? mask).contains(anchorDisc) || blockers.some(shape => shapesOverlap(anchorDisc, shape))) throw new RangeError('placement anchor is not clear inside the region');
   }
   if (!count) return { points: [], requested: count, shortfall: 0, minimumSpacing: null };
 
@@ -107,7 +109,7 @@ export function spreadPoints(mask: RegionMask, options: SpreadPointOptions): Spr
     if (points.length && score + EPS < spacingSquared) break;
     // Route checks run only for the current best candidate.  Failed candidates are discarded,
     // preserving the deterministic ranking without paying for a route from every lattice point.
-    if (options.anchor && !findRegionRoute(mask, blockers, options.anchor, point, radius)) continue;
+    if (options.anchor && !findRegionRoute(options.accessMask ?? mask, blockers, options.anchor, point, radius)) continue;
 
     points.push(point);
     for (let i = 0; i < candidates.length; i++) if (available[i]) nearest[i] = Math.min(nearest[i], squaredDistance(candidates[i], point));

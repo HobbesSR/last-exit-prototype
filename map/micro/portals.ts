@@ -1,12 +1,12 @@
 import { microMetrics } from './metrics.ts';
 import { LIMITS } from './limits.ts';
-import { capsule, createRegionMask, findRegionRoute, shapesOverlap, travelClear, validShape } from './geometry.ts';
+import { capsule, createAccessMask, createRegionMask, findRegionRoute, shapesOverlap, travelClear, validShape } from './geometry.ts';
 import type { Shape } from '../../shared/shape.ts';
 import type { Vec2 } from '../../shared/types.ts';
 import type { Cell, Portal, RegionMask, RegionRoute } from './types.ts';
 
 /** A brief's region: its cells at `cellSize` world units, with the kernel's body scale. */
-export interface PortalRegion { cells: Cell[]; cellSize: number; portals: Portal[] }
+export interface PortalRegion { cells: Cell[]; cellSize: number; portals: Portal[]; clearCells?: Cell[] }
 export interface PortalReachInput extends PortalRegion { blockers: Shape[] }
 export interface PortalReachResult {
   valid: boolean;
@@ -25,7 +25,9 @@ export const hunterClearance = (cellSize: number): number => microMetrics({ cell
  * portal to the other, so together their bodies cover every part of it. Throws when a
  * portal isn't a straight run on the region's perimeter, with the region on one side.
  */
-export function portalStands(region: PortalRegion, mask: RegionMask = createRegionMask(region)): PortalStands[] {
+export function portalStands(region: PortalRegion, _mask?: RegionMask): PortalStands[] {
+  // A reduced fill mask or enlarged access mask cannot determine original ownership.
+  const mask = createRegionMask(region);
   if (!Array.isArray(region.portals) || region.portals.length > LIMITS.portals) throw new Error('Portals must be a bounded list.');
   const size = region.cellSize, radius = hunterClearance(size), ids = new Set<string>();
   return region.portals.map(portal => {
@@ -39,11 +41,13 @@ export function portalStands(region: PortalRegion, mask: RegionMask = createRegi
     const after = sides.every(([b, a]) => !b && a), before = sides.every(([b, a]) => b && !a);
     if (!after && !before) throw new Error(`Portal ${portal.id} must lie on the region's perimeter, with the region on one side.`);
     const sign = after ? 1 : -1, inward = axis === 'h' ? { x: 0, y: sign } : { x: sign, y: 0 };
-    const span = length * size, inset = radius + 1, free = span - 2 * radius;
+    const shared = region.clearCells !== undefined;
+    const span = length * size, inset = shared ? 0 : radius + 1, free = span - 2 * radius;
     if (free < 0) return { portal, inward, points: [] };
-    const count = Math.ceil(free / (size / 2)) + 1, line = (axis === 'h' ? y : x) * size, start = (axis === 'h' ? x : y) * size;
+    const covered = free;
+    const count = Math.ceil(covered / (size / 2)) + 1, line = (axis === 'h' ? y : x) * size, start = (axis === 'h' ? x : y) * size;
     const points = Array.from({ length: count }, (_, i) => {
-      const along = start + radius + (count > 1 ? free * i / (count - 1) : free / 2), across = line + sign * inset;
+      const along = start + radius + (count > 1 ? covered * i / (count - 1) : covered / 2), across = line + sign * inset;
       return axis === 'h' ? { x: along, y: across } : { x: across, y: along };
     });
     return { portal, inward, points };
@@ -65,7 +69,8 @@ function crossingClear(inward: Vec2, point: Vec2, radius: number, blockers: read
 /**
  * Elective (51 principle 9): check a region's promise from its final collision geometry.
  * Every part of every portal must be reachable by a hunter from every other portal, from
- * within the region, assuming nothing outside it. One portal carries no requirement.
+ * within original ownership and its explicit known-clear context. One portal carries
+ * no pair-connectivity requirement.
  * The route search is sampled: a found route is a real one, but a miss doesn't prove
  * that none exists (20, "Geometry and reachability"). It reports; it never repairs.
  */
@@ -73,13 +78,18 @@ export function validatePortalReach(input: PortalReachInput): PortalReachResult 
   const errors: string[] = [], routes: PortalReachResult['routes'] = [];
   try {
     if (!Array.isArray(input.blockers) || input.blockers.some(shape => !validShape(shape))) throw new Error('Blockers must be valid convex collision shapes.');
-    const mask = createRegionMask(input), stands = portalStands(input, mask), radius = hunterClearance(input.cellSize);
+    const mask = createAccessMask(input), stands = portalStands(input), radius = hunterClearance(input.cellSize);
     if (stands.length < 2) return { valid: true, errors, routes };
     const route = (from: Vec2, to: Vec2) => findRegionRoute(mask, input.blockers, from, to, radius);
     const reached: Array<{ id: string; at: Vec2 }> = [];
     for (const { portal, inward, points } of stands) {
       if (!points.length) { errors.push(`Portal ${portal.id} is too short for a hunter.`); continue; }
-      const blocked = points.filter(p => !travelClear(mask, input.blockers, p, p, radius) || !crossingClear(inward, p, radius, input.blockers));
+      const step = Math.min(1, (input.cellSize - radius) / 2);
+      const blocked = points.filter(p => !travelClear(mask, input.blockers, p, p, radius)
+        || (input.clearCells === undefined ? !crossingClear(inward, p, radius, input.blockers)
+          : !travelClear(mask, input.blockers,
+            { x: p.x - inward.x * step, y: p.y - inward.y * step },
+            { x: p.x + inward.x * step, y: p.y + inward.y * step }, radius)));
       if (blocked.length) { errors.push(`Portal ${portal.id} is obstructed at ${blocked.length} of ${points.length} hunter stands.`); continue; }
       // Along one portal a straight sweep usually suffices; a route covers a portal bent by an obstacle.
       let joined = true;

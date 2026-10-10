@@ -2,7 +2,7 @@
  * Briefs (51 stage 5), a view: one `RegionBrief` per layout region, in the macro/micro
  * contract (`map/kernel/contract.ts`). It carries the region's type and parameters from
  * its class rule, its cells in global cell coordinates, the zone context they lie in, the
- * core elements the class rule lists, and its portals, which are its only obligation. It also
+ * core elements the class rule lists, original portals, and automatic clear/fill constraints. It also
  * carries the perimeter stretches the library hints should be occupied (52), which are
  * guidance and never an obligation. A brief never mentions another region's contents. A portal is its run and its id; the id names
  * the two regions it joins (step 5), so both sides' briefs name a shared portal alike, and
@@ -11,6 +11,7 @@
 import type { Cell } from "../../../kernel/cell.ts";
 import type { CoreElementKind, Portal, RegionBrief, ZoneContext } from "../../../kernel/contract.ts";
 import type { Run } from "../../../kernel/run.ts";
+import { applyClearConstraints, clearFootprint } from "../../../kernel/margins.ts";
 import { isCellSize } from "../../../kernel/scale.ts";
 import { gridSize } from "./declared-grid.ts";
 import { countParamsProblem, resolveCount } from "./library.ts";
@@ -82,10 +83,60 @@ export const briefs: MacroStages["briefs"] = (layout, resolved, layoutRegions, z
   const owners = new Int32Array(resolved.width * resolved.height).fill(-1);
   layoutRegions.regions.forEach((region, i) => { for (const index of region.cells) owners[index] = i; });
 
+  // Resolve all guaranteed unit segments before considering region boundaries. This retains
+  // same-owner seams and makes the common footprint independent of run grouping (20.6).
+  const guaranteed: Run[] = [];
+  const internal = new Map<number, Map<string, { axis: "h" | "v"; line: number; at: number[] }>>();
+  for (const [key, segment] of Object.entries(resolved.segments)) {
+    if (segment?.guarantee !== "guaranteed") continue;
+    const match = /^([hv]):(\d+),(\d+)$/.exec(key);
+    if (!match) throw new Error(`invalid resolved segment ${key}`);
+    const axis = match[1] as "h" | "v", x = Number(match[2]), y = Number(match[3]);
+    const a = axis === "h" ? (y - 1) * width + x : y * width + x - 1;
+    const b = axis === "h" ? y * width + x : y * width + x;
+    if (x < (axis === "v" ? 1 : 0) || y < (axis === "h" ? 1 : 0)
+      || x >= resolved.width || y >= resolved.height
+      || owners[a] === undefined || owners[b] === undefined || owners[a] < 0 || owners[b] < 0) continue;
+    guaranteed.push({ axis, x, y, length: 1 });
+    if (owners[a] !== owners[b]) continue;
+    const owner = owners[a]!;
+    if (!internal.has(owner)) internal.set(owner, new Map());
+    const line = axis === "h" ? y : x, at = axis === "h" ? x : y;
+    const lineKey = `${axis}:${line}`;
+    const lines = internal.get(owner)!;
+    if (!lines.has(lineKey)) lines.set(lineKey, { axis, line, at: [] });
+    lines.get(lineKey)!.at.push(at);
+  }
+  const playable = layoutRegions.regions.flatMap((region) => region.cells.map((index) =>
+    ({ x: index % width, y: Math.floor(index / width) })));
+  const footprint = clearFootprint(guaranteed, playable);
+  const footprintByKey = new Map(footprint.map((cell) => [`${cell.x},${cell.y}`, cell]));
+
   return layoutRegions.regions.map((region, self): RegionBrief => {
     const rule = library.cellClasses[region.class];
     if (!rule) throw new Error(`region ${region.id} has class ${region.class}, which the library doesn't register`);
     const cells = region.cells.map((index): Cell => ({ x: index % width, y: Math.floor(index / width) }));
+    const nearbyClear = new Map<string, Cell>();
+    for (const cell of cells) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const key = `${cell.x + dx},${cell.y + dy}`;
+      const clear = footprintByKey.get(key);
+      if (clear) nearbyClear.set(key, clear);
+    }
+    const margins = applyClearConstraints(cells, [...nearbyClear.values()]);
+    const internalGuaranteed: Run[] = [];
+    for (const { axis, line, at } of internal.get(self)?.values() ?? []) {
+      at.sort((a, b) => a - b);
+      for (let i = 0; i < at.length;) {
+        const first = at[i]!;
+        let length = 1;
+        i++;
+        while (i < at.length && at[i] === first + length) { length++; i++; }
+        internalGuaranteed.push(axis === "h"
+          ? { axis, x: first, y: line, length }
+          : { axis, x: line, y: first, length });
+      }
+    }
+    internalGuaranteed.sort((a, b) => a.axis.localeCompare(b.axis) || a.y - b.y || a.x - b.x);
 
     // Zone context, in the order zones are given; a zone that covers none of the region is left out.
     const zoned = new Map<Zone, Cell[]>();
@@ -103,6 +154,8 @@ export const briefs: MacroStages["briefs"] = (layout, resolved, layoutRegions, z
       type: rule.regionType,
       cellSize,
       cells,
+      ...margins,
+      internalGuaranteed,
       zones: zoneContext,
       portals: portalsOf.get(region.id)!,
     };

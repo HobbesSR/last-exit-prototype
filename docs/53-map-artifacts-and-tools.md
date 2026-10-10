@@ -58,6 +58,9 @@ or external library are needed. An optional supplied library must match too.
 **The chain** is wire version 8 (`map/macro/src/chain/saving.ts`, #286).
 Version 7 is refused by name because macro version 2 derives `any`+`any`
 passability guarantees; old saved views must not be silently reinterpreted.
+Macro version 3 (20.6) derives fill cells, known-clear access context and
+internal guaranteed runs. The wire format remains version 8; its macro field
+refuses version 2 Layouts because their derived briefs would differ.
 Library schema 3 and module schema 1 are retained for the optional hint value
 ([51.4](51.4-resolution.md)); fingerprints still cover all authored content.
 Version 6 is refused by name because it lacks the embedded resolved library
@@ -233,7 +236,10 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     shows both statements, and label each region with the core elements
     assigned to it. The inspector names the cell's tile and set piece, and
     gives the brief's type, portal ids, assigned core elements, parameters
-    and loot chance. Its buttons open the tile design or set piece in the
+    and loot chance. The reduced-fill layer highlights owned cells excluded
+    from geometry fill, and the internal-guarantees layer draws preserved
+    same-owner runs. The inspector gives their counts and the known-clear
+    access count. Its buttons open the tile design or set piece in the
     Chain Library tab; where the draft lacks it or differs, it asks before
     replacing the draft with the map's library.
   - **Region drill-down** (#203): selecting a cell rebuilds its region in

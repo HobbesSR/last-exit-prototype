@@ -9,7 +9,9 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { CHAIN_LIBRARY, checkMap, generate } from "../core.ts";
+import { CHAIN_LIBRARY, chainParams, checkMap, generate } from "../core.ts";
+import { libraryFingerprint } from "../../macro/src/coding.ts";
+import { planBlock } from "../../micro/strategies/block.ts";
 import { chainMapToBson, chainMapToJson } from "../../macro/src/chain/saving.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
 import { GAME_ENGINES } from "../engines.ts";
@@ -94,7 +96,8 @@ try {
         else if (part.part === "gate") expectedParts.doors++;
     }
   assert.deepEqual(first.parts, expectedParts);
-  assert.ok(Object.values(expectedParts).every((n) => n > 0), "the fixed seed has every part");
+  assert.ok(Object.entries(expectedParts).filter(([kind]) => kind !== "pipes").every(([, n]) => n > 0),
+    "the fixed seed covers the other built parts; pipes have an explicit rendering fixture below");
   assert.equal(first.report.valid, referenceCheck.valid);
   assert.deepEqual(first.report.coreElements, referenceCheck.coreElements);
   assert.match(await page.locator("#reportBody").innerText(), /No defects found/);
@@ -103,12 +106,12 @@ try {
   // The layers are in chain order, with today's defaults on.
   const FIELDS = ["declared", "resolved", "regions", "proof", "zones", "bonus", "regionType", "lootChance"];
   assert.deepEqual(first.layers.map((layer: any) => layer.id),
-    ["layout", "declared", "resolved", "regions", "portals", "proof", "zones", "bonus", "regionType", "lootChance", "briefs", "lots", "allocation", "spans", "openings", "graph", "walls", "ruins", "cover", "windows", "pipes", "doors", "roofs", "loot", "sites", "routes", "defects", "defectSites"]);
+    ["layout", "declared", "resolved", "regions", "portals", "proof", "zones", "bonus", "regionType", "lootChance", "reducedFill", "internalGuaranteed", "briefs", "lots", "allocation", "spans", "openings", "graph", "walls", "ruins", "cover", "windows", "pipes", "doors", "roofs", "loot", "sites", "routes", "defects", "defectSites"]);
   assert.deepEqual(first.layers.filter((layer: any) => layer.on).map((layer: any) => layer.id),
     ["regions", "portals", "lots", "allocation", "openings", "walls", "ruins", "cover", "windows", "pipes", "doors", "sites", "routes", "defects", "defectSites"]);
   const ALL = first.layers.map((layer: any) => layer.id) as string[];
   assert.deepEqual(first.layers.filter((layer: any) => layer.pass === "marks").map((layer: any) => layer.id),
-    ["layout", "portals", "briefs", "lots", "spans", "openings", "graph", "loot", "sites", "routes", "defectSites"], "each layer draws in one pass, the rest with the areas");
+    ["layout", "portals", "internalGuaranteed", "briefs", "lots", "spans", "openings", "graph", "loot", "sites", "routes", "defectSites"], "each layer draws in one pass, the rest with the areas");
   const layer = (id: string) => page.locator(`#layer-${id}`);
   const opacity = (id: string, percent: number) => page.locator(`#layer-${id}-opacity`).fill(String(percent));
   // Every cell field alone, as the old exclusive field select showed it.
@@ -208,7 +211,7 @@ try {
   assert.match(inspected, /Region .*\nClass/);
   assert.match(inspected, /Proof component \d+/);
   assert.match(inspected, /\nTile \S+ at \d+°/);
-  assert.match(inspected, /Brief: type \S+, \d+ portals.*\nAssigned core elements: .+\n(Parameters: .*\n)?Loot chance \d+%/);
+  assert.match(inspected, /Brief: type \S+, \d+ portals.*\nAssigned core elements: .+\nReduced fill: .*\nInternal guaranteed runs: \d+\n(Parameters: .*\n)?Loot chance \d+%/);
   assert.match((await page.locator("#inspectorLinks button").allInnerTexts())[0]!, /^Edit tile design \S+$/);
   assert.match(inspected, /Parts: \d+ walls, \d+ ruins, \d+ cover, \d+ windows, \d+ pipes, \d+ doors, \d+ roofs\nElements: /);
 
@@ -242,6 +245,25 @@ try {
     assert.equal(loaded.diagnosis, null, "a diagnosis belongs to the map it ran on");
     await generateIn("lab-small");
   }
+  // Pipe rendering should not depend on a seeded factory retaining a large unbroken fill.
+  // The margin policy can split that fill. Arrange a contained pipe in a stored result,
+  // and require both the exact part count and visible output from its own layer.
+  const pipeFixture = structuredClone(reference);
+  const pipeOwner = pipeFixture.results.find(region => region.brief.fillCells?.length)!;
+  const pipeCell = pipeOwner.brief.fillCells![0]!;
+  pipeOwner.elements.push({ label: "browser-pipe", x: pipeCell.x * pipeFixture.cellSize, y: pipeCell.y * pipeFixture.cellSize,
+    template: { w: pipeFixture.cellSize, h: pipeFixture.cellSize, parts: [{ part: "obstacle", kind: "pipe",
+      shape: { kind: "rect", x: 4, y: 16, w: 32, h: 8 } }] } });
+  pipeOwner.manifest.obstacles = (pipeOwner.manifest.obstacles ?? 0) + 1;
+  await page.locator("#load").setInputFiles({ name: "pipe-rendering.json", mimeType: "application/json",
+    buffer: Buffer.from(chainMapToJson(pipeFixture)) });
+  const pipeShown = await shown("last-exit-001");
+  assert.deepEqual(pipeShown.parts, { ...expectedParts, pipes: expectedParts.pipes + 1 });
+  assert.ok(Object.values(pipeShown.parts as Record<string, number>).every(n => n > 0), "all built part kinds have browser coverage");
+  for (const id of ALL) await layer(id).setChecked(id === "pipes");
+  assert.ok(await alpha() > 0, "the pipe layer paints the fixture collider");
+  for (const id of ALL) await layer(id).setChecked(first.layers.find((l: any) => l.id === id).on);
+  await generateIn("lab-small");
   // A save from a retired version is refused by name, and the shown map stays.
   const retired = JSON.parse(await readFile(json, "utf8"));
   retired.wire = 5;
@@ -1027,18 +1049,27 @@ try {
   await drillPage.evaluate(() => (window as any).mapLab.select(0, 0));
   assert.equal((await drillSnapshot()).drill, null);
 
-  await drillPage.locator("#seed").fill("last-exit-009");
-  await drillPage.locator("#generate").click();
-  await drillShown("last-exit-009");
-  const blockBrief = mapViews(generate("last-exit-009")).briefs.find((brief) => brief.type === "block")!;
+  // Author an uninterrupted block for building traces. The bundled block's internal
+  // guarantees deliberately split its fill; it need not retain the former warehouse.
+  const blockLibrary = structuredClone(CHAIN_LIBRARY);
+  blockLibrary.tiles.push({ id: "block-browser-fixture", defaultCellClass: "block", orientations: [0], weight: 0, segments: {} });
+  const blockFixture: typeof reference = { library: blockLibrary, cellSize: 40, build: GAME_ENGINES.version, results: [],
+    layout: { seed: "block-browser-1", params: chainParams({ mode: "playground", zoneWidth: 4, zoneHeight: 4 }),
+      library: libraryFingerprint(blockLibrary), setPieces: [], slots: Array.from({ length: 36 }, (_, i) =>
+        ({ col: 7 + i % 6, row: 7 + Math.floor(i / 6), design: "block-browser-fixture", orientation: 0 })) } };
+  blockFixture.results = mapViews(blockFixture).briefs.map(brief => GAME_ENGINES.build(brief));
+  await drillPage.locator("#load").setInputFiles({ name: "block-traces.json", mimeType: "application/json",
+    buffer: Buffer.from(chainMapToJson(blockFixture)) });
+  await drillShown("block-browser-1");
+  const blockBrief = mapViews(blockFixture).briefs[0]!;
   const blockDrill = await drillInto(blockBrief);
   assert.equal(blockDrill.drill.difference, null, "the block rebuilds equal to the stored result");
-  assert.deepEqual(blockDrill.drill.lots.map((lot: { type: string }) => lot.type), ["cover", "ruins", "depot"]);
-  assert.deepEqual(blockDrill.drill.buildings, ["lot-3/depot-warehouse-1"],
-    "the depot lot's warehouse is traced, labelled as the lot's element");
-  assert.equal(blockDrill.drill.drawn.lots.lots, 3);
+  assert.deepEqual(blockDrill.drill.lots.map((lot: { type: string }) => lot.type), planBlock(blockBrief).lots.map(lot => lot.type));
+  assert.deepEqual(blockDrill.drill.buildings, ["lot-2/depot-warehouse-1", "lot-4/compound"],
+    "the depot and compound are traced, labelled as their lot's elements");
+  assert.equal(blockDrill.drill.drawn.lots.lots, 5);
   assert.ok(blockDrill.drill.drawn.graph.nodes > 0);
-  assert.match(blockDrill.inspector, /3 lots/);
+  assert.match(blockDrill.inspector, /5 lots/);
   await drillPage.screenshot({ path: `${OUT}/drill-block.png` });
   await drillPage.close();
 

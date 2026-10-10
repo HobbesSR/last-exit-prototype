@@ -1836,7 +1836,7 @@ function renderPreview(tile: ChainTileDesign): void {
       ...rightAngles,
       ...sameClass.map(
         (key) =>
-          `${key}: passable prescription has the same region class on both sides; it forms no portal.`,
+          `${key}: passable prescription has the same region class on both sides; it forms no external portal, but the internal guarantee still requires a clear margin.`,
       ),
       ...perimeter.map(
         (key) =>

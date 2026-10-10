@@ -5,10 +5,9 @@ import type { BuildingRealization } from '../building/realize.ts';
 import { OUTSIDE } from '../building/design.ts';
 import type { BuildingAllocation, BuildingDesign, BuildingSide } from '../building/design.ts';
 import type { BuildingObserver } from '../building/trace.ts';
-import { buildOpen } from './open.ts';
 import { largestRectangle } from './hall.ts';
-import { cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
-import { createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
+import { unfilledRegion, cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
+import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { boundaryBoxFilter, boxesAgainstHints, portalMargin, hintedCells } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
@@ -65,11 +64,12 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   const room = brief.parameters?.roomCells ?? DEFAULT_ROOM;
   if (typeof room !== 'number' || !Number.isInteger(room) || room < MIN_ROOM || room > MAX_ROOM)
     throw new RangeError(`Depot roomCells must be a whole number of cells from ${MIN_ROOM} to ${MAX_ROOM}.`);
-  const mask = createRegionMask(brief), size = brief.cellSize;
-  if (!largestRectangle(mask, MIN_SIDE)) return buildOpen(brief);
-  const reserved = new Set([...portalMargin(brief, 1), ...portalMargin({ ...brief, hints: [] }, 2)].map(c => `${c.x},${c.y}`));
+  const mask = createFillMask(brief), size = brief.cellSize;
+  if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
+  if (!largestRectangle(mask, MIN_SIDE)) return unfilledRegion(brief, CHANNEL.loot);
+  const reserved = new Set((brief.fillCells === undefined ? [...portalMargin(brief, 1), ...portalMargin({ ...brief, hints: [] }, 2)] : []).map(c => `${c.x},${c.y}`));
   const boundary = boundaryBoxFilter(brief, AISLE), rectangular = boundary.rectangular;
-  const protectedShapes = !rectangular && brief.portals.length <= 32 ? protectedRoutes(brief, mask, 'Depot') : [];
+  const protectedShapes = (brief.fillCells !== undefined || !rectangular) && brief.portals.length <= 32 ? protectedRoutes(brief, createAccessMask(brief), 'Depot') : [];
   const useConservativeEdge = !rectangular && brief.portals.length > 32;
 
 
@@ -85,7 +85,7 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
     for (let j = v - AISLE; j < v + width + AISLE; j++) for (let i = u - AISLE; i < u + length + AISLE; i++)
       if (taken.has(cellAt(i, j))) return false;
     const [x, y, w, h] = alongX ? [u, v, length, width] : [v, u, width, length];
-    return (!(rectangular || useConservativeEdge) || boundary.fits({ x, y, w, h }))
+    return ((brief.fillCells !== undefined && brief.portals.length <= 32) || !(rectangular || useConservativeEdge) || boundary.fits({ x, y, w, h }))
       && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
   };
   const take = (u: number, v: number, length: number, width: number) => {
@@ -148,7 +148,7 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
 
   const parts = elements.flatMap(element => element.template.parts);
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
-  const loot = cellLoot(brief, mask, pieces, CHANNEL.loot);
+  const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: warehouses, obstacles: parts.filter(p => p.part === 'obstacle').length,
       gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0, warehouses, designed, rows } };

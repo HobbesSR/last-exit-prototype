@@ -1,6 +1,6 @@
 import { circle } from '../../../shared/shape.ts';
 import { rng } from '../index.ts';
-import { createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
+import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
 import { portalStands } from '../portals.ts';
 import { boxesAgainstHints, portalMargin } from '../hints.ts';
@@ -9,7 +9,7 @@ import { realizeBuilding } from '../building/realize.ts';
 import type { BuildingRealization } from '../building/realize.ts';
 import { OUTSIDE } from '../building/design.ts';
 import type { BuildingAllocation, BuildingDesign } from '../building/design.ts';
-import { buildOpen } from './open.ts';
+import { unfilledRegion } from './scatter.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import type { BuiltRegion, LootSite, RegionBrief } from '../types.ts';
 
@@ -61,7 +61,8 @@ type House = Built & { steps: number[] };
  * `observe`, when given, sees the house's design, allocation and realization (`BuildingTrace`).
  */
 export function buildHut(brief: RegionBrief, observe?: BuildingObserver): BuiltRegion {
-  const size = brief.cellSize, mask = createRegionMask(brief);
+  const size = brief.cellSize, mask = createFillMask(brief), accessMask = createAccessMask(brief);
+  if (!mask.cells.length) return unfilledRegion(brief, 3);
   const seed = Math.floor(rng(brief.seed, `${brief.id}:hut-design`).next() * 2 ** 31);
   let site: Site | undefined;
   for (const { spaces, boxes } of LARGER) {
@@ -71,11 +72,13 @@ export function buildHut(brief: RegionBrief, observe?: BuildingObserver): BuiltR
       if (!houses.has(key)) houses.set(key, larger(spaces, w, h, side, size, seed) ?? null);
       return houses.get(key) ?? undefined;
     };
-    site = siteHut(brief, mask, boxes, `${brief.id}:hut-site-${spaces}`, built);
+    site = siteHut(brief, mask, accessMask, boxes, `${brief.id}:hut-site-${spaces}`, built);
     if (site) break;
   }
-  site ??= siteHut(brief, mask, [[BOX, BOX]], `${brief.id}:hut-site`, (_w, _h, side) => house(size, side));
-  if (!site) return buildOpen(brief);
+  const smallBoxes: ReadonlyArray<readonly [number, number]> = brief.fillCells === undefined
+    ? [[BOX, BOX]] : [[BOX, BOX], [BOX, 3], [3, BOX], [3, 3]];
+  site ??= siteHut(brief, mask, accessMask, smallBoxes, `${brief.id}:hut-site`, (w, h, side) => house(size, side, w, h));
+  if (!site) return unfilledRegion(brief, 3);
 
   const { design, allocation, realization } = site.house;
   const element = { label: 'hut-building', x: site.x * size, y: site.y * size, template: realization.template! };
@@ -83,11 +86,12 @@ export function buildHut(brief: RegionBrief, observe?: BuildingObserver): BuiltR
   const shapes = elementShapes(element, true), radius = microMetrics({ cellSize: size, bodyProfile: 'cell' }).lootRadius;
   const zones = new Map(brief.zones.flatMap(zone => zone.cells.map(c => [`${c.x},${c.y}`, zone] as const)));
   const lootRandom = rng(brief.seed, `${brief.id}:hut-loot`), loot: LootSite[] = [];
-  for (const cell of mask.cells) {
+  const ownedMask = createRegionMask(brief);
+  for (const cell of ownedMask.cells) {
     const zone = zones.get(`${cell.x},${cell.y}`)!, roll = lootRandom.next(), jx = lootRandom.next(), jy = lootRandom.next();
     if (roll >= zone.lootChance) continue;
     const x = (cell.x + 0.35 + jx * 0.3) * size, y = (cell.y + 0.35 + jy * 0.3) * size, disc = circle(x, y, radius);
-    if (mask.contains(disc) && !shapes.some(shape => shapesOverlap(disc, shape))) loot.push({ x, y, tier: zone.tier });
+    if (ownedMask.contains(disc) && !shapes.some(shape => shapesOverlap(disc, shape))) loot.push({ x, y, tier: zone.tier });
   }
 
   const parts = element.template.parts;
@@ -103,19 +107,19 @@ type Site = { x: number; y: number; house: House };
  * and then each size's boxes go in a seeded order on `channel`. `built` gives the box's house
  * with its door on a side, or nothing where that side can't take it.
  */
-function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, boxes: ReadonlyArray<readonly [number, number]>, channel: string,
+function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, accessMask: ReturnType<typeof createRegionMask>, boxes: ReadonlyArray<readonly [number, number]>, channel: string,
   built: (w: number, h: number, side: Side) => House | undefined): Site | undefined {
   const xs = mask.cells.map(c => c.x), ys = mask.cells.map(c => c.y);
   const width = Math.max(...xs) - Math.min(...xs) + 1, height = Math.max(...ys) - Math.min(...ys) + 1;
   const key = (x: number, y: number) => `${x},${y}`;
   const fits = (x: number, y: number, inBox: (x: number, y: number) => boolean) => {
-    for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) if (!mask.has(i, j) || inBox(i, j)) return false;
+    for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) if (!accessMask.has(i, j) || inBox(i, j)) return false;
     return true;
   };
   // Label the blocks a hunter can stand on, joined where it can step one cell across.
   const label = (inBox: (x: number, y: number) => boolean) => {
     const labels = new Map<string, number>();
-    for (const start of mask.cells) {
+    for (const start of accessMask.cells) {
       if (labels.has(key(start.x, start.y)) || !fits(start.x, start.y, inBox)) continue;
       const id = labels.size, queue = [start];
       labels.set(key(start.x, start.y), id);
@@ -132,15 +136,15 @@ function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, 
 
   // Each portal's approach: the cells two deep inward along it, and the blocks a hunter stands on there.
   const approach = new Set<string>(), entrances: string[] = [];
-  for (const cell of portalMargin(brief, 1)) approach.add(key(cell.x, cell.y));
-  for (const { portal: { axis, x, y, length }, inward } of portalStands(brief, mask)) {
+  for (const cell of brief.fillCells === undefined ? portalMargin(brief, 1) : []) approach.add(key(cell.x, cell.y));
+  for (const { portal: { axis, x, y, length }, inward } of portalStands(brief, accessMask)) {
     const blocks: string[] = [];
-    for (let i = 0; i < length; i++) for (let d = 0; d < BODY; d++) {
+    if (brief.clearCells === undefined) for (let i = 0; i < length; i++) for (let d = 0; d < BODY; d++) {
       const depth = inward.x + inward.y > 0 ? d : -1 - d;
       approach.add(axis === 'h' ? key(x + i, y + depth) : key(x + depth, y + i));
     }
     for (let i = 0; i + BODY <= length; i++) {
-      const corner = inward.x + inward.y > 0 ? 0 : -BODY;
+      const corner = brief.clearCells === undefined ? (inward.x + inward.y > 0 ? 0 : -BODY) : -1;
       blocks.push(axis === 'h' ? key(x + i, y + corner) : key(x + corner, y + i));
     }
     const entrance = blocks.find(block => { const [bx, by] = block.split(',').map(Number) as [number, number]; return fits(bx, by, () => false); });
@@ -158,6 +162,9 @@ function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, 
       .map(box => ({ x: Math.round(box.x / mask.cellSize), y: Math.round(box.y / mask.cellSize) }))
       .filter(box => !seen.has(key(box.x, box.y)))];
     for (const { x, y } of places) {
+      let inFill = true;
+      for (let j = y; j < y + h && inFill; j++) for (let i = x; i < x + w; i++) if (!mask.has(i, j)) { inFill = false; break; }
+      if (!inFill) continue;
       const sides = random.shuffle(SIDES);
       const inBox = (i: number, j: number) => i >= x && i < x + w && j >= y && j < y + h;
       let blocked = false;
@@ -165,7 +172,7 @@ function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, 
       if (blocked) continue;
       // A convex box with a clear ring a hunter wide can't divide the yard: a route through it goes round.
       let ring = true;
-      for (let j = y - BODY; j < y + h + BODY && ring; j++) for (let i = x - BODY; i < x + w + BODY && ring; i++) ring = mask.has(i, j);
+      for (let j = y - BODY; j < y + h + BODY && ring; j++) for (let i = x - BODY; i < x + w + BODY && ring; i++) ring = accessMask.has(i, j);
       const yard = ring ? empty : label(inBox);
       // Entrances stay in the yard, since the box is off every approach. Those the empty region joined must stay joined.
       const joined = new Map<number, number | undefined>();
@@ -206,10 +213,10 @@ const realized = (cellSize: number) => ({ cellSize, thickness: WALL, encloses: t
  * window on the opposite wall, each a doorway wide (52's worked case) and centred. It
  * encloses, so it has a roof.
  */
-function house(size: number, door: Side): House {
-  const cells = Array.from({ length: BOX * BOX }, (_, i) => ({ x: i % BOX, y: Math.floor(i / BOX) }));
+function house(size: number, door: Side, width = BOX, height = BOX): House {
+  const cells = Array.from({ length: width * height }, (_, i) => ({ x: i % width, y: Math.floor(i / width) }));
   const design: BuildingDesign = {
-    spaces: [{ id: 'room', area: { min: BOX * BOX, max: BOX * BOX }, outside: 'prefer', tags: ['house'] }],
+    spaces: [{ id: 'room', area: { min: width * height, max: width * height }, outside: 'prefer', tags: ['house'] }],
     connections: [
       { id: 'door', a: 'room', b: OUTSIDE, kind: 'door', side: door },
       { id: 'window', a: 'room', b: OUTSIDE, kind: 'window', side: OPPOSITE[door] },

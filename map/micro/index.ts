@@ -5,7 +5,7 @@ import type { Vec2 } from '../../shared/types.ts';
 import { microMetrics } from './metrics.ts';
 import { spreadPoints } from './placement.ts';
 import { BUILDERS } from './builders.ts';
-import { capsule, createRegionMask, elementShapes, findRegionRoute, shapesOverlap, travelClear } from './geometry.ts';
+import { capsule, createAccessMask, createFillMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap, travelClear } from './geometry.ts';
 import { portalStands } from './portals.ts';
 import { checkedRegionCells, LIMITS } from './limits.ts';
 import { CORE_ELEMENT_KINDS } from '../kernel/contract.ts';
@@ -74,6 +74,7 @@ function entryPoints(spec: RegionSpec, mask: RegionMask, elements: RegionElement
  * are sited before the loot fill; loot follows each cell's zone.
  */
 interface BriefTerms {
+  brief: RegionBrief;
   portals: Portal[];
   coreElements: Array<[CoreElementKind, number]>;
   zoneAt(x: number, y: number): { tier: number; lootChance: number };
@@ -99,7 +100,7 @@ export function generateBriefRegion(brief: RegionBrief, builder: BuilderId): Bui
     ...(Object.keys(parameters).length ? { parameters } : {}), loot: { budget: 64, tier: 1 } });
   const zones = new Map(brief.zones.flatMap(zone => zone.cells.map(c => [`${c.x},${c.y}`, zone] as const)));
   const coreElements = CORE_ELEMENT_KINDS.flatMap(kind => brief.coreElements?.[kind] ? [[kind, brief.coreElements[kind]!] as [CoreElementKind, number]] : []);
-  const { result, coreElements: sites } = generate(spec, { portals: brief.portals, coreElements, zoneAt: (x, y) => zones.get(`${x},${y}`)! });
+  const { result, coreElements: sites } = generate(spec, { brief, portals: brief.portals, coreElements, zoneAt: (x, y) => zones.get(`${x},${y}`)! });
   const { builder: _, ...counts } = result.manifest;
   return { version: 'region-2', brief: structuredClone(brief), elements: result.elements, coreElements: sites, loot: result.loot,
     manifest: { ...counts, coreElements: sites.length } };
@@ -107,6 +108,8 @@ export function generateBriefRegion(brief: RegionBrief, builder: BuilderId): Bui
 
 function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; coreElements: CoreElementSite[] } {
   const mask = createRegionMask(spec), resolved = resolvePorts(spec, mask);
+  const fillMask = terms ? createFillMask(terms.brief) : mask;
+  const accessMask = terms ? createAccessMask(terms.brief) : mask;
   const metrics = microMetrics(spec), radii = metrics.clearance;
   const elements = resolved.elements, ports = resolved.ports, routes: RegionRoute[] = [], blockers = elements.flatMap(e => elementShapes(e));
   const protectedShapes: Shape[] = (spec.reservations || []).map(b => rect(b.x, b.y, b.w, b.h));
@@ -132,14 +135,14 @@ function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; 
   // A brief's portals: keep every hunter stand along each one clear, and a hunter route between them.
   // A stand or a route missing here is the brief's promise already broken, so this fails explicitly
   // rather than emitting a region that doesn't keep it (51 principle 9).
-  const standList = terms ? portalStands({ ...spec, portals: terms.portals }, mask) : [];
+  const standList = terms ? portalStands(terms.brief) : [];
   for (const { portal, points } of standList) {
     if (!points.length) throw new Error(`Brief portal ${portal.id} is too short for a hunter.`);
-    if (!travelClear(mask, blockers, points[0]!, points[0]!, radii.hunter)) throw new Error(`Brief portal ${portal.id} lacks standing room for a hunter.`);
+    if (!travelClear(accessMask, blockers, points[0]!, points[0]!, radii.hunter)) throw new Error(`Brief portal ${portal.id} lacks standing room for a hunter.`);
   }
   for (const { points } of standList) protectedShapes.push(...capsule(points[0]!, points.at(-1)!, radii.hunter + 1));
   for (const { portal, points } of standList.slice(1)) {
-    const path = findRegionRoute(mask, blockers, standList[0]!.points[0]!, points[0]!, radii.hunter);
+    const path = findRegionRoute(accessMask, blockers, standList[0]!.points[0]!, points[0]!, radii.hunter);
     if (!path) throw new Error(`Brief portal ${portal.id} cannot connect to ${standList[0]!.portal.id} inside region ${spec.id}.`);
     protect(path, 'hunter');
   }
@@ -151,16 +154,16 @@ function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; 
   // later offer reuses that roll, so a cell offered twice gets no second chance.
   const zoneLoot = terms ? rng(spec.seed, `${spec.id}:zone-loot`) : undefined, rolled = new Map<string, boolean>();
   const context: BuilderContext = {
-    spec, mask, random: channel => rng(spec.seed, `${spec.id}:${channel}`),
+    spec, mask: fillMask, random: channel => rng(spec.seed, `${spec.id}:${channel}`),
     element(label, template, x, y) {
       attempted++;
       const element = { label, template: structuredClone(template), x, y }, shapes = elementShapes(element, true);
-      const footprintOK = !template.encloses || mask.contains(rect(x, y, template.w, template.h));
-      const spotsOK = template.parts.every(p => p.part !== 'spot' || mask.contains(circle(x + p.x, y + p.y, 1)));
+      const footprintOK = !template.encloses || fillMask.contains(rect(x, y, template.w, template.h));
+      const spotsOK = template.parts.every(p => p.part !== 'spot' || fillMask.contains(circle(x + p.x, y + p.y, 1)));
       // Template reservations cannot bypass the macro contract; they too must fit.
       const reserves = template.parts.filter(p => p.part === 'reserve').map(p => rect(x + p.x, y + p.y, p.w, p.h));
       const claim = template.encloses ? [rect(x, y, template.w, template.h)] : shapes;
-      if (!Number.isFinite(x) || !Number.isFinite(y) || !footprintOK || !spotsOK || [...shapes, ...reserves].some(s => !mask.contains(s)) || claim.some(s => occupied.some(o => shapesOverlap(s, o))) || shapes.some(s => protectedShapes.some(o => shapesOverlap(s, o)))) { rejected++; return false; }
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !footprintOK || !spotsOK || [...shapes, ...reserves].some(s => !fillMask.contains(s)) || claim.some(s => occupied.some(o => shapesOverlap(s, o))) || shapes.some(s => protectedShapes.some(o => shapesOverlap(s, o)))) { rejected++; return false; }
       elements.push(element); blockers.push(...elementShapes(element)); occupied.push(...claim); protectedShapes.push(...reserves);
       return true;
     },
@@ -176,7 +179,7 @@ function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; 
         if (!rolled.get(key)) return false;
       }
       if (lootCells.has(key) || !mask.contains(disc) || elements.flatMap(e => elementShapes(e, true)).some(s => shapesOverlap(disc, s)) || (spec.reservations || []).some(b => shapesOverlap(disc, rect(b.x, b.y, b.w, b.h))) || spawns.some(s => shapesOverlap(disc, s))) return false;
-      const path = root && findRegionRoute(mask, blockers, root, { x, y }, radii.contestant);
+      const path = root && findRegionRoute(accessMask, blockers, root, { x, y }, radii.contestant);
       if (root && !path) return false;
       if (path) protect(path, 'contestant');
       const tier = zone ? zone.tier : spec.loot?.tier ?? 1;
@@ -194,7 +197,7 @@ function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; 
   const coreElements: CoreElementSite[] = [];
   for (const [kind, count] of terms?.coreElements ?? []) {
     const radius = kind === 'hunter-spawn' ? radii.hunter : radii.contestant;
-    const placed = spreadPoints(mask, { count, radius, seed: spec.seed, blockers: elements.flatMap(e => elementShapes(e, true)),
+    const placed = spreadPoints(mask, { count, radius, seed: spec.seed, accessMask, blockers: elements.flatMap(e => elementShapes(e, true)),
       reservations: [...spawns, ...loot.map(l => circle(l.x, l.y, metrics.lootRadius))], ...(root ? { anchor: root } : {}) });
     coreElements.push(...placed.points.map(p => ({ kind, x: p.x, y: p.y })));
     spawns.push(...placed.points.map(p => circle(p.x, p.y, radius)));
