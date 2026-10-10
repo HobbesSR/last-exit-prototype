@@ -384,9 +384,19 @@ const newArena = () => deploy(async () => {
 const autoMatch = () => deploy(() => connect({ matchmake: true, role: $('role-preference').value, ...player() }));
 // The lobby browser (22.5): the rooms the directory lists, polled while the deploy dialog is open.
 let listedRooms = [], devPolicy = null, refreshingRooms = false;
-function openDeploy() {
+function selectDeployTab(tabName) {
+  const isJoin = tabName === 'join';
+  $('tab-join')?.classList.toggle('active', isJoin);
+  $('tab-join')?.setAttribute('aria-selected', String(isJoin));
+  $('tab-create')?.classList.toggle('active', !isJoin);
+  $('tab-create')?.setAttribute('aria-selected', String(!isJoin));
+  if ($('panel-join')) $('panel-join').hidden = !isJoin;
+  if ($('panel-create')) $('panel-create').hidden = isJoin;
+  if (isJoin) void refreshRooms();
+}
+function openDeploy(tabName = 'join') {
+  selectDeployTab(tabName);
   if (!$('loadout-dialog').open) $('loadout-dialog').showModal();
-  void refreshRooms();
 }
 async function refreshRooms() {
   if (refreshingRooms) return;
@@ -464,6 +474,8 @@ async function downloadReplay(id) {
   } catch (error) { toast(error.message); }
 }
 $('new-game').onclick = $('play-again').onclick = () => { clearInput(); $('deploy-error').hidden = true; openDeploy(); };
+$('tab-join').onclick = () => selectDeployTab('join');
+$('tab-create').onclick = () => selectDeployTab('create');
 $('deploy-form').onsubmit = e => { e.preventDefault(); void newArena(); };
 $('auto-match').onclick = () => void autoMatch();
 $('random-seed').onclick = () => { $('seed').value = ''; };
