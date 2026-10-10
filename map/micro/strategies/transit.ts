@@ -1,5 +1,5 @@
 import { coverAround, coverNear } from './cover.ts';
-import { createRegionMask, findRegionRoute } from '../geometry.ts';
+import { createAccessMask, createRegionMask, findRegionRoute } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
 import { spreadPoints } from '../placement.ts';
 import { portalStands } from '../portals.ts';
@@ -16,11 +16,12 @@ export function buildTransit(brief: RegionBrief): BuiltRegion {
   if (typeof standing !== 'number' || !Number.isFinite(standing) || standing <= 0)
     throw new RangeError(`Region ${brief.id}: transit standing must be a positive number of cells.`);
   const mask = createRegionMask(brief), radius = clearance.hunter, count = brief.coreElements?.warp ?? 0;
-  const root = portalStands(brief, mask).find(portal => portal.points.length)?.points[0];
+  const accessMask = createAccessMask(brief);
+  const root = portalStands(brief).find(portal => portal.points.length)?.points[0];
 
   let warps = spreadPoints(mask, { count, radius, seed: brief.seed }).points;
-  if (root && warps.some(point => !findRegionRoute(mask, [], root, point, radius)))
-    warps = spreadPoints(mask, { count, radius, seed: brief.seed, anchor: root }).points;
+  if (root && warps.some(point => !findRegionRoute(accessMask, [], root, point, radius)))
+    warps = spreadPoints(mask, { count, radius, seed: brief.seed, accessMask, anchor: root }).points;
 
   const sites = warps.map(point => ({ ...point, radius: Math.max(standing * size, radius), reach: radius }));
   let cover = coverAround(brief, sites, root);

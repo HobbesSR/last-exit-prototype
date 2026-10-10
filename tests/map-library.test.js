@@ -4,7 +4,7 @@ import { validateLibrary } from '../map/macro/src/chain/library.ts';
 import { generateChainMap, mapViews } from '../map/macro/src/chain/map.ts';
 import { buildRegion, REGION_TYPES, REGION_TYPES_VERSION } from '../map/micro/region-types.ts';
 import { composeRegions } from '../map/micro/compose.ts';
-import { createRegionMask, elementShapes, findRegionRoute } from '../map/micro/geometry.ts';
+import { createAccessMask, elementShapes, findRegionRoute } from '../map/micro/geometry.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 
@@ -45,7 +45,7 @@ for (const [seed, contestantCount] of [['library-0', 8], ['library-4', 24]]) tes
     // Reaching a site from the first portal is the core element strategies' own siting rule
     // (54), not the portal promise: a region's interior is its builder's business (51 principle 9).
     if (!result.coreElements.length) continue;
-    const mask = createRegionMask(brief), root = portalStands(brief, mask)[0]?.points[0];
+    const mask = createAccessMask(brief), root = portalStands(brief)[0]?.points[0];
     assert.ok(root, `${brief.type} has an entrance`);
     const { clearance } = microMetrics({ cellSize: brief.cellSize, bodyProfile: 'cell' });
     for (const site of result.coreElements) {

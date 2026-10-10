@@ -58,6 +58,9 @@ or external library are needed. An optional supplied library must match too.
 **The chain** is wire version 8 (`map/macro/src/chain/saving.ts`, #286).
 Version 7 is refused by name because macro version 2 derives `any`+`any`
 passability guarantees; old saved views must not be silently reinterpreted.
+Macro version 3 (20.6) derives fill cells, known-clear access context and
+internal guaranteed runs. The wire format remains version 8; its macro field
+refuses version 2 Layouts because their derived briefs would differ.
 Library schema 3 and module schema 1 are retained for the optional hint value
 ([51.4](51.4-resolution.md)); fingerprints still cover all authored content.
 Version 6 is refused by name because it lacks the embedded resolved library
@@ -75,15 +78,6 @@ and authored-size metadata. Version 5 is refused by name: its params have no `co
 - Versions 1–4 are refused by name. Version 4 held mapgen's old generators'
   maps; its reader, `decodeArtifact`, was deleted with them (#146), and no
   legacy reader remains.
-
-**#214 content checkpoint:** the bundled module revisions advance to primitives 4,
-set pieces 4 and districts 3. Fill weights and deferring rubble tiles deliberately
-change placement and its downstream views. `REGION_TYPES_VERSION` advances to
-`types-21` for this content checkpoint, following the generation-batch policy
-(31, #295); macro and wire versions stay at 2 and 8. The frozen legacy behaviour
-fixture is unchanged. The chain sweep is recaptured once, after validation, from
-the committed inputs, preserving the pinned cases. The 224-map capture records
-input commit `15b3fb3`; the prior #311 checkpoint remains `8c1a79d` in history.
 
 ## BSON
 
@@ -169,6 +163,22 @@ every region of one game map passed the independent portal diagnostic, and
 combat-neutralized bots filled all three extraction slots on representative
 live maps. The frozen gameplay characterization fixture is unchanged.
 
+**#313's re-capture** pins automatic guaranteed-segment margins (20.6), macro
+version 3 and `types-21`, at input commit `485ca14`. It retains the same 224
+cases and unchanged authored libraries. Only results, briefs, built and report
+hashes change on all 224 maps; layout, declared grid, resolved segments,
+regions, proof and zones stay identical. This is the prerequisite policy
+checkpoint; #214's later authored shapes and tuning require their own review
+and final checkpoint. The frozen gameplay characterization fixture is unchanged.
+
+**The #318 review's re-capture** pins `types-22` at input commit `2cf7259`, the
+same 224 cases. Every brief now takes one margin path; with `block`'s change
+held back, that alone moves only the results' version string on all 224 maps.
+`block` keeping lots two cells off each portal moves built content on the 97
+maps whose blocks it changes (results, built and report; one map's report is
+unchanged). Six of them, diagnosed independently, report no defects. Layout,
+declared grid, resolved segments, regions, proof, zones and briefs are identical.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
@@ -242,7 +252,10 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     shows both statements, and label each region with the core elements
     assigned to it. The inspector names the cell's tile and set piece, and
     gives the brief's type, portal ids, assigned core elements, parameters
-    and loot chance. Its buttons open the tile design or set piece in the
+    and loot chance. The reduced-fill layer highlights owned cells excluded
+    from geometry fill, and the internal-guarantees layer draws preserved
+    same-owner runs. The inspector gives their counts and the known-clear
+    access count. Its buttons open the tile design or set piece in the
     Chain Library tab; where the draft lacks it or differs, it asks before
     replacing the draft with the map's library.
   - **Region drill-down** (#203): selecting a cell rebuilds its region in
@@ -323,7 +336,13 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     the World tab's zone size to edit it. Tile design authoring features an
     interactive canvas stage with row and column gutters, swatches for declared
     cell classes, continuous drag-painting, flood fill, rectangle fill,
-    Alt-click eyedropper sampling, quick patterns, and a right-click context palette (#303).
+    Alt-click eyedropper sampling, quick patterns, and a right-click context palette (#303);
+    on-stage segment passability overlays and drag stamping (#304); a visual tile
+    thumbnail gallery with search/filtering, template cloning, and World view inspection links (#305);
+    a visual tile sets manager with split member and searchable available tile thumbnail galleries
+    and non-empty validation enforcement (#306); an interactive 2D layout blueprint grid
+    and palette editor for set pieces with tier eligibility checkboxes and rotation controls (#315);
+    and canvas tool hotkeys (D, F, R, S, E), numeric brush switching (1-9 for cell classes starting with any in tiles, and visible tile sets in set pieces), stable ID and test coverage for the stage hover readout (#chainHoverReadout), and '/' search focus shortcut (#317).
   - **Serving:** The game server (`server/index.js`) serves the lab at `/dev/map` when `devTools` is enabled, alongside macro's `content/`, `map/micro/`, `map/kernel/`, `shared/`, the map-level
     modules `map/chain.ts`, `map/engines.ts` and `map/live.ts`, and the
     tools' `core.ts`, `engines.ts` and `routes.ts`, at their repository

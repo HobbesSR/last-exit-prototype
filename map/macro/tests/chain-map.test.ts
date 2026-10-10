@@ -58,6 +58,16 @@ test("a decoded map equals the generated one, in JSON and in BSON", () => {
   }
 });
 
+test("derived fill, clear access, and internal guarantees survive saved-map loading", () => {
+  const expected = mapViews(MAP).briefs.map(({ fillCells, clearCells, internalGuaranteed }) =>
+    ({ fillCells, clearCells, internalGuaranteed }));
+  for (const restored of [decodeChainMap(encode(MAP), LIBRARY), readChainMap(chainMapToBson(MAP), LIBRARY)]) {
+    assert.deepEqual(mapViews(restored).briefs.map(({ fillCells, clearCells, internalGuaranteed }) =>
+      ({ fillCells, clearCells, internalGuaranteed })), expected);
+    assert.deepEqual(restored.results.map(({ brief }) => brief), mapViews(restored).briefs);
+  }
+});
+
 test("views are never saved: the wire form holds the Layout and the results less their briefs", () => {
   const wire = encode(MAP);
   assert.deepEqual(Object.keys(wire).sort(), ["build", "format", "layout", "library", "strings", "wire"]);
@@ -90,7 +100,9 @@ test("every version mismatch is refused by name", () => {
   assert.throws(() => decodeChainMap({ ...wire, wire: 7 }, LIBRARY), /wire version 7.*predate any\+any passability/);
   assert.throws(() => decodeChainMap({ ...wire, wire: CHAIN_WIRE_VERSION + 1 }, LIBRARY), /unsupported wire version 9/);
   assert.throws(() => decodeChainMap({ ...wire, layout: { ...wire.layout, macro: MACRO_VERSION + 1 } }, LIBRARY),
-    /placed by macro version 3, and this reader's stages are version 2/);
+    /placed by macro version 4, and this reader's stages are version 3/);
+  assert.throws(() => decodeChainMap({ ...wire, layout: { ...wire.layout, macro: 2 } }, LIBRARY),
+    /placed by macro version 2, and this reader's stages are version 3/);
   assert.throws(() => decodeChainMap(wire, { ...LIBRARY, setPieces: LIBRARY.setPieces.slice(1) }), /made with a different library/);
   assert.throws(() => decodeChainMap({ ...wire, build: { ...wire.build, format: "region-1" } }, LIBRARY), /its results are region-1/);
   assert.throws(() => decodeChainMap(encode(MAP, false), LIBRARY, { ...ENGINES, version: "stub-2" }),

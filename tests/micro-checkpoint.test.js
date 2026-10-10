@@ -41,8 +41,9 @@ test('a large checkpoint reuses route evidence and still passes the independent 
     hints.push({ axis: 'v', x, y, length: 3 });
   }
   const input = { ...brief('large-checkpoint', 3, cells, portals), hints };
-  const start = performance.now(), result = buildRegion(input);
-  assert.ok(performance.now() - start < 5000, 'generation remains bounded with 58 portals');
+  // CPU time, not wall time: parallel test files contend for cores, and that isn't this work.
+  const start = process.cpuUsage(), result = buildRegion(input), spent = process.cpuUsage(start);
+  assert.ok((spent.user + spent.system) / 1000 < 5000, 'generation remains bounded with 58 portals');
   assert.ok(barriers(result).length > 10, 'the speedup preserves the chicane');
   assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
 });

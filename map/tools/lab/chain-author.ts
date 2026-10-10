@@ -9,6 +9,7 @@ import type {
   ChainTileDesign,
   ChainSetPieceSlot,
   CoreElementCount,
+  PassabilityPrescription,
   SegmentPrescription,
 } from "../../macro/src/chain/library.ts";
 import { orientDesign } from "../../macro/src/chain/declared-grid.ts";
@@ -162,8 +163,10 @@ try {
 let selectedSegment = "v:3,2";
 let selectedCellClass = "hut";
 let selectedId = "";
-type PaintTool = "paint" | "fill" | "rect";
+type PaintTool = "paint" | "fill" | "rect" | "segment";
+type SegmentBrush = PassabilityPrescription | "unstated";
 let selectedPaintTool: PaintTool = "paint";
+let selectedSegmentBrush: SegmentBrush = "passable";
 let activePopup: HTMLElement | null = null;
 let popupDismissListener: ((evt: MouseEvent) => void) | null = null;
 
@@ -178,7 +181,79 @@ function closePopup(): void {
   }
 }
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") closePopup();
+  if (e.key === "Escape") {
+    closePopup();
+    return;
+  }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (document.getElementById("chainViewContainer")?.hidden) return;
+
+  const target = e.target as HTMLElement | null;
+  if (target && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)) return;
+  if (target && target.isContentEditable) return;
+
+  const k = e.key.toLowerCase();
+
+  // Search filter focus shortcut (/)
+  if (k === "/") {
+    let searchInput: HTMLElement | null = null;
+    if (section() === "tiles") {
+      searchInput = document.getElementById("tileFilter");
+    } else if (section() === "tileSets") {
+      searchInput = document.getElementById("setAvailableFilter");
+    } else if (section() === "setPieces") {
+      searchInput = document.getElementById("setPiecePaletteFilter");
+    }
+    if (searchInput) {
+      searchInput.focus();
+      if (document.activeElement === searchInput) {
+        e.preventDefault();
+      }
+      return;
+    }
+  }
+
+  // Hotkeys in tiles section
+  if (section() === "tiles") {
+    if (k === "d" || k === "b") {
+      selectedPaintTool = "paint";
+      render();
+    } else if (k === "f") {
+      selectedPaintTool = "fill";
+      render();
+    } else if (k === "r") {
+      selectedPaintTool = "rect";
+      render();
+    } else if (k === "s") {
+      selectedPaintTool = "segment";
+      render();
+    } else if (k === "e") {
+      const tile = current() as ChainTileDesign | undefined;
+      if (tile) {
+        selectedCellClass = tile.defaultCellClass;
+        render();
+      }
+    } else if (k >= "1" && k <= "9") {
+      const idx = parseInt(k, 10) - 1;
+      const classes = ["any", ...Object.keys(library.cellClasses)];
+      if (idx < classes.length) {
+        selectedCellClass = classes[idx]!;
+        render();
+      }
+    }
+  } else if (section() === "setPieces") {
+    if (k >= "1" && k <= "9") {
+      const idx = parseInt(k, 10) - 1;
+      const filter = setPiecePaletteFilter.trim().toLowerCase();
+      const matching = library.tileSets
+        .map((s) => s.id)
+        .filter((id) => !filter || id.toLowerCase().includes(filter));
+      if (idx < matching.length) {
+        activeLayoutBrush = matching[idx]!;
+        render();
+      }
+    }
+  }
 });
 
 function section(): Section {
@@ -323,6 +398,42 @@ function rename(next: string): void {
     status(`Name must be unique and nonempty: ${next}`);
     return;
   }
+  if (section() === "tiles") {
+    const setsUsing = library.tileSets
+      .filter((s) => s.members.includes(old))
+      .map((s) => s.id);
+    if (setsUsing.length) {
+      const msg = `Rename tile design "${old}" to "${next}"? It is referenced in tile set(s): ${setsUsing.join(", ")}. References will be updated automatically.`;
+      if (!confirm(msg)) {
+        render();
+        return;
+      }
+    }
+  }
+  if (section() === "tileSets") {
+    const piecesUsing = library.setPieces
+      .filter((p) => p.tiles.some((slot) => slot.tileSetId === old))
+      .map((p) => p.id);
+    if (piecesUsing.length) {
+      const msg = `Rename tile set "${old}" to "${next}"? It is referenced in set piece(s): ${piecesUsing.join(", ")}. References will be updated automatically.`;
+      if (!confirm(msg)) {
+        render();
+        return;
+      }
+    }
+  }
+  if (section() === "setPieces") {
+    const classesUsing = library.setPieceClasses
+      .filter((c) => c.setPieces.includes(old))
+      .map((c) => c.id);
+    if (classesUsing.length) {
+      const msg = `Rename set piece "${old}" to "${next}"? It is referenced in set piece class(es): ${classesUsing.join(", ")}. References will be updated automatically.`;
+      if (!confirm(msg)) {
+        render();
+        return;
+      }
+    }
+  }
   if (section() === "classes") {
     library.cellClasses[next] = library.cellClasses[old]!;
     delete library.cellClasses[old];
@@ -340,10 +451,12 @@ function rename(next: string): void {
     if (section() === "tiles")
       for (const set of library.tileSets)
         set.members = set.members.map((id) => (id === old ? next : id));
-    if (section() === "tileSets")
+    if (section() === "tileSets") {
+      if (activeLayoutBrush === old) activeLayoutBrush = next;
       for (const piece of library.setPieces)
         for (const slot of piece.tiles)
           if (slot.tileSetId === old) slot.tileSetId = next;
+    }
     if (section() === "setPieces")
       for (const group of library.setPieceClasses)
         group.setPieces = group.setPieces.map((id) => (id === old ? next : id));
@@ -446,9 +559,298 @@ function plotLine(
   }
   return points;
 }
+function allPerimeterSegments(): string[] {
+  const keys: string[] = [];
+  for (let offset = 0; offset < CHAIN_TILE_SIZE; offset++) {
+    keys.push(`v:0,${offset}`);
+    keys.push(`v:${CHAIN_TILE_SIZE},${offset}`);
+    keys.push(`h:0,${offset}`);
+    keys.push(`h:${CHAIN_TILE_SIZE},${offset}`);
+  }
+  return keys;
+}
+function segmentDescriptor(key: string): { isPerimeter: boolean; line: number; offset: number } {
+  const [, rest] = key.split(":");
+  const [lineStr, offsetStr] = rest!.split(",");
+  const line = Number(lineStr);
+  const offset = Number(offsetStr);
+  const isPerimeter = line === 0 || line === CHAIN_TILE_SIZE;
+  return { isPerimeter, line, offset };
+}
+
+function segmentTooltip(key: string, tile: ChainTileDesign): string {
+  const { isPerimeter } = segmentDescriptor(key);
+  const p = tile.segments?.[key];
+  const passability = p?.passability ?? "unstated";
+  let tooltip = `Segment ${key} (${isPerimeter ? "perimeter" : "interior"}) · passability: ${passability}`;
+  if (isPerimeter && p?.adjacency) {
+    tooltip += ` · adjacency: ${p.adjacency}`;
+  }
+  return tooltip;
+}
+
+function setSegmentProp(
+  tile: ChainTileDesign,
+  key: string,
+  dimension: "adjacency" | "passability",
+  value: string | undefined,
+): void {
+  tile.segments ??= {};
+  const next = (tile.segments[key] ??= {});
+  if (value) {
+    if (dimension === "adjacency") {
+      next.adjacency = value;
+    } else {
+      next.passability = value as PassabilityPrescription;
+    }
+  } else {
+    delete next[dimension];
+  }
+  if (!Object.keys(next).length) delete tile.segments[key];
+  if (!Object.keys(tile.segments).length) delete tile.segments;
+}
+
+function setSegmentPassability(
+  tile: ChainTileDesign,
+  key: string,
+  passability: PassabilityPrescription | undefined,
+): void {
+  setSegmentProp(tile, key, "passability", passability);
+}
+
+function setSegmentAdjacency(
+  tile: ChainTileDesign,
+  key: string,
+  adjacency: string | undefined,
+): void {
+  setSegmentProp(tile, key, "adjacency", adjacency);
+}
+
+function applySegmentBrush(
+  tile: ChainTileDesign,
+  key: string,
+  brush: SegmentBrush,
+): void {
+  setSegmentPassability(tile, key, brush === "unstated" ? undefined : brush);
+}
+
+function getNearestSegment(
+  grid: HTMLElement,
+  clientX: number,
+  clientY: number,
+): string | null {
+  const rect = grid.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return null;
+  const u = ((clientX - rect.left) / rect.width) * CHAIN_TILE_SIZE;
+  const v = ((clientY - rect.top) / rect.height) * CHAIN_TILE_SIZE;
+  const vLine = Math.min(Math.max(Math.round(u), 0), CHAIN_TILE_SIZE);
+  const hLine = Math.min(Math.max(Math.round(v), 0), CHAIN_TILE_SIZE);
+  const dv = Math.abs(u - vLine);
+  const dh = Math.abs(v - hLine);
+  if (Math.min(dv, dh) <= 0.25) {
+    if (dv <= dh) {
+      const offset = Math.min(Math.max(Math.floor(v), 0), CHAIN_TILE_SIZE - 1);
+      return `v:${vLine},${offset}`;
+    } else {
+      const offset = Math.min(Math.max(Math.floor(u), 0), CHAIN_TILE_SIZE - 1);
+      return `h:${hLine},${offset}`;
+    }
+  }
+  return null;
+}
+
+function openSegmentPopup(
+  clientX: number,
+  clientY: number,
+  key: string,
+  tile: ChainTileDesign,
+): void {
+  const { isPerimeter } = segmentDescriptor(key);
+  const p = tile.segments?.[key] ?? {};
+
+  const popup = document.createElement("div");
+  popup.className = "chain-popup";
+  popup.style.left = `${clientX + 4}px`;
+  popup.style.top = `${clientY + 4}px`;
+
+  const title = document.createElement("h4");
+  title.textContent = `Segment ${key} (${isPerimeter ? "perimeter" : "interior"})`;
+  popup.append(title);
+
+  const passabilities: Array<{
+    id: PassabilityPrescription | "unstated";
+    label: string;
+  }> = [
+    { id: "passable", label: "Passable" },
+    { id: "not-passable-hint", label: "Wall (hint)" },
+    { id: "any", label: "Any (deferred)" },
+    { id: "unstated", label: "Clear passability" },
+  ];
+
+  for (const opt of passabilities) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = opt.label;
+    if ((opt.id === "unstated" && !p.passability) || p.passability === opt.id) {
+      btn.classList.add("active");
+    }
+    btn.onclick = () => {
+      applySegmentBrush(tile, key, opt.id);
+      closePopup();
+      changed();
+    };
+    popup.append(btn);
+  }
+
+  if (isPerimeter) {
+    popup.append(document.createElement("hr"));
+    const adjTitle = document.createElement("h4");
+    adjTitle.textContent = "Across-tile adjacency";
+    popup.append(adjTitle);
+
+    const adjChoices = ["", "any", ...Object.keys(library.cellClasses)];
+    for (const c of adjChoices) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = c === "" ? "Clear adjacency" : `Adjacency: ${c}`;
+      if ((c === "" && !p.adjacency) || p.adjacency === c) {
+        btn.classList.add("active");
+      }
+      btn.onclick = () => {
+        setSegmentAdjacency(tile, key, c === "" ? undefined : c);
+        closePopup();
+        changed();
+      };
+      popup.append(btn);
+    }
+  }
+
+  document.body.append(popup);
+  activePopup = popup;
+
+  popupDismissListener = (evt: MouseEvent) => {
+    if (!popup.contains(evt.target as Node)) {
+      closePopup();
+    }
+  };
+  setTimeout(() => {
+    if (popupDismissListener) {
+      document.addEventListener("pointerdown", popupDismissListener);
+    }
+  }, 0);
+}
 function tileCells(tile: ChainTileDesign): string[] {
   const oriented = orientDesign(tile, 0);
   return oriented.cells;
+}
+function tileThumbnail(t: ChainTileDesign): HTMLElement {
+  const figure = document.createElement("figure");
+  const cells = tileCells(t);
+  for (let i = 0; i < CHAIN_TILE_SIZE * CHAIN_TILE_SIZE; i++) {
+    const el = document.createElement("i");
+    const cellClass = cells[i] ?? t.defaultCellClass;
+    el.style.background = classColor(cellClass);
+    figure.append(el);
+  }
+  for (const [key, p] of Object.entries(t.segments ?? {})) {
+    const { isPerimeter, line, offset } = segmentDescriptor(key);
+    const axis = key.startsWith("v") ? "v" : "h";
+    if (p.passability) {
+      const bar = document.createElement("b");
+      bar.className = p.passability === "not-passable-hint" ? "wall" : p.passability;
+      if (axis === "v") {
+        bar.style.left = `${(line / CHAIN_TILE_SIZE) * 100}%`;
+        bar.style.top = `${(offset / CHAIN_TILE_SIZE) * 100}%`;
+        bar.style.width = "2px";
+        bar.style.height = `${(1 / CHAIN_TILE_SIZE) * 100}%`;
+        bar.style.transform = "translateX(-50%)";
+      } else {
+        bar.style.left = `${(offset / CHAIN_TILE_SIZE) * 100}%`;
+        bar.style.top = `${(line / CHAIN_TILE_SIZE) * 100}%`;
+        bar.style.width = `${(1 / CHAIN_TILE_SIZE) * 100}%`;
+        bar.style.height = "2px";
+        bar.style.transform = "translateY(-50%)";
+      }
+      figure.append(bar);
+    }
+    if (isPerimeter && p.adjacency) {
+      const dot = document.createElement("span");
+      dot.className = "adj-dot";
+      if (p.adjacency === "any") {
+        dot.classList.add("any");
+      } else {
+        dot.style.background = classColor(p.adjacency);
+      }
+      if (axis === "v") {
+        dot.style.left = `${(line / CHAIN_TILE_SIZE) * 100}%`;
+        dot.style.top = `${((offset + 0.5) / CHAIN_TILE_SIZE) * 100}%`;
+      } else {
+        dot.style.left = `${((offset + 0.5) / CHAIN_TILE_SIZE) * 100}%`;
+        dot.style.top = `${(line / CHAIN_TILE_SIZE) * 100}%`;
+      }
+      figure.append(dot);
+    }
+  }
+  return figure;
+}
+
+function renderGallery(): void {
+  const container = document.getElementById("chainTileGallerySection");
+  if (!container) return;
+  if (section() !== "tiles") {
+    container.style.display = "none";
+    return;
+  }
+  container.style.display = "flex";
+  const gallery = document.getElementById("tileGallery");
+  if (!gallery) return;
+
+  const filter = (
+    (document.getElementById("tileFilter") as HTMLInputElement | null)?.value ?? ""
+  ).trim().toLowerCase();
+
+  const shown = library.tiles.filter((t) => {
+    if (!filter) return true;
+    if (t.id.toLowerCase().includes(filter)) return true;
+    if (t.defaultCellClass.toLowerCase().includes(filter)) return true;
+    if (t.labels?.some((l) => l.toLowerCase().includes(filter))) return true;
+    if (
+      Object.values(t.legend ?? {}).some((c) =>
+        c.toLowerCase().includes(filter),
+      )
+    )
+      return true;
+    return false;
+  });
+
+  if (!shown.length) {
+    const empty = document.createElement("p");
+    empty.className = "gallery-empty";
+    empty.textContent = `No tile matches "${filter}".`;
+    gallery.replaceChildren(empty);
+    return;
+  }
+
+  gallery.replaceChildren(
+    ...shown.map((t) => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "tile-card";
+      card.dataset.tile = t.id;
+      const isActive = t.id === selectedId;
+      card.classList.toggle("active", isActive);
+      card.title = `${t.id} · default ${t.defaultCellClass}${t.labels?.length ? ` · [${t.labels.join(", ")}]` : ""}`;
+      const name = document.createElement("span");
+      name.className = "tile-card-name";
+      name.textContent = t.id;
+      card.append(tileThumbnail(t), name);
+      card.onclick = () => {
+        selectedId = t.id;
+        render();
+      };
+      return card;
+    }),
+  );
 }
 function updateTileCells(tile: ChainTileDesign, cells: string[]): void {
   const classes = [
@@ -633,12 +1035,13 @@ function renderTiles(root: HTMLElement): void {
     }
   };
 
-  for (const c of classes) {
+  classes.forEach((c, i) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "chain-swatch-button";
     btn.dataset.class = c;
     btn.classList.toggle("active", c === selectedCellClass);
+    btn.title = i < 9 ? `Select brush "${c}" (Hotkey: ${i + 1})` : `Select brush "${c}"`;
     const dot = document.createElement("span");
     dot.className = "swatch";
     dot.style.background = classColor(c);
@@ -651,7 +1054,7 @@ function renderTiles(root: HTMLElement): void {
     };
     swatchesContainer.append(btn);
     swatchButtons.push(btn);
-  }
+  });
 
   const brushSelect = choice(
     "Brush class",
@@ -672,16 +1075,11 @@ function renderTiles(root: HTMLElement): void {
   const toolGroup = document.createElement("div");
   toolGroup.className = "chain-tool-group";
   const toolDefs: Array<[PaintTool, string, string]> = [
-    ["paint", "Paint", "Click or drag to apply the active brush"],
-    ["fill", "Fill", "Flood-fill connected cells of matching class"],
-    ["rect", "Rect", "Drag a box to fill covered cells"],
+    ["paint", "Paint (D)", "Click or drag to apply active brush (Hotkey: D or B)"],
+    ["fill", "Fill (F)", "Flood-fill connected cells of matching class (Hotkey: F)"],
+    ["rect", "Rect (R)", "Drag a box to fill covered cells (Hotkey: R)"],
+    ["segment", "Segments (S)", "Click or drag across boundaries to stamp segment passability (Hotkey: S)"],
   ];
-  const toolButtons: HTMLButtonElement[] = [];
-  const updateTools = () => {
-    for (const b of toolButtons) {
-      b.classList.toggle("active", b.dataset.tool === selectedPaintTool);
-    }
-  };
   for (const [t, label, title] of toolDefs) {
     const b = document.createElement("button");
     b.type = "button";
@@ -691,10 +1089,9 @@ function renderTiles(root: HTMLElement): void {
     b.classList.toggle("active", t === selectedPaintTool);
     b.onclick = () => {
       selectedPaintTool = t;
-      updateTools();
+      render();
     };
     toolGroup.append(b);
-    toolButtons.push(b);
   }
 
   const patternGroup = document.createElement("div");
@@ -778,7 +1175,90 @@ function renderTiles(root: HTMLElement): void {
   patternGroup.append(clearBtn);
 
   toolsRow.append(toolGroup, patternGroup);
-  palette.append(swatchRow, toolsRow);
+
+  const segRow = document.createElement("div");
+  segRow.className = "chain-palette-row";
+
+  const segBrushGroup = document.createElement("div");
+  segBrushGroup.className = "chain-tool-group chain-seg-brushes";
+  const segBrushes: Array<[SegmentBrush, string, string, string]> = [
+    ["passable", "Passable", "#83d7a4", "Stamp passable crossing guarantee"],
+    ["not-passable-hint", "Wall (hint)", "#e2807f", "Stamp prefer occupied hint"],
+    ["any", "Any", "repeating-linear-gradient(45deg, #78909d, #78909d 2px, transparent 2px, transparent 4px)", "Stamp written deferred any"],
+    ["unstated", "Clear", "#2c464f", "Clear segment passability"],
+  ];
+  for (const [sb, label, swatch, title] of segBrushes) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.segBrush = sb;
+    b.title = title;
+    b.classList.toggle("active", selectedSegmentBrush === sb && selectedPaintTool === "segment");
+    const dot = document.createElement("span");
+    dot.className = "swatch";
+    dot.style.background = swatch;
+    const lbl = document.createElement("span");
+    lbl.textContent = label;
+    b.append(dot, lbl);
+    b.onclick = () => {
+      selectedSegmentBrush = sb;
+      selectedPaintTool = "segment";
+      render();
+    };
+    segBrushGroup.append(b);
+  }
+
+  const segPatternGroup = document.createElement("div");
+  segPatternGroup.className = "chain-tool-group";
+  const segPatterns: Array<[string, string, (t: ChainTileDesign) => void]> = [
+    [
+      "Perim Walls",
+      "Set all perimeter segments to wall hint",
+      (t) => {
+        for (const k of allPerimeterSegments()) {
+          applySegmentBrush(t, k, "not-passable-hint");
+        }
+      },
+    ],
+    [
+      "Perim Passable",
+      "Set all perimeter segments to passable",
+      (t) => {
+        for (const k of allPerimeterSegments()) {
+          applySegmentBrush(t, k, "passable");
+        }
+      },
+    ],
+    [
+      "Perim Any",
+      "Set all perimeter segments to any",
+      (t) => {
+        for (const k of allPerimeterSegments()) {
+          applySegmentBrush(t, k, "any");
+        }
+      },
+    ],
+    [
+      "Clear Segments",
+      "Remove all segment prescriptions (both passability and perimeter adjacency)",
+      (t) => {
+        delete t.segments;
+      },
+    ],
+  ];
+  for (const [lbl, title, applyPat] of segPatterns) {
+    const pb = document.createElement("button");
+    pb.type = "button";
+    pb.textContent = lbl;
+    pb.title = title;
+    pb.onclick = () => {
+      applyPat(tile);
+      changed();
+    };
+    segPatternGroup.append(pb);
+  }
+
+  segRow.append(segBrushGroup, segPatternGroup);
+  palette.append(swatchRow, toolsRow, segRow);
 
   root.append(
     palette,
@@ -789,6 +1269,7 @@ function renderTiles(root: HTMLElement): void {
 
   const stage = document.createElement("div");
   stage.className = "chain-tile-stage";
+  stage.classList.toggle("mode-segment", selectedPaintTool === "segment");
 
   const colsGutter = document.createElement("div");
   colsGutter.className = "chain-gutter cols";
@@ -838,6 +1319,7 @@ function renderTiles(root: HTMLElement): void {
   grid.append(ghost);
 
   const hoverReadout = document.createElement("div");
+  hoverReadout.id = "chainHoverReadout";
   hoverReadout.className = "chain-hover-readout";
 
   const cells = tileCells(tile);
@@ -859,8 +1341,116 @@ function renderTiles(root: HTMLElement): void {
       grid.append(button);
     }
 
+  const segmentOverlay = document.createElement("div");
+  segmentOverlay.id = "chainSegmentOverlay";
+  segmentOverlay.className = "chain-segment-overlay";
+
+  const stageSegmentButtons: Map<string, HTMLButtonElement> = new Map();
+
+  const updateStageSegmentButton = (
+    btn: HTMLButtonElement,
+    key: string,
+  ) => {
+    const { isPerimeter } = segmentDescriptor(key);
+    const p = tile.segments?.[key];
+    const passability = p?.passability;
+    const adjacency = p?.adjacency;
+
+    btn.className = "chain-stage-segment";
+    btn.classList.add(key.startsWith("v") ? "v" : "h");
+    if (isPerimeter) btn.classList.add("perimeter");
+    else btn.classList.add("interior");
+
+    if (passability === "passable") btn.classList.add("passable");
+    else if (passability === "not-passable-hint") btn.classList.add("wall");
+    else if (passability === "any") btn.classList.add("any");
+    else btn.classList.add("unstated");
+
+    if (selectedSegment === key) btn.classList.add("selected");
+
+    btn.replaceChildren();
+    if (isPerimeter && adjacency) {
+      const dot = document.createElement("span");
+      dot.className = "chain-adj-dot";
+      if (adjacency === "any") {
+        dot.classList.add("any");
+      } else {
+        dot.style.background = classColor(adjacency);
+      }
+      dot.title = `Adjacency: ${adjacency}`;
+      btn.append(dot);
+    }
+
+    btn.title = segmentTooltip(key, tile);
+  };
+
+  for (const axis of ["v", "h"] as const) {
+    for (let l = 0; l <= CHAIN_TILE_SIZE; l++) {
+      for (let offset = 0; offset < CHAIN_TILE_SIZE; offset++) {
+        const key = `${axis}:${l},${offset}`;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.stageSegment = key;
+        button.dataset.axis = axis;
+        button.dataset.line = String(l);
+        button.dataset.offset = String(offset);
+
+        const linePct = (l / CHAIN_TILE_SIZE) * 100;
+        const offsetPct = (offset / CHAIN_TILE_SIZE) * 100;
+        const lengthPct = (1 / CHAIN_TILE_SIZE) * 100;
+
+        if (axis === "v") {
+          button.style.left = `${linePct}%`;
+          button.style.top = `${offsetPct}%`;
+          button.style.height = `${lengthPct}%`;
+        } else {
+          button.style.left = `${offsetPct}%`;
+          button.style.top = `${linePct}%`;
+          button.style.width = `${lengthPct}%`;
+        }
+
+        updateStageSegmentButton(button, key);
+
+        button.addEventListener("pointerenter", () => {
+          hoverReadout.textContent = button.title;
+        });
+        button.addEventListener("pointerleave", () => {
+          hoverReadout.textContent = "";
+        });
+
+        button.addEventListener("pointerdown", (e) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          e.stopPropagation();
+          closePopup();
+          selectedSegment = key;
+          if (selectedPaintTool === "segment") {
+            applySegmentBrush(tile, key, selectedSegmentBrush);
+            changed();
+          } else {
+            render();
+          }
+        });
+
+        button.addEventListener("contextmenu", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          closePopup();
+          selectedSegment = key;
+          openSegmentPopup(e.clientX, e.clientY, key, tile);
+        });
+
+        stageSegmentButtons.set(key, button);
+        segmentOverlay.append(button);
+      }
+    }
+  }
+
+  grid.append(segmentOverlay);
+
   let isDragging = false;
   let lastPaintedCoord: { x: number; y: number } | null = null;
+  let lastPointerPos: { x: number; y: number } | null = null;
   let rectStart: { x: number; y: number } | null = null;
 
   const updateGhost = (x0: number, y0: number, x1: number, y1: number) => {
@@ -912,6 +1502,26 @@ function renderTiles(root: HTMLElement): void {
   grid.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
     closePopup();
+
+    if (selectedPaintTool === "segment") {
+      e.preventDefault();
+      isDragging = true;
+      lastPointerPos = { x: e.clientX, y: e.clientY };
+      const segKey = getNearestSegment(grid, e.clientX, e.clientY);
+      if (segKey) {
+        selectedSegment = segKey;
+        applySegmentBrush(tile, segKey, selectedSegmentBrush);
+        const btn = stageSegmentButtons.get(segKey);
+        if (btn) updateStageSegmentButton(btn, segKey);
+      }
+      try {
+        grid.setPointerCapture(e.pointerId);
+      } catch {
+        /* pointer capture optional */
+      }
+      return;
+    }
+
     const coords = getCellCoords(e);
     if (!coords) return;
     const { x, y } = coords;
@@ -959,6 +1569,33 @@ function renderTiles(root: HTMLElement): void {
   });
 
   grid.addEventListener("pointermove", (e) => {
+    if (selectedPaintTool === "segment") {
+      const segKey = getNearestSegment(grid, e.clientX, e.clientY);
+      if (segKey) {
+        hoverReadout.textContent = segmentTooltip(segKey, tile);
+      } else {
+        hoverReadout.textContent = "";
+      }
+      if (!isDragging || !lastPointerPos) return;
+      const dx = e.clientX - lastPointerPos.x;
+      const dy = e.clientY - lastPointerPos.y;
+      const dist = Math.hypot(dx, dy);
+      const steps = Math.max(1, Math.ceil(dist / 8));
+      for (let s = 1; s <= steps; s++) {
+        const px = lastPointerPos.x + (dx * s) / steps;
+        const py = lastPointerPos.y + (dy * s) / steps;
+        const hitKey = getNearestSegment(grid, px, py);
+        if (hitKey) {
+          applySegmentBrush(tile, hitKey, selectedSegmentBrush);
+          selectedSegment = hitKey;
+          const btn = stageSegmentButtons.get(hitKey);
+          if (btn) updateStageSegmentButton(btn, hitKey);
+        }
+      }
+      lastPointerPos = { x: e.clientX, y: e.clientY };
+      return;
+    }
+
     const coords = getCellCoords(e);
     if (coords) {
       const { x, y } = coords;
@@ -994,6 +1631,19 @@ function renderTiles(root: HTMLElement): void {
 
   const onPointerEnd = (e: PointerEvent) => {
     if (!isDragging) return;
+
+    if (selectedPaintTool === "segment") {
+      isDragging = false;
+      lastPointerPos = null;
+      try {
+        grid.releasePointerCapture(e.pointerId);
+      } catch {
+        /* release optional */
+      }
+      changed();
+      return;
+    }
+
     if (selectedPaintTool === "rect" && rectStart) {
       const coords = getCellCoords(e) ?? rectStart;
       const minX = Math.min(rectStart.x, coords.x);
@@ -1134,16 +1784,16 @@ function renderTiles(root: HTMLElement): void {
     hoverReadout,
     heading("Segment prescriptions"),
     paragraph(
-      "Select any interior or perimeter segment. Adjacency is available only on the perimeter. Written any remains distinct from an unstated field.",
+      "Select any interior or perimeter segment on stage or in the list. Adjacency is available only on the perimeter. Written any remains distinct from an unstated field.",
     ),
   );
   const segments = document.createElement("div");
   segments.id = "chainSegments";
   segments.className = "chain-segments";
   for (const axis of ["v", "h"] as const)
-    for (let line = 0; line <= CHAIN_TILE_SIZE; line++)
+    for (let l = 0; l <= CHAIN_TILE_SIZE; l++)
       for (let offset = 0; offset < CHAIN_TILE_SIZE; offset++) {
-        const key = `${axis}:${line},${offset}`;
+        const key = `${axis}:${l},${offset}`;
         const button = document.createElement("button");
         button.type = "button";
         button.dataset.segment = key;
@@ -1158,26 +1808,27 @@ function renderTiles(root: HTMLElement): void {
       }
   root.append(segments);
   const prescription = tile.segments?.[selectedSegment] ?? {};
-  const line = Number(selectedSegment.split(":")[1]!.split(",")[0]);
-  const perimeter = line === 0 || line === CHAIN_TILE_SIZE;
+  const { isPerimeter: perimeter } = segmentDescriptor(selectedSegment);
   const controls = document.createElement("div");
   controls.className = "chain-segment-controls";
   const set = (dimension: keyof SegmentPrescription, value: string) => {
-    tile.segments ??= {};
-    const next = (tile.segments[selectedSegment] ??= {});
-    if (value) {
-      if (dimension === "adjacency") next.adjacency = value;
-      else next.passability = value as SegmentPrescription["passability"];
-    } else delete next[dimension];
-    if (!Object.keys(next).length) delete tile.segments[selectedSegment];
-    if (!Object.keys(tile.segments).length) delete tile.segments;
+    setSegmentProp(
+      tile,
+      selectedSegment,
+      dimension as "adjacency" | "passability",
+      value || undefined,
+    );
     changed();
   };
-  controls.append(
-    paragraph(
-      `Selected ${selectedSegment} · ${perimeter ? "perimeter" : "interior"}`,
-    ),
-  );
+  const titleP = paragraph(`Selected ${selectedSegment}`);
+  const badge = document.createElement("span");
+  badge.className = `chain-badge ${perimeter ? "perimeter" : "interior"}`;
+  badge.textContent = perimeter
+    ? "Perimeter (adjacency & passability)"
+    : "Interior (passability only)";
+  titleP.append(badge);
+  controls.append(titleP);
+
   if (perimeter)
     controls.append(
       choice(
@@ -1198,7 +1849,7 @@ function renderTiles(root: HTMLElement): void {
       { "not-passable-hint": "Prefer occupied (hint)" },
     ),
     paragraph(
-      "Passable guarantees a crossing. Any is a written don't-care statement; two facing any statements guarantee a crossing. Prefer occupied is optional architectural guidance, never an impassability requirement. A facing passable statement still guarantees a crossing; any facing this hint does not. Unspecified stays distinct from any.",
+      "Passable guarantees a crossing. Any is a written don't-care statement; two facing any statements guarantee a crossing. Prefer occupied is optional architectural guidance, never an impassability requirement. A facing passable statement still guarantees a crossing; any facing this hint does not. Unspecified stays distinct from any. Open span / aperture geometry is deferred to micro/region strategies in chain v3 (docs 20.2, 52).",
     ),
   );
   root.append(controls);
@@ -1285,7 +1936,7 @@ function renderPreview(tile: ChainTileDesign): void {
       ...rightAngles,
       ...sameClass.map(
         (key) =>
-          `${key}: passable prescription has the same region class on both sides; it forms no portal.`,
+          `${key}: passable prescription has the same region class on both sides; it forms no external portal, but the internal guarantee still requires a clear margin.`,
       ),
       ...perimeter.map(
         (key) =>
@@ -1306,28 +1957,181 @@ function renderPreview(tile: ChainTileDesign): void {
     box.append(paragraph(`Preview unavailable: ${String(error)}`));
   }
 }
+let tileSetFilter = "";
+
 function renderTileSets(root: HTMLElement): void {
   const entry = current() as ChainLibrary["tileSets"][number];
   if (!entry) return;
-  root.append(
-    heading("Members"),
-    paragraph("Select one or more tile designs."),
+
+  const container = document.createElement("div");
+  container.className = "chain-sets-container";
+
+  container.append(
+    paragraph(
+      "Click tiles in the Available list to add them, or click tiles in the Members list to remove them.",
+    ),
   );
-  for (const tile of library.tiles) {
-    const label = document.createElement("label");
-    label.className = "chain-check";
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.checked = entry.members.includes(tile.id);
-    input.onchange = () => {
-      entry.members = input.checked
-        ? [...entry.members, tile.id]
-        : entry.members.filter((id) => id !== tile.id);
-      changed();
-    };
-    label.append(input, tile.id);
-    root.append(label);
+
+  // Members section
+  const membersSection = document.createElement("div");
+  membersSection.className = "chain-sets-section";
+
+  const membersHead = document.createElement("div");
+  membersHead.className = "chain-sets-section-head";
+  const membersTitle = document.createElement("h4");
+  membersTitle.id = "setMembersTitle";
+  membersTitle.textContent = `Members (${entry.members.length})`;
+  membersHead.append(membersTitle);
+
+  const membersGallery = document.createElement("div");
+  membersGallery.id = "setMembersGallery";
+  membersGallery.className = "chain-gallery-grid";
+  membersGallery.setAttribute("aria-label", "Tiles in this set");
+
+  membersSection.append(membersHead, membersGallery);
+
+  // Available section
+  const availableSection = document.createElement("div");
+  availableSection.className = "chain-sets-section";
+
+  const availableHead = document.createElement("div");
+  availableHead.className = "chain-sets-section-head";
+  const availableTitle = document.createElement("h4");
+  availableTitle.textContent = "Available Tiles";
+
+  const filterWrap = document.createElement("label");
+  filterWrap.className = "grow";
+  const filterInput = document.createElement("input");
+  filterInput.id = "setAvailableFilter";
+  filterInput.placeholder = "filter by ID, class, or label...";
+  filterInput.spellcheck = false;
+  filterInput.value = tileSetFilter;
+  filterWrap.append(filterInput);
+
+  availableHead.append(availableTitle, filterWrap);
+
+  const availableGallery = document.createElement("div");
+  availableGallery.id = "setAvailableGallery";
+  availableGallery.className = "chain-gallery-grid";
+  availableGallery.setAttribute("aria-label", "Available tiles");
+
+  availableSection.append(availableHead, availableGallery);
+
+  container.append(membersSection, availableSection);
+  root.append(container);
+
+  function populateMembers(): void {
+    membersTitle.textContent = `Members (${entry.members.length})`;
+    if (!entry.members.length) {
+      const empty = document.createElement("p");
+      empty.className = "gallery-empty";
+      empty.textContent =
+        "No tiles in this set. Chain validation requires at least one member.";
+      membersGallery.replaceChildren(empty);
+      return;
+    }
+
+    const cards = entry.members.map((memberId) => {
+      const tile = library.tiles.find((t) => t.id === memberId);
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "tile-card member-card";
+      card.dataset.tile = memberId;
+      card.title = `Click to remove "${memberId}" from set`;
+
+      const name = document.createElement("span");
+      name.className = "tile-card-name";
+      name.textContent = memberId;
+
+      if (tile) {
+        card.append(tileThumbnail(tile), name);
+      } else {
+        const placeholder = document.createElement("figure");
+        placeholder.className = "orphan-thumbnail";
+        card.append(placeholder, name);
+      }
+
+      card.onclick = () => {
+        if (entry.members.length <= 1) {
+          status(`Tile set "${entry.id}" must have at least one member to remain valid.`);
+          return;
+        }
+        entry.members = entry.members.filter((id) => id !== memberId);
+        changed();
+      };
+      return card;
+    });
+
+    membersGallery.replaceChildren(...cards);
   }
+
+  function populateAvailable(): void {
+    const inSet = new Set(entry.members);
+    const available = library.tiles.filter((t) => !inSet.has(t.id));
+    const filter = tileSetFilter.trim().toLowerCase();
+
+    if (!available.length) {
+      const empty = document.createElement("p");
+      empty.className = "gallery-empty";
+      empty.textContent = "All library tiles are members of this set.";
+      availableGallery.replaceChildren(empty);
+      return;
+    }
+
+    const matching = available.filter((t) => {
+      if (!filter) return true;
+      if (t.id.toLowerCase().includes(filter)) return true;
+      if (t.defaultCellClass.toLowerCase().includes(filter)) return true;
+      if (t.labels?.some((l) => l.toLowerCase().includes(filter))) return true;
+      if (
+        Object.values(t.legend ?? {}).some((c) =>
+          c.toLowerCase().includes(filter),
+        )
+      )
+        return true;
+      return false;
+    });
+
+    if (!matching.length) {
+      const empty = document.createElement("p");
+      empty.className = "gallery-empty";
+      empty.textContent = `No available tiles match "${tileSetFilter}".`;
+      availableGallery.replaceChildren(empty);
+      return;
+    }
+
+    const cards = matching.map((t) => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "tile-card available-card";
+      card.dataset.tile = t.id;
+      card.title = `Click to add "${t.id}" to set`;
+
+      const name = document.createElement("span");
+      name.className = "tile-card-name";
+      name.textContent = t.id;
+
+      card.append(tileThumbnail(t), name);
+
+      card.onclick = () => {
+        if (!entry.members.includes(t.id)) {
+          entry.members.push(t.id);
+          changed();
+        }
+      };
+      return card;
+    });
+
+    availableGallery.replaceChildren(...cards);
+  }
+
+  filterInput.oninput = () => {
+    tileSetFilter = filterInput.value;
+    populateAvailable();
+  };
+
+  populateMembers();
+  populateAvailable();
 }
 function slotEditor(
   slot: ChainSetPieceSlot,
@@ -1385,9 +2189,18 @@ function slotEditor(
   row.append(remove);
   return row;
 }
+let activeLayoutBrush = "";
+let setPiecePaletteFilter = "";
+
 function renderSetPieces(root: HTMLElement): void {
   const piece = current() as ChainLibrary["setPieces"][number];
   if (!piece) return;
+
+  if (!library.tileSets.some((s) => s.id === activeLayoutBrush)) {
+    activeLayoutBrush = library.tileSets[0]?.id ?? "";
+  }
+
+  // 1. Primary region class
   root.append(
     choice(
       "Primary region class (editor hint)",
@@ -1397,24 +2210,262 @@ function renderSetPieces(root: HTMLElement): void {
       (v) => {
         if (v) piece.primaryRegionClass = v;
         else delete piece.primaryRegionClass;
+        changed();
       },
     ),
-    field(
-      "Eligible tiers (blank = all)",
-      "chainPieceTiers",
-      (piece.eligibleTiers ?? []).join(", "),
-      (v) => {
-        if (v.trim()) piece.eligibleTiers = numberList(v);
-        else delete piece.eligibleTiers;
-      },
-    ),
-    heading("Slots"),
   );
+
+  // 2. Eligible tiers checkboxes (tiers 1-5)
+  const tiersBox = document.createElement("div");
+  tiersBox.className = "chain-tiers-container";
+  const tiersLabel = document.createElement("span");
+  tiersLabel.className = "chain-tiers-label";
+  tiersLabel.textContent =
+    "Eligible tiers (blank / all unchecked = all tiers eligible)";
+  tiersBox.append(tiersLabel);
+
+  const tiersGroup = document.createElement("div");
+  tiersGroup.id = "chainEligibleTiers";
+  tiersGroup.className = "chain-tiers-boxes";
+
+  const currentTiers = new Set(piece.eligibleTiers ?? []);
+  for (let tier = 1; tier <= 5; tier++) {
+    const label = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.dataset.tier = String(tier);
+    cb.checked = currentTiers.has(tier);
+    cb.onchange = () => {
+      const nextTiers = new Set(piece.eligibleTiers ?? []);
+      if (cb.checked) nextTiers.add(tier);
+      else nextTiers.delete(tier);
+      if (nextTiers.size === 0) delete piece.eligibleTiers;
+      else piece.eligibleTiers = Array.from(nextTiers).sort((a, b) => a - b);
+      changed();
+    };
+    label.append(cb, ` Tier ${tier}`);
+    tiersGroup.append(label);
+  }
+  tiersBox.append(tiersGroup);
+  root.append(tiersBox);
+
+  // 3. 2D Layout Blueprint Workspace
+  const workspace = document.createElement("div");
+  workspace.className = "chain-layout-workspace";
+
+  // Palette on the left
+  const palette = document.createElement("div");
+  palette.className = "chain-layout-palette";
+
+  const paletteHead = document.createElement("h4");
+  paletteHead.textContent = "Tile Sets Palette";
+
+  const filterInput = document.createElement("input");
+  filterInput.id = "setPiecePaletteFilter";
+  filterInput.placeholder = "Filter tile sets...";
+  filterInput.spellcheck = false;
+  filterInput.value = setPiecePaletteFilter;
+
+  const paletteList = document.createElement("div");
+  paletteList.id = "setPiecePaletteList";
+  paletteList.className = "chain-layout-palette-list";
+
+  palette.append(paletteHead, filterInput, paletteList);
+
+  function populatePalette(): void {
+    if (!library.tileSets.some((s) => s.id === activeLayoutBrush)) {
+      activeLayoutBrush = library.tileSets[0]?.id ?? "";
+    }
+    const filter = setPiecePaletteFilter.trim().toLowerCase();
+    const tileSetIds = library.tileSets.map((s) => s.id);
+    const matching = tileSetIds.filter(
+      (id) => !filter || id.toLowerCase().includes(filter),
+    );
+
+    if (!matching.length) {
+      const empty = document.createElement("p");
+      empty.className = "gallery-empty";
+      empty.textContent = `No tile sets match "${setPiecePaletteFilter}".`;
+      paletteList.replaceChildren(empty);
+      return;
+    }
+
+    const items = matching.map((id, index) => {
+      const item = document.createElement("div");
+      item.className = "chain-layout-palette-item";
+      item.dataset.tileset = id;
+      if (id === activeLayoutBrush) item.classList.add("active");
+      if (index < 9) {
+        item.title = `Select tile set "${id}" (Hotkey: ${index + 1})`;
+      }
+
+      const swatch = document.createElement("span");
+      swatch.className = "palette-swatch";
+      swatch.style.background = classColor(id);
+
+      const name = document.createElement("span");
+      name.textContent = id;
+
+      item.append(swatch, name);
+      item.onclick = () => {
+        activeLayoutBrush = id;
+        populatePalette();
+      };
+      return item;
+    });
+
+    paletteList.replaceChildren(...items);
+  }
+
+  filterInput.oninput = () => {
+    setPiecePaletteFilter = filterInput.value;
+    populatePalette();
+  };
+  populatePalette();
+
+  // Grid container on the right
+  const gridContainer = document.createElement("div");
+  gridContainer.className = "chain-layout-grid-container";
+
+  const gridHint = paragraph(
+    "Blueprint grid: click an empty cell to place selected tile set. Click a filled slot to cycle rotation (0° → 90° → 180° → 270°). Right-click to remove slot.",
+  );
+
+  const grid = document.createElement("div");
+  grid.id = "setPieceGrid";
+  grid.className = "chain-layout-grid";
+
+  gridContainer.append(gridHint, grid);
+  workspace.append(palette, gridContainer);
+  root.append(workspace);
+
+  function populateGrid(): void {
+    grid.replaceChildren();
+
+    let minDx = -5,
+      maxDx = 5,
+      minDy = -5,
+      maxDy = 5;
+    for (const s of piece.tiles) {
+      minDx = Math.min(minDx, s.dx - 1);
+      maxDx = Math.max(maxDx, s.dx + 1);
+      minDy = Math.min(minDy, s.dy - 1);
+      maxDy = Math.max(maxDy, s.dy + 1);
+    }
+
+    const cols = maxDx - minDx + 1;
+    const rows = maxDy - minDy + 1;
+    grid.style.gridTemplateColumns = `repeat(${cols}, 46px)`;
+    grid.style.gridTemplateRows = `repeat(${rows}, 46px)`;
+
+    for (let dy = minDy; dy <= maxDy; dy++) {
+      for (let dx = minDx; dx <= maxDx; dx++) {
+        const cell = document.createElement("div");
+        cell.className = "chain-layout-cell";
+        cell.dataset.dx = String(dx);
+        cell.dataset.dy = String(dy);
+
+        if (dx === 0 && dy === 0) cell.classList.add("origin");
+
+        const matchingSlots = piece.tiles.filter((t) => t.dx === dx && t.dy === dy);
+        const slot = matchingSlots[0];
+        if (slot) {
+          cell.classList.add("filled");
+          if (matchingSlots.length > 1) {
+            cell.classList.add("duplicate");
+          }
+          cell.dataset.tileset = slot.tileSetId;
+          cell.style.borderLeftColor = classColor(slot.tileSetId);
+
+          const nameSpan = document.createElement("span");
+          nameSpan.className = "slot-set-id";
+          nameSpan.textContent = slot.tileSetId;
+
+          const rotSpan = document.createElement("span");
+          rotSpan.className = "slot-rot";
+          rotSpan.textContent = `${slot.orientation ?? 0}°${matchingSlots.length > 1 ? " (!)" : ""}`;
+
+          cell.append(nameSpan, rotSpan);
+          cell.title = matchingSlots.length > 1
+            ? `Warning: ${matchingSlots.length} duplicate slots at (${dx}, ${dy})!\nLeft-click to rotate · Right-click to remove`
+            : `Slot (${dx}, ${dy}) · Set: ${slot.tileSetId} · Rot: ${slot.orientation ?? 0}°\nLeft-click to rotate · Right-click to remove`;
+        } else {
+          cell.title = `(${dx}, ${dy})\nLeft-click to place "${activeLayoutBrush}"`;
+        }
+
+        cell.tabIndex = 0;
+        cell.setAttribute("role", "button");
+        cell.setAttribute(
+          "aria-label",
+          slot
+            ? `Slot at (${dx}, ${dy}), tile set ${slot.tileSetId}, orientation ${slot.orientation ?? 0} degrees`
+            : `Empty cell at (${dx}, ${dy})`,
+        );
+
+        const activateSlot = () => {
+          if (slot) {
+            const currentRot = slot.orientation ?? 0;
+            const nextRot = (currentRot + 90) % 360;
+            if (nextRot === 0) delete slot.orientation;
+            else slot.orientation = nextRot;
+            changed();
+          } else if (activeLayoutBrush) {
+            piece.tiles.push({ dx, dy, tileSetId: activeLayoutBrush });
+            changed();
+          }
+        };
+
+        const eraseSlot = () => {
+          if (slot) {
+            piece.tiles = piece.tiles.filter(
+              (t) => !(t.dx === dx && t.dy === dy),
+            );
+            changed();
+          }
+        };
+
+        cell.onmousedown = (e) => {
+          if (e.button === 0) {
+            activateSlot();
+          } else if (e.button === 2) {
+            eraseSlot();
+          }
+        };
+
+        cell.onkeydown = (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            activateSlot();
+          } else if (e.key === "Delete" || e.key === "Backspace") {
+            if (slot) {
+              e.preventDefault();
+              eraseSlot();
+            }
+          }
+        };
+
+        cell.oncontextmenu = (e) => e.preventDefault();
+        grid.append(cell);
+      }
+    }
+  }
+
+  populateGrid();
+
+  // 4. Slots details forms list (preserves slotEditor and #chainSlotSet0 / #chainSlotOrientation0)
+  const slotDetails = document.createElement("details");
+  slotDetails.open = true;
+  const summary = document.createElement("summary");
+  summary.textContent = `Slot List & Exact Coordinate Editor (${piece.tiles.length})`;
+  slotDetails.append(summary);
+
   piece.tiles.forEach((slot, index) =>
-    root.append(slotEditor(slot, index, piece.tiles)),
+    slotDetails.append(slotEditor(slot, index, piece.tiles)),
   );
+
   const add = document.createElement("button");
   add.type = "button";
+  add.id = "chainAddSlot";
   add.textContent = "Add slot";
   add.onclick = () => {
     piece.tiles.push({
@@ -1424,7 +2475,8 @@ function renderSetPieces(root: HTMLElement): void {
     });
     changed();
   };
-  root.append(add);
+  slotDetails.append(add);
+  root.append(slotDetails);
 }
 function renderSetPieceClasses(root: HTMLElement): void {
   const group = current() as ChainLibrary["setPieceClasses"][number];
@@ -1488,6 +2540,7 @@ function render(): void {
   if (!names.includes(selectedId)) selectedId = names[0] ?? "";
   select("chainItem").replaceChildren(...names.map((id) => option(id)));
   select("chainItem").value = selectedId;
+  renderGallery();
   const editor = $("chainEditor");
   editor.replaceChildren();
   $("chainPreview").replaceChildren();
@@ -1549,8 +2602,70 @@ function add(): void {
   selectedId = id;
   changed();
 }
+function uniqueId(base: string, exists: (id: string) => boolean): string {
+  let n = 1;
+  while (exists(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
+}
+
+function clone(): void {
+  if (!selectedId) return;
+  if (section() === "classes") {
+    const found = library.cellClasses[selectedId];
+    if (!found) return;
+    const copy = structuredClone(found);
+    const newId = uniqueId(selectedId, (id) => id in library.cellClasses);
+    copy.regionType = newId;
+    library.cellClasses[newId] = copy;
+    selectedId = newId;
+    changed();
+    return;
+  }
+  const items = list();
+  const found = items.find((t) => t.id === selectedId);
+  if (!found) return;
+  const copy = structuredClone(found);
+  copy.id = uniqueId(copy.id, (id) => items.some((t) => t.id === id));
+  items.push(copy);
+  selectedId = copy.id;
+  changed();
+}
 function remove(): void {
   if (!selectedId) return;
+  if (section() === "tiles") {
+    const setsUsing = library.tileSets
+      .filter((s) => s.members.includes(selectedId))
+      .map((s) => s.id);
+    const msg = setsUsing.length
+      ? `Delete tile design "${selectedId}"? It is referenced in tile set(s): ${setsUsing.join(", ")}.`
+      : `Delete tile design "${selectedId}"?`;
+    if (!confirm(msg)) return;
+  }
+  if (section() === "tileSets") {
+    const piecesUsing = library.setPieces
+      .filter((p) => p.tiles.some((t) => t.tileSetId === selectedId))
+      .map((p) => p.id);
+    const msg = piecesUsing.length
+      ? `Delete tile set "${selectedId}"? It is referenced in set piece(s): ${piecesUsing.join(", ")}. Referencing slot(s) will be removed automatically.`
+      : `Delete tile set "${selectedId}"?`;
+    if (!confirm(msg)) return;
+    for (const piece of library.setPieces)
+      piece.tiles = piece.tiles.filter((t) => t.tileSetId !== selectedId);
+    if (activeLayoutBrush === selectedId) {
+      activeLayoutBrush = library.tileSets.find((s) => s.id !== selectedId)?.id ?? "";
+    }
+  }
+  if (section() === "setPieces") {
+    const classesUsing = library.setPieceClasses
+      .filter((c) => c.setPieces.includes(selectedId))
+      .map((c) => c.id);
+    const msg = classesUsing.length
+      ? `Delete set piece "${selectedId}"? It is referenced in set piece class(es): ${classesUsing.join(", ")}. References will be removed automatically.`
+      : `Delete set piece "${selectedId}"?`;
+    if (!confirm(msg)) return;
+    for (const group of library.setPieceClasses)
+      group.setPieces = group.setPieces.filter((id) => id !== selectedId);
+  }
   if (section() === "classes") delete library.cellClasses[selectedId];
   else {
     const items = list();
@@ -1593,7 +2708,10 @@ select("chainItem").onchange = () => {
   render();
 };
 $("chainAdd").onclick = add;
+$("chainClone").onclick = clone;
+$("cloneTemplate").onclick = clone;
 $("chainDelete").onclick = remove;
+$("tileFilter").addEventListener("input", () => renderGallery());
 $("chainExport").onclick = download;
 $("chainApply").onclick = () => {
   try {

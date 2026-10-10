@@ -9,7 +9,9 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
-import { CHAIN_LIBRARY, checkMap, generate } from "../core.ts";
+import { CHAIN_LIBRARY, chainParams, checkMap, generate } from "../core.ts";
+import { libraryFingerprint } from "../../macro/src/coding.ts";
+import { planBlock } from "../../micro/strategies/block.ts";
 import { chainMapToBson, chainMapToJson } from "../../macro/src/chain/saving.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
 import { GAME_ENGINES } from "../engines.ts";
@@ -94,7 +96,8 @@ try {
         else if (part.part === "gate") expectedParts.doors++;
     }
   assert.deepEqual(first.parts, expectedParts);
-  assert.ok(Object.values(expectedParts).every((n) => n > 0), "the fixed seed has every part");
+  assert.ok(Object.entries(expectedParts).filter(([kind]) => kind !== "pipes").every(([, n]) => n > 0),
+    "the fixed seed covers the other built parts; pipes have an explicit rendering fixture below");
   assert.equal(first.report.valid, referenceCheck.valid);
   assert.deepEqual(first.report.coreElements, referenceCheck.coreElements);
   assert.match(await page.locator("#reportBody").innerText(), /No defects found/);
@@ -103,12 +106,12 @@ try {
   // The layers are in chain order, with today's defaults on.
   const FIELDS = ["declared", "resolved", "regions", "proof", "zones", "bonus", "regionType", "lootChance"];
   assert.deepEqual(first.layers.map((layer: any) => layer.id),
-    ["layout", "declared", "resolved", "regions", "portals", "proof", "zones", "bonus", "regionType", "lootChance", "briefs", "lots", "allocation", "spans", "openings", "graph", "walls", "ruins", "cover", "windows", "pipes", "doors", "roofs", "loot", "sites", "routes", "defects", "defectSites"]);
+    ["layout", "declared", "resolved", "regions", "portals", "proof", "zones", "bonus", "regionType", "lootChance", "reducedFill", "internalGuaranteed", "briefs", "lots", "allocation", "spans", "openings", "graph", "walls", "ruins", "cover", "windows", "pipes", "doors", "roofs", "loot", "sites", "routes", "defects", "defectSites"]);
   assert.deepEqual(first.layers.filter((layer: any) => layer.on).map((layer: any) => layer.id),
     ["regions", "portals", "lots", "allocation", "openings", "walls", "ruins", "cover", "windows", "pipes", "doors", "sites", "routes", "defects", "defectSites"]);
   const ALL = first.layers.map((layer: any) => layer.id) as string[];
   assert.deepEqual(first.layers.filter((layer: any) => layer.pass === "marks").map((layer: any) => layer.id),
-    ["layout", "portals", "briefs", "lots", "spans", "openings", "graph", "loot", "sites", "routes", "defectSites"], "each layer draws in one pass, the rest with the areas");
+    ["layout", "portals", "internalGuaranteed", "briefs", "lots", "spans", "openings", "graph", "loot", "sites", "routes", "defectSites"], "each layer draws in one pass, the rest with the areas");
   const layer = (id: string) => page.locator(`#layer-${id}`);
   const opacity = (id: string, percent: number) => page.locator(`#layer-${id}-opacity`).fill(String(percent));
   // Every cell field alone, as the old exclusive field select showed it.
@@ -208,7 +211,7 @@ try {
   assert.match(inspected, /Region .*\nClass/);
   assert.match(inspected, /Proof component \d+/);
   assert.match(inspected, /\nTile \S+ at \d+°/);
-  assert.match(inspected, /Brief: type \S+, \d+ portals.*\nAssigned core elements: .+\n(Parameters: .*\n)?Loot chance \d+%/);
+  assert.match(inspected, /Brief: type \S+, \d+ portals.*\nAssigned core elements: .+\nReduced fill: .*\nInternal guaranteed runs: \d+\n(Parameters: .*\n)?Loot chance \d+%/);
   assert.match((await page.locator("#inspectorLinks button").allInnerTexts())[0]!, /^Edit tile design \S+$/);
   assert.match(inspected, /Parts: \d+ walls, \d+ ruins, \d+ cover, \d+ windows, \d+ pipes, \d+ doors, \d+ roofs\nElements: /);
 
@@ -242,6 +245,25 @@ try {
     assert.equal(loaded.diagnosis, null, "a diagnosis belongs to the map it ran on");
     await generateIn("lab-small");
   }
+  // Pipe rendering should not depend on a seeded factory retaining a large unbroken fill.
+  // The margin policy can split that fill. Arrange a contained pipe in a stored result,
+  // and require both the exact part count and visible output from its own layer.
+  const pipeFixture = structuredClone(reference);
+  const pipeOwner = pipeFixture.results.find(region => region.brief.fillCells?.length)!;
+  const pipeCell = pipeOwner.brief.fillCells![0]!;
+  pipeOwner.elements.push({ label: "browser-pipe", x: pipeCell.x * pipeFixture.cellSize, y: pipeCell.y * pipeFixture.cellSize,
+    template: { w: pipeFixture.cellSize, h: pipeFixture.cellSize, parts: [{ part: "obstacle", kind: "pipe",
+      shape: { kind: "rect", x: 4, y: 16, w: 32, h: 8 } }] } });
+  pipeOwner.manifest.obstacles = (pipeOwner.manifest.obstacles ?? 0) + 1;
+  await page.locator("#load").setInputFiles({ name: "pipe-rendering.json", mimeType: "application/json",
+    buffer: Buffer.from(chainMapToJson(pipeFixture)) });
+  const pipeShown = await shown("last-exit-001");
+  assert.deepEqual(pipeShown.parts, { ...expectedParts, pipes: expectedParts.pipes + 1 });
+  assert.ok(Object.values(pipeShown.parts as Record<string, number>).every(n => n > 0), "all built part kinds have browser coverage");
+  for (const id of ALL) await layer(id).setChecked(id === "pipes");
+  assert.ok(await alpha() > 0, "the pipe layer paints the fixture collider");
+  for (const id of ALL) await layer(id).setChecked(first.layers.find((l: any) => l.id === id).on);
+  await generateIn("lab-small");
   // A save from a retired version is refused by name, and the shown map stays.
   const retired = JSON.parse(await readFile(json, "utf8"));
   retired.wire = 5;
@@ -331,9 +353,8 @@ try {
   await page.locator("#chainSection").selectOption("tileSets");
   await page.locator("#chainAdd").click();
   await page
-    .locator("#chainEditor label.chain-check", { hasText: "new-tile" })
-    .locator("input")
-    .check();
+    .locator('#setAvailableGallery .tile-card[data-tile="new-tile"]')
+    .click();
   await page.locator("#chainSection").selectOption("setPieces");
   await page.locator("#chainAdd").click();
   await page.locator("#chainPrimaryClass").selectOption("checkpoint");
@@ -567,15 +588,926 @@ try {
   assert.equal(stageTile.cells, undefined, "clearing painting removes cells");
   assert.equal(stageTile.legend, undefined, "clearing painting removes legend");
 
+  // 1. In Paint mode, clicks right at the cell edge hit the cell, not the segment strip
+  await page.locator('.chain-tool-group button[data-tool="paint"]').click();
+  await page.locator('.chain-swatch-button[data-class="arrival"]').click();
+  const cell00 = page.locator('#chainGrid [data-cell="0,0"]');
+  const box00 = (await cell00.boundingBox())!;
+  // Click 2px from right edge of cell (0,0) where vertical segment strip sits
+  await page.mouse.click(box00.x + box00.width - 2, box00.y + box00.height / 2);
+  stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  const arrivalMarkAtEdge = Object.entries(stageTile.legend ?? {}).find(
+    ([, v]) => v === "arrival",
+  )?.[0];
+  assert.ok(arrivalMarkAtEdge, "cell painted arrival even when clicking right at the cell edge");
+  assert.equal(stageTile.cells[0][0], arrivalMarkAtEdge, "cell 0,0 painted arrival at edge");
+  // Clean up painting so we test segments cleanly
+  await page
+    .locator(".chain-tool-group button", { hasText: "Clear painting" })
+    .click();
+
+  // Canvas hotkeys, quick brush selection, search shortcut, and live hover readout (#317)
+  // 1. Tool hotkeys: R (rect), F (fill), S (segments), D (paint)
+  await page.keyboard.press("r");
+  assert.ok(
+    await page.locator('.chain-tool-group button[data-tool="rect"]').evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "pressing 'r' activates Rect tool",
+  );
+  await page.keyboard.press("f");
+  assert.ok(
+    await page.locator('.chain-tool-group button[data-tool="fill"]').evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "pressing 'f' activates Fill tool",
+  );
+  await page.keyboard.press("s");
+  assert.ok(
+    await page.locator('.chain-tool-group button[data-tool="segment"]').evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "pressing 's' activates Segments tool",
+  );
+  await page.keyboard.press("d");
+  assert.ok(
+    await page.locator('.chain-tool-group button[data-tool="paint"]').evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "pressing 'd' activates Paint tool",
+  );
+
+  // 2. Numeric brush switching (1..9)
+  const swatchesCount = await page.locator(".chain-swatches .chain-swatch-button").count();
+  assert.ok(swatchesCount >= 2, "palette has at least 2 cell classes");
+  const secondClass = await page.locator(".chain-swatches .chain-swatch-button").nth(1).getAttribute("data-class");
+  await page.keyboard.press("2");
+  assert.equal(
+    await page.locator(".chain-swatches .chain-swatch-button.active").getAttribute("data-class"),
+    secondClass,
+    "pressing '2' selects second declared cell class",
+  );
+  const firstClass = await page.locator(".chain-swatches .chain-swatch-button").nth(0).getAttribute("data-class");
+  await page.keyboard.press("1");
+  assert.equal(
+    await page.locator(".chain-swatches .chain-swatch-button.active").getAttribute("data-class"),
+    firstClass,
+    "pressing '1' selects first declared cell class",
+  );
+
+  // 3. Search focus shortcut (/)
+  await page.keyboard.press("/");
+  assert.ok(
+    await page.locator("#tileFilter").evaluate((el: HTMLElement) => el === document.activeElement),
+    "pressing '/' focuses tile filter input",
+  );
+  await page.locator("#tileFilter").blur();
+
+  // 4. Live stage hover readout (#chainHoverReadout)
+  await cell00.hover();
+  const hoverText = await page.locator("#chainHoverReadout").innerText();
+  assert.match(hoverText, /Cell 0,0/, "stage hover readout displays cell coordinates on hover");
+
+  // Interactive segment editor tests (#304): on-stage segments, indicators, brush, drag, popup, patterns
+  // 2. Select segment from list outside segment mode to inspect existing attributes
+  await page.locator('#chainSegments button[data-segment="v:0,1"]').click();
+  const stageSegV01 = page.locator(
+    '.chain-stage-segment[data-stage-segment="v:0,1"]',
+  );
+  assert.ok(
+    await stageSegV01.evaluate((el: HTMLElement) => el.classList.contains("selected")),
+    "selected segment in list updates on-stage selected class",
+  );
+  assert.equal(
+    await page.locator("#chainSegmentPassability").inputValue(),
+    "not-passable-hint",
+    "inspector reflects selected stage segment passability",
+  );
+  assert.ok(
+    await stageSegV01.evaluate((el: HTMLElement) => el.classList.contains("wall")),
+    "not-passable-hint segment has wall class",
+  );
+  assert.match(
+    await page.locator(".chain-segment-controls .chain-badge").innerText(),
+    /Perimeter/i,
+    "perimeter badge is shown",
+  );
+  assert.equal(
+    await page.locator("#chainSegmentAperture").count(),
+    0,
+    "aperture input is omitted; aperture geometry deferred in chain v3",
+  );
+  assert.match(
+    await page.locator(".chain-segment-controls").innerText(),
+    /A facing passable statement still guarantees a crossing/,
+    "inspector includes complete crossing contract guidance",
+  );
+
+  // 3. Change passability via inspector and check on-stage indicator changes
+  await page.locator("#chainSegmentPassability").selectOption("passable");
+  assert.ok(
+    await stageSegV01.evaluate((el: HTMLElement) => el.classList.contains("passable")),
+    "passable segment has passable class",
+  );
+  await page.locator("#chainSegmentPassability").selectOption("any");
+  assert.ok(
+    await stageSegV01.evaluate((el: HTMLElement) => el.classList.contains("any")),
+    "any segment has any class",
+  );
+
+  // 4. Adjacency dot indicator on perimeter segment
+  await page.locator("#chainSegmentAdjacency").selectOption("arrival");
+  assert.ok(
+    await stageSegV01.locator(".chain-adj-dot").isVisible(),
+    "perimeter segment with adjacency displays adjacency indicator dot",
+  );
+
+  // 5. Switch to segment mode and stamp on-stage segment with brush
+  await page.locator('.chain-tool-group button[data-tool="segment"]').click();
+  await page
+    .locator('.chain-seg-brushes button[data-seg-brush="passable"]')
+    .click();
+  const stageSegH13 = page.locator(
+    '.chain-stage-segment[data-stage-segment="h:1,3"]',
+  );
+  await stageSegH13.click();
+  assert.ok(
+    await stageSegH13.evaluate((el: HTMLElement) => el.classList.contains("passable")),
+    "clicking with passable segment brush sets passable state",
+  );
+  stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  assert.equal(
+    stageTile.segments?.["h:1,3"]?.passability,
+    "passable",
+    "tile snapshot records passable prescription on h:1,3",
+  );
+
+  // 6. Segment drag-brushing across boundary
+  await page
+    .locator('.chain-seg-brushes button[data-seg-brush="not-passable-hint"]')
+    .click();
+  const gridEl = page.locator("#chainGrid");
+  const gBox = (await gridEl.boundingBox())!;
+  const cellWidth = gBox.width / 6;
+  const cellHeight = gBox.height / 6;
+  const dragY = gBox.y + cellHeight * 2.5;
+  await page.mouse.move(gBox.x + cellWidth * 2.8, dragY);
+  await page.mouse.down();
+  await page.mouse.move(gBox.x + cellWidth * 3.2, dragY);
+  await page.mouse.up();
+  stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  assert.equal(
+    stageTile.segments?.["v:3,2"]?.passability,
+    "not-passable-hint",
+    "drag-brushing across boundary stamps segment v:3,2 with wall hint",
+  );
+
+  // 7. Right-click contextmenu popup
+  const stageSegH22 = page.locator(
+    '.chain-stage-segment[data-stage-segment="h:2,2"]',
+  );
+  await stageSegH22.click({ button: "right" });
+  const popup = page.locator(".chain-popup");
+  assert.ok(await popup.isVisible(), "right-click opens contextmenu popup");
+  await popup.locator("button", { hasText: "Passable" }).click();
+  stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  assert.equal(
+    stageTile.segments?.["h:2,2"]?.passability,
+    "passable",
+    "contextmenu popup selection updates segment passability",
+  );
+
+  // 8. Segment patterns: Perim Walls and Clear Segments
+  await page
+    .locator(".chain-tool-group button", { hasText: "Perim Walls" })
+    .click();
+  stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  assert.equal(
+    stageTile.segments?.["v:0,0"]?.passability,
+    "not-passable-hint",
+    "Perim Walls sets v:0,0 to wall hint",
+  );
+  assert.equal(
+    stageTile.segments?.["h:6,5"]?.passability,
+    "not-passable-hint",
+    "Perim Walls sets h:6,5 to wall hint",
+  );
+
+  await page
+    .locator(".chain-tool-group button", { hasText: "Clear Segments" })
+    .click();
+  stageTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().library.tiles[0],
+  );
+  assert.equal(
+    stageTile.segments,
+    undefined,
+    "Clear Segments removes all segment prescriptions (both passability and perimeter adjacency)",
+  );
+
   // Restore chainDraft for subsequent class-deletion assertions
   await page.locator("#chainImport").setInputFiles([]);
   await page.locator("#chainImport").setInputFiles(chainPath);
   await page.waitForFunction(() => (window as any).chainLab.snapshot().valid);
+  // Visual tile gallery, thumbnails, and template cloning tests (#305)
+  // 1. Gallery cards rendering and active state
+  assert.ok(
+    await page.locator("#chainTileGallerySection").isVisible(),
+    "tile gallery section is visible when section is tiles",
+  );
+  const initialTileCount = await page.locator("#tileGallery .tile-card").count();
+  assert.ok(initialTileCount > 0, "tile gallery renders cards for library tiles");
+  const initialSelectedTile = await page.evaluate(
+    () => (window as any).chainLab.snapshot().selectedId,
+  );
+  assert.ok(
+    await page
+      .locator(`#tileGallery .tile-card[data-tile="${initialSelectedTile}"]`)
+      .evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "active tile card corresponds to selectedId",
+  );
+  assert.equal(
+    await page.locator(`#tileGallery .tile-card[data-tile="${initialSelectedTile}"] figure i`).count(),
+    36,
+    "tile thumbnail renders 36 cells",
+  );
+
+  // 2. Select different tile from gallery
+  const secondTileCard = page.locator("#tileGallery .tile-card").nth(1);
+  const secondTileId = (await secondTileCard.getAttribute("data-tile"))!;
+  await secondTileCard.click();
+  assert.equal(
+    await page.locator("#chainItem").inputValue(),
+    secondTileId,
+    "clicking gallery card updates dropdown selection",
+  );
+  assert.ok(
+    await secondTileCard.evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "clicked gallery card receives active class",
+  );
+
+  // 3. Search and filter gallery cards
+  await page.locator("#tileFilter").fill(initialSelectedTile);
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").count(),
+    1,
+    "filtering by tile ID narrows gallery to matching card",
+  );
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").getAttribute("data-tile"),
+    initialSelectedTile,
+    "filtered card has expected ID",
+  );
+
+  await page.locator("#tileFilter").fill("nonexistent-tile-query-xyz");
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").count(),
+    0,
+    "non-matching filter hides all cards",
+  );
+  assert.match(
+    await page.locator("#tileGallery .gallery-empty").innerText(),
+    /No tile matches/,
+    "empty notice is shown for non-matching query",
+  );
+
+  await page.locator("#tileFilter").fill("");
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").count(),
+    initialTileCount,
+    "clearing filter restores all tile cards",
+  );
+
+  // 4. Duplicate / Clone tile while filter is active
+  await page.locator("#tileFilter").fill(secondTileId);
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").count(),
+    1,
+    "filtering narrows to single target card",
+  );
+  await page.locator("#cloneTemplate").click();
+  const clonedTileId = await page.evaluate(
+    () => (window as any).chainLab.snapshot().selectedId,
+  );
+  assert.match(
+    clonedTileId,
+    new RegExp(`^${secondTileId}-\\d+$`),
+    "cloned tile ID uses suffixed base",
+  );
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").count(),
+    2,
+    "cloned tile matches filter prefix and remains visible alongside parent",
+  );
+  assert.ok(
+    await page
+      .locator(`#tileGallery .tile-card[data-tile="${clonedTileId}"]`)
+      .evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "cloned tile card is active in gallery",
+  );
+
+  await page.locator("#tileFilter").fill("");
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").count(),
+    initialTileCount + 1,
+    "clearing filter restores all tile cards including clone",
+  );
+
+  // 5. Delete cloned tile with confirmation
+  page.once("dialog", (dialog: any) => dialog.accept());
+  await page.locator("#chainDelete").click();
+  assert.equal(
+    await page.locator("#tileGallery .tile-card").count(),
+    initialTileCount,
+    "deleting tile removes card from gallery",
+  );
+
+  // 6. Rename tile referenced in tile sets with confirmation warning and automatic reference update
+  const tileToRename = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const referencedTile = snap.library.tiles.find((t: any) =>
+      snap.library.tileSets.some((s: any) => s.members.includes(t.id)),
+    );
+    return referencedTile?.id;
+  });
+  assert.ok(tileToRename, "found a tile referenced in tileSets");
+  await page.locator("#chainItem").selectOption(tileToRename);
+  const setsReferencingBefore = await page.evaluate(
+    (tileId: string) => {
+      const snap = (window as any).chainLab.snapshot();
+      return snap.library.tileSets
+        .filter((s: any) => s.members.includes(tileId))
+        .map((s: any) => s.id);
+    },
+    tileToRename,
+  );
+  assert.ok(setsReferencingBefore.length > 0, "tile is referenced by at least one tile set");
+
+  // First dismiss (cancel) rename confirmation dialog
+  page.once("dialog", (dialog: any) => dialog.dismiss());
+  await page.locator("#chainId").fill(`${tileToRename}-aborted`);
+  await page.locator("#chainId").blur();
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().selectedId),
+    tileToRename,
+    "canceling dialog preserves original tile ID",
+  );
+  assert.equal(
+    await page.locator("#chainId").inputValue(),
+    tileToRename,
+    "input reverts to original tile ID after cancel",
+  );
+
+  // Now accept rename confirmation dialog
+  const renamedTileId = `${tileToRename}-renamed`;
+  let renameDialogMsg = "";
+  page.once("dialog", (dialog: any) => {
+    renameDialogMsg = dialog.message();
+    dialog.accept();
+  });
+  await page.locator("#chainId").fill(renamedTileId);
+  await page.locator("#chainId").blur();
+
+  assert.equal(
+    renameDialogMsg,
+    `Rename tile design "${tileToRename}" to "${renamedTileId}"? It is referenced in tile set(s): ${setsReferencingBefore.join(", ")}. References will be updated automatically.`,
+    "rename confirmation dialog message matches expected warning",
+  );
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().selectedId),
+    renamedTileId,
+    "selected ID is updated to renamed tile ID",
+  );
+  assert.equal(
+    await page.locator("#chainItem").inputValue(),
+    renamedTileId,
+    "selector dropdown reflects renamed tile",
+  );
+  assert.ok(
+    await page.locator(`#tileGallery .tile-card[data-tile="${renamedTileId}"]`).isVisible(),
+    "tile gallery reflects renamed tile card",
+  );
+  const setsReferencingAfter = await page.evaluate(
+    (nextId: string) => {
+      const snap = (window as any).chainLab.snapshot();
+      return snap.library.tileSets
+        .filter((s: any) => s.members.includes(nextId))
+        .map((s: any) => s.id);
+    },
+    renamedTileId,
+  );
+  assert.deepEqual(
+    setsReferencingAfter,
+    setsReferencingBefore,
+    "tile set members list was updated automatically with the renamed tile ID",
+  );
+
+  // Visual Tile Sets manager with membership and available tile galleries (#306)
+  await page.locator("#chainSection").selectOption("tileSets");
+  assert.equal(
+    await page.locator("#chainTileGallerySection").isVisible(),
+    false,
+    "tile design gallery is hidden in tileSets section",
+  );
+  assert.ok(
+    await page.locator("#setMembersGallery").isVisible(),
+    "members gallery is visible in tileSets section",
+  );
+  assert.ok(
+    await page.locator("#setAvailableGallery").isVisible(),
+    "available gallery is visible in tileSets section",
+  );
+
+  const selectedSetId = await page.evaluate(
+    () => (window as any).chainLab.snapshot().selectedId,
+  );
+  const activeSetInfo = await page.evaluate((id: string) => {
+    const snap = (window as any).chainLab.snapshot();
+    const set = snap.library.tileSets.find((s: any) => s.id === id);
+    return {
+      membersCount: set.members.length,
+      availableCount: snap.library.tiles.length - set.members.length,
+      firstMember: set.members[0],
+    };
+  }, selectedSetId);
+
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    activeSetInfo.membersCount,
+    "members gallery renders cards for set members",
+  );
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    activeSetInfo.availableCount,
+    "available gallery renders cards for non-member tiles",
+  );
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card figure i").count(),
+    activeSetInfo.membersCount * 36,
+    "member cards render 6x6 thumbnail grids",
+  );
+
+  // Add an available tile to the set
+  const firstAvailableCard = page.locator("#setAvailableGallery .tile-card").first();
+  const tileToAdd = (await firstAvailableCard.getAttribute("data-tile"))!;
+  await firstAvailableCard.click();
+
+  assert.equal(
+    await page.evaluate(
+      (args: { setId: string; tileId: string }) => {
+        const snap = (window as any).chainLab.snapshot();
+        const set = snap.library.tileSets.find((s: any) => s.id === args.setId);
+        return set.members.includes(args.tileId);
+      },
+      { setId: selectedSetId, tileId: tileToAdd },
+    ),
+    true,
+    "clicking available tile adds it to set members",
+  );
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    activeSetInfo.membersCount + 1,
+    "members gallery count increments",
+  );
+  assert.ok(
+    await page.locator(`#setMembersGallery .tile-card[data-tile="${tileToAdd}"]`).isVisible(),
+    "added tile is visible in members gallery",
+  );
+  assert.equal(
+    await page.locator(`#setAvailableGallery .tile-card[data-tile="${tileToAdd}"]`).count(),
+    0,
+    "added tile is removed from available gallery",
+  );
+
+  // Add all remaining available tiles to test "All library tiles are members" state robustly
+  while ((await page.locator("#setAvailableGallery .tile-card").count()) > 0) {
+    await page.locator("#setAvailableGallery .tile-card").first().click();
+  }
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    0,
+    "no tiles left in available gallery after adding all",
+  );
+  assert.match(
+    await page.locator("#setAvailableGallery .gallery-empty").innerText(),
+    /All library tiles are members of this set/,
+    "empty notice is shown when all tiles are members",
+  );
+
+  // Remove the newly added tile from the set
+  await page.locator(`#setMembersGallery .tile-card[data-tile="${tileToAdd}"]`).click();
+  assert.equal(
+    await page.evaluate(
+      (args: { setId: string; tileId: string }) => {
+        const snap = (window as any).chainLab.snapshot();
+        const set = snap.library.tileSets.find((s: any) => s.id === args.setId);
+        return set.members.includes(args.tileId);
+      },
+      { setId: selectedSetId, tileId: tileToAdd },
+    ),
+    false,
+    "clicking member tile removes it from set members",
+  );
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    activeSetInfo.membersCount,
+    "members gallery count decrements",
+  );
+  assert.ok(
+    await page.locator(`#setAvailableGallery .tile-card[data-tile="${tileToAdd}"]`).isVisible(),
+    "removed tile returns to available gallery",
+  );
+
+  // Filter available gallery
+  await page.locator("#setAvailableFilter").fill("nonexistent-tile-xyz");
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    0,
+    "non-matching query yields no cards",
+  );
+  assert.match(
+    await page.locator("#setAvailableGallery .gallery-empty").innerText(),
+    /No available tiles match/,
+    "empty notice is shown for matching query with no results",
+  );
+  await page.locator("#setAvailableFilter").fill(tileToAdd);
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    1,
+    "filter narrows to matching available card",
+  );
+  await page.locator("#setAvailableFilter").fill("");
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    activeSetInfo.availableCount,
+    "clearing filter restores available cards",
+  );
+
+  // Non-empty set validation enforcement
+  await page.locator("#chainAdd").click();
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    1,
+    "newly added tile set has exactly 1 initial member",
+  );
+  // Try to remove the only member
+  await page.locator("#setMembersGallery .tile-card").first().click();
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    1,
+    "attempting to remove the only member is prevented",
+  );
+  assert.match(
+    await page.locator("#chainStatus").innerText(),
+    /must have at least one member to remain valid/,
+    "status bar warns that tile set must have at least one member",
+  );
+
+  // Add a second member and then removal is allowed
+  const secondTileToAdd = (await page.locator("#setAvailableGallery .tile-card").first().getAttribute("data-tile"))!;
+  await page.locator("#setAvailableGallery .tile-card").first().click();
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    2,
+    "set now has 2 members",
+  );
+  await page.locator(`#setMembersGallery .tile-card[data-tile="${secondTileToAdd}"]`).click();
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    1,
+    "removing member when multiple exist succeeds",
+  );
+
+  // Clean up: delete the test set
+  page.once("dialog", (dialog: any) => dialog.accept());
+  await page.locator("#chainDelete").click();
+
+  // Test renaming a tile set that is referenced in set pieces
+  await page.locator("#chainItem").selectOption("new-set");
+  const piecesReferencing = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    return snap.library.setPieces
+      .filter((p: any) => p.tiles.some((slot: any) => slot.tileSetId === "new-set"))
+      .map((p: any) => p.id);
+  });
+  assert.ok(piecesReferencing.length > 0, "new-set is referenced in setPieces");
+
+  // Dismiss rename
+  page.once("dialog", (dialog: any) => dialog.dismiss());
+  await page.locator("#chainId").fill("new-set-aborted");
+  await page.locator("#chainId").blur();
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().selectedId),
+    "new-set",
+    "canceling rename keeps original set ID",
+  );
+
+  // Accept rename
+  let renameDialogText = "";
+  page.once("dialog", (dialog: any) => {
+    renameDialogText = dialog.message();
+    dialog.accept();
+  });
+  await page.locator("#chainId").fill("new-set-renamed");
+  await page.locator("#chainId").blur();
+  assert.equal(
+    renameDialogText,
+    `Rename tile set "new-set" to "new-set-renamed"? It is referenced in set piece(s): ${piecesReferencing.join(", ")}. References will be updated automatically.`,
+    "rename dialog warns about referenced set pieces",
+  );
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().selectedId),
+    "new-set-renamed",
+    "selectedId updated to new-set-renamed",
+  );
+  const updatedSlotSet = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === "new-piece");
+    return piece?.tiles[0]?.tileSetId;
+  });
+  assert.equal(
+    updatedSlotSet,
+    "new-set-renamed",
+    "set piece slot tileSetId was updated automatically",
+  );
+
+  // Test delete cascade strips referencing slots from set pieces
+  let deleteCascadeDialogText = "";
+  page.once("dialog", (dialog: any) => {
+    deleteCascadeDialogText = dialog.message();
+    dialog.accept();
+  });
+  await page.locator("#chainDelete").click();
+  assert.match(
+    deleteCascadeDialogText,
+    /Referencing slot\(s\) will be removed automatically/,
+    "delete dialog warns about stripping slots from set pieces",
+  );
+  const slotsAfterDelete = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === "new-piece");
+    return piece?.tiles.filter((slot: any) => slot.tileSetId === "new-set-renamed").length ?? 0;
+  });
+  assert.equal(
+    slotsAfterDelete,
+    0,
+    "referencing slots were stripped from set piece on tile set deletion",
+  );
+
+  // A set piece left with empty tiles is rejected by validateLibrary
+  const draftValidityAfterStrip = await page.evaluate(() => {
+    return (window as any).chainLab.snapshot().valid;
+  });
+  assert.equal(
+    draftValidityAfterStrip,
+    false,
+    "a set piece left with 0 tile slots is rejected by validateLibrary",
+  );
+  assert.match(
+    await page.locator("#chainStatus").innerText(),
+    /set piece new-piece: missing tile slots/,
+    "status bar flags missing tile slots on the stripped set piece",
+  );
+
+  // Add a second tile set to test set piece palette filtering and numeric hotkeys
+  await page.locator("#chainAdd").click();
+
+  // Visual Set Pieces layout grid editor (#315)
+  await page.locator("#chainSection").selectOption("setPieces");
+  await page.locator("#chainItem").selectOption("new-piece");
+  assert.ok(
+    await page.locator("#setPieceGrid").isVisible(),
+    "set piece blueprint grid is visible in setPieces section",
+  );
+  assert.ok(
+    await page.locator("#setPiecePaletteList").isVisible(),
+    "tile sets palette is visible in setPieces section",
+  );
+  assert.ok(
+    await page.locator("#chainEligibleTiers").isVisible(),
+    "eligible tiers checkboxes are visible",
+  );
+
+  // 1. Palette filtering and selection
+  const initialPaletteCount = await page.locator("#setPiecePaletteList .chain-layout-palette-item").count();
+  assert.ok(initialPaletteCount >= 2, "palette lists at least 2 tile sets");
+  const firstPaletteItem = page.locator("#setPiecePaletteList .chain-layout-palette-item").first();
+  const firstPaletteSet = (await firstPaletteItem.getAttribute("data-tileset"))!;
+  await firstPaletteItem.click();
+  assert.ok(
+    await firstPaletteItem.evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "clicked palette item becomes active brush",
+  );
+
+  const secondPaletteItem = page.locator("#setPiecePaletteList .chain-layout-palette-item").nth(1);
+  const secondPaletteSet = (await secondPaletteItem.getAttribute("data-tileset"))!;
+
+  await page.locator("#setPiecePaletteFilter").fill(secondPaletteSet);
+  assert.equal(
+    await page.locator("#setPiecePaletteList .chain-layout-palette-item").count(),
+    1,
+    "filtering palette narrows to matching tile set",
+  );
+  await page.locator("#setPiecePaletteFilter").blur();
+  await page.keyboard.press("1");
+  const activePaletteSet = await page
+    .locator("#setPiecePaletteList .chain-layout-palette-item.active")
+    .getAttribute("data-tileset");
+  assert.equal(
+    activePaletteSet,
+    secondPaletteSet,
+    "pressing '1' with filter applied selects the first filtered tile set",
+  );
+
+  await page.keyboard.press("/");
+  assert.ok(
+    await page.locator("#setPiecePaletteFilter").evaluate((el: HTMLElement) => el === document.activeElement),
+    "pressing '/' focuses set piece palette filter",
+  );
+
+  await page.locator("#setPiecePaletteFilter").fill("");
+  assert.equal(
+    await page.locator("#setPiecePaletteList .chain-layout-palette-item").count(),
+    initialPaletteCount,
+    "clearing palette filter restores all items",
+  );
+  await firstPaletteItem.click();
+
+  // 2. Eligible tiers checkboxes (tiers 1-5)
+  const tier1Box = page.locator('#chainEligibleTiers input[data-tier="1"]');
+  const tier3Box = page.locator('#chainEligibleTiers input[data-tier="3"]');
+  await tier1Box.check();
+  await tier3Box.check();
+  let currentPieceTiers = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === snap.selectedId);
+    return piece?.eligibleTiers;
+  });
+  assert.deepEqual(currentPieceTiers, [1, 3], "checking tier boxes updates piece.eligibleTiers");
+
+  await tier1Box.uncheck();
+  await tier3Box.uncheck();
+  currentPieceTiers = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === snap.selectedId);
+    return piece?.eligibleTiers;
+  });
+  assert.equal(currentPieceTiers, undefined, "unchecking all tiers leaves eligibleTiers undefined");
+
+  // 3. Grid cell painting, rotation, and erasing
+  const targetCell = page.locator('#setPieceGrid [data-dx="2"][data-dy="2"]');
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    false,
+    "target cell starts empty",
+  );
+
+  // Left click empty cell: place slot
+  await targetCell.click();
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    true,
+    "cell is filled after clicking with active brush",
+  );
+  assert.equal(
+    await targetCell.locator(".slot-set-id").innerText(),
+    firstPaletteSet,
+    "cell displays placed tile set ID",
+  );
+  assert.equal(
+    await targetCell.locator(".slot-rot").innerText(),
+    "0°",
+    "cell displays initial 0° orientation",
+  );
+
+  // Left click filled cell: cycle rotation to 90°
+  await targetCell.click();
+  assert.equal(
+    await targetCell.locator(".slot-rot").innerText(),
+    "90°",
+    "clicking filled cell rotates slot to 90°",
+  );
+  let slotRotInSnap = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === snap.selectedId);
+    return piece?.tiles.find((s: any) => s.dx === 2 && s.dy === 2)?.orientation;
+  });
+  assert.equal(slotRotInSnap, 90, "snapshot reflects 90° orientation");
+
+  // Keyboard navigation on grid cell: Enter rotates to 180°, Space rotates to 270°, Delete erases
+  await targetCell.press("Enter");
+  assert.equal(
+    await targetCell.locator(".slot-rot").innerText(),
+    "180°",
+    "pressing Enter on filled cell rotates to 180°",
+  );
+  await targetCell.press("Space");
+  assert.equal(
+    await targetCell.locator(".slot-rot").innerText(),
+    "270°",
+    "pressing Space on filled cell rotates to 270°",
+  );
+  await targetCell.press("Delete");
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    false,
+    "pressing Delete on filled cell erases slot",
+  );
+  const slotAfterErase = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === "new-piece");
+    return piece?.tiles.find((s: any) => s.dx === 2 && s.dy === 2);
+  });
+  assert.equal(slotAfterErase, undefined, "slot is removed from draft");
+
+  // Keyboard placement on empty cell: Enter places active brush
+  await targetCell.press("Enter");
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    true,
+    "pressing Enter on empty cell places active brush",
+  );
+
+  // Dynamic grid expansion beyond ±5: placing on boundary cell (5, 5) expands grid margin
+  const boundaryCell = page.locator('#setPieceGrid [data-dx="5"][data-dy="5"]');
+  await boundaryCell.click();
+  assert.equal(
+    await boundaryCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    true,
+    "placed slot at boundary coordinate (5, 5)",
+  );
+  assert.ok(
+    await page.locator('#setPieceGrid [data-dx="6"][data-dy="6"]').isVisible(),
+    "grid bounds dynamically expand beyond ±5 with 1-cell border margin",
+  );
+
+  // Right-click to erase slots
+  await boundaryCell.click({ button: "right" });
+  await targetCell.click({ button: "right" });
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    false,
+    "right-clicking cell erases placed slot",
+  );
+
+  // Enforce validateLibrary check on set piece left with 0 tile slots (#315)
+  const pieceSlotsCount = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === "new-piece");
+    return piece?.tiles.length;
+  });
+  assert.equal(pieceSlotsCount, 0, "new-piece has 0 tile slots after erasing");
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().valid),
+    false,
+    "set piece left with 0 tile slots is rejected by validateLibrary",
+  );
+  assert.match(
+    await page.locator("#chainStatus").innerText(),
+    /set piece new-piece: missing tile slots/,
+    "status bar flags missing tile slots on set piece after right-click erase",
+  );
+
+  // 4. Set piece delete confirmation warning when referenced by set piece classes
+  const classesUsingPiece = await page.evaluate((id: string) => {
+    const snap = (window as any).chainLab.snapshot();
+    return snap.library.setPieceClasses
+      .filter((c: any) => c.setPieces.includes(id))
+      .map((c: any) => c.id);
+  }, "new-piece");
+  assert.ok(classesUsingPiece.length > 0, "new-piece is referenced by set piece classes");
+
+  let deletePieceMsg = "";
+  page.once("dialog", (dialog: any) => {
+    deletePieceMsg = dialog.message();
+    dialog.accept();
+  });
+  await page.locator("#chainDelete").click();
+  assert.match(
+    deletePieceMsg,
+    new RegExp(`Delete set piece "new-piece"\\? It is referenced in set piece class\\(es\\): ${classesUsingPiece.join(", ")}\\. References will be removed automatically\\.`),
+    "delete set piece dialog warns about referencing set piece classes",
+  );
+  const classesStillReferencing = await page.evaluate((id: string) => {
+    const snap = (window as any).chainLab.snapshot();
+    return snap.library.setPieceClasses
+      .filter((c: any) => c.setPieces.includes("new-piece"))
+      .map((c: any) => c.id);
+  });
+  assert.equal(classesStillReferencing.length, 0, "references in setPieceClasses were cleaned up");
+
   await page.screenshot({
     path: `${OUT}/chain-authoring.png`,
     fullPage: true,
   });
   await page.locator("#chainSection").selectOption("classes");
+  assert.equal(
+    await page.locator("#chainTileGallerySection").isVisible(),
+    false,
+    "tile gallery is hidden outside tiles section",
+  );
   await page.locator("#chainItem").selectOption("open");
   await page.locator("#chainDelete").click();
   await page.locator("#chainSection").selectOption("tiles");
@@ -664,18 +1596,27 @@ try {
   await drillPage.evaluate(() => (window as any).mapLab.select(0, 0));
   assert.equal((await drillSnapshot()).drill, null);
 
-  await drillPage.locator("#seed").fill("last-exit-009");
-  await drillPage.locator("#generate").click();
-  await drillShown("last-exit-009");
-  const blockBrief = mapViews(generate("last-exit-009")).briefs.find((brief) => brief.type === "block")!;
+  // Author an uninterrupted block for building traces. The bundled block's internal
+  // guarantees deliberately split its fill; it need not retain the former warehouse.
+  const blockLibrary = structuredClone(CHAIN_LIBRARY);
+  blockLibrary.tiles.push({ id: "block-browser-fixture", defaultCellClass: "block", orientations: [0], weight: 0, segments: {} });
+  const blockFixture: typeof reference = { library: blockLibrary, cellSize: 40, build: GAME_ENGINES.version, results: [],
+    layout: { seed: "block-browser-1", params: chainParams({ mode: "playground", zoneWidth: 4, zoneHeight: 4 }),
+      library: libraryFingerprint(blockLibrary), setPieces: [], slots: Array.from({ length: 36 }, (_, i) =>
+        ({ col: 7 + i % 6, row: 7 + Math.floor(i / 6), design: "block-browser-fixture", orientation: 0 })) } };
+  blockFixture.results = mapViews(blockFixture).briefs.map(brief => GAME_ENGINES.build(brief));
+  await drillPage.locator("#load").setInputFiles({ name: "block-traces.json", mimeType: "application/json",
+    buffer: Buffer.from(chainMapToJson(blockFixture)) });
+  await drillShown("block-browser-1");
+  const blockBrief = mapViews(blockFixture).briefs[0]!;
   const blockDrill = await drillInto(blockBrief);
   assert.equal(blockDrill.drill.difference, null, "the block rebuilds equal to the stored result");
-  assert.deepEqual(blockDrill.drill.lots.map((lot: { type: string }) => lot.type), ["cover", "ruins", "depot"]);
-  assert.deepEqual(blockDrill.drill.buildings, ["lot-3/depot-warehouse-1"],
-    "the depot lot's warehouse is traced, labelled as the lot's element");
-  assert.equal(blockDrill.drill.drawn.lots.lots, 3);
+  assert.deepEqual(blockDrill.drill.lots.map((lot: { type: string }) => lot.type), planBlock(blockBrief).lots.map(lot => lot.type));
+  assert.deepEqual(blockDrill.drill.buildings, ["lot-2/depot-warehouse-1", "lot-4/compound"],
+    "the depot and compound are traced, labelled as their lot's elements");
+  assert.equal(blockDrill.drill.drawn.lots.lots, 5);
   assert.ok(blockDrill.drill.drawn.graph.nodes > 0);
-  assert.match(blockDrill.inspector, /3 lots/);
+  assert.match(blockDrill.inspector, /5 lots/);
   await drillPage.screenshot({ path: `${OUT}/drill-block.png` });
   await drillPage.close();
 
@@ -733,6 +1674,12 @@ try {
   assert.deepEqual([opened.section, opened.selectedId], ["tiles", design]);
   assert.deepEqual(opened.library, CHAIN_LIBRARY, "the draft is now the map's library");
   assert.equal(asked.length, 1, "replacing the draft was asked first");
+  assert.ok(
+    await linkPage
+      .locator(`#tileGallery .tile-card[data-tile="${design}"]`)
+      .evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "tile gallery reflects active card when opened from world view shortcut",
+  );
   await linkPage.close();
 
   // Play in the game (53): the default recipe isn't a room's, and the lab says why. With a

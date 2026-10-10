@@ -1,8 +1,7 @@
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import { rect } from '../../../shared/shape.ts';
-import { buildOpen } from './open.ts';
-import { cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
-import { createRegionMask, shapesOverlap } from '../geometry.ts';
+import { unfilledRegion, cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
+import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 
@@ -17,12 +16,13 @@ const DEFAULT_SQUEEZE_SHARE = 0.8;
 export function buildRubble(brief: RegionBrief): BuiltRegion {
   const density = fraction(brief, 'Rubble', 'density', DEFAULT_DENSITY);
   const squeezeShare = fraction(brief, 'Rubble', 'squeezeShare', DEFAULT_SQUEEZE_SHARE);
-  const mask = createRegionMask(brief);
-  const spanX = mask.bounds.w / brief.cellSize, spanY = mask.bounds.h / brief.cellSize;
+  const mask = createFillMask(brief);
+  const ownedMask = createRegionMask(brief);
+  const spanX = ownedMask.bounds.w / brief.cellSize, spanY = ownedMask.bounds.h / brief.cellSize;
   // The catalogue's shape need is proposed; open is the last resort (17 M24).
-  if (brief.cells.length < 12 || Math.min(spanX, spanY) < 3) return buildOpen(brief);
+  if (!mask.cells.length || brief.cells.length < 12 || Math.min(spanX, spanY) < 3) return unfilledRegion(brief, 3);
 
-  const protectedShapes = protectedRoutes(brief, mask, 'Rubble');
+  const protectedShapes = protectedRoutes(brief, 'Rubble');
   const elements: RegionElement[] = [];
   const debris: Shape[] = [];
   let squeezeDebris = 0;
@@ -42,7 +42,7 @@ export function buildRubble(brief: RegionBrief): BuiltRegion {
     if (squeeze) squeezeDebris++;
   }
 
-  const loot = cellLoot(brief, mask, debris, 3);
+  const loot = cellLoot(brief, createRegionMask(brief), debris, 3);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0,
       loot: loot.length, coreElements: 0, squeezeDebris } };

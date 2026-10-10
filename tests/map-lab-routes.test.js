@@ -12,7 +12,6 @@ import { canOccupy } from '../shared/movement.ts';
 const built = (seed, params) => mapViews(generate(seed, params), GAME_ENGINES.compose).built;
 const rounded = (n) => (n === null ? null : Math.round(n * 1000) / 1000);
 
-// #214 deliberately changes this map's fill; these expectations pin its new route geometry.
 test('route lengths on a small playground are pinned', () => {
   const map = built('routes-5', { mode: 'playground', zoneWidth: 3, zoneHeight: 2 }), size = map.cellSize;
   const measure = measureRoutes(map, { x: 2.5 * size, y: 30 * size }, { x: 87.5 * size, y: 30 * size });
@@ -21,8 +20,8 @@ test('route lengths on a small playground are pinned', () => {
     hunter: [rounded(measure.hunter.length), rounded(measure.hunter.walked)],
     squeezes: measure.squeezes.map((run) => run.length),
   }, {
-    contestant: [4230.941, 4175.309],
-    hunter: [4230.941, 4175.309],
+    contestant: [4131.53, 4128.95],
+    hunter: [4131.53, 4128.95],
     squeezes: [],
   });
   assert.equal(rounded(measure.ratio), 1);

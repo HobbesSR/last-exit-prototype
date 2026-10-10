@@ -57,7 +57,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 
 | File | Holds |
 | --- | --- |
-| [20-micro-generation.md](20-micro-generation.md) | Guide to micro contracts, geometry, builders, decomposition and tools; load the relevant 20.x part. Accepted automatic passable margins are in 20.6, pending implementation. |
+| [20-micro-generation.md](20-micro-generation.md) | Guide to micro contracts, geometry, builders, decomposition, tools and passable margins (20.6); load the relevant 20.x part |
 | [21-stack.md](21-stack.md) | Chosen components, why, and the constraints a replacement must satisfy |
 | [22-ownership.md](22-ownership.md) | Guide to ownership by subsystem and the boundaries tests enforce; load the relevant 22.x part |
 | [23-types.md](23-types.md) | The TypeScript arrangement in `shared/`, branding policy, erasure |

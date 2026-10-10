@@ -22,7 +22,7 @@ import type {
  * The version of macro's stages, placement through briefs. A change to what any of them gives
  * a saved Layout bumps it, and a save from another version is refused by name (`saving.ts`).
  */
-export const MACRO_VERSION = 2;
+export const MACRO_VERSION = 3;
 
 /** Places a layout, then builds every brief with the game's strategies. */
 export function generateChainMap<Element>(

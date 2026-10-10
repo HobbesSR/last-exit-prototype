@@ -105,6 +105,12 @@ Reachability remains the chain of per-layer promises in 51, rather than a new
 whole-map enforcement stage. See [19](19-decomposition-design.md),
 [20](20-micro-generation.md) and the recorded choices in [17](17-open-questions.md).
 
+The passable-margin contract (20.6, #313) is implemented. Macro version 3
+derives reduced fill, known-clear access context and internal guaranteed runs;
+`types-22` builders and child handoffs use those constraints. #214 resumes
+against this policy after #313 merges, with its saved authorship work requiring
+new shape/tuning validation and a final content checkpoint.
+
 The sequencing below remains the other gameplay backlog, not an instruction to
 leave the current micro-generation effort for reward tiers.
 
@@ -166,13 +172,6 @@ need the batch policies in [17](17-open-questions.md). Do not build a service re
 before those ownership and failure contracts have concrete consumers.
 
 ## Separate follow-ups
-
-Map fill work: [#313](http://localhost:3000/corey/astra_test/issues/313) implements
-the accepted passable-margin contract in [20.6](20.6-passable-margins.md), then
-[#214](http://localhost:3000/corey/astra_test/issues/214) finalises centered feature
-tiles, fill weights and the final content checkpoint. The #214 candidate branch
-is a recoverable checkpoint, not the implementation of #313. Its Forgejo handoff
-records the branch, commits, actual validation and pickup order.
 
 Replay ownership/lifetime and BSON encoding, configurable spectator access/delay,
 and lobby/game-server deployment remain separate follow-ups. The lobby, matchmaking
