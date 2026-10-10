@@ -1071,42 +1071,42 @@
         {
           "dx": 10,
           "dy": 0,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-es-tiles"
         },
         {
           "dx": 11,
           "dy": 0,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-esw-tiles"
         },
         {
           "dx": 12,
           "dy": 0,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-esw-tiles"
         },
         {
           "dx": 13,
           "dy": 0,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-esw-tiles"
         },
         {
           "dx": 14,
           "dy": 0,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-esw-tiles"
         },
         {
           "dx": 15,
           "dy": 0,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-esw-tiles"
         },
         {
           "dx": 16,
           "dy": 0,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-esw-tiles"
         },
         {
           "dx": 17,
           "dy": 0,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-sw-tiles"
         },
         {
           "dx": 0,
@@ -1161,42 +1161,42 @@
         {
           "dx": 10,
           "dy": 1,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nes-tiles"
         },
         {
           "dx": 11,
           "dy": 1,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 1,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 1,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 1,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 1,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 16,
           "dy": 1,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 17,
           "dy": 1,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
@@ -1251,42 +1251,42 @@
         {
           "dx": 10,
           "dy": 2,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nes-tiles"
         },
         {
           "dx": 11,
           "dy": 2,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 2,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 2,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 2,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 2,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 16,
           "dy": 2,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 17,
           "dy": 2,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
@@ -1341,42 +1341,42 @@
         {
           "dx": 10,
           "dy": 3,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nes-tiles"
         },
         {
           "dx": 11,
           "dy": 3,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 3,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 3,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 3,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 3,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 16,
           "dy": 3,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 17,
           "dy": 3,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
@@ -1431,42 +1431,42 @@
         {
           "dx": 10,
           "dy": 4,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nes-tiles"
         },
         {
           "dx": 11,
           "dy": 4,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 4,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 4,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 4,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 4,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 16,
           "dy": 4,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 17,
           "dy": 4,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
@@ -1521,42 +1521,42 @@
         {
           "dx": 10,
           "dy": 5,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nes-tiles"
         },
         {
           "dx": 11,
           "dy": 5,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 5,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 5,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 5,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 5,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 16,
           "dy": 5,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 17,
           "dy": 5,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
@@ -1611,42 +1611,42 @@
         {
           "dx": 10,
           "dy": 6,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nes-tiles"
         },
         {
           "dx": 11,
           "dy": 6,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 6,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 6,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 6,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 6,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 16,
           "dy": 6,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 17,
           "dy": 6,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
@@ -1701,42 +1701,42 @@
         {
           "dx": 10,
           "dy": 7,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nes-tiles"
         },
         {
           "dx": 11,
           "dy": 7,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 7,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 7,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 7,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 7,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 16,
           "dy": 7,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 17,
           "dy": 7,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
@@ -1791,42 +1791,42 @@
         {
           "dx": 10,
           "dy": 8,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nes-tiles"
         },
         {
           "dx": 11,
           "dy": 8,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 8,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 8,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 8,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 8,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 16,
           "dy": 8,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nesw-tiles"
         },
         {
           "dx": 17,
           "dy": 8,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
@@ -1881,42 +1881,42 @@
         {
           "dx": 10,
           "dy": 9,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-ne-tiles"
         },
         {
           "dx": 11,
           "dy": 9,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-new-tiles"
         },
         {
           "dx": 12,
           "dy": 9,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-new-tiles"
         },
         {
           "dx": 13,
           "dy": 9,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-new-tiles"
         },
         {
           "dx": 14,
           "dy": 9,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-new-tiles"
         },
         {
           "dx": 15,
           "dy": 9,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-new-tiles"
         },
         {
           "dx": 16,
           "dy": 9,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-new-tiles"
         },
         {
           "dx": 17,
           "dy": 9,
-          "tileSetId": "depot-grounds"
+          "tileSetId": "depot-ground-inward-nw-tiles"
         }
       ],
       "primaryRegionClass": "plant"
@@ -1927,602 +1927,602 @@
         {
           "dx": 0,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-es-tiles"
         },
         {
           "dx": 1,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 2,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 3,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 4,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 5,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 6,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 7,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 8,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 9,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 10,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 11,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 12,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 13,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 14,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 15,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 16,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 17,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 18,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-esw-tiles"
         },
         {
           "dx": 19,
           "dy": 0,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-sw-tiles"
         },
         {
           "dx": 0,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nes-tiles"
         },
         {
           "dx": 1,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 2,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 3,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 4,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 5,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 6,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 7,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 8,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 9,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 10,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 11,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 16,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 17,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 18,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 19,
           "dy": 1,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nes-tiles"
         },
         {
           "dx": 1,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 2,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 3,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 4,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 5,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 6,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 7,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 8,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 9,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 10,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 11,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 16,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 17,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 18,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 19,
           "dy": 2,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nes-tiles"
         },
         {
           "dx": 1,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 2,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 3,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 4,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 5,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 6,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 7,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 8,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 9,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 10,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 11,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 16,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 17,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 18,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 19,
           "dy": 3,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nes-tiles"
         },
         {
           "dx": 1,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 2,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 3,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 4,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 5,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 6,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 7,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 8,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 9,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 10,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 11,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 16,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 17,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 18,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nesw-tiles"
         },
         {
           "dx": 19,
           "dy": 4,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-ne-tiles"
         },
         {
           "dx": 1,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 2,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 3,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 4,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 5,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 6,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 7,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 8,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 9,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 10,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 11,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 12,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 13,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 14,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 15,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 16,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 17,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 18,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-new-tiles"
         },
         {
           "dx": 19,
           "dy": 5,
-          "tileSetId": "block-grounds"
+          "tileSetId": "block-ground-inward-nw-tiles"
         },
         {
           "dx": 0,
@@ -2833,562 +2833,562 @@
         {
           "dx": 0,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-es-tiles"
         },
         {
           "dx": 1,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-esw-tiles"
         },
         {
           "dx": 2,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-esw-tiles"
         },
         {
           "dx": 3,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-esw-tiles"
         },
         {
           "dx": 4,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-esw-tiles"
         },
         {
           "dx": 5,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-esw-tiles"
         },
         {
           "dx": 6,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-esw-tiles"
         },
         {
           "dx": 7,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-esw-tiles"
         },
         {
           "dx": 8,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-esw-tiles"
         },
         {
           "dx": 9,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-esw-tiles"
         },
         {
           "dx": 10,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-esw-tiles"
         },
         {
           "dx": 11,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-esw-tiles"
         },
         {
           "dx": 12,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-esw-tiles"
         },
         {
           "dx": 13,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-esw-tiles"
         },
         {
           "dx": 14,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-esw-tiles"
         },
         {
           "dx": 15,
           "dy": 0,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-sw-tiles"
         },
         {
           "dx": 0,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nes-tiles"
         },
         {
           "dx": 1,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 2,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 3,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 4,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 5,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 6,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 7,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 8,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 9,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 10,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 11,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 1,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nes-tiles"
         },
         {
           "dx": 1,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 2,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 3,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 4,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 5,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 6,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 7,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 8,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 9,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 10,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 11,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 2,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nes-tiles"
         },
         {
           "dx": 1,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 2,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 3,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 4,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 5,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 6,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 7,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 8,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 9,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 10,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 11,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 3,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nes-tiles"
         },
         {
           "dx": 1,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 2,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 3,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 4,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 5,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 6,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 7,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 8,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 9,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 10,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 11,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 4,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nes-tiles"
         },
         {
           "dx": 1,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 2,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 3,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 4,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 5,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 6,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 7,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 8,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 9,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 10,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 11,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 12,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 13,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 14,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nesw-tiles"
         },
         {
           "dx": 15,
           "dy": 5,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nsw-tiles"
         },
         {
           "dx": 0,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-ne-tiles"
         },
         {
           "dx": 1,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-new-tiles"
         },
         {
           "dx": 2,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-new-tiles"
         },
         {
           "dx": 3,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-new-tiles"
         },
         {
           "dx": 4,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-new-tiles"
         },
         {
           "dx": 5,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-new-tiles"
         },
         {
           "dx": 6,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-new-tiles"
         },
         {
           "dx": 7,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-new-tiles"
         },
         {
           "dx": 8,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-new-tiles"
         },
         {
           "dx": 9,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-new-tiles"
         },
         {
           "dx": 10,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-new-tiles"
         },
         {
           "dx": 11,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-new-tiles"
         },
         {
           "dx": 12,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-new-tiles"
         },
         {
           "dx": 13,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-new-tiles"
         },
         {
           "dx": 14,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-new-tiles"
         },
         {
           "dx": 15,
           "dy": 6,
-          "tileSetId": "compound-grounds"
+          "tileSetId": "compound-ground-inward-nw-tiles"
         },
         {
           "dx": 0,

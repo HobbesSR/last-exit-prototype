@@ -57,8 +57,9 @@ with a don't-care value. This is Corey's model (verbatim in 17, 2026-09-27).
 - **Passability** may be stated on any segment. Corey, 2026-09-27: "It's the
   tile designer's job to mark internal as passable". Read in context, that's
   about segments inside a tile that lie between two regions. A passable
-  prescription with the same region on both sides forms no portal and obliges
-  nothing (51 stage 3, 17 M8).
+  prescription with the same region on both sides forms no external portal,
+  but retains its clear-margin obligation as an internal guaranteed run
+  ([20.6](20.6-passable-margins.md), [51.7](51.7-briefs.md)).
   - A `passable` prescription becomes a **guarantee** once placement is solved
     (51 stage 2), except on a segment facing the map's outside. The
     guaranteed stretches of each boundary are **portals**. Portals are
@@ -345,13 +346,13 @@ catalogue, and it grows from here. The fixture libraries in
   `cover-field`, `rubble-lane` and `rubble-lanes`, the set pieces before S5,
   for libraries at other sizes. This library's classes no longer draw them,
   so huts come from the fill's hut quarters.
-- **The three-cell grid.** Every declared class boundary in a design lies on a 3-cell
+- **The three-cell grid.** Except for `clear-rubble-center`, declared class boundaries lie on a 3-cell
   grid, and every passable stretch is made of whole 3-cell blocks. Concrete
   authored passages are at least 3 cells wide, a doorway plus one (17 M9). The margin dates from a route check that couldn't see a bare doorway;
   the search now samples whole and half cells (#175), so it is a library
   choice, not a measurement need. Between concrete blocks, a passable stretch
   also splits into portals of at least 3 where the class across it changes.
-  `map/macro/tests/chain-content.test.ts` holds every design to this. Deferring
+  `map/macro/tests/chain-content.test.ts` checks this grid and the centered exception. Deferring
   cells can resolve individually under adjacency asks; this authored-grid check
   alone does not prove their resolved geometry. Placement checks conflicting asks
   and portal widths, and `tests/map-clear-tiles.test.js` exercises actual resolution
@@ -371,12 +372,27 @@ catalogue, and it grows from here. The fixture libraries in
   asks settle individual `any` cells; unasked cells become `open`. Neither an `any`
   cell nor a concrete painted cell manufactures an adjacency prescription: an
   author must state one. Rotations merge the painted bands into irregular regions.
-  A centered 4 by 4 rubble prototype left one-cell borders and failed hunter portal
-  access under the region-local mask. That does not establish unplayability in
-  assembled geometry: [17.2.5](17.2.5-macro-questions.md) records a centered-feature
-  witness that actual movement traverses. Bands and bends retain the three-cell
-  authored grid; the automatic portal-margin proposal is still under review
-  ([17.2.4](17.2.4-contract-questions.md)).
+  `clear-rubble-center` paints a centered 4 by 4 rubble island with a deferred
+  one-cell border and four rotations. Its entire
+  perimeter guarantees passage and a four-cell internal opening joins the island
+  to the north border before rotation. It makes no adjacency asks. The perimeter
+  guarantees secure the known clear context needed around the island; a deferred
+  cell alone cannot secure that clearance. Under the implemented margin policy
+  ([20.6](20.6-passable-margins.md)), all four rotations pass composed portal
+  diagnosis and actual hunter movement in a surrounding-cover fixture.
+  It has weight zero and is placed by `rubble-court`, a 3 by 3 small set piece
+  with eight surrounding cover grounds, available at all three authored sizes.
+  As an unconstrained fill option, the centered border can adopt class requests
+  that create one-segment corner portals; the large playground's placement then
+  backtracks excessively. The courtyard supplies the validated surroundings
+  without weakening portal checks or changing the solver.
+- **Structure joins (#214):** block, depot and compound slots in common and district
+  set pieces use zero-weight ground variants. Sides joining the same ground class
+  carry occupancy hints rather than repeating guaranteed openings every six cells.
+  Exposed sides retain the original prescriptions exactly. This deliberately authors
+  larger fill areas for buildings without removing any retained guarantee from the
+  margin pipeline. Original grounds remain available unchanged; other types retain
+  their authored internal seams.
 - **Cover:** a lone `cover-ground` in the fill forms a 6 × 6 region, too small
   for one cover piece, so it stays clear (54 `cover`). Cover comes mostly from
   the set pieces; its increased fill weight is intended to form larger joined
@@ -466,10 +482,12 @@ tiles. Those shapes show a useful way to compose irregular regions without
 forcing openings along every side. This pass adopts selective guaranteed
 openings and deferred/hinted perimeter segments; it retains the current
 three-cell tile grid, shapes and weights. The #214 follow-up adds rotated rubble
-bands and bends with deferred cells and
-reduces the dominance of plain fields. Over the same 12 game seeds (`fill-214-1`
-through `fill-214-12`), fields fell from 77.0% to 42.7% of fill slots and resolved
-open cells from 39.8% to 28.4%. Cover, park and rubble together placed 591 obstacles
-before and 1,369 after. Their obstacle-free share stayed about 97�98%: this changes
-where regions occur, not their builders' density. Three full-map portal diagnoses
-found no broken promises. These are bounded samples, not a guarantee for every seed.
+bands and bends, a centered courtyard feature, and deliberately larger building
+fill areas within selected structure set pieces. Against main with the implemented
+margin policy, the same 12 game seeds (`fill-214-1` through `fill-214-12`) reduce
+fields from 77.0% to 40.9% of fill slots and resolved open cells from 39.8% to 27.9%.
+Cover, park and rubble together place 385 obstacles before and 1,033 after; the
+courtyard appears 15 times across those maps. Mean loot rises from 756 to 834 despite
+the reduced default gradient (14). All 12 maps report no defects, and three
+full-map portal diagnoses find no broken promises. These are bounded samples,
+not a guarantee for every seed.

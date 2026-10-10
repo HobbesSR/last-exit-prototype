@@ -86,7 +86,8 @@
         "depot-lot",
         "cover-yard",
         "plant-yard",
-        "rubble-strip"
+        "rubble-strip",
+        "rubble-court"
       ]
     },
     {

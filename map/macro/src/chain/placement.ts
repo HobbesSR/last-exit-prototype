@@ -25,8 +25,8 @@ import type { MapZone, MaskCell } from "./zones.ts";
 export const PLACEMENT_ATTEMPTS = 50;
 /**
  * A game map's params, as the chain's tests have used them, with the old generator's
- * exits. The loot gradient is the old generator's scaled by 0.37, which kept loot per map
- * level when S5's bigger set pieces (#170) covered ground `open` had left bare (14).
+ * exits. S5 scaled the old loot gradient by 0.37 for bigger set pieces (#170);
+ * #214 reduces it by about another fifth for the more varied fill (14, 52).
  * The tools start from these, and each can be overridden.
  */
 const { defaultZone } = zonePlan();

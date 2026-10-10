@@ -56,6 +56,12 @@ every seed. `tests/map-container.test.js` saves and reloads this library's
 game-size map through JSON, BSON and Layout-only regeneration with the real
 strategy version (53).
 
+The larger authored-size report samples live in separate slow files
+(`map-library-24`, `map-library-36`, and `map-library-36-tail`) to stay under
+the 60-second file budget. They retain the original five seeds for each size;
+the 36-size sample is split into seeds 1–3 and 4–5 with the same bounds checked
+in both batches.
+
 The tools in `map/tools/` are checked by `tests/map-tools.test.js`, which drives
 the CLI and MCP as subprocesses, and typechecked by `npm run typecheck` under
 their own `map/tools/tsconfig.json`, which checks what they reach in macro as

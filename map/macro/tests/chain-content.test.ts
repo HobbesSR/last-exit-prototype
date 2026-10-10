@@ -38,7 +38,7 @@ test("each library authors a larger size's enormous pieces larger than its mediu
   }
 });
 
-test("every design keeps its declared classes and passable stretches on a three-cell grid", () => {
+test("ordinary designs keep the three-cell grid; centered rubble declares its four-cell island", () => {
   // Authored concrete boundaries and openings use three-cell blocks (17 M9). This checks
   // authorship, not a proof of the final geometry: adjacency asks can settle `any` cells
   // individually. Placement and the authored clear-tile access tests check those results.
@@ -47,6 +47,12 @@ test("every design keeps its declared classes and passable stretches on a three-
     // Deferring cells are authored in whole blocks too. Neighbor asks may settle them per cell;
     // placement still rejects conflicting asks and short derived portals (51.3, 51.4).
     assert.ok(cells.every(cell => cell === "any" || CATALOGUE.has(cell)), `${at} paints declared classes`);
+    if (design.id === "clear-rubble-center") {
+      for (let y = 0; y < CHAIN_TILE_SIZE; y++) for (let x = 0; x < CHAIN_TILE_SIZE; x++)
+        assert.equal(cells[y * CHAIN_TILE_SIZE + x], x > 0 && x < 5 && y > 0 && y < 5 ? "rubble" : "any", `${at} centered island ${x},${y}`);
+      // This intentional exception is checked at hunter scale in map-clear-tiles.test.js.
+      continue;
+    }
     for (let y = 0; y < CHAIN_TILE_SIZE; y++) for (let x = 0; x < CHAIN_TILE_SIZE; x++)
       assert.equal(cells[y * CHAIN_TILE_SIZE + x], cells[(y - y % BLOCK) * CHAIN_TILE_SIZE + x - x % BLOCK], `${at} cell ${x},${y}`);
     const passable = new Set([...segments].filter(([, s]) => s.passability === "passable").map(([key]) => key));
