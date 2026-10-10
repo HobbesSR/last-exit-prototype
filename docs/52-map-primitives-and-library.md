@@ -330,7 +330,7 @@ catalogue, and it grows from here. The fixture libraries in
     each side and hinting the complementary three segments. Placement
     never puts them in the fill (51, "Core elements").
 - **Set pieces:** each footprint is a rectangle of one type's ground, except
-  `rubble-strip`. Sizes are in tiles; a tile is 6 cells.
+  `rubble-strip` and `rubble-court`. Sizes are in tiles; a tile is 6 cells.
 
 | Set piece class | Set pieces |
 | --- | --- |
@@ -340,7 +340,7 @@ catalogue, and it grows from here. The fixture libraries in
 | `transit` | `transit-station`: 2 by 2 transit tiles, 12 by 12 cells |
 | `enormous` | `market-square` 10 × 5 and `covered-market` 7 × 7 (`market`), `plant-works` 8 × 6 (`plant`), `city-block` 12 × 4 (`block`), `depot-yard` 9 × 6 (`depot`) |
 | `medium` | `market-row` 9 × 4 and `market-court` 7 × 5 (`market`), `walled-base` 6 × 6 and `barracks` 8 × 4 (`compound`), `checkpoint-lane` 12 × 3 (`checkpoint`), `pillar-hall` 6 × 5 (`hall`) |
-| `small` | `plant-row` 6 × 3, `plant-tower` 3 × 6 and `plant-yard` 5 × 3 (`plant`), `depot-sheds` 9 × 2 and `depot-lot` 7 × 3 (`depot`), `park-square` 4 × 4 and `park-green` 6 × 4 (`park`), `ruins-lot` 5 × 4 (`ruins`), `cover-yard` 4 × 5 (`cover`), `rubble-strip` 8 × 2 (rubble banks back to back, a rubble strip six cells deep between open lanes) |
+| `small` | `plant-row` 6 × 3, `plant-tower` 3 × 6 and `plant-yard` 5 × 3 (`plant`), `depot-sheds` 9 × 2 and `depot-lot` 7 × 3 (`depot`), `park-square` 4 × 4 and `park-green` 6 × 4 (`park`), `ruins-lot` 5 × 4 (`ruins`), `cover-yard` 4 × 5 (`cover`), `rubble-strip` 8 × 2 (rubble banks back to back, a rubble strip six cells deep between open lanes), `rubble-court` 3 × 3 (eight cover tiles around the centered rubble island) |
 
   `common-set-pieces@4` still defines `hut-yard`, `hut-row`, `cover-patch`,
   `cover-field`, `rubble-lane` and `rubble-lanes`, the set pieces before S5,
@@ -398,6 +398,26 @@ catalogue, and it grows from here. The fixture libraries in
   the set pieces; its increased fill weight is intended to form larger joined
   cover regions.
 
+`map/tools/author-inward-grounds.mts` checks or regenerates these explicit
+structure variants and their blueprint references from the original grounds
+and same-class slot adjacency. It is an offline authoring tool; library loading
+does not rewrite prescriptions. For the current modules, run:
+
+```sh
+node map/tools/author-inward-grounds.mts --primitives map/macro/content/common-primitives@4.json --common map/macro/content/common-set-pieces@4.json --district map/macro/content/district-set-pieces@3.json --check
+```
+
+To regenerate, replace `--check` with `--out-dir <new-directory>`. Inputs and
+existing outputs are never overwritten. The current inputs reconstruct 27
+variants and 521 slot references. Future content changes still require reviewed
+module versions; the tool supports authored copies with matching includes.
+
+Larger fill areas do not ensure a warehouse in every depot. Some sampled depots
+still have only container rows, and one has no content despite an available
+interior rectangle. Strategy investigation is tracked in
+[#325](http://localhost:3000/corey/astra_test/issues/325); retained portal routes
+and clear margins remain requirements.
+
 31 describes the library's acceptance checks. The tools and live matches use
 the same library through `map/chain.ts`; live conversion is separate (14, 22).
 
@@ -440,8 +460,12 @@ is medium at the next (55):
 | --- | --- | --- |
 | `enormous`, 3 distinct | the districts | the quarters |
 | `medium` | 12 of the 12 × 6 enormous pieces | 8 of the districts |
-| `small` | 32 of the 12 × 6 medium and small pieces | 44 of the 12 × 6 enormous and medium pieces |
+| `small` | 32 of the 12 × 6 medium and small pieces, including `rubble-court` | 44 drawn from the 12 × 6 enormous and medium pieces plus `rubble-court` |
 | `start`, `end`, `charger`, `transit` | as at 12 × 6 | as at 12 × 6 |
+
+The 3 × 3 courtyard is intentionally a local feature even at 36 × 18, where
+the other `small` choices are much larger footprints. It joins the same
+selection pool without adding to the 44-piece quota.
 
 Core element pieces, their quotas and the six transit stations stay as at
 12 × 6 (17.2.7). Each new footprint is a rectangle of whole grounds,

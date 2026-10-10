@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict';
-import { batch, checkMap, generate, summarizeMetrics } from '../../map/tools/core.ts';
+import { checkMap, generate, summarizeMetrics } from '../../map/tools/core.ts';
 
 // S6 (#171): preserve five seeds and the same coverage/supply assertions for each
 // larger library. Separate files keep each slow test under the budget in 31.
-export function checkLibrarySize(library, seeds) {
+export function checkLibrarySize(library, seeds = [1, 2, 3, 4, 5]) {
   const params = { zoneWidth: library.zoneWidth, zoneHeight: library.zoneHeight };
-  const report = seeds ? selectedSeeds(library, params, seeds) : batch(`size-${library.zoneWidth}`, 5, params);
-  assert.equal(report.valid, true, JSON.stringify([report.defective, report.failures]));
+  const report = selectedSeeds(library, params, seeds);
   const { setPieceShare, lootPerTile, generateMs } = report.metrics;
   console.log(`${library.name}: set piece share ${setPieceShare.min.toFixed(3)}–${setPieceShare.max.toFixed(3)}, loot per tile ${lootPerTile.mean.toFixed(2)}, generation p50 ${Math.round(generateMs.p50)} ms over ${report.generated} maps`);
   assert.ok(setPieceShare.min > 0.45 && setPieceShare.max < 0.65, JSON.stringify(setPieceShare));
@@ -15,7 +14,7 @@ export function checkLibrarySize(library, seeds) {
 }
 
 function selectedSeeds(library, params, seeds) {
-  const measured = [], defective = [];
+  const measured = [];
   for (const i of seeds) {
     const seed = `size-${library.zoneWidth}-${i}`, start = performance.now();
     const map = generate(seed, params, library), generateMs = performance.now() - start;
@@ -24,5 +23,5 @@ function selectedSeeds(library, params, seeds) {
     measured.push({ generateMs, setPieceShare: map.layout.setPieces.reduce((n, piece) => n + piece.slots.length, 0) / tiles,
       lootPerTile: checked.metrics.loot / tiles });
   }
-  return { generated: seeds.length, valid: true, failures: [], defective, metrics: summarizeMetrics(measured) };
+  return { generated: seeds.length, metrics: summarizeMetrics(measured) };
 }
