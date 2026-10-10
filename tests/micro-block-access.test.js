@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { planBlock } from '../map/micro/strategies/block.ts';
 import { boundaryRuns } from '../map/kernel/run.ts';
-import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
+import { createAccessMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { circle } from '../shared/shape.ts';
@@ -43,14 +43,14 @@ const sample = input => {
 test('every lot keeps its own promise between its frontages, and a hunter reaches it from the block\'s first portal', () => {
   const radius = hunterClearance(SIZE);
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS.slice(0, 1)) {
-    const input = brief(name, seed, cells, portals), result = sample(input), mask = createRegionMask(input), shapes = blockers(result);
-    const from = portalStands(input, mask)[0].points[0];
+    const input = brief(name, seed, cells, portals), result = sample(input), mask = createRegionMask(input), access = createAccessMask(input), shapes = blockers(result);
+    const from = portalStands(input)[0].points[0];
     for (const lot of planBlock(input).lots) {
       const own = buildRegion(lot);
       assert.deepEqual(validatePortalReach({ ...lot, blockers: blockers(own) }).errors, [], `${name} ${seed}: ${lot.id} (${lot.type})`);
       // Its own promise joins the frontages, so one stand inside them stands for the lot.
       const point = portalStands(lot)[0].points[0];
-      assert.ok(findRegionRoute(mask, shapes, from, point, radius), `${name} ${seed}: ${lot.id} (${lot.type}) at ${point.x},${point.y}`);
+      assert.ok(findRegionRoute(access, shapes, from, point, radius), `${name} ${seed}: ${lot.id} (${lot.type}) at ${point.x},${point.y}`);
     }
   }
 });

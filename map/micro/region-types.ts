@@ -63,7 +63,7 @@ export const REGION_TYPES: RegionTypeRegistry = Object.freeze({
  * Names what `REGION_TYPES` builds. A change to what any of its strategies builds bumps it,
  * so a saved map's results are never rebuilt by other strategies without saying so (51 "Saving").
  */
-export const REGION_TYPES_VERSION = 'types-20';
+export const REGION_TYPES_VERSION = 'types-22';
 
 /**
  * Dispatch a brief to its region type's strategy (51 stage 6). The brief is checked as
@@ -86,6 +86,29 @@ export function briefErrors(brief: RegionBrief): string[] {
   if (!Array.isArray(brief.cells) || !brief.cells.length) return [...errors, 'A brief needs cells.'];
   if (!Array.isArray(brief.portals)) errors.push('A brief lists its portals, even when there are none.');
   const cells = new Set(brief.cells.map(c => `${c.x},${c.y}`)), zoned = new Set<string>();
+  const sets = new Map<string, Set<string>>();
+  for (const field of ['fillCells', 'clearCells'] as const) {
+    const listed = brief[field];
+    if (listed === undefined) continue;
+    if (!Array.isArray(listed)) { errors.push(`${field} must be a cell list.`); continue; }
+    const seen = new Set<string>();
+    for (const c of listed) {
+      if (!c || !Number.isSafeInteger(c.x) || !Number.isSafeInteger(c.y)) { errors.push(`${field} needs whole cell addresses.`); continue; }
+      const key = `${c.x},${c.y}`;
+      if (seen.has(key)) errors.push(`${field} contains duplicate cell ${key}.`);
+      seen.add(key);
+      if (field === 'fillCells' && !cells.has(key)) errors.push(`Fill cell ${key} is outside original ownership.`);
+      if (field === 'clearCells') {
+        let nearby = false;
+        for (let dy = -1; dy <= 1 && !nearby; dy++) for (let dx = -1; dx <= 1; dx++)
+          if (cells.has(`${c.x + dx},${c.y + dy}`)) { nearby = true; break; }
+        if (!nearby) errors.push(`Clear cell ${key} is outside the region's nearby access context.`);
+      }
+    }
+    sets.set(field, seen);
+  }
+  for (const key of sets.get('clearCells') ?? []) if ((sets.get('fillCells') ?? cells).has(key))
+    errors.push(`Clear cell ${key} is available for filling.`);
   for (const zone of Array.isArray(brief.zones) ? brief.zones : []) {
     if (!Number.isInteger(zone.tier) || zone.tier < 1 || zone.tier > 5 || !Number.isInteger(zone.bonus) || zone.bonus < 0
       || !Number.isFinite(zone.lootChance) || zone.lootChance < 0 || zone.lootChance > 1) errors.push('A zone needs a tier from 1 to 5, a whole bonus and a loot chance from 0 to 1.');

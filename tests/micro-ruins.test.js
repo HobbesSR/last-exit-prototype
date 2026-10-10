@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
+import { createAccessMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { circle } from '../shared/shape.ts';
@@ -69,10 +69,10 @@ test('every room keeps a doorway, so nothing is sealed off from a contestant', (
     // Loot on every cell marks the free ground, rooms' insides included.
     const input = brief(name, seed, cells, portals, { density: 1, decay: 0 });
     input.zones[0].lootChance = 1;
-    const result = buildRegion(input), mask = createRegionMask(input), shapes = blockers(result);
-    const from = portalStands(input, mask)[0].points[0];
+    const result = buildRegion(input), mask = createRegionMask(input), access = createAccessMask(input), shapes = blockers(result);
+    const from = portalStands(input)[0].points[0];
     for (const site of result.loot.filter((_, i) => i % 7 === 0))
-      assert.ok(findRegionRoute(mask, shapes, from, site, radius), `${name} ${seed}: ${site.x},${site.y} is reachable`);
+      assert.ok(findRegionRoute(access, shapes, from, site, radius), `${name} ${seed}: ${site.x},${site.y} is reachable`);
   }
 });
 

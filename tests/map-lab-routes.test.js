@@ -20,11 +20,11 @@ test('route lengths on a small playground are pinned', () => {
     hunter: [rounded(measure.hunter.length), rounded(measure.hunter.walked)],
     squeezes: measure.squeezes.map((run) => run.length),
   }, {
-    contestant: [4164.667, 4131.793],
-    hunter: [4197.804, 4145.43],
-    squeezes: [8, 8],
+    contestant: [4131.53, 4128.95],
+    hunter: [4131.53, 4128.95],
+    squeezes: [],
   });
-  assert.equal(rounded(measure.ratio), 1.008);
+  assert.equal(rounded(measure.ratio), 1);
   for (const route of [measure.contestant, measure.hunter]) {
     assert.deepEqual(route.points[0], measure.from);
     assert.deepEqual(route.points.at(-1), measure.to);

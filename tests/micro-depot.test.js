@@ -2,7 +2,7 @@ import { portalMargin } from '../map/micro/hints.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
+import { createAccessMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { bounds, circle } from '../shared/shape.ts';
@@ -140,8 +140,8 @@ test('every aisle is open to a contestant, indoors and out', () => {
     for (const roomCells of [6, 9]) {
       const input = brief(name, seed, cells, portals, { density: 1, roomCells });
       input.zones[0].lootChance = 1;
-      const result = buildRegion(input), mask = createRegionMask(input), shapes = blockers(result);
-      const from = portalStands(input, mask)[0].points[0];
+      const result = buildRegion(input), mask = createRegionMask(input), access = createAccessMask(input), shapes = blockers(result);
+      const from = portalStands(input)[0].points[0];
       // Every site in the first warehouse, which tests its doors and shelf aisles, and a sample outdoors.
       const first = result.elements.find(element => element.label.startsWith('depot-warehouse'));
       const indoors = first ? result.loot.filter(site => site.x > first.x && site.x < first.x + first.template.w
@@ -149,7 +149,7 @@ test('every aisle is open to a contestant, indoors and out', () => {
       if (first) assert.ok(indoors.length > 0, `${name} ${seed}: loot indoors`);
       const every = Math.ceil(result.loot.length / 8);
       for (const site of [...indoors, ...result.loot.filter((_, i) => i % every === 0)])
-        assert.ok(findRegionRoute(mask, shapes, from, site, radius), `${name} ${seed}: ${site.x},${site.y} is reachable`);
+        assert.ok(findRegionRoute(access, shapes, from, site, radius), `${name} ${seed}: ${site.x},${site.y} is reachable`);
     }
 });
 

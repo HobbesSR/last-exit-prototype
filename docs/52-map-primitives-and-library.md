@@ -136,6 +136,9 @@ The worked case the model serves:
 > inside. Its placement is constrained by the region's shape, not by the tile
 > grid that produced it.
 
+Under clear margins (20.6) the house stays off the margin cells. Some seeds
+still fit 4 × 4; the rest use the compact 4 × 3, 3 × 4 or 3 × 3 design.
+
 A region's boundary emits no geometry. Everything physical inside a region is
 its strategy's, and a strategy may decompose its region hierarchically (19).
 

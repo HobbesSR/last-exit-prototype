@@ -1,7 +1,6 @@
 import { polygon, rect } from '../../../shared/shape.ts';
-import { buildOpen } from './open.ts';
-import { cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
-import { createRegionMask, shapesOverlap } from '../geometry.ts';
+import { unfilledRegion, cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
+import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 
@@ -42,10 +41,10 @@ type Side = typeof SIDES[number];
 export function buildRuins(brief: RegionBrief): BuiltRegion {
   const density = fraction(brief, 'Ruins', 'density', DEFAULT_DENSITY);
   const decay = fraction(brief, 'Ruins', 'decay', DEFAULT_DECAY);
-  const mask = createRegionMask(brief), size = brief.cellSize;
-  if (brief.cells.length < MIN_CELLS || !mask.rectangles(3, 3).length) return buildOpen(brief);
+  const mask = createFillMask(brief), size = brief.cellSize;
+  if (mask.cells.length < MIN_CELLS || !mask.rectangles(3, 3).length) return unfilledRegion(brief, CHANNEL.loot);
 
-  const protectedShapes = protectedRoutes(brief, mask, 'Ruins');
+  const protectedShapes = protectedRoutes(brief, 'Ruins');
   const phase = { x: Math.floor(draw(brief.seed, 0, 0, CHANNEL.phase) * PERIOD), y: Math.floor(draw(brief.seed, 1, 0, CHANNEL.phase) * PERIOD) };
   const onLattice = (value: number, offset: number) => ((value - offset) % PERIOD + PERIOD) % PERIOD === 0;
   const owns = (x: number, y: number, w: number, h: number) => {
@@ -104,7 +103,7 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
     }
   }
 
-  const loot = cellLoot(brief, mask, pieces, CHANNEL.loot);
+  const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0,
       loot: loot.length, coreElements: 0, rooms, walls, debris } };

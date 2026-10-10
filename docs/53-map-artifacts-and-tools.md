@@ -58,6 +58,9 @@ or external library are needed. An optional supplied library must match too.
 **The chain** is wire version 8 (`map/macro/src/chain/saving.ts`, #286).
 Version 7 is refused by name because macro version 2 derives `any`+`any`
 passability guarantees; old saved views must not be silently reinterpreted.
+Macro version 3 (20.6) derives fill cells, known-clear access context and
+internal guaranteed runs. The wire format remains version 8; its macro field
+refuses version 2 Layouts because their derived briefs would differ.
 Library schema 3 and module schema 1 are retained for the optional hint value
 ([51.4](51.4-resolution.md)); fingerprints still cover all authored content.
 Version 6 is refused by name because it lacks the embedded resolved library
@@ -160,6 +163,22 @@ every region of one game map passed the independent portal diagnostic, and
 combat-neutralized bots filled all three extraction slots on representative
 live maps. The frozen gameplay characterization fixture is unchanged.
 
+**#313's re-capture** pins automatic guaranteed-segment margins (20.6), macro
+version 3 and `types-21`, at input commit `485ca14`. It retains the same 224
+cases and unchanged authored libraries. Only results, briefs, built and report
+hashes change on all 224 maps; layout, declared grid, resolved segments,
+regions, proof and zones stay identical. This is the prerequisite policy
+checkpoint; #214's later authored shapes and tuning require their own review
+and final checkpoint. The frozen gameplay characterization fixture is unchanged.
+
+**The #318 review's re-capture** pins `types-22` at input commit `2cf7259`, the
+same 224 cases. Every brief now takes one margin path; with `block`'s change
+held back, that alone moves only the results' version string on all 224 maps.
+`block` keeping lots two cells off each portal moves built content on the 97
+maps whose blocks it changes (results, built and report; one map's report is
+unchanged). Six of them, diagnosed independently, report no defects. Layout,
+declared grid, resolved segments, regions, proof, zones and briefs are identical.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
@@ -233,7 +252,10 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     shows both statements, and label each region with the core elements
     assigned to it. The inspector names the cell's tile and set piece, and
     gives the brief's type, portal ids, assigned core elements, parameters
-    and loot chance. Its buttons open the tile design or set piece in the
+    and loot chance. The reduced-fill layer highlights owned cells excluded
+    from geometry fill, and the internal-guarantees layer draws preserved
+    same-owner runs. The inspector gives their counts and the known-clear
+    access count. Its buttons open the tile design or set piece in the
     Chain Library tab; where the draft lacks it or differs, it asks before
     replacing the draft with the map's library.
   - **Region drill-down** (#203): selecting a cell rebuilds its region in

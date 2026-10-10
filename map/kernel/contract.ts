@@ -38,19 +38,26 @@ export interface RegionBrief {
   parameters?: Record<string, number | string | boolean>;
   cellSize: number;
   cells: Cell[];
+  /** Geometry may occupy only these owned cells; an empty or split fill is valid (20.6). */
+  fillCells?: Cell[];
+  /** Guaranteed clear access context near the original cells, including adjacent owners. */
+  clearCells?: Cell[];
   /** Every cell appears in exactly one zone. */
   zones: ZoneContext[];
   /** The core elements the class rule lists, with every count resolved to a whole number. */
   coreElements?: Partial<Record<CoreElementKind, number>>;
   /**
-   * The strategy's one promise: every part of every portal is reachable by a hunter from
-   * every other portal, from within the region. One portal carries no requirement.
+   * The connectivity promise: every part of every portal is reachable by a hunter from
+   * every other portal, through original ownership and known-clear context. One portal
+   * carries no pair-connectivity requirement; its automatic clearance still applies.
    */
   portals: Portal[];
+  /** Guaranteed runs inside this owner; they are not external portals (20.6). */
+  internalGuaranteed?: Run[];
   /**
    * Stretches of the region's perimeter where the library hints that the designer wants
    * the edge occupied (52, "not-passable hint"), as maximal runs. Guidance, never a
-   * requirement: the portals stay the only obligation, and a builder that ignores a hint
+   * requirement: guaranteed clear cells and portal connectivity remain the obligations; a builder that ignores a hint
    * is still correct. A run lies on the perimeter with the region's cells on one side,
    * like a portal's, and no hint overlaps a portal. It faces a single owner (another
    * region, or the map's edge and mask) and names none. Absent when nothing is hinted.

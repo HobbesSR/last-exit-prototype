@@ -1,4 +1,5 @@
 import { elementShapes } from './geometry.ts';
+import { validateFillConstraints } from './margins.ts';
 import { validatePortalReach } from './portals.ts';
 import type { BuiltMap, RegionElement } from './types.ts';
 
@@ -17,7 +18,10 @@ export interface BrokenPromise { region: string; errors: string[] }
  */
 export function diagnoseBuiltMap(map: BuiltMap<RegionElement>): BrokenPromise[] {
   return map.regions.flatMap(({ brief, elements }) => {
-    const { errors } = validatePortalReach({ ...brief, blockers: elements.flatMap(element => elementShapes(element)) });
+    // Doors don't block a hunter, but they are geometry, so they must stay in the fill.
+    const blockers = elements.flatMap(element => elementShapes(element));
+    const placed = elements.flatMap(element => elementShapes(element, true));
+    const errors = [...validateFillConstraints(brief, placed), ...validatePortalReach({ ...brief, blockers }).errors];
     return errors.length ? [{ region: brief.id, errors }] : [];
   });
 }

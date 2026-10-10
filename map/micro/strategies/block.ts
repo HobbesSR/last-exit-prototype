@@ -8,6 +8,7 @@ import { buildOpen } from './open.ts';
 import { buildRuins } from './ruins.ts';
 import { draw } from './scatter.ts';
 import { createRegionMask } from '../geometry.ts';
+import { inheritBriefMargins } from '../margins.ts';
 import { portalMargin } from '../hints.ts';
 import { portalStands } from '../portals.ts';
 import type { BuiltRegion, Cell, Portal, RegionBrief } from '../types.ts';
@@ -90,14 +91,19 @@ export function planBlock(brief: RegionBrief): BlockPlan {
   const x0 = Math.round(mask.bounds.x / size), y0 = Math.round(mask.bounds.y / size);
   const W = Math.round(mask.bounds.w / size), H = Math.round(mask.bounds.h / size);
 
-  // Keep portal approaches and frontage standing room in the circulation. Lots may
-  // reach other perimeter segments; the three-cell alleys between lots are unchanged.
-  const margin = new Set(portalMargin(brief, 1).map(c => `${c.x},${c.y}`));
-  for (const { portal: p, inward } of portalStands(brief, mask)) for (let i = 0; i < p.length; i++) for (let d = 0; d < 2; d++) {
+  // Keep portal approaches and standing room in the circulation. Lots may reach other
+  // perimeter segments; the three-cell alleys between lots are unchanged. The approach
+  // stays two cells deep even though the clear margin is one: a lot attached to the
+  // boundary beside a portal would otherwise leave the alley a single cell wide there.
+  const margin = new Set(portalMargin({ ...brief, hints: [] }, 1).map(c => `${c.x},${c.y}`));
+  for (const { portal: p, inward } of portalStands(brief)) for (let i = 0; i < p.length; i++) for (let d = 0; d < 2; d++) {
     const offset = inward.x + inward.y > 0 ? d : -1 - d;
     margin.add(p.axis === 'h' ? `${p.x + i},${p.y + offset}` : `${p.x + offset},${p.y + i}`);
   }
   const inner = (x: number, y: number, attach: readonly Side[]) => {
+    // Lots allocate original ownership, including inherited clearance; their builders
+    // receive the reduced fill separately. Treating clearance as missing ownership
+    // would destroy every lot across an internal guaranteed tile seam.
     if (!mask.has(x, y) || margin.has(`${x},${y}`)) return false;
     for (let j = y - 2; j <= y + 2; j++) for (let i = x - 2; i <= x + 2; i++) {
       if (mask.has(i, j)) continue;
@@ -180,9 +186,13 @@ export function planBlock(brief: RegionBrief): BlockPlan {
       ...(brief.hints ? { hints: inheritedHints(brief, cells) } : {}) };
   });
   const alleyCells = mask.cells.filter(c => !claimed.has(`${c.x},${c.y}`)).map(c => ({ x: c.x, y: c.y }));
-  return { lots: children, alleys: { id: `${brief.id}/alleys`, seed: childSeed(x0, y0), type: 'open', cellSize: size, cells: alleyCells,
+  const alleys: RegionBrief = { id: `${brief.id}/alleys`, seed: childSeed(x0, y0), type: 'open', cellSize: size, cells: alleyCells,
     zones: restrict(alleyCells), portals: [...structuredClone(brief.portals), ...frontages.map(portal => ({ ...portal }))],
-    ...(brief.hints ? { hints: inheritedHints(brief, alleyCells) } : {}) } };
+    ...(brief.hints ? { hints: inheritedHints(brief, alleyCells) } : {}) };
+  // Margin cells remain owned by lots/alleys. They are constraints, not extra children.
+  // Only genuinely new frontages add clearance; inherited exclusions are never inset again.
+  const constrained = inheritBriefMargins(brief, [...children, alleys]);
+  return { lots: constrained.slice(0, children.length), alleys: constrained[children.length]! };
 }
 
 /** Clip the parent's hinted segments to the child owning its inside cell. */
