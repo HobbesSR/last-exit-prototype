@@ -181,7 +181,70 @@ function closePopup(): void {
   }
 }
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") closePopup();
+  if (e.key === "Escape") {
+    closePopup();
+    return;
+  }
+  const target = e.target as HTMLElement | null;
+  if (target && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName)) return;
+  if (target && (target as any).isContentEditable) return;
+
+  const k = e.key.toLowerCase();
+
+  // Search filter focus shortcut (/)
+  if (k === "/") {
+    let searchInput: HTMLElement | null = null;
+    if (section() === "tiles") {
+      searchInput = document.getElementById("tileFilter");
+    } else if (section() === "tileSets") {
+      searchInput = document.getElementById("setAvailableFilter");
+    } else if (section() === "setPieces") {
+      searchInput = document.getElementById("setPiecePaletteFilter");
+    }
+    if (searchInput) {
+      e.preventDefault();
+      searchInput.focus();
+      return;
+    }
+  }
+
+  // Hotkeys in tiles section
+  if (section() === "tiles") {
+    if (k === "d" || k === "b") {
+      selectedPaintTool = "paint";
+      render();
+    } else if (k === "f") {
+      selectedPaintTool = "fill";
+      render();
+    } else if (k === "r") {
+      selectedPaintTool = "rect";
+      render();
+    } else if (k === "s") {
+      selectedPaintTool = "segment";
+      render();
+    } else if (k === "e") {
+      const tile = current() as ChainTileDesign | undefined;
+      if (tile) {
+        selectedCellClass = tile.defaultCellClass;
+        render();
+      }
+    } else if (k >= "1" && k <= "9") {
+      const idx = parseInt(k, 10) - 1;
+      const classes = ["any", ...Object.keys(library.cellClasses)];
+      if (idx < classes.length) {
+        selectedCellClass = classes[idx]!;
+        render();
+      }
+    }
+  } else if (section() === "setPieces") {
+    if (k >= "1" && k <= "9") {
+      const idx = parseInt(k, 10) - 1;
+      if (idx < library.tileSets.length) {
+        activeLayoutBrush = library.tileSets[idx]!.id;
+        render();
+      }
+    }
+  }
 });
 
 function section(): Section {
@@ -963,12 +1026,13 @@ function renderTiles(root: HTMLElement): void {
     }
   };
 
-  for (const c of classes) {
+  classes.forEach((c, i) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "chain-swatch-button";
     btn.dataset.class = c;
     btn.classList.toggle("active", c === selectedCellClass);
+    btn.title = i < 9 ? `Select brush "${c}" (Hotkey: ${i + 1})` : `Select brush "${c}"`;
     const dot = document.createElement("span");
     dot.className = "swatch";
     dot.style.background = classColor(c);
@@ -981,7 +1045,7 @@ function renderTiles(root: HTMLElement): void {
     };
     swatchesContainer.append(btn);
     swatchButtons.push(btn);
-  }
+  });
 
   const brushSelect = choice(
     "Brush class",
@@ -1002,10 +1066,10 @@ function renderTiles(root: HTMLElement): void {
   const toolGroup = document.createElement("div");
   toolGroup.className = "chain-tool-group";
   const toolDefs: Array<[PaintTool, string, string]> = [
-    ["paint", "Paint", "Click or drag to apply the active brush"],
-    ["fill", "Fill", "Flood-fill connected cells of matching class"],
-    ["rect", "Rect", "Drag a box to fill covered cells"],
-    ["segment", "Segments", "Click or drag across boundaries to stamp segment passability"],
+    ["paint", "Paint (D)", "Click or drag to apply active brush (Hotkey: D or B)"],
+    ["fill", "Fill (F)", "Flood-fill connected cells of matching class (Hotkey: F)"],
+    ["rect", "Rect (R)", "Drag a box to fill covered cells (Hotkey: R)"],
+    ["segment", "Segments (S)", "Click or drag across boundaries to stamp segment passability (Hotkey: S)"],
   ];
   for (const [t, label, title] of toolDefs) {
     const b = document.createElement("button");
@@ -1246,6 +1310,7 @@ function renderTiles(root: HTMLElement): void {
   grid.append(ghost);
 
   const hoverReadout = document.createElement("div");
+  hoverReadout.id = "chainHoverReadout";
   hoverReadout.className = "chain-hover-readout";
 
   const cells = tileCells(tile);
@@ -1263,6 +1328,12 @@ function renderTiles(root: HTMLElement): void {
       button.textContent = cellVal;
       button.style.background = classColor(cellVal);
       button.title = `Cell ${x},${y} · ${cellVal}${cellVal === tile.defaultCellClass ? " (default)" : ""}`;
+      button.addEventListener("pointerenter", () => {
+        hoverReadout.textContent = button.title;
+      });
+      button.addEventListener("pointerleave", () => {
+        hoverReadout.textContent = "";
+      });
       cellButtons.set(`${x},${y}`, button);
       grid.append(button);
     }
@@ -2216,11 +2287,14 @@ function renderSetPieces(root: HTMLElement): void {
       return;
     }
 
-    const items = matching.map((id) => {
+    const items = matching.map((id, index) => {
       const item = document.createElement("div");
       item.className = "chain-layout-palette-item";
       item.dataset.tileset = id;
       if (id === activeLayoutBrush) item.classList.add("active");
+      if (index < 9) {
+        item.title = `Select tile set "${id}" (Hotkey: ${index + 1})`;
+      }
 
       const swatch = document.createElement("span");
       swatch.className = "palette-swatch";
