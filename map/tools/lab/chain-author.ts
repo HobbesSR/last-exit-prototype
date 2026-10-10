@@ -350,6 +350,18 @@ function rename(next: string): void {
       }
     }
   }
+  if (section() === "setPieces") {
+    const classesUsing = library.setPieceClasses
+      .filter((c) => c.setPieces.includes(old))
+      .map((c) => c.id);
+    if (classesUsing.length) {
+      const msg = `Rename set piece "${old}" to "${next}"? It is referenced in set piece class(es): ${classesUsing.join(", ")}. References will be updated automatically.`;
+      if (!confirm(msg)) {
+        render();
+        return;
+      }
+    }
+  }
   if (section() === "classes") {
     library.cellClasses[next] = library.cellClasses[old]!;
     delete library.cellClasses[old];
@@ -2101,9 +2113,18 @@ function slotEditor(
   row.append(remove);
   return row;
 }
+let activeLayoutBrush = "";
+let setPiecePaletteFilter = "";
+
 function renderSetPieces(root: HTMLElement): void {
   const piece = current() as ChainLibrary["setPieces"][number];
   if (!piece) return;
+
+  if (!activeLayoutBrush && library.tileSets[0]) {
+    activeLayoutBrush = library.tileSets[0].id;
+  }
+
+  // 1. Primary region class
   root.append(
     choice(
       "Primary region class (editor hint)",
@@ -2113,24 +2134,237 @@ function renderSetPieces(root: HTMLElement): void {
       (v) => {
         if (v) piece.primaryRegionClass = v;
         else delete piece.primaryRegionClass;
+        changed();
       },
     ),
+  );
+
+  // 2. Eligible tiers checkboxes
+  const tiersBox = document.createElement("div");
+  tiersBox.className = "chain-tiers-container";
+  const tiersLabel = document.createElement("span");
+  tiersLabel.className = "chain-tiers-label";
+  tiersLabel.textContent =
+    "Eligible tiers (blank / all unchecked = all tiers eligible)";
+  tiersBox.append(tiersLabel);
+
+  const tiersGroup = document.createElement("div");
+  tiersGroup.id = "chainEligibleTiers";
+  tiersGroup.className = "chain-tiers-boxes";
+
+  const currentTiers = new Set(piece.eligibleTiers ?? []);
+  for (let tier = 0; tier <= 5; tier++) {
+    const label = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.dataset.tier = String(tier);
+    cb.checked = currentTiers.has(tier);
+    cb.onchange = () => {
+      const nextTiers = new Set(piece.eligibleTiers ?? []);
+      if (cb.checked) nextTiers.add(tier);
+      else nextTiers.delete(tier);
+      if (nextTiers.size === 0) delete piece.eligibleTiers;
+      else piece.eligibleTiers = Array.from(nextTiers).sort((a, b) => a - b);
+      changed();
+    };
+    label.append(cb, ` Tier ${tier}`);
+    tiersGroup.append(label);
+  }
+  tiersBox.append(tiersGroup);
+  root.append(tiersBox);
+
+  // Also include the text input for backwards compatibility
+  root.append(
     field(
-      "Eligible tiers (blank = all)",
+      "Eligible tiers (comma-separated)",
       "chainPieceTiers",
       (piece.eligibleTiers ?? []).join(", "),
       (v) => {
         if (v.trim()) piece.eligibleTiers = numberList(v);
         else delete piece.eligibleTiers;
+        changed();
       },
     ),
-    heading("Slots"),
   );
+
+  // 3. 2D Layout Blueprint Workspace
+  const workspace = document.createElement("div");
+  workspace.className = "chain-layout-workspace";
+
+  // Palette on the left
+  const palette = document.createElement("div");
+  palette.className = "chain-layout-palette";
+
+  const paletteHead = document.createElement("h4");
+  paletteHead.textContent = "Tile Sets Palette";
+
+  const filterInput = document.createElement("input");
+  filterInput.id = "setPiecePaletteFilter";
+  filterInput.placeholder = "Filter tile sets...";
+  filterInput.spellcheck = false;
+  filterInput.value = setPiecePaletteFilter;
+
+  const paletteList = document.createElement("div");
+  paletteList.id = "setPiecePaletteList";
+  paletteList.className = "chain-layout-palette-list";
+
+  palette.append(paletteHead, filterInput, paletteList);
+
+  function populatePalette(): void {
+    const filter = setPiecePaletteFilter.trim().toLowerCase();
+    const tileSetIds = library.tileSets.map((s) => s.id);
+    const matching = tileSetIds.filter(
+      (id) => !filter || id.toLowerCase().includes(filter),
+    );
+
+    if (!matching.length) {
+      const empty = document.createElement("p");
+      empty.className = "gallery-empty";
+      empty.textContent = `No tile sets match "${setPiecePaletteFilter}".`;
+      paletteList.replaceChildren(empty);
+      return;
+    }
+
+    const items = matching.map((id) => {
+      const item = document.createElement("div");
+      item.className = "chain-layout-palette-item";
+      item.dataset.tileset = id;
+      if (id === activeLayoutBrush) item.classList.add("active");
+
+      const swatch = document.createElement("span");
+      swatch.className = "palette-swatch";
+      swatch.style.background = classColor(id);
+
+      const name = document.createElement("span");
+      name.textContent = id;
+
+      item.append(swatch, name);
+      item.onclick = () => {
+        activeLayoutBrush = id;
+        populatePalette();
+      };
+      return item;
+    });
+
+    paletteList.replaceChildren(...items);
+  }
+
+  filterInput.oninput = () => {
+    setPiecePaletteFilter = filterInput.value;
+    populatePalette();
+  };
+  populatePalette();
+
+  // Grid container on the right
+  const gridContainer = document.createElement("div");
+  gridContainer.className = "chain-layout-grid-container";
+
+  const gridHint = paragraph(
+    "Blueprint grid: click an empty cell to place selected tile set. Click a filled slot to cycle rotation (0° → 90° → 180° → 270°). Right-click to remove slot.",
+  );
+
+  const grid = document.createElement("div");
+  grid.id = "setPieceGrid";
+  grid.className = "chain-layout-grid";
+
+  gridContainer.append(gridHint, grid);
+  workspace.append(palette, gridContainer);
+  root.append(workspace);
+
+  function populateGrid(): void {
+    grid.replaceChildren();
+
+    let minDx = -5,
+      maxDx = 5,
+      minDy = -5,
+      maxDy = 5;
+    for (const s of piece.tiles) {
+      minDx = Math.min(minDx, s.dx);
+      maxDx = Math.max(maxDx, s.dx);
+      minDy = Math.min(minDy, s.dy);
+      maxDy = Math.max(maxDy, s.dy);
+    }
+
+    const cols = maxDx - minDx + 1;
+    const rows = maxDy - minDy + 1;
+    grid.style.gridTemplateColumns = `repeat(${cols}, 46px)`;
+    grid.style.gridTemplateRows = `repeat(${rows}, 46px)`;
+
+    for (let dy = minDy; dy <= maxDy; dy++) {
+      for (let dx = minDx; dx <= maxDx; dx++) {
+        const cell = document.createElement("div");
+        cell.className = "chain-layout-cell";
+        cell.dataset.dx = String(dx);
+        cell.dataset.dy = String(dy);
+
+        if (dx === 0 && dy === 0) cell.classList.add("origin");
+
+        const slot = piece.tiles.find((t) => t.dx === dx && t.dy === dy);
+        if (slot) {
+          cell.classList.add("filled");
+          cell.dataset.tileset = slot.tileSetId;
+          cell.style.borderLeftColor = classColor(slot.tileSetId);
+
+          const nameSpan = document.createElement("span");
+          nameSpan.className = "slot-set-id";
+          nameSpan.textContent = slot.tileSetId;
+
+          const rotSpan = document.createElement("span");
+          rotSpan.className = "slot-rot";
+          rotSpan.textContent = `${slot.orientation ?? 0}°`;
+
+          cell.append(nameSpan, rotSpan);
+          cell.title = `Slot (${dx}, ${dy}) · Set: ${slot.tileSetId} · Rot: ${slot.orientation ?? 0}°\nLeft-click to rotate · Right-click to remove`;
+        } else {
+          cell.title = `(${dx}, ${dy})\nLeft-click to place "${activeLayoutBrush}"`;
+        }
+
+        cell.onmousedown = (e) => {
+          if (e.button === 0) {
+            // Left click
+            if (slot) {
+              const currentRot = slot.orientation ?? 0;
+              const nextRot = (currentRot + 90) % 360;
+              if (nextRot === 0) delete slot.orientation;
+              else slot.orientation = nextRot;
+              changed();
+            } else if (activeLayoutBrush) {
+              piece.tiles.push({ dx, dy, tileSetId: activeLayoutBrush });
+              changed();
+            }
+          } else if (e.button === 2) {
+            // Right click: Erase
+            if (slot) {
+              piece.tiles = piece.tiles.filter(
+                (t) => !(t.dx === dx && t.dy === dy),
+              );
+              changed();
+            }
+          }
+        };
+
+        cell.oncontextmenu = (e) => e.preventDefault();
+        grid.append(cell);
+      }
+    }
+  }
+
+  populateGrid();
+
+  // 4. Slots details forms list (preserves slotEditor and #chainSlotSet0 / #chainSlotOrientation0)
+  const slotDetails = document.createElement("details");
+  slotDetails.open = true;
+  const summary = document.createElement("summary");
+  summary.textContent = `Slot List & Exact Coordinate Editor (${piece.tiles.length})`;
+  slotDetails.append(summary);
+
   piece.tiles.forEach((slot, index) =>
-    root.append(slotEditor(slot, index, piece.tiles)),
+    slotDetails.append(slotEditor(slot, index, piece.tiles)),
   );
+
   const add = document.createElement("button");
   add.type = "button";
+  add.id = "chainAddSlot";
   add.textContent = "Add slot";
   add.onclick = () => {
     piece.tiles.push({
@@ -2140,7 +2374,8 @@ function renderSetPieces(root: HTMLElement): void {
     });
     changed();
   };
-  root.append(add);
+  slotDetails.append(add);
+  root.append(slotDetails);
 }
 function renderSetPieceClasses(root: HTMLElement): void {
   const group = current() as ChainLibrary["setPieceClasses"][number];
@@ -2315,6 +2550,17 @@ function remove(): void {
     if (!confirm(msg)) return;
     for (const piece of library.setPieces)
       piece.tiles = piece.tiles.filter((t) => t.tileSetId !== selectedId);
+  }
+  if (section() === "setPieces") {
+    const classesUsing = library.setPieceClasses
+      .filter((c) => c.setPieces.includes(selectedId))
+      .map((c) => c.id);
+    const msg = classesUsing.length
+      ? `Delete set piece "${selectedId}"? It is referenced in set piece class(es): ${classesUsing.join(", ")}. References will be removed automatically.`
+      : `Delete set piece "${selectedId}"?`;
+    if (!confirm(msg)) return;
+    for (const group of library.setPieceClasses)
+      group.setPieces = group.setPieces.filter((id) => id !== selectedId);
   }
   if (section() === "classes") delete library.cellClasses[selectedId];
   else {

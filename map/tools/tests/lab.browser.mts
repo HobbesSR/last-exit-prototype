@@ -1195,6 +1195,152 @@ try {
     "status bar flags missing tile slots on the stripped set piece",
   );
 
+  // Visual Set Pieces layout grid editor (#315)
+  await page.locator("#chainSection").selectOption("setPieces");
+  assert.ok(
+    await page.locator("#setPieceGrid").isVisible(),
+    "set piece blueprint grid is visible in setPieces section",
+  );
+  assert.ok(
+    await page.locator("#setPiecePaletteList").isVisible(),
+    "tile sets palette is visible in setPieces section",
+  );
+  assert.ok(
+    await page.locator("#chainEligibleTiers").isVisible(),
+    "eligible tiers checkboxes are visible",
+  );
+
+  // 1. Palette filtering and selection
+  const initialPaletteCount = await page.locator("#setPiecePaletteList .chain-layout-palette-item").count();
+  assert.ok(initialPaletteCount > 0, "palette lists tile sets");
+  const firstPaletteItem = page.locator("#setPiecePaletteList .chain-layout-palette-item").first();
+  const firstPaletteSet = (await firstPaletteItem.getAttribute("data-tileset"))!;
+  await firstPaletteItem.click();
+  assert.ok(
+    await firstPaletteItem.evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "clicked palette item becomes active brush",
+  );
+
+  await page.locator("#setPiecePaletteFilter").fill(firstPaletteSet);
+  assert.equal(
+    await page.locator("#setPiecePaletteList .chain-layout-palette-item").count(),
+    1,
+    "filtering palette narrows to matching tile set",
+  );
+  await page.locator("#setPiecePaletteFilter").fill("");
+  assert.equal(
+    await page.locator("#setPiecePaletteList .chain-layout-palette-item").count(),
+    initialPaletteCount,
+    "clearing palette filter restores all items",
+  );
+
+  // 2. Eligible tiers checkboxes
+  const tier1Box = page.locator('#chainEligibleTiers input[data-tier="1"]');
+  const tier3Box = page.locator('#chainEligibleTiers input[data-tier="3"]');
+  await tier1Box.check();
+  await tier3Box.check();
+  let currentPieceTiers = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === snap.selectedId);
+    return piece?.eligibleTiers;
+  });
+  assert.deepEqual(currentPieceTiers, [1, 3], "checking tier boxes updates piece.eligibleTiers");
+
+  await tier1Box.uncheck();
+  await tier3Box.uncheck();
+  currentPieceTiers = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === snap.selectedId);
+    return piece?.eligibleTiers;
+  });
+  assert.equal(currentPieceTiers, undefined, "unchecking all tiers leaves eligibleTiers undefined");
+
+  // 3. Grid cell painting, rotation, and erasing
+  const targetCell = page.locator('#setPieceGrid [data-dx="2"][data-dy="2"]');
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    false,
+    "target cell starts empty",
+  );
+
+  // Left click empty cell: place slot
+  await targetCell.click();
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    true,
+    "cell is filled after clicking with active brush",
+  );
+  assert.equal(
+    await targetCell.locator(".slot-set-id").innerText(),
+    firstPaletteSet,
+    "cell displays placed tile set ID",
+  );
+  assert.equal(
+    await targetCell.locator(".slot-rot").innerText(),
+    "0°",
+    "cell displays initial 0° orientation",
+  );
+
+  // Left click filled cell: cycle rotation to 90°
+  await targetCell.click();
+  assert.equal(
+    await targetCell.locator(".slot-rot").innerText(),
+    "90°",
+    "clicking filled cell rotates slot to 90°",
+  );
+  let slotRotInSnap = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === snap.selectedId);
+    return piece?.tiles.find((s: any) => s.dx === 2 && s.dy === 2)?.orientation;
+  });
+  assert.equal(slotRotInSnap, 90, "snapshot reflects 90° orientation");
+
+  // Right click filled cell: erase slot
+  await targetCell.click({ button: "right" });
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    false,
+    "right-clicking cell erases placed slot",
+  );
+  const slotAfterErase = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === snap.selectedId);
+    return piece?.tiles.find((s: any) => s.dx === 2 && s.dy === 2);
+  });
+  assert.equal(slotAfterErase, undefined, "slot is removed from draft");
+
+  // 4. Set piece delete confirmation warning when referenced by set piece classes
+  const activePieceId = await page.evaluate(
+    () => (window as any).chainLab.snapshot().selectedId,
+  );
+  const classesUsingPiece = await page.evaluate((id: string) => {
+    const snap = (window as any).chainLab.snapshot();
+    return snap.library.setPieceClasses
+      .filter((c: any) => c.setPieces.includes(id))
+      .map((c: any) => c.id);
+  }, activePieceId);
+
+  if (classesUsingPiece.length > 0) {
+    let deletePieceMsg = "";
+    page.once("dialog", (dialog: any) => {
+      deletePieceMsg = dialog.message();
+      dialog.accept();
+    });
+    await page.locator("#chainDelete").click();
+    assert.match(
+      deletePieceMsg,
+      new RegExp(`Delete set piece "${activePieceId}"\\? It is referenced in set piece class\\(es\\): ${classesUsingPiece.join(", ")}\\. References will be removed automatically\\.`),
+      "delete set piece dialog warns about referencing set piece classes",
+    );
+    const classesStillReferencing = await page.evaluate((id: string) => {
+      const snap = (window as any).chainLab.snapshot();
+      return snap.library.setPieceClasses
+        .filter((c: any) => c.setPieces.includes(id))
+        .map((c: any) => c.id);
+    }, activePieceId);
+    assert.equal(classesStillReferencing.length, 0, "references in setPieceClasses were cleaned up");
+  }
+
   await page.screenshot({
     path: `${OUT}/chain-authoring.png`,
     fullPage: true,

@@ -586,6 +586,175 @@ button.active {
   border: 1px dashed #e2807f;
   border-radius: 2px;
 }
+.chain-layout-workspace {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+  align-items: flex-start;
+}
+.chain-layout-palette {
+  width: 190px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #0a141b;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #1c2b36;
+}
+.chain-layout-palette h4 {
+  margin: 0;
+  font-size: 12px;
+  color: #92a6b3;
+}
+.chain-layout-palette input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #081116;
+  border: 1px solid #2a3d4a;
+  color: #e2e9ee;
+  padding: 5px 8px;
+  border-radius: 3px;
+  font: inherit;
+  font-size: 12px;
+}
+.chain-layout-palette-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.chain-layout-palette-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid #1e303b;
+  border-radius: 3px;
+  background: #0f1d25;
+  color: #b0c4cf;
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+.chain-layout-palette-item:hover {
+  background: #182b36;
+  border-color: #3b5666;
+}
+.chain-layout-palette-item.active {
+  background: #193842;
+  border-color: #7fd4dd;
+  color: #e2f7fc;
+  font-weight: 600;
+  box-shadow: 0 0 6px rgba(127, 212, 221, 0.3);
+}
+.chain-layout-palette-item .palette-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.chain-layout-grid-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  background: #0a141b;
+  padding: 12px;
+  border-radius: 4px;
+  border: 1px solid #1c2b36;
+  overflow: auto;
+}
+.chain-layout-grid {
+  display: grid;
+  gap: 2px;
+  background: #182630;
+  border: 2px solid #20323e;
+  border-radius: 4px;
+  user-select: none;
+}
+.chain-layout-cell {
+  background: #0a141a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 9px;
+  text-align: center;
+  padding: 2px;
+  overflow: hidden;
+  position: relative;
+  transition: background 0.1s ease;
+  box-sizing: border-box;
+}
+.chain-layout-cell:hover {
+  background: #162833;
+  outline: 1px solid #4a7585;
+  z-index: 2;
+}
+.chain-layout-cell.origin {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+.chain-layout-cell.origin::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #7fd4dd;
+  opacity: 0.7;
+}
+.chain-layout-cell.filled {
+  background: #183329;
+  border: 1px solid #2a6148;
+  color: #e2f7fc;
+}
+.chain-layout-cell.filled:hover {
+  border-color: #83d7a4;
+}
+.chain-layout-cell .slot-set-id {
+  font-size: 8px;
+  font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chain-layout-cell .slot-rot {
+  font-size: 8px;
+  color: #92b7c6;
+  opacity: 0.85;
+}
+.chain-tiers-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0;
+}
+.chain-tiers-label {
+  font-size: 11px;
+  color: #92a6b3;
+}
+.chain-tiers-boxes {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.chain-tiers-boxes label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #c9d8e0;
+}
 .tile-card {
   border: 1px solid #283e4a;
   background: #0f1d25;
