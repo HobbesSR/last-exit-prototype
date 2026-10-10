@@ -353,9 +353,8 @@ try {
   await page.locator("#chainSection").selectOption("tileSets");
   await page.locator("#chainAdd").click();
   await page
-    .locator("#chainEditor label.chain-check", { hasText: "new-tile" })
-    .locator("input")
-    .check();
+    .locator('#setAvailableGallery .tile-card[data-tile="new-tile"]')
+    .click();
   await page.locator("#chainSection").selectOption("setPieces");
   await page.locator("#chainAdd").click();
   await page.locator("#chainPrimaryClass").selectOption("checkpoint");
@@ -950,6 +949,476 @@ try {
     setsReferencingBefore,
     "tile set members list was updated automatically with the renamed tile ID",
   );
+
+  // Visual Tile Sets manager with membership and available tile galleries (#306)
+  await page.locator("#chainSection").selectOption("tileSets");
+  assert.equal(
+    await page.locator("#chainTileGallerySection").isVisible(),
+    false,
+    "tile design gallery is hidden in tileSets section",
+  );
+  assert.ok(
+    await page.locator("#setMembersGallery").isVisible(),
+    "members gallery is visible in tileSets section",
+  );
+  assert.ok(
+    await page.locator("#setAvailableGallery").isVisible(),
+    "available gallery is visible in tileSets section",
+  );
+
+  const selectedSetId = await page.evaluate(
+    () => (window as any).chainLab.snapshot().selectedId,
+  );
+  const activeSetInfo = await page.evaluate((id: string) => {
+    const snap = (window as any).chainLab.snapshot();
+    const set = snap.library.tileSets.find((s: any) => s.id === id);
+    return {
+      membersCount: set.members.length,
+      availableCount: snap.library.tiles.length - set.members.length,
+      firstMember: set.members[0],
+    };
+  }, selectedSetId);
+
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    activeSetInfo.membersCount,
+    "members gallery renders cards for set members",
+  );
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    activeSetInfo.availableCount,
+    "available gallery renders cards for non-member tiles",
+  );
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card figure i").count(),
+    activeSetInfo.membersCount * 36,
+    "member cards render 6x6 thumbnail grids",
+  );
+
+  // Add an available tile to the set
+  const firstAvailableCard = page.locator("#setAvailableGallery .tile-card").first();
+  const tileToAdd = (await firstAvailableCard.getAttribute("data-tile"))!;
+  await firstAvailableCard.click();
+
+  assert.equal(
+    await page.evaluate(
+      (args: { setId: string; tileId: string }) => {
+        const snap = (window as any).chainLab.snapshot();
+        const set = snap.library.tileSets.find((s: any) => s.id === args.setId);
+        return set.members.includes(args.tileId);
+      },
+      { setId: selectedSetId, tileId: tileToAdd },
+    ),
+    true,
+    "clicking available tile adds it to set members",
+  );
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    activeSetInfo.membersCount + 1,
+    "members gallery count increments",
+  );
+  assert.ok(
+    await page.locator(`#setMembersGallery .tile-card[data-tile="${tileToAdd}"]`).isVisible(),
+    "added tile is visible in members gallery",
+  );
+  assert.equal(
+    await page.locator(`#setAvailableGallery .tile-card[data-tile="${tileToAdd}"]`).count(),
+    0,
+    "added tile is removed from available gallery",
+  );
+
+  // Add all remaining available tiles to test "All library tiles are members" state robustly
+  while ((await page.locator("#setAvailableGallery .tile-card").count()) > 0) {
+    await page.locator("#setAvailableGallery .tile-card").first().click();
+  }
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    0,
+    "no tiles left in available gallery after adding all",
+  );
+  assert.match(
+    await page.locator("#setAvailableGallery .gallery-empty").innerText(),
+    /All library tiles are members of this set/,
+    "empty notice is shown when all tiles are members",
+  );
+
+  // Remove the newly added tile from the set
+  await page.locator(`#setMembersGallery .tile-card[data-tile="${tileToAdd}"]`).click();
+  assert.equal(
+    await page.evaluate(
+      (args: { setId: string; tileId: string }) => {
+        const snap = (window as any).chainLab.snapshot();
+        const set = snap.library.tileSets.find((s: any) => s.id === args.setId);
+        return set.members.includes(args.tileId);
+      },
+      { setId: selectedSetId, tileId: tileToAdd },
+    ),
+    false,
+    "clicking member tile removes it from set members",
+  );
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    activeSetInfo.membersCount,
+    "members gallery count decrements",
+  );
+  assert.ok(
+    await page.locator(`#setAvailableGallery .tile-card[data-tile="${tileToAdd}"]`).isVisible(),
+    "removed tile returns to available gallery",
+  );
+
+  // Filter available gallery
+  await page.locator("#setAvailableFilter").fill("nonexistent-tile-xyz");
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    0,
+    "non-matching query yields no cards",
+  );
+  assert.match(
+    await page.locator("#setAvailableGallery .gallery-empty").innerText(),
+    /No available tiles match/,
+    "empty notice is shown for matching query with no results",
+  );
+  await page.locator("#setAvailableFilter").fill(tileToAdd);
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    1,
+    "filter narrows to matching available card",
+  );
+  await page.locator("#setAvailableFilter").fill("");
+  assert.equal(
+    await page.locator("#setAvailableGallery .tile-card").count(),
+    activeSetInfo.availableCount,
+    "clearing filter restores available cards",
+  );
+
+  // Non-empty set validation enforcement
+  await page.locator("#chainAdd").click();
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    1,
+    "newly added tile set has exactly 1 initial member",
+  );
+  // Try to remove the only member
+  await page.locator("#setMembersGallery .tile-card").first().click();
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    1,
+    "attempting to remove the only member is prevented",
+  );
+  assert.match(
+    await page.locator("#chainStatus").innerText(),
+    /must have at least one member to remain valid/,
+    "status bar warns that tile set must have at least one member",
+  );
+
+  // Add a second member and then removal is allowed
+  const secondTileToAdd = (await page.locator("#setAvailableGallery .tile-card").first().getAttribute("data-tile"))!;
+  await page.locator("#setAvailableGallery .tile-card").first().click();
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    2,
+    "set now has 2 members",
+  );
+  await page.locator(`#setMembersGallery .tile-card[data-tile="${secondTileToAdd}"]`).click();
+  assert.equal(
+    await page.locator("#setMembersGallery .tile-card").count(),
+    1,
+    "removing member when multiple exist succeeds",
+  );
+
+  // Clean up: delete the test set
+  page.once("dialog", (dialog: any) => dialog.accept());
+  await page.locator("#chainDelete").click();
+
+  // Test renaming a tile set that is referenced in set pieces
+  await page.locator("#chainItem").selectOption("new-set");
+  const piecesReferencing = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    return snap.library.setPieces
+      .filter((p: any) => p.tiles.some((slot: any) => slot.tileSetId === "new-set"))
+      .map((p: any) => p.id);
+  });
+  assert.ok(piecesReferencing.length > 0, "new-set is referenced in setPieces");
+
+  // Dismiss rename
+  page.once("dialog", (dialog: any) => dialog.dismiss());
+  await page.locator("#chainId").fill("new-set-aborted");
+  await page.locator("#chainId").blur();
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().selectedId),
+    "new-set",
+    "canceling rename keeps original set ID",
+  );
+
+  // Accept rename
+  let renameDialogText = "";
+  page.once("dialog", (dialog: any) => {
+    renameDialogText = dialog.message();
+    dialog.accept();
+  });
+  await page.locator("#chainId").fill("new-set-renamed");
+  await page.locator("#chainId").blur();
+  assert.equal(
+    renameDialogText,
+    `Rename tile set "new-set" to "new-set-renamed"? It is referenced in set piece(s): ${piecesReferencing.join(", ")}. References will be updated automatically.`,
+    "rename dialog warns about referenced set pieces",
+  );
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().selectedId),
+    "new-set-renamed",
+    "selectedId updated to new-set-renamed",
+  );
+  const updatedSlotSet = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === "new-piece");
+    return piece?.tiles[0]?.tileSetId;
+  });
+  assert.equal(
+    updatedSlotSet,
+    "new-set-renamed",
+    "set piece slot tileSetId was updated automatically",
+  );
+
+  // Test delete cascade strips referencing slots from set pieces
+  let deleteCascadeDialogText = "";
+  page.once("dialog", (dialog: any) => {
+    deleteCascadeDialogText = dialog.message();
+    dialog.accept();
+  });
+  await page.locator("#chainDelete").click();
+  assert.match(
+    deleteCascadeDialogText,
+    /Referencing slot\(s\) will be removed automatically/,
+    "delete dialog warns about stripping slots from set pieces",
+  );
+  const slotsAfterDelete = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === "new-piece");
+    return piece?.tiles.filter((slot: any) => slot.tileSetId === "new-set-renamed").length ?? 0;
+  });
+  assert.equal(
+    slotsAfterDelete,
+    0,
+    "referencing slots were stripped from set piece on tile set deletion",
+  );
+
+  // A set piece left with empty tiles is rejected by validateLibrary
+  const draftValidityAfterStrip = await page.evaluate(() => {
+    return (window as any).chainLab.snapshot().valid;
+  });
+  assert.equal(
+    draftValidityAfterStrip,
+    false,
+    "a set piece left with 0 tile slots is rejected by validateLibrary",
+  );
+  assert.match(
+    await page.locator("#chainStatus").innerText(),
+    /set piece new-piece: missing tile slots/,
+    "status bar flags missing tile slots on the stripped set piece",
+  );
+
+  // Visual Set Pieces layout grid editor (#315)
+  await page.locator("#chainSection").selectOption("setPieces");
+  await page.locator("#chainItem").selectOption("new-piece");
+  assert.ok(
+    await page.locator("#setPieceGrid").isVisible(),
+    "set piece blueprint grid is visible in setPieces section",
+  );
+  assert.ok(
+    await page.locator("#setPiecePaletteList").isVisible(),
+    "tile sets palette is visible in setPieces section",
+  );
+  assert.ok(
+    await page.locator("#chainEligibleTiers").isVisible(),
+    "eligible tiers checkboxes are visible",
+  );
+
+  // 1. Palette filtering and selection
+  const initialPaletteCount = await page.locator("#setPiecePaletteList .chain-layout-palette-item").count();
+  assert.ok(initialPaletteCount > 0, "palette lists tile sets");
+  const firstPaletteItem = page.locator("#setPiecePaletteList .chain-layout-palette-item").first();
+  const firstPaletteSet = (await firstPaletteItem.getAttribute("data-tileset"))!;
+  await firstPaletteItem.click();
+  assert.ok(
+    await firstPaletteItem.evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "clicked palette item becomes active brush",
+  );
+
+  await page.locator("#setPiecePaletteFilter").fill(firstPaletteSet);
+  assert.equal(
+    await page.locator("#setPiecePaletteList .chain-layout-palette-item").count(),
+    1,
+    "filtering palette narrows to matching tile set",
+  );
+  await page.locator("#setPiecePaletteFilter").fill("");
+  assert.equal(
+    await page.locator("#setPiecePaletteList .chain-layout-palette-item").count(),
+    initialPaletteCount,
+    "clearing palette filter restores all items",
+  );
+
+  // 2. Eligible tiers checkboxes (tiers 1-5)
+  const tier1Box = page.locator('#chainEligibleTiers input[data-tier="1"]');
+  const tier3Box = page.locator('#chainEligibleTiers input[data-tier="3"]');
+  await tier1Box.check();
+  await tier3Box.check();
+  let currentPieceTiers = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === snap.selectedId);
+    return piece?.eligibleTiers;
+  });
+  assert.deepEqual(currentPieceTiers, [1, 3], "checking tier boxes updates piece.eligibleTiers");
+
+  await tier1Box.uncheck();
+  await tier3Box.uncheck();
+  currentPieceTiers = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === snap.selectedId);
+    return piece?.eligibleTiers;
+  });
+  assert.equal(currentPieceTiers, undefined, "unchecking all tiers leaves eligibleTiers undefined");
+
+  // 3. Grid cell painting, rotation, and erasing
+  const targetCell = page.locator('#setPieceGrid [data-dx="2"][data-dy="2"]');
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    false,
+    "target cell starts empty",
+  );
+
+  // Left click empty cell: place slot
+  await targetCell.click();
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    true,
+    "cell is filled after clicking with active brush",
+  );
+  assert.equal(
+    await targetCell.locator(".slot-set-id").innerText(),
+    firstPaletteSet,
+    "cell displays placed tile set ID",
+  );
+  assert.equal(
+    await targetCell.locator(".slot-rot").innerText(),
+    "0°",
+    "cell displays initial 0° orientation",
+  );
+
+  // Left click filled cell: cycle rotation to 90°
+  await targetCell.click();
+  assert.equal(
+    await targetCell.locator(".slot-rot").innerText(),
+    "90°",
+    "clicking filled cell rotates slot to 90°",
+  );
+  let slotRotInSnap = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === snap.selectedId);
+    return piece?.tiles.find((s: any) => s.dx === 2 && s.dy === 2)?.orientation;
+  });
+  assert.equal(slotRotInSnap, 90, "snapshot reflects 90° orientation");
+
+  // Keyboard navigation on grid cell: Enter rotates to 180°, Space rotates to 270°, Delete erases
+  await targetCell.press("Enter");
+  assert.equal(
+    await targetCell.locator(".slot-rot").innerText(),
+    "180°",
+    "pressing Enter on filled cell rotates to 180°",
+  );
+  await targetCell.press("Space");
+  assert.equal(
+    await targetCell.locator(".slot-rot").innerText(),
+    "270°",
+    "pressing Space on filled cell rotates to 270°",
+  );
+  await targetCell.press("Delete");
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    false,
+    "pressing Delete on filled cell erases slot",
+  );
+  const slotAfterErase = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === "new-piece");
+    return piece?.tiles.find((s: any) => s.dx === 2 && s.dy === 2);
+  });
+  assert.equal(slotAfterErase, undefined, "slot is removed from draft");
+
+  // Keyboard placement on empty cell: Enter places active brush
+  await targetCell.press("Enter");
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    true,
+    "pressing Enter on empty cell places active brush",
+  );
+
+  // Dynamic grid expansion beyond ±5: placing on boundary cell (5, 5) expands grid margin
+  const boundaryCell = page.locator('#setPieceGrid [data-dx="5"][data-dy="5"]');
+  await boundaryCell.click();
+  assert.equal(
+    await boundaryCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    true,
+    "placed slot at boundary coordinate (5, 5)",
+  );
+  assert.ok(
+    await page.locator('#setPieceGrid [data-dx="6"][data-dy="6"]').isVisible(),
+    "grid bounds dynamically expand beyond ±5 with 1-cell border margin",
+  );
+
+  // Right-click to erase slots
+  await boundaryCell.click({ button: "right" });
+  await targetCell.click({ button: "right" });
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    false,
+    "right-clicking cell erases placed slot",
+  );
+
+  // Enforce validateLibrary check on set piece left with 0 tile slots (#315)
+  const pieceSlotsCount = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === "new-piece");
+    return piece?.tiles.length;
+  });
+  assert.equal(pieceSlotsCount, 0, "new-piece has 0 tile slots after erasing");
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().valid),
+    false,
+    "set piece left with 0 tile slots is rejected by validateLibrary",
+  );
+  assert.match(
+    await page.locator("#chainStatus").innerText(),
+    /set piece new-piece: missing tile slots/,
+    "status bar flags missing tile slots on set piece after right-click erase",
+  );
+
+  // 4. Set piece delete confirmation warning when referenced by set piece classes
+  const classesUsingPiece = await page.evaluate((id: string) => {
+    const snap = (window as any).chainLab.snapshot();
+    return snap.library.setPieceClasses
+      .filter((c: any) => c.setPieces.includes(id))
+      .map((c: any) => c.id);
+  }, "new-piece");
+  assert.ok(classesUsingPiece.length > 0, "new-piece is referenced by set piece classes");
+
+  let deletePieceMsg = "";
+  page.once("dialog", (dialog: any) => {
+    deletePieceMsg = dialog.message();
+    dialog.accept();
+  });
+  await page.locator("#chainDelete").click();
+  assert.match(
+    deletePieceMsg,
+    new RegExp(`Delete set piece "new-piece"\\? It is referenced in set piece class\\(es\\): ${classesUsingPiece.join(", ")}\\. References will be removed automatically\\.`),
+    "delete set piece dialog warns about referencing set piece classes",
+  );
+  const classesStillReferencing = await page.evaluate((id: string) => {
+    const snap = (window as any).chainLab.snapshot();
+    return snap.library.setPieceClasses
+      .filter((c: any) => c.setPieces.includes("new-piece"))
+      .map((c: any) => c.id);
+  });
+  assert.equal(classesStillReferencing.length, 0, "references in setPieceClasses were cleaned up");
 
   await page.screenshot({
     path: `${OUT}/chain-authoring.png`,
