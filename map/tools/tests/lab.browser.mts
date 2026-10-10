@@ -1195,6 +1195,209 @@ try {
     "status bar flags missing tile slots on the stripped set piece",
   );
 
+  // Visual Set Pieces layout grid editor (#315)
+  await page.locator("#chainSection").selectOption("setPieces");
+  await page.locator("#chainItem").selectOption("new-piece");
+  assert.ok(
+    await page.locator("#setPieceGrid").isVisible(),
+    "set piece blueprint grid is visible in setPieces section",
+  );
+  assert.ok(
+    await page.locator("#setPiecePaletteList").isVisible(),
+    "tile sets palette is visible in setPieces section",
+  );
+  assert.ok(
+    await page.locator("#chainEligibleTiers").isVisible(),
+    "eligible tiers checkboxes are visible",
+  );
+
+  // 1. Palette filtering and selection
+  const initialPaletteCount = await page.locator("#setPiecePaletteList .chain-layout-palette-item").count();
+  assert.ok(initialPaletteCount > 0, "palette lists tile sets");
+  const firstPaletteItem = page.locator("#setPiecePaletteList .chain-layout-palette-item").first();
+  const firstPaletteSet = (await firstPaletteItem.getAttribute("data-tileset"))!;
+  await firstPaletteItem.click();
+  assert.ok(
+    await firstPaletteItem.evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "clicked palette item becomes active brush",
+  );
+
+  await page.locator("#setPiecePaletteFilter").fill(firstPaletteSet);
+  assert.equal(
+    await page.locator("#setPiecePaletteList .chain-layout-palette-item").count(),
+    1,
+    "filtering palette narrows to matching tile set",
+  );
+  await page.locator("#setPiecePaletteFilter").fill("");
+  assert.equal(
+    await page.locator("#setPiecePaletteList .chain-layout-palette-item").count(),
+    initialPaletteCount,
+    "clearing palette filter restores all items",
+  );
+
+  // 2. Eligible tiers checkboxes (tiers 1-5)
+  const tier1Box = page.locator('#chainEligibleTiers input[data-tier="1"]');
+  const tier3Box = page.locator('#chainEligibleTiers input[data-tier="3"]');
+  await tier1Box.check();
+  await tier3Box.check();
+  let currentPieceTiers = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === snap.selectedId);
+    return piece?.eligibleTiers;
+  });
+  assert.deepEqual(currentPieceTiers, [1, 3], "checking tier boxes updates piece.eligibleTiers");
+
+  await tier1Box.uncheck();
+  await tier3Box.uncheck();
+  currentPieceTiers = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === snap.selectedId);
+    return piece?.eligibleTiers;
+  });
+  assert.equal(currentPieceTiers, undefined, "unchecking all tiers leaves eligibleTiers undefined");
+
+  // 3. Grid cell painting, rotation, and erasing
+  const targetCell = page.locator('#setPieceGrid [data-dx="2"][data-dy="2"]');
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    false,
+    "target cell starts empty",
+  );
+
+  // Left click empty cell: place slot
+  await targetCell.click();
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    true,
+    "cell is filled after clicking with active brush",
+  );
+  assert.equal(
+    await targetCell.locator(".slot-set-id").innerText(),
+    firstPaletteSet,
+    "cell displays placed tile set ID",
+  );
+  assert.equal(
+    await targetCell.locator(".slot-rot").innerText(),
+    "0°",
+    "cell displays initial 0° orientation",
+  );
+
+  // Left click filled cell: cycle rotation to 90°
+  await targetCell.click();
+  assert.equal(
+    await targetCell.locator(".slot-rot").innerText(),
+    "90°",
+    "clicking filled cell rotates slot to 90°",
+  );
+  let slotRotInSnap = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === snap.selectedId);
+    return piece?.tiles.find((s: any) => s.dx === 2 && s.dy === 2)?.orientation;
+  });
+  assert.equal(slotRotInSnap, 90, "snapshot reflects 90° orientation");
+
+  // Keyboard navigation on grid cell: Enter rotates to 180°, Space rotates to 270°, Delete erases
+  await targetCell.press("Enter");
+  assert.equal(
+    await targetCell.locator(".slot-rot").innerText(),
+    "180°",
+    "pressing Enter on filled cell rotates to 180°",
+  );
+  await targetCell.press("Space");
+  assert.equal(
+    await targetCell.locator(".slot-rot").innerText(),
+    "270°",
+    "pressing Space on filled cell rotates to 270°",
+  );
+  await targetCell.press("Delete");
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    false,
+    "pressing Delete on filled cell erases slot",
+  );
+  const slotAfterErase = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === "new-piece");
+    return piece?.tiles.find((s: any) => s.dx === 2 && s.dy === 2);
+  });
+  assert.equal(slotAfterErase, undefined, "slot is removed from draft");
+
+  // Keyboard placement on empty cell: Enter places active brush
+  await targetCell.press("Enter");
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    true,
+    "pressing Enter on empty cell places active brush",
+  );
+
+  // Dynamic grid expansion beyond ±5: placing on boundary cell (5, 5) expands grid margin
+  const boundaryCell = page.locator('#setPieceGrid [data-dx="5"][data-dy="5"]');
+  await boundaryCell.click();
+  assert.equal(
+    await boundaryCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    true,
+    "placed slot at boundary coordinate (5, 5)",
+  );
+  assert.ok(
+    await page.locator('#setPieceGrid [data-dx="6"][data-dy="6"]').isVisible(),
+    "grid bounds dynamically expand beyond ±5 with 1-cell border margin",
+  );
+
+  // Right-click to erase slots
+  await boundaryCell.click({ button: "right" });
+  await targetCell.click({ button: "right" });
+  assert.equal(
+    await targetCell.evaluate((el: HTMLElement) => el.classList.contains("filled")),
+    false,
+    "right-clicking cell erases placed slot",
+  );
+
+  // Enforce validateLibrary check on set piece left with 0 tile slots (#315)
+  const pieceSlotsCount = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const piece = snap.library.setPieces.find((p: any) => p.id === "new-piece");
+    return piece?.tiles.length;
+  });
+  assert.equal(pieceSlotsCount, 0, "new-piece has 0 tile slots after erasing");
+  assert.equal(
+    await page.evaluate(() => (window as any).chainLab.snapshot().valid),
+    false,
+    "set piece left with 0 tile slots is rejected by validateLibrary",
+  );
+  assert.match(
+    await page.locator("#chainStatus").innerText(),
+    /set piece new-piece: missing tile slots/,
+    "status bar flags missing tile slots on set piece after right-click erase",
+  );
+
+  // 4. Set piece delete confirmation warning when referenced by set piece classes
+  const classesUsingPiece = await page.evaluate((id: string) => {
+    const snap = (window as any).chainLab.snapshot();
+    return snap.library.setPieceClasses
+      .filter((c: any) => c.setPieces.includes(id))
+      .map((c: any) => c.id);
+  }, "new-piece");
+  assert.ok(classesUsingPiece.length > 0, "new-piece is referenced by set piece classes");
+
+  let deletePieceMsg = "";
+  page.once("dialog", (dialog: any) => {
+    deletePieceMsg = dialog.message();
+    dialog.accept();
+  });
+  await page.locator("#chainDelete").click();
+  assert.match(
+    deletePieceMsg,
+    new RegExp(`Delete set piece "new-piece"\\? It is referenced in set piece class\\(es\\): ${classesUsingPiece.join(", ")}\\. References will be removed automatically\\.`),
+    "delete set piece dialog warns about referencing set piece classes",
+  );
+  const classesStillReferencing = await page.evaluate((id: string) => {
+    const snap = (window as any).chainLab.snapshot();
+    return snap.library.setPieceClasses
+      .filter((c: any) => c.setPieces.includes("new-piece"))
+      .map((c: any) => c.id);
+  });
+  assert.equal(classesStillReferencing.length, 0, "references in setPieceClasses were cleaned up");
+
   await page.screenshot({
     path: `${OUT}/chain-authoring.png`,
     fullPage: true,
