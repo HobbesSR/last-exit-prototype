@@ -719,6 +719,10 @@ button.active {
 .chain-layout-cell.filled:hover {
   border-color: #83d7a4;
 }
+.chain-layout-cell.duplicate {
+  outline: 2px dashed #f25f5c;
+  outline-offset: -2px;
+}
 .chain-layout-cell .slot-set-id {
   font-size: 8px;
   font-weight: 600;

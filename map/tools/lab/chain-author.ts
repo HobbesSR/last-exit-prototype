@@ -379,10 +379,12 @@ function rename(next: string): void {
     if (section() === "tiles")
       for (const set of library.tileSets)
         set.members = set.members.map((id) => (id === old ? next : id));
-    if (section() === "tileSets")
+    if (section() === "tileSets") {
+      if (activeLayoutBrush === old) activeLayoutBrush = next;
       for (const piece of library.setPieces)
         for (const slot of piece.tiles)
           if (slot.tileSetId === old) slot.tileSetId = next;
+    }
     if (section() === "setPieces")
       for (const group of library.setPieceClasses)
         group.setPieces = group.setPieces.map((id) => (id === old ? next : id));
@@ -2120,8 +2122,8 @@ function renderSetPieces(root: HTMLElement): void {
   const piece = current() as ChainLibrary["setPieces"][number];
   if (!piece) return;
 
-  if (!activeLayoutBrush && library.tileSets[0]) {
-    activeLayoutBrush = library.tileSets[0].id;
+  if (!library.tileSets.some((s) => s.id === activeLayoutBrush)) {
+    activeLayoutBrush = library.tileSets[0]?.id ?? "";
   }
 
   // 1. Primary region class
@@ -2139,7 +2141,7 @@ function renderSetPieces(root: HTMLElement): void {
     ),
   );
 
-  // 2. Eligible tiers checkboxes
+  // 2. Eligible tiers checkboxes (tiers 1-5)
   const tiersBox = document.createElement("div");
   tiersBox.className = "chain-tiers-container";
   const tiersLabel = document.createElement("span");
@@ -2153,7 +2155,7 @@ function renderSetPieces(root: HTMLElement): void {
   tiersGroup.className = "chain-tiers-boxes";
 
   const currentTiers = new Set(piece.eligibleTiers ?? []);
-  for (let tier = 0; tier <= 5; tier++) {
+  for (let tier = 1; tier <= 5; tier++) {
     const label = document.createElement("label");
     const cb = document.createElement("input");
     cb.type = "checkbox";
@@ -2172,20 +2174,6 @@ function renderSetPieces(root: HTMLElement): void {
   }
   tiersBox.append(tiersGroup);
   root.append(tiersBox);
-
-  // Also include the text input for backwards compatibility
-  root.append(
-    field(
-      "Eligible tiers (comma-separated)",
-      "chainPieceTiers",
-      (piece.eligibleTiers ?? []).join(", "),
-      (v) => {
-        if (v.trim()) piece.eligibleTiers = numberList(v);
-        else delete piece.eligibleTiers;
-        changed();
-      },
-    ),
-  );
 
   // 3. 2D Layout Blueprint Workspace
   const workspace = document.createElement("div");
@@ -2211,6 +2199,9 @@ function renderSetPieces(root: HTMLElement): void {
   palette.append(paletteHead, filterInput, paletteList);
 
   function populatePalette(): void {
+    if (!library.tileSets.some((s) => s.id === activeLayoutBrush)) {
+      activeLayoutBrush = library.tileSets[0]?.id ?? "";
+    }
     const filter = setPiecePaletteFilter.trim().toLowerCase();
     const tileSetIds = library.tileSets.map((s) => s.id);
     const matching = tileSetIds.filter(
@@ -2279,10 +2270,10 @@ function renderSetPieces(root: HTMLElement): void {
       minDy = -5,
       maxDy = 5;
     for (const s of piece.tiles) {
-      minDx = Math.min(minDx, s.dx);
-      maxDx = Math.max(maxDx, s.dx);
-      minDy = Math.min(minDy, s.dy);
-      maxDy = Math.max(maxDy, s.dy);
+      minDx = Math.min(minDx, s.dx - 1);
+      maxDx = Math.max(maxDx, s.dx + 1);
+      minDy = Math.min(minDy, s.dy - 1);
+      maxDy = Math.max(maxDy, s.dy + 1);
     }
 
     const cols = maxDx - minDx + 1;
@@ -2299,9 +2290,13 @@ function renderSetPieces(root: HTMLElement): void {
 
         if (dx === 0 && dy === 0) cell.classList.add("origin");
 
-        const slot = piece.tiles.find((t) => t.dx === dx && t.dy === dy);
+        const matchingSlots = piece.tiles.filter((t) => t.dx === dx && t.dy === dy);
+        const slot = matchingSlots[0];
         if (slot) {
           cell.classList.add("filled");
+          if (matchingSlots.length > 1) {
+            cell.classList.add("duplicate");
+          }
           cell.dataset.tileset = slot.tileSetId;
           cell.style.borderLeftColor = classColor(slot.tileSetId);
 
@@ -2311,34 +2306,63 @@ function renderSetPieces(root: HTMLElement): void {
 
           const rotSpan = document.createElement("span");
           rotSpan.className = "slot-rot";
-          rotSpan.textContent = `${slot.orientation ?? 0}°`;
+          rotSpan.textContent = `${slot.orientation ?? 0}°${matchingSlots.length > 1 ? " (!)" : ""}`;
 
           cell.append(nameSpan, rotSpan);
-          cell.title = `Slot (${dx}, ${dy}) · Set: ${slot.tileSetId} · Rot: ${slot.orientation ?? 0}°\nLeft-click to rotate · Right-click to remove`;
+          cell.title = matchingSlots.length > 1
+            ? `Warning: ${matchingSlots.length} duplicate slots at (${dx}, ${dy})!\nLeft-click to rotate · Right-click to remove`
+            : `Slot (${dx}, ${dy}) · Set: ${slot.tileSetId} · Rot: ${slot.orientation ?? 0}°\nLeft-click to rotate · Right-click to remove`;
         } else {
           cell.title = `(${dx}, ${dy})\nLeft-click to place "${activeLayoutBrush}"`;
         }
 
+        cell.tabIndex = 0;
+        cell.setAttribute("role", "button");
+        cell.setAttribute(
+          "aria-label",
+          slot
+            ? `Slot at (${dx}, ${dy}), tile set ${slot.tileSetId}, orientation ${slot.orientation ?? 0} degrees`
+            : `Empty cell at (${dx}, ${dy})`,
+        );
+
+        const activateSlot = () => {
+          if (slot) {
+            const currentRot = slot.orientation ?? 0;
+            const nextRot = (currentRot + 90) % 360;
+            if (nextRot === 0) delete slot.orientation;
+            else slot.orientation = nextRot;
+            changed();
+          } else if (activeLayoutBrush) {
+            piece.tiles.push({ dx, dy, tileSetId: activeLayoutBrush });
+            changed();
+          }
+        };
+
+        const eraseSlot = () => {
+          if (slot) {
+            piece.tiles = piece.tiles.filter(
+              (t) => !(t.dx === dx && t.dy === dy),
+            );
+            changed();
+          }
+        };
+
         cell.onmousedown = (e) => {
           if (e.button === 0) {
-            // Left click
-            if (slot) {
-              const currentRot = slot.orientation ?? 0;
-              const nextRot = (currentRot + 90) % 360;
-              if (nextRot === 0) delete slot.orientation;
-              else slot.orientation = nextRot;
-              changed();
-            } else if (activeLayoutBrush) {
-              piece.tiles.push({ dx, dy, tileSetId: activeLayoutBrush });
-              changed();
-            }
+            activateSlot();
           } else if (e.button === 2) {
-            // Right click: Erase
+            eraseSlot();
+          }
+        };
+
+        cell.onkeydown = (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            activateSlot();
+          } else if (e.key === "Delete" || e.key === "Backspace") {
             if (slot) {
-              piece.tiles = piece.tiles.filter(
-                (t) => !(t.dx === dx && t.dy === dy),
-              );
-              changed();
+              e.preventDefault();
+              eraseSlot();
             }
           }
         };
@@ -2550,6 +2574,9 @@ function remove(): void {
     if (!confirm(msg)) return;
     for (const piece of library.setPieces)
       piece.tiles = piece.tiles.filter((t) => t.tileSetId !== selectedId);
+    if (activeLayoutBrush === selectedId) {
+      activeLayoutBrush = library.tileSets.find((s) => s.id !== selectedId)?.id ?? "";
+    }
   }
   if (section() === "setPieces") {
     const classesUsing = library.setPieceClasses
