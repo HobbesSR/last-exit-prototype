@@ -286,11 +286,21 @@ function refreshDevRoster() {
 // playhead selects when a recording is open. `state` stays the newest authoritative frame, which is
 // what the HUD, prediction and every gameplay read use.
 function presentationFrame() { return replayController.active() ? state : presentation || state; }
+function currentView() {
+  if (replayController.active()) return 'replay';
+  if (inDevView()) return 'dev';
+  if (!state || state.phase === 'waiting' || $('lobby-dialog').open) return 'lobby';
+  if (!playerId) return 'spectator';
+  const me = state.players.find(p => p.id === playerId);
+  if (!me || me.status !== 'active' || state.phase === 'finished') return 'outcome';
+  return 'play';
+}
 function updateHUD() {
-  hudController.render({ state, arenaMap, playerId, replay: replayController.active(), savedReplay,
+  hudController.render({ state, arenaMap, playerId, replay: replayController.active(), dev: inDevView(), savedReplay,
     selection: inputController.selection(),
     visibility: { directed: directed(), sight: scene?.sight }
   });
+  showPlayerHud();
 }
 
 let scene;
@@ -482,12 +492,18 @@ async function downloadDiagnostics() {
 }
 $('download-diagnostics').onclick = () => void downloadDiagnostics();
 $('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) { ws.send(JSON.stringify({ type: 'finish' })); $('finish-recording').disabled = true; } };
+let savedDevCamera = null;
 // The dev view opens beside the match rather than in place of it, so a player keeps their slot.
 function enterDevView() {
   if (devFeed || !playerId || replayController.active() || ws?.readyState !== WebSocket.OPEN) return;
   clearInput();
   const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
-  devFeed = socket; showDevMode(); const layers = createLayerDecoder();
+  devFeed = socket;
+  if (savedDevCamera) {
+    if (savedDevCamera.followId) director.setFollow(savedDevCamera.followId);
+    director.setFog(savedDevCamera.fog);
+  }
+  showDevMode(); const layers = createLayerDecoder();
   socket.addEventListener('open', () => socket.send(JSON.stringify({ type: 'join', room: roomId, ownerKey, role: 'dev' })));
   socket.addEventListener('message', event => {
     if (devFeed !== socket) return;
@@ -502,6 +518,7 @@ function enterDevView() {
 function leaveDevView() {
   const socket = devFeed;
   if (!socket) return;
+  savedDevCamera = { followId: director.followId(), fog: director.fog() };
   devFeed = null; socket.close(); director.reset(); snapshots.reset();
   if (liveMap && liveState && !replayController.active()) { changeMap(liveMap); acceptState(liveState); }
   showDevMode(); scene?.cutTo();
@@ -509,7 +526,13 @@ function leaveDevView() {
 function showDevMode() {
   const on = inDevView();
   $('dev-controls').hidden = !on; $('dev-leave').hidden = !devFeed;
-  showPlayerHud();
+  if (devFeed) {
+    const me = liveState?.players?.find(p => p.id === playerId) || state?.players?.find(p => p.id === playerId);
+    const dead = me && (me.status !== 'active' || (state && state.phase === 'finished'));
+    $('dev-leave').innerHTML = `<i data-lucide="user"></i><span>${dead ? 'Back to death screen' : 'Back to player'}</span>`;
+    icons();
+  }
+  updateHUD();
   $('dev-view').classList.toggle('active', !!devFeed); $('dev-view').setAttribute('aria-pressed', String(!!devFeed));
   if (ws?.readyState === WebSocket.OPEN && !replayController.active()) connection(on ? 'DEV VIEW' : 'LIVE');
 }
@@ -587,5 +610,5 @@ window.arenaProfiling = setProfiling;
 // tooling will grow from, and what the tests drive.
 window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, role: 'spectator' });
 // Read-only inspection surface for reproducible browser smoke tests.
-window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: director.followId(), dev: inDevView(), devFeed: !!devFeed, paused, fog: director.fog(), viewer: director.viewer()?.id ?? null, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, map: arenaMap && { seed: arenaMap.seed, width: arenaMap.width, height: arenaMap.height, playableArea: arenaMap.playableArea, exit: arenaMap.exit, spawns: arenaMap.spawns, hunterSpawns: arenaMap.hunterSpawns, stations: arenaMap.stations.map(({ x, y }) => ({ x, y })), chargers: arenaMap.chargers.map(({ x, y }) => ({ x, y })) }, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
+window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: director.followId(), dev: inDevView(), devFeed: !!devFeed, view: currentView(), paused, fog: director.fog(), viewer: director.viewer()?.id ?? null, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, map: arenaMap && { seed: arenaMap.seed, width: arenaMap.width, height: arenaMap.height, playableArea: arenaMap.playableArea, exit: arenaMap.exit, spawns: arenaMap.spawns, hunterSpawns: arenaMap.hunterSpawns, stations: arenaMap.stations.map(({ x, y }) => ({ x, y })), chargers: arenaMap.chargers.map(({ x, y }) => ({ x, y })) }, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
   pending: pending.length, inputStalled: state?.players.find(p => p.id === playerId)?.inputStalled ?? null, rtt: roundTripMs });

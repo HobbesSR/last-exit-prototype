@@ -106,9 +106,10 @@ export function createReplayController({
   }
   function close() {
     replay = null; replayTimeline = null; director.reset(); $('replay-marks').replaceChildren();
-    $('replay-controls').hidden = true; $('live-hud').hidden = false; document.body.classList.remove('replaying');
+    $('replay-controls').hidden = true; document.body.classList.remove('replaying');
     const liveMap = getLiveMap(), liveState = getLiveState();
     if (liveMap && liveState) { changeMap(liveMap); acceptState(liveState); }
+    else { updateHUD(); }
     connection(liveConnectionLabel()); getScene()?.updateCamera(true);
   }
   function reset() {

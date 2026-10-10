@@ -149,8 +149,29 @@ try {
   await page.locator('#dev-view').click();
   await page.waitForFunction(() => !window.arenaDebug().devFeed && window.arenaDebug().phase === 'live');
   assert.equal(await hud(), false, 'stepping back shows it');
+
+  // When a player is eliminated, the death dialog shows (#277). Stepping out to the dev view
+  // must hide the death dialog, and stepping back must restore it.
+  const currentRoom = server.rooms.get(await page.evaluate(() => window.arenaDebug().room));
+  const currentMe = await page.evaluate(() => window.arenaDebug().me);
+  currentRoom.game.players.find(p => p.id === currentMe.id).status = 'eliminated';
+  await page.waitForFunction(() => !document.getElementById('outcome').hidden && window.arenaDebug().view === 'outcome');
+  assert.equal(await page.locator('#outcome-label').textContent(), 'CONTESTANT ELIMINATED');
+  assert.equal(await page.locator('#outcome-title').textContent(), 'End of the line.');
+
+  // Step out to dev view while dead: outcome dialogue must be hidden
+  await page.locator('#dev-view').click();
+  await page.waitForFunction(() => window.arenaDebug().devFeed && window.arenaDebug().view === 'dev');
+  assert.equal(await page.evaluate(() => document.getElementById('outcome').hidden), true, 'death dialogue is hidden in dev view');
+  assert.equal(await page.locator('#dev-leave').textContent(), 'Back to death screen', 'leave button reflects death screen view');
+
+  // Step back to death screen: outcome dialogue must be restored
+  await page.locator('#dev-leave').click();
+  await page.waitForFunction(() => !window.arenaDebug().devFeed && window.arenaDebug().view === 'outcome');
+  assert.equal(await page.evaluate(() => document.getElementById('outcome').hidden), false, 'death dialogue is restored when stepping back');
+
   await browse();
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: true, checks: ['step out and back', 'dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'teleport', 'pause and resume', 'browser dev view', 'browser role after dev view and Auto', 'dev view across the start'] }));
+  console.log(JSON.stringify({ passed: true, checks: ['step out and back', 'dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'teleport', 'pause and resume', 'browser dev view', 'browser role after dev view and Auto', 'dev view across the start', 'death dialog hidden in dev view and restored'] }));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
 finally { await browser.close(); await server.close(); await rm(replayDir, { recursive: true, force: true }); }

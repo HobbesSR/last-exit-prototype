@@ -117,7 +117,7 @@ export function createHUDController(actions) {
   listen(document, 'contextmenu', e => {
     if (e.target.closest('[data-tip]')) e.preventDefault();
   });
-  function hud({ state, arenaMap, playerId, replay, savedReplay, selection: { moveFrom }, visibility }) {
+  function hud({ state, arenaMap, playerId, replay, dev = false, savedReplay, selection: { moveFrom }, visibility }) {
     const me = state.players.find(p => p.id === playerId) || (replay ? state.players[0] : null);
     dragEnabled = false;
     // The waiting area before a match (#236) has no clock, objective, loadout or outcome to show.
@@ -140,17 +140,17 @@ export function createHUDController(actions) {
     
     if (me) {
       const gladiator = me.role === 'gladiator';
-      dragEnabled = !gladiator && !replay && me.status === 'active' && !document.querySelector('dialog:modal');
+      dragEnabled = !gladiator && !replay && !dev && me.status === 'active' && !document.querySelector('dialog:modal');
       if (!dragEnabled) cancelDrag();
       const cell = carriedCell(me) || me.cell; // Older recordings stored a dedicated cell.
-      setHidden($('drop-item'), gladiator || !!replay || me.status !== 'active');
+      setHidden($('drop-item'), gladiator || !!replay || !!dev || me.status !== 'active');
       setHidden($('arrange-item'), $('drop-item').hidden);
       setText($('arrange-item'), moveFrom === null ? 'Move / merge · R' : 'Choose destination · R cancels');
       
       const arr = $('arrange-item');
       if (arr.getAttribute('aria-pressed') !== String(moveFrom !== null)) arr.setAttribute('aria-pressed', String(moveFrom !== null));
       
-      setHidden($('equipment-slots'), gladiator || !!replay);
+      setHidden($('equipment-slots'), gladiator || !!replay || !!dev);
       setHidden($('skill'), !gladiator);
       for (const button of $('equipment-slots').children) {
         const index = Number(button.dataset.slot), item = me.inventory?.[index];
@@ -173,7 +173,7 @@ export function createHUDController(actions) {
         const ariaPressed = String(me.selectedSlot === index);
         if (button.getAttribute('aria-pressed') !== ariaPressed) button.setAttribute('aria-pressed', ariaPressed);
       }
-      setHidden($('objective'), gladiator || !!replay || me.status !== 'active');
+      setHidden($('objective'), gladiator || !!replay || !!dev || me.status !== 'active');
       const chargeTicks = state.cellChargeTicks || 100;
       setText($('objective'), !cell ? 'EXPLORE FOR A POWER CELL · requires one inventory slot'
         : cell.charge >= chargeTicks ? 'CELL CHARGED · bring it to the escape pods · E to escape'
@@ -214,11 +214,12 @@ export function createHUDController(actions) {
       if ($('interact').dataset.tip !== interactTip) $('interact').dataset.tip = interactTip;
       
       setHidden($('sneak'), gladiator);
-      setHidden($('hazard-warning'), replay || me.status !== 'active' || me.x - state.hazardX > 230);
+      setHidden($('hazard-warning'), replay || !!dev || me.status !== 'active' || me.x - state.hazardX > 230);
       
-      const ended = !replay && (state.phase === 'finished' || me.status !== 'active');
-      setHidden($('outcome'), !ended);
-      if (ended) {
+      const isEndedState = state.phase === 'finished' || me.status !== 'active';
+      const showOutcome = !replay && !dev && isEndedState;
+      setHidden($('outcome'), !showOutcome);
+      if (isEndedState) {
         const escaped = me.status === 'escaped';
         setText($('outcome-label'), escaped ? 'EXTRACTION CONFIRMED' : state.phase === 'finished' ? 'BROADCAST COMPLETE' : 'CONTESTANT ELIMINATED');
         setText($('outcome-title'), escaped ? 'You made it out.' : gladiator ? 'The hunt is over.' : 'End of the line.');
