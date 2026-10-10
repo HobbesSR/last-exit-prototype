@@ -171,6 +171,14 @@ regions, proof and zones stay identical. This is the prerequisite policy
 checkpoint; #214's later authored shapes and tuning require their own review
 and final checkpoint. The frozen gameplay characterization fixture is unchanged.
 
+**The #318 review's re-capture** pins `types-22` at input commit `2cf7259`, the
+same 224 cases. Every brief now takes one margin path; with `block`'s change
+held back, that alone moves only the results' version string on all 224 maps.
+`block` keeping lots two cells off each portal moves built content on the 97
+maps whose blocks it changes (results, built and report; one map's report is
+unchanged). Six of them, diagnosed independently, report no defects. Layout,
+declared grid, resolved segments, regions, proof, zones and briefs are identical.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
