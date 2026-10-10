@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { clearFootprint, applyClearConstraints } from '../map/kernel/margins.ts';
+import { clearFootprint, applyClearConstraints, withClearMargins } from '../map/kernel/margins.ts';
 import { createAccessMask, createFillMask, travelClear, findRegionRoute } from '../map/micro/geometry.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { planBlock } from '../map/micro/strategies/block.ts';
@@ -74,6 +74,22 @@ test('map clipping supplies no invented clearance outside the playable cells', (
     { id: 'south', axis: 'h', x: 0, y: 4, length: 2 }]);
   assert.ok(validatePortalReach({ ...input, blockers: [] }).errors.some(e => /obstructed/.test(e)));
   assert.equal(createAccessMask(input).has(0, -1), false);
+});
+
+test('a brief without margins derives them from its own portals, with no end caps past the boundary', () => {
+  const owned = cells(0, 0, 6, 4), portals = [{ id: 'west', axis: 'v', x: 0, y: 1, length: 2 }];
+  const input = { id: 'hand', seed: 1, type: 'open', cellSize: 40, cells: owned, portals, zones: [{ tier: 1, bonus: 0, lootChance: 0, cells: owned }] };
+  const derived = withClearMargins(input);
+  const key = c => `${c.x},${c.y}`;
+  // The strip across the portal and the owned column beside it; caps across the boundary are left out.
+  assert.deepEqual(derived.clearCells.map(key).sort(), ['-1,1', '-1,2', '0,0', '0,1', '0,2', '0,3'].sort());
+  assert.ok(derived.fillCells.every(c => c.x > 0));
+  assert.equal(withClearMargins(derived), derived, 'margins already carried are kept');
+  assert.deepEqual(briefErrors(derived), []);
+  // Margins a macro brief carries are never re-derived or inset again.
+  const carried = { ...input, fillCells: owned, clearCells: [] };
+  assert.equal(withClearMargins(carried), carried);
+  assert.deepEqual(createFillMask(input).cells.map(key), derived.fillCells.map(key));
 });
 
 test('block child handoffs retain original ownership and apply inherited and new margins once', () => {

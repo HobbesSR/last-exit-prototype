@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
+import { createAccessMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { circle } from '../shared/shape.ts';
@@ -23,8 +23,8 @@ const chargers = result => result.coreElements.filter(site => site.kind === 'cha
 
 /** The charger fits, its standing room is clear of cover and loot, cover stands near, and a contestant can walk to it. */
 function assertStation(result, label, standing = 2, expectCover = true) {
-  const mask = createRegionMask(result.brief), blockers = blockersOf(result);
-  const root = portalStands(result.brief, mask).find(portal => portal.points.length)?.points[0];
+  const mask = createRegionMask(result.brief), access = createAccessMask(result.brief), blockers = blockersOf(result);
+  const root = portalStands(result.brief).find(portal => portal.points.length)?.points[0];
   assert.equal(chargers(result).length, 1, `${label}: one charger`);
   assert.equal(result.manifest.coreElements, 1);
   for (const charger of chargers(result)) {
@@ -33,7 +33,7 @@ function assertStation(result, label, standing = 2, expectCover = true) {
     assert.ok(blockers.every(shape => !shapesOverlap(room, shape)), `${label}: cover clears the standing room`);
     assert.ok(result.loot.every(loot => !shapesOverlap(room, circle(loot.x, loot.y, lootRadius))), `${label}: loot clears the standing room`);
     if (expectCover) assert.ok(blockers.some(shape => shapesOverlap(circle(charger.x, charger.y, (standing + 2) * SIZE), shape)), `${label}: cover stands near the standing room`);
-    if (root) assert.ok(findRegionRoute(mask, blockers, root, charger, clearance.contestant), `${label}: the charger is reached from the first portal`);
+    if (root) assert.ok(findRegionRoute(access, blockers, root, charger, clearance.contestant), `${label}: the charger is reached from the first portal`);
   }
 }
 

@@ -4,7 +4,7 @@ import { largestRectangle } from './hall.ts';
 import { warehouse } from './depot.ts';
 import { unfilledRegion, cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
-import { boundaryBoxFilter, boxesAgainstHints, portalMargin, hintedCells } from '../hints.ts';
+import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
@@ -64,18 +64,19 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
   const shedChance = fraction(brief, 'Plant', 'shed', DEFAULT_SHED);
   const mask = createFillMask(brief), accessMask = createAccessMask(brief), size = brief.cellSize;
   if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
-  if (!largestRectangle(brief.fillCells === undefined ? mask : createRegionMask(brief), MIN_SIDE)) return unfilledRegion(brief, CHANNEL.loot);
-  const reserved = new Set((brief.fillCells === undefined ? [...portalMargin(brief, 1), ...portalMargin({ ...brief, hints: [] }, 2)] : []).map(c => `${c.x},${c.y}`));
-  const boundary = boundaryBoxFilter(brief, AISLE), rectangular = boundary.rectangular;
-  const protectedShapes = (brief.fillCells !== undefined || !rectangular) && brief.portals.length <= 32 ? protectedRoutes(brief, createAccessMask(brief), 'Plant') : [];
-  const useConservativeEdge = !rectangular && brief.portals.length > 32;
+  // Eligibility is the original area's; the boxes themselves must fit the reduced fill (20.6).
+  if (!largestRectangle(createRegionMask(brief), MIN_SIDE)) return unfilledRegion(brief, CHANNEL.loot);
+  // Routes between portals are protected; past 32 portals that search is too dear, and
+  // boxes keep an aisle from the boundary instead.
+  const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
+  const protectedShapes = routed ? protectedRoutes(brief, 'Plant') : [];
 
 
   // A piece must stay owned and clear of portals; the lattice preserves inter-piece aisles.
   const clear = ({ x, y, w, h }: Box) => {
     for (let j = Math.floor(y); j < Math.ceil(y + h); j++)
-      for (let i = Math.floor(x); i < Math.ceil(x + w); i++) if (!mask.has(i, j) || reserved.has(`${i},${j}`)) return false;
-    return ((brief.fillCells !== undefined && brief.portals.length <= 32) || !(rectangular || useConservativeEdge) || boundary.fits({ x, y, w, h }))
+      for (let i = Math.floor(x); i < Math.ceil(x + w); i++) if (!mask.has(i, j)) return false;
+    return (routed || boundary.fits({ x, y, w, h }))
       && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
   };
 
@@ -152,12 +153,11 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
       if (v1 <= v0 || length < AISLE + 1 || roll('joined') >= JOINED) continue;
       const v = v0 + Math.floor(roll('row') * (v1 - v0)), gap = Math.floor(roll('gap') * (length - AISLE + 1));
       const run: Box = across ? { x: u0, y: v, w: length, h: 1 } : { x: v, y: u0, w: 1, h: length };
-      if (brief.fillCells === undefined && !clear(run)) continue;
       // Keep full owned aisles around pipes so each door-wide gap opens on both sides.
       let runRing = true;
       for (let y = Math.floor(run.y) - AISLE; y < Math.ceil(run.y + run.h) + AISLE; y++)
         for (let x = Math.floor(run.x) - AISLE; x < Math.ceil(run.x + run.w) + AISLE; x++)
-          if (!(brief.fillCells === undefined ? mask : accessMask).has(x, y)) runRing = false;
+          if (!accessMask.has(x, y)) runRing = false;
       if (!runRing) continue;
       // Local to the run's box, which reaches SEAT into each machine.
       const stubs: [number, number][] = [[-SEAT, gap], [gap + AISLE, length + SEAT]];
@@ -166,11 +166,9 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
           : rect((0.5 - PIPE / 2) * size, (s + SEAT) * size, PIPE * size, (e - s) * size) }));
       if (!parts.length) continue;
       const seated = across ? { ...run, x: run.x - SEAT, w: run.w + 2 * SEAT } : { ...run, y: run.y - SEAT, h: run.h + 2 * SEAT };
-      if (brief.fillCells !== undefined) {
-        const shapes = elementShapes({ label: 'pipe-trial', x: seated.x * size, y: seated.y * size,
-          template: { w: seated.w * size, h: seated.h * size, parts } });
-        if (shapes.some(shape => !mask.contains(shape) || protectedShapes.some(keep => shapesOverlap(shape, keep)))) continue;
-      }
+      const shapes = elementShapes({ label: 'pipe-trial', x: seated.x * size, y: seated.y * size,
+        template: { w: seated.w * size, h: seated.h * size, parts } });
+      if (shapes.some(shape => !mask.contains(shape) || protectedShapes.some(keep => shapesOverlap(shape, keep)))) continue;
       place(`plant-pipe-${++pipes}`, seated, parts);
     }
   }

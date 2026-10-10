@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
 import { largestRectangle, staggerStride } from '../map/micro/strategies/hall.ts';
-import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
+import { createAccessMask, createFillMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { bounds, circle } from '../shared/shape.ts';
@@ -54,12 +54,15 @@ test('pillars stand on the largest contained rectangle, spaced apart, and the re
   const mask = createRegionMask({ cells, cellSize: SIZE });
   assert.deepEqual(largestRectangle(mask, 6), { x: 0, y: 0, w: 18, h: 9 });
   assert.equal(largestRectangle(createRegionMask({ cells: cellsOf(20, 5), cellSize: SIZE }), 6), undefined);
+  // Pillars stand on the reduced fill's rectangle, off every portal's clear margin (20.6).
+  const fill = largestRectangle(createFillMask(brief('ell', 3, cells, portals)), 6);
   for (const spacing of [4, 6]) {
     const result = buildRegion(brief('ell', 3, cells, portals, { spacing }));
     const shapes = blockers(result);
     for (const shape of shapes) {
       const box = bounds(shape);
-      assert.ok(box.y + box.h <= 9 * SIZE, 'inside the rectangle');
+      assert.ok(box.x >= fill.x * SIZE && box.y >= fill.y * SIZE && box.x + box.w <= (fill.x + fill.w) * SIZE
+        && box.y + box.h <= (fill.y + fill.h) * SIZE, 'inside the rectangle');
       // A pillar is 1½ cells, so the aisle to its neighbours is never under a doorway.
       for (const other of shapes) if (other !== shape) {
         const o = bounds(other);
@@ -98,7 +101,9 @@ test('a roofed hall is one enclosing element over its rectangle', () => {
   const roofed = buildRegion(brief('field', 2, cells, portals, { roofed: true }));
   assert.equal(roofed.elements.length, 1);
   assert.equal(roofed.elements[0].template.encloses, true);
-  assert.deepEqual([roofed.elements[0].x, roofed.elements[0].y, roofed.elements[0].template.w, roofed.elements[0].template.h], [0, 0, 24 * SIZE, 18 * SIZE]);
+  const fill = largestRectangle(createFillMask(brief('field', 2, cells, portals)), 6);
+  assert.deepEqual([roofed.elements[0].x, roofed.elements[0].y, roofed.elements[0].template.w, roofed.elements[0].template.h],
+    [fill.x * SIZE, fill.y * SIZE, fill.w * SIZE, fill.h * SIZE]);
   assert.equal(roofed.manifest.structures, 1);
   const open = buildRegion(brief('field', 2, cells, portals));
   assert.equal(open.elements[0].template.encloses, undefined);
@@ -112,10 +117,10 @@ test('every aisle is open to a contestant', () => {
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS.slice(0, 3)) {
     const input = brief(name, seed, cells, portals, { spacing: 4 });
     input.zones[0].lootChance = 1;
-    const result = buildRegion(input), mask = createRegionMask(input), shapes = blockers(result);
-    const from = portalStands(input, mask)[0].points[0];
+    const result = buildRegion(input), mask = createRegionMask(input), access = createAccessMask(input), shapes = blockers(result);
+    const from = portalStands(input)[0].points[0];
     for (const site of result.loot.filter((_, i) => i % 7 === 0))
-      assert.ok(findRegionRoute(mask, shapes, from, site, radius), `${name} ${seed}: ${site.x},${site.y} is reachable`);
+      assert.ok(findRegionRoute(access, shapes, from, site, radius), `${name} ${seed}: ${site.x},${site.y} is reachable`);
   }
 });
 

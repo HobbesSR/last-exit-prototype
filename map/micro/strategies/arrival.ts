@@ -21,7 +21,7 @@ export function buildArrival(brief: RegionBrief): BuiltRegion {
 
   const mask = createRegionMask(brief);
   const accessMask = createAccessMask(brief);
-  const root = portalStands(brief, accessMask).find(portal => portal.points.length)?.points[0];
+  const root = portalStands(brief).find(portal => portal.points.length)?.points[0];
   const requested = brief.coreElements?.spawn ?? 0;
   const points = spreadPoints(mask, { count: requested, radius, seed: brief.seed, accessMask,
     minimumSpacing: Math.max(radius * 2, (spacing ?? 0) * size), ...(root ? { anchor: root } : {}) }).points;

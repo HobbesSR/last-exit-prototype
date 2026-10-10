@@ -9,10 +9,8 @@ import { buildOpen } from './open.ts';
 /** A themed fill too fragmented for structures can still offer zone loot in its usable patches. */
 export function unfilledRegion(brief: RegionBrief, channel: number): BuiltRegion {
   const result = buildOpen(brief);
-  if (brief.fillCells !== undefined) {
-    result.loot = cellLoot(brief, createFillMask(brief), [], channel);
-    result.manifest.loot = result.loot.length;
-  }
+  result.loot = cellLoot(brief, createFillMask(brief), [], channel);
+  result.manifest.loot = result.loot.length;
   return result;
 }
 
@@ -46,9 +44,8 @@ export function draw(seed: number, x: number, y: number, channel: number): numbe
  * portal carries no route obligation, so it protects nothing. `type` names the region type
  * in what it throws.
  */
-export function protectedRoutes(brief: RegionBrief, mask: RegionMask, type: string): Shape[] {
-  mask = createAccessMask(brief);
-  const radius = hunterClearance(brief.cellSize), stands = portalStands(brief, mask);
+export function protectedRoutes(brief: RegionBrief, type: string): Shape[] {
+  const mask = createAccessMask(brief), radius = hunterClearance(brief.cellSize), stands = portalStands(brief);
   const kept: Shape[] = [];
   if (stands.length < 2) return kept;
   for (const { portal, points } of stands) {
@@ -57,16 +54,15 @@ export function protectedRoutes(brief: RegionBrief, mask: RegionMask, type: stri
     // protection shape per half-cell sample on a long portal.
     const line = (portal.axis === 'h' ? portal.y : portal.x) * brief.cellSize;
     const start = (portal.axis === 'h' ? portal.x : portal.y) * brief.cellSize;
-    const margin = brief.clearCells === undefined ? 2 * (radius + 1) : radius;
     kept.push(portal.axis === 'h'
-      ? rect(start, line - margin, portal.length * brief.cellSize, 2 * margin)
-      : rect(line - margin, start, 2 * margin, portal.length * brief.cellSize));
+      ? rect(start, line - radius, portal.length * brief.cellSize, 2 * radius)
+      : rect(line - radius, start, 2 * radius, portal.length * brief.cellSize));
   }
   const root = stands[0]!.points[0]!;
   for (const { portal, points } of stands.slice(1)) {
     const route = findRegionRoute(mask, [], root, points[0]!, radius);
     if (!route) throw new Error(`${type} region ${brief.id} cannot join portal ${portal.id} in its empty shape.`);
-    for (let i = 1; i < route.length; i++) kept.push(...capsule(route[i - 1]!, route[i]!, brief.clearCells === undefined ? radius + 1 : radius));
+    for (let i = 1; i < route.length; i++) kept.push(...capsule(route[i - 1]!, route[i]!, radius));
   }
   return kept;
 }

@@ -1,7 +1,7 @@
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import { rect } from '../../../shared/shape.ts';
 import { unfilledRegion, cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
-import { createAccessMask, createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
+import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 
@@ -22,7 +22,7 @@ export function buildRubble(brief: RegionBrief): BuiltRegion {
   // The catalogue's shape need is proposed; open is the last resort (17 M24).
   if (!mask.cells.length || brief.cells.length < 12 || Math.min(spanX, spanY) < 3) return unfilledRegion(brief, 3);
 
-  const protectedShapes = protectedRoutes(brief, createAccessMask(brief), 'Rubble');
+  const protectedShapes = protectedRoutes(brief, 'Rubble');
   const elements: RegionElement[] = [];
   const debris: Shape[] = [];
   let squeezeDebris = 0;

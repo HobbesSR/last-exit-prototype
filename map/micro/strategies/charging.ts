@@ -31,7 +31,7 @@ export function buildCharging(brief: RegionBrief): BuiltRegion {
     throw new RangeError(`Region ${brief.id}: charging standing must be a positive number of cells.`);
   const mask = createRegionMask(brief), radius = clearance.contestant, count = brief.coreElements?.charger ?? 0;
   const accessMask = createAccessMask(brief);
-  const root = portalStands(brief, accessMask).find(portal => portal.points.length)?.points[0];
+  const root = portalStands(brief).find(portal => portal.points.length)?.points[0];
 
   // The middle first; if a contestant can't walk there from the first portal, the nearest place it can.
   let chargers = spreadPoints(mask, { count, radius, seed: brief.seed }).points;

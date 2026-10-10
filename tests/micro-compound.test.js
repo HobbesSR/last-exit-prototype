@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
+import { createAccessMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { circle, rect } from '../shared/shape.ts';
@@ -101,20 +101,20 @@ test('every room and the court are open to a hunter through the gates', () => {
     const parameters = { gates };
     const input = brief(name, seed, cells, portals, parameters);
     input.zones[0].lootChance = 1;
-    const result = buildRegion(input), mask = createRegionMask(input), shapes = blockers(result);
-    const from = portalStands(input, mask)[0].points[0];
+    const result = buildRegion(input), mask = createRegionMask(input), access = createAccessMask(input), shapes = blockers(result);
+    const from = portalStands(input)[0].points[0];
     const rooms = result.elements.filter(element => element.label.startsWith('compound-room')).map(cellBox);
     const box = compoundBox(result), court = { x: box.x + 3, y: box.y + 3, w: box.w - 6, h: box.h - 6 };
     // A site in every room, which tests every door, and a sample of the court.
     for (const room of rooms) {
       const site = result.loot.find(site => inside(site, room));
       assert.ok(site, `${name} ${seed}: loot in the room at ${room.x},${room.y}`);
-      assert.ok(findRegionRoute(mask, shapes, from, site, hunter), `${name} ${seed}: a hunter reaches ${site.x},${site.y}`);
+      assert.ok(findRegionRoute(access, shapes, from, site, hunter), `${name} ${seed}: a hunter reaches ${site.x},${site.y}`);
     }
     const courtSites = result.loot.filter(site => inside(site, court));
     assert.ok(courtSites.length > 0);
     for (const site of courtSites.filter((_, i) => i % 5 === 0))
-      assert.ok(findRegionRoute(mask, shapes, from, site, contestant), `${name} ${seed}: the court at ${site.x},${site.y}`);
+      assert.ok(findRegionRoute(access, shapes, from, site, contestant), `${name} ${seed}: the court at ${site.x},${site.y}`);
   }
 });
 

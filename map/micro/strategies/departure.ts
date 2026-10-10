@@ -32,7 +32,7 @@ export function buildDeparture(brief: RegionBrief): BuiltRegion {
   const exitSpacing = cellsParameter(brief, 'exitSpacing') ?? 0, setBack = (cellsParameter(brief, 'setBack') ?? SET_BACK) * size;
   const mask = createRegionMask(brief);
   const accessMask = createAccessMask(brief);
-  const root = portalStands(brief, accessMask).find(portal => portal.points.length)?.points[0];
+  const root = portalStands(brief).find(portal => portal.points.length)?.points[0];
   const anchor = root ? { anchor: root } : {};
 
   const exits = spreadPoints(mask, { count: brief.coreElements?.exit ?? 0, radius: clearance.contestant, seed: brief.seed, accessMask,

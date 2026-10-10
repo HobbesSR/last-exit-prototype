@@ -4,7 +4,7 @@ import { warehouse } from './depot.ts';
 import { unfilledRegion, cellLoot, draw } from './scatter.ts';
 import { capsule, createAccessMask, createFillMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap, travelClear } from '../geometry.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../portals.ts';
-import { boxesAgainstHints, portalMargin } from '../hints.ts';
+import { boxesAgainstHints } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, Portal, RegionBrief, RegionElement } from '../types.ts';
@@ -66,7 +66,7 @@ const centre = (portal: Portal): Point => portal.axis === 'h'
 export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver): BuiltRegion {
   const mask = createFillMask(brief), accessMask = createAccessMask(brief), size = brief.cellSize;
   if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
-  const stands = portalStands(brief, accessMask), radius = hunterClearance(size);
+  const stands = portalStands(brief), radius = hunterClearance(size);
   // Only accepted pieces remain in `elements`, so each trial extends the accepted
   // blocker prefix. Cached capsules cover actual hunter sweeps: the portal tree plus
   // each portal's joined stands proves connectivity. A new piece disjoint from every
@@ -76,9 +76,8 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
   let acceptedCount = 0, proof: Evidence[] | undefined;
   const evidence = (points: Point[]): Evidence => ({ a: points[0]!, b: points[points.length - 1]!,
     swept: points.slice(1).flatMap((p, i) => capsule(points[i]!, p, radius)) });
-  const crossings = stands.flatMap(({ inward, points }) => points.flatMap(point => brief.clearCells === undefined ? capsule(
-    { x: point.x - inward.x * 2 * (radius + 1), y: point.y - inward.y * 2 * (radius + 1) }, point, radius)
-    : capsule(point, point, radius)));
+  // A stand straddles the seam, so its body is the crossing (20.6).
+  const crossings = stands.flatMap(({ points }) => points.flatMap(point => capsule(point, point, radius)));
   const holds = (blockers: readonly Shape[]) => {
     if (stands.length < 2) return true;
     const added = blockers.slice(acceptedCount);
@@ -179,9 +178,8 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
   const onLine = (box: Box) => !!line && Array.from({ length: Math.ceil(farthest * 2) + 1 }, (_, i) => i / Math.max(1, Math.ceil(farthest * 2)))
     .some(t => { const p = { x: line![0].x + (line![1].x - line![0].x) * t, y: line![0].y + (line![1].y - line![0].y) * t };
       return p.x > box.x - AISLE && p.x < box.x + box.w + AISLE && p.y > box.y - AISLE && p.y < box.y + box.h + AISLE; });
-  const portalKeepout = new Set((brief.fillCells === undefined ? portalMargin(brief, 1) : []).map(({ x, y }) => `${x},${y}`));
   const fits = ({ x, y, w, h }: Box) => {
-    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!mask.has(i, j) || portalKeepout.has(`${i},${j}`)) return false;
+    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!mask.has(i, j)) return false;
     return true;
   };
   const hinted = new Set(boxesAgainstHints(brief, pw, ph).map(({ x, y }) => `${x},${y}`));

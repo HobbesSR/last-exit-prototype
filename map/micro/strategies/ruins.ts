@@ -1,6 +1,6 @@
 import { polygon, rect } from '../../../shared/shape.ts';
 import { unfilledRegion, cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
-import { createAccessMask, createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
+import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 
@@ -44,7 +44,7 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
   const mask = createFillMask(brief), size = brief.cellSize;
   if (mask.cells.length < MIN_CELLS || !mask.rectangles(3, 3).length) return unfilledRegion(brief, CHANNEL.loot);
 
-  const protectedShapes = protectedRoutes(brief, createAccessMask(brief), 'Ruins');
+  const protectedShapes = protectedRoutes(brief, 'Ruins');
   const phase = { x: Math.floor(draw(brief.seed, 0, 0, CHANNEL.phase) * PERIOD), y: Math.floor(draw(brief.seed, 1, 0, CHANNEL.phase) * PERIOD) };
   const onLattice = (value: number, offset: number) => ((value - offset) % PERIOD + PERIOD) % PERIOD === 0;
   const owns = (x: number, y: number, w: number, h: number) => {

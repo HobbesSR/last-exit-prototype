@@ -1,7 +1,7 @@
 import { largestRectangle } from './hall.ts';
 import { unfilledRegion, cellLoot, draw } from './scatter.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
-import { boxesAgainstHints, portalMargin } from '../hints.ts';
+import { boxesAgainstHints } from '../hints.ts';
 import { portalStands } from '../portals.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import { OUTSIDE } from '../building/design.ts';
@@ -40,16 +40,11 @@ interface Box { x: number; y: number; w: number; h: number }
 function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, accessMask: ReturnType<typeof createRegionMask>, space: Box, gates: number):
   (Box & { gated: Set<Side> }) | undefined {
   const key = (x: number, y: number) => `${x},${y}`;
-  const reserved = new Set((brief.fillCells === undefined ? portalMargin(brief, 1) : []).map(c => key(c.x, c.y)));
   const entrances: { x: number; y: number }[] = [];
-  for (const { portal: { axis, x, y, length }, inward } of portalStands(brief, accessMask)) {
-    if (brief.clearCells === undefined) for (let i = 0; i < length; i++) for (let depth = 0; depth < 2; depth++) {
-      const d = inward.x + inward.y > 0 ? depth : -1 - depth;
-      reserved.add(axis === 'h' ? key(x + i, y + d) : key(x + d, y + i));
-    }
+  // Each entrance block straddles its portal's seam, in the clear margin on both sides (20.6).
+  for (const { portal: { axis, x, y, length } } of portalStands(brief)) {
     for (let i = 0; i + 2 <= length; i++) {
-      const d = brief.clearCells === undefined ? (inward.x + inward.y > 0 ? 0 : -2) : -1;
-      entrances.push(axis === 'h' ? { x: x + i, y: y + d } : { x: x + d, y: y + i });
+      entrances.push(axis === 'h' ? { x: x + i, y: y - 1 } : { x: x - 1, y: y + i });
     }
   }
   const gateOrder = [...SIDES].map((side, i) => ({ side, order: draw(brief.seed, i, 0, CHANNEL.gateSide) }))
@@ -93,7 +88,7 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
       const inside = (x: number, y: number) => x >= box.x && x < box.x + w && y >= box.y && y < box.y + h;
       let valid = true;
       for (let y = box.y; y < box.y + h && valid; y++) for (let x = box.x; x < box.x + w; x++)
-        if (!mask.has(x, y) || reserved.has(key(x, y))) { valid = false; break; }
+        if (!mask.has(x, y)) { valid = false; break; }
       if (!valid) continue;
       const fits = (x: number, y: number) => !inside(x, y) && !inside(x + 1, y) && !inside(x, y + 1) && !inside(x + 1, y + 1)
         && accessMask.has(x, y) && accessMask.has(x + 1, y) && accessMask.has(x, y + 1) && accessMask.has(x + 1, y + 1);
@@ -156,7 +151,8 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
  * along its whole length. `splitBuilding` makes each space its own element, and each room its
  * own roof. `observe`, when given, sees the ring's design as one `BuildingTrace`, `compound`.
  *
- * Candidate boxes are checked against the portal approaches and the hunter's yard blocks.
+ * Candidate boxes lie in the reduced fill, off every portal's clear margin, and are checked
+ * against the hunter's yard blocks.
  * A region with no usable box of `MIN_SIDE` goes to `open` (17 M24).
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear of

@@ -3,15 +3,17 @@ import type { Shape } from '../../shared/shape.ts';
 import type { Box, Vec2 } from '../../shared/types.ts';
 import type { RegionElement, RegionMask, RegionSpec } from './types.ts';
 import type { RegionBrief } from '../kernel/contract.ts';
+import { withClearMargins } from '../kernel/margins.ts';
+import type { MarginRegion } from '../kernel/margins.ts';
 
 const EPS = 1e-7;
 /** Geometry placement uses the reduced area; identity and portals retain original cells. */
-export function createFillMask(brief: RegionBrief): RegionMask {
-  return createRegionMask({ cells: brief.fillCells ?? brief.cells, cellSize: brief.cellSize });
+export function createFillMask(brief: MarginRegion & Pick<RegionBrief, 'cellSize'>): RegionMask {
+  return createRegionMask({ cells: withClearMargins(brief).fillCells, cellSize: brief.cellSize });
 }
 /** Only original ownership and explicitly cleared nearby cells are usable for access. */
-export function createAccessMask(region: Pick<RegionBrief, 'cells' | 'cellSize' | 'clearCells'>): RegionMask {
-  const cells = new Map([...region.cells, ...(region.clearCells ?? [])].map(c => [`${c.x},${c.y}`, c]));
+export function createAccessMask(region: MarginRegion & Pick<RegionBrief, 'cellSize'>): RegionMask {
+  const cells = new Map([...region.cells, ...withClearMargins(region).clearCells].map(c => [`${c.x},${c.y}`, c]));
   return createRegionMask({ cells: [...cells.values()], cellSize: region.cellSize });
 }
 export const boxesOverlap = (a: Box, b: Box): boolean => a.x < b.x + b.w - EPS && a.x + a.w > b.x + EPS && a.y < b.y + b.h - EPS && a.y + a.h > b.y + EPS;
