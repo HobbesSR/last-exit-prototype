@@ -109,7 +109,7 @@ export async function checkClientControllers(browser, base) {
         if (reason === 'dialog') $('archive-dialog').showModal();
         if (reason === 'reset') { hud.cancelDrag(); input.reset(); }
         if (reason === 'replay') render({ view: 'replay' });
-        if (reason === 'inactive') render({ state: { ...state, players: [{ ...me, status: 'stranded' }] } });
+        if (reason === 'inactive') render({ state: { ...state, players: [{ ...me, status: 'stranded' }] }, view: 'outcome' });
         if (reason === 'ui') document.elementFromPoint = () => $('fullscreen-toggle');
         gesture(slot(5), 'pointerup', 28, 10, 75);
         cancelledGestures.push({ reason, intent: collect(false) });
