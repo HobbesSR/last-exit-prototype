@@ -340,8 +340,9 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     on-stage segment passability overlays and drag stamping (#304); a visual tile
     thumbnail gallery with search/filtering, template cloning, and World view inspection links (#305);
     a visual tile sets manager with split member and searchable available tile thumbnail galleries
-    and non-empty validation enforcement (#306); and an interactive 2D layout blueprint grid
-    and palette editor for set pieces with tier eligibility checkboxes and rotation controls (#315).
+    and non-empty validation enforcement (#306); an interactive 2D layout blueprint grid
+    and palette editor for set pieces with tier eligibility checkboxes and rotation controls (#315);
+    and canvas tool hotkeys (D, F, R, S, E), numeric brush switching (1-9 for cell classes starting with any in tiles, and visible tile sets in set pieces), stable ID and test coverage for the stage hover readout (#chainHoverReadout), and '/' search focus shortcut (#317).
   - **Serving:** The game server (`server/index.js`) serves the lab at `/dev/map` when `devTools` is enabled, alongside macro's `content/`, `map/micro/`, `map/kernel/`, `shared/`, the map-level
     modules `map/chain.ts`, `map/engines.ts` and `map/live.ts`, and the
     tools' `core.ts`, `engines.ts` and `routes.ts`, at their repository

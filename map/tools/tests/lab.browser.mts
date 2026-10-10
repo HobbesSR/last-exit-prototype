@@ -608,6 +608,60 @@ try {
     .locator(".chain-tool-group button", { hasText: "Clear painting" })
     .click();
 
+  // Canvas hotkeys, quick brush selection, search shortcut, and live hover readout (#317)
+  // 1. Tool hotkeys: R (rect), F (fill), S (segments), D (paint)
+  await page.keyboard.press("r");
+  assert.ok(
+    await page.locator('.chain-tool-group button[data-tool="rect"]').evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "pressing 'r' activates Rect tool",
+  );
+  await page.keyboard.press("f");
+  assert.ok(
+    await page.locator('.chain-tool-group button[data-tool="fill"]').evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "pressing 'f' activates Fill tool",
+  );
+  await page.keyboard.press("s");
+  assert.ok(
+    await page.locator('.chain-tool-group button[data-tool="segment"]').evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "pressing 's' activates Segments tool",
+  );
+  await page.keyboard.press("d");
+  assert.ok(
+    await page.locator('.chain-tool-group button[data-tool="paint"]').evaluate((el: HTMLElement) => el.classList.contains("active")),
+    "pressing 'd' activates Paint tool",
+  );
+
+  // 2. Numeric brush switching (1..9)
+  const swatchesCount = await page.locator(".chain-swatches .chain-swatch-button").count();
+  assert.ok(swatchesCount >= 2, "palette has at least 2 cell classes");
+  const secondClass = await page.locator(".chain-swatches .chain-swatch-button").nth(1).getAttribute("data-class");
+  await page.keyboard.press("2");
+  assert.equal(
+    await page.locator(".chain-swatches .chain-swatch-button.active").getAttribute("data-class"),
+    secondClass,
+    "pressing '2' selects second declared cell class",
+  );
+  const firstClass = await page.locator(".chain-swatches .chain-swatch-button").nth(0).getAttribute("data-class");
+  await page.keyboard.press("1");
+  assert.equal(
+    await page.locator(".chain-swatches .chain-swatch-button.active").getAttribute("data-class"),
+    firstClass,
+    "pressing '1' selects first declared cell class",
+  );
+
+  // 3. Search focus shortcut (/)
+  await page.keyboard.press("/");
+  assert.ok(
+    await page.locator("#tileFilter").evaluate((el: HTMLElement) => el === document.activeElement),
+    "pressing '/' focuses tile filter input",
+  );
+  await page.locator("#tileFilter").blur();
+
+  // 4. Live stage hover readout (#chainHoverReadout)
+  await cell00.hover();
+  const hoverText = await page.locator("#chainHoverReadout").innerText();
+  assert.match(hoverText, /Cell 0,0/, "stage hover readout displays cell coordinates on hover");
+
   // Interactive segment editor tests (#304): on-stage segments, indicators, brush, drag, popup, patterns
   // 2. Select segment from list outside segment mode to inspect existing attributes
   await page.locator('#chainSegments button[data-segment="v:0,1"]').click();
@@ -1217,6 +1271,9 @@ try {
     "status bar flags missing tile slots on the stripped set piece",
   );
 
+  // Add a second tile set to test set piece palette filtering and numeric hotkeys
+  await page.locator("#chainAdd").click();
+
   // Visual Set Pieces layout grid editor (#315)
   await page.locator("#chainSection").selectOption("setPieces");
   await page.locator("#chainItem").selectOption("new-piece");
@@ -1235,7 +1292,7 @@ try {
 
   // 1. Palette filtering and selection
   const initialPaletteCount = await page.locator("#setPiecePaletteList .chain-layout-palette-item").count();
-  assert.ok(initialPaletteCount > 0, "palette lists tile sets");
+  assert.ok(initialPaletteCount >= 2, "palette lists at least 2 tile sets");
   const firstPaletteItem = page.locator("#setPiecePaletteList .chain-layout-palette-item").first();
   const firstPaletteSet = (await firstPaletteItem.getAttribute("data-tileset"))!;
   await firstPaletteItem.click();
@@ -1244,18 +1301,39 @@ try {
     "clicked palette item becomes active brush",
   );
 
-  await page.locator("#setPiecePaletteFilter").fill(firstPaletteSet);
+  const secondPaletteItem = page.locator("#setPiecePaletteList .chain-layout-palette-item").nth(1);
+  const secondPaletteSet = (await secondPaletteItem.getAttribute("data-tileset"))!;
+
+  await page.locator("#setPiecePaletteFilter").fill(secondPaletteSet);
   assert.equal(
     await page.locator("#setPiecePaletteList .chain-layout-palette-item").count(),
     1,
     "filtering palette narrows to matching tile set",
   );
+  await page.locator("#setPiecePaletteFilter").blur();
+  await page.keyboard.press("1");
+  const activePaletteSet = await page
+    .locator("#setPiecePaletteList .chain-layout-palette-item.active")
+    .getAttribute("data-tileset");
+  assert.equal(
+    activePaletteSet,
+    secondPaletteSet,
+    "pressing '1' with filter applied selects the first filtered tile set",
+  );
+
+  await page.keyboard.press("/");
+  assert.ok(
+    await page.locator("#setPiecePaletteFilter").evaluate((el: HTMLElement) => el === document.activeElement),
+    "pressing '/' focuses set piece palette filter",
+  );
+
   await page.locator("#setPiecePaletteFilter").fill("");
   assert.equal(
     await page.locator("#setPiecePaletteList .chain-layout-palette-item").count(),
     initialPaletteCount,
     "clearing palette filter restores all items",
   );
+  await firstPaletteItem.click();
 
   // 2. Eligible tiers checkboxes (tiers 1-5)
   const tier1Box = page.locator('#chainEligibleTiers input[data-tier="1"]');
