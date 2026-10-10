@@ -49,7 +49,7 @@ export async function checkClientControllers(browser, base) {
       });
       const sight = { eye, points, bounds: { x: 11500, y: 5500, width: 1000, height: 1000 } };
       const visibility = { directed: false, sight };
-      const props = { state, arenaMap, playerId: me.id, replay: false, savedReplay: null, selection: input.selection(), visibility };
+      const props = { state, arenaMap, playerId: me.id, view: 'play', savedReplay: null, selection: input.selection(), visibility };
       const canvas = $('minimap').getContext('2d'), arc = canvas.arc.bind(canvas); let dots = 0;
       canvas.arc = (...args) => { dots++; arc(...args); };
       function render(extra) { dots = 0; hud.render({ ...props, ...extra }); return dots; }
@@ -65,6 +65,15 @@ export async function checkClientControllers(browser, base) {
       const revealedUnderRoof = render({ state: revealedState, arenaMap: roofMap });
       const outsideViewport = render({ visibility: { ...visibility, sight: { ...sight, bounds: { x: 11990, y: 5990, width: 20, height: 20 } } } });
       const directed = render({ state: cloakedState, visibility: { directed: true } });
+      const eliminatedState = { ...state, players: [{ ...me, status: 'eliminated' }] };
+      render({ state: eliminatedState, view: 'outcome' });
+      const deathOutcomeVisible = !$('outcome').hidden;
+      render({ state: eliminatedState, view: 'dev' });
+      const deathOutcomeHiddenInDev = $('outcome').hidden;
+      render({ state: eliminatedState, view: 'replay' });
+      const deathOutcomeHiddenInReplay = $('outcome').hidden;
+      render({ state: eliminatedState, view: 'outcome' });
+      const deathOutcomeRestored = !$('outcome').hidden;
       render({});
       const slots = [...$('equipment-slots').children].map(b => b.ariaLabel);
       const slot = index => $('equipment-slots').children[index];
@@ -99,8 +108,8 @@ export async function checkClientControllers(browser, base) {
         if (reason === 'blur') window.dispatchEvent(new Event('blur'));
         if (reason === 'dialog') $('archive-dialog').showModal();
         if (reason === 'reset') { hud.cancelDrag(); input.reset(); }
-        if (reason === 'replay') render({ replay: true });
-        if (reason === 'inactive') render({ state: { ...state, players: [{ ...me, status: 'stranded' }] } });
+        if (reason === 'replay') render({ view: 'replay' });
+        if (reason === 'inactive') render({ state: { ...state, players: [{ ...me, status: 'stranded' }] }, view: 'outcome' });
         if (reason === 'ui') document.elementFromPoint = () => $('fullscreen-toggle');
         gesture(slot(5), 'pointerup', 28, 10, 75);
         cancelledGestures.push({ reason, intent: collect(false) });
@@ -118,9 +127,14 @@ export async function checkClientControllers(browser, base) {
       const destroyed = collect(false);
       return { first, second, blurred, arranged, blocked, afterBlocked, reset, dialog, hidden, clicked, draggedMove, draggedDrop, cancelledDrag, tappedSlot, cancelledGestures, pinnedDrop, afterPinnedDrop, blockedDragDrop, destroyed,
         dots: { visible, noSight, cloaked, roof, revealedUnderRoof, outsideViewport, directed }, slots,
+        deathOutcomeVisible, deathOutcomeHiddenInDev, deathOutcomeHiddenInReplay, deathOutcomeRestored,
         beforeDestroy, afterDestroy: { selectionChanges, fullscreenActions, replayActions }, buttonsAfterDestroy: $('equipment-slots').children.length,
         sneakReleaseCancelled: sneakRelease.defaultPrevented };
     }, { state: snapshot(game), arenaMap: game.map });
+    assert.equal(result.deathOutcomeVisible, true, 'death outcome dialogue is visible when eliminated');
+    assert.equal(result.deathOutcomeHiddenInDev, true, 'death outcome dialogue is hidden in dev view');
+    assert.equal(result.deathOutcomeHiddenInReplay, true, 'death outcome dialogue is hidden in replay view');
+    assert.equal(result.deathOutcomeRestored, true, 'death outcome dialogue is restored when leaving dev view');
     assert.equal(result.first.x, 1); assert.equal(result.first.aim, 0.75); assert.equal(result.first.slot, 5);
     for (const action of ['skill', 'interact', 'drop', 'attack']) assert.equal(result.first[action], true);
     assert.equal(result.second.attack, true); assert.equal(result.second.skill, false); assert.equal(result.second.interact, false); assert.equal(result.second.drop, false); assert.equal(result.second.slot, undefined);
