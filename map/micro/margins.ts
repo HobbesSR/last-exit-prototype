@@ -1,4 +1,5 @@
-import { applyClearConstraints, clearFootprint, withClearMargins } from '../kernel/margins.ts';
+import { applyClearConstraints, clearFootprint } from '../kernel/margins.ts';
+import { checkedMargins } from './limits.ts';
 import type { RegionBrief } from '../kernel/contract.ts';
 import { createFillMask } from './geometry.ts';
 import type { Shape } from '../../shared/shape.ts';
@@ -9,7 +10,7 @@ import type { Shape } from '../../shared/shape.ts';
  * No margin becomes a child, portal or repeated inset (20.6).
  */
 export function inheritBriefMargins(input: RegionBrief, children: readonly RegionBrief[]): RegionBrief[] {
-  const parent = withClearMargins(input);
+  const parent = checkedMargins(input);
   const parentOwned = new Set(parent.cells.map(c => `${c.x},${c.y}`)), assigned = new Set<string>();
   for (const child of children) for (const cell of child.cells) {
     const key = `${cell.x},${cell.y}`;

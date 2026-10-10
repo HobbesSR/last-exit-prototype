@@ -1,5 +1,5 @@
 import { microMetrics } from './metrics.ts';
-import { LIMITS } from './limits.ts';
+import { checkedPortals } from './limits.ts';
 import { createAccessMask, createRegionMask, findRegionRoute, travelClear, validShape } from './geometry.ts';
 import type { Shape } from '../../shared/shape.ts';
 import type { Vec2 } from '../../shared/types.ts';
@@ -30,13 +30,9 @@ export const hunterClearance = (cellSize: number): number => microMetrics({ cell
  */
 export function portalStands(region: PortalRegion): PortalStands[] {
   const mask = createRegionMask(region);
-  if (!Array.isArray(region.portals) || region.portals.length > LIMITS.portals) throw new Error('Portals must be a bounded list.');
-  const size = region.cellSize, radius = hunterClearance(size), ids = new Set<string>();
-  return region.portals.map(portal => {
-    if (!portal || typeof portal.id !== 'string' || !portal.id || ids.has(portal.id)) throw new Error('Portals need unique ids.');
-    ids.add(portal.id);
+  const size = region.cellSize, radius = hunterClearance(size);
+  return checkedPortals(region.portals).map(portal => {
     const { axis, x, y, length } = portal;
-    if (axis !== 'h' && axis !== 'v' || ![x, y, length].every(Number.isInteger) || length < 1 || length > LIMITS.run) throw new Error(`Portal ${portal.id} is not a run.`);
     // The cells on each side of segment i: `before` is above or left of the line, `after` below or right.
     const sides = Array.from({ length }, (_, i) => axis === 'h'
       ? [mask.has(x + i, y - 1), mask.has(x + i, y)] : [mask.has(x - 1, y + i), mask.has(x, y + i)]);

@@ -213,8 +213,8 @@ points, and routes that aren't a straight shot.
   **Built (#158):** `map/micro/strategies/hall.ts`. It protects the portal
   approaches and hunter routes as `rubble` and `ruins` do, and drops any
   pillar that would touch them.
-  - **The rectangle:** the region's largest contained rectangle with both
-    sides at least 6 cells. Ties go to the first in row order.
+  - **The rectangle:** the largest rectangle in the reduced fill (20.6) with
+    both sides at least 6 cells. Ties go to the first in row order.
   - **Pillars:** each stands a quarter cell inside a 2 × 2 block of cells, so
     it is 1½ cells square. Blocks lie `spacing` cells apart, centred across
     the rectangle, and the aisle between two pillars is `spacing` less 1½

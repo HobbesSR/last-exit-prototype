@@ -92,6 +92,21 @@ test('a brief without margins derives them from its own portals, with no end cap
   assert.deepEqual(createFillMask(input).cells.map(key), derived.fillCells.map(key));
 });
 
+test('malformed or oversized runs on a bare brief are refused before any margin is derived', { timeout: 2000 }, () => {
+  const owned = cells(0, 0, 4, 4), base = { cells: owned, cellSize: 40, blockers: [] };
+  for (const length of [1e9, Infinity, 0, 1.5]) {
+    const portal = { id: 'oversized', axis: 'v', x: 0, y: 0, length };
+    assert.deepEqual(validatePortalReach({ ...base, portals: [portal] }).errors, ['Portal oversized is not a run.'], String(length));
+    assert.throws(() => createAccessMask({ ...base, portals: [portal] }), /not a run/);
+    assert.throws(() => createFillMask({ ...base, portals: [portal] }), /not a run/);
+  }
+  assert.throws(() => createFillMask({ ...base, portals: [], internalGuaranteed: [{ axis: 'h', x: 0, y: 1, length: 1e9 }] }), /bounded list of runs/);
+  // The kernel holds no SDK limits; it refuses what isn't a run and clips the rest to the cells.
+  assert.throws(() => withClearMargins({ cells: owned, portals: [{ id: 'p', axis: 'v', x: 0, y: 0, length: Infinity }] }), /whole length/);
+  const clipped = withClearMargins({ cells: owned, portals: [{ id: 'p', axis: 'v', x: 0, y: 0, length: 1e9 }] });
+  assert.deepEqual(clipped.fillCells.map(c => c.x).filter(x => x === 0), []);
+});
+
 test('block child handoffs retain original ownership and apply inherited and new margins once', () => {
   const owned = cells(1, 1, 48, 36), playable = cells(0, 0, 50, 38);
   const input = brief(owned, [{ id: 'west', axis: 'v', x: 1, y: 10, length: 4 },
