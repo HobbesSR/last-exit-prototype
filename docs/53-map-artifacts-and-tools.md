@@ -179,6 +179,16 @@ maps whose blocks it changes (results, built and report; one map's report is
 unchanged). Six of them, diagnosed independently, report no defects. Layout,
 declared grid, resolved segments, regions, proof, zones and briefs are identical.
 
+**#214's re-capture** pins authored fill diversity (52), the centered cover
+courtyard, intentional non-guaranteed structure joins, and the reduced default
+loot gradient (14) at input commit `6bd18a4`. It retains the same 224 cases and
+S3 migration provenance. Content hashes intentionally change on all 224 maps;
+macro version 3, `types-22`, and wire version 8 remain the implemented contracts.
+The libraries now use immutable modules `common-primitives@4`,
+`common-set-pieces@4`, and `district-set-pieces@3`. Before capture, 35 report
+samples across the three authored sizes and three independent full-map portal
+diagnoses passed. The frozen gameplay characterization fixture is unchanged.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to

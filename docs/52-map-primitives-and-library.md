@@ -459,9 +459,9 @@ Sizes are in tiles.
   (block over market and park), `military-quarter` 26 × 15 (compound over a
   checkpoint lane) and `ruined-quarter` 28 × 14 (ruins, cover and park).
 
-Over 20 game seeds each, set pieces cover a median 54.8% of tiles at 12 × 6,
+At the S6 checkpoint (#171), over 20 game seeds each, set pieces covered a median 54.8% of tiles at 12 × 6,
 52.1% at 24 × 12 and 53.6% at 36 × 18. Loot per tile has a median of 1.04,
-1.07 and 1.16 under the default gradient (42).
+1.07 and 1.16 under the then-default gradient (42).
 
 ## The old library
 
