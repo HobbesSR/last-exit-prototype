@@ -163,12 +163,19 @@ try {
   await page.locator('#dev-view').click();
   await page.waitForFunction(() => window.arenaDebug().devFeed && window.arenaDebug().view === 'dev');
   assert.equal(await page.evaluate(() => document.getElementById('outcome').hidden), true, 'death dialogue is hidden in dev view');
-  assert.equal(await page.locator('#dev-leave').textContent(), 'Back to death screen', 'leave button reflects death screen view');
+  assert.equal(await page.locator('#dev-leave').textContent(), 'Back to results', 'leave button reflects results view');
 
   // Step back to death screen: outcome dialogue must be restored
   await page.locator('#dev-leave').click();
   await page.waitForFunction(() => !window.arenaDebug().devFeed && window.arenaDebug().view === 'outcome');
   assert.equal(await page.evaluate(() => document.getElementById('outcome').hidden), false, 'death dialogue is restored when stepping back');
+
+  // Open archive/replay dialog and closing it restores death screen
+  await page.locator('#archive').click();
+  await page.waitForFunction(() => document.getElementById('archive-dialog').open);
+  await page.locator('#archive-dialog .close-dialog').click();
+  await page.waitForFunction(() => !document.getElementById('archive-dialog').open && window.arenaDebug().view === 'outcome');
+  assert.equal(await page.evaluate(() => document.getElementById('outcome').hidden), false, 'death dialogue remains visible after closing archive dialog');
 
   await browse();
   assert.deepEqual(errors, []);

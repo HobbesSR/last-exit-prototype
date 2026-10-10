@@ -65,11 +65,14 @@ export async function checkClientControllers(browser, base) {
       const revealedUnderRoof = render({ state: revealedState, arenaMap: roofMap });
       const outsideViewport = render({ visibility: { ...visibility, sight: { ...sight, bounds: { x: 11990, y: 5990, width: 20, height: 20 } } } });
       const directed = render({ state: cloakedState, visibility: { directed: true } });
-      render({ state: { ...state, players: [{ ...me, status: 'eliminated' }] }, dev: false });
+      const eliminatedState = { ...state, players: [{ ...me, status: 'eliminated' }] };
+      render({ state: eliminatedState, view: 'outcome' });
       const deathOutcomeVisible = !$('outcome').hidden;
-      render({ state: { ...state, players: [{ ...me, status: 'eliminated' }] }, dev: true });
+      render({ state: eliminatedState, view: 'dev', dev: true });
       const deathOutcomeHiddenInDev = $('outcome').hidden;
-      render({ state: { ...state, players: [{ ...me, status: 'eliminated' }] }, dev: false });
+      render({ state: eliminatedState, view: 'replay', replay: true });
+      const deathOutcomeHiddenInReplay = $('outcome').hidden;
+      render({ state: eliminatedState, view: 'outcome' });
       const deathOutcomeRestored = !$('outcome').hidden;
       render({});
       const slots = [...$('equipment-slots').children].map(b => b.ariaLabel);
@@ -124,12 +127,13 @@ export async function checkClientControllers(browser, base) {
       const destroyed = collect(false);
       return { first, second, blurred, arranged, blocked, afterBlocked, reset, dialog, hidden, clicked, draggedMove, draggedDrop, cancelledDrag, tappedSlot, cancelledGestures, pinnedDrop, afterPinnedDrop, blockedDragDrop, destroyed,
         dots: { visible, noSight, cloaked, roof, revealedUnderRoof, outsideViewport, directed }, slots,
-        deathOutcomeVisible, deathOutcomeHiddenInDev, deathOutcomeRestored,
+        deathOutcomeVisible, deathOutcomeHiddenInDev, deathOutcomeHiddenInReplay, deathOutcomeRestored,
         beforeDestroy, afterDestroy: { selectionChanges, fullscreenActions, replayActions }, buttonsAfterDestroy: $('equipment-slots').children.length,
         sneakReleaseCancelled: sneakRelease.defaultPrevented };
     }, { state: snapshot(game), arenaMap: game.map });
     assert.equal(result.deathOutcomeVisible, true, 'death outcome dialogue is visible when eliminated');
     assert.equal(result.deathOutcomeHiddenInDev, true, 'death outcome dialogue is hidden in dev view');
+    assert.equal(result.deathOutcomeHiddenInReplay, true, 'death outcome dialogue is hidden in replay view');
     assert.equal(result.deathOutcomeRestored, true, 'death outcome dialogue is restored when leaving dev view');
     assert.equal(result.first.x, 1); assert.equal(result.first.aim, 0.75); assert.equal(result.first.slot, 5);
     for (const action of ['skill', 'interact', 'drop', 'attack']) assert.equal(result.first[action], true);

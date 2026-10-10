@@ -167,6 +167,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   // A dev view borrows the owner key for an `owner` policy, but never the owner's player slot.
   if (!key && saved?.key) { key = saved.key; if (role !== 'dev') { role = saved.role; kit = saved.kit; name = saved.name; } }
   leaveDevView();
+  savedDevCamera = null;
   if (ws) { disconnecting = true; ws.close(); }
   clearInput(); pending = []; seq = 0; savedReplay = null; recordingFailed = false; playerId = null;
   // Nothing of the previous room carries over: a room still generating sends no state until `ready`,
@@ -295,8 +296,22 @@ function currentView() {
   if (!me || me.status !== 'active' || state.phase === 'finished') return 'outcome';
   return 'play';
 }
+function updateDevLeaveLabel() {
+  if (!devFeed) return;
+  const me = liveState?.players?.find(p => p.id === playerId) || state?.players?.find(p => p.id === playerId);
+  const ended = me && (me.status !== 'active' || state?.phase === 'finished');
+  const label = ended ? 'Back to results' : 'Back to player';
+  const span = $('dev-leave').querySelector('span');
+  if (span && span.textContent !== label) {
+    span.textContent = label;
+  } else if (!span) {
+    $('dev-leave').innerHTML = `<i data-lucide="user"></i><span>${label}</span>`;
+    icons();
+  }
+}
 function updateHUD() {
-  hudController.render({ state, arenaMap, playerId, replay: replayController.active(), dev: inDevView(), savedReplay,
+  updateDevLeaveLabel();
+  hudController.render({ state, arenaMap, playerId, view: currentView(), replay: replayController.active(), dev: inDevView(), savedReplay,
     selection: inputController.selection(),
     visibility: { directed: directed(), sight: scene?.sight }
   });
@@ -499,7 +514,7 @@ function enterDevView() {
   clearInput();
   const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
   devFeed = socket;
-  if (savedDevCamera) {
+  if (savedDevCamera && savedDevCamera.roomId === roomId) {
     if (savedDevCamera.followId) director.setFollow(savedDevCamera.followId);
     director.setFog(savedDevCamera.fog);
   }
@@ -518,7 +533,7 @@ function enterDevView() {
 function leaveDevView() {
   const socket = devFeed;
   if (!socket) return;
-  savedDevCamera = { followId: director.followId(), fog: director.fog() };
+  savedDevCamera = { roomId, followId: director.followId(), fog: director.fog() };
   devFeed = null; socket.close(); director.reset(); snapshots.reset();
   if (liveMap && liveState && !replayController.active()) { changeMap(liveMap); acceptState(liveState); }
   showDevMode(); scene?.cutTo();
@@ -526,12 +541,7 @@ function leaveDevView() {
 function showDevMode() {
   const on = inDevView();
   $('dev-controls').hidden = !on; $('dev-leave').hidden = !devFeed;
-  if (devFeed) {
-    const me = liveState?.players?.find(p => p.id === playerId) || state?.players?.find(p => p.id === playerId);
-    const dead = me && (me.status !== 'active' || (state && state.phase === 'finished'));
-    $('dev-leave').innerHTML = `<i data-lucide="user"></i><span>${dead ? 'Back to death screen' : 'Back to player'}</span>`;
-    icons();
-  }
+  updateDevLeaveLabel();
   updateHUD();
   $('dev-view').classList.toggle('active', !!devFeed); $('dev-view').setAttribute('aria-pressed', String(!!devFeed));
   if (ws?.readyState === WebSocket.OPEN && !replayController.active()) connection(on ? 'DEV VIEW' : 'LIVE');
