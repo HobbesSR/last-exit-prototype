@@ -174,18 +174,17 @@ try {
   await page.waitForFunction(() => window.microLabDebug().result?.spec?.builder === 'ruins');
   assert.deepEqual((await page.evaluate(() => window.microLabDebug())).buildings, []);
   // A chain map's brief, opened by the Map Lab's link (20.5), builds the region the map stored,
-  // and walks at the game's own scale. A hut's house is traced. Under clear margins (20.6) a
-  // block's lots lose about half their cells to inherited seam clearance and build no designed
-  // building yet; #214's authorship owns that.
+  // and walks at the game's own scale. Houses and block-lot buildings are traced
+  // under the authored seam layout and clear margins (20.6, 52).
   const chain = generate('last-exit-001'), briefs = mapViews(chain).briefs;
-  for (const [type, map] of [['hut', chain], ['block', generate('last-exit-009')]]) {
+  for (const [type, map] of [['hut', chain], ['block', generate('last-exit-002')]]) {
     const brief = mapViews(map).briefs.find(b => b.type === type), stored = map.results.find(r => r.brief.id === brief.id);
     await page.goto(`${base}/dev/micro${await briefFragment(brief)}`);
     await page.waitForFunction(id => window.microLabDebug?.().imported === id, brief.id, { timeout: 15000 });
     const opened = await page.evaluate(() => window.microLabDebug());
     assert.deepEqual(opened.result, JSON.parse(JSON.stringify(stored)), `the micro lab builds the ${type} the map stored`);
     assert.deepEqual(opened.promise, [], `the chain ${type} keeps its portal promise`);
-    if (type === 'hut') assert.ok(opened.buildings.length > 0, `the chain ${type}'s buildings are traced`);
+    assert.ok(opened.buildings.length > 0, `the chain ${type}'s buildings are traced`);
     assert.equal(await page.getByLabel('Body scale').isDisabled(), true, 'an imported brief walks at its own scale');
     assert.match(await page.locator('#status').textContent(), new RegExp(`Opened from a link\\. Region ${brief.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
     await page.screenshot({ path: `test-results/micro-lab-chain-${type}.png` });
@@ -201,7 +200,9 @@ try {
   await page.locator('#import').setInputFiles({ name: 'result.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(reordered(storedHut))) });
   await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Loaded result.json'));
   assert.doesNotMatch(await page.locator('#status').textContent(), /differs/, 'a reordered but equal result is not reported as different');
-  const altered = structuredClone(storedHut); altered.loot.pop();
+  const altered = structuredClone(storedHut);
+  if (altered.loot.length) altered.loot.pop();
+  else altered.loot.push({ x: lone.cells[0].x * lone.cellSize, y: lone.cells[0].y * lone.cellSize, tier: 1 });
   await page.locator('#import').setInputFiles({ name: 'altered.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(altered)) });
   await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Loaded altered.json'));
   assert.match(await page.locator('#status').textContent(), /differs from the file at result\.loot/);

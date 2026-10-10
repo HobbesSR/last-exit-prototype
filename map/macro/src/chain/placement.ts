@@ -25,14 +25,14 @@ import type { MapZone, MaskCell } from "./zones.ts";
 export const PLACEMENT_ATTEMPTS = 50;
 /**
  * A game map's params, as the chain's tests have used them, with the old generator's
- * exits. The loot gradient is the old generator's scaled by 0.37, which kept loot per map
- * level when S5's bigger set pieces (#170) covered ground `open` had left bare (14).
+ * exits. S5 scaled the old loot gradient by 0.37 for bigger set pieces (#170);
+ * #214 reduces it by about another fifth for the more varied fill (14, 52).
  * The tools start from these, and each can be overridden.
  */
 const { defaultZone } = zonePlan();
 export const DEFAULT_CHAIN_PARAMS: Readonly<ChainParams> = Object.freeze({
   mode: "game", zoneWidth: defaultZone.width, zoneHeight: defaultZone.height,
-  exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.015, lootTierStep: 0.034,
+  exitCount: 2, contestantCount: 8, hunterCount: 3, lootChance: 0.012, lootTierStep: 0.027,
 });
 
 /** Keep the old order, giving distributed transit space before the flexible fill pieces. */
