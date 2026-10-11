@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, step, snapshot, playerView, joinGame } from '../shared/simulation.ts';
+import { createMatch } from '../server/match.js';
+import { broadcast } from '../server/room-views.js';
 import {
   DISCOVERY_CELL_SIZE,
   DISCOVERY_RADIUS,
@@ -10,8 +12,8 @@ import {
   cellCenter,
   createDiscovery,
   discover,
-  discoveryWire,
   foldDiscovery,
+  createDiscoveryEncoder,
   createDiscoveryDecoder,
   isDiscovered,
   isFeatureDiscovered,
@@ -33,6 +35,16 @@ test('discovery grid dimensions and cell coordinates match map scale', () => {
   assert.equal(idxNext, 1);
   const centerNext = cellCenter(map, 1);
   assert.deepEqual(centerNext, { x: 288, y: 96 });
+
+  // Out of bounds coordinates clamp to -1
+  assert.equal(cellIndexAt(map, -10, 50), -1);
+  assert.equal(cellIndexAt(map, 50, -10), -1);
+  assert.equal(cellIndexAt(map, map.width + 10, 50), -1);
+  assert.equal(cellIndexAt(map, 50, map.height + 10), -1);
+
+  const memory = createDiscovery();
+  assert.equal(isDiscovered(memory, map, -10, 50), false);
+  assert.equal(isDiscovered(memory, map, map.width + 10, 50), false);
 });
 
 test('a contestant discovers cells it can see and not cells behind a wall', () => {
@@ -146,7 +158,7 @@ test('discovery is stable under a pure fold over recorded frames', () => {
   assert.deepEqual(folded.discovered, liveDiscovered, 'folded discovery must exactly match live discovery');
 });
 
-test('discovered field is present only in player own frame projection', () => {
+test('discovered field is present only in player own frame projection as plain array', () => {
   const game = createGame(4217);
   const c0 = game.players[0]; // contestant
   const c1 = game.players[1]; // contestant
@@ -158,7 +170,8 @@ test('discovered field is present only in player own frame projection', () => {
   const viewC0 = playerView(game, frame, c0.id);
   const meInView = viewC0.players.find(p => p.id === c0.id);
   assert.ok(meInView.discovered, 'own player projection must carry discovered');
-  assert.ok(Array.isArray(meInView.discovered.all), 'initial wire projection must have all');
+  assert.ok(Array.isArray(meInView.discovered), 'own player projection carries plain array of cell indices');
+  assert.ok(meInView.discovered.length > 0);
 
   const otherContestant = viewC0.players.find(p => p.id === c1.id);
   if (otherContestant) {
@@ -183,62 +196,110 @@ test('discovered field is present only in player own frame projection', () => {
 });
 
 test('keyframe-then-changes deltas add up to the keyframe', () => {
-  const game = createGame(4217);
-  const c0 = game.players[0];
+  const encoder = createDiscoveryEncoder();
   const decoder = createDiscoveryDecoder();
 
-  // Tick 0: initial keyframe
-  const frame0 = snapshot(game);
-  const view0 = playerView(game, frame0, c0.id);
-  const me0 = view0.players.find(p => p.id === c0.id);
-  assert.ok(me0.discovered?.all, 'tick 0 must emit keyframe all');
-  const initialKnown = decoder.decode(me0.discovered);
-  assert.equal(initialKnown.size, me0.discovered.all.length);
+  // Baseline keyframe
+  const initial = [1, 2, 3];
+  const encoded0 = encoder.encode(initial);
+  assert.ok(encoded0.k > 0);
+  const initialWire = encoded0.all();
+  assert.deepEqual(initialWire.all, [1, 2, 3]);
+  decoder.decode(initialWire);
+  assert.deepEqual(decoder.known, new Set([1, 2, 3]));
 
-  // Advance ticks
-  let newSetDiscovered = false;
-  for (let i = 0; i < 40; i++) {
-    // Force player movement across the arena so new cells enter vision
-    c0.x += 25;
-    step(game);
-    const frame = snapshot(game);
-    const view = playerView(game, frame, c0.id);
-    const me = view.players.find(p => p.id === c0.id);
-    if (me.discovered?.set && me.discovered.set.length > 0) {
-      newSetDiscovered = true;
-    }
-    decoder.decode(me.discovered);
-  }
+  // Incremental additions
+  const step1 = [1, 2, 3, 4, 5];
+  const encoded1 = encoder.encode(step1);
+  assert.equal(encoded1.k, encoded0.k, 'same keyframe retained when within budget');
+  assert.deepEqual(encoded1.changes.set, [4, 5]);
+  decoder.decode(encoded1.changes);
+  assert.deepEqual(decoder.known, new Set([1, 2, 3, 4, 5]));
 
-  assert.ok(newSetDiscovered, 'movement must produce incremental set deltas');
-  assert.deepEqual(decoder.known, c0.discovery.discovered, 'accumulated decoder known set must match full live discovery');
+  // Exceeding rekey floor triggers new keyframe
+  const many = Array.from({ length: 30 }, (_, i) => i + 1);
+  const encodedMany = encoder.encode(many);
+  assert.ok(encodedMany.k > encoded0.k, 'new process-unique keyframe cut when changes exceed budget');
+  const manyWire = encodedMany.all();
+  assert.deepEqual(manyWire.all, many);
+  decoder.decode(manyWire);
+  assert.deepEqual(decoder.known, new Set(many));
 });
 
-test('reconnecting or resuming player receives full keyframe', () => {
-  const game = createGame(4217);
-  const c0 = game.players[0];
+test('room broadcast: dropped frames and catch-up batches preserve client discovery', () => {
+  const match = createMatch(4217);
+  const c0 = match.diagnosticState.players[0];
 
-  // Advance some ticks to accumulate discoveries
-  for (let i = 0; i < 15; i++) {
-    c0.x += 10;
-    step(game);
+  const delivered = [];
+  let shouldDrop = false;
+  const session = {
+    playerId: c0.id,
+    deliver(payload, droppable) {
+      if (shouldDrop && droppable) {
+        shouldDrop = false;
+        return false; // simulate websocket backpressure drop
+      }
+      delivered.push(JSON.parse(payload));
+      return true;
+    }
+  };
+
+  const room = {
+    id: 'test-room',
+    match,
+    clients: new Set([session]),
+    history: [],
+  };
+
+  const decoder = createDiscoveryDecoder();
+
+  // 1. Initial broadcast: simulate dropped initial keyframe under backpressure
+  shouldDrop = true;
+  broadcast(room, match.snapshot());
+  assert.equal(delivered.length, 0, 'initial frame was dropped, nothing delivered');
+
+  // Next frame: session that missed the initial keyframe must be sent all
+  broadcast(room, match.snapshot());
+  assert.equal(delivered.length, 1, 'subsequent frame delivered');
+  const firstFrame = delivered[0].state;
+  const me0 = firstFrame.players.find(p => p.id === c0.id);
+  assert.ok(me0.discovered?.all, 'session that missed keyframe must be sent all');
+  decoder.decode(me0.discovered);
+  assert.deepEqual(decoder.known, c0.discovery.discovered);
+
+  // 2. Advance ticks and simulate a dropped intermediate delta frame
+  for (let i = 0; i < 5; i++) {
+    c0.x += 25;
+    match.advance();
   }
+  shouldDrop = true;
+  broadcast(room, match.snapshot());
+  assert.equal(delivered.length, 1, 'intermediate frame was dropped, delivered count unchanged');
 
-  // A regular tick frame carries set or bare k, not all
-  const frameBefore = snapshot(game);
-  const viewBefore = playerView(game, frameBefore, c0.id);
-  assert.equal(viewBefore.players.find(p => p.id === c0.id).discovered?.all, undefined);
+  // Advance more ticks and broadcast
+  for (let i = 0; i < 5; i++) {
+    c0.x += 25;
+    match.advance();
+  }
+  broadcast(room, match.snapshot());
+  assert.equal(delivered.length, 2, 'subsequent frame delivered');
+  const catchupFrame = delivered[1].state;
+  const meCatchup = catchupFrame.players.find(p => p.id === c0.id);
+  // Changes are measured cumulatively against keyframe baseline, so no cells are lost
+  decoder.decode(meCatchup.discovered);
+  assert.deepEqual(decoder.known, c0.discovery.discovered, 'client decoder recovers all cells despite dropped delta frame');
 
-  // Resume or join the slot
-  joinGame(game, c0.id, 'contestant', 'warden', 'Resumed');
-
-  // Next tick must emit a full keyframe
-  step(game);
-  const frameAfter = snapshot(game);
-  const viewAfter = playerView(game, frameAfter, c0.id);
-  const meAfter = viewAfter.players.find(p => p.id === c0.id);
-  assert.ok(meAfter.discovered?.all, 'resumed player must receive keyframe with all');
-  assert.equal(meAfter.discovered.all.length, c0.discovery.discovered.size);
+  // 3. Catch-up batch: simulate room-service advance() stepping multiple ticks before broadcasting
+  for (let i = 0; i < 5; i++) {
+    c0.x += 25;
+    match.advance();
+  }
+  broadcast(room, match.snapshot());
+  assert.equal(delivered.length, 3);
+  const batchFrame = delivered[2].state;
+  const meBatch = batchFrame.players.find(p => p.id === c0.id);
+  decoder.decode(meBatch.discovered);
+  assert.deepEqual(decoder.known, c0.discovery.discovered, 'client decoder matches after catch-up batch');
 });
 
 test('feature discovery query identifies discovered chargers and stations', () => {

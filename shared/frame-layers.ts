@@ -34,6 +34,7 @@ export type LayerWire = Entry[] | { k: number; all?: Entry[]; set?: Entry[]; dro
 // past it, re-sending the whole layer once costs less than carrying the changes every tick.
 const REKEY_SHARE = 1 / 32, REKEY_FLOOR = 16;
 let versions = 0;
+export function nextVersion(): number { return ++versions; }
 
 type Table = { k: number; all: Entry[]; ids: Id[]; byId: Map<Id, Entry> };
 export type EncodedLayer = { k: number; all: () => LayerWire; changes: LayerWire } | { plain: Entry[] };
@@ -48,7 +49,7 @@ export function createLayerEncoder() {
       const byId = new Map(list.map(entry => [entry.id, entry]));
       // Entries without distinct ids cannot be addressed by a change, so that layer goes whole.
       if (byId.size !== list.length || byId.has(undefined as never)) { tables.delete(layer); return { plain: list }; }
-      tables.set(layer, table = { k: ++versions, all: list, ids: list.map(entry => entry.id), byId });
+      tables.set(layer, table = { k: nextVersion(), all: list, ids: list.map(entry => entry.id), byId });
     }
     const { k, all } = table!, current = changes ?? { k };
     return { k, all: () => ({ ...current, all }), changes: current };

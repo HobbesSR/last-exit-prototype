@@ -448,8 +448,8 @@ export interface Player extends Vec2 {
   aggressionUntil?: Tick | undefined;
   /** Authoritative discovery state, kept for contestants only. */
   discovery?: DiscoveryMemory | undefined;
-  /** Wire projection of discovery state using keyframe-then-changes. */
-  discovered?: DiscoveryWire | undefined;
+  /** Plain projection on Player (number[]), or encoded wire projection (DiscoveryWire). */
+  discovered?: number[] | DiscoveryWire | undefined;
 }
 
 export interface DiscoveryWire {
@@ -460,9 +460,6 @@ export interface DiscoveryWire {
 
 export interface DiscoveryMemory {
   discovered: Set<number>;
-  k: number;
-  recent: number[];
-  keyframeNeeded: boolean;
 }
 
 export interface Projectile extends Vec2 {

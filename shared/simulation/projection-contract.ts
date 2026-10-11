@@ -23,6 +23,7 @@ export function ownPlayerFields(player: Player): Projected<Player> {
   // Carried items are projected through the same item contract; both sides are wire records.
   if (Array.isArray(result.inventory)) result.inventory = result.inventory.map(item => item ? itemFields(item) : item) as Inventory;
   if (result.cell) result.cell = itemFields(result.cell);
-  if (player.discovered) result.discovered = player.discovered;
+  if (player.discovery) result.discovered = Array.from(player.discovery.discovered);
+  else if (player.discovered) result.discovered = player.discovered;
   return result;
 }

@@ -1,5 +1,6 @@
 import { insideMap, litPoint, visibilityPolygon } from './movement.ts';
 import { roofConceals } from './view.ts';
+import { nextVersion } from './frame-layers.ts';
 import type { CollisionMap, DiscoveryMemory, DiscoveryWire, GameMap, Gate, Player, PlayerId, Role, Vec2, World } from './types.ts';
 export type { DiscoveryMemory, DiscoveryWire };
 
@@ -16,7 +17,7 @@ export interface DiscoveryGrid {
   size: World;
 }
 
-/** Compute the dimensions of the coarse discovery grid over a map. */
+/** Compute the dimensions of the coarse discovery grid over map dimensions. */
 export function discoveryGrid(map: Pick<CollisionMap, 'width' | 'height'>): DiscoveryGrid {
   return {
     cols: Math.ceil(map.width / DISCOVERY_CELL_SIZE),
@@ -25,9 +26,10 @@ export function discoveryGrid(map: Pick<CollisionMap, 'width' | 'height'>): Disc
   };
 }
 
-/** The flat grid cell index containing a world coordinate. */
+/** The flat grid cell index containing a world coordinate, or -1 if outside bounds. */
 export function cellIndexAt(map: Pick<CollisionMap, 'width' | 'height'>, x: World, y: World): number {
-  const cols = Math.ceil(map.width / DISCOVERY_CELL_SIZE);
+  if (x < 0 || y < 0 || x >= map.width || y >= map.height) return -1;
+  const { cols } = discoveryGrid(map);
   const col = Math.floor(x / DISCOVERY_CELL_SIZE);
   const row = Math.floor(y / DISCOVERY_CELL_SIZE);
   return row * cols + col;
@@ -35,7 +37,7 @@ export function cellIndexAt(map: Pick<CollisionMap, 'width' | 'height'>, x: Worl
 
 /** The world center point of a flat grid cell index. */
 export function cellCenter(map: Pick<CollisionMap, 'width' | 'height'>, index: number): Vec2 {
-  const cols = Math.ceil(map.width / DISCOVERY_CELL_SIZE);
+  const { cols } = discoveryGrid(map);
   const col = index % cols;
   const row = Math.floor(index / cols);
   return {
@@ -44,13 +46,10 @@ export function cellCenter(map: Pick<CollisionMap, 'width' | 'height'>, index: n
   };
 }
 
-/** Create empty discovery memory. */
+/** Create empty authoritative discovery memory. */
 export function createDiscovery(): DiscoveryMemory {
   return {
     discovered: new Set<number>(),
-    k: 0,
-    recent: [],
-    keyframeNeeded: true,
   };
 }
 
@@ -59,15 +58,11 @@ export function attachDiscovery(player: Player, memory: DiscoveryMemory): void {
   Object.defineProperty(player, 'discovery', { value: memory, writable: true, configurable: true, enumerable: false });
 }
 
-/** Attach the discovery wire state to a player as a non-enumerable property. */
-export function attachDiscovered(player: Player, wire: DiscoveryWire): void {
-  Object.defineProperty(player, 'discovered', { value: wire, writable: true, configurable: true, enumerable: false });
-}
-
 /** Check whether a world point falls inside an already-discovered cell. */
 export function isDiscovered(memory: DiscoveryMemory | null | undefined, map: Pick<CollisionMap, 'width' | 'height'>, x: World, y: World): boolean {
   if (!memory) return false;
-  return memory.discovered.has(cellIndexAt(map, x, y));
+  const idx = cellIndexAt(map, x, y);
+  return idx !== -1 && memory.discovered.has(idx);
 }
 
 /** Check whether a map feature (station, charger, exit, item) has been discovered. */
@@ -86,8 +81,7 @@ export function discover(
   eye: Vec2,
   radius: World = DISCOVERY_RADIUS
 ): number[] {
-  const cols = Math.ceil(map.width / DISCOVERY_CELL_SIZE);
-  const rows = Math.ceil(map.height / DISCOVERY_CELL_SIZE);
+  const { cols, rows } = discoveryGrid(map);
 
   const minCol = Math.max(0, Math.floor((eye.x - radius) / DISCOVERY_CELL_SIZE));
   const maxCol = Math.min(cols - 1, Math.floor((eye.x + radius) / DISCOVERY_CELL_SIZE));
@@ -119,31 +113,7 @@ export function discover(
     }
   }
 
-  if (newlyDiscovered.length > 0) {
-    memory.recent.push(...newlyDiscovered);
-  }
   return newlyDiscovered;
-}
-
-/**
- * Produce the wire delta for the current tick:
- * - full keyframe (`all`) when requested (on start, join or resume)
- * - change set (`set`) when new cells were discovered
- * - bare keyframe sequence (`k`) when nothing changed
- */
-export function discoveryWire(memory: DiscoveryMemory): DiscoveryWire {
-  if (memory.keyframeNeeded) {
-    memory.keyframeNeeded = false;
-    memory.k++;
-    memory.recent = [];
-    return { k: memory.k, all: Array.from(memory.discovered) };
-  }
-  if (memory.recent.length > 0) {
-    const set = memory.recent;
-    memory.recent = [];
-    return { k: memory.k, set };
-  }
-  return { k: memory.k };
 }
 
 /**
@@ -181,16 +151,81 @@ export function foldDiscovery(
   return memory;
 }
 
+export interface EncodedDiscovery {
+  k: number;
+  all: () => DiscoveryWire;
+  changes: DiscoveryWire;
+}
+
+const REKEY_FLOOR = 16;
+
+/**
+ * Server discovery encoder, one per contestant view key.
+ * Measures newly added cells against the keyframe baseline.
+ * Re-keys when the newly added cell count exceeds the rekey floor.
+ */
+export function createDiscoveryEncoder(rekeyFloor = REKEY_FLOOR) {
+  let table: { k: number; all: number[]; set: Set<number> } | null = null;
+
+  return {
+    encode(list: number[]): EncodedDiscovery {
+      if (!table) {
+        table = { k: nextVersion(), all: list, set: new Set(list) };
+        return {
+          k: table.k,
+          all: () => ({ k: table!.k, all: table!.all }),
+          changes: { k: table.k },
+        };
+      }
+
+      const newlyAdded: number[] = [];
+      for (const id of list) {
+        if (!table.set.has(id)) newlyAdded.push(id);
+      }
+
+      if (newlyAdded.length > rekeyFloor) {
+        table = { k: nextVersion(), all: list, set: new Set(list) };
+        return {
+          k: table.k,
+          all: () => ({ k: table!.k, all: table!.all }),
+          changes: { k: table.k },
+        };
+      }
+
+      const currentK = table.k;
+      const currentAll = table.all;
+      const changes: DiscoveryWire = newlyAdded.length > 0 ? { k: currentK, set: newlyAdded } : { k: currentK };
+      const allWire = (): DiscoveryWire => (newlyAdded.length > 0 ? { k: currentK, all: currentAll, set: newlyAdded } : { k: currentK, all: currentAll });
+
+      return {
+        k: currentK,
+        all: allWire,
+        changes,
+      };
+    },
+    reset(): void {
+      table = null;
+    },
+  };
+}
+
 /** Client-side discovery decoder that accumulates keyframe and deltas into a known set. */
 export function createDiscoveryDecoder() {
   let known = new Set<number>();
   let currentK = 0;
   return {
-    decode(wire: DiscoveryWire | null | undefined): Set<number> {
+    decode(wire: DiscoveryWire | number[] | null | undefined): Set<number> {
       if (!wire) return known;
+      if (Array.isArray(wire)) {
+        for (const idx of wire) known.add(idx);
+        return known;
+      }
       if (wire.all) {
         currentK = wire.k;
         known = new Set(wire.all);
+        if (wire.set) {
+          for (const idx of wire.set) known.add(idx);
+        }
       } else if (wire.k === currentK && wire.set) {
         for (const idx of wire.set) known.add(idx);
       }
@@ -201,7 +236,7 @@ export function createDiscoveryDecoder() {
     },
     isDiscovered(map: Pick<CollisionMap, 'width' | 'height'>, x: World, y: World): boolean {
       const idx = cellIndexAt(map, x, y);
-      return known.has(idx);
+      return idx !== -1 && known.has(idx);
     },
     reset(): void {
       known = new Set();

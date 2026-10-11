@@ -38,18 +38,12 @@ export function playerView(s: Game, frame: Snapshot, id: PlayerId) {
 // A viewer id that matches no player is a non-player client: it receives the directed view, which is
 // unfogged by design. Callers decide who is allowed to ask for one.
 function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
-  const viewer = frame.players.find(p => p.id === id);
-  const liveViewer = s.players.find(p => p.id === id);
+  const viewer = s.players.find(p => p.id === id) ?? frame.players.find(p => p.id === id);
   // Effects are sized, so a wide ring counts as reachable when its edge is, not just its centre.
   const inRange = (p: Vec2 & { radius?: World | undefined }) => !viewer || distance(viewer, p) < POTENTIAL + (p.radius ?? 0);
   const rest = frameFields(frame); // Replay bookkeeping and unlisted internal fields stay private.
   return { ...rest, duration: s.content.durationTicks, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
-    players: frame.players.filter(p => couldSee(s, viewer, p)).map(p => {
-      if (p.id === id) {
-        return ownPlayerFields(liveViewer?.discovered ? { ...p, discovered: liveViewer.discovered } : p);
-      }
-      return observed(p);
-    }),
+    players: frame.players.filter(p => couldSee(s, viewer, p)).map(p => p.id === id ? ownPlayerFields(viewer!) : observed(p)),
     items: frame.items.filter(inRange).map(itemFields), gates: frame.gates?.map(gateFields),
     traps: (frame.traps || []).filter(inRange).map(trapFields), projectiles: frame.projectiles.filter(inRange).map(projectileFields),
     effects: frame.effects.filter(inRange).map(effectFields), events: frame.events?.map(eventFields) };
