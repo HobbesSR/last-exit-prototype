@@ -1,7 +1,8 @@
 import { rect } from '../../../shared/shape.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import { warehouse } from './depot.ts';
-import { unfilledRegion, cellLoot, draw } from './scatter.ts';
+import { unfilledRegion, cellLoot } from './scatter.ts';
+import { draw } from '../random.ts';
 import { capsule, createAccessMask, createFillMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap, travelClear } from '../geometry.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../portals.ts';
 import { boxesAgainstHints } from '../hints.ts';

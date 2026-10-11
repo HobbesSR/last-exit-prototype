@@ -1,5 +1,6 @@
 import { largestRectangle } from './hall.ts';
-import { unfilledRegion, cellLoot, draw } from './scatter.ts';
+import { unfilledRegion, cellLoot } from './scatter.ts';
+import { draw } from '../random.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { portalStands } from '../portals.ts';

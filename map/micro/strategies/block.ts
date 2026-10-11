@@ -6,7 +6,7 @@ import { buildHut } from './hut.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import { buildOpen } from './open.ts';
 import { buildRuins } from './ruins.ts';
-import { draw } from './scatter.ts';
+import { draw } from '../random.ts';
 import { createRegionMask } from '../geometry.ts';
 import { inheritBriefMargins } from '../margins.ts';
 import { portalMargin } from '../hints.ts';

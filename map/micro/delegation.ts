@@ -17,6 +17,7 @@ export interface PatchOffer {
   type: string;
   parameters?: RegionBrief['parameters'];
   reasonTags?: string[];
+  /** Advice addressed to this child. Parent guidance is not forwarded implicitly. */
   guidance?: RegionBrief['guidance'];
 }
 export interface PreparedPatch { key: string; brief: RegionBrief }
@@ -136,7 +137,7 @@ function localBrief(parent: RegionBrief, cells: Cell[], offer?: PatchOffer): Reg
     cellSize: parent.cellSize, cells, zones: [], portals: [],
   } : { ...structuredClone(parent), cells, portals: [], internalGuaranteed: [] };
   if (offer?.parameters !== undefined) brief.parameters = record(offer.parameters);
-  const guidance = offer?.guidance ?? parent.guidance;
+  const guidance = offer ? offer.guidance : parent.guidance;
   if (guidance !== undefined) brief.guidance = record(guidance);
   brief.zones = parent.zones.map(z => ({ ...z, cells: z.cells.filter(c => owned.has(keyOf(c))) })).filter(z => z.cells.length);
   brief.fillCells = parent.fillCells!.filter(c => owned.has(keyOf(c)));
@@ -236,8 +237,10 @@ export function prepareDelegation(input: RegionBrief, offers: readonly PatchOffe
     }
     return { ...structuredClone(offer), cells };
   }).sort((a, b) => a.key.localeCompare(b.key));
-  const protectedCells = new Set((policy.protectedCells ?? []).map(keyOf));
-  if ((policy.protectedCells ?? []).some(c => !Number.isInteger(c.x) || !Number.isInteger(c.y))) throw new Error('Protected cells must have whole addresses.');
+  const protection = policy.protectedCells ?? [];
+  if (!Array.isArray(protection) || protection.some(c => !c || !Number.isInteger(c.x) || !Number.isInteger(c.y)))
+    throw new Error('Protected cells must have whole addresses.');
+  const protectedCells = new Set(protection.map(keyOf));
   if ([...protectedCells].some(k => !owned.has(k))) throw new Error('Protected cells must be owned by the parent.');
   if ((policy.protectedRuns ?? []).some(r => !r || !['h', 'v'].includes(r.axis) || ![r.x, r.y, r.length].every(Number.isInteger)
     || r.length < 1 || r.length > LIMITS.run)) throw new Error('Protected runs must be bounded whole-cell runs.');

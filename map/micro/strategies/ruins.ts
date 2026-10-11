@@ -1,5 +1,6 @@
 import { polygon, rect } from '../../../shared/shape.ts';
-import { unfilledRegion, cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
+import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
+import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';

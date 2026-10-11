@@ -1,5 +1,6 @@
 import { rect } from '../../../shared/shape.ts';
-import { unfilledRegion, cellLoot, draw, protectedRoutes } from './scatter.ts';
+import { unfilledRegion, cellLoot, protectedRoutes } from './scatter.ts';
+import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';

@@ -42,8 +42,11 @@ test('whole-cell patches make an exact paired partition with stable identity and
   assert.equal(prepared.crossings.length, 2);
   assert.deepEqual(prepared.children[1].brief.delegation, { sourceBuilder: 'hut', reasonTags: ['side', 'spare'] });
   assert.deepEqual(prepared.children[1].brief.parameters, { density: 2 });
-  assert.deepEqual(prepared.children[1].brief.guidance, { weather: 'dry' });
+  assert.equal(Object.hasOwn(prepared.children[1].brief, 'guidance'), false);
+  assert.deepEqual(prepared.retained.guidance, parent.guidance);
   assert.deepEqual(prepared.children[0].brief.guidance, { weather: 'wet' });
+  const forwarded = prepareDelegation(parent, [{ ...west, guidance: parent.guidance }], policy());
+  assert.deepEqual(forwarded.children[0].brief.guidance, parent.guidance, 'the offering builder may deliberately forward advice');
   assert.equal(prepared.children.every(c => c.brief.coreElements === undefined), true);
   assert.equal(prepared.children.every(c => c.brief.zones.every(z => z.cells.every(cell => c.brief.cells.some(o => o.x === cell.x && o.y === cell.y)))), true);
   assert.deepEqual(prepareDelegation({ ...parent, cells: [...parent.cells].reverse(), zones: [...parent.zones].reverse() },
@@ -81,6 +84,8 @@ test('malformed offers fail and infeasible proposals retain their cells with rea
   assert.throws(() => prepareDelegation(parent, [offer('x', [{ x: 20, y: 0 }])], policy()), /inside/);
   assert.throws(() => prepareDelegation(parent, [offer('x', [left[0], left[0]])], policy()), /Duplicate/);
   assert.throws(() => prepareDelegation(parent, [offer('x', left)], policy({ protectedCells: [{ x: 20, y: 0 }] })), /Protected/);
+  for (const protectedCells of [[null], [undefined], [{ x: 0.5, y: 0 }], {}])
+    assert.throws(() => prepareDelegation(parent, [], policy({ protectedCells })), /Protected cells must have whole addresses/);
   const protectedCell = prepareDelegation(parent, [offer('x', left)], policy({ protectedCells: [left[0]] }));
   assert.deepEqual(protectedCell.children, []);
   assert.match(protectedCell.rejected[0].reason, /protected cells/);
