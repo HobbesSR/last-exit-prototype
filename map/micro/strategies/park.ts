@@ -1,5 +1,6 @@
 import { circle, rect } from '../../../shared/shape.ts';
-import { unfilledRegion, cellLoot, draw, fraction, protectedRoutes } from './scatter.ts';
+import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
+import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
