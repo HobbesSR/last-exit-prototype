@@ -30,7 +30,9 @@ contract where one exists: the fixture's map hashes and scripted trace stay in
 `characterization.test.js`.
 
 Changes under `map/macro/` run its own suite with `npm run test:mapgen` (typecheck
-plus unit tests, in that directory). On 2026-10-03, after the old paths were
+plus unit tests, in that directory). Its `tests/slow/` holds the larger authored-size
+quota checks and runs in that same default macro suite; the seeds and assertions
+are shared with the fast content checks, not reduced to fit the timing budget. On 2026-10-03, after the old paths were
 deleted (#146), it is green: 100 tests. The Map Lab (`map/tools/lab/`) has its
 own browser check, `node map/tools/tests/lab.browser.mts`, which `npm run
 test:browser` runs. A change to the chain or its inputs (macro's stages and
@@ -53,6 +55,12 @@ checks the large open regions. These are bounded samples, not a guarantee for
 every seed. `tests/map-container.test.js` saves and reloads this library's
 game-size map through JSON, BSON and Layout-only regeneration with the real
 strategy version (53).
+
+The larger authored-size report samples live in separate slow files
+(`map-library-24`, `map-library-36`, and `map-library-36-tail`) to stay under
+the 60-second file budget. They retain the original five seeds for each size;
+the 36-size sample is split into seeds 1–3 and 4–5 with the same bounds checked
+in both batches.
 
 The tools in `map/tools/` are checked by `tests/map-tools.test.js`, which drives
 the CLI and MCP as subprocesses, and typechecked by `npm run typecheck` under

@@ -2,9 +2,9 @@
 import diamond12x6 from './macro/content/diamond-12x6.json' with { type: 'json' };
 import diamond24x12 from './macro/content/diamond-24x12.json' with { type: 'json' };
 import diamond36x18 from './macro/content/diamond-36x18.json' with { type: 'json' };
-import commonPrimitives from './macro/content/common-primitives@3.json' with { type: 'json' };
-import commonSetPieces from './macro/content/common-set-pieces@3.json' with { type: 'json' };
-import districtSetPieces from './macro/content/district-set-pieces@2.json' with { type: 'json' };
+import commonPrimitives from './macro/content/common-primitives@4.json' with { type: 'json' };
+import commonSetPieces from './macro/content/common-set-pieces@4.json' with { type: 'json' };
+import districtSetPieces from './macro/content/district-set-pieces@3.json' with { type: 'json' };
 import { resolveLibrary, validateLibrary as validateChainLibrary } from './macro/src/chain/library.ts';
 import type { ChainLibrary, LibraryValidation } from './macro/src/chain/library.ts';
 import { generateChainMap } from './macro/src/chain/map.ts';
@@ -17,8 +17,8 @@ import { isCellSize } from './kernel/scale.ts';
 export type GameChainMap = ChainMap<RegionElement>;
 
 const MODULES = {
-  'common-primitives@3': commonPrimitives, 'common-set-pieces@3': commonSetPieces,
-  'district-set-pieces@2': districtSetPieces,
+  'common-primitives@4': commonPrimitives, 'common-set-pieces@4': commonSetPieces,
+  'district-set-pieces@3': districtSetPieces,
 };
 
 /** The bundled libraries, one per zone size the diamond is authored for (55), default first. */

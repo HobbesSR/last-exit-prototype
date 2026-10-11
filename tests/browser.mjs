@@ -379,7 +379,7 @@ try {
   await page.waitForFunction(() => window.arenaDebug().me?.kit === 'striker' && window.arenaDebug().me?.role === 'gladiator');
   await page.waitForTimeout(300); await page.screenshot({ path: 'test-results/gladiator.png' });
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
-  await ready(mobile);
+  await ready(mobile, `${base}/?seed=4217`);
   const mx = await mobile.evaluate(() => window.arenaDebug().me.x);
   const move = await mobile.getByRole('group', { name: 'Movement stick', exact: true }).boundingBox();
   await mobile.mouse.move(move.x + move.width / 2, move.y + move.height / 2); await mobile.mouse.down(); await mobile.mouse.move(move.x + move.width - 8, move.y + move.height / 2); await mobile.waitForTimeout(400); await mobile.mouse.up();
@@ -408,7 +408,14 @@ try {
   assert.ok(touchState.me.x > startTouchX + 20 && Math.abs(touchState.me.heading + Math.PI / 2) < 0.1, 'simultaneous move and aim');
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   const mobileInfo = await mobile.evaluate(() => window.arenaDebug());
-  const mobilePlayer = server.rooms.get(mobileInfo.room).game.players.find(p => p.id === mobileInfo.me.id);
+  const mobileGame = server.rooms.get(mobileInfo.room).game;
+  const mobilePlayer = mobileGame.players.find(p => p.id === mobileInfo.me.id);
+  // Inventory gestures need the dropped item to survive until the assertion;
+  // nearby bots can otherwise collect it within the same server tick.
+  const away = mobileGame.map.chargers[0];
+  for (const other of mobileGame.players) if (other.id !== mobilePlayer.id) {
+    other.bot = false; other.x = away.x; other.y = away.y;
+  }
   mobilePlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7 };
   mobilePlayer.inventory[4] = null;
   await mobile.waitForFunction(() => window.arenaDebug().me.inventory[5]?.ammo === 7 && !window.arenaDebug().me.inventory[4]);

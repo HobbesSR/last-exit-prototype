@@ -7,15 +7,15 @@
   "includes": [
     {
       "name": "common-primitives",
-      "version": 3
+      "version": 4
     },
     {
       "name": "common-set-pieces",
-      "version": 3
+      "version": 4
     },
     {
       "name": "district-set-pieces",
-      "version": 2
+      "version": 3
     }
   ],
   "setPieceClasses": [
@@ -86,7 +86,8 @@
         "depot-lot",
         "cover-yard",
         "plant-yard",
-        "rubble-strip"
+        "rubble-strip",
+        "rubble-court"
       ]
     },
     {
