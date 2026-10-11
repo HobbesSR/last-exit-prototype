@@ -23,6 +23,7 @@
 // A keyframe never changes once cut: `all` is always the layer as it was then, and the current frame is
 // that plus the same changes every other session on the view is sent.
 // Keyframe numbers are unique in the process, so one never matches a table from another view or room.
+// Contestant discovery uses the same delivery tracking and process-wide keyframe numbering through shared/discovery.ts.
 
 export const LAYERS = ['items', 'gates'] as const;
 export type Layer = typeof LAYERS[number];
@@ -34,6 +35,7 @@ export type LayerWire = Entry[] | { k: number; all?: Entry[]; set?: Entry[]; dro
 // past it, re-sending the whole layer once costs less than carrying the changes every tick.
 const REKEY_SHARE = 1 / 32, REKEY_FLOOR = 16;
 let versions = 0;
+export function nextVersion(): number { return ++versions; }
 
 type Table = { k: number; all: Entry[]; ids: Id[]; byId: Map<Id, Entry> };
 export type EncodedLayer = { k: number; all: () => LayerWire; changes: LayerWire } | { plain: Entry[] };
@@ -48,7 +50,7 @@ export function createLayerEncoder() {
       const byId = new Map(list.map(entry => [entry.id, entry]));
       // Entries without distinct ids cannot be addressed by a change, so that layer goes whole.
       if (byId.size !== list.length || byId.has(undefined as never)) { tables.delete(layer); return { plain: list }; }
-      tables.set(layer, table = { k: ++versions, all: list, ids: list.map(entry => entry.id), byId });
+      tables.set(layer, table = { k: nextVersion(), all: list, ids: list.map(entry => entry.id), byId });
     }
     const { k, all } = table!, current = changes ?? { k };
     return { k, all: () => ({ ...current, all }), changes: current };

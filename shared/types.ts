@@ -191,6 +191,7 @@ export interface MatchContent {
   cellChargeTicks: Tick;
   gladiatorRespawnTicks: Tick;
   hazardGraceTicks: Tick;
+  discovery?: boolean | undefined;
 }
 
 export interface WeaponItem {
@@ -445,6 +446,18 @@ export interface Player extends Vec2 {
   movedThisTick?: World | undefined;
   aggressor?: PlayerId | undefined;
   aggressionUntil?: Tick | undefined;
+  /** Authoritative discovery state, kept for contestants only. */
+  discovery?: DiscoveryMemory | undefined;
+}
+
+export interface DiscoveryWire {
+  k: number;
+  all?: number[] | undefined;
+  set?: number[] | undefined;
+}
+
+export interface DiscoveryMemory {
+  discovered: Set<number>;
 }
 
 export interface Projectile extends Vec2 {
