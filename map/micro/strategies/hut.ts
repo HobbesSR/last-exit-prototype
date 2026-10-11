@@ -63,7 +63,10 @@ type House = Built & { steps: number[] };
  * `observe`, when given, sees the house's design, allocation and realization (`BuildingTrace`).
  */
 export function buildHut(brief: RegionBrief, observe?: BuildingObserver): BuiltRegion {
-  return flattenDelegationResult(buildHutGeneration(brief, observe ? { observe } : {}));
+  const result = flattenDelegationResult(buildHutGeneration(brief, observe ? { observe } : {}));
+  // Chain saves derive this exact brief from the Layout. Canonical ordering and
+  // derived margins belong to the owning execution, not the production adapter.
+  return { ...result, brief };
 }
 
 /** Owning generation object for inspection and versioned snapshot recovery (20.7). */

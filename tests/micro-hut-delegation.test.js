@@ -10,6 +10,8 @@ import { validateFillConstraints } from '../map/micro/margins.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { measurement } from '../map/macro/src/chain/measurement.ts';
 import { liveMapFromBuilt } from '../map/live.ts';
+import { generate, readMap } from '../map/tools/core.ts';
+import { chainMapToJson, chainMapToBson } from '../map/macro/src/chain/saving.ts';
 
 const SIZE = 40;
 const rectangle = (w, h, keep = () => true) => Array.from({ length: w * h }, (_, n) =>
@@ -64,7 +66,14 @@ test('a broad concave yard gives cover a lobe while preserving the house, door, 
     }
   }
   assertGeometry(flat);
-  assert.deepEqual(buildHut(original), flat);
+  assert.deepEqual(buildHut(original), { ...flat, brief: original });
+});
+
+test('production hut adapters preserve Layout briefs for full chain saves', () => {
+  const map = generate('last-exit-001');
+  const json = chainMapToJson(map), bson = chainMapToBson(map);
+  assert.deepEqual(readMap(JSON.parse(json)), map);
+  assert.deepEqual(readMap(bson), map);
 });
 
 test('a small yard retains its house without forcing a cover patch', () => {
