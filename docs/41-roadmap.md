@@ -110,7 +110,10 @@ derives reduced fill, known-clear access context and internal guaranteed runs;
 Builders and child handoffs use those constraints. #214's authored fill
 diversity and final content checkpoint are merged. #325 follows with depot
 route reservation tuning (`types-23`); #289's residual delegation design
-remains the broader next boundary for space a builder cannot use itself.
+remains the broader next boundary for space a builder cannot use itself. Its
+recommended defaults and alternatives are proposed in
+[20.7](20.7-builder-delegation.md), pending Corey's review; no delegation is
+implemented by that proposal.
 
 The sequencing below remains the other gameplay backlog, not an instruction to
 leave the current micro-generation effort for reward tiers.
