@@ -393,7 +393,8 @@ inside, and windows and doors let sight through.
     original requested core counts remain for reporting.
   - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
     disc stands clear of the walls and the door, indoors or out. Retained hut
-    loot is clipped to retained ownership; delegated cover uses its existing
+    loot rolls in canonical cell order and is clipped to retained ownership;
+    delegated cover uses its existing
     loot behavior.
   - **Core elements:** it sites none. Any its brief lists are left for the
     report.

@@ -356,15 +356,26 @@ none. Free-cell share changed from 0.936 to 0.924; free gaps per region from
 largest gap from 312 to 288 cells. The direct CLI command was
 `node tools/builder-fill.mjs --types=hut --seeds=20 --width=24 --height=18 --min=3 --json=1`.
 
-Focused verification passed: 323 micro tests and three micro browser checks.
+Focused verification passed: 325 micro tests and three micro browser checks.
 Strict isolated file timings were 7.4 seconds for `tests/micro-hut.test.js`,
-0.9 for `tests/micro-hut-delegation.test.js`, 0.5 for
+3.0 for `tests/micro-hut-delegation.test.js`, 0.2 for
+`tests/micro-analysis.test.js`, 0.9 for
+`tests/micro-decomposition-tooling.test.js`, 0.5 for
 `tests/micro-delegation.test.js`, 0.3 for `tests/micro-delegation-execute.test.js`,
 and 0.6 for `tests/micro-delegation-snapshot.test.js`. The macro-sized hut case
 in `tests/micro-hut.test.js`, isolated with its strict 2-second timing assertion,
-completed in 1.700, 1.675 and 1.671 seconds across three final passes. The captured
+completed in 1.658, 1.645 and 1.622 seconds across three final passes. The captured
 Micro Lab view `test-results/micro-lab-hut-delegation.png` was visually inspected
 and shows the realized house and delegated cover.
+
+The unchanged 5-second macro-block assertion also passed three isolated runs
+at 1.128, 1.125 and 1.055 seconds. It failed at 5.614 seconds when the whole
+suite shared the machine with a sweep, so the final suite was run on its own.
+That final run passed all 642 tests. Check, typecheck, the complete browser gate,
+and both sequential default benchmarks passed. The default server benchmark's
+tick p95 was 5.223 ms; the client entry run averaged 60 fps. These are current
+samples, not paired performance comparisons. The recaptured 224-case baseline
+has zero drift (53).
 
 The baseline measurements are retained in `test-results/330-before.md`; full
 audit detail is in `test-results/330-audit.json`, with the paired fill summaries

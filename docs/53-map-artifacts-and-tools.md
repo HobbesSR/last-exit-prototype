@@ -200,6 +200,20 @@ depots pass independent fill and hunter-access checks; full-map diagnoses of
 002, 008 and 014 also pass. Macro version 3 and wire version 8 remain unchanged.
 The frozen gameplay characterization fixture is unchanged.
 
+**#330's re-capture** pins `types-24` at input commit `93aa5d4`, retaining the
+same 224 cases. Huts retain their house, yard and circulation and offer unused
+lobes to cover; a wholly incapable hut takes terminal empty (20.7, 54).
+The original baseline comparison changes results hashes on all 224 maps, built
+and report hashes on 67. Layout, declared grid, resolved segments,
+regions, proof, zones and briefs remain identical. Three full maps at the
+12 × 6, 24 × 12 and 36 × 18 authored sizes report no defects or broken promises
+under independent portal diagnosis. The real pilot's Micro Lab preview and
+full/omitted owning snapshots are checked. Measured uptake is limited: 6 of 137
+offers in those maps were accepted (42). Capture follows the committed content
+checkpoint; the final 224-case check has zero drift. Macro version 3 and
+wire version 8 remain unchanged, as does the frozen gameplay characterization
+fixture.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to

@@ -56,6 +56,8 @@ test('a broad concave yard gives cover a lobe while preserving the house, door, 
   }
   for (const leaf of leaves) {
     assertGeometry(leaf);
+    assert.deepEqual(validatePortalReach({ ...leaf.brief, blockers: allBlockers }).errors, [],
+      `${leaf.brief.id}: routes keep the promise with final combined geometry`);
     const mask = createAccessMask(leaf.brief), radius = hunterClearance(SIZE);
     for (const { portal, points } of portalStands(leaf.brief)) {
       assert.ok(points.length, `${leaf.brief.id}: ${portal.id} has hunter stands`);

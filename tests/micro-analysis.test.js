@@ -68,6 +68,6 @@ test('input order does not matter, invalid input fails, and analysis does not mu
   analyzeRegion(input); assert.deepEqual(input, before);
   assert.throws(() => canonicalCells([{ x: .5, y: 0 }]));
   assert.throws(() => canonicalCells([{ x: 0, y: 0 }, { x: 0, y: 0 }]));
-  assert.throws(() => canonicalCells([{ x: 513, y: 0 }]));
+  assert.throws(() => canonicalCells([{ x: Number.MAX_SAFE_INTEGER, y: 0 }]), /safe integers.*offsets/);
   assert.deepEqual(analyzeRegion([]), { cells: [], area: 0, bounds: { x: 0, y: 0, w: 0, h: 0, area: 0 }, components: [], holes: [], boundary: [], perimeter: 0, rectangularity: 0, xMonotone: true, yMonotone: true, depth: [], localWidth: [], articulationCells: [], maximalRectangles: [] });
 });
