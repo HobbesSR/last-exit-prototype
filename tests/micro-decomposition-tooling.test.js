@@ -5,6 +5,16 @@ import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { decompositionExample, planExample } from '../map/micro/decomposition/example.ts';
+import { analyzeRegion } from '../map/micro/decomposition/analysis.ts';
+
+test('bounded decomposition analysis accepts translated cells and refuses inexact offsets', () => {
+  const cells = [{ x: 10_000, y: -10_000 }, { x: 10_001, y: -10_000 }];
+  const analysis = analyzeRegion(cells);
+  assert.deepEqual(analysis.cells, cells);
+  assert.equal(analysis.bounds.w, 2);
+  assert.throws(() => analyzeRegion([{ x: Number.MAX_SAFE_INTEGER, y: 0 }]), /safe integers.*offsets/);
+  assert.throws(() => analyzeRegion([{ x: 10_000, y: 0 }, { x: 10_064, y: 0 }]), /at most 64/);
+});
 
 const cli = (...args) => spawnSync(process.execPath, ['tools/decompose-region.mjs', ...args], { encoding: 'utf8', maxBuffer: 8e6 });
 test('decomposition CLI shares the strategy, validates artifacts, and refuses ambiguous options', () => {

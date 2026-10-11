@@ -9,6 +9,7 @@ import { listen } from './helpers/listen.js';
 import { generate } from '../map/tools/core.ts';
 import { mapViews } from '../map/macro/src/chain/map.ts';
 import { briefFragment } from '../map/micro/brief-link.ts';
+import { buildRegion } from '../map/micro/region-types.ts';
 
 const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-micro-lab-'));
 await mkdir('test-results', { recursive: true });
@@ -189,6 +190,20 @@ try {
     assert.match(await page.locator('#status').textContent(), new RegExp(`Opened from a link\\. Region ${brief.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
     await page.screenshot({ path: `test-results/micro-lab-chain-${type}.png` });
   }
+  // The authored delegation pilot is visible as a house and actual child cover.
+  const yardCells = Array.from({ length: 28 * 12 }, (_, i) => ({ x: i % 28, y: Math.floor(i / 28) }))
+    .filter(cell => cell.y < 8 || cell.x < 18);
+  const pilotBrief = { id: 'concave-yard', seed: 1, type: 'hut', cellSize: 40, cells: yardCells,
+    zones: [{ tier: 3, bonus: 0, lootChance: 0, cells: yardCells }],
+    portals: [{ id: 'north', axis: 'h', x: 2, y: 0, length: 3 }, { id: 'west', axis: 'v', x: 0, y: 7, length: 3 }] };
+  await page.goto(`${base}/dev/micro${await briefFragment(pilotBrief)}`);
+  await page.waitForFunction(() => window.microLabDebug?.().imported === 'concave-yard');
+  const pilot = await page.evaluate(() => window.microLabDebug());
+  assert.deepEqual(pilot.result, JSON.parse(JSON.stringify(buildRegion(pilotBrief))));
+  assert.ok(pilot.result.elements.some(element => element.template.encloses));
+  assert.ok(pilot.result.elements.some(element => element.label.includes('/delegate/')));
+  assert.equal(pilot.buildings.length, 1, 'cover does not manufacture building traces');
+  await page.screenshot({ path: 'test-results/micro-lab-hut-delegation.png' });
   // A saved brief imports as a file, as the Map Lab's "Save this region's brief" writes it.
   const lone = briefs.find(b => b.type === 'hut');
   await page.locator('#import').setInputFiles({ name: 'brief.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(lone)) });

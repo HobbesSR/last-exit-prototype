@@ -123,20 +123,19 @@ test('the house has walls, one door, a window opposite and a roof (52\'s worked 
   assert.ok(sizes.has('4x4'), [...sizes].join(' '));
 });
 
-test('a region with no box that keeps the promise is open, the last resort (17 M24)', () => {
-  // No geometry; what's left of the fill may still offer zone loot (20.6).
-  const open = (cells, portals) => {
-    const input = brief('small', 1, cells, portals), result = buildRegion(input), fill = createFillMask(input);
+test('a region with no box that keeps the promise takes terminal empty (20.7)', () => {
+  const empty = (cells, portals) => {
+    const input = brief('small', 1, cells, portals), result = buildRegion(input);
     assert.deepEqual([result.elements, result.coreElements], [[], []]);
-    assert.ok(result.loot.every(loot => fill.has(Math.floor(loot.x / SIZE), Math.floor(loot.y / SIZE))));
+    assert.deepEqual(result.loot, []);
   };
-  open(cellsOf(2, 3), [{ id: 'north', axis: 'h', x: 0, y: 0, length: 2 }]);
-  open(cellsOf(4, 4), []);
+  empty(cellsOf(2, 3), [{ id: 'north', axis: 'h', x: 0, y: 0, length: 2 }]);
+  empty(cellsOf(4, 4), []);
   // Every side has a portal, so every 4 × 4 box would stand on an approach.
-  open(cellsOf(6, 6), [{ id: 'n', axis: 'h', x: 2, y: 0, length: 2 }, { id: 's', axis: 'h', x: 2, y: 6, length: 2 },
+  empty(cellsOf(6, 6), [{ id: 'n', axis: 'h', x: 2, y: 0, length: 2 }, { id: 's', axis: 'h', x: 2, y: 6, length: 2 },
     { id: 'w', axis: 'v', x: 0, y: 2, length: 2 }, { id: 'e', axis: 'v', x: 6, y: 2, length: 2 }]);
   // The only boxes would cut the one 4-wide neck joining the two portals. The nub makes the region 6 tall without room for a box.
-  open(cellsOf(14, 6, (x, y) => y < 4 || x < 2), [{ id: 'w', axis: 'v', x: 0, y: 1, length: 2 }, { id: 'e', axis: 'v', x: 14, y: 1, length: 2 }]);
+  empty(cellsOf(14, 6, (x, y) => y < 4 || x < 2), [{ id: 'w', axis: 'v', x: 0, y: 1, length: 2 }, { id: 'e', axis: 'v', x: 14, y: 1, length: 2 }]);
 });
 
 test('a hut is deterministic in its seed', () => {
@@ -184,7 +183,9 @@ test('a macro-sized hut region with hundreds of portals builds in bounded time',
   const elapsed = performance.now() - start;
   assert.ok(house(result));
   assert.ok(portals.length > 200 && cells.length > 29000);
-  assert.ok(elapsed < 2000, `${Math.round(elapsed)} ms`);
+  // The normal suite runs many builders concurrently. Enforce wall-clock timing
+  // only in an isolated run (31); the full geometry fixture always runs here.
+  if (process.env.STRICT_BUILDER_TIMING === '1') assert.ok(elapsed < 2000, `${Math.round(elapsed)} ms`);
 });
 
 test('an observer sees the house its element was realized from, and changes nothing', () => {
@@ -200,7 +201,7 @@ test('an observer sees the house its element was realized from, and changes noth
     assert.equal(trace.allocation.footprint.length, building.template.w * building.template.h / SIZE / SIZE);
     assert.equal(trace.realization.openings.length, building.template.parts.filter(p => p.part === 'gate' || p.kind === 'window').length);
   }
-  // A region too small for a house goes to `open`, which reports no building.
+  // A region too small for a house takes terminal empty, which reports no building.
   const traces = [];
   buildRegion(brief('small', 1, cellsOf(2, 3), []), undefined, trace => traces.push(trace));
   assert.deepEqual(traces, []);

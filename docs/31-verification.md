@@ -123,6 +123,13 @@ repeat a suspected regression three times before believing it. Do not claim the
 reported slowdown fixed without a captured slow run; see
 [42](42-performance-history.md).
 
+The hut's 172 × 172, 232-portal fixture always builds its full geometry in the
+normal suite. Its 2-second wall-clock assertion runs only with
+`STRICT_BUILDER_TIMING=1` and an isolated
+`node --test --test-name-pattern=macro-sized tests/micro-hut.test.js`. Parallel
+builder checks contend for the same CPU; they do not establish a timing result.
+The file also remains subject to the normal strict 15-second isolated budget.
+
 Other agents' worktrees share this machine's CPU. `npm run bench` and
 `npm run bench:client` therefore take a machine-wide lock and wait for each
 other rather than overlap. The lock (`tests/helpers/machine-lock.js`) is a

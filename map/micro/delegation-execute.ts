@@ -1,5 +1,5 @@
 import type { RegionBrief } from '../kernel/contract.ts';
-import { prepareDelegation } from './delegation.ts';
+import { canonicalDelegationBrief, prepareCanonicalDelegation } from './delegation.ts';
 import type { PatchOffer, PatchPreparationPolicy, PreparedDelegation } from './delegation.ts';
 import type { BuildingObserver, BuildingTrace } from './building/trace.ts';
 import type { BuiltRegion } from './types.ts';
@@ -87,8 +87,10 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
   function run(brief: RegionBrief, depth: number): DelegationExecutionNode {
     if (brief.type === 'empty') return emptyNode(brief, depth, 'explicit-empty', 'explicit-empty');
     const entry = remember(brief.type);
-    const inputBrief = structuredClone(brief);
-    let current = structuredClone(brief), dispatched: DelegationDispatch | undefined;
+    // `brief` is already executor-owned: the root was canonicalized and each
+    // child was freshly prepared. Only clones reach builders, getters or policies.
+    const inputBrief = brief;
+    let current = brief, dispatched: DelegationDispatch | undefined;
     let offers: PatchOffer[] | undefined, policyData: ExecutionPolicyData | undefined;
     let terminal: EmptyHandoff | undefined;
     const events: BuildingTrace[] = [];
@@ -102,7 +104,7 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
         policyData = structuredClone(policy);
         // Let preparation validate the complete offer's ordinary input and policy. The
         // only special outcome is whole-region empty replacement after validation.
-        const prepared = prepareDelegation(brief, offers, {
+        const prepared = prepareCanonicalDelegation(brief, offers, {
           ...policy,
           receiving(child, offer) {
             if (depth >= maxDepth || offer.type === 'empty') return null;
@@ -167,7 +169,7 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
     if (offers) { node.offers = offers; node.policyData = policyData!; node.preparation = dispatched!.prepared; node.children = dispatched!.children; }
     return node;
   }
-  const canonicalInput = prepareDelegation(input, [], { receiving: () => null }).retained;
+  const canonicalInput = canonicalDelegationBrief(input);
   const result = run(canonicalInput, 0);
   result.registryVersions = registryVersions;
   result.maxDepth = maxDepth;

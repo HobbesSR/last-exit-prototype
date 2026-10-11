@@ -10,8 +10,6 @@ import type { Run } from '../kernel/run.ts';
  * hundreds of portals, and a map composes hundreds of regions.
  */
 export const LIMITS = Object.freeze({
-  /** Every cell address lies within this many cells of the origin on each axis. */
-  address: 512,
   /** One region's cells. */
   regionCells: 65_536,
   /** One region's extent, in cells per axis. */
@@ -30,7 +28,12 @@ export const LIMITS = Object.freeze({
  */
 export function checkedRegionCells(cells: readonly Cell[]): Cell[] {
   if (!Array.isArray(cells) || !cells.length || cells.length > LIMITS.regionCells) throw new Error(`A region needs 1 to ${LIMITS.regionCells} cells.`);
-  if (cells.some(c => !c || !Number.isInteger(c.x) || !Number.isInteger(c.y) || Math.abs(c.x) > LIMITS.address || Math.abs(c.y) > LIMITS.address)) throw new Error(`Cell addresses must be integers between -${LIMITS.address} and ${LIMITS.address}.`);
+  // Translation does not increase region work. Require exact integer addresses
+  // with room for the bounded run/margin offsets used by the SDK instead of
+  // imposing a map-size ceiling measured from the origin.
+  const exactAddress = (n: number) => Number.isSafeInteger(n)
+    && Number.isSafeInteger(n - LIMITS.run - 2) && Number.isSafeInteger(n + LIMITS.run + 2);
+  if (cells.some(c => !c || !exactAddress(c.x) || !exactAddress(c.y))) throw new Error('Cell addresses must be safe integers with representable run and margin offsets.');
   const sorted = cells.map(c => ({ x: c.x, y: c.y })).sort((a, b) => a.y - b.y || a.x - b.x), keys = new Set(sorted.map(c => `${c.x},${c.y}`));
   if (keys.size !== sorted.length) throw new Error('Duplicate region cell.');
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;

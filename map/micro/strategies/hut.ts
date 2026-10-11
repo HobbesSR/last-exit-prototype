@@ -9,9 +9,12 @@ import { realizeBuilding } from '../building/realize.ts';
 import type { BuildingRealization } from '../building/realize.ts';
 import { OUTSIDE } from '../building/design.ts';
 import type { BuildingAllocation, BuildingDesign } from '../building/design.ts';
-import { unfilledRegion } from './scatter.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import type { BuiltRegion, LootSite, RegionBrief } from '../types.ts';
+import { buildCover } from './cover.ts';
+import type { PatchOffer } from '../delegation.ts';
+import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
+import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
 
 /** The one-space house's box in cells (54, proposed). */
 const BOX = 4;
@@ -36,7 +39,7 @@ type Built = { design: BuildingDesign; allocation: BuildingAllocation; realizati
 type House = Built & { steps: number[] };
 
 /**
- * The `hut` region type (54): one small building in its yard, with no decomposer.
+ * The `hut` region type (54): one small building with optional yard-to-cover delegation.
  *
  * The builder works in cells, where a hunter is a 2 × 2 block of yard cells. It tries designs
  * largest first: three spaces, then two, then the one-space house in a 4 × 4 box. Each design
@@ -50,9 +53,8 @@ type House = Built & { steps: number[] };
  * doors, with one door outside and windows as guidance. A design whose door or interior doors
  * miss on a side doesn't take that side. The house stands in the box with walls and a roof.
  * It has one door outside, so no route runs through it, and every space is reached through
- * that door. A region with no such box for any design goes to `open`, the last resort
- * (17 M24), as the fixture's 2 × 3 huts do. So the region keeps the portal promise exactly
- * when its shape does.
+ * that door. A region with no such box takes the terminal empty path (20.7).
+ * After placement, unused yard lobes may be offered without changing the house.
  *
  * Loot rolls each cell's chance and takes the cell's tier (52, "Tier zones"), where a loot
  * disc stands clear of the walls and the door. A hut sites no core elements; any the brief
@@ -61,8 +63,34 @@ type House = Built & { steps: number[] };
  * `observe`, when given, sees the house's design, allocation and realization (`BuildingTrace`).
  */
 export function buildHut(brief: RegionBrief, observe?: BuildingObserver): BuiltRegion {
+  return flattenDelegationResult(buildHutGeneration(brief, observe ? { observe } : {}));
+}
+
+/** Owning generation object for inspection and versioned snapshot recovery (20.7). */
+export function buildHutGeneration(brief: RegionBrief, options: ExecutionOptions = {}) {
+  // Preparation rechecks receivers as interfaces change. Reuse only an exact
+  // interface's cover preview within this invocation, including for dispatch.
+  const previews = new Map<string, BuiltRegion>();
+  const cover = (child: RegionBrief) => {
+    const key = JSON.stringify(child);
+    if (!previews.has(key)) previews.set(key, buildCover(child));
+    return previews.get(key)!;
+  };
+  return executeDelegation(brief, { ...HUT_EXECUTION_REGISTRY,
+    cover: { ...HUT_EXECUTION_REGISTRY.cover!, build: cover,
+      receiving: child => cover(child).elements.length ? null : 'cover has no usable placement in the inherited fill' },
+  }, options);
+}
+
+export const HUT_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
+  hut: { version: 'hut-yard-1', build: buildRetainedHut },
+  cover: { version: 'cover-types-23', build: brief => buildCover(brief),
+    receiving: brief => buildCover(brief).elements.length ? null : 'cover has no usable placement in the inherited fill' },
+});
+
+function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe?: BuildingObserver): BuiltRegion {
   const size = brief.cellSize, mask = createFillMask(brief), accessMask = createAccessMask(brief);
-  if (!mask.cells.length) return unfilledRegion(brief, 3);
+  if (!mask.cells.length) return context.empty('hut has no usable fill');
   const seed = Math.floor(rng(brief.seed, `${brief.id}:hut-design`).next() * 2 ** 31);
   let site: Site | undefined;
   for (const { spaces, boxes } of LARGER) {
@@ -77,12 +105,15 @@ export function buildHut(brief: RegionBrief, observe?: BuildingObserver): BuiltR
   }
   const smallBoxes: ReadonlyArray<readonly [number, number]> = [[BOX, BOX], [BOX, 3], [3, BOX], [3, 3]];
   site ??= siteHut(brief, mask, accessMask, smallBoxes, `${brief.id}:hut-site`, (w, h, side) => house(size, side, w, h));
-  if (!site) return unfilledRegion(brief, 3);
+  if (!site) return context.empty('hut has no house with a reachable doorstep');
 
   const { design, allocation, realization } = site.house;
   const element = { label: 'hut-building', x: site.x * size, y: site.y * size, template: realization.template! };
   observe?.({ label: element.label, origin: { x: element.x, y: element.y }, cellSize: size, design, allocation, realization });
   const shapes = elementShapes(element, true), radius = microMetrics({ cellSize: size, bodyProfile: 'cell' }).lootRadius;
+  const offers = yardOffers(brief, site);
+  if (offers.length) context.delegate(offers, { blockers: shapes });
+  brief = context.brief;
   const zones = new Map(brief.zones.flatMap(zone => zone.cells.map(c => [`${c.x},${c.y}`, zone] as const)));
   const lootRandom = rng(brief.seed, `${brief.id}:hut-loot`), loot: LootSite[] = [];
   const ownedMask = createRegionMask(brief);
@@ -99,7 +130,84 @@ export function buildHut(brief: RegionBrief, observe?: BuildingObserver): BuiltR
       gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0 } };
 }
 
-type Site = { x: number; y: number; house: House };
+type Site = { x: number; y: number; house: House; steps: string[] };
+
+/**
+ * Keep the house and its two-cell yard, and a hunter standing-block tree from its
+ * doorstep to the original entrances. Only the unused connected yard lobes are
+ * offered. This is hut authorship; the child receives no private house state.
+ */
+function yardOffers(brief: RegionBrief, site: Site): PatchOffer[] {
+  const key = (x: number, y: number) => `${x},${y}`;
+  const owned = createRegionMask(brief), fill = createFillMask(brief), access = createAccessMask(brief);
+  const w = site.house.realization.template!.w / brief.cellSize, h = site.house.realization.template!.h / brief.cellSize;
+  const inHouse = (x: number, y: number) => x >= site.x && x < site.x + w && y >= site.y && y < site.y + h;
+  const kept = new Set<string>();
+  for (const c of owned.cells) if (!fill.has(c.x, c.y)
+    || c.x >= site.x - BODY && c.x < site.x + w + BODY && c.y >= site.y - BODY && c.y < site.y + h + BODY
+    || [-2, -1, 1, 2].some(d => !owned.has(c.x + d, c.y) || !owned.has(c.x, c.y + d))) kept.add(key(c.x, c.y));
+  const fits = (x: number, y: number) => {
+    for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) if (!access.has(i, j) || inHouse(i, j)) return false;
+    return true;
+  };
+  // A zero-cost step inside intentional yard prefers existing circulation over
+  // hundreds of separate spokes when a large region has many perimeter portals.
+  const root = site.steps[0]!, parents = new Map<string, string | null>([[root, null]]);
+  const distances = new Map([[root, 0]]), buckets: string[][] = [[root]];
+  const entrances: string[] = [];
+  for (const { portal: p } of portalStands(brief)) {
+    let entrance: string | undefined;
+    for (let i = 0; i + BODY <= p.length; i++) {
+      const x = p.axis === 'h' ? p.x + i : p.x - 1, y = p.axis === 'h' ? p.y - 1 : p.y + i;
+      if (fits(x, y)) { entrance = key(x, y); break; }
+    }
+    if (!entrance) return [];
+    entrances.push(entrance);
+  }
+  const pending = new Set(entrances);
+  for (let distance = 0; distance < buckets.length && pending.size; distance++) for (let head = 0; head < buckets[distance]!.length && pending.size; head++) {
+    const at = buckets[distance]![head]!;
+    if (distances.get(at) !== distance) continue;
+    pending.delete(at);
+    const [x, y] = at.split(',').map(Number) as [number, number];
+    for (const [nx, ny] of [[x + 1, y], [x, y + 1], [x - 1, y], [x, y - 1]] as const) {
+      const next = key(nx, ny);
+      if (!fits(nx, ny)) continue;
+      let cost = 0;
+      for (let j = ny; j < ny + BODY; j++) for (let i = nx; i < nx + BODY; i++) if (!kept.has(key(i, j))) cost = 1;
+      const nextDistance = distance + cost;
+      if (nextDistance < (distances.get(next) ?? Infinity)) {
+        distances.set(next, nextDistance); parents.set(next, at);
+        (buckets[nextDistance] ??= []).push(next);
+      }
+    }
+  }
+  // Do not offer land if the house's actual yard cannot connect an original entrance.
+  if (pending.size) return [];
+  for (const entrance of entrances) {
+    for (let at: string | null = entrance; at !== null; at = parents.get(at)!) {
+      const [x, y] = at.split(',').map(Number) as [number, number];
+      for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) kept.add(key(i, j));
+    }
+  }
+  const unused = new Map(owned.cells.filter(c => !kept.has(key(c.x, c.y))).map(c => [key(c.x, c.y), c]));
+  const offers: PatchOffer[] = [];
+  for (const start of owned.cells) {
+    if (!unused.delete(key(start.x, start.y))) continue;
+    const cells = [start];
+    for (let head = 0; head < cells.length; head++) {
+      const { x, y } = cells[head]!;
+      for (const [nx, ny] of [[x + 1, y], [x, y + 1], [x - 1, y], [x, y - 1]] as const) {
+        const next = unused.get(key(nx, ny));
+        if (next) { unused.delete(key(nx, ny)); cells.push(next); }
+      }
+    }
+    // The canonical first cell uniquely names a connected lobe in this batch.
+    // Keep identities short even on macro-sized yards; snapshots retain its full footprint.
+    if (cells.length >= 9) offers.push({ key: `yard:${start.x},${start.y}`, cells, type: 'cover', reasonTags: ['unused-yard-lobe'] });
+  }
+  return offers;
+}
 
 /**
  * The first box of `boxes` that keeps the region's promise, with its house, or nothing. Sizes
@@ -181,7 +289,7 @@ function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, 
         if (!house) continue;
         const steps = house.steps.map(t => side === 'N' ? key(x + t, y - BODY) : side === 'S' ? key(x + t, y + h)
           : side === 'W' ? key(x - BODY, y + t) : key(x + w, y + t));
-        if (steps.every(clear)) return { x, y, house };
+        if (steps.every(clear)) return { x, y, house, steps };
       }
     }
   }

@@ -22,7 +22,11 @@ export function canonicalCells(cells: readonly Cell[]): Cell[] {
   const seen = new Set<string>();
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const cell of cells) {
-    if (!Number.isInteger(cell.x) || !Number.isInteger(cell.y) || Math.abs(cell.x) > 512 || Math.abs(cell.y) > 512) throw new Error('Cell coordinates must be integer values in [-512, 512]');
+    // Position does not affect analysis cost; retain only the representation
+    // guard needed by bounded-span scans and their outside boundary cells.
+    if (![cell.x, cell.y].every(n => Number.isSafeInteger(n)
+      && Number.isSafeInteger(n - SPAN - 2) && Number.isSafeInteger(n + SPAN + 2)))
+      throw new Error('Cell coordinates must be safe integers with representable analysis offsets');
     const key = cellKey(cell);
     if (seen.has(key)) throw new Error(`Duplicate cell ${key}`);
     seen.add(key); minX = Math.min(minX, cell.x); maxX = Math.max(maxX, cell.x); minY = Math.min(minY, cell.y); maxY = Math.max(maxY, cell.y);

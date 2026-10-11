@@ -305,6 +305,74 @@ changes do not rasterise. These are short entry-path samples, not whole-map or
 crowd measurements. `render.draw` times Phaser's CPU render pass, not GPU execution;
 headless Chrome may use software GL. This does not resolve the reported slowdown.
 
+## Hut yard-to-cover pilot (#330, 2026-10-10)
+
+The before side loads `map/micro/strategies/hut.ts` from `3b54da0`, with unchanged
+supporting builder modules from the checkout; the after side is the completed
+`types-24` working tree. The reproducible audit command is
+`node tools/hut-delegation-audit.mjs --seeds=20 --maps --diagnose --out=test-results/330-audit.json`.
+It measures five direct hut shapes over the same 20 seeds per shape and generates
+one full map per authored size. Direct build-time figures below are medians in
+milliseconds; occupied cells and cover elements are means across their 20 seeds.
+Offer counts are totals over those seeds.
+
+| Direct hut shape | Build median before / after (ms) | Occupied cells mean before / after | Cover elements mean before / after | Offers / accepted / rejected |
+| --- | ---: | ---: | ---: | ---: |
+| Small 6 × 6 | 1.758 / 2.745 | 15 / 15 | 0 / 0 | 0 / 0 / 0 |
+| Rectangle 24 × 18 | 5.075 / 16.464 | 23.55 / 29.05 | 0 / 3.8 | 21 / 21 / 0 |
+| Concave yard 28 × 12 | 4.586 / 12.269 | 26 / 27.7 | 0 / 1.25 | 29 / 13 / 16 |
+| L shape 12 × 12 | 5.348 / 6.425 | 20.7 / 20.7 | 0 / 0 | 0 / 0 / 0 |
+| Ring 14 × 14 | 12.228 / 15.538 | 20 / 20.3 | 0 / 0.15 | 34 / 3 / 31 |
+
+These cases show the intended fill gain in broad yards and little or no gain in
+the small, L-shaped and ring samples. More offers do not ensure usable cover:
+cover placement rejected most ring proposals and just over half the concave-yard
+proposals. No depth or whole-region fallback occurred in these audit samples;
+focused tests exercise both terminal outcomes. An independent uncached preparation
+replay had medians of 6.634 ms for the rectangle, 4.522 ms for the concave yard,
+and 3.627 ms for the ring. Its decisions matched production, but those times are
+not the production cache's attributable cost.
+
+Full-map generation was run once before and once after per size with the exact
+seed shown. The after map was then diagnosed; diagnosis time is separate from
+generation. Those single timings are descriptive samples, not evidence of a
+speed improvement or regression.
+
+| Size | Seed | Generation before / after (ms, one run each) | After diagnosis (s) | Valid; defects; broken promises | Hut offers / accepted / rejected |
+| --- | --- | ---: | ---: | --- | ---: |
+| 12 × 6 | `issue330-before-12x6` | 928.889 / 896.753 | 10.794 | yes; 0; 0 | 3 / 0 / 3 |
+| 24 × 12 | `issue330-before-24x12` | 4,247.877 / 4,007.633 | 31.098 | yes; 0; 0 | 30 / 1 / 29 |
+| 36 × 18 | `issue330-before-36x18` | 11,586.425 / 10,640.293 | 163.948 | yes; 0; 0 | 104 / 5 / 99 |
+
+Across these maps, 6 of 137 offers were accepted, and most rejected offers had
+no usable cover placement. No nested hut lots occurred in the three maps; a
+focused nested test and standalone no-cover lots cover those cases, but this
+map sample does not measure nested adoption. Preparation receiver checks were
+invoked 3, 30 and 113 times at the three sizes, respectively. The 24 × 18
+rectangular `hut` fill diagnostic used matching IDs `hut-1` through `hut-20`,
+tier 1, loot chance 0.3 and portals at row 8. Both sides built all 20 and failed
+none. Free-cell share changed from 0.936 to 0.924; free gaps per region from
+3.35 to 5.4; the share of cells inside those gaps from 0.889 to 0.828; and the
+largest gap from 312 to 288 cells. The direct CLI command was
+`node tools/builder-fill.mjs --types=hut --seeds=20 --width=24 --height=18 --min=3 --json=1`.
+
+Focused verification passed: 323 micro tests and three micro browser checks.
+Strict isolated file timings were 7.4 seconds for `tests/micro-hut.test.js`,
+0.9 for `tests/micro-hut-delegation.test.js`, 0.5 for
+`tests/micro-delegation.test.js`, 0.3 for `tests/micro-delegation-execute.test.js`,
+and 0.6 for `tests/micro-delegation-snapshot.test.js`. The macro-sized hut case
+in `tests/micro-hut.test.js`, isolated with its strict 2-second timing assertion,
+completed in 1.700, 1.675 and 1.671 seconds across three final passes. The captured
+Micro Lab view `test-results/micro-lab-hut-delegation.png` was visually inspected
+and shows the realized house and delegated cover.
+
+The baseline measurements are retained in `test-results/330-before.md`; full
+audit detail is in `test-results/330-audit.json`, with the paired fill summaries
+in `test-results/330-direct-final.json`. These focused shapes and three
+diagnosed maps establish behavior and illustrate where cover is usable. They do
+not prove a general speedup, nested uptake, or resolution of the reported
+slowdown.
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including
