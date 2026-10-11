@@ -104,6 +104,16 @@ test('saved ownership and provenance corruption are refused without generation',
   assert.throws(() => readDelegationSnapshot(invalidJSON), /finite JSON/);
 });
 
+test('explicit undefined optional fields are rejected instead of disappearing in JSON', () => {
+  const node = executeDelegation(input(), registry());
+  node.retained.elements[0].rotation = undefined;
+  assert.throws(() => saveDelegationSnapshot(node), /finite JSON/);
+
+  const saved = saveDelegationSnapshot(executeDelegation(input(), registry()));
+  saved.generation.retained.elements[0].rotation = undefined;
+  assert.throws(() => readDelegationSnapshot(saved), /finite JSON/);
+});
+
 test('terminal core fallback remains visible to the existing report and live admission', () => {
   const requested = input(); requested.coreElements = { spawn: 1, charger: 1 };
   const node = executeDelegation(requested, { parent: { version: 'core-1', build(_brief, context) { context.empty('incompatible-footprint'); } } });

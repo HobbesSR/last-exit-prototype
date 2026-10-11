@@ -3,6 +3,7 @@ import type { PatchRejection } from './delegation.ts';
 import { DELEGATION_ALGORITHM_VERSION, executeDelegation, flattenDelegationResult } from './delegation-execute.ts';
 import type { DelegationExecutionNode, ExecutionRegistry } from './delegation-execute.ts';
 import type { BuiltRegion } from './types.ts';
+import { delegationJSON as json, sameDelegationJSON as same } from './delegation-json.ts';
 
 export const DELEGATION_SNAPSHOT_VERSION = 'builder-delegation-snapshot-1';
 /** Preparation is a derived view; only accepted keys and actual rejection reasons are saved. */
@@ -16,20 +17,6 @@ export interface DelegationSnapshot {
   algorithmVersion: typeof DELEGATION_ALGORITHM_VERSION;
   generation: SavedDelegationNode;
 }
-
-/** Stable JSON comparison also refuses values that JSON would silently lose. */
-function json(value: unknown): string {
-  function canonical(at: unknown): unknown {
-    if (at === null || typeof at === 'string' || typeof at === 'boolean') return at;
-    if (typeof at === 'number' && Number.isFinite(at)) return at;
-    if (Array.isArray(at)) return at.map(canonical);
-    if (at && typeof at === 'object' && Object.getPrototypeOf(at) === Object.prototype)
-      return Object.fromEntries(Object.entries(at).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => [k, canonical(v)]));
-    throw new Error('Delegation snapshots need finite JSON values.');
-  }
-  return JSON.stringify(canonical(value));
-}
-const same = (a: unknown, b: unknown): boolean => json(a) === json(b);
 
 export function saveDelegationSnapshot(node: DelegationExecutionNode, options: { omitResults?: boolean } = {}): DelegationSnapshot {
   function save(at: DelegationExecutionNode): SavedDelegationNode {

@@ -3,6 +3,7 @@ import { prepareDelegation } from './delegation.ts';
 import type { PatchOffer, PatchPreparationPolicy, PreparedDelegation } from './delegation.ts';
 import type { BuildingObserver, BuildingTrace } from './building/trace.ts';
 import type { BuiltRegion } from './types.ts';
+import { sameDelegationJSON } from './delegation-json.ts';
 
 /** Physical patch execution is separate from the brief preparation SDK and production registry. */
 export const DELEGATION_ALGORITHM_VERSION = 'builder-delegation-1';
@@ -89,10 +90,12 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
     const inputBrief = structuredClone(brief);
     let current = structuredClone(brief), dispatched: DelegationDispatch | undefined;
     let offers: PatchOffer[] | undefined, policyData: ExecutionPolicyData | undefined;
+    let terminal: EmptyHandoff | undefined;
     const events: BuildingTrace[] = [];
     const context: ExecutionContext = {
       get brief() { return structuredClone(current); },
       delegate(requested, policy = {}) {
+        if (terminal) throw terminal;
         if (dispatched || offers) throw new Error('A builder may delegate one patch batch per invocation.');
         if (!Array.isArray(requested)) throw new Error('Delegation offers must be an array.');
         offers = structuredClone(requested);
@@ -113,7 +116,10 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
           offered.cells.sort((a, b) => a.y - b.y || a.x - b.x);
           if (offered.reasonTags) offered.reasonTags = [...new Set(offered.reasonTags)].sort();
         }
-        if (full.length === 1 && offers.length === 1 && full[0]!.type === 'empty') throw new EmptyHandoff('complete-region', 'complete-region');
+        if (full.length === 1 && offers.length === 1 && full[0]!.type === 'empty') {
+          terminal = new EmptyHandoff('complete-region', 'complete-region');
+          throw terminal;
+        }
         // Preparation reports a whole content offer as an ordinary infeasible patch.
         // It never dispatches it, and the builder can still use the retained region.
         const children = prepared.children.map(child => {
@@ -128,12 +134,18 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
         return structuredClone(dispatched);
       },
       empty(reason) {
+        if (terminal) throw terminal;
         if (typeof reason !== 'string' || !reason) throw new Error('Empty fallback needs a nonempty reason.');
-        throw new EmptyHandoff(reason);
+        terminal = new EmptyHandoff(reason);
+        throw terminal;
       },
     };
     let retained: BuiltRegion;
-    try { retained = entry.build(structuredClone(brief), context, trace => events.push(structuredClone(trace))); }
+    try {
+      retained = entry.build(structuredClone(brief), context, trace => events.push(structuredClone(trace)));
+      // Catching the control signal inside a builder cannot cancel its terminal decision.
+      if (terminal) throw terminal;
+    }
     catch (error) {
       if (!(error instanceof EmptyHandoff)) throw error;
       const abandoned = emptyNode(inputBrief, depth, error.reason, error.kind);
@@ -145,7 +157,7 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
       return abandoned;
     }
     if (!retained || retained.version !== 'region-2' || !retained.brief
-      || JSON.stringify(retained.brief) !== JSON.stringify(current))
+      || !sameDelegationJSON(retained.brief, current))
       throw new Error(`Builder ${brief.type} must return a result for its retained brief.`);
     const node: DelegationExecutionNode = {
       version: DELEGATION_ALGORITHM_VERSION, input: inputBrief, depth,
@@ -166,7 +178,7 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
 function visitEvents(node: DelegationExecutionNode, observe: BuildingObserver, prefix = ''): void {
   if (node.actualBuilder === 'empty') return;
   for (const event of node.observerEvents ?? []) observe({ ...structuredClone(event), label: prefixed(event.label, prefix) });
-  for (const child of node.children ?? []) visitEvents(child, observe, prefixed(child.input.id, prefix));
+  for (const child of node.children ?? []) visitEvents(child, observe, child.input.id);
 }
 
 /** Actual output owners, including terminal empty children, in stable tree order. */
@@ -185,7 +197,7 @@ export function flattenDelegationResult(node: DelegationExecutionNode): BuiltReg
     coreElements.push(...structuredClone(at.retained.coreElements));
     loot.push(...structuredClone(at.retained.loot));
     for (const key of additive) if (Number.isFinite(at.retained.manifest[key])) counts[key]! += at.retained.manifest[key]!;
-    if (at.actualBuilder !== 'empty') for (const child of at.children ?? []) gather(child, prefixed(child.input.id, prefix));
+    if (at.actualBuilder !== 'empty') for (const child of at.children ?? []) gather(child, child.input.id);
   }
   gather(node, '');
   return { version: 'region-2', brief: structuredClone(node.input), elements, coreElements, loot,

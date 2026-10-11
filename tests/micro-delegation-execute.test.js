@@ -44,6 +44,35 @@ test('executes prepared children and flattens original ownership, labels and add
   assert.deepEqual(observed, flat.elements.map(e => e.label));
 });
 
+test('nested element and observer labels use each absolute child ID exactly once', () => {
+  const observed = [];
+  const trace = label => ({ label, origin: { x: 0, y: 0 }, cellSize: 40,
+    design: {}, allocation: {}, realization: {} });
+  const registry = {
+    parent: entry((_input, context, observe) => {
+      context.delegate([offer('outer', cells(8, 0, 16, 6))]);
+      observe?.(trace('root-el'));
+      return built(context.brief, 'root-el');
+    }),
+    child: entry((_input, context, observe) => {
+      context.delegate([offer('inner', cells(16, 0, 8, 6), 'grandchild')]);
+      observe?.(trace('child-el'));
+      return built(context.brief, 'child-el');
+    }),
+    grandchild: entry((input, _context, observe) => {
+      observe?.(trace('el'));
+      return built(input, 'el');
+    }),
+  };
+  const root = executeDelegation(brief(cells(0, 0, 24, 6)), registry, { observe: event => observed.push(event.label) });
+  const child = root.children[0], grandchild = child.children[0];
+  assert.equal(grandchild.depth, 2);
+  assert.deepEqual(validateBriefPartition(root.input, executionLeaves(root).map(r => r.brief)), []);
+  const labels = ['root-el', `${child.input.id}/child-el`, `${grandchild.input.id}/el`];
+  assert.deepEqual(flattenDelegationResult(root).elements.map(element => element.label), labels);
+  assert.deepEqual(observed, labels);
+});
+
 test('depth bounds 0, 1 and 3 stop further patch content without resetting on nested dispatch', () => {
   const visits = [];
   const registry = {
@@ -111,6 +140,34 @@ test('whole-region empty handoff discards prior child output and observer events
   assert.deepEqual(observed, []);
 });
 
+test('caught empty signals still replace content and discard events', () => {
+  for (const mode of ['context-empty', 'complete-offer']) {
+    const observed = [];
+    const registry = {
+      parent: entry((input, context, observe) => {
+        observe?.({ label: 'discarded', origin: { x: 0, y: 0 }, cellSize: 40,
+          design: {}, allocation: {}, realization: {} });
+        if (mode === 'context-empty') context.delegate([offer('patch', cells(10, 0, 2, 6))]);
+        try {
+          if (mode === 'context-empty') context.empty('incompatible core');
+          else context.delegate([offer('all', input.cells, 'empty')]);
+        } catch { /* A builder cannot cancel a requested terminal fallback. */ }
+        return built(context.brief, 'discarded');
+      }),
+      child: entry(input => built(input, 'discarded-child')),
+    };
+    const result = executeDelegation(brief(undefined, { coreElements: { spawn: 1 } }), registry,
+      { observe: event => observed.push(event) });
+    assert.equal(result.actualBuilder, 'empty', mode);
+    assert.equal(result.fallbackKind, mode === 'context-empty' ? 'builder-empty' : 'complete-region');
+    assert.deepEqual(result.retained.brief.coreElements, { spawn: 1 });
+    assert.deepEqual(flattenDelegationResult(result).elements, []);
+    assert.deepEqual(observed, []);
+    if (mode === 'context-empty') assert.equal(result.children.length, 1);
+    else assert.equal(result.offers[0].type, 'empty');
+  }
+});
+
 test('complete offers permit only empty, malformed offers throw and one batch is enforced', () => {
   const content = { parent: entry((input, context) => {
     const dispatch = context.delegate([offer('all', input.cells, 'child')]);
@@ -144,6 +201,33 @@ test('equivalent reordered input gives identical execution and child cannot alte
   const b = executeDelegation(reordered, registry(true));
   assert.deepEqual(a, b);
   assert.deepEqual(validateBriefPartition(a.input, executionLeaves(a).map(r => r.brief)), []);
+});
+
+test('retained brief comparison ignores object key order but enforces portal and core obligations', () => {
+  const original = brief(undefined, {
+    coreElements: { spawn: 1, charger: 2 },
+    portals: [{ id: 'north', axis: 'h', x: 4, y: 0, length: 2 }],
+  });
+  const reorder = record => Object.fromEntries(Object.entries(record).reverse());
+  const registry = { parent: entry((_input, context) => {
+    const kept = context.brief;
+    return built({ ...reorder(kept), coreElements: reorder(kept.coreElements),
+      zones: kept.zones.map(zone => reorder(zone)), portals: kept.portals.map(portal => reorder(portal)) });
+  }) };
+  const accepted = executeDelegation(original, registry);
+  assert.deepEqual(accepted.retained.brief.coreElements, original.coreElements);
+  assert.deepEqual(accepted.retained.brief.portals, original.portals);
+  assert.deepEqual(flattenDelegationResult(accepted).elements.map(element => element.label), ['parent']);
+  for (const alter of [
+    kept => { kept.coreElements.spawn = 0; },
+    kept => { kept.portals[0].length = 1; },
+  ]) {
+    assert.throws(() => executeDelegation(original, { parent: entry((_input, context) => {
+      const changed = context.brief;
+      alter(changed);
+      return built(changed);
+    }) }), /retained brief/);
+  }
 });
 
 test('child generation depends only on its interface across different parent build histories', () => {
