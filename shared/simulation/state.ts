@@ -3,6 +3,7 @@ import { SLOT_COUNT } from '../equipment.ts';
 import { VERSION, KITS } from './rules.ts';
 import { queueInput, resetInput } from './input.ts';
 import { defaultContent } from './content.ts';
+import { createDiscovery, attachDiscovery, attachDiscovered, discover, discoveryWire } from '../discovery.ts';
 import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role, SlotIndex } from '../types.ts';
 
 /**
@@ -23,6 +24,16 @@ export function createGame(seed = 4217, map: GameMap = generateMap(seed), conten
   s.players.filter(p => p.role === 'gladiator').forEach((p, i) => {
     const station = map.hunterSpawns?.[i] ?? map.stations.at(-1 - i) ?? map.exit; p.x = station.x; p.y = station.y;
   });
+  if (content.discovery) {
+    for (const p of s.players) {
+      if (p.role === 'contestant') {
+        const memory = createDiscovery();
+        attachDiscovery(p, memory);
+        if (map.width && map.height && map.spawns?.length) discover(memory, s.map, p);
+        attachDiscovered(p, discoveryWire(memory));
+      }
+    }
+  }
   return s;
 }
 const placeCount = (s: Game, role: Role) => role === 'gladiator' ? s.content.roster.gladiators.length : s.content.roster.contestants.length;
@@ -43,6 +54,7 @@ export function joinGame(s: Game, id: PlayerId, role: Role = 'contestant', kit: 
   p.id = id; p.name = name.slice(0, 16); p.bot = false;
   if (Object.hasOwn(s.content.kits, kit)) p.kit = kit;
   resetInput(p); delete p.viewLagTicks; p.path = [];
+  if (p.discovery) p.discovery.keyframeNeeded = true;
   return p;
 }
 /**
@@ -62,6 +74,7 @@ export function changeSeat(s: Game, id: PlayerId, role: Role, kit?: Kit): Player
     resetInput(from); delete from.viewLagTicks; delete from.path;
     to.id = id; to.name = name; to.bot = false;
     resetInput(to); delete to.viewLagTicks; to.path = [];
+    if (to.discovery) to.discovery.keyframeNeeded = true;
   }
   if (kit !== undefined && Object.hasOwn(s.content.kits, kit)) to.kit = kit;
   return to;

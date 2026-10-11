@@ -8,12 +8,14 @@ import { createCameraDirector } from '/camera-director.js';
 import { createSnapshotBuffer } from '/snapshot-buffer.js';
 import * as profiler from '/shared/profiler.ts';
 import { createLayerDecoder } from '/shared/frame-layers.ts';
+import { createDiscoveryDecoder } from '/shared/discovery.ts';
 import { $, HZ, INTERPOLATION_DELAY_TICKS, kitName, time, fillFollowOptions } from '/ui.js';
 
 const icon = name => `<i data-lucide="${name}"></i>`;
 const icons = () => window.lucide?.createIcons();
 let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liveState, predicted;
 let seq = 0, pending = [], selectedRole = 'contestant', savedReplay, recordingFailed = false;
+let discoveryDecoder = createDiscoveryDecoder();
 // This connection is the dev view (24): undelayed and unfogged, with the director's free camera.
 let devView = false, devRoster = '';
 // A player who has stepped out to the dev view (#246) keeps their own socket, and their slot, and
@@ -177,6 +179,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   resetDiagnostics();
   $('lobby-title').textContent = 'Arena lobby.';
   owner = false; lobbyPlayers = []; lobbyCapacity = null; lobbyReady = true; lobbyStarting = false; lobbyKit = kit; devView = false; devRoster = ''; director.reset(); setPaused(false);
+  discoveryDecoder.reset();
   $('finish-recording').disabled = false;
   // `role` is how this connection joins (a role, a matchmaking preference or the dev view); `selectedRole`
   // stays the deploy dialog's own choice, which only its role buttons set.
@@ -218,6 +221,8 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       if (!replayController.active() && !devFeed) { snapshots.reset(); pending = []; changeMap(data.map); acceptState(data.state); }
     } else if (data.type === 'state') {
       notePacket(event.data.length); layers.decode(data.state);
+      const me = data.state.players?.find(p => p.id === playerId);
+      if (me?.discovered) discoveryDecoder.decode(me.discovered);
       // Gap between authoritative frames: separates server pacing from client render cost.
       if (lastStateAt) profiler.observe('net.stateGap', performance.now() - lastStateAt);
       profiler.observe('net.stateBytes', event.data.length, 'n');
@@ -651,4 +656,5 @@ window.arenaProfiling = setProfiling;
 window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, role: 'spectator' });
 // Read-only inspection surface for reproducible browser smoke tests.
 window.arenaDebug = () => ({ tick: state?.tick, room: roomId, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: director.followId(), dev: inDevView(), devFeed: !!devFeed, view: currentView(), paused, fog: director.fog(), viewer: director.viewer()?.id ?? null, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, map: arenaMap && { seed: arenaMap.seed, width: arenaMap.width, height: arenaMap.height, playableArea: arenaMap.playableArea, exit: arenaMap.exit, spawns: arenaMap.spawns, hunterSpawns: arenaMap.hunterSpawns, stations: arenaMap.stations.map(({ x, y }) => ({ x, y })), chargers: arenaMap.chargers.map(({ x, y }) => ({ x, y })) }, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
+  discoveredCount: discoveryDecoder?.known.size ?? 0,
   pending: pending.length, inputStalled: state?.players.find(p => p.id === playerId)?.inputStalled ?? null, rtt: roundTripMs });

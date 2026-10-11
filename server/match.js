@@ -35,6 +35,7 @@ function seatsOf(game) {
       const p = game.players.find(p => p.id === id);
       if (!p) return null;
       p.bot = false; resetInput(p); delete p.viewLagTicks; p.path = [];
+      if (p.discovery) p.discovery.keyframeNeeded = true;
       return identity(p);
     },
     leave(id) {
