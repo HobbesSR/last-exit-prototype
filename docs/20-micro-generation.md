@@ -26,7 +26,7 @@ bounded candidate analysis and allocation; its design record is [19](19-decompos
 | 20.4 | Hierarchical generation and portal negotiation | [20.4](20.4-hierarchical-generation.md) |
 | 20.5 | Tools and next boundaries | [20.5](20.5-tools-and-next-boundaries.md) |
 | 20.6 | Guaranteed passability and automatic clear margins | [20.6](20.6-passable-margins.md) |
-| 20.7 | Accepted builder delegation design (#289); decisions, defaults and #328-#331 implementation sequence | [20.7](20.7-builder-delegation.md) |
+| 20.7 | Builder patch preparation, bounded execution, owning snapshots and pending production adoption | [20.7](20.7-builder-delegation.md) |
 
 ## Earlier heading links
 

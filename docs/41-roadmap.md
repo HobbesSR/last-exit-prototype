@@ -112,12 +112,13 @@ diversity and final content checkpoint are merged. #325 follows with depot
 route reservation tuning (`types-23`); #289's residual delegation design
 remains the broader next boundary for space a builder cannot use itself. Its
 reviewed design direction is in [20.7](20.7-builder-delegation.md), with verbatim
-answers in [17.2.9](17.2.9-delegation-questions.md). Bring up mechanics, then a
-hut-to-cover pilot, then one measured builder adoption at a time. Numerical
+answers in [17.2.9](17.2.9-delegation-questions.md). Preparation (#328), bounded
+execution and snapshot recovery (#329) are implemented. Next comes the
+hut-to-cover pilot (#330), then one measured builder adoption at a time. Numerical
 recursion defaults to three patch levels (initial builder depth zero), with
 versioned owning-layer snapshots for recovery. Implementation issues #328 to
-#331 carry the dependency sequence; no delegation is implemented by the design
-document.
+#331 carry the dependency sequence; production builders have not adopted the
+mechanics yet.
 
 The sequencing below remains the other gameplay backlog, not an instruction to
 leave the current micro-generation effort for reward tiers.
