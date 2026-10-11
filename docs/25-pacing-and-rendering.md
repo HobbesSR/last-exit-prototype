@@ -73,3 +73,26 @@ Changing subject cuts rather than pans, because gliding across the arena would l
 the subject for seconds. Following shows that player's own sight by default, as the
 dev view does: the camera director (22.4) owns follow for every directed view, and V
 turns the fog off to show the whole recording around them (24).
+
+## Level of detail and camera culling
+
+When zoomed out framing the entire arena or navigating via the camera director,
+rendering hundreds of static fixtures, items, sensors, and traps at full fidelity
+imposes severe CPU tessellation and draw overhead on Phaser Graphics. A level of detail
+(LOD) mechanism scales dynamic and fixture detail to camera zoom:
+
+- **View culling:** `nearView` bounds tests are measured from the actual camera viewport
+  center (`cx, cy`), ensuring that off-screen geometry is culled even when `eye` is null
+  (such as in unfogged directed, spectator, or free-camera views).
+- **Map labels:** Static building, transit, charger, entry, and exit labels are hidden
+  below `zoom < 0.35`, where sub-pixel text becomes illegible smudge, eliminating dozens
+  of redundant text draw passes.
+- **Low LOD (`zoom < 0.2`):** Gates and doors collapse from nested rounded rects, strokes,
+  and inner glyphs into solid bounding rectangles; sensors omit sub-pixel center dots while
+  retaining range circles and sweeps; spider traps omit 16 spoke line segments; and items
+  render as single solid colored rects without sinusoidal vertical bobbing, drop shadow
+  ellipses, or inner icon tessellation.
+- **Medium LOD (`0.2 <= zoom < 0.5`):** Items render as a simplified base box and kind badge
+  without sinusoidal bobbing or drop shadows.
+- **High LOD (`zoom >= 0.5`):** Full detail with floating sinusoidal animation, drop shadow
+  ellipses, and kind-specific glyphs.

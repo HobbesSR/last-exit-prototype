@@ -167,7 +167,7 @@ try {
   assert.ok(wide.markerScale > 4, `whole arena markers are enlarged: ${wide.markerScale}`);
   const subject = await page.locator('#replay-focus option').nth(1).getAttribute('value');
   await page.locator('#replay-focus').selectOption(subject);
-  await page.waitForFunction(id => window.arenaDebug().follow === id && window.arenaDebug().markerScale === 1, subject, { timeout: 5000 });
+  await page.waitForFunction(id => window.arenaDebug().follow === id && window.arenaDebug().markerScale === 1 && window.arenaDebug().cameraWidth < window.arenaDebug().mapWidth / 2, subject, { timeout: 5000 });
   const following = await page.evaluate(() => window.arenaDebug());
   const target = following.actors.find(actor => actor.id === subject);
   assert.ok(following.mapWidth > following.cameraWidth * 3, `a followed camera shows a player view: ${following.cameraWidth} vs ${following.mapWidth}`);
@@ -235,7 +235,7 @@ try {
   await page.locator('#replay-speed').selectOption('0.5');
   await page.locator('#replay-seek').fill('0');
   await page.getByRole('button', { name: 'Play replay', exact: true }).click();
-  const denseSamples = await samplePlayback(6);
+  const denseSamples = await samplePlayback(14);
   await pausePlayback();
   // Dense playback keeps fractional render time: every frame shows the floored
   // authoritative tick with the projectile advanced part way into it. Rejecting
