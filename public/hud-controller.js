@@ -266,34 +266,35 @@ export function createHUDController(actions) {
 
     const mine = state.players.find(q => q.id === playerId);
     const isContestant = mine?.role === 'contestant' && !visibility?.directed;
-    const known = isContestant ? (
-      discovery instanceof Set
-        ? discovery
-        : Array.isArray(discovery)
-        ? new Set(discovery)
-        : mine?.discovered instanceof Set
-        ? mine.discovered
-        : Array.isArray(mine?.discovered)
-        ? new Set(mine.discovered)
-        : new Set()
-    ) : null;
+    const known = isContestant ? (discovery ?? new Set()) : null;
     const memory = known ? { discovered: known } : null;
 
     if (isContestant) {
       c.save();
       c.beginPath();
-      if (known && known.size > 0) {
+      if (known.size > 0) {
         const { cols: dCols, size } = discoveryGrid(arenaMap);
+        const byRow = new Map();
         for (const idx of known) {
-          const col = idx % dCols;
-          const row = Math.floor(idx / dCols);
-          c.rect(col * size * sx, row * size * sy, size * sx, size * sy);
+          const col = idx % dCols, row = Math.floor(idx / dCols);
+          let list = byRow.get(row);
+          if (!list) byRow.set(row, list = []);
+          list.push(col);
         }
-        c.clip();
-      } else {
-        c.rect(0, 0, 0, 0);
-        c.clip();
+        for (const [row, cols] of byRow) {
+          cols.sort((a, b) => a - b);
+          let start = cols[0], prev = cols[0];
+          for (let i = 1; i <= cols.length; i++) {
+            if (i < cols.length && cols[i] === prev + 1) {
+              prev = cols[i];
+            } else {
+              c.rect(start * size * sx, row * size * sy, (prev - start + 1) * size * sx, size * sy);
+              if (i < cols.length) { start = cols[i]; prev = cols[i]; }
+            }
+          }
+        }
       }
+      c.clip();
     }
 
     if (arenaMap.playableArea) {
@@ -302,17 +303,15 @@ export function createHUDController(actions) {
       for (const row of rows) for (const [start, end] of row.runs)
         c.rect(start * cellSize * sx, row.y * cellSize * sy, (end - start) * cellSize * sx, cellSize * sy);
       c.fillStyle = cols.wall; c.fill();
+      if (isContestant) c.restore();
       c.save(); c.clip();
       c.fillStyle = cols.hazard; c.fillRect(0, 0, Math.max(0, state.hazardX * sx), 124);
       c.restore();
     } else {
       c.beginPath(); c.moveTo(2, 62); c.lineTo(130, 2); c.lineTo(258, 62); c.lineTo(130, 122); c.closePath(); c.fillStyle = cols.wall; c.fill(); c.strokeStyle = cols.border; c.stroke();
+      if (isContestant) c.restore();
       c.strokeStyle = cols.dash; c.setLineDash([3, 4]); c.beginPath(); c.moveTo(6, 62); c.lineTo(254, 62); c.stroke(); c.setLineDash([]);
       c.fillStyle = cols.hazard; c.fillRect(0, 0, Math.max(0, state.hazardX * sx), 124);
-    }
-
-    if (isContestant) {
-      c.restore();
     }
 
     for (const station of arenaMap.stations) {

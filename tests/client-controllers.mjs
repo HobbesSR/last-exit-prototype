@@ -17,6 +17,7 @@ export async function checkClientControllers(browser, base) {
     const result = await page.evaluate(async ({ state, arenaMap }) => {
       const { createInputController } = await import('/input-controller.js');
       const { createHUDController } = await import('/hud-controller.js');
+      const { cellIndexAt } = await import('/shared/discovery.ts');
       const $ = id => document.getElementById(id), me = state.players[0];
       const freeze = value => { if (value && typeof value === 'object') { Object.values(value).forEach(freeze); Object.freeze(value); } return value; };
       freeze(state); freeze(arenaMap);
@@ -96,8 +97,14 @@ export async function checkClientControllers(browser, base) {
         return { fillRects, strokeRects, clips };
       }
 
+      const targetCell = cellIndexAt(testFeatureMap, 13000, 3000);
+      const targetPxX = Math.round(13000 * 260 / testFeatureMap.width);
+      const targetPxY = Math.round(3000 * 124 / testFeatureMap.height);
+
       const undiscovered = renderDiscovery({ discovery: new Set() });
-      const discoveredCell0 = renderDiscovery({ discovery: new Set([0]) });
+      const undiscoveredPixelAlpha = canvas.getImageData(targetPxX, targetPxY, 1, 1).data[3];
+      const discoveredCell0 = renderDiscovery({ discovery: new Set([0, targetCell]) });
+      const discoveredPixelAlpha = canvas.getImageData(targetPxX, targetPxY, 1, 1).data[3];
       const gladiatorFullMap = renderDiscovery({
         state: freeze({ ...state, players: [{ ...me, role: 'gladiator', kit: 'warden' }, state.players[1]] }),
         discovery: new Set()
@@ -106,7 +113,7 @@ export async function checkClientControllers(browser, base) {
         visibility: { directed: true },
         discovery: new Set()
       });
-      const minimapDiscovery = { undiscovered, discoveredCell0, gladiatorFullMap, directedFullMap };
+      const minimapDiscovery = { undiscovered, discoveredCell0, gladiatorFullMap, directedFullMap, undiscoveredPixelAlpha, discoveredPixelAlpha };
 
       render({});
       const slots = [...$('equipment-slots').children].map(b => b.ariaLabel);
@@ -199,6 +206,8 @@ export async function checkClientControllers(browser, base) {
     assert.equal(result.minimapDiscovery.undiscovered.clips, result.minimapDiscovery.gladiatorFullMap.clips + 1, 'contestant minimap clips terrain to discovery');
     assert.equal(result.minimapDiscovery.directedFullMap.strokeRects, 2, 'directed view sees full map');
     assert.equal(result.minimapDiscovery.directedFullMap.clips, result.minimapDiscovery.gladiatorFullMap.clips, 'directed view does not clip discovery');
+    assert.equal(result.minimapDiscovery.undiscoveredPixelAlpha, 0, 'undiscovered terrain has empty alpha');
+    assert.ok(result.minimapDiscovery.discoveredPixelAlpha > 0, 'discovered terrain draws visible pixels');
     assert.equal(result.slots.length, 6); assert.match(result.slots[5], /^Slot 6: /);
     assert.deepEqual(result.beforeDestroy, result.afterDestroy); assert.equal(result.beforeDestroy.fullscreenActions, 3); assert.equal(result.buttonsAfterDestroy, 0);
     assert.equal(result.sneakReleaseCancelled, true, 'preserve the original property handler return-false behavior');
