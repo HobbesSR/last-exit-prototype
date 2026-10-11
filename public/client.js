@@ -259,7 +259,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
     }
   });
   socket.addEventListener('close', () => {
-    if (ws === socket && !disconnecting) { connection('OFFLINE'); clearInput(); if (!replayController.active()) toast('Connection closed. Start a new arena to reconnect.'); }
+    if (ws === socket && !disconnecting) { connection('OFFLINE'); clearInput(); if (!replayController.active()) toast('Connection closed. Open Lobbies to reconnect.'); }
   });
   socket.addEventListener('error', () => { if (ws === socket) toast('Unable to connect to the arena server.'); });
 }
@@ -384,9 +384,23 @@ const newArena = () => deploy(async () => {
 const autoMatch = () => deploy(() => connect({ matchmake: true, role: $('role-preference').value, ...player() }));
 // The lobby browser (22.5): the rooms the directory lists, polled while the deploy dialog is open.
 let listedRooms = [], devPolicy = null, refreshingRooms = false;
-function openDeploy() {
+let activeDeployTab = 'join';
+function selectDeployTab(tabName) {
+  activeDeployTab = tabName;
+  const isJoin = tabName === 'join';
+  $('tab-join')?.classList.toggle('active', isJoin);
+  $('tab-join')?.setAttribute('aria-selected', String(isJoin));
+  $('tab-join')?.setAttribute('tabindex', isJoin ? '0' : '-1');
+  $('tab-create')?.classList.toggle('active', !isJoin);
+  $('tab-create')?.setAttribute('aria-selected', String(!isJoin));
+  $('tab-create')?.setAttribute('tabindex', !isJoin ? '0' : '-1');
+  if ($('panel-join')) $('panel-join').hidden = !isJoin;
+  if ($('panel-create')) $('panel-create').hidden = isJoin;
+  if (isJoin) void refreshRooms();
+}
+function openDeploy(tabName = activeDeployTab) {
+  selectDeployTab(tabName);
   if (!$('loadout-dialog').open) $('loadout-dialog').showModal();
-  void refreshRooms();
 }
 async function refreshRooms() {
   if (refreshingRooms) return;
@@ -436,7 +450,7 @@ function renderRooms() {
   }
   icons();
 }
-setInterval(() => { if ($('loadout-dialog').open) void refreshRooms(); }, 2000);
+setInterval(() => { if ($('loadout-dialog').open && !$('panel-join').hidden) void refreshRooms(); }, 2000);
 async function loadArchive() {
   $('replay-list').textContent = 'Loading broadcasts...';
   $('finish-recording').hidden = !owner || !liveState || liveState.phase === 'finished';
@@ -463,8 +477,25 @@ async function downloadReplay(id) {
     const a = document.createElement('a'); a.href = url; a.download = `last-exit-${id}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) { toast(error.message); }
 }
-$('new-game').onclick = $('play-again').onclick = () => { clearInput(); $('deploy-error').hidden = true; openDeploy(); };
-$('deploy-form').onsubmit = e => { e.preventDefault(); void newArena(); };
+$('new-game').onclick = $('play-again').onclick = () => { clearInput(); $('deploy-error').hidden = true; openDeploy('join'); };
+$('tab-join').onclick = () => selectDeployTab('join');
+$('tab-create').onclick = () => selectDeployTab('create');
+$('tab-join').onkeydown = $('tab-create').onkeydown = e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    e.preventDefault();
+    const nextTab = activeDeployTab === 'join' ? 'create' : 'join';
+    selectDeployTab(nextTab);
+    $(nextTab === 'join' ? 'tab-join' : 'tab-create')?.focus();
+  }
+};
+$('deploy-form').onsubmit = e => {
+  e.preventDefault();
+  if ($('panel-join') && !$('panel-join').hidden) {
+    void autoMatch();
+  } else {
+    void newArena();
+  }
+};
 $('auto-match').onclick = () => void autoMatch();
 $('random-seed').onclick = () => { $('seed').value = ''; };
 document.querySelectorAll('[data-role]').forEach(button => button.onclick = () => {
