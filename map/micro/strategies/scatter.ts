@@ -5,6 +5,8 @@ import { microMetrics } from '../metrics.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionMask } from '../types.ts';
 import { buildOpen } from './open.ts';
+import { draw } from '../random.ts';
+export { draw } from '../random.ts';
 
 /** A themed fill too fragmented for structures can still offer zone loot in its usable patches. */
 export function unfilledRegion(brief: RegionBrief, channel: number): BuiltRegion {
@@ -28,14 +30,6 @@ export function fraction(brief: RegionBrief, type: string, key: string, fallback
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1)
     throw new RangeError(`${type} ${key} must be a number from 0 to 1.`);
   return value;
-}
-
-/** Stable per-cell draws, independent of the order in which a brief lists its cells. */
-export function draw(seed: number, x: number, y: number, channel: number): number {
-  let n = Math.imul(seed ^ channel, 0x9e3779b1) ^ Math.imul(x, 0x85ebca6b) ^ Math.imul(y, 0xc2b2ae35);
-  n = Math.imul(n ^ n >>> 16, 0x7feb352d);
-  n = Math.imul(n ^ n >>> 15, 0x846ca68b);
-  return ((n ^ n >>> 16) >>> 0) / 0x100000000;
 }
 
 /**

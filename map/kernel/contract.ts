@@ -36,6 +36,10 @@ export interface RegionBrief {
   type: RegionTypeId;
   /** The class rule's parameters, passed as stated. */
   parameters?: Record<string, number | string | boolean>;
+  /** Optional decomposer/builder advice, delivered through the interface (20.7). */
+  guidance?: Record<string, number | string | boolean>;
+  /** Advisory reasons supplied by the offering builder; never access obligations. */
+  delegation?: { sourceBuilder: string; reasonTags: string[] };
   cellSize: number;
   cells: Cell[];
   /** Geometry may occupy only these owned cells; an empty or split fill is valid (20.6). */

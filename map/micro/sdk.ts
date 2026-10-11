@@ -1,4 +1,4 @@
-/** Reusable geometry/placement tools. No catalogue, live game state, IDs or macro planner. */
+/** Reusable preparation/geometry/placement tools. No catalogue, live game state or runtime ID allocator. */
 export { createRegionMask, createFillMask, createAccessMask, capsule, elementShapes, findRegionRoute, shapesOverlap, travelClear, validShape } from './geometry.ts';
 export { spreadPoints } from './placement.ts';
 export { microMetrics } from './metrics.ts';
@@ -37,3 +37,5 @@ export { allocateBuilding } from './building/allocation.ts';
 export type { BuildingAllocationOptions, BuildingAllocationResult, BuildingAllocationSearch, BuildingAllocationScores } from './building/allocation.ts';
 
 export { inheritBriefMargins, validateFillConstraints } from './margins.ts';
+export { prepareDelegation, patchFootprintKey, validateBriefPartition } from './delegation.ts';
+export type { PatchOffer, PreparedPatch, PatchRejection, BriefCrossing, PreparedDelegation, PatchPreparationPolicy } from './delegation.ts';
