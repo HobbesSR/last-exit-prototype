@@ -423,7 +423,10 @@ inside, and windows and doors let sight through.
     Rectangular masks and concave masks use the same boundary-spacing and
     corridor rules as `cover` (20.3), rather than a blanket edge ring.
     With at most 32 portals, routes join nearby portals in a deterministic
-    spanning tree (#325). The former first-portal star reserved diagonals
+    spanning tree (#325), using Euclidean distance between hunter stands, not
+    routed path length. Nearby stands can require a long detour in a concave
+    mask, so this choice does not guarantee minimum total protected route length.
+    The former first-portal star reserved diagonals
     throughout some large depots and rejected every warehouse footprint.
     The tree still joins every portal and protects the full approach strips,
     while leaving more contiguous space for warehouses and container rows.

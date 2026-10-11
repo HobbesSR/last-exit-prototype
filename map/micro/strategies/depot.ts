@@ -48,7 +48,8 @@ const CHANNEL = { axis: 1, phase: 2, site: 3, row: 4, length: 5, loot: 6, design
  * around the warehouses. Each place that fits one is taken with chance `density`.
  *
  * Every piece's box keeps `AISLE` clear cells from other pieces. Candidate footprints stay
- * owned and clear of portal approaches; concave masks also protect a hunter corridor.
+ * owned and clear of portal approaches. With at most 32 portals, the builder protects a
+ * swept hunter route tree between nearby portals; larger portal counts use boundary spacing.
  * Hinted runs receive priority when a warehouse can fit against them. A region with no
  * contained `MIN_SIDE` square goes to `open` (17 M24).
  *

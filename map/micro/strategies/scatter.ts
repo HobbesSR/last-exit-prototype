@@ -42,8 +42,9 @@ export function draw(seed: number, x: number, y: number, channel: number): numbe
  * The shapes no piece may touch: a strip over every portal's stands and threshold crossing,
  * and hunter routes connecting the portals in the empty shape. By default, each route
  * starts at the first portal. `'nearby'` instead joins the nearest portal outside the
- * connected set, comparing squared stand distances and breaking ties by the source and
- * destination's order in `portalStands`. One portal carries no route obligation, so it
+ * connected set, comparing squared Euclidean stand distances, not routed path lengths,
+ * and breaking ties by source then destination order in `portalStands`.
+ * One portal carries no route obligation, so it
  * protects nothing. `type` names the region type in what it throws.
  */
 export function protectedRoutes(brief: RegionBrief, type: string, mode: 'root' | 'nearby' = 'root'): Shape[] {
