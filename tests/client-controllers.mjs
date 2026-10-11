@@ -97,14 +97,29 @@ export async function checkClientControllers(browser, base) {
         return { fillRects, strokeRects, clips };
       }
 
-      const targetCell = cellIndexAt(testFeatureMap, 13000, 3000);
-      const targetPxX = Math.round(13000 * 260 / testFeatureMap.width);
-      const targetPxY = Math.round(3000 * 124 / testFeatureMap.height);
+      let targetX = 13000, targetY = 3000;
+      if (testFeatureMap.playableArea) {
+        const row = testFeatureMap.playableArea.rows.find(r => r.runs.length > 0 && r.y !== Math.floor(testFeatureMap.height / (2 * testFeatureMap.playableArea.cellSize)));
+        if (row) {
+          const run = row.runs[0];
+          targetX = Math.round((run[0] + run[1]) / 2 * testFeatureMap.playableArea.cellSize);
+          targetY = Math.round((row.y + 0.5) * testFeatureMap.playableArea.cellSize);
+        }
+      }
+      const targetCell = cellIndexAt(testFeatureMap, targetX, targetY);
+      const targetPxX = Math.round(targetX * 260 / testFeatureMap.width);
+      const targetPxY = Math.round(targetY * 124 / testFeatureMap.height);
 
       const undiscovered = renderDiscovery({ discovery: new Set() });
       const undiscoveredPixelAlpha = canvas.getImageData(targetPxX, targetPxY, 1, 1).data[3];
       const discoveredCell0 = renderDiscovery({ discovery: new Set([0, targetCell]) });
       const discoveredPixelAlpha = canvas.getImageData(targetPxX, targetPxY, 1, 1).data[3];
+
+      // Hazard wall advances across undiscovered terrain and draws visibly
+      const hazardState = freeze({ ...state, hazardX: targetX + 1000 });
+      renderDiscovery({ state: hazardState, discovery: new Set() });
+      const undiscoveredHazardPixelAlpha = canvas.getImageData(targetPxX, targetPxY, 1, 1).data[3];
+
       const gladiatorFullMap = renderDiscovery({
         state: freeze({ ...state, players: [{ ...me, role: 'gladiator', kit: 'warden' }, state.players[1]] }),
         discovery: new Set()
@@ -113,7 +128,7 @@ export async function checkClientControllers(browser, base) {
         visibility: { directed: true },
         discovery: new Set()
       });
-      const minimapDiscovery = { undiscovered, discoveredCell0, gladiatorFullMap, directedFullMap, undiscoveredPixelAlpha, discoveredPixelAlpha };
+      const minimapDiscovery = { undiscovered, discoveredCell0, gladiatorFullMap, directedFullMap, undiscoveredPixelAlpha, discoveredPixelAlpha, undiscoveredHazardPixelAlpha };
 
       render({});
       const slots = [...$('equipment-slots').children].map(b => b.ariaLabel);
@@ -208,6 +223,7 @@ export async function checkClientControllers(browser, base) {
     assert.equal(result.minimapDiscovery.directedFullMap.clips, result.minimapDiscovery.gladiatorFullMap.clips, 'directed view does not clip discovery');
     assert.equal(result.minimapDiscovery.undiscoveredPixelAlpha, 0, 'undiscovered terrain has empty alpha');
     assert.ok(result.minimapDiscovery.discoveredPixelAlpha > 0, 'discovered terrain draws visible pixels');
+    assert.ok(result.minimapDiscovery.undiscoveredHazardPixelAlpha > 0, 'hazard wall draws across undiscovered terrain');
     assert.equal(result.slots.length, 6); assert.match(result.slots[5], /^Slot 6: /);
     assert.deepEqual(result.beforeDestroy, result.afterDestroy); assert.equal(result.beforeDestroy.fullscreenActions, 3); assert.equal(result.buttonsAfterDestroy, 0);
     assert.equal(result.sneakReleaseCancelled, true, 'preserve the original property handler return-false behavior');
