@@ -107,9 +107,10 @@ whole-map enforcement stage. See [19](19-decomposition-design.md),
 
 The passable-margin contract (20.6, #313) is implemented. Macro version 3
 derives reduced fill, known-clear access context and internal guaranteed runs;
-`types-22` builders and child handoffs use those constraints. #214 resumes
-against this policy after #313 merges, with its saved authorship work requiring
-new shape/tuning validation and a final content checkpoint.
+Builders and child handoffs use those constraints. #214's authored fill
+diversity and final content checkpoint are merged. #325 follows with depot
+route reservation tuning (`types-23`); #289's residual delegation design
+remains the broader next boundary for space a builder cannot use itself.
 
 The sequencing below remains the other gameplay backlog, not an instruction to
 leave the current micro-generation effort for reward tiers.

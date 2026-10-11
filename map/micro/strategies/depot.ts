@@ -48,7 +48,8 @@ const CHANNEL = { axis: 1, phase: 2, site: 3, row: 4, length: 5, loot: 6, design
  * around the warehouses. Each place that fits one is taken with chance `density`.
  *
  * Every piece's box keeps `AISLE` clear cells from other pieces. Candidate footprints stay
- * owned and clear of portal approaches; concave masks also protect a hunter corridor.
+ * owned and clear of portal approaches. With at most 32 portals, the builder protects a
+ * swept hunter route tree between nearby portals; larger portal counts use boundary spacing.
  * Hinted runs receive priority when a warehouse can fit against them. A region with no
  * contained `MIN_SIDE` square goes to `open` (17 M24).
  *
@@ -67,10 +68,10 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   const mask = createFillMask(brief), size = brief.cellSize;
   if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
   if (!largestRectangle(mask, MIN_SIDE)) return unfilledRegion(brief, CHANNEL.loot);
-  // Routes between portals are protected; past 32 portals that search is too dear, and
+  // Nearby portal routes are protected; past 32 portals that search is too dear, and
   // boxes keep an aisle from the boundary instead.
   const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
-  const protectedShapes = routed ? protectedRoutes(brief, 'Depot') : [];
+  const protectedShapes = routed ? protectedRoutes(brief, 'Depot', 'nearby') : [];
 
 
   // Lines run along u. `alongX` maps (u, v) to (x, y), or else to (y, x).
