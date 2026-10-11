@@ -121,7 +121,7 @@ try {
   // is the dialog's own choice: entering a dev view, or Auto with no preference, must not replace it.
   const named = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":9,"name":"Night shift"}' })).json();
   const browse = async () => {
-    await page.getByRole('button', { name: 'New arena', exact: true }).click();
+    await page.getByRole('button', { name: 'Lobbies', exact: true }).click();
     const join = page.getByRole('button', { name: 'Join Night shift', exact: true });
     await join.waitFor();
     // Wait out a refresh, so the row is drawn after whatever the last connection did.

@@ -365,7 +365,12 @@ try {
   await page.getByRole('button', { name: 'Download replay', exact: true }).click();
   assert.match((await downloadPromise).suggestedFilename(), /^last-exit-.*\.json$/);
   await page.getByRole('button', { name: 'Exit replay' }).click();
-  await page.getByRole('button', { name: 'New arena', exact: true }).click();
+  await page.getByRole('button', { name: 'Lobbies', exact: true }).click();
+  assert.equal(await page.locator('#tab-join').getAttribute('tabindex'), '0');
+  assert.equal(await page.locator('#tab-create').getAttribute('tabindex'), '-1');
+  await page.locator('#tab-join').press('ArrowRight');
+  assert.equal(await page.locator('#panel-create').isVisible(), true, 'ArrowRight switches to Create Room');
+  assert.equal(await page.locator('#tab-create').getAttribute('tabindex'), '0');
   await page.getByRole('button', { name: 'Gladiator', exact: true }).click();
   await page.locator('#kit').selectOption('striker');
   await page.screenshot({ path: 'test-results/loadout.png' });
@@ -385,7 +390,7 @@ try {
   await mobile.mouse.up();
   await mobile.screenshot({ path: 'test-results/mobile.png' });
   assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-  await mobile.getByRole('button', { name: 'New arena', exact: true }).click();
+  await mobile.getByRole('button', { name: 'Lobbies', exact: true }).click();
   await mobile.screenshot({ path: 'test-results/mobile-loadout.png' });
   await mobile.getByRole('button', { name: 'Close', exact: true }).first().click();
   const portraitChecks = await mobile.evaluate(() => [...document.images].filter(i => i.offsetParent !== null).every(i => i.complete && i.naturalWidth > 0));
@@ -583,14 +588,14 @@ try {
   // The deploy dialog lists open rooms (#254): a named room is listed to everyone, its Join usable, and a
   // server without a dev tools policy offers no dev view.
   const namedRoom = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"seed":7,"name":"Night shift"}' })).json();
-  await page.getByRole('button', { name: 'New arena', exact: true }).click();
+  await page.getByRole('button', { name: 'Lobbies', exact: true }).click();
   await page.getByRole('button', { name: 'Join Night shift', exact: true }).waitFor();
   assert.equal(await page.getByRole('button', { name: 'Join Night shift', exact: true }).isEnabled(), true);
   assert.equal(await page.getByRole('button', { name: 'Dev view of Night shift', exact: true }).count(), 0);
   await page.screenshot({ path: 'test-results/room-browser.png' });
-  // Auto is matchmaking.
+  // Auto is matchmaking: pressing Enter in the callsign field on the Find & Join tab routes to autoMatch.
   await page.locator('#role-preference').selectOption('gladiator');
-  await page.getByRole('button', { name: 'Auto', exact: true }).click();
+  await page.locator('#callsign').press('Enter');
   await page.waitForFunction(() => document.getElementById('lobby-dialog').open && window.arenaDebug().me?.role === 'gladiator');
   const matchedRoom = await page.evaluate(() => window.arenaDebug().room);
   assert.equal(server.rooms.get(matchedRoom).matchmade, true);
@@ -644,7 +649,8 @@ try {
   // A page that has played one arena deploys another whose map cannot be generated (#258): the lobby it
   // was admitted to is gone, so it returns to the deploy dialog, not the last arena's frame.
   holdNextGeneration = true;
-  await wallPage.getByRole('button', { name: 'New arena', exact: true }).click();
+  await wallPage.getByRole('button', { name: 'Lobbies', exact: true }).click();
+  await wallPage.getByRole('tab', { name: 'Create Room', exact: true }).click();
   await wallPage.getByRole('button', { name: 'Deploy', exact: true }).click();
   await wallPage.waitForFunction(() => document.getElementById('lobby-dialog').open && /Generating/.test(document.getElementById('lobby-waiting').textContent));
   failHeldGeneration();
@@ -652,7 +658,9 @@ try {
   await wallPage.waitForFunction(() => !document.getElementById('deploy-error').hidden && /could not be generated/.test(document.getElementById('deploy-error').textContent));
   assert.deepEqual(await wallPage.evaluate(() => ({ deploy: document.getElementById('loadout-dialog').open, lobby: document.getElementById('lobby-dialog').open })), { deploy: true, lobby: false });
   assert.equal(await wallPage.evaluate(() => window.arenaDebug().tick), undefined, 'the previous arena is not shown as this one');
-  // Back in the deploy dialog, Join enters a listed room's lobby, which shows its name.
+  assert.equal(await wallPage.locator('#panel-create').isVisible(), true, 'failed creation stays on the Create Room tab');
+  // Back in the deploy dialog, switch to Find & Join tab to enter a listed room's lobby.
+  await wallPage.getByRole('tab', { name: 'Find & Join', exact: true }).click();
   await wallPage.getByRole('button', { name: 'Join Night shift', exact: true }).click();
   await wallPage.waitForFunction(id => document.getElementById('lobby-dialog').open && window.arenaDebug().room === id
     && document.getElementById('lobby-title').textContent === 'Night shift', namedRoom.id);
