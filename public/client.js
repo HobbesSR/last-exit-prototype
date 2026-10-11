@@ -201,6 +201,8 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       room = data.room; roomId = room;
       try { if (data.resumeKey) sessionStorage.setItem(`last-exit:resume:${room}`, data.resumeKey); } catch { /* Optional recovery. */ }
       playerId = data.id; owner = data.owner; liveMap = data.map; liveState = data.state; devView = !!data.dev;
+      const me = data.state?.players?.find(p => p.id === playerId);
+      if (me?.discovered) discoveryDecoder.decode(me.discovered);
       $('dev-view').hidden = !data.devTools || devView; $('dev-controls').hidden = !devView;
       if (owner && !devView) {
         try { sessionStorage.setItem(`last-exit:owner:${room}`, JSON.stringify({ key, role, kit, name })); }
@@ -218,7 +220,12 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       liveMap = data.map; liveState = data.state;
       // A new map starts its own ticks, as at the start when players leave the waiting area (#236), so
       // neither buffered frames nor inputs predicted on the old map carry over.
-      if (!replayController.active() && !devFeed) { snapshots.reset(); pending = []; changeMap(data.map); acceptState(data.state); }
+      if (!replayController.active() && !devFeed) {
+        snapshots.reset(); pending = []; discoveryDecoder.reset();
+        const me = data.state?.players?.find(p => p.id === playerId);
+        if (me?.discovered) discoveryDecoder.decode(me.discovered);
+        changeMap(data.map); acceptState(data.state);
+      }
     } else if (data.type === 'state') {
       notePacket(event.data.length); layers.decode(data.state);
       const me = data.state.players?.find(p => p.id === playerId);
@@ -318,7 +325,8 @@ function updateHUD() {
   updateDevLeaveLabel();
   hudController.render({ state, arenaMap, playerId, view: currentView(), savedReplay,
     selection: inputController.selection(),
-    visibility: { directed: directed(), sight: scene?.sight }
+    visibility: { directed: directed(), sight: scene?.sight },
+    discovery: discoveryDecoder?.known
   });
   showPlayerHud();
 }

@@ -1,6 +1,7 @@
 import { lineClear } from '/shared/movement.ts';
 import { seesActor } from '/shared/view.ts';
 import { carriedCell, SLOT_COUNT } from '/shared/equipment.ts';
+import { discoveryGrid, isFeatureDiscovered } from '/shared/discovery.ts';
 import { slotPresentation } from '/equipment-ui.js';
 import * as profiler from '/shared/profiler.ts';
 import { $, HZ, kitName, kitSkill, time } from '/ui.js';
@@ -117,7 +118,7 @@ export function createHUDController(actions) {
   listen(document, 'contextmenu', e => {
     if (e.target.closest('[data-tip]')) e.preventDefault();
   });
-  function hud({ state, arenaMap, playerId, view, savedReplay, selection: { moveFrom }, visibility }) {
+  function hud({ state, arenaMap, playerId, view, savedReplay, selection: { moveFrom }, visibility, discovery }) {
     const me = state.players.find(p => p.id === playerId) || (view === 'replay' ? state.players[0] : null);
     dragEnabled = false;
     // The waiting area before a match (#236) has no clock, objective, loadout or outcome to show.
@@ -237,7 +238,7 @@ export function createHUDController(actions) {
         }
       }
     }
-    profiler.start('render.minimap'); drawMinimap({ arenaMap, state, playerId, visibility }); profiler.stop('render.minimap');
+    profiler.start('render.minimap'); drawMinimap({ arenaMap, state, playerId, visibility, discovery }); profiler.stop('render.minimap');
   }
   let mColors = null;
   const getMinimapColors = () => {
@@ -257,11 +258,44 @@ export function createHUDController(actions) {
     };
   };
 
-  function drawMinimap({ arenaMap, state, playerId, visibility }) {
+  function drawMinimap({ arenaMap, state, playerId, visibility, discovery }) {
     if (!arenaMap || !state) return;
     const cols = getMinimapColors();
     const c = $('minimap').getContext('2d'); const sx = 260 / arenaMap.width, sy = 124 / arenaMap.height;
     c.clearRect(0, 0, 260, 124);
+
+    const mine = state.players.find(q => q.id === playerId);
+    const isContestant = mine?.role === 'contestant' && !visibility?.directed;
+    const known = isContestant ? (
+      discovery instanceof Set
+        ? discovery
+        : Array.isArray(discovery)
+        ? new Set(discovery)
+        : mine?.discovered instanceof Set
+        ? mine.discovered
+        : Array.isArray(mine?.discovered)
+        ? new Set(mine.discovered)
+        : new Set()
+    ) : null;
+    const memory = known ? { discovered: known } : null;
+
+    if (isContestant) {
+      c.save();
+      c.beginPath();
+      if (known && known.size > 0) {
+        const { cols: dCols, size } = discoveryGrid(arenaMap);
+        for (const idx of known) {
+          const col = idx % dCols;
+          const row = Math.floor(idx / dCols);
+          c.rect(col * size * sx, row * size * sy, size * sx, size * sy);
+        }
+        c.clip();
+      } else {
+        c.rect(0, 0, 0, 0);
+        c.clip();
+      }
+    }
+
     if (arenaMap.playableArea) {
       const { cellSize, rows } = arenaMap.playableArea;
       c.beginPath();
@@ -276,18 +310,32 @@ export function createHUDController(actions) {
       c.strokeStyle = cols.dash; c.setLineDash([3, 4]); c.beginPath(); c.moveTo(6, 62); c.lineTo(254, 62); c.stroke(); c.setLineDash([]);
       c.fillStyle = cols.hazard; c.fillRect(0, 0, Math.max(0, state.hazardX * sx), 124);
     }
-    for (const station of arenaMap.stations) { c.fillStyle = cols.station; c.fillRect(station.x * sx - 2, station.y * sy - 2, 4, 4); }
-    for (const station of arenaMap.chargers || []) { c.strokeStyle = cols.charger; c.strokeRect(station.x * sx - 2, station.y * sy - 2, 4, 4); }
+
+    if (isContestant) {
+      c.restore();
+    }
+
+    for (const station of arenaMap.stations) {
+      if (isContestant && !isFeatureDiscovered(memory, arenaMap, station)) continue;
+      c.fillStyle = cols.station; c.fillRect(station.x * sx - 2, station.y * sy - 2, 4, 4);
+    }
+    for (const station of arenaMap.chargers || []) {
+      if (isContestant && !isFeatureDiscovered(memory, arenaMap, station)) continue;
+      c.strokeStyle = cols.charger; c.strokeRect(station.x * sx - 2, station.y * sy - 2, 4, 4);
+    }
     // The server sends more than the eye can reach, so the minimap applies the very same predicate the
     // renderer does — literally the same function, so the two views cannot drift apart again.
-    const mine = state.players.find(q => q.id === playerId);
-    const shown = p => visibility.directed || p.id === playerId || seesActor(visibility.sight, arenaMap, mine, p);
+    const shown = p => visibility?.directed || p.id === playerId || seesActor(visibility?.sight, arenaMap, mine, p);
     for (const p of state.players) {
       if (p.status !== 'active' || !shown(p)) continue;
       c.fillStyle = p.id === playerId ? cols.me : p.role === 'gladiator' ? cols.gladiator : cols.contestant;
       c.beginPath(); c.arc(p.x * sx, p.y * sy, p.id === playerId ? 3.5 : 2, 0, Math.PI * 2); c.fill();
     }
-    if (arenaMap.exit) { c.strokeStyle = cols.exit; c.strokeRect(arenaMap.exit.x * sx - 3, arenaMap.exit.y * sy - 4, 6, 8); }
+    if (arenaMap.exit) {
+      if (!isContestant || isFeatureDiscovered(memory, arenaMap, arenaMap.exit)) {
+        c.strokeStyle = cols.exit; c.strokeRect(arenaMap.exit.x * sx - 3, arenaMap.exit.y * sy - 4, 6, 8);
+      }
+    }
   }
   return {
     render(props) {

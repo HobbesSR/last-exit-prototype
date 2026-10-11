@@ -74,6 +74,40 @@ export async function checkClientControllers(browser, base) {
       const deathOutcomeHiddenInReplay = $('outcome').hidden;
       render({ state: eliminatedState, view: 'outcome' });
       const deathOutcomeRestored = !$('outcome').hidden;
+
+      // Minimap feature discovery: stations, chargers, exit and terrain clipping
+      const testFeatureMap = freeze({
+        ...arenaMap,
+        stations: [{ x: 96, y: 96 }, { x: 1000, y: 1000 }],
+        chargers: [{ x: 96, y: 96 }],
+        exit: { x: 96, y: 96 }
+      });
+      let fillRects = 0, strokeRects = 0, clips = 0;
+      const origFillRect = canvas.fillRect.bind(canvas);
+      const origStrokeRect = canvas.strokeRect.bind(canvas);
+      const origClip = canvas.clip.bind(canvas);
+      canvas.fillRect = (...args) => { fillRects++; origFillRect(...args); };
+      canvas.strokeRect = (...args) => { strokeRects++; origStrokeRect(...args); };
+      canvas.clip = (...args) => { clips++; origClip(...args); };
+
+      function renderDiscovery(extra) {
+        fillRects = 0; strokeRects = 0; clips = 0;
+        hud.render({ ...props, arenaMap: testFeatureMap, ...extra });
+        return { fillRects, strokeRects, clips };
+      }
+
+      const undiscovered = renderDiscovery({ discovery: new Set() });
+      const discoveredCell0 = renderDiscovery({ discovery: new Set([0]) });
+      const gladiatorFullMap = renderDiscovery({
+        state: freeze({ ...state, players: [{ ...me, role: 'gladiator', kit: 'warden' }, state.players[1]] }),
+        discovery: new Set()
+      });
+      const directedFullMap = renderDiscovery({
+        visibility: { directed: true },
+        discovery: new Set()
+      });
+      const minimapDiscovery = { undiscovered, discoveredCell0, gladiatorFullMap, directedFullMap };
+
       render({});
       const slots = [...$('equipment-slots').children].map(b => b.ariaLabel);
       const slot = index => $('equipment-slots').children[index];
@@ -126,7 +160,7 @@ export async function checkClientControllers(browser, base) {
       input.destroy(); hud.destroy(); key('KeyD'); key('KeyF'); $('fullscreen-toggle').click(); $('drop-item').click();
       const destroyed = collect(false);
       return { first, second, blurred, arranged, blocked, afterBlocked, reset, dialog, hidden, clicked, draggedMove, draggedDrop, cancelledDrag, tappedSlot, cancelledGestures, pinnedDrop, afterPinnedDrop, blockedDragDrop, destroyed,
-        dots: { visible, noSight, cloaked, roof, revealedUnderRoof, outsideViewport, directed }, slots,
+        dots: { visible, noSight, cloaked, roof, revealedUnderRoof, outsideViewport, directed }, slots, minimapDiscovery,
         deathOutcomeVisible, deathOutcomeHiddenInDev, deathOutcomeHiddenInReplay, deathOutcomeRestored,
         beforeDestroy, afterDestroy: { selectionChanges, fullscreenActions, replayActions }, buttonsAfterDestroy: $('equipment-slots').children.length,
         sneakReleaseCancelled: sneakRelease.defaultPrevented };
@@ -157,6 +191,14 @@ export async function checkClientControllers(browser, base) {
       assert.equal(intent.slot, undefined); assert.equal(intent.drop, false); assert.equal(intent.moveSlot, undefined);
     }
     assert.deepEqual(result.dots, { visible: 2, noSight: 1, cloaked: 1, roof: 1, revealedUnderRoof: 2, outsideViewport: 1, directed: 2 });
+    assert.equal(result.minimapDiscovery.undiscovered.strokeRects, 0, 'undiscovered chargers and exit are hidden from contestants');
+    assert.equal(result.minimapDiscovery.discoveredCell0.strokeRects, 2, 'discovered charger and exit appear for contestants');
+    assert.equal(result.minimapDiscovery.discoveredCell0.fillRects, result.minimapDiscovery.undiscovered.fillRects + 1, 'only discovered station appears');
+    assert.equal(result.minimapDiscovery.gladiatorFullMap.strokeRects, 2, 'gladiators see all chargers and exit');
+    assert.equal(result.minimapDiscovery.gladiatorFullMap.fillRects, result.minimapDiscovery.undiscovered.fillRects + 2, 'gladiators see all stations');
+    assert.equal(result.minimapDiscovery.undiscovered.clips, result.minimapDiscovery.gladiatorFullMap.clips + 1, 'contestant minimap clips terrain to discovery');
+    assert.equal(result.minimapDiscovery.directedFullMap.strokeRects, 2, 'directed view sees full map');
+    assert.equal(result.minimapDiscovery.directedFullMap.clips, result.minimapDiscovery.gladiatorFullMap.clips, 'directed view does not clip discovery');
     assert.equal(result.slots.length, 6); assert.match(result.slots[5], /^Slot 6: /);
     assert.deepEqual(result.beforeDestroy, result.afterDestroy); assert.equal(result.beforeDestroy.fullscreenActions, 3); assert.equal(result.buttonsAfterDestroy, 0);
     assert.equal(result.sneakReleaseCancelled, true, 'preserve the original property handler return-false behavior');
