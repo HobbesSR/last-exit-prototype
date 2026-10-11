@@ -224,6 +224,17 @@ test('keyframe-then-changes deltas add up to the keyframe', () => {
   assert.deepEqual(manyWire.all, many);
   decoder.decode(manyWire);
   assert.deepEqual(decoder.known, new Set(many));
+
+  // Dropping/forgetting cells triggers re-key
+  const dropped = [1, 2];
+  const encodedDrop = encoder.encode(dropped);
+  assert.ok(encodedDrop.k > encodedMany.k, 'dropping cells triggers new keyframe');
+  assert.deepEqual(encodedDrop.all().all, [1, 2]);
+
+  // Plain array replaces known set in decoder
+  const plain = [100, 101];
+  decoder.decode(plain);
+  assert.deepEqual(decoder.known, new Set([100, 101]));
 });
 
 test('room broadcast: dropped frames and catch-up batches preserve client discovery', () => {

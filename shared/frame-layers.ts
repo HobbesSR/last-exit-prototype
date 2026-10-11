@@ -23,6 +23,7 @@
 // A keyframe never changes once cut: `all` is always the layer as it was then, and the current frame is
 // that plus the same changes every other session on the view is sent.
 // Keyframe numbers are unique in the process, so one never matches a table from another view or room.
+// Contestant discovery uses the same delivery tracking and process-wide keyframe numbering through shared/discovery.ts.
 
 export const LAYERS = ['items', 'gates'] as const;
 export type Layer = typeof LAYERS[number];

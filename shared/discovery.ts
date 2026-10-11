@@ -183,7 +183,7 @@ export function createDiscoveryEncoder(rekeyFloor = REKEY_FLOOR) {
         if (!table.set.has(id)) newlyAdded.push(id);
       }
 
-      if (newlyAdded.length > rekeyFloor) {
+      if (list.length < table.set.size + newlyAdded.length || newlyAdded.length > rekeyFloor) {
         table = { k: nextVersion(), all: list, set: new Set(list) };
         return {
           k: table.k,
@@ -217,7 +217,7 @@ export function createDiscoveryDecoder() {
     decode(wire: DiscoveryWire | number[] | null | undefined): Set<number> {
       if (!wire) return known;
       if (Array.isArray(wire)) {
-        for (const idx of wire) known.add(idx);
+        known = new Set(wire);
         return known;
       }
       if (wire.all) {
