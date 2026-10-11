@@ -195,7 +195,13 @@ test('two clients share authority; replay preserves each recorded frame and surv
       for (const p of frame.players) {
         // A live view is a projection of the recording: narrower for other players, never different.
         const recorded = archived.players.find(a => a.id === p.id);
-        for (const [field, value] of Object.entries(p)) assert.deepEqual(value, recorded[field], `player ${p.id} field ${field}`);
+        for (const [field, value] of Object.entries(p)) {
+          if (field === 'discovered') {
+            assert.equal(recorded[field], undefined, 'discovery is left out of recorded frames');
+            continue;
+          }
+          assert.deepEqual(value, recorded[field], `player ${p.id} field ${field}`);
+        }
         for (const field of ['path', 'input', 'inputTick', 'bot']) assert.equal(Object.hasOwn(p, field), false, `${field} withheld`);
       }
       for (const field of ['gates', 'events', 'hazardX', 'slots']) assert.deepEqual(frame[field], archived[field]);

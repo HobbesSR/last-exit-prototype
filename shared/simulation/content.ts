@@ -65,6 +65,7 @@ const CONTENT_1: MatchContent = {
   cellChargeTicks: 5 * 20,
   gladiatorRespawnTicks: 20 * 20,
   hazardGraceTicks: 60 * 20,
+  discovery: false,
 };
 
 // Preserve the first ten players' ordering from `content-1`; F-11 adds only this third hunter.
@@ -75,6 +76,7 @@ const CONTENT_2: MatchContent = {
     ...CONTENT_1.roster,
     gladiators: [...CONTENT_1.roster.gladiators, { name: 'BLAZE', kit: 'striker' }],
   },
+  discovery: true,
 };
 
 /** Return an independent, deeply frozen copy of a shipped content set. */

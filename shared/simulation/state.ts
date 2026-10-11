@@ -3,6 +3,7 @@ import { SLOT_COUNT } from '../equipment.ts';
 import { VERSION, KITS } from './rules.ts';
 import { queueInput, resetInput } from './input.ts';
 import { defaultContent } from './content.ts';
+import { createDiscovery, attachDiscovery, discover } from '../discovery.ts';
 import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role, SlotIndex } from '../types.ts';
 
 /**
@@ -23,6 +24,16 @@ export function createGame(seed = 4217, map: GameMap = generateMap(seed), conten
   s.players.filter(p => p.role === 'gladiator').forEach((p, i) => {
     const station = map.hunterSpawns?.[i] ?? map.stations.at(-1 - i) ?? map.exit; p.x = station.x; p.y = station.y;
   });
+  if (content.discovery) {
+    for (const p of s.players) {
+      if (p.role === 'contestant') {
+        const memory = createDiscovery();
+        attachDiscovery(p, memory);
+        // The lobby's NOWHERE map has no dimensions or spawns; discovery sampling runs only once on a real map.
+        if (map.width && map.height && map.spawns?.length) discover(memory, s.map, p);
+      }
+    }
+  }
   return s;
 }
 const placeCount = (s: Game, role: Role) => role === 'gladiator' ? s.content.roster.gladiators.length : s.content.roster.contestants.length;

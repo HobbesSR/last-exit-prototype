@@ -1,6 +1,7 @@
 import { zoneSizeName } from '../map/live.ts';
 import * as profiler from '../shared/profiler.ts';
 import { createLayerEncoder } from '../shared/frame-layers.ts';
+import { createDiscoveryEncoder } from '../shared/discovery.ts';
 export const SPECTATOR_DELAY_TICKS = 60;
 export const send = (session, value) => session.deliver(JSON.stringify(value));
 const lobbyPayload = room => ({
@@ -39,28 +40,46 @@ export function broadcast(room, state) {
     let view = views.get(key);
     if (view === undefined) {
       const projected = room.match.project(session.playerId || session.dev ? state : delayed, session.playerId);
-      views.set(key, view = { state: projected, layers: encoderFor(room, key).encode(projected) });
+      const layers = encoderFor(room, key).encode(projected);
+      const me = session.playerId && projected.players?.find(p => p.id === session.playerId);
+      if (me?.discovered) layers.discovered = discoveryEncoderFor(room, key).encode(me.discovered);
+      views.set(key, view = { state: projected, layers });
     }
-    // Items and gates go as changes against a keyframe, and whole to a session not yet delivered that
-    // keyframe (shared/frame-layers.ts). Sessions in the same place share one payload.
+    // Items, gates and contestant discovery go as changes against a keyframe, and whole to a session
+    // not yet delivered that keyframe (shared/frame-layers.ts, shared/discovery.ts). Sessions in the
+    // same place share one payload.
     const held = session.layerKeys ||= {};
     const whole = Object.entries(view.layers).filter(([layer, encoded]) => 'k' in encoded && held[layer] !== encoded.k).map(([layer]) => layer);
     const variant = `${key}|${whole}`;
     let payload = payloads.get(variant);
     if (payload === undefined) {
       const frame = { ...view.state };
-      for (const [layer, encoded] of Object.entries(view.layers)) frame[layer] = 'plain' in encoded ? encoded.plain : whole.includes(layer) ? encoded.all() : encoded.changes;
+      for (const [layer, encoded] of Object.entries(view.layers)) {
+        if (layer === 'discovered') continue;
+        frame[layer] = 'plain' in encoded ? encoded.plain : whole.includes(layer) ? encoded.all() : encoded.changes;
+      }
+      if (view.layers.discovered) {
+        const disc = whole.includes('discovered') ? view.layers.discovered.all() : view.layers.discovered.changes;
+        frame.players = frame.players.map(p => p.id === session.playerId ? { ...p, discovered: disc } : p);
+      }
       payloads.set(variant, payload = JSON.stringify({ type: 'state', state: frame }));
     }
     if (session.deliver(payload, true) !== false) for (const layer of whole) held[layer] = view.layers[layer].k;
   }
   // A view nobody holds any more (a player who left) takes its keyframes with it.
   for (const key of room.layerEncoders?.keys() ?? []) if (!views.has(key)) room.layerEncoders.delete(key);
+  for (const key of room.discoveryEncoders?.keys() ?? []) if (!views.has(key)) room.discoveryEncoders.delete(key);
   profiler.count('loop.viewsBuilt', views.size); profiler.count('loop.viewsSent', room.clients.size);
 }
 function encoderFor(room, key) {
   const encoders = room.layerEncoders ||= new Map();
   let encoder = encoders.get(key);
   if (!encoder) encoders.set(key, encoder = createLayerEncoder());
+  return encoder;
+}
+function discoveryEncoderFor(room, key) {
+  const encoders = room.discoveryEncoders ||= new Map();
+  let encoder = encoders.get(key);
+  if (!encoder) encoders.set(key, encoder = createDiscoveryEncoder());
   return encoder;
 }

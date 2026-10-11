@@ -17,6 +17,7 @@ import { interact, advanceCharging } from './simulation/interactions.ts';
 import { botInput } from './simulation/bots.ts';
 import { consumeInput } from './simulation/input.ts';
 import { recordRewind } from './simulation/rewind.ts';
+import { DISCOVERY_INTERVAL, discover } from './discovery.ts';
 import type { Game } from './types.ts';
 
 /** Per-player countdown fields, all measured in ticks. */
@@ -55,6 +56,18 @@ export function step(s: Game): void {
     if (p.status !== 'active') continue;
     if (p.x < s.hazardX && s.tick % 5 === 0) damage(s, p, 9, null);
     if (s.tick % 12 === 0 && s.map.hazards.some(h => p.x > h.x && p.x < h.x + h.w && p.y > h.y && p.y < h.y + h.h)) damage(s, p, 5, null);
+  }
+  if (s.content.discovery) {
+    start('sim.discovery');
+    for (let i = 0; i < s.players.length; i++) {
+      const p = s.players[i]!;
+      if (p.role === 'contestant' && p.discovery) {
+        if (p.status === 'active' && (s.tick + i) % DISCOVERY_INTERVAL === 0) {
+          discover(p.discovery, s.map, p);
+        }
+      }
+    }
+    stop('sim.discovery');
   }
   stepTraps(s, damage, effect);
   start('sim.projectiles');
