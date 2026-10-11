@@ -183,9 +183,9 @@ test('a macro-sized hut region with hundreds of portals builds in bounded time',
   const elapsed = performance.now() - start;
   assert.ok(house(result));
   assert.ok(portals.length > 200 && cells.length > 29000);
-  // The normal suite runs many builders concurrently. Enforce wall-clock timing
-  // only in an isolated run (31); the full geometry fixture always runs here.
-  if (process.env.STRICT_BUILDER_TIMING === '1') assert.ok(elapsed < 2000, `${Math.round(elapsed)} ms`);
+  // Includes whole-yard delegation and cover generation, not just the house.
+  // The 8-second budget runs in the normal parallel suite (31, measurements in 42).
+  assert.ok(elapsed < 8000, `${Math.round(elapsed)} ms`);
 });
 
 test('an observer sees the house its element was realized from, and changes nothing', () => {

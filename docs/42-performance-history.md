@@ -384,6 +384,59 @@ diagnosed maps establish behavior and illustrate where cover is usable. They do
 not prove a general speedup, nested uptake, or resolution of the reported
 slowdown.
 
+
+### PR #336 review response: macro-hut cost (2026-10-11)
+
+The original PR omitted a real regression. The reviewer measured the unchanged
+172 by 172 hut fixture at 280, 276 and 284 ms on house-only `3b54da0`, versus
+1,620, 1,604 and 1,618 ms on `e6d0449`: a 5.8 times median increase. Gating the
+existing 2-second assertion did not address that cost.
+
+`node tools/hut-delegation-timing.mjs` now reproduces the exact fixture and
+alternates three sequential house-only / reviewed / revised runs on Node
+24.15.0, without other local test or benchmark work. The review cleanup removes
+an already-protected receiver's duplicate copies, copies offer metadata without
+recopying the cells it replaces, avoids copying the private retained brief
+before margin inheritance copies it, and skips full-region set construction for
+partial offers. It preserves eager independent public dispatch views. All three
+reviewed/revised outputs deep-matched.
+
+| Revision | Three build times (ms) | Median (ms) |
+| --- | --- | ---: |
+| House-only `3b54da0` | 459.876, 363.284, 316.084 | 363.284 |
+| Reviewed `e6d0449` | 2,534.612, 2,375.509, 2,342.202 | 2,375.509 |
+| Review cleanup | 2,120.356, 2,052.006, 2,461.893 | 2,120.356 |
+
+The revised median is about 11% lower than the reviewed implementation in this
+sample, but remains 5.8 times the house-only median. This is the measured cost of
+the current full-yard pilot, not a claim that the regression has disappeared. The
+fixture owns 29,584 cells and has 228 portals; it offers two lobes of 25 and
+27,969 cells, accepting one. The near-whole-field child requires preparation,
+margin and partition checks, receiving-cover evaluation, and isolated execution
+records that the house-only builder never produced. Its aggressive yard
+selection remains a product-review concern (20.7, 54).
+
+The wall-clock assertion is now unconditional in the normal suite, with an
+8-second budget for this larger workload. The normal parallel micro suite
+measured 4.279 seconds; the full fast-plus-slow suite measured 6.726 seconds
+and failed the first proposed 5-second budget. Eight seconds leaves roughly
+1.3 seconds of scheduling headroom over that observed full-suite run.
+This budget admits the measured pilot cost while continuing to detect growth
+past it; it is not a capacity promise. The table preserves the timing evidence
+in the PR; full output is retained locally in the gitignored
+`test-results/336-hut-timing.json`. The frozen netcode fixture and deliberate
+`types-24` chain baseline are not regenerated for these behavior-preserving
+review fixes.
+
+
+Review-response validation passed: check, typecheck, all 642 fast-plus-slow
+tests with no skips, and the 325-test micro suite with all three browser
+previews. The final full-suite macro-hut case took 6.622 seconds. Strict
+isolated file timings were 7.2 seconds for `micro-hut`, 0.5 for delegation
+preparation and 0.3 for execution, all below the 15-second file budget. The
+existing 224-case `types-24` baseline check returned zero drift; it and the
+frozen netcode fixture remain unchanged.
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including

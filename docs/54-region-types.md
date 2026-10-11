@@ -384,13 +384,19 @@ inside, and windows and doors let sight through.
     and the two-cell perimeter band. Hunter standing-block paths join the
     doorstep to each original portal, favoring existing retained yard with
     zero-cost steps.
+    One 172 by 172 pilot yard offered two lobes of 25 and 27,969 cells; the larger
+    alone covered 94.5% of its owned cells, leaving nearly all otherwise unused yard available
+    for cover. This is the current hut pilot's authorship choice; its visual and content balance should be
+    reviewed before it guides other builders.
   - **Why that keeps the promise:** the retained house yard and the standing-
     block route connect the doorstep to each original entrance. Only connected
     unused lobes are offered, and accepted children keep their paired crossing
     interface (20.7). Core counts and portal obligations remain with the hut;
     the pilot adds no core exclusion or loot overhaul. With no usable fill or
     no house with a reachable doorstep, the hut takes the terminal empty path;
-    original requested core counts remain for reporting.
+    original requested core counts remain for reporting. For example, an
+    incapable 2 by 3 hut is now terminal empty and loses the open-zone loot it
+    formerly produced.
   - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
     disc stands clear of the walls and the door, indoors or out. Retained hut
     loot rolls in canonical cell order and is clipped to retained ownership;

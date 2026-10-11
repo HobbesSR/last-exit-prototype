@@ -81,14 +81,19 @@ export function buildHutGeneration(brief: RegionBrief, options: ExecutionOptions
   };
   return executeDelegation(brief, { ...HUT_EXECUTION_REGISTRY,
     cover: { ...HUT_EXECUTION_REGISTRY.cover!, build: cover,
-      receiving: child => cover(child).elements.length ? null : 'cover has no usable placement in the inherited fill' },
+      receiving: coverReceiving(cover) },
   }, options);
+}
+
+function coverReceiving(build: (brief: RegionBrief) => BuiltRegion) {
+  return (brief: RegionBrief) => build(brief).elements.length ? null : 'cover has no usable placement in the inherited fill';
 }
 
 export const HUT_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
   hut: { version: 'hut-yard-1', build: buildRetainedHut },
-  cover: { version: 'cover-types-23', build: brief => buildCover(brief),
-    receiving: brief => buildCover(brief).elements.length ? null : 'cover has no usable placement in the inherited fill' },
+  // This records the cover executor implementation; bump it when buildCover changes.
+  // The aggregate content version types-24 tracks a separate contract.
+  cover: { version: 'cover-types-23', build: buildCover, receiving: coverReceiving(buildCover) },
 });
 
 function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe?: BuildingObserver): BuiltRegion {

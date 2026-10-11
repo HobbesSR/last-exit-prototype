@@ -64,6 +64,7 @@ const emptyNode = (input: RegionBrief, depth: number, reason: string, kind: Fall
 });
 const keyOf = (cell: { x: number; y: number }): string => `${cell.x},${cell.y}`;
 function completeOffer(input: RegionBrief, offer: PatchOffer): boolean {
+  if (!Array.isArray(offer.cells) || offer.cells.length !== input.cells.length) return false;
   const owned = new Set(input.cells.map(keyOf));
   return Array.isArray(offer.cells) && offer.cells.length === input.cells.length
     && new Set(offer.cells.map(keyOf)).size === input.cells.length
@@ -109,7 +110,8 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
           receiving(child, offer) {
             if (depth >= maxDepth || offer.type === 'empty') return null;
             const receiver = remember(offer.type).receiving;
-            return receiver ? receiver(structuredClone(child), structuredClone(offer)) : null;
+            // Preparation already gives the policy independent copies.
+            return receiver ? receiver(child, offer) : null;
           },
         });
         const full = offers.filter(o => completeOffer(brief, o));

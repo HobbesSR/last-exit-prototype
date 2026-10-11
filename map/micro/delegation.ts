@@ -137,7 +137,9 @@ function localBrief(parent: RegionBrief, cells: Cell[], parentOwned: ReadonlySet
     type: offer.type,
     delegation: { sourceBuilder: parent.type, reasonTags: [...new Set(offer.reasonTags ?? [])].sort() },
     cellSize: parent.cellSize, cells, zones: [], portals: [],
-  } : { ...structuredClone(parent), cells, portals: [], internalGuaranteed: [] };
+  // These private intermediate briefs are copied by inheritBriefMargins before
+  // crossing the preparation boundary; avoid copying fields replaced below.
+  } : { ...parent, cells, portals: [], internalGuaranteed: [] };
   if (offer?.parameters !== undefined) brief.parameters = record(offer.parameters);
   const guidance = offer ? offer.guidance : parent.guidance;
   if (guidance !== undefined) brief.guidance = record(guidance);
@@ -243,7 +245,8 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
       if (!owned.has(keyOf(c)) || requested.has(keyOf(c))) throw new Error('Offered ownership must be disjoint and inside the parent.');
       requested.add(keyOf(c));
     }
-    return { ...structuredClone(offer), cells };
+    const { cells: _requestedCells, ...metadata } = offer;
+    return { ...structuredClone(metadata), cells };
   }).sort((a, b) => a.key.localeCompare(b.key));
   const protection = policy.protectedCells ?? [];
   if (!Array.isArray(protection) || protection.some(c => !c || !Number.isInteger(c.x) || !Number.isInteger(c.y)))
