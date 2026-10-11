@@ -110,7 +110,14 @@ derives reduced fill, known-clear access context and internal guaranteed runs;
 Builders and child handoffs use those constraints. #214's authored fill
 diversity and final content checkpoint are merged. #325 follows with depot
 route reservation tuning (`types-23`); #289's residual delegation design
-remains the broader next boundary for space a builder cannot use itself.
+remains the broader next boundary for space a builder cannot use itself. Its
+reviewed design direction is in [20.7](20.7-builder-delegation.md), with verbatim
+answers in [17.2.9](17.2.9-delegation-questions.md). Bring up mechanics, then a
+hut-to-cover pilot, then one measured builder adoption at a time. Numerical
+recursion defaults to three patch levels (initial builder depth zero), with
+versioned owning-layer snapshots for recovery. Implementation issues #328 to
+#331 carry the dependency sequence; no delegation is implemented by the design
+document.
 
 The sequencing below remains the other gameplay backlog, not an instruction to
 leave the current micro-generation effort for reward tiers.
