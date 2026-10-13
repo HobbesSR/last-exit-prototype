@@ -256,6 +256,9 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
   if ((policy.protectedRuns ?? []).some(r => !r || !['h', 'v'].includes(r.axis) || ![r.x, r.y, r.length].every(Number.isInteger)
     || r.length < 1 || r.length > LIMITS.run)) throw new Error('Protected runs must be bounded whole-cell runs.');
   for (const c of clearFootprint(policy.protectedRuns ?? [], parent.cells)) protectedCells.add(keyOf(c));
+  // Every protected address is parent-owned, hence playable. Clipping a
+  // crossing footprint to these cells gives exactly its protected intersection.
+  const protectedAddresses = parent.cells.filter(c => protectedCells.has(keyOf(c)));
   const blockers = policy.blockers ?? [];
   if (!Array.isArray(blockers) || blockers.some(s => !validShape(s))) throw new Error('Declared geometry must contain valid collision shapes.');
 
@@ -273,7 +276,11 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
     const retainedCells = parent.cells.filter(c => !given.has(keyOf(c)));
     if (!retainedCells.length) throw new InfeasiblePatch('Complete-region handoff belongs to terminal empty execution, not patch preparation.');
     try { checkedRegionCells(retainedCells); } catch { throw new InfeasiblePatch('Patch disconnects retained ownership.'); }
-    const local = [localBrief(parent, retainedCells, owned), ...accepted.map(o => localBrief(parent, o.cells, owned, o))];
+    // Crossing feasibility needs ownership and inherited portals only. Defer
+    // zones, hints and fill context until every seam has a compatible crossing.
+    const local = [{ id: parent.id, cells: retainedCells, cellSize: parent.cellSize, portals: [] as Portal[] },
+      ...accepted.map(o => ({ id: `${parent.id}/delegate/${encodeURIComponent(o.key)}`, cells: o.cells,
+        cellSize: parent.cellSize, portals: [] as Portal[] }))];
     const ownerAt = new Map(local.flatMap(b => b.cells.map(c => [keyOf(c), b.id] as const)));
     for (const portal of parent.portals) {
       const owners = new Set(insideCells(portal, owned).map(c => ownerAt.get(keyOf(c))!));
@@ -282,8 +289,9 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
       if (policy.externalPortals !== 'whole-child' && id !== parent.id) throw new InfeasiblePatch(`External portal ${portal.id} must remain retained under this policy.`);
       local.find(b => b.id === id)!.portals.push(structuredClone(portal));
     }
-    const crossings: BriefCrossing[] = [], playable = [...parent.cells, ...parent.clearCells!];
-    const mask = createRegionMask({ cells: playable, cellSize: parent.cellSize }), radius = hunterClearance(parent.cellSize);
+    const crossings: BriefCrossing[] = [];
+    const radius = hunterClearance(parent.cellSize);
+    let mask: ReturnType<typeof createRegionMask> | undefined;
     const width = Math.ceil(2 * radius / parent.cellSize);
     for (const seam of boundaryRuns(local)) {
       let selected: Portal | undefined;
@@ -293,7 +301,8 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
         const crossing = { axis: run.axis, x: run.x + (run.axis === 'h' ? offset : 0), y: run.y + (run.axis === 'v' ? offset : 0), length: width };
         const portal: Portal = { ...crossing, id: `${parent.id}/interface/${JSON.stringify([seam.a, seam.b, crossing.axis, crossing.x, crossing.y, crossing.length])}` };
         if (parent.portals.some(p => p.id === portal.id)) throw new Error('Generated crossing identity collides with inherited portal.');
-        if (clearFootprint([portal], playable).some(c => protectedCells.has(keyOf(c)))) continue;
+        if (protectedAddresses.length && clearFootprint([portal], protectedAddresses).length) continue;
+        mask ??= createRegionMask({ cells: [...parent.cells, ...parent.clearCells!], cellSize: parent.cellSize });
         const owner = local.find(b => b.id === seam.a)!;
         const stands = portalStands({ ...owner, portals: [portal] })[0]!.points;
         if (!stands.length || !stands.every((p, i) => travelClear(mask, blockers, p, stands[Math.max(0, i - 1)]!, radius))) continue;
@@ -304,7 +313,8 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
       local.find(b => b.id === seam.b)!.portals.push(structuredClone(selected));
       crossings.push({ a: seam.a, b: seam.b, portal: selected });
     }
-    const briefs = inheritBriefMargins(parent, local).map(b => ({ ...b, portals: [...b.portals].sort((a, b) => a.id.localeCompare(b.id)) }));
+    const complete = local.map((part, i) => ({ ...localBrief(parent, part.cells, owned, i ? accepted[i - 1] : undefined), portals: part.portals }));
+    const briefs = inheritBriefMargins(parent, complete).map(b => ({ ...b, portals: [...b.portals].sort((a, b) => a.id.localeCompare(b.id)) }));
     if (blockers.length) {
       const retainedFill = createFillMask(briefs[0]!);
       if (blockers.some(s => !retainedFill.contains(s))) throw new InfeasiblePatch('Patch ownership or crossing clearance conflicts with declared parent geometry.');
