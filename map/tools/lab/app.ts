@@ -395,7 +395,14 @@ function buildParts(v: Views): BuiltParts {
         paths[part].closePath();
         add(part);
       });
-      if (element.template.encloses) {
+      if (element.template.roofs?.length) {
+        for (const roof of element.template.roofs) {
+          for (const c of roof.cells) {
+            paths.roofs.rect(element.x / cellSize + c.x, element.y / cellSize + c.y, 1, 1);
+          }
+          add("roofs");
+        }
+      } else if (element.template.encloses) {
         paths.roofs.rect(element.x / cellSize, element.y / cellSize, element.template.w / cellSize, element.template.h / cellSize);
         add("roofs");
       }

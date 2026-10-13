@@ -16,7 +16,12 @@ function stamp(context: BaseGenerationContext, elements: readonly RegionElement[
   for (const spot of loot) {
     const x = origin.x + spot.x, y = origin.y + spot.y;
     const building = context.map.buildings.slice(firstBuilding).find(b => x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h);
-    context.spots.push({ x, y, nodeId, ...(building ? { buildingId: building.id } : {}) });
+    let buildingId = building?.id;
+    if (!buildingId && context.map.roofs?.length) {
+      const roof = context.map.roofs.find(r => x > r.bounds.x && x < r.bounds.x + r.bounds.w && y > r.bounds.y && y < r.bounds.y + r.bounds.h);
+      if (roof) buildingId = roof.id as any;
+    }
+    context.spots.push({ x, y, nodeId, ...(buildingId ? { buildingId } : {}) });
   }
 }
 

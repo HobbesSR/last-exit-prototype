@@ -103,3 +103,27 @@ test('every polygon part in the catalogue is convex, and every part lies inside 
     }
   }
 });
+
+test('an element with declared roofs stamps them onto map.roofs with world coordinates', () => {
+  const context = createGenerationContext(4);
+  const element = {
+    w: 80,
+    h: 80,
+    parts: [],
+    roofs: [{
+      id: 'r-1',
+      groupId: 'house',
+      cells: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }],
+      bounds: { x: 0, y: 0, w: 80, h: 80 },
+      thresholds: [{ x: 1, y: 1 }],
+    }],
+  };
+  placeElement(context, element, 400, 800, { nodeId: 'n' });
+  assert.equal(context.map.roofs?.length, 1);
+  const [roof] = context.map.roofs;
+  assert.equal(roof.id, 'r-1');
+  assert.equal(roof.groupId, 'house');
+  assert.deepEqual(roof.bounds, { x: 400, y: 800, w: 80, h: 80 });
+  assert.deepEqual(roof.cells, [{ x: 10, y: 20 }, { x: 11, y: 20 }, { x: 10, y: 21 }]);
+  assert.deepEqual(roof.thresholds, [{ x: 11, y: 21 }]);
+});

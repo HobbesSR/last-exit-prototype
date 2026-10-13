@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { roofGroups, roofOverhang, roofTargetAlpha, openingDistance, ROOF_FADE_RANGE, ROOF_FADE_FLOOR, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '../shared/view.ts';
+import { roofAt, roofConceals, roofGroups, roofOverhang, roofTargetAlpha, openingDistance, ROOF_FADE_RANGE, ROOF_FADE_FLOOR, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '../shared/view.ts';
 import { visibilityPolygon, litPoint } from '../shared/movement.ts';
 
 test('full viewport corners are visible across supported sizes and zooms within server coverage', () => {
@@ -123,4 +123,78 @@ test('level of detail zoom thresholds maintain strict progression below player z
   assert.ok(LOD_LOW_ZOOM < LOD_LABEL_ZOOM, 'low LOD is tighter than label culling');
   assert.ok(LOD_LABEL_ZOOM < LOD_MEDIUM_ZOOM, 'label culling sits between low and medium LOD');
   assert.ok(LOD_MEDIUM_ZOOM < playerZoom(1440, 1000), 'all LOD thresholds sit strictly below contestant camera zoom');
+});
+
+test('declared roofs support concave and holed shapes, spatial containment, and group concealment', () => {
+  // L-shaped roof on cells (0,0), (1,0), (0,1) at cellSize 40
+  const lRoof = {
+    id: 'l-roof',
+    groupId: 'wing-1',
+    bounds: { x: 0, y: 0, w: 80, h: 80 },
+    cells: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }],
+  };
+  const annexRoof = {
+    id: 'annex',
+    groupId: 'wing-1',
+    bounds: { x: 120, y: 0, w: 40, h: 40 },
+    cells: [{ x: 3, y: 0 }],
+  };
+  const shedRoof = {
+    id: 'shed',
+    groupId: 'shed-group',
+    bounds: { x: 0, y: 120, w: 40, h: 40 },
+    cells: [{ x: 0, y: 3 }],
+  };
+  const map = {
+    buildings: [],
+    roofs: [lRoof, annexRoof, shedRoof],
+    playableArea: { cellSize: 40, rows: [] },
+  };
+
+  // Inside L-shaped roof
+  assert.equal(roofAt(map, { x: 20, y: 20 })?.id, 'l-roof');
+  assert.equal(roofAt(map, { x: 60, y: 20 })?.id, 'l-roof');
+  assert.equal(roofAt(map, { x: 20, y: 60 })?.id, 'l-roof');
+  // In the notch of the L (cell 1,1) -> outside the roof!
+  assert.equal(roofAt(map, { x: 60, y: 60 }), null);
+  // Outside bounds
+  assert.equal(roofAt(map, { x: 200, y: 200 }), null);
+
+  // Concealment
+  // Target inside, viewer outside -> concealed
+  assert.equal(roofConceals(map, { x: 200, y: 200 }, { x: 20, y: 20 }), true);
+  // Viewer and target both inside same roof -> not concealed
+  assert.equal(roofConceals(map, { x: 60, y: 20 }, { x: 20, y: 60 }), false);
+  // Target in notch (outside), viewer inside -> not concealed
+  assert.equal(roofConceals(map, { x: 20, y: 20 }, { x: 60, y: 60 }), false);
+  // Viewer in room 1 (lRoof), target in room 2 (annexRoof) sharing groupId 'wing-1' -> not concealed
+  assert.equal(roofConceals(map, { x: 20, y: 20 }, { x: 130, y: 20 }), false);
+  // Viewer in wing-1, target in shed (shed-group) -> concealed
+  assert.equal(roofConceals(map, { x: 20, y: 20 }, { x: 20, y: 130 }), true);
+});
+
+test('roofGroups partitions declared roofs by groupId directly', () => {
+  const r1 = { id: 'r1', groupId: 'house', bounds: { x: 0, y: 0, w: 40, h: 40 }, cells: [{ x: 0, y: 0 }] };
+  const r2 = { id: 'r2', groupId: 'house', bounds: { x: 40, y: 0, w: 40, h: 40 }, cells: [{ x: 1, y: 0 }] };
+  const r3 = { id: 'r3', groupId: 'shed', bounds: { x: 200, y: 0, w: 40, h: 40 }, cells: [{ x: 5, y: 0 }] };
+  const map = { buildings: [], gates: [], roofs: [r1, r2, r3] };
+  const groups = roofGroups(map);
+  assert.deepEqual(groups.get('r1')?.map(r => r.id), ['r1', 'r2']);
+  assert.equal(groups.get('r1'), groups.get('r2'), 'members share group list instance');
+  assert.deepEqual(groups.get('r3')?.map(r => r.id), ['r3']);
+});
+
+test('openingDistance measures distance to declared roof threshold cells', () => {
+  const roof = {
+    id: 'hall',
+    groupId: 'hall',
+    bounds: { x: 0, y: 0, w: 80, h: 80 },
+    cells: [{ x: 0, y: 0 }, { x: 1, y: 0 }],
+    thresholds: [{ x: 0, y: 1 }], // Cell at (0..40, 40..80)
+  };
+  const map = { gates: [], obstacles: [], playableArea: { cellSize: 40, rows: [] } };
+  // Standing inside threshold cell (e.g. x: 20, y: 50)
+  assert.equal(openingDistance(map, [roof], { x: 20, y: 50 }), 0);
+  // 30 units south of the threshold cell (x: 20, y: 110)
+  assert.equal(openingDistance(map, [roof], { x: 20, y: 110 }), 30);
 });

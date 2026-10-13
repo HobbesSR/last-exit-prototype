@@ -1,5 +1,5 @@
 import { visibilityPolygon, gateShape, insideMap } from '/shared/movement.ts';
-import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofGroups, roofOverhang, roofTargetAlpha, openingDistance, INSIDE_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
+import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofAt, roofGroups, roofOverhang, roofTargetAlpha, openingDistance, INSIDE_ZOOM, ROOF_OVERHANG, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
 import { shapeOf, outline, bounds } from '/shared/shape.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
@@ -303,18 +303,42 @@ export function makeArenaScene(api) {
         crown.fillStyle(0x78a962, 0.25); crown.fillEllipse(o.x - radius * 0.35, o.y - radius * 0.4, radius * 0.9, radius * 0.65);
       }
       this.roofMembers = roofGroups(map);
-      for (const building of map.buildings || []) {
-        const key = `roof:${building.id}`, o = roofOverhang(building, this.roofMembers.get(building.id));
-        // The roof overhangs its walls, except along an edge it shares with another room of its group.
-        const left = building.x - o.w, top = building.y - o.n, width = building.w + o.w + o.e, height = building.h + o.n + o.s;
-        const roofState = this.overheadGroup(key, 'roof', { x: left, y: top, w: width, h: height });
-        this.roofs.set(building.id, roofState);
-        const roof = this.staticAt(left - 2, top - 2, left + width + 2, top + height + 2, key);
-        roof.fillStyle(0x323a4b); roof.fillRoundedRect(left + 2, top + 2, width - 4, height - 4, 5);
-        roof.lineStyle(4, 0x8091a8); roof.strokeRoundedRect(left + 4, top + 4, width - 8, height - 8, 4);
-        roof.fillStyle(0x4b586b); roof.fillRect(left + 19, top + 14, width - 38, height - 28);
-        roof.lineStyle(2, 0x748298); for (let y = top + 24; y < top + height - 14; y += 24) roof.lineBetween(left + 19, y, left + width - 19, y);
-        roof.fillStyle(0x273240); roof.fillRect(building.x + 70, building.y + 70, 60, 40);
+      if (map.roofs?.length) {
+        const cellSize = map.playableArea?.cellSize ?? 40;
+        for (const roof of map.roofs) {
+          const key = `roof:${roof.id}`;
+          const overhang = roof.overhang ?? ROOF_OVERHANG;
+          const left = roof.bounds.x - overhang, top = roof.bounds.y - overhang;
+          const width = roof.bounds.w + overhang * 2, height = roof.bounds.h + overhang * 2;
+          const roofState = this.overheadGroup(key, 'roof', { x: left, y: top, w: width, h: height });
+          this.roofs.set(roof.id, roofState);
+          const g = this.staticAt(left - 2, top - 2, left + width + 2, top + height + 2, key);
+          const cellSet = new Set(roof.cells.map(c => `${c.x},${c.y}`));
+          for (const c of roof.cells) {
+            let cl = c.x * cellSize, ct = c.y * cellSize, cr = (c.x + 1) * cellSize, cb = (c.y + 1) * cellSize;
+            if (!cellSet.has(`${c.x - 1},${c.y}`)) cl -= overhang;
+            if (!cellSet.has(`${c.x + 1},${c.y}`)) cr += overhang;
+            if (!cellSet.has(`${c.x},${c.y - 1}`)) ct -= overhang;
+            if (!cellSet.has(`${c.x},${c.y + 1}`)) cb += overhang;
+            const cw = cr - cl, ch = cb - ct;
+            g.fillStyle(0x323a4b); g.fillRect(cl, ct, cw, ch);
+            g.fillStyle(0x4b586b); g.fillRect(cl + 4, ct + 4, cw - 8, ch - 8);
+          }
+        }
+      } else {
+        for (const building of map.buildings || []) {
+          const key = `roof:${building.id}`, o = roofOverhang(building, this.roofMembers.get(building.id));
+          // The roof overhangs its walls, except along an edge it shares with another room of its group.
+          const left = building.x - o.w, top = building.y - o.n, width = building.w + o.w + o.e, height = building.h + o.n + o.s;
+          const roofState = this.overheadGroup(key, 'roof', { x: left, y: top, w: width, h: height });
+          this.roofs.set(building.id, roofState);
+          const roof = this.staticAt(left - 2, top - 2, left + width + 2, top + height + 2, key);
+          roof.fillStyle(0x323a4b); roof.fillRoundedRect(left + 2, top + 2, width - 4, height - 4, 5);
+          roof.lineStyle(4, 0x8091a8); roof.strokeRoundedRect(left + 4, top + 4, width - 8, height - 8, 4);
+          roof.fillStyle(0x4b586b); roof.fillRect(left + 19, top + 14, width - 38, height - 28);
+          roof.lineStyle(2, 0x748298); for (let y = top + 24; y < top + height - 14; y += 24) roof.lineBetween(left + 19, y, left + width - 19, y);
+          roof.fillStyle(0x273240); roof.fillRect(building.x + 70, building.y + 70, 60, 40);
+        }
       }
       for (const gap of map.gaps) {
         g = this.staticAt(gap.x - 30, gap.y - 10, gap.x - 15, gap.y + 10);
@@ -462,7 +486,8 @@ export function makeArenaScene(api) {
       // Raw frame time, not Phaser's smoothed and clamped delta, so a slow client pans as far as a fast one.
       if (api.directed()) api.director.step(rawDelta ?? delta);
       // Stepping indoors eases the camera a little closer; a directed camera is the director's alone.
-      const within = !api.directed() && this.eye && buildingAt(map, this.eye);
+      const insideCurrent = this.eye && (roofAt(map, this.eye) || buildingAt(map, this.eye));
+      const within = !api.directed() && insideCurrent;
       this.insideBlend += ((within ? 1 : 0) - this.insideBlend) * (1 - Math.exp(-(rawDelta ?? delta) / 250));
       if (Math.abs((within ? 1 : 0) - this.insideBlend) < 0.005) this.insideBlend = within ? 1 : 0;
       start('render.camera'); this.updateCamera(); stop('render.camera');
@@ -470,17 +495,32 @@ export function makeArenaScene(api) {
       const halfWidth = this.cameras.main.width / zoom / 2;
       const halfHeight = this.cameras.main.height / zoom / 2;
       const nearView = (x, y, margin = 400) => Math.abs(x - cx) < halfWidth + margin && Math.abs(y - cy) < halfHeight + margin;
-      const inside = eye && buildingAt(map, eye);
+      const inside = eye && (roofAt(map, eye) || buildingAt(map, eye));
       // A roof fades toward a door or window as the viewer nears it, and away entirely once they are inside
       // any room of its group. This is cosmetic: concealment above is still decided by `roofConceals`.
       const fadeStep = 1 - Math.exp(-(rawDelta ?? delta) / 120);
-      const insideIds = new Set((inside && this.roofMembers.get(inside.id) || []).map(b => b.id));
-      for (const building of map.buildings || []) {
-        const roof = this.roofs.get(building.id);
-        const target = !fogged || !eye ? 0 : roofTargetAlpha(insideIds.has(building.id), openingDistance(map, this.roofMembers.get(building.id), eye));
-        roof.alpha += (target - roof.alpha) * fadeStep;
-        if (Math.abs(target - roof.alpha) < 0.01) roof.alpha = target;
-        roof.visible = roof.alpha > 0 && nearView(building.x + building.w / 2, building.y + building.h / 2);
+      if (map.roofs?.length) {
+        const insideGroup = inside ? ('groupId' in inside ? inside.groupId : inside.id) : null;
+        for (const roof of map.roofs) {
+          const roofObj = this.roofs.get(roof.id);
+          if (!roofObj) continue;
+          const isInside = insideGroup !== null && roof.groupId === insideGroup;
+          const members = this.roofMembers.get(roof.id) || [roof];
+          const target = !fogged || !eye ? 0 : roofTargetAlpha(isInside, openingDistance(map, members, eye));
+          roofObj.alpha += (target - roofObj.alpha) * fadeStep;
+          if (Math.abs(target - roofObj.alpha) < 0.01) roofObj.alpha = target;
+          roofObj.visible = roofObj.alpha > 0 && nearView(roof.bounds.x + roof.bounds.w / 2, roof.bounds.y + roof.bounds.h / 2);
+        }
+      } else {
+        const insideIds = new Set((inside && this.roofMembers.get(inside.id) || []).map(b => b.id));
+        for (const building of map.buildings || []) {
+          const roof = this.roofs.get(building.id);
+          if (!roof) continue;
+          const target = !fogged || !eye ? 0 : roofTargetAlpha(insideIds.has(building.id), openingDistance(map, this.roofMembers.get(building.id), eye));
+          roof.alpha += (target - roof.alpha) * fadeStep;
+          if (Math.abs(target - roof.alpha) < 0.01) roof.alpha = target;
+          roof.visible = roof.alpha > 0 && nearView(building.x + building.w / 2, building.y + building.h / 2);
+        }
       }
       start('render.tiles'); this.updateTiles(); stop('render.tiles');
       // Sub-pixel map labels become illegible smudge below LOD_LABEL_ZOOM; hide them until the camera zooms in.

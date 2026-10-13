@@ -1,7 +1,7 @@
 import { transform } from '../shape.ts';
 import type { Shape } from '../shape.ts';
 import type { BaseGenerationContext } from './context.ts';
-import type { BuildingId, GateId, NodeId, ObstacleKind, World } from '../types.ts';
+import type { Box, Cell, BuildingId, GateId, NodeId, ObstacleKind, World } from '../types.ts';
 
 /**
  * A placeable element: one named assembly of geometry — a building, a cover cluster, a checkpoint —
@@ -24,6 +24,15 @@ export type ElementPart =
   /** Ground the element claims beyond its own geometry, to keep later placements clear of it. */
   | { part: 'reserve'; x: World; y: World; w: World; h: World };
 
+export interface ElementRoof {
+  id?: string | undefined;
+  groupId?: string | undefined;
+  cells: Cell[];
+  bounds?: Box | undefined;
+  overhang?: number | undefined;
+  thresholds?: Cell[] | undefined;
+}
+
 export interface ElementTemplate {
   /** Footprint size, which is also the `Building` box when the element encloses one. */
   w: World;
@@ -34,6 +43,8 @@ export interface ElementTemplate {
    */
   encloses?: boolean;
   parts: ElementPart[];
+  /** Declared roofs on the cell grid, supporting concave, holed, and grouped rooms. */
+  roofs?: ElementRoof[] | undefined;
 }
 
 export interface Placement {
@@ -50,6 +61,28 @@ export function placeElement(context: BaseGenerationContext, template: ElementTe
     const building = { id: nextId('building-') as BuildingId, x, y, w: template.w, h: template.h, nodeId: placement.nodeId };
     map.buildings.push(building);
     owner = { buildingId: building.id };
+  }
+  if (template.roofs?.length) {
+    if (!map.roofs) map.roofs = [];
+    const cellSize = map.playableArea?.cellSize ?? 40;
+    const cellOffsetX = Math.round(x / cellSize), cellOffsetY = Math.round(y / cellSize);
+    for (const [i, r] of template.roofs.entries()) {
+      const roofId = r.id ?? (owner ? owner.buildingId : `roof-${map.roofs.length + i + 1}`);
+      const groupId = r.groupId ?? roofId;
+      const cells = r.cells.map(c => ({ x: c.x + cellOffsetX, y: c.y + cellOffsetY }));
+      const bounds = r.bounds
+        ? { x: x + r.bounds.x, y: y + r.bounds.y, w: r.bounds.w, h: r.bounds.h }
+        : { x, y, w: template.w, h: template.h };
+      const thresholds = r.thresholds?.map(t => ({ x: t.x + cellOffsetX, y: t.y + cellOffsetY }));
+      map.roofs.push({
+        id: roofId,
+        groupId,
+        bounds,
+        cells,
+        ...(r.overhang !== undefined ? { overhang: r.overhang } : {}),
+        ...(thresholds?.length ? { thresholds } : {}),
+      });
+    }
   }
   for (const part of template.parts) {
     if (part.part === 'obstacle') shape(transform(part.shape, x, y), part.kind, { ...owner });

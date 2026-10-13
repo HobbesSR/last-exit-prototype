@@ -137,8 +137,11 @@ test('concave, holed and diagonally touching footprints contain every emitted wa
       checkSpans(result.boundaries);
     }
     const roof = realizeBuilding(design, allocation, { cellSize: 40 });
-    assert.equal(roof.template, undefined);
-    assert.match(roof.issues.join(' '), /rectangular roof/);
+    assert.deepEqual(roof.issues, []);
+    assert.ok(roof.template?.roofs && roof.template.roofs.length > 0);
+    assert.equal(roof.template.roofs.reduce((n, r) => n + r.cells.length, 0), cells.length);
+    assert.ok(roof.template.roofs.every(r => r.groupId === 'building'));
+    assert.equal(roof.template.encloses, false, 'a non-rectangular roof has encloses: false on template');
   }
 });
 
@@ -220,6 +223,8 @@ test('a realization splits into one element per space, roofing only rectangular 
   assert.ok(!pieces[2].template.parts.some(p => p.part === 'obstacle' && p.shape.x === 0 && p.shape.h > p.shape.w));
   // A wall between a roofed and an unroofed space belongs to the roofed one.
   assert.ok(pieces[2].template.parts.every(p => p.part !== 'obstacle' || p.shape.y >= 0 && p.shape.y < 120 && p.shape.x >= 0));
-  assert.deepEqual(splitBuilding(realization, { ...allocation, spaces: [...spaces.slice(0, 2), { id: 'gap', cells: [...box(6, 3, 3, 3), ...box(6, 6, 1, 1)] }] },
-    { cellSize: 40, roofed: ['gap'] }).issues.length, 1, 'a roof needs a rectangle');
+  const nonRectSplit = splitBuilding(realization, { ...allocation, spaces: [...spaces.slice(0, 2), { id: 'gap', cells: [...box(6, 3, 3, 3), ...box(6, 6, 1, 1)] }] },
+    { cellSize: 40, roofed: ['gap'] });
+  assert.deepEqual(nonRectSplit.issues, []);
+  assert.ok(nonRectSplit.pieces.find(p => p.space === 'gap')?.template.roofs?.length > 0, 'a non-rectangular space is roofed');
 });

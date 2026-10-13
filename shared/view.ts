@@ -1,11 +1,11 @@
 import { lineClear, litPoint } from './movement.ts';
 import type { VisibilityPoint } from './movement.ts';
-import type { Building, CollisionMap, GameMap, Gate, GateId, ObservedGate, Player, Tick, Vec2, ViewBounds, World } from './types.ts';
+import type { Building, CollisionMap, GameMap, Gate, GateId, ObservedGate, PlayableArea, Player, Roof, Tick, Vec2, ViewBounds, World } from './types.ts';
 
 /** A gate as last seen, kept per client so an unobserved gate is drawn stale rather than current. */
 export type RememberedGate = Gate & { lastSeenTick: Tick };
 /** The map fields roof concealment reads. */
-type RoofMap = Pick<GameMap, 'buildings'>;
+type RoofMap = Pick<GameMap, 'buildings'> & { roofs?: Roof[] | undefined; playableArea?: PlayableArea | undefined };
 
 // Bound camera coverage on very large displays so potential visibility stays finite.
 // Physical screen pixels never grant an unbounded view of the arena.
@@ -92,7 +92,24 @@ export function seesActor(sight: Sight | null | undefined, map: RoofMap, viewer:
 export function buildingAt(map: RoofMap, point: Vec2): Building | null {
   return map.buildings?.find(b => point.x > b.x && point.x < b.x + b.w && point.y > b.y && point.y < b.y + b.h) || null;
 }
+export function roofAt(map: RoofMap, point: Vec2): Roof | null {
+  if (!map.roofs?.length) return null;
+  const cellSize = map.playableArea?.cellSize ?? 40;
+  const cx = Math.floor(point.x / cellSize), cy = Math.floor(point.y / cellSize);
+  for (const roof of map.roofs) {
+    if (point.x < roof.bounds.x || point.x > roof.bounds.x + roof.bounds.w
+      || point.y < roof.bounds.y || point.y > roof.bounds.y + roof.bounds.h) continue;
+    if (roof.cells.some(c => c.x === cx && c.y === cy)) return roof;
+  }
+  return null;
+}
 export function roofConceals(map: RoofMap, eye: Vec2, point: Vec2): boolean {
+  if (map.roofs?.length) {
+    const targetRoof = roofAt(map, point);
+    if (!targetRoof) return false;
+    const eyeRoof = roofAt(map, eye);
+    return !eyeRoof || (eyeRoof.groupId !== targetRoof.groupId && eyeRoof.id !== targetRoof.id);
+  }
   const building = buildingAt(map, point);
   return !!building && buildingAt(map, eye)?.id !== building.id;
 }
@@ -126,11 +143,21 @@ function abutting(a: RoofBox, b: RoofBox): Side | null {
 }
 
 /**
- * Buildings that read as one roof: boxes that share an edge with a door on it. Until builders declare
- * roof groups, this derives them from the map; the declared form then replaces this function.
- * Every building maps to its group's members (itself alone when ungrouped), in map order.
+ * Buildings or roofs that read as one roof: declared roof groups when present on the map,
+ * or derived from abutting boxes sharing a door as a fallback for legacy maps.
  */
-export function roofGroups(map: Pick<GameMap, 'buildings' | 'gates'>): Map<string, Building[]> {
+export function roofGroups(map: Pick<GameMap, 'buildings' | 'gates'> & { roofs?: Roof[] }): Map<string, Array<Building | Roof>> {
+  if (map.roofs?.length) {
+    const byGroup = new Map<string, Roof[]>();
+    for (const r of map.roofs) {
+      const list = byGroup.get(r.groupId) ?? [];
+      list.push(r);
+      byGroup.set(r.groupId, list);
+    }
+    const groups = new Map<string, Roof[]>();
+    for (const list of byGroup.values()) for (const r of list) groups.set(r.id, list);
+    return groups as Map<string, Array<Building | Roof>>;
+  }
   const buildings = map.buildings || [], parent = new Map<string, string>();
   const find = (id: string): string => { const p = parent.get(id) ?? id; return p === id ? id : (parent.set(id, find(p)), parent.get(id)!); };
   for (const gate of map.gates) {
@@ -160,13 +187,20 @@ export function roofTargetAlpha(inside: boolean, openingDistance: number): numbe
 }
 
 /** Nearest door or window of the group to a point, for the fade; Infinity when it has none. */
-export function openingDistance(map: Pick<GameMap, 'gates' | 'obstacles'>, group: readonly RoofBox[], point: Vec2): number {
+export function openingDistance(map: Pick<GameMap, 'gates' | 'obstacles'> & { playableArea?: PlayableArea }, group: readonly (RoofBox | Roof)[], point: Vec2): number {
   const ids = new Set(group.map(b => b.id));
   let best = Infinity;
   const consider = (box: { x: number; y: number; w: number; h: number }) => {
     const dx = Math.max(box.x - point.x, 0, point.x - box.x - box.w), dy = Math.max(box.y - point.y, 0, point.y - box.y - box.h);
     best = Math.min(best, Math.hypot(dx, dy));
   };
+  const cellSize = map.playableArea?.cellSize ?? 40;
+  for (const item of group) {
+    const r = item as Roof;
+    if (r.thresholds?.length) {
+      for (const t of r.thresholds) consider({ x: t.x * cellSize, y: t.y * cellSize, w: cellSize, h: cellSize });
+    }
+  }
   for (const g of map.gates) if (g.buildingId && ids.has(g.buildingId)) consider(g);
   for (const o of map.obstacles) if (o.kind === 'window' && o.buildingId && ids.has(o.buildingId)) consider(o);
   return best;

@@ -1,14 +1,17 @@
 import { transform } from '../../../shared/shape.ts';
-import type { ElementTemplate } from '../../../shared/map/element.ts';
+import type { ElementRoof, ElementTemplate } from '../../../shared/map/element.ts';
 import type { Vec2 } from '../../../shared/types.ts';
 import { OUTSIDE } from './design.ts';
 import type { BuildingAllocation } from './design.ts';
+import { deriveContiguousRoofs } from './realize.ts';
 import type { BuildingRealization } from './realize.ts';
 
 export interface BuildingPieceOptions {
   cellSize: number;
-  /** Spaces that get a roof. Each must fill its bounding box, since a roof is a rectangle (L2). */
+  /** Spaces that get a roof. */
   roofed?: readonly string[];
+  /** Group id for declared roofs; defaults to 'building'. */
+  groupId?: string;
 }
 /** One space's share of a realization, as its own element. */
 export interface BuildingPiece {
@@ -40,12 +43,27 @@ export function splitBuilding(realization: BuildingRealization, allocation: Buil
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const c of space.cells) { x0 = Math.min(x0, c.x); y0 = Math.min(y0, c.y); x1 = Math.max(x1, c.x + 1); y1 = Math.max(y1, c.y + 1); }
     const roof = roofed.has(space.id);
-    if (roof && (x1 - x0) * (y1 - y0) !== space.cells.length) { issues.push(`A roof needs a rectangular space: ${space.id}`); continue; }
+    const isRect = (x1 - x0) * (y1 - y0) === space.cells.length;
     const at = { x: x0 * size, y: y0 * size }, dx = origin.x - at.x, dy = origin.y - at.y;
     const parts = template.parts.filter((_, i) => owner(owners[i]!) === space.id).map(part => part.part === 'obstacle'
       ? { ...part, shape: transform(part.shape, dx, dy) } : { ...part, x: part.x + dx, y: part.y + dy });
     if (!parts.length && !roof) continue;
-    pieces.push({ space: space.id, origin: at, template: { w: (x1 - x0) * size, h: (y1 - y0) * size, ...(roof ? { encloses: true } : {}), parts } });
+    let pieceRoofs: ElementRoof[] | undefined;
+    if (roof) {
+      const derived = deriveContiguousRoofs(space.cells, x0, y0, size, options.groupId ?? 'building', realization.openings);
+      pieceRoofs = derived.map(r => ({ ...r, id: space.id }));
+    }
+    pieces.push({
+      space: space.id,
+      origin: at,
+      template: {
+        w: (x1 - x0) * size,
+        h: (y1 - y0) * size,
+        ...(roof && isRect ? { encloses: true } : {}),
+        parts,
+        ...(pieceRoofs?.length ? { roofs: pieceRoofs } : {}),
+      },
+    });
   }
   return { pieces, issues };
 }

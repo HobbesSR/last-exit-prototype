@@ -193,12 +193,14 @@ the drawing commands. Offscreen textures are released beyond the retention ring,
 and map replacement clears both caches. No overhead `Graphics` is rendered each
 frame.
 
-Roof presentation (`shared/view.ts`, so the renderer reads one rule). A roof group is derived at
-load from buildings whose boxes share an edge with a door on it (`roofGroups`); the roof SDK later
-replaces this derivation with groups the builders declare. A group fades together: the target
+Roof presentation (`shared/view.ts`, so the renderer reads one rule). Roof groups
+are declared directly on `map.roofs` via `groupId` by the building SDK (`roofGroups`),
+retiring the client-side door-edge derivation when declared roofs are present; legacy
+maps without declared roofs fall back to deriving groups from abutting building boxes
+sharing a door edge. A group fades together: the target
 opacity (`roofTargetAlpha`) is zero while the viewer is inside any room of the group, and otherwise
-falls from opaque to `ROOF_FADE_FLOOR` as the viewer nears one of the group's doors or windows
-(`openingDistance`, within `ROOF_FADE_RANGE`). The client eases toward the target in real time, and a
+falls from opaque to `ROOF_FADE_FLOOR` as the viewer nears one of the group's doors, windows, or
+doorway threshold cells (`openingDistance`, within `ROOF_FADE_RANGE`). The client eases toward the target in real time, and a
 roof that reaches zero stops being drawn. While the viewer is indoors a player camera zooms in by
 `INSIDE_ZOOM`, eased; a directed camera is not touched. None of these presentation changes alters `roofConceals` or sight.
 
