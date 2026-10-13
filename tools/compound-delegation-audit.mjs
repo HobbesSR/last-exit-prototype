@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { isDeepStrictEqual } from 'node:util';
 import { generate } from '../map/chain.ts';
+import { GAME_ENGINES } from '../map/engines.ts';
 import { mapViews } from '../map/macro/src/chain/map.ts';
 import { validateBriefPartition } from '../map/micro/delegation.ts';
 import { buildCompoundGeneration, COMPOUND_EXECUTION_REGISTRY } from '../map/micro/strategies/compound.ts';
@@ -186,7 +187,7 @@ if (args.has('maps')) for (const [zoneWidth, zoneHeight] of [[12, 6], [24, 12], 
       `map-${zoneWidth}x${zoneHeight}-${reports.length}.svg`) });
   }
   fullMaps.push({ seed, zoneWidth, zoneHeight, generationMs, baselineGenerationMs: prior.generationMs,
-    topLevelCompounds: briefs.length, nestedCompounds: nested.length, reportDefects: mapViews(map).report.defects, reports });
+    topLevelCompounds: briefs.length, nestedCompounds: nested.length, reportDefects: mapViews(map, GAME_ENGINES.compose).report.defects, reports });
 }
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const dirtyPaths = execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
