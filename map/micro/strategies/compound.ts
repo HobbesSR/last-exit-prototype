@@ -41,6 +41,26 @@ const CHANNEL = { offset: 1, gateSide: 2, gateAt: 3, room: 4, loot: 5 };
 /** A box in the compound's own cells. */
 interface Box { x: number; y: number; w: number; h: number }
 
+/** Read-only evidence from the production probe order; never selects extra sites. */
+export interface CompoundSitingProbe {
+  box: Box;
+  reason: 'outside-fill' | 'insufficient-gate-stands' | 'invalid-start' | 'disconnected-portals' | 'unreachable-gates' | 'accepted';
+  gateSides?: Side[];
+  missingEntrances?: { x: number; y: number }[];
+  reachedBlocks?: number;
+}
+
+/** Diagnose the exact bounded search without building or changing its policy. */
+export function diagnoseCompoundSiting(brief: RegionBrief) {
+  const gates = brief.parameters?.gates ?? DEFAULT_GATES;
+  if (typeof gates !== 'number' || !Number.isInteger(gates) || gates < MIN_GATES || gates > MAX_GATES)
+    throw new RangeError(`Compound gates must be a whole number from ${MIN_GATES} to ${MAX_GATES}.`);
+  const fill = createFillMask(brief), space = largestRectangle(fill, MIN_SIDE);
+  const probes: CompoundSitingProbe[] = [];
+  const site = space && siteCompound(brief, fill, createAccessMask(brief), space, gates, probe => probes.push(probe));
+  return { space: space ?? null, gates, probes, site: site ? { ...site, gated: [...site.gated] } : null };
+}
+
 /** Whole-cell yard stands at an outer door center, measured along the ring box. */
 function gateYardStands(box: Box, side: Side, along: number): { x: number; y: number }[] {
   return [...new Set([Math.floor(along), Math.ceil(along)])].map(t => ({
@@ -50,7 +70,8 @@ function gateYardStands(box: Box, side: Side, along: number): { x: number; y: nu
 }
 
 /** Keep the yard's portal blocks joined and leave a reachable doorstep at each chosen gate. */
-function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, accessMask: ReturnType<typeof createRegionMask>, space: Box, gates: number):
+function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, accessMask: ReturnType<typeof createRegionMask>, space: Box, gates: number,
+  observe?: (probe: CompoundSitingProbe) => void):
   (Box & { gated: Set<Side> }) | undefined {
   const key = (x: number, y: number) => `${x},${y}`;
   const entrances: { x: number; y: number }[] = [];
@@ -102,7 +123,7 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
       let valid = true;
       for (let y = box.y; y < box.y + h && valid; y++) for (let x = box.x; x < box.x + w; x++)
         if (!mask.has(x, y)) { valid = false; break; }
-      if (!valid) continue;
+      if (!valid) { observe?.({ box, reason: 'outside-fill' }); continue; }
       const fits = (x: number, y: number) => !inside(x, y) && !inside(x + 1, y) && !inside(x, y + 1) && !inside(x + 1, y + 1)
         && accessMask.has(x, y) && accessMask.has(x + 1, y) && accessMask.has(x, y + 1) && accessMask.has(x + 1, y + 1);
       // A gate needs a two-cell yard stand at its actual passage. Reject sites
@@ -123,9 +144,9 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
         }
         return { side, steps };
       }).filter(v => v.steps.length);
-      if (gateSteps.length < gates) continue;
+      if (gateSteps.length < gates) { observe?.({ box, reason: 'insufficient-gate-stands', gateSides: gateSteps.map(v => v.side) }); continue; }
       const start = entrances[0] ?? accessMask.cells.find(c => fits(c.x, c.y));
-      if (!start || !fits(start.x, start.y)) continue;
+      if (!start || !fits(start.x, start.y)) { observe?.({ box, reason: 'invalid-start' }); continue; }
       // This flood belongs only to this candidate box: each node is an owned 2x2
       // hunter stand outside it, and adjacent nodes sweep an owned 2x3 rectangle.
       // Sharing that reached set among portals and gate steps is safe while the box
@@ -139,9 +160,17 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
           reached.add(k); queue.push({ x: nx, y: ny });
         }
       }
-      if (entrances.some(e => !reached.has(key(e.x, e.y)))) continue;
+      if (entrances.some(e => !reached.has(key(e.x, e.y)))) {
+        observe?.({ box, reason: 'disconnected-portals', gateSides: gateSteps.map(v => v.side), reachedBlocks: reached.size,
+          missingEntrances: entrances.filter(e => !reached.has(key(e.x, e.y))) });
+        continue;
+      }
       const accessible = gateSteps.filter(v => v.steps.some(step => reached.has(step))).map(v => v.side);
-      if (accessible.length >= gates) return { ...box, gated: new Set(accessible.slice(0, gates)) };
+      if (accessible.length >= gates) {
+        observe?.({ box, reason: 'accepted', gateSides: accessible, reachedBlocks: reached.size });
+        return { ...box, gated: new Set(accessible.slice(0, gates)) };
+      }
+      observe?.({ box, reason: 'unreachable-gates', gateSides: accessible, reachedBlocks: reached.size });
     }
   }
   return undefined;

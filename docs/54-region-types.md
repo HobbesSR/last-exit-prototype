@@ -575,6 +575,9 @@ inside, and windows and doors let sight through.
   - **Too small:** a region with no usable contained box of at least 10 × 10
     or no ring with accessible gates takes terminal empty (20.7), preserving
     original ownership and requests without geometry or loot.
+    Large original ownership does not imply usable fill: internal guaranteed
+    margins can prevent every minimum ring box. The exact #340 diagnosis and
+    reproduction are recorded in [42](42-performance-history.md).
 - **Shape needs:** *proposed*, a compound of at least 10 × 10, with a court of
   at least 4 × 4, plus usable portal approaches and gate doorsteps.
 - **Formed by:** medium set pieces, where the old library's walled `military` bases were (52).

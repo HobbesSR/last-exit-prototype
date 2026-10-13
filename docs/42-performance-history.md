@@ -750,6 +750,74 @@ within its 15 s budget. Server/client tick and render benchmarks were not
 rerun for this preparation-only change; the paired generation harness supplies
 its performance evidence.
 
+## Empty compound siting diagnosis (#340, 2026-10-13)
+
+The exact current `compound@336,342` input from
+`generate('issue330-before-36x18', {mode:'game', zoneWidth:36, zoneHeight:18})`
+was regenerated from `c8c87b1d9adbc045e4d51a6a88a9c6ef048a0451`, `types-25`.
+Its serialized brief matches the separate focused input in
+`tests/fixtures/compound-340-brief.json.gz`; that fixture's provenance is in
+`tests/fixtures/README.md`. This investigation changes no content or baseline.
+It does not revise the historical `types-24` sample or exterior-yard evidence.
+
+Reproduce without any previous audit artifacts:
+
+```powershell
+node tools/compound-siting-audit.mjs --out=test-results/340-audit
+node tools/compound-siting-audit.mjs --brief=tests/fixtures/compound-340-brief.json.gz --out=test-results/340-focused
+```
+
+Both commands write the exact brief, emitted result, JSON reason trace and
+standalone collision/access SVG. The full-map command checks that building the
+captured input again equals the map's emitted result. Diagnosis uses the same
+production search; its optional probe observer changes neither order nor choices.
+The preview was rendered in Chrome and visually inspected. Measurements here
+describe geometry, not speed; Windows, Node 24.15.0, Ryzen 9 5900X.
+
+| Exact witness | Result |
+| --- | --- |
+| Original ownership | 11,232 cells, rectangle 156×72 |
+| Fill after inherited margins | 6,240 cells; 4,992 owned cells excluded |
+| Known-clear context | 5,376 cells, including cells across original portals |
+| Original external portals / internal guaranteed runs | 76 / 586 |
+| Largest fill square (independent dynamic-programming check) | 4×4 at (337,343) |
+| Largest fill rectangle requiring both sides at least two | 4×4 at (337,343) |
+| Largest unrestricted fill rectangle | 156×1 at (336,343) |
+| Internal-run margins alone | Exclude 4,688 owned cells; no contained 10×10 remains |
+| Production candidate probes | Zero: minimum contained rectangle is absent |
+| Execution | `empty`, `builder-empty`, `compound has no usable ring box` |
+| Emitted structures, gates, loot, core elements | All zero |
+| Original portal access | 304 stands checked, 75 connecting hunter routes, zero errors |
+
+The failure is **fill containment before `siteCompound` runs**, not inaccessible
+gates, disconnected portal stands or exhausted seeded probes. The internal
+guarantees' repeating clear strips and end caps prevent even a 5×5 fill square.
+Removing external-portal constraints would therefore not provide the minimum
+10×10 ring. This internal-only calculation isolates a sufficient cause; it is
+never passed to a production builder as permission to ignore other constraints.
+Final empty geometry preserves all original ownership and portal relationships;
+room/court/gate targets are absent, rather than counted as successful routes.
+
+Decision: **documented expected fallback under the current fill and ring
+contracts** ([20.6](20.6-passable-margins.md), [54](54-region-types.md),
+[20.7](20.7-builder-delegation.md)). More probes or a behavior-preserving siting
+optimization cannot create a contained minimum box. Producing a ring here would
+require separately reviewed content authorship that leaves a suitable fill area,
+or a different compound design that preserves all guaranteed access. Neither is
+selected by this investigation. It does not infer that this authored appearance
+is desirable, weaken guaranteed segments, retry the complete region as cover,
+or change loot. The original #340 acceptance is satisfied by the concrete cause
+and fallback decision; any desired appearance correction is a separate task.
+
+The focused tests pin this exact input and compare diagnosed accepted sites to
+actual emitted rings on small 17×16 and large 40×34 witnesses. The isolated file
+takes 1.0 s, below [31](31-verification.md)'s 15 s budget. `npm run check`,
+`npm run typecheck` and all 658 tests in `npm run test:all` pass. The 224-map
+chain sweep reports zero drift. Browser integration and server/client benchmarks
+were not rerun for this read-only diagnosis; the SVG was rendered and inspected
+separately. These checks and previews
+cover the stated inputs only, not every compound or a proposed new content policy.
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including

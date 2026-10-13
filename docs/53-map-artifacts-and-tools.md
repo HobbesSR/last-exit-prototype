@@ -448,6 +448,13 @@ The GUI, CLI and MCP call one shared core and must agree on seed, parameters,
 library, validation and serialized output. Verification gates for both halves
 are in 31.
 
+The read-only `tools/compound-siting-audit.mjs` captures the exact #340 compound
+input, the bounded production siting trace and emitted collision/access preview.
+It can regenerate the source map or load the checked-in focused brief, requiring
+no earlier audit reports. Reproduction, diagnosis and limits are in
+[42](42-performance-history.md). These are diagnostic artifacts, not saved-map
+format or content-version changes.
+
 ## Provenance rule
 
 User-authored design notes and Corey's recorded answers (17) are
