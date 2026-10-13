@@ -123,6 +123,14 @@ repeat a suspected regression three times before believing it. Do not claim the
 reported slowdown fixed without a captured slow run; see
 [42](42-performance-history.md).
 
+The hut's 172 by 172, 228-portal fixture builds its full geometry and enforces an
+8-second wall-clock budget in the normal suite. This includes yard delegation
+and receiving-cover construction; the measured cost compared with house-only
+generation is recorded in [42](42-performance-history.md). Isolated timing runs use
+`node --test --test-name-pattern=macro-sized tests/micro-hut.test.js`; they
+separate builder cost from normal suite contention. The file also remains
+subject to the strict 15-second isolated budget.
+
 Other agents' worktrees share this machine's CPU. `npm run bench` and
 `npm run bench:client` therefore take a machine-wide lock and wait for each
 other rather than overlap. The lock (`tests/helpers/machine-lock.js`) is a

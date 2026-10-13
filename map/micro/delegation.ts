@@ -59,8 +59,7 @@ export function patchFootprintKey(cells: readonly Cell[]): string {
   return `cells:${checkedRegionCells(cells).map(keyOf).join(';')}`;
 }
 
-function insideCells(region: RegionBrief, run: Run): Cell[] {
-  const owned = new Set(region.cells.map(keyOf));
+function insideCells(run: Run, owned: ReadonlySet<string>): Cell[] {
   return Array.from({ length: run.length }, (_, i) => {
     const before = run.axis === 'h' ? { x: run.x + i, y: run.y - 1 } : { x: run.x - 1, y: run.y + i };
     const after = run.axis === 'h' ? { x: run.x + i, y: run.y } : { x: run.x, y: run.y + i };
@@ -68,7 +67,8 @@ function insideCells(region: RegionBrief, run: Run): Cell[] {
   });
 }
 
-function canonicalBrief(input: RegionBrief): RegionBrief {
+/** Shared input normalization; execution need not construct an unchanged one-owner partition. */
+export function canonicalDelegationBrief(input: RegionBrief): RegionBrief {
   const brief = structuredClone(input);
   if (typeof brief.id !== 'string' || !brief.id || typeof brief.type !== 'string' || !brief.type || !Number.isSafeInteger(brief.seed) || !Number.isFinite(brief.cellSize) || brief.cellSize <= 0)
     throw new Error('Preparation needs a stable brief identity, type, integer seed and positive cell size.');
@@ -113,13 +113,15 @@ function canonicalBrief(input: RegionBrief): RegionBrief {
   // Apply original guarantees before clipping them into children. This also makes
   // preparation idempotent when a caller supplied fill exclusions but omitted a
   // guaranteed run's footprint from that explicitly supplied margin context.
-  return inheritBriefMargins(normalized, [normalized])[0]!;
+  const result = inheritBriefMargins(normalized, [normalized])[0]!;
+  if (!result.hints?.length) delete result.hints;
+  return result;
 }
 
-function localBrief(parent: RegionBrief, cells: Cell[], offer?: PatchOffer): RegionBrief {
+function localBrief(parent: RegionBrief, cells: Cell[], parentOwned: ReadonlySet<string>, offer?: PatchOffer): RegionBrief {
   const owned = new Set(cells.map(keyOf));
   const hints = (parent.hints ?? []).flatMap(run => {
-    const inside = insideCells(parent, run), result: Run[] = [];
+    const inside = insideCells(run, parentOwned), result: Run[] = [];
     let start = -1;
     for (let i = 0; i <= run.length; i++) {
       const keep = i < run.length && owned.has(keyOf(inside[i]!));
@@ -135,7 +137,9 @@ function localBrief(parent: RegionBrief, cells: Cell[], offer?: PatchOffer): Reg
     type: offer.type,
     delegation: { sourceBuilder: parent.type, reasonTags: [...new Set(offer.reasonTags ?? [])].sort() },
     cellSize: parent.cellSize, cells, zones: [], portals: [],
-  } : { ...structuredClone(parent), cells, portals: [], internalGuaranteed: [] };
+  // These private intermediate briefs are copied by inheritBriefMargins before
+  // crossing the preparation boundary; avoid copying fields replaced below.
+  } : { ...parent, cells, portals: [], internalGuaranteed: [] };
   if (offer?.parameters !== undefined) brief.parameters = record(offer.parameters);
   const guidance = offer ? offer.guidance : parent.guidance;
   if (guidance !== undefined) brief.guidance = record(guidance);
@@ -172,7 +176,7 @@ export function validateBriefPartition(parent: RegionBrief, children: readonly R
     if (owners.size !== original.size) throw new Error('Partition must exhaust original ownership.');
     const external = new Map<string, string>();
     for (const portal of parent.portals) {
-      const inherited = new Set(insideCells(parent, portal).map(c => owners.get(keyOf(c))!));
+      const inherited = new Set(insideCells(portal, original).map(c => owners.get(keyOf(c))!));
       if (inherited.size !== 1) throw new Error(`External portal ${portal.id} cannot be split between owners.`);
       const owner = [...inherited][0]!;
       if (!children.find(c => c.id === owner)!.portals.some(p => p.id === portal.id && sameRun(p, portal)))
@@ -219,7 +223,13 @@ export function validateBriefPartition(parent: RegionBrief, children: readonly R
 /** Prepare builder-authored offers only; malformed requests throw, ordinary infeasibility retains cells with reasons. */
 export function prepareDelegation(input: RegionBrief, offers: readonly PatchOffer[], policy: PatchPreparationPolicy): PreparedDelegation {
   if (typeof policy?.receiving !== 'function') throw new Error('Preparation needs explicit receiving-builder feasibility policy.');
-  const parent = canonicalBrief(input), owned = new Set(parent.cells.map(keyOf));
+  return prepareCanonicalDelegation(canonicalDelegationBrief(input), offers, policy);
+}
+
+/** Internal executor path: input has already passed canonicalDelegationBrief or preparation. */
+export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly PatchOffer[], policy: PatchPreparationPolicy): PreparedDelegation {
+  if (typeof policy?.receiving !== 'function') throw new Error('Preparation needs explicit receiving-builder feasibility policy.');
+  const owned = new Set(parent.cells.map(keyOf));
   const keys = new Set<string>(), requested = new Set<string>();
   const normalized = offers.map(offer => {
     if (!offer || typeof offer.key !== 'string' || !offer.key || keys.has(offer.key) || typeof offer.type !== 'string' || !offer.type)
@@ -235,7 +245,8 @@ export function prepareDelegation(input: RegionBrief, offers: readonly PatchOffe
       if (!owned.has(keyOf(c)) || requested.has(keyOf(c))) throw new Error('Offered ownership must be disjoint and inside the parent.');
       requested.add(keyOf(c));
     }
-    return { ...structuredClone(offer), cells };
+    const { cells: _requestedCells, ...metadata } = offer;
+    return { ...structuredClone(metadata), cells };
   }).sort((a, b) => a.key.localeCompare(b.key));
   const protection = policy.protectedCells ?? [];
   if (!Array.isArray(protection) || protection.some(c => !c || !Number.isInteger(c.x) || !Number.isInteger(c.y)))
@@ -249,14 +260,23 @@ export function prepareDelegation(input: RegionBrief, offers: readonly PatchOffe
   if (!Array.isArray(blockers) || blockers.some(s => !validShape(s))) throw new Error('Declared geometry must contain valid collision shapes.');
 
   const partition = (accepted: PatchOffer[]): Omit<PreparedDelegation, 'rejected'> => {
+    // With no handoff the canonical owner already has its original margins,
+    // hints and portal promise. Avoid constructing and validating it again.
+    if (!accepted.length) {
+      if (blockers.length) {
+        const fill = createFillMask(parent);
+        if (blockers.some(s => !fill.contains(s))) throw new InfeasiblePatch('Patch ownership or crossing clearance conflicts with declared parent geometry.');
+      }
+      return { retained: structuredClone(parent), children: [], crossings: [] };
+    }
     const given = new Set(accepted.flatMap(o => o.cells.map(keyOf)));
     const retainedCells = parent.cells.filter(c => !given.has(keyOf(c)));
     if (!retainedCells.length) throw new InfeasiblePatch('Complete-region handoff belongs to terminal empty execution, not patch preparation.');
     try { checkedRegionCells(retainedCells); } catch { throw new InfeasiblePatch('Patch disconnects retained ownership.'); }
-    const local = [localBrief(parent, retainedCells), ...accepted.map(o => localBrief(parent, o.cells, o))];
+    const local = [localBrief(parent, retainedCells, owned), ...accepted.map(o => localBrief(parent, o.cells, owned, o))];
     const ownerAt = new Map(local.flatMap(b => b.cells.map(c => [keyOf(c), b.id] as const)));
     for (const portal of parent.portals) {
-      const owners = new Set(insideCells(parent, portal).map(c => ownerAt.get(keyOf(c))!));
+      const owners = new Set(insideCells(portal, owned).map(c => ownerAt.get(keyOf(c))!));
       if (owners.size !== 1) throw new InfeasiblePatch(`External portal ${portal.id} cannot be split.`);
       const id = [...owners][0]!;
       if (policy.externalPortals !== 'whole-child' && id !== parent.id) throw new InfeasiblePatch(`External portal ${portal.id} must remain retained under this policy.`);
@@ -285,7 +305,10 @@ export function prepareDelegation(input: RegionBrief, offers: readonly PatchOffe
       crossings.push({ a: seam.a, b: seam.b, portal: selected });
     }
     const briefs = inheritBriefMargins(parent, local).map(b => ({ ...b, portals: [...b.portals].sort((a, b) => a.id.localeCompare(b.id)) }));
-    if (blockers.some(s => !createFillMask(briefs[0]!).contains(s))) throw new InfeasiblePatch('Patch ownership or crossing clearance conflicts with declared parent geometry.');
+    if (blockers.length) {
+      const retainedFill = createFillMask(briefs[0]!);
+      if (blockers.some(s => !retainedFill.contains(s))) throw new InfeasiblePatch('Patch ownership or crossing clearance conflicts with declared parent geometry.');
+    }
     const errors = validateBriefPartition(parent, briefs);
     if (errors.length) throw new InfeasiblePatch(errors.join(' '));
     for (let i = 0; i < accepted.length; i++) {

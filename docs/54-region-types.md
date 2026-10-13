@@ -339,15 +339,18 @@ inside, and windows and doors let sight through.
 - **Role:** one small building in its yard, with walls, a door, windows and a
   roof. It is 52's worked case: four corner blocks across a tile junction form
   one 6 × 6 region, and the hut stands anywhere inside it.
-- **Strategy:** no decomposer. A builder picks a contained rectangle for the
-  building, puts its door where the yard keeps every portal joined, and leaves
-  the yard around it. A route through the building counts only through
-  unlocked doors.
+- **Strategy:** a builder picks a contained rectangle for the building, puts
+  its door where the yard keeps every portal joined, and leaves the yard around
+  it. A route through the building counts only through unlocked doors. After
+  siting the house, it may delegate unused yard lobes to `cover` while retaining
+  the two-cell house yard and a hunter standing-block route from the doorstep to
+  the original entrances (20.7).
   **Built (#129), with larger houses since L5 (#192, 56):**
   `map/micro/strategies/hut.ts`. It reasons in cells, where a hunter is a
-  2 × 2 block of yard cells, so it needs no route search.
-  - **The designs:** it tries a house of three spaces, then two, then one,
-    then goes to `open` (17 M24). Three spaces take a 6 × 6, 8 × 6 or 9 × 4
+  2 × 2 block of yard cells, using cell-level connectivity and circulation.
+  - **The designs:** it tries a house of three spaces, then two, then one.
+    If no house has a reachable doorstep, it takes the terminal empty path
+    (20.7). Three spaces take a 6 × 6, 8 × 6 or 9 × 4
     box, two a 6 × 4 or 7 × 5, either way round, and one a 4 × 4.
     With automatic margins (20.6), compact single-room boxes also try
     4 by 3, 3 by 4 and 3 by 3 cells; walls and door widths stay the same.
@@ -357,7 +360,7 @@ inside, and windows and doors let sight through.
     when its footprint and doorstep fit. Candidates lie in the reduced fill,
     off every portal's clear margin (20.6), where a hunter stands straddling
     the seam. A bounded cell-level
-    flood check keeps the empty yard's portal-connected standing blocks joined
+    flood check keeps the yard's portal-connected standing blocks joined
     and requires a doorstep reachable from a portal. When the box has a
     2-cell owned ring, the yard connectivity follows by spacing; otherwise the
     flood check decides it directly.
@@ -369,12 +372,36 @@ inside, and windows and doors let sight through.
     joining every space must be placed, or the side isn't used. With one
     outside door, no route runs through the house, and every space is reached
     through it.
-  - **Why that keeps the promise:** the house takes only its box, so the yard
-    joins what the empty region joined. A region with no such box, such as
-    the fixture's 2 × 3 huts, goes to `open` (17 M24), so a `hut` region keeps
-    the portal promise exactly when its shape does.
+  - **Yard delegation pilot (#330, built as `types-24`):** connected unused yard
+    components of at least 9 cells are offered to `cover` with reason
+    `unused-yard-lobe`. The key names the canonical first cell as
+    `yard:<x>,<y>`; the owning snapshot records the full footprint. Within one
+    generation invocation, cover's receiving check and child build reuse the
+    preview cached by exact child brief. An offer with no usable cover
+    placement is rejected and its cells remain with the hut. A small `block`
+    lot can have no suitable lobe, so nested huts do not imply cover uptake.
+    Ownership retains the house box expanded by 2 cells in each direction,
+    and the two-cell perimeter band. Hunter standing-block paths join the
+    doorstep to each original portal, favoring existing retained yard with
+    zero-cost steps.
+    One 172 by 172 pilot yard offered two lobes of 25 and 27,969 cells; the larger
+    alone covered 94.5% of its owned cells, leaving nearly all otherwise unused yard available
+    for cover. This is the current hut pilot's authorship choice; its visual and content balance should be
+    reviewed before it guides other builders.
+  - **Why that keeps the promise:** the retained house yard and the standing-
+    block route connect the doorstep to each original entrance. Only connected
+    unused lobes are offered, and accepted children keep their paired crossing
+    interface (20.7). Core counts and portal obligations remain with the hut;
+    the pilot adds no core exclusion or loot overhaul. With no usable fill or
+    no house with a reachable doorstep, the hut takes the terminal empty path;
+    original requested core counts remain for reporting. For example, an
+    incapable 2 by 3 hut is now terminal empty and loses the open-zone loot it
+    formerly produced.
   - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
-    disc stands clear of the walls and the door, indoors or out.
+    disc stands clear of the walls and the door, indoors or out. Retained hut
+    loot rolls in canonical cell order and is clipped to retained ownership;
+    delegated cover uses its existing
+    loot behavior.
   - **Core elements:** it sites none. Any its brief lists are left for the
     report.
 - **Shape needs:** *proposed*, a contained 4 × 4 for the one-space house; the
