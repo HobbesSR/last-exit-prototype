@@ -279,6 +279,23 @@ try {
   assert.deepEqual([large.params.zoneWidth, large.params.zoneHeight], [24, 12]);
   assert.equal(large.regions, generate("lab-large", { zoneWidth: 24, zoneHeight: 12 }).results.length);
 
+  // The measured compound adopter rebuilds its ring plus exterior cover in
+  // the Map Lab worker, rather than losing child geometry during drill-down.
+  await generateIn("issue330-before-24x12");
+  const adoptionMap = generate("issue330-before-24x12", { zoneWidth: 24, zoneHeight: 12 });
+  const adoptionRegion = adoptionMap.results.find(region => region.brief.id === "compound@336,276")!;
+  assert.ok(adoptionRegion.elements.some(element => element.label.includes("/delegate/")));
+  const adoptionCell = adoptionRegion.brief.cells[0]!;
+  await page.evaluate(([x, y]: number[]) => (window as any).mapLab.select(x, y), [adoptionCell.x, adoptionCell.y]);
+  await page.waitForFunction(() => {
+    const drill = (window as any).mapLab.snapshot().drill;
+    return drill?.id === "compound@336,276" && !drill.pending && drill.fragment;
+  }, null, { timeout: 30000 });
+  const adoptionDrill = await snapshot();
+  assert.equal(adoptionDrill.drill.difference, null, "compound ring and delegated cover rebuild equal to stored output");
+  assert.deepEqual(adoptionDrill.drill.buildings, ["compound"]);
+  await page.screenshot({ path: `${OUT}/compound-delegation.png`, fullPage: true });
+
   // The diagnostic on a game map runs in a worker, so the page stays live and can cancel it.
   await page.locator("#zoneWidth").fill("12");
   await page.locator("#zoneHeight").fill("6");

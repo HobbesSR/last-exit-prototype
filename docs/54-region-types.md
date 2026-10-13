@@ -531,7 +531,10 @@ inside, and windows and doors let sight through.
     up to 16 hinted boxes precede a centered site and seeded alternatives.
     Small-yard alternatives are capped at 64; large fields try 12. Candidates
     must keep the yard's hunter standing blocks connected and have enough
-    gate sides reachable from that yard. There is no three-cell inset.
+    gate sides reachable from that yard. Gate feasibility uses the actual
+    centered outer door stands, including both whole-cell neighbors of a
+    half-cell center, rather than an arbitrary spot in a widened passage.
+    There is no three-cell inset.
   - **The ring:** roofed rooms 3 cells deep along the inside of the box, with
     quarter-cell walls. The box's edge is their back wall, so the compound's
     outer wall is the rooms'. Each side's middle, between the corners, is
@@ -557,11 +560,20 @@ inside, and windows and doors let sight through.
     Its existing ring design then connects every room to the court and gates.
   - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
     disc stands clear of every wall and door, in the rooms, the court or the
-    yard.
+    retained yard. Delegated cover uses its existing loot behavior.
+  - **Exterior-yard delegation (#338, `types-25`):** after the ring is built,
+    reserve its entire court/room box, two-cell approach and perimeter bands,
+    and hunter swept routes joining every original portal and actual gate yard
+    stand. Connected exterior components may go to cover only if the exact
+    inherited interface yields usable content. Refused cells stay retained.
+    The owning executor, protection, footprint identity and snapshot contracts
+    are specified in [20.7](20.7-builder-delegation.md); measured balance is in
+    [42](42-performance-history.md). This also applies within block lots.
   - **Core elements:** it sites none. Any its brief lists are left for the
     report.
   - **Too small:** a region with no usable contained box of at least 10 × 10
-    goes to `open` (17 M24).
+    or no ring with accessible gates takes terminal empty (20.7), preserving
+    original ownership and requests without geometry or loot.
 - **Shape needs:** *proposed*, a compound of at least 10 × 10, with a court of
   at least 4 × 4, plus usable portal approaches and gate doorsteps.
 - **Formed by:** medium set pieces, where the old library's walled `military` bases were (52).

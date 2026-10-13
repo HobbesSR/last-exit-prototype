@@ -563,6 +563,81 @@ content checkpoint. Compound is selected for its explicit capped building and
 demonstrated compatible exterior witness; depot remains unselected until its
 deliberate aisles and density omissions can be distinguished from unused ground.
 
+## Compound exterior-yard adoption (#338, 2026-10-13)
+
+The production policy and owning API are in [20.7](20.7-builder-delegation.md).
+Before evidence was preserved from `ff9fd1b`, `types-24`, at
+`test-results/331-audit`; after evidence is produced separately by
+`node tools/compound-delegation-audit.mjs --seeds=20 --maps=1 --out=test-results/338-after`.
+The workload is the same four shapes, seeds 1–20, IDs, zones and portals as
+#331 above, plus the same three authored-size maps. Windows, Node 24.15.0,
+AMD Ryzen 9 5900X; timings below are single builds per seed and map, excluding
+diagnosis and snapshot recovery. They describe added generation work, not a
+performance fix or a controlled regression benchmark.
+
+| Direct shape | Offers / accepted / rejected | Offered / accepted cells over 20 seeds | Before / after free-cell share | Before / after median build ms |
+| --- | ---: | ---: | ---: | ---: |
+| 17×16 | 0 / 0 / 0 | 0 / 0 | .709 / .709 | 1.744 / 4.777 |
+| 24×18 | 0 / 0 / 0 | 0 / 0 | .728 / .728 | 2.117 / 6.986 |
+| 40×34 field | 40 / 21 / 19 | 5,840 / 5,140 | .875 / .869 | 5.119 / 47.509 |
+| 40×34 concave | 37 / 24 / 13 | 7,124 / 5,856 | .876 / .866 | 8.488 / 36.670 |
+
+The direct concave seed-1 witness retains the original 17-piece ring (15 rooms,
+two gates; its pre-adoption geometry hash is pinned in the focused test).
+It offers two components totaling 336 of 1,080 cells. The 160-cell south lobe
+is accepted; the 176-cell east rectangle from the diagnostic witness is
+rejected because the production inherited cover brief yields no placement.
+Named patch identities and their inherited seeds differ from the earlier
+explicit `exterior-witness` diagnostic. This distinction matters: a compatible
+diagnostic rectangle does not guarantee production uptake. The court and
+gate approaches remain authored empty space.
+
+| Authored map | Diagnostic candidate cells / after protection | Offered cells | Accepted offers / cells | Rejected offers | Newly occupied cells |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `issue330-before-12x6` | 1,464 / 1,445 | 1,445 | 0 / 0 | 1 | 0 |
+| `issue330-before-24x12` | 3,672 / 3,512 | 3,272 | 2 / 2,432 | 12 | 91 |
+| `issue330-before-36x18` | 2,640 / 2,640 | 1,440 | 0 / 0 | 8 | 0 |
+
+Uptake remains concentrated. `compound@336,276` (4,032 cells) offers 2,552
+cells after 160 diagnostic cells are reserved for actual gate/portal routes.
+Its two 1,216-cell side components are accepted, adding 56 cover elements.
+Eight 15-cell fragments are rejected for incompatible crossings. Other
+1,152-cell compounds offer two 180-cell strips each, also rejected for
+crossing incompatibility. The 1,296-cell compounds retain their thin candidate
+components without offers. On the 12×6 map, `compound@252,36` offers a single
+1,445-cell component but retains it after crossing rejection. In total, these
+15 top-level compounds offer 6,157 cells and accept 2,432 (two of 23 offers).
+The accepted ownership is 60.3% of its one containing compound and 7.5% of
+all top-level compound ownership across these maps. This is a sparse exterior
+cover addition, not a claim that the yard is filled or broadly adopted.
+Nine nested block compound lots on the 36×18 map build their rings and pass
+final checks, but accept no exterior offers. The 11,232-cell unbuilt compound
+still takes terminal empty; its siting investigation remains #340.
+
+The audit exposed two access defects before this checkpoint. A crossing into
+a thin inherited non-fill strip could be locally clear but unable to join the
+retained hunter network. Declaring those inherited cells protected now rejects
+that offer. Concave seed 18 could choose a widened south passage with a usable
+off-center stand while its centered outer door had no actual yard stand.
+Siting now tests the centered door's floor/ceiling whole-cell stands; ring
+boxes stay unchanged across the audited direct cases, while invalid gate-side
+choices can change. These are narrow access corrections, not an expanded
+siting search or a diagnosis of #340.
+
+All 80 direct cases, 15 top-level compounds and nine nested lots pass final
+containing and leaf fill/portal/crossing checks and sampled hunter routes to
+every room center, court center and actual gate yard stand. Full and
+omitted-result snapshots reproduce decisions, results and versions. Previews
+show retained ring/court geometry and accepted/rejected exterior ownership;
+free cells and rectangle counts are not proof of authorship. The small compounds
+retain their original content. `npm run fill` on the preserved source and
+adopter (20 seeds, compound only, 24×18 and 40×34) reports unchanged .728
+free share for 24×18 and .875 → .869 for 40×34, with no failed builds.
+Authored-map generation times were 1,277 / 5,036 / 12,137 ms after adoption,
+versus 1,117 / 4,877 / 11,706 ms in the locally preserved before audit; these
+single-run observations do not establish a timing regression. The frozen
+netcode fixture is unchanged.
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including

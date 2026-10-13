@@ -67,6 +67,12 @@ the CLI and MCP as subprocesses, and typechecked by `npm run typecheck` under
 their own `map/tools/tsconfig.json`, which checks what they reach in macro as
 macro's own config does.
 
+The compound's multi-mask room/court route sweep lives in
+`tests/slow/micro-compound-access.test.js`; the fast delegation file keeps the
+concave seed-1 and gate/crossing regression witnesses. The fast compound file
+shares identical generated inputs across its ring, portal and observer checks
+without dropping its original seed/parameter coverage.
+
 Micro-generation changes additionally run `npm run test:micro`: focused contracts
 and seeded builder tests plus all three isolated browser previews. The unit tests also run
 in `npm test`. The lab browser check verifies actual builder content, control

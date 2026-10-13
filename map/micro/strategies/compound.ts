@@ -1,5 +1,5 @@
 import { largestRectangle } from './hall.ts';
-import { unfilledRegion, cellLoot } from './scatter.ts';
+import { cellLoot } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { boxesAgainstHints } from '../hints.ts';
@@ -12,6 +12,10 @@ import { realizeBuilding } from '../building/realize.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
+import { buildCover } from './cover.ts';
+import type { PatchOffer } from '../delegation.ts';
+import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
+import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
 
 /** The catalogue's proposed shape need (54): the compound at least this many cells a side, so its court is at least 4. */
 const MIN_SIDE = 10;
@@ -102,10 +106,14 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
         if (a < MIN_ROOM) a = 0;
         if (middle - b < MIN_ROOM) b = middle;
         const steps: string[] = [];
-        for (let t = a; t + 2 <= b; t++) {
+        // The realized outer door is centered in this passage. A stand
+        // elsewhere in a widened passage is not evidence for that door's
+        // actual yard access, especially beside a concave ownership corner.
+        for (const t of new Set([Math.floor((a + b) / 2 - 1), Math.ceil((a + b) / 2 - 1)])) {
           const x = side === 'W' ? box.x - 2 : side === 'E' ? box.x + w : box.x + DEPTH + t;
           const y = side === 'N' ? box.y - 2 : side === 'S' ? box.y + h : box.y + DEPTH + t;
-          if (fits(x, y)) steps.push(key(x, y));
+          if (!fits(x, y)) return { side, steps: [] };
+          steps.push(key(x, y));
         }
         return { side, steps };
       }).filter(v => v.steps.length);
@@ -154,21 +162,52 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
  *
  * Candidate boxes lie in the reduced fill, off every portal's clear margin, and are checked
  * against the hunter's yard blocks.
- * A region with no usable box of `MIN_SIDE` goes to `open` (17 M24).
+ * A region with no usable box of `MIN_SIDE` takes terminal empty (20.7).
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear of
  * every wall and door, in the rooms, the court or the yard. A compound sites no core elements;
  * any the brief lists are left for the report.
  */
 export function buildCompound(brief: RegionBrief, observe?: BuildingObserver): BuiltRegion {
+  const node = buildCompoundGeneration(brief, observe ? { observe } : {});
+  const result = flattenDelegationResult(node);
+  // These counters describe the retained ring, rather than cover geometry.
+  return { ...result, brief, manifest: { ...result.manifest,
+    ...(node.retained.manifest.rooms === undefined ? {} : { rooms: node.retained.manifest.rooms }),
+    ...(node.retained.manifest.compoundGates === undefined ? {} : { compoundGates: node.retained.manifest.compoundGates }) } };
+}
+
+/** Owning inputs, decisions and results for versioned recovery (20.7). */
+export function buildCompoundGeneration(brief: RegionBrief, options: ExecutionOptions = {}) {
+  const previews = new Map<string, BuiltRegion>();
+  const cover = (child: RegionBrief) => {
+    const key = JSON.stringify(child);
+    if (!previews.has(key)) previews.set(key, buildCover(child));
+    return previews.get(key)!;
+  };
+  return executeDelegation(brief, { ...COMPOUND_EXECUTION_REGISTRY,
+    cover: { ...COMPOUND_EXECUTION_REGISTRY.cover!, build: cover, receiving: coverReceiving(cover) },
+  }, options);
+}
+
+function coverReceiving(build: (brief: RegionBrief) => BuiltRegion) {
+  return (brief: RegionBrief) => build(brief).elements.length ? null : 'cover has no usable placement in the inherited fill';
+}
+
+export const COMPOUND_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
+  compound: { version: 'compound-yard-1', build: buildRetainedCompound },
+  cover: { version: 'cover-types-23', build: buildCover, receiving: coverReceiving(buildCover) },
+});
+
+function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, observe?: BuildingObserver): BuiltRegion {
   const gates = brief.parameters?.gates ?? DEFAULT_GATES;
   if (typeof gates !== 'number' || !Number.isInteger(gates) || gates < MIN_GATES || gates > MAX_GATES)
     throw new RangeError(`Compound gates must be a whole number from ${MIN_GATES} to ${MAX_GATES}.`);
   const mask = createFillMask(brief), size = brief.cellSize;
   const space = largestRectangle(mask, MIN_SIDE);
-  if (!space) return unfilledRegion(brief, CHANNEL.loot);
+  if (!space) return context.empty('compound has no usable ring box');
   const site = siteCompound(brief, mask, createAccessMask(brief), space, gates);
-  if (!site) return unfilledRegion(brief, CHANNEL.loot);
+  if (!site) return context.empty('compound has no ring with reachable yard gates');
   const { x: bx, y: by, w: W, h: H, gated } = site;
 
   // The ring in the box's own cells. A side's middle runs between the corner rooms; `strip` is the box `length` long from `t` along it, `DEPTH` deep.
@@ -238,8 +277,98 @@ export function buildCompound(brief: RegionBrief, observe?: BuildingObserver): B
     x: bx * size + piece.origin.x, y: by * size + piece.origin.y, template: piece.template }));
   const parts = elements.flatMap(element => element.template.parts);
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
+  // Use the realized opening centers, including half-cell centers, rather than
+  // assuming a passage's midpoint is the actual outer door.
+  const steps: { x: number; y: number }[] = [];
+  for (const passage of passages) {
+    const opening = realization.openings.find(o => o.connectionId === passage.id)!;
+    const along = (opening.run.axis === 'h' ? opening.run.x : opening.run.y) + opening.center - 1;
+    for (const t of new Set([Math.floor(along), Math.ceil(along)])) steps.push({
+      x: passage.side === 'W' ? bx - 2 : passage.side === 'E' ? bx + W : bx + t,
+      y: passage.side === 'N' ? by - 2 : passage.side === 'S' ? by + H : by + t,
+    });
+  }
+  const yard = exteriorYard(brief, site, steps);
+  if (yard.offers.length) context.delegate(yard.offers, { blockers: pieces, protectedCells: yard.protectedCells });
+  brief = context.brief;
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: rooms.length, obstacles: parts.filter(p => p.part === 'obstacle').length,
       gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0, rooms: rooms.length, compoundGates: passages.length } };
+}
+
+/** Compound authorship: retain the complete court/ring, approach and perimeter;
+ * reserve a swept standing-block tree to every portal and actual gate stand. */
+function exteriorYard(brief: RegionBrief, box: Box, gates: { x: number; y: number }[]):
+  { offers: PatchOffer[]; protectedCells: RegionBrief['cells'] } {
+  const key = (x: number, y: number) => `${x},${y}`;
+  const owned = createRegionMask(brief), fill = createFillMask(brief), access = createAccessMask(brief);
+  const inside = (x: number, y: number, pad = 0) => x >= box.x - pad && x < box.x + box.w + pad
+    && y >= box.y - pad && y < box.y + box.h + pad;
+  const kept = new Set<string>(), protectedKeys = new Set<string>();
+  for (const c of owned.cells) {
+    const k = key(c.x, c.y);
+    // Inherited clear margins may be thin interior strips. They stay reserved;
+    // a new crossing there can have clear stands but no retained hunter route.
+    if (inside(c.x, c.y) || !fill.has(c.x, c.y)) protectedKeys.add(k);
+    if (!fill.has(c.x, c.y) || inside(c.x, c.y, 2)
+      || [-2, -1, 1, 2].some(d => !owned.has(c.x + d, c.y) || !owned.has(c.x, c.y + d))) kept.add(k);
+  }
+  const fits = (x: number, y: number) => {
+    for (let j = y; j < y + 2; j++) for (let i = x; i < x + 2; i++) if (!access.has(i, j) || inside(i, j)) return false;
+    return true;
+  };
+  const targets = gates.map(c => key(c.x, c.y));
+  for (const { portal: p } of portalStands(brief)) for (let i = 0; i + 2 <= p.length; i++) targets.push(
+    p.axis === 'h' ? key(p.x + i, p.y - 1) : key(p.x - 1, p.y + i));
+  const none = { offers: [], protectedCells: owned.cells.filter(c => protectedKeys.has(key(c.x, c.y))) };
+  const root = targets[0];
+  if (!root || targets.some(t => { const [x, y] = t.split(',').map(Number); return !fits(x!, y!); })) return none;
+  // Prefer routes within the already retained bands. Fixed neighbor and target
+  // order makes ties independent of incoming cell/zone/portal array order.
+  const parents = new Map<string, string | null>([[root, null]]), distances = new Map([[root, 0]]);
+  const buckets: string[][] = [[root]], pending = new Set(targets);
+  for (let distance = 0; distance < buckets.length && pending.size; distance++) {
+    for (let head = 0; head < buckets[distance]!.length && pending.size; head++) {
+      const at = buckets[distance]![head]!;
+      if (distances.get(at) !== distance) continue;
+      pending.delete(at);
+      const [x, y] = at.split(',').map(Number) as [number, number];
+      for (const [nx, ny] of [[x + 1, y], [x, y + 1], [x - 1, y], [x, y - 1]] as const) {
+        if (!fits(nx, ny)) continue;
+        const next = key(nx, ny);
+        let cost = 0;
+        for (let j = ny; j < ny + 2; j++) for (let i = nx; i < nx + 2; i++) if (!kept.has(key(i, j))) cost = 1;
+        const nd = distance + cost;
+        if (nd >= (distances.get(next) ?? Infinity)) continue;
+        distances.set(next, nd); parents.set(next, at); (buckets[nd] ??= []).push(next);
+      }
+    }
+  }
+  // A failure to reserve every required stand retains the yard; it does not
+  // silently weaken the parent's access promise or retry its region as cover.
+  if (pending.size) return none;
+  for (const target of targets) for (let at: string | null = target; at !== null; at = parents.get(at)!) {
+    const [x, y] = at.split(',').map(Number) as [number, number];
+    for (let j = y; j < y + 2; j++) for (let i = x; i < x + 2; i++) if (owned.has(i, j)) {
+      kept.add(key(i, j)); protectedKeys.add(key(i, j));
+    }
+  }
+  const unused = new Map(owned.cells.filter(c => !kept.has(key(c.x, c.y))).map(c => [key(c.x, c.y), c]));
+  const offers: PatchOffer[] = [];
+  for (const start of owned.cells) {
+    if (!unused.delete(key(start.x, start.y))) continue;
+    const cells = [start];
+    for (let head = 0; head < cells.length; head++) {
+      const { x, y } = cells[head]!;
+      for (const [nx, ny] of [[x + 1, y], [x, y + 1], [x - 1, y], [x, y - 1]] as const) {
+        const next = unused.get(key(nx, ny));
+        if (next) { unused.delete(key(nx, ny)); cells.push(next); }
+      }
+    }
+    // The canonical first cell uniquely identifies a disjoint connected component.
+    // Keep IDs bounded; the owning snapshot records the complete footprint.
+    if (cells.length >= 9) offers.push({ key: `exterior:${start.x},${start.y}`, cells, type: 'cover', reasonTags: ['unused-exterior-yard'] });
+  }
+  return { offers, protectedCells: owned.cells.filter(c => protectedKeys.has(key(c.x, c.y))) };
 }

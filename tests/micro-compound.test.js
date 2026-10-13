@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { createAccessMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
-import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
+import { createRegionMask, elementShapes, shapesOverlap } from '../map/micro/geometry.ts';
+import { validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { circle, rect } from '../shared/shape.ts';
 
@@ -28,20 +28,27 @@ const MASKS = {
 };
 const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 const PARAMETERS = [undefined, { gates: 1 }, { gates: 3 }, { gates: 4 }];
+// These repeated seeds also appear in the portal, ring and trace checks.
+const built = new Map();
+const build = input => {
+  const key = JSON.stringify(input);
+  if (!built.has(key)) built.set(key, buildRegion(input));
+  return built.get(key);
+};
 const blockers = result => result.elements.flatMap(element => elementShapes(element));
+const ringElements = result => result.elements.filter(element => /^compound-(room|gate)/.test(element.label));
 /** An element's box in cells. */
 const cellBox = element => ({ x: element.x / SIZE, y: element.y / SIZE, w: element.template.w / SIZE, h: element.template.h / SIZE });
-/** The compound's box in cells: the union of its pieces. */
+/** The compound's ring box in cells; delegated exterior pieces do not change it. */
 const compoundBox = result => {
-  const boxes = result.elements.map(cellBox);
+  const boxes = ringElements(result).map(cellBox);
   const x = Math.min(...boxes.map(b => b.x)), y = Math.min(...boxes.map(b => b.y));
   return { x, y, w: Math.max(...boxes.map(b => b.x + b.w)) - x, h: Math.max(...boxes.map(b => b.y + b.h)) - y };
 };
-const inside = (site, box) => site.x > box.x * SIZE && site.x < (box.x + box.w) * SIZE && site.y > box.y * SIZE && site.y < (box.y + box.h) * SIZE;
 
 test('a compound region keeps the portal promise over seeds, masks and gate counts', () => {
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS.slice(0, 4)) for (const parameters of PARAMETERS) {
-    const result = buildRegion(brief(name, seed, cells, portals, parameters));
+    const result = build(brief(name, seed, cells, portals, parameters));
     assert.ok(result.manifest.rooms >= 4, `${name} seed ${seed} stood a compound`);
     const check = validatePortalReach({ ...result.brief, blockers: blockers(result) });
     assert.deepEqual(check.errors, [], `${name} seed ${seed} ${JSON.stringify(parameters)}`);
@@ -51,7 +58,7 @@ test('a compound region keeps the portal promise over seeds, masks and gate coun
 test('a hinted perimeter can hold the ring without blocking portal or gate access', () => {
   const cells = cellsOf(18, 18), portals = [{ id: 'south', axis: 'h', x: 7, y: 18, length: 3 }];
   const input = { ...brief('hinted', 3, cells, portals), hints: [{ axis: 'h', x: 0, y: 0, length: 18 }] };
-  const result = buildRegion(input), box = compoundBox(result);
+  const result = build(input), box = compoundBox(result);
   assert.equal(box.y, 0);
   assert.ok(result.manifest.rooms >= 4);
   assert.deepEqual(validatePortalReach({ ...result.brief, blockers: blockers(result) }).errors, []);
@@ -63,7 +70,7 @@ test('a 24 by 18 yard keeps an intermediate ring size between its portals', () =
     { id: 'east', axis: 'v', x: 24, y: 8, length: 2 },
   ];
   for (const seed of [1, 2, 3, 4]) {
-    const result = buildRegion(brief(`fill-${seed}`, seed, cells, portals));
+    const result = build(brief(`fill-${seed}`, seed, cells, portals));
     const box = compoundBox(result);
     assert.ok(box.w * box.h >= 240, `${seed}: ${box.w} by ${box.h} ring`);
     assert.deepEqual(validatePortalReach({ ...result.brief, blockers: blockers(result) }).errors, []);
@@ -73,7 +80,7 @@ test('a 24 by 18 yard keeps an intermediate ring size between its portals', () =
 test('compounds are deterministic and independent of the order of the brief\'s cells', () => {
   const [cells, portals] = MASKS.field;
   for (const seed of SEEDS) {
-    const result = buildRegion(brief('field', seed, cells, portals));
+    const result = build(brief('field', seed, cells, portals));
     assert.deepEqual(buildRegion(brief('field', seed, [...cells].reverse(), portals)).elements, result.elements);
   }
 });
@@ -81,40 +88,17 @@ test('compounds are deterministic and independent of the order of the brief\'s c
 test('one compound has roofed rooms around a clear court and its gates', () => {
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS.slice(0, 4)) for (const parameters of PARAMETERS) {
     const input = brief(name, seed, cells, portals, parameters);
-    const result = buildRegion(input), box = compoundBox(result);
+    const result = build(input), box = compoundBox(result);
     assert.ok(box.w >= 10 && box.h >= 10 && box.w <= 24 && box.h <= 24, `${name} ${seed}: ${box.w} × ${box.h}`);
     const court = rect((box.x + 3) * SIZE, (box.y + 3) * SIZE, (box.w - 6) * SIZE, (box.h - 6) * SIZE);
     assert.ok(result.elements.flatMap(element => elementShapes(element, true)).every(shape => !shapesOverlap(court, shape)), `${name} ${seed}: clear court`);
-    const gates = result.elements.filter(element => element.label.startsWith('compound-gate'));
+    const gates = ringElements(result).filter(element => element.label.startsWith('compound-gate'));
     assert.equal(gates.length, parameters?.gates ?? 2);
     assert.equal(result.manifest.compoundGates, gates.length);
-    for (const room of result.elements.filter(element => element.label.startsWith('compound-room'))) {
+    for (const room of ringElements(result).filter(element => element.label.startsWith('compound-room'))) {
       assert.equal(room.template.encloses, true);
       assert.ok(room.template.parts.some(part => part.part === 'gate'), `${room.label} has a door`);
     }
-  }
-});
-
-test('every room and the court are open to a hunter through the gates', () => {
-  const hunter = hunterClearance(SIZE), contestant = microMetrics({ cellSize: SIZE, bodyProfile: 'cell' }).clearance.contestant;
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const [seed, gates] of [[1, 1], [2, 3]]) {
-    const parameters = { gates };
-    const input = brief(name, seed, cells, portals, parameters);
-    input.zones[0].lootChance = 1;
-    const result = buildRegion(input), mask = createRegionMask(input), access = createAccessMask(input), shapes = blockers(result);
-    const from = portalStands(input)[0].points[0];
-    const rooms = result.elements.filter(element => element.label.startsWith('compound-room')).map(cellBox);
-    const box = compoundBox(result), court = { x: box.x + 3, y: box.y + 3, w: box.w - 6, h: box.h - 6 };
-    // A site in every room, which tests every door, and a sample of the court.
-    for (const room of rooms) {
-      const site = result.loot.find(site => inside(site, room));
-      assert.ok(site, `${name} ${seed}: loot in the room at ${room.x},${room.y}`);
-      assert.ok(findRegionRoute(access, shapes, from, site, hunter), `${name} ${seed}: a hunter reaches ${site.x},${site.y}`);
-    }
-    const courtSites = result.loot.filter(site => inside(site, court));
-    assert.ok(courtSites.length > 0);
-    for (const site of courtSites.filter((_, i) => i % 5 === 0))
-      assert.ok(findRegionRoute(access, shapes, from, site, contestant), `${name} ${seed}: the court at ${site.x},${site.y}`);
   }
 });
 
@@ -123,7 +107,7 @@ test('compounds roll loot by zone and keep every site clear of walls and doors',
   const input = brief('field', 11, cells, portals);
   input.zones = [{ tier: 2, bonus: 0, lootChance: 1, cells: cells.filter(c => c.y < 17) },
     { tier: 5, bonus: 0, lootChance: 0, cells: cells.filter(c => c.y >= 17) }];
-  const result = buildRegion(input), mask = createRegionMask(input);
+  const result = build(input), mask = createRegionMask(input);
   const shapes = result.elements.flatMap(element => elementShapes(element, true));
   const radius = microMetrics({ cellSize: SIZE, bodyProfile: 'cell' }).lootRadius;
   assert.ok(result.loot.length > 0);
@@ -135,13 +119,13 @@ test('compounds roll loot by zone and keep every site clear of walls and doors',
   }
 });
 
-test('a compound checks its gate count, and a region too narrow for its court goes to open', () => {
+test('a compound checks its gate count, and a region too narrow for its court goes empty', () => {
   const [cells, portals] = MASKS.field;
   assert.throws(() => buildRegion(brief('field', 1, cells, portals, { gates: 0 })), /gates/);
   assert.throws(() => buildRegion(brief('field', 1, cells, portals, { gates: 5 })), /gates/);
   assert.throws(() => buildRegion(brief('field', 1, cells, portals, { gates: 1.5 })), /gates/);
   const thin = buildRegion(brief('thin', 1, cellsOf(40, 9), [{ id: 'west', axis: 'v', x: 0, y: 0, length: 2 }]));
-  assert.equal(thin.manifest.rooms, undefined);
+  assert.equal(thin.manifest.rooms ?? 0, 0);
   assert.equal(thin.elements.length, 0);
 });
 
@@ -160,12 +144,12 @@ test('the ring is one design: an observer sees it, and every room has an opening
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS.slice(0, 4)) for (const parameters of PARAMETERS) {
     const traces = [], input = brief(name, seed, cells, portals, parameters);
     const result = buildRegion(input, undefined, trace => traces.push(trace));
-    assert.deepEqual(result, buildRegion(input), `${name} ${seed}: observing changes nothing`);
+    assert.deepEqual(result, build(input), `${name} ${seed}: observing changes nothing`);
     assert.equal(traces.length, 1);
     const [{ label, design, allocation, realization, origin }] = traces;
     assert.equal(label, 'compound');
     assert.deepEqual(realization.misses, []);
-    assert.deepEqual(result.elements.map(e => e.label), allocation.spaces.map(s => `compound-${s.id}`));
+    assert.deepEqual(ringElements(result).map(e => e.label), allocation.spaces.map(s => `compound-${s.id}`));
     assert.equal(design.spaces.filter(s => s.id.startsWith('room')).length, result.manifest.rooms);
     // The ring's footprint is the compound's box less its court.
     const box = compoundBox(result);

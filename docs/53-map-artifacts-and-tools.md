@@ -408,6 +408,21 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   JSON plus collision-geometry SVG previews. This is a read-only investigation,
   not production patch authorship, an admission check or a baseline capture.
   Workload, findings and limits are in [42](42-performance-history.md).
+- **Compound adoption audit** (`node tools/compound-delegation-audit.mjs
+  --seeds=20 --maps=1 --out=test-results/338-after`) compares production
+  compound decisions against the preserved `test-results/331-audit/report.json`
+  from `types-24` (before-source checkpoint `ff9fd1b`). Reproduce that before
+  directory with the candidate audit at the old source, before changing content;
+  do not overwrite it by running the old audit on the current adopter. The new
+  audit refuses a before report from another content version. It writes
+  per-region diagnostic, protected, offered, accepted and rejected footprints,
+  reasons, stopping/version traces, fill and sequential build timings, full and
+  omitted-result snapshot recovery, final containing/leaf/crossing geometry and
+  sampled hunter routes to the rooms, court and gate yard stands. It also
+  inspects nested block compound lots. SVGs compare retained ring-only geometry
+  with combined output; they are collision previews, not roofs or movement.
+  Failed geometry/access/recovery checks produce a nonzero exit. Workload,
+  uptake, siting corrections and limits belong in [42](42-performance-history.md).
 
 The GUI, CLI and MCP call one shared core and must agree on seed, parameters,
 library, validation and serialized output. Verification gates for both halves
