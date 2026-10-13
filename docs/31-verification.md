@@ -140,6 +140,11 @@ benchmarks only: another agent's `npm test` or browser run can still overlap a
 timing run. Treat an unexpected regression as possibly contended, and repeat it
 before reporting it.
 
+`npm run bench:client` runs a client render and network benchmark in Chrome.
+Options include `--seconds=<N>`, `--headed`, `--location=dense|crowded|offscreen`
+to arrange entity crowds, and `--spectator` (`node tests/bench-client.mjs --spectator`)
+to benchmark rendering the unfogged, whole-arena spectator overview at full zoom-out.
+
 ## The frozen fixture
 
 The current frozen characterization fixture is `behavior-netcode-1.json.gz`, captured at

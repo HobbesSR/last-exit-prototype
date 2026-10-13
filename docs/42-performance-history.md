@@ -437,6 +437,35 @@ preparation and 0.3 for execution, all below the 15-second file budget. The
 existing 224-case `types-24` baseline check returned zero drift; it and the
 frozen netcode fixture remain unchanged.
 
+## Spectator and replay level of detail (#272, 2026-10-13)
+
+Measured 2026-10-13 on Corey's Windows development machine in headless Chrome,
+seed 4217, 3-second run framing the entire arena overview. Runs were sequential
+with no competing tests or benchmarks. The reproducible audit command is
+`node tests/bench-client.mjs --spectator --seconds=3`.
+
+The before side loads `public/arena-scene.js` from `6737eed` (pre-LOD main); the after
+side is this branch. Before level-of-detail and camera-centered viewport culling,
+unfogged spectator and replay views rendered hundreds of static fixtures, doors,
+energy gates, sensors, spider web spokes/legs, and item drop shadows/sinusoidal bobbing
+across the entire map every frame, causing severe frame drops in headless Chrome.
+
+| Metric | Before LOD (`6737eed`) | After LOD |
+| --- | ---: | ---: |
+| Frame rate | 5.7 fps (18 frames in 3.13 s) | 59.9 fps (181 frames in 3.02 s) |
+| Frame time mean / p50 / p95 / max | 174.46 / 174.10 / 190.00 / 190.00 ms | 16.67 / 16.70 / 16.80 / 16.90 ms |
+| `render.draw` mean / p50 / p95 / max | 168.841 / 168.200 / 184.400 / 184.400 ms | 0.871 / 0.800 / 1.400 / 2.200 ms |
+| `render.frame` mean / p50 / p95 / max | 4.356 / 4.600 / 5.600 / 5.600 ms | 1.180 / 1.200 / 1.400 / 1.800 ms |
+| `render.world` mean / p50 / p95 / max | 3.500 / 3.700 / 4.700 / 4.700 ms | 0.112 / 0.100 / 0.200 / 0.300 ms |
+
+Sub-pixel text labels are hidden below `LOD_LABEL_ZOOM` (0.35); fixtures collapse into
+fast outlines (open gates/doors) or bounding fills (closed gates/doors) below
+`LOD_LOW_ZOOM` (0.2); spider traps cull web rings and roaming bodies independently;
+and items collapse into flat boxes without drop shadows or sinusoidal animation.
+`render.draw` times Phaser's CPU render pass, not GPU execution; headless Chrome may use
+software GL. This addresses full-arena spectator and replay overhead, but does not
+resolve the reported multi-actor slowdown during matches.
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including

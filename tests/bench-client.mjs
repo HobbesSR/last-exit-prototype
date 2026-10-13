@@ -24,13 +24,14 @@ const browser = await chromium.launch({ channel: 'chrome', headless: !args.has('
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await page.goto(`${base}/?profile=1&seed=${args.get('seed') ?? 4217}${args.has('size') ? `&size=${args.get('size')}` : ''}`);
+  const spectator = args.has('spectator') || args.get('mode') === 'spectator';
   let workload;
-  if (['crowded', 'offscreen'].includes(args.get('location'))) {
+  if (['crowded', 'offscreen'].includes(args.get('location')) && !spectator) {
     await page.waitForFunction(() => window.arenaDebug?.().me);
     const info = await page.evaluate(() => window.arenaDebug());
     workload = arrangeCrowd(server.rooms.get(info.room).game, info.me.id, { location: args.get('location'), ai: args.get('actors') !== 'idle' });
   }
-  if (args.get('location') === 'dense') {
+  if (args.get('location') === 'dense' && !spectator) {
     await page.waitForFunction(() => window.arenaDebug?.().me);
     const info = await page.evaluate(() => window.arenaDebug());
     const game = server.rooms.get(info.room).game;
@@ -42,12 +43,16 @@ try {
   }
   await page.getByRole('button', { name: 'Start match', exact: true }).click();
   await page.waitForFunction(() => window.arenaDebug?.().phase === 'live' && window.arenaDebug().tick > 3, null, { timeout: 15000 });
+  if (spectator) {
+    await page.evaluate(() => window.arenaSpectate());
+    await page.waitForFunction(() => document.getElementById('connection-text').textContent === 'SPECTATING' && window.arenaDebug().tick > 5);
+  }
   await page.evaluate(() => { window.arenaProfiling(false); window.arenaProfiling(true); });
   if (args.has('server-profile')) server.profiler.reset();
   const measuredAt = performance.now();
-  if (!workload) await page.keyboard.down('KeyD');
+  if (!workload && !spectator) await page.keyboard.down('KeyD');
   await page.waitForTimeout(seconds * 1000);
-  if (!workload) await page.keyboard.up('KeyD');
+  if (!workload && !spectator) await page.keyboard.up('KeyD');
   const { frames, series } = await page.evaluate(() => window.arenaProfile());
   const elapsedSeconds = (performance.now() - measuredAt) / 1000;
   const find = name => series.find(s => s.name === name);
@@ -59,7 +64,8 @@ try {
   const serverProfile = args.has('server-profile') ? { frames: server.profiler.frameCount(), series: server.profiler.report() } : undefined;
   if (args.has('json')) console.log(JSON.stringify({ frames, series, ...(workload ? { workload, crowd } : {}), ...(serverProfile ? { server: serverProfile } : {}) }, null, 2));
   else {
-    console.log(`Last Exit client benchmark — ${args.get('location') || 'entry'}, ${elapsedSeconds.toFixed(2)}s, ${frames} rendered frames (${(frames / elapsedSeconds).toFixed(1)} fps average)`);
+    const benchmarkLabel = spectator ? 'spectator (whole arena)' : args.get('location') || 'entry';
+    console.log(`Last Exit client benchmark — ${benchmarkLabel}, ${elapsedSeconds.toFixed(2)}s, ${frames} rendered frames (${(frames / elapsedSeconds).toFixed(1)} fps average)`);
     if (delta) console.log(`frame time  mean ${delta.mean.toFixed(2)} ms   p50 ${delta.p50.toFixed(2)}   p95 ${delta.p95.toFixed(2)}   max ${delta.max.toFixed(2)}   (60 fps budget 16.7 ms)`);
     if (gap) console.log(`state gap   mean ${gap.mean.toFixed(1)} ms   p50 ${gap.p50.toFixed(1)}   p95 ${gap.p95.toFixed(1)}   max ${gap.max.toFixed(1)}   over ${gap.calls} packets   (server ${HZ} Hz = ${(1000 / HZ).toFixed(1)} ms)`);
     if (bytes) console.log(`state size  mean ${(bytes.mean / 1024).toFixed(1)} KiB, p95 ${(bytes.p95 / 1024).toFixed(1)} KiB per authoritative frame`);

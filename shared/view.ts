@@ -33,6 +33,12 @@ export function markerScale(zoom: number): number {
 export function labelScale(zoom: number, marker: number): number {
   return LABEL_SCREEN_PX / LABEL_FONT_PX / (zoom * marker);
 }
+
+// Level of detail zoom thresholds for distant / spectator views.
+// Zooming out below these thresholds collapses sub-pixel geometry into fast rects and outlines.
+export const LOD_LOW_ZOOM = 0.2;
+export const LOD_LABEL_ZOOM = 0.35;
+export const LOD_MEDIUM_ZOOM = 0.5;
 export function viewBounds(eye: Vec2, width: number, height: number, zoom: number): ViewBounds {
   return { x: eye.x - width / zoom / 2, y: eye.y - height / zoom / 2, width: width / zoom, height: height / zoom };
 }
