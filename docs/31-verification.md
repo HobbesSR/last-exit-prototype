@@ -14,7 +14,7 @@ npm run bench
 npm run bench:client
 ```
 
-The unit suites cap file concurrency at four, keeping CPU and memory contention
+`npm test` and `npm run test:all` cap file concurrency at four, keeping CPU and memory contention
 bounded on the shared machine. Every case still runs, including the slow tier;
 timing assertions and isolated file budgets are unchanged. Unbounded file
 concurrency made the compound's three-second macro fixture fail under competing

@@ -214,6 +214,21 @@ checkpoint; the final 224-case check has zero drift. Macro version 3 and
 wire version 8 remain unchanged, as does the frozen gameplay characterization
 fixture.
 
+**#338's re-capture** pins `types-25` at input commit `2e89706`, retaining the
+same 224 cases. Compound keeps its ring/court, reserves actual gate/portal
+circulation and inherited clear cells, and delegates compatible exterior
+components with 3×3 yard pockets to cover (20.7, 54). Centered-door feasibility corrects invalid
+gate-side choices without expanding the siting search. Results hashes change
+on all 224 cases because the version changes; built and report hashes change
+on 22. Layout, declared grid, resolved segments, regions, proof, zones and
+briefs remain identical. The three measured authored maps have no report
+defects, and every audited containing/leaf interface and sampled room/court/gate
+route passes against final combined geometry. Two of 23 authored-map offers
+are accepted, in one large compound (42). Both browser labs reproduce the
+stored adopter output, and full/omitted owning snapshots recover exactly.
+The final 224-case regeneration check has zero drift. Macro version 3 and wire version 8 remain unchanged. The frozen gameplay
+characterization fixture is unchanged.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
