@@ -93,25 +93,108 @@ export function buildingAt(map: RoofMap, point: Vec2): Building | null {
   return map.buildings?.find(b => point.x > b.x && point.x < b.x + b.w && point.y > b.y && point.y < b.y + b.h) || null;
 }
 
-export function pointInRoof(roof: Roof, point: Vec2): boolean {
+export function pointInRoof(roof: Roof, point: Vec2, cellSet?: Set<string>): boolean {
   if (point.x <= roof.bounds.x || point.x >= roof.bounds.x + roof.bounds.w
     || point.y <= roof.bounds.y || point.y >= roof.bounds.y + roof.bounds.h) return false;
   const cx = Math.floor((point.x - roof.origin.x) / roof.cellSize);
   const cy = Math.floor((point.y - roof.origin.y) / roof.cellSize);
+  if (cellSet) return cellSet.has(`${cx},${cy}`);
   return roof.cells.some(c => c.x === cx && c.y === cy);
 }
 
+interface RoofIndex {
+  coveredBuildingIds: Set<string>;
+  bucketSize: number;
+  roofBuckets: Map<string, Roof[]>;
+  buildingBuckets: Map<string, Building[]>;
+  roofCellSets: WeakMap<Roof, Set<string>>;
+}
+
+const roofIndexCache = new WeakMap<object, RoofIndex>();
+
+export function getRoofIndex(map: RoofMap): RoofIndex {
+  let index = roofIndexCache.get(map);
+  if (!index) {
+    const roofs = map.roofs || [];
+    const coveredBuildingIds = new Set<string>();
+    for (const r of roofs) {
+      if (r.buildingId) coveredBuildingIds.add(r.buildingId);
+    }
+    const undeclaredBuildings = (map.buildings || []).filter(b => !coveredBuildingIds.has(b.id));
+    const bucketSize = 160;
+    const roofBuckets = new Map<string, Roof[]>();
+    const buildingBuckets = new Map<string, Building[]>();
+    const roofCellSets = new WeakMap<Roof, Set<string>>();
+
+    for (const roof of roofs) {
+      const set = new Set<string>();
+      for (const c of roof.cells) set.add(`${c.x},${c.y}`);
+      roofCellSets.set(roof, set);
+
+      const minBx = Math.floor(roof.bounds.x / bucketSize);
+      const maxBx = Math.floor((roof.bounds.x + roof.bounds.w) / bucketSize);
+      const minBy = Math.floor(roof.bounds.y / bucketSize);
+      const maxBy = Math.floor((roof.bounds.y + roof.bounds.h) / bucketSize);
+      for (let bx = minBx; bx <= maxBx; bx++) {
+        for (let by = minBy; by <= maxBy; by++) {
+          const key = `${bx},${by}`;
+          let list = roofBuckets.get(key);
+          if (!list) { list = []; roofBuckets.set(key, list); }
+          list.push(roof);
+        }
+      }
+    }
+
+    for (const b of undeclaredBuildings) {
+      const minBx = Math.floor(b.x / bucketSize);
+      const maxBx = Math.floor((b.x + b.w) / bucketSize);
+      const minBy = Math.floor(b.y / bucketSize);
+      const maxBy = Math.floor((b.y + b.h) / bucketSize);
+      for (let bx = minBx; bx <= maxBx; bx++) {
+        for (let by = minBy; by <= maxBy; by++) {
+          const key = `${bx},${by}`;
+          let list = buildingBuckets.get(key);
+          if (!list) { list = []; buildingBuckets.set(key, list); }
+          list.push(b);
+        }
+      }
+    }
+
+    index = {
+      coveredBuildingIds,
+      bucketSize,
+      roofBuckets,
+      buildingBuckets,
+      roofCellSets,
+    };
+    roofIndexCache.set(map, index);
+  }
+  return index;
+}
+
 export function roofAt(map: RoofMap, point: Vec2): Roof | Building | null {
-  if (map.roofs?.length) {
-    for (const roof of map.roofs) {
-      if (pointInRoof(roof, point)) return roof;
+  if (!map) return null;
+  const index = getRoofIndex(map);
+  const bx = Math.floor(point.x / index.bucketSize);
+  const by = Math.floor(point.y / index.bucketSize);
+  const bucketKey = `${bx},${by}`;
+
+  const roofCandidates = index.roofBuckets.get(bucketKey);
+  if (roofCandidates) {
+    for (const roof of roofCandidates) {
+      const cellSet = index.roofCellSets.get(roof);
+      if (pointInRoof(roof, point, cellSet)) return roof;
     }
   }
-  const coveredBuildingIds = new Set(map.roofs?.map(r => r.buildingId).filter(Boolean));
-  const building = map.buildings?.find(b =>
-    !coveredBuildingIds.has(b.id) && point.x > b.x && point.x < b.x + b.w && point.y > b.y && point.y < b.y + b.h
-  );
-  return building || null;
+
+  const bCandidates = index.buildingBuckets.get(bucketKey);
+  if (bCandidates) {
+    for (const b of bCandidates) {
+      if (point.x > b.x && point.x < b.x + b.w && point.y > b.y && point.y < b.y + b.h) return b;
+    }
+  }
+
+  return null;
 }
 
 export function roofConceals(map: RoofMap, eye: Vec2, point: Vec2): boolean {
@@ -155,7 +238,7 @@ function abutting(a: RoofBox, b: RoofBox): Side | null {
  */
 export function roofGroups(map: Pick<GameMap, 'buildings' | 'gates'> & { roofs?: Roof[] }): Map<string, Array<Building | Roof>> {
   const groups = new Map<string, Array<Building | Roof>>();
-  const coveredBuildingIds = new Set(map.roofs?.map(r => r.buildingId).filter(Boolean));
+  const coveredBuildingIds = map.roofs?.length ? getRoofIndex(map).coveredBuildingIds : new Set<string>();
 
   if (map.roofs?.length) {
     const byGroup = new Map<string, Roof[]>();

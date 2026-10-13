@@ -397,8 +397,10 @@ function buildParts(v: Views): BuiltParts {
       });
       if (element.template.roofs?.length) {
         for (const roof of element.template.roofs) {
+          const rx = (element.x + (roof.origin?.x ?? 0)) / cellSize;
+          const ry = (element.y + (roof.origin?.y ?? 0)) / cellSize;
           for (const c of roof.cells) {
-            paths.roofs.rect(element.x / cellSize + c.x, element.y / cellSize + c.y, 1, 1);
+            paths.roofs.rect(rx + c.x, ry + c.y, 1, 1);
           }
           add("roofs");
         }

@@ -312,8 +312,8 @@ export function makeArenaScene(api) {
           for (const other of groupMembers) {
             if (other.id !== roof.id) {
               for (const c of other.cells) {
-                const wx = Math.round((other.origin.x + c.x * other.cellSize) / other.cellSize);
-                const wy = Math.round((other.origin.y + c.y * other.cellSize) / other.cellSize);
+                const wx = Math.round(other.origin.x + c.x * other.cellSize);
+                const wy = Math.round(other.origin.y + c.y * other.cellSize);
                 otherGroupCells.add(`${wx},${wy}`);
               }
             }
@@ -331,18 +331,18 @@ export function makeArenaScene(api) {
             const cy0 = roof.origin.y + c.y * roof.cellSize;
             const cx1 = cx0 + roof.cellSize;
             const cy1 = cy0 + roof.cellSize;
-            const wx = Math.round(cx0 / roof.cellSize);
-            const wy = Math.round(cy0 / roof.cellSize);
+            const wx = Math.round(cx0);
+            const wy = Math.round(cy0);
 
             const hasW = cellSet.has(`${c.x - 1},${c.y}`);
             const hasE = cellSet.has(`${c.x + 1},${c.y}`);
             const hasN = cellSet.has(`${c.x},${c.y - 1}`);
             const hasS = cellSet.has(`${c.x},${c.y + 1}`);
 
-            const abutsW = !hasW && otherGroupCells.has(`${wx - 1},${wy}`);
-            const abutsE = !hasE && otherGroupCells.has(`${wx + 1},${wy}`);
-            const abutsN = !hasN && otherGroupCells.has(`${wx},${wy - 1}`);
-            const abutsS = !hasS && otherGroupCells.has(`${wx},${wy + 1}`);
+            const abutsW = !hasW && otherGroupCells.has(`${Math.round(cx0 - roof.cellSize)},${wy}`);
+            const abutsE = !hasE && otherGroupCells.has(`${Math.round(cx0 + roof.cellSize)},${wy}`);
+            const abutsN = !hasN && otherGroupCells.has(`${wx},${Math.round(cy0 - roof.cellSize)}`);
+            const abutsS = !hasS && otherGroupCells.has(`${wx},${Math.round(cy0 + roof.cellSize)}`);
 
             const oW = !hasW && !abutsW ? overhang : 0;
             const oE = !hasE && !abutsE ? overhang : 0;

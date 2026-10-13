@@ -53,6 +53,8 @@ export interface Placement {
   nodeId: NodeId;
   /** Whether this instance's doors start locked. A placement choice, not a property of the template. */
   locked?: boolean;
+  /** Presentation group id for declared roofs, when overriding template or default grouping. */
+  groupId?: string | undefined;
 }
 
 /** Stamp a template with its anchor at `x`,`y`, emitting every part into the map being generated. */
@@ -66,10 +68,11 @@ export function placeElement(context: BaseGenerationContext, template: ElementTe
   }
   if (template.roofs?.length) {
     if (!map.roofs) map.roofs = [];
-    const placementGroupId = nextId ? nextId('roof-group-') : `group-${map.roofs.length + 1}`;
     for (const [i, r] of template.roofs.entries()) {
-      const roofId = nextId ? nextId('roof-') : `roof-${map.roofs.length + i + 1}`;
-      const groupId = r.groupId ?? placementGroupId;
+      const roofId = owner
+        ? (template.roofs.length === 1 ? owner.buildingId : `${owner.buildingId}.${i + 1}`)
+        : (r.id ? `${placement.nodeId}:${r.id}` : `roof-${map.roofs.length + 1}`);
+      const groupId = placement.groupId ?? r.groupId ?? roofId;
       const cellSize = r.cellSize ?? 40;
       const roofOrigin = { x: x + (r.origin?.x ?? 0), y: y + (r.origin?.y ?? 0) };
       const bounds = r.bounds
