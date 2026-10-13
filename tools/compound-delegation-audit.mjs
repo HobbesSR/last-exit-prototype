@@ -6,6 +6,8 @@ import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { isDeepStrictEqual } from 'node:util';
 import { generate } from '../map/chain.ts';
+import { mapViews } from '../map/macro/src/chain/map.ts';
+import { validateBriefPartition } from '../map/micro/delegation.ts';
 import { buildCompoundGeneration, COMPOUND_EXECUTION_REGISTRY } from '../map/micro/strategies/compound.ts';
 import { planBlock } from '../map/micro/strategies/block.ts';
 import { flattenDelegationResult, executionLeaves } from '../map/micro/delegation-execute.ts';
@@ -90,6 +92,7 @@ function checks(brief, node, combined) {
   const leafErrors = executionLeaves(node).flatMap(leaf => validateFillConstraints(leaf.brief, leaf.elements.flatMap(e => elementShapes(e, true))));
   const crossingErrors = executionLeaves(node).flatMap(leaf => validatePortalReach({ ...leaf.brief, blockers }).errors);
   return { portalErrors: validatePortalReach({ ...brief, blockers }).errors,
+    partitionErrors: validateBriefPartition(node.input, executionLeaves(node).map(leaf => leaf.brief)),
     fillErrors: validateFillConstraints(brief, combined.elements.flatMap(e => elementShapes(e, true))), leafErrors, crossingErrors,
     routes: routeEvidence(brief, node.retained, combined) };
 }
@@ -183,16 +186,17 @@ if (args.has('maps')) for (const [zoneWidth, zoneHeight] of [[12, 6], [24, 12], 
       `map-${zoneWidth}x${zoneHeight}-${reports.length}.svg`) });
   }
   fullMaps.push({ seed, zoneWidth, zoneHeight, generationMs, baselineGenerationMs: prior.generationMs,
-    topLevelCompounds: briefs.length, nestedCompounds: nested.length, reports });
+    topLevelCompounds: briefs.length, nestedCompounds: nested.length, reportDefects: mapViews(map).report.defects, reports });
 }
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const dirtyPaths = execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(Boolean);
 const reports = [...direct.flatMap(d => d.runs), ...fullMaps.flatMap(m => m.reports)];
-const errors = reports.flatMap(r => [
+const errors = [...fullMaps.flatMap(m => m.reportDefects), ...reports.flatMap(r => [
+  ...r.validations.partitionErrors,
   ...r.validations.portalErrors, ...r.validations.fillErrors, ...r.validations.leafErrors,
   ...r.validations.crossingErrors, ...r.validations.routes.errors,
   ...(!r.snapshot.fullRecovered || !r.snapshot.omittedRecovered ? [`${r.id}: snapshot recovery failed`] : []),
-]);
+])];
 const output = { audit: 'compound-delegation-after-1', source: { commit, dirtyPaths, contentVersion: REGION_TYPES_VERSION,
     baseline: { path: baselinePath, commit: baseline.commit, contentVersion: baseline.contentVersion } },
   seeds, direct, fullMaps, errors,
