@@ -401,6 +401,13 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
 - **The game's micro tools** (the micro lab, the decomposition lab, the
   generation demo, and the `micro-region` and `decompose-region` CLIs) are
   in 20. All the browser tools share one navigation bar.
+- **Delegation candidate audit** (`node tools/delegation-adoption-audit.mjs
+  --seeds=20 --maps=1 --out=test-results/331-audit`) measures current compound
+  and depot output, separates a diagnostic compound exterior mask from the
+  intentional court, tries explicit cover witnesses through the SDK, and writes
+  JSON plus collision-geometry SVG previews. This is a read-only investigation,
+  not production patch authorship, an admission check or a baseline capture.
+  Workload, findings and limits are in [42](42-performance-history.md).
 
 The GUI, CLI and MCP call one shared core and must agree on seed, parameters,
 library, validation and serialized output. Verification gates for both halves

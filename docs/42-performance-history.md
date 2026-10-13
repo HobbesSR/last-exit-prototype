@@ -437,6 +437,90 @@ preparation and 0.3 for execution, all below the 15-second file budget. The
 existing 224-case `types-24` baseline check returned zero drift; it and the
 frozen netcode fixture remain unchanged.
 
+## Delegation adoption candidate review (#331, 2026-10-13)
+
+The merged hut pilot's owning traces, snapshot tests, fill results and timing
+account above were reviewed before selecting another builder. Its six accepted
+offers out of 137 full-map offers, and its still-measured macro-hut cost, argue
+for receiving checks and measured authorship rather than automatic gap filling.
+The next bounded implementation issue is
+[#338](http://localhost:3000/corey/astra_test/issues/338), compound exterior yards
+to cover. This checkpoint adds diagnostic tooling and planning only.
+
+Reproduce the candidate review with
+`node tools/delegation-adoption-audit.mjs --seeds=20 --maps=1 --out=test-results/331-audit`.
+The source checkpoint is `6737eedf4208b41fa052405b5aa8c7439a7ccbef`, `types-24`;
+the audit is added in the #331 PR. Local measurements used Windows, Node
+24.15.0 and an AMD Ryzen 9 5900X. The final audit ran without another local test
+or benchmark. Its JSON and SVG previews are reproducible worktree artifacts,
+not frozen fixtures. No generator version or baseline changes in this checkpoint.
+
+Four shapes per builder use seeds 1–20, cell size 40, IDs `<type>-<seed>`, tier 1,
+loot chance 0.3 and two west/east portals at row 8, length two. The concave
+40×34 mask keeps `y < 20 || x < 20`. The 24×18 rows match the corresponding
+`npm run fill -- --types=compound,depot --seeds=20 --width=24 --height=18 --min=3 --json=1`
+diagnostic. Build times exclude fill/access diagnosis and are medians of one
+build per seed, not repeated timing comparisons.
+
+| Shape | Compound / depot build median (ms) | Compound / depot free-cell share | Compound exterior candidate cells, mean |
+| --- | ---: | ---: | ---: |
+| 17×16 | 1.781 / 2.942 | 0.709 / 0.839 | 0 |
+| 24×18 | 2.172 / 2.786 | 0.728 / 0.858 | 0 |
+| 40×34 field | 5.197 / 12.903 | 0.875 / 0.849 | 296 |
+| 40×34 concave | 7.756 / 8.806 | 0.876 / 0.854 | 356.2 |
+
+All 160 builds passed emitted-geometry portal reach and fill checks. Free cells
+are not automatically surplus: compound's court and depot's aisles/density
+choices are intentional. The compound diagnostic separately excludes its entire
+building bounding box (including court), a two-cell surrounding band, and cells
+within two cardinal steps of the ownership perimeter. This leaves measurable
+exterior candidates in the large/concave cases but none in the small rectangles.
+It does not extract reserved portal/gate routes or prove every candidate is
+expendable. Depot has no corresponding spare-space classifier in this audit;
+its exterior candidate value of zero means unmeasured, not no spare space.
+
+Two explicit seed-1 rectangles were trialed independently through
+`prepareDelegation`, with existing compound collision geometry passed as blockers
+and `cover` required to emit usable content from its inherited interface:
+
+- Field: `(2,2)`, 4×30, 120 cells; one offer, zero accepted, one rejected with
+  `cover has no usable placement`. Ownership stays retained; no cover is added.
+- Concave: `(27,2)`, 11×16, 176 cells; one offer accepted, no rejection, two cover
+  elements. The 22×18 compound at `(3,2)` and its 15 rooms stay unchanged.
+  Free cells decrease from 947 to 944. This is a small visible content gain,
+  not evidence that most of the yard has been filled.
+
+Both trial outputs passed original portal coverage, local crossing reach and
+leaf fill checks against combined final collision geometry. Sampled hunter
+routes also reached every room center, the court center and an exterior stand
+at every chosen gate. Trial-and-diagnosis times were 590.474 ms (field rejection)
+and 254.065 ms (concave acceptance); these include route checks and are not
+production delegation overhead. Visually inspected previews show the unchanged
+ring/court, rejected narrow field strip, two accepted exterior cover pieces and
+depot's separate warehouse/container aisles. The SVG previews derive directly
+from emitted collision shapes; they do not show roofs, loot or live movement.
+
+The same three seeds used in #330 were generated at their authored sizes. The
+audit checked only top-level compound/depot geometry, with zero portal/fill
+errors across 15 compounds and 13 depots; this is not a whole-map diagnostic or
+a nested block audit. Generation took 913.037 / 4,115.232 / 10,916.875 ms, one
+run each; no performance change is inferred.
+
+| Seed | Compound regions / with a ring | Compound owned cells | Exterior candidate cells | Largest exterior rectangle, cells |
+| --- | ---: | ---: | ---: | ---: |
+| `issue330-before-12x6` | 1 / 1 | 2,592 | 1,464 | 1,024 |
+| `issue330-before-24x12` | 4 / 4 | 7,632 | 3,672 | 1,216 |
+| `issue330-before-36x18` | 10 / 9 | 22,320 | 2,640 | 180 |
+
+The unbuilt 11,232-cell `compound@336,342` in the last map contributes no exterior
+candidate claim: without a ring there is no authored retained footprint to measure.
+It must not become a full-region cover retry. #338 must separately exercise the
+terminal empty behavior, actual production reservations, observer/snapshot
+recovery, nested compounds, loot integration, before/after previews and versioned
+content checkpoint. Compound is selected for its explicit capped building and
+demonstrated compatible exterior witness; depot remains unselected until its
+deliberate aisles and density omissions can be distinguished from unused ground.
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including
