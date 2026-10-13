@@ -222,13 +222,12 @@ try {
     const config = typeof options === 'number' ? { maxFrames: options, advance: false } : { maxFrames: 30, advance: false, ...options };
     return page.evaluate(async ({ advance, maxFrames }) => {
       const samples = [];
-      const startTick = window.arenaDebug().tick;
       for (let i = 0; i < maxFrames; i++) {
         await new Promise(resolve => requestAnimationFrame(resolve));
         const debug = window.arenaDebug(), status = document.getElementById('replay-status');
         samples.push({ tick: debug.tick, seek: Number(document.getElementById('replay-seek').value),
           x: debug.shots?.[0]?.x, status: status.hidden ? null : status.textContent });
-        if (advance && debug.tick > startTick && samples.length >= 2) break;
+        if (advance && samples.length >= 2 && debug.tick > samples[0].tick) break;
       }
       return samples;
     }, config);

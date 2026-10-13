@@ -606,11 +606,17 @@ export function makeArenaScene(api) {
               for (let i = 0; i < 8; i++) {
                 const a = i * Math.PI / 4;
                 g.lineBetween(trap.homeX, trap.homeY, trap.homeX + Math.cos(a) * 240, trap.homeY + Math.sin(a) * 240);
-                g.lineStyle(3, 0xb297c1); g.lineBetween(trap.x + Math.cos(a) * 10, trap.y + Math.sin(a) * 10, trap.x + Math.cos(a + 0.25) * 25, trap.y + Math.sin(a + 0.25) * 25);
               }
             }
           }
           if (spiderInView) {
+            if (!lowLod) {
+              g.lineStyle(3, 0xb297c1);
+              for (let i = 0; i < 8; i++) {
+                const a = i * Math.PI / 4;
+                g.lineBetween(trap.x + Math.cos(a) * 10, trap.y + Math.sin(a) * 10, trap.x + Math.cos(a + 0.25) * 25, trap.y + Math.sin(a + 0.25) * 25);
+              }
+            }
             g.fillStyle(0x574d6b); g.fillCircle(trap.x, trap.y, 13); g.fillStyle(0xff879f); g.fillCircle(trap.x + Math.cos(heading) * 8, trap.y + Math.sin(heading) * 8, 4);
           }
         } else {
