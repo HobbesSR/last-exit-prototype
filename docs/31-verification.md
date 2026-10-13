@@ -14,6 +14,14 @@ npm run bench
 npm run bench:client
 ```
 
+The unit suites cap file concurrency at four, keeping CPU and memory contention
+bounded on the shared machine. Every case still runs, including the slow tier;
+timing assertions and isolated file budgets are unchanged. Unbounded file
+concurrency made the compound's three-second macro fixture fail under competing
+whole-match/seed-sweep work despite passing sequential isolated measurements.
+Use the normal scripts for integration; focused `node --test` commands remain
+available. The chain sweep's internal worker pool is separate.
+
 The unit suite has two tiers. `npm test` is the fast tier for iterating on a PR:
 everything under `tests/*.test.js`, about two minutes wall time (measured 2026-10-07: 5.5 minutes
 summed, run in parallel across files). `npm run test:all` adds
