@@ -2,6 +2,7 @@ import {
   CHAIN_LIBRARY_VERSION,
   CHAIN_TILE_SIZE,
   COUNT_PARAMS,
+  PLACEMENT_RULES,
   validateLibrary,
 } from "../../macro/src/chain/library.ts";
 import type {
@@ -745,6 +746,7 @@ function tileCells(tile: ChainTileDesign): string[] {
 }
 function tileThumbnail(t: ChainTileDesign): HTMLElement {
   const figure = document.createElement("figure");
+  figure.className = "tile-thumb";
   const cells = tileCells(t);
   for (let i = 0; i < CHAIN_TILE_SIZE * CHAIN_TILE_SIZE; i++) {
     const el = document.createElement("i");
@@ -2375,7 +2377,17 @@ function renderSetPieces(root: HTMLElement): void {
             cell.classList.add("duplicate");
           }
           cell.dataset.tileset = slot.tileSetId;
-          cell.style.borderLeftColor = classColor(slot.tileSetId);
+          const tileSet = library.tileSets.find((s) => s.id === slot.tileSetId);
+          const memberId = tileSet?.members[0];
+          const memberTile = memberId ? library.tiles.find((t) => t.id === memberId) : undefined;
+          if (memberTile) {
+            const thumb = tileThumbnail(memberTile);
+            thumb.classList.add("slot-thumbnail");
+            if (slot.orientation) {
+              thumb.style.transform = `rotate(${slot.orientation}deg)`;
+            }
+            cell.append(thumb);
+          }
 
           const nameSpan = document.createElement("span");
           nameSpan.className = "slot-set-id";
@@ -2386,9 +2398,16 @@ function renderSetPieces(root: HTMLElement): void {
           rotSpan.textContent = `${slot.orientation ?? 0}°${matchingSlots.length > 1 ? " (!)" : ""}`;
 
           cell.append(nameSpan, rotSpan);
+          if (tileSet && tileSet.members.length > 1) {
+            const countSpan = document.createElement("span");
+            countSpan.className = "slot-member-count";
+            countSpan.textContent = `[${tileSet.members.length}]`;
+            countSpan.title = `Tile set "${slot.tileSetId}" has ${tileSet.members.length} members: ${tileSet.members.join(", ")}`;
+            cell.append(countSpan);
+          }
           cell.title = matchingSlots.length > 1
             ? `Warning: ${matchingSlots.length} duplicate slots at (${dx}, ${dy})!\nLeft-click to rotate · Right-click to remove`
-            : `Slot (${dx}, ${dy}) · Set: ${slot.tileSetId} · Rot: ${slot.orientation ?? 0}°\nLeft-click to rotate · Right-click to remove`;
+            : `Slot (${dx}, ${dy}) · Set: ${slot.tileSetId}${tileSet && tileSet.members.length > 1 ? ` (${tileSet.members.length} members)` : ""} · Rot: ${slot.orientation ?? 0}°\nLeft-click to rotate · Right-click to remove`;
         } else {
           cell.title = `(${dx}, ${dy})\nLeft-click to place "${activeLayoutBrush}"`;
         }
@@ -2477,6 +2496,80 @@ function renderSetPieces(root: HTMLElement): void {
   };
   slotDetails.append(add);
   root.append(slotDetails);
+
+  // 5. Referencing Set Piece Classes & Binding
+  const classesSection = document.createElement("details");
+  classesSection.id = "chainPieceClassesSection";
+  classesSection.open = true;
+  const referencingCount = library.setPieceClasses.filter((c) =>
+    c.setPieces.includes(piece.id),
+  ).length;
+  const classesSummary = document.createElement("summary");
+  classesSummary.textContent = `Referencing Set Piece Classes (${referencingCount} / ${library.setPieceClasses.length})`;
+  classesSection.append(classesSummary);
+
+  const classesContainer = document.createElement("div");
+  classesContainer.className = "chain-piece-classes-list";
+  classesContainer.id = "chainPieceClassesList";
+
+  if (!library.setPieceClasses.length) {
+    const empty = document.createElement("p");
+    empty.className = "gallery-empty";
+    empty.textContent = "No set piece classes authored in library.";
+    classesContainer.append(empty);
+  } else {
+    for (const spClass of library.setPieceClasses) {
+      const row = document.createElement("div");
+      row.className = "chain-piece-class-row";
+      row.dataset.classId = spClass.id;
+
+      const checkLabel = document.createElement("label");
+      checkLabel.className = "chain-check";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.dataset.classId = spClass.id;
+      cb.checked = spClass.setPieces.includes(piece.id);
+      cb.onchange = () => {
+        if (cb.checked) {
+          if (!spClass.setPieces.includes(piece.id)) {
+            spClass.setPieces.push(piece.id);
+          }
+        } else {
+          spClass.setPieces = spClass.setPieces.filter((id) => id !== piece.id);
+        }
+        changed();
+      };
+      checkLabel.append(cb, spClass.id);
+
+      const badges = document.createElement("div");
+      badges.className = "chain-piece-class-badges";
+
+      const ruleBadge = document.createElement("span");
+      ruleBadge.className = "piece-class-badge rule-badge";
+      ruleBadge.textContent = `rule: ${spClass.placementRule}`;
+
+      const quotaBadge = document.createElement("span");
+      quotaBadge.className = "piece-class-badge quota-badge";
+      quotaBadge.textContent = `quota: ${spClass.quota ?? "none"}`;
+
+      const linkBtn = document.createElement("button");
+      linkBtn.type = "button";
+      linkBtn.className = "piece-class-link-btn";
+      linkBtn.textContent = "Edit class →";
+      linkBtn.title = `Switch to editing set piece class "${spClass.id}"`;
+      linkBtn.onclick = () => {
+        select("chainSection").value = "setPieceClasses";
+        selectedId = spClass.id;
+        render();
+      };
+
+      badges.append(ruleBadge, quotaBadge, linkBtn);
+      row.append(checkLabel, badges);
+      classesContainer.append(row);
+    }
+  }
+  classesSection.append(classesContainer);
+  root.append(classesSection);
 }
 function renderSetPieceClasses(root: HTMLElement): void {
   const group = current() as ChainLibrary["setPieceClasses"][number];
@@ -2485,7 +2578,7 @@ function renderSetPieceClasses(root: HTMLElement): void {
     choice(
       "Placement rule",
       "chainPlacementRule",
-      ["start", "end", "enormous", "medium", "small", "charger"],
+      Array.from(PLACEMENT_RULES),
       group.placementRule,
       (v) => {
         group.placementRule = v as typeof group.placementRule;
