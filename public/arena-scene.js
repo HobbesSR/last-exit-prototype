@@ -1,5 +1,5 @@
 import { visibilityPolygon, gateShape, insideMap } from '/shared/movement.ts';
-import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofGroups, roofOverhang, roofTargetAlpha, openingDistance, INSIDE_ZOOM } from '/shared/view.ts';
+import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofGroups, roofOverhang, roofTargetAlpha, openingDistance, INSIDE_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
 import { shapeOf, outline, bounds } from '/shared/shape.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
@@ -466,9 +466,10 @@ export function makeArenaScene(api) {
       this.insideBlend += ((within ? 1 : 0) - this.insideBlend) * (1 - Math.exp(-(rawDelta ?? delta) / 250));
       if (Math.abs((within ? 1 : 0) - this.insideBlend) < 0.005) this.insideBlend = within ? 1 : 0;
       start('render.camera'); this.updateCamera(); stop('render.camera');
-      const halfWidth = this.scale.width / this.cameras.main.zoom / 2;
-      const halfHeight = this.scale.height / this.cameras.main.zoom / 2;
-      const nearView = (x, y, margin = 400) => !eye || Math.abs(x - eye.x) < halfWidth + margin && Math.abs(y - eye.y) < halfHeight + margin;
+      const { x: cx, y: cy, zoom } = this.cameraView();
+      const halfWidth = this.cameras.main.width / zoom / 2;
+      const halfHeight = this.cameras.main.height / zoom / 2;
+      const nearView = (x, y, margin = 400) => Math.abs(x - cx) < halfWidth + margin && Math.abs(y - cy) < halfHeight + margin;
       const inside = eye && buildingAt(map, eye);
       // A roof fades toward a door or window as the viewer nears it, and away entirely once they are inside
       // any room of its group. This is cosmetic: concealment above is still decided by `roofConceals`.
@@ -482,12 +483,14 @@ export function makeArenaScene(api) {
         roof.visible = roof.alpha > 0 && nearView(building.x + building.w / 2, building.y + building.h / 2);
       }
       start('render.tiles'); this.updateTiles(); stop('render.tiles');
-      for (const label of this.labels) label.setVisible(nearView(label.x, label.y));
+      // Sub-pixel map labels become illegible smudge below LOD_LABEL_ZOOM; hide them until the camera zooms in.
+      const showLabels = zoom >= LOD_LABEL_ZOOM;
+      for (const label of this.labels) label.setVisible(showLabels && nearView(label.x, label.y));
       this.shade.clear();
       if (!fogged || !eye) { this.visionPoints = null; this.sight = null; }
       else {
         start('render.vision');
-        this.viewBounds = viewBounds(eye, this.scale.width, this.scale.height, this.cameras.main.zoom);
+        this.viewBounds = viewBounds(eye, this.scale.width, this.scale.height, zoom);
         this.rememberedGates = observeGates(map, eye, this.viewBounds, this.gateMemory, state.tick);
         this.sightMap.obstacles = map.obstacles; this.sightMap.gates = this.rememberedGates;
         this.visionPoints = visibilityPolygon(this.sightMap, eye, viewRadius(this.viewBounds, eye));
@@ -504,12 +507,39 @@ export function makeArenaScene(api) {
       const g = this.dynamic; g.clear();
       const fixed = this.fixtures; fixed.clear();
       start('render.world');
+      // Level of detail thresholds for distant / spectator views:
+      // zoom < LOD_LOW_ZOOM: simplified rects / outlines, skip sub-pixel inner details and rounded arc tessellations.
+      // zoom < LOD_MEDIUM_ZOOM: simplified item geometry without sinusoids or drop shadows.
+      // zoom >= LOD_MEDIUM_ZOOM: full detail with floating animations, drop shadows and glyphs.
+      const lowLod = zoom < LOD_LOW_ZOOM;
+      const medLod = zoom < LOD_MEDIUM_ZOOM;
       for (const gate of fogged ? this.rememberedGates : state.gates) {
-        if (!nearView(gate.x, gate.y)) continue;
+        if (!nearView(gate.x, gate.y, 60)) continue;
         if (gate.kind === 'door') {
-          const box = gateShape(gate); fixed.lineStyle(3, gate.stale ? 0x687789 : 0xe8bc74);
+          const box = gateShape(gate);
+          if (lowLod) {
+            if (gate.open) {
+              fixed.lineStyle(2, gate.stale ? 0x687789 : 0xe8bc74);
+              fixed.strokeRect(box.x, box.y, box.w, box.h);
+            } else {
+              fixed.fillStyle(gate.stale ? 0x494451 : 0xa07952);
+              fixed.fillRect(box.x, box.y, box.w, box.h);
+            }
+            continue;
+          }
+          fixed.lineStyle(3, gate.stale ? 0x687789 : 0xe8bc74);
           if (gate.open) fixed.strokeRect(box.x, box.y - 55, 12, 70);
           else { fixed.fillStyle(gate.stale ? 0x494451 : 0xa07952); fixed.fillRect(box.x, box.y, box.w, box.h); fixed.strokeRect(box.x, box.y, box.w, box.h); }
+          continue;
+        }
+        if (lowLod) {
+          if (gate.open) {
+            fixed.lineStyle(2, gate.stale ? 0x758583 : 0xa6e5dc, gate.stale ? 0.55 : 1);
+            fixed.strokeRect(gate.x - 13, gate.y - 27, 26, 54);
+          } else {
+            fixed.fillStyle(gate.stale ? 0x263c43 : 0xf5cf76);
+            fixed.fillRect(gate.x - 13, gate.y - 27, 26, 54);
+          }
           continue;
         }
         if (gate.open) {
@@ -527,7 +557,18 @@ export function makeArenaScene(api) {
         }
       }
       for (const item of state.items) {
+        if (!nearView(item.x, item.y, 30)) continue;
         if (!lit(item.x, item.y)) continue;
+        if (lowLod) {
+          g.fillStyle(COLORS[item.kind]);
+          g.fillRect(item.x - 8, item.y - 8, 16, 16);
+          continue;
+        }
+        if (medLod) {
+          g.fillStyle(0x28473f); g.fillRect(item.x - 12, item.y - 12, 24, 24);
+          g.fillStyle(COLORS[item.kind]); g.fillRect(item.x - 8, item.y - 8, 16, 16);
+          continue;
+        }
         const y = item.y + Math.sin(now / 340 + item.x) * 2;
         g.fillStyle(0x284735, 0.2); g.fillEllipse(item.x + 2, y + 10, 26, 11);
         g.fillStyle(0x28473f); g.fillRoundedRect(item.x - 12, y - 12, 24, 24, 5);
@@ -539,9 +580,11 @@ export function makeArenaScene(api) {
         else g.fillTriangle(item.x - 7, y - 5, item.x + 7, y - 5, item.x, y + 8);
       }
       for (const sensor of map.sensors) {
-        if (!nearView(sensor.x, sensor.y)) continue;
+        if (!nearView(sensor.x, sensor.y, 200)) continue;
         fixed.fillStyle(0xf2df82, 0.08); fixed.fillCircle(sensor.x, sensor.y, 180); fixed.lineStyle(1, 0xe6d174, 0.5); fixed.strokeCircle(sensor.x, sensor.y, 180);
-        fixed.fillStyle(0x355749); fixed.fillCircle(sensor.x, sensor.y, 11); fixed.fillStyle(0xffeaa0); fixed.fillCircle(sensor.x, sensor.y, 4);
+        if (!lowLod) {
+          fixed.fillStyle(0x355749); fixed.fillCircle(sensor.x, sensor.y, 11); fixed.fillStyle(0xffeaa0); fixed.fillCircle(sensor.x, sensor.y, 4);
+        }
         fixed.lineStyle(2, 0xe6d174, 0.5); fixed.lineBetween(sensor.x, sensor.y, sensor.x + Math.cos(now / 1200) * 174, sensor.y + Math.sin(now / 1200) * 174);
       }
       const alpha = api.frameAlpha();
@@ -549,17 +592,35 @@ export function makeArenaScene(api) {
         if (trap.spent || !lit(trap.x, trap.y)) continue;
         const heading = trap.heading || 0;
         if (trap.kind === 'mine') {
+          if (!nearView(trap.x, trap.y, 20)) continue;
           g.fillStyle(0x282c39); g.fillCircle(trap.x, trap.y, 15); g.lineStyle(2, 0xff778c); g.strokeCircle(trap.x, trap.y, 12);
           g.fillStyle(Math.floor(now / 400) % 2 ? 0xff778c : 0x583c48); g.fillCircle(trap.x, trap.y, 4);
         } else if (trap.kind === 'spider') {
-          g.lineStyle(1, 0xc5aecf, 0.25); g.strokeCircle(trap.homeX, trap.homeY, 240);
-          for (let i = 0; i < 8; i++) {
-            const a = i * Math.PI / 4;
-            g.lineBetween(trap.homeX, trap.homeY, trap.homeX + Math.cos(a) * 240, trap.homeY + Math.sin(a) * 240);
-            g.lineStyle(3, 0xb297c1); g.lineBetween(trap.x + Math.cos(a) * 10, trap.y + Math.sin(a) * 10, trap.x + Math.cos(a + 0.25) * 25, trap.y + Math.sin(a + 0.25) * 25);
+          // A roaming spider body can chase up to leash (360) from its home ring (240 radius).
+          const ringInView = nearView(trap.homeX, trap.homeY, 240);
+          const spiderInView = nearView(trap.x, trap.y, 30);
+          if (!ringInView && !spiderInView) continue;
+          if (ringInView) {
+            g.lineStyle(1, 0xc5aecf, 0.25); g.strokeCircle(trap.homeX, trap.homeY, 240);
+            if (!lowLod) {
+              for (let i = 0; i < 8; i++) {
+                const a = i * Math.PI / 4;
+                g.lineBetween(trap.homeX, trap.homeY, trap.homeX + Math.cos(a) * 240, trap.homeY + Math.sin(a) * 240);
+              }
+            }
           }
-          g.fillStyle(0x574d6b); g.fillCircle(trap.x, trap.y, 13); g.fillStyle(0xff879f); g.fillCircle(trap.x + Math.cos(heading) * 8, trap.y + Math.sin(heading) * 8, 4);
+          if (spiderInView) {
+            if (!lowLod) {
+              g.lineStyle(3, 0xb297c1);
+              for (let i = 0; i < 8; i++) {
+                const a = i * Math.PI / 4;
+                g.lineBetween(trap.x + Math.cos(a) * 10, trap.y + Math.sin(a) * 10, trap.x + Math.cos(a + 0.25) * 25, trap.y + Math.sin(a + 0.25) * 25);
+              }
+            }
+            g.fillStyle(0x574d6b); g.fillCircle(trap.x, trap.y, 13); g.fillStyle(0xff879f); g.fillCircle(trap.x + Math.cos(heading) * 8, trap.y + Math.sin(heading) * 8, 4);
+          }
         } else {
+          if (!nearView(trap.x, trap.y, 260)) continue;
           g.fillStyle(0x282c39); g.fillRoundedRect(trap.x - 19, trap.y - 19, 38, 38, 6);
           g.lineStyle(3, trap.kind === 'flame' ? 0xffba62 : 0xff879f); g.strokeCircle(trap.x, trap.y, 15);
           g.lineStyle(8, 0xadb8c2); g.lineBetween(trap.x, trap.y, trap.x + Math.cos(heading) * 28, trap.y + Math.sin(heading) * 28);
