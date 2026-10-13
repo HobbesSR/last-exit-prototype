@@ -116,11 +116,11 @@ answers in [17.2.9](17.2.9-delegation-questions.md). Preparation (#328), bounded
 execution and snapshot recovery (#329), and the hut-to-cover pilot (#330), are
 implemented. #331's measured candidate review selected compound exterior yards
 for [#338](http://localhost:3000/corey/astra_test/issues/338); that adoption is
-pending. Depot remains unselected. Continue one measured builder at a time, using
+implemented under `types-25` (20.7). Depot remains unselected. Continue one measured builder at a time, using
 the evidence and limits in [42](42-performance-history.md). Numerical
 recursion defaults to three patch levels (initial builder depth zero), with
 versioned owning-layer snapshots for recovery. Implementation issues #328 to
-#331 carry the initial dependency sequence; hut is the only production adopter.
+#331 carry the initial dependency sequence; hut and compound are production adopters.
 #331 closes with its evidence/planning checkpoint. #338 owns the selected
 adoption; further adopters need separate measured evidence and issues. The
 unbuilt large compound sample is a separate siting investigation in

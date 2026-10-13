@@ -204,6 +204,24 @@ try {
   assert.ok(pilot.result.elements.some(element => element.label.includes('/delegate/')));
   assert.equal(pilot.buildings.length, 1, 'cover does not manufacture building traces');
   await page.screenshot({ path: 'test-results/micro-lab-hut-delegation.png' });
+  // The compound adopter keeps its traced ring/court and adds exterior cover.
+  const compoundCells = Array.from({ length: 40 * 34 }, (_, i) => ({ x: i % 40, y: Math.floor(i / 40) }))
+    .filter(cell => cell.y < 20 || cell.x < 20);
+  const compoundYard = { id: 'compound-1', seed: 1, type: 'compound', cellSize: 40, cells: compoundCells,
+    zones: [{ tier: 1, bonus: 0, lootChance: 0.3, cells: compoundCells }],
+    portals: [{ id: 'west', axis: 'v', x: 0, y: 8, length: 2 }, { id: 'east', axis: 'v', x: 40, y: 8, length: 2 }] };
+  await page.goto(`${base}/dev/micro${await briefFragment(compoundYard)}`);
+  await page.waitForFunction(() => window.microLabDebug?.().imported === 'compound-1');
+  const compoundPilot = await page.evaluate(() => window.microLabDebug());
+  assert.deepEqual(compoundPilot.result, JSON.parse(JSON.stringify(buildRegion(compoundYard))));
+  assert.deepEqual(compoundPilot.promise, [], 'the browser-built compound keeps original portal access');
+  assert.equal(compoundPilot.result.manifest.rooms, 15);
+  assert.equal(compoundPilot.result.manifest.compoundGates, 2);
+  assert.ok(compoundPilot.result.elements.some(element => element.label.includes('/delegate/')), 'exterior cover is built in the browser');
+  assert.deepEqual(compoundPilot.buildings.map(trace => trace.label), ['compound']);
+  for (const name of ['Show allocation', 'Show spans', 'Show openings', 'Show design graph'])
+    await page.getByLabel(name, { exact: true }).uncheck();
+  await page.screenshot({ path: 'test-results/micro-lab-compound-delegation.png', fullPage: true });
   // A saved brief imports as a file, as the Map Lab's "Save this region's brief" writes it.
   const lone = briefs.find(b => b.type === 'hut');
   await page.locator('#import').setInputFiles({ name: 'brief.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(lone)) });

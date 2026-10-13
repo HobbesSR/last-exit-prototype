@@ -563,6 +563,132 @@ content checkpoint. Compound is selected for its explicit capped building and
 demonstrated compatible exterior witness; depot remains unselected until its
 deliberate aisles and density omissions can be distinguished from unused ground.
 
+## Compound exterior-yard adoption (#338, 2026-10-13)
+
+The production policy and owning API are in [20.7](20.7-builder-delegation.md).
+Before evidence was preserved from `ff9fd1b`, `types-24`, at
+`test-results/331-audit`; after evidence is produced separately by
+`node tools/compound-delegation-audit.mjs --seeds=20 --maps=1 --out=test-results/338-after`.
+The final after report records source `2e89706`, `types-25`, with all builder
+inputs committed. Its metadata lists only pending measurement documentation
+and the previous baseline capture as tracked changes. The workload is the same four shapes, seeds 1–20, IDs, zones and portals as
+#331 above, plus the same three authored-size maps. Windows, Node 24.15.0,
+AMD Ryzen 9 5900X; timings below are single builds per seed and map, excluding
+diagnosis and snapshot recovery. They describe added generation work, not a
+performance fix or a controlled regression benchmark.
+
+| Direct shape | Offers / accepted / rejected | Offered / accepted cells over 20 seeds | Before / after free-cell share | Before / after median build ms |
+| --- | ---: | ---: | ---: | ---: |
+| 17×16 | 0 / 0 / 0 | 0 / 0 | .709 / .709 | 1.744 / 5.000 |
+| 24×18 | 0 / 0 / 0 | 0 / 0 | .728 / .728 | 2.117 / 8.634 |
+| 40×34 field | 20 / 19 / 1 | 5,360 / 5,092 | .875 / .869 | 5.119 / 43.027 |
+| 40×34 concave | 33 / 24 / 9 | 7,060 / 5,856 | .876 / .866 | 8.488 / 43.486 |
+
+The direct concave seed-1 witness retains the original 17-piece ring (15 rooms,
+two gates; its pre-adoption geometry hash is pinned in the focused test).
+It offers two components totaling 336 of 1,080 cells. The 160-cell south lobe
+is accepted; the 176-cell east rectangle from the diagnostic witness is
+rejected because the production inherited cover brief yields no placement.
+The accepted lobe adds two elements and three occupied cells (947 → 944 free).
+Named patch identities and their inherited seeds differ from the earlier
+explicit `exterior-witness` diagnostic. This distinction matters: a compatible
+diagnostic rectangle does not guarantee production uptake. The court and
+gate approaches remain authored empty space.
+
+| Authored map | Diagnostic candidate cells / after protection | Offered cells | Accepted offers / cells | Rejected offers | Newly occupied cells |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `issue330-before-12x6` | 1,464 / 1,445 | 1,445 | 0 / 0 | 1 | 0 |
+| `issue330-before-24x12` | 3,672 / 3,512 | 3,272 | 2 / 2,432 | 12 | 91 |
+| `issue330-before-36x18` | 2,640 / 2,640 | 1,440 | 0 / 0 | 8 | 0 |
+
+Uptake remains concentrated. `compound@336,276` (4,032 cells) offers 2,552
+cells after 160 diagnostic cells are reserved for actual gate/portal routes.
+Its two 1,216-cell side components are accepted, adding 56 cover elements.
+Eight 15-cell fragments are rejected for incompatible crossings. Other
+1,152-cell compounds offer two 180-cell strips each, also rejected for
+crossing incompatibility. The 1,296-cell compounds retain their thin candidate
+components without offers. On the 12×6 map, `compound@252,36` offers a single
+1,445-cell component but retains it after crossing rejection. In total, these
+15 top-level compounds offer 6,157 cells and accept 2,432 (two of 23 offers).
+The accepted ownership is 60.3% of its one containing compound and 7.5% of
+all top-level compound ownership across these maps. This is a sparse exterior
+cover addition, not a claim that the yard is filled or broadly adopted.
+Nine nested block compound lots on the 36×18 map build their rings and pass
+final checks, but accept no exterior offers. The 11,232-cell compound remains
+unbuilt; it now takes the required terminal empty path and drops its former
+open-zone loot. Its siting investigation remains #340.
+
+The audit exposed two access defects before this checkpoint. A crossing into
+a thin inherited non-fill strip could be locally clear but unable to join the
+retained hunter network. Declaring those inherited cells protected now rejects
+that offer. Concave seed 18 could choose a widened south passage with a usable
+off-center stand while its centered outer door had no actual yard stand.
+Siting now tests the centered door's floor/ceiling whole-cell stands; ring
+boxes stay unchanged across the audited direct cases, while invalid gate-side
+choices can change. These are narrow access corrections, not an expanded
+siting search or a diagnosis of #340.
+
+All three whole-map reports have zero defects. All 80 direct cases, 15 top-level compounds and nine nested lots pass exact ownership partitions and final
+containing and leaf fill/portal/crossing checks and sampled hunter routes to
+every room center, court center and actual gate yard stand. Full and
+omitted-result snapshots reproduce decisions, results and versions. Previews
+show retained ring/court geometry and accepted/rejected exterior ownership;
+free cells and rectangle counts are not proof of authorship. The small compounds
+retain their original content. `npm run fill` on the preserved source and
+adopter (20 seeds, compound only, 24×18 and 40×34) reports unchanged .728
+free share for 24×18 and .875 → .869 for 40×34, with no failed builds.
+Authored-map generation times were 1,346 / 5,060 / 12,433 ms after adoption,
+versus 1,117 / 4,877 / 11,706 ms in the locally preserved before audit; these
+single-run observations do not establish a timing regression.
+
+The existing synthetic macro fixture is 200×150 cells, seed 3, 170 perimeter
+portals and four gates. It offers 24,528 of 30,000 cells (81.8%) in two components,
+but rejects both for incompatible crossings; all ownership stays retained.
+This exposes the selection policy's limit on very broad synthetic yards even
+though actual acceptance is conservative. Three sequential isolated runs of
+`node --test --test-name-pattern=macro-sized tests/micro-compound.test.js`
+took 199.5 / 189.5 / 199.9 ms before, versus 1,045.7 / 1,031.0 / 1,033.6 ms
+after. A preliminary policy also offered twelve two-cell-wide circulation
+slivers, took 1,791.5 / 1,805.2 / 1,818.3 ms in three isolated runs, and failed
+the unchanged three-second assertion at 7,577 ms under full-suite contention.
+Requiring a 3×3 yard pocket removes those slivers before preparation; this is
+an authorship suitability screen, not a universal cover requirement. The
+builder version advances from preliminary `compound-yard-1` to
+`compound-yard-2`, so omitted historical snapshots refuse the changed policy.
+Preparation still adds substantial work, even for rejected patches; this is
+an acknowledged generation-cost increase. Each after run still satisfies the
+unchanged three-second assertion. The complete fast compound, focused
+delegation, slow access and mechanically updated rubble files take 9.2 / 5.5 /
+10.0 / .3 seconds in isolated file timing, within their respective budgets.
+Unit-suite file concurrency is bounded to four (31), retaining every assertion
+while avoiding an unbounded mixture of fixture and whole-match work.
+PR #342 review reproduced the contention failure on the final `compound-yard-2`
+policy: `node --test tests/*.test.js tests/slow/*.test.js` completed in 136.0
+seconds with 655/656 passing; its sole failure was the unchanged three-second
+macro assertion at 4,182 ms. The earlier capped integration run passed all 656
+in 197.7 seconds, with the macro fixture at 1,385 ms. The cap trades suite wall
+time for bounded contention; it does not remove cases or relax timing assertions.
+The capped fast suite after the shared gate-stand helper passes 642/642 in
+111.5 seconds wall time, with the macro fixture at 1,589 ms (31).
+The frozen netcode fixture is unchanged.
+
+Follow-up [#344](http://localhost:3000/corey/astra_test/issues/344) investigates
+cheaper rejection of incompatible crossings before complete preparation, with
+the same ownership, access, deterministic decisions and snapshot contracts.
+
+Sequential integration benchmarks also completed: `npm run bench` (seed 4217,
+12×6, one room/viewer, 9,238 ticks) measured mean 2.706 ms and p95 5.202 ms
+against a 50 ms tick budget, with one over-budget tick. `npm run bench:client`
+at its default entry location measured 721 frames over 12.02 seconds, 60.0 fps,
+16.80 ms p95 frame time and .600 ms p95 measured render work. These are bounded
+simulation/default-view observations, not a reproduction or fix of the reported
+crowd slowdown.
+
+Final verification passes 656 fast/slow tests with the bounded file concurrency,
+both browser labs (including stored-result equality for delegated compound),
+the other browser checks and all three micro previews. The 224-case checkpoint
+uses committed builder inputs `2e89706`; regeneration checks zero drift.
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including

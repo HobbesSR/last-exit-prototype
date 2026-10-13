@@ -2,7 +2,7 @@
 
 Status: living documentation
 Prototype rules version: `last-exit-0.7`; default content: `content-2`
-Updated: 2026-10-03
+Updated: 2026-10-13
 
 This directory is the canonical product and engineering record for the prototype.
 It is split so a task can load the two or three files it actually needs instead of
@@ -57,7 +57,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 
 | File | Holds |
 | --- | --- |
-| [20-micro-generation.md](20-micro-generation.md) | Guide to micro contracts, geometry, builders, decomposition, tools, passable margins (20.6) and builder delegation (20.7: preparation/execution and hut-to-cover pilot implemented); load the relevant 20.x part |
+| [20-micro-generation.md](20-micro-generation.md) | Guide to micro contracts, geometry, builders, decomposition, tools, passable margins (20.6) and builder delegation (20.7: preparation/execution, hut and compound adoption implemented); load the relevant 20.x part |
 | [21-stack.md](21-stack.md) | Chosen components, why, and the constraints a replacement must satisfy |
 | [22-ownership.md](22-ownership.md) | Guide to ownership by subsystem and the boundaries tests enforce; load the relevant 22.x part |
 | [23-types.md](23-types.md) | The TypeScript arrangement in `shared/`, branding policy, erasure |

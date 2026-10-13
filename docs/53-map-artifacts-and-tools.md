@@ -214,6 +214,21 @@ checkpoint; the final 224-case check has zero drift. Macro version 3 and
 wire version 8 remain unchanged, as does the frozen gameplay characterization
 fixture.
 
+**#338's re-capture** pins `types-25` at input commit `2e89706`, retaining the
+same 224 cases. Compound keeps its ring/court, reserves actual gate/portal
+circulation and inherited clear cells, and delegates compatible exterior
+components with 3×3 yard pockets to cover (20.7, 54). Centered-door feasibility corrects invalid
+gate-side choices without expanding the siting search. Results hashes change
+on all 224 cases because the version changes; built and report hashes change
+on 22. Layout, declared grid, resolved segments, regions, proof, zones and
+briefs remain identical. The three measured authored maps have no report
+defects, and every audited containing/leaf interface and sampled room/court/gate
+route passes against final combined geometry. Two of 23 authored-map offers
+are accepted, in one large compound (42). Both browser labs reproduce the
+stored adopter output, and full/omitted owning snapshots recover exactly.
+The final 224-case regeneration check has zero drift. Macro version 3 and wire version 8 remain unchanged. The frozen gameplay
+characterization fixture is unchanged.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
@@ -411,6 +426,23 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   JSON plus collision-geometry SVG previews. This is a read-only investigation,
   not production patch authorship, an admission check or a baseline capture.
   Workload, findings and limits are in [42](42-performance-history.md).
+- **Compound adoption audit** (`node tools/compound-delegation-audit.mjs
+  --seeds=20 --maps=1 --out=test-results/338-after`) compares production
+  compound decisions against the preserved `test-results/331-audit/report.json`
+  from `types-24` (before-source checkpoint `ff9fd1b`). Reproduce that before
+  directory with the candidate audit at the old source, before changing content;
+  do not overwrite it by running the old audit on the current adopter. The new
+  audit refuses a before report from another content version. It writes
+  per-region diagnostic, protected, offered, accepted and rejected footprints,
+  reasons, stopping/version traces, fill and sequential build timings, full and
+  omitted-result snapshot recovery, final containing/leaf/crossing geometry and
+  sampled hunter routes to the rooms, court and gate yard stands. It also
+  inspects nested block compound lots. Previewed cases also write complete
+  owning snapshots and omitted-result snapshots for independent inspection.
+  SVGs compare retained ring-only geometry
+  with combined output; they are collision previews, not roofs or movement.
+  Failed geometry/access/recovery checks produce a nonzero exit. Workload,
+  uptake, siting corrections and limits belong in [42](42-performance-history.md).
 
 The GUI, CLI and MCP call one shared core and must agree on seed, parameters,
 library, validation and serialized output. Verification gates for both halves
