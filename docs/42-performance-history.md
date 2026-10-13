@@ -697,9 +697,15 @@ intersection uses only reserved parent cells, and the playable mask is lazy.
 Crossing selection, rejection precedence, receiving interfaces and all algorithm
 and content versions remain unchanged. This adds no feasibility heuristic.
 
-`node tools/compound-delegation-timing.mjs` compares committed preparation
-`4a7a5ba` with `0a8e3aa`, using the same unchanged executor and compound strategy
-inputs. Windows, Node 24.15.0, AMD Ryzen 9 5900X; three paired sequential rounds,
+`node tools/compound-delegation-timing.mjs` compares preparation from `--before`
+(default `4a7a5ba`) with the checked-out `delegation.ts`. Both revisions use
+current sibling modules, executor and compound strategy, so this is a
+point-in-time harness whose compatibility must be rechecked if those dependencies
+change. The recorded run below used committed preparation `4a7a5ba` and
+checked-out commit `0a8e3aa`; its executor, compound strategy and sibling
+dependencies were unchanged. The JSON records the checked-out `head` and tracked
+dirty paths, so a later rerun is not automatically a `0a8e3aa` measurement.
+Windows, Node 24.15.0, AMD Ryzen 9 5900X; three paired sequential rounds,
 alternating revision order, with the machine benchmark lock and no competing
 local checks. Each round builds the audit's 40×34 field and concave inputs for
 seeds 1–20, then the exact 200×150 seed-3, 170-portal, four-gate macro fixture.

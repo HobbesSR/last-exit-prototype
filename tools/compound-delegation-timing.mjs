@@ -1,5 +1,12 @@
 #!/usr/bin/env node
-/** Paired compound delegation timings. Run with Node's TypeScript support. */
+/**
+ * Point-in-time paired compound delegation timings. Run with Node's TypeScript support.
+ * Compares --before's delegation.ts with the checked-out file; both use current
+ * sibling modules, executor and compound strategy. Recheck compatibility if they drift.
+ * Temporary .timing-<uuid>-*.ts modules live beside their originals in map/micro/
+ * and map/micro/strategies/ so relative imports resolve. finally removes them;
+ * after a hard interruption, remove leftover modules before type/import checks.
+ */
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readFile, unlink, writeFile } from 'node:fs/promises';
