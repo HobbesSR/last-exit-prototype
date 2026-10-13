@@ -302,10 +302,10 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
         const portal: Portal = { ...crossing, id: `${parent.id}/interface/${JSON.stringify([seam.a, seam.b, crossing.axis, crossing.x, crossing.y, crossing.length])}` };
         if (parent.portals.some(p => p.id === portal.id)) throw new Error('Generated crossing identity collides with inherited portal.');
         if (protectedAddresses.length && clearFootprint([portal], protectedAddresses).length) continue;
-        mask ??= createRegionMask({ cells: [...parent.cells, ...parent.clearCells!], cellSize: parent.cellSize });
+        const playableMask = mask ??= createRegionMask({ cells: [...parent.cells, ...parent.clearCells!], cellSize: parent.cellSize });
         const owner = local.find(b => b.id === seam.a)!;
         const stands = portalStands({ ...owner, portals: [portal] })[0]!.points;
-        if (!stands.length || !stands.every((p, i) => travelClear(mask, blockers, p, stands[Math.max(0, i - 1)]!, radius))) continue;
+        if (!stands.length || !stands.every((p, i) => travelClear(playableMask, blockers, p, stands[Math.max(0, i - 1)]!, radius))) continue;
         selected = portal; break;
       }
       if (!selected) throw new InfeasiblePatch(`No compatible hunter crossing between ${seam.a} and ${seam.b}.`);
