@@ -437,6 +437,35 @@ preparation and 0.3 for execution, all below the 15-second file budget. The
 existing 224-case `types-24` baseline check returned zero drift; it and the
 frozen netcode fixture remain unchanged.
 
+## Spectator and replay level of detail (#272, 2026-10-13)
+
+Measured 2026-10-13 on Corey's Windows development machine in headless Chrome,
+seed 4217, 3-second run framing the entire arena overview. Runs were sequential
+with no competing tests or benchmarks. The reproducible audit command is
+`node tests/bench-client.mjs --spectator --seconds=3`.
+
+The before side loads `public/arena-scene.js` from `6737eed` (pre-LOD main); the after
+side is this branch. Before level-of-detail and camera-centered viewport culling,
+unfogged spectator and replay views rendered hundreds of static fixtures, doors,
+energy gates, sensors, spider web spokes/legs, and item drop shadows/sinusoidal bobbing
+across the entire map every frame, causing severe frame drops in headless Chrome.
+
+| Metric | Before LOD (`6737eed`) | After LOD |
+| --- | ---: | ---: |
+| Frame rate | 5.7 fps (18 frames in 3.13 s) | 59.9 fps (181 frames in 3.02 s) |
+| Frame time mean / p50 / p95 / max | 174.46 / 174.10 / 190.00 / 190.00 ms | 16.67 / 16.70 / 16.80 / 16.90 ms |
+| `render.draw` mean / p50 / p95 / max | 168.841 / 168.200 / 184.400 / 184.400 ms | 0.871 / 0.800 / 1.400 / 2.200 ms |
+| `render.frame` mean / p50 / p95 / max | 4.356 / 4.600 / 5.600 / 5.600 ms | 1.180 / 1.200 / 1.400 / 1.800 ms |
+| `render.world` mean / p50 / p95 / max | 3.500 / 3.700 / 4.700 / 4.700 ms | 0.112 / 0.100 / 0.200 / 0.300 ms |
+
+Sub-pixel text labels are hidden below `LOD_LABEL_ZOOM` (0.35); fixtures collapse into
+fast outlines (open gates/doors) or bounding fills (closed gates/doors) below
+`LOD_LOW_ZOOM` (0.2); spider traps cull web rings and roaming bodies independently;
+and items collapse into flat boxes without drop shadows or sinusoidal animation.
+`render.draw` times Phaser's CPU render pass, not GPU execution; headless Chrome may use
+software GL. This addresses full-arena spectator and replay overhead, but does not
+resolve the reported multi-actor slowdown during matches.
+
 ## Delegation adoption candidate review (#331, 2026-10-13)
 
 The merged hut pilot's owning traces, snapshot tests, fill results and timing
@@ -512,9 +541,22 @@ run each; no performance change is inferred.
 | `issue330-before-24x12` | 4 / 4 | 7,632 | 3,672 | 1,216 |
 | `issue330-before-36x18` | 10 / 9 | 22,320 | 2,640 | 180 |
 
+The authored-map evidence is concentrated. `compound@252,36` contributes all
+1,464 candidate cells on the 12×6 map; `compound@336,276` (4,032 owned cells)
+contributes 2,712 of 3,672 on the 24×12 map. Other ringed compounds leave either
+240 candidate cells with no 3×3 rectangle, or 360 with a 9×20 west-side strip.
+Such strips can still be needed by a west gate's approach beyond the diagnostic
+two-cell band. #338 must report per-region offered, accepted and rejected
+footprints/reasons before and after actual gate/portal route reservations,
+alongside totals and final access checks. These candidate counts alone do not
+establish adoption in ordinary-sized regions.
+
 The unbuilt 11,232-cell `compound@336,342` in the last map contributes no exterior
 candidate claim: without a ring there is no authored retained footprint to measure.
-It must not become a full-region cover retry. #338 must separately exercise the
+Its siting outcome is separately tracked by
+[#340](http://localhost:3000/corey/astra_test/issues/340); portal count or shape
+are possible causes, not a diagnosis. It must not become a full-region cover retry
+or be absorbed into #338. #338 must separately exercise the
 terminal empty behavior, actual production reservations, observer/snapshot
 recovery, nested compounds, loot integration, before/after previews and versioned
 content checkpoint. Compound is selected for its explicit capped building and

@@ -121,6 +121,10 @@ the evidence and limits in [42](42-performance-history.md). Numerical
 recursion defaults to three patch levels (initial builder depth zero), with
 versioned owning-layer snapshots for recovery. Implementation issues #328 to
 #331 carry the initial dependency sequence; hut is the only production adopter.
+#331 closes with its evidence/planning checkpoint. #338 owns the selected
+adoption; further adopters need separate measured evidence and issues. The
+unbuilt large compound sample is a separate siting investigation in
+[#340](http://localhost:3000/corey/astra_test/issues/340), outside #338.
 
 The sequencing below remains the other gameplay backlog, not an instruction to
 leave the current micro-generation effort for reward tiers.
