@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { buildCompound, buildCompoundGeneration, COMPOUND_EXECUTION_REGISTRY } from '../map/micro/strategies/compound.ts';
 import { executionLeaves, flattenDelegationResult } from '../map/micro/delegation-execute.ts';
 import { buildBlock, planBlock } from '../map/micro/strategies/block.ts';
-import { validateBriefPartition } from '../map/micro/delegation.ts';
+import { prepareDelegation, validateBriefPartition } from '../map/micro/delegation.ts';
 import { saveDelegationSnapshot, readDelegationSnapshot, delegationSnapshotResult } from '../map/micro/delegation-snapshot.ts';
 import { createAccessMask, elementShapes, findRegionRoute } from '../map/micro/geometry.ts';
 import { validateFillConstraints } from '../map/micro/margins.ts';
@@ -145,13 +145,19 @@ test('split fill excludes exterior patches that cannot contain cover', () => {
 });
 
 test('inherited cover infeasibility rejects a narrow exterior component without losing cells', () => {
-  const cells = cellsOf(40, 34), original = brief('compound-field', cells, [
+  const cells = cellsOf(40, 34), original = brief('compound-1', cells, [
     { id: 'west', axis: 'v', x: 0, y: 8, length: 2 },
     { id: 'east', axis: 'v', x: 40, y: 8, length: 2 },
   ]);
   const node = buildCompoundGeneration(original);
-  assert.ok(node.offers?.length > (node.children?.length ?? 0));
-  assert.ok(node.preparation.rejected.some(({ reason }) => reason.includes('cover has no usable placement')));
+  // The explicit 4x30 before-evidence witness remains infeasible even when
+  // production screening retains a narrower route sliver without offering it.
+  const prepared = prepareDelegation(original, [{ key: 'exterior-witness', type: 'cover',
+    cells: cellsOf(4, 30).map(cell => ({ x: cell.x + 2, y: cell.y + 2 })), reasonTags: ['unused-exterior-yard'] }],
+  { blockers: placed(node.retained), receiving: COMPOUND_EXECUTION_REGISTRY.cover.receiving });
+  assert.equal(prepared.children.length, 0);
+  assert.equal(prepared.retained.cells.length, original.cells.length);
+  assert.ok(prepared.rejected.some(({ reason }) => reason.includes('cover has no usable placement')));
   assert.deepEqual(validateBriefPartition(node.input, executionLeaves(node).map(leaf => leaf.brief)), []);
   assert.deepEqual(validatePortalReach({ ...node.input, blockers: blockers(flattenDelegationResult(node)) }).errors, []);
 });
@@ -168,6 +174,20 @@ test('compound delegation is canonical across cell, portal and zone order', () =
   reversed.zones.reverse();
   for (const zone of reversed.zones) zone.cells.reverse();
   assert.deepEqual(buildCompoundGeneration(reversed), buildCompoundGeneration(original));
+});
+
+test('a broad macro yard retains narrow circulation slivers before expensive preparation', () => {
+  const cells = cellsOf(200, 150), portals = [];
+  for (let x = 2; x < 196; x += 4) portals.push(
+    { id: `n${x}`, axis: 'h', x, y: 0, length: 2 }, { id: `s${x}`, axis: 'h', x, y: 150, length: 2 });
+  for (let y = 2; y < 146; y += 4) portals.push(
+    { id: `w${y}`, axis: 'v', x: 0, y, length: 2 }, { id: `e${y}`, axis: 'v', x: 200, y, length: 2 });
+  const node = buildCompoundGeneration(brief('macro', cells, portals,
+    { seed: 3, parameters: { gates: 4 }, zones: [{ tier: 3, bonus: 0, lootChance: 0.4, cells }] }));
+  assert.equal(node.offers.length, 2, 'the twelve two-cell-wide circulation strips are never offered');
+  assert.deepEqual(node.offers.map(offer => offer.cells.length), [12264, 12264]);
+  assert.equal(node.children.length, 0, 'the broad side components still require compatible crossings');
+  assert.equal(node.retained.brief.cells.length, cells.length);
 });
 
 test('depth limit preserves the compound and records terminal empty patch ownership', () => {

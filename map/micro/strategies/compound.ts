@@ -195,7 +195,7 @@ function coverReceiving(build: (brief: RegionBrief) => BuiltRegion) {
 }
 
 export const COMPOUND_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
-  compound: { version: 'compound-yard-1', build: buildRetainedCompound },
+  compound: { version: 'compound-yard-2', build: buildRetainedCompound },
   cover: { version: 'cover-types-23', build: buildCover, receiving: coverReceiving(buildCover) },
 });
 
@@ -366,9 +366,14 @@ function exteriorYard(brief: RegionBrief, box: Box, gates: { x: number; y: numbe
         if (next) { unused.delete(key(nx, ny)); cells.push(next); }
       }
     }
+    // Compound authorship keeps narrow strips as circulation. An offered
+    // component must contain a 3x3 yard pocket; this is a cheap suitability
+    // screen, not a substitute for the exact inherited cover preview.
+    const patch = new Set(cells.map(c => key(c.x, c.y)));
+    const hasPocket = cells.some(c => [0, 1, 2].every(dy => [0, 1, 2].every(dx => patch.has(key(c.x + dx, c.y + dy)))));
     // The canonical first cell uniquely identifies a disjoint connected component.
     // Keep IDs bounded; the owning snapshot records the complete footprint.
-    if (cells.length >= 9) offers.push({ key: `exterior:${start.x},${start.y}`, cells, type: 'cover', reasonTags: ['unused-exterior-yard'] });
+    if (cells.length >= 9 && hasPocket) offers.push({ key: `exterior:${start.x},${start.y}`, cells, type: 'cover', reasonTags: ['unused-exterior-yard'] });
   }
   return { offers, protectedCells: owned.cells.filter(c => protectedKeys.has(key(c.x, c.y))) };
 }

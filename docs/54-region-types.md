@@ -564,7 +564,8 @@ inside, and windows and doors let sight through.
   - **Exterior-yard delegation (#338, `types-25`):** after the ring is built,
     reserve its entire court/room box, two-cell approach and perimeter bands,
     and hunter swept routes joining every original portal and actual gate yard
-    stand. Connected exterior components may go to cover only if the exact
+    stand. Narrow circulation strips stay retained; a component needs a 3×3
+    yard pocket before it is considered for cover. Connected exterior components may go to cover only if the exact
     inherited interface yields usable content. Refused cells stay retained.
     The owning executor, protection, footprint identity and snapshot contracts
     are specified in [20.7](20.7-builder-delegation.md); measured balance is in
