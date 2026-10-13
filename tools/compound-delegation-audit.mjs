@@ -144,7 +144,12 @@ async function audit(brief, baselineRun, previewName) {
     offers, offeredCells: offers.reduce((n, o) => n + o.cellCount, 0), accepted: offers.filter(o => o.accepted).length,
     rejected: offers.filter(o => !o.accepted).length, acceptedCells: offers.filter(o => o.accepted).reduce((n, o) => n + o.cellCount, 0),
     generation: trace(node), snapshot, validations };
-  if (previewName) await writeFile(resolve(out, previewName), svg(brief, before, after, offers, prior));
+  if (previewName) {
+    await writeFile(resolve(out, previewName), svg(brief, before, after, offers, prior));
+    const name = previewName.replace(/\.svg$/, '');
+    await writeFile(resolve(out, `${name}.snapshot.json`), JSON.stringify(full, null, 2) + '\n');
+    await writeFile(resolve(out, `${name}.omitted.json`), JSON.stringify(omitted, null, 2) + '\n');
+  }
   return summary;
 }
 

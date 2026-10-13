@@ -419,7 +419,9 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   reasons, stopping/version traces, fill and sequential build timings, full and
   omitted-result snapshot recovery, final containing/leaf/crossing geometry and
   sampled hunter routes to the rooms, court and gate yard stands. It also
-  inspects nested block compound lots. SVGs compare retained ring-only geometry
+  inspects nested block compound lots. Previewed cases also write complete
+  owning snapshots and omitted-result snapshots for independent inspection.
+  SVGs compare retained ring-only geometry
   with combined output; they are collision previews, not roofs or movement.
   Failed geometry/access/recovery checks produce a nonzero exit. Workload,
   uptake, siting corrections and limits belong in [42](42-performance-history.md).
