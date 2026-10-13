@@ -118,7 +118,7 @@ export function realizeBuilding(design: BuildingDesign, allocation: BuildingAllo
   parts.push(...gates);
   result.owners = [...partOwners, ...gateOwners];
   result.origin = { x: x0 * options.cellSize, y: y0 * options.cellSize };
-  const roofs = deriveContiguousRoofs(roofCells, x0, y0, options.cellSize, options.groupId ?? 'building', result.openings);
+  const roofs = deriveContiguousRoofs(roofCells, x0, y0, options.cellSize, options.groupId, result.openings);
   result.template = {
     w: (x1 - x0) * options.cellSize,
     h: (y1 - y0) * options.cellSize,
@@ -138,7 +138,7 @@ export function deriveContiguousRoofs(
   x0: number,
   y0: number,
   cellSize: number,
-  groupId: string,
+  groupId?: string,
   openings: readonly PlacedBuildingOpening[] = [],
 ): ElementRoof[] {
   if (!cells.length) return [];
@@ -216,8 +216,10 @@ export function deriveContiguousRoofs(
 
     return {
       id: `roof-${idx + 1}`,
-      groupId,
+      ...(groupId ? { groupId } : {}),
       bounds,
+      cellSize,
+      origin: { x: 0, y: 0 },
       cells: comp.map(c => ({ x: c.x - x0, y: c.y - y0 })),
       overhang: ROOF_OVERHANG,
       ...(thresholds.length ? { thresholds } : {}),

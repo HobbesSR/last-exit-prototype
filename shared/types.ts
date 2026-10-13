@@ -287,9 +287,12 @@ export interface Roof {
   id: string;
   groupId: string;
   bounds: Box;
+  origin: Vec2;
+  cellSize: number;
   cells: Cell[];
   overhang?: number | undefined;
   thresholds?: Cell[] | undefined;
+  buildingId?: BuildingId | undefined;
 }
 
 export interface MapModule extends Vec2 {

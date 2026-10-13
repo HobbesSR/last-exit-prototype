@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { roofAt, roofConceals, roofGroups, roofOverhang, roofTargetAlpha, openingDistance, ROOF_FADE_RANGE, ROOF_FADE_FLOOR, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '../shared/view.ts';
 import { visibilityPolygon, litPoint } from '../shared/movement.ts';
+import { generateLiveMap } from '../map/live.ts';
 
 test('full viewport corners are visible across supported sizes and zooms within server coverage', () => {
   const eye = { x: 3000, y: 2000 }, map = { obstacles: [], gates: [] };
@@ -125,30 +126,35 @@ test('level of detail zoom thresholds maintain strict progression below player z
   assert.ok(LOD_MEDIUM_ZOOM < playerZoom(1440, 1000), 'all LOD thresholds sit strictly below contestant camera zoom');
 });
 
-test('declared roofs support concave and holed shapes, spatial containment, and group concealment', () => {
+test('declared roofs support concave and holed shapes, spatial containment, and per-room concealment', () => {
   // L-shaped roof on cells (0,0), (1,0), (0,1) at cellSize 40
   const lRoof = {
     id: 'l-roof',
     groupId: 'wing-1',
     bounds: { x: 0, y: 0, w: 80, h: 80 },
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
     cells: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }],
   };
   const annexRoof = {
     id: 'annex',
     groupId: 'wing-1',
     bounds: { x: 120, y: 0, w: 40, h: 40 },
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
     cells: [{ x: 3, y: 0 }],
   };
   const shedRoof = {
     id: 'shed',
     groupId: 'shed-group',
     bounds: { x: 0, y: 120, w: 40, h: 40 },
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
     cells: [{ x: 0, y: 3 }],
   };
   const map = {
     buildings: [],
     roofs: [lRoof, annexRoof, shedRoof],
-    playableArea: { cellSize: 40, rows: [] },
   };
 
   // Inside L-shaped roof
@@ -167,16 +173,16 @@ test('declared roofs support concave and holed shapes, spatial containment, and 
   assert.equal(roofConceals(map, { x: 60, y: 20 }, { x: 20, y: 60 }), false);
   // Target in notch (outside), viewer inside -> not concealed
   assert.equal(roofConceals(map, { x: 20, y: 20 }, { x: 60, y: 60 }), false);
-  // Viewer in room 1 (lRoof), target in room 2 (annexRoof) sharing groupId 'wing-1' -> not concealed
-  assert.equal(roofConceals(map, { x: 20, y: 20 }, { x: 130, y: 20 }), false);
+  // Viewer in room 1 (lRoof), target in room 2 (annexRoof) sharing groupId 'wing-1' -> concealed (sight is per-room!)
+  assert.equal(roofConceals(map, { x: 20, y: 20 }, { x: 130, y: 20 }), true);
   // Viewer in wing-1, target in shed (shed-group) -> concealed
   assert.equal(roofConceals(map, { x: 20, y: 20 }, { x: 20, y: 130 }), true);
 });
 
 test('roofGroups partitions declared roofs by groupId directly', () => {
-  const r1 = { id: 'r1', groupId: 'house', bounds: { x: 0, y: 0, w: 40, h: 40 }, cells: [{ x: 0, y: 0 }] };
-  const r2 = { id: 'r2', groupId: 'house', bounds: { x: 40, y: 0, w: 40, h: 40 }, cells: [{ x: 1, y: 0 }] };
-  const r3 = { id: 'r3', groupId: 'shed', bounds: { x: 200, y: 0, w: 40, h: 40 }, cells: [{ x: 5, y: 0 }] };
+  const r1 = { id: 'r1', groupId: 'house', bounds: { x: 0, y: 0, w: 40, h: 40 }, origin: { x: 0, y: 0 }, cellSize: 40, cells: [{ x: 0, y: 0 }] };
+  const r2 = { id: 'r2', groupId: 'house', bounds: { x: 40, y: 0, w: 40, h: 40 }, origin: { x: 0, y: 0 }, cellSize: 40, cells: [{ x: 1, y: 0 }] };
+  const r3 = { id: 'r3', groupId: 'shed', bounds: { x: 200, y: 0, w: 40, h: 40 }, origin: { x: 0, y: 0 }, cellSize: 40, cells: [{ x: 5, y: 0 }] };
   const map = { buildings: [], gates: [], roofs: [r1, r2, r3] };
   const groups = roofGroups(map);
   assert.deepEqual(groups.get('r1')?.map(r => r.id), ['r1', 'r2']);
@@ -184,17 +190,116 @@ test('roofGroups partitions declared roofs by groupId directly', () => {
   assert.deepEqual(groups.get('r3')?.map(r => r.id), ['r3']);
 });
 
-test('openingDistance measures distance to declared roof threshold cells', () => {
+test('openingDistance measures distance to declared roof threshold cells and windows with buildingId', () => {
   const roof = {
-    id: 'hall',
+    id: 'hall-roof',
     groupId: 'hall',
     bounds: { x: 0, y: 0, w: 80, h: 80 },
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
     cells: [{ x: 0, y: 0 }, { x: 1, y: 0 }],
     thresholds: [{ x: 0, y: 1 }], // Cell at (0..40, 40..80)
+    buildingId: 'b-hall',
   };
-  const map = { gates: [], obstacles: [], playableArea: { cellSize: 40, rows: [] } };
-  // Standing inside threshold cell (e.g. x: 20, y: 50)
+  const map = {
+    gates: [{ x: 0, y: 40, w: 40, h: 10, buildingId: 'b-hall' }],
+    obstacles: [{ kind: 'window', x: 70, y: 0, w: 10, h: 40, buildingId: 'b-hall' }],
+  };
+  // Inside threshold cell (x: 20, y: 50) -> distance 0
   assert.equal(openingDistance(map, [roof], { x: 20, y: 50 }), 0);
   // 30 units south of the threshold cell (x: 20, y: 110)
   assert.equal(openingDistance(map, [roof], { x: 20, y: 110 }), 30);
+  // Near the window (x: 100, y: 20) -> distance 20
+  assert.equal(openingDistance(map, [roof], { x: 100, y: 20 }), 20);
+});
+
+test('mixed maps with declared roofs and undeclared buildings both conceal and group', () => {
+  const declaredRoof = {
+    id: 'dec-1',
+    groupId: 'g-dec',
+    bounds: { x: 0, y: 0, w: 80, h: 80 },
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
+    cells: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }], // notch at (1,1) -> (40..80, 40..80)
+    buildingId: 'b-dec',
+  };
+  const legacyBuilding = {
+    id: 'b-legacy',
+    x: 500,
+    y: 500,
+    w: 200,
+    h: 200,
+  };
+  const map = {
+    roofs: [declaredRoof],
+    buildings: [
+      { id: 'b-dec', x: 0, y: 0, w: 80, h: 80 },
+      legacyBuilding,
+    ],
+    gates: [],
+  };
+
+  // Declared roof containment
+  assert.equal(roofAt(map, { x: 20, y: 20 })?.id, 'dec-1');
+  // Declared roof notch is outdoors (not claimed by b-dec)
+  assert.equal(roofAt(map, { x: 60, y: 60 }), null);
+  // Legacy building is indoors
+  assert.equal(roofAt(map, { x: 550, y: 550 })?.id, 'b-legacy');
+
+  // Both conceal an eye outside
+  assert.equal(roofConceals(map, { x: 300, y: 300 }, { x: 20, y: 20 }), true);
+  assert.equal(roofConceals(map, { x: 300, y: 300 }, { x: 550, y: 550 }), true);
+  // Declared and legacy conceal each other
+  assert.equal(roofConceals(map, { x: 20, y: 20 }, { x: 550, y: 550 }), true);
+  assert.equal(roofConceals(map, { x: 550, y: 550 }, { x: 20, y: 20 }), true);
+
+  // Groups contain both declared and legacy
+  const groups = roofGroups(map);
+  assert.deepEqual(groups.get('dec-1')?.map(r => r.id), ['dec-1']);
+  assert.deepEqual(groups.get('b-legacy')?.map(r => r.id), ['b-legacy']);
+});
+
+test('roof geometry works with non-40 cell size and non-zero origins', () => {
+  const roof = {
+    id: 'odd-roof',
+    groupId: 'odd',
+    origin: { x: 123, y: 456 },
+    cellSize: 48,
+    cells: [{ x: 0, y: 0 }, { x: 0, y: 1 }],
+    bounds: { x: 123, y: 456, w: 48, h: 96 },
+  };
+  const map = { roofs: [roof], buildings: [] };
+
+  // Inside cell (0, 0)
+  assert.equal(roofAt(map, { x: 123 + 24, y: 456 + 24 })?.id, 'odd-roof');
+  // Inside cell (0, 1)
+  assert.equal(roofAt(map, { x: 123 + 24, y: 456 + 72 })?.id, 'odd-roof');
+  // Just outside cell (1, 0)
+  assert.equal(roofAt(map, { x: 123 + 50, y: 456 + 24 }), null);
+  // Just outside on the negative side
+  assert.equal(roofAt(map, { x: 120, y: 456 + 24 }), null);
+});
+
+test('live map: roofs have unique ids and viewers inside one building cannot see into another', () => {
+  const map = generateLiveMap(1);
+  if (map.roofs?.length) {
+    const ids = new Set(map.roofs.map(r => r.id));
+    assert.equal(ids.size, map.roofs.length, 'all roof ids are distinct across the live map');
+
+    const samplePoints = map.roofs.map(r => ({
+      id: r.id,
+      pt: {
+        x: r.origin.x + (r.cells[0].x + 0.5) * r.cellSize,
+        y: r.origin.y + (r.cells[0].y + 0.5) * r.cellSize,
+      },
+    }));
+
+    for (let i = 0; i < Math.min(samplePoints.length, 20); i++) {
+      for (let j = i + 1; j < Math.min(samplePoints.length, 20); j++) {
+        const a = samplePoints[i], b = samplePoints[j];
+        assert.equal(roofConceals(map, a.pt, b.pt), true, `roof ${a.id} conceals roof ${b.id}`);
+        assert.equal(roofConceals(map, b.pt, a.pt), true, `roof ${b.id} conceals roof ${a.id}`);
+      }
+    }
+  }
 });

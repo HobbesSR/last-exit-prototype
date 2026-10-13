@@ -1,5 +1,6 @@
 import { placeElement } from '../../shared/map/element.ts';
 import { createGenerationContext } from '../../shared/map/context.ts';
+import { pointInRoof } from '../../shared/view.ts';
 import { validateMicroRegion } from './index.ts';
 import type { BaseGenerationContext } from '../../shared/map/context.ts';
 import type { CollisionMap, NodeId, PlayableArea, Vec2 } from '../../shared/types.ts';
@@ -18,8 +19,8 @@ function stamp(context: BaseGenerationContext, elements: readonly RegionElement[
     const building = context.map.buildings.slice(firstBuilding).find(b => x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h);
     let buildingId = building?.id;
     if (!buildingId && context.map.roofs?.length) {
-      const roof = context.map.roofs.find(r => x > r.bounds.x && x < r.bounds.x + r.bounds.w && y > r.bounds.y && y < r.bounds.y + r.bounds.h);
-      if (roof) buildingId = roof.id as any;
+      const roof = context.map.roofs.find(r => pointInRoof(r, { x, y }));
+      if (roof?.buildingId) buildingId = roof.buildingId;
     }
     context.spots.push({ x, y, nodeId, ...(buildingId ? { buildingId } : {}) });
   }

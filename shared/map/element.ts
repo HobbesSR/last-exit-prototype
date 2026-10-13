@@ -1,7 +1,7 @@
 import { transform } from '../shape.ts';
 import type { Shape } from '../shape.ts';
 import type { BaseGenerationContext } from './context.ts';
-import type { Box, Cell, BuildingId, GateId, NodeId, ObstacleKind, World } from '../types.ts';
+import type { Box, Cell, BuildingId, GateId, NodeId, ObstacleKind, Vec2, World } from '../types.ts';
 
 /**
  * A placeable element: one named assembly of geometry — a building, a cover cluster, a checkpoint —
@@ -29,6 +29,8 @@ export interface ElementRoof {
   groupId?: string | undefined;
   cells: Cell[];
   bounds?: Box | undefined;
+  cellSize?: number | undefined;
+  origin?: Vec2 | undefined;
   overhang?: number | undefined;
   thresholds?: Cell[] | undefined;
 }
@@ -64,23 +66,25 @@ export function placeElement(context: BaseGenerationContext, template: ElementTe
   }
   if (template.roofs?.length) {
     if (!map.roofs) map.roofs = [];
-    const cellSize = map.playableArea?.cellSize ?? 40;
-    const cellOffsetX = Math.round(x / cellSize), cellOffsetY = Math.round(y / cellSize);
+    const placementGroupId = nextId ? nextId('roof-group-') : `group-${map.roofs.length + 1}`;
     for (const [i, r] of template.roofs.entries()) {
-      const roofId = r.id ?? (owner ? owner.buildingId : `roof-${map.roofs.length + i + 1}`);
-      const groupId = r.groupId ?? roofId;
-      const cells = r.cells.map(c => ({ x: c.x + cellOffsetX, y: c.y + cellOffsetY }));
+      const roofId = nextId ? nextId('roof-') : `roof-${map.roofs.length + i + 1}`;
+      const groupId = r.groupId ?? placementGroupId;
+      const cellSize = r.cellSize ?? 40;
+      const roofOrigin = { x: x + (r.origin?.x ?? 0), y: y + (r.origin?.y ?? 0) };
       const bounds = r.bounds
         ? { x: x + r.bounds.x, y: y + r.bounds.y, w: r.bounds.w, h: r.bounds.h }
         : { x, y, w: template.w, h: template.h };
-      const thresholds = r.thresholds?.map(t => ({ x: t.x + cellOffsetX, y: t.y + cellOffsetY }));
       map.roofs.push({
         id: roofId,
         groupId,
         bounds,
-        cells,
+        origin: roofOrigin,
+        cellSize,
+        cells: r.cells,
         ...(r.overhang !== undefined ? { overhang: r.overhang } : {}),
-        ...(thresholds?.length ? { thresholds } : {}),
+        ...(r.thresholds?.length ? { thresholds: r.thresholds } : {}),
+        ...(owner ? { buildingId: owner.buildingId } : {}),
       });
     }
   }

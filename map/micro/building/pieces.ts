@@ -50,8 +50,8 @@ export function splitBuilding(realization: BuildingRealization, allocation: Buil
     if (!parts.length && !roof) continue;
     let pieceRoofs: ElementRoof[] | undefined;
     if (roof) {
-      const derived = deriveContiguousRoofs(space.cells, x0, y0, size, options.groupId ?? 'building', realization.openings);
-      pieceRoofs = derived.map(r => ({ ...r, id: space.id }));
+      const derived = deriveContiguousRoofs(space.cells, x0, y0, size, options.groupId, realization.openings);
+      pieceRoofs = derived.map((r, i) => ({ ...r, id: derived.length > 1 ? `${space.id}-${i + 1}` : space.id }));
     }
     pieces.push({
       space: space.id,

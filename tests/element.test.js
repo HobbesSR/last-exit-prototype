@@ -111,8 +111,8 @@ test('an element with declared roofs stamps them onto map.roofs with world coord
     h: 80,
     parts: [],
     roofs: [{
-      id: 'r-1',
       groupId: 'house',
+      cellSize: 40,
       cells: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }],
       bounds: { x: 0, y: 0, w: 80, h: 80 },
       thresholds: [{ x: 1, y: 1 }],
@@ -121,9 +121,11 @@ test('an element with declared roofs stamps them onto map.roofs with world coord
   placeElement(context, element, 400, 800, { nodeId: 'n' });
   assert.equal(context.map.roofs?.length, 1);
   const [roof] = context.map.roofs;
-  assert.equal(roof.id, 'r-1');
+  assert.equal(roof.id, 'roof-1');
   assert.equal(roof.groupId, 'house');
   assert.deepEqual(roof.bounds, { x: 400, y: 800, w: 80, h: 80 });
-  assert.deepEqual(roof.cells, [{ x: 10, y: 20 }, { x: 11, y: 20 }, { x: 10, y: 21 }]);
-  assert.deepEqual(roof.thresholds, [{ x: 11, y: 21 }]);
+  assert.deepEqual(roof.origin, { x: 400, y: 800 });
+  assert.equal(roof.cellSize, 40);
+  assert.deepEqual(roof.cells, [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }]);
+  assert.deepEqual(roof.thresholds, [{ x: 1, y: 1 }]);
 });

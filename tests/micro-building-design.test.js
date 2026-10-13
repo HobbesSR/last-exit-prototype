@@ -140,7 +140,7 @@ test('concave, holed and diagonally touching footprints contain every emitted wa
     assert.deepEqual(roof.issues, []);
     assert.ok(roof.template?.roofs && roof.template.roofs.length > 0);
     assert.equal(roof.template.roofs.reduce((n, r) => n + r.cells.length, 0), cells.length);
-    assert.ok(roof.template.roofs.every(r => r.groupId === 'building'));
+    assert.ok(roof.template.roofs.every(r => r.groupId === undefined));
     assert.equal(roof.template.encloses, false, 'a non-rectangular roof has encloses: false on template');
   }
 });
@@ -200,7 +200,7 @@ test('a clear space keeps its whole cells: a wall it shares stands in its neighb
   assert.deepEqual(walls(['west', 'lane', 'east']), walls([]), 'two clear spaces still straddle');
 });
 
-test('a realization splits into one element per space, roofing only rectangular spaces asked for', () => {
+test('a realization splits into one element per space, roofing spaces asked for', () => {
   const ring = cellsOf(9, 9, (x, y) => x < 3 || x >= 6 || y < 3 || y >= 6);
   const box = (x0, y0, w, h) => ring.filter(c => c.x >= x0 && c.x < x0 + w && c.y >= y0 && c.y < y0 + h);
   const spaces = [{ id: 'north', cells: box(0, 0, 9, 3) }, { id: 'west', cells: box(0, 3, 3, 3) }, { id: 'gap', cells: box(6, 3, 3, 3) }, { id: 'south', cells: box(0, 6, 9, 3) }];
