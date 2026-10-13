@@ -41,6 +41,14 @@ const CHANNEL = { offset: 1, gateSide: 2, gateAt: 3, room: 4, loot: 5 };
 /** A box in the compound's own cells. */
 interface Box { x: number; y: number; w: number; h: number }
 
+/** Whole-cell yard stands at an outer door center, measured along the ring box. */
+function gateYardStands(box: Box, side: Side, along: number): { x: number; y: number }[] {
+  return [...new Set([Math.floor(along), Math.ceil(along)])].map(t => ({
+    x: side === 'W' ? box.x - 2 : side === 'E' ? box.x + box.w : box.x + t,
+    y: side === 'N' ? box.y - 2 : side === 'S' ? box.y + box.h : box.y + t,
+  }));
+}
+
 /** Keep the yard's portal blocks joined and leave a reachable doorstep at each chosen gate. */
 function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, accessMask: ReturnType<typeof createRegionMask>, space: Box, gates: number):
   (Box & { gated: Set<Side> }) | undefined {
@@ -109,9 +117,7 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
         // The realized outer door is centered in this passage. A stand
         // elsewhere in a widened passage is not evidence for that door's
         // actual yard access, especially beside a concave ownership corner.
-        for (const t of new Set([Math.floor((a + b) / 2 - 1), Math.ceil((a + b) / 2 - 1)])) {
-          const x = side === 'W' ? box.x - 2 : side === 'E' ? box.x + w : box.x + DEPTH + t;
-          const y = side === 'N' ? box.y - 2 : side === 'S' ? box.y + h : box.y + DEPTH + t;
+        for (const { x, y } of gateYardStands(box, side, DEPTH + (a + b) / 2 - 1)) {
           if (!fits(x, y)) return { side, steps: [] };
           steps.push(key(x, y));
         }
@@ -196,6 +202,8 @@ function coverReceiving(build: (brief: RegionBrief) => BuiltRegion) {
 
 export const COMPOUND_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
   compound: { version: 'compound-yard-2', build: buildRetainedCompound },
+  // Direct registry recovery rebuilds accepted cover for receiving and build;
+  // buildCompoundGeneration shares those previews within one invocation.
   cover: { version: 'cover-types-23', build: buildCover, receiving: coverReceiving(buildCover) },
 });
 
@@ -283,10 +291,7 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
   for (const passage of passages) {
     const opening = realization.openings.find(o => o.connectionId === passage.id)!;
     const along = (opening.run.axis === 'h' ? opening.run.x : opening.run.y) + opening.center - 1;
-    for (const t of new Set([Math.floor(along), Math.ceil(along)])) steps.push({
-      x: passage.side === 'W' ? bx - 2 : passage.side === 'E' ? bx + W : bx + t,
-      y: passage.side === 'N' ? by - 2 : passage.side === 'S' ? by + H : by + t,
-    });
+    steps.push(...gateYardStands(site, passage.side, along));
   }
   const yard = exteriorYard(brief, site, steps);
   if (yard.offers.length) context.delegate(yard.offers, { blockers: pieces, protectedCells: yard.protectedCells });

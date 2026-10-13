@@ -17,14 +17,17 @@ npm run bench:client
 `npm test` and `npm run test:all` cap file concurrency at four, keeping CPU and memory contention
 bounded on the shared machine. Every case still runs, including the slow tier;
 timing assertions and isolated file budgets are unchanged. Unbounded file
-concurrency made the compound's three-second macro fixture fail under competing
-whole-match/seed-sweep work despite passing sequential isolated measurements.
+concurrency made the final `compound-yard-2` macro fixture take 4,182 ms against
+its unchanged three-second assertion during a 656-case run (2026-10-13:
+655 passed, one failed, 136.0 seconds wall time), despite passing sequential
+isolated measurements. This was reproduced after removing the preliminary
+policy's narrow-strip offers; it is not only evidence from that earlier policy.
 Use the normal scripts for integration; focused `node --test` commands remain
 available. The chain sweep's internal worker pool is separate.
 
 The unit suite has two tiers. `npm test` is the fast tier for iterating on a PR:
-everything under `tests/*.test.js`, about two minutes wall time (measured 2026-10-07: 5.5 minutes
-summed, run in parallel across files). `npm run test:all` adds
+everything under `tests/*.test.js`: 642 tests in 111.5 seconds wall time with
+the four-file cap (measured 2026-10-13). `npm run test:all` adds
 `tests/slow/`: the 200-map route sweep, the bot-match traces against the frozen
 fixture, and bots completing whole matches. Those slow tests sum to about four minutes
 by default, and their evidence only moves when generation or simulation moves.

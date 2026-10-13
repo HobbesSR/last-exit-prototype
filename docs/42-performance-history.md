@@ -662,7 +662,19 @@ delegation, slow access and mechanically updated rubble files take 9.2 / 5.5 /
 10.0 / .3 seconds in isolated file timing, within their respective budgets.
 Unit-suite file concurrency is bounded to four (31), retaining every assertion
 while avoiding an unbounded mixture of fixture and whole-match work.
+PR #342 review reproduced the contention failure on the final `compound-yard-2`
+policy: `node --test tests/*.test.js tests/slow/*.test.js` completed in 136.0
+seconds with 655/656 passing; its sole failure was the unchanged three-second
+macro assertion at 4,182 ms. The earlier capped integration run passed all 656
+in 197.7 seconds, with the macro fixture at 1,385 ms. The cap trades suite wall
+time for bounded contention; it does not remove cases or relax timing assertions.
+The capped fast suite after the shared gate-stand helper passes 642/642 in
+111.5 seconds wall time, with the macro fixture at 1,589 ms (31).
 The frozen netcode fixture is unchanged.
+
+Follow-up [#344](http://localhost:3000/corey/astra_test/issues/344) investigates
+cheaper rejection of incompatible crossings before complete preparation, with
+the same ownership, access, deterministic decisions and snapshot contracts.
 
 Sequential integration benchmarks also completed: `npm run bench` (seed 4217,
 12×6, one room/viewer, 9,238 ticks) measured mean 2.706 ms and p95 5.202 ms
