@@ -689,6 +689,61 @@ both browser labs (including stored-result equality for delegated compound),
 the other browser checks and all three micro previews. The 224-case checkpoint
 uses committed builder inputs `2e89706`; regeneration checks zero drift.
 
+## Cheaper incompatible-crossing preparation (#344, 2026-10-13)
+
+The behavior-preserving staging in [20.7](20.7-builder-delegation.md) delays
+complete local briefs until crossing selection succeeds. Protected-footprint
+intersection uses only reserved parent cells, and the playable mask is lazy.
+Crossing selection, rejection precedence, receiving interfaces and all algorithm
+and content versions remain unchanged. This adds no feasibility heuristic.
+
+`node tools/compound-delegation-timing.mjs` compares committed preparation
+`4a7a5ba` with `0a8e3aa`, using the same unchanged executor and compound strategy
+inputs. Windows, Node 24.15.0, AMD Ryzen 9 5900X; three paired sequential rounds,
+alternating revision order, with the machine benchmark lock and no competing
+local checks. Each round builds the audit's 40×34 field and concave inputs for
+seeds 1–20, then the exact 200×150 seed-3, 170-portal, four-gate macro fixture.
+The harness times `buildCompoundGeneration` and separately instruments
+`prepareCanonicalDelegation` identically on both revisions. Equality checks
+and flattening are outside these timings. Raw local output is
+`test-results/344-timing.json`, with clean tracked source metadata.
+
+| Workload / timed phase | Before ms, rounds 1 / 2 / 3 | After ms, rounds 1 / 2 / 3 |
+| --- | --- | --- |
+| Field median generation | 53.131 / 48.580 / 48.739 | 55.813 / 48.763 / 43.286 |
+| Field median preparation | 16.141 / 14.203 / 13.582 | 16.796 / 14.367 / 13.163 |
+| Concave median generation | 47.660 / 45.267 / 44.698 | 51.226 / 47.620 / 40.413 |
+| Concave median preparation | 20.244 / 19.665 / 18.604 | 19.412 / 18.914 / 17.249 |
+| Macro generation | 1,371.937 / 1,249.208 / 1,110.800 | 1,281.688 / 1,110.249 / 1,163.470 |
+| Macro preparation | 283.814 / 287.408 / 251.645 | 181.396 / 199.104 / 207.215 |
+
+Macro preparation is 18–36% cheaper in these three pairs, saving 44–102 ms.
+Overall generation is lower in two pairs and higher in one; neither direct
+shape shows a consistent total-generation improvement. The macro still pays
+for exterior selection, execution bookkeeping and retained generation even
+though both offers are rejected. This is a bounded preparation saving, not a
+return to the pre-adoption cost or evidence that the live crowd slowdown is
+fixed. All 123 paired execution nodes and flattened results are exactly equal,
+including accepted ownership, complete interfaces and actual rejection reasons.
+
+The unchanged `compound-delegation-audit.mjs --seeds=20 --maps=1` audit also
+passes with zero defects: all 80 direct cases, 15 top-level compounds and nine
+nested lots pass ownership, fill, portal, crossing and sampled retained-access
+checks, plus full and omitted-result snapshot recovery. Its output is at
+`test-results/344-audit`. Comparing all 104 cases against the preserved
+`test-results/338-after/report.json` finds identical identities, seeds, offers,
+rejection reasons, generation traces and reservations. The existing 224-map
+checkpoint reports zero drift; its baseline and the frozen netcode fixture
+were not regenerated.
+
+Verification passes `npm run check`, `npm run typecheck`, all 656 fast/slow
+tests, `npm run test:browser` (including Map Lab stored-result equality), and
+the three standalone micro browser previews. The expanded preparation test
+file takes 1.1 s with `npm run test:times -- tests/micro-delegation.test.js`,
+within its 15 s budget. Server/client tick and render benchmarks were not
+rerun for this preparation-only change; the paired generation harness supplies
+its performance evidence.
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including
