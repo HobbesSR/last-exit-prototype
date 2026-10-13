@@ -117,7 +117,7 @@ const name = (value: unknown): value is string => typeof value === "string" && v
 const integer = (value: unknown): value is number => Number.isSafeInteger(value);
 const names = (value: unknown): value is string[] => Array.isArray(value) && value.every(name);
 const ORIENTATIONS = new Set([0, 90, 180, 270]);
-const PLACEMENT_RULES = new Set<PlacementRule>(["start", "end", "enormous", "medium", "small", "charger", "transit"]);
+export const PLACEMENT_RULES: ReadonlySet<PlacementRule> = new Set<PlacementRule>(["start", "end", "enormous", "medium", "small", "charger", "transit"]);
 const CORE_ELEMENTS = new Set<CoreElementKind>(CORE_ELEMENT_KINDS);
 
 /** Resolve named, versioned modules without depending on a filesystem or import system. */

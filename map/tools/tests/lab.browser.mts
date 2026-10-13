@@ -1371,6 +1371,10 @@ try {
     true,
     "cell is filled after clicking with active brush",
   );
+  assert.ok(
+    await targetCell.locator(".slot-thumbnail").isVisible(),
+    "cell displays member tile thumbnail preview",
+  );
   assert.equal(
     await targetCell.locator(".slot-set-id").innerText(),
     firstPaletteSet,
@@ -1384,6 +1388,10 @@ try {
 
   // Left click filled cell: cycle rotation to 90°
   await targetCell.click();
+  assert.ok(
+    (await targetCell.locator(".slot-thumbnail").getAttribute("style"))?.includes("rotate(90deg)"),
+    "thumbnail rotates with slot orientation",
+  );
   assert.equal(
     await targetCell.locator(".slot-rot").innerText(),
     "90°",
@@ -1470,7 +1478,64 @@ try {
     "status bar flags missing tile slots on set piece after right-click erase",
   );
 
-  // 4. Set piece delete confirmation warning when referenced by set piece classes
+  // 4. Referencing Set Piece Classes section and class binding
+  assert.ok(
+    await page.locator("#chainPieceClassesSection").isVisible(),
+    "referencing set piece classes section is visible",
+  );
+  const classRow = page.locator('#chainPieceClassesList .chain-piece-class-row[data-class-id="new-piece-class"]');
+  assert.ok(
+    await classRow.isVisible(),
+    "new-piece-class set piece class row is rendered",
+  );
+  assert.ok(
+    await classRow.locator(".rule-badge").isVisible(),
+    "placement rule badge is rendered",
+  );
+  assert.ok(
+    await classRow.locator(".quota-badge").isVisible(),
+    "quota badge is rendered",
+  );
+
+  // Toggle class binding checkbox
+  const classCheckbox = classRow.locator('input[type="checkbox"]');
+  const wasChecked = await classCheckbox.isChecked();
+  assert.equal(wasChecked, true, "new-piece starts checked in new-piece-class");
+  await classCheckbox.click();
+  assert.equal(await classCheckbox.isChecked(), false, "clicking checkbox unchecks membership");
+  let inClassSnapshot = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const cls = snap.library.setPieceClasses.find((c: any) => c.id === "new-piece-class");
+    return cls?.setPieces.includes("new-piece");
+  });
+  assert.equal(inClassSnapshot, false, "snapshot reflects removed class membership");
+
+  // Re-check so new-piece is referenced by new-piece-class for the delete warning test below
+  await classCheckbox.click();
+  assert.equal(await classCheckbox.isChecked(), true, "clicking checkbox again restores membership");
+  inClassSnapshot = await page.evaluate(() => {
+    const snap = (window as any).chainLab.snapshot();
+    const cls = snap.library.setPieceClasses.find((c: any) => c.id === "new-piece-class");
+    return cls?.setPieces.includes("new-piece");
+  });
+  assert.equal(inClassSnapshot, true, "snapshot reflects restored class membership");
+
+  // Click edit class button to navigate to setPieceClasses section
+  await classRow.locator(".piece-class-link-btn").click();
+  const navSection = await page.evaluate(() => (window as any).chainLab.snapshot().section);
+  const navSelected = await page.evaluate(() => (window as any).chainLab.snapshot().selectedId);
+  assert.equal(navSection, "setPieceClasses", "clicking edit class button navigates to setPieceClasses section");
+  assert.equal(navSelected, "new-piece-class", "navigated to new-piece-class set piece class");
+
+  // Verify placement rule options include transit derived from PLACEMENT_RULES
+  const ruleOptions = await page.locator("#chainPlacementRule option").allTextContents();
+  assert.ok(ruleOptions.includes("transit"), "placement rule choices include transit");
+
+  // Return to setPieces section and new-piece for the delete test
+  await page.locator("#chainSection").selectOption("setPieces");
+  await page.locator("#chainItem").selectOption("new-piece");
+
+  // 5. Set piece delete confirmation warning when referenced by set piece classes
   const classesUsingPiece = await page.evaluate((id: string) => {
     const snap = (window as any).chainLab.snapshot();
     return snap.library.setPieceClasses
