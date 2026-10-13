@@ -113,12 +113,18 @@ route reservation tuning (`types-23`); #289's residual delegation design
 remains the broader next boundary for space a builder cannot use itself. Its
 reviewed design direction is in [20.7](20.7-builder-delegation.md), with verbatim
 answers in [17.2.9](17.2.9-delegation-questions.md). Preparation (#328), bounded
-execution and snapshot recovery (#329) are implemented. Next comes the
-hut-to-cover pilot (#330), then one measured builder adoption at a time. Numerical
+execution and snapshot recovery (#329), and the hut-to-cover pilot (#330), are
+implemented. #331's measured candidate review selected compound exterior yards
+for [#338](http://localhost:3000/corey/astra_test/issues/338); that adoption is
+pending. Depot remains unselected. Continue one measured builder at a time, using
+the evidence and limits in [42](42-performance-history.md). Numerical
 recursion defaults to three patch levels (initial builder depth zero), with
 versioned owning-layer snapshots for recovery. Implementation issues #328 to
-#331 carry the dependency sequence; production builders have not adopted the
-mechanics yet.
+#331 carry the initial dependency sequence; hut is the only production adopter.
+#331 closes with its evidence/planning checkpoint. #338 owns the selected
+adoption; further adopters need separate measured evidence and issues. The
+unbuilt large compound sample is a separate siting investigation in
+[#340](http://localhost:3000/corey/astra_test/issues/340), outside #338.
 
 The sequencing below remains the other gameplay backlog, not an instruction to
 leave the current micro-generation effort for reward tiers.
