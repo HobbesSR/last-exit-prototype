@@ -723,6 +723,72 @@ button.active {
   outline: 2px dashed #f25f5c;
   outline-offset: -2px;
 }
+.chain-layout-cell .slot-thumbnail {
+  margin: 0;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  background: #0a1419;
+  border-radius: 2px;
+  overflow: hidden;
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.1s ease;
+}
+.chain-layout-cell.filled:hover .slot-thumbnail {
+  opacity: 0.85;
+}
+.chain-layout-cell .slot-thumbnail i {
+  display: block;
+}
+.chain-layout-cell .slot-thumbnail b {
+  position: absolute;
+  pointer-events: none;
+}
+.chain-layout-cell .slot-thumbnail b.passable {
+  background: #83d7a4 !important;
+}
+.chain-layout-cell .slot-thumbnail b.wall {
+  background: #e2807f !important;
+}
+.chain-layout-cell .slot-thumbnail b.any {
+  background: repeating-linear-gradient(
+    45deg,
+    #78909d,
+    #78909d 1px,
+    transparent 1px,
+    transparent 3px
+  ) !important;
+}
+.chain-layout-cell .slot-thumbnail span.adj-dot {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  border: 0.5px solid rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.chain-layout-cell .slot-thumbnail span.adj-dot.any {
+  background: repeating-linear-gradient(
+    45deg,
+    #78909d,
+    #78909d 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+.chain-layout-cell .slot-set-id,
+.chain-layout-cell .slot-rot,
+.chain-layout-cell .slot-member-count {
+  position: relative;
+  z-index: 2;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000;
+}
 .chain-layout-cell .slot-set-id {
   font-size: 8px;
   font-weight: 600;
@@ -735,6 +801,64 @@ button.active {
   font-size: 8px;
   color: #92b7c6;
   opacity: 0.85;
+}
+.chain-layout-cell .slot-member-count {
+  font-size: 7px;
+  color: #7fd4dd;
+  opacity: 0.9;
+}
+.chain-piece-classes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 12px 0;
+}
+.chain-piece-class-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: #112028;
+  border: 1px solid #1c323f;
+  border-radius: 3px;
+}
+.chain-piece-class-row:hover {
+  background: #162b36;
+  border-color: #2b495a;
+}
+.chain-piece-class-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.piece-class-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: #1b303d;
+  color: #92b7c6;
+}
+.piece-class-badge.rule-badge {
+  color: #7fd4dd;
+  background: #153843;
+}
+.piece-class-badge.quota-badge {
+  color: #f7b267;
+  background: #392b1d;
+}
+.piece-class-link-btn {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: #203a48;
+  color: #e2f7fc;
+  border: 1px solid #365b6f;
+  border-radius: 2px;
+  cursor: pointer;
+}
+.piece-class-link-btn:hover {
+  background: #2a4c5e;
+  border-color: #7fd4dd;
+  color: #fff;
 }
 .chain-tiers-container {
   display: flex;
