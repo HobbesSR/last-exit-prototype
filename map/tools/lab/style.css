@@ -724,16 +724,10 @@ button.active {
   outline-offset: -2px;
 }
 .chain-layout-cell .slot-thumbnail {
-  margin: 0;
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  background: #0a1419;
-  border-radius: 2px;
-  overflow: hidden;
   opacity: 0.55;
   pointer-events: none;
   z-index: 1;
@@ -741,46 +735,6 @@ button.active {
 }
 .chain-layout-cell.filled:hover .slot-thumbnail {
   opacity: 0.85;
-}
-.chain-layout-cell .slot-thumbnail i {
-  display: block;
-}
-.chain-layout-cell .slot-thumbnail b {
-  position: absolute;
-  pointer-events: none;
-}
-.chain-layout-cell .slot-thumbnail b.passable {
-  background: #83d7a4 !important;
-}
-.chain-layout-cell .slot-thumbnail b.wall {
-  background: #e2807f !important;
-}
-.chain-layout-cell .slot-thumbnail b.any {
-  background: repeating-linear-gradient(
-    45deg,
-    #78909d,
-    #78909d 1px,
-    transparent 1px,
-    transparent 3px
-  ) !important;
-}
-.chain-layout-cell .slot-thumbnail span.adj-dot {
-  position: absolute;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  border: 0.5px solid rgba(0, 0, 0, 0.8);
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-}
-.chain-layout-cell .slot-thumbnail span.adj-dot.any {
-  background: repeating-linear-gradient(
-    45deg,
-    #78909d,
-    #78909d 1px,
-    transparent 1px,
-    transparent 3px
-  );
 }
 .chain-layout-cell .slot-set-id,
 .chain-layout-cell .slot-rot,
@@ -910,31 +864,34 @@ button.active {
   background: #193842 !important;
   box-shadow: 0 0 6px rgba(127, 212, 221, 0.4);
 }
-.tile-card figure {
+.tile-thumb {
   margin: 0;
   position: relative;
-  width: 66px;
-  height: 66px;
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   background: #0a1419;
   border-radius: 2px;
   overflow: hidden;
 }
-.tile-card figure i {
+.tile-card .tile-thumb,
+.tile-card figure {
+  width: 66px;
+  height: 66px;
+}
+.tile-thumb i {
   display: block;
 }
-.tile-card figure b {
+.tile-thumb b {
   position: absolute;
   pointer-events: none;
 }
-.tile-card figure b.passable {
+.tile-thumb b.passable {
   background: #83d7a4 !important;
 }
-.tile-card figure b.wall {
+.tile-thumb b.wall {
   background: #e2807f !important;
 }
-.tile-card figure b.any {
+.tile-thumb b.any {
   background: repeating-linear-gradient(
     45deg,
     #78909d,
@@ -943,7 +900,7 @@ button.active {
     transparent 3px
   ) !important;
 }
-.tile-card figure span.adj-dot {
+.tile-thumb span.adj-dot {
   position: absolute;
   width: 4px;
   height: 4px;
@@ -952,7 +909,7 @@ button.active {
   pointer-events: none;
   transform: translate(-50%, -50%);
 }
-.tile-card figure span.adj-dot.any {
+.tile-thumb span.adj-dot.any {
   background: repeating-linear-gradient(
     45deg,
     #78909d,

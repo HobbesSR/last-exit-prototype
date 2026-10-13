@@ -746,6 +746,7 @@ function tileCells(tile: ChainTileDesign): string[] {
 }
 function tileThumbnail(t: ChainTileDesign): HTMLElement {
   const figure = document.createElement("figure");
+  figure.className = "tile-thumb";
   const cells = tileCells(t);
   for (let i = 0; i < CHAIN_TILE_SIZE * CHAIN_TILE_SIZE; i++) {
     const el = document.createElement("i");
@@ -2377,11 +2378,11 @@ function renderSetPieces(root: HTMLElement): void {
           }
           cell.dataset.tileset = slot.tileSetId;
           const tileSet = library.tileSets.find((s) => s.id === slot.tileSetId);
-          const memberId = tileSet?.members[0] ?? slot.tileSetId;
-          const memberTile = library.tiles.find((t) => t.id === memberId);
+          const memberId = tileSet?.members[0];
+          const memberTile = memberId ? library.tiles.find((t) => t.id === memberId) : undefined;
           if (memberTile) {
             const thumb = tileThumbnail(memberTile);
-            thumb.className = "slot-thumbnail";
+            thumb.classList.add("slot-thumbnail");
             if (slot.orientation) {
               thumb.style.transform = `rotate(${slot.orientation}deg)`;
             }
