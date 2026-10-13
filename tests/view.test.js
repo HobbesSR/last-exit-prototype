@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { roofGroups, roofOverhang, roofTargetAlpha, openingDistance, ROOF_FADE_RANGE, ROOF_FADE_FLOOR, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM } from '../shared/view.ts';
+import { roofGroups, roofOverhang, roofTargetAlpha, openingDistance, ROOF_FADE_RANGE, ROOF_FADE_FLOOR, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '../shared/view.ts';
 import { visibilityPolygon, litPoint } from '../shared/movement.ts';
 
 test('full viewport corners are visible across supported sizes and zooms within server coverage', () => {
@@ -117,4 +117,10 @@ test('roofs fade toward an opening and vanish for a viewer inside', () => {
   assert.equal(openingDistance(map, group, { x: 100, y: 260 }), 50);
   assert.equal(openingDistance(map, group, { x: -30, y: 80 }), 30, 'windows count, and other buildings\' do not');
   assert.equal(openingDistance({ gates: [], obstacles: [] }, group, { x: 0, y: 0 }), Infinity);
+});
+
+test('level of detail zoom thresholds maintain strict progression below player zoom', () => {
+  assert.ok(LOD_LOW_ZOOM < LOD_LABEL_ZOOM, 'low LOD is tighter than label culling');
+  assert.ok(LOD_LABEL_ZOOM < LOD_MEDIUM_ZOOM, 'label culling sits between low and medium LOD');
+  assert.ok(LOD_MEDIUM_ZOOM < playerZoom(1440, 1000), 'all LOD thresholds sit strictly below contestant camera zoom');
 });

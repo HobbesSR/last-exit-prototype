@@ -213,19 +213,26 @@ try {
     await page.getByRole('button', { name: 'Play arena 4217', exact: true }).first().click();
     await page.waitForFunction(() => window.arenaDebug().replay);
   };
-  // A headless frame is longer than a playback tick, so no assertion may assume a
-  // sample lands in a chosen tick. Sample whatever frames occur and check the
-  // invariant that must hold for every one of them.
-  const samplePlayback = frames => page.evaluate(async count => {
-    const samples = [];
-    for (let i = 0; i < count; i++) {
-      await new Promise(resolve => requestAnimationFrame(resolve));
-      const debug = window.arenaDebug(), status = document.getElementById('replay-status');
-      samples.push({ tick: debug.tick, seek: Number(document.getElementById('replay-seek').value),
-        x: debug.shots?.[0]?.x, status: status.hidden ? null : status.textContent });
-    }
-    return samples;
-  }, frames);
+  // Playback frames are sampled across requestAnimationFrame. When rendering runs at
+  // full frame rate (60 Hz) and playback is half speed (0.5×), frames occur faster than
+  // simulation ticks (50 ms / 0.5 = 100 ms per tick vs ~16 ms per frame). Sampling
+  // advances until the tick has progressed or a frame cap is reached, asserting that
+  // the continuous playhead interpolates within ticks and cleanly crosses into the next.
+  const samplePlayback = (options = {}) => {
+    const config = typeof options === 'number' ? { maxFrames: options, advance: false } : { maxFrames: 30, advance: false, ...options };
+    return page.evaluate(async ({ advance, maxFrames }) => {
+      const samples = [];
+      const startTick = window.arenaDebug().tick;
+      for (let i = 0; i < maxFrames; i++) {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        const debug = window.arenaDebug(), status = document.getElementById('replay-status');
+        samples.push({ tick: debug.tick, seek: Number(document.getElementById('replay-seek').value),
+          x: debug.shots?.[0]?.x, status: status.hidden ? null : status.textContent });
+        if (advance && debug.tick > startTick && samples.length >= 2) break;
+      }
+      return samples;
+    }, config);
+  };
   const pausePlayback = () => page.evaluate(() => {
     const button = document.getElementById('replay-play');
     if (button.ariaLabel === 'Pause replay') button.click();
@@ -235,7 +242,7 @@ try {
   await page.locator('#replay-speed').selectOption('0.5');
   await page.locator('#replay-seek').fill('0');
   await page.getByRole('button', { name: 'Play replay', exact: true }).click();
-  const denseSamples = await samplePlayback(14);
+  const denseSamples = await samplePlayback({ advance: true });
   await pausePlayback();
   // Dense playback keeps fractional render time: every frame shows the floored
   // authoritative tick with the projectile advanced part way into it. Rejecting
