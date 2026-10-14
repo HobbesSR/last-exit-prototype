@@ -1,6 +1,6 @@
 import { lineClear, litPoint } from './movement.ts';
 import type { VisibilityPoint } from './movement.ts';
-import type { Building, CollisionMap, GameMap, Gate, GateId, ObservedGate, PlayableArea, Player, Roof, Tick, Vec2, ViewBounds, World } from './types.ts';
+import type { Building, Cell, CollisionMap, GameMap, Gate, GateId, ObservedGate, PlayableArea, Player, Roof, Tick, Vec2, ViewBounds, World } from './types.ts';
 
 /** A gate as last seen, kept per client so an unobserved gate is drawn stale rather than current. */
 export type RememberedGate = Gate & { lastSeenTick: Tick };
@@ -108,6 +108,8 @@ interface RoofIndex {
   roofBuckets: Map<string, Roof[]>;
   buildingBuckets: Map<string, Building[]>;
   roofCellSets: WeakMap<Roof, Set<string>>;
+  cellRoofMap: Map<string, string>;
+  undeclaredBuildings: Building[];
 }
 
 // Cached per map object and never invalidated: a map is immutable after generation, and the client
@@ -127,10 +129,16 @@ export function getRoofIndex(map: RoofMap): RoofIndex {
     const roofBuckets = new Map<string, Roof[]>();
     const buildingBuckets = new Map<string, Building[]>();
     const roofCellSets = new WeakMap<Roof, Set<string>>();
+    const cellRoofMap = new Map<string, string>();
 
     for (const roof of roofs) {
       const set = new Set<string>();
-      for (const c of roof.cells) set.add(`${c.x},${c.y}`);
+      for (const c of roof.cells) {
+        set.add(`${c.x},${c.y}`);
+        const wx = Math.round(roof.origin.x + c.x * roof.cellSize);
+        const wy = Math.round(roof.origin.y + c.y * roof.cellSize);
+        cellRoofMap.set(`${wx},${wy}`, roof.id);
+      }
       roofCellSets.set(roof, set);
 
       const minBx = Math.floor(roof.bounds.x / bucketSize);
@@ -168,10 +176,64 @@ export function getRoofIndex(map: RoofMap): RoofIndex {
       roofBuckets,
       buildingBuckets,
       roofCellSets,
+      cellRoofMap,
+      undeclaredBuildings,
     };
     roofIndexCache.set(map, index);
   }
   return index;
+}
+
+export interface CellBorders {
+  hasW: boolean;
+  hasE: boolean;
+  hasN: boolean;
+  hasS: boolean;
+  abutsW: boolean;
+  abutsE: boolean;
+  abutsN: boolean;
+  abutsS: boolean;
+}
+
+/**
+ * Spatial borders of a declared roof's cell: whether each side touches another cell of the same roof
+ * (`has*`), or physically abuts any other roof/building on the map (`abuts*`).
+ * Decided solely by physical geometry, completely independent of presentation fade groups.
+ */
+export function roofCellBorders(roof: Roof, cell: Cell, map: RoofMap): CellBorders {
+  const index = getRoofIndex(map);
+  const cellSet = index.roofCellSets.get(roof);
+  const hasW = !!cellSet?.has(`${cell.x - 1},${cell.y}`);
+  const hasE = !!cellSet?.has(`${cell.x + 1},${cell.y}`);
+  const hasN = !!cellSet?.has(`${cell.x},${cell.y - 1}`);
+  const hasS = !!cellSet?.has(`${cell.x},${cell.y + 1}`);
+
+  const cx0 = roof.origin.x + cell.x * roof.cellSize;
+  const cy0 = roof.origin.y + cell.y * roof.cellSize;
+  const wx = Math.round(cx0);
+  const wy = Math.round(cy0);
+
+  const wId = index.cellRoofMap.get(`${Math.round(cx0 - roof.cellSize)},${wy}`);
+  const eId = index.cellRoofMap.get(`${Math.round(cx0 + roof.cellSize)},${wy}`);
+  const nId = index.cellRoofMap.get(`${wx},${Math.round(cy0 - roof.cellSize)}`);
+  const sId = index.cellRoofMap.get(`${wx},${Math.round(cy0 + roof.cellSize)}`);
+
+  let abutsW = !hasW && wId !== undefined && wId !== roof.id;
+  let abutsE = !hasE && eId !== undefined && eId !== roof.id;
+  let abutsN = !hasN && nId !== undefined && nId !== roof.id;
+  let abutsS = !hasS && sId !== undefined && sId !== roof.id;
+
+  if (index.undeclaredBuildings.length) {
+    const w = roof.cellSize, h = roof.cellSize;
+    for (const b of index.undeclaredBuildings) {
+      if (!abutsW && !hasW && Math.abs(b.x + b.w - cx0) <= ROOF_EDGE && cy0 + h > b.y && cy0 < b.y + b.h) abutsW = true;
+      if (!abutsE && !hasE && Math.abs(b.x - (cx0 + w)) <= ROOF_EDGE && cy0 + h > b.y && cy0 < b.y + b.h) abutsE = true;
+      if (!abutsN && !hasN && Math.abs(b.y + b.h - cy0) <= ROOF_EDGE && cx0 + w > b.x && cx0 < b.x + b.w) abutsN = true;
+      if (!abutsS && !hasS && Math.abs(b.y - (cy0 + h)) <= ROOF_EDGE && cx0 + w > b.x && cx0 < b.x + b.w) abutsS = true;
+    }
+  }
+
+  return { hasW, hasE, hasN, hasS, abutsW, abutsE, abutsN, abutsS };
 }
 
 export function roofAt(map: RoofMap, point: Vec2): Roof | Building | null {

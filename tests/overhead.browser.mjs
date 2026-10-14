@@ -4,6 +4,7 @@ import { chromium } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { createArenaServer } from '../server/index.js';
 import { listen } from './helpers/listen.js';
+import { generateLiveMap } from '../map/live.ts';
 
 await mkdir('test-results', { recursive: true });
 const server = await createArenaServer({ profileSummary: false });
@@ -109,6 +110,69 @@ try {
   assert.equal(underL.alpha, 0, 'inside a declared roof fades it away');
   assert.equal((await frames(1)).alpha, 1, 'the plain building stays roofed while inside the declared one');
   await page.evaluate(() => { const f = window.fixture; f.player.x = 700; f.player.y = 700; });
+
+  // Two physically abutting declared roofs with different fade groups (#349).
+  // Roof west at (2000, 100), 40x40, groupId: 'group-w'.
+  // Roof east at (2040, 100), 40x40, groupId: 'group-e'.
+  await page.evaluate(() => {
+    const f = window.fixture;
+    f.map = {
+      ...f.map,
+      buildings: [],
+      roofs: [
+        { id: 'room-w', groupId: 'group-w', bounds: { x: 2000, y: 100, w: 40, h: 40 }, origin: { x: 2000, y: 100 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+        { id: 'room-e', groupId: 'group-e', bounds: { x: 2040, y: 100, w: 40, h: 40 }, origin: { x: 2040, y: 100 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+      ],
+    };
+    f.scene.buildMap();
+    f.scene.cutTo();
+    f.player.x = 2020; f.player.y = 300;
+  });
+  const bothOpaque = await frames(30, 'room-w');
+  const eastOpaque = await frames(1, 'room-e');
+  assert.equal(bothOpaque.alpha, 1);
+  assert.equal(eastOpaque.alpha, 1);
+  await page.evaluate(() => {
+    const s = window.fixture.scene;
+    s.cameras.main.centerOn(2020, 120);
+    s.updateTiles();
+  });
+  await page.screenshot({ path: 'test-results/overhead-abutting-roofs.png' });
+
+  // Inside room-w fades room-w, while room-e in group-e stays opaque
+  await page.evaluate(() => { const f = window.fixture; f.player.x = 2020; f.player.y = 120; });
+  const westFaded = await frames(60, 'room-w');
+  const eastStillOpaque = await frames(1, 'room-e');
+  assert.equal(westFaded.alpha, 0, 'inside room-w fades room-w');
+  assert.equal(eastStillOpaque.alpha, 1, 'room-e in another group remains opaque');
+  await page.evaluate(() => { const f = window.fixture; f.player.x = 700; f.player.y = 700; });
+
+  // Screenshot a multi-room compound (#349)
+  const compoundMap = generateLiveMap(1);
+  await page.evaluate(map => {
+    const f = window.fixture;
+    f.map = map;
+    f.scene.buildMap();
+    f.scene.cutTo();
+    const firstCompound = map.roofs.find(r => r.id.startsWith('compound') || r.groupId.includes('compound') || r.groupId.includes('ring'));
+    if (firstCompound) {
+      f.scene.cameras.main.centerOn(firstCompound.origin.x + 200, firstCompound.origin.y + 200);
+      f.scene.updateTiles();
+    }
+  }, compoundMap);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: 'test-results/overhead-compound.png' });
+  // Restore original map with canopy around (500, 400) for texture lifecycle cleanup checks
+  await page.evaluate(() => {
+    const f = window.fixture;
+    f.map = {
+      seed: 1, width: 5000, height: 3000, modules: [], hazards: [], gaps: [], stations: [], sensors: [], gates: [], routes: [],
+      buildings: [{ id: 'house', x: 100, y: 100, w: 412, h: 200 }], obstacles: [{ id: 'tree', kind: 'tree', x: 450, y: 400, r: 32 }],
+    };
+    f.scene.buildMap();
+    f.scene.cutTo();
+  });
+
   // Pan far enough to release the original textures, then rebuild the map with no overhead art.
   const cleanup = await page.evaluate(() => {
     const f = window.fixture, s = f.scene;

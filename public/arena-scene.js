@@ -1,5 +1,5 @@
 import { visibilityPolygon, gateShape, insideMap } from '/shared/movement.ts';
-import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofAt, roofGroups, roofOverhang, roofTargetAlpha, openingDistance, INSIDE_ZOOM, ROOF_OVERHANG, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
+import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofAt, roofGroups, roofOverhang, roofCellBorders, roofTargetAlpha, openingDistance, INSIDE_ZOOM, ROOF_OVERHANG, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
 import { shapeOf, outline, bounds } from '/shared/shape.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
@@ -308,62 +308,40 @@ export function makeArenaScene(api) {
       if (map.roofs?.length) {
         for (const roof of map.roofs) {
           const key = `roof:${roof.id}`;
-          const groupMembers = (this.roofMembers.get(roof.id) || [roof]).filter(r => 'cells' in r);
-          const otherGroupCells = new Set();
-          for (const other of groupMembers) {
-            if (other.id !== roof.id) {
-              for (const c of other.cells) {
-                const wx = Math.round(other.origin.x + c.x * other.cellSize);
-                const wy = Math.round(other.origin.y + c.y * other.cellSize);
-                otherGroupCells.add(`${wx},${wy}`);
-              }
-            }
-          }
           const overhang = roof.overhang ?? ROOF_OVERHANG;
           const left = roof.bounds.x - overhang, top = roof.bounds.y - overhang;
           const width = roof.bounds.w + overhang * 2, height = roof.bounds.h + overhang * 2;
           const roofState = this.overheadGroup(key, 'roof', { x: left, y: top, w: width, h: height });
           this.roofs.set(roof.id, roofState);
           const g = this.staticAt(left - 2, top - 2, left + width + 2, top + height + 2, key);
-          const cellSet = new Set(roof.cells.map(c => `${c.x},${c.y}`));
 
           for (const c of roof.cells) {
             const cx0 = roof.origin.x + c.x * roof.cellSize;
             const cy0 = roof.origin.y + c.y * roof.cellSize;
             const cx1 = cx0 + roof.cellSize;
             const cy1 = cy0 + roof.cellSize;
-            const wx = Math.round(cx0);
-            const wy = Math.round(cy0);
 
-            const hasW = cellSet.has(`${c.x - 1},${c.y}`);
-            const hasE = cellSet.has(`${c.x + 1},${c.y}`);
-            const hasN = cellSet.has(`${c.x},${c.y - 1}`);
-            const hasS = cellSet.has(`${c.x},${c.y + 1}`);
+            const b = roofCellBorders(roof, c, map);
 
-            const abutsW = !hasW && otherGroupCells.has(`${Math.round(cx0 - roof.cellSize)},${wy}`);
-            const abutsE = !hasE && otherGroupCells.has(`${Math.round(cx0 + roof.cellSize)},${wy}`);
-            const abutsN = !hasN && otherGroupCells.has(`${wx},${Math.round(cy0 - roof.cellSize)}`);
-            const abutsS = !hasS && otherGroupCells.has(`${wx},${Math.round(cy0 + roof.cellSize)}`);
-
-            const oW = !hasW && !abutsW ? overhang : 0;
-            const oE = !hasE && !abutsE ? overhang : 0;
-            const oN = !hasN && !abutsN ? overhang : 0;
-            const oS = !hasS && !abutsS ? overhang : 0;
+            const oW = !b.hasW && !b.abutsW ? overhang : 0;
+            const oE = !b.hasE && !b.abutsE ? overhang : 0;
+            const oN = !b.hasN && !b.abutsN ? overhang : 0;
+            const oS = !b.hasS && !b.abutsS ? overhang : 0;
 
             const x = cx0 - oW, y = cy0 - oN, w = cx1 + oE - x, h = cy1 + oS - y;
             g.fillStyle(0x323a4b); g.fillRect(x, y, w, h);
 
-            const inW = !hasW ? 4 : 0;
-            const inE = !hasE ? 4 : 0;
-            const inN = !hasN ? 4 : 0;
-            const inS = !hasS ? 4 : 0;
+            const inW = !b.hasW ? 4 : 0;
+            const inE = !b.hasE ? 4 : 0;
+            const inN = !b.hasN ? 4 : 0;
+            const inS = !b.hasS ? 4 : 0;
             g.fillStyle(0x4b586b); g.fillRect(x + inW, y + inN, w - inW - inE, h - inN - inS);
 
             g.lineStyle(4, 0x8091a8);
-            if (!hasW && !abutsW) g.lineBetween(x, y, x, y + h);
-            if (!hasE && !abutsE) g.lineBetween(x + w, y, x + w, y + h);
-            if (!hasN && !abutsN) g.lineBetween(x, y, x + w, y);
-            if (!hasS && !abutsS) g.lineBetween(x, y + h, x + w, y + h);
+            if (!b.hasW && !b.abutsW) g.lineBetween(x, y, x, y + h);
+            if (!b.hasE && !b.abutsE) g.lineBetween(x + w, y, x + w, y + h);
+            if (!b.hasN && !b.abutsN) g.lineBetween(x, y, x + w, y);
+            if (!b.hasS && !b.abutsS) g.lineBetween(x, y + h, x + w, y + h);
           }
 
           g.lineStyle(2, 0x748298);

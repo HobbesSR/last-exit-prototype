@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { roofAt, roofConceals, roofGroups, roofOverhang, roofTargetAlpha, openingDistance, ROOF_FADE_RANGE, ROOF_FADE_FLOOR, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '../shared/view.ts';
+import { roofAt, roofConceals, roofGroups, roofOverhang, roofCellBorders, roofTargetAlpha, openingDistance, ROOF_FADE_RANGE, ROOF_FADE_FLOOR, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '../shared/view.ts';
 import { visibilityPolygon, litPoint } from '../shared/movement.ts';
 import { generateLiveMap } from '../map/live.ts';
 
@@ -105,6 +105,67 @@ test('a roof overhangs every side except where its group abuts', () => {
   assert.deepEqual(roofOverhang(a, [a]), { n: ROOF_OVERHANG, e: ROOF_OVERHANG, s: ROOF_OVERHANG, w: ROOF_OVERHANG });
   assert.deepEqual(roofOverhang(a, [a, b]), { n: ROOF_OVERHANG, e: 0, s: ROOF_OVERHANG, w: ROOF_OVERHANG });
   assert.deepEqual(roofOverhang(b, [a, b]), { n: ROOF_OVERHANG, e: ROOF_OVERHANG, s: ROOF_OVERHANG, w: 0 });
+});
+
+test('declared roof cells drop overhang and edge seams where physically abutting any roof regardless of group', () => {
+  // Two roofs touching East-West at x = 40, belonging to different fade groups (#349)
+  const west = {
+    id: 'west',
+    groupId: 'group-1',
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
+    bounds: { x: 0, y: 0, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const east = {
+    id: 'east',
+    groupId: 'group-2',
+    origin: { x: 40, y: 0 },
+    cellSize: 40,
+    bounds: { x: 40, y: 0, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const map = { roofs: [west, east], buildings: [] };
+
+  const westBorders = roofCellBorders(west, west.cells[0], map);
+  assert.equal(westBorders.hasE, false, 'east is not an internal cell');
+  assert.equal(westBorders.abutsE, true, 'west roof physically abuts east roof on the east');
+  assert.equal(westBorders.abutsW, false, 'west side faces open exterior');
+  assert.equal(westBorders.abutsN, false);
+  assert.equal(westBorders.abutsS, false);
+
+  const eastBorders = roofCellBorders(east, east.cells[0], map);
+  assert.equal(eastBorders.hasW, false, 'west is not an internal cell');
+  assert.equal(eastBorders.abutsW, true, 'east roof physically abuts west roof on the west');
+  assert.equal(eastBorders.abutsE, false, 'east side faces open exterior');
+
+  // Multi-cell roof with internal cell neighbor
+  const twoCell = {
+    id: 'two-cell',
+    groupId: 'group-3',
+    origin: { x: 0, y: 100 },
+    cellSize: 40,
+    bounds: { x: 0, y: 100, w: 80, h: 40 },
+    cells: [{ x: 0, y: 0 }, { x: 1, y: 0 }],
+  };
+  const map2 = { roofs: [twoCell], buildings: [] };
+  const cell0 = roofCellBorders(twoCell, twoCell.cells[0], map2);
+  assert.equal(cell0.hasE, true, 'has internal east neighbor');
+  assert.equal(cell0.abutsE, false);
+
+  // Mixed map: declared roof physically abutting undeclared building
+  const declared = {
+    id: 'dec',
+    groupId: 'g-dec',
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
+    bounds: { x: 0, y: 0, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const undeclared = { id: 'undec', x: 40, y: 0, w: 40, h: 40 };
+  const mixedMap = { roofs: [declared], buildings: [undeclared] };
+  const decBorders = roofCellBorders(declared, declared.cells[0], mixedMap);
+  assert.equal(decBorders.abutsE, true, 'declared roof abuts undeclared building on east');
 });
 
 test('roofs fade toward an opening and vanish for a viewer inside', () => {
