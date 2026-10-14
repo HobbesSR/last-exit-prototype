@@ -12,11 +12,12 @@ import { dropEquipment } from './loot.ts';
 import type { DiscoveryMemory, GroundItem, Game, ItemId, Player, PlayerInput, Tick, TileCount, TileIndex, Vec2, World } from '../types.ts';
 
 // What a bot that decides from discovery is after, kept between ticks (#230). A bot searching for what
-// it needs heads for the frontier: an undiscovered discovery cell beside a discovered one. It keeps one
-// until the cell is discovered, so it does not dither, and gives a cell up for good when it cannot be
-// routed to, when it has stood inside the cell for a discovery sample and the cell is still undiscovered
-// (a cell whose centre is solid may never be), or when it stops getting closer. Nearness is not arrival:
-// a roofed cell stays concealed until the bot is under its roof (#354 review). An item it stops getting closer to, such as one seen
+// it needs heads for the frontier of what it has *seen*: loot needs line of sight, so a cell the view
+// window has discovered may still hide it (15). It keeps one unseen cell beside a seen one until the cell
+// is seen, so it does not dither, and gives a cell up for good when it cannot be routed to, when it has
+// stood inside the cell for a sample and still not seen it (a cell whose centre is solid never will be),
+// or when it stops getting closer. Nearness is not arrival: a roofed cell stays concealed until the bot
+// is under its roof (#354 review). An item it stops getting closer to, such as one seen
 // through a window, is set aside for a while. Bot-private, never projected or recorded.
 interface Pursuit {
   /** The frontier cell being explored toward, or -1, and the tick the bot entered it, or -1 while outside. */
@@ -55,25 +56,25 @@ function stalled(s: Game, p: Player, state: Pursuit, goal: string, at: Vec2): bo
 }
 
 function exploreTarget(s: Game, p: Player, memory: DiscoveryMemory): Vec2 | null {
-  const state = pursuitOf(p);
+  const state = pursuitOf(p), seen = memory.seen ?? memory.discovered;
   if (state.cell >= 0) {
     const centre = cellCenter(s.map, state.cell);
-    const settled = memory.discovered.has(state.cell) || centre.x <= s.hazardX + EXPLORE_HAZARD_MARGIN;
+    const settled = seen.has(state.cell) || centre.x <= s.hazardX + EXPLORE_HAZARD_MARGIN;
     const inside = cellIndexAt(s.map, p.x, p.y) === state.cell;
     if (!inside) state.entered = -1; else if (state.entered < 0) state.entered = s.tick;
     const arrived = inside && s.tick - state.entered > DISCOVERY_INTERVAL;
     if (!settled && !arrived && !stalled(s, p, state, `cell:${state.cell}`, centre)) return centre;
-    if (!memory.discovered.has(state.cell)) state.abandoned.add(state.cell);
+    if (!seen.has(state.cell)) state.abandoned.add(state.cell);
     state.cell = -1;
   }
   const { cols, rows } = discoveryGrid(s.map);
   let best = -1, bestScore = Infinity;
-  // Discovery order is deterministic, and ties keep the first, so the choice is too.
-  for (const index of memory.discovered) {
+  // Sight order is deterministic, and ties keep the first, so the choice is too.
+  for (const index of seen) {
     const col = index % cols, row = (index - col) / cols;
     for (const [dc, dr] of NEIGHBOURS) {
       const c = col + dc, r = row + dr, next = r * cols + c;
-      if (c < 0 || r < 0 || c >= cols || r >= rows || memory.discovered.has(next) || state.abandoned.has(next)) continue;
+      if (c < 0 || r < 0 || c >= cols || r >= rows || seen.has(next) || state.abandoned.has(next)) continue;
       const centre = cellCenter(s.map, next);
       if (centre.x <= s.hazardX + EXPLORE_HAZARD_MARGIN || !insideMap(s.map, centre.x, centre.y)) continue;
       const score = distance(p, centre) - (centre.x - p.x) * EXPLORE_RIGHTWARD;

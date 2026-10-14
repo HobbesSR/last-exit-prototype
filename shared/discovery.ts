@@ -1,13 +1,15 @@
 import { insideMap, litPoint, visibilityPolygon } from './movement.ts';
-import { roofConceals } from './view.ts';
+import { MAX_VIEW_HEIGHT, MAX_VIEW_WIDTH, roofConceals } from './view.ts';
 import { nextVersion } from './frame-layers.ts';
 import type { CollisionMap, DiscoveryMemory, DiscoveryWire, GameMap, Gate, GroundItem, ItemId, Player, PlayerId, Role, Vec2, World } from './types.ts';
 export type { DiscoveryMemory, DiscoveryWire };
 
 /** The side length of a coarse discovery cell in world units (4 x 48 map cells). */
 export const DISCOVERY_CELL_SIZE: World = 192;
-/** The viewport-sized sight radius used for contestant discovery (reach of the fog). */
+/** How far a bot's line of sight reaches when it looks for dynamic state: loot and cells (#230). */
 export const DISCOVERY_RADIUS: World = 1200;
+/** The window world geometry is discovered within: the largest viewport a client may have (`view.ts`). */
+export const DISCOVERY_VIEW = { halfWidth: MAX_VIEW_WIDTH / 2, halfHeight: MAX_VIEW_HEIGHT / 2 } as const;
 /** How often a contestant samples discovery, staggered per player. */
 export const DISCOVERY_INTERVAL = 10;
 /**
@@ -84,70 +86,68 @@ export function isFeatureDiscovered(memory: DiscoveryMemory | null | undefined, 
 }
 
 /**
- * Sample discovery from an eye position against the map.
- * Builds one visibility polygon and marks grid cells whose centres pass litPoint and are not roof-concealed.
- * With `observeItems`, the same sight also updates `memory.items`: items it sees are remembered, and a
- * remembered item whose spot it sees empty is forgotten (#230). Returns the newly discovered cell indices.
+ * Sample discovery from an eye position against the map. Two rules, split by what is learned (Corey,
+ * 2026-10-14, 15):
+ * - **World geometry** is learned from the view window: every cell whose centre lies within the largest
+ *   viewport a client may have is discovered, regardless of walls and roofs. Landmarks are discovered
+ *   from their beacon radius. This is what the minimap draws.
+ * - **Dynamic state** needs line of sight. With `observe` (bots, #230), one visibility polygon marks the
+ *   cells whose centres are lit and not roof-concealed as `memory.seen`, which a bot searches against,
+ *   and updates `memory.items`: items in sight are remembered, and a remembered item whose spot is seen
+ *   empty is forgotten.
+ * Returns the newly discovered cell indices.
  */
 export function discover(
   memory: DiscoveryMemory,
   map: DiscoveryMap,
   eye: Vec2,
   radius: World = DISCOVERY_RADIUS,
-  observeItems = false
+  observe = false
 ): number[] {
   const { cols, rows } = discoveryGrid(map);
-
-  const minCol = Math.max(0, Math.floor((eye.x - radius) / DISCOVERY_CELL_SIZE));
-  const maxCol = Math.min(cols - 1, Math.floor((eye.x + radius) / DISCOVERY_CELL_SIZE));
-  const minRow = Math.max(0, Math.floor((eye.y - radius) / DISCOVERY_CELL_SIZE));
-  const maxRow = Math.min(rows - 1, Math.floor((eye.y + radius) / DISCOVERY_CELL_SIZE));
-
-  let poly: ReturnType<typeof visibilityPolygon> | null = null;
   const newlyDiscovered: number[] = [];
-  const radiusSq = radius * radius;
-  // The polygon is built only once something in reach needs it.
-  const sees = (x: World, y: World): boolean => {
-    if ((x - eye.x) ** 2 + (y - eye.y) ** 2 > radiusSq) return false;
-    if (roofConceals(map, eye, { x, y })) return false;
-    if (!poly) poly = visibilityPolygon(map, eye, radius);
-    return litPoint(poly, eye, x, y);
+  const mark = (idx: number) => { if (!memory.discovered.has(idx)) { memory.discovered.add(idx); newlyDiscovered.push(idx); } };
+  const cells = (halfWidth: World, halfHeight: World, visit: (idx: number, cx: World, cy: World) => void) => {
+    const minCol = Math.max(0, Math.floor((eye.x - halfWidth) / DISCOVERY_CELL_SIZE));
+    const maxCol = Math.min(cols - 1, Math.floor((eye.x + halfWidth) / DISCOVERY_CELL_SIZE));
+    const minRow = Math.max(0, Math.floor((eye.y - halfHeight) / DISCOVERY_CELL_SIZE));
+    const maxRow = Math.min(rows - 1, Math.floor((eye.y + halfHeight) / DISCOVERY_CELL_SIZE));
+    for (let row = minRow; row <= maxRow; row++) for (let col = minCol; col <= maxCol; col++) {
+      const cx = col * DISCOVERY_CELL_SIZE + DISCOVERY_CELL_SIZE / 2, cy = row * DISCOVERY_CELL_SIZE + DISCOVERY_CELL_SIZE / 2;
+      if (Math.abs(cx - eye.x) <= halfWidth && Math.abs(cy - eye.y) <= halfHeight && insideMap(map, cx, cy)) visit(row * cols + col, cx, cy);
+    }
   };
 
-  for (let row = minRow; row <= maxRow; row++) {
-    for (let col = minCol; col <= maxCol; col++) {
-      const idx = row * cols + col;
-      if (memory.discovered.has(idx)) continue;
-
-      const cx = col * DISCOVERY_CELL_SIZE + DISCOVERY_CELL_SIZE / 2;
-      const cy = row * DISCOVERY_CELL_SIZE + DISCOVERY_CELL_SIZE / 2;
-
-      if (!insideMap(map, cx, cy)) continue;
-      if (!sees(cx, cy)) continue;
-
-      memory.discovered.add(idx);
-      newlyDiscovered.push(idx);
-    }
-  }
-
+  cells(DISCOVERY_VIEW.halfWidth, DISCOVERY_VIEW.halfHeight, mark);
   // A landmark's beacon shows over walls and roofs, so its cell is discovered from much further away.
   for (const landmark of landmarks(map)) {
     if ((landmark.x - eye.x) ** 2 + (landmark.y - eye.y) ** 2 > BEACON_RADIUS ** 2) continue;
     const idx = cellIndexAt(map, landmark.x, landmark.y);
-    if (idx === -1 || memory.discovered.has(idx)) continue;
-    memory.discovered.add(idx);
-    newlyDiscovered.push(idx);
+    if (idx !== -1) mark(idx);
   }
 
-  if (observeItems && map.items) {
-    const items = memory.items ??= new Map();
-    const present = new Set<ItemId>();
-    for (const item of map.items) {
-      if (!sees(item.x, item.y)) continue;
-      present.add(item.id);
-      items.set(item.id, { ...item });
+  if (observe) {
+    let poly: ReturnType<typeof visibilityPolygon> | null = null;
+    const radiusSq = radius * radius;
+    // The polygon is built only once something in reach needs it.
+    const sees = (x: World, y: World): boolean => {
+      if ((x - eye.x) ** 2 + (y - eye.y) ** 2 > radiusSq) return false;
+      if (roofConceals(map, eye, { x, y })) return false;
+      if (!poly) poly = visibilityPolygon(map, eye, radius);
+      return litPoint(poly, eye, x, y);
+    };
+    const seen = memory.seen ??= new Set();
+    cells(radius, radius, (idx, cx, cy) => { if (!seen.has(idx) && sees(cx, cy)) seen.add(idx); });
+    if (map.items) {
+      const items = memory.items ??= new Map();
+      const present = new Set<ItemId>();
+      for (const item of map.items) {
+        if (!sees(item.x, item.y)) continue;
+        present.add(item.id);
+        items.set(item.id, { ...item });
+      }
+      for (const [id, item] of items) if (!present.has(id) && sees(item.x, item.y)) items.delete(id);
     }
-    for (const [id, item] of items) if (!present.has(id) && sees(item.x, item.y)) items.delete(id);
   }
 
   return newlyDiscovered;

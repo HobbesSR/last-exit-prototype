@@ -89,7 +89,7 @@ test('item memory stays out of snapshots and every projection', () => {
 });
 
 test('a bot enters a reachable roofed frontier cell rather than giving it up from outside (#354 review)', () => {
-  // Open ground with one roofed room. Everything is discovered but the room's cell, index 84, whose centre
+  // Open ground with one roofed room. Everything has been seen but the room's cell, index 84, whose centre
   // (864, 1632) stays concealed until the bot stands under the roof. The room holds the only cell.
   const cell = { id: 'indoor-cell', kind: 'cell', x: 864, y: 1632, charge: 0 };
   const map = { width: 1920, height: 3840, nodes: [], streets: [], obstacles: [], gates: [], hazards: [], traps: [],
@@ -99,13 +99,14 @@ test('a bot enters a reachable roofed frontier cell rather than giving it up fro
     weapon: 0, kills: 0, level: 1, status: 'active', cooldown: 0, attackCd: 0, railCd: 0, cloak: 0, revealed: 0, boost: 0, stun: 0, heading: 0,
     input: {}, lastSeq: -1, inventory: Array(4).fill(null), selectedSlot: 0, path: [] };
   const memory = createDiscovery();
-  for (let i = 0; i < 200; i++) if (i !== 84) memory.discovered.add(i);
+  memory.seen = new Set();
+  for (let i = 0; i < 200; i++) { memory.discovered.add(i); if (i !== 84) memory.seen.add(i); }
   attachDiscovery(p, memory);
   const s = { tick: 0, phase: 'live', content: contentById('content-2'), map, players: [p], projectiles: [], effects: [], events: [], hazardX: -80, slots: 3, serial: 0 };
-  for (; s.tick < 400 && !memory.discovered.has(84); s.tick++) {
+  for (; s.tick < 400 && !memory.seen.has(84); s.tick++) {
     movePlayer(map, p, botInput(s, p));
     if (s.tick % DISCOVERY_INTERVAL === 0) discover(memory, map, p, undefined, true);
   }
-  assert.ok(memory.discovered.has(84), 'the roofed cell is discovered by going in');
+  assert.ok(memory.seen.has(84), 'the roofed cell is seen by going in');
   assert.ok(memory.items.has('indoor-cell'), 'and the cell inside is seen');
 });

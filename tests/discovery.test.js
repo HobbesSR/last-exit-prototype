@@ -48,7 +48,7 @@ test('discovery grid dimensions and cell coordinates match map scale', () => {
   assert.equal(isDiscovered(memory, map, map.width + 10, 50), false);
 });
 
-test('a contestant discovers cells it can see and not cells behind a wall', () => {
+test('geometry in the view window is discovered behind a wall; only line of sight sees past it', () => {
   const memory = createDiscovery();
   // Map 1920x960: cols = 10, rows = 5
   // Origin at cell (1, 1): center = (288, 288)
@@ -77,13 +77,20 @@ test('a contestant discovers cells it can see and not cells behind a wall', () =
   const westCell = cellIndexAt(map, 96, 288);
   assert.ok(memory.discovered.has(westCell), 'unobstructed cell to the west must be discovered');
 
-  // Cell to the east behind the wall (col 3, row 1 -> index 13, center 672, 288)
+  // Cell to the east behind the wall (col 3, row 1 -> index 13, center 672, 288): geometry, so discovered.
   const eastCell = cellIndexAt(map, 672, 288);
-  assert.equal(memory.discovered.has(eastCell), false, 'cell behind wall must not be discovered');
-  assert.equal(isDiscovered(memory, map, 672, 288), false);
+  assert.ok(memory.discovered.has(eastCell), 'world geometry in the view window is discovered through a wall');
+  assert.equal(memory.seen, undefined, 'people keep no line-of-sight set');
+  // A bot's line of sight sees its own side and not past the wall.
+  const bot = createDiscovery();
+  discover(bot, map, eye, undefined, true);
+  assert.ok(bot.seen.has(westCell) && bot.seen.has(eyeCell));
+  assert.equal(bot.seen.has(eastCell), false, 'line of sight stops at the wall');
+  // Beyond the window, nothing: (1824, 288) is 1536 east of the eye, past half of 2400.
+  assert.equal(isDiscovered(memory, map, 1824, 288), false);
 });
 
-test('cells under a roof are concealed from a viewer outside', () => {
+test('a roof hides its interior from line of sight outside, not from the view window', () => {
   const memory = createDiscovery();
   const eye = { x: 200, y: 200 };
   // Building located at (384, 192) covering cell (2, 1) [384..576, 192..384]
@@ -98,11 +105,12 @@ test('cells under a roof are concealed from a viewer outside', () => {
     buildings: [building],
   };
 
-  discover(memory, map, eye);
+  discover(memory, map, eye, undefined, true);
 
   // Cell inside the building: col 2, row 1 -> center (480, 288)
   const roofCell = cellIndexAt(map, 480, 288);
-  assert.equal(memory.discovered.has(roofCell), false, 'cell under roof must not be discovered from outside');
+  assert.ok(memory.discovered.has(roofCell), 'the building is world geometry, discovered from outside');
+  assert.equal(memory.seen.has(roofCell), false, 'its interior is not seen from outside');
   // Cell outside the building near eye (288, 288) is discovered
   const outsideCell = cellIndexAt(map, 200, 200);
   assert.ok(memory.discovered.has(outsideCell), 'cell outside building must be discovered');
