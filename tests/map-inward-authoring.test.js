@@ -206,15 +206,19 @@ test('optional library variants retain exposed original prescriptions', () => wi
   assert.equal(variant.segments['h:6,3'].passability, 'not-passable-hint');
 }));
 
-test('optional library requires version 3 and its matching primitive pin without a fixed name', () => withCompoundCopies((files, dir) => {
+test('optional library requires the library format version, some name and its matching primitive pin', () => withCompoundCopies((files, dir) => {
   const library = json(files[3]);
   library.name = 'custom-large-library';
   save(files[3], library);
   assert.equal(invokeWithCompound(files, ['--out-dir', join(dir, 'custom')]).status, 0);
   library.version = 2;
   save(files[3], library);
-  assert.match(invokeWithCompound(files, ['--check']).stderr, /version 3/);
+  assert.match(invokeWithCompound(files, ['--check']).stderr, /format version 3/);
   library.version = 3;
+  delete library.name;
+  save(files[3], library);
+  assert.match(invokeWithCompound(files, ['--check']).stderr, /named compound library/);
+  library.name = 'custom-large-library';
   library.includes.find(ref => ref.name === 'common-primitives').version++;
   save(files[3], library);
   assert.match(invokeWithCompound(files, ['--check']).stderr, /expected common-primitives@4 include/);

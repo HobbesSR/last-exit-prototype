@@ -9,6 +9,7 @@ import { readFileSync, mkdirSync, writeFileSync, realpathSync, existsSync } from
 import { resolve, join, basename, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
+import { CHAIN_LIBRARY_VERSION } from '../macro/src/chain/library.ts';
 
 const KINDS = ['block', 'compound', 'depot'] as const;
 type Kind = typeof KINDS[number];
@@ -70,7 +71,9 @@ function author(primitives: Json, blueprints: Json[]): { modules: Json[]; varian
   identity(primitives, 'common-primitives');
   identity(blueprints[0], 'common-set-pieces');
   identity(blueprints[1], 'district-set-pieces');
-  if (blueprints[2]) expect(blueprints[2].version === 3, 'expected compound library version 3');
+  // A top-level library's version is its file format, not an authored content revision.
+  if (blueprints[2]) expect(typeof blueprints[2].name === 'string' && blueprints[2].version === CHAIN_LIBRARY_VERSION,
+    `expected a named compound library of format version ${CHAIN_LIBRARY_VERSION}`);
   expect(Array.isArray(primitives.tiles) && Array.isArray(primitives.tileSets), 'missing primitive tiles or tile sets');
   for (const blueprint of blueprints) {
     expect(Array.isArray(blueprint.setPieces), `${blueprint.name}: missing set pieces`);

@@ -50,14 +50,20 @@ export interface CompoundSitingProbe {
   reachedBlocks?: number;
 }
 
-/** Diagnose the exact bounded search without building or changing its policy. */
-export function diagnoseCompoundSiting(brief: RegionBrief) {
+/** The builder's siting: validate gates, find the ring space, then search it. */
+function locateCompound(brief: RegionBrief, observe?: (probe: CompoundSitingProbe) => void) {
   const gates = brief.parameters?.gates ?? DEFAULT_GATES;
   if (typeof gates !== 'number' || !Number.isInteger(gates) || gates < MIN_GATES || gates > MAX_GATES)
     throw new RangeError(`Compound gates must be a whole number from ${MIN_GATES} to ${MAX_GATES}.`);
   const fill = createFillMask(brief), space = largestRectangle(fill, MIN_SIDE);
+  const site = space ? siteCompound(brief, fill, createAccessMask(brief), space, gates, observe) : undefined;
+  return { gates, space, site };
+}
+
+/** Diagnose the exact bounded search without building or changing its policy. */
+export function diagnoseCompoundSiting(brief: RegionBrief) {
   const probes: CompoundSitingProbe[] = [];
-  const site = space && siteCompound(brief, fill, createAccessMask(brief), space, gates, probe => probes.push(probe));
+  const { gates, space, site } = locateCompound(brief, probe => probes.push(probe));
   return { space: space ?? null, gates, probes, site: site ? { ...site, gated: [...site.gated] } : null };
 }
 
@@ -237,13 +243,9 @@ export const COMPOUND_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
 });
 
 function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, observe?: BuildingObserver): BuiltRegion {
-  const gates = brief.parameters?.gates ?? DEFAULT_GATES;
-  if (typeof gates !== 'number' || !Number.isInteger(gates) || gates < MIN_GATES || gates > MAX_GATES)
-    throw new RangeError(`Compound gates must be a whole number from ${MIN_GATES} to ${MAX_GATES}.`);
-  const mask = createFillMask(brief), size = brief.cellSize;
-  const space = largestRectangle(mask, MIN_SIDE);
+  const size = brief.cellSize;
+  const { space, site } = locateCompound(brief);
   if (!space) return context.empty('compound has no usable ring box');
-  const site = siteCompound(brief, mask, createAccessMask(brief), space, gates);
   if (!site) return context.empty('compound has no ring with reachable yard gates');
   const { x: bx, y: by, w: W, h: H, gated } = site;
 
