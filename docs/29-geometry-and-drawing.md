@@ -187,7 +187,9 @@ actors are retained objects above it, and overhead textures sit above actors.
 The overhead cache uses the same camera-dependent tile level, resolution and
 frame budget as static geometry. Roofs have one alpha group per building; crowns
 share a canopy group. Roof textures are cropped to the roof's own extent, which overhangs
-the walls by `ROOF_OVERHANG` on every side except one where another room of its group abuts.
+the walls by `ROOF_OVERHANG` on exterior sides, dropping overhang, perimeter fill insets, and seam
+strokes where physically abutting another roof or building regardless of fade group (`roofCellBorders`,
+comparing boundary contact intervals across unequal cell sizes and staggered origins).
 Group visibility and alpha update retained `RenderTexture` quads without replaying
 the drawing commands. Offscreen textures are released beyond the retention ring,
 and map replacement clears both caches. No overhead `Graphics` is rendered each
