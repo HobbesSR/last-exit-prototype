@@ -4,6 +4,7 @@ import { chromium } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { createArenaServer } from '../server/index.js';
 import { listen } from './helpers/listen.js';
+import { generateLiveMap } from '../map/live.ts';
 
 await mkdir('test-results', { recursive: true });
 const server = await createArenaServer({ profileSummary: false });
@@ -45,9 +46,9 @@ try {
     f.rasterisations = 0;
     const rasterise = s.rasterise.bind(s);
     s.rasterise = (...args) => { f.rasterisations++; return rasterise(...args); };
-    f.pixel = () => {
+    f.pixel = (wx = f.player.x, wy = f.player.y) => {
       const c = s.cameras.main, gl = f.game.renderer.gl, rgba = new Uint8Array(4);
-      const px = Math.round((f.player.x - c.worldView.x) * c.zoom), py = Math.round((f.player.y - c.worldView.y) * c.zoom);
+      const px = Math.round((wx - c.worldView.x) * c.zoom), py = Math.round((wy - c.worldView.y) * c.zoom);
       gl.readPixels(px, gl.drawingBufferHeight - py - 1, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
       return [...rgba];
     };
@@ -109,6 +110,153 @@ try {
   assert.equal(underL.alpha, 0, 'inside a declared roof fades it away');
   assert.equal((await frames(1)).alpha, 1, 'the plain building stays roofed while inside the declared one');
   await page.evaluate(() => { const f = window.fixture; f.player.x = 700; f.player.y = 700; });
+
+  // Two physically abutting declared roofs with different fade groups (#349).
+  // Roof west at (2000, 100), 40x40, groupId: 'group-w'.
+  // Roof east at (2040, 100), 40x40, groupId: 'group-e'.
+  await page.evaluate(() => {
+    const f = window.fixture;
+    f.map = {
+      ...f.map,
+      buildings: [],
+      roofs: [
+        { id: 'room-w', groupId: 'group-w', bounds: { x: 2000, y: 100, w: 40, h: 40 }, origin: { x: 2000, y: 100 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+        { id: 'room-e', groupId: 'group-e', bounds: { x: 2040, y: 100, w: 40, h: 40 }, origin: { x: 2040, y: 100 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+      ],
+    };
+    f.scene.buildMap();
+    f.scene.cutTo();
+    f.player.x = 2020; f.player.y = 300;
+  });
+  const bothOpaque = await frames(30, 'room-w');
+  const eastOpaque = await frames(1, 'room-e');
+  assert.equal(bothOpaque.alpha, 1);
+  assert.equal(eastOpaque.alpha, 1);
+  // Assert no line stroke (128,145,168) or dark base seam at the shared wall (x=2040) between abutting roofs (#349)
+  const interiorPixel = await page.evaluate(() => window.fixture.pixel(2020, 120));
+  const seamPixel = await page.evaluate(() => window.fixture.pixel(2040, 120));
+  const westOfSeam = await page.evaluate(() => window.fixture.pixel(2038, 120));
+  const eastOfSeam = await page.evaluate(() => window.fixture.pixel(2042, 120));
+  const westOuterPixel = await page.evaluate(() => window.fixture.pixel(1988, 120));
+  assert.deepEqual(westOfSeam.slice(0, 3), interiorPixel.slice(0, 3), 'west side of shared wall matches interior fill');
+  assert.deepEqual(eastOfSeam.slice(0, 3), interiorPixel.slice(0, 3), 'east side of shared wall matches interior fill');
+  assert.ok(seamPixel[0] >= 65 && seamPixel[0] < 100 && seamPixel[1] < 110, 'shared seam has continuous fill and rejects bright stroke color');
+  assert.deepEqual(westOuterPixel.slice(0, 3), [128, 145, 168], `outer exterior roof edge retains perimeter line stroke (got rgb ${westOuterPixel.slice(0,3)})`);
+  await page.screenshot({ path: 'test-results/overhead-abutting-roofs.png' });
+
+  // Staggered abutting roofs: verify contacted portion has continuous fill while exposed portions retain overhang & strokes (#349)
+  await page.evaluate(async () => {
+    const f = window.fixture, s = f.scene;
+    f.map = {
+      ...f.map,
+      buildings: [],
+      roofs: [
+        { id: 'stag-w', groupId: 'g-sw', bounds: { x: 3000, y: 100, w: 40, h: 40 }, origin: { x: 3000, y: 100 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+        { id: 'stag-e', groupId: 'g-se', bounds: { x: 3040, y: 110, w: 40, h: 40 }, origin: { x: 3040, y: 110 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+      ],
+    };
+    f.player.x = 3020; f.player.y = 70;
+    s.buildMap();
+    s.cutTo();
+  });
+  await frames(30, 'stag-w');
+  const stagContactSeam = await page.evaluate(() => window.fixture.pixel(3040, 125));
+  const stagWestSide = await page.evaluate(() => window.fixture.pixel(3038, 125));
+  const stagEastSide = await page.evaluate(() => window.fixture.pixel(3042, 125));
+  const stagWestOuterStroke = await page.evaluate(() => window.fixture.pixel(2988, 120));
+  const stagEastExposedOverhang = await page.evaluate(() => window.fixture.pixel(3028, 145));
+  assert.deepEqual(stagWestSide.slice(0, 3), interiorPixel.slice(0, 3), 'west side of contacted staggered edge matches interior fill');
+  assert.deepEqual(stagEastSide.slice(0, 3), interiorPixel.slice(0, 3), 'east side of contacted staggered edge matches interior fill');
+  assert.ok(stagContactSeam[0] >= 65 && stagContactSeam[0] < 100, 'contacted portion of staggered edge rejects stroke color');
+  assert.deepEqual(stagWestOuterStroke.slice(0, 3), [128, 145, 168], 'outer west perimeter of stag-w retains stroke');
+  assert.deepEqual(stagEastExposedOverhang.slice(0, 3), [128, 145, 168], 'partially exposed west segment of stag-e retains overhang stroke');
+
+  // North/South staggered abutting roofs at distinct X/Y origins (#349 review)
+  await page.evaluate(async () => {
+    const f = window.fixture, s = f.scene;
+    f.map = {
+      ...f.map,
+      buildings: [],
+      roofs: [
+        { id: 'stag-s', groupId: 'g-ss', bounds: { x: 3000, y: 100, w: 40, h: 40 }, origin: { x: 3000, y: 100 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+        { id: 'stag-n', groupId: 'g-sn', bounds: { x: 3020, y: 60, w: 40, h: 40 }, origin: { x: 3020, y: 60 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+      ],
+    };
+    f.player.x = 3020; f.player.y = 30;
+    s.buildMap();
+    s.cutTo();
+  });
+  await frames(30, 'stag-s');
+  const nsContactSeam = await page.evaluate(() => window.fixture.pixel(3030, 100));
+  const nsNorthSide = await page.evaluate(() => window.fixture.pixel(3030, 98));
+  const nsSouthSide = await page.evaluate(() => window.fixture.pixel(3030, 102));
+  const nsSouthExposedOverhang = await page.evaluate(() => window.fixture.pixel(3004, 88));
+  const nsNorthExposedOverhang = await page.evaluate(() => window.fixture.pixel(3056, 112));
+  assert.deepEqual(nsNorthSide.slice(0, 3), interiorPixel.slice(0, 3), 'north side of contacted NS edge matches interior fill');
+  assert.deepEqual(nsSouthSide.slice(0, 3), interiorPixel.slice(0, 3), 'south side of contacted NS edge matches interior fill');
+  assert.ok(nsContactSeam[0] >= 65 && nsContactSeam[0] < 100, 'contacted portion of NS edge rejects stroke color');
+  assert.deepEqual(nsSouthExposedOverhang.slice(0, 3), [128, 145, 168], 'exposed north overhang of stag-s retains stroke');
+  assert.deepEqual(nsNorthExposedOverhang.slice(0, 3), [128, 145, 168], 'exposed south overhang of stag-n retains stroke');
+
+  // Inside room-w fades room-w, while room-e in group-e stays opaque
+  await page.evaluate(() => {
+    const f = window.fixture;
+    f.map = {
+      ...f.map,
+      buildings: [],
+      roofs: [
+        { id: 'room-w', groupId: 'group-w', bounds: { x: 2000, y: 100, w: 40, h: 40 }, origin: { x: 2000, y: 100 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+        { id: 'room-e', groupId: 'group-e', bounds: { x: 2040, y: 100, w: 40, h: 40 }, origin: { x: 2040, y: 100 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+      ],
+    };
+    f.scene.buildMap();
+    f.scene.cutTo();
+    f.player.x = 2020; f.player.y = 120;
+  });
+  const westFaded = await frames(60, 'room-w');
+  const eastStillOpaque = await frames(1, 'room-e');
+  assert.equal(westFaded.alpha, 0, 'inside room-w fades room-w');
+  assert.equal(eastStillOpaque.alpha, 1, 'room-e in another group remains opaque');
+  await page.evaluate(() => { const f = window.fixture; f.player.x = 700; f.player.y = 700; });
+
+  // Screenshot a multi-room compound (#349)
+  const compoundMap = generateLiveMap(1);
+  await page.evaluate(async map => {
+    const f = window.fixture, s = f.scene;
+    f.map = map;
+    const firstCompound = map.roofs.find(r => r.id.startsWith('compound') || r.groupId.includes('compound') || r.groupId.includes('ring'));
+    if (firstCompound) {
+      f.player.x = firstCompound.bounds.x + firstCompound.bounds.w / 2;
+      f.player.y = firstCompound.bounds.y - 120;
+    }
+    s.buildMap();
+    s.cutTo();
+    for (let i = 0; i < 40; i++) {
+      s.update(performance.now(), 16);
+      await new Promise(r => setTimeout(r, 20));
+    }
+  }, compoundMap);
+  const compoundOverheadCount = await page.evaluate(() => {
+    const s = window.fixture.scene;
+    let count = 0;
+    for (const [key, g] of s.overheadGroups) {
+      if (key.startsWith('roof:') && g.visible && g.textures.size > 0) count++;
+    }
+    return count;
+  });
+  assert.ok(compoundOverheadCount > 0, 'compound roof overhead textures are built and visible');
+  await page.screenshot({ path: 'test-results/overhead-compound.png' });
+  // Restore original map with canopy around (500, 400) for texture lifecycle cleanup checks
+  await page.evaluate(() => {
+    const f = window.fixture;
+    f.map = {
+      seed: 1, width: 5000, height: 3000, modules: [], hazards: [], gaps: [], stations: [], sensors: [], gates: [], routes: [],
+      buildings: [{ id: 'house', x: 100, y: 100, w: 412, h: 200 }], obstacles: [{ id: 'tree', kind: 'tree', x: 450, y: 400, r: 32 }],
+    };
+    f.scene.buildMap();
+    f.scene.cutTo();
+  });
+
   // Pan far enough to release the original textures, then rebuild the map with no overhead art.
   const cleanup = await page.evaluate(() => {
     const f = window.fixture, s = f.scene;

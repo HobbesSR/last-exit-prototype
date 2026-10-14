@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { roofAt, roofConceals, roofGroups, roofOverhang, roofTargetAlpha, openingDistance, ROOF_FADE_RANGE, ROOF_FADE_FLOOR, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '../shared/view.ts';
+import { roofAt, roofConceals, roofGroups, roofOverhang, roofCellBorders, roofTargetAlpha, openingDistance, ROOF_FADE_RANGE, ROOF_FADE_FLOOR, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '../shared/view.ts';
 import { visibilityPolygon, litPoint } from '../shared/movement.ts';
 import { generateLiveMap } from '../map/live.ts';
 
@@ -105,6 +105,172 @@ test('a roof overhangs every side except where its group abuts', () => {
   assert.deepEqual(roofOverhang(a, [a]), { n: ROOF_OVERHANG, e: ROOF_OVERHANG, s: ROOF_OVERHANG, w: ROOF_OVERHANG });
   assert.deepEqual(roofOverhang(a, [a, b]), { n: ROOF_OVERHANG, e: 0, s: ROOF_OVERHANG, w: ROOF_OVERHANG });
   assert.deepEqual(roofOverhang(b, [a, b]), { n: ROOF_OVERHANG, e: ROOF_OVERHANG, s: ROOF_OVERHANG, w: 0 });
+});
+
+test('declared roof cells drop overhang and edge seams where physically abutting any roof regardless of group', () => {
+  // Two roofs touching East-West at x = 40, belonging to different fade groups (#349)
+  const west = {
+    id: 'west',
+    groupId: 'group-1',
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
+    bounds: { x: 0, y: 0, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const east = {
+    id: 'east',
+    groupId: 'group-2',
+    origin: { x: 40, y: 0 },
+    cellSize: 40,
+    bounds: { x: 40, y: 0, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const map = { roofs: [west, east], buildings: [] };
+
+  const westBorders = roofCellBorders(west, west.cells[0], map);
+  assert.equal(westBorders.hasE, false, 'east is not an internal cell');
+  assert.equal(westBorders.abutsE, true, 'west roof physically abuts east roof on the east');
+  assert.equal(westBorders.abutsW, false, 'west side faces open exterior');
+  assert.equal(westBorders.abutsN, false);
+  assert.equal(westBorders.abutsS, false);
+
+  const eastBorders = roofCellBorders(east, east.cells[0], map);
+  assert.equal(eastBorders.hasW, false, 'west is not an internal cell');
+  assert.equal(eastBorders.abutsW, true, 'east roof physically abuts west roof on the west');
+  assert.equal(eastBorders.abutsE, false, 'east side faces open exterior');
+
+  // Multi-cell roof with internal cell neighbor
+  const twoCell = {
+    id: 'two-cell',
+    groupId: 'group-3',
+    origin: { x: 0, y: 100 },
+    cellSize: 40,
+    bounds: { x: 0, y: 100, w: 80, h: 40 },
+    cells: [{ x: 0, y: 0 }, { x: 1, y: 0 }],
+  };
+  const map2 = { roofs: [twoCell], buildings: [] };
+  const cell0 = roofCellBorders(twoCell, twoCell.cells[0], map2);
+  assert.equal(cell0.hasE, true, 'has internal east neighbor');
+  assert.equal(cell0.abutsE, false);
+
+  // Mixed map: declared roof physically abutting undeclared building
+  const declared = {
+    id: 'dec',
+    groupId: 'g-dec',
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
+    bounds: { x: 0, y: 0, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const undeclared = { id: 'undec', x: 40, y: 0, w: 40, h: 40 };
+  const mixedMap = { roofs: [declared], buildings: [undeclared] };
+  const decBorders = roofCellBorders(declared, declared.cells[0], mixedMap);
+  assert.equal(decBorders.abutsE, true, 'declared roof abuts undeclared building on east');
+
+  // Unequal cell sizes: 40-unit roof abutting 48-unit roof (#349 review)
+  const roof40 = {
+    id: 'r40',
+    groupId: 'g-40',
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
+    bounds: { x: 0, y: 0, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const roof48 = {
+    id: 'r48',
+    groupId: 'g-48',
+    origin: { x: 40, y: 0 },
+    cellSize: 48,
+    bounds: { x: 40, y: 0, w: 48, h: 48 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const unequalMap = { roofs: [roof40, roof48], buildings: [] };
+  const b40 = roofCellBorders(roof40, roof40.cells[0], unequalMap);
+  const b48 = roofCellBorders(roof48, roof48.cells[0], unequalMap);
+  assert.equal(b40.abutsE, true, '40-unit cell abuts 48-unit cell on east');
+  assert.equal(b48.abutsW, true, '48-unit cell abuts 40-unit cell on west');
+  assert.deepEqual(b40.e.covered, [{ start: 0, end: 40 }]);
+  assert.deepEqual(b40.e.exposed, []);
+  assert.deepEqual(b48.w.covered, [{ start: 0, end: 40 }]);
+  assert.deepEqual(b48.w.exposed, [{ start: 40, end: 48 }], '48-unit cell preserves exposed 8-unit interval');
+
+  // Staggered origins with positive overlap length (#349 review)
+  const stag1 = {
+    id: 'stag1',
+    groupId: 'g-stag1',
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
+    bounds: { x: 0, y: 0, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const stag2 = {
+    id: 'stag2',
+    groupId: 'g-stag2',
+    origin: { x: 40, y: 10 },
+    cellSize: 40,
+    bounds: { x: 40, y: 10, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const stagMap = { roofs: [stag1, stag2], buildings: [] };
+  const bStag1 = roofCellBorders(stag1, stag1.cells[0], stagMap);
+  const bStag2 = roofCellBorders(stag2, stag2.cells[0], stagMap);
+  assert.equal(bStag1.abutsE, true, 'staggered roof abuts on east (30-unit overlap)');
+  assert.equal(bStag2.abutsW, true, 'staggered roof abuts on west (30-unit overlap)');
+  assert.deepEqual(bStag1.e.covered, [{ start: 10, end: 40 }]);
+  assert.deepEqual(bStag1.e.exposed, [{ start: 0, end: 10 }], 'stag1 preserves exposed y=0..10 interval');
+  assert.deepEqual(bStag2.w.covered, [{ start: 10, end: 40 }]);
+  assert.deepEqual(bStag2.w.exposed, [{ start: 40, end: 50 }], 'stag2 preserves exposed y=40..50 interval');
+
+  // North/South staggered origins with distinct X/Y coordinates (#349 review)
+  const roofSouth = {
+    id: 'rSouth',
+    groupId: 'g-south',
+    origin: { x: 3000, y: 100 },
+    cellSize: 40,
+    bounds: { x: 3000, y: 100, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const roofNorth = {
+    id: 'rNorth',
+    groupId: 'g-north',
+    origin: { x: 3020, y: 60 },
+    cellSize: 40,
+    bounds: { x: 3020, y: 60, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const nsMap = { roofs: [roofSouth, roofNorth], buildings: [] };
+  const bSouth = roofCellBorders(roofSouth, roofSouth.cells[0], nsMap);
+  const bNorth = roofCellBorders(roofNorth, roofNorth.cells[0], nsMap);
+  assert.equal(bSouth.abutsN, true);
+  assert.equal(bNorth.abutsS, true);
+  assert.deepEqual(bSouth.n.covered, [{ start: 3020, end: 3040 }]);
+  assert.deepEqual(bSouth.n.exposed, [{ start: 3000, end: 3020 }], 'south roof north edge preserves exposed x=3000..3020');
+  assert.deepEqual(bNorth.s.covered, [{ start: 3020, end: 3040 }]);
+  assert.deepEqual(bNorth.s.exposed, [{ start: 3040, end: 3060 }], 'north roof south edge preserves exposed x=3040..3060');
+
+  // Corner touch (0 overlap length): does NOT abut (#349 review)
+  const corner1 = {
+    id: 'c1',
+    groupId: 'g-c1',
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
+    bounds: { x: 0, y: 0, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const corner2 = {
+    id: 'c2',
+    groupId: 'g-c2',
+    origin: { x: 40, y: 40 },
+    cellSize: 40,
+    bounds: { x: 40, y: 40, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const cornerMap = { roofs: [corner1, corner2], buildings: [] };
+  const bCorner1 = roofCellBorders(corner1, corner1.cells[0], cornerMap);
+  assert.equal(bCorner1.abutsE, false, 'corner touch has 0 overlap length, does not abut east');
+  assert.equal(bCorner1.abutsS, false, 'corner touch has 0 overlap length, does not abut south');
+  assert.deepEqual(bCorner1.e.covered, []);
+  assert.deepEqual(bCorner1.e.exposed, [{ start: 0, end: 40 }]);
 });
 
 test('roofs fade toward an opening and vanish for a viewer inside', () => {
