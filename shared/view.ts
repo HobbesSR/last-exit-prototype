@@ -210,6 +210,17 @@ export function getRoofIndex(map: RoofMap): RoofIndex {
   return index;
 }
 
+export interface BoundaryInterval {
+  start: number;
+  end: number;
+}
+
+export interface EdgeBorders {
+  hasNeighbor: boolean;
+  covered: BoundaryInterval[];
+  exposed: BoundaryInterval[];
+}
+
 export interface CellBorders {
   hasW: boolean;
   hasE: boolean;
@@ -219,13 +230,74 @@ export interface CellBorders {
   abutsE: boolean;
   abutsN: boolean;
   abutsS: boolean;
+  w: EdgeBorders;
+  e: EdgeBorders;
+  n: EdgeBorders;
+  s: EdgeBorders;
+}
+
+function computeEdge(
+  start: number,
+  end: number,
+  hasNeighbor: boolean,
+  rawCovered: BoundaryInterval[],
+): EdgeBorders {
+  if (hasNeighbor) {
+    return {
+      hasNeighbor: true,
+      covered: [],
+      exposed: [],
+    };
+  }
+
+  const clamped: BoundaryInterval[] = [];
+  for (const interval of rawCovered) {
+    const s = Math.max(start, interval.start);
+    const e = Math.min(end, interval.end);
+    if (e > s) clamped.push({ start: s, end: e });
+  }
+
+  clamped.sort((a, b) => a.start - b.start || a.end - b.end);
+
+  const covered: BoundaryInterval[] = [];
+  for (const interval of clamped) {
+    if (!covered.length) {
+      covered.push({ start: interval.start, end: interval.end });
+    } else {
+      const prev = covered[covered.length - 1];
+      if (interval.start <= prev.end) {
+        prev.end = Math.max(prev.end, interval.end);
+      } else {
+        covered.push({ start: interval.start, end: interval.end });
+      }
+    }
+  }
+
+  const exposed: BoundaryInterval[] = [];
+  let cursor = start;
+  for (const interval of covered) {
+    if (interval.start > cursor) {
+      exposed.push({ start: cursor, end: interval.start });
+    }
+    cursor = Math.max(cursor, interval.end);
+  }
+  if (cursor < end) {
+    exposed.push({ start: cursor, end });
+  }
+
+  return {
+    hasNeighbor: false,
+    covered,
+    exposed,
+  };
 }
 
 /**
  * Spatial borders of a declared roof's cell: whether each side touches another cell of the same roof
  * (`has*`), or physically abuts any other roof/building on the map (`abuts*`).
  * Decided solely by physical geometry, completely independent of presentation fade groups.
- * Resolves adjacency by comparing boundary intervals, supporting unequal cell sizes and staggered origins.
+ * Resolves adjacency by comparing boundary intervals, partitioning each side into covered (shared)
+ * and exposed intervals (`w`, `e`, `n`, `s`).
  */
 export function roofCellBorders(roof: Roof, cell: Cell, map: RoofMap): CellBorders {
   const index = getRoofIndex(map);
@@ -235,17 +307,17 @@ export function roofCellBorders(roof: Roof, cell: Cell, map: RoofMap): CellBorde
   const hasN = !!cellSet?.has(`${cell.x},${cell.y - 1}`);
   const hasS = !!cellSet?.has(`${cell.x},${cell.y + 1}`);
 
-  let abutsW = false;
-  let abutsE = false;
-  let abutsN = false;
-  let abutsS = false;
+  const rawW: BoundaryInterval[] = [];
+  const rawE: BoundaryInterval[] = [];
+  const rawN: BoundaryInterval[] = [];
+  const rawS: BoundaryInterval[] = [];
+
+  const cx0 = roof.origin.x + cell.x * roof.cellSize;
+  const cy0 = roof.origin.y + cell.y * roof.cellSize;
+  const cx1 = cx0 + roof.cellSize;
+  const cy1 = cy0 + roof.cellSize;
 
   if (!hasW || !hasE || !hasN || !hasS) {
-    const cx0 = roof.origin.x + cell.x * roof.cellSize;
-    const cy0 = roof.origin.y + cell.y * roof.cellSize;
-    const cx1 = cx0 + roof.cellSize;
-    const cy1 = cy0 + roof.cellSize;
-
     const minBx = Math.floor((cx0 - ROOF_EDGE) / index.bucketSize);
     const maxBx = Math.floor((cx1 + ROOF_EDGE) / index.bucketSize);
     const minBy = Math.floor((cy0 - ROOF_EDGE) / index.bucketSize);
@@ -260,28 +332,38 @@ export function roofCellBorders(roof: Roof, cell: Cell, map: RoofMap): CellBorde
           if (b.roofId === roof.id || visited.has(b)) continue;
           visited.add(b);
 
-          if (!hasW && !abutsW && Math.abs(b.x1 - cx0) <= ROOF_EDGE) {
-            const yOverlap = Math.min(cy1, b.y1) - Math.max(cy0, b.y0);
-            if (yOverlap > 0) abutsW = true;
+          if (!hasW && Math.abs(b.x1 - cx0) <= ROOF_EDGE) {
+            rawW.push({ start: b.y0, end: b.y1 });
           }
-          if (!hasE && !abutsE && Math.abs(b.x0 - cx1) <= ROOF_EDGE) {
-            const yOverlap = Math.min(cy1, b.y1) - Math.max(cy0, b.y0);
-            if (yOverlap > 0) abutsE = true;
+          if (!hasE && Math.abs(b.x0 - cx1) <= ROOF_EDGE) {
+            rawE.push({ start: b.y0, end: b.y1 });
           }
-          if (!hasN && !abutsN && Math.abs(b.y1 - cy0) <= ROOF_EDGE) {
-            const xOverlap = Math.min(cx1, b.x1) - Math.max(cx0, b.x0);
-            if (xOverlap > 0) abutsN = true;
+          if (!hasN && Math.abs(b.y1 - cy0) <= ROOF_EDGE) {
+            rawN.push({ start: b.x0, end: b.x1 });
           }
-          if (!hasS && !abutsS && Math.abs(b.y0 - cy1) <= ROOF_EDGE) {
-            const xOverlap = Math.min(cx1, b.x1) - Math.max(cx0, b.x0);
-            if (xOverlap > 0) abutsS = true;
+          if (!hasS && Math.abs(b.y0 - cy1) <= ROOF_EDGE) {
+            rawS.push({ start: b.x0, end: b.x1 });
           }
         }
       }
     }
   }
 
-  return { hasW, hasE, hasN, hasS, abutsW, abutsE, abutsN, abutsS };
+  const w = computeEdge(cy0, cy1, hasW, rawW);
+  const e = computeEdge(cy0, cy1, hasE, rawE);
+  const n = computeEdge(cx0, cx1, hasN, rawN);
+  const s = computeEdge(cx0, cx1, hasS, rawS);
+
+  const abutsW = !hasW && w.covered.length > 0;
+  const abutsE = !hasE && e.covered.length > 0;
+  const abutsN = !hasN && n.covered.length > 0;
+  const abutsS = !hasS && s.covered.length > 0;
+
+  return {
+    hasW, hasE, hasN, hasS,
+    abutsW, abutsE, abutsN, abutsS,
+    w, e, n, s,
+  };
 }
 
 export function roofAt(map: RoofMap, point: Vec2): Roof | Building | null {

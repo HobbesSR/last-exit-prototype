@@ -323,25 +323,63 @@ export function makeArenaScene(api) {
 
             const b = roofCellBorders(roof, c, map);
 
-            const oW = !b.hasW && !b.abutsW ? overhang : 0;
-            const oE = !b.hasE && !b.abutsE ? overhang : 0;
-            const oN = !b.hasN && !b.abutsN ? overhang : 0;
-            const oS = !b.hasS && !b.abutsS ? overhang : 0;
+            const nwCorner = b.w.exposed.some(s => s.start <= cy0 + 1) && b.n.exposed.some(s => s.start <= cx0 + 1);
+            const neCorner = b.e.exposed.some(s => s.start <= cy0 + 1) && b.n.exposed.some(s => s.end >= cx1 - 1);
+            const swCorner = b.w.exposed.some(s => s.end >= cy1 - 1) && b.s.exposed.some(s => s.start <= cx0 + 1);
+            const seCorner = b.e.exposed.some(s => s.end >= cy1 - 1) && b.s.exposed.some(s => s.end >= cx1 - 1);
 
-            const x = cx0 - oW, y = cy0 - oN, w = cx1 + oE - x, h = cy1 + oS - y;
-            g.fillStyle(0x323a4b); g.fillRect(x, y, w, h);
+            g.fillStyle(0x323a4b);
+            g.fillRect(cx0, cy0, roof.cellSize, roof.cellSize);
+            for (const seg of b.w.exposed) g.fillRect(cx0 - overhang, seg.start, overhang, seg.end - seg.start);
+            for (const seg of b.e.exposed) g.fillRect(cx1, seg.start, overhang, seg.end - seg.start);
+            for (const seg of b.n.exposed) g.fillRect(seg.start, cy0 - overhang, seg.end - seg.start, overhang);
+            for (const seg of b.s.exposed) g.fillRect(seg.start, cy1, seg.end - seg.start, overhang);
+            if (nwCorner) g.fillRect(cx0 - overhang, cy0 - overhang, overhang, overhang);
+            if (neCorner) g.fillRect(cx1, cy0 - overhang, overhang, overhang);
+            if (swCorner) g.fillRect(cx0 - overhang, cy1, overhang, overhang);
+            if (seCorner) g.fillRect(cx1, cy1, overhang, overhang);
 
-            const inW = !b.hasW && !b.abutsW ? 4 : 0;
-            const inE = !b.hasE && !b.abutsE ? 4 : 0;
-            const inN = !b.hasN && !b.abutsN ? 4 : 0;
-            const inS = !b.hasS && !b.abutsS ? 4 : 0;
-            g.fillStyle(0x4b586b); g.fillRect(x + inW, y + inN, w - inW - inE, h - inN - inS);
+            g.fillStyle(0x4b586b);
+            g.fillRect(cx0, cy0, roof.cellSize, roof.cellSize);
+            const inExt = Math.max(0, overhang - 4);
+            for (const seg of b.w.exposed) g.fillRect(cx0 - inExt, seg.start, inExt, seg.end - seg.start);
+            for (const seg of b.e.exposed) g.fillRect(cx1, seg.start, inExt, seg.end - seg.start);
+            for (const seg of b.n.exposed) g.fillRect(seg.start, cy0 - inExt, seg.end - seg.start, inExt);
+            for (const seg of b.s.exposed) g.fillRect(seg.start, cy1, seg.end - seg.start, inExt);
+            if (nwCorner) g.fillRect(cx0 - inExt, cy0 - inExt, inExt, inExt);
+            if (neCorner) g.fillRect(cx1, cy0 - inExt, inExt, inExt);
+            if (swCorner) g.fillRect(cx0 - inExt, cy1, inExt, inExt);
+            if (seCorner) g.fillRect(cx1, cy1, inExt, inExt);
 
             g.lineStyle(4, 0x8091a8);
-            if (!b.hasW && !b.abutsW) g.lineBetween(x, y, x, y + h);
-            if (!b.hasE && !b.abutsE) g.lineBetween(x + w, y, x + w, y + h);
-            if (!b.hasN && !b.abutsN) g.lineBetween(x, y, x + w, y);
-            if (!b.hasS && !b.abutsS) g.lineBetween(x, y + h, x + w, y + h);
+            for (const seg of b.w.exposed) {
+              const y0 = seg.start - (seg.start <= cy0 + 1 && nwCorner ? overhang : 0);
+              const y1 = seg.end + (seg.end >= cy1 - 1 && swCorner ? overhang : 0);
+              g.lineBetween(cx0 - overhang, y0, cx0 - overhang, y1);
+              if (seg.start > cy0 + 1) g.lineBetween(cx0 - overhang, seg.start, cx0, seg.start);
+              if (seg.end < cy1 - 1) g.lineBetween(cx0 - overhang, seg.end, cx0, seg.end);
+            }
+            for (const seg of b.e.exposed) {
+              const y0 = seg.start - (seg.start <= cy0 + 1 && neCorner ? overhang : 0);
+              const y1 = seg.end + (seg.end >= cy1 - 1 && seCorner ? overhang : 0);
+              g.lineBetween(cx1 + overhang, y0, cx1 + overhang, y1);
+              if (seg.start > cy0 + 1) g.lineBetween(cx1, seg.start, cx1 + overhang, seg.start);
+              if (seg.end < cy1 - 1) g.lineBetween(cx1, seg.end, cx1 + overhang, seg.end);
+            }
+            for (const seg of b.n.exposed) {
+              const x0 = seg.start - (seg.start <= cx0 + 1 && nwCorner ? overhang : 0);
+              const x1 = seg.end + (seg.end >= cx1 - 1 && neCorner ? overhang : 0);
+              g.lineBetween(x0, cy0 - overhang, x1, cy0 - overhang);
+              if (seg.start > cx0 + 1) g.lineBetween(seg.start, cy0 - overhang, seg.start, cy0);
+              if (seg.end < cy1 - 1) g.lineBetween(seg.end, cy0 - overhang, seg.end, cy0);
+            }
+            for (const seg of b.s.exposed) {
+              const x0 = seg.start - (seg.start <= cx0 + 1 && swCorner ? overhang : 0);
+              const x1 = seg.end + (seg.end >= cx1 - 1 && seCorner ? overhang : 0);
+              g.lineBetween(x0, cy1 + overhang, x1, cy1 + overhang);
+              if (seg.start > cx0 + 1) g.lineBetween(seg.start, cy1, seg.start, cy1 + overhang);
+              if (seg.end < cy1 - 1) g.lineBetween(seg.end, cy1, seg.end, cy1 + overhang);
+            }
           }
 
           g.lineStyle(2, 0x748298);

@@ -189,6 +189,10 @@ test('declared roof cells drop overhang and edge seams where physically abutting
   const b48 = roofCellBorders(roof48, roof48.cells[0], unequalMap);
   assert.equal(b40.abutsE, true, '40-unit cell abuts 48-unit cell on east');
   assert.equal(b48.abutsW, true, '48-unit cell abuts 40-unit cell on west');
+  assert.deepEqual(b40.e.covered, [{ start: 0, end: 40 }]);
+  assert.deepEqual(b40.e.exposed, []);
+  assert.deepEqual(b48.w.covered, [{ start: 0, end: 40 }]);
+  assert.deepEqual(b48.w.exposed, [{ start: 40, end: 48 }], '48-unit cell preserves exposed 8-unit interval');
 
   // Staggered origins with positive overlap length (#349 review)
   const stag1 = {
@@ -212,6 +216,10 @@ test('declared roof cells drop overhang and edge seams where physically abutting
   const bStag2 = roofCellBorders(stag2, stag2.cells[0], stagMap);
   assert.equal(bStag1.abutsE, true, 'staggered roof abuts on east (30-unit overlap)');
   assert.equal(bStag2.abutsW, true, 'staggered roof abuts on west (30-unit overlap)');
+  assert.deepEqual(bStag1.e.covered, [{ start: 10, end: 40 }]);
+  assert.deepEqual(bStag1.e.exposed, [{ start: 0, end: 10 }], 'stag1 preserves exposed y=0..10 interval');
+  assert.deepEqual(bStag2.w.covered, [{ start: 10, end: 40 }]);
+  assert.deepEqual(bStag2.w.exposed, [{ start: 40, end: 50 }], 'stag2 preserves exposed y=40..50 interval');
 
   // Corner touch (0 overlap length): does NOT abut (#349 review)
   const corner1 = {
@@ -234,6 +242,8 @@ test('declared roof cells drop overhang and edge seams where physically abutting
   const bCorner1 = roofCellBorders(corner1, corner1.cells[0], cornerMap);
   assert.equal(bCorner1.abutsE, false, 'corner touch has 0 overlap length, does not abut east');
   assert.equal(bCorner1.abutsS, false, 'corner touch has 0 overlap length, does not abut south');
+  assert.deepEqual(bCorner1.e.covered, []);
+  assert.deepEqual(bCorner1.e.exposed, [{ start: 0, end: 40 }]);
 });
 
 test('roofs fade toward an opening and vanish for a viewer inside', () => {

@@ -132,15 +132,60 @@ try {
   const eastOpaque = await frames(1, 'room-e');
   assert.equal(bothOpaque.alpha, 1);
   assert.equal(eastOpaque.alpha, 1);
-  // Assert no line stroke (128,145,168) or dark base seam (<55) at the shared wall (x=2040) between abutting roofs (#349)
+  // Assert no line stroke (128,145,168) or dark base seam at the shared wall (x=2040) between abutting roofs (#349)
+  const interiorPixel = await page.evaluate(() => window.fixture.pixel(2020, 120));
   const seamPixel = await page.evaluate(() => window.fixture.pixel(2040, 120));
+  const westOfSeam = await page.evaluate(() => window.fixture.pixel(2038, 120));
+  const eastOfSeam = await page.evaluate(() => window.fixture.pixel(2042, 120));
   const westOuterPixel = await page.evaluate(() => window.fixture.pixel(1988, 120));
-  assert.ok(seamPixel[0] >= 65 && seamPixel[1] >= 78 && seamPixel[2] >= 95, `shared wall has continuous roof fill without seam stroke or gap (got rgb ${seamPixel.slice(0,3)})`);
+  assert.deepEqual(westOfSeam.slice(0, 3), interiorPixel.slice(0, 3), 'west side of shared wall matches interior fill');
+  assert.deepEqual(eastOfSeam.slice(0, 3), interiorPixel.slice(0, 3), 'east side of shared wall matches interior fill');
+  assert.ok(seamPixel[0] >= 65 && seamPixel[0] < 100 && seamPixel[1] < 110, 'shared seam has continuous fill and rejects bright stroke color');
   assert.deepEqual(westOuterPixel.slice(0, 3), [128, 145, 168], `outer exterior roof edge retains perimeter line stroke (got rgb ${westOuterPixel.slice(0,3)})`);
   await page.screenshot({ path: 'test-results/overhead-abutting-roofs.png' });
 
+  // Staggered abutting roofs: verify contacted portion has continuous fill while exposed portions retain overhang & strokes (#349)
+  await page.evaluate(async () => {
+    const f = window.fixture, s = f.scene;
+    f.map = {
+      ...f.map,
+      buildings: [],
+      roofs: [
+        { id: 'stag-w', groupId: 'g-sw', bounds: { x: 3000, y: 100, w: 40, h: 40 }, origin: { x: 3000, y: 100 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+        { id: 'stag-e', groupId: 'g-se', bounds: { x: 3040, y: 110, w: 40, h: 40 }, origin: { x: 3040, y: 110 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+      ],
+    };
+    f.player.x = 3020; f.player.y = 70;
+    s.buildMap();
+    s.cutTo();
+  });
+  await frames(30, 'stag-w');
+  const stagContactSeam = await page.evaluate(() => window.fixture.pixel(3040, 125));
+  const stagWestSide = await page.evaluate(() => window.fixture.pixel(3038, 125));
+  const stagEastSide = await page.evaluate(() => window.fixture.pixel(3042, 125));
+  const stagWestOuterStroke = await page.evaluate(() => window.fixture.pixel(2988, 120));
+  const stagEastExposedOverhang = await page.evaluate(() => window.fixture.pixel(3028, 145));
+  assert.deepEqual(stagWestSide.slice(0, 3), interiorPixel.slice(0, 3), 'west side of contacted staggered edge matches interior fill');
+  assert.deepEqual(stagEastSide.slice(0, 3), interiorPixel.slice(0, 3), 'east side of contacted staggered edge matches interior fill');
+  assert.ok(stagContactSeam[0] >= 65 && stagContactSeam[0] < 100, 'contacted portion of staggered edge rejects stroke color');
+  assert.deepEqual(stagWestOuterStroke.slice(0, 3), [128, 145, 168], 'outer west perimeter of stag-w retains stroke');
+  assert.deepEqual(stagEastExposedOverhang.slice(0, 3), [128, 145, 168], 'partially exposed west segment of stag-e retains overhang stroke');
+
   // Inside room-w fades room-w, while room-e in group-e stays opaque
-  await page.evaluate(() => { const f = window.fixture; f.player.x = 2020; f.player.y = 120; });
+  await page.evaluate(() => {
+    const f = window.fixture;
+    f.map = {
+      ...f.map,
+      buildings: [],
+      roofs: [
+        { id: 'room-w', groupId: 'group-w', bounds: { x: 2000, y: 100, w: 40, h: 40 }, origin: { x: 2000, y: 100 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+        { id: 'room-e', groupId: 'group-e', bounds: { x: 2040, y: 100, w: 40, h: 40 }, origin: { x: 2040, y: 100 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+      ],
+    };
+    f.scene.buildMap();
+    f.scene.cutTo();
+    f.player.x = 2020; f.player.y = 120;
+  });
   const westFaded = await frames(60, 'room-w');
   const eastStillOpaque = await frames(1, 'room-e');
   assert.equal(westFaded.alpha, 0, 'inside room-w fades room-w');
