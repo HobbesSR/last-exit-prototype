@@ -866,6 +866,15 @@ is `a79cd8c355545bfc`. The original compressed brief and frozen
 `behavior-netcode-1.json.gz` remain untouched. Final baseline provenance belongs
 in [53](53-map-artifacts-and-tools.md).
 
+Final verification: 665/665 root tests and 136/136 macro tests pass, along with
+typecheck, syntax/check and the Map Lab browser check. The authoring test takes
+3.0 s and the new slow access test 26.4 s. The 224-map baseline capture retains
+all hashes/cases unchanged, with content input provenance `ef97600`; it does
+not cover the 36×18 library. That size's exact witness and five report seeds
+provide the relevant bounded evidence. Before/after collision and ring close-up
+previews were rendered in Chrome and inspected. See [53](53-map-artifacts-and-tools.md)
+for the content checkpoint and limitations.
+
 ## The reported slowdown is still open
 
 The user reports severe slowdown when many bots or players are nearby, including

@@ -229,6 +229,29 @@ stored adopter output, and full/omitted owning snapshots recover exactly.
 The final 224-case regeneration check has zero drift. Macro version 3 and wire version 8 remain unchanged. The frozen gameplay
 characterization fixture is unchanged.
 
+**#340's authored correction checkpoint** pins the local `military-quarter`
+compound join references at input commit `ef97600`. It uses the existing inward
+variants, changing only 312 references in `diamond-36x18.json`; primitive/set-piece
+module revisions and `types-25` remain unchanged. The resolved 36×18 library
+fingerprint is `a79cd8c355545bfc`. Old saved maps still carry their own embedded
+library, so the same builder algorithm can reproduce their original decisions.
+The original constrained brief is retained, alongside the new exact corrected
+brief with explicit hashes in `tests/fixtures/README.md`.
+
+The 224-map baseline was recaptured once after the content commit, retaining
+every case and hash unchanged and recording that input provenance. Its cases
+use the default-size library and smaller playgrounds; it **does not exercise
+the 36×18 authored library**, so zero drift is expected and does not validate
+this correction. The large-size checkpoint instead uses the exact same-seed
+before/after audit, swept original portal/room/court/actual gate access, and the
+five 36×18 report samples in [31](31-verification.md). All 665 root tests and
+136 macro tests pass, as do typecheck, syntax/check and the Map Lab browser check.
+The expanded authoring test is 3.0 s and the new slow access witness 26.4 s,
+within their respective 15/60 s budgets. Chrome-rendered collision previews
+were visually inspected. Server/client benchmarks and the unrelated full game
+browser suite were not rerun; no performance or universal coverage claim is made.
+The frozen gameplay characterization fixture is unchanged.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
