@@ -115,6 +115,8 @@ spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
   acceptably. The capture refuses uncommitted changes to the chain's inputs
   and records the last commit that touched them.
 
+**#230's re-capture** follows three chargers per map, banded along it (52, 55). The library fingerprint moves the layout view on all 224 maps; every other view moved on 161 maps, and on the other 63 only the layout moved. The content commit is `3e383f2`. Later #354 commits touched only bot and discovery code in `shared/`, a sweep input, and left every entry identical, so the baseline's provenance names the last of them. Batches showed no defects over 60 game and 30 playground maps at 12 × 6, 6 at 24 × 12 and 3 at 36 × 18, and the per-region diagnosis showed none over 3 game maps.
+
 **L5's re-capture (#192)** followed the building library's first deliberate
 content change, larger `hut` houses and `compound`'s ring as a design (56 L5).
 Only the results, built and report views moved. The report showed no defects

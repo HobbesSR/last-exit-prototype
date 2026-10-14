@@ -71,7 +71,7 @@ Multi-floor direction is accepted; collision-plane transitions and navigation-me
 design remain future engineering work.
 
 Known prototype limitations, kept explicit rather than hidden: uniform interim
-block geometry, global bot objective knowledge, possible crowding and accidental
+block geometry, possible crowding and accidental
 crossfire, occasional crowded-drop fallback at the original position, and the
 potential-state trust model described in [24](24-networking-privacy.md). No public
 deployment or accounts exist; see [28](28-operational-limits.md).

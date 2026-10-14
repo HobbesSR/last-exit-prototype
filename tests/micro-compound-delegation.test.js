@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { buildCompound, buildCompoundGeneration, COMPOUND_EXECUTION_REGISTRY } from '../map/micro/strategies/compound.ts';
 import { executionLeaves, flattenDelegationResult } from '../map/micro/delegation-execute.ts';
 import { buildBlock, planBlock } from '../map/micro/strategies/block.ts';
@@ -10,7 +12,6 @@ import { createAccessMask, elementShapes, findRegionRoute } from '../map/micro/g
 import { validateFillConstraints } from '../map/micro/margins.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { measurement } from '../map/macro/src/chain/measurement.ts';
-import { generate } from '../map/chain.ts';
 import { liveMapFromBuilt } from '../map/live.ts';
 
 const SIZE = 40;
@@ -117,9 +118,8 @@ test('concave seed 18 reaches the actual center of every chosen gate', () => {
 });
 
 test('inherited nonfill strip rejects the authored 12 by 6 compound exterior offer', () => {
-  const map = generate('issue330-before-12x6', { mode: 'game', zoneWidth: 12, zoneHeight: 6 });
-  const original = map.results.find(result => result.brief.id === 'compound@252,36')?.brief;
-  assert.ok(original, 'the authored map contains the measured compound');
+  // compound@252,36 of generate('issue330-before-12x6'), stored because later content moves it (fixtures README).
+  const original = JSON.parse(gunzipSync(readFileSync(new URL('./fixtures/compound-330-strip-brief.json.gz', import.meta.url))));
   const node = buildCompoundGeneration(original), flat = flattenDelegationResult(node);
   assert.equal(node.actualBuilder, 'compound');
   assert.ok(node.offers?.length, 'the exterior patch remains a candidate');

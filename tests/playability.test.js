@@ -10,6 +10,8 @@ function fixture() {
   const s = createGame(4217);
   for (const p of s.players) { p.bot = false; p.input = {}; }
   s.map.traps = []; s.map.items = [];
+  // What bots saw at the start no longer exists either.
+  for (const p of s.players) p.discovery?.items?.clear();
   return { s, p: s.players[0] };
 }
 function press(s, p, values) { setInput(s, p.id, { seq: p.lastSeq + 1, ...values }); step(s); }
@@ -131,6 +133,8 @@ test('bots open a building door to retrieve an indoor objective', () => {
   const b = s.map.buildings.find(b => b.id === door.buildingId);
   Object.assign(p, { x: door.x, y: door.y + 70, bot: true });
   s.map.items = [{ id: 'indoor-cell', kind: 'cell', buildingId: b.id, x: b.x + 125, y: b.y + 125 }];
+  // The roof hides it from outside, so the bot is told it saw it earlier (#230).
+  p.discovery.items.set('indoor-cell', { ...s.map.items[0] });
   for (let i = 0; i < 150 && !carriedCell(p); i++) step(s);
   assert.equal(door.open, true); assert.ok(carriedCell(p));
 });

@@ -80,8 +80,9 @@ in tiles.
 | `end` | reaching the eastern edge |
 | `enormous` | inside the middle half of columns; instance *n* in vertical third *n* mod 3 |
 | `medium` | starting in the western third, or reaching into the eastern third |
-| `small`, `charger` | anywhere |
+| `small` | anywhere |
 | `transit` | one band per instance across the central 76% of columns (12% to 88%), each band inset by a tile on both sides so neighbouring transit regions can't merge |
+| `charger` | one band per instance across the central 84% of columns (8% to 92%), inset by a tile like `transit`'s, so chargers fall along the run from landing to evac (#230) |
 
 The order rules place in and how a class's pieces are drawn belong to
 placement (51 step 4). Quotas belong to the library (52).

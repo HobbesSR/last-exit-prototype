@@ -103,7 +103,7 @@ with a don't-care value. This is Corey's model (verbatim in 17, 2026-09-27).
   What is intrinsic to the class goes in its entry; what varies with position
   on the map belongs to the tier zone.
 - **Core element classes.** A class whose rule lists core elements its strategy sites
-  (`contestantCount` spawns, `exitCount` exits, one charger) is a **core element class**. It is
+  (`contestantCount` spawns, `exitCount` exits, a charger) is a **core element class**. It is
   painted only inside the set pieces of the set piece class that owns those
   core elements (51, "Core elements").
 - **`cell → class` is total.** Two values are reserved:
@@ -182,7 +182,7 @@ one."
 | `enormous` | `enormous` | 3 distinct | nothing |
 | `medium` | `medium` | 4 | nothing |
 | `small` | `small` | 10 | nothing |
-| `charger` | `charger` | 1 | one charger |
+| `charger` | `charger` | 3 | one charger each (#230) |
 | `transit` | `transit` | 6 | one warp |
 
   Set pieces also filter on eligible tiers. Quotas and membership are authored

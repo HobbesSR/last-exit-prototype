@@ -84,7 +84,7 @@
     {
       "id": "charger",
       "placementRule": "charger",
-      "quota": 1,
+      "quota": 3,
       "setPieces": [
         "charging-station"
       ],

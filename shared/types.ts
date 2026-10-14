@@ -477,6 +477,10 @@ export interface DiscoveryWire {
 
 export interface DiscoveryMemory {
   discovered: Set<number>;
+  /** Cells a bot has had in line of sight, which it searches against; `discovered` is the view window's geometry (#230). */
+  seen?: Set<number> | undefined;
+  /** Items as last seen, kept for bots, which decide from them (#230). Never projected or recorded. */
+  items?: Map<ItemId, GroundItem> | undefined;
 }
 
 export interface Projectile extends Vec2 {
