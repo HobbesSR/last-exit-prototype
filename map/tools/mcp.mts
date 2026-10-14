@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * The map MCP server (53, "Tools"): bounded stdio tools over the same core as the CLI.
- * Maps travel as wire version 8 JSON.
+ * It serves maps from the generation chain (51) as wire version 8 JSON.
  */
 import readline from 'node:readline';
 import { chainMapToJson } from '../macro/src/chain/saving.ts';
@@ -20,12 +20,12 @@ interface Request {
 type Args = Record<string, unknown>;
 
 const params = { type: 'object', description: 'mode, zoneWidth, zoneHeight, exitCount, contestantCount, hunterCount, lootChance, lootTierStep; omitted ones take the game defaults' };
-const library = { type: 'object', description: "a chain library (version 3); when omitted, the chain's library authored for the params' zone size" };
+const library = { type: 'object', description: "a library for the generation chain (version 3); when omitted, the bundled library authored for the params' zone size" };
 const diagnose = { type: 'boolean', description: "also run the game's per-region portal check, about a minute a game map" };
 const tools = [
   {
     name: 'map_generate',
-    description: 'Generate a deterministic chain map. Returns it in wire form, with its report.',
+    description: 'Generate a deterministic map through the generation chain. Returns it in wire form, with its report.',
     inputSchema: {
       type: 'object', required: ['seed'],
       properties: {
@@ -37,12 +37,12 @@ const tools = [
   },
   {
     name: 'map_validate',
-    description: 'Read a saved chain map with the library it was made from, and report its defects.',
+    description: 'Read a saved map from the generation chain with the library it was made from, and report its defects.',
     inputSchema: { type: 'object', required: ['map'], properties: { map: { type: 'object' }, library, diagnose } },
   },
   {
     name: 'library_validate',
-    description: 'Validate a chain library against the game\'s region types.',
+    description: 'Validate a library for the generation chain against the game\'s region types.',
     inputSchema: { type: 'object', required: ['library'], properties: { library: { type: 'object' } } },
   },
   {
@@ -59,7 +59,7 @@ const tools = [
   },
   {
     name: 'library_get',
-    description: "Get the chain's library for a zone size: 12 x 6 when params are omitted.",
+    description: "Get the generation chain's bundled library for a zone size: 12 x 6 when params are omitted.",
     inputSchema: { type: 'object', properties: { params } },
   },
 ];

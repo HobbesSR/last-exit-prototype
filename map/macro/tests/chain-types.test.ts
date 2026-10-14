@@ -1,5 +1,5 @@
 /**
- * 51 step 3: the chain's types and the harnesses every stage is held to. The stages
+ * 51 step 3: the generation chain's types (51.1) and its stage harnesses. The stages
  * here are fakes; the real ones arrive from step 4 on and use the same harnesses.
  */
 import assert from "node:assert/strict";

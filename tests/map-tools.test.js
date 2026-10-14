@@ -12,7 +12,7 @@ import { REGION_TYPES_VERSION } from '../map/micro/region-types.ts';
 import { createArenaServer } from '../server/index.js';
 
 /**
- * Step 10a (#144): the CLI and MCP in map/tools/, on the chain and the game's engines.
+ * Step 10a (#144): the CLI and MCP in map/tools/, on the generation chain (51.1) and the game's engines.
  * A playground map keeps the subprocess tests fast; one game map covers the default.
  */
 const SMALL = { mode: 'playground', zoneWidth: 2, zoneHeight: 1 };

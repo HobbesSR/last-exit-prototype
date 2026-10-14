@@ -1,4 +1,4 @@
-/** The game's region strategies supplied to macro's generic chain. */
+/** The game's region strategies supplied to macro's stages of the generation chain (50, 51). */
 import type { RegionBrief } from './kernel/contract.ts';
 import type { MapEngines } from './macro/src/chain/types.ts';
 import { composeRegions } from './micro/compose.ts';

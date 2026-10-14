@@ -1,4 +1,4 @@
-/** The chain's authored library (51 stage 0, 52). It is independent of the old library. */
+/** The generation chain's authored library (51.2, 52). It is independent of the old library. */
 import { CORE_ELEMENT_KINDS } from "../../../kernel/contract.ts";
 import type { CoreElementKind } from "../../../kernel/contract.ts";
 import { boundaryRuns } from "../../../kernel/run.ts";
