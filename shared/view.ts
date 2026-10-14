@@ -110,6 +110,8 @@ interface RoofIndex {
   roofCellSets: WeakMap<Roof, Set<string>>;
 }
 
+// Cached per map object and never invalidated: a map is immutable after generation, and the client
+// replaces the object on every change. Editing `buildings` or `roofs` in place reads a stale index.
 const roofIndexCache = new WeakMap<object, RoofIndex>();
 
 export function getRoofIndex(map: RoofMap): RoofIndex {

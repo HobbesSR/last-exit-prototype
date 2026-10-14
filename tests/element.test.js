@@ -6,6 +6,8 @@ import { HUT, REGION_ELEMENTS, REGION_PROPS } from '../shared/map/templates.ts';
 import { CORNER_CLEARANCE } from '../shared/map/structures.ts';
 import { polygon, convex, bounds, fieldsOf } from '../shared/shape.ts';
 import { canOccupy } from '../shared/movement.ts';
+import { roofConceals, roofGroups } from '../shared/view.ts';
+import { realizeBuilding } from '../map/micro/sdk.ts';
 
 // Anchored near the middle of the diamond, because `canOccupy` also enforces the arena boundary.
 const CENTRE = { x: 12000, y: 6000 };
@@ -121,11 +123,40 @@ test('an element with declared roofs stamps them onto map.roofs with world coord
   placeElement(context, element, 400, 800, { nodeId: 'n' });
   assert.equal(context.map.roofs?.length, 1);
   const [roof] = context.map.roofs;
-  assert.equal(roof.id, 'roof-1');
-  assert.equal(roof.groupId, 'house');
+  assert.equal(roof.id, 'roofs-1.1', 'an unowned roof is named by its placement and its index');
+  assert.equal(roof.groupId, 'roofs-1/house', 'a template group is scoped to its placement');
   assert.deepEqual(roof.bounds, { x: 400, y: 800, w: 80, h: 80 });
   assert.deepEqual(roof.origin, { x: 400, y: 800 });
   assert.equal(roof.cellSize, 40);
   assert.deepEqual(roof.cells, [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }]);
   assert.deepEqual(roof.thresholds, [{ x: 1, y: 1 }]);
+});
+
+// Codex's #343 reproduction: a reusable concave template, stamped twice in one region.
+test('repeated placements of a concave roofed template keep distinct roofs, groups and concealment', () => {
+  const cells = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }];
+  const design = { spaces: [{ id: 'room', area: { min: 1, max: 100 }, outside: 'prefer', tags: [] }], connections: [] };
+  const { template } = realizeBuilding(design, { footprint: cells, spaces: [{ id: 'room', cells }] }, { cellSize: 40, groupId: 'house' });
+  assert.equal(template.encloses, false, 'a concave template registers no building, so no building id names its roof');
+  const context = createGenerationContext(4);
+  for (const x of [100, 500, 900]) placeElement(context, template, x, 100, { nodeId: 'n' });
+  const { map } = context;
+  assert.deepEqual(map.roofs.map(r => r.id), ['roofs-1.roof-1', 'roofs-2.roof-1', 'roofs-3.roof-1']);
+  assert.equal(new Set(map.roofs.map(r => r.groupId)).size, 3, "one template's group never joins its other placements");
+  assert.equal(roofConceals(map, { x: 120, y: 120 }, { x: 520, y: 120 }), true, 'one instance hides another');
+  assert.equal(roofConceals(map, { x: 120, y: 120 }, { x: 140, y: 150 }), false, 'but not itself');
+  assert.equal(map.obstacles.at(-1).id, `o${map.obstacles.length + map.gates.length - 1}`, 'roofs take nothing from the shared id serial');
+});
+
+test("a region-scoped roof group joins one region's placements and no other region's", () => {
+  const piece = { w: 40, h: 40, parts: [], roofs: [{ id: 'room', groupId: 'ring', groupScope: 'region', cellSize: 40, cells: [{ x: 0, y: 0 }] }] };
+  const context = createGenerationContext(4);
+  placeElement(context, piece, 0, 0, { nodeId: 'a' });
+  placeElement(context, piece, 40, 0, { nodeId: 'a' });
+  placeElement(context, piece, 400, 0, { nodeId: 'b' });
+  const { map } = context, groups = roofGroups(map);
+  assert.deepEqual(map.roofs.map(r => r.groupId), ['a/ring', 'a/ring', 'b/ring']);
+  assert.deepEqual(groups.get(map.roofs[0].id).map(r => r.id), [map.roofs[0].id, map.roofs[1].id]);
+  assert.deepEqual(groups.get(map.roofs[2].id).map(r => r.id), [map.roofs[2].id]);
+  assert.equal(roofConceals(map, { x: 20, y: 20 }, { x: 60, y: 20 }), true, 'a shared group is presentation only: rooms still hide each other');
 });

@@ -22,7 +22,7 @@ try {
       buildings: [{ id: 'house', x: 100, y: 100, w: 412, h: 200 }], obstacles: [{ id: 'tree', kind: 'tree', x: 450, y: 400, r: 32 }] };
     const player = { id: 'self', name: 'Tester', role: 'contestant', x: 500, y: 400, heading: 0, status: 'active', hp: 100, maxHp: 100 };
     const state = { tick: 1, players: [player], gates: [], items: [], traps: [], projectiles: [], effects: [] };
-    const api = { map: () => map, state: () => state, self: () => player, playerId: () => player.id, directed: () => false,
+    const api = { map: () => window.fixture.map, state: () => state, self: () => player, playerId: () => player.id, directed: () => false,
       follow: () => null, replay: () => false, onFrame() {}, onReady(scene) { window.fixture.scene = scene; }, onFire() {}, frameAlpha: () => 0, aim: () => 0 };
     window.fixture = { map, player, state };
     window.fixture.game = new Phaser.Game({ type: Phaser.WEBGL, width: 900, height: 700, audio: { noAudio: true }, render: { preserveDrawingBuffer: true }, scene: makeArenaScene(api) });
@@ -76,8 +76,8 @@ try {
   });
   assert.equal(roofAlpha, true, 'roof groups also reuse textures for alpha changes');
   // Roof fade and inside zoom: the viewer walks to the door, then in, then out again.
-  const frames = (n = 60) => page.evaluate(async n => { const s = window.fixture.scene; s.cutTo(); for (let i = 0; i < n; i++) { s.update(performance.now(), 16); await new Promise(r => setTimeout(r, 20)); } const g = s.roofs.get('house');
-    return { alpha: g.alpha, visible: g.visible, zoom: s.cameras.main.zoom, textures: [...g.textures].map(t => t.alpha) }; }, n);
+  const frames = (n = 60, id = 'house') => page.evaluate(async ([n, id]) => { const s = window.fixture.scene; s.cutTo(); for (let i = 0; i < n; i++) { s.update(performance.now(), 16); await new Promise(r => setTimeout(r, 20)); } const g = s.roofs.get(id);
+    return { alpha: g.alpha, visible: g.visible, zoom: s.cameras.main.zoom, textures: [...g.textures].map(t => t.alpha) }; }, [n, id]);
   await page.evaluate(() => { const f = window.fixture; f.map.gates.push({ id: 'door', x: 280, y: 296, w: 40, h: 18, open: false, locked: false, kind: 'door', buildingId: 'house' }); f.player.x = 700; f.player.y = 700; });
   const far = await frames();
   assert.equal(far.alpha, 1, 'a roof away from every opening stays opaque');
@@ -92,6 +92,23 @@ try {
   await page.evaluate(() => { const f = window.fixture; f.player.x = 700; f.player.y = 700; });
   const out = await frames();
   assert.equal(out.alpha, 1); assert.equal(out.visible, true); assert.ok(Math.abs(out.zoom / far.zoom - 1) < 0.01, `leaving restores the zoom (${far.zoom} -> ${out.zoom})`);
+  // A declared L-shaped roof beside the plain building (#292). Its id is its building's, as stamping
+  // gives it, so the plain-building passes must skip the building it covers. A new map object, as
+  // the client's changeMap gives, since the roof index is cached per map.
+  await page.evaluate(() => { const f = window.fixture;
+    f.map = { ...f.map, buildings: [...f.map.buildings, { id: 'hall', x: 1000, y: 100, w: 80, h: 80 }],
+      roofs: [{ id: 'hall', groupId: 'hall', buildingId: 'hall', bounds: { x: 1000, y: 100, w: 80, h: 80 }, origin: { x: 1000, y: 100 }, cellSize: 40, cells: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }] }] };
+    f.scene.buildMap(); });
+  const mixed = await frames(60, 'hall'), plain = await frames(1);
+  assert.equal(mixed.alpha, 1, 'a declared roof away from its openings stays opaque');
+  assert.equal(plain.alpha, 1, 'the plain building keeps its own roof on a mixed map');
+  await page.evaluate(() => { const f = window.fixture; f.player.x = 1060; f.player.y = 160; });
+  assert.equal((await frames(60, 'hall')).alpha, 1, 'the notch of the L is outside the declared roof');
+  await page.evaluate(() => { const f = window.fixture; f.player.x = 1020; f.player.y = 160; });
+  const underL = await frames(60, 'hall');
+  assert.equal(underL.alpha, 0, 'inside a declared roof fades it away');
+  assert.equal((await frames(1)).alpha, 1, 'the plain building stays roofed while inside the declared one');
+  await page.evaluate(() => { const f = window.fixture; f.player.x = 700; f.player.y = 700; });
   // Pan far enough to release the original textures, then rebuild the map with no overhead art.
   const cleanup = await page.evaluate(() => {
     const f = window.fixture, s = f.scene;
@@ -101,7 +118,7 @@ try {
     s.cameras.main.centerOn(500, 400);
     for (let i = 0; i < 8; i++) s.updateTiles();
     const rebuilt = [...s.overheadGroups.values()].flatMap(g => [...g.textures]);
-    f.map.obstacles = []; f.map.buildings = []; s.buildMap();
+    f.map = { ...f.map, obstacles: [], buildings: [], roofs: [] }; s.buildMap();
     return { released, remaining, mapReleased: rebuilt.length > 0 && rebuilt.every(t => !t.scene), roofCount: s.roofs.size, tileCount: s.overheadTiles.size, drawings: s.overheadDrawings.length };
   });
   assert.deepEqual(cleanup, { released: true, remaining: 0, mapReleased: true, roofCount: 0, tileCount: 0, drawings: 0 });

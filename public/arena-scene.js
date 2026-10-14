@@ -45,7 +45,7 @@ export function makeArenaScene(api) {
       this.fixtures = this.add.graphics(); this.shade = this.add.graphics(); this.dynamic = this.add.graphics();
       // Static tile textures are inserted at index 0, beneath everything here.
       this.world.add([this.decor, this.fixtures, this.shade, this.dynamic]);
-      this.roofs = new Map(); this.roofMembers = new Map(); this.insideBlend = 0;
+      this.roofs = new Map(); this.roofMembers = new Map(); this.coveredBuildingIds = new Set(); this.insideBlend = 0;
       this.overheadLayer = this.add.container(0, 0);
       this.overheadCanopies = this.add.container(0, 0); this.overheadRoofs = this.add.container(0, 0);
       this.overheadLayer.add([this.overheadCanopies, this.overheadRoofs]); this.world.add(this.overheadLayer);
@@ -303,7 +303,8 @@ export function makeArenaScene(api) {
         crown.fillStyle(0x78a962, 0.25); crown.fillEllipse(o.x - radius * 0.35, o.y - radius * 0.4, radius * 0.9, radius * 0.65);
       }
       this.roofMembers = roofGroups(map);
-      const coveredBuildingIds = new Set(map.roofs?.map(r => r.buildingId).filter(Boolean));
+      // Buildings a declared roof covers; the update's fade loop skips them as well.
+      const coveredBuildingIds = this.coveredBuildingIds = new Set(map.roofs?.map(r => r.buildingId).filter(Boolean));
       if (map.roofs?.length) {
         for (const roof of map.roofs) {
           const key = `roof:${roof.id}`;
@@ -567,7 +568,7 @@ export function makeArenaScene(api) {
         }
       }
       for (const building of map.buildings || []) {
-        if (coveredBuildingIds.has(building.id)) continue;
+        if (this.coveredBuildingIds.has(building.id)) continue;
         const roof = this.roofs.get(building.id);
         if (!roof) continue;
         const isInside = insideIds.has(building.id);

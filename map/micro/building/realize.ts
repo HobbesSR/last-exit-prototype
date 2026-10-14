@@ -17,7 +17,7 @@ export interface BuildingRealizationOptions {
   encloses?: boolean;
   /** Spaces that get a roof; defaults to all spaces if encloses is true. */
   roofed?: readonly string[];
-  /** Group id for declared roofs; defaults to 'building'. */
+  /** One fade group for all its roofs, scoped to each placement of the template. Without it each roof fades alone. */
   groupId?: string;
   /** Stable exterior assembly order, followed by internal boundaries. */
   exteriorOrder?: readonly BuildingSide[];

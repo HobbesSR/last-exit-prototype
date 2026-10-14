@@ -25,8 +25,16 @@ export type ElementPart =
   | { part: 'reserve'; x: World; y: World; w: World; h: World };
 
 export interface ElementRoof {
+  /** Unique within the template; stamping prefixes it with the placement, so reuse never collides. */
   id?: string | undefined;
+  /** Presentation (fade) group, unique within `groupScope`. Without one the roof fades alone. */
   groupId?: string | undefined;
+  /**
+   * Where `groupId` is unique. `element` (the default) is this placement alone, so instances of a
+   * reused template never fade together. `region` spans every element its region stamps, for one
+   * assembly placed as several elements (split building pieces); its builder keeps the id unique there.
+   */
+  groupScope?: 'element' | 'region' | undefined;
   cells: Cell[];
   bounds?: Box | undefined;
   cellSize?: number | undefined;
@@ -53,8 +61,6 @@ export interface Placement {
   nodeId: NodeId;
   /** Whether this instance's doors start locked. A placement choice, not a property of the template. */
   locked?: boolean;
-  /** Presentation group id for declared roofs, when overriding template or default grouping. */
-  groupId?: string | undefined;
 }
 
 /** Stamp a template with its anchor at `x`,`y`, emitting every part into the map being generated. */
@@ -68,11 +74,13 @@ export function placeElement(context: BaseGenerationContext, template: ElementTe
   }
   if (template.roofs?.length) {
     if (!map.roofs) map.roofs = [];
+    // Roof ids and element-scoped groups are namespaced by this placement: its building, else the
+    // count of roofs before it. Never the shared id serial, which would renumber everything after.
+    const scope = owner?.buildingId ?? `roofs-${map.roofs.length + 1}`;
     for (const [i, r] of template.roofs.entries()) {
-      const roofId = owner
-        ? (template.roofs.length === 1 ? owner.buildingId : `${owner.buildingId}.${i + 1}`)
-        : (r.id ? `${placement.nodeId}:${r.id}` : `roof-${map.roofs.length + 1}`);
-      const groupId = placement.groupId ?? r.groupId ?? roofId;
+      const roofId = owner && template.roofs.length === 1 ? owner.buildingId : `${scope}.${r.id ?? i + 1}`;
+      const groupId = r.groupId === undefined ? roofId
+        : `${r.groupScope === 'region' ? placement.nodeId : scope}/${r.groupId}`;
       const cellSize = r.cellSize ?? 40;
       const roofOrigin = { x: x + (r.origin?.x ?? 0), y: y + (r.origin?.y ?? 0) };
       const bounds = r.bounds

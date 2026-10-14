@@ -122,7 +122,7 @@ test('realization makes gates, windows and open passages and keeps pass outputs 
   assert.deepEqual(realizeBuilding(design, { footprint: [...cells].reverse(), spaces: [{ id: 'room', cells: [...cells].reverse() }] }, { cellSize: 40, corners: 'horizontal' }), result);
 });
 
-test('concave, holed and diagonally touching footprints contain every emitted wall and refuse rectangular roofs', () => {
+test('concave, holed and diagonally touching footprints contain every emitted wall and roof by cells', () => {
   for (const cells of [
     cellsOf(5, 5, (x, y) => x < 2 || y < 2),
     cellsOf(6, 6, (x, y) => x < 2 || x >= 4 || y < 2 || y >= 4),
