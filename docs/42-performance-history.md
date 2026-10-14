@@ -16,7 +16,8 @@ operating-system scheduling effects sit outside these JavaScript phase timings.
 | `0cd204e` | Historical frozen `5dd7d61` fixture capture |
 | `9fe2d94` | Historical `elements-1` map/content checkpoint |
 | `aa833a6` | Historical split of generator hashes from stored simulation arenas |
-| `95b7f1b` | Current `netcode-1` fixture checkpoint; see [31](31-verification.md) |
+| `95b7f1b` | Historical `netcode-1` fixture checkpoint |
+| `5e83119` | Current `nav-1` fixture checkpoint (#351); see [31](31-verification.md) |
 | `6f141d4`, `c2d35c0` | Simulation systems and ordered map generation extracted |
 | `fa1e1b9` | Input and HUD controllers extracted |
 | `93bc904`, `236f8a6` | Replay writer/archive, then match API, rooms, transport and timers |
