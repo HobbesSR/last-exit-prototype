@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /** Exact, read-only #340 witness. Default regenerates the source map; --brief
- * permits the checked-in focused input without relying on previous audit output. */
+ * permits the checked-in focused input without relying on previous audit output.
+ * Evidence for the #340 record in docs 42, not maintained tooling: it pins that
+ * issue's seed and counts, and may fail once later changes move them. */
 import { execFileSync } from 'node:child_process';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { gunzipSync } from 'node:zlib';

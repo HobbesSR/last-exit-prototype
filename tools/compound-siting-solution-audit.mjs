@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-/** Same-seed #340 content correction: original input versus authored inward joins. */
+/** Same-seed #340 content correction: original input versus authored inward joins.
+ * Evidence for the #340 record in docs 42, not maintained tooling: it pins that
+ * issue's seed and counts, and may fail once later changes move them. */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';

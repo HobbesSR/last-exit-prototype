@@ -480,6 +480,8 @@ compares the preserved original input with the authored correction, validates
 room/court/actual gate and original portal access, and emits before/after collision
 previews. The tools themselves are read-only; the subsequent library correction
 is a deliberate content change, with baseline provenance recorded separately.
+Both are evidence for that record, not maintained tooling: they pin #340's seed
+and counts, and later content or builder changes may legitimately break them.
 
 ## Provenance rule
 
