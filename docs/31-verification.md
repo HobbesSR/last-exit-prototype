@@ -164,13 +164,15 @@ to benchmark rendering the unfogged, whole-arena spectator overview at full zoom
 
 ## The frozen fixture
 
-The current frozen characterization fixture is `behavior-netcode-1.json.gz`, captured at
-`95b7f1b`. Its historical chain is `5dd7d61` (fixture captured at `0cd204e`) →
-`elements-1` (`9fe2d94`) → stored-arenas split (`aa833a6`) → `netcode-1`.
+The current frozen characterization fixture is `behavior-nav-1.json.gz`, captured at
+`5e83119`. Its historical chain is `5dd7d61` (fixture captured at `0cd204e`) →
+`elements-1` (`9fe2d94`) → stored-arenas split (`aa833a6`) → `netcode-1` (`95b7f1b`) → `nav-1`.
 `elements-1` superseded `5dd7d61` when per-region element catalogues replaced the
 single hardcoded building and changed every seeded map. `netcode-1` changed simulation
 traces for queued input consumption and bot route straightening while carrying forward
-the generated hashes and stored arenas.
+the generated hashes and stored arenas. `nav-1` changed one bot trace (seed 4217) when route
+ends stopped snapping across walls thinner than a tile (#351); generated hashes, stored arenas,
+the other bot traces and the scripted trace carried forward byte-identical.
 
 The fixture separates what the generator emits from what the simulation does.
 Complete ordered map hashes characterize generation. The bot and scripted traces
