@@ -5,6 +5,7 @@ import { OUTSIDE } from './design.ts';
 import type { BuildingAllocation } from './design.ts';
 import { deriveContiguousRoofs } from './realize.ts';
 import type { BuildingRealization } from './realize.ts';
+import { roofGroupOf } from './groups.ts';
 import type { BuildingRoofGroups } from './groups.ts';
 
 export interface BuildingPieceOptions {
@@ -55,7 +56,7 @@ export function splitBuilding(realization: BuildingRealization, allocation: Buil
     if (!parts.length && !roof) continue;
     let pieceRoofs: ElementRoof[] | undefined;
     if (roof) {
-      const group = typeof options.groupId === 'string' ? options.groupId : options.groupId?.[space.id];
+      const group = roofGroupOf(options.groupId, space.id);
       const derived = deriveContiguousRoofs(space.cells, x0, y0, size, group, realization.openings);
       pieceRoofs = derived.map((r, i) => ({ ...r, id: derived.length > 1 ? `${space.id}-${i + 1}` : space.id,
         ...(group ? { groupScope: 'region' as const } : {}) }));

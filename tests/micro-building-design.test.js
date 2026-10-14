@@ -265,3 +265,24 @@ test('roofs fade together where their spaces are reachable inside the building',
   const whole = realizeBuilding(design, allocation, { cellSize: 40, encloses: false, roofed: ['a', 'b', 'd'], groupId: groups });
   assert.deepEqual(whole.template.roofs.map(r => r.groupId), ['x-a', 'x-c']);
 });
+
+// Codex's review 283: a space named like an Object.prototype member is still left out of a record.
+test('a group record reads only its own entries, whatever the spaces are named', () => {
+  const ids = ['constructor', 'toString', '__proto__'], row = cellsOf(6, 2);
+  const allocation = { footprint: row, spaces: ids.map((id, i) => ({ id, cells: row.filter(c => c.x >= 2 * i && c.x < 2 * i + 2) })) };
+  const design = designOf(ids);
+  const realization = realizeBuilding(design, allocation, { cellSize: 40, encloses: false });
+  const groups = reachableRoofGroups(realization, allocation, 'x');
+  assert.deepEqual(groups, {}, 'nothing joins them');
+  const whole = realizeBuilding(design, allocation, { cellSize: 40, encloses: false, roofed: ids, groupId: groups });
+  assert.deepEqual(whole.issues, []);
+  assert.deepEqual(whole.template.roofs.map(r => r.groupId), [undefined], 'one roof, fading alone');
+  const { pieces } = splitBuilding(realization, allocation, { cellSize: 40, roofed: ids, groupId: groups });
+  assert.deepEqual(pieces.flatMap(p => p.template.roofs.map(r => [r.groupId, r.groupScope])), ids.map(() => [undefined, undefined]));
+  // Joined, they keep their own entries; the one left out still fades alone.
+  const joined = realizeBuilding(designOf(ids, [connection('door', 'door', { a: 'toString', b: '__proto__' })]), allocation, { cellSize: 40, encloses: false });
+  const named = reachableRoofGroups(joined, allocation, 'x');
+  assert.deepEqual(Object.entries(named), [['toString', 'x-toString'], ['__proto__', 'x-toString']]);
+  assert.deepEqual(splitBuilding(joined, allocation, { cellSize: 40, roofed: ids, groupId: named }).pieces.map(p => p.template.roofs[0].groupId),
+    [undefined, 'x-toString', 'x-toString']);
+});

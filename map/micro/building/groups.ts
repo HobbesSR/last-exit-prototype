@@ -6,6 +6,13 @@ import type { BuildingOpeningResult } from './openings.ts';
 export type BuildingRoofGroups = Readonly<Record<string, string>>;
 
 /**
+ * The group a builder's `groupId` gives a space: the one group, or the space's own entry. Only
+ * an own entry counts, so a space named like an `Object.prototype` member is still left out.
+ */
+export const roofGroupOf = (groupId: string | BuildingRoofGroups | undefined, space: string | undefined): string | undefined =>
+  typeof groupId === 'string' ? groupId : groupId && space !== undefined && Object.hasOwn(groupId, space) ? groupId[space] : undefined;
+
+/**
  * Group the spaces one can walk between without leaving the building: those joined, directly or
  * through other spaces, by a placed passable opening (a door or an open side, never a window).
  * Rooms and opening kinds otherwise don't matter, and an opening to `OUTSIDE` joins nothing.

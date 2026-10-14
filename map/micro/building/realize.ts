@@ -8,6 +8,7 @@ import type { BuildingAllocation, BuildingDesign, BuildingSide } from './design.
 import { placeBuildingOpenings, sameBuildingRun } from './openings.ts';
 import type { BuildingOpeningResult, BuildingRunLimits, PlacedBuildingOpening } from './openings.ts';
 import { emitWallRun } from './walls.ts';
+import { roofGroupOf } from './groups.ts';
 import type { BuildingRoofGroups } from './groups.ts';
 
 export interface BuildingRealizationOptions {
@@ -126,7 +127,7 @@ export function realizeBuilding(design: BuildingDesign, allocation: BuildingAllo
   const roofs = deriveContiguousRoofs(roofCells, x0, y0, options.cellSize, typeof options.groupId === 'string' ? options.groupId : undefined, result.openings);
   const groups = options.groupId;
   if (groups && typeof groups !== 'string') for (const roof of roofs) {
-    const named = new Set(roof.cells.map(c => groups[owner.get(`${c.x + x0},${c.y + y0}`)!]));
+    const named = new Set(roof.cells.map(c => roofGroupOf(groups, owner.get(`${c.x + x0},${c.y + y0}`))));
     if (named.size > 1) { result.issues.push(`A roof spans spaces in different fade groups: ${roof.id}`); return result; }
     const [group] = named;
     if (group !== undefined) roof.groupId = group;
