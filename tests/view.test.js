@@ -221,6 +221,33 @@ test('declared roof cells drop overhang and edge seams where physically abutting
   assert.deepEqual(bStag2.w.covered, [{ start: 10, end: 40 }]);
   assert.deepEqual(bStag2.w.exposed, [{ start: 40, end: 50 }], 'stag2 preserves exposed y=40..50 interval');
 
+  // North/South staggered origins with distinct X/Y coordinates (#349 review)
+  const roofSouth = {
+    id: 'rSouth',
+    groupId: 'g-south',
+    origin: { x: 3000, y: 100 },
+    cellSize: 40,
+    bounds: { x: 3000, y: 100, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const roofNorth = {
+    id: 'rNorth',
+    groupId: 'g-north',
+    origin: { x: 3020, y: 60 },
+    cellSize: 40,
+    bounds: { x: 3020, y: 60, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const nsMap = { roofs: [roofSouth, roofNorth], buildings: [] };
+  const bSouth = roofCellBorders(roofSouth, roofSouth.cells[0], nsMap);
+  const bNorth = roofCellBorders(roofNorth, roofNorth.cells[0], nsMap);
+  assert.equal(bSouth.abutsN, true);
+  assert.equal(bNorth.abutsS, true);
+  assert.deepEqual(bSouth.n.covered, [{ start: 3020, end: 3040 }]);
+  assert.deepEqual(bSouth.n.exposed, [{ start: 3000, end: 3020 }], 'south roof north edge preserves exposed x=3000..3020');
+  assert.deepEqual(bNorth.s.covered, [{ start: 3020, end: 3040 }]);
+  assert.deepEqual(bNorth.s.exposed, [{ start: 3040, end: 3060 }], 'north roof south edge preserves exposed x=3040..3060');
+
   // Corner touch (0 overlap length): does NOT abut (#349 review)
   const corner1 = {
     id: 'c1',

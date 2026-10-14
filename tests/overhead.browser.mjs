@@ -171,6 +171,33 @@ try {
   assert.deepEqual(stagWestOuterStroke.slice(0, 3), [128, 145, 168], 'outer west perimeter of stag-w retains stroke');
   assert.deepEqual(stagEastExposedOverhang.slice(0, 3), [128, 145, 168], 'partially exposed west segment of stag-e retains overhang stroke');
 
+  // North/South staggered abutting roofs at distinct X/Y origins (#349 review)
+  await page.evaluate(async () => {
+    const f = window.fixture, s = f.scene;
+    f.map = {
+      ...f.map,
+      buildings: [],
+      roofs: [
+        { id: 'stag-s', groupId: 'g-ss', bounds: { x: 3000, y: 100, w: 40, h: 40 }, origin: { x: 3000, y: 100 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+        { id: 'stag-n', groupId: 'g-sn', bounds: { x: 3020, y: 60, w: 40, h: 40 }, origin: { x: 3020, y: 60 }, cellSize: 40, cells: [{ x: 0, y: 0 }] },
+      ],
+    };
+    f.player.x = 3020; f.player.y = 30;
+    s.buildMap();
+    s.cutTo();
+  });
+  await frames(30, 'stag-s');
+  const nsContactSeam = await page.evaluate(() => window.fixture.pixel(3030, 100));
+  const nsNorthSide = await page.evaluate(() => window.fixture.pixel(3030, 98));
+  const nsSouthSide = await page.evaluate(() => window.fixture.pixel(3030, 102));
+  const nsSouthExposedOverhang = await page.evaluate(() => window.fixture.pixel(3004, 88));
+  const nsNorthExposedOverhang = await page.evaluate(() => window.fixture.pixel(3056, 112));
+  assert.deepEqual(nsNorthSide.slice(0, 3), interiorPixel.slice(0, 3), 'north side of contacted NS edge matches interior fill');
+  assert.deepEqual(nsSouthSide.slice(0, 3), interiorPixel.slice(0, 3), 'south side of contacted NS edge matches interior fill');
+  assert.ok(nsContactSeam[0] >= 65 && nsContactSeam[0] < 100, 'contacted portion of NS edge rejects stroke color');
+  assert.deepEqual(nsSouthExposedOverhang.slice(0, 3), [128, 145, 168], 'exposed north overhang of stag-s retains stroke');
+  assert.deepEqual(nsNorthExposedOverhang.slice(0, 3), [128, 145, 168], 'exposed south overhang of stag-n retains stroke');
+
   // Inside room-w fades room-w, while room-e in group-e stays opaque
   await page.evaluate(() => {
     const f = window.fixture;

@@ -371,14 +371,14 @@ export function makeArenaScene(api) {
               const x1 = seg.end + (seg.end >= cx1 - 1 && neCorner ? overhang : 0);
               g.lineBetween(x0, cy0 - overhang, x1, cy0 - overhang);
               if (seg.start > cx0 + 1) g.lineBetween(seg.start, cy0 - overhang, seg.start, cy0);
-              if (seg.end < cy1 - 1) g.lineBetween(seg.end, cy0 - overhang, seg.end, cy0);
+              if (seg.end < cx1 - 1) g.lineBetween(seg.end, cy0 - overhang, seg.end, cy0);
             }
             for (const seg of b.s.exposed) {
               const x0 = seg.start - (seg.start <= cx0 + 1 && swCorner ? overhang : 0);
               const x1 = seg.end + (seg.end >= cx1 - 1 && seCorner ? overhang : 0);
               g.lineBetween(x0, cy1 + overhang, x1, cy1 + overhang);
               if (seg.start > cx0 + 1) g.lineBetween(seg.start, cy1, seg.start, cy1 + overhang);
-              if (seg.end < cy1 - 1) g.lineBetween(seg.end, cy1, seg.end, cy1 + overhang);
+              if (seg.end < cx1 - 1) g.lineBetween(seg.end, cy1, seg.end, cy1 + overhang);
             }
           }
 
