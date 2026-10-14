@@ -33,7 +33,7 @@ for the final committed input/baseline provenance.
 
 ## Behavior baseline contents
 
-`behavior-netcode-1.json.gz` holds two independent things, and that separation is
+`behavior-nav-1.json.gz` holds two independent things, and that separation is
 the point of its shape:
 
 - `generated` — SHA-256 hashes of complete JSON maps, property and array order
@@ -62,15 +62,21 @@ it costs the continuity below, so it is a decision rather than a step.
 
 ## Provenance
 
+`nav-1` replaced `netcode-1` when route ends stopped snapping across walls thinner than a
+tile (#351). It was captured at `5e83119`, against `content-1` and the stored arenas. `generated` and
+`maps` were carried forward. Of the traces, only the bot trace for seed 4217 moved: the other three
+bot traces and the scripted trace were recomputed on that tree and are byte-identical to
+`netcode-1`'s. The superseded `behavior-netcode-1.json.gz` remains in git history.
+
 `netcode-1` replaced `elements-1` when input handling and bot routing changed: a tick now spends
 exactly one queued input instead of coalescing whatever arrived, and a grid route is straightened
 before a bot walks it. Both move what the simulation does, so both move the traces. Neither touches
 the generator, and that was checked rather than assumed — `generated` carried forward unchanged, and
 so did `maps`.
 
-The current fixture is therefore the `95b7f1b` checkpoint. Its full historical chain is
+`netcode-1` was the `95b7f1b` checkpoint; the current fixture is `nav-1`, at `5e83119`. Its full historical chain is
 `5dd7d61` (captured at `0cd204e`) → `elements-1` (`9fe2d94`) → the stored-arenas
-split (`aa833a6`) → hash-only cover update (`dede8fe`) → `netcode-1`.
+split (`aa833a6`) → hash-only cover update (`dede8fe`) → `netcode-1` → `nav-1`.
 The historical fixture names remain in git history;
 the current tests select legacy `content-1` through `contentById` under rules version
 `last-exit-0.7`, so the default `content-2` does not rewrite this evidence.
@@ -105,7 +111,7 @@ obtained through `contentById`: `mapHashes()`, `traceMaps()`, one
 `JSON.parse(JSON.stringify(scriptedTrace(maps[4217], content)))` — gzip it,
 and name it for the new checkpoint.
 
-To audit the existing `netcode-1` fixture on this tree, select `content-1` and use
+To audit the existing `nav-1` fixture on this tree, select `content-1` and use
 its stored maps, never today's default content or freshly generated arenas.
 The three-hunter checkpoint preserved the existing gzip bytes, SHA-256
 `b8734d7cbf1292f8e5fad5c5f7007ed368bc33fc7d82b5965b23d71303a48ea2`.

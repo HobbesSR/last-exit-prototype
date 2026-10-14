@@ -31,9 +31,10 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
 
 ## Project invariants and verification
 
-- The current frozen characterization fixture is `behavior-netcode-1.json.gz`,
-  captured at `95b7f1b`; its provenance is `5dd7d61` (captured at `0cd204e`) →
-  `elements-1` (`9fe2d94`) → stored-arenas split (`aa833a6`) → `netcode-1`.
+- The current frozen characterization fixture is `behavior-nav-1.json.gz`,
+  captured at `5e83119`; its provenance is `5dd7d61` (captured at `0cd204e`) →
+  `elements-1` (`9fe2d94`) → stored-arenas split (`aa833a6`) → `netcode-1`
+  (`95b7f1b`) → `nav-1`.
   Never regenerate it to make a refactor pass. Separate intentional gameplay
   changes and their new expectations/version decisions from behavior-preserving
   extraction.

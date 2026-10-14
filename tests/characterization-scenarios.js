@@ -1,4 +1,4 @@
-// Captured at the netcode-1 checkpoint. Expected results are never updated by tests.
+// Captured at the nav-1 checkpoint. Expected results are never updated by tests.
 import { createHash } from 'node:crypto';
 import { createGame, generateMap, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 

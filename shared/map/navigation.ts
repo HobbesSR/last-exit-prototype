@@ -63,6 +63,14 @@ function navigationMap(map: CollisionMap, openDoors: DoorPermission): CollisionM
   return cached.maps.get(openDoors)!;
 }
 
+/**
+ * Whether a point can step straight to a nearby tile centre without passing through a wall. Only the
+ * line is tested, not the body's clearance: it tells the side of a thin wall a point is on.
+ */
+export function stepClear(map: CollisionMap, openDoors: DoorPermission, from: Vec2, to: Vec2): boolean {
+  return travelClear(navigationMap(map, openDoors), from, to, 4);
+}
+
 /** Can a body of `clearance` travel the straight line from `a` to `b` without leaving open ground? */
 function travelClear(map: CollisionMap, a: Vec2, b: Vec2, clearance: World): boolean {
   const length = Math.hypot(b.x - a.x, b.y - a.y);
