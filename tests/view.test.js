@@ -166,6 +166,74 @@ test('declared roof cells drop overhang and edge seams where physically abutting
   const mixedMap = { roofs: [declared], buildings: [undeclared] };
   const decBorders = roofCellBorders(declared, declared.cells[0], mixedMap);
   assert.equal(decBorders.abutsE, true, 'declared roof abuts undeclared building on east');
+
+  // Unequal cell sizes: 40-unit roof abutting 48-unit roof (#349 review)
+  const roof40 = {
+    id: 'r40',
+    groupId: 'g-40',
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
+    bounds: { x: 0, y: 0, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const roof48 = {
+    id: 'r48',
+    groupId: 'g-48',
+    origin: { x: 40, y: 0 },
+    cellSize: 48,
+    bounds: { x: 40, y: 0, w: 48, h: 48 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const unequalMap = { roofs: [roof40, roof48], buildings: [] };
+  const b40 = roofCellBorders(roof40, roof40.cells[0], unequalMap);
+  const b48 = roofCellBorders(roof48, roof48.cells[0], unequalMap);
+  assert.equal(b40.abutsE, true, '40-unit cell abuts 48-unit cell on east');
+  assert.equal(b48.abutsW, true, '48-unit cell abuts 40-unit cell on west');
+
+  // Staggered origins with positive overlap length (#349 review)
+  const stag1 = {
+    id: 'stag1',
+    groupId: 'g-stag1',
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
+    bounds: { x: 0, y: 0, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const stag2 = {
+    id: 'stag2',
+    groupId: 'g-stag2',
+    origin: { x: 40, y: 10 },
+    cellSize: 40,
+    bounds: { x: 40, y: 10, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const stagMap = { roofs: [stag1, stag2], buildings: [] };
+  const bStag1 = roofCellBorders(stag1, stag1.cells[0], stagMap);
+  const bStag2 = roofCellBorders(stag2, stag2.cells[0], stagMap);
+  assert.equal(bStag1.abutsE, true, 'staggered roof abuts on east (30-unit overlap)');
+  assert.equal(bStag2.abutsW, true, 'staggered roof abuts on west (30-unit overlap)');
+
+  // Corner touch (0 overlap length): does NOT abut (#349 review)
+  const corner1 = {
+    id: 'c1',
+    groupId: 'g-c1',
+    origin: { x: 0, y: 0 },
+    cellSize: 40,
+    bounds: { x: 0, y: 0, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const corner2 = {
+    id: 'c2',
+    groupId: 'g-c2',
+    origin: { x: 40, y: 40 },
+    cellSize: 40,
+    bounds: { x: 40, y: 40, w: 40, h: 40 },
+    cells: [{ x: 0, y: 0 }],
+  };
+  const cornerMap = { roofs: [corner1, corner2], buildings: [] };
+  const bCorner1 = roofCellBorders(corner1, corner1.cells[0], cornerMap);
+  assert.equal(bCorner1.abutsE, false, 'corner touch has 0 overlap length, does not abut east');
+  assert.equal(bCorner1.abutsS, false, 'corner touch has 0 overlap length, does not abut south');
 });
 
 test('roofs fade toward an opening and vanish for a viewer inside', () => {

@@ -102,13 +102,21 @@ export function pointInRoof(roof: Roof, point: Vec2, cellSet?: Set<string>): boo
   return roof.cells.some(c => c.x === cx && c.y === cy);
 }
 
+interface PhysicalBox {
+  roofId?: string | undefined;
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
 interface RoofIndex {
   coveredBuildingIds: Set<string>;
   bucketSize: number;
   roofBuckets: Map<string, Roof[]>;
   buildingBuckets: Map<string, Building[]>;
   roofCellSets: WeakMap<Roof, Set<string>>;
-  cellRoofMap: Map<string, string>;
+  obstacleBuckets: Map<string, PhysicalBox[]>;
   undeclaredBuildings: Building[];
 }
 
@@ -129,15 +137,29 @@ export function getRoofIndex(map: RoofMap): RoofIndex {
     const roofBuckets = new Map<string, Roof[]>();
     const buildingBuckets = new Map<string, Building[]>();
     const roofCellSets = new WeakMap<Roof, Set<string>>();
-    const cellRoofMap = new Map<string, string>();
+    const obstacleBuckets = new Map<string, PhysicalBox[]>();
 
     for (const roof of roofs) {
       const set = new Set<string>();
       for (const c of roof.cells) {
         set.add(`${c.x},${c.y}`);
-        const wx = Math.round(roof.origin.x + c.x * roof.cellSize);
-        const wy = Math.round(roof.origin.y + c.y * roof.cellSize);
-        cellRoofMap.set(`${wx},${wy}`, roof.id);
+        const x0 = roof.origin.x + c.x * roof.cellSize;
+        const y0 = roof.origin.y + c.y * roof.cellSize;
+        const x1 = x0 + roof.cellSize;
+        const y1 = y0 + roof.cellSize;
+        const box: PhysicalBox = { roofId: roof.id, x0, y0, x1, y1 };
+        const minBx = Math.floor(x0 / bucketSize);
+        const maxBx = Math.floor(x1 / bucketSize);
+        const minBy = Math.floor(y0 / bucketSize);
+        const maxBy = Math.floor(y1 / bucketSize);
+        for (let bx = minBx; bx <= maxBx; bx++) {
+          for (let by = minBy; by <= maxBy; by++) {
+            const key = `${bx},${by}`;
+            let list = obstacleBuckets.get(key);
+            if (!list) { list = []; obstacleBuckets.set(key, list); }
+            list.push(box);
+          }
+        }
       }
       roofCellSets.set(roof, set);
 
@@ -156,16 +178,20 @@ export function getRoofIndex(map: RoofMap): RoofIndex {
     }
 
     for (const b of undeclaredBuildings) {
-      const minBx = Math.floor(b.x / bucketSize);
-      const maxBx = Math.floor((b.x + b.w) / bucketSize);
-      const minBy = Math.floor(b.y / bucketSize);
-      const maxBy = Math.floor((b.y + b.h) / bucketSize);
+      const box: PhysicalBox = { x0: b.x, y0: b.y, x1: b.x + b.w, y1: b.y + b.h };
+      const minBx = Math.floor(box.x0 / bucketSize);
+      const maxBx = Math.floor(box.x1 / bucketSize);
+      const minBy = Math.floor(box.y0 / bucketSize);
+      const maxBy = Math.floor(box.y1 / bucketSize);
       for (let bx = minBx; bx <= maxBx; bx++) {
         for (let by = minBy; by <= maxBy; by++) {
           const key = `${bx},${by}`;
-          let list = buildingBuckets.get(key);
-          if (!list) { list = []; buildingBuckets.set(key, list); }
-          list.push(b);
+          let bList = buildingBuckets.get(key);
+          if (!bList) { bList = []; buildingBuckets.set(key, bList); }
+          bList.push(b);
+          let oList = obstacleBuckets.get(key);
+          if (!oList) { oList = []; obstacleBuckets.set(key, oList); }
+          oList.push(box);
         }
       }
     }
@@ -176,7 +202,7 @@ export function getRoofIndex(map: RoofMap): RoofIndex {
       roofBuckets,
       buildingBuckets,
       roofCellSets,
-      cellRoofMap,
+      obstacleBuckets,
       undeclaredBuildings,
     };
     roofIndexCache.set(map, index);
@@ -199,6 +225,7 @@ export interface CellBorders {
  * Spatial borders of a declared roof's cell: whether each side touches another cell of the same roof
  * (`has*`), or physically abuts any other roof/building on the map (`abuts*`).
  * Decided solely by physical geometry, completely independent of presentation fade groups.
+ * Resolves adjacency by comparing boundary intervals, supporting unequal cell sizes and staggered origins.
  */
 export function roofCellBorders(roof: Roof, cell: Cell, map: RoofMap): CellBorders {
   const index = getRoofIndex(map);
@@ -208,28 +235,49 @@ export function roofCellBorders(roof: Roof, cell: Cell, map: RoofMap): CellBorde
   const hasN = !!cellSet?.has(`${cell.x},${cell.y - 1}`);
   const hasS = !!cellSet?.has(`${cell.x},${cell.y + 1}`);
 
-  const cx0 = roof.origin.x + cell.x * roof.cellSize;
-  const cy0 = roof.origin.y + cell.y * roof.cellSize;
-  const wx = Math.round(cx0);
-  const wy = Math.round(cy0);
+  let abutsW = false;
+  let abutsE = false;
+  let abutsN = false;
+  let abutsS = false;
 
-  const wId = index.cellRoofMap.get(`${Math.round(cx0 - roof.cellSize)},${wy}`);
-  const eId = index.cellRoofMap.get(`${Math.round(cx0 + roof.cellSize)},${wy}`);
-  const nId = index.cellRoofMap.get(`${wx},${Math.round(cy0 - roof.cellSize)}`);
-  const sId = index.cellRoofMap.get(`${wx},${Math.round(cy0 + roof.cellSize)}`);
+  if (!hasW || !hasE || !hasN || !hasS) {
+    const cx0 = roof.origin.x + cell.x * roof.cellSize;
+    const cy0 = roof.origin.y + cell.y * roof.cellSize;
+    const cx1 = cx0 + roof.cellSize;
+    const cy1 = cy0 + roof.cellSize;
 
-  let abutsW = !hasW && wId !== undefined && wId !== roof.id;
-  let abutsE = !hasE && eId !== undefined && eId !== roof.id;
-  let abutsN = !hasN && nId !== undefined && nId !== roof.id;
-  let abutsS = !hasS && sId !== undefined && sId !== roof.id;
+    const minBx = Math.floor((cx0 - ROOF_EDGE) / index.bucketSize);
+    const maxBx = Math.floor((cx1 + ROOF_EDGE) / index.bucketSize);
+    const minBy = Math.floor((cy0 - ROOF_EDGE) / index.bucketSize);
+    const maxBy = Math.floor((cy1 + ROOF_EDGE) / index.bucketSize);
 
-  if (index.undeclaredBuildings.length) {
-    const w = roof.cellSize, h = roof.cellSize;
-    for (const b of index.undeclaredBuildings) {
-      if (!abutsW && !hasW && Math.abs(b.x + b.w - cx0) <= ROOF_EDGE && cy0 + h > b.y && cy0 < b.y + b.h) abutsW = true;
-      if (!abutsE && !hasE && Math.abs(b.x - (cx0 + w)) <= ROOF_EDGE && cy0 + h > b.y && cy0 < b.y + b.h) abutsE = true;
-      if (!abutsN && !hasN && Math.abs(b.y + b.h - cy0) <= ROOF_EDGE && cx0 + w > b.x && cx0 < b.x + b.w) abutsN = true;
-      if (!abutsS && !hasS && Math.abs(b.y - (cy0 + h)) <= ROOF_EDGE && cx0 + w > b.x && cx0 < b.x + b.w) abutsS = true;
+    const visited = new Set<PhysicalBox>();
+    for (let bx = minBx; bx <= maxBx; bx++) {
+      for (let by = minBy; by <= maxBy; by++) {
+        const list = index.obstacleBuckets.get(`${bx},${by}`);
+        if (!list) continue;
+        for (const b of list) {
+          if (b.roofId === roof.id || visited.has(b)) continue;
+          visited.add(b);
+
+          if (!hasW && !abutsW && Math.abs(b.x1 - cx0) <= ROOF_EDGE) {
+            const yOverlap = Math.min(cy1, b.y1) - Math.max(cy0, b.y0);
+            if (yOverlap > 0) abutsW = true;
+          }
+          if (!hasE && !abutsE && Math.abs(b.x0 - cx1) <= ROOF_EDGE) {
+            const yOverlap = Math.min(cy1, b.y1) - Math.max(cy0, b.y0);
+            if (yOverlap > 0) abutsE = true;
+          }
+          if (!hasN && !abutsN && Math.abs(b.y1 - cy0) <= ROOF_EDGE) {
+            const xOverlap = Math.min(cx1, b.x1) - Math.max(cx0, b.x0);
+            if (xOverlap > 0) abutsN = true;
+          }
+          if (!hasS && !abutsS && Math.abs(b.y0 - cy1) <= ROOF_EDGE) {
+            const xOverlap = Math.min(cx1, b.x1) - Math.max(cx0, b.x0);
+            if (xOverlap > 0) abutsS = true;
+          }
+        }
+      }
     }
   }
 

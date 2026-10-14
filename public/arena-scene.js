@@ -331,10 +331,10 @@ export function makeArenaScene(api) {
             const x = cx0 - oW, y = cy0 - oN, w = cx1 + oE - x, h = cy1 + oS - y;
             g.fillStyle(0x323a4b); g.fillRect(x, y, w, h);
 
-            const inW = !b.hasW ? 4 : 0;
-            const inE = !b.hasE ? 4 : 0;
-            const inN = !b.hasN ? 4 : 0;
-            const inS = !b.hasS ? 4 : 0;
+            const inW = !b.hasW && !b.abutsW ? 4 : 0;
+            const inE = !b.hasE && !b.abutsE ? 4 : 0;
+            const inN = !b.hasN && !b.abutsN ? 4 : 0;
+            const inS = !b.hasS && !b.abutsS ? 4 : 0;
             g.fillStyle(0x4b586b); g.fillRect(x + inW, y + inN, w - inW - inE, h - inN - inS);
 
             g.lineStyle(4, 0x8091a8);

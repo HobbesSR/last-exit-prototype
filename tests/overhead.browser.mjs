@@ -46,9 +46,9 @@ try {
     f.rasterisations = 0;
     const rasterise = s.rasterise.bind(s);
     s.rasterise = (...args) => { f.rasterisations++; return rasterise(...args); };
-    f.pixel = () => {
+    f.pixel = (wx = f.player.x, wy = f.player.y) => {
       const c = s.cameras.main, gl = f.game.renderer.gl, rgba = new Uint8Array(4);
-      const px = Math.round((f.player.x - c.worldView.x) * c.zoom), py = Math.round((f.player.y - c.worldView.y) * c.zoom);
+      const px = Math.round((wx - c.worldView.x) * c.zoom), py = Math.round((wy - c.worldView.y) * c.zoom);
       gl.readPixels(px, gl.drawingBufferHeight - py - 1, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
       return [...rgba];
     };
@@ -132,11 +132,11 @@ try {
   const eastOpaque = await frames(1, 'room-e');
   assert.equal(bothOpaque.alpha, 1);
   assert.equal(eastOpaque.alpha, 1);
-  await page.evaluate(() => {
-    const s = window.fixture.scene;
-    s.cameras.main.centerOn(2020, 120);
-    s.updateTiles();
-  });
+  // Assert no line stroke (128,145,168) or dark base seam (<55) at the shared wall (x=2040) between abutting roofs (#349)
+  const seamPixel = await page.evaluate(() => window.fixture.pixel(2040, 120));
+  const westOuterPixel = await page.evaluate(() => window.fixture.pixel(1988, 120));
+  assert.ok(seamPixel[0] >= 65 && seamPixel[1] >= 78 && seamPixel[2] >= 95, `shared wall has continuous roof fill without seam stroke or gap (got rgb ${seamPixel.slice(0,3)})`);
+  assert.deepEqual(westOuterPixel.slice(0, 3), [128, 145, 168], `outer exterior roof edge retains perimeter line stroke (got rgb ${westOuterPixel.slice(0,3)})`);
   await page.screenshot({ path: 'test-results/overhead-abutting-roofs.png' });
 
   // Inside room-w fades room-w, while room-e in group-e stays opaque
@@ -149,18 +149,30 @@ try {
 
   // Screenshot a multi-room compound (#349)
   const compoundMap = generateLiveMap(1);
-  await page.evaluate(map => {
-    const f = window.fixture;
+  await page.evaluate(async map => {
+    const f = window.fixture, s = f.scene;
     f.map = map;
-    f.scene.buildMap();
-    f.scene.cutTo();
     const firstCompound = map.roofs.find(r => r.id.startsWith('compound') || r.groupId.includes('compound') || r.groupId.includes('ring'));
     if (firstCompound) {
-      f.scene.cameras.main.centerOn(firstCompound.origin.x + 200, firstCompound.origin.y + 200);
-      f.scene.updateTiles();
+      f.player.x = firstCompound.bounds.x + firstCompound.bounds.w / 2;
+      f.player.y = firstCompound.bounds.y - 120;
+    }
+    s.buildMap();
+    s.cutTo();
+    for (let i = 0; i < 40; i++) {
+      s.update(performance.now(), 16);
+      await new Promise(r => setTimeout(r, 20));
     }
   }, compoundMap);
-  await page.waitForTimeout(300);
+  const compoundOverheadCount = await page.evaluate(() => {
+    const s = window.fixture.scene;
+    let count = 0;
+    for (const [key, g] of s.overheadGroups) {
+      if (key.startsWith('roof:') && g.visible && g.textures.size > 0) count++;
+    }
+    return count;
+  });
+  assert.ok(compoundOverheadCount > 0, 'compound roof overhead textures are built and visible');
   await page.screenshot({ path: 'test-results/overhead-compound.png' });
   // Restore original map with canopy around (500, 400) for texture lifecycle cleanup checks
   await page.evaluate(() => {
