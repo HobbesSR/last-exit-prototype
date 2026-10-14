@@ -276,21 +276,22 @@ try {
   await page.locator("#mode").selectOption("game");
   await page.locator("#zoneSize").selectOption("24x12");
   const large = await generateIn("lab-large");
+  const largeMap = generate("lab-large", { zoneWidth: 24, zoneHeight: 12 });
   assert.deepEqual([large.params.zoneWidth, large.params.zoneHeight], [24, 12]);
-  assert.equal(large.regions, generate("lab-large", { zoneWidth: 24, zoneHeight: 12 }).results.length);
+  assert.equal(large.regions, largeMap.results.length);
 
-  // The measured compound adopter rebuilds its ring plus exterior cover in
-  // the Map Lab worker, rather than losing child geometry during drill-down.
-  await generateIn("issue330-before-24x12");
-  const adoptionMap = generate("issue330-before-24x12", { zoneWidth: 24, zoneHeight: 12 });
-  const adoptionRegion = adoptionMap.results.find(region => region.brief.id === "compound@336,276")!;
-  assert.ok(adoptionRegion.elements.some(element => element.label.includes("/delegate/")));
+  // A compound that delegates its exterior cover rebuilds its ring plus that cover in
+  // the Map Lab worker, rather than losing child geometry during drill-down. It is found
+  // by that condition, not by id, so a content change that moves regions can't hide it.
+  const adoptionRegion = largeMap.results.find(region =>
+    region.brief.id.startsWith("compound@") && region.elements.some(element => element.label.includes("/delegate/")));
+  assert.ok(adoptionRegion, "lab-large has a compound that delegates its exterior cover");
   const adoptionCell = adoptionRegion.brief.cells[0]!;
   await page.evaluate(([x, y]: number[]) => (window as any).mapLab.select(x, y), [adoptionCell.x, adoptionCell.y]);
-  await page.waitForFunction(() => {
+  await page.waitForFunction((id: string) => {
     const drill = (window as any).mapLab.snapshot().drill;
-    return drill?.id === "compound@336,276" && !drill.pending && drill.fragment;
-  }, null, { timeout: 30000 });
+    return drill?.id === id && !drill.pending && drill.fragment;
+  }, adoptionRegion.brief.id, { timeout: 30000 });
   const adoptionDrill = await snapshot();
   assert.equal(adoptionDrill.drill.difference, null, "compound ring and delegated cover rebuild equal to stored output");
   assert.deepEqual(adoptionDrill.drill.buildings, ["compound"]);
