@@ -30,7 +30,10 @@ const brief = args.has('brief') ? JSON.parse(gunzipSync(await readFile(resolve(a
   : map.results.find(r => r.brief.id === id)?.brief;
 assert.equal(brief?.id, id);
 const original = structuredClone(brief), diagnosis = diagnoseCompoundSiting(brief);
-const node = buildCompoundGeneration(brief), result = flattenDelegationResult(node);
+const node = buildCompoundGeneration(brief), flattened = flattenDelegationResult(node);
+const result = { ...flattened, manifest: { ...flattened.manifest,
+  ...(node.retained.manifest.rooms === undefined ? {} : { rooms: node.retained.manifest.rooms }),
+  ...(node.retained.manifest.compoundGates === undefined ? {} : { compoundGates: node.retained.manifest.compoundGates }) } };
 assert.deepEqual(brief, original);
 if (map) assert.deepEqual(result, map.results.find(r => r.brief.id === id));
 const key = c => `${c.x},${c.y}`, fill = createFillMask(brief);
@@ -52,7 +55,7 @@ const blockers = result.elements.flatMap(e => elementShapes(e));
 const access = validatePortalReach({ ...brief, blockers });
 const report = {
   audit: 'compound-siting-340-1', sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
-  dirtyPaths: execFileSync('git', ['diff', '--name-only', 'HEAD'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean),
+  dirtyPaths: execFileSync('git', ['diff', '--name-only', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim().split('\n').filter(Boolean),
   contentVersion: REGION_TYPES_VERSION, inputSource: args.get('brief') ?? 'regenerated-map', seed, params, id,
   briefSha256: createHash('sha256').update(JSON.stringify(brief)).digest('hex'),
   cells: brief.cells.length, fillCells: fill.cells.length, clearContextCells: brief.clearCells.length,
@@ -65,15 +68,19 @@ const report = {
     fallbackReason: node.fallbackReason, manifest: result.manifest },
   access: { valid: access.valid, errors: access.errors, routes: access.routes.length,
     portalStandCount: portalStands(brief).reduce((n, p) => n + p.points.length, 0),
-    compoundTargets: 'absent: no ring, court, rooms or gates were emitted' },
+    compoundTargets: diagnosis.site ? 'Ring emitted; use compound-siting-solution-audit.mjs for room/court/gate target checks'
+      : 'absent: no ring, court, rooms or gates were emitted' },
   fillErrors: validateFillConstraints(brief, blockers),
-  decision: 'Expected constraint fallback. No siting optimization can fit a 10x10 box; producing a ring needs a separately reviewed authored-content or builder-design change.',
-  limits: 'One exact current input; collision preview, not roofs or live movement. Internal-only fill is a diagnostic proof, never production policy. Portal validation is sampled; each found route is swept-body checked. No content/version/baseline changes.'
+  decision: diagnosis.site ? 'A contained ring was accepted under this input; the authored #340 correction is compared separately by compound-siting-solution-audit.mjs.'
+    : 'Expected constraint fallback. No siting optimization can fit a 10x10 box; producing a ring needs a separately reviewed authored-content or builder-design change.',
+  limits: 'One exact input; collision preview, not roofs or live movement. Internal-only fill is a diagnostic proof, never production policy. Portal validation is sampled; each found route is swept-body checked. This read-only tool does not select content policy or capture baselines; use the solution audit to compare the authored correction.'
 };
-assert.equal(maximumSquare.side, 4);
-assert.equal(diagnosis.space, null);
-assert.equal(diagnosis.probes.length, 0);
-assert.equal(report.internalOnlyMinimumTenRectangle, null);
+if (args.has('brief') && report.briefSha256 === 'ea08497ff53070560aed9c5d50f25d270d95cbee30f879fddbd5ea3e66d513b2') {
+  assert.equal(maximumSquare.side, 4);
+  assert.equal(diagnosis.space, null);
+  assert.equal(diagnosis.probes.length, 0);
+  assert.equal(report.internalOnlyMinimumTenRectangle, null);
+}
 assert.deepEqual(access.errors, []);
 assert.deepEqual(report.fillErrors, []);
 
@@ -87,9 +94,9 @@ function svg() {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="650" viewBox="${x - 2} ${y - 10} ${2 * w + 12} ${h + 28}"><rect x="${x - 2}" y="${y - 10}" width="${2 * w + 12}" height="${h + 28}" fill="white"/>
     <text x="${x}" y="${y - 7}" font-size="3">#340 ${id}: red original portals; blue internal guarantees</text>
     ${panel(0, 'Allowed fill (green), clear margins (pale blue)', cells(brief.cells, '#dbeafe') + cells(fill.cells, '#86efac') + runs(brief.internalGuaranteed, '#2563eb', .16))}
-    ${panel(w + 6, 'Emitted empty output: all 76 portals connected', cells(brief.cells, '#f1f5f9') + geometry + access.routes.map(r => `<polyline points="${r.points.map(p => `${p.x / size},${p.y / size}`).join(' ')}" fill="none" stroke="#a78bfa" stroke-width=".08"/>`).join(''))}
-    <text x="${x}" y="${y + h + 6}" font-size="2">Largest fill square: 4x4; required ring box: 10x10. Candidate probes: 0. Rooms/court/gates: absent.</text>
-    <text x="${x}" y="${y + h + 10}" font-size="2">Internal guaranteed margins alone prevent 10x10. Preview shows collision geometry and sampled swept hunter routes.</text></svg>`;
+    ${panel(w + 6, `Emitted ${diagnosis.site ? 'ring' : 'empty'} output: ${brief.portals.length} original portals connected`, cells(brief.cells, '#f1f5f9') + geometry + access.routes.map(r => `<polyline points="${r.points.map(p => `${p.x / size},${p.y / size}`).join(' ')}" fill="none" stroke="#a78bfa" stroke-width=".08"/>`).join(''))}
+    <text x="${x}" y="${y + h + 6}" font-size="2">Largest fill square: ${maximumSquare.side}x${maximumSquare.side}; required ring box: 10x10. Candidate probes: ${diagnosis.probes.length}.</text>
+    <text x="${x}" y="${y + h + 10}" font-size="2">Preview shows emitted collision geometry and sampled swept hunter routes. See JSON for exact siting reason.</text></svg>`;
 }
 await mkdir(out, { recursive: true });
 await writeFile(resolve(out, 'brief.json'), JSON.stringify(brief) + '\n');

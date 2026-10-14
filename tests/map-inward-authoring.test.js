@@ -8,6 +8,8 @@ import { join, resolve } from 'node:path';
 const tool = resolve('map/tools/author-inward-grounds.mts');
 const names = ['common-primitives@4.json', 'common-set-pieces@4.json', 'district-set-pieces@3.json'];
 const source = names.map(name => resolve('map/macro/content', name));
+const compoundName = 'diamond-36x18.json';
+const compoundSource = resolve('map/macro/content', compoundName);
 const args = files => ['--primitives', files[0], '--common', files[1], '--district', files[2]];
 const invoke = (files, extra = []) => spawnSync(process.execPath, [tool, ...args(files), ...extra], { encoding: 'utf8' });
 const json = file => JSON.parse(readFileSync(file, 'utf8'));
@@ -20,10 +22,26 @@ function withCopies(fn) {
   finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
+function withCompoundCopies(fn) {
+  withCopies((files, dir) => {
+    const compoundFile = join(dir, compoundName);
+    copyFileSync(compoundSource, compoundFile);
+    fn([...files, compoundFile], dir);
+  });
+}
+
+const invokeWithCompound = (files, extra = []) => invoke(files, ['--compound-library', files[3], ...extra]);
+
 test('committed inward variants and blueprint references reconstruct from original grounds', () => {
   const result = invoke(source, ['--check']);
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /27 inward variants and 521 blueprint references/);
+});
+
+test('committed large-library compound joins reconstruct with the included modules', () => {
+  const result = invokeWithCompound([...source, compoundSource], ['--check']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /27 inward variants and 833 blueprint references/);
 });
 
 test('a later schema 1 content revision can pin its matching primitives revision', () => withCopies(files => {
@@ -136,4 +154,75 @@ test('regeneration refuses an output directory resolving to any input file', () 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /refusing to overwrite input/);
   files.forEach((file, i) => assert.deepEqual(json(file), json(source[i])));
+}));
+
+test('optional library authors only local compound joins and preserves every other local piece', () => withCompoundCopies((files, dir) => {
+  const original = json(files[3]);
+  const output = join(dir, 'generated');
+  const result = invokeWithCompound(files, ['--out-dir', output]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /27 inward variants and 833 blueprint references/);
+  const generated = json(join(output, compoundName));
+  const before = original.setPieces.find(piece => piece.id === 'military-quarter');
+  const after = generated.setPieces.find(piece => piece.id === 'military-quarter');
+  assert.equal(before.tiles.filter(slot => slot.tileSetId === 'compound-grounds' ||
+    slot.tileSetId.startsWith('compound-ground-inward-')).length, 312);
+  assert.equal(after.tiles.filter(slot => slot.tileSetId.startsWith('compound-ground-inward-')).length, 312);
+  assert.deepEqual(generated.setPieces.filter(piece => piece.id !== 'military-quarter'),
+    original.setPieces.filter(piece => piece.id !== 'military-quarter'));
+  for (const [index, slot] of after.tiles.entries()) {
+    if (before.tiles[index].tileSetId !== 'compound-grounds' &&
+      !before.tiles[index].tileSetId.startsWith('compound-ground-inward-')) assert.deepEqual(slot, before.tiles[index]);
+  }
+  assert.deepEqual({ ...generated, setPieces: original.setPieces }, original);
+  assert.equal(invokeWithCompound([
+    ...names.map(name => join(output, name)), join(output, compoundName)], ['--check']).status, 0);
+}));
+
+test('optional library check detects stale local compound references', () => withCompoundCopies((files, dir) => {
+  const output = join(dir, 'generated');
+  assert.equal(invokeWithCompound(files, ['--out-dir', output]).status, 0);
+  const generatedFiles = [...names, compoundName].map(name => join(output, name));
+  const library = json(generatedFiles[3]);
+  const slot = library.setPieces.find(piece => piece.id === 'military-quarter').tiles
+    .find(slot => slot.tileSetId.startsWith('compound-ground-inward-'));
+  slot.tileSetId = 'compound-grounds';
+  save(generatedFiles[3], library);
+  const result = invokeWithCompound(generatedFiles, ['--check']);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /differs/);
+}));
+
+test('optional library variants retain exposed original prescriptions', () => withCompoundCopies((files, dir) => {
+  const primitives = json(files[0]);
+  primitives.tiles.find(tile => tile.id === 'compound-ground').segments['h:0,3'].passability = 'any';
+  save(files[0], primitives);
+  const output = join(dir, 'generated');
+  const result = invokeWithCompound(files, ['--out-dir', output]);
+  assert.equal(result.status, 0, result.stderr);
+  const variant = json(join(output, names[0])).tiles.find(tile => tile.id === 'compound-ground-inward-es');
+  assert.equal(variant.segments['h:0,3'].passability, 'any');
+  assert.equal(variant.segments['v:6,3'].passability, 'not-passable-hint');
+  assert.equal(variant.segments['h:6,3'].passability, 'not-passable-hint');
+}));
+
+test('optional library requires version 3 and its matching primitive pin without a fixed name', () => withCompoundCopies((files, dir) => {
+  const library = json(files[3]);
+  library.name = 'custom-large-library';
+  save(files[3], library);
+  assert.equal(invokeWithCompound(files, ['--out-dir', join(dir, 'custom')]).status, 0);
+  library.version = 2;
+  save(files[3], library);
+  assert.match(invokeWithCompound(files, ['--check']).stderr, /version 3/);
+  library.version = 3;
+  library.includes.find(ref => ref.name === 'common-primitives').version++;
+  save(files[3], library);
+  assert.match(invokeWithCompound(files, ['--check']).stderr, /expected common-primitives@4 include/);
+}));
+
+test('optional library refuses an output resolving to the fourth input', () => withCompoundCopies((files, dir) => {
+  const result = invokeWithCompound(files, ['--out-dir', dir]);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /refusing to overwrite input/);
+  assert.deepEqual(json(files[3]), json(compoundSource));
 }));

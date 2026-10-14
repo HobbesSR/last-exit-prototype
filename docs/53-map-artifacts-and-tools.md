@@ -450,10 +450,13 @@ are in 31.
 
 The read-only `tools/compound-siting-audit.mjs` captures the exact #340 compound
 input, the bounded production siting trace and emitted collision/access preview.
-It can regenerate the source map or load the checked-in focused brief, requiring
+It can regenerate the current map or load the original checked-in focused brief, requiring
 no earlier audit reports. Reproduction, diagnosis and limits are in
-[42](42-performance-history.md). These are diagnostic artifacts, not saved-map
-format or content-version changes.
+[42](42-performance-history.md). `tools/compound-siting-solution-audit.mjs`
+compares the preserved original input with the authored correction, validates
+room/court/actual gate and original portal access, and emits before/after collision
+previews. The tools themselves are read-only; the subsequent library correction
+is a deliberate content change, with baseline provenance recorded separately.
 
 ## Provenance rule
 

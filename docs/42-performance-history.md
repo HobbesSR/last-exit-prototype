@@ -767,7 +767,7 @@ node tools/compound-siting-audit.mjs --out=test-results/340-audit
 node tools/compound-siting-audit.mjs --brief=tests/fixtures/compound-340-brief.json.gz --out=test-results/340-focused
 ```
 
-Both commands write the exact brief, emitted result, JSON reason trace and
+At the initial diagnosis checkpoint both commands wrote the exact brief, emitted result, JSON reason trace and
 standalone collision/access SVG. The full-map command checks that building the
 captured input again equals the map's emitted result. Diagnosis uses the same
 production search; its optional probe observer changes neither order nor choices.
@@ -804,10 +804,10 @@ contracts** ([20.6](20.6-passable-margins.md), [54](54-region-types.md),
 optimization cannot create a contained minimum box. Producing a ring here would
 require separately reviewed content authorship that leaves a suitable fill area,
 or a different compound design that preserves all guaranteed access. Neither is
-selected by this investigation. It does not infer that this authored appearance
+selected at that initial checkpoint. It did not infer that this authored appearance
 is desirable, weaken guaranteed segments, retry the complete region as cover,
-or change loot. The original #340 acceptance is satisfied by the concrete cause
-and fallback decision; any desired appearance correction is a separate task.
+or change loot. Corey's subsequent request extends this work into the authored
+content correction below; it preserves the diagnosis of the original exact input.
 
 The focused tests pin this exact input and compare diagnosed accepted sites to
 actual emitted rings on small 17×16 and large 40×34 witnesses. The isolated file
@@ -817,6 +817,54 @@ chain sweep reports zero drift. Browser integration and server/client benchmarks
 were not rerun for this read-only diagnosis; the SVG was rendered and inspected
 separately. These checks and previews
 cover the stated inputs only, not every compound or a proposed new content policy.
+
+### Authored solution extension
+
+The existing structure-join authoring policy in [52](52-map-primitives-and-library.md)
+was applied to included common/district modules, but its tool did not inspect
+local set pieces in top-level libraries. The 36×18 library's `military-quarter`
+therefore retained original `compound-grounds` on all 312 compound slots.
+Those references now select the existing inward variants according to same-class
+slot adjacency. Only joined compound sides change to occupancy hints; all exposed
+prescriptions and 78 checkpoint slots stay unchanged. The authoring tool's optional
+`--compound-library` path checks/regenerates this compound-only extension while
+retaining its original three-module behavior. No new tile variants are needed.
+
+The exact original input remains an empty fallback witness. The corrected
+same-seed brief preserves ID, seed, 11,232 owned cells, all 76 external portals,
+zones and hints exactly; its authored internal guarantees change deliberately
+from 586 to zero. Fill increases from 6,240 to 10,856 cells. The first accepted
+site is a 24×24 box at (402,366), after 16 hint candidates fail fill containment.
+It emits 22 rooms, two compound gates, 94 collision obstacles, 24 door records
+and 511 loot pickups under the unchanged builder/loot policy. This is one
+compound ring; door records include room doors. No exterior cover is added in
+this witness. Empty-to-ring output and its loot are intentional content changes.
+
+Reproduce without previous local reports:
+
+```powershell
+node tools/compound-siting-solution-audit.mjs --out=test-results/340-solution
+node tools/compound-siting-solution-audit.mjs --after-brief=tests/fixtures/compound-340-inward-brief.json.gz --out=test-results/340-solution-focused
+```
+
+The full command regenerates the corrected map, compares its brief exactly to
+the second captured fixture and checks its emitted result against the direct
+build. The focused command compares both preserved inputs without generating
+the macro map. Both emit before/after fill/collision previews, a ring close-up,
+input/result JSON, production reason traces and access evidence. Hunter routes
+reach all 22 room centers, the court center and actual realized outer-door yard
+stands. Final collision geometry passes all 304 portal stand samples and 75
+connecting routes. The slow regression also checks both whole-cell neighbors
+of half-cell door centers. Its isolated time is 26.4 s, within [31](31-verification.md)'s
+60 s budget. These are sampled swept-body routes, not an assertion about every
+possible compound; old saved embedded libraries retain their former output.
+
+The checkpoint is deliberately library-only: `types-25`, macro version 3 and
+wire/library format versions are retained. Existing immutable primitive/set-piece
+module revisions are unchanged; the corrected 36×18 resolved library fingerprint
+is `a79cd8c355545bfc`. The original compressed brief and frozen
+`behavior-netcode-1.json.gz` remain untouched. Final baseline provenance belongs
+in [53](53-map-artifacts-and-tools.md).
 
 ## The reported slowdown is still open
 

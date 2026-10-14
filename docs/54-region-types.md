@@ -577,7 +577,10 @@ inside, and windows and doors let sight through.
     original ownership and requests without geometry or loot.
     Large original ownership does not imply usable fill: internal guaranteed
     margins can prevent every minimum ring box. The exact #340 diagnosis and
-    reproduction are recorded in [42](42-performance-history.md).
+    reproduction and the later `military-quarter` content correction are recorded
+    in [42](42-performance-history.md). The original constrained brief still falls
+    back; [52](52-map-primitives-and-library.md) supplies suitable authored joins
+    for the corrected blueprint.
 - **Shape needs:** *proposed*, a compound of at least 10 × 10, with a court of
   at least 4 × 4, plus usable portal approaches and gate doorsteps.
 - **Formed by:** medium set pieces, where the old library's walled `military` bases were (52).

@@ -13,7 +13,23 @@ zones, seed and hints. The focused test reads it to avoid building the full map.
 `node tools/compound-siting-audit.mjs --out=test-results/340-audit` regenerates
 the source map independently and writes the exact input, emitted result, reason
 trace and collision/access SVG. See [42](../../docs/42-performance-history.md)
-for the conclusion and limitations. The frozen fixture below is unchanged.
+for the conclusion and limitations. After the correction, the command's default
+regeneration audits current ring output; supply `--brief=tests/fixtures/compound-340-brief.json.gz`
+to inspect the original constrained input. The frozen fixture below is unchanged.
+
+`compound-340-inward-brief.json.gz` captures the corrected same-seed region after
+the 312 `military-quarter` compound slots adopt the existing inward variants.
+It preserves the original ID, seed, ownership, portals, zones and hints; internal
+guarantees deliberately change from 586 to zero, allowing 10,856 fill cells.
+Its serialized-brief SHA-256 is
+`11ceb74f7a3bf42a59417d14a6b92ce60a87498a33467d7dd560663a8ef5a531`.
+The corrected resolved library fingerprint is `a79cd8c355545bfc`. A fresh full
+generation is compared exactly to this witness by
+`node tools/compound-siting-solution-audit.mjs --out=test-results/340-solution`.
+The original witness above is retained unchanged; this second input represents
+a deliberate authored-content correction under the same `types-25` builders,
+macro version 3 and library format version 3. See [53](../../docs/53-map-artifacts-and-tools.md)
+for the final committed input/baseline provenance.
 
 ## Behavior baseline contents
 
