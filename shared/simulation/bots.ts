@@ -1,5 +1,5 @@
 import { canOccupy, insideMap, lineClear, reachClear, TILE } from '../movement.ts';
-import { cellCenter, discoveryGrid, isFeatureDiscovered, DISCOVERY_CELL_SIZE } from '../discovery.ts';
+import { cellCenter, cellIndexAt, discoveryGrid, isFeatureDiscovered, DISCOVERY_INTERVAL } from '../discovery.ts';
 import { straightenPath, blockAt, blockRoute } from '../map.ts';
 import { gridRoute } from '../map/route.ts';
 import { count, start, stop } from '../profiler.ts';
@@ -14,12 +14,14 @@ import type { DiscoveryMemory, GroundItem, Game, ItemId, Player, PlayerInput, Ti
 // What a bot that decides from discovery is after, kept between ticks (#230). A bot searching for what
 // it needs heads for the frontier: an undiscovered discovery cell beside a discovered one. It keeps one
 // until the cell is discovered, so it does not dither, and gives a cell up for good when it cannot be
-// routed to, when it arrives and the cell is still undiscovered (a cell whose centre is solid or roofed
-// may never be), or when it stops getting closer. An item it stops getting closer to, such as one seen
+// routed to, when it has stood inside the cell for a discovery sample and the cell is still undiscovered
+// (a cell whose centre is solid may never be), or when it stops getting closer. Nearness is not arrival:
+// a roofed cell stays concealed until the bot is under its roof (#354 review). An item it stops getting closer to, such as one seen
 // through a window, is set aside for a while. Bot-private, never projected or recorded.
 interface Pursuit {
-  /** The frontier cell being explored toward, or -1. */
+  /** The frontier cell being explored toward, or -1, and the tick the bot entered it, or -1 while outside. */
   cell: number;
+  entered: number;
   abandoned: Set<number>;
   /** Items set aside, until the tick they may be chased again. */
   ignored: Map<ItemId, Tick>;
@@ -39,7 +41,7 @@ const NEIGHBOURS = [[1, 0], [0, 1], [0, -1], [-1, 0]] as const;
 
 function pursuitOf(p: Player): Pursuit {
   let state = pursuits.get(p);
-  if (!state) pursuits.set(p, state = { cell: -1, abandoned: new Set(), ignored: new Map(), goal: '', closest: Infinity, progressed: 0 as Tick });
+  if (!state) pursuits.set(p, state = { cell: -1, entered: -1, abandoned: new Set(), ignored: new Map(), goal: '', closest: Infinity, progressed: 0 as Tick });
   return state;
 }
 
@@ -57,7 +59,10 @@ function exploreTarget(s: Game, p: Player, memory: DiscoveryMemory): Vec2 | null
   if (state.cell >= 0) {
     const centre = cellCenter(s.map, state.cell);
     const settled = memory.discovered.has(state.cell) || centre.x <= s.hazardX + EXPLORE_HAZARD_MARGIN;
-    if (!settled && distance(p, centre) >= DISCOVERY_CELL_SIZE && !stalled(s, p, state, `cell:${state.cell}`, centre)) return centre;
+    const inside = cellIndexAt(s.map, p.x, p.y) === state.cell;
+    if (!inside) state.entered = -1; else if (state.entered < 0) state.entered = s.tick;
+    const arrived = inside && s.tick - state.entered > DISCOVERY_INTERVAL;
+    if (!settled && !arrived && !stalled(s, p, state, `cell:${state.cell}`, centre)) return centre;
     if (!memory.discovered.has(state.cell)) state.abandoned.add(state.cell);
     state.cell = -1;
   }
@@ -76,7 +81,7 @@ function exploreTarget(s: Game, p: Player, memory: DiscoveryMemory): Vec2 | null
     }
   }
   if (best < 0) return null;
-  state.cell = best;
+  state.cell = best; state.entered = -1;
   p.path = []; // A new destination: route to it now rather than finish the old route first.
   return cellCenter(s.map, best);
 }

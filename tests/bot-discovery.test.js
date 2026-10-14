@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, step, snapshot, playerView } from '../shared/simulation.ts';
 import { botInput } from '../shared/simulation/bots.ts';
-import { canOccupy, TILE } from '../shared/movement.ts';
-import { createDiscovery, discover } from '../shared/discovery.ts';
+import { canOccupy, movePlayer, TILE } from '../shared/movement.ts';
+import { createDiscovery, discover, attachDiscovery, DISCOVERY_INTERVAL } from '../shared/discovery.ts';
+import { contentById } from '../shared/simulation/content.ts';
 import { generateLiveMap } from '../map/live.ts';
 
 // Contestant bots know what they have discovered, like people (15, #230).
@@ -85,4 +86,26 @@ test('item memory stays out of snapshots and every projection', () => {
   const frame = snapshot(s);
   assert.equal(JSON.stringify(frame).includes('remembered-cell'), false);
   for (const viewer of s.players) assert.equal(JSON.stringify(playerView(s, frame, viewer.id)).includes('remembered-cell'), false, viewer.id);
+});
+
+test('a bot enters a reachable roofed frontier cell rather than giving it up from outside (#354 review)', () => {
+  // Open ground with one roofed room. Everything is discovered but the room's cell, index 84, whose centre
+  // (864, 1632) stays concealed until the bot stands under the roof. The room holds the only cell.
+  const cell = { id: 'indoor-cell', kind: 'cell', x: 864, y: 1632, charge: 0 };
+  const map = { width: 1920, height: 3840, nodes: [], streets: [], obstacles: [], gates: [], hazards: [], traps: [],
+    buildings: [{ id: 'room', x: 768, y: 1536, w: 192, h: 192 }], items: [cell], chargers: [], stations: [], exit: { x: 1800, y: 100 } };
+  assert.ok(canOccupy(map, cell.x, cell.y, 14), 'the room is walkable');
+  const p = { id: 'c0', name: 'contestant-1', role: 'contestant', kit: 'warden', bot: true, x: 576, y: 1632, hp: 100, maxHp: 100, shield: 0, keys: 0,
+    weapon: 0, kills: 0, level: 1, status: 'active', cooldown: 0, attackCd: 0, railCd: 0, cloak: 0, revealed: 0, boost: 0, stun: 0, heading: 0,
+    input: {}, lastSeq: -1, inventory: Array(4).fill(null), selectedSlot: 0, path: [] };
+  const memory = createDiscovery();
+  for (let i = 0; i < 200; i++) if (i !== 84) memory.discovered.add(i);
+  attachDiscovery(p, memory);
+  const s = { tick: 0, phase: 'live', content: contentById('content-2'), map, players: [p], projectiles: [], effects: [], events: [], hazardX: -80, slots: 3, serial: 0 };
+  for (; s.tick < 400 && !memory.discovered.has(84); s.tick++) {
+    movePlayer(map, p, botInput(s, p));
+    if (s.tick % DISCOVERY_INTERVAL === 0) discover(memory, map, p, undefined, true);
+  }
+  assert.ok(memory.discovered.has(84), 'the roofed cell is discovered by going in');
+  assert.ok(memory.items.has('indoor-cell'), 'and the cell inside is seen');
 });
