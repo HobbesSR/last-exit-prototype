@@ -1,5 +1,5 @@
 /**
- * The finished map (51 "What the finished map is", build step 9): a container holding the
+ * The finished map from the generation chain (51.12): a container holding the
  * Layout, the region results and the library, and one accessor for every view. Nothing a
  * view computes is copied into the map, so a tool reads the resolved layout, the proof or
  * the report through `mapViews`, never through a field.

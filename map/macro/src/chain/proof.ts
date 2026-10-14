@@ -1,6 +1,6 @@
 /**
- * Proof (51 stage 4), a view: the components of the region graph, from a union-find over
- * the regions its portals join. It is macro's link in the chain of inference (51
+ * Proof (51.6), a view in the generation chain: the components of the region graph,
+ * from a union-find over the regions its portals join. It is macro's link in the chain of inference (51.1
  * principle 8), a claim about guarantees and not geometry, and it names no core element
  * regions: which region holds a core element isn't known before micro.
  */

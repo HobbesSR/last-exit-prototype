@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * The map CLI (53, "Tools"): chain maps, placed by macro and built by the game's
+ * The map CLI (53, "Tools"): maps from the generation chain (51), placed by macro and built by the game's
  * strategies, saved in wire version 8.
  */
 import fs from 'node:fs';
@@ -14,13 +14,13 @@ import { captureBaseline, compareSweep, positiveInteger, runSweep, sweepCases } 
 import type { SweepBaseline } from './sweep.mts';
 
 const PARAM_FLAGS = '[--mode game|playground] [--zone-width N --zone-height N] [--exits N --contestants N --hunters N] [--loot-chance X --loot-tier-step X]';
-const HELP = `last-exit-map: chain maps (51), built by the game's region types
+const HELP = `last-exit-map: maps from the generation chain (51), built by the game's region types
 
 Commands:
   generate --seed SEED ${PARAM_FLAGS} [--cell-size N] [--library FILE] [--layout-only true] [--out FILE] [--format json|bson]
   validate FILE [--library FILE] [--diagnose true]   (a saved map, read with the library it was made from; or a library)
   batch [--count N] [--seed PREFIX] ${PARAM_FLAGS} [--library FILE] [--diagnose true] [--out FILE]
-  library [--zone-width N --zone-height N] [--out FILE]   (the chain's library for a zone size, by default 12 x 6)
+  library [--zone-width N --zone-height N] [--out FILE]   (the generation chain's library for a zone size, by default 12 x 6)
   sweep [--jobs N] (--out FILE [--count N] | --check FILE)   (per-view content hashes over a pinned seed set)
   help
 

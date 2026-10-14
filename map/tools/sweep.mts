@@ -1,5 +1,5 @@
 /**
- * The chain's seed sweep (53, "Proving a change: the sweep"): each map is reduced to one
+ * The generation chain's seed sweep (53, "Proving a change: the sweep"): each map is reduced to one
  * content hash per object and view, so a change says which stage it moved.
  *
  * A map holds two objects, the Layout and the region results, and every other stage

@@ -3,10 +3,12 @@
 Status: accepted 2026-09-28 (PR #80). Integrated with the game's micro half
 2026-09-29 (50). Built through the switch-over, 2026-10-03 (step 10). Live matches now use it through the map-layer adapter (14, 20, 22).
 
-This document family specifies map generation as a series of checkpoints with clear
+This document family specifies the **generation chain** defined in
+[51.1](51.1-principles-and-names.md): map generation as a series of checkpoints with clear
 interfaces between them. mapgen owns the macro stages, 0 to 5 and the map-level
 part of 8. The game owns what happens inside a region, stages 6 and 7 (50).
-The pipeline is new, and it reuses existing leaf modules on both sides.
+The pipeline reuses existing leaf modules on both sides. Its reachability argument,
+the **chain of inference**, is distinct from the pipeline itself (51.1).
 
 mapgen's old generators, `generateMap` and `generatePlannedMap`, were deleted
 at the switch-over (step 10, #146), not kept as legacy. The archived mapgen
@@ -23,7 +25,9 @@ Corey's directions for the chain (2026-09-28 and 29), verbatim in
 
 `map/macro/design_notes.txt` is the original statement of intent. Corey's later answers under [17.2](17.2-map-questions.md) and the accepted model in 51 govern where they differ. For example, the notes describe segment-aligned fences and doors, and [17.2.2](17.2.2-boundaries-and-prescriptions.md) records that macro prescribes no geometry for now.
 
-## The chain
+<a id="the-chain"></a>
+
+## The generation chain
 
 ```
 Library ─┐

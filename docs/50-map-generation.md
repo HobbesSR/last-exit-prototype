@@ -44,7 +44,7 @@ and are history.
 | Machinery builders share: masks, shapes, swept routes, spacing, interface runs, access validation | the SDK, `map/micro/sdk.ts`. Macro calls it where a mechanism fits both scopes | 20, 22 |
 | What macro and micro must share: the contract between them (a region brief and its result), body scale and passage widths, and the definition of a run | the **shared map space**, which neither level owns (Corey, 2026-09-29, M1). It is the kernel, `map/kernel/` (51 C0): `contract.ts`, `scale.ts`, `cell.ts` and `run.ts` | 51, 52 |
 | The Map Lab, CLI and MCP, which show both halves | neither: the tools, `map/tools/`, using the shared map-level assembly (Corey, 2026-10-02, 17 "Where the tools live") | 53 |
-| The live game's current map | `map/live.ts` consumes the authored chain; `shared/map/generate.ts` remains the legacy generator | 22 |
+| The live game's current map | `map/live.ts` consumes the authored generation chain; `shared/map/generate.ts` remains the legacy generator | 22 |
 
 ## The SDK is a library
 
@@ -61,7 +61,15 @@ supplies the machinery." So:
 This replaces the archived mapgen statement that the SDK is "where interiors
 are generated for real" and that mapgen's builders are a mock.
 
-## One pipeline
+<a id="one-pipeline"></a>
+
+## One generation chain
+
+The **generation chain** is the full map-generation pipeline defined in
+[51.1](51.1-principles-and-names.md), spanning both macro and micro. The
+**chain of inference** is its layered reachability argument, also defined in
+51.1. The diagram below shows the pipeline stages; the proof stage contributes
+macro's link to that argument.
 
 ```
 seed, params, library
@@ -107,7 +115,7 @@ So the test is:
 | Decomposition | the SDK's decomposition (19) | the "decomposition belongs to the region type" direction (#76), and streets and blocks | same level: streets and blocks were macro cutting regions | The SDK. Streets and blocks were deleted (#146). |
 | Checking built geometry | the SDK's access and boundary validators: `shape.ts` swept discs, in world units | `nav.ts`: a half-cell lattice, in cells | tailored per level | Reachability is a chain of inference (Corey, 2026-09-29, M6): macro's proof over guarantees, plus each builder keeping its promise, all the way down (51 principles 8 and 9). Nothing enforces the promises: the SDK validators are elective utilities, and a builder that breaks its promise is defective. mapgen's lattice was deleted with the old paths (#146); the Map Lab's diagnostic is the game's `diagnoseBuiltMap` (53). |
 | Loot | loot budget and candidates | `micro/loot.ts`, `plan/loot.ts` | split by level: macro says how much, the region says where | The SDK. Macro loot planning isn't wanted now: Corey, 2026-09-28, "I don't care about loot prescriptions, that can be added in later". |
-| Macro partition | none, apart from the interim maze | V2 (tiles and WFC), and the planned path's partition | macro only | The chain (51), from tiles. The planned path was deleted (#146). |
+| Macro partition | none, apart from the interim maze | V2 (tiles and WFC), and the planned path's partition | macro only | The generation chain's placement stage ([51.3](51.3-placement.md)), from tiles. The planned path was deleted (#146). |
 | Body scale | the `cell` profile: diameters 1.25 and 1.75, door 2, squeeze 1.5; `live`: 12 and 23 world units | radii 0.55 and 0.90 cells, until C0 | must agree | One source of truth (M5): stated once in 52, "Units and scale", and held once in code in `map/kernel/scale.ts`. mapgen and the SDK both read from it (51 C0). |
 | Development tools | micro lab, decomposition lab, generation demo | the Map Lab, CLI, MCP | tailored per level | Keep both, under the shared navigation bar (20). The whole-map tools moved to `map/tools/` at the switch-over (51 step 10). |
 | Questions and backlog | 17, 41 | `QUESTIONS.md`, `NEXT_TASKS.md` | same level | 17 and 41 (folded 2026-09-29). Work in progress lives on Forgejo (34). |

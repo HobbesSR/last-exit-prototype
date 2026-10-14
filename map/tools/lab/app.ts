@@ -1,6 +1,6 @@
 /**
- * The Map Lab (53, "Tools"): chain maps, read through `mapViews` (51 "What the finished
- * map is"), with the report beside the game's `diagnoseBuiltMap`. It generates, saves and
+ * The Map Lab (53, "Tools"): maps from the generation chain (51), read through
+ * `mapViews` (51.12), with the report beside the game's `diagnoseBuiltMap`. It generates, saves and
  * loads through the same core as the CLI and MCP, so all three agree on a map.
  */
 import { CHAIN_LIBRARIES, bundledLibrary, chainParams, checkMap, validateLibrary } from "../core.ts";

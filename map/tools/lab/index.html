@@ -40,7 +40,7 @@
             </div>
             <label
               >Library<select id="librarySource">
-                <option value="bundled">The chain's library for the size</option>
+                <option value="bundled">Bundled library for the size</option>
                 <option value="draft">The Chain Library tab's draft</option>
               </select></label
             >
@@ -62,7 +62,7 @@
           <section>
             <h2>Layers</h2>
             <p class="hint">
-              In chain order. Later layers draw over earlier ones, and lines
+              In generation chain order. Later layers draw over earlier ones, and lines
               over areas.
             </p>
             <div id="layers"></div>
@@ -89,7 +89,7 @@
         </aside>
         <div class="world-main">
           <div id="mapView">
-            <canvas id="map" aria-label="Chain map"></canvas>
+            <canvas id="map" aria-label="Generated map"></canvas>
             <div class="zoom-controls">
               <button id="zoomOut" type="button" title="Zoom out">−</button
               ><span id="zoomLevel">100%</span
@@ -137,12 +137,12 @@
           <div>
             <h2>Chain Library</h2>
             <p>
-              Author the version 3 library. Portal preview covers one tile
-              design; placement across tiles is resolved later.
+              Author the version 3 library used by the generation chain.
+              Portal preview covers one tile design; placement across tiles is resolved later.
             </p>
           </div>
           <div class="chain-actions">
-            <button id="chainLoadBundled" type="button">Edit the chain's library</button
+            <button id="chainLoadBundled" type="button">Edit bundled library</button
             ><button id="chainExport" type="button">Export JSON</button
             ><label class="chain-file"
               >Import JSON<input

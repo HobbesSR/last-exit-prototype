@@ -1,4 +1,4 @@
-/** The game's map-level entry point for macro placement and micro construction. */
+/** The game's entry point for the generation chain (51): macro placement through micro construction. */
 import diamond12x6 from './macro/content/diamond-12x6.json' with { type: 'json' };
 import diamond24x12 from './macro/content/diamond-24x12.json' with { type: 'json' };
 import diamond36x18 from './macro/content/diamond-36x18.json' with { type: 'json' };
@@ -88,8 +88,8 @@ export function seedText(seed: unknown): string {
 }
 
 /**
- * A chain map placed by macro and built with the game's region strategies, from the
- * bundled library for its zone size unless the caller supplies another.
+ * A map from the generation chain, placed by macro and built with the game's
+ * region strategies. Uses the bundled library for its zone size unless supplied another.
  */
 export function generate(seed: unknown, params: object = {}, library?: unknown, cellSize = DEFAULT_CELL_SIZE): GameChainMap {
   if (!isCellSize(cellSize)) throw new Error('cell size must be a positive whole number of world units');
