@@ -8,6 +8,7 @@ import { CELL_SCALE } from '../../kernel/scale.ts';
 import { OUTSIDE } from '../building/design.ts';
 import type { BuildingAllocation, BuildingDesign } from '../building/design.ts';
 import { splitBuilding } from '../building/pieces.ts';
+import { reachableRoofGroups } from '../building/groups.ts';
 import { realizeBuilding } from '../building/realize.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import type { Shape } from '../../../shared/shape.ts';
@@ -199,7 +200,8 @@ function siteCompound(brief: RegionBrief, mask: ReturnType<typeof createRegionMa
  * can't partition a ring. Walls between spaces are built once. A passage is kept clear, so the
  * walls it shares stand in the rooms and it stays a doorway wide, and it lies open to the court
  * along its whole length. `splitBuilding` makes each space its own element, and each room its
- * own roof. `observe`, when given, sees the ring's design as one `BuildingTrace`, `compound`.
+ * own roof. Rooms one can walk between without leaving the ring fade together
+ * (`reachableRoofGroups`), which joins only a corner room and its neighbour. `observe`, when given, sees the ring's design as one `BuildingTrace`, `compound`.
  *
  * Candidate boxes lie in the reduced fill, off every portal's clear margin, and are checked
  * against the hunter's yard blocks.
@@ -307,7 +309,8 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
     ],
   };
   const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: false, exteriorOrder: SIDES, corners: 'horizontal', clear: passages.map(passage => passage.id), widths });
-  const split = realization.template && splitBuilding(realization, allocation, { cellSize: size, roofed: rooms.map(room => room.id), groupId: `${brief.id}-ring` });
+  const split = realization.template && splitBuilding(realization, allocation, { cellSize: size, roofed: rooms.map(room => room.id),
+    groupId: reachableRoofGroups(realization, allocation, brief.id) });
   // The ring's design always fits. A miss here is an implementation defect, not a new fallback.
   if (!split || realization.issues.length || realization.misses.length || split.issues.length) throw new Error('The compound ring could not be realized.');
   observe?.({ label: 'compound', origin: { x: bx * size, y: by * size }, cellSize: size, design, allocation, realization });

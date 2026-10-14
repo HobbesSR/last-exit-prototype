@@ -5,16 +5,19 @@ import { OUTSIDE } from './design.ts';
 import type { BuildingAllocation } from './design.ts';
 import { deriveContiguousRoofs } from './realize.ts';
 import type { BuildingRealization } from './realize.ts';
+import { roofGroupOf } from './groups.ts';
+import type { BuildingRoofGroups } from './groups.ts';
 
 export interface BuildingPieceOptions {
   cellSize: number;
   /** Spaces that get a roof. */
   roofed?: readonly string[];
   /**
-   * One fade group for every roofed piece, region-scoped since the pieces are placed as separate
-   * elements; keep it unique in the region. Without it each piece's roofs fade alone.
+   * Fade groups, region-scoped since the pieces are placed as separate elements; keep them unique
+   * in the region. One for every roofed piece, or one per space (`reachableRoofGroups` fills that).
+   * A piece with no group has its roofs fade alone.
    */
-  groupId?: string;
+  groupId?: string | BuildingRoofGroups;
 }
 /** One space's share of a realization, as its own element. */
 export interface BuildingPiece {
@@ -53,9 +56,10 @@ export function splitBuilding(realization: BuildingRealization, allocation: Buil
     if (!parts.length && !roof) continue;
     let pieceRoofs: ElementRoof[] | undefined;
     if (roof) {
-      const derived = deriveContiguousRoofs(space.cells, x0, y0, size, options.groupId, realization.openings);
+      const group = roofGroupOf(options.groupId, space.id);
+      const derived = deriveContiguousRoofs(space.cells, x0, y0, size, group, realization.openings);
       pieceRoofs = derived.map((r, i) => ({ ...r, id: derived.length > 1 ? `${space.id}-${i + 1}` : space.id,
-        ...(options.groupId ? { groupScope: 'region' as const } : {}) }));
+        ...(group ? { groupScope: 'region' as const } : {}) }));
     }
     pieces.push({
       space: space.id,

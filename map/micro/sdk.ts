@@ -32,6 +32,8 @@ export { realizeBuilding } from './building/realize.ts';
 export type { BuildingRealization, BuildingRealizationOptions } from './building/realize.ts';
 export { splitBuilding } from './building/pieces.ts';
 export type { BuildingPiece, BuildingPieceOptions } from './building/pieces.ts';
+export { reachableRoofGroups } from './building/groups.ts';
+export type { BuildingRoofGroups } from './building/groups.ts';
 export type { BuildingObserver, BuildingTrace } from './building/trace.ts';
 export { allocateBuilding } from './building/allocation.ts';
 export type { BuildingAllocationOptions, BuildingAllocationResult, BuildingAllocationSearch, BuildingAllocationScores } from './building/allocation.ts';

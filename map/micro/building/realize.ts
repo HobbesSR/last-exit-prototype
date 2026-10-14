@@ -8,6 +8,8 @@ import type { BuildingAllocation, BuildingDesign, BuildingSide } from './design.
 import { placeBuildingOpenings, sameBuildingRun } from './openings.ts';
 import type { BuildingOpeningResult, BuildingRunLimits, PlacedBuildingOpening } from './openings.ts';
 import { emitWallRun } from './walls.ts';
+import { roofGroupOf } from './groups.ts';
+import type { BuildingRoofGroups } from './groups.ts';
 
 export interface BuildingRealizationOptions {
   cellSize: number;
@@ -17,8 +19,12 @@ export interface BuildingRealizationOptions {
   encloses?: boolean;
   /** Spaces that get a roof; defaults to all spaces if encloses is true. */
   roofed?: readonly string[];
-  /** One fade group for all its roofs, scoped to each placement of the template. Without it each roof fades alone. */
-  groupId?: string;
+  /**
+   * Fade groups, scoped to each placement of the template: one for all its roofs, or one per
+   * space (`reachableRoofGroups` fills that). A roof spanning spaces takes their one group; a
+   * roof with no group fades alone.
+   */
+  groupId?: string | BuildingRoofGroups;
   /** Stable exterior assembly order, followed by internal boundaries. */
   exteriorOrder?: readonly BuildingSide[];
   /** Horizontal perimeter walls own convex corners; otherwise walls overlap there. */
@@ -118,7 +124,14 @@ export function realizeBuilding(design: BuildingDesign, allocation: BuildingAllo
   parts.push(...gates);
   result.owners = [...partOwners, ...gateOwners];
   result.origin = { x: x0 * options.cellSize, y: y0 * options.cellSize };
-  const roofs = deriveContiguousRoofs(roofCells, x0, y0, options.cellSize, options.groupId, result.openings);
+  const roofs = deriveContiguousRoofs(roofCells, x0, y0, options.cellSize, typeof options.groupId === 'string' ? options.groupId : undefined, result.openings);
+  const groups = options.groupId;
+  if (groups && typeof groups !== 'string') for (const roof of roofs) {
+    const named = new Set(roof.cells.map(c => roofGroupOf(groups, owner.get(`${c.x + x0},${c.y + y0}`))));
+    if (named.size > 1) { result.issues.push(`A roof spans spaces in different fade groups: ${roof.id}`); return result; }
+    const [group] = named;
+    if (group !== undefined) roof.groupId = group;
+  }
   result.template = {
     w: (x1 - x0) * options.cellSize,
     h: (y1 - y0) * options.cellSize,

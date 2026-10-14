@@ -199,7 +199,9 @@ Roof presentation (`shared/view.ts`, so the renderer reads one rule). Roof group
 are declared directly on `map.roofs` via `groupId` by the building SDK (`roofGroups`),
 retiring the client-side door-edge derivation when declared roofs are present; legacy
 maps without declared roofs fall back to deriving groups from abutting building boxes
-sharing a door edge. A group fades together: the target
+sharing a door edge. A builder states its groups. The compound's rule is reachability: roofs
+fade together when one can walk between their spaces without leaving the structure
+(`reachableRoofGroups`, 56.1). A group fades together: the target
 opacity (`roofTargetAlpha`) is zero while the viewer is inside any room of the group, and otherwise
 falls from opaque to `ROOF_FADE_FLOOR` as the viewer nears one of the group's doors, windows, or
 doorway threshold cells (`openingDistance`, within `ROOF_FADE_RANGE`). The client eases toward the target in real time, and a
