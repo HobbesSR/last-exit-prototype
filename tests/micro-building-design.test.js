@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { OUTSIDE, validateBuildingDesign, deriveBuildingBoundaries, placeBuildingOpenings, realizeBuilding, splitBuilding, createRegionMask, elementShapes } from '../map/micro/sdk.ts';
+import { OUTSIDE, validateBuildingDesign, deriveBuildingBoundaries, placeBuildingOpenings, realizeBuilding, splitBuilding, reachableRoofGroups, createRegionMask, elementShapes } from '../map/micro/sdk.ts';
+import { createGenerationContext } from '../shared/map/context.ts';
+import { placeElement } from '../shared/map/element.ts';
+import { roofConceals, roofGroups } from '../shared/view.ts';
 
 const cellsOf = (w, h, keep = () => true) => Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w) })).filter(c => keep(c.x, c.y));
 const space = id => ({ id, area: { min: 1, max: 100 }, outside: 'prefer', tags: ['guidance'] });
@@ -227,4 +230,38 @@ test('a realization splits into one element per space, roofing spaces asked for'
     { cellSize: 40, roofed: ['gap'] });
   assert.deepEqual(nonRectSplit.issues, []);
   assert.ok(nonRectSplit.pieces.find(p => p.space === 'gap')?.template.roofs?.length > 0, 'a non-rectangular space is roofed');
+});
+
+// #348: a building's spaces fade together when one can walk between them without leaving it.
+test('roofs fade together where their spaces are reachable inside the building', () => {
+  // A row of two-cell-square spaces, a to e, with p an unroofed passage. a-b is a door, b-c a
+  // window, c-p open and p-d a door. d and e share a plain wall, and a and e have outside doors.
+  const ids = ['a', 'b', 'c', 'p', 'd', 'e'], row = cellsOf(12, 2);
+  const spaces = ids.map((id, i) => ({ id, cells: row.filter(c => c.x >= 2 * i && c.x < 2 * i + 2) }));
+  const allocation = { footprint: row, spaces };
+  const design = designOf(ids, [connection('a-out', 'door', { a: 'a', side: 'N' }), connection('a-b', 'door', { a: 'a', b: 'b' }),
+    connection('b-c', 'window', { a: 'b', b: 'c' }), connection('c-p', 'open', { a: 'c', b: 'p' }),
+    connection('p-d', 'door', { a: 'p', b: 'd' }), connection('e-out', 'door', { a: 'e', side: 'S' })]);
+  const realization = realizeBuilding(design, allocation, { cellSize: 40, encloses: false });
+  assert.deepEqual([realization.issues, realization.misses], [[], []]);
+  const groups = reachableRoofGroups(realization, allocation, 'x');
+  assert.deepEqual(groups, { a: 'x-a', b: 'x-a', c: 'x-c', p: 'x-c', d: 'x-c' },
+    'a window joins nothing, an unroofed passage joins through, and a space nothing joins is left out');
+
+  const roofed = ['a', 'b', 'c', 'd', 'e'];
+  const { pieces, issues } = splitBuilding(realization, allocation, { cellSize: 40, roofed, groupId: groups });
+  assert.deepEqual(issues, []);
+  const context = createGenerationContext(4);
+  for (const piece of pieces) placeElement(context, piece.template, 400 + piece.origin.x, 400 + piece.origin.y, { nodeId: 'n' });
+  // Each roofed piece places one roof, in order.
+  const { map } = context, faded = roofGroups(map), space = new Map(map.roofs.map((r, i) => [r.id, roofed[i]]));
+  const together = id => faded.get(map.roofs[roofed.indexOf(id)].id).map(r => space.get(r.id));
+  assert.deepEqual([together('a'), together('b'), together('c'), together('d'), together('e')], [['a', 'b'], ['a', 'b'], ['c', 'd'], ['c', 'd'], ['e']]);
+  assert.equal(roofConceals(map, { x: 420, y: 420 }, { x: 500, y: 420 }), true, 'a fade group is presentation only: rooms still hide each other');
+
+  // One template's roofs are its contiguous roofed cells, so a roof spanning two groups is refused.
+  assert.deepEqual(realizeBuilding(design, allocation, { cellSize: 40, encloses: false, roofed, groupId: groups }).issues,
+    ['A roof spans spaces in different fade groups: roof-1']);
+  const whole = realizeBuilding(design, allocation, { cellSize: 40, encloses: false, roofed: ['a', 'b', 'd'], groupId: groups });
+  assert.deepEqual(whole.template.roofs.map(r => r.groupId), ['x-a', 'x-c']);
 });
