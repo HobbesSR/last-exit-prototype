@@ -63,7 +63,7 @@ export function step(s: Game): void {
       const p = s.players[i]!;
       if (p.role === 'contestant' && p.discovery) {
         if (p.status === 'active' && (s.tick + i) % DISCOVERY_INTERVAL === 0) {
-          discover(p.discovery, s.map, p);
+          discover(p.discovery, s.map, p, undefined, p.bot);
         }
       }
     }

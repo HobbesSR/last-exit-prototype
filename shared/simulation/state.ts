@@ -30,7 +30,7 @@ export function createGame(seed = 4217, map: GameMap = generateMap(seed), conten
         const memory = createDiscovery();
         attachDiscovery(p, memory);
         // The lobby's NOWHERE map has no dimensions or spawns; discovery sampling runs only once on a real map.
-        if (map.width && map.height && map.spawns?.length) discover(memory, s.map, p);
+        if (map.width && map.height && map.spawns?.length) discover(memory, s.map, p, undefined, p.bot);
       }
     }
   }

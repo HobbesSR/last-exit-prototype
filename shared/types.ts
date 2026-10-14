@@ -477,6 +477,8 @@ export interface DiscoveryWire {
 
 export interface DiscoveryMemory {
   discovered: Set<number>;
+  /** Items as last seen, kept for bots, which decide from them (#230). Never projected or recorded. */
+  items?: Map<ItemId, GroundItem> | undefined;
 }
 
 export interface Projectile extends Vec2 {

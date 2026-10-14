@@ -1,7 +1,7 @@
 import { insideMap, litPoint, visibilityPolygon } from './movement.ts';
 import { roofConceals } from './view.ts';
 import { nextVersion } from './frame-layers.ts';
-import type { CollisionMap, DiscoveryMemory, DiscoveryWire, GameMap, Gate, Player, PlayerId, Role, Vec2, World } from './types.ts';
+import type { CollisionMap, DiscoveryMemory, DiscoveryWire, GameMap, Gate, GroundItem, ItemId, Player, PlayerId, Role, Vec2, World } from './types.ts';
 export type { DiscoveryMemory, DiscoveryWire };
 
 /** The side length of a coarse discovery cell in world units (4 x 48 map cells). */
@@ -10,6 +10,19 @@ export const DISCOVERY_CELL_SIZE: World = 192;
 export const DISCOVERY_RADIUS: World = 1200;
 /** How often a contestant samples discovery, staggered per player. */
 export const DISCOVERY_INTERVAL = 10;
+/**
+ * How far a landmark (charger, exit, transit station) is discovered from, regardless of walls and
+ * roofs: it carries a beacon, so finding one is not a search of the whole map (#230).
+ */
+export const BEACON_RADIUS: World = 4000;
+
+/** The map fields discovery reads. Items and landmarks are optional, so a bare collision map works. */
+type DiscoveryMap = CollisionMap & Pick<GameMap, 'buildings'> & Partial<Pick<GameMap, 'items' | 'chargers' | 'stations' | 'exit'>>;
+
+/** The features that carry a beacon. */
+function landmarks(map: DiscoveryMap): Vec2[] {
+  return [...map.chargers ?? [], ...map.stations ?? [], ...map.exit ? [map.exit] : []];
+}
 
 export interface DiscoveryGrid {
   cols: number;
@@ -73,13 +86,15 @@ export function isFeatureDiscovered(memory: DiscoveryMemory | null | undefined, 
 /**
  * Sample discovery from an eye position against the map.
  * Builds one visibility polygon and marks grid cells whose centres pass litPoint and are not roof-concealed.
- * Returns the newly discovered cell indices.
+ * With `observeItems`, the same sight also updates `memory.items`: items it sees are remembered, and a
+ * remembered item whose spot it sees empty is forgotten (#230). Returns the newly discovered cell indices.
  */
 export function discover(
   memory: DiscoveryMemory,
-  map: CollisionMap & Pick<GameMap, 'buildings'>,
+  map: DiscoveryMap,
   eye: Vec2,
-  radius: World = DISCOVERY_RADIUS
+  radius: World = DISCOVERY_RADIUS,
+  observeItems = false
 ): number[] {
   const { cols, rows } = discoveryGrid(map);
 
@@ -91,6 +106,13 @@ export function discover(
   let poly: ReturnType<typeof visibilityPolygon> | null = null;
   const newlyDiscovered: number[] = [];
   const radiusSq = radius * radius;
+  // The polygon is built only once something in reach needs it.
+  const sees = (x: World, y: World): boolean => {
+    if ((x - eye.x) ** 2 + (y - eye.y) ** 2 > radiusSq) return false;
+    if (roofConceals(map, eye, { x, y })) return false;
+    if (!poly) poly = visibilityPolygon(map, eye, radius);
+    return litPoint(poly, eye, x, y);
+  };
 
   for (let row = minRow; row <= maxRow; row++) {
     for (let col = minCol; col <= maxCol; col++) {
@@ -100,17 +122,32 @@ export function discover(
       const cx = col * DISCOVERY_CELL_SIZE + DISCOVERY_CELL_SIZE / 2;
       const cy = row * DISCOVERY_CELL_SIZE + DISCOVERY_CELL_SIZE / 2;
 
-      const distSq = (cx - eye.x) ** 2 + (cy - eye.y) ** 2;
-      if (distSq > radiusSq) continue;
       if (!insideMap(map, cx, cy)) continue;
-      if (roofConceals(map, eye, { x: cx, y: cy })) continue;
-
-      if (!poly) poly = visibilityPolygon(map, eye, radius);
-      if (!litPoint(poly, eye, cx, cy)) continue;
+      if (!sees(cx, cy)) continue;
 
       memory.discovered.add(idx);
       newlyDiscovered.push(idx);
     }
+  }
+
+  // A landmark's beacon shows over walls and roofs, so its cell is discovered from much further away.
+  for (const landmark of landmarks(map)) {
+    if ((landmark.x - eye.x) ** 2 + (landmark.y - eye.y) ** 2 > BEACON_RADIUS ** 2) continue;
+    const idx = cellIndexAt(map, landmark.x, landmark.y);
+    if (idx === -1 || memory.discovered.has(idx)) continue;
+    memory.discovered.add(idx);
+    newlyDiscovered.push(idx);
+  }
+
+  if (observeItems && map.items) {
+    const items = memory.items ??= new Map();
+    const present = new Set<ItemId>();
+    for (const item of map.items) {
+      if (!sees(item.x, item.y)) continue;
+      present.add(item.id);
+      items.set(item.id, { ...item });
+    }
+    for (const [id, item] of items) if (!present.has(id) && sees(item.x, item.y)) items.delete(id);
   }
 
   return newlyDiscovered;
@@ -121,7 +158,7 @@ export function discover(
  * Gladiators have no discovery memory and return an empty set.
  */
 export function foldDiscovery(
-  map: CollisionMap & Pick<GameMap, 'buildings'>,
+  map: DiscoveryMap,
   frames: Iterable<{
     tick?: number;
     gates?: Gate[];

@@ -7,6 +7,7 @@ import {
   DISCOVERY_CELL_SIZE,
   DISCOVERY_RADIUS,
   DISCOVERY_INTERVAL,
+  BEACON_RADIUS,
   discoveryGrid,
   cellIndexAt,
   cellCenter,
@@ -325,4 +326,22 @@ test('feature discovery query identifies discovered chargers and stations', () =
   // Exit site at the far end of the map must not be discovered at start
   const exit = game.map.exit;
   assert.equal(isFeatureDiscovered(memory, game.map, exit), false);
+});
+
+test('a landmark is discovered from its beacon radius, through walls, and the fold agrees', () => {
+  // A wall across the map east of the eye, so sight alone discovers nothing beyond it.
+  const map = {
+    width: 6000, height: 960, obstacles: [{ id: 'wall', x: 400, y: 0, w: 20, h: 960 }], gates: [], buildings: [],
+    chargers: [{ id: 'near', x: 400 + BEACON_RADIUS - 1000, y: 480 }, { id: 'far', x: 200 + BEACON_RADIUS + 400, y: 480 }],
+    stations: [], exit: { x: 5900, y: 480 },
+  };
+  const eye = { x: 200, y: 480 }, memory = createDiscovery();
+  discover(memory, map, eye);
+  const [near, far] = map.chargers;
+  assert.ok(isFeatureDiscovered(memory, map, near), 'a charger inside the beacon radius, behind a wall');
+  assert.equal(isDiscovered(memory, map, near.x - DISCOVERY_CELL_SIZE, near.y), false, 'only its own cell, not the way to it');
+  assert.equal(isFeatureDiscovered(memory, map, far), false, 'a charger beyond the beacon radius');
+  assert.equal(isFeatureDiscovered(memory, map, map.exit), false, 'the exit beyond it');
+  const folded = foldDiscovery(map, [{ tick: 0, players: [{ id: 'c0', ...eye, role: 'contestant', status: 'active' }] }], 'c0');
+  assert.deepEqual([...folded.discovered].sort(), [...memory.discovered].sort());
 });
