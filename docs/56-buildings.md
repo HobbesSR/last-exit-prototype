@@ -190,10 +190,15 @@ The SDK exports these pure passes from `map/micro/building/`:
   that would consume a whole run are refused as an issue. Thickness is in
   `(0, 1]` cells, keeping walls within their cells.
 
-The current element roof is a rectangle. An enclosing realization therefore
-requires a filled rectangular footprint; concave or holed footprints can emit
-walls with `encloses: false`. Unsupported roof requests return an issue and no
-template. Extending roof geometry is outside L2. The caller still owns the
+Element roofs are declared on the cell/segment grid (`template.roofs`).
+`realizeBuilding` partitions the roofed cells into 4-neighbor contiguous
+components, allowing concave and holed footprints. A filled rectangular
+footprint continues to set `encloses: true` for backwards compatibility with
+legacy rectangular building boxes, while non-rectangular footprints emit
+`roofs` with `encloses: false`. Exterior perimeter edges derive `ROOF_OVERHANG`
+(12 units), interior abutting edges have zero overhang, and exterior door openings
+derive doorway threshold cells for approach fading. See [56.1](56.1-roofs.md) for
+data shape, relation to `Building`, sight rules, and versioning. The caller still owns the
 region's portal promise and the decision to use a realization with misses.
 
 `hut` supplies a one-space 4 × 4 allocation, a door on its selected doorstep

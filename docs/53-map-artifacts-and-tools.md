@@ -252,6 +252,13 @@ were visually inspected. Server/client benchmarks and the unrelated full game
 browser suite were not rerun; no performance or universal coverage claim is made.
 The frozen gameplay characterization fixture is unchanged.
 
+**#292's re-capture** pins `types-26`. Realization emits contiguous cell roofs
+with exterior overhang and doorway threshold cells on element templates and `map.roofs`,
+supporting concave and holed shapes. Results and built hashes change to reflect the declared
+roofs, while layout, declared grid, resolved segments, regions, proof, zones and briefs
+remain identical. Wire version 8 remains unchanged with `roofs` as an optional array field;
+the frozen gameplay characterization fixture is unchanged.
+
 **S3 schema migration (#168).** Version 3 adds authored library metadata, so
 its fingerprint changes while placement and construction remain identical.
 `node map/tools/tests/library-v3-audit.mjs` compares the resolved content to

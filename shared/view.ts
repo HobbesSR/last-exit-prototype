@@ -1,11 +1,11 @@
 import { lineClear, litPoint } from './movement.ts';
 import type { VisibilityPoint } from './movement.ts';
-import type { Building, CollisionMap, GameMap, Gate, GateId, ObservedGate, Player, Tick, Vec2, ViewBounds, World } from './types.ts';
+import type { Building, CollisionMap, GameMap, Gate, GateId, ObservedGate, PlayableArea, Player, Roof, Tick, Vec2, ViewBounds, World } from './types.ts';
 
 /** A gate as last seen, kept per client so an unobserved gate is drawn stale rather than current. */
 export type RememberedGate = Gate & { lastSeenTick: Tick };
 /** The map fields roof concealment reads. */
-type RoofMap = Pick<GameMap, 'buildings'>;
+type RoofMap = Pick<GameMap, 'buildings'> & { roofs?: Roof[] | undefined; playableArea?: PlayableArea | undefined };
 
 // Bound camera coverage on very large displays so potential visibility stays finite.
 // Physical screen pixels never grant an unbounded view of the arena.
@@ -92,9 +92,118 @@ export function seesActor(sight: Sight | null | undefined, map: RoofMap, viewer:
 export function buildingAt(map: RoofMap, point: Vec2): Building | null {
   return map.buildings?.find(b => point.x > b.x && point.x < b.x + b.w && point.y > b.y && point.y < b.y + b.h) || null;
 }
+
+export function pointInRoof(roof: Roof, point: Vec2, cellSet?: Set<string>): boolean {
+  if (point.x <= roof.bounds.x || point.x >= roof.bounds.x + roof.bounds.w
+    || point.y <= roof.bounds.y || point.y >= roof.bounds.y + roof.bounds.h) return false;
+  const cx = Math.floor((point.x - roof.origin.x) / roof.cellSize);
+  const cy = Math.floor((point.y - roof.origin.y) / roof.cellSize);
+  if (cellSet) return cellSet.has(`${cx},${cy}`);
+  return roof.cells.some(c => c.x === cx && c.y === cy);
+}
+
+interface RoofIndex {
+  coveredBuildingIds: Set<string>;
+  bucketSize: number;
+  roofBuckets: Map<string, Roof[]>;
+  buildingBuckets: Map<string, Building[]>;
+  roofCellSets: WeakMap<Roof, Set<string>>;
+}
+
+// Cached per map object and never invalidated: a map is immutable after generation, and the client
+// replaces the object on every change. Editing `buildings` or `roofs` in place reads a stale index.
+const roofIndexCache = new WeakMap<object, RoofIndex>();
+
+export function getRoofIndex(map: RoofMap): RoofIndex {
+  let index = roofIndexCache.get(map);
+  if (!index) {
+    const roofs = map.roofs || [];
+    const coveredBuildingIds = new Set<string>();
+    for (const r of roofs) {
+      if (r.buildingId) coveredBuildingIds.add(r.buildingId);
+    }
+    const undeclaredBuildings = (map.buildings || []).filter(b => !coveredBuildingIds.has(b.id));
+    const bucketSize = 160;
+    const roofBuckets = new Map<string, Roof[]>();
+    const buildingBuckets = new Map<string, Building[]>();
+    const roofCellSets = new WeakMap<Roof, Set<string>>();
+
+    for (const roof of roofs) {
+      const set = new Set<string>();
+      for (const c of roof.cells) set.add(`${c.x},${c.y}`);
+      roofCellSets.set(roof, set);
+
+      const minBx = Math.floor(roof.bounds.x / bucketSize);
+      const maxBx = Math.floor((roof.bounds.x + roof.bounds.w) / bucketSize);
+      const minBy = Math.floor(roof.bounds.y / bucketSize);
+      const maxBy = Math.floor((roof.bounds.y + roof.bounds.h) / bucketSize);
+      for (let bx = minBx; bx <= maxBx; bx++) {
+        for (let by = minBy; by <= maxBy; by++) {
+          const key = `${bx},${by}`;
+          let list = roofBuckets.get(key);
+          if (!list) { list = []; roofBuckets.set(key, list); }
+          list.push(roof);
+        }
+      }
+    }
+
+    for (const b of undeclaredBuildings) {
+      const minBx = Math.floor(b.x / bucketSize);
+      const maxBx = Math.floor((b.x + b.w) / bucketSize);
+      const minBy = Math.floor(b.y / bucketSize);
+      const maxBy = Math.floor((b.y + b.h) / bucketSize);
+      for (let bx = minBx; bx <= maxBx; bx++) {
+        for (let by = minBy; by <= maxBy; by++) {
+          const key = `${bx},${by}`;
+          let list = buildingBuckets.get(key);
+          if (!list) { list = []; buildingBuckets.set(key, list); }
+          list.push(b);
+        }
+      }
+    }
+
+    index = {
+      coveredBuildingIds,
+      bucketSize,
+      roofBuckets,
+      buildingBuckets,
+      roofCellSets,
+    };
+    roofIndexCache.set(map, index);
+  }
+  return index;
+}
+
+export function roofAt(map: RoofMap, point: Vec2): Roof | Building | null {
+  if (!map) return null;
+  const index = getRoofIndex(map);
+  const bx = Math.floor(point.x / index.bucketSize);
+  const by = Math.floor(point.y / index.bucketSize);
+  const bucketKey = `${bx},${by}`;
+
+  const roofCandidates = index.roofBuckets.get(bucketKey);
+  if (roofCandidates) {
+    for (const roof of roofCandidates) {
+      const cellSet = index.roofCellSets.get(roof);
+      if (pointInRoof(roof, point, cellSet)) return roof;
+    }
+  }
+
+  const bCandidates = index.buildingBuckets.get(bucketKey);
+  if (bCandidates) {
+    for (const b of bCandidates) {
+      if (point.x > b.x && point.x < b.x + b.w && point.y > b.y && point.y < b.y + b.h) return b;
+    }
+  }
+
+  return null;
+}
+
 export function roofConceals(map: RoofMap, eye: Vec2, point: Vec2): boolean {
-  const building = buildingAt(map, point);
-  return !!building && buildingAt(map, eye)?.id !== building.id;
+  const targetRoof = roofAt(map, point);
+  if (!targetRoof) return false;
+  const eyeRoof = roofAt(map, eye);
+  return !eyeRoof || eyeRoof.id !== targetRoof.id;
 }
 
 // ---------------------------------------------------------------------------
@@ -126,22 +235,40 @@ function abutting(a: RoofBox, b: RoofBox): Side | null {
 }
 
 /**
- * Buildings that read as one roof: boxes that share an edge with a door on it. Until builders declare
- * roof groups, this derives them from the map; the declared form then replaces this function.
- * Every building maps to its group's members (itself alone when ungrouped), in map order.
+ * Buildings or roofs that read as one roof: declared roof groups when present on the map,
+ * or derived from abutting boxes sharing a door as a fallback for legacy maps.
  */
-export function roofGroups(map: Pick<GameMap, 'buildings' | 'gates'>): Map<string, Building[]> {
-  const buildings = map.buildings || [], parent = new Map<string, string>();
-  const find = (id: string): string => { const p = parent.get(id) ?? id; return p === id ? id : (parent.set(id, find(p)), parent.get(id)!); };
-  for (const gate of map.gates) {
-    const near = buildings.filter(b => gate.x < b.x + b.w + ROOF_EDGE && gate.x + gate.w > b.x - ROOF_EDGE
-      && gate.y < b.y + b.h + ROOF_EDGE && gate.y + gate.h > b.y - ROOF_EDGE);
-    for (const a of near) for (const b of near) if (a.id < b.id && abutting(a, b)) parent.set(find(b.id), find(a.id));
+export function roofGroups(map: Pick<GameMap, 'buildings' | 'gates'> & { roofs?: Roof[] }): Map<string, Array<Building | Roof>> {
+  const groups = new Map<string, Array<Building | Roof>>();
+  const coveredBuildingIds = map.roofs?.length ? getRoofIndex(map).coveredBuildingIds : new Set<string>();
+
+  if (map.roofs?.length) {
+    const byGroup = new Map<string, Roof[]>();
+    for (const r of map.roofs) {
+      const list = byGroup.get(r.groupId) ?? [];
+      list.push(r);
+      byGroup.set(r.groupId, list);
+    }
+    for (const list of byGroup.values()) {
+      for (const r of list) groups.set(r.id, list);
+    }
   }
-  const members = new Map<string, Building[]>();
-  for (const b of buildings) { const root = find(b.id); (members.get(root) ?? members.set(root, []).get(root)!).push(b); }
-  const groups = new Map<string, Building[]>();
-  for (const list of members.values()) for (const b of list) groups.set(b.id, list);
+
+  const buildings = (map.buildings || []).filter(b => !coveredBuildingIds.has(b.id));
+  if (buildings.length) {
+    const parent = new Map<string, string>();
+    const find = (id: string): string => { const p = parent.get(id) ?? id; return p === id ? id : (parent.set(id, find(p)), parent.get(id)!); };
+    for (const gate of map.gates) {
+      const near = buildings.filter(b => gate.x < b.x + b.w + ROOF_EDGE && gate.x + gate.w > b.x - ROOF_EDGE
+        && gate.y < b.y + b.h + ROOF_EDGE && gate.y + gate.h > b.y - ROOF_EDGE);
+      for (const a of near) for (const b of near) if (a.id < b.id && abutting(a, b)) parent.set(find(b.id), find(a.id));
+    }
+    const members = new Map<string, Building[]>();
+    for (const b of buildings) { const root = find(b.id); (members.get(root) ?? members.set(root, []).get(root)!).push(b); }
+    for (const list of members.values()) {
+      for (const b of list) groups.set(b.id, list);
+    }
+  }
   return groups;
 }
 
@@ -160,13 +287,29 @@ export function roofTargetAlpha(inside: boolean, openingDistance: number): numbe
 }
 
 /** Nearest door or window of the group to a point, for the fade; Infinity when it has none. */
-export function openingDistance(map: Pick<GameMap, 'gates' | 'obstacles'>, group: readonly RoofBox[], point: Vec2): number {
-  const ids = new Set(group.map(b => b.id));
+export function openingDistance(map: Pick<GameMap, 'gates' | 'obstacles'> & { playableArea?: PlayableArea }, group: readonly (RoofBox | Roof)[], point: Vec2): number {
+  const ids = new Set<string>();
+  for (const item of group) {
+    ids.add(item.id);
+    if ('buildingId' in item && item.buildingId) ids.add(item.buildingId);
+  }
   let best = Infinity;
   const consider = (box: { x: number; y: number; w: number; h: number }) => {
     const dx = Math.max(box.x - point.x, 0, point.x - box.x - box.w), dy = Math.max(box.y - point.y, 0, point.y - box.y - box.h);
     best = Math.min(best, Math.hypot(dx, dy));
   };
+  for (const item of group) {
+    if ('thresholds' in item && item.thresholds?.length) {
+      for (const t of item.thresholds) {
+        consider({
+          x: item.origin.x + t.x * item.cellSize,
+          y: item.origin.y + t.y * item.cellSize,
+          w: item.cellSize,
+          h: item.cellSize,
+        });
+      }
+    }
+  }
   for (const g of map.gates) if (g.buildingId && ids.has(g.buildingId)) consider(g);
   for (const o of map.obstacles) if (o.kind === 'window' && o.buildingId && ids.has(o.buildingId)) consider(o);
   return best;

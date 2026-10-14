@@ -63,6 +63,12 @@ export interface Box {
   h: World;
 }
 
+/** A discrete grid cell coordinate. */
+export interface Cell {
+  x: number;
+  y: number;
+}
+
 /** A world-space viewport, which names its extents `width`/`height` rather than `w`/`h`. */
 export interface ViewBounds {
   x: World;
@@ -277,6 +283,18 @@ export interface Building extends Box {
   nodeId: NodeId;
 }
 
+export interface Roof {
+  id: string;
+  groupId: string;
+  bounds: Box;
+  origin: Vec2;
+  cellSize: number;
+  cells: Cell[];
+  overhang?: number | undefined;
+  thresholds?: Cell[] | undefined;
+  buildingId?: BuildingId | undefined;
+}
+
 export interface MapModule extends Vec2 {
   /** Module ids are the node's array index, not a minted string id. */
   id: number;
@@ -339,6 +357,7 @@ export interface GameMap {
   playableArea?: PlayableArea | undefined;
   modules: MapModule[];
   buildings: Building[];
+  roofs?: Roof[] | undefined;
   obstacles: Obstacle[];
   gates: Gate[];
   hazards: Box[];

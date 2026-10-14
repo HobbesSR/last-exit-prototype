@@ -1,5 +1,6 @@
 import { placeElement } from '../../shared/map/element.ts';
 import { createGenerationContext } from '../../shared/map/context.ts';
+import { pointInRoof } from '../../shared/view.ts';
 import { validateMicroRegion } from './index.ts';
 import type { BaseGenerationContext } from '../../shared/map/context.ts';
 import type { CollisionMap, NodeId, PlayableArea, Vec2 } from '../../shared/types.ts';
@@ -16,7 +17,12 @@ function stamp(context: BaseGenerationContext, elements: readonly RegionElement[
   for (const spot of loot) {
     const x = origin.x + spot.x, y = origin.y + spot.y;
     const building = context.map.buildings.slice(firstBuilding).find(b => x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h);
-    context.spots.push({ x, y, nodeId, ...(building ? { buildingId: building.id } : {}) });
+    let buildingId = building?.id;
+    if (!buildingId && context.map.roofs?.length) {
+      const roof = context.map.roofs.find(r => pointInRoof(r, { x, y }));
+      if (roof?.buildingId) buildingId = roof.buildingId;
+    }
+    context.spots.push({ x, y, nodeId, ...(buildingId ? { buildingId } : {}) });
   }
 }
 

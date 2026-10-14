@@ -1,7 +1,7 @@
 import { transform } from '../shape.ts';
 import type { Shape } from '../shape.ts';
 import type { BaseGenerationContext } from './context.ts';
-import type { BuildingId, GateId, NodeId, ObstacleKind, World } from '../types.ts';
+import type { Box, Cell, BuildingId, GateId, NodeId, ObstacleKind, Vec2, World } from '../types.ts';
 
 /**
  * A placeable element: one named assembly of geometry — a building, a cover cluster, a checkpoint —
@@ -24,6 +24,25 @@ export type ElementPart =
   /** Ground the element claims beyond its own geometry, to keep later placements clear of it. */
   | { part: 'reserve'; x: World; y: World; w: World; h: World };
 
+export interface ElementRoof {
+  /** Unique within the template; stamping prefixes it with the placement, so reuse never collides. */
+  id?: string | undefined;
+  /** Presentation (fade) group, unique within `groupScope`. Without one the roof fades alone. */
+  groupId?: string | undefined;
+  /**
+   * Where `groupId` is unique. `element` (the default) is this placement alone, so instances of a
+   * reused template never fade together. `region` spans every element its region stamps, for one
+   * assembly placed as several elements (split building pieces); its builder keeps the id unique there.
+   */
+  groupScope?: 'element' | 'region' | undefined;
+  cells: Cell[];
+  bounds?: Box | undefined;
+  cellSize?: number | undefined;
+  origin?: Vec2 | undefined;
+  overhang?: number | undefined;
+  thresholds?: Cell[] | undefined;
+}
+
 export interface ElementTemplate {
   /** Footprint size, which is also the `Building` box when the element encloses one. */
   w: World;
@@ -34,6 +53,8 @@ export interface ElementTemplate {
    */
   encloses?: boolean;
   parts: ElementPart[];
+  /** Declared roofs on the cell grid, supporting concave, holed, and grouped rooms. */
+  roofs?: ElementRoof[] | undefined;
 }
 
 export interface Placement {
@@ -50,6 +71,33 @@ export function placeElement(context: BaseGenerationContext, template: ElementTe
     const building = { id: nextId('building-') as BuildingId, x, y, w: template.w, h: template.h, nodeId: placement.nodeId };
     map.buildings.push(building);
     owner = { buildingId: building.id };
+  }
+  if (template.roofs?.length) {
+    if (!map.roofs) map.roofs = [];
+    // Roof ids and element-scoped groups are namespaced by this placement: its building, else the
+    // count of roofs before it. Never the shared id serial, which would renumber everything after.
+    const scope = owner?.buildingId ?? `roofs-${map.roofs.length + 1}`;
+    for (const [i, r] of template.roofs.entries()) {
+      const roofId = owner && template.roofs.length === 1 ? owner.buildingId : `${scope}.${r.id ?? i + 1}`;
+      const groupId = r.groupId === undefined ? roofId
+        : `${r.groupScope === 'region' ? placement.nodeId : scope}/${r.groupId}`;
+      const cellSize = r.cellSize ?? 40;
+      const roofOrigin = { x: x + (r.origin?.x ?? 0), y: y + (r.origin?.y ?? 0) };
+      const bounds = r.bounds
+        ? { x: x + r.bounds.x, y: y + r.bounds.y, w: r.bounds.w, h: r.bounds.h }
+        : { x, y, w: template.w, h: template.h };
+      map.roofs.push({
+        id: roofId,
+        groupId,
+        bounds,
+        origin: roofOrigin,
+        cellSize,
+        cells: r.cells,
+        ...(r.overhang !== undefined ? { overhang: r.overhang } : {}),
+        ...(r.thresholds?.length ? { thresholds: r.thresholds } : {}),
+        ...(owner ? { buildingId: owner.buildingId } : {}),
+      });
+    }
   }
   for (const part of template.parts) {
     if (part.part === 'obstacle') shape(transform(part.shape, x, y), part.kind, { ...owner });
