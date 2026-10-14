@@ -1,7 +1,12 @@
 # 53. Map artifacts, determinism and tools
 
-Status: current for the chain (51), its Map Lab, CLI, MCP and sweep. mapgen's
+Status: current for the generation chain (51), its Map Lab, CLI, MCP and sweep. mapgen's
 old paths were deleted at the switch-over (#146). Updated 2026-10-04 (#204).
+
+The terminology in [51.1](51.1-principles-and-names.md) applies throughout:
+**chain maps** are outputs of the generation chain, and **Chain Library** is
+the Map Lab tab for authoring its input library. These are engineering/tool
+names; the chain of inference is the separate reachability argument.
 
 ## One seed decides the whole map
 
@@ -55,7 +60,7 @@ A map embeds its flattened version 3 library and records its fingerprint.
 Reading verifies the embedded content against that fingerprint; no module files
 or external library are needed. An optional supplied library must match too.
 
-**The chain** is wire version 8 (`map/macro/src/chain/saving.ts`, #286).
+**Chain-map saves** use wire version 8 (`map/macro/src/chain/saving.ts`, #286).
 Version 7 is refused by name because macro version 2 derives `any`+`any`
 passability guarantees; old saved views must not be silently reinterpreted.
 Macro version 3 (20.6) derives fill cells, known-clear access context and
@@ -411,7 +416,8 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
   - **Saving:** wire 8 as JSON or BSON, or the Layout alone. A save loads
     with its embedded library, independently of the current Lab selection. Its bytes equal the CLI's for the same
     seed, which the browser test checks.
-  - **The Chain Library tab** (51 B1) authors the version 3 schema, validates
+  - **The Chain Library tab** ([51.1](51.1-principles-and-names.md); 51 B1)
+    authors the generation chain's version 3 library schema, validates
     import and export, and previews tile-local derived portals and invalid
     passable prescriptions. Its perimeter preview is provisional until
     placement resolves neighboring tiles. It can load the chain's library for

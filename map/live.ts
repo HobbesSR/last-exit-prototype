@@ -1,4 +1,4 @@
-/** Chain-to-runtime conversion. Gameplay placement policy belongs here, never in the server. */
+/** Convert a map from the generation chain (51) for live play. Gameplay placement policy belongs here, never in the server. */
 import { CHAIN_LIBRARIES, bundledLibrary, chainParams, generate } from './chain.ts';
 import { DEFAULT_CELL_SIZE, GAME_ENGINES } from './engines.ts';
 import { composeRegions } from './micro/compose.ts';

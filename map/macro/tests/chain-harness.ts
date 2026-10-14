@@ -1,5 +1,5 @@
 /**
- * Checks any chain stage can be held to (51 principles 1 and 3, 53 "One seed decides
+ * Checks any generation chain stage can be held to (51.1 principles 1 and 3, 53 "One seed decides
  * the whole map"). Each throws an assertion error naming the stage on failure.
  */
 import assert from "node:assert/strict";

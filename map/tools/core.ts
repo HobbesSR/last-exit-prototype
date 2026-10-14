@@ -1,6 +1,6 @@
 /**
  * What the Map Lab, CLI and MCP share (53, "Tools"): generate, validate, read and batch
- * chain maps with the game's engines. Every surface calls these, so they agree on seed,
+ * maps from the generation chain (51) with the game's engines. Every surface calls these, so they agree on seed,
  * params, library, validation and saved output. It runs in Node and the browser alike.
  */
 import { bundledLibrary, checkedLibrary, chainParams, generate, seedText } from '../chain.ts';
