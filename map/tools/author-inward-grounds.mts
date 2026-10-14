@@ -1,7 +1,7 @@
 /** Offline authoring check for the #214 block/depot/compound inward grounds (52).
  *
- * node map/tools/author-inward-grounds.mts --primitives PATH --common PATH --district PATH [--check]
- * node map/tools/author-inward-grounds.mts --primitives PATH --common PATH --district PATH --out-dir DIR
+ * node map/tools/author-inward-grounds.mts --primitives PATH --common PATH --district PATH [--compound-library PATH] [--check]
+ * node map/tools/author-inward-grounds.mts --primitives PATH --common PATH --district PATH [--compound-library PATH] --out-dir DIR
  *
  * The default is read-only. Regeneration always writes separate module copies.
  */
@@ -9,6 +9,7 @@ import { readFileSync, mkdirSync, writeFileSync, realpathSync, existsSync } from
 import { resolve, join, basename, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
+import { CHAIN_LIBRARY_VERSION } from '../macro/src/chain/library.ts';
 
 const KINDS = ['block', 'compound', 'depot'] as const;
 type Kind = typeof KINDS[number];
@@ -47,15 +48,16 @@ function options(argv: string[]) {
   for (let i = 0; i < argv.length;) {
     const flag = argv[i];
     if (flag === '--check') { expect(!check, 'duplicate --check'); check = true; i++; continue; }
-    expect(['--primitives', '--common', '--district', '--out-dir'].includes(flag) && argv[i + 1] && !values.has(flag),
-      `invalid arguments; use --primitives PATH --common PATH --district PATH [--check | --out-dir DIR]`);
+    expect(['--primitives', '--common', '--district', '--compound-library', '--out-dir'].includes(flag) && argv[i + 1] && !values.has(flag),
+      `invalid arguments; use --primitives PATH --common PATH --district PATH [--compound-library PATH] [--check | --out-dir DIR]`);
     values.set(flag, argv[i + 1]);
     i += 2;
   }
   for (const flag of ['--primitives', '--common', '--district']) expect(values.has(flag), `missing ${flag}`);
   expect(!(check && values.has('--out-dir')), '--check cannot be combined with --out-dir');
   return {
-    files: [values.get('--primitives')!, values.get('--common')!, values.get('--district')!].map(file => resolve(file)),
+    files: [values.get('--primitives')!, values.get('--common')!, values.get('--district')!,
+      values.get('--compound-library')].filter((file): file is string => file !== undefined).map(file => resolve(file)),
     outDir: values.has('--out-dir') ? resolve(values.get('--out-dir')!) : undefined,
   };
 }
@@ -69,6 +71,9 @@ function author(primitives: Json, blueprints: Json[]): { modules: Json[]; varian
   identity(primitives, 'common-primitives');
   identity(blueprints[0], 'common-set-pieces');
   identity(blueprints[1], 'district-set-pieces');
+  // A top-level library's version is its file format, not an authored content revision.
+  if (blueprints[2]) expect(typeof blueprints[2].name === 'string' && blueprints[2].version === CHAIN_LIBRARY_VERSION,
+    `expected a named compound library of format version ${CHAIN_LIBRARY_VERSION}`);
   expect(Array.isArray(primitives.tiles) && Array.isArray(primitives.tileSets), 'missing primitive tiles or tile sets');
   for (const blueprint of blueprints) {
     expect(Array.isArray(blueprint.setPieces), `${blueprint.name}: missing set pieces`);
@@ -96,15 +101,17 @@ function author(primitives: Json, blueprints: Json[]): { modules: Json[]; varian
   }
   const used = new Set<string>();
   let references = 0;
-  const outputBlueprints = blueprints.map(blueprint => {
+  const outputBlueprints = blueprints.map((blueprint, index) => {
     const result = copy(blueprint);
+    const localCompoundOnly = index === 2;
     for (const piece of result.setPieces) {
       const byPosition = new Map<string, Json>(piece.tiles.map((slot: Json) => [`${slot.dx},${slot.dy}`, slot]));
       expect(byPosition.size === piece.tiles.length, `${piece.id}: duplicate slot coordinate`);
       const kindAt = (slot: Json | undefined): Kind | undefined => {
         if (!slot || typeof slot.tileSetId !== 'string') return undefined;
-        return KINDS.find(kind => slot.tileSetId === originalSet(kind) ||
-          slot.tileSetId.startsWith(`${kind}-ground-inward-`));
+        return KINDS.find(kind => (!localCompoundOnly || kind === 'compound') &&
+          (slot.tileSetId === originalSet(kind) ||
+          slot.tileSetId.startsWith(`${kind}-ground-inward-`)));
       };
       for (const slot of piece.tiles) {
         const kind = kindAt(slot);
