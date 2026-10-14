@@ -9,6 +9,7 @@ import { placeBuildingOpenings, sameBuildingRun } from './openings.ts';
 import type { BuildingOpeningResult, BuildingRunLimits, PlacedBuildingOpening } from './openings.ts';
 import { emitWallRun } from './walls.ts';
 import { roofGroupOf } from './groups.ts';
+import { marksOpening, openingDecals } from './decals.ts';
 import type { BuildingRoofGroups } from './groups.ts';
 
 export interface BuildingRealizationOptions {
@@ -36,6 +37,8 @@ export interface BuildingRealizationOptions {
   clear?: readonly string[];
   /** Opening widths by connection id, in cells; others are a doorway (`placeBuildingOpenings`). */
   widths?: Record<string, number>;
+  /** Theme of the ground decals at outside doors and windows (56.2); `false` emits none. Defaults to `plain`. */
+  decalTheme?: string | false;
 }
 export interface BuildingRealization extends BuildingOpeningResult {
   boundaries: BuildingBoundary[];
@@ -45,6 +48,8 @@ export interface BuildingRealization extends BuildingOpeningResult {
   template?: ElementTemplate;
   /** The boundary each of the template's parts stands on, by index: its two owners. */
   owners?: { a: string; b: string }[];
+  /** The space each of the template's decals marks an opening of, by index. */
+  decalSpaces?: string[];
 }
 
 /** Realize supplied ownership. It never allocates cells or checks the region's portal promise. */
@@ -139,6 +144,11 @@ export function realizeBuilding(design: BuildingDesign, allocation: BuildingAllo
     parts,
     ...(roofs.length ? { roofs } : {}),
   };
+  const marked = options.decalTheme === false ? [] : result.openings.filter(marksOpening);
+  if (marked.length) {
+    result.template.decals = openingDecals(marked, allocation.footprint, x0, y0, options.cellSize, options.decalTheme || 'plain');
+    result.decalSpaces = marked.map(o => o.a === OUTSIDE ? o.b : o.a);
+  }
   return result;
 }
 

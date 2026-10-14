@@ -308,7 +308,7 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
       }),
     ],
   };
-  const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: false, exteriorOrder: SIDES, corners: 'horizontal', clear: passages.map(passage => passage.id), widths });
+  const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: false, exteriorOrder: SIDES, corners: 'horizontal', clear: passages.map(passage => passage.id), widths, decalTheme: 'compound' });
   const split = realization.template && splitBuilding(realization, allocation, { cellSize: size, roofed: rooms.map(room => room.id),
     groupId: reachableRoofGroups(realization, allocation, brief.id) });
   // The ring's design always fits. A miss here is an implementation defect, not a new fallback.

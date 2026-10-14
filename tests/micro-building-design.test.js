@@ -286,3 +286,26 @@ test('a group record reads only its own entries, whatever the spaces are named',
   assert.deepEqual(splitBuilding(joined, allocation, { cellSize: 40, roofed: ids, groupId: named }).pieces.map(p => p.template.roofs[0].groupId),
     [undefined, 'x-toString', 'x-toString']);
 });
+
+test('outside doors and windows get ground decals that reach past the roof, and pieces keep their own (56.2)', () => {
+  // Two 2 x 4 spaces from cell (3, 5): a's door north, b's window east and open side south, a door between.
+  const block = cellsOf(4, 4).map(c => ({ x: c.x + 3, y: c.y + 5 }));
+  const allocation = { footprint: block, spaces: [{ id: 'a', cells: block.filter(c => c.x < 5) }, { id: 'b', cells: block.filter(c => c.x >= 5) }] };
+  const design = designOf(['a', 'b'], [connection('a-out', 'door', { a: 'a', side: 'N' }), connection('a-b', 'door', { a: 'a', b: 'b' }),
+    connection('b-win', 'window', { a: 'b', side: 'E' }), connection('b-open', 'open', { a: 'b', side: 'S' })]);
+  const realization = realizeBuilding(design, allocation, { cellSize: 40, decalTheme: 'hut' });
+  assert.deepEqual([realization.issues, realization.misses], [[], []]);
+  // A quarter cell shows beyond the 12-unit overhang; the interior door and the open side get none.
+  assert.deepEqual(realization.template.decals, [
+    { theme: 'hut', marks: 'door', side: 'N', x: 0, y: -22, w: 80, h: 22 },
+    { theme: 'hut', marks: 'window', side: 'E', x: 160, y: 40, w: 22, h: 80 },
+  ]);
+  assert.deepEqual(realizeBuilding(design, allocation, { cellSize: 40 }).template.decals.map(d => d.theme), ['plain', 'plain']);
+  assert.equal(realizeBuilding(design, allocation, { cellSize: 40, decalTheme: false }).template.decals, undefined);
+
+  const { pieces } = splitBuilding(realization, allocation, { cellSize: 40, roofed: ['a', 'b'] });
+  assert.deepEqual(pieces.map(p => [p.space, p.template.decals]), [
+    ['a', [{ theme: 'hut', marks: 'door', side: 'N', x: 0, y: -22, w: 80, h: 22 }]],
+    ['b', [{ theme: 'hut', marks: 'window', side: 'E', x: 80, y: 40, w: 22, h: 80 }]],
+  ], "each piece's decals, in its own frame");
+});

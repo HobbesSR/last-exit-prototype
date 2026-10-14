@@ -295,6 +295,15 @@ export interface Roof {
   buildingId?: BuildingId | undefined;
 }
 
+/** A ground-plane marking at a door or window: presentation only, never collision, sight or navigation (56.2). */
+export interface Decal extends Box {
+  /** Chosen by the builder; the renderer styles by it and falls back to `plain`. */
+  theme: string;
+  marks: 'door' | 'window';
+  /** The direction it extends from its wall, away from the building. */
+  side: 'N' | 'E' | 'S' | 'W';
+}
+
 export interface MapModule extends Vec2 {
   /** Module ids are the node's array index, not a minted string id. */
   id: number;
@@ -358,6 +367,7 @@ export interface GameMap {
   modules: MapModule[];
   buildings: Building[];
   roofs?: Roof[] | undefined;
+  decals?: Decal[] | undefined;
   obstacles: Obstacle[];
   gates: Gate[];
   hazards: Box[];

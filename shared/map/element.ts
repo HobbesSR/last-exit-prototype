@@ -1,7 +1,7 @@
 import { transform } from '../shape.ts';
 import type { Shape } from '../shape.ts';
 import type { BaseGenerationContext } from './context.ts';
-import type { Box, Cell, BuildingId, GateId, NodeId, ObstacleKind, Vec2, World } from '../types.ts';
+import type { Box, Cell, BuildingId, Decal, GateId, NodeId, ObstacleKind, Vec2, World } from '../types.ts';
 
 /**
  * A placeable element: one named assembly of geometry — a building, a cover cluster, a checkpoint —
@@ -55,6 +55,8 @@ export interface ElementTemplate {
   parts: ElementPart[];
   /** Declared roofs on the cell grid, supporting concave, holed, and grouped rooms. */
   roofs?: ElementRoof[] | undefined;
+  /** Ground markings at its doors and windows, local to the anchor. They take no id (56.2). */
+  decals?: Decal[] | undefined;
 }
 
 export interface Placement {
@@ -99,6 +101,7 @@ export function placeElement(context: BaseGenerationContext, template: ElementTe
       });
     }
   }
+  if (template.decals?.length) (map.decals ??= []).push(...template.decals.map(d => ({ ...d, x: x + d.x, y: y + d.y })));
   for (const part of template.parts) {
     if (part.part === 'obstacle') shape(transform(part.shape, x, y), part.kind, { ...owner });
     else if (part.part === 'gate') map.gates.push({ id: nextId('door-') as GateId, x: x + part.x, y: y + part.y, w: part.w, h: part.h, open: false, locked: !!placement.locked, kind: 'door', ...owner });

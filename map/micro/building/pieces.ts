@@ -32,7 +32,7 @@ export interface BuildingPiece {
  * room can have its own roof. A wall on the outside belongs to its space. A wall between two
  * spaces is built once and belongs to one of them: a roofed one where there is one, else the
  * one the allocation lists first. Parts keep the realization's order within each piece. A space
- * left with no parts and no roof gives no piece.
+ * left with no parts and no roof gives no piece. A piece keeps the decals at its own openings.
  */
 export function splitBuilding(realization: BuildingRealization, allocation: BuildingAllocation, options: BuildingPieceOptions): { pieces: BuildingPiece[]; issues: string[] } {
   const issues: string[] = [], { template, owners, origin } = realization, size = options.cellSize;
@@ -53,6 +53,7 @@ export function splitBuilding(realization: BuildingRealization, allocation: Buil
     const at = { x: x0 * size, y: y0 * size }, dx = origin.x - at.x, dy = origin.y - at.y;
     const parts = template.parts.filter((_, i) => owner(owners[i]!) === space.id).map(part => part.part === 'obstacle'
       ? { ...part, shape: transform(part.shape, dx, dy) } : { ...part, x: part.x + dx, y: part.y + dy });
+    const decals = (template.decals ?? []).filter((_, i) => realization.decalSpaces?.[i] === space.id).map(d => ({ ...d, x: d.x + dx, y: d.y + dy }));
     if (!parts.length && !roof) continue;
     let pieceRoofs: ElementRoof[] | undefined;
     if (roof) {
@@ -70,6 +71,7 @@ export function splitBuilding(realization: BuildingRealization, allocation: Buil
         ...(roof && isRect ? { encloses: true } : {}),
         parts,
         ...(pieceRoofs?.length ? { roofs: pieceRoofs } : {}),
+        ...(decals.length ? { decals } : {}),
       },
     });
   }

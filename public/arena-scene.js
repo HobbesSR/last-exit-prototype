@@ -288,6 +288,8 @@ export function makeArenaScene(api) {
       for (const building of map.buildings || []) {
         const floor = this.staticAt(building.x, building.y, building.x + building.w, building.y + building.h); floor.fillStyle(0x77717a); floor.fillRect(building.x + 18, building.y + 18, building.w - 36, building.h - 36);
       }
+      // Door and window markings lie on the ground too, reaching past the roof's overhang (56.2).
+      for (const d of map.decals || []) this.decal(this.staticAt(d.x - 2, d.y - 2, d.x + d.w + 2, d.y + d.h + 2), d);
       for (const o of map.obstacles) {
         // Wide enough for the drop shadow (+5, +8), the outline stroke and a circle's highlight.
         const box = bounds(shapeOf(o));
@@ -479,6 +481,41 @@ export function makeArenaScene(api) {
         g.lineStyle(2, 0x586b6b); g.lineBetween(o.x + 10, o.y + o.h - 12, o.x + o.w - 10, o.y + o.h - 12);
       } else {
         g.lineStyle(2, 0x354e44, 0.3); for (let x = o.x + 13; x < o.x + o.w - 5; x += 16) g.lineBetween(x, o.y + 11, x, o.y + o.h - 7);
+      }
+    }
+    decal(g, d) {
+      // Drawn in the decal's own frame: `u` runs along its wall, `v` away from the building.
+      const along = d.side === 'N' || d.side === 'S', length = along ? d.w : d.h, depth = along ? d.h : d.w;
+      const at = (u, v) => d.side === 'S' ? { x: d.x + u, y: d.y + v } : d.side === 'N' ? { x: d.x + u, y: d.y + d.h - v }
+        : d.side === 'E' ? { x: d.x + v, y: d.y + u } : { x: d.x + d.w - v, y: d.y + u };
+      const quad = (u0, v0, u1, v1) => [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)];
+      // A window lets light out onto the ground; it is fainter than a door's step in every theme.
+      if (d.marks === 'window') {
+        const tint = { hut: 0x9c8a62, depot: 0xc9d1d4, compound: 0x9a958a }[d.theme] ?? 0xb7bdb4;
+        g.fillStyle(tint, 0.22); g.fillPoints(quad(0, 0, length, depth), true);
+        g.fillStyle(tint, 0.2); g.fillPoints(quad(length * 0.15, 0, length * 0.85, depth * 0.7), true);
+        return;
+      }
+      if (d.theme === 'hut') {
+        // A worn dirt path, widening as it leaves the door.
+        g.fillStyle(0x6b5a44, 0.6); g.fillPoints([at(3, 0), at(length - 3, 0), at(length, depth), at(0, depth)], true);
+        g.fillStyle(0x87724f, 0.35); g.fillPoints([at(length * 0.3, 0), at(length * 0.7, 0), at(length * 0.75, depth - 3), at(length * 0.25, depth - 3)], true);
+      } else if (d.theme === 'depot') {
+        // Hazard stripes: dark bands slanting across a yellow ground, cut to the decal.
+        g.fillStyle(0xe6b357, 0.7); g.fillPoints(quad(0, 0, length, depth), true);
+        g.fillStyle(0x2b2a26, 0.75);
+        const slant = depth * 0.6, band = 6;
+        for (let u = -slant; u < length; u += band * 2) {
+          const clip = x => Math.max(0, Math.min(length, x));
+          g.fillPoints([at(clip(u), 0), at(clip(u + band), 0), at(clip(u + band + slant), depth), at(clip(u + slant), depth)], true);
+        }
+      } else if (d.theme === 'compound') {
+        // A stone step with a darker lip at its outer edge.
+        g.fillStyle(0x8d8a80, 0.85); g.fillPoints(quad(0, 0, length, depth), true);
+        g.fillStyle(0x4e4b45, 0.85); g.fillPoints(quad(0, depth - 3, length, depth), true);
+        g.fillStyle(0xbfbab0, 0.35); g.fillPoints(quad(2, 2, length - 2, 4), true);
+      } else {
+        g.fillStyle(0xa3a89e, 0.38); g.fillPoints(quad(0, 0, length, depth), true);
       }
     }
     makeActor(p) {

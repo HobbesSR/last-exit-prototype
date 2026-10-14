@@ -132,6 +132,16 @@ test('an element with declared roofs stamps them onto map.roofs with world coord
   assert.deepEqual(roof.thresholds, [{ x: 1, y: 1 }]);
 });
 
+test('an element stamps its decals in world coordinates and draws no id for them', () => {
+  const context = createGenerationContext(4);
+  const decal = { theme: 'plain', marks: 'door', side: 'N', x: 0, y: -22, w: 80, h: 22 };
+  const element = { w: 80, h: 80, parts: [{ part: 'gate', x: 40, y: 0, w: 80, h: 6 }], decals: [decal] };
+  placeElement(context, element, 400, 800, { nodeId: 'n' });
+  placeElement(context, { ...element, decals: undefined }, 600, 800, { nodeId: 'n' });
+  assert.deepEqual(context.map.decals, [{ ...decal, x: 400, y: 778 }]);
+  assert.deepEqual(context.map.gates.map(g => g.id), ['door-0', 'door-1'], 'decals take nothing from the shared id serial');
+});
+
 // Codex's #343 reproduction: a reusable concave template, stamped twice in one region.
 test('repeated placements of a concave roofed template keep distinct roofs, groups and concealment', () => {
   const cells = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }];

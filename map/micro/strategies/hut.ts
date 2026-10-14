@@ -312,7 +312,7 @@ function doorsteps(realization: BuildingRealization): number[] | undefined {
   return [...new Set([Math.floor(start), Math.ceil(start)])];
 }
 
-const realized = (cellSize: number) => ({ cellSize, thickness: WALL, encloses: true, exteriorOrder: SIDES, corners: 'horizontal' as const });
+const realized = (cellSize: number) => ({ cellSize, thickness: WALL, encloses: true, exteriorOrder: SIDES, corners: 'horizontal' as const, decalTheme: 'hut' });
 
 /**
  * The one-space house in its box's local world units: four walls, a door on `door`, and a
