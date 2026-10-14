@@ -281,15 +281,16 @@ test('roof geometry works with non-40 cell size and non-zero origins', () => {
 });
 
 test('live map: roofs have unique ids, keep map id order, and declare multi-room groups', () => {
+  // Last ids as of #230's three chargers, which moved every layout; roofs must not renumber them (#343).
   const map1 = generateLiveMap(1);
-  assert.equal(map1.obstacles?.at(-1)?.id, 'o519', 'obstacle IDs stay identical to main on seed 1');
-  assert.equal(map1.gates?.at(-1)?.id, 'door-447', 'gate IDs stay identical to main on seed 1');
-  assert.equal(map1.items?.at(-1)?.id, 'item-1409', 'item IDs stay identical to main on seed 1');
+  assert.equal(map1.obstacles?.at(-1)?.id, 'o415', 'obstacle IDs stay pinned on seed 1');
+  assert.equal(map1.gates?.at(-1)?.id, 'door-340', 'gate IDs stay pinned on seed 1');
+  assert.equal(map1.items?.at(-1)?.id, 'item-1374', 'item IDs stay pinned on seed 1');
 
   const map2 = generateLiveMap(2);
-  assert.equal(map2.obstacles?.at(-1)?.id, 'o820', 'obstacle IDs stay identical to main on seed 2');
-  assert.equal(map2.gates?.at(-1)?.id, 'door-747', 'gate IDs stay identical to main on seed 2');
-  assert.equal(map2.items?.at(-1)?.id, 'item-1726', 'item IDs stay identical to main on seed 2');
+  assert.equal(map2.obstacles?.at(-1)?.id, 'o532', 'obstacle IDs stay pinned on seed 2');
+  assert.equal(map2.gates?.at(-1)?.id, 'door-454', 'gate IDs stay pinned on seed 2');
+  assert.equal(map2.items?.at(-1)?.id, 'item-1463', 'item IDs stay pinned on seed 2');
 
   for (const map of [map1, map2]) {
     const ids = new Set(map.roofs.map(r => r.id));

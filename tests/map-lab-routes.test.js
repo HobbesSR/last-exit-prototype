@@ -32,7 +32,8 @@ test('route lengths on a small playground are pinned', () => {
 });
 
 test('a game map: both bodies reach the exit from a spawn, and the void is plainly unreachable', () => {
-  const map = built('exit-1', {}), sites = map.regions.flatMap((region) => region.coreElements);
+  // A seed whose spawn-to-exit route has a squeeze both before and after #230's three chargers.
+  const map = built('exit-2', {}), sites = map.regions.flatMap((region) => region.coreElements);
   const spawn = sites.find((site) => site.kind === 'spawn'), exit = sites.find((site) => site.kind === 'exit');
   const measure = measureRoutes(map, spawn, exit);
   assert.ok(measure.contestant.length > 0 && measure.hunter.length > 0);

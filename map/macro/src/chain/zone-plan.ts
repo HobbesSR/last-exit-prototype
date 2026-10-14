@@ -77,8 +77,16 @@ export const DIAMOND: ZonePlan = Object.freeze({
         const right = Math.floor(start + (nth + 1) * span / quota) - 1;
         return (c, w) => c.x >= left && c.x + w <= right;
       }
-      case "small":
-      case "charger": return () => true;
+      case "charger": {
+        // One band per instance across the run from the landing to the evac, so a contestant meets
+        // chargers along the way rather than hunting one down anywhere on the map (#230). Bands are
+        // inset by a tile, as transit's are, so neighbouring charging regions cannot join into one.
+        const start = columns * 0.08, span = columns * 0.84;
+        const left = Math.floor(start + nth * span / quota) + 1;
+        const right = Math.floor(start + (nth + 1) * span / quota) - 1;
+        return (c, w) => c.x >= left && c.x + w <= right;
+      }
+      case "small": return () => true;
     }
   },
 });

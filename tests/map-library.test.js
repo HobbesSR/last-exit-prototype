@@ -32,7 +32,7 @@ for (const [seed, contestantCount] of [['library-0', 8], ['library-4', 24]]) tes
   const sites = map.results.flatMap(result => result.coreElements.map(site => site.kind));
   const count = kind => sites.filter(site => site === kind).length;
   assert.deepEqual([count('spawn'), count('exit'), count('hunter-spawn'), count('charger'), count('warp')],
-    [contestantCount, GAME.exitCount, GAME.hunterCount, 1, 6]);
+    [contestantCount, GAME.exitCount, GAME.hunterCount, 3, 6]);
   // Exercise built content, not just class names or manifest counts (54).
   const huts = map.results.filter(result => result.brief.type === 'hut');
   assert.ok(huts.length && huts.every(hut => hut.elements.some(element =>

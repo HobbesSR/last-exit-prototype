@@ -31,6 +31,16 @@ a deliberate authored-content correction under the same `types-25` builders,
 macro version 3 and library format version 3. See [53](../../docs/53-map-artifacts-and-tools.md)
 for the final committed input/baseline provenance.
 
+## Inherited nonfill strip input (#330, stored for #230)
+
+`compound-330-strip-brief.json.gz` is the `compound@252,36` brief from
+`generate('issue330-before-12x6', { mode: 'game', zoneWidth: 12, zoneHeight: 6 })`
+(`map/chain.ts`), captured at `872d772`, before #230 raised the charger quota to three and moved
+that map's layout. The SHA-256 of `JSON.stringify(brief)` is
+`cf5b3245fc559d213b214e78b60fd53af549807e611cf7249c0b83cd917d5da3`. The focused test in
+`tests/micro-compound-delegation.test.js` reads it, so the measured compound stays measured whatever
+later content does to the generated map.
+
 ## Behavior baseline contents
 
 `behavior-nav-1.json.gz` holds two independent things, and that separation is
