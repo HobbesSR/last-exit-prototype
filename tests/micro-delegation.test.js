@@ -220,6 +220,16 @@ test('planning and placed blocker handoffs yield independently buildable child b
   const blocked = prepareDelegation(parent, [patch], policy({ blockers: [rect(275, 0, 10, 240)] }));
   assert.equal(blocked.children.length, 0);
   assert.match(blocked.rejected[0].reason, /crossing|geometry|clearance/i);
+  let receivingCalls = 0;
+  // The retained cell at the centered crossing's end cap is reserved. It
+  // rejects access even though the offer itself contains no protected cells.
+  const reserved = prepareDelegation(parent, [patch], policy({ protectedCells: [{ x: 6, y: 1 }],
+    receiving: () => { receivingCalls++; return null; } }));
+  assert.deepEqual(reserved.rejected, [{ key: 'side',
+    reason: 'No compatible hunter crossing between parent and parent/delegate/side.' }]);
+  assert.equal(receivingCalls, 0);
+  assert.deepEqual(reserved.retained, prepareDelegation(parent, [], policy()).retained);
+  assertPartition(parent, reserved);
 });
 
 test('the same child interface builds real cover before or after independent parent placement', () => {
