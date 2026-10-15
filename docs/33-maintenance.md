@@ -14,6 +14,7 @@ it restates something in another numbered file; if it does, link the number inst
 | A map generation decision: the chain, the library model, artifacts or tools | The relevant 5x file. The micro half stays in 19 and 20 |
 | An answer about map generation | The relevant record under [17.2](17.2-map-questions.md), verbatim; retain its M-number where one exists |
 | A measurement | [42](42-performance-history.md), with its workload and limits |
+| Raw measurement data supporting a durable finding in 42 or a child | `docs/reports/`, linked from the owning numbered document; retain source/configuration provenance and distinguish historical results from new runs. Transient outputs stay in `test-results/` |
 | What to build next | [41](41-roadmap.md) |
 | Work in progress or a session handoff | A comment on its Forgejo issue or pull request ([32](32-delegation.md)) |
 
@@ -35,7 +36,9 @@ by a design decision. Record meaningful engine or library substitutions in
 - Do not record a measurement without its workload, machine and limitations.
 - Point-in-time reports do not belong here. A finished verification pass leaves its
   durable findings in [42](42-performance-history.md); its narrative stays in the
-  commit and the handoff.
+  commit and the handoff. Raw evidence for those findings may be committed under
+  `docs/reports/` as specified in the placement table; that directory is not a
+  home for session narratives or transient test outputs.
 
 ## Hierarchical documents
 
