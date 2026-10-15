@@ -222,7 +222,7 @@ export function warehouse(size: number, w: number, h: number, alongX: boolean, s
     const allocated = allocateBuilding(asked, cells, { seed });
     if (!allocated.ok) { reject(allocated.reason); continue; }
     const { design, allocation } = allocated;
-    const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: true, corners: 'horizontal' });
+    const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: true, corners: 'horizontal', decalTheme: 'depot' });
     if (!realization.template || realization.issues.length) { reject(realization.issues.join(' ') || 'it could not be realized'); continue; }
     const exits = realization.openings.filter(({ kind, a, b }) => kind === 'door' && (a === OUTSIDE || b === OUTSIDE));
     if (exits.length < 2) { reject(`${exits.length} door${exits.length === 1 ? '' : 's'} out, fewer than two`); continue; }

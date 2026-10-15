@@ -2,7 +2,7 @@
 
 Status: living documentation
 Prototype rules version: `last-exit-0.7`; default content: `content-2`
-Updated: 2026-10-13
+Updated: 2026-10-14
 
 This directory is the canonical product and engineering record for the prototype.
 It is split so a task can load the two or three files it actually needs instead of
@@ -99,6 +99,7 @@ existed.
 | [55-zone-plans.md](55-zone-plans.md) | Zone plans, starting with the diamond: the zone grid, mask, tiers, zone sizes, where placement rules anchor, and who authors what |
 | [56-buildings.md](56-buildings.md) | The building library, a request for comments: building designs, their realization in cells, walls from runs, and the build order |
 | [56.1-roofs.md](56.1-roofs.md) | Declared roofs: cell-grid geometry, relationship to Building, invariant sight rules, versioning (#292) |
+| [56.2-ground-decals.md](56.2-ground-decals.md) | Ground decals at outside doors and windows: the primitive, derivation, themes, drawing (#293) |
 
 ## Other places facts live
 

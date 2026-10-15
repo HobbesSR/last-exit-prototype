@@ -171,7 +171,8 @@ with. Per-kind styling — palettes, highlights, hatching — stays presentation
 ## Drawing planes
 
 Drawn content belongs to a plane, and the plane decides what it occludes:
-- **Ground:** floors, markings and thresholds.
+- **Ground:** floors, markings and thresholds. Door and window decals (`map.decals`, 56.2) reach
+  past a roof's overhang, so an entrance shows while its roof is drawn.
 - **Objects:** walls, trunks and actors.
 - **Overhead:** roofs and canopies, above the actors.
 

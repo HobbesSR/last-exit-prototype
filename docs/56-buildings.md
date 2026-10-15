@@ -198,7 +198,9 @@ legacy rectangular building boxes, while non-rectangular footprints emit
 `roofs` with `encloses: false`. Exterior perimeter edges derive `ROOF_OVERHANG`
 (12 units), interior abutting edges have zero overhang, and exterior door openings
 derive doorway threshold cells for approach fading. See [56.1](56.1-roofs.md) for
-data shape, relation to `Building`, sight rules, and versioning. The caller still owns the
+data shape, relation to `Building`, sight rules, and versioning. Outside doors and windows also
+emit ground decals (`template.decals`), themed by the strategy; see [56.2](56.2-ground-decals.md).
+The caller still owns the
 region's portal promise and the decision to use a realization with misses.
 
 `hut` supplies a one-space 4 × 4 allocation, a door on its selected doorstep
