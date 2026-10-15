@@ -14,6 +14,7 @@ the rest are conventions this file records so a change lands in the right module
 | 22.3 | Server | [22.3](22.3-server.md) |
 | 22.4 | Client | [22.4](22.4-client.md) |
 | 22.5 | Lobbies, matchmaking and rooms: the design for #237, what each part owns and the stages | [22.5](22.5-lobbies-and-matchmaking.md) |
+| 22.6 | Proposed hierarchical navigation, private map knowledge and optimistic bot planning (#353) | [22.6](22.6-hierarchical-navigation.md) |
 
 ## Earlier heading links
 

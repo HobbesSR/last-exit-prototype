@@ -6,6 +6,13 @@ shape the later items are in [17](17-open-questions.md).
 
 ## Standing priorities
 
+Issue [#353](http://localhost:3000/corey/astra_test/issues/353) tracks the proposed
+baked navigation hierarchy and optimistic planning through unknown space. The
+design and staged acceptance are in [22.6](22.6-hierarchical-navigation.md), not
+implemented. First establish safe local edges, passage fidelity and measured
+atlas costs with production bots unchanged; private knowledge and optimistic
+planning precede the intentional gameplay adoption.
+
 Module extraction alone does not establish ownership. The completed server match
 lifecycle work removed transport mutations of players, scheduling dependencies on
 gzip flags, replay writers' room mutations, and finalization outliving shutdown.
