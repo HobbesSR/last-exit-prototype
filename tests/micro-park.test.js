@@ -154,6 +154,20 @@ test('large concave park with many portals keeps a safe hinted attachment', () =
   assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, []);
 });
 
+test('a rectangular park past 32 portals keeps every portal reachable', () => {
+  // Boundary spacing alone let a clump stand flush over a side portal's approach on these
+  // seeds (#361); the nearby-portal route tree keeps them open.
+  const cells = cellsOf(36, 72), portals = [];
+  for (let k = 3; k < 36; k += 6) portals.push({ id: `n${k}`, axis: 'h', x: k, y: 0, length: 3 }, { id: `s${k}`, axis: 'h', x: k, y: 72, length: 3 });
+  for (let k = 3; k < 72; k += 6) portals.push({ id: `w${k}`, axis: 'v', x: 0, y: k, length: 3 }, { id: `e${k}`, axis: 'v', x: 36, y: k, length: 3 });
+  assert.equal(portals.length, 36);
+  for (const seed of [5, 6]) {
+    const input = brief('many-portals', seed, cells, portals), result = buildRegion(input);
+    assert.ok(result.manifest.clumps > 20, `seed ${seed} still fills: ${result.manifest.clumps} clumps`);
+    assert.deepEqual(validatePortalReach({ ...input, blockers: blockers(result) }).errors, [], `seed ${seed}`);
+  }
+});
+
 test('thin rectangular park keeps a hunter aisle between opposite sides', () => {
   const cells = cellsOf(4, 18);
   const portals = [{ id: 'north', axis: 'h', x: 1, y: 0, length: 2 },

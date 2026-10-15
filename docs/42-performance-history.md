@@ -934,12 +934,52 @@ node tools/depot-portal-audit.mjs --out=test-results/347-depots-after.json
 ```
 
 `cover`, `plant` and `park` keep the boundary rule past 32 portals. Whether
-it seals their portals is a separate question (#361).
+it seals their portals is a separate question, answered below (#361).
 
 Batches of 60 game and 30 playground maps at 12 × 6 and 3 game maps at
 36 × 18 show no defects. Server/client benchmarks were not rerun; the timings
 above are single builds on Windows, Node 24.15.0, Ryzen 9 5900X, not paired
 benchmarks. See [53](53-map-artifacts-and-tools.md) for the checkpoint.
+
+## Boundary rule past 32 portals (#361, 2026-10-14)
+
+#347 left `cover`, `plant` and `park` on the boundary rule past 32 portals.
+The audit builds every such region in the chain sweep's pinned cases (seeds
+`sweep-1` up, as `runCase` names them) and in maps `issue361-0` to
+`issue361-19` of the 24 × 12 and 36 × 18 libraries, then
+runs swept `validatePortalReach` on the built geometry:
+
+```powershell
+node tools/boundary-portal-audit.mjs --out=test-results/361-boundary.json
+```
+
+| `types-29` → `types-30` | `cover` | `plant` | `park` |
+| --- | --- | --- | --- |
+| Regions (sweep / 24 × 12 / 36 × 18) | 17 (3 / 1 / 13) | 70 (16 / 14 / 40) | 118 (6 / 27 / 85) |
+| Portals, largest mask | 34–46, 3,132 cells | 34–62, 8,640 cells | 34–80, 6,984 cells |
+| Unreachable portals | 0 → 0 | 0 → 0 | 2 → 0 |
+| Pieces | 597 → 597 | 159 → 159 | 1,323 → 1,294 |
+| Build, mean / worst | 14 / 20 ms → 14 / 20 ms | 23 / 55 ms → 24 / 57 ms | 13 / 59 ms → 40 / 175 ms |
+
+Cover and plant didn't change; their timings differ only by run-to-run noise.
+
+**Park seals portals.** Two 36 × 18 parks each lost one side portal to a clump
+standing flush over its approach: `issue361-6` `park@408,150` (42 portals) and
+`issue361-7` `park@582,456` (34 portals). A plain 36 × 72 rectangle with 36
+portals, a portal every 6 cells, reproduces this on seeds 5 to 9
+(`tests/micro-park.test.js`).
+
+**Correction.** `park` protects routes at every portal count. Up to 32 portals
+it keeps its route from the first portal to each other one, so smaller parks
+don't change. Past 32 portals it uses `depot`'s nearby-portal tree, since the
+first-portal routes cost 252 ms mean and 2.1 s worst on these 118 parks,
+against 23 ms and 145 ms for the tree (`protectedRoutes` alone, two runs
+each). 29 of the 118 parks change their pieces; 1,323 pieces in all become 1,294
+(`types-30`, 54). The sweep's built view moved on one map (53).
+
+Batches of 60 game and 30 playground maps at 12 × 6, and 3 diagnosed game maps
+at 36 × 18, show no defects. Timings are single builds on Windows, Node 24.15.0,
+not paired benchmarks.
 
 ## The reported slowdown is still open
 

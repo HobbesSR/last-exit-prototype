@@ -2,7 +2,7 @@ import { circle, rect } from '../../../shared/shape.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
-import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
+import { boxesAgainstHints, hintedCells } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
@@ -52,17 +52,16 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
   const density = fraction(brief, 'Park', 'density', DEFAULT_DENSITY), hedgeChance = fraction(brief, 'Park', 'hedges', DEFAULT_HEDGES);
   const mask = createFillMask(brief), size = brief.cellSize;
   if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
-  // Routes between portals are protected; past 32 portals that search is too dear, and
-  // boxes keep an aisle from the boundary instead.
-  const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
-  const protectedShapes = routed ? protectedRoutes(brief, 'Park') : [];
+  // Routes between portals are protected at any portal count. Past 32 portals a route from
+  // the first portal to each is too dear, so a nearby-portal tree stands in: boundary
+  // spacing alone let a clump or hedge seal a portal's approach (#361).
+  const protectedShapes = protectedRoutes(brief, 'Park', brief.portals.length <= 32 ? 'root' : 'nearby');
 
 
   // A piece must stay owned and clear of portals; the lattice preserves inter-piece aisles.
   const clear = ({ x, y, w, h }: Box) => {
     for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!mask.has(i, j)) return false;
-    return (routed || boundary.fits({ x, y, w, h }))
-      && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
+    return !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
   };
 
   // Slot origins over the mask's bounds, in row order, so nothing depends on the brief's cell order.
