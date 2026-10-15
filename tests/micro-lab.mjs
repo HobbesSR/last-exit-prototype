@@ -23,6 +23,8 @@ try {
   page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) errors.push(message.text()); });
   await page.goto(`${base}/dev/micro`);
   await page.waitForFunction(() => window.microLabDebug?.().result, null, { timeout: 15000 });
+  // The explorer opens on the game depot; this suite retains the SDK example coverage.
+  await page.getByLabel('Builder', { exact: true }).selectOption('open');
   assert.equal(errors.length, 0, errors.join('\n'));
   const initial = await page.evaluate(() => window.microLabDebug());
   assert.equal(initial.result.version, 'micro-1');
@@ -178,7 +180,7 @@ try {
   // and walks at the game's own scale. Houses and block-lot buildings are traced
   // under the authored seam layout and clear margins (20.6, 52).
   const chain = generate('last-exit-001'), briefs = mapViews(chain).briefs;
-  for (const [type, map] of [['hut', chain], ['block', generate('last-exit-002')]]) {
+  for (const [type, map] of [['hut', chain], ['block', generate('last-exit-005')]]) {
     const brief = mapViews(map).briefs.find(b => b.type === type), stored = map.results.find(r => r.brief.id === brief.id);
     await page.goto(`${base}/dev/micro${await briefFragment(brief)}`);
     await page.waitForFunction(id => window.microLabDebug?.().imported === id, brief.id, { timeout: 15000 });

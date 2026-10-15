@@ -47,7 +47,7 @@ export function renderDevNav(mainUrl, mapgenUrl) {
     subNav.className = 'app-nav';
     
     const subLinks = [
-      { href: '/dev/micro', text: 'Preview Lab', exact: true },
+      { href: '/dev/micro', text: 'Region Builder Explorer', exact: true },
       { href: '/dev/micro/decomposition', text: 'Decomposition', exact: true },
       { href: '/dev/micro/generation', text: 'Generation Trace', exact: true }
     ];
