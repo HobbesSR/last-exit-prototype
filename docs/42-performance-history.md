@@ -3,6 +3,10 @@
 Durable findings from completed verification passes. The narrative of each pass
 lives in its commits; only results that still constrain a decision are kept here.
 
+The navigation representation experiment lives in [42.1](42.1-navigation-experiment.md):
+continuous safe edges, sampled passage misses and a negative result for the initial
+every-boundary-transition hierarchy.
+
 Every number below was measured on one Windows machine with Node 24.15.0 and
 installed headless Chrome, running benchmarks sequentially with no competing test
 or benchmark process. They are not capacity promises, and browser, GPU and

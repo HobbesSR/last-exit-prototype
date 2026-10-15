@@ -165,3 +165,26 @@ export function convex(points: Vec2[]): boolean {
   }
   return sign !== 0;
 }
+
+/** Exact Euclidean distance from a closed segment to a filled shape (29).
+ * Circles stay analytic; their sight polygon is not a collision approximation.
+ * Zero includes crossing, containment, degenerate segments and tangency.
+ */
+export function segmentShapeDistance(a: Vec2, b: Vec2, shape: Shape): number {
+  const pointDistance = (p: Vec2, c: Vec2, d: Vec2): number => {
+    const dx = d.x - c.x, dy = d.y - c.y, n = dx * dx + dy * dy;
+    const t = n ? Math.max(0, Math.min(1, ((p.x - c.x) * dx + (p.y - c.y) * dy) / n)) : 0;
+    return Math.hypot(p.x - c.x - t * dx, p.y - c.y - t * dy);
+  };
+  if (shape.kind === 'circle') return Math.max(0, pointDistance(shape, a, b) - shape.r);
+  if (contains(shape, a.x, a.y) || contains(shape, b.x, b.y)) return 0;
+  let distance = Infinity;
+  const cross = (p: Vec2, q: Vec2, r: Vec2) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+  for (const { a: c, b: d } of edgesOf(shape)) {
+    const x = cross(a, b, c), y = cross(a, b, d), u = cross(c, d, a), v = cross(c, d, b);
+    // Strict crossing; collinear contact is covered by point distances below.
+    if (((x < 0 && y > 0) || (x > 0 && y < 0)) && ((u < 0 && v > 0) || (u > 0 && v < 0))) return 0;
+    distance = Math.min(distance, pointDistance(a, c, d), pointDistance(b, c, d), pointDistance(c, a, b), pointDistance(d, a, b));
+  }
+  return distance;
+}
