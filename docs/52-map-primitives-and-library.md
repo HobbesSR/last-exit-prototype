@@ -394,12 +394,16 @@ catalogue, and it grows from here. The fixture libraries in
   larger fill areas for buildings without removing any retained guarantee from the
   margin pipeline. Original grounds remain available unchanged; other types retain
   their authored internal seams.
-  **#340 correction:** `military-quarter` is defined locally in the 36×18
-  top-level library, outside the included modules checked by the original tool.
-  Its 312 compound slots now use the same inward variants. Exposed prescriptions,
-  footprint and non-compound slots stay unchanged; this is an intentional content
-  correction, not runtime removal of inherited guarantees. Other local quarter
-  types are outside this correction. Exact before/after access is recorded in [42](42-performance-history.md).
+  **Local quarters (#340, #347):** the 36×18 top-level library defines three
+  enormous set pieces locally, outside the included modules checked by the original
+  tool. `military-quarter`'s 312 compound slots (#340), `city-centre`'s 240 block
+  slots and `industrial-quarter`'s 180 depot slots (#347) now use the same inward
+  variants. With their original seams, every sampled region from these quarters
+  had at most a 4 × 4 fill square: depots and the block's depot and compound lots
+  fell back empty. Exposed prescriptions, footprints and every other slot stay
+  unchanged; this is an intentional content correction, not runtime removal of
+  inherited guarantees. It is separate from #338's exterior-yard policy.
+  Before/after evidence is recorded in [42](42-performance-history.md).
 - **Cover:** a lone `cover-ground` in the fill forms a 6 × 6 region, too small
   for one cover piece, so it stays clear (54 `cover`). Cover comes mostly from
   the set pieces; its increased fill weight is intended to form larger joined
@@ -411,15 +415,15 @@ and same-class slot adjacency. It is an offline authoring tool; library loading
 does not rewrite prescriptions. For the current modules, run:
 
 ```sh
-node map/tools/author-inward-grounds.mts --primitives map/macro/content/common-primitives@4.json --common map/macro/content/common-set-pieces@4.json --district map/macro/content/district-set-pieces@3.json --compound-library map/macro/content/diamond-36x18.json --check
+node map/tools/author-inward-grounds.mts --primitives map/macro/content/common-primitives@4.json --common map/macro/content/common-set-pieces@4.json --district map/macro/content/district-set-pieces@3.json --local-library map/macro/content/diamond-36x18.json --check
 ```
 
 To regenerate, replace `--check` with `--out-dir <new-directory>`. Inputs and
 existing outputs are never overwritten. The current inputs reconstruct 27
-variants and 833 slot references, including 312 local compound slots. Omit the
-optional `--compound-library` to check only the included modules (521 references).
-The optional library input authors only local compound slots; other local
-structure classes stay authored as supplied. Future content changes still require reviewed
+variants and 1,253 slot references, including 732 local slots (312 compound,
+240 block, 180 depot). Omit the optional `--local-library` to check only the
+included modules (521 references). The library input authors block, compound
+and depot slots in its local set pieces; other local classes stay as supplied. Future content changes still require reviewed
 module versions; the tool supports authored copies with matching includes.
 
 Larger fill areas do not ensure a warehouse in every depot. #325 traced three

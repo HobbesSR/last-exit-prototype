@@ -9,7 +9,7 @@ import { largestRectangle } from './hall.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
-import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
+import { boxesAgainstHints, hintedCells } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
@@ -49,8 +49,8 @@ const CHANNEL = { axis: 1, phase: 2, site: 3, row: 4, length: 5, loot: 6, design
  * around the warehouses. Each place that fits one is taken with chance `density`.
  *
  * Every piece's box keeps `AISLE` clear cells from other pieces. Candidate footprints stay
- * owned and clear of portal approaches. With at most 32 portals, the builder protects a
- * swept hunter route tree between nearby portals; larger portal counts use boundary spacing.
+ * owned and clear of portal approaches, and the builder protects a swept hunter route tree
+ * between nearby portals, whatever their count (#347).
  * Hinted runs receive priority when a warehouse can fit against them. A region with no
  * contained `MIN_SIDE` square goes to `open` (17 M24).
  *
@@ -69,10 +69,9 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   const mask = createFillMask(brief), size = brief.cellSize;
   if (!mask.cells.length) return unfilledRegion(brief, CHANNEL.loot);
   if (!largestRectangle(mask, MIN_SIDE)) return unfilledRegion(brief, CHANNEL.loot);
-  // Nearby portal routes are protected; past 32 portals that search is too dear, and
-  // boxes keep an aisle from the boundary instead.
-  const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
-  const protectedShapes = routed ? protectedRoutes(brief, 'Depot', 'nearby') : [];
+  // Nearby portal routes are protected at any portal count. Boundary spacing alone let a
+  // warehouse seal a portal's approach in large depots (#347), and the tree stays cheap.
+  const protectedShapes = protectedRoutes(brief, 'Depot', 'nearby');
 
 
   // Lines run along u. `alongX` maps (u, v) to (x, y), or else to (y, x).
@@ -87,8 +86,7 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
     for (let j = v - AISLE; j < v + width + AISLE; j++) for (let i = u - AISLE; i < u + length + AISLE; i++)
       if (taken.has(cellAt(i, j))) return false;
     const [x, y, w, h] = alongX ? [u, v, length, width] : [v, u, width, length];
-    return (routed || boundary.fits({ x, y, w, h }))
-      && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
+    return !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
   };
   const take = (u: number, v: number, length: number, width: number) => {
     for (let j = v; j < v + width; j++) for (let i = u; i < u + length; i++) taken.add(cellAt(i, j));
