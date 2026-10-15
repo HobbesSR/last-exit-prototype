@@ -83,6 +83,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | --- | --- |
 | [41-roadmap.md](41-roadmap.md) | Completed boundaries, the next implementation boundaries, and sequencing |
 | [42-performance-history.md](42-performance-history.md) | Measured baselines and their limits, from completed verification passes |
+| [42.1-navigation-experiment.md](42.1-navigation-experiment.md) | Safe local graph experiment (#364), passage failures and measured hierarchy costs |
 
 ### 5x — Map generation
 

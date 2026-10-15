@@ -79,6 +79,12 @@ now enter the world.
 
 ## Collision
 
+`segmentShapeDistance` supplies continuous distance from a closed segment to a
+filled shape, with analytic circles and polygon/rectangle containment and edge
+tests. The research navigation adapter in [42.1](42.1-navigation-experiment.md)
+uses it for conservative swept clearance, including void and gate geometry.
+It is not used by production movement or the current bot planner.
+
 `shared/movement.ts` is the only module that decides whether something may occupy a place.
 
 Bodies are circles: a contestant has radius 12, a gladiator 23, a projectile its own. World geometry
