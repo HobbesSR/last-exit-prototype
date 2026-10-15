@@ -48,6 +48,17 @@ still need separate gameplay and version review.
 
 ## Next tasks
 
+### Hierarchical navigation design (#353)
+
+Issue [#353](http://localhost:3000/corey/astra_test/issues/353) tracks the proposed
+baked navigation hierarchy and optimistic planning through unknown space. The
+design and staged acceptance are in [22.6](22.6-hierarchical-navigation.md), not
+implemented. First establish safe local edges, passage fidelity and measured
+atlas costs with production bots unchanged; private knowledge and optimistic
+planning precede the intentional gameplay adoption.
+
+### Generation pipeline
+
 **Current focus, updated by the user on 2026-09-28 and 29: map generation as
 one pipeline.** mapgen's macro half is being rebuilt as the generation chain
 ([51](51-generation-chain.md)) and joined to the micro half, where each region
