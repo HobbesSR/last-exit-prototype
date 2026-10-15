@@ -449,14 +449,19 @@ inside, and windows and doors let sight through.
     stay out of portal approaches. Hinted warehouse boxes are tried first.
     Rectangular masks and concave masks use the same boundary-spacing and
     corridor rules as `cover` (20.3), rather than a blanket edge ring.
-    With at most 32 portals, routes join nearby portals in a deterministic
-    spanning tree (#325), using Euclidean distance between hunter stands, not
+    Routes join nearby portals in a deterministic spanning tree (#325) at any
+    portal count, using Euclidean distance between hunter stands, not
     routed path length. Nearby stands can require a long detour in a concave
     mask, so this choice does not guarantee minimum total protected route length.
     The former first-portal star reserved diagonals
     throughout some large depots and rejected every warehouse footprint.
     The tree still joins every portal and protects the full approach strips,
     while leaving more contiguous space for warehouses and container rows.
+    Depot once skipped the tree past 32 portals and relied on `cover`'s
+    boundary rule. That let a warehouse stand flush over a portal's approach
+    and seal it, once large depots had room for warehouses (#347). The tree
+    costs about 0.1 s on a 54-portal, 6,480-cell depot, so depot builds it
+    at every portal count (42).
   - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
     disc stands clear of every wall, door, shelf and container, indoors or
     out.

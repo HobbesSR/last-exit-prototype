@@ -828,7 +828,7 @@ therefore retained original `compound-grounds` on all 312 compound slots.
 Those references now select the existing inward variants according to same-class
 slot adjacency. Only joined compound sides change to occupancy hints; all exposed
 prescriptions and 78 checkpoint slots stay unchanged. The authoring tool's optional
-`--compound-library` path checks/regenerates this compound-only extension while
+`--compound-library` path (since #347 `--local-library`) checks/regenerates this compound-only extension while
 retaining its original three-module behavior. No new tile variants are needed.
 
 The exact original input remains an empty fallback witness. The corrected
@@ -875,6 +875,71 @@ not cover the 36×18 library. That size's exact witness and five report seeds
 provide the relevant bounded evidence. Before/after collision and ring close-up
 previews were rendered in Chrome and inspected. See [53](53-map-artifacts-and-tools.md)
 for the content checkpoint and limitations.
+
+## Local block and depot quarters (#347, 2026-10-14)
+
+#340's authoring covered only the 36×18 library's local `military-quarter`.
+The same library's `city-centre` (240 `block-grounds` slots) and
+`industrial-quarter` (180 `depot-grounds` slots) kept their original internal
+seams. Diagnosis used #340's method on every region these quarters formed in
+the first five maps holding each, seeds `issue347-0` to `issue347-10`:
+
+```powershell
+node tools/local-quarter-fill-audit.mjs --out=test-results/347-audit
+```
+
+| Before, `types-28`, library `98ccf9996c89de82` | Block (5 × 8,640 cells) | Depot (5 × 6,480 cells) |
+| --- | --- | --- |
+| Internal guaranteed runs | 2,210 | 1,665 |
+| Fill cells | 24,000 | 18,052 |
+| Largest fill square, every region | 4 × 4 | 4 × 4 |
+| Below 54's fill minimum | 34 of 136 lots: all 23 depot and 8 compound lots, 3 huts | all 5 regions (10 × 10) |
+| Structures / obstacles | 6 / 73 | 0 / 0 (`open` fallback) |
+
+The loss is the #340 pattern: repeated seam margins leave no contained fill.
+Even the 73 ruins lots placed nothing. Every sampled region passed swept portal access.
+
+**Correction.** `map/tools/author-inward-grounds.mts`'s optional library input,
+renamed `--local-library`, now authors local block, compound and depot slots
+alike (52). That changes 420 references in `diamond-36x18.json`, using the
+existing 27 inward variants. Every other slot and piece is unchanged. Same seeds,
+same placements, region IDs and ownership:
+
+| After, library `76a434e7c5cb18f0` | Block | Depot |
+| --- | --- | --- |
+| Internal guaranteed runs | 0 | 0 |
+| Fill cells | 41,320 | 31,144 |
+| Largest fill square | 46 × 46 | 70 × 70 |
+| Below fill minimum | 3 of 136 lots (depot lots cut by frontage margins) | none |
+| Structures / obstacles | 150 / 2,202 (248 rooms, 18 warehouses, 16 compound gates) | 90 / 2,602 (90 warehouses) |
+
+**Depot defect found on the way.** The corrected depots first failed swept access:
+six portals in four of the five regions were unreachable. These depots
+have 42 to 54 portals. Past 32 portals, `depot` skipped its route tree for
+`cover`'s boundary rule, which lets a box stand flush on one side of a
+rectangular region. A warehouse then sat over a portal's approach and sealed it.
+The old seams had hidden this: no depot that large had a 10 × 10 fill before. On these
+regions the tree takes about 0.1 s, and the whole depot build 0.15 to 0.25 s
+instead of about 0.1 s. Depot therefore builds the tree at every portal count
+(`types-29`, 54). Afterwards all ten regions pass, with zero fill-constraint
+errors.
+
+That builder change also reaches the default library. Its sweep holds 18
+filled depots with more than 32 portals. Under both builders all 18 pass swept access, and
+they keep the same 124 warehouses. Container rows go from 625 to 620; 16
+sweep cases drift. Reproduce by running once per builder revision:
+
+```powershell
+node tools/depot-portal-audit.mjs --out=test-results/347-depots-after.json
+```
+
+`cover`, `plant` and `park` keep the boundary rule past 32 portals. Whether
+it seals their portals is a separate question (#347 follow-up).
+
+Batches of 60 game and 30 playground maps at 12 × 6 and 3 game maps at
+36 × 18 show no defects. Server/client benchmarks were not rerun; the timings
+above are single builds on Windows, Node 24.15.0, Ryzen 9 5900X, not paired
+benchmarks. See [53](53-map-artifacts-and-tools.md) for the checkpoint.
 
 ## The reported slowdown is still open
 
