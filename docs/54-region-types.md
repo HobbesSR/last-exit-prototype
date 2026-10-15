@@ -139,6 +139,9 @@ points, and routes that aren't a straight shot.
     elsewhere and forbids attachment across opposite sides. This bounded mode
     is a spacing argument, not a proof that every non-portal pocket remains
     connected; `validatePortalReach` remains the independent promise check.
+    A #361 audit of every `cover` and `plant` region past 32 portals in the
+    sweep and 20 maps each of the 24 × 12 and 36 × 18 libraries found no
+    sealed portal (42); `park` and `depot`, which did seal, now protect routes.
   - **Loot:** each cell rolls its chance and takes its tier. Loot lands only
     where the cell and its eight neighbours are owned and free of cover, so
     it has standing room.
@@ -319,12 +322,13 @@ inside, and windows and doors let sight through.
     2-cell footprint, at seeded places in the slot's band that don't overlap.
     A tree blocks bodies and sight, so a clump is soft cover, not a wall.
   - **Why that keeps the promise:** clumps and hedge runs keep 2 cells from
-    other pieces and avoid portal approaches. Rectangular masks keep an aisle
-    on at least one side of each axis. Masks protect hunter corridors up to
-    32 portals; larger masks keep an owned ring except at one or two
-    adjacent fully hinted boundary sides. The SDK's `boundaryBoxFilter`
-    supplies the shared boundary-spacing rule (20.3). Hints guide the slot
-    phase and tree sites; they never require an obstacle.
+    other pieces and avoid portal approaches, and no piece touches a protected
+    hunter route. Up to 32 portals, a route joins the first portal to each
+    other one. Past that, `depot`'s nearby-portal tree joins them instead,
+    since a route search per portal from the first costs up to 2 s on the
+    largest parks. Park once used `cover`'s boundary rule there, which let a
+    clump stand flush over a side portal's approach and seal it (#361, 42).
+    Hints guide the slot phase and tree sites; they never require an obstacle.
   - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
     disc stands clear of every piece.
   - **Core elements:** it sites none. Any its brief lists are left for the
