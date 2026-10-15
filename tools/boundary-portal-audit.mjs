@@ -24,13 +24,14 @@ const args = new Map(process.argv.slice(2).map(arg => {
 }));
 const out = resolve(args.get('out') ?? 'test-results/361-boundary.json'), seeds = Number(args.get('seeds') ?? 20);
 const TYPES = new Set(['cover', 'plant', 'park']);
+/** Sweep seeds run 1 to count, as `runCase` names them; the library maps run 0 to count - 1. */
 const sources = [
-  ...sweepCases().map(c => ({ id: c.id, params: c.params, seedPrefix: c.seedPrefix, count: c.count })),
-  { id: 'library-24x12', params: { mode: 'game', zoneWidth: 24, zoneHeight: 12 }, seedPrefix: 'issue361', count: seeds },
-  { id: 'library-36x18', params: { mode: 'game', zoneWidth: 36, zoneHeight: 18 }, seedPrefix: 'issue361', count: seeds },
+  ...sweepCases().map(c => ({ id: c.id, params: c.params, seedPrefix: c.seedPrefix, first: 1, count: c.count })),
+  { id: 'library-24x12', params: { mode: 'game', zoneWidth: 24, zoneHeight: 12 }, seedPrefix: 'issue361', first: 0, count: seeds },
+  { id: 'library-36x18', params: { mode: 'game', zoneWidth: 36, zoneHeight: 18 }, seedPrefix: 'issue361', first: 0, count: seeds },
 ];
 const regions = [];
-for (const source of sources) for (let i = 0; i < source.count; i++) {
+for (const source of sources) for (let i = source.first; i < source.first + source.count; i++) {
   const seed = `${source.seedPrefix}-${i}`, params = chainParams(source.params), library = bundledLibrary(params);
   const layout = placement(seed, params, library);
   for (const brief of mapViews({ layout, library, cellSize: 48, results: [] }).briefs) {
@@ -47,7 +48,7 @@ const byType = Object.fromEntries([...TYPES].map(type => {
   return [type, { regions: own.length, withErrors: own.filter(r => r.errors.length).length, errors: own.reduce((n, r) => n + r.errors.length, 0),
     maxPortals: Math.max(0, ...own.map(r => r.portals)), maxCells: Math.max(0, ...own.map(r => r.cells)) }];
 }));
-const report = { audit: 'boundary-portals-361-1', sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+const report = { audit: 'boundary-portals-361-2', sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
   dirtyPaths: execFileSync('git', ['diff', '--name-only', 'HEAD'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean),
   contentVersion: REGION_TYPES_VERSION, seeds, regions: regions.length, byType, samples: regions };
 await mkdir(dirname(out), { recursive: true });

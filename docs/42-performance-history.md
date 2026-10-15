@@ -944,8 +944,9 @@ benchmarks. See [53](53-map-artifacts-and-tools.md) for the checkpoint.
 ## Boundary rule past 32 portals (#361, 2026-10-14)
 
 #347 left `cover`, `plant` and `park` on the boundary rule past 32 portals.
-The audit builds every such region in the chain sweep's cases and in maps
-`issue361-0` to `issue361-19` of the 24 × 12 and 36 × 18 libraries, then
+The audit builds every such region in the chain sweep's pinned cases (seeds
+`sweep-1` up, as `runCase` names them) and in maps `issue361-0` to
+`issue361-19` of the 24 × 12 and 36 × 18 libraries, then
 runs swept `validatePortalReach` on the built geometry:
 
 ```powershell
@@ -954,11 +955,11 @@ node tools/boundary-portal-audit.mjs --out=test-results/361-boundary.json
 
 | `types-29` → `types-30` | `cover` | `plant` | `park` |
 | --- | --- | --- | --- |
-| Regions (sweep / 24 × 12 / 36 × 18) | 17 (3 / 1 / 13) | 68 (14 / 14 / 40) | 118 (6 / 27 / 85) |
+| Regions (sweep / 24 × 12 / 36 × 18) | 17 (3 / 1 / 13) | 70 (16 / 14 / 40) | 118 (6 / 27 / 85) |
 | Portals, largest mask | 34–46, 3,132 cells | 34–62, 8,640 cells | 34–80, 6,984 cells |
 | Unreachable portals | 0 → 0 | 0 → 0 | 2 → 0 |
-| Pieces | 597 → 597 | 157 → 157 | 1,323 → 1,294 |
-| Build, mean / worst | 11 / 13 ms → 13 / 18 ms | 20 / 44 ms → 23 / 56 ms | 11 / 41 ms → 41 / 181 ms |
+| Pieces | 597 → 597 | 159 → 159 | 1,323 → 1,294 |
+| Build, mean / worst | 14 / 20 ms → 14 / 20 ms | 23 / 55 ms → 24 / 57 ms | 13 / 59 ms → 40 / 175 ms |
 
 Cover and plant didn't change; their timings differ only by run-to-run noise.
 
