@@ -934,7 +934,7 @@ node tools/depot-portal-audit.mjs --out=test-results/347-depots-after.json
 ```
 
 `cover`, `plant` and `park` keep the boundary rule past 32 portals. Whether
-it seals their portals is a separate question (#347 follow-up).
+it seals their portals is a separate question (#361).
 
 Batches of 60 game and 30 playground maps at 12 × 6 and 3 game maps at
 36 × 18 show no defects. Server/client benchmarks were not rerun; the timings
