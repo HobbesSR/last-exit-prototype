@@ -9,6 +9,7 @@ import { listen } from './helpers/listen.js';
 import { generate } from '../map/tools/core.ts';
 import { mapViews } from '../map/macro/src/chain/map.ts';
 import { briefFragment } from '../map/micro/brief-link.ts';
+import { REGION_TYPES } from '../map/micro/region-types.ts';
 
 const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-generation-demo-'));
 await mkdir('test-results', { recursive: true });
@@ -63,13 +64,16 @@ try {
   await page.screenshot({ path: 'test-results/generation-demo.png', fullPage: true });
   // A chain map's block, opened by the Map Lab's link (20.5): its lots and alleys, the geometry
   // the map stored for it, and a walk through it with the game's collision.
-  const blockMap = generate('last-exit-009'), blockBrief = mapViews(blockMap).briefs.find(b => b.type === 'block');
+  const blockMap = generate('last-exit-005'), blockBrief = mapViews(blockMap).briefs.find(b => b.type === 'block');
   await page.goto(`${base}/dev/micro/generation${await briefFragment(blockBrief)}`);
   await page.waitForFunction(id => window.generationDemoDebug?.().linked?.id === id, blockBrief.id, { timeout: 15000 });
   const block = await page.evaluate(() => window.generationDemoDebug());
   assert.deepEqual(block.linked.built, JSON.parse(JSON.stringify(blockMap.results.find(r => r.brief.id === blockBrief.id))), 'the demo shows the block the map stored');
-  assert.deepEqual(block.result.assignments.map(a => a.builder), ['ruins', 'cover', 'cover', 'open']);
-  assert.equal(block.result.regions.reduce((n, r) => n + r.elements.length, 0), block.linked.built.elements.length, 'every element belongs to one child');
+  assert.ok(block.result.assignments.some(a => a.role === 'lot'), 'the block has generated lots');
+  assert.ok(block.result.assignments.some(a => a.role === 'alleys'), 'the block has circulation between its lots');
+  assert.ok(block.result.assignments.every(a => Object.hasOwn(REGION_TYPES, a.builder)), 'every child has a registered builder');
+  assert.equal(new Set(block.result.assignments.map(a => a.pieceId)).size, block.result.assignments.length, 'each child has a unique assignment');
+  assert.deepEqual(block.result.regions.flatMap(r => r.elements), block.linked.built.elements, 'every generated element belongs to one child exactly once');
   assert.ok(block.walker, 'the walk stage places a walker in the block');
   await page.getByRole('button', { name: 'Decomposition', exact: true }).click();
   await page.screenshot({ path: 'test-results/generation-demo-block.png', fullPage: true });

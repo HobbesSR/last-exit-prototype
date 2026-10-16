@@ -91,6 +91,12 @@ variation, artifact download and movement, and saves `test-results/micro-lab.png
 It also toggles each building view for `hut`, `compound` and `block`, checks the drawn
 counts against the build in memory, and shows unmet guidance as a warning
 ([56](56-buildings.md) L4, L5).
+`node tests/region-explorer.mjs` checks the Region Builder Explorer's full builder
+catalogue, shape and size controls against direct builds, core-site output, JSON
+download, zoom/pan, walker placement, arrow movement and compact layout. It runs
+in `test:micro` and saves `test-results/region-explorer.png`. The focused
+`tests/region-examples.test.js` checks preset topology, portal access, bounds and
+core requests without changing the production generator or its fixtures.
 CLI batch generation/validation and limits are described in [20.5](20.5-tools-and-next-boundaries.md).
 Decomposition checks cover immutable contexts and trial claims, graph/topology
 analysis, generator contracts, residual tradeoffs, exact ownership and interface

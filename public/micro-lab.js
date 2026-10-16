@@ -1,7 +1,8 @@
 import { generateMicroRegion, validateMicroRegion } from '/map/micro/index.ts';
 import { builtMapCollision, builtMapFrame, regionCollisionMap } from '/map/micro/adapter.ts';
 import { microExample } from '/map/micro/examples.ts';
-import { buildRegion } from '/map/micro/region-types.ts';
+import { buildRegion, REGION_TYPES } from '/map/micro/region-types.ts';
+import { regionExample, REGION_SHAPES } from '/map/micro/region-examples.ts';
 import { drawAllocation, drawDesignGraph, drawOpenings, drawSpans, guidanceNotMet, traceSummary } from '/map/micro/building/draw.ts';
 import { briefFromFragment } from '/map/micro/brief-link.ts';
 import { firstDifference } from '/map/micro/difference.ts';
@@ -12,6 +13,18 @@ import { outline, transform } from '/shared/shape.ts';
 
 const $ = id => document.getElementById(id);
 const canvas = $('preview'), ctx = canvas.getContext('2d');
+const title = name => name.charAt(0).toUpperCase() + name.slice(1);
+const types = document.createElement('optgroup'); types.label = 'Game region builders';
+const gameTypes = Object.keys(REGION_TYPES).filter(name => !name.startsWith('example-'));
+for (const name of [...gameTypes].sort()) {
+  // The first registered name is the strategy's primary label; later shared entries are aliases.
+  const primary = gameTypes.find(type => REGION_TYPES[type] === REGION_TYPES[name]);
+  types.append(new Option(primary === name ? title(name) : `${title(name)} (${primary} strategy)`, `region:${name}`, false, name === 'depot'));
+}
+const examples = document.createElement('optgroup'); examples.label = 'SDK examples';
+for (const [name, label] of [['open', 'Open example'], ['depot', 'Depot example'], ['courtyard', 'Courtyard example'], ['ruins', 'Ruins example'], ['entry', 'Contestant entry example']]) examples.append(new Option(label, name));
+$('builder').replaceChildren(types, examples);
+for (const shape of REGION_SHAPES) if (!['rectangle', 'l', 'hole'].includes(shape.id)) $('region-shape').add(new Option(shape.name, shape.id));
 canvas.tabIndex = 0;
 canvas.addEventListener('pointerdown', () => canvas.focus());
 const MICRO_ORIGIN = { x: 12000, y: 6000 };
@@ -19,7 +32,8 @@ const MICRO_ORIGIN = { x: 12000, y: 6000 };
 const LOOT_CHANCE = 0.04;
 let result = null, collision = null, avatar = null, keys = new Set(), scale = 1, offset = { x: 0, y: 0 }, origin = MICRO_ORIGIN;
 /** Region types: the buildings their strategy made from designs, held in memory only (17.2.8 M30), and the portal check. */
-let traces = [], promise = null, drawn = {};
+let traces = [], promise = null, portalRoutes = [], drawn = {};
+let zoom = 1, pan = { x: 0, y: 0 }, drag = null;
 /**
  * A brief from elsewhere: a Map Lab region's, by link, or a file's (20.5). It is built as the
  * map built it and walked at the game's own scale, until a control makes a new example.
@@ -39,6 +53,10 @@ function setControlEnabled(control, enabled, note) {
 function updateApplicableControls() {
   const builder = $('builder').value, entry = builder === 'entry', ruins = builder === 'ruins', type = regionType() ?? imported?.type, example = !entry && !type;
   const typeNote = 'Region types take a brief, not example builder parameters.';
+  const selectedType = regionType();
+  for (const id of ['region-width', 'region-height']) setControlEnabled(`${id}-control`, !!selectedType, selectedType ? 'Size of the region supplied to the game builder (8–48 cells).' : 'SDK examples use their fixed 24 by 18 shape.');
+  for (const option of $('region-shape').options) option.disabled = !selectedType && !['rect', 'l', 'hole'].includes(option.value);
+  if (!selectedType && $('region-shape').selectedOptions[0].disabled) $('region-shape').value = 'rect';
   setControlEnabled('body-profile-control', !type, imported ? 'An imported brief is walked at the game\'s own scale.' : type ? 'Region types are walked at cell proportions.' : 'Applies to example builders.');
   setControlEnabled('entry-count-control', entry, entry ? 'Applies to contestant entry layouts.' : 'Applies only to Contestant entry.');
   setControlEnabled('density-control', example, entry ? 'Entry layouts use spacing instead of architecture density.' : type ? typeNote : 'Applies to architecture builders.');
@@ -61,12 +79,8 @@ function specFromControls() {
 }
 /** The lab's example region as a brief: its cells, its ports as portals, and one zone. */
 function briefFromControls() {
-  const example = specFromControls();
-  const portals = example.ports.map(({ id, side, start, length }) => side === 'W' || side === 'E'
-    ? { id, axis: 'v', x: start.x + (side === 'E' ? 1 : 0), y: start.y, length }
-    : { id, axis: 'h', x: start.x, y: start.y + (side === 'S' ? 1 : 0), length });
-  return { id: example.id, seed: example.seed, type: regionType(), cellSize: example.cellSize, cells: example.cells, portals,
-    zones: [{ tier: Number($('loot-tier').value), bonus: 0, lootChance: LOOT_CHANCE, cells: example.cells }] };
+  return regionExample({ type: regionType(), seed: Number($('seed').value), shape: $('region-shape').value === 'rect' ? 'rectangle' : $('region-shape').value,
+    width: Number($('region-width').value), height: Number($('region-height').value), tier: Number($('loot-tier').value), northPortal: $('north-port').checked });
 }
 function local(point) { return { x: point.x - origin.x, y: point.y - origin.y }; }
 function resetAvatar() {
@@ -74,7 +88,9 @@ function resetAvatar() {
   const spec = specOf(result), radius = microMetrics(spec).body[$('role').value === 'gladiator' ? 'hunter' : 'contestant'];
   const port = result.brief ? { inside: portalStands(spec).find(stand => stand.points.length)?.points[0] }
     : result.ports.find(port => port.required === 'hunter') || result.ports.find(port => port.required === 'contestant' && $('role').value === 'contestant');
-  const point = port?.inside || spreadPoints(createRegionMask(spec), { count: 1, radius, blockers: result.elements.flatMap(e => elementShapes(e, true)) }).points[0];
+  let point = port?.inside;
+  if (!point || !canOccupy(collision, origin.x + point.x, origin.y + point.y, radius)) point = spreadPoints(createRegionMask(spec), { count: 1, radius, blockers: result.elements.flatMap(e => elementShapes(e, true)) }).points[0];
+  if (point && !canOccupy(collision, origin.x + point.x, origin.y + point.y, radius)) point = null;
   if (!point) { avatar = null; return; }
   avatar = { role: $('role').value, x: origin.x + point.x, y: origin.y + point.y };
 }
@@ -84,19 +100,19 @@ function buildBrief(brief) {
   // A lone region: its portals lead off the map, so it pairs with nothing and isn't composed.
   const map = { cellSize: built.brief.cellSize, regions: [built], pairs: [] };
   const check = validatePortalReach({ ...built.brief, blockers: built.elements.flatMap(e => elementShapes(e)) });
-  result = built; traces = found; promise = check.errors; origin = builtMapFrame(map).origin; collision = builtMapCollision(map);
+  result = built; traces = found; promise = check.errors; portalRoutes = check.routes; origin = builtMapFrame(map).origin; collision = builtMapCollision(map);
 }
 /** Show a brief from elsewhere. A bad one leaves the current region as it was. */
 function showImported(brief, note) {
   clearTimeout(generationTimer);
-  const before = { result, traces, promise, origin, collision, imported };
+  const before = { result, traces, promise, portalRoutes, origin, collision, imported };
   try {
     imported = brief; buildBrief(brief);
   } catch (error) {
-    ({ result, traces, promise, origin, collision, imported } = before);
+    ({ result, traces, promise, portalRoutes, origin, collision, imported } = before);
     $('status').textContent = `Import rejected: ${error.message}`; return false;
   }
-  avatar = null; keys.clear(); resetAvatar(); updateApplicableControls();
+  avatar = null; keys.clear(); resetAvatar(); fitView(); updateApplicableControls();
   $('download').disabled = false; $('reset').disabled = false;
   $('status').textContent = `${note} Region ${brief.id}, type ${brief.type}, seed ${brief.seed}. Controls generate a new example.`;
   diagnostics(); draw();
@@ -109,13 +125,13 @@ function generate() {
     const type = regionType();
     if (type) buildBrief(briefFromControls());
     else {
-      result = generateMicroRegion(specFromControls()); traces = []; promise = null; origin = MICRO_ORIGIN;
+      result = generateMicroRegion(specFromControls()); traces = []; promise = null; portalRoutes = []; origin = MICRO_ORIGIN;
       collision = regionCollisionMap(result, origin);
     }
-    resetAvatar(); $('download').disabled = false; $('reset').disabled = false;
+    keys.clear(); resetAvatar(); fitView(); $('download').disabled = false; $('reset').disabled = false;
     $('status').textContent = `Generated ${type ?? result.manifest.builder} region from seed ${specOf(result).seed}.`;
     diagnostics(); draw();
-  } catch (error) { result = collision = avatar = null; traces = []; promise = null; $('buildings').replaceChildren(); $('download').disabled = true; $('reset').disabled = true; $('status').textContent = `Could not generate this region: ${error.message}`; $('diagnostics').replaceChildren(); $('ports').replaceChildren(); draw(); }
+  } catch (error) { result = collision = avatar = null; traces = []; promise = null; portalRoutes = []; $('buildings').replaceChildren(); $('download').disabled = true; $('reset').disabled = true; $('status').textContent = `Could not generate this region: ${error.message}`; $('diagnostics').replaceChildren(); $('ports').replaceChildren(); draw(); }
 }
 function diagnostics() {
   const spec = specOf(result), metrics = microMetrics(spec), unit = spec.cellSize;
@@ -125,6 +141,7 @@ function diagnostics() {
   if (!result.brief) values.push(['Placement refusals', `${result.manifest.rejected} / ${result.manifest.attempted}`]);
   else values.push(['Buildings from designs', traces.length], ['Portal promise', promise.length ? 'broken' : 'kept']);
   if (result.entry) values.push(['Entry positions', `${result.entry.points.length} / ${result.entry.requested}`], ['Unplaced contestants', result.entry.shortfall], ['Minimum spacing', result.entry.minimumSpacing === null ? '—' : `${(result.entry.minimumSpacing / unit).toFixed(2)} cells`]);
+  for (const kind of new Set((result.coreElements ?? []).map(site => site.kind))) values.push([title(kind) + ' sites', result.coreElements.filter(site => site.kind === kind).length]);
   $('diagnostics').replaceChildren(...values.flatMap(([name, value]) => { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = name; dd.textContent = value; return [dt, dd]; }));
   const item = (text, className) => { const li = document.createElement('li'); li.textContent = text; if (className) li.className = className; return li; };
   $('ports').replaceChildren(...(result.brief ? result.brief.portals.map(p => item(`${p.id}: portal ${p.axis === 'h' ? 'across' : 'down'} from (${p.x}, ${p.y}), ${p.length} cells`))
@@ -140,14 +157,15 @@ function draw() {
   if (!result) return;
   const spec = specOf(result), cellSize = spec.cellSize;
   drawn = {};
-  const bounds = result.bounds ?? builtBounds(spec), pad = 44; scale = Math.min((width - pad * 2) / bounds.w, (height - pad * 2) / bounds.h); offset = { x: (width - bounds.w * scale) / 2 - bounds.x * scale, y: (height - bounds.h * scale) / 2 - bounds.y * scale };
+  const bounds = result.bounds ?? builtBounds(spec), pad = 44; scale = zoom * Math.min((width - pad * 2) / bounds.w, (height - pad * 2) / bounds.h); offset = { x: (width - bounds.w * scale) / 2 - bounds.x * scale + pan.x, y: (height - bounds.h * scale) / 2 - bounds.y * scale + pan.y };
   ctx.fillStyle = '#263c37'; for (const cell of spec.cells) { const p = project({ x: cell.x * cellSize, y: cell.y * cellSize }); ctx.fillRect(p.x + .5, p.y + .5, cellSize * scale - 1, cellSize * scale - 1); }
   if ($('allocation').checked && result.brief) drawn.allocation = inWorld(drawAllocation);
-  if ($('routes').checked) for (const route of result.routes ?? []) { ctx.strokeStyle = route.role === 'hunter' ? '#e9ad59' : '#72d8d2'; ctx.lineWidth = Math.max(2, route.radius * scale / 4); ctx.beginPath(); route.points.forEach((p, i) => { const q = project(p); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }); ctx.stroke(); }
+  if ($('routes').checked) for (const route of result.routes ?? portalRoutes) { ctx.strokeStyle = route.role === 'hunter' ? '#e9ad59' : '#72d8d2'; ctx.lineWidth = Math.max(2, route.radius * scale / 4); ctx.beginPath(); route.points.forEach((p, i) => { const q = project(p); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }); ctx.stroke(); }
   for (const element of result.elements) for (const part of element.template.parts) if (part.part === 'obstacle') { const points = outline(transform(part.shape, element.x, element.y)); path(points); ctx.fillStyle = part.kind === 'tree' ? '#567d4e' : '#84918c'; ctx.fill(); ctx.strokeStyle = '#c4d3bd'; ctx.lineWidth = 1; ctx.stroke(); }
   if ($('roofs').checked) for (const element of result.elements) if (element.template.encloses) { const p = project({ x: element.x, y: element.y }); ctx.fillStyle = '#3d2c3bb8'; ctx.fillRect(p.x, p.y, element.template.w * scale, element.template.h * scale); }
   for (const gate of collision.gates) { const p = project(local(gate)); ctx.fillStyle = gate.open ? '#6abf87' : '#d66955'; ctx.fillRect(p.x - gate.w * scale / 2, p.y - gate.h * scale / 2, gate.w * scale, gate.h * scale); }
   for (const loot of result.loot) { const p = project(loot); ctx.fillStyle = '#f2ca55'; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#fff1ae'; ctx.lineWidth = 1; ctx.stroke(); }
+  for (const site of result.coreElements ?? []) { const p = project(site); ctx.strokeStyle = '#a9a2ff'; ctx.lineWidth = 2; ctx.strokeRect(p.x - 7, p.y - 7, 14, 14); ctx.fillStyle = '#ddd9ff'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(site.kind, p.x, p.y - 11); }
   for (const port of result.ports ?? []) { const p = project(port.centre); ctx.fillStyle = '#e9f7c4'; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill(); }
   for (const portal of result.brief?.portals ?? []) line(gridPoint(portal.x, portal.y, cellSize), gridPoint(portal.x + (portal.axis === 'h' ? portal.length : 0), portal.y + (portal.axis === 'v' ? portal.length : 0), cellSize), '#e9f7c4', 4);
   if (result.brief) {
@@ -167,6 +185,31 @@ function line(a, b, colour, width) { const p = project(a), q = project(b); ctx.s
 /** Draw the building traces in world units through the shared drawing (`building/draw.ts`), at the preview's projection. */
 function inWorld(drawTraces) { ctx.save(); ctx.setTransform(scale, 0, 0, scale, offset.x, offset.y); try { return drawTraces(ctx, traces, 1 / scale); } finally { ctx.restore(); } }
 function walkerRadius() { return microMetrics(specOf(result)).body[avatar.role === 'gladiator' ? 'hunter' : 'contestant']; }
+function fitView() { zoom = 1; pan = { x: 0, y: 0 }; $('zoom-level').value = '100%'; }
+function zoomView(factor, at = { x: canvas.width / 2, y: canvas.height / 2 }) {
+  const next = Math.max(0.5, Math.min(8, zoom * factor)), ratio = next / zoom;
+  pan = { x: (pan.x + canvas.width / 2 - at.x) * ratio + at.x - canvas.width / 2, y: (pan.y + canvas.height / 2 - at.y) * ratio + at.y - canvas.height / 2 };
+  zoom = next; $('zoom-level').value = `${Math.round(zoom * 100)}%`; draw();
+}
+function canvasPoint(event) { const rect = canvas.getBoundingClientRect(); return { x: (event.clientX - rect.left) * canvas.width / rect.width, y: (event.clientY - rect.top) * canvas.height / rect.height }; }
+$('zoom-in').addEventListener('click', () => zoomView(1.5));
+$('zoom-out').addEventListener('click', () => zoomView(1 / 1.5));
+$('fit-view').addEventListener('click', () => { fitView(); draw(); });
+canvas.addEventListener('wheel', event => { event.preventDefault(); zoomView(Math.exp(-event.deltaY * .002), canvasPoint(event)); }, { passive: false });
+canvas.addEventListener('pointerdown', event => {
+  if (event.button !== 0 || !result) return;
+  const point = canvasPoint(event);
+  if (event.shiftKey && avatar) {
+    const x = (point.x - offset.x) / scale + origin.x, y = (point.y - offset.y) / scale + origin.y;
+    if (canOccupy(collision, x, y, walkerRadius())) { avatar.x = x; avatar.y = y; $('status').textContent = 'Walker placed on clear ground.'; draw(); }
+    else $('status').textContent = 'The walker does not fit there.';
+    return;
+  }
+  drag = { point, pan: { ...pan } }; canvas.setPointerCapture(event.pointerId);
+});
+canvas.addEventListener('pointermove', event => { if (!drag) return; const point = canvasPoint(event); pan = { x: drag.pan.x + point.x - drag.point.x, y: drag.pan.y + point.y - drag.point.y }; draw(); });
+canvas.addEventListener('pointerup', () => { drag = null; });
+canvas.addEventListener('lostpointercapture', () => { drag = null; });
 function toggleNearbyGate() {
   if (!avatar || !collision) return;
   const gate = collision.gates.filter(g => Math.hypot(g.x - avatar.x, g.y - avatar.y) < 85).sort((a, b) => Math.hypot(a.x - avatar.x, a.y - avatar.y) - Math.hypot(b.x - avatar.x, b.y - avatar.y))[0];
@@ -178,10 +221,11 @@ function toggleNearbyGate() {
   }
   gate.open = !gate.open; $('status').textContent = `${gate.open ? 'Opened' : 'Closed'} nearby gate.`; draw();
 }
-setInterval(() => { if (!avatar || !collision) return; const input = { x: (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0), y: (keys.has('KeyS') ? 1 : 0) - (keys.has('KeyW') ? 1 : 0) }; if (input.x || input.y) { moveBody(collision, avatar, input, walkerRadius(), avatar.role === 'contestant' ? 9 : 8); draw(); } }, 50);
-function editing(target) { return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(target.tagName)); }
-addEventListener('keydown', event => { if (editing(event.target)) return; if (['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(event.code)) { keys.add(event.code); event.preventDefault(); } if (event.code === 'KeyE' && !event.repeat) toggleNearbyGate(); });
-addEventListener('keyup', event => { if (!editing(event.target)) keys.delete(event.code); });
+const movementKeys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight'];
+setInterval(() => { if (!avatar || !collision) return; const input = { x: (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0), y: (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) }; if (input.x || input.y) { moveBody(collision, avatar, input, walkerRadius(), avatar.role === 'contestant' ? 9 : 8); draw(); } }, 50);
+addEventListener('keydown', event => { if (document.activeElement !== canvas) return; if (movementKeys.includes(event.code)) { keys.add(event.code); event.preventDefault(); } if (event.code === 'KeyE' && !event.repeat) toggleNearbyGate(); });
+addEventListener('keyup', event => keys.delete(event.code));
+canvas.addEventListener('blur', () => keys.clear());
 addEventListener('blur', () => keys.clear());
 document.addEventListener('visibilitychange', () => { if (document.hidden) keys.clear(); });
 document.addEventListener('focusin', () => keys.clear());
@@ -191,9 +235,9 @@ function scheduleGeneration() { clearTimeout(generationTimer); generationTimer =
 $('generate').addEventListener('click', generate); $('reset').addEventListener('click', () => { resetAvatar(); draw(); }); $('role').addEventListener('change', () => { if (avatar) { resetAvatar(); draw(); } }); $('roofs').addEventListener('change', draw); $('routes').addEventListener('change', draw);
 for (const id of ['design-graph', 'allocation', 'spans', 'openings']) $(id).addEventListener('change', draw);
 $('builder').addEventListener('change', updateApplicableControls);
-for (const id of ['builder', 'body-profile', 'entry-count', 'region-shape', 'seed', 'loot-budget', 'loot-tier', 'north-port']) $(id).addEventListener('change', generate);
+for (const id of ['builder', 'body-profile', 'entry-count', 'region-shape', 'region-width', 'region-height', 'seed', 'loot-budget', 'loot-tier', 'north-port']) $(id).addEventListener('change', generate);
 $('download').addEventListener('click', () => { const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' }), url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = result.brief ? `region-${result.brief.type}-${result.brief.seed}.json` : `micro-region-${result.spec.seed}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 0); });
-window.microLabDebug = () => structuredClone({ result, imported: imported?.id ?? null, buildings: traces, promise, drawn, avatar: avatar && { x: avatar.x, y: avatar.y, role: avatar.role }, collision: collision && { obstacles: collision.obstacles.length, gates: collision.gates.length } });
+window.microLabDebug = () => structuredClone({ result, imported: imported?.id ?? null, buildings: traces, promise, portalRoutes, drawn, view: { zoom, pan, scale, offset, origin }, avatar: avatar && { x: avatar.x, y: avatar.y, role: avatar.role }, collision: collision && { obstacles: collision.obstacles.length, gates: collision.gates.length } });
 $('import').addEventListener('change', async event => {
   clearTimeout(generationTimer);
   const file = event.target.files[0]; if (!file) return;
@@ -209,7 +253,7 @@ $('import').addEventListener('change', async event => {
     const errors = validateMicroRegion(candidate);
     if (errors.length) throw new Error(errors.join(' '));
     const map = regionCollisionMap(candidate, MICRO_ORIGIN);
-    result = candidate; collision = map; origin = MICRO_ORIGIN; traces = []; promise = null; imported = null; avatar = null; keys.clear(); resetAvatar(); updateApplicableControls();
+    result = candidate; collision = map; origin = MICRO_ORIGIN; traces = []; promise = null; portalRoutes = []; imported = null; avatar = null; keys.clear(); resetAvatar(); fitView(); updateApplicableControls();
     $('download').disabled = false; $('reset').disabled = false;
     $('status').textContent = `Loaded ${file.name}. Controls generate a new example; download preserves this artifact.`;
     diagnostics(); draw();
