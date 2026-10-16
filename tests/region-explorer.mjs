@@ -32,6 +32,7 @@ try {
   assert.ok((await debug()).portalRoutes.length > 0, 'game builders expose sampled hunter routes for the clearance overlay');
   assert.deepEqual(await page.locator('#builder optgroup').first().locator('option').evaluateAll(options => options.map(option => option.value)),
     Object.keys(REGION_TYPES).filter(type => !type.startsWith('example-')).sort().map(type => `region:${type}`));
+  assert.equal(await page.locator('#builder option[value="region:market"]').textContent(), 'Market (hall strategy)');
   // Exercise the catalogue through the browser module loader, including core-site builders.
   for (const type of Object.keys(REGION_TYPES).filter(type => !type.startsWith('example-'))) {
     await selectBuilder(type);
@@ -76,6 +77,24 @@ try {
   await page.keyboard.down('ArrowRight');
   await page.waitForFunction(x => window.microLabDebug().avatar.x > x, placed.avatar.x);
   await page.keyboard.up('ArrowRight');
+  // Movement belongs to preview focus; leaving it also releases a held key.
+  const moving = (await debug()).avatar.x;
+  await page.keyboard.down('ArrowRight');
+  await page.waitForFunction(x => window.microLabDebug().avatar.x > x, moving);
+  await page.getByLabel('Seed', { exact: true }).focus();
+  const stopped = (await debug()).avatar;
+  await page.waitForTimeout(150);
+  assert.deepEqual((await debug()).avatar, stopped, 'leaving preview focus stops held movement');
+  await page.keyboard.up('ArrowRight');
+  const prevented = await page.evaluate(() => {
+    document.activeElement.blur();
+    const event = new KeyboardEvent('keydown', { code: 'ArrowRight', bubbles: true, cancelable: true });
+    document.body.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  assert.equal(prevented, false, 'arrows outside the preview retain normal page handling');
+  await page.waitForTimeout(150);
+  assert.deepEqual((await debug()).avatar, stopped, 'arrows outside preview do not move the walker');
   await page.getByLabel('Walk as', { exact: true }).selectOption('gladiator');
   assert.equal((await debug()).avatar.role, 'gladiator');
   // A hole is excluded from the playable area, even when it has no obstacles.

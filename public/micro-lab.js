@@ -15,8 +15,11 @@ const $ = id => document.getElementById(id);
 const canvas = $('preview'), ctx = canvas.getContext('2d');
 const title = name => name.charAt(0).toUpperCase() + name.slice(1);
 const types = document.createElement('optgroup'); types.label = 'Game region builders';
-for (const name of Object.keys(REGION_TYPES).filter(name => !name.startsWith('example-')).sort()) {
-  types.append(new Option(name === 'market' ? 'Market (hall strategy)' : title(name), `region:${name}`, false, name === 'depot'));
+const gameTypes = Object.keys(REGION_TYPES).filter(name => !name.startsWith('example-'));
+for (const name of [...gameTypes].sort()) {
+  // The first registered name is the strategy's primary label; later shared entries are aliases.
+  const primary = gameTypes.find(type => REGION_TYPES[type] === REGION_TYPES[name]);
+  types.append(new Option(primary === name ? title(name) : `${title(name)} (${primary} strategy)`, `region:${name}`, false, name === 'depot'));
 }
 const examples = document.createElement('optgroup'); examples.label = 'SDK examples';
 for (const [name, label] of [['open', 'Open example'], ['depot', 'Depot example'], ['courtyard', 'Courtyard example'], ['ruins', 'Ruins example'], ['entry', 'Contestant entry example']]) examples.append(new Option(label, name));
@@ -220,9 +223,9 @@ function toggleNearbyGate() {
 }
 const movementKeys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight'];
 setInterval(() => { if (!avatar || !collision) return; const input = { x: (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0), y: (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) }; if (input.x || input.y) { moveBody(collision, avatar, input, walkerRadius(), avatar.role === 'contestant' ? 9 : 8); draw(); } }, 50);
-function editing(target) { return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(target.tagName)); }
-addEventListener('keydown', event => { if (editing(event.target)) return; if (movementKeys.includes(event.code)) { keys.add(event.code); event.preventDefault(); } if (event.code === 'KeyE' && !event.repeat) toggleNearbyGate(); });
-addEventListener('keyup', event => { if (!editing(event.target)) keys.delete(event.code); });
+addEventListener('keydown', event => { if (document.activeElement !== canvas) return; if (movementKeys.includes(event.code)) { keys.add(event.code); event.preventDefault(); } if (event.code === 'KeyE' && !event.repeat) toggleNearbyGate(); });
+addEventListener('keyup', event => keys.delete(event.code));
+canvas.addEventListener('blur', () => keys.clear());
 addEventListener('blur', () => keys.clear());
 document.addEventListener('visibilitychange', () => { if (document.hidden) keys.clear(); });
 document.addEventListener('focusin', () => keys.clear());

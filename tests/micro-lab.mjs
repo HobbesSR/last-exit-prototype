@@ -58,7 +58,7 @@ try {
   assert.match(downloadFile.suggestedFilename(), /^micro-region-9961\.json$/);
   assert.deepEqual(JSON.parse(await readFile(await downloadFile.path(), 'utf8')), varied.result, 'download preserves the generated artifact');
   const before = varied.avatar.x;
-  await page.evaluate(() => document.activeElement?.blur());
+  await page.locator('#preview').focus();
   await page.keyboard.down('KeyD');
   await page.waitForFunction(x => window.microLabDebug().avatar.x !== x, before);
   await page.keyboard.up('KeyD');
