@@ -25,6 +25,12 @@ const MASKS = {
 };
 
 const blockers = result => result.elements.flatMap(element => elementShapes(element));
+/** The cells a world-space box covers, as `x,y` keys. */
+const footprint = box => {
+  const keys = [];
+  for (let y = Math.floor(box.y / 40); y < Math.ceil((box.y + box.h) / 40); y++) for (let x = Math.floor(box.x / 40); x < Math.ceil((box.x + box.w) / 40); x++) keys.push(`${x},${y}`);
+  return keys;
+};
 
 test('a cover region keeps the portal promise over seeds and masks', () => {
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of [1, 2, 3, 4, 5, 6]) {
@@ -53,19 +59,30 @@ test('cover comes in clusters, each boxed with an aisle and clear of portals', (
     assert.ok(boxes.length < blockers(result).length, `${name} ${seed}: some slots hold clusters`);
     for (const a of boxes) {
       assert.ok(a.w <= 160 && a.h <= 160, `${name} ${seed}: a cluster outgrew its slot`);
-      for (let y = Math.floor(a.y / 40); y < Math.ceil((a.y + a.h) / 40); y++) for (let x = Math.floor(a.x / 40); x < Math.ceil((a.x + a.w) / 40); x++)
-        assert.ok(owned.has(`${x},${y}`) && !reserved.has(`${x},${y}`), `${name} ${seed}: cluster footprint ${x},${y}`);
+      for (const cell of footprint(a)) assert.ok(owned.has(cell) && !reserved.has(cell), `${name} ${seed}: cluster footprint ${cell}`);
     }
   }
 });
 
-test('density sets how much cover there is, and a small region stays clear', () => {
+test('density sets how much cover there is, and a small region keeps whole pieces clear of its portal', () => {
   const [cells, portals] = MASKS.field;
   const count = density => buildRegion(brief('field', 7, cells, portals, { parameters: { density } })).elements.length;
   assert.equal(count(0), 0);
   assert.ok(count(0.3) < count(0.7) && count(0.7) < count(1), `${count(0.3)}, ${count(0.7)}, ${count(1)}`);
-  const small = buildRegion(brief('small', 1, cellsOf(6, 6), [{ id: 'west', axis: 'v', x: 0, y: 2, length: 2 }], { parameters: { density: 1 } }));
-  assert.ok(small.elements.every(e => e.x >= 0 && e.y >= 0));
+  // A 6 x 6 region may still take a piece; when it does, the whole footprint stays in its
+  // cells and off the portal margin, and the portal is still reached.
+  const smallCells = cellsOf(6, 6), owned = new Set(smallCells.map(c => `${c.x},${c.y}`));
+  let placed = 0;
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+    const small = buildRegion(brief('small', seed, smallCells, [{ id: 'west', axis: 'v', x: 0, y: 2, length: 2 }], { parameters: { density: 1 } }));
+    const reserved = new Set(portalMargin(small.brief, 1).map(c => `${c.x},${c.y}`));
+    for (const box of blockers(small).map(bounds)) {
+      placed++;
+      for (const cell of footprint(box)) assert.ok(owned.has(cell) && !reserved.has(cell), `small ${seed}: footprint ${cell}`);
+    }
+    assert.deepEqual(validatePortalReach({ ...small.brief, blockers: blockers(small) }).errors, [], `small ${seed}`);
+  }
+  assert.ok(placed > 0, 'some small region takes a piece, so its footprint is checked');
   assert.throws(() => buildRegion(brief('field', 1, cells, portals, { parameters: { density: 2 } })), /density must be a number from 0 to 1/);
 });
 

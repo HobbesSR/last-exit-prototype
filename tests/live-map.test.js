@@ -3,14 +3,16 @@ import assert from 'node:assert/strict';
 import { generateLiveMap, liveChainParams, liveMapFromBuilt, liveMismatch, liveRecipeMismatch, liveSeed, liveZoneSize, LIVE_ZONE_SIZES } from '../map/live.ts';
 import { generate } from '../map/chain.ts';
 import { composeRegions } from '../map/micro/compose.ts';
+import { builtMapFrame } from '../map/micro/adapter.ts';
 import { canOccupy, moveBody } from '../shared/movement.ts';
 import { defaultContent, contentById } from '../shared/simulation/content.ts';
 import { createGame, setInput, step } from '../shared/simulation.ts';
 import { createMatch } from '../server/match.js';
 
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-let defaultMap;
+let defaultMap, defaultChain;
 const live = () => defaultMap ??= generateLiveMap(1);
+const liveChain = () => defaultChain ??= generate('1', liveChainParams());
 
 test('a chain live map supplies usable authored sites and retained loot metadata', () => {
   const map = live(), content = defaultContent();
@@ -45,7 +47,7 @@ test('the adapter is deterministic, content-sized, and is the default match map'
 });
 
 test('a chain map the Map Lab calls live is the map a room with its seed plays', () => {
-  const chain = generate('1', liveChainParams());
+  const chain = liveChain();
   assert.deepEqual(liveMismatch(chain), []);
   assert.deepEqual(liveMapFromBuilt(liveSeed(chain.layout.seed), composeRegions(chain.results)), live());
   const other = { ...chain, layout: { ...chain.layout, seed: '01', params: { ...chain.layout.params, exitCount: 2 } },
@@ -99,16 +101,29 @@ test('live sites allow charging, extraction, and safe hunter redeployment', () =
   assert.ok(map.stations.some(site => distance(hunter, site) === 0));
 });
 
+test('each live site and item keeps its own source region, place and tier', () => {
+  const map = live(), built = composeRegions(liveChain().results);
+  const { origin } = builtMapFrame(built), regions = new Map(built.regions.map(region => [region.brief.id, region]));
+  const world = site => `${site.x + origin.x},${site.y + origin.y}`;
+  for (const [sites, kind] of [[map.chargers, 'charger'], [map.stations, 'warp']]) {
+    assert.equal(sites.length, built.regions.flatMap(region => region.coreElements).filter(site => site.kind === kind).length, `every ${kind} is retained`);
+    for (const site of sites) assert.ok(regions.get(site.nodeId)?.coreElements.some(source => source.kind === kind && world(source) === `${site.x},${site.y}`),
+      `${kind} at ${site.x},${site.y} is a ${kind} of ${site.nodeId}`);
+  }
+  const loot = map.items.filter(item => item.nodeId);
+  assert.ok(loot.length > 0, 'region loot is retained');
+  for (const item of loot) {
+    const source = regions.get(item.nodeId)?.loot.find(spot => world(spot) === `${item.x},${item.y}`);
+    assert.ok(source, `${item.id} at ${item.x},${item.y} is a loot site of ${item.nodeId}`);
+    assert.equal(item.tier, source.tier, `${item.id} keeps its site's tier`);
+  }
+});
+
 test('the adapter rejects missing and extra required core sites', () => {
   const content = defaultContent();
   const chain = generate(1, { mode: 'game', exitCount: 1, contestantCount: content.roster.contestants.length,
     hunterCount: content.roster.gladiators.length });
   const built = composeRegions(chain.results);
-  const regionIds = new Set(built.regions.map(region => region.brief.id));
-  const authored = [...live().chargers, ...live().stations, ...live().items.filter(item => item.nodeId)];
-  assert.ok(authored.every(site => regionIds.has(site.nodeId)), 'node ownership names a built region');
-  const authoredTiers = new Set(built.regions.flatMap(region => region.loot.map(site => site.tier)));
-  assert.ok(live().items.filter(item => item.nodeId && item.tier != null).every(item => authoredTiers.has(item.tier)));
   const missing = structuredClone(built);
   const spawnRegion = missing.regions.find(region => region.coreElements.some(site => site.kind === 'spawn'));
   spawnRegion.coreElements.splice(spawnRegion.coreElements.findIndex(site => site.kind === 'spawn'), 1);
