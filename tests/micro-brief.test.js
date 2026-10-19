@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { REGION_TYPES, briefErrors, buildRegion } from '../map/micro/region-types.ts';
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { elementShapes } from '../map/micro/geometry.ts';
+import { validateFillConstraints } from '../map/micro/margins.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { BUILDERS } from '../map/micro/builders.ts';
 import { rect } from '../shared/shape.ts';
@@ -69,10 +70,28 @@ test('a brief whose portals cannot connect fails explicitly, not silently', () =
   assert.throws(() => buildRegion(lobes), /cannot connect/);
 });
 
-test('one portal carries no reachability requirement', () => {
-  const one = { ...brief(), portals: [brief().portals[0]] };
-  const sealed = [rect(0, 0, 200, 720)];
-  assert.deepEqual(validatePortalReach({ ...one, blockers: sealed }), { valid: true, errors: [], routes: [] });
+test('fewer than two portals carry no reachability requirement, but the margin is still a fill rule', () => {
+  // 17.2.4 (2026-09-29), 51.7, 54: a lone portal owes nothing, stands included.
+  const one = { ...brief(), portals: [brief().portals[0]] }, none = { ...brief(), portals: [] };
+  const empty = { valid: true, errors: [], routes: [] };
+  assert.deepEqual(validatePortalReach({ ...one, blockers: [] }), empty, 'a clear lone portal has no pair route');
+  assert.deepEqual(validatePortalReach({ ...none, blockers: [] }), empty);
+  // A wall over the lone portal's stands, on the boundary, and a portal too short for a
+  // hunter: each would be refused with a second portal, and each passes alone.
+  const sealed = [rect(0, 0, 200, 720)], sliver = [rect(0, 320, 0.5, 80)];
+  assert.deepEqual(validatePortalReach({ ...one, blockers: sealed }), empty);
+  assert.deepEqual(validatePortalReach({ ...one, blockers: sliver }), empty);
+  const short = { ...one, portals: [{ id: 'west', axis: 'v', x: 0, y: 8, length: 1 }] };
+  assert.deepEqual(validatePortalReach({ ...short, blockers: [] }), empty);
+  assert.ok(validatePortalReach({ ...short, portals: [...short.portals, brief().portals[1]], blockers: [] })
+    .errors.includes('Portal west is too short for a hunter.'));
+  // The automatic margin is a placement constraint, not part of the promise (20.6):
+  // geometry in it is the fill check's to name, and the diagnostic runs both.
+  assert.deepEqual(validateFillConstraints(one, sealed), ['Collision geometry leaves the allowed fill area.']);
+  assert.deepEqual(validateFillConstraints(one, [rect(400, 0, 40, 40)]), []);
+  // A malformed lone portal is still a bad brief, not an exemption.
+  assert.match(validatePortalReach({ ...one, portals: [{ id: 'mid', axis: 'v', x: 5, y: 8, length: 2 }], blockers: [] }).errors[0],
+    /Portal mid must lie on the region's perimeter/);
 });
 
 test('portal stands cover the whole portal from inside the region', () => {
