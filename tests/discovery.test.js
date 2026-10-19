@@ -172,6 +172,9 @@ test('discovered field is present only in player own frame projection as plain a
   const c0 = game.players[0]; // contestant
   const c1 = game.players[1]; // contestant
   const g0 = game.players.find(p => p.role === 'gladiator');
+  // Bring both subjects within transmission range so the privacy checks below cannot be skipped.
+  Object.assign(c1, { x: c0.x + 30, y: c0.y });
+  Object.assign(g0, { x: c0.x - 30, y: c0.y });
 
   const frame = snapshot(game);
 
@@ -183,14 +186,13 @@ test('discovered field is present only in player own frame projection as plain a
   assert.ok(meInView.discovered.length > 0);
 
   const otherContestant = viewC0.players.find(p => p.id === c1.id);
-  if (otherContestant) {
-    assert.equal(otherContestant.discovered, undefined, 'other contestant must not carry discovered');
-  }
+  assert.ok(otherContestant, 'other contestant in range must be in view');
+  assert.ok(c1.discovery.discovered.size > 0, 'other contestant must have discovery to withhold');
+  assert.equal(otherContestant.discovered, undefined, 'other contestant must not carry discovered');
 
   const gladiatorInView = viewC0.players.find(p => p.id === g0.id);
-  if (gladiatorInView) {
-    assert.equal(gladiatorInView.discovered, undefined, 'gladiator in view must not carry discovered');
-  }
+  assert.ok(gladiatorInView, 'gladiator in range must be in view');
+  assert.equal(gladiatorInView.discovered, undefined, 'gladiator in view must not carry discovered');
 
   // 2. In spectator view: no player carries discovered
   const viewSpectator = playerView(game, frame, 'spectator');
