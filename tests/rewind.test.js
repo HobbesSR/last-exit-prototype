@@ -4,10 +4,10 @@ import { createGame, step, snapshot } from '../shared/simulation.ts';
 import { attack, skill } from '../shared/simulation/combat.ts';
 import { viewLagFrom, MAX_REWIND_TICKS } from '../shared/simulation/rewind.ts';
 import { HZ, INTERPOLATION_DELAY_TICKS } from '../shared/simulation/rules.ts';
+import { createMatch } from '../server/match.js';
 
 /** A gladiator facing +x with an open field, and a contestant to hit. */
-function duel() {
-  const s = createGame(4217);
+function duel(s = createGame(4217)) {
   s.map.items = []; s.map.traps = []; s.map.obstacles = []; s.map.gates = [];
   const attacker = s.players.find(p => p.role === 'gladiator');
   const target = s.players.find(p => p.role === 'contestant');
@@ -128,9 +128,23 @@ test('history is bounded rather than growing with the match', () => {
 });
 
 test('a player who leaves stops being compensated', () => {
-  const { s, attacker } = duel();
-  attacker.viewLagTicks = 4;
-  attacker.bot = true;
-  delete attacker.viewLagTicks;
-  assert.equal(attacker.viewLagTicks, undefined, 'a bot sees the world directly');
+  // Through the match's own leave, which is what the room calls on a disconnect.
+  const match = createMatch(4217, undefined, createGame(4217).map);
+  const { s, attacker, target } = duel(match.diagnosticState);
+  settle(s);
+  target.x = 6400;
+  assert.ok(match.setViewLag(attacker.id, 1000 / HZ * 2));
+  assert.ok(attacker.viewLagTicks > 0, 'compensated while connected');
+  attacker.attackCd = 0;
+  attack(s, attacker);
+  assert.ok(target.hp < 100, 'so a swing at where the target was lands');
+
+  target.hp = 100;
+  assert.equal(match.leave(attacker.id), true);
+  assert.equal(attacker.bot, true);
+  assert.equal(Object.hasOwn(attacker, 'viewLagTicks'), false, 'a bot sees the world directly');
+  assert.equal(Object.hasOwn(match.snapshot().players.find(p => p.id === attacker.id), 'viewLagTicks'), false);
+  attacker.attackCd = 0;
+  attack(s, attacker);
+  assert.equal(target.hp, 100, 'and the same swing now resolves against the present');
 });
