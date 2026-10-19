@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, joinGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { movePlayer } from '../shared/movement.ts';
+import { roomHarness } from './helpers/room-harness.js';
 
 function fixture() {
   const s = createGame(4217);
@@ -127,13 +128,38 @@ test('the queue is private and never reaches another player', () => {
   assert.equal(Object.hasOwn(own, 'lastSeq'), true, 'only the acknowledgement it reconciles against');
 });
 
-test('a resumed slot does not spend the previous occupant input', () => {
+test('a newly joined slot starts with no queue and its own sequence numbering', () => {
   const { s, p } = fixture();
   setInput(s, p.id, { seq: 1, x: 1 });
   setInput(s, p.id, { seq: 2, x: 1 });
-  const rejoined = joinGame(s, 'second', 'contestant', 'warden', 'Other');
-  assert.notEqual(rejoined.id, p.id, 'a fresh slot, not the same one');
-  assert.equal(rejoined.inputQueue.length, 0);
-  assert.equal(rejoined.lastSeq, -1);
-  assert.equal(rejoined.receivedSeq, -1, 'and sequence numbering starts over for the new client');
+  const joined = joinGame(s, 'second', 'contestant', 'warden', 'Other');
+  assert.notEqual(joined.id, p.id, 'a fresh slot, not the same one');
+  assert.equal(joined.inputQueue.length, 0);
+  assert.equal(joined.lastSeq, -1);
+  assert.equal(joined.receivedSeq, -1, 'and sequence numbering starts for the new client');
+});
+
+test('a resumed slot spends only the new session input, from its own low sequence numbers', async () => {
+  const h = roomHarness();
+  try {
+    const { room, owner } = h.live();
+    h.wake(50);
+    const id = owner.session.playerId, p = room.game.players.find(q => q.id === id);
+    // Queued but never spent: the old client goes away with these still waiting.
+    for (const seq of [5, 6, 7]) owner.send({ type: 'input', seq, x: 1 });
+    assert.equal(p.inputQueue.length, 3);
+    const { resumeKey } = owner.messages.find(m => m.type === 'welcome');
+    const back = h.joined(room, { resumeKey });
+    assert.equal(back.session.playerId, id, 'the same slot, not a fresh one');
+    assert.equal(p.inputQueue.length, 0, 'the old queue went with the old session');
+    // The new client numbers from the start; a slot still expecting 8 would refuse this.
+    back.send({ type: 'input', seq: 1, x: -1 });
+    assert.equal(p.receivedSeq, 1);
+    h.wake(50);
+    assert.equal(p.lastSeq, 1, 'the one tick spent the new input');
+    assert.equal(p.input.x, -1);
+    h.wake(50);
+    assert.equal(p.lastSeq, 1, 'and no old input is spent after it');
+    assert.equal(p.inputStalled, 1, 'the next tick has nothing queued');
+  } finally { await h.service.close(); }
 });

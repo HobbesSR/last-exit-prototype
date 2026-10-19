@@ -84,16 +84,22 @@ test('a stall marker counts the ticks actually simulated when the match ends mid
 test('client diagnostics become recorded marks, never commands, and are validated and limited', async () => {
   const h = roomHarness();
   try {
-    const { owner, writer } = h.live();
+    const { room, owner, writer } = h.live();
     for (let i = 0; i < 12; i++) h.wake(50, 300);
-    const tick = writer.frames.at(-1).state.tick, before = writer.frames.at(-1).commands.length;
+    const tick = writer.frames.at(-1).state.tick, pending = room.inputs.length;
     owner.send({ type: 'diagnostic', kind: 'frame-drop', tick: tick - 3, startTick: tick - 9, count: 7.4, worstMs: 120.6 });
     assert.equal(writer.marks.length, 1);
     const [mark] = writer.marks;
     assert.equal(mark.kind, 'frame-drop'); assert.equal(mark.tick, tick - 3); assert.equal(mark.startTick, tick - 9);
     assert.equal(mark.count, 7); assert.equal(mark.worstMs, 121); assert.equal(mark.playerId, owner.session.playerId);
     assert.equal(mark.arrivalTick, tick);
-    assert.equal(writer.frames.at(-1).commands.length, before, 'not routed through the recorded inputs');
+    // The frame already written cannot show a command queued for the next tick, so look where it would wait.
+    assert.equal(room.inputs.length, pending, 'not queued among the inputs the next tick records');
+    const written = writer.frames.length;
+    h.wake(50, 0); // a tick, with no wall time for the rate limit below
+    assert.ok(writer.frames.length > written, 'a tick was recorded after the report');
+    assert.ok(writer.frames.slice(written).every(frame => frame.commands.every(c => c.type !== 'diagnostic' && c.kind !== 'frame-drop')),
+      'and the frame it wrote carries no trace of the report');
     owner.send({ type: 'diagnostic', kind: 'manual', tick });
     assert.equal(writer.marks.length, 1, 'rate limited');
     h.wake(50, 300);
@@ -105,15 +111,33 @@ test('client diagnostics become recorded marks, never commands, and are validate
   } finally { await h.service.close(); }
 });
 
-test('diagnostic reports are capped per session and refused from spectators', async () => {
+test('diagnostic reports are capped per session', async () => {
   const h = roomHarness();
   try {
-    const { room, owner, writer } = h.live();
+    const { owner, writer } = h.live();
     for (let i = 0; i < MAX_DIAGNOSTICS_PER_SESSION + 5; i++) { h.wake(50, 300); owner.send({ type: 'diagnostic', kind: 'manual', tick: 0 }); }
     assert.equal(writer.marks.length, MAX_DIAGNOSTICS_PER_SESSION);
-    const watcher = h.peer(); watcher.send({ type: 'join', room: room.id, role: 'spectator' });
-    watcher.send({ type: 'diagnostic', kind: 'manual', tick: 0 });
-    assert.equal(writer.marks.length, MAX_DIAGNOSTICS_PER_SESSION);
+  } finally { await h.service.close(); }
+});
+
+test('an admitted spectator has no diagnostic authority, independent of any cap or rate limit', async () => {
+  const h = roomHarness();
+  try {
+    const { room, writer } = h.live();
+    // Refused admission is a different boundary: that session never reaches the room at all.
+    const outsider = h.joined(room, { role: 'spectator' });
+    assert.match(outsider.messages[0].message, /owner key/); assert.equal(outsider.session.room, undefined);
+    const eye = h.joined(room, { role: 'spectator', ownerKey: room.ownerKey });
+    const welcome = eye.messages.find(m => m.type === 'welcome');
+    assert.equal(welcome.spectator, true, 'admitted'); assert.equal(eye.session.room, room); assert.equal(eye.session.playerId, null);
+    // A fresh session with time since the last report: only its role can refuse it.
+    h.wake(50, 300);
+    const pending = room.inputs.length, written = writer.frames.length;
+    eye.send({ type: 'diagnostic', kind: 'manual', tick: 0 });
+    assert.deepEqual(writer.marks, [], 'no recorded mark');
+    assert.equal(room.inputs.length, pending, 'nor a queued command');
+    h.wake(50, 300);
+    assert.ok(writer.frames.slice(written).every(frame => frame.commands.every(c => c.type !== 'diagnostic' && c.kind !== 'manual')));
   } finally { await h.service.close(); }
 });
 
