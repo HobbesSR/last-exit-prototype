@@ -72,7 +72,7 @@ test('changes against a keyframe the decoder lacks keep the last list and say wh
   assert.deepEqual(decoder.decode({ gates: [{ id: 'b' }] }).gates, [{ id: 'b' }], 'a plain list passes through');
 });
 
-test('a session is sent the keyframe after a skipped frame, while others keep sharing changes', () => {
+test('a session is sent the keyframe after a skipped frame, while others keep sharing changes', async () => {
   const h = roomHarness({ devTools: 'all' }), { room } = h.live();
   try {
     const watcher = () => {
@@ -97,5 +97,5 @@ test('a session is sent the keyframe after a skipped frame, while others keep sh
     const truth = room.match.project(room.match.snapshot(), null);
     assert.deepEqual(a.frames.at(-1).items, truth.items); assert.equal(a.frames.at(-1).stale, undefined);
     assert.deepEqual(b.frames.at(-1).items, truth.items);
-  } finally { return h.service.close(); }
+  } finally { await h.service.close(); }
 });
