@@ -104,13 +104,21 @@ test('gladiator kills upgrade the kit and refill ability, contestants can damage
   const a = s.players[1], b = s.players[2]; collectEquipment(a, { kind: 'weapon', weaponType: 'pistol' }); b.x = a.x + 24; b.y = a.y;
   input(s, a, { attack: true, aim: 0 }); assert.equal(b.hp, 90);
 });
-test('rail travel is gladiator-only, has a cooldown, and skips consumed stations', () => {
+test('rail travel is gladiator-only, has a cooldown, and skips stations not past hazardX + TILE', () => {
   const { s, p } = fixture('gladiator');
   Object.assign(p, { x: s.map.stations[0].x, y: s.map.stations[0].y });
   input(s, p, { interact: true }); assert.equal(p.x, s.map.stations[1].x); assert.equal(p.railCd, 180);
   input(s, p, { interact: true }); assert.equal(p.x, s.map.stations[1].x);
   const c = s.players[0]; c.x = s.map.stations[0].x; c.y = s.map.stations[0].y;
   input(s, c, { interact: true }); assert.equal(c.x, s.map.stations[0].x);
+
+  // Advance the hazard so the next station sits behind its edge; travel must pass over it.
+  const late = fixture('gladiator'), [from, behind, ahead] = late.s.map.stations, { content } = late.s;
+  late.s.tick = Math.ceil(content.hazardGraceTicks + (behind.x + 80) / (late.s.map.width + 100) * (content.durationTicks - content.hazardGraceTicks)) - 1;
+  Object.assign(late.p, { x: from.x, y: from.y });
+  input(late.s, late.p, { interact: true });
+  assert.ok(behind.x <= late.s.hazardX + TILE && ahead.x > late.s.hazardX + TILE, `hazard ${late.s.hazardX} must fall between ${behind.x} and ${ahead.x}`);
+  assert.deepEqual({ x: late.p.x, y: late.p.y }, { x: ahead.x, y: ahead.y });
 });
 test('sneaking avoids sensors, contestants have no innate skill, hazard affects gladiators too', () => {
   const { s, p } = fixture(); Object.assign(p, { x: s.map.sensors[0].x, y: s.map.sensors[0].y });
@@ -122,8 +130,17 @@ test('sneaking avoids sensors, contestants have no innate skill, hazard affects 
   step(s); assert.ok(g.hp < hp);
 });
 test('snapshots are independent copies including bot paths and accepted input', () => {
-  const s = createGame(); step(s); const frame = snapshot(s);
-  const before = JSON.stringify(frame); for (let i = 0; i < 20; i++) step(s);
+  const s = createGame(4217); const human = s.players[0]; human.bot = false; human.input = {};
+  assert.ok(setInput(s, human.id, { seq: human.lastSeq + 1, x: 1, y: 0 })); step(s);
+  const bot = s.players.find(p => p.bot && p.path?.length);
+  assert.ok(bot, 'a bot must hold a path to witness');
+  const frame = snapshot(s), mine = frame.players.find(p => p.id === human.id), theirs = frame.players.find(p => p.id === bot.id);
+  assert.deepEqual(theirs.path, bot.path); assert.ok(theirs.path.length > 0);
+  assert.deepEqual(mine.input, human.input); assert.equal(mine.input.x, 1); assert.equal(mine.lastSeq, human.lastSeq);
+  const path = structuredClone(theirs.path), accepted = structuredClone(mine.input), before = JSON.stringify(frame);
+  bot.path[0][0] += 99; bot.path.push([...bot.path[0]]); human.input.x = -1;
+  for (let i = 0; i < 20; i++) step(s);
+  assert.deepEqual(theirs.path, path); assert.deepEqual(mine.input, accepted);
   assert.equal(JSON.stringify(frame), before);
 });
 test('joining claims an active bot and refuses a finished match', () => {
