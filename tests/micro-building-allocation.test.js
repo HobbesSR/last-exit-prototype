@@ -312,18 +312,15 @@ test('hub guidance scores authored doors against a realizable five-neighbor witn
     connections: leaves.map(id => ({ id: `h-${id}`, a: 'h', b: id, kind: 'door' })) };
   // A central 4x10 hub can meet three 6-wide rooms to its left and two to its right.
   // The score is a soft measure of requested openings, not a claim of optimal search.
-  let best = 0;
   for (const seed of [0, 1, 2, 3]) {
     const result = checkAllocation(allocateBuilding(design, footprint, { seed }), design, footprint);
     const fulfilled = design.connections.filter(connection => result.openings.some(opening =>
       opening.connectionId === connection.id && opening.kind === 'door')).length;
     assert.equal(result.scoreComponents.connections, fulfilled, `seed ${seed} scores placed authored doors`);
     assert.ok(fulfilled >= 4, `seed ${seed} preserves at least four hub requests at the default budget`);
-    best = Math.max(best, fulfilled);
     const { mask, blockers } = checkRealization(result, footprint);
     checkInteriorAccess(result, mask, blockers);
   }
-  assert.ok(best >= 4, `at least four of five hub requests should be achievable; best was ${best}`);
 });
 
 test('allocation openings describe default overlap placement before optional corner trims', () => {

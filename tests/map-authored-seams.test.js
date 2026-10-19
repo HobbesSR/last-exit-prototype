@@ -30,8 +30,8 @@ const tileOf = library => {
 };
 
 test('authored inward seams lose their guarantee while every exposed region edge keeps its original prescription', () => {
-  let affected = 0, internal = 0, exposed = 0;
   for (const library of CHAIN_LIBRARIES) {
+    let affected = 0, internal = 0, exposed = 0;
     const tile = tileOf(library), originals = new Map(library.tiles.map(t => [t.id, t]));
     for (const piece of library.setPieces) {
       const slots = new Map(piece.tiles.map(slot => [`${slot.dx},${slot.dy}`, slot]));
@@ -59,8 +59,10 @@ test('authored inward seams lose their guarantee while every exposed region edge
         }
       }
     }
+    assert.ok(affected > 100 && internal > 0 && exposed > 0,
+      `${library.name} exercises the authored variants: ${affected} variant tiles, ${internal} internal and ${exposed} exposed segments`);
   }
-  assert.ok(affected > 500 && internal > 0 && exposed > 0, 'all three library sizes exercise the authored variants');
+  assert.equal(CHAIN_LIBRARIES.length, 3, 'all three library sizes are checked');
 });
 
 /** Surround one exact set-piece footprint with field, so its original edge portals are derived. */

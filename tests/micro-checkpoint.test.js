@@ -4,6 +4,7 @@ import { buildRegion } from '../map/micro/region-types.ts';
 import { createRegionMask, elementShapes } from '../map/micro/geometry.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
 import { portalMargin } from '../map/micro/hints.ts';
+import { bounds } from '../shared/shape.ts';
 
 const SIZE = 40;
 const cellsOf = (w, h, keep = () => true) => {
@@ -73,21 +74,38 @@ test('barriers alternate sides across the line, ruin walls that block sight', ()
   }
 });
 
+/** Free intervals of `run` once every `[from, to]` in `blocked` is removed, in cells. */
+const freeIntervals = (run, blocked) => {
+  let free = [run];
+  for (const [from, to] of blocked) free = free.flatMap(([a, b]) => [[a, Math.min(b, from)], [Math.max(a, to), b]].filter(([c, d]) => d - c > 1e-9));
+  return free;
+};
+
 test('each barrier leaves a gap a door wide, and a narrow lane still takes one', () => {
   for (const name of ['lane', 'narrow', 'tall']) {
     const [cells, portals] = MASKS[name];
+    let walls = 0;
     for (const seed of SEEDS) {
       const input = brief(name, seed, cells, portals), result = buildRegion(input), mask = createRegionMask(input);
+      const pieces = blockers(result).map(bounds).map(b => ({ x: b.x / SIZE, y: b.y / SIZE, w: b.w / SIZE, h: b.h / SIZE }));
       for (const wall of barriers(result)) {
+        walls++;
         const x = wall.x / SIZE, y = wall.y / SIZE, w = wall.template.w / SIZE, h = wall.template.h / SIZE;
-        const long = Math.max(w, h), cross = w > h ? [y, y + h] : [x, x + w];
-        // The column's run of owned cells, minus the barrier, leaves at least 2 free.
-        let owned = 0;
-        for (let i = 0; i < 40; i++) if (w > h ? mask.has(Math.floor(x + w / 2), i) : mask.has(i, Math.floor(y + h / 2))) owned++;
-        assert.ok(owned - long >= 2 - 1e-9, `${name} ${seed} ${wall.label} leaves a doorway`);
-        assert.ok(cross[1] > cross[0]);
+        // The cross-section the barrier spans: the row through it if it lies along x, else the column.
+        const along = w > h, line = along ? y + h / 2 : x + w / 2, span = along ? [x, x + w] : [y, y + h];
+        const owned = i => along ? mask.has(i, Math.floor(line)) : mask.has(Math.floor(line), i);
+        let from = Math.floor(span[0]), to = from;
+        assert.ok(owned(from), `${name} ${seed} ${wall.label} stands in the region`);
+        while (owned(from - 1)) from--;
+        while (owned(to)) to++;
+        assert.ok(span[1] - span[0] > 0 && span[0] >= from && span[1] <= to, `${name} ${seed} ${wall.label} lies across its owned run`);
+        const blocked = pieces.filter(p => along ? p.y < line && p.y + p.h > line : p.x < line && p.x + p.w > line)
+          .map(p => along ? [p.x, p.x + p.w] : [p.y, p.y + p.h]);
+        const widest = Math.max(0, ...freeIntervals([from, to], blocked).map(([a, b]) => b - a));
+        assert.ok(widest >= 2 - 1e-9, `${name} ${seed} ${wall.label} leaves a contiguous doorway; widest gap ${widest}`);
       }
     }
+    assert.ok(walls > 0, `${name} stands barriers to check`);
   }
   assert.ok(barriers(buildRegion(brief('narrow', 1, ...MASKS.narrow))).length >= 1, 'a 3-cell lane is chicaned');
 });
