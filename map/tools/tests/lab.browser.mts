@@ -1100,8 +1100,16 @@ try {
   );
 
   // Add all remaining available tiles to test "All library tiles are members" state robustly
-  while ((await page.locator("#setAvailableGallery .tile-card").count()) > 0) {
-    await page.locator("#setAvailableGallery .tile-card").first().click();
+  // Bounded by the starting count, and each click must take one tile, so a stuck gallery fails here.
+  const availableCards = page.locator("#setAvailableGallery .tile-card");
+  const initialAvailable = await availableCards.count();
+  for (let remaining = initialAvailable; remaining > 0; remaining--) {
+    await availableCards.first().click();
+    assert.equal(
+      await availableCards.count(),
+      remaining - 1,
+      `adding an available tile leaves ${remaining - 1} of ${initialAvailable}`,
+    );
   }
   assert.equal(
     await page.locator("#setAvailableGallery .tile-card").count(),
