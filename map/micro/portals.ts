@@ -54,8 +54,9 @@ export function portalStands(region: PortalRegion): PortalStands[] {
  * Elective (51 principle 9): check a region's promise from its final collision geometry.
  * Every part of every portal must be reachable by a hunter from every other portal, from
  * within original ownership and its explicit known-clear context. Fewer than two portals
- * carry no requirement, so beyond checking the portals are well formed, nothing is checked:
- * not stands, not joins (20.1). Their automatic margin is `validateFillConstraints`'s.
+ * carry no reachability requirement: no stand clearance or joins are checked (20.1).
+ * Input checks still apply, including collision shapes, bounded runs and portal placement.
+ * Their automatic margin is `validateFillConstraints`'s.
  * The route search is sampled: a found route is a real one, but a miss doesn't prove
  * that none exists (20, "Geometry and reachability"). It reports; it never repairs.
  */

@@ -94,6 +94,21 @@ test('fewer than two portals carry no reachability requirement, but the margin i
     /Portal mid must lie on the region's perimeter/);
 });
 
+test('zero and one portal still reject malformed collision shapes and internal runs', () => {
+  for (const portals of [[], [brief().portals[0]]]) {
+    const region = { ...brief(), portals };
+    const badShape = validatePortalReach({ ...region, blockers: [rect(400, 0, -1, 40)] });
+    assert.equal(badShape.valid, false);
+    assert.deepEqual(badShape.errors, ['Blockers must be valid convex collision shapes.']);
+    assert.deepEqual(badShape.routes, []);
+    const badRun = validatePortalReach({ ...region, blockers: [],
+      internalGuaranteed: [{ axis: 'v', x: 5, y: 8, length: 0 }] });
+    assert.equal(badRun.valid, false);
+    assert.deepEqual(badRun.errors, ['Internal guaranteed runs must be a bounded list of runs.']);
+    assert.deepEqual(badRun.routes, []);
+  }
+});
+
 test('portal stands cover the whole portal from inside the region', () => {
   const [west, east] = portalStands(brief());
   assert.deepEqual(west.inward, { x: 1, y: 0 });
