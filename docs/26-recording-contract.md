@@ -5,6 +5,10 @@ default content is `content-2`, and recordings use schema 5 (4 added masked maps
 minimum schema 0.
 Storage-only changes must preserve frozen gameplay fixtures.
 
+The planned optional presentation descriptor and its compatibility/fallback
+rules are in [22.7](22.7-content-and-presentation.md). That #386 design has not
+changed the current writer schema or existing archives.
+
 ## Versioning and compatibility
 
 `shared/recording.ts` owns whether a build can play a recording, and both the writer and the reader
