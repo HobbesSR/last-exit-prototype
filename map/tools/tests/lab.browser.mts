@@ -1099,10 +1099,13 @@ try {
     "added tile is removed from available gallery",
   );
 
-  // Add all remaining available tiles to test "All library tiles are members" state robustly
+  // Add all available tiles to test "All library tiles are members" state robustly. Return the
+  // tile just added first, so the loop has at least one card to take; it ends in the same state.
+  await page.locator(`#setMembersGallery .tile-card[data-tile="${tileToAdd}"]`).click();
   // Bounded by the starting count, and each click must take one tile, so a stuck gallery fails here.
   const availableCards = page.locator("#setAvailableGallery .tile-card");
   const initialAvailable = await availableCards.count();
+  assert.ok(initialAvailable > 0, "the bulk add starts with available tiles");
   for (let remaining = initialAvailable; remaining > 0; remaining--) {
     await availableCards.first().click();
     assert.equal(
