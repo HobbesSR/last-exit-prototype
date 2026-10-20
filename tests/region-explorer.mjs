@@ -38,10 +38,17 @@ try {
     await selectBuilder(type);
     assert.ok((await debug()).avatar, `${type} has a walker on clear ground`);
   }
-  for (const shape of ['rect', 'l', 'hole', 'neck', 'cross', 'stair']) {
-    await page.getByLabel('Region shape', { exact: true }).selectOption(shape);
+  // Each shape must produce its own build: compare with a direct one, whose cells differ from the
+  // previous shape's, so a control that stopped regenerating cannot pass on the prior result.
+  await selectBuilder('market');
+  let previousCells = (await debug()).result.brief.cells;
+  for (const [option, shape] of [['l', 'l'], ['hole', 'hole'], ['neck', 'neck'], ['cross', 'cross'], ['rect', 'rectangle'], ['stair', 'stair']]) {
+    await page.getByLabel('Region shape', { exact: true }).selectOption(option);
     await page.getByRole('button', { name: 'Generate region', exact: true }).click();
-    assert.ok((await debug()).result, shape);
+    const expected = JSON.parse(JSON.stringify(buildRegion(regionExample({ type: 'market', shape }))));
+    assert.notDeepEqual(expected.brief.cells, previousCells, `${shape} has its own cells`);
+    assert.deepEqual((await debug()).result, expected, `${shape} control builds its own region`);
+    previousCells = expected.brief.cells;
   }
   await selectBuilder('charging');
   await page.getByLabel('Width (cells)', { exact: true }).fill('32');
