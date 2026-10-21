@@ -330,7 +330,6 @@ async function connect({ room, key, role = 'contestant', kit = DEFAULT_KIT, name
 }
 function acceptState(next) {
   state = next;
-  if (directed() && !replayController.active()) director.observeState(next);
   if (!replayController.active()) snapshots.push(next);
   if (!arenaMap) return;
   arenaMap.gates = state.gates;
@@ -400,7 +399,13 @@ const ArenaScene = makeArenaScene({
   // server frame can be advanced smoothly between them.
   frameAlpha: () => replayController.active() ? replayController.frameAlpha() : (presentationFrame()?.alpha ?? 0),
   onReady: value => scene = value, onFire: value => inputController.setPointerFire(value),
-  onFrame: () => { if (!replayController.active()) presentation = snapshots.frame() || state; replayController.renderFrame(); },
+  onFrame: () => {
+    if (!replayController.active()) {
+      presentation = snapshots.frame() || state;
+      if (directed() && presentation) director.observeState(presentation);
+    }
+    replayController.renderFrame();
+  },
   onSight: () => {
     if (directed()) hudController.drawMinimap({ state: presentationFrame(), arenaMap, playerId,
       visibility: { directed: true, fogged: director.fog() && !!director.followId(), viewer: director.viewer(), sight: scene?.sight } });

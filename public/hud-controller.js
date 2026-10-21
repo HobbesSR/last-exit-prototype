@@ -249,7 +249,7 @@ export function createHUDController(actions) {
         }
       }
     }
-    profiler.start('render.minimap'); drawMinimap({ arenaMap, state, playerId, visibility, discovery }); profiler.stop('render.minimap');
+    drawMinimap({ arenaMap, state, playerId, visibility, discovery });
   }
   let mColors = null;
   const getMinimapColors = () => {
@@ -270,6 +270,11 @@ export function createHUDController(actions) {
   };
 
   function drawMinimap({ arenaMap, state, playerId, visibility, discovery }) {
+    profiler.start('render.minimap');
+    try { paintMinimap({ arenaMap, state, playerId, visibility, discovery }); }
+    finally { profiler.stop('render.minimap'); }
+  }
+  function paintMinimap({ arenaMap, state, playerId, visibility, discovery }) {
     if (!arenaMap || !state) return;
     const cols = getMinimapColors();
     const c = $('minimap').getContext('2d'); const sx = 260 / arenaMap.width, sy = 124 / arenaMap.height;
