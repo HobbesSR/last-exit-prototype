@@ -10,13 +10,16 @@ import { readdirSync } from 'node:fs';
 // A fast-tier file over FAST_BUDGET_S should be optimized (share a generated map between tests, build
 // fewer rooms) or split into files that run in parallel. A slow-tier file over SLOW_BUDGET_S should
 // gate its largest cases behind an environment variable, as tests/slow/room-sizes.test.js does (31).
+// The default inventory is every unit file `npm run test:all` and `npm run test:mapgen` run; a
+// file under a slow/ directory is slow tier. Browser scripts and opt-in size runs are not unit files.
 const FAST_BUDGET_S = 15, SLOW_BUDGET_S = 60;
 
 const args = process.argv.slice(2), strict = args.includes('--strict');
 const named = args.filter(arg => !arg.startsWith('--'));
+const unitFiles = (dir, extension) => readdirSync(dir).filter(f => f.endsWith(extension)).map(f => `${dir}/${f}`);
 const files = named.length ? named : [
-  ...readdirSync('tests').filter(f => f.endsWith('.test.js')).map(f => `tests/${f}`),
-  ...readdirSync('tests/slow').filter(f => f.endsWith('.test.js')).map(f => `tests/slow/${f}`),
+  ...unitFiles('tests', '.test.js'), ...unitFiles('tests/slow', '.test.js'),
+  ...unitFiles('map/macro/tests', '.test.ts'), ...unitFiles('map/macro/tests/slow', '.test.ts'),
 ];
 
 const rows = [];

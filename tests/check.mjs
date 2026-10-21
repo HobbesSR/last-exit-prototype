@@ -5,8 +5,10 @@ import { stripTypeScriptTypes } from 'node:module';
 // JavaScript is parsed exactly as Node would load it. TypeScript is verified to erase cleanly,
 // which is the equivalent guarantee: Node strips these modules at load time rather than parsing
 // them, so a non-erasable construct is what would actually break the server or the browser.
-// Type correctness is a separate, stronger pass — `npm run typecheck`.
-for (const root of ['server', 'shared', 'map/micro', 'map/kernel', 'public', 'tests']) {
+// Type correctness is a separate, stronger pass — `npm run typecheck`, which also covers the
+// map/*.ts entry modules and map/tools' .mts files that this walk does not strip. map/macro is
+// left to its own gate, `npm run test:mapgen`, which typechecks it before running its tests.
+for (const root of ['server', 'shared', 'map/micro', 'map/kernel', 'map/tools', 'public', 'tests', 'tools']) {
   for (const file of readdirSync(root, { recursive: true })) {
     const target = `${root}/${file}`;
     if (/\.(js|mjs)$/.test(file)) {

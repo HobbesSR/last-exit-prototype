@@ -17,6 +17,9 @@
 
     "strict": true,
     "exactOptionalPropertyTypes": true,
+    // Unused locals and imports, but not parameters: some signatures are kept interchangeable
+    // on purpose, as `couldSee` in shared/simulation/visibility.ts is. map/tools inherits this.
+    "noUnusedLocals": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": false,

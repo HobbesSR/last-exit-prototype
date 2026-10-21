@@ -15,7 +15,6 @@ export type { RegionSpec, MicroResult } from './types.ts';
 
 const RANK = { none: 0, contestant: 1, hunter: 2 };
 const WALL = 8;
-const normal = { N: { x: 0, y: 1 }, S: { x: 0, y: -1 }, W: { x: 1, y: 0 }, E: { x: -1, y: 0 } };
 
 function checkedSpec(input: RegionSpec): RegionSpec {
   if (!input || typeof input.id !== 'string' || !input.id.length || input.id.length > 100 || !Number.isSafeInteger(input.seed)) throw new Error('A region needs a stable id and integer seed.');

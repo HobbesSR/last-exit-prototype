@@ -1,10 +1,10 @@
 import { generateMap, WORLD_WIDTH, WORLD_HEIGHT } from '../map.ts';
 import { SLOT_COUNT } from '../equipment.ts';
-import { VERSION, KITS } from './rules.ts';
+import { VERSION } from './rules.ts';
 import { queueInput, resetInput } from './input.ts';
 import { defaultContent } from './content.ts';
 import { createDiscovery, attachDiscovery, discover } from '../discovery.ts';
-import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role, SlotIndex } from '../types.ts';
+import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role } from '../types.ts';
 
 /**
  * `map` defaults to the one `seed` generates. Supplying it instead pins the arena a game runs in,

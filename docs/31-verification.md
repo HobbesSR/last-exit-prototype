@@ -121,8 +121,15 @@ uses final collision geometry rather than trusting recorded routes.
 
 `npm run check` parses every JavaScript module as Node would load it and confirms
 every TypeScript module erases cleanly, which is what Node does instead of parsing
-it. `npm run typecheck` is the separate, stronger pass: `tsc --noEmit` over
-`shared/` under `strict`. Browser tests drive installed Google Chrome through
+it. It walks `server/`, `shared/`, `map/micro/`, `map/kernel/`, `map/tools/`,
+`public/`, `tests/` and `tools/`. `npm run typecheck` is the separate, stronger
+pass: `tsc --noEmit` under `strict` over `shared/`, `map/micro/`, `map/kernel/` and
+the `map/*.ts` entry modules, then over `map/tools/` (including its `.mts` files,
+which the check walk does not strip). Both typecheck passes reject unused locals and
+imports (`noUnusedLocals`) but not unused parameters, because some signatures are
+kept interchangeable on purpose (`couldSee` in `shared/simulation/visibility.ts`).
+`map/macro/` is outside both commands: its own `npm run test:mapgen` typechecks it,
+rejecting unused parameters as well, before running its tests. Browser tests drive installed Google Chrome through
 Playwright and start an isolated temporary server; screenshots land in
 `test-results/`. `tests/browser.mjs` is one long scenario whose sections share
 pages and rooms, so it takes minutes; a feature that needs only its own server and
@@ -131,7 +138,10 @@ so it can be iterated on in seconds. `npm run test:browser` runs them all.
 
 `npm run test:times` times every unit test file alone, slowest first, and marks files over
 budget (15 s fast tier, 60 s slow tier) with their slowest tests; `-- --strict` exits 1 on
-any, and file paths limit it. Run it when adding or growing a test file. A file over budget is
+any, and file paths limit it. With no paths it times every unit file of `npm run test:all`
+and `npm run test:mapgen`: `tests/`, `map/macro/tests/` and the `slow/` directory of each,
+where a file under `slow/` is slow tier. Browser scripts and opt-in size runs are not in it.
+Run it when adding or growing a test file. A file over budget is
 optimized (share a generated map across tests, build fewer rooms), split into files
 that run in parallel, or has its largest cases gated behind an environment variable as
 `room-sizes` does. The room harness shares maps for tests about room policy rather than
@@ -142,6 +152,10 @@ and the slow `map-library`; they are the first candidates, not a precedent.
 
 The timing command exits 1 when any test process fails, cannot launch, or terminates
 by signal, even without `--strict`. It prints the failure reason and captured test output.
+No gate runs `--strict`: the budgets are wall-clock times on a machine other agents'
+worktrees share, and the files listed above are already over them, so a strict gate
+would fail on contention or on known debt rather than on the change under review. It is
+for checking the files a change adds or grows, run in isolation.
 
 Run timing comparisons sequentially, with no competing tests or benchmarks, and
 repeat a suspected regression three times before believing it. Do not claim the
@@ -220,10 +234,10 @@ changes, and the new expectations and version decision they require, from
 behaviour-preserving extraction. `tests/fixtures/README.md` records provenance, how
 to regenerate and how to audit.
 
-`npm run check` recursively checks every module in server/shared/public/tests:
-JavaScript is parsed as Node would load it, and TypeScript is verified to erase
-cleanly, which is what Node does instead of parsing it. `npm run typecheck` is the
-separate, stronger pass.
+`npm run check` recursively checks every module in the directories listed under
+the verification tiers above: JavaScript is parsed as Node would load it, and
+TypeScript is verified to erase cleanly, which is what Node does instead of parsing
+it. `npm run typecheck` is the separate, stronger pass.
 
 ## Coverage
 

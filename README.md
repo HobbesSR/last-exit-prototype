@@ -137,7 +137,7 @@ npm run typecheck
 npm run test:browser
 ```
 
-`npm run check` parses every JavaScript module and confirms every TypeScript module erases cleanly, which is what Node does to load it. `npm run typecheck` is the stronger pass: `tsc --noEmit` over `shared/` under `strict`.
+`npm run check` parses every JavaScript module and confirms every TypeScript module erases cleanly, which is what Node does to load it. `npm run typecheck` is the stronger pass: `tsc --noEmit` under `strict`, rejecting unused locals and imports, over `shared/`, `map/micro/`, `map/kernel/`, the `map/*.ts` entry modules and `map/tools/`. The map generator in `map/macro/` has its own gate, `npm run test:mapgen`. [31](docs/31-verification.md) has the full coverage of each command.
 
 Browser tests use an installed Google Chrome through Playwright and start an isolated temporary server. Screenshots are written to `test-results/`. Tests cover seeded routes, geometry, line of sight, movement, combat, extraction, multiplayer authority, per-viewer filtering, the spectator directed view, the dev view's camera and follow, recording integrity, replay controls, shot interpolation, and desktop/touch input. The visibility polygon's culling is checked against a brute-force implementation of the same rays over sixteen hundred cases, including origins placed exactly on obstacle corners and edges, and must match it vertex for vertex.
 
