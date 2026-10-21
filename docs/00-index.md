@@ -60,7 +60,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [20-micro-generation.md](20-micro-generation.md) | Guide to micro contracts, geometry, builders, decomposition, tools, passable margins (20.6) and builder delegation (20.7: preparation/execution, hut and compound adoption implemented); load the relevant 20.x part |
 | [21-stack.md](21-stack.md) | Chosen components, why, and the constraints a replacement must satisfy |
 | [22-ownership.md](22-ownership.md) | Guide to ownership by subsystem and the boundaries tests enforce; load the relevant 22.x part |
-| [22.6-hierarchical-navigation.md](22.6-hierarchical-navigation.md) | A proposal, not built: hierarchical navigation, private map knowledge and optimistic bot planning (#353) |
+| [22.6-hierarchical-navigation.md](22.6-hierarchical-navigation.md) | Direction recorded, not built: portal-graph navigation over a navmesh, private map knowledge and optimistic bot planning (#353) |
 | [22.7-content-and-presentation.md](22.7-content-and-presentation.md) | Content/presentation and shared-rule ownership (#385, implemented in #386): display descriptors, live/replay metadata, client configuration and compatibility defaults |
 | [23-types.md](23-types.md) | The TypeScript arrangement in `shared/`, branding policy, erasure |
 | [24-networking-privacy.md](24-networking-privacy.md) | Server authority, potential visibility, field contracts, spectator delay |
