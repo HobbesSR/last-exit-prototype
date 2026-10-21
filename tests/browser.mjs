@@ -325,6 +325,111 @@ try {
   await page.waitForFunction(() => Number(document.getElementById('replay-seek').value) === 30, null, { timeout: PLAYBACK_DEADLINE });
   assert.equal(await page.locator('#replay-status').textContent(), 'MISSING DATA · showing tick 24');
   assert.equal(await page.evaluate(() => window.arenaDebug().shots[0].x), originX + 240, 'tail gap holds final projectile position');
+  // A recording can omit a player from its authoritative frame even while that player remains in
+  // the replay roster. Give two subjects separate leading and middle gaps, then reappear far away:
+  // a seek back must use only positions already reached by the playhead.
+  const [absentA, absentB] = denseReplay.frames[0].state.players.slice(0, 2).map(p => p.id);
+  const firstPlace = { x: 1000, y: 1000 };
+  const laterPlace = { x: savedRecording.map.width - 1000, y: savedRecording.map.height - 1000 };
+  const otherPlace = { x: savedRecording.map.width / 2, y: savedRecording.map.height / 2 };
+  const absentFrame = (tick, a, b) => {
+    const state = fixtureState(tick);
+    state.players = state.players.filter(p => (p.id !== absentA || a) && (p.id !== absentB || b));
+    for (const [id, place] of [[absentA, a], [absentB, b]]) {
+      if (place) Object.assign(state.players.find(p => p.id === id), place);
+    }
+    return { state, commands: [] };
+  };
+  routedReplay = { ...denseReplay, frames: [
+    absentFrame(0, firstPlace, null), absentFrame(5, null, null),
+    absentFrame(10, null, otherPlace), absentFrame(15, laterPlace, null),
+    absentFrame(20, null, null), absentFrame(25, null, laterPlace)
+  ], recording: { complete: true, droppedFrames: 0, endTick: 25 } };
+  const seekAbsent = async tick => {
+    await page.locator('#replay-seek').fill(String(tick));
+    await page.waitForFunction(tick => Number(document.getElementById('replay-seek').value) === tick, tick);
+  };
+  const centredAt = async (place, label) => {
+    await page.waitForFunction(({ x, y }) => {
+      const d = window.arenaDebug();
+      return d.cameraWidth < d.mapWidth / 2 && Math.abs(d.camera.x + d.cameraWidth / 2 - x) < 60
+        && Math.abs(d.camera.y + d.cameraHeight / 2 - y) < 60;
+    }, place);
+    const d = await page.evaluate(() => window.arenaDebug());
+    assert.ok(d.cameraWidth < d.mapWidth / 2, `${label}: the held camera keeps followed zoom`);
+  };
+  const noAbsentSight = async label => {
+    await page.waitForFunction(() => {
+      const d = window.arenaDebug();
+      return d.viewer === null && d.vision === null && d.actors.every(actor => !actor.visible) && window.minimapActorDots === 0;
+    });
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const d = await page.evaluate(() => window.arenaDebug());
+    assert.equal(d.viewer, null, `${label}: no missing subject grants sight`);
+    assert.equal(d.vision, null, `${label}: no visibility polygon is computed`);
+    assert.ok(d.actors.every(actor => !actor.visible), `${label}: no dynamic actor is shown`);
+    assert.equal(await page.evaluate(() => window.minimapActorDots), 0, `${label}: no dynamic actor reaches the minimap`);
+  };
+  await page.getByRole('button', { name: 'Exit replay' }).click();
+  await page.getByRole('button', { name: 'Replays', exact: true }).click();
+  await openRoutedReplay(); await pausePlayback();
+  await page.evaluate(() => {
+    const context = document.getElementById('minimap').getContext('2d');
+    const arc = context.arc.bind(context), clearRect = context.clearRect.bind(context);
+    window.minimapActorDots = 0;
+    context.clearRect = (...args) => { window.minimapActorDots = 0; clearRect(...args); };
+    context.arc = (...args) => { window.minimapActorDots++; arc(...args); };
+  });
+  assert.equal(await page.locator(`#replay-focus option[value="${absentB}"]`).count(), 1, 'a future subject remains in the roster');
+  await page.locator('#replay-focus').selectOption(absentB);
+  await page.waitForFunction(() => window.arenaDebug().cameraWidth >= window.arenaDebug().mapWidth);
+  await noAbsentSight('before first appearance');
+  await seekAbsent(25);
+  await centredAt(laterPlace, 'returning second subject');
+  await seekAbsent(0);
+  await page.waitForFunction(() => window.arenaDebug().cameraWidth >= window.arenaDebug().mapWidth);
+  await noAbsentSight('backward seek before first appearance');
+  await page.locator('#replay-focus').selectOption(absentA);
+  await centredAt(firstPlace, 'first appearance');
+  await seekAbsent(5);
+  await centredAt(firstPlace, 'middle absence');
+  await noAbsentSight('middle absence');
+  await page.locator('#replay-focus').selectOption(absentB);
+  await page.waitForFunction(() => window.arenaDebug().cameraWidth >= window.arenaDebug().mapWidth);
+  await noAbsentSight('switching to a subject not yet seen');
+  await seekAbsent(10);
+  await centredAt(otherPlace, 'second subject appears');
+  await seekAbsent(15);
+  await centredAt(otherPlace, 'second subject goes missing');
+  await noAbsentSight('second subject missing');
+  await page.locator('#replay-focus').selectOption(absentA);
+  await centredAt(laterPlace, 'first subject returns');
+  await seekAbsent(5);
+  await centredAt(firstPlace, 'backward seek rejects future position');
+  await noAbsentSight('backward seek into absence');
+  await page.evaluate(() => document.activeElement.blur());
+  await page.keyboard.press('KeyV');
+  await page.waitForFunction(() => window.arenaDebug().fog === false && window.arenaDebug().actors.some(actor => actor.visible) && window.minimapActorDots > 0);
+  await centredAt(firstPlace, 'fog off keeps the held follow camera');
+  const omniscient = await page.evaluate(() => window.arenaDebug());
+  assert.equal(omniscient.viewer, null);
+  assert.equal(omniscient.vision, null);
+  assert.ok(omniscient.actors.some(actor => actor.visible), 'fog off shows the other recorded actors');
+  assert.ok(await page.evaluate(() => window.minimapActorDots > 0), 'fog off shows recorded actors on the minimap');
+  await page.getByRole('button', { name: 'Exit replay' }).click();
+  await page.getByRole('button', { name: 'Replays', exact: true }).click();
+  await openRoutedReplay(); await pausePlayback();
+  assert.equal(await page.evaluate(() => window.arenaDebug().fog), true, 'a new replay restores fog');
+  routedReplay = { ...denseReplay, frames: [
+    absentFrame(5, null, otherPlace), absentFrame(10, firstPlace, otherPlace)
+  ], recording: { complete: true, droppedFrames: 0, endTick: 10 } };
+  await page.getByRole('button', { name: 'Exit replay' }).click();
+  await page.getByRole('button', { name: 'Replays', exact: true }).click();
+  await openRoutedReplay(); await pausePlayback();
+  await seekAbsent(0);
+  await page.locator('#replay-focus').selectOption(absentB);
+  await page.waitForFunction(() => window.arenaDebug().cameraWidth >= window.arenaDebug().mapWidth);
+  await noAbsentSight('leading recording gap before its first retained frame');
   // Marks at one tick (a server stall and reports from two players) must each stay selectable: they
   // share a cluster pip that opens a list, and a lone mark elsewhere keeps its own pip.
   const [markA, markB] = denseReplay.frames[0].state.players.map(p => p.id);

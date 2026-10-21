@@ -58,6 +58,34 @@ Filtering is field-level as well: another player carries only what the renderer 
 
 A connection is a viewer before it is a player. Each socket holds a connection id, and a player id only once it claims a slot, so a non-player client is a first-class case rather than a missing player. A viewer id matching no player receives the directed view: unfogged, the same shape a recording plays back, and the basis for spectator, patron, and presenter clients. The owner-key gate remains, and spectator state is delayed by 60 authoritative ticks (three seconds at 20 Hz) before it is broadcast, so an audience cannot use the directed view to relay current positions. Broadcast cost is per distinct view rather than per socket — every spectator shares one filtered, serialized delayed payload — so an audience does not scale the tick. Non-player clients hold no slot, start no recording, and have no input authority; giving patrons a way to affect a match means a separate validated command type recorded alongside each frame, not a widening of player input.
 
+### Directed presentation modes
+
+An authorized directed feed supports two presentation modes (F-19, user answer
+in [17.3](17.3-product-gameplay.md) #17): follow using the player's sight, or
+omniscient viewing with follow or free roam. These are presentation choices over
+the existing feed; selecting a mode grants no socket role, slot or input authority.
+Admission, spectator delay and the dev exception remain as specified here.
+Stronger spectator restrictions and anti-cheat policy are deferred.
+
+A new connection or newly opened replay starts at the whole-arena view with
+player vision selected for subsequent follows. V switches that follow preference;
+it persists across subjects within the view, but is not a cross-session stored
+preference. Esc or panning releases the subject into omniscient free roam, and 0
+returns to the omniscient whole arena. Selecting a subject again uses the current
+follow preference. An explicit dev step-out/back roundtrip restores its saved
+follow/free framing and vision preference within that connection; reconnecting
+discards the saved dev settings. Opening a replay gets its own defaults.
+
+Player-vision mode uses the current subject as its sight viewer. Absence never
+silently changes modes: without a current subject there is no sight, dynamic
+entities are hidden (including minimap actors), and static terrain stays shaded.
+V still permits an explicit omniscient view. The camera can remember a position
+without inventing a viewer; [25](25-pacing-and-rendering.md) owns that temporal
+rule. Present subjects use shared sight, cloak and reveal rules in the scene and
+minimap. This approximates their experience from directed data: it does not
+recreate network delivery, prediction or private discovery history; directed
+minimap terrain remains fully available as described in [15](15-information-rules.md).
+
 <a id="dev-view"></a>
 
 ### Dev view

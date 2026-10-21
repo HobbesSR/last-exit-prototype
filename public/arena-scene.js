@@ -234,7 +234,8 @@ export function makeArenaScene(api) {
       this.drawings = []; this.drawingsByCell = new Map(); this.tiles = new Map();
       this.overheadDrawings = []; this.overheadByCell = new Map(); this.overheadTiles = new Map(); this.overheadGroups.clear();
       this.labels.forEach(l => l.destroy()); this.labels = [];
-      this.gateMemory = new Map(); this.rememberedGates = []; this.eye = null; this.sightMap = { ...map };
+      this.gateMemory = new Map(); this.rememberedGates = []; this.eye = null;
+      this.sight = null; this.visionPoints = null; this.vision.clear(); this.sightMap = { ...map };
       this.actors.forEach(a => a.container.destroy()); this.actors.clear();
       this.roofs.clear();
       // Chain starts can be right by the western edge. Follow must still centre on
@@ -535,6 +536,7 @@ export function makeArenaScene(api) {
       let best = null, nearest = 44 / this.cameras.main.zoom;
       for (const p of state.players) {
         if (p.status !== 'active') continue;
+        if (!this.actors.get(p.id)?.container.visible) continue;
         const distance = Math.hypot(p.x - point.x, p.y - point.y);
         if (distance <= nearest) { best = p; nearest = distance; }
       }
@@ -548,7 +550,10 @@ export function makeArenaScene(api) {
       return { x: camera.scrollX + camera.width / 2, y: camera.scrollY + camera.height / 2, zoom: camera.zoom };
     }
     /** Drop the smoothed eye and the old subject's gate memory, so the next frame cuts to a new subject. */
-    cutTo() { this.eye = null; this.gateMemory?.clear(); this.updateCamera(true); }
+    cutTo() {
+      this.eye = null; this.sight = null; this.visionPoints = null;
+      this.gateMemory?.clear(); this.rememberedGates = []; this.vision?.clear(); this.updateCamera(true);
+    }
     updateCamera(snap = false) {
       const state = api.state(), map = api.map(); if (!state || !map) return;
       // A directed camera is the director's to point: whole arena, a free view, or a followed player.
@@ -579,6 +584,7 @@ export function makeArenaScene(api) {
       // camera glides exactly like a live one and cuts only when the subject changes or teleports.
       // A directed view's eye is the followed player or nobody: never the viewer's own player, whose
       // position would otherwise cull a whole-arena view down to the area around them.
+      if (api.directed()) api.director.step(rawDelta ?? delta);
       const focus = api.directed() ? api.follow() : self;
       if (!focus) this.eye = null;
       else if (!this.eye || Math.hypot(focus.x - this.eye.x, focus.y - this.eye.y) > 150) this.eye = { x: focus.x, y: focus.y };
@@ -586,10 +592,9 @@ export function makeArenaScene(api) {
       const eye = this.eye;
       // Whose sight the view is cut to: the player's own, a followed player's in a fogged directed
       // view, or nobody's, which is the unfogged directed view.
-      const fogged = !api.directed() || !!api.director.viewer();
+      const fogged = !api.directed() || api.director.fog() && !!api.director.followId();
       const viewer = api.directed() ? api.director.viewer() : self;
       // Raw frame time, not Phaser's smoothed and clamped delta, so a slow client pans as far as a fast one.
-      if (api.directed()) api.director.step(rawDelta ?? delta);
       // Stepping indoors eases the camera a little closer; a directed camera is the director's alone.
       const insideCurrent = this.eye && roofAt(map, this.eye);
       const within = !api.directed() && insideCurrent;
@@ -614,7 +619,7 @@ export function makeArenaScene(api) {
           if (!roofObj) continue;
           const isInside = insideGroupIds.has(roof.groupId) || insideIds.has(roof.id);
           const members = this.roofMembers.get(roof.id) || [roof];
-          const target = !fogged || !eye ? 0 : roofTargetAlpha(isInside, openingDistance(map, members, eye));
+          const target = !fogged ? 0 : !eye ? 1 : roofTargetAlpha(isInside, openingDistance(map, members, eye));
           roofObj.alpha += (target - roofObj.alpha) * fadeStep;
           if (Math.abs(target - roofObj.alpha) < 0.01) roofObj.alpha = target;
           roofObj.visible = roofObj.alpha > 0 && nearView(roof.bounds.x + roof.bounds.w / 2, roof.bounds.y + roof.bounds.h / 2);
@@ -626,7 +631,7 @@ export function makeArenaScene(api) {
         if (!roof) continue;
         const isInside = insideIds.has(building.id);
         const members = this.roofMembers.get(building.id) || [building];
-        const target = !fogged || !eye ? 0 : roofTargetAlpha(isInside, openingDistance(map, members, eye));
+        const target = !fogged ? 0 : !eye ? 1 : roofTargetAlpha(isInside, openingDistance(map, members, eye));
         roof.alpha += (target - roof.alpha) * fadeStep;
         if (Math.abs(target - roof.alpha) < 0.01) roof.alpha = target;
         roof.visible = roof.alpha > 0 && nearView(building.x + building.w / 2, building.y + building.h / 2);
@@ -636,7 +641,12 @@ export function makeArenaScene(api) {
       const showLabels = zoom >= LOD_LABEL_ZOOM;
       for (const label of this.labels) label.setVisible(showLabels && nearView(label.x, label.y));
       this.shade.clear();
-      if (!fogged || !eye) { this.visionPoints = null; this.sight = null; }
+      if (!fogged || !eye) {
+        this.visionPoints = null; this.sight = null; this.vision.clear();
+        // An empty viewport observes nothing but retains known gates and unknown closed silhouettes.
+        this.rememberedGates = fogged ? observeGates(map, { x: 0, y: 0 },
+          { x: 0, y: 0, width: -1, height: -1 }, this.gateMemory, state.tick) : [];
+      }
       else {
         start('render.vision');
         this.viewBounds = viewBounds(eye, this.scale.width, this.scale.height, zoom);
@@ -650,6 +660,8 @@ export function makeArenaScene(api) {
         this.shade.fillRect(-500, -500, map.width + 1000, map.height + 1000);
         stop('render.vision');
       }
+      if (fogged && !eye) { this.shade.fillStyle(0x123330, 0.46); this.shade.fillRect(-500, -500, map.width + 1000, map.height + 1000); }
+      api.onSight?.();
       // The server now sends a wider set than the eye can reach, so the renderer resolves the geometry.
       // Sight itself is a shared rule; an unfogged view opts out of it rather than reimplementing it.
       const lit = (x, y) => !fogged || seesPoint(this.sight, map, x, y);

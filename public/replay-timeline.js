@@ -53,8 +53,13 @@ export function createReplayTimeline(recording) {
   // Every player the recording ever held, in the order the frames first named them, so a viewer can
   // pick a subject that has not entered yet or has already been eliminated out of the current frame.
   const roster = [], named = new Set();
+  const positions = new Map();
   for (const entry of retained) {
     for (const player of entry.frame.state.players || []) {
+      if (player && player.id !== undefined && Number.isFinite(player.x) && Number.isFinite(player.y)) {
+        if (!positions.has(player.id)) positions.set(player.id, []);
+        positions.get(player.id).push({ tick: entry.tick, x: player.x, y: player.y });
+      }
       if (!player || player.id === undefined || named.has(player.id)) continue;
       named.add(player.id);
       roster.push({ id: player.id, name: player.name, role: player.role, kit: player.kit });
@@ -82,10 +87,24 @@ export function createReplayTimeline(recording) {
       alpha: missing ? 0 : playhead - lookupTick };
   }
 
+  // A missing subject holds the last position that existed at or before the playhead. The first
+  // retained frame can be displayed before its tick, but its positions must not grant early sight.
+  function positionAt(id, tick) {
+    const list = positions.get(id);
+    if (!list?.length || !Number.isFinite(tick)) return null;
+    let low = 0, high = list.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (list[middle].tick <= tick) low = middle + 1;
+      else high = middle;
+    }
+    return low ? list[low - 1] : null;
+  }
+
   return { frames: retained.map(entry => entry.frame), roster, firstTick, lastTick, endTick,
     complete: recording?.recording?.complete !== false,
     marks: parseMarks(recording?.diagnostics),
     droppedMarks: Number.isSafeInteger(recording?.diagnostics?.dropped) && recording.diagnostics.dropped > 0 ? recording.diagnostics.dropped : 0,
     droppedFrames: Number.isSafeInteger(recording?.recording?.droppedFrames) && recording.recording.droppedFrames > 0 ? recording.recording.droppedFrames : 0,
-    at };
+    at, positionAt };
 }

@@ -22,6 +22,11 @@ Drift between the playhead and its target is taken out by dilating time by at mo
 
 Terrain, structures, gates, sensors and the hazard band are drawn everywhere and dimmed where they fall outside sight, so the arena stays readable and out of sight cover appears shadowed rather than absent. Actors, loot, shots and effects are withheld instead, and draw above the shade so anything in view reads at full brightness. Per entity visibility reuses the visibility polygon the fog is already drawn from — a log time query against its angle sorted vertices — so what is drawn and what is lit can never disagree, and no extra rays are cast.
 
+If a player's own subject is temporarily missing, the scene likewise has no
+current sight: terrain is shaded, roofs stay opaque and dynamic entities are
+hidden until the subject returns. Missing a subject does not enable an omniscient
+player view.
+
 ## Replay playback timing
 
 The render playhead is continuous. A rendered frame is somewhere inside an
@@ -66,8 +71,26 @@ A replay can also be given a subject, chosen from the recorded roster or by clic
 a marker. The camera then follows that player at the zoom they played at, markers
 return to life size, and off screen geometry is culled the way it is in a live view.
 The subject comes from the recording's roster rather than the displayed frame, so a
-player can be chosen before they appear and stays selectable after elimination; when
-the current frame does not contain them the camera holds their last position.
+player can be chosen before they appear and stays selectable after elimination.
+When the current frame does not contain them, the camera holds their latest known
+authoritative position at or before the playhead. Before any such position exists,
+it frames the whole arena. The selected ID stays selected in either case. An absent
+subject supplies no sight in player-vision mode; omniscient mode remains omniscient
+([24](24-networking-privacy.md)). Reappearance resumes follow and current sight.
+
+Replay history is queried by subject and destination time, independently of the
+order in which the viewer visited frames. Seeking backward, seeking directly into
+an absence, or changing subjects cannot reuse a later position or another subject's
+camera history. Even the first retained frame displayed during a leading recording
+gap (26) cannot supply future follow position or sight. A retained frame held through
+an omitted interval keeps its recorded subject and sight; an omitted interval is
+not evidence that the subject disappeared. Seeks and subject changes clear the
+eased eye and gate observation memory, so neither carries knowledge backward.
+Live directed follow retains positions from its buffered presentation frames,
+rather than jumping ahead to a newer network frame when a subject disappears; a new
+map or connection starts fresh. Camera history never becomes a synthetic player
+or a source of reveal privileges.
+
 Changing subject cuts rather than pans, because gliding across the arena would lose
 the subject for seconds. Following shows that player's own sight by default, as the
 dev view does: the camera director (22.4) owns follow for every directed view, and V

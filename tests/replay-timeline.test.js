@@ -84,6 +84,30 @@ test('a roster tolerates frames without players', () => {
   assert.deepEqual(createReplayTimeline({}).roster, []);
 });
 
+test('subject positions depend on destination time, never on seek or subject order', () => {
+  const at = (tick, players) => ({ state: { tick, players } });
+  const timeline = createReplayTimeline({ frames: [
+    at(20, [{ id: 'a', x: 200, y: 201 }]),
+    at(5, [{ id: 'a', x: 50, y: 51 }]),
+    at(10, [{ id: 'b', x: 100, y: 101 }]),
+    at(20, [{ id: 'a', x: 220, y: 221 }]), // Last duplicate replaces the earlier frame.
+    at(30, []),
+  ], recording: { complete: false, endTick: 40 } });
+  const aEarly = { tick: 5, x: 50, y: 51 }, aLate = { tick: 20, x: 220, y: 221 };
+  for (const tick of [40, 30, 20, 20.5]) assert.deepEqual(timeline.positionAt('a', tick), aLate);
+  // Move backward into an explicit absence, then before first appearance.
+  assert.deepEqual(timeline.positionAt('a', 15), aEarly);
+  assert.deepEqual(timeline.positionAt('a', 5.5), aEarly);
+  assert.equal(timeline.positionAt('a', 4.99), null);
+  assert.deepEqual(timeline.positionAt('b', 15), { tick: 10, x: 100, y: 101 });
+  assert.equal(timeline.positionAt('b', 9), null);
+  assert.equal(timeline.positionAt('unknown', 30), null);
+  assert.deepEqual(timeline.positionAt('a', 15), aEarly, 'switching subjects does not carry another position');
+  assert.equal(timeline.at(0).frameTick, 5, 'legacy leading-gap display still holds the first frame');
+  assert.equal(timeline.positionAt('a', 0), null, 'leading-gap display does not grant a future camera position');
+  for (const invalid of [NaN, Infinity, -1, '20']) assert.equal(timeline.positionAt('a', invalid), null);
+});
+
 test('diagnostic marks keep known kinds at valid ticks, in tick order, and report overflow', () => {
   const diagnostics = { dropped: 3, marks: [
     { tick: 9, kind: 'server-stall', wakeMs: 450, owed: 9, simulated: 5 },

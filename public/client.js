@@ -59,18 +59,24 @@ const hudController = createHUDController({
   toggleFullscreen: () => toggleFullscreen()
 });
 const director = createCameraDirector({
-  // The followed player is found in the frame being drawn, so the camera holds them where their sprite is.
   getState: () => presentationFrame(), active: () => directed(),
+  getSubject: id => {
+    if (replayController.active() && !replayController.positionAt(id)) return null;
+    return presentationFrame()?.players.find(p => p.id === id) || null;
+  },
+  getPosition: id => replayController.active() ? replayController.positionAt(id) : undefined,
   camera: () => scene?.cameraView() ?? { x: 0, y: 0, zoom: 1 },
-  onFollow: (subject, id) => {
+  onFollow: (subject, id, announce) => {
     $('replay-focus').value = id || ''; $('dev-focus').value = id || '';
     // A cut, not a pan: gliding a camera across a 24000 unit arena would lose the subject for seconds.
     scene?.cutTo();
-    if (subject) toast(`Following ${subject.name}`);
+    updateHUD();
+    if (announce && subject) toast(`Following ${subject.name}`);
   },
-  onFog: fog => {
+  onFog: (fog, announce) => {
     $('dev-fog').classList.toggle('active', fog); $('dev-fog').setAttribute('aria-pressed', String(fog));
-    toast(fog ? 'Followed players are shown in their own sight' : 'Fog off: followed players see everything');
+    updateHUD();
+    if (announce) toast(fog ? 'Followed players are shown in their own sight' : 'Fog off: followed players see everything');
   },
 });
 const replayController = createReplayController({
@@ -97,7 +103,7 @@ async function json(url, options) {
   return result;
 }
 function clearInput() { hudController.cancelDrag(); inputController.reset(); }
-function changeMap(map) { arenaMap = structuredClone(map); if (scene?.ready) scene.buildMap(); }
+function changeMap(map) { director.clearPosition(); arenaMap = structuredClone(map); if (scene?.ready) scene.buildMap(); }
 /** The descriptor of whatever is shown: the open recording, the dev feed, or the live room. */
 function displayPresentation() {
   if (replayController.active()) return replayController.presentation();
@@ -340,7 +346,11 @@ function acceptState(next) {
 function refreshDevRoster() {
   const key = state.players.map(p => p.id).join();
   if (key === devRoster) return;
-  devRoster = key; fillFollowOptions($('dev-focus'), state.players, displayPresentation()); $('dev-focus').value = director.followId() || '';
+  const select = $('dev-focus'), id = director.followId();
+  const previous = [...select.options].find(option => option.value === id)?.textContent;
+  devRoster = key; fillFollowOptions(select, state.players, displayPresentation());
+  if (id && !state.players.some(player => player.id === id)) select.add(new Option(previous || `${id} (absent)`, id));
+  select.value = id || '';
 }
 // What the renderer draws: the buffered, interpolated view when live, and the frame a replay's own
 // playhead selects when a recording is open. `state` stays the newest authoritative frame, which is
@@ -373,7 +383,7 @@ function updateHUD() {
   hudController.render({ state, arenaMap, playerId, view: currentView(), savedReplay,
     presentation: displayPresentation(), hz: replayController.active() ? replayController.hz() : HZ,
     selection: inputController.selection(),
-    visibility: { directed: directed(), sight: scene?.sight },
+    visibility: { directed: directed(), fogged: directed() && director.fog() && !!director.followId(), viewer: director.viewer(), sight: scene?.sight },
     discovery: discoveryDecoder?.known
   });
   showPlayerHud();
@@ -389,7 +399,17 @@ const ArenaScene = makeArenaScene({
   // server frame can be advanced smoothly between them.
   frameAlpha: () => replayController.active() ? replayController.frameAlpha() : (presentationFrame()?.alpha ?? 0),
   onReady: value => scene = value, onFire: value => inputController.setPointerFire(value),
-  onFrame: () => { if (!replayController.active()) presentation = snapshots.frame() || state; replayController.renderFrame(); }
+  onFrame: () => {
+    if (!replayController.active()) {
+      presentation = snapshots.frame() || state;
+      if (directed() && presentation) director.observeState(presentation);
+    }
+    replayController.renderFrame();
+  },
+  onSight: () => {
+    if (directed()) hudController.drawMinimap({ state: presentationFrame(), arenaMap, playerId,
+      visibility: { directed: true, fogged: director.fog() && !!director.followId(), viewer: director.viewer(), sight: scene?.sight } });
+  }
 });
 // Diagnostic reports ride beside inputs but are metadata: the server records them as marks on the
 // replay and the simulation never sees them. They name the tick this client was drawing.
@@ -650,8 +670,7 @@ function enterDevView() {
   const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
   devFeed = socket;
   if (savedDevCamera && savedDevCamera.roomId === roomId) {
-    if (savedDevCamera.followId) director.setFollow(savedDevCamera.followId);
-    director.setFog(savedDevCamera.fog);
+    director.restore(savedDevCamera.camera);
   }
   showDevMode(); const layers = createLayerDecoder();
   socket.addEventListener('open', () => socket.send(JSON.stringify({ type: 'join', room: roomId, ownerKey, role: 'dev' })));
@@ -674,7 +693,7 @@ function enterDevView() {
 function leaveDevView() {
   const socket = devFeed;
   if (!socket) return;
-  savedDevCamera = { roomId, followId: director.followId(), fog: director.fog() };
+  savedDevCamera = { roomId, camera: director.snapshot() };
   devFeed = null; devPresentation = null; devRoster = ''; socket.close(); director.reset(); snapshots.reset();
   if (liveMap && liveState && !replayController.active()) { changeMap(liveMap); acceptState(liveState); }
   showDevMode(); scene?.cutTo();

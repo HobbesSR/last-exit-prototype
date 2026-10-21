@@ -73,7 +73,7 @@ export function createReplayController({
       ? `MISSING DATA · showing tick ${sample.frameTick}`
       : `PARTIAL RECORDING · ${replayTimeline.droppedFrames} frame${replayTimeline.droppedFrames === 1 ? '' : 's'} omitted`;
   }
-  function seek(tick) { applyTick(tick); anchorPlayback(); }
+  function seek(tick) { applyTick(tick); getScene()?.cutTo(); updateHUD(); anchorPlayback(); }
   function anchorPlayback() { playbackFrom = playback; playbackAt = performance.now(); }
   function setPlaying(value) {
     playing = value; if (value) anchorPlayback();
@@ -143,6 +143,7 @@ export function createReplayController({
     /** The open recording's descriptor (null when its content is unknown) and its recorded tick rate. */
     presentation: () => described, hz: () => tickRate(replay?.hz),
     frameAlpha: () => replayTimeline?.at(playback)?.alpha ?? 0,
+    positionAt: id => replayTimeline?.positionAt(id, playback) ?? null,
     watch, renderFrame, togglePlay: () => setPlaying(!playing), reset, cancel,
     // Lets the application skip a refetch when downloading the replay already open here.
     cachedData: id => replay?.id === id ? replay : null,
