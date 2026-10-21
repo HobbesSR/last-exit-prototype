@@ -14,15 +14,18 @@ const clampZoom = zoom => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
 /**
  * `active()` says whether a directed view is showing, so keys only steer it then. `camera()` is where the
  * camera is right now ({ x, y, zoom }, x and y its centre), so a free view starts from what is on screen.
+ * `getPosition(id)` supplies time-bounded replay history: null means not yet known; undefined uses
+ * live positions collected by `observeState`. Position history never supplies a sight viewer.
  */
-export function createCameraDirector({ getState, active, camera, onFollow = () => {}, onFog = () => {} }) {
+export function createCameraDirector({ getState, getSubject, getPosition, active, camera, onFollow = () => {}, onFog = () => {} }) {
   let followId = null, fog = true, view = null;
+  const positions = new Map();
   const held = new Set();
-  const subject = () => followId ? getState()?.players.find(p => p.id === followId) || null : null;
+  const subject = () => followId ? (getSubject ? getSubject(followId) : getState()?.players.find(p => p.id === followId)) || null : null;
 
   function setFollow(id) {
     followId = id || null;
-    onFollow(subject(), followId);
+    onFollow(subject(), followId, true);
   }
   /** Stop following, leaving the camera where it is at the zoom it has. */
   function free() {
@@ -41,15 +44,33 @@ export function createCameraDirector({ getState, active, camera, onFollow = () =
     view = followId ? { ...base, zoom } : { x: point.x + (base.x - point.x) * kept, y: point.y + (base.y - point.y) * kept, zoom };
   }
   function whole() { view = null; setFollow(null); }
-  function setFog(value) { fog = !!value; onFog(fog); }
-  function reset() { view = null; followId = null; held.clear(); }
+  function setFog(value) { fog = !!value; onFog(fog, true); }
+  function reset() {
+    view = null; followId = null; positions.clear(); held.clear(); fog = true;
+    onFollow(null, null, false); onFog(fog, false);
+  }
+  function snapshot() { return { followId, fog, view: view && { ...view } }; }
+  function restore(saved) {
+    view = saved.view && { ...saved.view }; positions.clear(); held.clear();
+    followId = saved.followId || null; fog = !!saved.fog;
+    onFollow(subject(), followId, false); onFog(fog, false);
+  }
+  function clearPosition() { positions.clear(); }
+  function observeState(state) {
+    for (const player of state.players) positions.set(player.id, { x: player.x, y: player.y });
+  }
 
   /** Where the camera points this frame. `focus` is the eased eye on the followed player, if any. */
   function frame({ width, height, map, focus }) {
-    if (followId && focus) {
-      // Their sight is cut to their own screen, so a fogged follow keeps their zoom exactly.
-      const zoom = fog || !view ? playerZoom(width, height) : view.zoom;
-      return { x: focus.x, y: focus.y, zoom };
+    if (followId) {
+      const known = getPosition?.(followId);
+      const position = focus || (known === undefined ? positions.get(followId) : known);
+      if (position) {
+        // Their sight is cut to their own screen, so a fogged follow keeps their zoom exactly.
+        const zoom = fog || !view ? playerZoom(width, height) : view.zoom;
+        return { x: position.x, y: position.y, zoom };
+      }
+      return { x: map.width / 2, y: map.height / 2, zoom: Math.min((width - 40) / map.width, (height - 150) / map.height) };
     }
     if (view) return view;
     return { x: map.width / 2, y: map.height / 2, zoom: Math.min((width - 40) / map.width, (height - 150) / map.height) };
@@ -78,8 +99,8 @@ export function createCameraDirector({ getState, active, camera, onFollow = () =
   addEventListener('blur', () => held.clear());
 
   return {
-    followId: () => followId, subject, setFollow, free, pan, zoomAt, whole, reset, frame, step,
-    /** The player whose sight fogs the view, or null for the unfogged directed view. */
+    followId: () => followId, subject, setFollow, free, pan, zoomAt, whole, reset, snapshot, restore, clearPosition, observeState, frame, step,
+    /** Null also means an absent subject; the fog preference still determines the vision mode. */
     viewer: () => fog ? subject() : null,
     fog: () => fog, setFog,
   };

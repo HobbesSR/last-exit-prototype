@@ -66,8 +66,25 @@ A replay can also be given a subject, chosen from the recorded roster or by clic
 a marker. The camera then follows that player at the zoom they played at, markers
 return to life size, and off screen geometry is culled the way it is in a live view.
 The subject comes from the recording's roster rather than the displayed frame, so a
-player can be chosen before they appear and stays selectable after elimination; when
-the current frame does not contain them the camera holds their last position.
+player can be chosen before they appear and stays selectable after elimination.
+When the current frame does not contain them, the camera holds their latest known
+authoritative position at or before the playhead. Before any such position exists,
+it frames the whole arena. The selected ID stays selected in either case. An absent
+subject supplies no sight in player-vision mode; omniscient mode remains omniscient
+([24](24-networking-privacy.md)). Reappearance resumes follow and current sight.
+
+Replay history is queried by subject and destination time, independently of the
+order in which the viewer visited frames. Seeking backward, seeking directly into
+an absence, or changing subjects cannot reuse a later position or another subject's
+camera history. Even the first retained frame displayed during a leading recording
+gap (26) cannot supply future follow position or sight. A retained frame held through
+an omitted interval keeps its recorded subject and sight; an omitted interval is
+not evidence that the subject disappeared. Seeks and subject changes clear the
+eased eye and gate observation memory, so neither carries knowledge backward.
+Live directed follow retains only positions observed in its current feed; a new
+map or connection starts fresh. Camera history never becomes a synthetic player
+or a source of reveal privileges.
+
 Changing subject cuts rather than pans, because gliding across the arena would lose
 the subject for seconds. Following shows that player's own sight by default, as the
 dev view does: the camera director (22.4) owns follow for every directed view, and V

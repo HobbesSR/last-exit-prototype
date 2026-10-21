@@ -335,7 +335,9 @@ export function createHUDController(actions) {
     }
     // The server sends more than the eye can reach, so the minimap applies the very same predicate the
     // renderer does — literally the same function, so the two views cannot drift apart again.
-    const shown = p => visibility?.directed || p.id === playerId || seesActor(visibility?.sight, arenaMap, mine, p);
+    const shown = p => visibility?.directed
+      ? !visibility.fogged || !!visibility.viewer && (p.id === visibility.viewer.id || seesActor(visibility.sight, arenaMap, visibility.viewer, p))
+      : p.id === playerId || seesActor(visibility?.sight, arenaMap, mine, p);
     for (const p of state.players) {
       if (p.status !== 'active' || !shown(p)) continue;
       c.fillStyle = p.id === playerId ? cols.me : p.role === 'gladiator' ? cols.gladiator : cols.contestant;
@@ -348,6 +350,7 @@ export function createHUDController(actions) {
     }
   }
   return {
+    drawMinimap,
     render(props) {
       if (!props.state) return;
       profiler.start('render.hud');

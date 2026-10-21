@@ -46,16 +46,38 @@ try {
   await page.locator('#dev-focus').selectOption(far.id);
   await page.waitForFunction(({ far, subject }) => window.arenaDebug().viewer === far && window.arenaDebug().vision
     && window.arenaDebug().actors.find(a => a.id === subject)?.visible === false, { far: far.id, subject });
-  await page.keyboard.press('Escape');
+  await page.evaluate(() => document.activeElement.blur());
+  await page.keyboard.press('KeyV');
+  await page.waitForFunction(() => window.arenaDebug().fog === false && window.arenaDebug().viewer === null && window.arenaDebug().vision === null);
   assert.ok(room.match.roster().some(p => p.id === subject), 'stepping out keeps the slot');
   const seqOf = () => room.match.snapshot().players.find(p => p.id === subject).lastSeq;
   await page.waitForTimeout(300); const parked = seqOf();
   await page.keyboard.down('KeyD'); await page.waitForTimeout(400); await page.keyboard.up('KeyD');
   assert.equal(seqOf(), parked, 'no input reaches the player while in the dev view');
+  await page.locator('#dev-focus').selectOption(far.id);
+  await page.evaluate(() => document.activeElement.blur());
   await page.keyboard.press('Backquote');
   await page.waitForFunction(() => !window.arenaDebug().devFeed && !window.arenaDebug().directed && window.arenaDebug().vision);
   await until(() => seqOf() > parked + 3, () => `input resumes after stepping back: ${seqOf()} vs ${parked}`);
   assert.equal(room.spectators, 0, 'the dev socket closed');
+  await page.getByRole('button', { name: 'Dev view', exact: true }).click();
+  await page.waitForFunction(id => window.arenaDebug().devFeed && window.arenaDebug().follow === id && window.arenaDebug().fog === false, far.id);
+  assert.equal(await page.evaluate(() => window.arenaDebug().viewer), null, 'stepping back out keeps the same view preference');
+  await page.keyboard.press('KeyV');
+  await page.waitForFunction(id => window.arenaDebug().viewer === id && window.arenaDebug().vision, far.id);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => window.arenaDebug().follow === null);
+  const freeCamera = await page.evaluate(() => window.arenaDebug().camera);
+  await page.keyboard.press('Backquote');
+  await page.waitForFunction(() => !window.arenaDebug().devFeed && window.arenaDebug().vision);
+  await page.getByRole('button', { name: 'Dev view', exact: true }).click();
+  await page.waitForFunction(camera => {
+    const d = window.arenaDebug();
+    return d.devFeed && d.follow === null && d.vision === null && Math.abs(d.camera.x - camera.x) < 1
+      && Math.abs(d.camera.y - camera.y) < 1 && Math.abs(d.camera.zoom - camera.zoom) < 0.001;
+  }, freeCamera);
+  await page.keyboard.press('Backquote');
+  await page.waitForFunction(() => !window.arenaDebug().devFeed && window.arenaDebug().vision);
 
   // Archive loads settle in whatever order the network chooses, so the page holds them here and the
   // check settles each one when it wants (#387). The archive lists two recordings of this room's
@@ -208,10 +230,17 @@ try {
     assert.equal(await page.locator('[data-role][aria-pressed="true"]').getAttribute('data-role'), 'contestant');
   };
   // Moving to another room abandons a replay load begun in this one.
+  await page.getByRole('button', { name: 'Dev view', exact: true }).click();
+  await page.waitForFunction(() => window.arenaDebug().devFeed);
+  await page.keyboard.press('KeyV');
+  await page.waitForFunction(() => window.arenaDebug().fog === false);
+  await page.keyboard.press('Backquote');
+  await page.waitForFunction(() => !window.arenaDebug().devFeed);
   await choose(7); await closeArchive();
   await browse();
   await page.getByRole('button', { name: 'Dev view of Night shift', exact: true }).click();
   await page.waitForFunction(id => window.arenaDebug().dev && window.arenaDebug().room === id, named.id);
+  assert.equal(await page.evaluate(() => window.arenaDebug().fog), true, 'connecting to a different room restores fog in the same page');
   await settle(7); assert.equal(await shown(), null, 'a room transition abandons a pending load');
   await page.evaluate(() => { window.fetch = window.realFetch; });
   await browse();
