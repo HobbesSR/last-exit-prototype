@@ -200,6 +200,26 @@ export interface MatchContent {
   discovery?: boolean | undefined;
 }
 
+/**
+ * What a display needs to know of a match's content (22.7): labels, default ammo, role capacities and
+ * timers. Display data only; it cannot build a simulation or authorize a choice. Entry ids are plain
+ * strings because a descriptor may name content this build does not ship.
+ */
+export interface ContentPresentation {
+  contentId: string;
+  weapons: { id: string; name: string; ammo: number }[];
+  kits: { id: string; name: string; skill: string }[];
+  capacity: { contestant: number; gladiator: number };
+  durationTicks: Tick;
+  cellChargeTicks: Tick;
+}
+
+/** Where a recording's display metadata came from; `presentation` is null for unknown content. */
+export interface RecordingPresentation {
+  source: 'embedded' | 'retained' | 'legacy' | 'unknown';
+  presentation: ContentPresentation | null;
+}
+
 export interface WeaponItem {
   kind: 'weapon';
   weaponType: WeaponType;

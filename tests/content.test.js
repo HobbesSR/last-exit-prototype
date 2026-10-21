@@ -4,7 +4,7 @@ import { createGame, step, snapshot, playerView, joinGame, setInput } from '../s
 import { attack } from '../shared/simulation/combat.ts';
 import { defaultContent, contentById, CONTENT_ID } from '../shared/simulation/content.ts';
 import { collectEquipment, WEAPONS } from '../shared/equipment.ts';
-import { KITS } from '../shared/simulation/rules.ts';
+import { KITS, DURATION, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS, HAZARD_GRACE_TICKS } from '../shared/simulation/rules.ts';
 
 function fixture(content) {
   const s = createGame(4217, undefined, content);
@@ -40,18 +40,30 @@ test('shipped content ids return independent deeply frozen retained and current 
   assert.throws(() => contentById('missing-content'), RangeError);
 });
 
-test('retained content does not read mutable exported default tables', () => {
-  const damage = WEAPONS.pistol.damage, cooldown = KITS.warden.cooldown;
+test('compatibility exports are detached copies of the shipped tables', () => {
+  const shipped = defaultContent();
+  assert.deepEqual(WEAPONS, shipped.weapons);
+  assert.deepEqual(KITS, shipped.kits);
+  assert.deepEqual([DURATION, CELL_CHARGE_TICKS, GLADIATOR_RESPAWN_TICKS, HAZARD_GRACE_TICKS], [shipped.durationTicks, shipped.cellChargeTicks, shipped.gladiatorRespawnTicks, shipped.hazardGraceTicks]);
+  assert.ok(!Object.isFrozen(WEAPONS.scattergun.spread), 'standalone callers may still edit them');
+  const existing = createGame(4217);
+  const saved = structuredClone({ WEAPONS, KITS });
   try {
-    WEAPONS.pistol.damage = 999;
-    KITS.warden.cooldown = 1;
-    const legacy = contentById('content-1');
-    assert.equal(legacy.weapons.pistol.damage, 10);
-    assert.equal(legacy.kits.warden.cooldown, 110);
+    WEAPONS.pistol.damage = 999; WEAPONS.scattergun.spread.push(1); WEAPONS.scattergun.spread[0] = 5;
+    KITS.warden.cooldown = 1; KITS.specter.name = 'Changed';
+    for (const id of ['content-1', 'content-2']) {
+      const content = contentById(id);
+      assert.equal(content.weapons.pistol.damage, 10, id);
+      assert.deepEqual(content.weapons.scattergun.spread, [-0.18, -0.09, 0, 0.09, 0.18], id);
+      assert.equal(content.kits.warden.cooldown, 110, id);
+      assert.equal(content.kits.specter.name, 'Specter', id);
+    }
+    assert.deepEqual(existing.content.weapons.scattergun.spread, [-0.18, -0.09, 0, 0.09, 0.18], 'nor a match already created');
+    assert.equal(createGame(4217).content.kits.warden.cooldown, 110, 'nor one created afterwards');
   } finally {
-    WEAPONS.pistol.damage = damage;
-    KITS.warden.cooldown = cooldown;
+    for (const [name, table] of Object.entries({ WEAPONS, KITS })) for (const key of Object.keys(table)) table[key] = saved[name][key];
   }
+  assert.deepEqual(WEAPONS, shipped.weapons);
 });
 
 test('content-2 defaults to eight contestants and three hunters at the retained transit order', () => {
