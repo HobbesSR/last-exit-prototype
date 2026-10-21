@@ -59,38 +59,46 @@ planning precede the intentional gameplay adoption.
 
 ### Generation pipeline
 
-**Current focus, updated by the user on 2026-09-28 and 29: map generation as
-one pipeline.** mapgen's macro half is being rebuilt as the generation chain
-([51](51-generation-chain.md)) and joined to the micro half, where each region
-type's strategy is built on the SDK ([50](50-map-generation.md)). The build
-order is 51's:
-- **Track A:** the macro chain, in mapgen.
-- **Track C:** the contract and composition, in the game.
-- **Track B:** the region type catalogue, the strategies, and a new library.
-- **Then the switch-over.** Done 2026-10-03 (51 step 10, #144 to #146): the
-  Map Lab, CLI and MCP run on the chain from `map/tools/`, its first baseline
-  is captured, and mapgen's old paths are deleted. The live-game checkpoint injects the chain through `map/live.ts`, with
-  explicit mask bounds and authored transit (14, 22, 26, 52). Its live-size
-  passage balance and human multiplayer tuning remain future work.
-- **Next: zone plans and larger zones** (tracker #165, 2026-10-03). The diamond
-  becomes one parameterizable zone plan (55). Libraries gain modules and
-  declare the plan and size they are authored for. Set pieces regain footprints
-  near the old library's, with placeholder regions where no strategy exists. 24 × 12
-  and 36 × 18 libraries are hand authored (#171, 52), and live matches stay at
-  12 × 6 until pacing and per-tick cost are measured at those sizes.
-- **Then: the building library** (tracker #187, 2026-10-04). Corey's design
-  (#185) becomes one SDK library for building designs, walls and openings
-  ([56](56-buildings.md)). Its first milestone, L1 to L5, is implemented:
-  `hut` builds houses of several spaces and `compound`'s ring is a design. The
-  second milestone's stages are filed next. Its open choices are
-  M26 to M33 ([17.2.8](17.2.8-building-questions.md)).
+Map generation became one pipeline under the user's 2026-09-28 and 29 direction:
+the generation chain ([51](51-generation-chain.md)), with each region type's
+strategy built on the micro SDK ([50](50-map-generation.md)). What has shipped:
 
-Work in progress and its order live on the Forgejo tracker, #82, and
-in each step's issue ([34](34-forgejo-workflow.md)). mapgen's former
-`NEXT_TASKS.md` backlog is retired. Its unfinished direction is in 51 and 16.
+- **The chain and the switch-over** (tracks A to C, 51 step 10, #144 to #146;
+  tracker #82, closed). The Map Lab, CLI and MCP run on the chain from
+  `map/tools/`, and mapgen's old paths are deleted. Live rooms run the chain
+  through `map/live.ts`, with explicit mask bounds and authored transit (14, 22,
+  26, 52; [51.14.5](51.14.5-switch-over.md)).
+- **Zone plans and larger zones** (tracker #165, closed). The diamond is a
+  parameterized zone plan (55), and 24 × 12 and 36 × 18 libraries are authored
+  (#171, 52). The default size, and every matchmade room, is 12 × 6; a private
+  room may select any authored size ([14](14-match-rules.md)). Per-tick cost at
+  each size is measured in [42](42-performance-history.md) ("Live matches at each
+  authored size"): a 36 × 18 room alone exceeds the 50 ms tick budget at p95 on
+  that machine, and a 24 × 12 room costs about twice a 12 × 6 one.
+- **The building library's first milestone** (L1 to L5; tracker #187, closed;
+  [56](56-buildings.md)).
+- **Passable margins** (#313, [20.6](20.6-passable-margins.md)), and **builder
+  delegation** under #289: preparation, bounded execution and snapshot recovery,
+  the hut-to-cover pilot, the measured candidate review (#328 to #331), and the
+  compound exterior-yard adoption (#338). Hut and compound are the production
+  adopters ([20.7](20.7-builder-delegation.md)). The large-compound siting
+  investigation (#340) is closed.
 
-The micro work below continues within that plan. The recursive execution and
-the mapgen adapter it names next are 51's tracks B and C.
+What remains, as the owning documents state it:
+
+- **Recursive execution of explored decomposition trees**, and moving
+  decomposition's walled ports to portals
+  ([20.5](20.5-tools-and-next-boundaries.md#next-boundaries)).
+- **Further delegation adopters,** one measured builder at a time; each needs
+  its own measured evidence and issue (20.7, 42). Depot remains unselected.
+- **The building library's second milestone** ([56](56-buildings.md), "Build
+  order"), with its open choices M26 to M33 ([17.2.8](17.2.8-building-questions.md)).
+- **Larger-size play:** live passage balance and human multiplayer tuning at
+  the larger sizes, and their per-tick cost, are not done.
+
+Work in progress and its order live on the Forgejo tracker and in each step's
+issue ([34](34-forgejo-workflow.md)). mapgen's former `NEXT_TASKS.md` backlog is
+retired; its unfinished direction is in 51 and 16.
 
 **Earlier focus, updated by the user on 2026-09-23: F-01 micro generation.**
 The SDK now includes immutable child contexts, bounded polyomino analysis,
@@ -110,56 +118,28 @@ branch inspection and explicit terminal residuals. This does not yet execute tho
 trees as physical micro generation. SDK access/boundary utilities now validate
 post-generation crossing and connectivity obligations, inherit complete external
 runs and pair inter-child requirements; nested composition tests exercise this
-contract. Next is recursive execution of explored trees, reusing flat dispatch and
-negotiation at each level. The macro/live adapter is now `map/live.ts` (22).
-Reachability remains the chain of per-layer promises in 51, rather than a new
+contract. Reachability remains the chain of per-layer promises in 51, rather than a new
 whole-map enforcement stage. See [19](19-decomposition-design.md),
 [20](20-micro-generation.md) and the recorded choices in [17](17-open-questions.md).
 
-The passable-margin contract (20.6, #313) is implemented. Macro version 3
-derives reduced fill, known-clear access context and internal guaranteed runs;
-Builders and child handoffs use those constraints. #214's authored fill
-diversity and final content checkpoint are merged. #325 follows with depot
-route reservation tuning (`types-23`); #289's residual delegation design
-remains the broader next boundary for space a builder cannot use itself. Its
-reviewed design direction is in [20.7](20.7-builder-delegation.md), with verbatim
-answers in [17.2.9](17.2.9-delegation-questions.md). Preparation (#328), bounded
-execution and snapshot recovery (#329), and the hut-to-cover pilot (#330), are
-implemented. #331's measured candidate review selected compound exterior yards
-for [#338](http://localhost:3000/corey/astra_test/issues/338); that adoption is
-implemented under `types-25` (20.7). Depot remains unselected. Continue one measured builder at a time, using
-the evidence and limits in [42](42-performance-history.md). Numerical
-recursion defaults to three patch levels (initial builder depth zero), with
-versioned owning-layer snapshots for recovery. Implementation issues #328 to
-#331 carry the initial dependency sequence; hut and compound are production adopters.
-#331 closes with its evidence/planning checkpoint. #338 owns the selected
-adoption; further adopters need separate measured evidence and issues. The
-unbuilt large compound sample is a separate siting investigation in
-[#340](http://localhost:3000/corey/astra_test/issues/340), outside #338.
+### Gameplay backlog
 
-The sequencing below remains the other gameplay backlog, not an instruction to
+The sequencing below is the other gameplay backlog, not an instruction to
 leave the current micro-generation effort for reward tiers.
 
 These supersede the older assumption that all prototype policies should remain
 defaults. They are accepted direction, not evidence that the corresponding behavior
 is implemented. Preserve the completed extraction's frozen fixtures while making
-intentional changes in separate checkpoints.
+intentional changes in separate checkpoints. F-11's match capacities and content
+checkpoint, formerly the first item, is complete: `content-2` (13, 14, 26).
 
-1. **Completed: match capacities and content checkpoint (F-11).** `content-2`
-   appends a third hunter using Striker; eight contestants and three extraction
-   slots remain. Spawning, admission, matchmaking fractions and lobby capacities
-   read the pinned roster. Rules stay `last-exit-0.7`, recording schema stays 3/0:
-   only content data changed. The unchanged `netcode-1` fixture runs explicitly
-   with retained `content-1`, while new tests cover the three-hunter default and
-   full-room admission. See [14](14-match-rules.md), [26](26-recording-contract.md)
-   and [31](31-verification.md).
-2. **Shared spatial reward/danger policy (F-12/F-15).** The user selected five
+1. **Shared spatial reward/danger policy (F-12/F-15).** The user selected five
    virtual columns and rows, five mixed tier distributions, a horizontal base
    from 1 to 5, and vertical offsets 0/1/2 capped at tier 5. These zones do not
    alter map geometry. Track vertical novelty separately from quality. Tier
    statistics, distribution weights and special-item definitions still need
    concrete recorded tuning assumptions; preserve spawn/charger reservations.
-3. **Physics evaluation (F-14).** Compare sliding/slowing surfaces, explosion
+2. **Physics evaluation (F-14).** Compare sliding/slowing surfaces, explosion
    impulses, pushing dynamic bodies and hook/drag corner cases at fixed ticks.
    Elevation/ballistics need a collision-plane contract before implementation.
    Profile geometry in controlled crowd workloads; current evidence has not
@@ -167,16 +147,16 @@ intentional changes in separate checkpoints.
 
 ## Boundaries these tasks need
 
-The new requirements make three boundaries especially useful:
+The remaining requirements make three boundaries especially useful:
 
-1. **Content and equipment.** One match-owned content bundle should define role
-   capacities, weapon tier statistics and ammunition rules. Both spawn creation and
-   matchmaking must read the same capacities when moving to three hunters. Keep
-   item identity/remaining ammo separate from tier definitions. Drag/drop should
-   produce existing validated inventory intents where possible; input/UI controllers own the
-   gesture, and the server owns the resulting swap/drop. Resolve reload versus R
-   rearrangement before changing controls. Pin content in recordings only after
-   deciding compatibility; do not silently extend today's replay version.
+1. **Content and equipment.** The match-owned content bundle already pins role
+   capacities, which spawn creation and matchmaking both read, and recordings name
+   it by `contentId` (Done above; [26](26-recording-contract.md)). Weapon tier
+   statistics and ammunition rules belong in the same bundle. Keep item
+   identity/remaining ammo separate from tier definitions. Drag/drop is
+   implemented on existing validated inventory intents (F-13). Resolve reload
+   versus R rearrangement before changing controls. Do not silently extend
+   today's replay version for a content change.
 2. **Generation difficulty and trap lifecycle.** Define one pure spatial difficulty
    calculation for vertical excursion and rightward progress. Pass its result to
    reward and danger placement separately, so safety reservations and spawn routes

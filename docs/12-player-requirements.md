@@ -8,7 +8,7 @@ in [13](13-accepted-features.md). Implemented numeric defaults are in
 | ID | Requirement | Acceptance evidence | Status |
 | --- | --- | --- | --- |
 | P-01 | The arena is elongated left-to-right, diamond-shaped, and larger than one camera view. | Live chain is 17,280 by 8,640 with a stepped diamond outline; collision and rendering use its actual owned cells. Live view shows only part of it. | Implemented |
-| P-02 | Tile templates will eventually compose the map; movement remains continuous. | Authored tiles and set pieces feed region strategies through the generation chain (51); the live adapter consumes their geometry (22). | Implemented initial chain |
+| P-02 | Tile templates compose the map; movement remains continuous. | Authored tiles and set pieces feed region strategies through the generation chain (51); the live adapter consumes their geometry (22). | Implemented initial chain |
 | P-03 | The hazard advances from contestant entry toward extraction and pressures both roles. | `hazardX` advances against real time; actors behind it take damage; the match has a fixed duration. | Implemented |
 | P-04 | Contestants are smaller/faster and can use passages that block gladiators. | Live radii remain 12 and 23 by user choice. The new cell-profile squeeze balance needs separate tuning (14, 17). Legacy clearance tests remain. | Bodies implemented; live gap balance pending |
 | P-05 | Contestants collect environmental items that affect the current match. | Access charges, weapons, shields, and healing are generated in sections and collected authoritatively. | Implemented |
@@ -20,7 +20,7 @@ in [13](13-accepted-features.md). Implemented numeric defaults are in
 | P-11 | Solid obstacles block vision and projectile travel. | Solid walls and closed doors occlude; windows pass sight and shots but block bodies and item interactions. | Implemented |
 | P-12 | Desktop controls separate movement and aim. | WASD/arrow movement and pointer aim; left mouse fires. | Implemented |
 | P-13 | Touch controls support simultaneous movement and aim/fire. | Independent virtual sticks are tested with two concurrent touch contacts. | Implemented |
-| P-14 | A player cannot see the whole live battlefield. | Camera follows the player; full-map view is reserved for completed replays. | Implemented |
+| P-14 | A player cannot see the whole live battlefield. | Camera follows the player. Full-map views are completed replays, the delayed directed spectator stream (never to a player holding a slot), and the dev view, offered only under a permitting `DEV_TOOLS` policy ([15](15-information-rules.md), [24](24-networking-privacy.md#dev-view)). | Implemented |
 | P-15 | A player can replay exactly what the authoritative server recorded. | Normal recordings retain every tick with commands, map and SHA-256. Storage pressure may omit whole frames without pausing gameplay; recovered recordings are labelled incomplete and playback preserves recorded timing. Permanent recording failures notify viewers without ending the match. | Implemented with explicit failure policy |
 | P-16 | Server authority prevents client-side state injection. | Inputs are bounded, sequenced, rate-limited, and validated; clients cannot set position, health, inventory, or outcomes. | Implemented |
 

@@ -5,6 +5,33 @@ the rest are conventions this file records so a change lands in the right module
 
 `shared/shape.ts` owns what a shape is: the rect/circle/polygon description, its bounds, outline, edges, SAT body, containment, overlap and transform. It is a dependency-free leaf, and collision, sight and the renderer all read geometry through it rather than from raw `w`/`h`/`r` fields; see [29](29-geometry-and-drawing.md). `shared/map.ts` exposes map generation and routing. `shared/movement.ts` owns what the simulation does with a shape: occupancy, the movement sweep, sight queries and visibility polygons. `shared/simulation.ts` is the public simulation facade and explicit fixed-tick coordinator. `server/index.js` composes the server and serves static assets. `shared/frame-layers.ts` owns how a live frame's slow-changing layers travel, keyframes and change sets, encoded on the server and decoded per socket on the client ([24](24-networking-privacy.md#layered-frames)). `public/client.js` owns application startup, networking, authoritative state, prediction/reconciliation and lobby flow; `public/replay-controller.js` owns recorded-match playback. `public/snapshot-buffer.js` owns the receive buffer and the delayed, interpolated frame drawn from it, and knows nothing of sockets, Phaser or the scene: frames go in and one interpolated frame comes out, which is the seam a state-sync framework would replace. `client.js` decides which frame the renderer sees — the buffered one live, the replay's own playhead when a recording is open — so the scene draws what it is given rather than deciding what is current. `public/arena-scene.js` renders the world and visibility mask. `public/ui.js` owns the client's shared presentation vocabulary — DOM lookup, tick formatting and kit naming read from the authoritative kit table rather than a transcribed copy.
 
+## Scope
+
+22.1 to 22.5 record ownership of code that exists. They name modules that own a
+contract or sit on a boundary; a module they don't name belongs to its
+directory's part (`shared/` simulation to 22.1, `map/` to 22.2, `server/` to
+22.3, `public/` to 22.4), owns what its own header says, and changes nothing a
+named owner decides. Smaller owners that the parts don't list:
+
+- `shared/equipment.ts` owns the default weapon table, slot count and inventory
+  item operations; a match reads its pinned copy (22.1, "content").
+- `shared/traps.ts` owns trap and hazard effects, with damage and effects
+  injected so it stays a leaf.
+- `shared/profiler.ts` owns the off-by-default sampling profiler shared by the
+  server loop, the bench and the client ([21](21-stack.md), [24](24-networking-privacy.md)).
+- `shared/dev-nav.js` and `.css` own the developer tools' shared navigation bar
+  ([20.5](20.5-tools-and-next-boundaries.md)).
+- `public/diagnostics.js` owns the client's bounded timing sample and its
+  downloadable performance report (17.3 #8).
+- `public/equipment-ui.js` owns equipment glyphs; `public/replay-timeline.js`
+  owns the replay timeline and its diagnostic markers, which it treats as
+  untrusted file content; `public/sat-browser.js` hands the browser the global
+  SAT build.
+
+22.6 and 22.7 are not records of existing code. 22.6 is a proposal for #353,
+none of it built; 22.7 is a planned contract for #386. Their numbers sit in this
+range because they concern ownership, and numbers never change (33).
+
 ## Reading guide
 
 | ID | Topic | Read |

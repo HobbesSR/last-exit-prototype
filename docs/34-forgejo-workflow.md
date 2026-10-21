@@ -3,7 +3,7 @@
 Local Forgejo at `http://localhost:3000` is the source of truth; GitHub (`origin`)
 is the public remote copy, described under [GitHub](#github) below.
 `corey/astra_test` is the only project repository: the map
-generator lives in `map/macro/` (see [20](20-micro-generation.md)). The old
+generator lives in `map/macro/` (see [50](50-map-generation.md)). The old
 `corey/last_exit_map` repository is retired: open no work against it.
 
 This file governs top-level agents that each hold their own Forgejo account.
@@ -18,12 +18,12 @@ checkout rather than inside it. A nested worktree would load the primary
 checkout's instruction files as well as its own, and would show up in searches
 from the primary checkout.
 
-| Agent | Forgejo account (commit email) | Worktree | Branch prefix | Dev ports (game / mapgen) |
+| Agent | Forgejo account (commit email) | Worktree | Branch prefix | Dev port |
 | --- | --- | --- | --- | --- |
-| Human | `corey` | `astra_test/` (primary) | — | 3100 / 4173 (defaults) |
-| Claude Code | `agent-claudecode` (`claudecode@local.host`) | `../astra_test.agents/claude` | `claude/` | 3110 / 4110 |
-| Codex | `agent-codex` (`codex@local.host`) | `../astra_test.agents/codex` | `codex/` | 3120 / 4120 |
-| Antigravity | `agent-antigravity` (`antigravity@local.host`) | `../astra_test.agents/antigravity` | `antigravity/` | 3130 / 4130 |
+| Human | `corey` | `astra_test/` (primary) | — | 3100 (default) |
+| Claude Code | `agent-claudecode` (`claudecode@local.host`) | `../astra_test.agents/claude` | `claude/` | 3110 |
+| Codex | `agent-codex` (`codex@local.host`) | `../astra_test.agents/codex` | `codex/` | 3120 |
+| Antigravity | `agent-antigravity` (`antigravity@local.host`) | `../astra_test.agents/antigravity` | `antigravity/` | 3130 |
 
 The primary checkout (`astra_test/`) belongs to the human: `main`, reviewing and
 merging. Agents never commit there and never touch another agent's worktree.
@@ -39,7 +39,9 @@ dev port, e.g. `PORT=3110`. `npm run dev` from the root loads it, so a server an
 with a browser lands on that agent's own port. An assigned port is used exactly:
 if it is busy the server stops rather than drifting onto a neighbor's port, and
 the busy one is almost always your own earlier server. If `.env.local` is
-missing, create it from the table before starting a dev server.
+missing, create it from the table before starting a dev server. The Map Lab and the other
+labs are served by the game server on that same port ([20.5](20.5-tools-and-next-boundaries.md));
+nothing reads a `MAPGEN_PORT` left in an older `.env.local`.
 
 ## Instruction loading
 
@@ -123,7 +125,7 @@ git -C ../astra_test.agents/<agent> config --worktree user.email <commit email>
 git -C ../astra_test.agents/<agent> config --worktree remote.forgejo.pushurl \
   http://<account>:<token>@localhost:3000/corey/astra_test.git
 printf 'PORT=<game port>\n' > ../astra_test.agents/<agent>/.env.local
-(cd ../astra_test.agents/<agent> && npm ci && npm --prefix mapgen ci)
+(cd ../astra_test.agents/<agent> && npm ci && npm --prefix map/macro ci)
 ```
 
 ## Shared machine resources
