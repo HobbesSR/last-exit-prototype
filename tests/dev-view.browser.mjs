@@ -57,6 +57,84 @@ try {
   await until(() => seqOf() > parked + 3, () => `input resumes after stepping back: ${seqOf()} vs ${parked}`);
   assert.equal(room.spectators, 0, 'the dev socket closed');
 
+  // Archive loads settle in whatever order the network chooses, so the page holds them here and the
+  // check settles each one when it wants (#387). The archive lists two recordings of this room's
+  // present frame, told apart by how far past it they declare they run; each is listed as an arena
+  // named for that.
+  const frame = room.match.snapshot();
+  const recording = extra => ({ id: `held-${extra}`, hz: 20, map: room.match.spectatorMap(frame),
+    frames: [{ state: room.match.project(frame, null), commands: [] }], recording: { complete: true, droppedFrames: 0, endTick: frame.tick + extra } });
+  await page.evaluate(({ recordings, rows }) => {
+    const held = window.heldReplays = {}, realFetch = window.realFetch = window.fetch;
+    window.fetch = (url, options) => {
+      if (url === '/api/replays') return Promise.resolve({ ok: true, json: async () => rows });
+      const id = /^\/api\/replays\/(.+)$/.exec(url)?.[1];
+      if (!recordings[id]) return realFetch(url, options);
+      return new Promise(resolve => {
+        held[id] = error => resolve(error ? { ok: false, json: async () => ({ error }) } : { ok: true, json: async () => recordings[id] });
+      });
+    };
+  }, { recordings: Object.fromEntries([7, 9].map(n => [`held-${n}`, recording(n)])),
+    rows: [7, 9].map(n => ({ id: `held-${n}`, seed: n, ticks: n, escaped: 0, createdAt: Date.now() })) });
+  const choose = async length => {
+    if (!await page.evaluate(() => document.getElementById('archive-dialog').open)) await page.getByRole('button', { name: 'Replays', exact: true }).click();
+    await page.getByRole('button', { name: `Play arena ${length}`, exact: true }).click();
+    await page.waitForFunction(id => window.heldReplays[id], `held-${length}`);
+  };
+  // Settling runs the load to its end: what follows the response is all microtasks, done before a timer.
+  const settle = (length, error = null) => page.evaluate(([id, error]) => {
+    const release = window.heldReplays[id]; delete window.heldReplays[id]; release(error);
+    return new Promise(resolve => setTimeout(resolve));
+  }, [`held-${length}`, error]);
+  const shown = () => page.evaluate(start => window.arenaDebug().replay ? Number(document.getElementById('replay-seek').max) - start : null, frame.tick);
+  const closeArchive = () => page.locator('#archive-dialog .close-dialog').click();
+  const toastText = () => page.locator('#toast').textContent();
+  // The latest choice wins whichever answers first, and a superseded failure says nothing.
+  await choose(7); await choose(9);
+  await settle(9); assert.equal(await shown(), 9, 'the latest choice opens');
+  await settle(7); assert.equal(await shown(), 9, 'an earlier choice answering late does not replace it');
+  await choose(7); await choose(9);
+  await settle(7, 'superseded failure'); await settle(9);
+  assert.equal(await shown(), 9);
+  assert.notEqual(await toastText(), 'superseded failure', 'a superseded failure raises no toast');
+  await choose(7); await settle(7, 'current failure');
+  assert.equal(await toastText(), 'current failure', 'the current load still reports its own failure');
+  assert.equal(await shown(), 9, 'and leaves the open replay as it was');
+  // Leaving the replay, or stepping out to the dev view, abandons a load still in flight.
+  await choose(7); await closeArchive();
+  await page.getByRole('button', { name: 'Exit replay' }).click();
+  await settle(7); assert.equal(await shown(), null, 'closing the replay abandons a pending load');
+  await choose(7); await closeArchive();
+  await page.getByRole('button', { name: 'Dev view', exact: true }).click();
+  await page.waitForFunction(() => window.arenaDebug().devFeed);
+  await settle(7); assert.equal(await shown(), null, 'stepping out to the dev view abandons a pending load');
+  assert.equal(await page.evaluate(() => window.arenaDebug().view), 'dev');
+
+  // The live socket's frame gaps are the network's, measured whatever is drawn (#387). The dev feed's
+  // frames must not stand in for the player socket's: withholding the player's frames for a second
+  // while the dev feed carries on is a second-long gap.
+  const gaps = () => page.evaluate(() => window.arenaProfile().series.find(row => row.name === 'net.stateGap') ?? { calls: 0, mean: 0, max: 0 });
+  const profileAfresh = () => page.evaluate(() => { window.arenaProfiling(false); window.arenaProfiling(true); });
+  const session = [...room.clients].find(client => client.playerId === subject), deliver = session.deliver;
+  await profileAfresh();
+  session.deliver = (payload, droppable) => droppable ? false : deliver(payload, droppable);
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  session.deliver = deliver;
+  await page.waitForFunction(() => window.arenaProfile().series.find(row => row.name === 'net.stateGap')?.calls >= 5);
+  const withheld = await gaps();
+  assert.ok(withheld.max >= 800, `a withheld second is measured on the live socket in the dev view: ${JSON.stringify(withheld)}`);
+  await page.keyboard.press('Backquote');
+  await page.waitForFunction(() => !window.arenaDebug().devFeed && window.arenaDebug().vision);
+  // Behind a replay the live socket keeps its ordinary interval, rather than measuring from the last
+  // frame drawn before the replay opened.
+  await profileAfresh();
+  await choose(9); await settle(9);
+  await page.waitForFunction(() => window.arenaProfile().series.find(row => row.name === 'net.stateGap')?.calls >= 20, null, { timeout: 10000 });
+  const behind = await gaps();
+  assert.ok(behind.mean < 150, `live frames behind a replay keep the 50 ms server interval: ${JSON.stringify(behind)}`);
+  await page.getByRole('button', { name: 'Exit replay' }).click();
+  await page.evaluate(() => window.arenaProfiling(false));
+
   // A standalone dev tab: undelayed and unfogged, on the whole arena.
   const dev = await browser.newPage(); watch(dev);
   await dev.setViewportSize({ width: 1440, height: 1000 });
@@ -129,9 +207,13 @@ try {
     assert.equal(await join.isEnabled(), true, 'Join stays usable for the role the dialog shows');
     assert.equal(await page.locator('[data-role][aria-pressed="true"]').getAttribute('data-role'), 'contestant');
   };
+  // Moving to another room abandons a replay load begun in this one.
+  await choose(7); await closeArchive();
   await browse();
   await page.getByRole('button', { name: 'Dev view of Night shift', exact: true }).click();
   await page.waitForFunction(id => window.arenaDebug().dev && window.arenaDebug().room === id, named.id);
+  await settle(7); assert.equal(await shown(), null, 'a room transition abandons a pending load');
+  await page.evaluate(() => { window.fetch = window.realFetch; });
   await browse();
   await page.locator('#role-preference').selectOption('any');
   await page.getByRole('button', { name: 'Auto', exact: true }).click();

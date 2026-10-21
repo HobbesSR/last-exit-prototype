@@ -72,7 +72,11 @@ const replayController = createReplayController({
   liveConnectionLabel: () => ws?.readyState === WebSocket.OPEN ? (inDevView() ? 'DEV VIEW' : 'LIVE') : 'OFFLINE',
   downloadReplay, icon, icons, director,
 });
-let toastTimer, connecting = false, disconnecting = false, lastStateAt = 0, profileOverlay;
+let toastTimer, connecting = false, disconnecting = false, profileOverlay;
+// When the player socket last delivered a frame. It is the network's own measure, kept by the socket that
+// receives the frames rather than by whatever is being drawn: a replay or the dev feed showing in its
+// place must neither stall it nor stand in for it.
+let lastLiveStateAt = 0;
 // What the server last measured for this connection, for display only.
 let roundTripMs = null;
 const directed = () => replayController.active() || !playerId || !!devFeed;
@@ -175,7 +179,9 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   // Nothing of the previous room carries over: a room still generating sends no state until `ready`,
   // and an error before then must find this room stateless, not the last one's frame.
   state = null; liveMap = null; liveState = null; predicted = null;
-  snapshots.reset(); presentation = null; roundTripMs = null;
+  snapshots.reset(); presentation = null; roundTripMs = null; lastLiveStateAt = 0;
+  // A replay still loading belongs to the view being left.
+  replayController.cancel();
   resetDiagnostics();
   $('lobby-title').textContent = 'Arena lobby.';
   owner = false; lobbyPlayers = []; lobbyCapacity = null; lobbyReady = true; lobbyStarting = false; lobbyKit = kit; devView = false; devRoster = ''; director.reset(); setPaused(false);
@@ -231,7 +237,9 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
       const me = data.state.players?.find(p => p.id === playerId);
       if (me?.discovered) discoveryDecoder.decode(me.discovered);
       // Gap between authoritative frames: separates server pacing from client render cost.
-      if (lastStateAt) profiler.observe('net.stateGap', performance.now() - lastStateAt);
+      const receivedAt = performance.now();
+      if (lastLiveStateAt) profiler.observe('net.stateGap', receivedAt - lastLiveStateAt);
+      lastLiveStateAt = receivedAt;
       profiler.observe('net.stateBytes', event.data.length, 'n');
       liveState = data.state;
       if (!replayController.active() && !devFeed) acceptState(data.state);
@@ -276,7 +284,7 @@ async function connect({ room, key, role = 'contestant', kit = 'warden', name = 
   socket.addEventListener('error', () => { if (ws === socket) toast('Unable to connect to the arena server.'); });
 }
 function acceptState(next) {
-  state = next; lastStateAt = performance.now();
+  state = next;
   if (!replayController.active()) snapshots.push(next);
   if (!arenaMap) return;
   arenaMap.gates = state.gates;
@@ -555,7 +563,7 @@ let savedDevCamera = null;
 // The dev view opens beside the match rather than in place of it, so a player keeps their slot.
 function enterDevView() {
   if (devFeed || !playerId || replayController.active() || ws?.readyState !== WebSocket.OPEN) return;
-  clearInput();
+  clearInput(); replayController.cancel();
   const socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
   devFeed = socket;
   if (savedDevCamera && savedDevCamera.roomId === roomId) {
