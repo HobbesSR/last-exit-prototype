@@ -12,7 +12,7 @@ import { OUTSIDE } from '../building/design.ts';
 import type { BuildingAllocation, BuildingDesign } from '../building/design.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import type { BuiltRegion, LootSite, RegionBrief } from '../types.ts';
-import { buildCover } from './cover.ts';
+import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
 import { unusedComponents } from '../components.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
@@ -73,27 +73,12 @@ export function buildHut(brief: RegionBrief, observe?: BuildingObserver): BuiltR
 export function buildHutGeneration(brief: RegionBrief, options: ExecutionOptions = {}) {
   // Preparation rechecks receivers as interfaces change. Reuse only an exact
   // interface's cover preview within this invocation, including for dispatch.
-  const previews = new Map<string, BuiltRegion>();
-  const cover = (child: RegionBrief) => {
-    const key = JSON.stringify(child);
-    if (!previews.has(key)) previews.set(key, buildCover(child));
-    return previews.get(key)!;
-  };
-  return executeDelegation(brief, { ...HUT_EXECUTION_REGISTRY,
-    cover: { ...HUT_EXECUTION_REGISTRY.cover!, build: cover,
-      receiving: coverReceiving(cover) },
-  }, options);
-}
-
-function coverReceiving(build: (brief: RegionBrief) => BuiltRegion) {
-  return (brief: RegionBrief) => build(brief).elements.length ? null : 'cover has no usable placement in the inherited fill';
+  return executeDelegation(brief, { ...HUT_EXECUTION_REGISTRY, cover: previewedCoverExecution() }, options);
 }
 
 export const HUT_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
   hut: { version: 'hut-yard-1', build: buildRetainedHut },
-  // This records the cover executor implementation; bump it when buildCover changes.
-  // The aggregate content version types-24 tracks a separate contract.
-  cover: { version: 'cover-types-23', build: buildCover, receiving: coverReceiving(buildCover) },
+  cover: COVER_EXECUTION,
 });
 
 function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe?: BuildingObserver): BuiltRegion {
