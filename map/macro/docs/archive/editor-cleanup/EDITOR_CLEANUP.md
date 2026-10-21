@@ -1,6 +1,6 @@
 # Editor cleanup and design provenance
 
-The source of intent is [Corey's original brain dump](../design_notes.txt).
+The source of intent is [Corey's original brain dump](../../../design_notes.txt).
 The appended assistant architecture proposal was moved intact to
 `archive/retired-design-proposal/`; it is historical, not an accepted spec.
 Implementation notes must distinguish current behavior from the intended design.
@@ -57,7 +57,7 @@ The next generator change must compile tile/layout declarations into composed
 geometry, let that geometry determine traversal, and retain the same library
 across GUI/CLI/MCP. It needs artifact migration and end-to-end checks; connecting
 the experimental API alone would not complete that change. See
-[next tasks](NEXT_TASKS.md) and [macro experiments](MACRO_STRUCTURES.md).
+[next tasks](../pre-integration/NEXT_TASKS.md) and [macro experiments](../pre-integration/MACRO_STRUCTURES.md).
 
 ## Other cleanup
 

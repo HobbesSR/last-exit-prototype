@@ -62,11 +62,9 @@ user instructions and requirements before selecting the next deliverable.
 
 ## Persistence
 
-The repository AGENTS.md carries this strategy into new Codex sessions in this
-checkout and, once shared, other clones. The user's global
-`C:/Users/Corey/.codex/AGENTS.md` also records the general preference for other
-projects on this machine. Environments that do not load these instructions need
-them supplied explicitly; these files cannot grant missing tool capabilities.
+Instruction loading and machine-specific setup belong to
+[34](34-forgejo-workflow.md#instruction-loading). These files cannot grant
+missing tool capabilities. This document owns the delegation and handoff policy.
 
 Official references checked September 11, 2026:
 - [AGENTS.md discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md)

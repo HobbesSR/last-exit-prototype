@@ -1,12 +1,35 @@
 # 53. Map artifacts, determinism and tools
 
 Status: current for the generation chain (51), its Map Lab, CLI, MCP and sweep. mapgen's
-old paths were deleted at the switch-over (#146). Updated 2026-10-04 (#204).
+old paths were deleted at the switch-over (#146). Compatibility and evidence
+routes reviewed 2026-10-20 (#381); tool descriptions include earlier milestones.
 
 The terminology in [51.1](51.1-principles-and-names.md) applies throughout:
 **chain maps** are outputs of the generation chain, and **Chain Library** is
 the Map Lab tab for authoring its input library. These are engineering/tool
 names; the chain of inference is the separate reachability argument.
+
+## Current compatibility domains
+
+These values describe separate acceptance checks as of 2026-10-20. A change to
+one does not imply a change to the others. The dated capture trail is in
+[42.4](42.4-chain-checkpoint-history.md); builder execution and snapshots have
+their own compatibility rules in [20.7](20.7-builder-delegation.md).
+
+| Domain | Active value | Source / scope |
+| --- | --- | --- |
+| Region strategy content | `types-30` | `REGION_TYPES_VERSION` in `map/micro/region-types.ts`; changes saved build identity and sweep results |
+| Chain wire | `8` | `CHAIN_WIRE_VERSION` in `map/macro/src/chain/saving.ts`; wire 6 and 7 are refused for their recorded compatibility reasons below |
+| Macro algorithm | `3` | `MACRO_VERSION` in `map/macro/src/chain/map.ts`; macro 2 Layouts are refused under wire 8 because derived briefs differ |
+| Resolved Chain Library schema | `3` | `CHAIN_LIBRARY_VERSION` in `map/macro/src/chain/library.ts`; embedded library content and fingerprint must match |
+| Library module schema | `1` | [51.4](51.4-resolution.md); optional module hints do not change the flattened library fingerprint rule |
+| Region result | `region-2` | `map/kernel/contract.ts` and the wire reader; stored result format |
+
+The wire reader checks its embedded library fingerprint; a supplied library
+must match it. Layout-only regeneration also requires the saved macro and
+strategy versions to match the available engines. These domains are distinct
+from replay and simulation versions ([26](26-recording-contract.md)) and from
+builder delegation ([20.7](20.7-builder-delegation.md)).
 
 ## One seed decides the whole map
 
@@ -104,9 +127,13 @@ things stay documents.
 
 `node map/tools/cli.mts sweep --check map/tools/fixtures/chain-baseline.json`
 (from the repository root, about 25 s) reruns the pinned seed set and compares
-per-view content hashes: 224 maps, 121 of them default game maps (120 sweep
-seeds and one quick case), with spreads over
-spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
+per-view content hashes: 224 entries, including 161 game-mode cases (120
+default game sweep seeds, 20 crowded, 20 sparse, and one quick game case) and
+63 playground cases (20 each at default, 4 × 2, and 6 × 3, plus three quick
+2 × 1 cases). These are the stored case groups, not a new zero-drift run.
+They span spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
+The current baseline provenance is content commit `7953b1e82e498b850bf908f86d643d28868434bf`,
+captured `2026-10-15T04:20:28.821Z` under Node v24.15.0.
 - Each map's two objects, the Layout and the region results, and every view
   `mapViews` gives (the declared grid, the resolved layout, the regions, the
   proof, the zones, the briefs, the built map and the report) get one hash
@@ -121,173 +148,91 @@ spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
   acceptably. The capture refuses uncommitted changes to the chain's inputs
   and records the last commit that touched them.
 
-**#361's re-capture** pins `types-30`. Park now protects a hunter route tree between nearby portals past 32 portals, instead of the boundary rule (54). The results view moved on all 224 maps with the version, and the built view on `game/sweep-74`, the one map where a large park's pieces change. The report moved nowhere; all six sweep parks past 32 portals pass swept access under both builders (42). The content commit is `7953b1e`. Batches showed no defects over 60 game and 30 playground maps at 12 × 6 and 3 diagnosed game maps at 36 × 18.
+Historical recaptures from #361 through the first baseline have moved to [42.4](42.4-chain-checkpoint-history.md). The entries below retain their former 53 landing anchors.
 
-**#347's re-capture** pins `types-29`. Depot now builds its nearby-portal route tree at every portal count, not only up to 32 (54). The results view moved on all 224 maps with the version. The built view moved on the 16 maps whose filled depots have more than 32 portals, where container rows shift, and the report on 15 of them. Warehouse counts and swept access are unchanged on all 18 such depots (42). The same content commit, `9c873bf`, authors the 36×18 library's local `city-centre` block and `industrial-quarter` depot joins, now at library fingerprint `76a434e7c5cb18f0`. The sweep does not exercise that library. Its evidence is the same-seed before/after audit in 42. Batches showed no defects over 60 game and 30 playground maps at 12 × 6 and 3 game maps at 36 × 18.
+### #361's re-capture
 
-**#293's re-capture** pins `types-28`. Every outside door and window of a hut, depot or compound gains a ground decal (56.2). The results and built views moved on all 224 maps, since every map has one of those buildings. No other view moved, the report included, since a decal is presentation and changes nothing walkable. The content commit is `17c0eee`. Batches showed no defects over 60 game and 30 playground maps at 12 × 6.
+See [the dated capture record](42.4-chain-checkpoint-history.md#361s-re-capture).
 
-**#348's re-capture** pins `types-27`. The compound's room roofs fade together only where one can walk between them inside the ring, no longer as one whole-ring group (56.1). The results view moved on all 224 maps with the version, and the built view on the 130 with a compound. No other view moved, the report included, since fade groups change nothing walkable. The content commit is `f0e14ad`. Batches showed no defects over 60 game and 30 playground maps at 12 × 6.
+### #347's re-capture
 
-**#230's re-capture** follows three chargers per map, banded along it (52, 55). The library fingerprint moves the layout view on all 224 maps; every other view moved on 161 maps, and on the other 63 only the layout moved. The content commit is `3e383f2`. Later #354 commits touched only bot and discovery code in `shared/`, a sweep input, and left every entry identical, so the baseline's provenance names the last of them. Batches showed no defects over 60 game and 30 playground maps at 12 × 6, 6 at 24 × 12 and 3 at 36 × 18, and the per-region diagnosis showed none over 3 game maps.
+See [the dated capture record](42.4-chain-checkpoint-history.md#347s-re-capture).
 
-**L5's re-capture (#192)** followed the building library's first deliberate
-content change, larger `hut` houses and `compound`'s ring as a design (56 L5).
-Only the results, built and report views moved. The report showed no defects
-over 60 game and 30 playground maps, and the per-region diagnosis none over 3
-game maps. The S3 migration's provenance is kept in the recaptured file.
+### #293's re-capture
 
-**#218's re-capture** followed `depot`'s move to warehouse designs (54
-`depot`, 17.2.8 M34). The results, built and report views moved on 161 of
-224 maps, since `plant` and `block`'s lots build with `depot` too, and nothing
-else moved. The report showed no defects over 60 game and 30 playground maps,
-and the per-region diagnosis none over 3 game maps. The S3 migration's
-provenance is kept.
+See [the dated capture record](42.4-chain-checkpoint-history.md#293s-re-capture).
 
-**#219's re-capture** followed `plant`'s own strategy (54 `plant`, 17.2.8
-M34). The built and report views moved on 161 of 224 maps, the ones with a
-`plant` region, and the results view on all 224, since `REGION_TYPES_VERSION`
-went to `types-17`. Nothing else moved. The report showed no defects over 60
-game and 30 playground maps, and the per-region diagnosis none over 3 game
-maps. The S3 migration's provenance is kept.
+### #348's re-capture
 
-**#220's re-capture** followed `checkpoint`'s own strategy (54 `checkpoint`,
-17.2.8 M34). The built and report views moved on 88 of 224 maps, the ones with
-a `checkpoint` region, and the results view on all 224, since
-`REGION_TYPES_VERSION` went to `types-18`. Nothing else moved. The report
-showed no defects over 60 game and 30 playground maps, and the per-region
-diagnosis none over 3 game maps. The S3 migration's provenance is kept.
+See [the dated capture record](42.4-chain-checkpoint-history.md#348s-re-capture).
 
-**#221's re-capture** followed `park`'s own strategy and its fill weight (54
-`park`, 17.2.8 M34). Every view moved on all 224 maps: `park-ground`'s weight
-went from 0 to 0.15, which changes the library's fingerprint and so the
-Layout, and every stage after it, and `REGION_TYPES_VERSION` went to
-`types-19`. `park` went from 297 regions on 139 maps to 1,682 on 211. The
-report showed no defects over 60 game and 30 playground maps, and the
-per-region diagnosis none over 3 game maps. The S3 migration's provenance is
-kept. A review fix then kept `park`'s hedge thickness and tree radius
-fractional at small cell sizes; it moved the results and built views on 130
-maps, the ones with a `park` region, and nothing else.
+### #230's re-capture
 
-**#241/#243/#298's re-capture** follows the authored deferred/hinted tile
-perimeters (52) and boundary-aware builders (54), with one bump to
-`types-20`. The 224-map capture records input commit `8c1a79d`. Every view
-except zones and most proofs changes: zones stay identical, and proof hashes
-move on 9 maps as deferred segments resolve additional passability. Before
-capture, 35 game maps across all three authored sizes reported no defects,
-every region of one game map passed the independent portal diagnostic, and
-combat-neutralized bots filled all three extraction slots on representative
-live maps. The frozen gameplay characterization fixture is unchanged.
+See [the dated capture record](42.4-chain-checkpoint-history.md#230s-re-capture).
 
-**#313's re-capture** pins automatic guaranteed-segment margins (20.6), macro
-version 3 and `types-21`, at input commit `485ca14`. It retains the same 224
-cases and unchanged authored libraries. Only results, briefs, built and report
-hashes change on all 224 maps; layout, declared grid, resolved segments,
-regions, proof and zones stay identical. This is the prerequisite policy
-checkpoint; #214's later authored shapes and tuning require their own review
-and final checkpoint. The frozen gameplay characterization fixture is unchanged.
+### L5's re-capture (#192)
 
-**The #318 review's re-capture** pins `types-22` at input commit `2cf7259`, the
-same 224 cases. Every brief now takes one margin path; with `block`'s change
-held back, that alone moves only the results' version string on all 224 maps.
-`block` keeping lots two cells off each portal moves built content on the 97
-maps whose blocks it changes (results, built and report; one map's report is
-unchanged). Six of them, diagnosed independently, report no defects. Layout,
-declared grid, resolved segments, regions, proof, zones and briefs are identical.
+See [the dated capture record](42.4-chain-checkpoint-history.md#l5s-re-capture-192).
 
-**#214's re-capture** pins authored fill diversity (52), the centered cover
-courtyard, intentional non-guaranteed structure joins, and the reduced default
-loot gradient (14) at input commit `6bd18a4`. It retains the same 224 cases and
-S3 migration provenance. Content hashes intentionally change on all 224 maps;
-macro version 3, `types-22`, and wire version 8 remain the implemented contracts.
-The libraries now use immutable modules `common-primitives@4`,
-`common-set-pieces@4`, and `district-set-pieces@3`. Before capture, 35 report
-samples across the three authored sizes and three independent full-map portal
-diagnoses passed. The frozen gameplay characterization fixture is unchanged.
+### #218's re-capture
 
-**#325's re-capture** pins `types-23` at input commit `a4c17b9`, retaining the
-same 224 cases. Depots reserve a nearby-portal
-spanning tree instead of a first-portal star (20.3, 54). Results hashes change
-on all 224 cases because the builder version changes; built and report hashes
-move on the 150 cases with changed depot content. Layout, declared grid, resolved
-segments, regions, proof, zones and briefs remain identical. The same 20
-`last-exit-001` through `last-exit-020` maps report no defects and all their
-depots pass independent fill and hunter-access checks; full-map diagnoses of
-002, 008 and 014 also pass. Macro version 3 and wire version 8 remain unchanged.
-The frozen gameplay characterization fixture is unchanged.
+See [the dated capture record](42.4-chain-checkpoint-history.md#218s-re-capture).
 
-**#330's re-capture** pins `types-24` at input commit `93aa5d4`, retaining the
-same 224 cases. Huts retain their house, yard and circulation and offer unused
-lobes to cover; a wholly incapable hut takes terminal empty (20.7, 54).
-The original baseline comparison changes results hashes on all 224 maps, built
-and report hashes on 67. Layout, declared grid, resolved segments,
-regions, proof, zones and briefs remain identical. Three full maps at the
-12 × 6, 24 × 12 and 36 × 18 authored sizes report no defects or broken promises
-under independent portal diagnosis. The real pilot's Micro Lab preview and
-full/omitted owning snapshots are checked. Measured uptake is limited: 6 of 137
-offers in those maps were accepted (42). Capture follows the committed content
-checkpoint; the final 224-case check has zero drift. Macro version 3 and
-wire version 8 remain unchanged, as does the frozen gameplay characterization
-fixture.
+### #219's re-capture
 
-**#338's re-capture** pins `types-25` at input commit `2e89706`, retaining the
-same 224 cases. Compound keeps its ring/court, reserves actual gate/portal
-circulation and inherited clear cells, and delegates compatible exterior
-components with 3×3 yard pockets to cover (20.7, 54). Centered-door feasibility corrects invalid
-gate-side choices without expanding the siting search. Results hashes change
-on all 224 cases because the version changes; built and report hashes change
-on 22. Layout, declared grid, resolved segments, regions, proof, zones and
-briefs remain identical. The three measured authored maps have no report
-defects, and every audited containing/leaf interface and sampled room/court/gate
-route passes against final combined geometry. Two of 23 authored-map offers
-are accepted, in one large compound (42). Both browser labs reproduce the
-stored adopter output, and full/omitted owning snapshots recover exactly.
-The final 224-case regeneration check has zero drift. Macro version 3 and wire version 8 remain unchanged. The frozen gameplay
-characterization fixture is unchanged.
+See [the dated capture record](42.4-chain-checkpoint-history.md#219s-re-capture).
 
-**#340's authored correction checkpoint** pins the local `military-quarter`
-compound join references at input commit `ef97600`. It uses the existing inward
-variants, changing only 312 references in `diamond-36x18.json`; primitive/set-piece
-module revisions and `types-25` remain unchanged. The resolved 36×18 library
-fingerprint is `a79cd8c355545bfc`. Old saved maps still carry their own embedded
-library, so the same builder algorithm can reproduce their original decisions.
-The original constrained brief is retained, alongside the new exact corrected
-brief with explicit hashes in `tests/fixtures/README.md`.
+### #220's re-capture
 
-The 224-map baseline was recaptured once after the content commit, retaining
-every case and hash unchanged and recording that input provenance. Its cases
-use the default-size library and smaller playgrounds; it **does not exercise
-the 36×18 authored library**, so zero drift is expected and does not validate
-this correction. The large-size checkpoint instead uses the exact same-seed
-before/after audit, swept original portal/room/court/actual gate access, and the
-five 36×18 report samples in [31](31-verification.md). All 665 root tests and
-136 macro tests pass, as do typecheck, syntax/check and the Map Lab browser check.
-The expanded authoring test is 3.0 s and the new slow access witness 26.4 s,
-within their respective 15/60 s budgets. Chrome-rendered collision previews
-were visually inspected. Server/client benchmarks and the unrelated full game
-browser suite were not rerun; no performance or universal coverage claim is made.
-The frozen gameplay characterization fixture is unchanged.
+See [the dated capture record](42.4-chain-checkpoint-history.md#220s-re-capture).
 
-**#292's re-capture** pins `types-26`. Realization emits contiguous cell roofs
-with exterior overhang and doorway threshold cells on element templates and `map.roofs`,
-supporting concave and holed shapes. Results and built hashes change to reflect the declared
-roofs, while layout, declared grid, resolved segments, regions, proof, zones and briefs
-remain identical. Wire version 8 remains unchanged with `roofs` as an optional array field;
-the frozen gameplay characterization fixture is unchanged.
+### #221's re-capture
 
-**S3 schema migration (#168).** Version 3 adds authored library metadata, so
-its fingerprint changes while placement and construction remain identical.
-`node map/tools/tests/library-v3-audit.mjs` compares the resolved content to
-`3fe884f` and checks all 224 old entries with only the old layout fingerprint
-substituted. All other view hashes must match unchanged. Only after that audit
-were layout hash expectations updated, with migration provenance recorded in
-the baseline. The frozen gameplay characterization fixture is unchanged.
+See [the dated capture record](42.4-chain-checkpoint-history.md#221s-re-capture).
 
-**The first baseline** was captured at the switch-over (#146), at `a496d21`,
-after the report showed no defects over 60 game and 30 playground maps, and
-`diagnoseBuiltMap` none over 3 game maps. Deleting the old paths then moved
-no hash. mapgen's old sweep and its #47 baseline (329 maps over the old
-generators) were deleted with them.
+### #241/#243/#298's re-capture
+
+See [the dated capture record](42.4-chain-checkpoint-history.md#241243298s-re-capture).
+
+### #313's re-capture
+
+See [the dated capture record](42.4-chain-checkpoint-history.md#313s-re-capture).
+
+### The #318 review's re-capture
+
+See [the dated capture record](42.4-chain-checkpoint-history.md#the-318-reviews-re-capture).
+
+### #214's re-capture
+
+See [the dated capture record](42.4-chain-checkpoint-history.md#214s-re-capture).
+
+### #325's re-capture
+
+See [the dated capture record](42.4-chain-checkpoint-history.md#325s-re-capture).
+
+### #330's re-capture
+
+See [the dated capture record](42.4-chain-checkpoint-history.md#330s-re-capture).
+
+### #338's re-capture
+
+See [the dated capture record](42.4-chain-checkpoint-history.md#338s-re-capture).
+
+### #340's authored correction checkpoint
+
+See [the dated capture record](42.4-chain-checkpoint-history.md#340s-authored-correction-checkpoint).
+
+### #292's re-capture
+
+See [the dated capture record](42.4-chain-checkpoint-history.md#292s-re-capture).
+
+### S3 schema migration (#168).
+
+See [the dated capture record](42.4-chain-checkpoint-history.md#s3-schema-migration-168).
+
+### The first baseline
+
+See [the dated capture record](42.4-chain-checkpoint-history.md#the-first-baseline).
 
 ## Language and build
 

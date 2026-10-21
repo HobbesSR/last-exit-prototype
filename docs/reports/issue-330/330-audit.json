@@ -1,0 +1,1231 @@
+{
+  "audit": "hut-delegation-1",
+  "baseline": {
+    "commit": "3b54da0",
+    "source": "git show commit:map/micro/strategies/hut.ts",
+    "note": "The baseline hut strategy is loaded from the pinned source file; its unchanged relative imports resolve from a temporary sibling file. Current supporting modules come from this checkout."
+  },
+  "current": {
+    "commit": "3b54da030df17cb8832dd9f599a8b281dac7d87f",
+    "workingTreeHutChanges": true
+  },
+  "seeds": 20,
+  "direct": [
+    {
+      "id": "small-6x6",
+      "cells": 36,
+      "portals": 1,
+      "seeds": 20,
+      "before": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 0.705,
+          "median": 1.758,
+          "mean": 2.994,
+          "p95": 7.4,
+          "max": 21.605
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 15,
+          "median": 15,
+          "mean": 15,
+          "p95": 15,
+          "max": 15
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 21,
+          "median": 21,
+          "mean": 21,
+          "p95": 21,
+          "max": 21
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.583,
+          "median": 0.583,
+          "mean": 0.583,
+          "p95": 0.583,
+          "max": 0.583
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        }
+      },
+      "after": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 1.266,
+          "median": 2.745,
+          "mean": 2.929,
+          "p95": 4.18,
+          "max": 9.91
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 15,
+          "median": 15,
+          "mean": 15,
+          "p95": 15,
+          "max": 15
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 21,
+          "median": 21,
+          "mean": 21,
+          "p95": 21,
+          "max": 21
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.583,
+          "median": 0.583,
+          "mean": 0.583,
+          "p95": 0.583,
+          "max": 0.583
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        }
+      },
+      "delegation": {
+        "offers": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "rejectionReasons": {},
+        "stoppingReasons": {},
+        "stoppingKinds": {}
+      },
+      "preparationAudit": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "receiverCalls": 0,
+        "receiverAccepted": 0,
+        "receiverRejected": 0,
+        "matchesProduction": true,
+        "samples": 20
+      }
+    },
+    {
+      "id": "rectangle-24x18",
+      "cells": 432,
+      "portals": 2,
+      "seeds": 20,
+      "before": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 4.363,
+          "median": 5.075,
+          "mean": 6.588,
+          "p95": 10.028,
+          "max": 12.493
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 20,
+          "median": 21,
+          "mean": 23.55,
+          "p95": 32,
+          "max": 33
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 399,
+          "median": 408,
+          "mean": 408.45,
+          "p95": 412,
+          "max": 412
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.924,
+          "median": 0.944,
+          "mean": 0.945,
+          "p95": 0.954,
+          "max": 0.954
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 2,
+          "median": 3,
+          "mean": 3.2,
+          "p95": 4,
+          "max": 4
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 192,
+          "median": 264,
+          "mean": 259.2,
+          "p95": 306,
+          "max": 336
+        }
+      },
+      "after": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 14.84,
+          "median": 16.464,
+          "mean": 17.782,
+          "p95": 23.368,
+          "max": 24.88
+        },
+        "elements": {
+          "samples": 20,
+          "min": 2,
+          "median": 4,
+          "mean": 4.8,
+          "p95": 10,
+          "max": 13
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 3,
+          "mean": 3.8,
+          "p95": 9,
+          "max": 12
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 23,
+          "median": 29,
+          "mean": 29.05,
+          "p95": 36,
+          "max": 37
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 395,
+          "median": 403,
+          "mean": 402.95,
+          "p95": 409,
+          "max": 409
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.914,
+          "median": 0.933,
+          "mean": 0.933,
+          "p95": 0.947,
+          "max": 0.947
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 4,
+          "median": 5,
+          "mean": 5.35,
+          "p95": 7,
+          "max": 8
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 102,
+          "median": 180,
+          "mean": 173.95,
+          "p95": 234,
+          "max": 288
+        }
+      },
+      "delegation": {
+        "offers": 21,
+        "accepted": 21,
+        "rejected": 0,
+        "rejectionReasons": {},
+        "stoppingReasons": {},
+        "stoppingKinds": {}
+      },
+      "preparationAudit": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 5.665,
+          "median": 6.634,
+          "mean": 6.739,
+          "p95": 8.321,
+          "max": 9.506
+        },
+        "receiverCalls": 22,
+        "receiverAccepted": 22,
+        "receiverRejected": 0,
+        "matchesProduction": true,
+        "samples": 20
+      }
+    },
+    {
+      "id": "concave-yard-28x12",
+      "cells": 296,
+      "portals": 2,
+      "seeds": 20,
+      "before": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 3.861,
+          "median": 4.586,
+          "mean": 5.82,
+          "p95": 11.508,
+          "max": 17.607
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 20,
+          "median": 24,
+          "mean": 26,
+          "p95": 33,
+          "max": 33
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 263,
+          "median": 271,
+          "mean": 270,
+          "p95": 276,
+          "max": 276
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.889,
+          "median": 0.916,
+          "mean": 0.912,
+          "p95": 0.932,
+          "max": 0.932
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 2,
+          "median": 3,
+          "mean": 3,
+          "p95": 4,
+          "max": 4
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 112,
+          "median": 140,
+          "mean": 146.2,
+          "p95": 204,
+          "max": 224
+        }
+      },
+      "after": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 10.561,
+          "median": 12.269,
+          "mean": 14.186,
+          "p95": 20.022,
+          "max": 25.295
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 2,
+          "mean": 2.25,
+          "p95": 5,
+          "max": 5
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 1,
+          "mean": 1.25,
+          "p95": 4,
+          "max": 4
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 20,
+          "median": 25,
+          "mean": 27.7,
+          "p95": 35,
+          "max": 36
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 260,
+          "median": 270,
+          "mean": 268.3,
+          "p95": 276,
+          "max": 276
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.878,
+          "median": 0.912,
+          "mean": 0.906,
+          "p95": 0.932,
+          "max": 0.932
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 2,
+          "median": 4,
+          "mean": 3.7,
+          "p95": 5,
+          "max": 6
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 72,
+          "median": 120,
+          "mean": 123.5,
+          "p95": 168,
+          "max": 184
+        }
+      },
+      "delegation": {
+        "offers": 29,
+        "accepted": 13,
+        "rejected": 16,
+        "rejectionReasons": {
+          "Receiving builder for yard:2,2: cover has no usable placement in the inherited fill": 9,
+          "Receiving builder for yard:20,2: cover has no usable placement in the inherited fill": 1,
+          "Receiving builder for yard:15,2: cover has no usable placement in the inherited fill": 1,
+          "Receiving builder for yard:14,2: cover has no usable placement in the inherited fill": 2,
+          "Receiving builder for yard:12,2: cover has no usable placement in the inherited fill": 2,
+          "Receiving builder for yard:16,2: cover has no usable placement in the inherited fill": 1
+        },
+        "stoppingReasons": {},
+        "stoppingKinds": {}
+      },
+      "preparationAudit": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 3.873,
+          "median": 4.522,
+          "mean": 5.129,
+          "p95": 6.656,
+          "max": 6.787
+        },
+        "receiverCalls": 34,
+        "receiverAccepted": 18,
+        "receiverRejected": 16,
+        "matchesProduction": true,
+        "samples": 20
+      }
+    },
+    {
+      "id": "ell-12x12",
+      "cells": 108,
+      "portals": 3,
+      "seeds": 20,
+      "before": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 3.315,
+          "median": 5.348,
+          "mean": 6.741,
+          "p95": 13.455,
+          "max": 13.699
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 20,
+          "median": 21,
+          "mean": 20.7,
+          "p95": 21,
+          "max": 21
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 87,
+          "median": 87,
+          "mean": 87.3,
+          "p95": 88,
+          "max": 88
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.806,
+          "median": 0.806,
+          "mean": 0.809,
+          "p95": 0.815,
+          "max": 0.815
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 1,
+          "median": 2,
+          "mean": 1.7,
+          "p95": 2,
+          "max": 2
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 48,
+          "median": 48,
+          "mean": 48,
+          "p95": 48,
+          "max": 48
+        }
+      },
+      "after": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 4.703,
+          "median": 6.425,
+          "mean": 8.332,
+          "p95": 14.582,
+          "max": 14.667
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 20,
+          "median": 21,
+          "mean": 20.7,
+          "p95": 21,
+          "max": 21
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 87,
+          "median": 87,
+          "mean": 87.3,
+          "p95": 88,
+          "max": 88
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.806,
+          "median": 0.806,
+          "mean": 0.809,
+          "p95": 0.815,
+          "max": 0.815
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 1,
+          "median": 2,
+          "mean": 1.7,
+          "p95": 2,
+          "max": 2
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 48,
+          "median": 48,
+          "mean": 48,
+          "p95": 48,
+          "max": 48
+        }
+      },
+      "delegation": {
+        "offers": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "rejectionReasons": {},
+        "stoppingReasons": {},
+        "stoppingKinds": {}
+      },
+      "preparationAudit": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "receiverCalls": 0,
+        "receiverAccepted": 0,
+        "receiverRejected": 0,
+        "matchesProduction": true,
+        "samples": 20
+      }
+    },
+    {
+      "id": "ring-14x14",
+      "cells": 180,
+      "portals": 3,
+      "seeds": 20,
+      "before": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 3.81,
+          "median": 12.228,
+          "mean": 10.675,
+          "p95": 16.859,
+          "max": 20.342
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 20,
+          "median": 20,
+          "mean": 20,
+          "p95": 20,
+          "max": 20
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 160,
+          "median": 160,
+          "mean": 160,
+          "p95": 160,
+          "max": 160
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.889,
+          "median": 0.889,
+          "mean": 0.889,
+          "p95": 0.889,
+          "max": 0.889
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 3,
+          "median": 3,
+          "mean": 3,
+          "p95": 3,
+          "max": 3
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 70,
+          "median": 70,
+          "mean": 70,
+          "p95": 70,
+          "max": 70
+        }
+      },
+      "after": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 6.924,
+          "median": 15.538,
+          "mean": 15.654,
+          "p95": 20.171,
+          "max": 26.671
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1.15,
+          "p95": 2,
+          "max": 2
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0.15,
+          "p95": 1,
+          "max": 1
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 20,
+          "median": 20,
+          "mean": 20.3,
+          "p95": 22,
+          "max": 22
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 158,
+          "median": 160,
+          "mean": 159.7,
+          "p95": 160,
+          "max": 160
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.878,
+          "median": 0.889,
+          "mean": 0.887,
+          "p95": 0.889,
+          "max": 0.889
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 3,
+          "median": 3,
+          "mean": 3,
+          "p95": 3,
+          "max": 3
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 45,
+          "median": 70,
+          "mean": 66.75,
+          "p95": 70,
+          "max": 70
+        }
+      },
+      "delegation": {
+        "offers": 34,
+        "accepted": 3,
+        "rejected": 31,
+        "rejectionReasons": {
+          "Receiving builder for yard:11,8: cover has no usable placement in the inherited fill": 13,
+          "Receiving builder for yard:7,2: cover has no usable placement in the inherited fill": 12,
+          "Patch disconnects retained ownership.": 6
+        },
+        "stoppingReasons": {},
+        "stoppingKinds": {}
+      },
+      "preparationAudit": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 1.131,
+          "median": 3.627,
+          "mean": 3.011,
+          "p95": 3.98,
+          "max": 4.033
+        },
+        "receiverCalls": 29,
+        "receiverAccepted": 4,
+        "receiverRejected": 25,
+        "matchesProduction": true,
+        "samples": 20
+      }
+    }
+  ],
+  "fullMaps": {
+    "baselineReference": "test-results/330-before.md; generation only, no diagnostic",
+    "results": [
+      {
+        "zoneWidth": 12,
+        "zoneHeight": 6,
+        "seed": "issue330-before-12x6",
+        "generationMs": 896.753,
+        "checkMs": 10793.988,
+        "diagnose": true,
+        "valid": true,
+        "defects": 0,
+        "brokenPromises": 0,
+        "tiles": 936,
+        "setPieces": 26,
+        "topLevelTypes": {
+          "open": 78,
+          "rubble": 113,
+          "cover": 22,
+          "park": 29,
+          "depot": 3,
+          "charging": 1,
+          "hut": 4,
+          "compound": 1,
+          "transit": 6,
+          "plant": 4,
+          "arrival": 1,
+          "departure": 1,
+          "market": 2
+        },
+        "hutRegionsRebuilt": 4,
+        "blockRegionsPlanned": 0,
+        "nestedHutLotsRebuilt": 0,
+        "hutBlockAudit": {
+          "blockPlanningMs": 0.073,
+          "hutGenerationMs": 23.243,
+          "preparationAudit": {
+            "elapsedMs": {
+              "samples": 4,
+              "min": 0,
+              "median": 0,
+              "mean": 1.697,
+              "p95": 6.789,
+              "max": 6.789
+            },
+            "receiverCalls": 3,
+            "receiverAccepted": 0,
+            "receiverRejected": 3,
+            "matchesProduction": true,
+            "samples": 4
+          },
+          "delegation": {
+            "offers": 3,
+            "accepted": 0,
+            "rejected": 3,
+            "rejectionReasons": {
+              "Receiving builder for yard:170,169: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:175,164: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:175,169: cover has no usable placement in the inherited fill": 1
+            },
+            "stoppingReasons": {},
+            "stoppingKinds": {}
+          }
+        }
+      },
+      {
+        "zoneWidth": 24,
+        "zoneHeight": 12,
+        "seed": "issue330-before-24x12",
+        "generationMs": 4007.633,
+        "checkMs": 31097.962,
+        "diagnose": true,
+        "valid": true,
+        "defects": 0,
+        "brokenPromises": 0,
+        "tiles": 3744,
+        "setPieces": 56,
+        "topLevelTypes": {
+          "rubble": 461,
+          "open": 238,
+          "hut": 17,
+          "ruins": 3,
+          "cover": 114,
+          "checkpoint": 6,
+          "park": 136,
+          "transit": 6,
+          "compound": 4,
+          "depot": 5,
+          "plant": 4,
+          "block": 3,
+          "market": 7,
+          "departure": 1,
+          "charging": 1,
+          "arrival": 1
+        },
+        "hutRegionsRebuilt": 17,
+        "blockRegionsPlanned": 3,
+        "nestedHutLotsRebuilt": 0,
+        "hutBlockAudit": {
+          "blockPlanningMs": 80.027,
+          "hutGenerationMs": 109.359,
+          "preparationAudit": {
+            "elapsedMs": {
+              "samples": 17,
+              "min": 0,
+              "median": 4.92,
+              "mean": 2.99,
+              "p95": 5.718,
+              "max": 5.718
+            },
+            "receiverCalls": 30,
+            "receiverAccepted": 1,
+            "receiverRejected": 29,
+            "matchesProduction": true,
+            "samples": 17
+          },
+          "delegation": {
+            "offers": 30,
+            "accepted": 1,
+            "rejected": 29,
+            "rejectionReasons": {
+              "Receiving builder for yard:296,2: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:296,7: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:301,7: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:302,38: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:302,43: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:307,38: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:416,56: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:416,61: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:421,56: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:440,79: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:445,74: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:2,151: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:7,146: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:7,151: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:554,170: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:554,175: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:559,175: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:536,194: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:541,194: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:541,199: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:566,260: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:566,265: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:571,260: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:308,302: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:313,302: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:313,307: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:320,314: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:320,319: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:325,319: cover has no usable placement in the inherited fill": 1
+            },
+            "stoppingReasons": {},
+            "stoppingKinds": {}
+          }
+        }
+      },
+      {
+        "zoneWidth": 36,
+        "zoneHeight": 18,
+        "seed": "issue330-before-36x18",
+        "generationMs": 10640.293,
+        "checkMs": 163947.945,
+        "diagnose": true,
+        "valid": true,
+        "defects": 0,
+        "brokenPromises": 0,
+        "tiles": 8424,
+        "setPieces": 64,
+        "topLevelTypes": {
+          "rubble": 971,
+          "open": 460,
+          "hut": 51,
+          "park": 289,
+          "cover": 228,
+          "compound": 10,
+          "block": 10,
+          "plant": 8,
+          "market": 13,
+          "ruins": 2,
+          "hall": 3,
+          "checkpoint": 5,
+          "charging": 1,
+          "depot": 5,
+          "departure": 1,
+          "arrival": 1,
+          "transit": 6
+        },
+        "hutRegionsRebuilt": 51,
+        "blockRegionsPlanned": 10,
+        "nestedHutLotsRebuilt": 0,
+        "hutBlockAudit": {
+          "blockPlanningMs": 546.028,
+          "hutGenerationMs": 1388.121,
+          "preparationAudit": {
+            "elapsedMs": {
+              "samples": 51,
+              "min": 0,
+              "median": 16.842,
+              "mean": 13.408,
+              "p95": 26.037,
+              "max": 28.882
+            },
+            "receiverCalls": 113,
+            "receiverAccepted": 14,
+            "receiverRejected": 99,
+            "matchesProduction": true,
+            "samples": 51
+          },
+          "delegation": {
+            "offers": 104,
+            "accepted": 5,
+            "rejected": 99,
+            "rejectionReasons": {
+              "Receiving builder for yard:446,7: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:451,2: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:451,7: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:638,56: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:643,56: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:643,61: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:440,86: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:440,91: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:445,91: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:560,91: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:565,86: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:565,91: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:416,115: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:650,115: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:794,115: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:799,110: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:799,115: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:770,116: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:770,121: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:775,121: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:782,134: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:782,139: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:787,139: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:769,140: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:769,145: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:746,146: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:751,146: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:751,151: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:530,157: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:535,152: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:535,157: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:824,169: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:829,164: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:829,169: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:842,205: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:847,200: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:847,205: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1034,223: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1039,218: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1039,223: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:2,229: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:7,224: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:7,229: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:242,230: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:242,235: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:247,235: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:770,235: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:775,230: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:775,235: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1028,236: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1033,236: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1033,241: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1052,236: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1057,236: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1057,241: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:188,254: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:188,259: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:193,259: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:218,259: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:223,254: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:20,260: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:20,265: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:25,265: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1052,266: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1057,266: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1057,271: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:674,277: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:679,277: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:722,277: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:727,272: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:727,277: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1070,272: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1075,272: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1075,277: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1052,289: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1057,284: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1057,289: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1022,296: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1027,296: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1027,301: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:218,302: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:218,307: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:223,302: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1052,307: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1057,302: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1057,307: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:50,314: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:55,314: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:55,319: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1022,314: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1027,314: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:1027,319: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:739,356: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:739,361: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:602,421: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:607,421: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:434,524: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:434,529: cover has no usable placement in the inherited fill": 1,
+              "Receiving builder for yard:439,524: cover has no usable placement in the inherited fill": 1
+            },
+            "stoppingReasons": {},
+            "stoppingKinds": {}
+          }
+        }
+      }
+    ]
+  }
+}

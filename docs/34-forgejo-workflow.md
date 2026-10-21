@@ -51,6 +51,12 @@ only `@AGENTS.md`, which Claude Code imports at session start. A worktree sees o
 committed files, so an instruction change reaches an agent once it is merged and
 the agent starts its next branch from fresh `forgejo/main`.
 
+The repository AGENTS.md carries the delegation strategy into sessions in this
+checkout and, once shared, other clones. The user's global
+`C:/Users/Corey/.codex/AGENTS.md` also records the general preference for other
+projects on this machine. Environments that do not load these instructions need
+them supplied explicitly; these files cannot grant missing tool capabilities.
+
 ## The task loop
 
 1. Find work with `list_assigned_issues`; claim it with `assign_issue`.
