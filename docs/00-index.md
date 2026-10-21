@@ -61,7 +61,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [21-stack.md](21-stack.md) | Chosen components, why, and the constraints a replacement must satisfy |
 | [22-ownership.md](22-ownership.md) | Guide to ownership by subsystem and the boundaries tests enforce; load the relevant 22.x part |
 | [22.6-hierarchical-navigation.md](22.6-hierarchical-navigation.md) | A proposal, not built: hierarchical navigation, private map knowledge and optimistic bot planning (#353) |
-| [22.7-content-and-presentation.md](22.7-content-and-presentation.md) | Planned content/presentation and shared-rule ownership contracts (#385), with live/replay metadata and compatibility decisions |
+| [22.7-content-and-presentation.md](22.7-content-and-presentation.md) | Content/presentation and shared-rule ownership (#385, implemented in #386): display descriptors, live/replay metadata, client configuration and compatibility defaults |
 | [23-types.md](23-types.md) | The TypeScript arrangement in `shared/`, branding policy, erasure |
 | [24-networking-privacy.md](24-networking-privacy.md) | Server authority, potential visibility, field contracts, spectator delay |
 | [25-pacing-and-rendering.md](25-pacing-and-rendering.md) | Tick pacing against real time, the receive buffer, presentation smoothing, shading |

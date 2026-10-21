@@ -7,6 +7,7 @@ import { drawAllocation, drawDesignGraph, drawOpenings, drawSpans, guidanceNotMe
 import { briefFromFragment } from '/map/micro/brief-link.ts';
 import { firstDifference } from '/map/micro/difference.ts';
 import { canOccupy, moveBody } from '/shared/movement.ts';
+import { GATE_REACH } from '/shared/simulation/rules.ts';
 import { microMetrics } from '/map/micro/metrics.ts';
 import { createRegionMask, elementShapes, portalStands, spreadPoints, validatePortalReach } from '/map/micro/sdk.ts';
 import { outline, transform } from '/shared/shape.ts';
@@ -212,7 +213,7 @@ canvas.addEventListener('pointerup', () => { drag = null; });
 canvas.addEventListener('lostpointercapture', () => { drag = null; });
 function toggleNearbyGate() {
   if (!avatar || !collision) return;
-  const gate = collision.gates.filter(g => Math.hypot(g.x - avatar.x, g.y - avatar.y) < 85).sort((a, b) => Math.hypot(a.x - avatar.x, a.y - avatar.y) - Math.hypot(b.x - avatar.x, b.y - avatar.y))[0];
+  const gate = collision.gates.filter(g => Math.hypot(g.x - avatar.x, g.y - avatar.y) < GATE_REACH).sort((a, b) => Math.hypot(a.x - avatar.x, a.y - avatar.y) - Math.hypot(b.x - avatar.x, b.y - avatar.y))[0];
   if (!gate) return;
   if (gate.open) {
     const closedMap = { ...collision, gates: collision.gates.map(candidate => candidate === gate ? { ...candidate, open: false } : candidate) };

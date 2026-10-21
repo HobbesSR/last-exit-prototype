@@ -4,7 +4,7 @@ import { straightenPath, blockAt, blockRoute } from '../map.ts';
 import { gridRoute } from '../map/route.ts';
 import { count, start, stop } from '../profiler.ts';
 import { carriedCell, syncWeapon } from '../equipment.ts';
-import { HZ } from './rules.ts';
+import { GATE_REACH, HZ } from './rules.ts';
 import { distance, center } from './geometry.ts';
 import { visibleTo } from './visibility.ts';
 import { attack } from './combat.ts';
@@ -186,5 +186,5 @@ export function botInput(s: Game, p: Player): PlayerInput {
     const nx = nearest.x - p.x, ny = nearest.y - p.y, projection = ((other.x - p.x) * nx + (other.y - p.y) * ny) / (nx * nx + ny * ny);
     return projection > 0 && projection < 1 && Math.hypot(other.x - p.x - projection * nx, other.y - p.y - projection * ny) < 28;
   });
-  return { x: dx / length, y: dy / length, aim: nearest ? Math.atan2(nearest.y - p.y, nearest.x - p.x) : Math.atan2(dy, dx), attack: !!nearest && !allyInLine && distance(p, nearest) < (p.role === 'gladiator' ? 86 : 450) && lineClear(s.map, p, nearest), skill: !!nearest && distance(p, nearest) < (p.kit === 'specter' && p.role === 'gladiator' ? 320 : 125), interact: p.role === 'contestant' || s.map.gates.some(g => !g.open && distance(p, g) < 85) || p.x < s.hazardX + 200 };
+  return { x: dx / length, y: dy / length, aim: nearest ? Math.atan2(nearest.y - p.y, nearest.x - p.x) : Math.atan2(dy, dx), attack: !!nearest && !allyInLine && distance(p, nearest) < (p.role === 'gladiator' ? 86 : 450) && lineClear(s.map, p, nearest), skill: !!nearest && distance(p, nearest) < (p.kit === 'specter' && p.role === 'gladiator' ? 320 : 125), interact: p.role === 'contestant' || s.map.gates.some(g => !g.open && distance(p, g) < GATE_REACH) || p.x < s.hazardX + 200 };
 }

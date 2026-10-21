@@ -1,13 +1,12 @@
+import { defaultContent } from './simulation/content.ts';
 import type { CellItem, InventoryItem, GroundItem, Player, SlotIndex, StackItem, StackKind, WeaponItem, WeaponSpec, WeaponType } from './types.ts';
 
 export const SLOT_COUNT = 6;
 /** The weapon table a match is pinned to. Defaults below; a match passes its own copy. */
 type WeaponTable = Record<WeaponType, WeaponSpec>;
-export const WEAPONS: Record<WeaponType, WeaponSpec> = {
-  pistol: { name: 'Pistol', ammo: 48, maxAmmo: 192, cooldown: 8, damage: 10, speed: 35, life: 24, spread: [0] },
-  rifle: { name: 'Rifle', ammo: 90, maxAmmo: 360, cooldown: 4, damage: 6, speed: 44, life: 28, spread: [0] },
-  scattergun: { name: 'Scattergun', ammo: 24, maxAmmo: 96, cooldown: 18, damage: 7, speed: 30, life: 12, spread: [-0.18, -0.09, 0, 0.09, 0.18] }
-};
+// A detached copy of the shipped weapons for callers without a match (22.7). Editing it changes no
+// content set and no match; a match passes its own pinned table.
+export const WEAPONS: Record<WeaponType, WeaponSpec> = structuredClone(defaultContent().weapons);
 export function equipped(p: Player): InventoryItem | null { return p.inventory?.[p.selectedSlot || 0] || null; }
 export function carriedCell(p: Player): CellItem | null { return equipped(p)?.kind === 'cell' ? equipped(p) as CellItem : p.inventory?.find((item): item is CellItem => item?.kind === 'cell') || null; }
 export function syncWeapon(p: Player, weapons: WeaponTable = WEAPONS): void {

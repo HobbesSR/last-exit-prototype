@@ -6,6 +6,7 @@ import { generateMap } from '../shared/map.ts';
 import { listen } from './helpers/listen.js';
 import path from 'node:path';
 import { checkClientControllers } from './client-controllers.mjs';
+import { checkContentPresentation } from './content-presentation.mjs';
 import { createMapGenerator } from '../server/map-generator.js';
 
 await mkdir('test-results', { recursive: true });
@@ -41,6 +42,7 @@ async function ready(page, url = base) {
 }
 try {
   await checkClientControllers(browser, base);
+  await checkContentPresentation(browser);
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await page.goto(`${base}/?seed=4217`);
   await page.getByRole('button', { name: 'Start match', exact: true }).waitFor();
@@ -672,6 +674,6 @@ try {
     && document.getElementById('lobby-title').textContent === 'Night shift', namedRoom.id);
   await wallPage.close();
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: true, pixels, occlusion, screenshots: ['desktop', 'arena-overview', 'replay', 'loadout', 'gladiator', 'mobile', 'mobile-loadout', 'room-browser', 'waiting-yard', 'lobby-choice', 'occlusion', 'spectator'], checks: ['movement', 'ability', 'multiplayer', 'replay seek', 'download', 'kit selection', 'dual-stick multitouch', 'mouse aim', 'occlusion pixels', 'shade not blackout', 'client-side visibility', 'shot interpolation', 'spectator directed view', 'mobile overflow', 'generation failure after an arena', 'room browser join', 'waiting yard', 'lobby role and kit', 'assets', 'browser errors'] }, null, 2));
+  console.log(JSON.stringify({ passed: true, pixels, occlusion, screenshots: ['desktop', 'arena-overview', 'replay', 'loadout', 'gladiator', 'mobile', 'mobile-loadout', 'room-browser', 'waiting-yard', 'lobby-choice', 'occlusion', 'spectator'], checks: ['movement', 'ability', 'multiplayer', 'replay seek', 'download', 'kit selection', 'dual-stick multitouch', 'mouse aim', 'occlusion pixels', 'shade not blackout', 'client-side visibility', 'shot interpolation', 'spectator directed view', 'mobile overflow', 'generation failure after an arena', 'room browser join', 'waiting yard', 'lobby role and kit', 'content presentation and configuration', 'assets', 'browser errors'] }, null, 2));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
 finally { await browser.close(); await server.close(); await maps.close(); }

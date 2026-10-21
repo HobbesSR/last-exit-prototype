@@ -1,13 +1,14 @@
 # 26. Recording contract
 
 Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
-default content is `content-2`, and recordings use schema 5 (4 added masked maps, 5 the diagnostics trailer). Masked live maps require reader 4; legacy maps keep
+default content is `content-2`, and recordings use schema 6 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
+display descriptor in the header). Masked live maps require reader 4; legacy maps keep
 minimum schema 0.
 Storage-only changes must preserve frozen gameplay fixtures.
 
-The planned optional presentation descriptor and its compatibility/fallback
-rules are in [22.7](22.7-content-and-presentation.md). That #386 design has not
-changed the current writer schema or existing archives.
+How a reader labels a recording's weapons, kits and timers, including archives
+without a descriptor, follows [22.7](22.7-content-and-presentation.md#recording-compatibility)
+([Presentation descriptor](#presentation-descriptor-schema-6) below).
 
 ## Versioning and compatibility
 
@@ -43,6 +44,7 @@ The schema history, with the sections that explain each step:
 | 3 | `contentId` in the header (below) | 0 |
 | 4 | cell-masked maps ([Cell-masked maps](#cell-masked-maps-schema-4)) | 4 for a masked map, else 0 |
 | 5 | the diagnostics trailer ([Diagnostic markers](#diagnostic-markers-schema-5)) | unchanged |
+| 6 | an optional `presentation` display descriptor in the header ([Presentation descriptor](#presentation-descriptor-schema-6)) | unchanged |
 
 The paragraphs below describe each change as it was made, so a number in one
 is the schema current at the time, not today's.
@@ -87,6 +89,28 @@ retained `state.tick` values, avoiding an unbounded separate gap list. No surviv
 frames means publication fails. An omitted final state must never be invented;
 `endTick` records the actual match endpoint, even if the last surviving frame is
 earlier. This additive extension does not change simulation version or BSON scope.
+
+## Presentation descriptor (schema 6)
+
+Schema 3 named the content and kept its tables out of the header; schema 6
+still does. Since #386 a new recording's header also carries `presentation`, once,
+beside `contentId`: the display descriptor of [22.7](22.7-content-and-presentation.md#presentation-descriptor)
+(weapon and kit labels, default ammo, role capacities, duration and charge
+ticks). It is display data, not the tuning: nothing in it can rebuild or
+resimulate the match. The room service builds it from the pinned content before
+the first frame and the writer only serializes it. Frames, commands, frame key
+order and the retained-frame digest are unchanged, and no frame, projection or
+input carries it. `minSchema` stays as before, so older readers ignore it.
+
+A reader resolves display metadata with `resolveRecordingPresentation` in
+`shared/presentation.ts`, in order: a valid embedded descriptor naming the
+header's `contentId` (even content this build does not ship); the retained
+descriptor of a known id; for a header with no `contentId`, the local
+`legacy-display` profile (`content-1` vocabulary and ammo, 2400-tick clock,
+100-tick charge); otherwise none, shown as raw ids and unavailable values.
+Present frame values (ammo, `duration`, `cellChargeTicks`) beat all of these.
+An unusable descriptor never makes a playable archive a format error;
+`recordingFit` alone decides that.
 
 ## Diagnostic markers (schema 5)
 

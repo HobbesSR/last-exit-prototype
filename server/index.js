@@ -49,8 +49,9 @@ function printListeningUrls(host, port, policy) {
 /**
  * `generateMap` replaces the worker, for tests that need to control generation. `mapPool` is how many maps
  * to keep ready per size (#266); none unless asked, so tests and benchmarks run without background generation.
+ * `content` supplies new rooms' content, for tests that need a set this build does not ship; never a request input.
  */
-export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true, devTools = process.env.DEV_TOOLS, generateMap, mapPool = 0 } = {}) {
+export async function createArenaServer({ replayDir = path.join(ROOT, 'replays'), profile = process.env.PROFILE === '1', profileSummary = true, devTools = process.env.DEV_TOOLS, generateMap, mapPool = 0, content } = {}) {
   profiler.enable(profile);
   const policy = devToolsPolicy(devTools);
   const replays = await createFileReplayStore(replayDir);
@@ -59,7 +60,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   // The pool refills on its own worker, so a room asking for a particular seed never queues behind it.
   const poolMaps = mapPool > 0 && !generateMap ? createMapGenerator() : null;
   const pool = mapPool > 0 ? createMapPool({ generate: generateMap ?? poolMaps.generate, perSize: mapPool }) : null;
-  const service = createRoomService({ replays, devTools: policy });
+  const service = createRoomService({ replays, devTools: policy, content });
   const directory = createRoomDirectory({ host: service, generateMap: generateMap ?? maps.generate, pool, devTools: policy });
   const app = express();
   app.disable('x-powered-by');

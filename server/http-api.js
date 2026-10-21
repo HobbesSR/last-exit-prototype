@@ -1,7 +1,8 @@
-import { HZ, MAX_ARENA_SEED, VERSION } from '../shared/simulation/rules.ts';
+import { HZ, MAX_ARENA_SEED, MAX_PLAYER_NAME, VERSION } from '../shared/simulation/rules.ts';
 import * as profiler from '../shared/profiler.ts';
 import { roomName, roomSeed, roomSize, MAX_ROOM_NAME, ROOM_SIZE_NAMES } from './protocol.js';
-import { zoneSizeName } from '../map/live.ts';
+import { DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../map/live.ts';
+import { MATCHMAKING_COUNTDOWN_MS } from './room-service.js';
 
 export function installHttpApi(app, service, directory, replays, pool = null) {
   const { rooms } = service;
@@ -10,6 +11,16 @@ export function installHttpApi(app, service, directory, replays, pool = null) {
     emptyLiveRooms: [...rooms.values()].filter(r => r.started && !r.finished && !r.clients.size).length, mapPool: pool?.stock() ?? null }));
   app.get('/api/profile', (_req, res) => { const pacing = profiler.report().find(s => s.name === 'sim.tickPacing'); res.json({ enabled: profiler.profiling(), tickRate: HZ, budgetMs: 1000 / HZ, effectiveHz: pacing?.mean ? 1000 / pacing.mean : null, frames: profiler.frameCount(), rooms: [...rooms.values()].filter(r => r.started && !r.finished).length, series: profiler.report() }); });
   app.post('/api/profile', (req, res) => { profiler.enable(req.body?.enabled !== false); res.json({ enabled: profiler.profiling() }); });
+  // What the deploy form offers and states (22.7), from each value's owner. Defaults for a new room only:
+  // a room's own labels come with its welcome, and every request is still validated here.
+  app.get('/api/client-config', (_req, res) => res.set('Cache-Control', 'no-store').json({
+    presentation: service.defaultPresentation(),
+    seed: { min: 1, max: MAX_ARENA_SEED },
+    roomNameMaxLength: MAX_ROOM_NAME,
+    playerNameMaxLength: MAX_PLAYER_NAME,
+    sizes: ROOM_SIZE_NAMES, defaultSize: zoneSizeName(DEFAULT_LIVE_ZONE_SIZE),
+    matchmakingCountdownMs: MATCHMAKING_COUNTDOWN_MS,
+  }));
   // Open rooms' public summaries, for the lobby browser (22.5); the directory decides which are listed.
   app.get('/api/rooms', (_req, res) => res.set('Cache-Control', 'no-store').json(directory.list()));
   app.post('/api/rooms', (req, res) => {

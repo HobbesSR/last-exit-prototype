@@ -1,6 +1,7 @@
 import { movePlayer, canOccupy, bodyRadius } from '../movement.ts';
 import { queueInput, consumeInput, resetInput } from './input.ts';
 import { makePlayer } from './state.ts';
+import { MAX_PLAYER_NAME } from './rules.ts';
 import { observed } from './visibility.ts';
 import { ownPlayerFields } from './projection-contract.ts';
 import type { GameMap, Kit, Player, PlayerId, PlayerInput, Role, Tick } from '../types.ts';
@@ -49,7 +50,7 @@ export function changeWaiting(w: Waiting, id: PlayerId, role: Role, kit: Kit): P
 // Someone already there keeps where they stand, unless a bigger body no longer fits there.
 function place(w: Waiting, id: PlayerId, role: Role, kit: Kit, name: string, continuing: boolean): Player {
   const old = w.players.find(p => p.id === id);
-  const p = makePlayer(id, name.slice(0, 16), role, kit, 0);
+  const p = makePlayer(id, name.slice(0, MAX_PLAYER_NAME), role, kit, 0);
   p.bot = false; resetInput(p);
   const arrival = () => w.map.spawns[w.arrivals++ % w.map.spawns.length]!;
   const at = old && canOccupy(w.map, old.x, old.y, bodyRadius(p)) ? old : arrival();

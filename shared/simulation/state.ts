@@ -1,6 +1,6 @@
 import { generateMap, WORLD_WIDTH, WORLD_HEIGHT } from '../map.ts';
 import { SLOT_COUNT } from '../equipment.ts';
-import { VERSION } from './rules.ts';
+import { DEFAULT_KIT, INITIAL_ESCAPE_SLOTS, MAX_PLAYER_NAME, ROLES, VERSION } from './rules.ts';
 import { queueInput, resetInput } from './input.ts';
 import { defaultContent } from './content.ts';
 import { createDiscovery, attachDiscovery, discover } from '../discovery.ts';
@@ -13,10 +13,10 @@ import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role } from '..
  * given (items are taken, gates open), so a caller reusing a map passes a copy.
  */
 export function createGame(seed = 4217, map: GameMap = generateMap(seed), content = defaultContent()): Game {
-  const s: Game = { version: VERSION, content, seed, rng: seed || 1, tick: 0, phase: 'live', map, players: [], projectiles: [], effects: [], events: [], slots: 3, hazardX: -80, serial: 0 };
+  const s: Game = { version: VERSION, content, seed, rng: seed || 1, tick: 0, phase: 'live', map, players: [], projectiles: [], effects: [], events: [], slots: INITIAL_ESCAPE_SLOTS, hazardX: -80, serial: 0 };
   // Identifier and iteration order are part of the recorded contract, so both are derived from the
   // roster's own order rather than from anything that could reorder independently of it.
-  for (const role of ['contestant', 'gladiator'] as const) {
+  for (const role of ROLES) {
     for (let i = 0; i < placeCount(s, role); i++) { const { id, name, kit } = rosterBot(s, role, i); s.players.push(makePlayer(id, name, role, kit, i)); }
   }
   for (const p of s.players) if (p.role === 'contestant') { p.inventory = Array(SLOT_COUNT).fill(null); p.selectedSlot = 0; }
@@ -39,7 +39,7 @@ export function createGame(seed = 4217, map: GameMap = generateMap(seed), conten
 const placeCount = (s: Game, role: Role) => role === 'gladiator' ? s.content.roster.gladiators.length : s.content.roster.contestants.length;
 // Who holds a roster place while no one has joined it: its id, name and kit, from the roster's own order.
 function rosterBot(s: Game, role: Role, index: number): { id: PlayerId; name: string; kit: Kit } {
-  if (role === 'contestant') return { id: `c${index}` as PlayerId, name: s.content.roster.contestants[index]!, kit: 'warden' };
+  if (role === 'contestant') return { id: `c${index}` as PlayerId, name: s.content.roster.contestants[index]!, kit: DEFAULT_KIT };
   const g = s.content.roster.gladiators[index]!;
   return { id: `g${index}` as PlayerId, name: g.name, kit: g.kit };
 }
@@ -47,11 +47,11 @@ function rosterBot(s: Game, role: Role, index: number): { id: PlayerId; name: st
 export function makePlayer(id: PlayerId, name: string, role: Role, kit: Kit, index: number): Player {
   return { id, name, role, kit, bot: true, x: role === 'contestant' ? 1500 + index * 33 : WORLD_WIDTH - 1700 - index * 130, y: WORLD_HEIGHT / 2 + (role === 'contestant' ? (index % 3 - 1) * 25 : 0), hp: role === 'contestant' ? 100 : 360, maxHp: role === 'contestant' ? 100 : 360, shield: 0, keys: 0, weapon: 0, kills: 0, level: 1, status: 'active', cooldown: 0, attackCd: 0, railCd: 0, cloak: 0, revealed: 0, boost: 0, stun: 0, heading: 0, input: {}, lastSeq: -1 };
 }
-export function joinGame(s: Game, id: PlayerId, role: Role = 'contestant', kit: Kit = 'warden', name = 'You'): Player | null {
+export function joinGame(s: Game, id: PlayerId, role: Role = 'contestant', kit: Kit = DEFAULT_KIT, name = 'You'): Player | null {
   if (s.phase !== 'live') return null;
   const p = s.players.find(p => p.bot && p.role === role && p.status === 'active');
   if (!p) return null;
-  p.id = id; p.name = name.slice(0, 16); p.bot = false;
+  p.id = id; p.name = name.slice(0, MAX_PLAYER_NAME); p.bot = false;
   if (Object.hasOwn(s.content.kits, kit)) p.kit = kit;
   resetInput(p); delete p.viewLagTicks; p.path = [];
   return p;

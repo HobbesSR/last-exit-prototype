@@ -143,3 +143,23 @@ test('filesystem store forwards writer errors and never promotes a failed archiv
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('a header descriptor is written once and leaves frame bytes and digest untouched', async () => {
+  const { describeContent } = await import('../shared/presentation.ts');
+  const { defaultContent } = await import('../shared/simulation/content.ts');
+  const run = async header => {
+    const chunks = [], output = new Writable({ write(chunk, _e, next) { chunks.push(Buffer.from(chunk)); next(); } });
+    const writer = createReplayWriter({ header, output, publish: async () => {}, onError: () => {} });
+    writer.append({ tick: 0, duration: 12000 }, []); writer.append({ tick: 1, duration: 12000 }, [{ type: 'start' }]);
+    const meta = await writer.finish({ ticks: 1 });
+    return { meta, text: gunzipSync(Buffer.concat(chunks)).toString() };
+  };
+  const presentation = describeContent(defaultContent());
+  const plain = await run({ id: 'p', contentId: presentation.contentId });
+  const described = await run({ id: 'p', contentId: presentation.contentId, presentation });
+  assert.equal(described.meta.sha256, plain.meta.sha256);
+  assert.equal(described.text.split('"presentation"').length, 2, 'once, in the header');
+  const frames = text => text.slice(text.indexOf('"frames":'));
+  assert.equal(frames(described.text), frames(plain.text));
+  assert.deepEqual(JSON.parse(described.text).presentation, presentation);
+});

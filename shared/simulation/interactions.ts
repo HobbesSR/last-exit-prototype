@@ -1,41 +1,44 @@
-import { lineClear, reachClear, gateShape, TILE } from '../movement.ts';
+import { lineClear, reachClear, gateShape, bodyRadius, TILE } from '../movement.ts';
 import { carriedCell, equipped, collectEquipment, syncWeapon } from '../equipment.ts';
+import { nearbyGate } from '../gate-query.ts';
 import { distance } from './geometry.ts';
+import { CHARGE_REACH, EXTRACTION_REACH, PICKUP_REACH, TRANSIT_REACH } from './rules.ts';
 import { event, effect, dropEquipment } from './loot.ts';
 import type { CellItem, Game, Player, PlayerInput } from '../types.ts';
 
 export function interact(s: Game, p: Player): void {
   const cell = carriedCell(p);
   const charged = p.inventory?.find((item): item is CellItem => item?.kind === 'cell' && item.charge >= s.content.cellChargeTicks);
-  if (p.role === 'contestant' && distance(p, s.map.exit) < 65 && s.slots > 0 && charged && lineClear(s.map, p, s.map.exit)) {
+  if (p.role === 'contestant' && distance(p, s.map.exit) < EXTRACTION_REACH && s.slots > 0 && charged && lineClear(s.map, p, s.map.exit)) {
     s.slots--; p.inventory![p.inventory!.indexOf(charged)] = null; syncWeapon(p, s.content.weapons); p.charging = null; p.status = 'escaped';
     event(s, p.name + ' powered an escape pod. ' + s.slots + ' slots remain'); return;
   }
   if (cell && cell.charge < s.content.cellChargeTicks) {
-    const station = s.map.chargers.find(st => distance(p, st) < 70 && lineClear(s.map, p, st));
+    const station = s.map.chargers.find(st => distance(p, st) < CHARGE_REACH && lineClear(s.map, p, st));
     if (station) { p.charging = station.id; return; }
   }
-  const pickup = p.inventory && s.map.items.filter(i => ['weapon', 'med', 'shield', 'cell'].includes(i.kind) && distance(p, i) < 45 && reachClear(s.map, p, i)).sort((a, b) => distance(p, a) - distance(p, b))[0];
+  const pickup = p.inventory && s.map.items.filter(i => ['weapon', 'med', 'shield', 'cell'].includes(i.kind) && distance(p, i) < PICKUP_REACH && reachClear(s.map, p, i)).sort((a, b) => distance(p, a) - distance(p, b))[0];
   if (!p.bot && pickup && p.inventory!.every(Boolean)) {
     const index = p.selectedSlot!, old = equipped(p); p.inventory![index] = null;
     if (collectEquipment(p, pickup, s.content.weapons)) { s.map.items = s.map.items.filter(i => i.id !== pickup.id); dropEquipment(s, p, old!); }
     else p.inventory![index] = old;
     syncWeapon(p, s.content.weapons); return;
   }
-  const gate = s.map.gates.filter(g => distance(p, g) < 85 && (!p.bot || !g.open) && lineClear(s.map, p, g, g.id)).sort((a, b) => distance(p, a) - distance(p, b))[0];
+  // The nearest gate takes the interaction even when it cannot be used; it never falls through to transit.
+  const gate = nearbyGate(s.map, p, { accepts: g => !p.bot || !g.open, order: 'nearest' });
   if (gate) {
     const locked = gate.locked ?? gate.kind !== 'door';
     if (!gate.open && (!locked || p.keys > 0)) {
       gate.open = true; if (locked) { p.keys--; gate.locked = false; } p.path = [];
     } else if (gate.open && gate.kind === 'door' && !p.bot) {
       const box = gateShape(gate);
-      const occupied = s.players.some(other => other.status === 'active' && Math.hypot(other.x - Math.max(box.x, Math.min(box.x + box.w, other.x)), other.y - Math.max(box.y, Math.min(box.y + box.h, other.y))) < (other.role === 'gladiator' ? 23 : 12));
+      const occupied = s.players.some(other => other.status === 'active' && Math.hypot(other.x - Math.max(box.x, Math.min(box.x + box.w, other.x)), other.y - Math.max(box.y, Math.min(box.y + box.h, other.y))) < bodyRadius(other));
       if (!occupied) { gate.open = false; p.path = []; }
     }
     return;
   }
   if (p.role === 'gladiator' && p.railCd === 0) {
-    const station = s.map.stations.find(st => distance(p, st) < 70);
+    const station = s.map.stations.find(st => distance(p, st) < TRANSIT_REACH);
     if (station) {
       const candidates = s.map.stations.filter(st => st.x > s.hazardX + TILE && st.id !== station.id);
       const next = candidates.find(st => st.x > p.x + TILE) || candidates[0];
@@ -47,7 +50,7 @@ export function advanceCharging(s: Game, p: Player, input: PlayerInput): void {
   if (p.charging) {
     const cell = carriedCell(p);
     const station = s.map.chargers.find(st => st.id === p.charging);
-    if (!cell || cell.charge >= s.content.cellChargeTicks || input.x || input.y || !station || distance(p, station) >= 70 || !lineClear(s.map, p, station)) p.charging = null;
+    if (!cell || cell.charge >= s.content.cellChargeTicks || input.x || input.y || !station || distance(p, station) >= CHARGE_REACH || !lineClear(s.map, p, station)) p.charging = null;
     else if (++cell.charge >= s.content.cellChargeTicks) { p.charging = null; event(s, `${p.name} charged a power cell`); effect(s, p, 'charge', 70); }
   }
 }
