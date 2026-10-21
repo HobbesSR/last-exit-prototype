@@ -1769,6 +1769,10 @@ try {
     assert.equal(await rejectedPage.locator("#chainStatus").innerText().then((status: string) => status.includes(backups[0]!.key)), true,
       `${name}: warning identifies the backup key`);
     assert.notEqual(await storedDraft(rejectedPage), raw, `${name}: edited starter is saved after backup`);
+    await rejectedPage.locator("#chainAdd").click();
+    assert.equal(await rejectedPage.locator("#chainStatus").innerText().then((status: string) => status.includes(backups[0]!.key)), false,
+      `${name}: the next save clears the backup notice`);
+    assert.equal((await rejectedBackups(rejectedPage)).length, 1, `${name}: later saves make no further backups`);
     await rejectedPage.close();
   }
   const failedBackupRaw = "{keep this raw draft";

@@ -452,13 +452,15 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     supplied cell grids must be six rows of six marks with a legend entry for
     each non-dot mark, and segment keys/prescriptions must be structurally readable.
     Unsupported versions, malformed JSON and unsafe nested structures load the
-    starter library with a warning. This is a local editor contract, not a change
+    starter library with a warning. The gate lives in `map/tools/lab/draft-safety.ts`
+    and is never stricter than `validateLibrary`, which
+    `tests/map-lab-draft-safety.test.js` holds. This is a local editor contract, not a change
     to library validity in [52](52-map-primitives-and-library.md).
 
     Rejected saved text stays byte-for-byte at `last-exit-chain-library-v3` until
     the first edit saves a recovery copy under a new
-    `last-exit-chain-library-v3:rejected:<unique suffix>` key. The warning names
-    that key; browser developer tools' local-storage view can retrieve its raw
+    `last-exit-chain-library-v3:rejected:<unique suffix>` key. The status after
+    that save names the key (later saves clear it); browser developer tools' local-storage view can retrieve its raw
     value for repair. Recovery copies are never overwritten or automatically
     deleted. If that backup fails, autosave does not replace the original and
     reports that edits were not saved. Safe incomplete drafts save and reopen
