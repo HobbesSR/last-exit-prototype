@@ -34,6 +34,19 @@ sides record integers, a reader can later apply a range, a set of supported vers
 per-feature table without recordings changing shape again. Policy belongs to the reader; a recording
 only states facts about itself.
 
+The schema history, with the sections that explain each step:
+
+| Schema | Added | `minSchema` written |
+| --- | --- | --- |
+| none, then 1 | older recordings carry no `schema`; 1 introduced the pair | 0 |
+| 2 | a sequence number on each recorded command, and the per-player input queue (below) | 0 |
+| 3 | `contentId` in the header (below) | 0 |
+| 4 | cell-masked maps ([Cell-masked maps](#cell-masked-maps-schema-4)) | 4 for a masked map, else 0 |
+| 5 | the diagnostics trailer ([Diagnostic markers](#diagnostic-markers-schema-5)) | unchanged |
+
+The paragraphs below describe each change as it was made, so a number in one
+is the schema current at the time, not today's.
+
 Schema 2 is the first use of that reasoning. Queuing input per player put a sequence number on every
 recorded command and the queue itself into recorded player state — additive, so `schema` rose and
 `minSchema` stayed at zero, and a reader written against schema 1 still plays recordings written
@@ -49,7 +62,7 @@ costs a string where carrying it would repeat the same tables in every frame.
 
 F-11 changes the default from two-hunter `content-1` to three-hunter `content-2`.
 It retains `last-exit-0.7`: the roster data changes, not the rules interpreting it.
-Schema remains 3/minimum 0 because player arrays already support arbitrary lengths;
+Schema remained 3/minimum 0 at that change because player arrays already support arbitrary lengths;
 an extra roster entry is data, not a new field or format. Playback uses recorded
 maps and frames, not a resimulation with today's default content, so both old and
 new rosters remain playable without a content lookup. `content-1` remains explicitly
