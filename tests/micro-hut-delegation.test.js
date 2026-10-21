@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildHut, buildHutGeneration, HUT_EXECUTION_REGISTRY } from '../map/micro/strategies/hut.ts';
 import { buildBlock, planBlock } from '../map/micro/strategies/block.ts';
+import { COVER_EXECUTION, COVER_EXECUTOR_VERSION, previewedCoverExecution } from '../map/micro/strategies/cover.ts';
 import { executionLeaves, flattenDelegationResult } from '../map/micro/delegation-execute.ts';
 import { validateBriefPartition } from '../map/micro/delegation.ts';
 import { saveDelegationSnapshot, readDelegationSnapshot, delegationSnapshotResult } from '../map/micro/delegation-snapshot.ts';
@@ -158,6 +159,32 @@ test('a real pilot snapshot recovers full and omitted results', () => {
   const omitted = roundTrip(saveDelegationSnapshot(node, { omitResults: true }));
   assert.deepEqual(readDelegationSnapshot(omitted, HUT_EXECUTION_REGISTRY), node);
   assert.deepEqual(delegationSnapshotResult(omitted, HUT_EXECUTION_REGISTRY), flattenDelegationResult(node));
+});
+
+test('rejected cover receivers record their executor version and recover from omitted results', () => {
+  const original = broad();
+  original.seed = 3;
+  original.fillCells = original.cells.filter(cell => cell.x < 18);
+  const node = buildHutGeneration(original);
+  assert.ok(node.preparation.rejected.length && !node.children?.length, 'cover was consulted and refused');
+  assert.equal(HUT_EXECUTION_REGISTRY.cover, COVER_EXECUTION);
+  assert.equal(node.registryVersions.cover, COVER_EXECUTOR_VERSION);
+  const omitted = roundTrip(saveDelegationSnapshot(node, { omitResults: true }));
+  assert.equal(omitted.generation.registryVersions.cover, COVER_EXECUTOR_VERSION);
+  assert.deepEqual(readDelegationSnapshot(omitted, HUT_EXECUTION_REGISTRY), node);
+  assert.throws(() => readDelegationSnapshot(omitted, { ...HUT_EXECUTION_REGISTRY,
+    cover: { ...COVER_EXECUTION, version: 'cover-next' } }), /cover/);
+});
+
+test('cover previews are shared within one invocation entry and never across entries', () => {
+  const child = { ...broad(), id: 'preview', type: 'cover' };
+  const first = previewedCoverExecution(), second = previewedCoverExecution();
+  const built = first.build(structuredClone(child));
+  assert.equal(first.receiving(structuredClone(child)), null);
+  assert.equal(first.build(structuredClone(child)), built, 'an equal serialized interface reuses its preview');
+  assert.notEqual(first.build({ ...child, seed: 4 }), built);
+  assert.notEqual(second.build(structuredClone(child)), built);
+  assert.deepEqual(second.build(structuredClone(child)), COVER_EXECUTION.build(structuredClone(child)));
 });
 
 test('a hut on the eastern side of a large authored map keeps its global snapshot coordinates', () => {

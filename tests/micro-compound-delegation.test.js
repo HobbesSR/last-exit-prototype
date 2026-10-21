@@ -6,6 +6,7 @@ import { gunzipSync } from 'node:zlib';
 import { buildCompound, buildCompoundGeneration, COMPOUND_EXECUTION_REGISTRY } from '../map/micro/strategies/compound.ts';
 import { executionLeaves, flattenDelegationResult } from '../map/micro/delegation-execute.ts';
 import { buildBlock, planBlock } from '../map/micro/strategies/block.ts';
+import { COVER_EXECUTION, COVER_EXECUTOR_VERSION } from '../map/micro/strategies/cover.ts';
 import { prepareDelegation, validateBriefPartition } from '../map/micro/delegation.ts';
 import { saveDelegationSnapshot, readDelegationSnapshot, delegationSnapshotResult } from '../map/micro/delegation-snapshot.ts';
 import { createAccessMask, elementShapes, findRegionRoute } from '../map/micro/geometry.ts';
@@ -257,4 +258,21 @@ test('full and omitted compound snapshots recover the same hierarchy and result'
   const omitted = roundTrip(saveDelegationSnapshot(node, { omitResults: true }));
   assert.deepEqual(readDelegationSnapshot(omitted, COMPOUND_EXECUTION_REGISTRY), node);
   assert.deepEqual(delegationSnapshotResult(omitted, COMPOUND_EXECUTION_REGISTRY), flat);
+});
+
+test('omitted snapshots recover a compound whose cover receiver accepts one lobe and refuses another', () => {
+  const original = brief('compound-mixed', cellsOf(36, 30, (x, y) => y < 18 || x < 18), [
+    { id: 'west', axis: 'v', x: 0, y: 6, length: 2 },
+    { id: 'east', axis: 'v', x: 36, y: 6, length: 2 },
+  ], { seed: 2 });
+  const node = buildCompoundGeneration(original), flat = flattenDelegationResult(node);
+  assert.ok(node.children?.some(child => child.actualBuilder === 'cover'));
+  assert.ok(node.preparation.rejected.some(({ reason }) => reason.includes('cover has no usable placement')));
+  assert.equal(COMPOUND_EXECUTION_REGISTRY.cover, COVER_EXECUTION);
+  assert.equal(node.registryVersions.cover, COVER_EXECUTOR_VERSION);
+  const omitted = roundTrip(saveDelegationSnapshot(node, { omitResults: true }));
+  assert.deepEqual(readDelegationSnapshot(omitted, COMPOUND_EXECUTION_REGISTRY), node);
+  assert.deepEqual(delegationSnapshotResult(omitted, COMPOUND_EXECUTION_REGISTRY), flat);
+  assert.throws(() => readDelegationSnapshot(omitted, { ...COMPOUND_EXECUTION_REGISTRY,
+    cover: { ...COVER_EXECUTION, version: 'cover-next' } }), /cover/);
 });

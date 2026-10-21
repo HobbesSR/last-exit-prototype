@@ -14,7 +14,7 @@ import { realizeBuilding } from '../building/realize.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
-import { buildCover } from './cover.ts';
+import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
 import { unusedComponents } from '../components.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
@@ -222,26 +222,14 @@ export function buildCompound(brief: RegionBrief, observe?: BuildingObserver): B
 
 /** Owning inputs, decisions and results for versioned recovery (20.7). */
 export function buildCompoundGeneration(brief: RegionBrief, options: ExecutionOptions = {}) {
-  const previews = new Map<string, BuiltRegion>();
-  const cover = (child: RegionBrief) => {
-    const key = JSON.stringify(child);
-    if (!previews.has(key)) previews.set(key, buildCover(child));
-    return previews.get(key)!;
-  };
-  return executeDelegation(brief, { ...COMPOUND_EXECUTION_REGISTRY,
-    cover: { ...COMPOUND_EXECUTION_REGISTRY.cover!, build: cover, receiving: coverReceiving(cover) },
-  }, options);
-}
-
-function coverReceiving(build: (brief: RegionBrief) => BuiltRegion) {
-  return (brief: RegionBrief) => build(brief).elements.length ? null : 'cover has no usable placement in the inherited fill';
+  // Direct registry recovery rebuilds accepted cover for receiving and build;
+  // this invocation shares those previews by exact child interface.
+  return executeDelegation(brief, { ...COMPOUND_EXECUTION_REGISTRY, cover: previewedCoverExecution() }, options);
 }
 
 export const COMPOUND_EXECUTION_REGISTRY: ExecutionRegistry = Object.freeze({
   compound: { version: 'compound-yard-2', build: buildRetainedCompound },
-  // Direct registry recovery rebuilds accepted cover for receiving and build;
-  // buildCompoundGeneration shares those previews within one invocation.
-  cover: { version: 'cover-types-23', build: buildCover, receiving: coverReceiving(buildCover) },
+  cover: COVER_EXECUTION,
 });
 
 function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, observe?: BuildingObserver): BuiltRegion {

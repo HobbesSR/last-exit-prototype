@@ -9,6 +9,37 @@ import { microMetrics } from '../metrics.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { ObstacleKind } from '../../../shared/types.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types.ts';
+import type { ExecutionBuilder } from '../delegation-execute.ts';
+
+/**
+ * The cover executor implementation (20.7); bump it when `buildCover` changes. The aggregate
+ * `REGION_TYPES_VERSION` tracks a separate contract and does not move this.
+ */
+export const COVER_EXECUTOR_VERSION = 'cover-types-23';
+
+/**
+ * Cover as a delegation receiver: it accepts an inherited interface when its build there
+ * has a usable placement. Registries name this entry for direct snapshot recovery.
+ */
+export const COVER_EXECUTION: ExecutionBuilder = Object.freeze(coverExecution(buildCover));
+
+/**
+ * The same receiver for one adopter invocation. Its receiving check and child build share
+ * one preview per exact serialized child interface; a fresh entry starts with no previews.
+ */
+export function previewedCoverExecution(): ExecutionBuilder {
+  const previews = new Map<string, BuiltRegion>();
+  return coverExecution(child => {
+    const key = JSON.stringify(child);
+    if (!previews.has(key)) previews.set(key, buildCover(child));
+    return previews.get(key)!;
+  });
+}
+
+function coverExecution(build: (brief: RegionBrief) => BuiltRegion): ExecutionBuilder {
+  return { version: COVER_EXECUTOR_VERSION, build,
+    receiving: brief => build(brief).elements.length ? null : 'cover has no usable placement in the inherited fill' };
+}
 
 /** Cells between slots, one tile, so pieces read as sited rather than strewn. */
 const PERIOD = 6;
