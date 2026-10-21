@@ -16,6 +16,7 @@ import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 import { buildCover } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
+import { unusedComponents } from '../components.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
 import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
 
@@ -392,18 +393,9 @@ function exteriorYard(brief: RegionBrief, box: Box, gates: { x: number; y: numbe
       kept.add(key(i, j)); protectedKeys.add(key(i, j));
     }
   }
-  const unused = new Map(owned.cells.filter(c => !kept.has(key(c.x, c.y))).map(c => [key(c.x, c.y), c]));
   const offers: PatchOffer[] = [];
-  for (const start of owned.cells) {
-    if (!unused.delete(key(start.x, start.y))) continue;
-    const cells = [start];
-    for (let head = 0; head < cells.length; head++) {
-      const { x, y } = cells[head]!;
-      for (const [nx, ny] of [[x + 1, y], [x, y + 1], [x - 1, y], [x, y - 1]] as const) {
-        const next = unused.get(key(nx, ny));
-        if (next) { unused.delete(key(nx, ny)); cells.push(next); }
-      }
-    }
+  for (const cells of unusedComponents(owned.cells, kept)) {
+    const start = cells[0]!;
     // Compound authorship keeps narrow strips as circulation. An offered
     // component must contain a 3x3 yard pocket; this is a cheap suitability
     // screen, not a substitute for the exact inherited cover preview.

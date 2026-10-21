@@ -14,6 +14,7 @@ import type { BuildingObserver } from '../building/trace.ts';
 import type { BuiltRegion, LootSite, RegionBrief } from '../types.ts';
 import { buildCover } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
+import { unusedComponents } from '../components.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
 import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
 
@@ -197,23 +198,10 @@ function yardOffers(brief: RegionBrief, site: Site): PatchOffer[] {
       for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) kept.add(key(i, j));
     }
   }
-  const unused = new Map(owned.cells.filter(c => !kept.has(key(c.x, c.y))).map(c => [key(c.x, c.y), c]));
-  const offers: PatchOffer[] = [];
-  for (const start of owned.cells) {
-    if (!unused.delete(key(start.x, start.y))) continue;
-    const cells = [start];
-    for (let head = 0; head < cells.length; head++) {
-      const { x, y } = cells[head]!;
-      for (const [nx, ny] of [[x + 1, y], [x, y + 1], [x - 1, y], [x, y - 1]] as const) {
-        const next = unused.get(key(nx, ny));
-        if (next) { unused.delete(key(nx, ny)); cells.push(next); }
-      }
-    }
-    // The canonical first cell uniquely names a connected lobe in this batch.
-    // Keep identities short even on macro-sized yards; snapshots retain its full footprint.
-    if (cells.length >= 9) offers.push({ key: `yard:${start.x},${start.y}`, cells, type: 'cover', reasonTags: ['unused-yard-lobe'] });
-  }
-  return offers;
+  // The canonical first cell uniquely names a connected lobe in this batch.
+  // Keep identities short even on macro-sized yards; snapshots retain its full footprint.
+  return unusedComponents(owned.cells, kept).filter(cells => cells.length >= 9)
+    .map((cells): PatchOffer => ({ key: `yard:${cells[0]!.x},${cells[0]!.y}`, cells, type: 'cover', reasonTags: ['unused-yard-lobe'] }));
 }
 
 /**
