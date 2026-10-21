@@ -327,7 +327,8 @@ function shortInteriorRuns(tile: Record<string, unknown>, classes: string[], min
   }
 }
 
-/** Pure, exhaustive authoring checks. Region type IDs are supplied until C1. */
+/** Pure, exhaustive authoring checks. Region type IDs are supplied until C1.
+ * The lab's draft safety gate (map/tools/lab/draft-safety.ts) must stay no stricter than this. */
 export function validateLibrary(
   library: unknown,
   regionTypeIds: ReadonlySet<string>,

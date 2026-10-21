@@ -20,6 +20,7 @@ import { CORE_ELEMENT_KINDS } from "../../kernel/contract.ts";
 import type { CoreElementKind } from "../../kernel/contract.ts";
 import { MIN_PORTAL_LENGTH } from "../../kernel/scale.ts";
 import { CHAIN_LIBRARIES, CHAIN_LIBRARY } from "../core.ts";
+import { renderableDraft } from "./draft-safety.ts";
 
 const $ = (id: string): HTMLElement => document.getElementById(id)!;
 const select = (id: string): HTMLSelectElement => $(id) as HTMLSelectElement;
@@ -94,72 +95,24 @@ function declaredRegionTypeIds(raw: unknown): Set<string> {
       .map((entry) => entry.regionType),
   );
 }
-/** Keep incomplete authoring drafts, but never pass a broken container to render(). */
-function renderableDraft(raw: unknown): raw is ChainLibrary {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return false;
-  const draft = raw as Record<string, unknown>;
-  if (
-    !draft.cellClasses ||
-    typeof draft.cellClasses !== "object" ||
-    Array.isArray(draft.cellClasses) ||
-    !Object.values(draft.cellClasses).every(
-      (entry) => entry !== null && typeof entry === "object",
-    )
-  )
-    return false;
-  for (const field of ["tiles", "tileSets", "setPieces", "setPieceClasses"])
-    if (
-      !Array.isArray(draft[field]) ||
-      !draft[field].every(
-        (entry: unknown) =>
-          entry !== null &&
-          typeof entry === "object" &&
-          typeof (entry as { id?: unknown }).id === "string",
-      )
-    )
-      return false;
-  return (
-    (draft.tiles as ChainLibrary["tiles"]).every(
-      (tile) =>
-        typeof tile.defaultCellClass === "string" &&
-        Array.isArray(tile.orientations) &&
-        (tile.eligibleTiers === undefined ||
-          Array.isArray(tile.eligibleTiers)) &&
-        (tile.eligibleBonus === undefined ||
-          Array.isArray(tile.eligibleBonus)) &&
-        (tile.labels === undefined || Array.isArray(tile.labels)),
-    ) &&
-    (draft.tileSets as ChainLibrary["tileSets"]).every((set) =>
-      Array.isArray(set.members),
-    ) &&
-    (draft.setPieces as ChainLibrary["setPieces"]).every(
-      (piece) =>
-        Array.isArray(piece.tiles) &&
-        piece.tiles.every(
-          (slot) => slot !== null && typeof slot === "object",
-        ) &&
-        (piece.eligibleTiers === undefined ||
-          Array.isArray(piece.eligibleTiers)),
-    ) &&
-    (draft.setPieceClasses as ChainLibrary["setPieceClasses"]).every((group) =>
-      Array.isArray(group.setPieces),
-    )
-  );
-}
+let rejectedDraft: string | null = null;
+let recoveryKey: string | null = null;
+let unreadSavedDraft = true;
 try {
   const saved = localStorage.getItem(KEY);
-  if (saved) {
+  unreadSavedDraft = false;
+  if (saved !== null) {
+    rejectedDraft = saved;
     const draft: unknown = JSON.parse(saved);
-    const validation = validateLibrary(draft, declaredRegionTypeIds(draft));
-    if (validation.valid || renderableDraft(draft))
-      library = draft as ChainLibrary;
-    else
-      savedDraftWarning =
-        "Saved chain draft was invalid; loaded the starter library.";
+    if (renderableDraft(draft)) {
+      library = draft;
+      rejectedDraft = null;
+    } else {
+      savedDraftWarning = "Saved chain draft was unsafe to edit; loaded the starter library. Original data remains in browser storage until it can be backed up before saving.";
+    }
   }
 } catch {
-  savedDraftWarning =
-    "Saved chain draft could not be read; loaded the starter library.";
+  savedDraftWarning = "Saved chain draft could not be read; loaded the starter library. Original data remains in browser storage until it can be backed up before saving.";
 }
 let selectedSegment = "v:3,2";
 let selectedCellClass = "hut";
@@ -2357,6 +2310,10 @@ function renderSetPieces(root: HTMLElement): void {
 
     const cols = maxDx - minDx + 1;
     const rows = maxDy - minDy + 1;
+    if (!Number.isSafeInteger(cols * rows) || cols * rows > 10_000) {
+      grid.append(paragraph("Blueprint preview is too large. Use the exact coordinate editor below."));
+      return;
+    }
     grid.style.gridTemplateColumns = `repeat(${cols}, 46px)`;
     grid.style.gridTemplateRows = `repeat(${rows}, 46px)`;
 
@@ -2619,11 +2576,32 @@ function status(prefix = ""): void {
   $("chainStatus").classList.toggle("invalid", !result.valid);
 }
 function changed(): void {
-  savedDraftWarning = "";
   try {
+    // If startup could not read storage, recover it before attempting any write.
+    if (unreadSavedDraft) {
+      rejectedDraft = localStorage.getItem(KEY);
+      unreadSavedDraft = false;
+    }
+    if (rejectedDraft !== null) {
+      // Never replace either the rejected input or an earlier recovery copy.
+      const base = `${KEY}:rejected:${Date.now()}`;
+      let backup = base, suffix = 0;
+      while (localStorage.getItem(backup) !== null) backup = `${base}:${++suffix}`;
+      localStorage.setItem(backup, rejectedDraft);
+      rejectedDraft = null;
+      recoveryKey = backup;
+    }
     localStorage.setItem(KEY, JSON.stringify(library));
+    // Name the backup on the save that follows it; later saves clear the notice.
+    savedDraftWarning = recoveryKey
+      ? `Rejected chain draft backed up in browser storage at ${recoveryKey}.`
+      : "";
+    recoveryKey = null;
   } catch {
-    /* storage is optional */
+    // A failed backup must prevent the subsequent write to KEY.
+    savedDraftWarning = rejectedDraft !== null
+      ? "Draft not saved: the rejected original could not be backed up. Original data remains in browser storage."
+      : "Draft not saved: browser storage is unavailable. Copy the source JSON to preserve these edits.";
   }
   render();
 }
@@ -2773,7 +2751,8 @@ function remove(): void {
 function accept(raw: unknown): void {
   const result = validateLibrary(raw, declaredRegionTypeIds(raw));
   if (!result.valid) throw Error(result.errors.join("\n"));
-  library = raw as ChainLibrary;
+  if (!renderableDraft(raw)) throw Error("Library is not safe to edit.");
+  library = raw;
   selectedId = "";
   changed();
 }

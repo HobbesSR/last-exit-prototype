@@ -443,6 +443,37 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     placement rules derived from `PLACEMENT_RULES` in the schema (`transit` included) and
     quotas (#307, #315);
     and canvas tool hotkeys (D, F, R, S, E), numeric brush switching (1-9 for cell classes starting with any in tiles, and visible tile sets in set pieces), stable ID and test coverage for the stage hover readout (#chainHoverReadout), and '/' search focus shortcut (#317).
+    **Saved drafts (#390):** reopening browser storage uses an editor safety
+    check, separately from `validateLibrary`. A resolved version 3 draft can
+    retain empty collections (including orientations, members and slots),
+    unresolved references, invalid quotas/rule values and unknown fields. Loading
+    and browsing do not normalize, remove or save those values; validation issues
+    remain visible. Known fields must have their expected scalar/container types;
+    supplied cell grids must be six rows of six marks with a legend entry for
+    each non-dot mark, and segment keys/prescriptions must be structurally readable.
+    Unsupported versions, malformed JSON and unsafe nested structures load the
+    starter library with a warning. The gate lives in `map/tools/lab/draft-safety.ts`
+    and is never stricter than `validateLibrary`, which
+    `tests/map-lab-draft-safety.test.js` holds. This is a local editor contract, not a change
+    to library validity in [52](52-map-primitives-and-library.md).
+
+    Rejected saved text stays byte-for-byte at `last-exit-chain-library-v3` until
+    the first edit saves a recovery copy under a new
+    `last-exit-chain-library-v3:rejected:<unique suffix>` key. The status after
+    that save names the key (later saves clear it); browser developer tools' local-storage view can retrieve its raw
+    value for repair. Recovery copies are never overwritten or automatically
+    deleted. If that backup fails, autosave does not replace the original and
+    reports that edits were not saved. Safe incomplete drafts save and reopen
+    without requiring publication validity. A blueprint exceeding 10,000 grid
+    cells shows a notice instead of building the grid; its exact coordinate
+    editor remains usable and the stored layout is unchanged.
+
+    Apply JSON, file import and export still require full library validation;
+    imports also pass the editor safety gate before replacing the active draft.
+    Refused imports preserve the active library and saved draft; refused Apply
+    leaves the submitted source text available to correct. World generation
+    retains its full library and strategy checks. A safely reopened draft is not
+    a publishable library or a promise that its region strategies exist.
   - **Serving:** The game server (`server/index.js`) serves the lab at `/dev/map` when `devTools` is enabled, alongside macro's `content/`, `map/micro/`, `map/kernel/`, `shared/`, the map-level
     modules `map/chain.ts`, `map/engines.ts` and `map/live.ts`, and the
     tools' `core.ts`, `engines.ts` and `routes.ts`, at their repository
