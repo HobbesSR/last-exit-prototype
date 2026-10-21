@@ -1,3 +1,5 @@
+import { fnv1a } from "../coding.ts";
+
 /**
  * Named random streams. A stage draws only from streams named for itself (51 principle
  * 1), so one stage's draws never shift another's.
@@ -14,12 +16,8 @@ export interface Stream {
   shuffle<T>(items: readonly T[]): T[];
 }
 
-/** FNV-1a over the text. */
-export function hashText(text: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
+/** FNV-1a over the text: the library fingerprint's hash (`coding.ts`), under the chain's name for it. */
+export const hashText: (text: string) => number = fnv1a;
 
 /** The stream `name` of `seed`. A retry passes its attempt, so each attempt draws afresh. */
 export function stream(seed: string, name: string, attempt = 0): Stream {

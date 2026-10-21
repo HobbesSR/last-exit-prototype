@@ -93,8 +93,8 @@ export function canonicalJson(value: unknown): string {
     .join(",")}}`;
 }
 
-/** 32-bit FNV-1a. */
-function fnv1a(text: string): number {
+/** 32-bit FNV-1a over the text's UTF-16 code units. The chain's random streams hash with it too. */
+export function fnv1a(text: string): number {
   let h = 2166136261;
   for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
   return h >>> 0;

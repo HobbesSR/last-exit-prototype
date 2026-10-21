@@ -87,25 +87,6 @@ export interface ChainLibrary {
   setPieceClasses: ChainSetPieceClass[];
 }
 
-export interface LibraryReference { name: string; version: number }
-/** Source form of a plan/size library. Its classes and quotas are authored here. */
-export interface AuthoredChainLibrary extends Partial<Pick<ChainLibrary, "cellClasses" | "tiles" | "tileSets" | "setPieces">> {
-  name: string;
-  version: number;
-  zonePlan: "diamond";
-  zoneWidth: number;
-  zoneHeight: number;
-  includes?: LibraryReference[];
-  setPieceClasses: ChainSetPieceClass[];
-}
-/** Modules carry reusable definitions only; top libraries own the plan and quotas. */
-export interface ChainLibraryModule extends Partial<Pick<ChainLibrary, "cellClasses" | "tiles" | "tileSets" | "setPieces">> {
-  schema: typeof CHAIN_MODULE_SCHEMA;
-  name: string;
-  version: number;
-  includes?: LibraryReference[];
-}
-
 export interface LibraryValidation {
   valid: boolean;
   errors: string[];

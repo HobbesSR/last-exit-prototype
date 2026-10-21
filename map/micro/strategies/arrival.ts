@@ -6,8 +6,8 @@ import { portalStands } from '../portals.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
 
 /**
- * The one arrival region owns every contestant spawn (17 M20, 54). For now its
- * decomposer selects the whole region as the single spawn child. The point placement
+ * The one arrival region owns every contestant spawn (17 M20, 54). It has no decomposer
+ * yet, so it takes the region whole where 54 plans one that picks a spawn subregion. The point placement
  * is the reusable SDK's farthest-first spread; cover and loot use the cover strategy
  * after the points claim their ground. Dropping cover cannot break a portal route.
  */

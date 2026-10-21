@@ -29,9 +29,10 @@ export type RegionStrategy = (brief: RegionBrief, observe?: BuildingObserver) =>
 export type RegionTypeRegistry = Readonly<Record<RegionTypeId, RegionStrategy>>;
 
 /**
- * The game's region types. A catalogue type (54) is registered under its own name once
- * B3 writes its strategy, in `strategies/`. The rest are today's example builders, which
- * stand in until then. The `example-` prefix keeps a library from binding to them by accident.
+ * The game's region types. Each catalogue type (54) is registered under its own name, with
+ * its strategy in `strategies/`; a drafted one is bound to its nearest built strategy. The
+ * `example-` entries are the original example builders, kept for tests and tools; the
+ * prefix keeps a library from binding to them by accident.
  */
 export const REGION_TYPES: RegionTypeRegistry = Object.freeze({
   open: buildOpen,

@@ -84,8 +84,8 @@ let drill: {
 let drawnTraces: Record<string, object> = {};
 /** Why a room with the map's seed wouldn't play the map, from the worker (53 "Play in the game"). */
 let live: string[] = [];
-/** The game's dev server, where the micro tools are, when it runs in this worktree (20.5). */
-let gameUrl: string | null = null;
+/** The game, where the micro tools are: the lab runs on the game's server, so it is at the root (20.5). */
+const gameUrl = "";
 /**
  * Contestant and hunter routes between two points of the built map (53 "Routes"), measured on
  * request in a worker. `from` and `to` name the panel's choices: a site, or the selected cell.
@@ -167,14 +167,12 @@ function useRoomRecipe(): void {
 function renderPlay(): void {
   const link = $("playInGame") as HTMLAnchorElement;
   const reasons = map ? live : ["there is no map yet"];
-  const playable = !reasons.length && gameUrl !== null;
+  const playable = !reasons.length;
   link.hidden = !playable;
   if (playable) link.href = `${gameUrl}/?seed=${map!.layout.seed}&size=${sizeKey(map!.layout.params.zoneWidth, map!.layout.params.zoneHeight)}`;
   $("playNote").textContent = reasons.length
     ? `A room wouldn't play this map: ${reasons.join("; ")}.`
-    : gameUrl === null
-      ? "A room would play this map, but the game's dev server isn't running in this worktree."
-      : `Opens a new room with seed ${map!.layout.seed} at ${map!.layout.params.zoneWidth} × ${map!.layout.params.zoneHeight}.`;
+    : `Opens a new room with seed ${map!.layout.seed} at ${map!.layout.params.zoneWidth} × ${map!.layout.params.zoneHeight}.`;
 }
 
 function setStatus(text: string, bad = false): void {
@@ -818,8 +816,8 @@ const LAYERS: Layer[] = [
       if (!region || drill?.id !== region.id || drill.pending) return [];
       const { brief, fragment } = drill, file = `brief-${brief.id.replace(/[^a-z0-9-]/gi, "_")}.json`;
       return [
-        ...(gameUrl !== null && fragment ? [{ label: "Open in the Preview Lab", href: `${gameUrl}/dev/micro${fragment}` }] : []),
-        ...(gameUrl !== null && fragment && brief.type === "block" ? [{ label: "Open in the Generation Trace", href: `${gameUrl}/dev/micro/generation${fragment}` }] : []),
+        ...(fragment ? [{ label: "Open in the Preview Lab", href: `${gameUrl}/dev/micro${fragment}` }] : []),
+        ...(fragment && brief.type === "block" ? [{ label: "Open in the Generation Trace", href: `${gameUrl}/dev/micro/generation${fragment}` }] : []),
         { label: "Save this region's brief", open: () => download(file, JSON.stringify(brief, null, 2), "application/json") },
       ];
     },
@@ -1471,8 +1469,6 @@ window.mapLab = Object.freeze({
   },
 });
 
-// The map lab now runs directly on the game server, so the game is at the root.
-gameUrl = "";
 renderInspector();
 renderPlay();
 
