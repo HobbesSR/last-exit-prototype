@@ -1,3 +1,4 @@
+import { OPPOSITE, type Side } from '../port-terms.ts';
 import { circle } from '../../../shared/shape.ts';
 import { rng } from '../index.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
@@ -31,9 +32,7 @@ const LARGER: ReadonlyArray<{ spaces: number; boxes: ReadonlyArray<readonly [num
   { spaces: 2, boxes: [[6, 4], [4, 6], [7, 5], [5, 7]] },
 ];
 
-type Side = 'N' | 'E' | 'S' | 'W';
 const SIDES: readonly Side[] = ['N', 'E', 'S', 'W'];
-const OPPOSITE: Record<Side, Side> = { N: 'S', S: 'N', E: 'W', W: 'E' };
 type Built = { design: BuildingDesign; allocation: BuildingAllocation; realization: BuildingRealization };
 /** A box's house with its door on one side, and where along that side the door's doorstep blocks start, in cells. */
 type House = Built & { steps: number[] };

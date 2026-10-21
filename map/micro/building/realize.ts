@@ -1,3 +1,4 @@
+import { compareCells } from '../../kernel/cell.ts';
 import { isCellSize } from '../../kernel/scale.ts';
 import type { ElementRoof, ElementTemplate } from '../../../shared/map/element.ts';
 import { ROOF_OVERHANG } from '../../../shared/view.ts';
@@ -165,7 +166,7 @@ export function deriveContiguousRoofs(
   openings: readonly PlacedBuildingOpening[] = [],
 ): ElementRoof[] {
   if (!cells.length) return [];
-  const sortedCells = [...cells].sort((a, b) => a.y - b.y || a.x - b.x);
+  const sortedCells = [...cells].sort(compareCells);
   const cellSet = new Set(sortedCells.map(c => `${c.x},${c.y}`));
   const visited = new Set<string>();
   const components: { x: number; y: number }[][] = [];
@@ -187,7 +188,7 @@ export function deriveContiguousRoofs(
         }
       }
     }
-    comp.sort((a, b) => a.y - b.y || a.x - b.x);
+    comp.sort(compareCells);
     components.push(comp);
   }
   components.sort((a, b) => a[0]!.y - b[0]!.y || a[0]!.x - b[0]!.x);

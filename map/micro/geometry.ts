@@ -1,3 +1,4 @@
+import { compareCells } from '../kernel/cell.ts';
 import { bounds, circle, convex, overlaps, polygon, rect, transform } from '../../shared/shape.ts';
 import type { Shape } from '../../shared/shape.ts';
 import type { Box, Vec2 } from '../../shared/types.ts';
@@ -27,7 +28,7 @@ export function validShape(shape: Shape): boolean {
 }
 
 export function createRegionMask(spec: Pick<RegionSpec, 'cells' | 'cellSize'>): RegionMask {
-  const cells = [...spec.cells].sort((a, b) => a.y - b.y || a.x - b.x);
+  const cells = [...spec.cells].sort(compareCells);
   const size = spec.cellSize, owned = new Set(cells.map(c => `${c.x},${c.y}`));
   // A loop, not spread arguments, which a macro-sized region's cells can outgrow.
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;

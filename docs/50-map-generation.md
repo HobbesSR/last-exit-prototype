@@ -42,7 +42,7 @@ and are history.
 | Region type strategies: each type's decomposer and builders | the game: regions, top down | `map/micro/`, 19, 20 |
 | Elective validation utilities for builders, composing built regions, and adapting them to the live game's geometry | the game | 20 |
 | Machinery builders share: masks, shapes, swept routes, spacing, interface runs, access validation | the SDK, `map/micro/sdk.ts`. Macro calls it where a mechanism fits both scopes | 20, 22 |
-| What macro and micro must share: the contract between them (a region brief and its result), body scale and passage widths, and the definition of a run | the **shared map space**, which neither level owns (Corey, 2026-09-29, M1). It is the kernel, `map/kernel/` (51 C0): `contract.ts`, `scale.ts`, `cell.ts` and `run.ts` | 51, 52 |
+| What macro and micro must share: the contract between them (a region brief and its result), body scale and passage widths, the definition of a run, and a cell's key and row-major order | the **shared map space**, which neither level owns (Corey, 2026-09-29, M1). It is the kernel, `map/kernel/` (51 C0): `contract.ts`, `scale.ts`, `cell.ts` and `run.ts` | 51, 52 |
 | The Map Lab, CLI and MCP, which show both halves | neither: the tools, `map/tools/`, using the shared map-level assembly (Corey, 2026-10-02, 17 "Where the tools live") | 53 |
 | The live game's current map | `map/live.ts` consumes the authored generation chain; `shared/map/generate.ts` remains the legacy generator | 22 |
 

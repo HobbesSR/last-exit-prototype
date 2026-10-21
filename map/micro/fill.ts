@@ -1,3 +1,4 @@
+import { compareCells } from '../kernel/cell.ts';
 import { rect } from '../../shared/shape.ts';
 import { elementShapes, shapesOverlap } from './geometry.ts';
 import type { RegionBrief, RegionElement } from './types.ts';
@@ -44,7 +45,7 @@ export function measureFill(brief: Pick<RegionBrief, 'id' | 'cells' | 'cellSize'
 /** Largest-area free rectangle with both sides >= minSide; ties go to the first in row-major order. */
 function largestFree(cells: readonly { x: number; y: number }[], free: ReadonlySet<string>, minSide: number): FreeRect | null {
   let best: FreeRect | null = null;
-  const owned = [...cells].sort((a, b) => a.y - b.y || a.x - b.x);
+  const owned = [...cells].sort(compareCells);
   for (const c of owned) {
     if (!free.has(`${c.x},${c.y}`)) continue;
     // Grow right while the top row is free, tracking how far down every column stays free.

@@ -1,3 +1,4 @@
+import { requiredFor } from './port-terms.ts';
 import { resolveAccessRequirements, validateRegionAccess } from './access.ts';
 import { circle, rect } from '../../shared/shape.ts';
 import type { Shape } from '../../shared/shape.ts';
@@ -13,7 +14,6 @@ import { isCellSize } from '../kernel/scale.ts';
 import type { BuilderContext, BuilderId, BuiltRegion, CoreElementKind, CoreElementSite, Portal, RegionBrief, RegionElement, RegionMask, RegionRandom, MicroResult, RegionRoute, RegionSpec, ResolvedPort } from './types.ts';
 export type { RegionSpec, MicroResult } from './types.ts';
 
-const RANK = { none: 0, contestant: 1, hunter: 2 };
 const WALL = 8;
 
 function checkedSpec(input: RegionSpec): RegionSpec {
@@ -117,7 +117,7 @@ function generate(spec: RegionSpec, terms?: BriefTerms): { result: MicroResult; 
     for (let i = 1; i < points.length; i++) protectedShapes.push(...capsule(points[i - 1], points[i], radius + 1));
   };
   for (const role of ['hunter', 'contestant'] as const) {
-    const required = ports.filter(p => RANK[p.required] >= RANK[role]);
+    const required = requiredFor(ports, role);
     for (const p of required) {
       if (!travelClear(mask, blockers, p.inside, p.inside, radii[role])) throw new Error(`Port ${p.id} lacks standing room for ${role}.`);
       protectedShapes.push(circle(p.inside.x, p.inside.y, radii[role] + 1));

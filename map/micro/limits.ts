@@ -1,3 +1,4 @@
+import { compareCells } from '../kernel/cell.ts';
 import { withClearMargins } from '../kernel/margins.ts';
 import type { MarginRegion } from '../kernel/margins.ts';
 import type { Cell, Portal, RegionBrief } from './types.ts';
@@ -34,7 +35,7 @@ export function checkedRegionCells(cells: readonly Cell[]): Cell[] {
   const exactAddress = (n: number) => Number.isSafeInteger(n)
     && Number.isSafeInteger(n - LIMITS.run - 2) && Number.isSafeInteger(n + LIMITS.run + 2);
   if (cells.some(c => !c || !exactAddress(c.x) || !exactAddress(c.y))) throw new Error('Cell addresses must be safe integers with representable run and margin offsets.');
-  const sorted = cells.map(c => ({ x: c.x, y: c.y })).sort((a, b) => a.y - b.y || a.x - b.x), keys = new Set(sorted.map(c => `${c.x},${c.y}`));
+  const sorted = cells.map(c => ({ x: c.x, y: c.y })).sort(compareCells), keys = new Set(sorted.map(c => `${c.x},${c.y}`));
   if (keys.size !== sorted.length) throw new Error('Duplicate region cell.');
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const c of sorted) { minX = Math.min(minX, c.x); minY = Math.min(minY, c.y); maxX = Math.max(maxX, c.x); maxY = Math.max(maxY, c.y); }

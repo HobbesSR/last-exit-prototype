@@ -1,3 +1,4 @@
+import { cellKey, compareCells } from '../kernel/cell.ts';
 import type { RegionBrief } from '../kernel/contract.ts';
 import { canonicalDelegationBrief, prepareCanonicalDelegation } from './delegation.ts';
 import type { PatchOffer, PatchPreparationPolicy, PreparedDelegation } from './delegation.ts';
@@ -62,13 +63,12 @@ const emptyNode = (input: RegionBrief, depth: number, reason: string, kind: Fall
   requestedBuilder: input.type, actualBuilder: 'empty', builderVersion: DELEGATION_ALGORITHM_VERSION,
   retained: emptyResult(input), fallbackReason: reason, fallbackKind: kind,
 });
-const keyOf = (cell: { x: number; y: number }): string => `${cell.x},${cell.y}`;
 function completeOffer(input: RegionBrief, offer: PatchOffer): boolean {
   if (!Array.isArray(offer.cells) || offer.cells.length !== input.cells.length) return false;
-  const owned = new Set(input.cells.map(keyOf));
+  const owned = new Set(input.cells.map(cellKey));
   return Array.isArray(offer.cells) && offer.cells.length === input.cells.length
-    && new Set(offer.cells.map(keyOf)).size === input.cells.length
-    && offer.cells.every(c => owned.has(keyOf(c)));
+    && new Set(offer.cells.map(cellKey)).size === input.cells.length
+    && offer.cells.every(c => owned.has(cellKey(c)));
 }
 function prefixed(label: string, prefix: string): string { return prefix ? `${prefix}/${label}` : label; }
 
@@ -117,7 +117,7 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
         const full = offers.filter(o => completeOffer(brief, o));
         offers.sort((a, b) => a.key.localeCompare(b.key));
         for (const offered of offers) {
-          offered.cells.sort((a, b) => a.y - b.y || a.x - b.x);
+          offered.cells.sort(compareCells);
           if (offered.reasonTags) offered.reasonTags = [...new Set(offered.reasonTags)].sort();
         }
         if (full.length === 1 && offers.length === 1 && full[0]!.type === 'empty') {

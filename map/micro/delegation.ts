@@ -1,3 +1,4 @@
+import { cellKey, compareCells } from '../kernel/cell.ts';
 import type { Cell, Portal, RegionBrief } from '../kernel/contract.ts';
 import { boundaryRuns } from '../kernel/run.ts';
 import type { Run } from '../kernel/run.ts';
@@ -42,8 +43,7 @@ export interface PatchPreparationPolicy {
   blockers?: Shape[];
 }
 
-const keyOf = (c: Cell): string => `${c.x},${c.y}`;
-const orderCells = (cells: readonly Cell[]): Cell[] => cells.map(c => ({ x: c.x, y: c.y })).sort((a, b) => a.y - b.y || a.x - b.x);
+const orderCells = (cells: readonly Cell[]): Cell[] => cells.map(c => ({ x: c.x, y: c.y })).sort(compareCells);
 const orderRuns = <R extends Run>(runs: readonly R[]): R[] => [...runs].sort((a, b) => a.axis.localeCompare(b.axis) || a.y - b.y || a.x - b.x || a.length - b.length);
 const sameRun = (a: Run, b: Run): boolean => a.axis === b.axis && a.x === b.x && a.y === b.y && a.length === b.length;
 const record = (value: NonNullable<RegionBrief['parameters']>): NonNullable<RegionBrief['parameters']> => {
@@ -56,14 +56,14 @@ class InfeasiblePatch extends Error {}
 
 /** Full row-major coordinate encoding, not a hash: no footprint identity collisions. */
 export function patchFootprintKey(cells: readonly Cell[]): string {
-  return `cells:${checkedRegionCells(cells).map(keyOf).join(';')}`;
+  return `cells:${checkedRegionCells(cells).map(cellKey).join(';')}`;
 }
 
 function insideCells(run: Run, owned: ReadonlySet<string>): Cell[] {
   return Array.from({ length: run.length }, (_, i) => {
     const before = run.axis === 'h' ? { x: run.x + i, y: run.y - 1 } : { x: run.x - 1, y: run.y + i };
     const after = run.axis === 'h' ? { x: run.x + i, y: run.y } : { x: run.x, y: run.y + i };
-    return owned.has(keyOf(before)) ? before : after;
+    return owned.has(cellKey(before)) ? before : after;
   });
 }
 
@@ -79,7 +79,7 @@ export function canonicalDelegationBrief(input: RegionBrief): RegionBrief {
   brief.portals = orderRuns(brief.portals).sort((a, b) => a.id.localeCompare(b.id));
   if (brief.hints) brief.hints = orderRuns(brief.hints);
   if (brief.internalGuaranteed) brief.internalGuaranteed = orderRuns(brief.internalGuaranteed);
-  const owned = new Set(brief.cells.map(keyOf)), zoned = new Set<string>();
+  const owned = new Set(brief.cells.map(cellKey)), zoned = new Set<string>();
   const zones = new Map<string, RegionBrief['zones'][number]>();
   for (const zone of brief.zones) {
     if (!Number.isInteger(zone.tier) || zone.tier < 1 || zone.tier > 5 || !Number.isInteger(zone.bonus) || zone.bonus < 0
@@ -87,8 +87,8 @@ export function canonicalDelegationBrief(input: RegionBrief): RegionBrief {
     const k = JSON.stringify([zone.tier, zone.bonus, zone.lootChance]);
     if (!zones.has(k)) zones.set(k, { tier: zone.tier, bonus: zone.bonus, lootChance: zone.lootChance, cells: [] });
     for (const cell of zone.cells) {
-      if (!owned.has(keyOf(cell)) || zoned.has(keyOf(cell))) throw new Error('Zones must partition original ownership.');
-      zoned.add(keyOf(cell)); zones.get(k)!.cells.push(cell);
+      if (!owned.has(cellKey(cell)) || zoned.has(cellKey(cell))) throw new Error('Zones must partition original ownership.');
+      zoned.add(cellKey(cell)); zones.get(k)!.cells.push(cell);
     }
   }
   if (zoned.size !== owned.size) throw new Error('Zones must partition original ownership.');
@@ -97,9 +97,9 @@ export function canonicalDelegationBrief(input: RegionBrief): RegionBrief {
   if (brief.guidance !== undefined) brief.guidance = record(brief.guidance);
   for (const field of ['fillCells', 'clearCells'] as const) if (brief[field]) {
     const cells = brief[field]!;
-    if (cells.some(c => !c || !Number.isSafeInteger(c.x) || !Number.isSafeInteger(c.y)) || new Set(cells.map(keyOf)).size !== cells.length)
+    if (cells.some(c => !c || !Number.isSafeInteger(c.x) || !Number.isSafeInteger(c.y)) || new Set(cells.map(cellKey)).size !== cells.length)
       throw new Error(`Invalid ${field}.`);
-    if (field === 'fillCells' && cells.some(c => !owned.has(keyOf(c)))) throw new Error('Fill must stay inside ownership.');
+    if (field === 'fillCells' && cells.some(c => !owned.has(cellKey(c)))) throw new Error('Fill must stay inside ownership.');
     if (field === 'clearCells' && cells.some(c => {
       for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (owned.has(`${c.x + dx},${c.y + dy}`)) return false;
       return true;
@@ -107,8 +107,8 @@ export function canonicalDelegationBrief(input: RegionBrief): RegionBrief {
       throw new Error('Clear cells must be nearby access context.');
     brief[field] = orderCells(cells);
   }
-  const fill = new Set((brief.fillCells ?? []).map(keyOf));
-  if ((brief.clearCells ?? []).some(c => fill.has(keyOf(c)))) throw new Error('Clear cells cannot be available for filling.');
+  const fill = new Set((brief.fillCells ?? []).map(cellKey));
+  if ((brief.clearCells ?? []).some(c => fill.has(cellKey(c)))) throw new Error('Clear cells cannot be available for filling.');
   const normalized = checkedMargins(brief);
   // Apply original guarantees before clipping them into children. This also makes
   // preparation idempotent when a caller supplied fill exclusions but omitted a
@@ -119,12 +119,12 @@ export function canonicalDelegationBrief(input: RegionBrief): RegionBrief {
 }
 
 function localBrief(parent: RegionBrief, cells: Cell[], parentOwned: ReadonlySet<string>, offer?: PatchOffer): RegionBrief {
-  const owned = new Set(cells.map(keyOf));
+  const owned = new Set(cells.map(cellKey));
   const hints = (parent.hints ?? []).flatMap(run => {
     const inside = insideCells(run, parentOwned), result: Run[] = [];
     let start = -1;
     for (let i = 0; i <= run.length; i++) {
-      const keep = i < run.length && owned.has(keyOf(inside[i]!));
+      const keep = i < run.length && owned.has(cellKey(inside[i]!));
       if (keep && start < 0) start = i;
       if (!keep && start >= 0) {
         result.push({ axis: run.axis, x: run.x + (run.axis === 'h' ? start : 0), y: run.y + (run.axis === 'v' ? start : 0), length: i - start }); start = -1;
@@ -143,8 +143,8 @@ function localBrief(parent: RegionBrief, cells: Cell[], parentOwned: ReadonlySet
   if (offer?.parameters !== undefined) brief.parameters = record(offer.parameters);
   const guidance = offer ? offer.guidance : parent.guidance;
   if (guidance !== undefined) brief.guidance = record(guidance);
-  brief.zones = parent.zones.map(z => ({ ...z, cells: z.cells.filter(c => owned.has(keyOf(c))) })).filter(z => z.cells.length);
-  brief.fillCells = parent.fillCells!.filter(c => owned.has(keyOf(c)));
+  brief.zones = parent.zones.map(z => ({ ...z, cells: z.cells.filter(c => owned.has(cellKey(c))) })).filter(z => z.cells.length);
+  brief.fillCells = parent.fillCells!.filter(c => owned.has(cellKey(c)));
   // Clear context is filtered by inheritBriefMargins, not copied as invented playable space.
   brief.clearCells = [];
   if (hints.length) brief.hints = hints; else delete brief.hints;
@@ -160,7 +160,7 @@ function localBrief(parent: RegionBrief, cells: Cell[], parentOwned: ReadonlySet
 export function validateBriefPartition(parent: RegionBrief, children: readonly RegionBrief[]): string[] {
   const errors: string[] = [];
   try {
-    const original = new Set(parent.cells.map(keyOf)), owners = new Map<string, string>(), ids = new Set<string>();
+    const original = new Set(parent.cells.map(cellKey)), owners = new Map<string, string>(), ids = new Set<string>();
     checkedRegionCells(parent.cells); portalStands(parent);
     const standsByOwner = new Map<string, ReturnType<typeof portalStands>>();
     for (const child of children) {
@@ -169,14 +169,14 @@ export function validateBriefPartition(parent: RegionBrief, children: readonly R
       if (child.cellSize !== parent.cellSize) throw new Error('Partition scales must agree.');
       checkedRegionCells(child.cells); standsByOwner.set(child.id, portalStands(child));
       for (const c of child.cells) {
-        if (!original.has(keyOf(c)) || owners.has(keyOf(c))) throw new Error('Partition ownership must be disjoint and inside the parent.');
-        owners.set(keyOf(c), child.id);
+        if (!original.has(cellKey(c)) || owners.has(cellKey(c))) throw new Error('Partition ownership must be disjoint and inside the parent.');
+        owners.set(cellKey(c), child.id);
       }
     }
     if (owners.size !== original.size) throw new Error('Partition must exhaust original ownership.');
     const external = new Map<string, string>();
     for (const portal of parent.portals) {
-      const inherited = new Set(insideCells(portal, original).map(c => owners.get(keyOf(c))!));
+      const inherited = new Set(insideCells(portal, original).map(c => owners.get(cellKey(c))!));
       if (inherited.size !== 1) throw new Error(`External portal ${portal.id} cannot be split between owners.`);
       const owner = [...inherited][0]!;
       if (!children.find(c => c.id === owner)!.portals.some(p => p.id === portal.id && sameRun(p, portal)))
@@ -206,7 +206,7 @@ export function validateBriefPartition(parent: RegionBrief, children: readonly R
       for (let i = 0; i < run.length; i++) {
         const sides = run.axis === 'h' ? [{ x: run.x + i, y: run.y - 1 }, { x: run.x + i, y: run.y }]
           : [{ x: run.x - 1, y: run.y + i }, { x: run.x, y: run.y + i }];
-        if (!sides.every(c => [a.child.id, b.child.id].includes(owners.get(keyOf(c))!))) throw new Error(`Portal ${id} does not join its paired owners.`);
+        if (!sides.every(c => [a.child.id, b.child.id].includes(owners.get(cellKey(c))!))) throw new Error(`Portal ${id} does not join its paired owners.`);
       }
       links.get(a.child.id)!.add(b.child.id); links.get(b.child.id)!.add(a.child.id);
     }
@@ -229,7 +229,7 @@ export function prepareDelegation(input: RegionBrief, offers: readonly PatchOffe
 /** Internal executor path: input has already passed canonicalDelegationBrief or preparation. */
 export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly PatchOffer[], policy: PatchPreparationPolicy): PreparedDelegation {
   if (typeof policy?.receiving !== 'function') throw new Error('Preparation needs explicit receiving-builder feasibility policy.');
-  const owned = new Set(parent.cells.map(keyOf));
+  const owned = new Set(parent.cells.map(cellKey));
   const keys = new Set<string>(), requested = new Set<string>();
   const normalized = offers.map(offer => {
     if (!offer || typeof offer.key !== 'string' || !offer.key || keys.has(offer.key) || typeof offer.type !== 'string' || !offer.type)
@@ -242,8 +242,8 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
     if (offer.guidance !== undefined) record(offer.guidance);
     if (offer.reasonTags && (!Array.isArray(offer.reasonTags) || offer.reasonTags.some(t => typeof t !== 'string'))) throw new Error('Reason tags must be strings.');
     for (const c of cells) {
-      if (!owned.has(keyOf(c)) || requested.has(keyOf(c))) throw new Error('Offered ownership must be disjoint and inside the parent.');
-      requested.add(keyOf(c));
+      if (!owned.has(cellKey(c)) || requested.has(cellKey(c))) throw new Error('Offered ownership must be disjoint and inside the parent.');
+      requested.add(cellKey(c));
     }
     const { cells: _requestedCells, ...metadata } = offer;
     return { ...structuredClone(metadata), cells };
@@ -251,14 +251,14 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
   const protection = policy.protectedCells ?? [];
   if (!Array.isArray(protection) || protection.some(c => !c || !Number.isInteger(c.x) || !Number.isInteger(c.y)))
     throw new Error('Protected cells must have whole addresses.');
-  const protectedCells = new Set(protection.map(keyOf));
+  const protectedCells = new Set(protection.map(cellKey));
   if ([...protectedCells].some(k => !owned.has(k))) throw new Error('Protected cells must be owned by the parent.');
   if ((policy.protectedRuns ?? []).some(r => !r || !['h', 'v'].includes(r.axis) || ![r.x, r.y, r.length].every(Number.isInteger)
     || r.length < 1 || r.length > LIMITS.run)) throw new Error('Protected runs must be bounded whole-cell runs.');
-  for (const c of clearFootprint(policy.protectedRuns ?? [], parent.cells)) protectedCells.add(keyOf(c));
+  for (const c of clearFootprint(policy.protectedRuns ?? [], parent.cells)) protectedCells.add(cellKey(c));
   // Every protected address is parent-owned, hence playable. Clipping a
   // crossing footprint to these cells gives exactly its protected intersection.
-  const protectedAddresses = parent.cells.filter(c => protectedCells.has(keyOf(c)));
+  const protectedAddresses = parent.cells.filter(c => protectedCells.has(cellKey(c)));
   const blockers = policy.blockers ?? [];
   if (!Array.isArray(blockers) || blockers.some(s => !validShape(s))) throw new Error('Declared geometry must contain valid collision shapes.');
 
@@ -272,8 +272,8 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
       }
       return { retained: structuredClone(parent), children: [], crossings: [] };
     }
-    const given = new Set(accepted.flatMap(o => o.cells.map(keyOf)));
-    const retainedCells = parent.cells.filter(c => !given.has(keyOf(c)));
+    const given = new Set(accepted.flatMap(o => o.cells.map(cellKey)));
+    const retainedCells = parent.cells.filter(c => !given.has(cellKey(c)));
     if (!retainedCells.length) throw new InfeasiblePatch('Complete-region handoff belongs to terminal empty execution, not patch preparation.');
     try { checkedRegionCells(retainedCells); } catch { throw new InfeasiblePatch('Patch disconnects retained ownership.'); }
     // Crossing feasibility needs ownership and inherited portals only. Defer
@@ -281,9 +281,9 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
     const local = [{ id: parent.id, cells: retainedCells, cellSize: parent.cellSize, portals: [] as Portal[] },
       ...accepted.map(o => ({ id: `${parent.id}/delegate/${encodeURIComponent(o.key)}`, cells: o.cells,
         cellSize: parent.cellSize, portals: [] as Portal[] }))];
-    const ownerAt = new Map(local.flatMap(b => b.cells.map(c => [keyOf(c), b.id] as const)));
+    const ownerAt = new Map(local.flatMap(b => b.cells.map(c => [cellKey(c), b.id] as const)));
     for (const portal of parent.portals) {
-      const owners = new Set(insideCells(portal, owned).map(c => ownerAt.get(keyOf(c))!));
+      const owners = new Set(insideCells(portal, owned).map(c => ownerAt.get(cellKey(c))!));
       if (owners.size !== 1) throw new InfeasiblePatch(`External portal ${portal.id} cannot be split.`);
       const id = [...owners][0]!;
       if (policy.externalPortals !== 'whole-child' && id !== parent.id) throw new InfeasiblePatch(`External portal ${portal.id} must remain retained under this policy.`);
@@ -333,7 +333,7 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
   const accepted: PatchOffer[] = [], rejected: PatchRejection[] = [];
   let prepared = partition(accepted);
   for (const offer of normalized) {
-    if (offer.cells.some(c => protectedCells.has(keyOf(c)))) { rejected.push({ key: offer.key, reason: 'Patch contains declared protected cells.' }); continue; }
+    if (offer.cells.some(c => protectedCells.has(cellKey(c)))) { rejected.push({ key: offer.key, reason: 'Patch contains declared protected cells.' }); continue; }
     try { const next = partition([...accepted, offer]); accepted.push(offer); prepared = next; }
     catch (error) {
       if (!(error instanceof InfeasiblePatch)) throw error;

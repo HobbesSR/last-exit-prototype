@@ -1,3 +1,4 @@
+import { compareCells } from '../../kernel/cell.ts';
 import { polygon, rect } from '../../../shared/shape.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
@@ -63,7 +64,7 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
     return true;
   };
 
-  for (const slot of [...mask.cells].sort((a, b) => a.y - b.y || a.x - b.x)) {
+  for (const slot of [...mask.cells].sort(compareCells)) {
     if (!onLattice(slot.x, phase.x) || !onLattice(slot.y, phase.y)) continue;
     if (draw(brief.seed, slot.x, slot.y, CHANNEL.slot) >= density) continue;
     const w = 3 + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.width) * 2);

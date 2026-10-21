@@ -1,9 +1,8 @@
-import type { Cell } from './cell.ts';
+import { cellKey, compareCells, type Cell } from './cell.ts';
 import type { Run } from './run.ts';
 import type { RegionBrief } from './contract.ts';
 
-const key = ({ x, y }: Cell): string => `${x},${y}`;
-const ordered = (cells: Iterable<Cell>): Cell[] => [...cells].sort((a, b) => a.y - b.y || a.x - b.x);
+const ordered = (cells: Iterable<Cell>): Cell[] => [...cells].sort(compareCells);
 
 /** Refuse a run that isn't whole cells, a positive whole length and an axis. */
 function checkRun(run: Run): void {
@@ -14,10 +13,10 @@ function checkRun(run: Run): void {
 
 /** The clipped, cell-aligned union around resolved guaranteed runs (20.6). */
 export function clearFootprint(runs: readonly Run[], playableCells: readonly Cell[]): Cell[] {
-  const playable = new Set(playableCells.map(key));
+  const playable = new Set(playableCells.map(cellKey));
   const found = new Map<string, Cell>();
   const add = (x: number, y: number): void => {
-    const cell = { x, y }, k = key(cell);
+    const cell = { x, y }, k = cellKey(cell);
     if (playable.has(k)) found.set(k, cell);
   };
   for (const run of runs) {
@@ -67,8 +66,8 @@ export function withClearMargins<R extends MarginRegion>(region: R): R & Require
     if (axis === 'h') playable.push({ x: x + i, y: y - 1 }, { x: x + i, y });
     else playable.push({ x: x - 1, y: y + i }, { x, y: y + i });
   }
-  const fill = region.fillCells && new Set(region.fillCells.map(key));
-  const inherited = [...(region.clearCells ?? []), ...(fill ? region.cells.filter(cell => !fill.has(key(cell))) : [])];
+  const fill = region.fillCells && new Set(region.fillCells.map(cellKey));
+  const inherited = [...(region.clearCells ?? []), ...(fill ? region.cells.filter(cell => !fill.has(cellKey(cell))) : [])];
   return { ...region, ...applyClearConstraints(region.cells,
     clearFootprint([...portals, ...(region.internalGuaranteed ?? []).flatMap(clip)], playable), inherited) };
 }
@@ -77,17 +76,17 @@ export function withClearMargins<R extends MarginRegion>(region: R): R & Require
 export function applyClearConstraints(
   cells: readonly Cell[], clearCells: readonly Cell[], inheritedClear: readonly Cell[] = [],
 ): { fillCells: Cell[]; clearCells: Cell[] } {
-  const owned = new Set(cells.map(key));
+  const owned = new Set(cells.map(cellKey));
   const clear = new Map<string, Cell>();
   for (const cell of [...inheritedClear, ...clearCells]) {
     let nearby = false;
     for (let dy = -1; dy <= 1 && !nearby; dy++) for (let dx = -1; dx <= 1; dx++) {
       if (owned.has(`${cell.x + dx},${cell.y + dy}`)) { nearby = true; break; }
     }
-    if (nearby) clear.set(key(cell), cell);
+    if (nearby) clear.set(cellKey(cell), cell);
   }
   return {
-    fillCells: ordered(cells.filter((cell) => !clear.has(key(cell)))),
+    fillCells: ordered(cells.filter((cell) => !clear.has(cellKey(cell)))),
     clearCells: ordered(clear.values()),
   };
 }
