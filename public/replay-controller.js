@@ -13,6 +13,11 @@ export function createReplayController({
   let replay = null, replayTimeline = null, playback = 0, playing = true;
   // Where playback was when the clock was last anchored, and when that was. Every jump re-anchors.
   let playbackFrom = 0, playbackAt = 0;
+  // Which archive load may still install. A newer watch, a close, a reset or the application leaving
+  // the view behind advances it, so a response that settles afterwards, in any order, changes nothing
+  // -- not the map, the state, the controls, nor the toast a failure would raise.
+  let generation = 0;
+  const cancel = () => { generation++; };
   const setFollow = id => director.setFollow(id);
   // Pips sit over the scrubber, positioned within the range thumb's travel. Shape differs by kind as
   // well as colour, and the tooltip names the mark. Marks too close to draw apart share one pip
@@ -73,8 +78,10 @@ export function createReplayController({
     $('replay-play').ariaLabel = value ? 'Pause replay' : 'Play replay'; icons();
   }
   async function watch(id) {
+    const load = ++generation;
     try {
       const data = await fetchJSON(`/api/replays/${id}`);
+      if (load !== generation) return;
       const timeline = createReplayTimeline(data);
       if (!timeline.frames.length) throw new Error('Replay contains no playable frames.');
       // The recording states what it is; this build decides whether it can read it. `shared/recording.ts`
@@ -93,7 +100,7 @@ export function createReplayController({
       // chosen before they appear and stays selectable after they are eliminated.
       fillFollowOptions($('replay-focus'), timeline.roster); director.reset(); setFollow(null); renderMarks();
       document.body.classList.add('replaying'); connection('REPLAY'); setPlaying(true); seek(0); getScene()?.updateCamera(true);
-    } catch (error) { toast(error.message); }
+    } catch (error) { if (load === generation) toast(error.message); }
   }
   function renderFrame() {
     if (!replay || !playing) return;
@@ -105,7 +112,7 @@ export function createReplayController({
     if (playback >= replayTimeline.endTick) setPlaying(false);
   }
   function close() {
-    replay = null; replayTimeline = null; director.reset(); $('replay-marks').replaceChildren();
+    cancel(); replay = null; replayTimeline = null; director.reset(); $('replay-marks').replaceChildren();
     $('replay-controls').hidden = true; document.body.classList.remove('replaying');
     const liveMap = getLiveMap(), liveState = getLiveState();
     if (liveMap && liveState) { changeMap(liveMap); acceptState(liveState); }
@@ -113,7 +120,7 @@ export function createReplayController({
     connection(liveConnectionLabel()); getScene()?.updateCamera(true);
   }
   function reset() {
-    replay = null; replayTimeline = null; $('replay-marks').replaceChildren();
+    cancel(); replay = null; replayTimeline = null; $('replay-marks').replaceChildren();
     document.body.classList.remove('replaying'); $('replay-controls').hidden = true;
   }
   // The track narrows with the viewport and when the status label appears, which changes which pips collide.
@@ -128,7 +135,7 @@ export function createReplayController({
   $('replay-close').onclick = close;
   return {
     active: () => !!replay, frameAlpha: () => replayTimeline?.at(playback)?.alpha ?? 0,
-    watch, renderFrame, togglePlay: () => setPlaying(!playing), reset,
+    watch, renderFrame, togglePlay: () => setPlaying(!playing), reset, cancel,
     // Lets the application skip a refetch when downloading the replay already open here.
     cachedData: id => replay?.id === id ? replay : null,
   };
