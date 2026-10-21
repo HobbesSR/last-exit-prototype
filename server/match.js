@@ -5,6 +5,7 @@ import { viewLagFrom } from '../shared/simulation/rewind.ts';
 import { teleport } from '../shared/simulation/dev.ts';
 import { generateLiveMap } from '../map/live.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
+import { describeContent } from '../shared/presentation.ts';
 
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
 
@@ -70,7 +71,8 @@ const NOWHERE = { spawns: [], stations: [], exit: { x: 0, y: 0 } };
  * from the same content, with no simulation behind it. The room hands its commands to the match's `seat`.
  */
 export function createLobby(content = defaultContent()) {
-  return { content, ...seatsOf(createGame(0, NOWHERE, content)) };
+  // Described once, from the content the match will be pinned to, for every welcome and the recording (22.7).
+  return { content, presentation: describeContent(content), ...seatsOf(createGame(0, NOWHERE, content)) };
 }
 
 // The application's only mutable access to simulation. Returned frames/commands are detached.
@@ -83,6 +85,8 @@ export function createMatch(seed, size, map, content = defaultContent()) {
     get seed() { return game.seed; },
     /** Which content set this match was pinned to, for the recording header to name. */
     get contentId() { return game.content.id; },
+    /** How this match's content is labelled for display (22.7): data only, never authority. */
+    presentation: describeContent(game.content),
     ...seatsOf(game),
     // Compatibility escape hatch for existing scenario/benchmark tools, not application code.
     get diagnosticState() { return game; },

@@ -1,6 +1,7 @@
 import { clusterMarks, createReplayTimeline, markLabel, markSeekTick } from '/replay-timeline.js';
 import { recordingFit } from '/shared/recording.ts';
-import { $, fillFollowOptions, time } from '/ui.js';
+import { resolveRecordingPresentation } from '/shared/presentation.ts';
+import { $, fillFollowOptions, time, tickRate } from '/ui.js';
 
 // Recorded-match playback: timeline, wall-clock-anchored playhead and the replay-* DOM. The camera
 // director owns who is followed. The application supplies the shared arena/state/scene it must read
@@ -11,6 +12,8 @@ export function createReplayController({
   downloadReplay, icon, icons, director,
 }) {
   let replay = null, replayTimeline = null, playback = 0, playing = true;
+  // The open recording's display metadata (22.7): embedded, retained, legacy or unknown (null).
+  let described = null;
   // Where playback was when the clock was last anchored, and when that was. Every jump re-anchors.
   let playbackFrom = 0, playbackAt = 0;
   // Which archive load may still install. A newer watch, a close, a reset or the application leaving
@@ -64,7 +67,7 @@ export function createReplayController({
     if (!sample) return;
     playback = sample.tick;
     if (getState() !== sample.state) { setState(sample.state); getMap().gates = sample.state.gates; updateHUD(); }
-    $('replay-seek').value = String(Math.floor(playback)); $('replay-time').textContent = time(playback);
+    $('replay-seek').value = String(Math.floor(playback)); $('replay-time').textContent = time(playback, replay.hz);
     const status = $('replay-status'); status.hidden = !sample.missing && replayTimeline.complete;
     if (!status.hidden) status.textContent = sample.missing
       ? `MISSING DATA · showing tick ${sample.frameTick}`
@@ -92,13 +95,15 @@ export function createReplayController({
         'too-old': 'This broadcast uses a recording format this build no longer reads.',
         'pre-vector': 'This broadcast uses the earlier grid prototype.',
       }[fit]} Its JSON can still be downloaded.`);
+      // Installed with the recording, after its load is known to be current, before anything is drawn.
       clearInput(); replay = data; replayTimeline = timeline; playback = 0; playing = true;
+      described = resolveRecordingPresentation(data).presentation;
       changeMap(data.map);
       $('outcome').hidden = true; $('archive-dialog').close(); $('live-hud').hidden = true;
       $('replay-controls').hidden = false; $('replay-seek').min = 0; $('replay-seek').max = timeline.endTick; $('replay-seek').value = 0;
       // The roster comes from the recording rather than the displayed frame, so a subject can be
       // chosen before they appear and stays selectable after they are eliminated.
-      fillFollowOptions($('replay-focus'), timeline.roster); director.reset(); setFollow(null); renderMarks();
+      fillFollowOptions($('replay-focus'), timeline.roster, described); director.reset(); setFollow(null); renderMarks();
       document.body.classList.add('replaying'); connection('REPLAY'); setPlaying(true); seek(0); getScene()?.updateCamera(true);
     } catch (error) { if (load === generation) toast(error.message); }
   }
@@ -112,7 +117,7 @@ export function createReplayController({
     if (playback >= replayTimeline.endTick) setPlaying(false);
   }
   function close() {
-    cancel(); replay = null; replayTimeline = null; director.reset(); $('replay-marks').replaceChildren();
+    cancel(); replay = null; replayTimeline = null; described = null; director.reset(); $('replay-marks').replaceChildren();
     $('replay-controls').hidden = true; document.body.classList.remove('replaying');
     const liveMap = getLiveMap(), liveState = getLiveState();
     if (liveMap && liveState) { changeMap(liveMap); acceptState(liveState); }
@@ -120,7 +125,7 @@ export function createReplayController({
     connection(liveConnectionLabel()); getScene()?.updateCamera(true);
   }
   function reset() {
-    cancel(); replay = null; replayTimeline = null; $('replay-marks').replaceChildren();
+    cancel(); replay = null; replayTimeline = null; described = null; $('replay-marks').replaceChildren();
     document.body.classList.remove('replaying'); $('replay-controls').hidden = true;
   }
   // The track narrows with the viewport and when the status label appears, which changes which pips collide.
@@ -134,7 +139,10 @@ export function createReplayController({
   $('replay-download').onclick = () => { if (replay) void downloadReplay(replay.id); };
   $('replay-close').onclick = close;
   return {
-    active: () => !!replay, frameAlpha: () => replayTimeline?.at(playback)?.alpha ?? 0,
+    active: () => !!replay,
+    /** The open recording's descriptor (null when its content is unknown) and its recorded tick rate. */
+    presentation: () => described, hz: () => tickRate(replay?.hz),
+    frameAlpha: () => replayTimeline?.at(playback)?.alpha ?? 0,
     watch, renderFrame, togglePlay: () => setPlaying(!playing), reset, cancel,
     // Lets the application skip a refetch when downloading the replay already open here.
     cachedData: id => replay?.id === id ? replay : null,

@@ -1,10 +1,16 @@
-import { lineClear } from '/shared/movement.ts';
+import { nearbyGate } from '/shared/gate-query.ts';
+import { INITIAL_ESCAPE_SLOTS } from '/shared/simulation/rules.ts';
 import { seesActor } from '/shared/view.ts';
 import { carriedCell, SLOT_COUNT } from '/shared/equipment.ts';
 import { discoveryGrid, isFeatureDiscovered } from '/shared/discovery.ts';
 import { slotPresentation } from '/equipment-ui.js';
 import * as profiler from '/shared/profiler.ts';
-import { $, HZ, kitName, kitSkill, time } from '/ui.js';
+import { $, HZ, kitName, kitSkill, time, SHIPPED_PRESENTATION, UNAVAILABLE } from '/ui.js';
+
+// Escape pods in the matches older recordings hold, for their outcome lines; the live count is the rule's.
+const RECORDED_ESCAPE_SLOTS = 3;
+// A frame's own tick value when it has one: present values beat the descriptor, zero included.
+const ticksOf = value => Number.isSafeInteger(value) && value > 0 ? value : null;
 
 // Render supplied state without mutating it; application callbacks own all user actions.
 export function createHUDController(actions) {
@@ -118,7 +124,8 @@ export function createHUDController(actions) {
   listen(document, 'contextmenu', e => {
     if (e.target.closest('[data-tip]')) e.preventDefault();
   });
-  function hud({ state, arenaMap, playerId, view, savedReplay, selection: { moveFrom }, visibility, discovery }) {
+  // `presentation` is the displayed match's content descriptor, null when unknown; `hz` its tick rate.
+  function hud({ state, arenaMap, playerId, view, savedReplay, selection: { moveFrom }, visibility, discovery, presentation = SHIPPED_PRESENTATION, hz = HZ }) {
     const me = state.players.find(p => p.id === playerId) || (view === 'replay' ? state.players[0] : null);
     dragEnabled = false;
     // The waiting area before a match (#236) has no clock, objective, loadout or outcome to show.
@@ -126,7 +133,9 @@ export function createHUDController(actions) {
     $('arena').classList.toggle('waiting', waiting);
     if (waiting) { cancelDrag(); return; }
     if (!me) { cancelDrag(); setHidden($('arrange-item'), true); setHidden($('objective'), true); setHidden($('equipment-slots'), true); setHidden($('drop-item'), true); }
-    setText($('clock'), time((state.duration || 2400) - state.tick));
+    const duration = ticksOf(state.duration) ?? presentation?.durationTicks ?? null;
+    const chargeTicks = ticksOf(state.cellChargeTicks) ?? presentation?.cellChargeTicks ?? null;
+    setText($('clock'), duration === null ? UNAVAILABLE : time(duration - state.tick, hz));
     setText($('slots'), state.slots);
     setText($('seed-label'), arenaMap.seed);
     setText($('sector'), String(Math.min(arenaMap.modules.length, 1 + Math.floor((me?.x || 0) / arenaMap.width * arenaMap.modules.length))).padStart(2, '0'));
@@ -158,7 +167,7 @@ export function createHUDController(actions) {
       setHidden($('skill'), !gladiator);
       for (const button of $('equipment-slots').children) {
         const index = Number(button.dataset.slot), item = me.inventory?.[index];
-        const display = slotPresentation(item, state.cellChargeTicks || 100);
+        const display = slotPresentation(item, chargeTicks, presentation);
         if (button.dataset.item !== display.key) {
           button.innerHTML = '<span class="slot-number">' + (index + 1) + '</span>' + display.glyph + '<span class="slot-count">' + display.count + '</span>';
           button.dataset.item = display.key;
@@ -178,16 +187,16 @@ export function createHUDController(actions) {
         if (button.getAttribute('aria-pressed') !== ariaPressed) button.setAttribute('aria-pressed', ariaPressed);
       }
       setHidden($('objective'), gladiator || !isPlay);
-      const chargeTicks = state.cellChargeTicks || 100;
+      const charge = chargeTicks === null ? UNAVAILABLE : `${Math.floor((cell?.charge ?? 0) / chargeTicks * 100)}%`;
       setText($('objective'), !cell ? 'EXPLORE FOR A POWER CELL · requires one inventory slot'
-        : cell.charge >= chargeTicks ? 'CELL CHARGED · bring it to the escape pods · E to escape'
-        : me.charging ? `CHARGING ${Math.floor(cell.charge / chargeTicks * 100)}% · stay still`
-        : `CELL ${Math.floor(cell.charge / chargeTicks * 100)}% · find a charging station · E to charge`);
+        : chargeTicks !== null && cell.charge >= chargeTicks ? 'CELL CHARGED · bring it to the escape pods · E to escape'
+        : me.charging ? `CHARGING ${charge} · stay still`
+        : `CELL ${charge} · find a charging station · E to charge`);
       
       const portraitSrc = `/assets/${gladiator ? 'warden' : 'contestant'}.svg`;
       if ($('portrait').getAttribute('src') !== portraitSrc) $('portrait').src = portraitSrc;
       
-      setText($('player-name'), gladiator ? kitName(me.kit).toUpperCase() : me.name.toUpperCase());
+      setText($('player-name'), gladiator ? kitName(me.kit, presentation).toUpperCase() : me.name.toUpperCase());
       setText($('player-level'), gladiator ? `LV ${me.level}` : 'RUNNER');
       
       const hpW = `${100 * me.hp / me.maxHp}%`;
@@ -200,7 +209,7 @@ export function createHUDController(actions) {
       setText($('keys'), me.keys); 
       setText($('weapon'), gladiator ? me.level : me.weapon);
       
-      const skillName = gladiator ? kitSkill(me.kit) : kitSkill(null);
+      const skillName = gladiator ? kitSkill(me.kit, presentation) : kitSkill(null);
       const skillTip = `${skillName} (Q)`;
       if ($('skill').dataset.tip !== skillTip) $('skill').dataset.tip = skillTip;
       
@@ -211,7 +220,8 @@ export function createHUDController(actions) {
       if ($('skill').disabled !== skillDisabled) $('skill').disabled = skillDisabled;
       
       setText($('interact-label'), gladiator ? (me.railCd ? `${(me.railCd / HZ).toFixed(1)}s` : 'RAIL') : 'USE');
-      const nearbyDoor = arenaMap.gates.find(g => g.kind === 'door' && Math.hypot(g.x - me.x, g.y - me.y) < 85 && lineClear(arenaMap, me, g, g.id));
+      // A proximity hint in map order, deliberately not the simulation's nearest-gate choice (22.7).
+      const nearbyDoor = nearbyGate(arenaMap, me, { accepts: g => g.kind === 'door', order: 'map' });
       if (nearbyDoor) setText($('interact-label'), nearbyDoor.open ? 'CLOSE' : nearbyDoor.locked ? 'UNLOCK' : 'OPEN');
       
       const interactTip = nearbyDoor ? `${nearbyDoor.open ? 'Close door' : nearbyDoor.locked ? 'Unlock door · one key' : 'Open door'} (E)` : 'Use / charge / extract / transit (E)';
@@ -226,7 +236,8 @@ export function createHUDController(actions) {
         const escaped = me.status === 'escaped';
         setText($('outcome-label'), escaped ? 'EXTRACTION CONFIRMED' : state.phase === 'finished' ? 'BROADCAST COMPLETE' : 'CONTESTANT ELIMINATED');
         setText($('outcome-title'), escaped ? 'You made it out.' : gladiator ? 'The hunt is over.' : 'End of the line.');
-        setText($('outcome-detail'), gladiator ? `${me.kills} eliminations. ${3 - state.slots} contestants escaped.` : escaped ? `${state.slots} escape slots remain.` : `${3 - state.slots} escaped. ${state.slots} exits unclaimed.`);
+        const pods = view === 'replay' ? RECORDED_ESCAPE_SLOTS : INITIAL_ESCAPE_SLOTS;
+        setText($('outcome-detail'), gladiator ? `${me.kills} eliminations. ${pods - state.slots} contestants escaped.` : escaped ? `${state.slots} escape slots remain.` : `${pods - state.slots} escaped. ${state.slots} exits unclaimed.`);
         
         const watchDisabled = !savedReplay;
         if ($('watch-match').disabled !== watchDisabled) $('watch-match').disabled = watchDisabled;

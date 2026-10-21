@@ -1,4 +1,4 @@
-import { WEAPONS } from '/shared/equipment.ts';
+import { SHIPPED_PRESENTATION, UNAVAILABLE } from '/ui.js';
 
 // Code-native glyphs match the existing outlined HUD. Names remain in tooltips and ARIA labels.
 const paths = {
@@ -9,11 +9,18 @@ const paths = {
   shield: 'M12 2l9 4v7c0 4-5 8-9 10-4-2-9-6-9-10V6z',
   cell: 'M9 2h6v3H9z M6 5h12v17H6z M13 8l-4 6h4l-2 5',
 };
-export function slotPresentation(item, chargeTicks = 100) {
+/**
+ * How a slot reads. `presentation` is the displayed match's content descriptor (shipped content when left
+ * out; null when unknown) and `chargeTicks` the charge a cell needs, null when unavailable. Recorded
+ * values win: a weapon's own ammo, even zero, before the content's default, and nothing is guessed.
+ */
+export function slotPresentation(item, chargeTicks = SHIPPED_PRESENTATION.cellChargeTicks, presentation = SHIPPED_PRESENTATION) {
   if (!item) return { name: 'Empty', glyph: '', count: '', key: 'empty' };
   const kind = item.weaponType || item.kind;
-  const name = item.kind === 'weapon' ? WEAPONS[kind]?.name || kind : { med: 'Medkit', shield: 'Shield', cell: 'Power cell' }[kind] || kind;
-  const count = item.kind === 'weapon' ? String(item.ammo ?? WEAPONS[kind]?.ammo ?? 0) : item.kind === 'cell' ? `${Math.floor(item.charge / chargeTicks * 100)}%` : String(item.count);
+  const weapon = item.kind === 'weapon' ? presentation?.weapons.find(w => w.id === kind) : undefined;
+  const name = item.kind === 'weapon' ? weapon?.name || kind : { med: 'Medkit', shield: 'Shield', cell: 'Power cell' }[kind] || kind;
+  const count = item.kind === 'weapon' ? String(item.ammo ?? weapon?.ammo ?? UNAVAILABLE)
+    : item.kind === 'cell' ? chargeTicks > 0 ? `${Math.floor(item.charge / chargeTicks * 100)}%` : UNAVAILABLE : String(item.count);
   const glyph = `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="${paths[kind] || paths.cell}"/></svg>`;
-  return { name, glyph, count, key: `${kind}:${count}` };
+  return { name, glyph, count, key: `${kind}:${count}:${name}` };
 }
