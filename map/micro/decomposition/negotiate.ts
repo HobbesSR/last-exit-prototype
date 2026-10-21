@@ -1,3 +1,4 @@
+import { PASSAGE_RANK } from '../port-terms.ts';
 import { resolveAccessRequirements } from '../access.ts';
 import { inheritBoundaryPorts, pairedBoundaryPort } from '../boundary.ts';
 import { cellKey } from './analysis.ts';
@@ -5,7 +6,6 @@ import type { RegionBoundary } from '../boundary.ts';
 import type { Cell, Passage, RegionPort } from '../types.ts';
 import type { InterfaceRun, PieceInterface } from './types.ts';
 
-const RANK: Record<Passage, number> = { none: 0, contestant: 1, hunter: 2 };
 const CLASSES = ['contestant', 'hunter'] as const;
 
 /**
@@ -56,7 +56,7 @@ function contract(run: InterfaceRun, id: string, required: Passage, allowed: Pas
  */
 export function negotiatePortals(parent: RegionBoundary, children: Array<{ id: string; cells: Cell[] }>, interfaces: readonly PieceInterface[], policy: PortalPolicy): NegotiatedPortals {
   const connect = policy.connect ?? 'none';
-  if (!Object.hasOwn(RANK, connect) || typeof policy.crossing !== 'function') throw new Error('Invalid portal policy.');
+  if (!Object.hasOwn(PASSAGE_RANK, connect) || typeof policy.crossing !== 'function') throw new Error('Invalid portal policy.');
   const inherited = inheritBoundaryPorts(parent, children), ports: Record<string, RegionPort[]> = Object.create(null);
   const owners = new Map(children.flatMap(child => child.cells.map(cell => [cellKey(cell), child.id] as const)));
   const byId = new Map(children.map(child => [child.id, child]));
@@ -70,7 +70,7 @@ export function negotiatePortals(parent: RegionBoundary, children: Array<{ id: s
     if (!a || !b) { skipped.push(edge.id); continue; }
     const terms = policy.crossing(edge);
     if (terms === null) { crossings.push({ interface: edge.id, a: a.id, b: b.id, required: 'none', allowed: 'none', run: null, portA: null, portB: null }); continue; }
-    if (!terms || !Object.hasOwn(RANK, terms.required) || !Object.hasOwn(RANK, terms.allowed) || RANK[terms.required] > RANK[terms.allowed] || !['sealed', 'unstated'].includes(terms.others)) throw new Error(`Invalid crossing terms for ${edge.id}.`);
+    if (!terms || !Object.hasOwn(PASSAGE_RANK, terms.required) || !Object.hasOwn(PASSAGE_RANK, terms.allowed) || PASSAGE_RANK[terms.required] > PASSAGE_RANK[terms.allowed] || !['sealed', 'unstated'].includes(terms.others)) throw new Error(`Invalid crossing terms for ${edge.id}.`);
     const pair = (run: InterfaceRun, j: number, required: Passage, allowed: Passage) => {
       const id = `join-${i}-${j}`, forward = contract(run, id, required, allowed, a.id, owners);
       const sides = forward ? { a: forward.negative, b: forward.positive } : (() => {
@@ -81,7 +81,7 @@ export function negotiatePortals(parent: RegionBoundary, children: Array<{ id: s
       return sides;
     };
     // The body a crossing must physically carry: its floor, or its ceiling when only permitted.
-    const carries = RANK[terms.required] ? terms.required : terms.allowed;
+    const carries = PASSAGE_RANK[terms.required] ? terms.required : terms.allowed;
     const order = [...edge.runs.entries()].sort(([, p], [, q]) => q.length - p.length || p.y - q.y || p.x - q.x);
     const chosen = carries === 'none' ? undefined : order.find(([j, run]) => {
       const probe = pair(run, j, carries, carries);
@@ -105,12 +105,12 @@ export function negotiatePortals(parent: RegionBoundary, children: Array<{ id: s
   for (const role of CLASSES) {
     const root = new Map(children.map(child => [child.id, child.id]));
     const find = (id: string): string => { let r = id; while (root.get(r) !== r) r = root.get(r)!; return r; };
-    for (const link of links) if (RANK[link.required] >= RANK[role]) root.set(find(link.a), find(link.b));
+    for (const link of links) if (PASSAGE_RANK[link.required] >= PASSAGE_RANK[role]) root.set(find(link.a), find(link.b));
     const groups = new Map<string, string[]>();
     for (const child of children) { const r = find(child.id); if (!groups.has(r)) groups.set(r, []); groups.get(r)!.push(child.id); }
     components[role] = [...groups.values()];
-    if (RANK[connect] >= RANK[role] && components[role].length > 1) throw new Error(`Portal policy leaves children disconnected for ${role}: ${components[role].map(g => g.join('+')).join(' | ')}.`);
-    const obligated = new Set(children.filter(child => inherited[child.id]!.some(p => RANK[p.required] >= RANK[role])).map(child => find(child.id)));
+    if (PASSAGE_RANK[connect] >= PASSAGE_RANK[role] && components[role].length > 1) throw new Error(`Portal policy leaves children disconnected for ${role}: ${components[role].map(g => g.join('+')).join(' | ')}.`);
+    const obligated = new Set(children.filter(child => inherited[child.id]!.some(p => PASSAGE_RANK[p.required] >= PASSAGE_RANK[role])).map(child => find(child.id)));
     if (obligated.size > 1) throw new Error(`External ${role} obligations are held by children the portal policy does not join.`);
   }
   return { ports, crossings, skipped, components };

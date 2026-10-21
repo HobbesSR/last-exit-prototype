@@ -1,3 +1,4 @@
+import { OPPOSITE, type Side } from '../port-terms.ts';
 import { largestRectangle } from './hall.ts';
 import { cellLoot } from './scatter.ts';
 import { draw } from '../random.ts';
@@ -32,9 +33,7 @@ const WALL = 0.25;
 /** A gate's passage through the ring: a doorway (52). */
 const PASSAGE = CELL_SCALE.doorway;
 
-type Side = 'N' | 'E' | 'S' | 'W';
 const SIDES: readonly Side[] = ['N', 'E', 'S', 'W'];
-const OPPOSITE: Record<Side, Side> = { N: 'S', S: 'N', E: 'W', W: 'E' };
 
 /** Per-side draw channels, so no choice shifts another. */
 const CHANNEL = { offset: 1, gateSide: 2, gateAt: 3, room: 4, loot: 5 };

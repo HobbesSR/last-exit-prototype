@@ -1,11 +1,11 @@
+import { PASSAGE_RANK, requiredFor } from './port-terms.ts';
 import { microMetrics } from './metrics.ts';
 import { checkedRegionCells, LIMITS } from './limits.ts';
 import { capsule, createRegionMask, findRegionRoute, shapesOverlap, travelClear, validShape } from './geometry.ts';
 import type { Shape } from '../../shared/shape.ts';
 import type { Vec2 } from '../../shared/types.ts';
-import type { Cell, Passage, RegionPort, RegionRoute, ResolvedPort } from './types.ts';
+import type { Cell, RegionPort, RegionRoute, ResolvedPort } from './types.ts';
 
-const RANK: Record<Passage, number> = { none: 0, contestant: 1, hunter: 2 };
 const WALL = 8;
 const normal = { N: { x: 0, y: 1 }, S: { x: 0, y: -1 }, W: { x: 1, y: 0 }, E: { x: -1, y: 0 } } as const;
 
@@ -40,7 +40,7 @@ export function resolveAccessRequirements(input: AccessContract): ResolvedPort[]
 
   const metrics = microMetrics(input), named = new Set<string>(), claimed = new Set<string>(), ports: ResolvedPort[] = [];
   for (const p of input.ports) {
-    if (!p || typeof p.id !== 'string' || !p.id || named.has(p.id) || !Object.hasOwn(normal, p.side) || !Object.hasOwn(RANK, p.required) || !Object.hasOwn(RANK, p.allowed) || RANK[p.required] > RANK[p.allowed]) throw new Error('Invalid or duplicate port contract.');
+    if (!p || typeof p.id !== 'string' || !p.id || named.has(p.id) || !Object.hasOwn(normal, p.side) || !Object.hasOwn(PASSAGE_RANK, p.required) || !Object.hasOwn(PASSAGE_RANK, p.allowed) || PASSAGE_RANK[p.required] > PASSAGE_RANK[p.allowed]) throw new Error('Invalid or duplicate port contract.');
     named.add(p.id);
     if (!p.start || !Number.isInteger(p.start.x) || !Number.isInteger(p.start.y) || !Number.isInteger(p.length) || p.length < 1 || p.length > LIMITS.run) throw new Error('Invalid port segment run.');
     const n = normal[p.side], horizontal = p.side === 'N' || p.side === 'S', size = input.cellSize;
@@ -89,7 +89,7 @@ export function validateRegionAccess(input: RegionAccessInput): RegionAccessResu
       if (port.allowed === 'contestant' && crossingClear(port, radii.hunter, input.blockers)) errors.push(`Port ${port.id} violates its passage ceiling.`);
     }
     if (input.connect !== false) for (const role of ['contestant', 'hunter'] as const) {
-      const required = ports.filter(port => RANK[port.required] >= RANK[role]);
+      const required = requiredFor(ports, role);
       for (let i = 1; i < required.length; i++) {
         const from = required[0]!, to = required[i]!, points = findRegionRoute(mask, input.blockers, from.inside, to.inside, radii[role]);
         if (!points) errors.push(`Required ${role} port ${to.id} is disconnected from ${from.id}.`);

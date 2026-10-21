@@ -1,6 +1,6 @@
 import { boundaryRuns } from '../../kernel/run.ts';
 import type { Run } from '../../kernel/run.ts';
-import type { Cell } from '../../kernel/cell.ts';
+import { cellKey, type Cell } from '../../kernel/cell.ts';
 import { OUTSIDE } from './design.ts';
 import type { BuildingAllocation, BuildingSide } from './design.ts';
 
@@ -9,7 +9,6 @@ export interface SpanStep { run: Run; forward: boolean }
 export interface BuildingSpan { steps: SpanStep[]; closed: boolean }
 export interface BuildingBoundary { a: string; b: string; runs: Run[]; runSides: (BuildingSide | null)[]; spans: BuildingSpan[] }
 
-const key = (cell: Cell) => `${cell.x},${cell.y}`;
 const point = (x: number, y: number) => `${x},${y}`;
 function ends(run: Run): [string, string] {
   return [point(run.x, run.y), run.axis === 'h' ? point(run.x + run.length, run.y) : point(run.x, run.y + run.length)];
@@ -54,23 +53,23 @@ export function deriveBuildingBoundaries(allocation: BuildingAllocation): Buildi
   if (!allocation.footprint.length) throw new RangeError('Empty building footprint.');
   const footprint = new Set<string>();
   for (const c of allocation.footprint) {
-    if (!Number.isSafeInteger(c.x) || !Number.isSafeInteger(c.y) || footprint.has(key(c))) throw new RangeError('Invalid or duplicate footprint cell.');
-    footprint.add(key(c));
+    if (!Number.isSafeInteger(c.x) || !Number.isSafeInteger(c.y) || footprint.has(cellKey(c))) throw new RangeError('Invalid or duplicate footprint cell.');
+    footprint.add(cellKey(c));
   }
   const assigned = new Set<string>(), ids = new Set<string>();
   for (const space of allocation.spaces) {
     if (!space.id || space.id === OUTSIDE || ids.has(space.id)) throw new RangeError(`Invalid allocation space id: ${space.id}`);
     ids.add(space.id);
     for (const c of space.cells) {
-      if (!footprint.has(key(c)) || assigned.has(key(c))) throw new RangeError('Allocation overlaps or leaves its footprint.');
-      assigned.add(key(c));
+      if (!footprint.has(cellKey(c)) || assigned.has(cellKey(c))) throw new RangeError('Allocation overlaps or leaves its footprint.');
+      assigned.add(cellKey(c));
     }
   }
   if (assigned.size !== footprint.size) throw new RangeError('Allocation leaves footprint cells unassigned.');
   const outside = new Map<string, Cell>();
   for (const c of allocation.footprint) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
     const next = { x: c.x + dx, y: c.y + dy };
-    if (!footprint.has(key(next))) outside.set(key(next), next);
+    if (!footprint.has(cellKey(next))) outside.set(cellKey(next), next);
   }
   return boundaryRuns([...allocation.spaces, { id: OUTSIDE, cells: [...outside.values()] }]).map(pair => {
     const runs: Run[] = [], runSides: (BuildingSide | null)[] = [];

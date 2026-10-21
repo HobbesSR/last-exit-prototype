@@ -1,3 +1,4 @@
+import { compareCells } from '../../kernel/cell.ts';
 import { buildCompound } from './compound.ts';
 import { buildCover } from './cover.ts';
 import { buildDepot } from './depot.ts';
@@ -167,7 +168,7 @@ export function planBlock(brief: RegionBrief): BlockPlan {
   const unique = (id: string) => { while (taken.has(id)) id += '+'; taken.add(id); return id; };
   const restrict = (cells: Cell[]): RegionBrief['zones'] => {
     const keys = new Set(cells.map(c => `${c.x},${c.y}`));
-    return brief.zones.map(zone => ({ ...zone, cells: zone.cells.filter(c => keys.has(`${c.x},${c.y}`)).sort((a, b) => a.y - b.y || a.x - b.x) }))
+    return brief.zones.map(zone => ({ ...zone, cells: zone.cells.filter(c => keys.has(`${c.x},${c.y}`)).sort(compareCells) }))
       .filter(zone => zone.cells.length);
   };
   const childSeed = (x: number, y: number) => Math.floor(draw(brief.seed, x, y, CHANNEL.seed) * 0x7fffffff);
