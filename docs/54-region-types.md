@@ -1,11 +1,13 @@
 # 54. Region types
 
-Status: **working draft**, 2026-10-02 (B2, #85). Corey's answers to its
-questions, 17 M18 to M25, are recorded in 17 and applied here. The catalogue
-itself stays deferred (M18): B3 and B4 build its minimal set to hook the chain
-up top to bottom, and authoring and specially recognized details are reworked
-after that. Marked proposals and numbers are not requirements until Corey
-adopts them (53, "Provenance rule").
+Status: every type in the catalogue below has a strategy registered in
+`REGION_TYPES` (`map/micro/region-types.ts`), and the shipped libraries use
+them all; the drafted `market` is bound to `hall`'s strategy until its own is
+written. First drafted 2026-10-02 (B2, #85). Corey's answers to its questions,
+17 M18 to M25, are recorded in 17 and applied here. The catalogue itself stayed
+deferred (M18): B3 and B4 built its minimal set to hook the chain up top to
+bottom, and further types followed. Marked proposals and numbers are not
+requirements until Corey adopts them (53, "Provenance rule").
 
 This is the catalogue the new library (B4) and its strategies (B3) are built
 against. A cell class names a region type (52), and the type's strategy fills
@@ -81,8 +83,8 @@ may use these rules as they stand to make a region act as an obstacle (Corey,
 | `charging` | core element | the power-cell charging station (F-03) | `charger` |
 | `transit` | core element | the hunters' transit stations (P-09) | `warp` |
 
-**Minimal first set** for B3 and B4, *proposed*: `open`, `cover`, `rubble`,
-`hut`, `arrival`, `departure` and `charging`. That is enough to hook the chain
+**Minimal first set** for B3 and B4, proposed then and since built: `open`,
+`cover`, `rubble`, `hut`, `arrival`, `departure` and `charging`. That was enough to hook the chain
 up top to bottom, with every stage, every core element class, and the
 contestant-only asymmetry (P-04).
 
@@ -777,9 +779,9 @@ these sites to stations. Initial hunter spawns remain departure's responsibility
 The old library's classes (`market`, `depot`, `park`, `landing`, `evac`,
 `tree`, `rock`, `rubble`, `hut`), all bound to `open-field`, and its set
 pieces' primary classes (`market`, `industrial`, `landing`, `military`) are
-material only (52, "The old library"). The chain's fixture libraries use
-`open`, `hut`, `arrival`, `departure` and `charging`, and this catalogue
-keeps those names.
+material only (52, "The old library"). The chain's shipped libraries use this
+catalogue's names; the first fixture libraries used only `open`, `hut`,
+`arrival`, `departure` and `charging`.
 
 The old names come back like this (17.2.7):
 
@@ -796,6 +798,9 @@ The old names come back like this (17.2.7):
 | `military` | `compound` for its walled bases, `checkpoint` for its chokes |
 
 ## Material to mine, by type
+
+A record of what each type's strategy drew from; the types are built (Status,
+above).
 
 | Type | The game (`map/micro/`) | mapgen (`src/micro/builders/`, deleted in #146; in git history) |
 | --- | --- | --- |

@@ -1,6 +1,7 @@
 # 56. Buildings
 
-Status: **request for comments**, 2026-10-04. Corey's write-up, "Procedural
+Status: **first milestone implemented** (L1 to L5); opened as a request for
+comments on 2026-10-04. Corey's write-up, "Procedural
 Building Geometry Library", is issue #185. Its full text stays there. This
 record holds the parts this project adopts, how each maps onto what exists, the
 departures and why, and the build order. The choices it raised are 17 M26 to
@@ -33,6 +34,9 @@ Nothing else in a design is a requirement:
   intent, used to place openings. The promise is the only check.
 
 ## Why now
+
+Written when the library was proposed, before L1; the motivation stands, and
+the status line above says what has shipped since.
 
 Three strategies already build rooms, and now share L1's wall-run emitter:
 - `hut` (`map/micro/strategies/hut.ts`) draws four walls with a centred door
@@ -319,10 +323,11 @@ re-captured last (53).
 **`hut`** tries designs largest first: three spaces, then two, then the
 one-space house in its 4 × 4 box, then `open` (M24, M31). The three-space
 boxes are 6 × 6, 8 × 6 and 9 × 4, the two-space 6 × 4 and 7 × 5, each either
-way round. A box is tried only in a region at least 2 cells wider and taller
-than it, as the 4 × 4 needs 6 × 6 (54 `hut`). So a region up to 7 cells across
-keeps the one-space house exactly, and its own random channel keeps its siting
-unchanged. Sizes, then each size's places, go in a seeded order. Each place
+way round. At L5 a box was tried only in a region at least 2 cells wider and
+taller than it, as the 4 × 4 needed 6 × 6, so a region up to 7 cells across kept
+the one-space house exactly. That prefilter was later removed (#243, #298): a box
+now needs only to fit, and may sit flush with the region boundary ([54](54-region-types.md)
+`hut`). Sizes, then each size's places, go in a seeded order. Each place
 passes `hut`'s checks as before: off the portal approaches, the yard kept
 joined, and doorstep blocks the yard joins to a portal.
 - **The design:** a `front` space holds the one outside door, on the side
@@ -374,8 +379,8 @@ The library gained what these needed:
 **Proof.** The promise tests for `hut` and `compound` pass unmodified, over
 their masks, seeds and gate counts. A hunter walks into every space of a
 house through its one outside door, and every room of a compound is reached
-through its gates. A region up to 7 × 7 builds exactly what it built before
-L5. The report showed no defects over 60 game and 30 playground maps, and the
+through its gates. At L5, a region up to 7 × 7 built exactly what it built before
+L5; the later prefilter removal changed that (above). The report showed no defects over 60 game and 30 playground maps, and the
 per-region diagnosis none over 3 game maps. The micro lab shows a three-space
 house, one with an unmet asked door as a warning, and a compound. Generating
 a game map took about 7% longer (a mean of 326 ms against 303 ms over 60

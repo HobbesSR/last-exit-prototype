@@ -4,8 +4,8 @@
 
 - Inventory: six slots, finite ammunition, icons, move/swap/merge, drops, one cell per slot. Implemented defaults are in [14](14-match-rules.md); the former five-slot/unlimited-ammo version is superseded.
 - Multi-floor direction: eventually playable ramps, roofs and overlapping floors, with discrete collision planes. This is accepted direction, not an open yes/no question. Collision-plane transitions and navigation-mesh design remain future engineering work.
-- Access points mean hunter fast travel. Existing transit stations are the interim implementation.
-- Contestants can fight one another. Bots initiate close-range fights after opening grace, and immediately retaliate. Spawns occupy four nearby blocks rather than one cluster.
+- Access points mean hunter fast travel. Transit stations, authored as core elements in the generation chain (51.14.5), are the current implementation.
+- Contestants can fight one another. Bots initiate close-range fights after opening grace, and immediately retaliate. Contestant starts come from the generation chain's core start sites ([14](14-match-rules.md#live-chain-maps)); the street maze spread them over four nearby blocks rather than one cluster.
 - Functional buildings have doors, roof concealment and guaranteed useful loot. Non-colliding depot silhouettes were removed. Automated browser checks open a door and walk inside.
 
 ## Deliberately deferred
@@ -31,9 +31,10 @@ current proof of concept:
 8. Destructible cover, command-center interactions, hunter-triggered hazards, richer camera/sensor stations, audio, authentication, public deployment, and retention policies. Trap variety and single-server matchmaking are implemented as tracked in [13](13-accepted-features.md); richer variants and public infrastructure remain separate work.
 
 F-01 micro generation is active under the user's September 19 direction; see
-[20](20-micro-generation.md). Macro integration is specified as the generation
-chain ([51](51-generation-chain.md)) and, like recursive child regions, remains
-incomplete. The interim street maze doesn't claim to implement either.
+[20](20-micro-generation.md). Macro integration is the generation chain
+([51](51-generation-chain.md)), which live rooms run
+([51.14.5](51.14.5-switch-over.md)). Recursive execution of child-region trees
+remains incomplete ([20.5](20.5-tools-and-next-boundaries.md#next-boundaries)).
 
 Deferred within map generation, by Corey's answers in [17](17-open-questions.md):
 - **Macro geometry prescriptions** (walls, fences): taken out of the library on
@@ -70,8 +71,7 @@ elevation (2½D), overlapping floors and finished art remain incomplete under F-
 Multi-floor direction is accepted; collision-plane transitions and navigation-mesh
 design remain future engineering work.
 
-Known prototype limitations, kept explicit rather than hidden: uniform interim
-block geometry, possible crowding and accidental
+Known prototype limitations, kept explicit rather than hidden: possible crowding and accidental
 crossfire, occasional crowded-drop fallback at the original position, and the
 potential-state trust model described in [24](24-networking-privacy.md). No public
 deployment or accounts exist; see [28](28-operational-limits.md).

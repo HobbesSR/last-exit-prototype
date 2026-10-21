@@ -1,6 +1,6 @@
 # Last Exit mapgen (macro)
 
-Macro generation for Last Exit, in `map/macro/` of the game repository: the tile library, placement, resolution, layout regions, the reachability proof, region briefs and the report, as the stages of the generation chain. It reads no game files, only the map kernel in `map/kernel/`; the game lends it region strategies through `map/tools/` (root 50). [Original user notes](design_notes.txt) are the source of design intent. The later assistant proposal has been [retired to the archive](docs/archive/retired-design-proposal/README.md).
+Macro generation for Last Exit, in `map/macro/` of the game repository: the tile library, placement, resolution, layout regions, the reachability proof, region briefs and the report, as the stages of the generation chain. It reads no game files, only the map kernel in `map/kernel/`; the game lends it region strategies through the map-level assembly in `map/engines.ts` and `map/chain.ts`, which the tools reuse (root 50, [22.2](../../docs/22.2-map-generation.md)). [Original user notes](design_notes.txt) are the source of design intent. The later assistant proposal has been [retired to the archive](docs/archive/retired-design-proposal/README.md).
 
 Design documentation lives in the repository's numbered docs: [50](../../docs/50-map-generation.md) (overview and ownership), [51](../../docs/51-generation-chain.md) (the generation chain and guide to individual stages), [52](../../docs/52-map-primitives-and-library.md) (the library model), [53](../../docs/53-map-artifacts-and-tools.md) (artifacts and tools), and [17.2](../../docs/17.2-map-questions.md) (map questions and answers by topic). What's next is in [41](../../docs/41-roadmap.md) and on the Forgejo tracker it names.
 
@@ -9,7 +9,7 @@ Design documentation lives in the repository's numbered docs: [50](../../docs/50
 - `src/chain/`: the chain's stages and views (51), the map container and its one accessor (`map.ts`), and saving in wire version 8 (`saving.ts`).
 - `src/wfc.ts`: the fill's solver, over named relations, with the open-face rule's backjumping (51 step 4).
 - `src/coding.ts` and `src/bson.ts`: the wire form's packing, the library fingerprint, and the in-house BSON codec (53).
-- `content/diamond-12x6.json`: the chain's library (52, "The chain's library").
+- `content/`: the chain's libraries, one top-level `diamond-*.json` per authored zone size (12 × 6 is the default), with the versioned modules they resolve (52, "The chain's library"; 55). `map/chain.ts` lists the bundled ones.
 - `tests/`: each stage's tests, with fixture libraries that exercise every rule.
 
 mapgen's old generators, `generateMap` and `generatePlannedMap`, with streets, anchors, its own micro layer, its planned path, the old library, CLI, MCP and sweep, were deleted at the switch-over (51 step 10, #146). They are in git history before that change, and the [archived docs](docs/archive/pre-integration/README.md) describe them.

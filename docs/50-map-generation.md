@@ -123,9 +123,14 @@ So the test is:
 
 ## Where the code is today
 
-- **The game:** the interim street maze is live. The micro SDK, the example
-  builders, the decomposition machinery and three development labs exist but
-  aren't called by the live map (20).
+- **The game:** live rooms run the generation chain: macro placement, then each
+  region type's strategy from `map/micro/` (`map/live.ts`;
+  [22.2](22.2-map-generation.md#live-map-assembly), [51.14.5](51.14.5-switch-over.md)).
+  The interim street maze in `shared/map/` is no longer live; it remains
+  `createGame`'s default for explicit legacy callers and the frozen fixture (31).
+  Recursive execution of explored decomposition trees, and moving decomposition's
+  walled ports to portals, are still pending
+  ([20.5](20.5-tools-and-next-boundaries.md#next-boundaries)).
 - **mapgen:** the generation chain's macro stages (51), in
   `map/macro/src/chain/`. Its two old generators, `generateMap` and
   `generatePlannedMap`, were deleted at the switch-over (#146).

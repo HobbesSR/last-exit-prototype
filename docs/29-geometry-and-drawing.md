@@ -55,7 +55,7 @@ Two things are load-bearing:
 draws from, so a yard, a depot and a garden build from different structures rather than one building
 reskinned. Two constraints bind a new template:
 
-- **It must fit a block corner.** `CORNER_CLEARANCE` in `map/structures.ts` is the largest one axis
+- **It must fit a block corner.** `CORNER_CLEARANCE` in `shared/map/structures.ts` is the largest one axis
   may be and still clear the reserved block centre. Fail it in both axes and `clearFootprint` rejects
   the element at every corner of every block, so it silently never appears rather than failing
   loudly — which is exactly what the first warehouse and compound did. `tests/element.test.js` holds
@@ -67,11 +67,13 @@ reskinned. Two constraints bind a new template:
 
 `REGION_PROPS` does the same for the cover scattered between structures, so a region differs in what
 fills it as well as what anchors it. What the element layer deliberately does *not* do yet is vary:
-templates in the live street generator are static descriptions, so the randomly sized single box
+templates in the legacy street generator are static descriptions, so the randomly sized single box
 that still fills the remaining corners is emitted inline rather than drawn from the catalogue.
 The separate micro-generation path now supplies parameterized room assemblies, arbitrary region
 masks and explicit connector contracts; see [20](20-micro-generation.md). It stamps through this
-same element layer, and is not yet the live generator.
+same element layer, and live rooms now use it through the generation chain
+([22.2](22.2-map-generation.md#live-map-assembly)); the street generator remains for the frozen
+fixture and explicit legacy callers.
 
 Every polygon part in the catalogue is held to `convex` by `tests/element.test.js`, which is the
 build-time validation this document asks for above: the catalogue is the place a concave body would

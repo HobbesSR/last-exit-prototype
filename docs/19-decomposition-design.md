@@ -119,11 +119,10 @@ This is an example strategy for exercising the SDK, not the universal decomposer
 or a finalized castle, cave, market or apartment generator.
 
 Physical population of selected pieces, portal negotiation and automatic recursive
-dispatch have separate implementation boundaries. The lab offers bounded structural
-tree exploration. Flat plans now execute through caller-supplied dispatch and portal
-policies, of which the combined demo is one; recursive dispatch of explored trees
-remains separate. See 20.
-Integration with the macro project in `map/macro/` is now accepted direction
-(2026-09-28 and 29): a region type's strategy, written on this SDK, fills each
+dispatch have separate implementation boundaries; their status is in
+[20.4](20.4-hierarchical-generation.md) and
+[20.5](20.5-tools-and-next-boundaries.md#next-boundaries).
+Integration with the macro project in `map/macro/` was accepted
+(2026-09-28 and 29) and is live: a region type's strategy, written on this SDK, fills each
 region the macro chain hands down. [50](50-map-generation.md) records who owns
 what, and [51](51-generation-chain.md) the chain.
