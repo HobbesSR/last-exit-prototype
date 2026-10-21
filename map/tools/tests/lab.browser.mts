@@ -1615,27 +1615,171 @@ try {
     "hut",
     "a new tile uses the first declared class after a class is removed",
   );
-  const malformedPage = await browser.newPage();
-  malformedPage.on("pageerror", (error: Error) => errors.push(error.message));
-  await malformedPage.addInitScript(() =>
-    localStorage.setItem(
-      "last-exit-chain-library-v3",
-      JSON.stringify({ version: 2 }),
-    ),
-  );
-  await malformedPage.goto(base, { waitUntil: "domcontentloaded" });
-  await malformedPage.waitForFunction(() => !!(window as any).chainLab);
-  assert.match(
-    await malformedPage.locator("#chainStatus").innerText(),
-    /loaded the starter library/,
-  );
-  assert.equal(
-    await malformedPage.evaluate(
-      () => (window as any).chainLab.snapshot().valid,
-    ),
-    true,
-  );
-  await malformedPage.close();
+  // Saved Chain Library drafts may be unfinished, but the editor must never render a broken
+  // container. Each persistence case gets its own browser context and localStorage.
+  const draftKey = "last-exit-chain-library-v3";
+  const starterPage = await browser.newPage();
+  starterPage.on("pageerror", (error: Error) => errors.push(error.message));
+  await starterPage.goto(base, { waitUntil: "domcontentloaded" });
+  await starterPage.waitForFunction(() => !!(window as any).chainLab);
+  const starterDraft = await starterPage.evaluate(() => (window as any).chainLab.snapshot().library);
+  assert.equal(await starterPage.evaluate((key: string) => localStorage.getItem(key), draftKey), null,
+    "opening a fresh editor does not save its starter draft");
+  await starterPage.close();
+  const savedDraftPage = async (raw: string, failBackup = false) => {
+    const draftPage = await browser.newPage();
+    draftPage.on("pageerror", (error: Error) => errors.push(error.message));
+    await draftPage.addInitScript(({ key, source, fail }: { key: string; source: string; fail: boolean }) => {
+      if (!sessionStorage.getItem("browser-draft-seeded")) {
+        localStorage.setItem(key, source);
+        sessionStorage.setItem("browser-draft-seeded", "yes");
+      }
+      if (fail) {
+        const setItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (name: string, value: string) {
+          if (name.startsWith(`${key}:rejected:`)) throw new DOMException("backup unavailable", "QuotaExceededError");
+          return setItem.call(this, name, value);
+        };
+      }
+    }, { key: draftKey, source: raw, fail: failBackup });
+    await draftPage.goto(base, { waitUntil: "domcontentloaded" });
+    await draftPage.waitForFunction(() => !!(window as any).chainLab);
+    return draftPage;
+  };
+  const storedDraft = (draftPage: any) => draftPage.evaluate((key: string) => localStorage.getItem(key), draftKey);
+  const rejectedBackups = (draftPage: any) => draftPage.evaluate((key: string) =>
+    Object.keys(localStorage).filter((entry) => entry.startsWith(`${key}:rejected:`))
+      .map((entry) => ({ key: entry, raw: localStorage.getItem(entry) })), draftKey);
+
+  const validSaved = structuredClone(starterDraft);
+  validSaved.name = "valid-saved-browser-draft";
+  const validRaw = JSON.stringify(validSaved);
+  const validPage = await savedDraftPage(validRaw);
+  assert.deepEqual(await validPage.evaluate(() => (window as any).chainLab.snapshot().library), validSaved);
+  assert.equal(await storedDraft(validPage), validRaw);
+  await validPage.reload({ waitUntil: "domcontentloaded" });
+  await validPage.waitForFunction(() => !!(window as any).chainLab);
+  assert.deepEqual(await validPage.evaluate(() => (window as any).chainLab.snapshot().library), validSaved,
+    "a complete saved library reloads unchanged");
+  assert.equal(await storedDraft(validPage), validRaw);
+  await validPage.close();
+
+  const incomplete = structuredClone(starterDraft);
+  incomplete.name = "unfinished-browser-draft";
+  incomplete.authoringNote = { unrecognized: ["keep", 17] };
+  incomplete.tiles[0].orientations = [];
+  incomplete.tiles[0].defaultCellClass = "missing-class";
+  incomplete.tileSets[0].members = [];
+  incomplete.setPieces[0].tiles = [];
+  incomplete.setPieces[0].primaryRegionClass = "missing-class";
+  incomplete.setPieceClasses[0].setPieces = [];
+  incomplete.setPieceClasses[0].quota = -1;
+  incomplete.tiles.push({ id: "missing-references", defaultCellClass: "open", orientations: [0] });
+  incomplete.tileSets.push({ id: "unresolved-members", members: ["absent-tile"] });
+  incomplete.setPieces.push({ id: "unresolved-slot", tiles: [{ dx: 0, dy: 0, tileSetId: "absent-set" }] });
+  incomplete.setPieces.push({ id: "huge-slot", tiles: [{ dx: 1000000, dy: -1000000, tileSetId: "one" }] });
+  incomplete.setPieceClasses.push({ id: "unresolved-piece", placementRule: "small", quota: 1, setPieces: ["absent-piece"] });
+  const incompleteRaw = JSON.stringify(incomplete);
+  const incompletePage = await savedDraftPage(incompleteRaw);
+  assert.deepEqual(await incompletePage.evaluate(() => (window as any).chainLab.snapshot().library), incomplete,
+    "structurally safe, invalid authoring work loads without normalization");
+  assert.equal(await incompletePage.evaluate(() => (window as any).chainLab.snapshot().valid), false);
+  await incompletePage.locator("#chainTab").click();
+  await incompletePage.locator("#chainExport").click();
+  assert.match(await incompletePage.locator("#chainStatus").innerText(), /Export refused/);
+  for (const section of ["classes", "tiles", "tileSets", "setPieces", "setPieceClasses"]) {
+    await incompletePage.locator("#chainSection").selectOption(section);
+    assert.equal(await incompletePage.locator("#chainEditor").isVisible(), true, `${section} remains navigable`);
+  }
+  await incompletePage.locator("#chainSection").selectOption("tiles");
+  await incompletePage.locator("#tileFilter").fill("missing-references");
+  assert.equal(await incompletePage.locator('#tileGallery .tile-card[data-tile="missing-references"]').isVisible(), true);
+  await incompletePage.locator("#tileFilter").fill("");
+  await incompletePage.locator("#chainSection").selectOption("setPieces");
+  await incompletePage.locator("#chainItem").selectOption("huge-slot");
+  assert.match(await incompletePage.locator("#chainEditor").innerText(), /Blueprint preview is too large/);
+  assert.deepEqual(await incompletePage.evaluate(() => (window as any).chainLab.snapshot().library), incomplete,
+    "navigation and filtering do not edit the draft");
+  assert.equal(await storedDraft(incompletePage), incompleteRaw);
+  await incompletePage.reload({ waitUntil: "domcontentloaded" });
+  await incompletePage.waitForFunction(() => !!(window as any).chainLab);
+  assert.deepEqual(await incompletePage.evaluate(() => (window as any).chainLab.snapshot().library), incomplete,
+    "an incomplete draft survives reload unchanged");
+  assert.equal(await storedDraft(incompletePage), incompleteRaw);
+  await incompletePage.locator("#chainTab").click();
+  await incompletePage.locator("#chainViewContainer details summary").click();
+  const failedSource = JSON.stringify({ ...incomplete, version: 2 }, null, 2);
+  await incompletePage.locator("#chainSource").fill(failedSource);
+  await incompletePage.locator("#chainApply").click();
+  assert.match(await incompletePage.locator("#chainStatus").innerText(), /Import refused/);
+  assert.equal(await incompletePage.locator("#chainSource").inputValue(), failedSource,
+    "rejected Apply JSON source remains available for correction");
+  assert.deepEqual(await incompletePage.evaluate(() => (window as any).chainLab.snapshot().library), incomplete);
+  assert.equal(await storedDraft(incompletePage), incompleteRaw);
+  await incompletePage.locator("#chainSection").selectOption("classes");
+  await incompletePage.locator("#chainImport").setInputFiles({
+    name: "invalid-draft.json", mimeType: "application/json", buffer: Buffer.from(failedSource),
+  });
+  await incompletePage.waitForFunction(() => document.getElementById("chainStatus")?.textContent?.includes("Import refused"));
+  assert.deepEqual(await incompletePage.evaluate(() => (window as any).chainLab.snapshot().library), incomplete);
+  assert.equal(await storedDraft(incompletePage), incompleteRaw);
+  await incompletePage.locator("#chainAdd").click();
+  const editedIncomplete = await incompletePage.evaluate(() => (window as any).chainLab.snapshot().library);
+  assert.equal(editedIncomplete.authoringNote.unrecognized[0], "keep", "an edit preserves unknown source fields");
+  assert.equal(await storedDraft(incompletePage), JSON.stringify(editedIncomplete),
+    "an incomplete but structurally safe draft autosaves after editing");
+  await incompletePage.reload({ waitUntil: "domcontentloaded" });
+  await incompletePage.waitForFunction(() => !!(window as any).chainLab);
+  assert.deepEqual(await incompletePage.evaluate(() => (window as any).chainLab.snapshot().library), editedIncomplete,
+    "edited incomplete work survives another reload");
+  await incompletePage.close();
+
+  const malformedSaved = [
+    ["unsupported schema", JSON.stringify({ ...starterDraft, version: 2 })],
+    ["invalid JSON", "{unfinished"],
+    ["missing tiles", JSON.stringify({ ...starterDraft, tiles: null })],
+    ["wrong orientations", JSON.stringify({ ...starterDraft, tiles: [{ ...starterDraft.tiles[0], orientations: "north" }] })],
+    ["null segment", JSON.stringify({ ...starterDraft, tiles: [{ ...starterDraft.tiles[0], segments: { "v:3,2": null } }] })],
+    ["malformed segment key", JSON.stringify({ ...starterDraft, tiles: [{ ...starterDraft.tiles[0], segments: { "oops": { passability: "any" } } }] })],
+    ["null label", JSON.stringify({ ...starterDraft, tiles: [{ ...starterDraft.tiles[0], labels: [null] }] })],
+    ["scalar legend", JSON.stringify({ ...starterDraft, tiles: [{ ...starterDraft.tiles[0], legend: "hut" }] })],
+    ["numeric cell row", JSON.stringify({ ...starterDraft, tiles: [{ ...starterDraft.tiles[0], cells: [7] }] })],
+    ["null slot", JSON.stringify({ ...starterDraft, setPieces: [{ ...starterDraft.setPieces[0], tiles: [null] }] })],
+    ["wrong group members", JSON.stringify({ ...starterDraft, setPieceClasses: [{ ...starterDraft.setPieceClasses[0], setPieces: null }] })],
+  ] as const;
+  for (const [name, raw] of malformedSaved) {
+    const rejectedPage = await savedDraftPage(raw);
+    assert.deepEqual(await rejectedPage.evaluate(() => (window as any).chainLab.snapshot().library), starterDraft,
+      `${name}: a broken saved container falls back to the starter`);
+    assert.match(await rejectedPage.locator("#chainStatus").innerText(), /loaded the starter library/);
+    assert.equal(await storedDraft(rejectedPage), raw, `${name}: load preserves the original value`);
+    assert.deepEqual(await rejectedBackups(rejectedPage), [], `${name}: backup waits for an edit`);
+    if (!["unsupported schema", "invalid JSON", "null segment"].includes(name)) {
+      await rejectedPage.close();
+      continue;
+    }
+    await rejectedPage.reload({ waitUntil: "domcontentloaded" });
+    await rejectedPage.waitForFunction(() => !!(window as any).chainLab);
+    assert.equal(await storedDraft(rejectedPage), raw, `${name}: reload also preserves the original`);
+    await rejectedPage.locator("#chainTab").click();
+    await rejectedPage.locator("#chainAdd").click();
+    const backups = await rejectedBackups(rejectedPage);
+    assert.equal(backups.length, 1, `${name}: first edit makes exactly one rejected-value backup`);
+    assert.equal(backups[0]!.raw, raw, `${name}: backup contains the exact saved value`);
+    assert.equal(await rejectedPage.locator("#chainStatus").innerText().then((status: string) => status.includes(backups[0]!.key)), true,
+      `${name}: warning identifies the backup key`);
+    assert.notEqual(await storedDraft(rejectedPage), raw, `${name}: edited starter is saved after backup`);
+    await rejectedPage.close();
+  }
+  const failedBackupRaw = "{keep this raw draft";
+  const failedBackupPage = await savedDraftPage(failedBackupRaw, true);
+  await failedBackupPage.locator("#chainTab").click();
+  await failedBackupPage.locator("#chainAdd").click();
+  assert.equal(await storedDraft(failedBackupPage), failedBackupRaw,
+    "when backup storage fails, autosave does not replace the rejected value");
+  assert.deepEqual(await rejectedBackups(failedBackupPage), []);
+  assert.match(await failedBackupPage.locator("#chainStatus").innerText(), /Draft not saved: the rejected original could not be backed up/);
+  await failedBackupPage.close();
   // The tab edits the chain's own library, and the World tab generates from the draft.
   await page.locator("#chainLoadBundled").click();
   assert.deepEqual(await page.evaluate(() => (window as any).chainLab.snapshot().library), CHAIN_LIBRARY);

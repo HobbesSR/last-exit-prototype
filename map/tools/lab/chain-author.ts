@@ -94,72 +94,72 @@ function declaredRegionTypeIds(raw: unknown): Set<string> {
       .map((entry) => entry.regionType),
   );
 }
-/** Keep incomplete authoring drafts, but never pass a broken container to render(). */
+// This is an editor safety gate, not publish/generate validation. Empty collections,
+// unresolved references and invalid rule values must survive a draft round trip.
+const record = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+const string = (value: unknown): value is string => typeof value === "string";
+const finite = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
+const arrayOf = (value: unknown, check: (entry: unknown) => boolean): boolean =>
+  Array.isArray(value) && value.every(check);
+const optional = (value: unknown, check: (entry: unknown) => boolean): boolean =>
+  value === undefined || check(value);
+const valuesOf = (value: unknown, check: (entry: unknown) => boolean): boolean =>
+  record(value) && Object.values(value).every(check);
+const counts = (value: unknown): boolean => valuesOf(value, (v) => string(v) || finite(v));
+
 function renderableDraft(raw: unknown): raw is ChainLibrary {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return false;
-  const draft = raw as Record<string, unknown>;
-  if (
-    !draft.cellClasses ||
-    typeof draft.cellClasses !== "object" ||
-    Array.isArray(draft.cellClasses) ||
-    !Object.values(draft.cellClasses).every(
-      (entry) => entry !== null && typeof entry === "object",
-    )
-  )
-    return false;
-  for (const field of ["tiles", "tileSets", "setPieces", "setPieceClasses"])
-    if (
-      !Array.isArray(draft[field]) ||
-      !draft[field].every(
-        (entry: unknown) =>
-          entry !== null &&
-          typeof entry === "object" &&
-          typeof (entry as { id?: unknown }).id === "string",
-      )
-    )
-      return false;
-  return (
-    (draft.tiles as ChainLibrary["tiles"]).every(
-      (tile) =>
-        typeof tile.defaultCellClass === "string" &&
-        Array.isArray(tile.orientations) &&
-        (tile.eligibleTiers === undefined ||
-          Array.isArray(tile.eligibleTiers)) &&
-        (tile.eligibleBonus === undefined ||
-          Array.isArray(tile.eligibleBonus)) &&
-        (tile.labels === undefined || Array.isArray(tile.labels)),
-    ) &&
-    (draft.tileSets as ChainLibrary["tileSets"]).every((set) =>
-      Array.isArray(set.members),
-    ) &&
-    (draft.setPieces as ChainLibrary["setPieces"]).every(
-      (piece) =>
-        Array.isArray(piece.tiles) &&
-        piece.tiles.every(
-          (slot) => slot !== null && typeof slot === "object",
-        ) &&
-        (piece.eligibleTiers === undefined ||
-          Array.isArray(piece.eligibleTiers)),
-    ) &&
-    (draft.setPieceClasses as ChainLibrary["setPieceClasses"]).every((group) =>
-      Array.isArray(group.setPieces),
-    )
-  );
+  if (!record(raw) || raw.version !== CHAIN_LIBRARY_VERSION ||
+    !string(raw.name) || !string(raw.zonePlan) || !finite(raw.zoneWidth) || !finite(raw.zoneHeight)) return false;
+  return valuesOf(raw.cellClasses, (entry) => record(entry) && string(entry.regionType) &&
+      optional(entry.params, (v) => valuesOf(v, (p) => string(p) || finite(p) || typeof p === "boolean")) &&
+      optional(entry.coreElements, counts)) &&
+    arrayOf(raw.tiles, (tile) => {
+      if (!record(tile) || !string(tile.id) || !string(tile.defaultCellClass) ||
+        !arrayOf(tile.orientations, finite) ||
+        !optional(tile.eligibleTiers, (v) => arrayOf(v, finite)) ||
+        !optional(tile.eligibleBonus, (v) => arrayOf(v, finite)) ||
+        !optional(tile.labels, (v) => arrayOf(v, string)) ||
+        !optional(tile.weight, finite) ||
+        !optional(tile.legend, (v) => valuesOf(v, string))) return false;
+      // orientDesign dereferences every non-default mark; do not let a broken
+      // grid/legend reach thumbnails (which are rendered outside the preview catch).
+      if (tile.cells !== undefined && (!Array.isArray(tile.cells) ||
+        tile.cells.length !== CHAIN_TILE_SIZE || !tile.cells.every((row: unknown) =>
+          string(row) && row.length === CHAIN_TILE_SIZE && row.split("").every((mark) =>
+            mark === "." || (record(tile.legend) && Object.hasOwn(tile.legend, mark) && string(tile.legend[mark])))))) return false;
+      return optional(tile.segments, (segments) => record(segments) &&
+        Object.entries(segments).every(([key, value]) =>
+          /^[vh]:[0-6],[0-5]$/.test(key) && record(value) &&
+          optional(value.adjacency, string) && optional(value.passability, string)));
+    }) &&
+    arrayOf(raw.tileSets, (set) => record(set) && string(set.id) && arrayOf(set.members, string)) &&
+    arrayOf(raw.setPieces, (piece) => record(piece) && string(piece.id) &&
+      arrayOf(piece.tiles, (slot) => record(slot) && finite(slot.dx) &&
+        finite(slot.dy) && string(slot.tileSetId) && optional(slot.orientation, finite)) &&
+      optional(piece.eligibleTiers, (v) => arrayOf(v, finite)) && optional(piece.primaryRegionClass, string)) &&
+    arrayOf(raw.setPieceClasses, (group) => record(group) && string(group.id) &&
+      string(group.placementRule) && finite(group.quota) && arrayOf(group.setPieces, string) &&
+      optional(group.coreElements, counts));
 }
+let rejectedDraft: string | null = null;
+let recoveryKey: string | null = null;
+let unreadSavedDraft = true;
 try {
   const saved = localStorage.getItem(KEY);
-  if (saved) {
+  unreadSavedDraft = false;
+  if (saved !== null) {
+    rejectedDraft = saved;
     const draft: unknown = JSON.parse(saved);
-    const validation = validateLibrary(draft, declaredRegionTypeIds(draft));
-    if (validation.valid || renderableDraft(draft))
-      library = draft as ChainLibrary;
-    else
-      savedDraftWarning =
-        "Saved chain draft was invalid; loaded the starter library.";
+    if (renderableDraft(draft)) {
+      library = draft;
+      rejectedDraft = null;
+    } else {
+      savedDraftWarning = "Saved chain draft was unsafe to edit; loaded the starter library. Original data remains in browser storage until it can be backed up before saving.";
+    }
   }
 } catch {
-  savedDraftWarning =
-    "Saved chain draft could not be read; loaded the starter library.";
+  savedDraftWarning = "Saved chain draft could not be read; loaded the starter library. Original data remains in browser storage until it can be backed up before saving.";
 }
 let selectedSegment = "v:3,2";
 let selectedCellClass = "hut";
@@ -2357,6 +2357,10 @@ function renderSetPieces(root: HTMLElement): void {
 
     const cols = maxDx - minDx + 1;
     const rows = maxDy - minDy + 1;
+    if (!Number.isSafeInteger(cols * rows) || cols * rows > 10_000) {
+      grid.append(paragraph("Blueprint preview is too large. Use the exact coordinate editor below."));
+      return;
+    }
     grid.style.gridTemplateColumns = `repeat(${cols}, 46px)`;
     grid.style.gridTemplateRows = `repeat(${rows}, 46px)`;
 
@@ -2619,11 +2623,30 @@ function status(prefix = ""): void {
   $("chainStatus").classList.toggle("invalid", !result.valid);
 }
 function changed(): void {
-  savedDraftWarning = "";
   try {
+    // If startup could not read storage, recover it before attempting any write.
+    if (unreadSavedDraft) {
+      rejectedDraft = localStorage.getItem(KEY);
+      unreadSavedDraft = false;
+    }
+    if (rejectedDraft !== null) {
+      // Never replace either the rejected input or an earlier recovery copy.
+      const base = `${KEY}:rejected:${Date.now()}`;
+      let backup = base, suffix = 0;
+      while (localStorage.getItem(backup) !== null) backup = `${base}:${++suffix}`;
+      localStorage.setItem(backup, rejectedDraft);
+      rejectedDraft = null;
+      recoveryKey = backup;
+    }
     localStorage.setItem(KEY, JSON.stringify(library));
+    savedDraftWarning = recoveryKey
+      ? `Rejected chain draft backed up in browser storage at ${recoveryKey}.`
+      : "";
   } catch {
-    /* storage is optional */
+    // A failed backup must prevent the subsequent write to KEY.
+    savedDraftWarning = rejectedDraft !== null
+      ? "Draft not saved: the rejected original could not be backed up. Original data remains in browser storage."
+      : "Draft not saved: browser storage is unavailable. Copy the source JSON to preserve these edits.";
   }
   render();
 }
@@ -2773,7 +2796,8 @@ function remove(): void {
 function accept(raw: unknown): void {
   const result = validateLibrary(raw, declaredRegionTypeIds(raw));
   if (!result.valid) throw Error(result.errors.join("\n"));
-  library = raw as ChainLibrary;
+  if (!renderableDraft(raw)) throw Error("Library is not safe to edit.");
+  library = raw;
   selectedId = "";
   changed();
 }
