@@ -134,9 +134,11 @@ budget (15 s fast tier, 60 s slow tier) with their slowest tests; `-- --strict` 
 any, and file paths limit it. Run it when adding or growing a test file. A file over budget is
 optimized (share a generated map across tests, build fewer rooms), split into files
 that run in parallel, or has its largest cases gated behind an environment variable as
-`room-sizes` does. Files already over budget when this was added: `room-service`,
-`room-directory`, `server`, `map-generator` and the slow `map-library`; they are the first
-candidates, not a precedent.
+`room-sizes` does. The room harness shares maps for tests about room policy rather than
+maps: `roomHarness({ reuseMaps: true })` gives every room its own copy of a map generated
+once per file, as `room-directory` does (#376: about 26 s to 3 s). Files already over budget
+when this was added: `room-service`, `room-directory` (since fixed), `server`, `map-generator`
+and the slow `map-library`; they are the first candidates, not a precedent.
 
 The timing command exits 1 when any test process fails, cannot launch, or terminates
 by signal, even without `--strict`. It prints the failure reason and captured test output.

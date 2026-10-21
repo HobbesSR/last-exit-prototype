@@ -1,9 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { roomHarness } from './helpers/room-harness.js';
-import { createMatch } from '../server/match.js';
-import { createGame, joinGame, setInput, step, snapshot } from '../shared/simulation.ts';
-import { parseMessage, acceptMessageRate, roomSeed, roomSize, devToolsPolicy, deliverable, MAX_BUFFERED_BYTES, MAX_DIAGNOSTICS_PER_SESSION } from '../server/protocol.js';
 
 test('the dev view follows the server policy and sees the current directed frame', async () => {
   const closed = roomHarness(), shut = closed.live();

@@ -5,35 +5,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { createHash } from 'node:crypto';
-import { WebSocket } from 'ws';
 import { createArenaServer, EMPTY_ROOM_GRACE_MS } from '../server/index.js';
 import { listen } from './helpers/listen.js';
+import { next, open, createRoom } from './helpers/arena-socket.js';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
 import { generateLiveMap } from '../map/live.ts';
-
-// A socket's layer decoder; a state frame read here is decoded as the client would (#250). Frames that
-// arrive while nothing waits are not decoded, so read layers only from a session's first frame or keyframes.
-const decoders = new WeakMap();
-function next(ws, type, timeoutMs = 5000) {
-  if (!decoders.has(ws)) decoders.set(ws, createLayerDecoder());
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => { ws.off('message', receive); reject(new Error(`Timed out waiting for ${type}`)); }, timeoutMs);
-    function receive(raw) {
-      const data = JSON.parse(raw);
-      if (data.type === 'state') decoders.get(ws).decode(data.state);
-      if (data.type === type) { clearTimeout(timer); ws.off('message', receive); resolve(data); }
-    }
-    ws.on('message', receive);
-  });
-}
-/**
- * A private room whose map is ready. Rooms answer before their maps exist (#258); tests about other
- * things wait for it here, on the condition, under a generous cap: some seeds take tens of seconds (42).
- */
-async function createRoom(server, base, body) {
-  const room = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })).json();
-  await server.rooms.get(room.id).ready; return room;
-}
 
 test('abandoned live rooms keep a reconnect grace then stop simulation and finalize their replay', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-abandoned-'));
@@ -45,7 +21,7 @@ test('abandoned live rooms keep a reconnect grace then stop simulation and final
   try {
     const base = await listen(server);
     const created = await createRoom(server, base, '{"seed":9}');
-    const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve));
+    const ws = await open(base);
     const welcome = next(ws, 'welcome'); ws.send(JSON.stringify({ type: 'join', room: created.id, ownerKey: created.ownerKey })); await welcome;
     const live = next(ws, 'state'); ws.send(JSON.stringify({ type: 'start' })); await live;
     const room = server.rooms.get(created.id), closed = new Promise(resolve => ws.once('close', resolve)); ws.close(); await closed;
@@ -84,7 +60,7 @@ test('resume credentials restore the same player even while the previous socket 
     const base = await listen(server);
     const room = await createRoom(server, base, '{"seed":9}');
     const join = async extra => {
-      const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve));
+      const ws = await open(base);
       const welcome = next(ws, 'welcome'); ws.send(JSON.stringify({ type: 'join', room: room.id, ...extra })); return { ws, welcome: await welcome };
     };
     const a = await join({ ownerKey: room.ownerKey, role: 'gladiator', kit: 'striker' });
@@ -106,11 +82,10 @@ test('spectators hold no slot, need the owner key, and receive the directed view
   try {
     const base = await listen(server);
     const room = await createRoom(server, base, '{"seed":9}');
-    const open = async () => { const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve)); return ws; };
-    const denied = await open();
+    const denied = await open(base);
     const refusal = next(denied, 'error'); denied.send(JSON.stringify({ type: 'join', room: room.id, role: 'spectator' }));
     assert.match((await refusal).message, /owner key/); denied.close();
-    const eye = await open();
+    const eye = await open(base);
     const welcomeEye = next(eye, 'welcome'); eye.send(JSON.stringify({ type: 'join', room: room.id, ownerKey: room.ownerKey, role: 'spectator' }));
     const we = await welcomeEye;
     assert.equal(we.id, null); assert.equal(we.spectator, true); assert.equal(we.state.directed, true);
@@ -119,7 +94,7 @@ test('spectators hold no slot, need the owner key, and receive the directed view
     assert.equal(server.rooms.get(room.id).started, false);
     eye.send(JSON.stringify({ type: 'input', seq: 1, x: 1 }));
     assert.equal(server.rooms.get(room.id).game.players.every(p => p.bot), true);
-    const player = await open();
+    const player = await open(base);
     const welcomePlayer = next(player, 'welcome'); player.send(JSON.stringify({ type: 'join', room: room.id, role: 'contestant', name: 'P' }));
     const wp = await welcomePlayer;
     assert.equal(wp.state.directed, false);
@@ -163,16 +138,14 @@ test('two clients share authority; replay preserves each recorded frame and surv
     assert.deepEqual((await (await fetch(base + '/api/rooms')).json()).map(r => [r.id, r.name]), [[named.id, 'Night shift']], 'a named room is listed');
     const room = await createRoom(server, base, '{"seed":9}');
     assert.equal(room.size, '12x6');
-    const a = new WebSocket(base.replace('http:', 'ws:'));
-    await new Promise(resolve => a.once('open', resolve));
+    const a = await open(base);
     const welcomeA = next(a, 'welcome'); a.send(JSON.stringify({ type: 'join', room: room.id, ownerKey: room.ownerKey, name: 'A' }));
     const wa = await welcomeA; assert.equal(wa.owner, true);
     assert.equal(wa.started, false);
     // Decoded as the client does, so the check below covers what layered items and gates rebuild to (#250).
     const received = [], layers = createLayerDecoder();
     a.on('message', raw => { const data = JSON.parse(raw); if (data.type === 'state') received.push(layers.decode(data.state)); });
-    const b = new WebSocket(base.replace('http:', 'ws:'));
-    await new Promise(resolve => b.once('open', resolve));
+    const b = await open(base);
     const welcomeB = next(b, 'welcome'); b.send(JSON.stringify({ type: 'join', room: room.id, role: 'gladiator' }));
     const wb = await welcomeB; assert.notEqual(wb.id, wa.id); assert.equal(wb.owner, false);
     b.send(JSON.stringify({ type: 'finish' }));
@@ -213,8 +186,7 @@ test('two clients share authority; replay preserves each recorded frame and surv
     assert.deepEqual(disk, replay);
     a.close(); b.close(); await server.close();
     restarted = await createArenaServer({ replayDir: dir });
-    await new Promise(resolve => restarted.http.listen(0, '127.0.0.1', resolve));
-    const archive = await (await fetch(`http://127.0.0.1:${restarted.http.address().port}/api/replays`)).json();
+    const archive = await (await fetch(await listen(restarted) + '/api/replays')).json();
     assert.equal(archive[0].id, room.id);
   } finally {
     await server.close(); if (restarted) await restarted.close();

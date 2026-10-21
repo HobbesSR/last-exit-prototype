@@ -2,10 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MAX_ROOMS } from '../server/room-directory.js';
 import { roomName, MAX_ROOM_NAME } from '../server/protocol.js';
-import { roomHarness } from './helpers/room-harness.js';
+import { roomHarness, generatedMap } from './helpers/room-harness.js';
+import { generateLiveMap } from '../map/live.ts';
+
+// Listing, capacity and naming are about rooms, not maps, so these rooms reuse one generated map
+// (`reuseMaps`); room-service, map-generator and map-pool tests generate theirs.
 
 test('a room summary is plain public data: kind, phase, size, players and open places by role', async () => {
-  const h = roomHarness();
+  const h = roomHarness({ reuseMaps: true });
   try {
     const player = h.peer(); player.send({ type: 'match', role: 'gladiator', name: 'G' });
     const room = player.session.room, [summary] = h.service.summaries();
@@ -20,7 +24,7 @@ test('a room summary is plain public data: kind, phase, size, players and open p
 
 test('everyone sees named and matchmade rooms not yet started; unnamed private and live rooms only when dev tools admit everyone', async () => {
   for (const devTools of ['none', 'owner', 'all']) {
-    const h = roomHarness({ devTools });
+    const h = roomHarness({ devTools, reuseMaps: true });
     try {
       const priv = h.directory.createRoom(9), named = h.directory.createRoom(9, false, undefined, 'Night shift');
       const player = h.peer(); player.send({ type: 'match' });
@@ -43,7 +47,7 @@ test('a room name is trimmed text of at most 24 characters, unique among open ro
   assert.equal(roomName({ name: '  Night   shift ' }), 'Night shift');
   assert.equal(roomName({ name: 'x'.repeat(24) }), 'x'.repeat(24)); assert.equal(roomName({ name: 'x'.repeat(25) }), false);
   assert.equal(roomName({ name: 7 }), false); assert.equal(roomName({ name: 'a\u0000b' }), false);
-  const h = roomHarness();
+  const h = roomHarness({ reuseMaps: true });
   try {
     const first = h.directory.createRoom(9, false, undefined, 'Night shift');
     assert.equal(h.directory.nameTaken('NIGHT SHIFT'), true);
@@ -55,7 +59,7 @@ test('a room name is trimmed text of at most 24 characters, unique among open ro
 });
 
 test('matchmaking fills one room until no place is open, then makes another', async () => {
-  const h = roomHarness();
+  const h = roomHarness({ reuseMaps: true });
   try {
     const first = h.peer(); first.send({ type: 'match' });
     const room = first.session.room, places = room.match.capacity('contestant') + room.match.capacity('gladiator');
@@ -68,7 +72,7 @@ test('matchmaking fills one room until no place is open, then makes another', as
 });
 
 test(`the directory holds at most ${MAX_ROOMS} rooms, and a finished one frees its place`, async () => {
-  const h = roomHarness();
+  const h = roomHarness({ reuseMaps: true });
   try {
     const rooms = Array.from({ length: MAX_ROOMS }, () => h.directory.createRoom(9));
     assert.ok(rooms.every(Boolean)); assert.equal(h.directory.hasCapacity(), false); assert.equal(h.directory.createRoom(9), null);
@@ -76,5 +80,20 @@ test(`the directory holds at most ${MAX_ROOMS} rooms, and a finished one frees i
     assert.match(refused.messages.at(-1).message, /All arena slots are occupied/);
     const owner = h.joined(rooms[0], { ownerKey: rooms[0].ownerKey }); owner.send({ type: 'start' }); owner.send({ type: 'finish' });
     assert.ok(h.directory.createRoom(9));
+  } finally { await h.service.close(); }
+});
+
+test('rooms that reuse a generated map each hold their own copy of it', async () => {
+  const h = roomHarness({ reuseMaps: true });
+  try {
+    const first = h.directory.createRoom(9), second = h.directory.createRoom(9), pooled = h.directory.createRoom();
+    assert.equal(pooled.seed, 9, 'an unseeded room takes the reused map with its own seed');
+    const maps = [first, second, pooled].map(room => room.game.map), inline = generateLiveMap(9);
+    assert.deepEqual(maps[0], inline, 'the map inline generation would have made');
+    assert.equal(new Set(maps).size, 3);
+    maps[0].spawns[0].x += 1; maps[0].obstacles.length = 0;
+    assert.deepEqual(maps[1], inline); assert.deepEqual(maps[2], inline);
+    assert.deepEqual(h.directory.createRoom(9).game.map, inline, 'nor what later rooms are given');
+    assert.deepEqual(generatedMap(), inline);
   } finally { await h.service.close(); }
 });
