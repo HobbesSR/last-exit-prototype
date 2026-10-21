@@ -1,4 +1,5 @@
 /** Pure, bounded grid analysis for decomposition proposals. Maximal rectangles are capped at 256. */
+import { cellKey, compareCells } from '../../kernel/cell.ts';
 import type { Cell } from '../types.ts';
 import type { BoundaryEdge, CellRect, NeckCut, RegionAnalysis } from './types.ts';
 
@@ -12,8 +13,7 @@ const edgeDirections = [
   { dx: -1, dy: 0, a: (x: number, y: number): Cell => ({ x, y: y + 1 }), b: (x: number, y: number): Cell => ({ x, y }) },
 ] as const;
 
-export function cellKey(cell: Cell): string { return `${cell.x},${cell.y}`; }
-const compareCells = (a: Cell, b: Cell) => a.y - b.y || a.x - b.x;
+export { cellKey };
 const copy = (cell: Cell): Cell => ({ x: cell.x, y: cell.y });
 
 /** Validate and return row-major copies, so callers' input objects and ordering are never retained. */

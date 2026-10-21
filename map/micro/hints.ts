@@ -1,3 +1,4 @@
+import { compareCells } from '../kernel/cell.ts';
 import { LIMITS } from './limits.ts';
 import type { Cell, RegionBrief } from './types.ts';
 
@@ -90,7 +91,7 @@ export function hintErrors(region: HintedRegion): string[] {
 export function hintedCells(region: HintedRegion): Cell[] {
   const owned = ownedOf(region), found = new Map<string, Cell>();
   for (const hint of region.hints ?? []) for (const { cell } of stretchesOf(hint, owned)) found.set(keyOf(cell.x, cell.y), cell);
-  return [...found.values()].sort((a, b) => a.y - b.y || a.x - b.x);
+  return [...found.values()].sort(compareCells);
 }
 
 /**
@@ -131,5 +132,5 @@ export function portalMargin(region: HintedRegion, depth: number): Cell[] {
       const x = cell.x + dx, y = cell.y + dy, key = keyOf(x, y);
       if (owned.has(key) && !hinted.has(key)) margin.set(key, { x, y });
     }
-  return [...margin.values()].sort((a, b) => a.y - b.y || a.x - b.x);
+  return [...margin.values()].sort(compareCells);
 }

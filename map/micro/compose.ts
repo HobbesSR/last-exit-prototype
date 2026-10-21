@@ -1,3 +1,4 @@
+import { OPPOSITE } from './port-terms.ts';
 import { generateMicroRegion } from './index.ts';
 import { createRegionMask, elementShapes, travelClear } from './geometry.ts';
 import type { BuiltMap, BuiltRegion, MicroResult, PortalPair, RegionElement, RegionSpec } from './types.ts';
@@ -82,7 +83,6 @@ export function composeMicroRegions(specs: RegionSpec[]): MicroLayout {
     }
   }
   const regions = ordered.map(generateMicroRegion), connections: MicroLayout['connections'] = [];
-  const opposite = { N: 'S', S: 'N', W: 'E', E: 'W' };
   const outside = { N: { x: 0, y: -1 }, S: { x: 0, y: 1 }, W: { x: -1, y: 0 }, E: { x: 1, y: 0 } };
   for (const region of regions) for (const port of region.ports) {
     const n = outside[port.side], horizontal = !n.x, neighbours = new Set<string>();
@@ -95,7 +95,7 @@ export function composeMicroRegions(specs: RegionSpec[]): MicroLayout {
     if (!neighbours.size) continue; // External port: whoever supplies the next region owns its other half.
     if (neighbours.size !== 1 || missing) throw new Error(`Port ${port.id} straddles different boundary owners.`);
     const neighbour = regions.find(r => r.spec.id === [...neighbours][0])!;
-    const paired = neighbour.ports.find(p => p.side === opposite[port.side] && p.length === port.length && p.centre.x === port.centre.x && p.centre.y === port.centre.y);
+    const paired = neighbour.ports.find(p => p.side === OPPOSITE[port.side] && p.length === port.length && p.centre.x === port.centre.x && p.centre.y === port.centre.y);
     if (!paired || paired.required !== port.required || paired.allowed !== port.allowed) throw new Error(`Shared port ${region.spec.id}/${port.id} has no matching floor/ceiling contract.`);
     if (region.spec.id > neighbour.spec.id) continue;
     if (port.required !== 'none') {

@@ -1,3 +1,4 @@
+import { compareCells } from '../../kernel/cell.ts';
 import { circle, rect } from '../../../shared/shape.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import { createAccessMask, createFillMask, elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
@@ -49,7 +50,7 @@ function densityOf(brief: RegionBrief): number {
 export function buildCover(brief: RegionBrief): BuiltRegion {
   const density = densityOf(brief), size = brief.cellSize;
   const owned = new Set(createFillMask(brief).cells.map(c => `${c.x},${c.y}`)), footprints = new Set<string>();
-  const cells = [...brief.cells].sort((a, b) => a.y - b.y || a.x - b.x);
+  const cells = [...brief.cells].sort(compareCells);
   // Routes between portals are protected; past 32 portals that search is too dear, and
   // boxes keep an aisle from the boundary instead.
   const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
@@ -182,7 +183,7 @@ export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements
   };
   const piece = PIECES.find(candidate => candidate.name === 'container')!;
   const places: RegionElement[] = [];
-  for (const cell of [...fill].sort((a, b) => a.y - b.y || a.x - b.x)) for (const turned of [false, true]) {
+  for (const cell of [...fill].sort(compareCells)) for (const turned of [false, true]) {
     const w = turned ? piece.h : piece.w, h = turned ? piece.w : piece.h;
     if (!clear(cell.x, cell.y, w, h)) continue;
     const element = { label: 'cover-guard', x: cell.x * size, y: cell.y * size,
