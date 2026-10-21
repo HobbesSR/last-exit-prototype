@@ -1,39 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { gunzipSync } from 'node:zlib';
-import { createHash } from 'node:crypto';
-import { WebSocket } from 'ws';
-import { createArenaServer, EMPTY_ROOM_GRACE_MS } from '../server/index.js';
+import { createArenaServer } from '../server/index.js';
 import { listen } from './helpers/listen.js';
-import { createLayerDecoder } from '../shared/frame-layers.ts';
-import { generateLiveMap } from '../map/live.ts';
-
-// A socket's layer decoder; a state frame read here is decoded as the client would (#250). Frames that
-// arrive while nothing waits are not decoded, so read layers only from a session's first frame or keyframes.
-const decoders = new WeakMap();
-function next(ws, type, timeoutMs = 5000, accept = () => true) {
-  if (!decoders.has(ws)) decoders.set(ws, createLayerDecoder());
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => { ws.off('message', receive); reject(new Error(`Timed out waiting for ${type}`)); }, timeoutMs);
-    function receive(raw) {
-      const data = JSON.parse(raw);
-      if (data.type === 'state') decoders.get(ws).decode(data.state);
-      if (data.type === type && accept(data)) { clearTimeout(timer); ws.off('message', receive); resolve(data); }
-    }
-    ws.on('message', receive);
-  });
-}
-/**
- * A private room whose map is ready. Rooms answer before their maps exist (#258); tests about other
- * things wait for it here, on the condition, under a generous cap: some seeds take tens of seconds (42).
- */
-async function createRoom(server, base, body) {
-  const room = await (await fetch(base + '/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })).json();
-  await server.rooms.get(room.id).ready; return room;
-}
+import { next, open, createRoom } from './helpers/arena-socket.js';
 
 test('matchmaking separates private rooms, honors available preferences, falls back, and starts automatically', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-match-'));
@@ -43,7 +15,7 @@ test('matchmaking separates private rooms, honors available preferences, falls b
     const privateRoom = await createRoom(server, base, '{"seed":9}');
     const clients = [], welcomes = [];
     for (const role of ['gladiator', 'gladiator', 'gladiator', 'gladiator', 'contestant', 'any']) {
-      const ws = new WebSocket(base.replace('http:', 'ws:')); await new Promise(resolve => ws.once('open', resolve));
+      const ws = await open(base);
       const welcome = next(ws, 'welcome'); ws.send(JSON.stringify({ type: 'match', role, name: 'Queued' }));
       clients.push(ws); welcomes.push(await welcome);
     }

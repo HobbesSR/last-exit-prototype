@@ -1,8 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { roomHarness } from './helpers/room-harness.js';
-import { createMatch } from '../server/match.js';
-import { createGame, joinGame, setInput, step, snapshot } from '../shared/simulation.ts';
 import { parseMessage, acceptMessageRate, roomSeed, roomSize, devToolsPolicy, deliverable, MAX_BUFFERED_BYTES, MAX_DIAGNOSTICS_PER_SESSION } from '../server/protocol.js';
 
 test('a backed-up socket skips state frames but never a one-off message', () => {
