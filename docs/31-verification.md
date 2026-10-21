@@ -15,19 +15,14 @@ npm run bench:client
 ```
 
 `npm test` and `npm run test:all` cap file concurrency at four, keeping CPU and memory contention
-bounded on the shared machine. Every case still runs, including the slow tier;
-timing assertions and isolated file budgets are unchanged. Unbounded file
-concurrency made the final `compound-yard-2` macro fixture take 4,182 ms against
-its unchanged three-second assertion during a 656-case run (2026-10-13:
-655 passed, one failed, 136.0 seconds wall time), despite passing sequential
-isolated measurements. This was reproduced after removing the preliminary
-policy's narrow-strip offers; it is not only evidence from that earlier policy.
+bounded on the shared machine. Each command runs every case in its selected tier; `test:all` includes the slow tier;
+timing assertions and isolated file budgets are unchanged. The dated concurrency incident is retained in [42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints).
 Use the normal scripts for integration; focused `node --test` commands remain
 available. The chain sweep's internal worker pool is separate.
 
 The unit suite has two tiers. `npm test` is the fast tier for iterating on a PR:
-everything under `tests/*.test.js`: 642 tests in 111.5 seconds wall time with
-the four-file cap (measured 2026-10-13). `npm run test:all` adds
+everything under `tests/*.test.js`. Dated counts and timings are in
+[42.3](42.3-generation-and-delegation-evidence.md#verification-cost-checkpoints). `npm run test:all` adds
 `tests/slow/`: the 200-map route sweep, the bot-match traces against the frozen
 fixture, and bots completing whole matches. Those slow tests sum to about four minutes
 by default, and their evidence only moves when generation or simulation moves.
@@ -43,8 +38,7 @@ contract where one exists: the fixture's map hashes and scripted trace stay in
 Changes under `map/macro/` run its own suite with `npm run test:mapgen` (typecheck
 plus unit tests, in that directory). Its `tests/slow/` holds the larger authored-size
 quota checks and runs in that same default macro suite; the seeds and assertions
-are shared with the fast content checks, not reduced to fit the timing budget. On 2026-10-03, after the old paths were
-deleted (#146), it is green: 100 tests. The Map Lab (`map/tools/lab/`) has its
+are shared with the fast content checks, not reduced to fit the timing budget. The historical macro-suite checkpoint is also retained in 42.3. The Map Lab (`map/tools/lab/`) has its
 own browser check, `node map/tools/tests/lab.browser.mts`, which `npm run
 test:browser` runs. A change to the chain or its inputs (macro's stages and
 library, the game's strategies, the kernel, `shared/`) also runs the chain's
@@ -186,15 +180,9 @@ to benchmark rendering the unfogged, whole-arena spectator overview at full zoom
 
 ## The frozen fixture
 
-The current frozen characterization fixture is `behavior-nav-1.json.gz`, captured at
-`5e83119`. Its historical chain is `5dd7d61` (fixture captured at `0cd204e`) →
-`elements-1` (`9fe2d94`) → stored-arenas split (`aa833a6`) → `netcode-1` (`95b7f1b`) → `nav-1`.
-`elements-1` superseded `5dd7d61` when per-region element catalogues replaced the
-single hardcoded building and changed every seeded map. `netcode-1` changed simulation
-traces for queued input consumption and bot route straightening while carrying forward
-the generated hashes and stored arenas. `nav-1` changed one bot trace (seed 4217) when route
-ends stopped snapping across walls thinner than a tile (#351); generated hashes, stored arenas,
-the other bot traces and the scripted trace carried forward byte-identical.
+The current frozen characterization fixture is `behavior-nav-1.json.gz`.
+Its complete lineage, capture and introduction commits, digests and reconstruction
+instructions belong to [the fixture README](../tests/fixtures/README.md).
 
 The fixture separates what the generator emits from what the simulation does.
 Complete ordered map hashes characterize generation. The bot and scripted traces

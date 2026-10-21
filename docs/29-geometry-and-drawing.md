@@ -139,10 +139,8 @@ are rebuilt:
 **A retained `Graphics` is not a cache.** Phaser 3 keeps a `Graphics` as a list of commands and
 replays it on every render: each rounded rectangle becomes a path and each filled polygon is
 triangulated again with Earcut, every frame. This document used to say the opposite, and the static
-layer was culled per 1024-unit chunk on that belief. Measured in headed Chrome on a real GPU
-([42](42-performance-history.md), 2026-10-04), the visible chunks held about 16,000 commands, and Phaser's own render pass
-took 43–47 ms a frame. Our `update()` took about 1 ms, which is all `render.frame` measures.
-Rasterising tiles brought that pass to about 4 ms and the client from about 20 to 60 fps.
+layer was culled per 1024-unit chunk on that belief. The headed-Chrome comparison and its limits are retained in
+[42.2](42.2-runtime-performance.md#retained-graphics-observation).
 `render.draw` now times Phaser's render pass separately, so this cost can't hide again.
 
 How the tiles are kept:

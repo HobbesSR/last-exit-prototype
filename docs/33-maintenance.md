@@ -25,6 +25,58 @@ implemented requirement, in the same change. Keep deferred work in
 by a design decision. Record meaningful engine or library substitutions in
 [21](21-stack.md) with license and rationale.
 
+## Ownership and retained evidence
+
+The #380 ownership decision separates current contracts from dated observations:
+
+| Fact | Canonical owner |
+| --- | --- |
+| Active map compatibility domains and refusal rules | [53](53-map-artifacts-and-tools.md); separate wire, macro, library, module and region-result versions |
+| Delegation execution, builder and snapshot compatibility | [20.7](20.7-builder-delegation.md) |
+| Replay format/read floor, simulation meaning and content selection | [26](26-recording-contract.md), with gameplay defaults in [14](14-match-rules.md) |
+| Complete fixture lineage, digests and reconstruction | [Fixture README](../tests/fixtures/README.md); [31](31-verification.md) owns verification policy |
+| Catalogue intent, status, fallback and type-specific obligations | [54](54-region-types.md); implementation mechanics in [20.3](20.3-builders-decomposition.md), margins in [20.6](20.6-passable-margins.md), delegation in 20.7 |
+| Current unresolved slowdown status | [42](42-performance-history.md#the-reported-slowdown-is-still-open) |
+| Runtime measurements | [42.2](42.2-runtime-performance.md) |
+| Generation, delegation and verification-cost evidence | [42.3](42.3-generation-and-delegation-evidence.md) |
+| Dated chain captures | [42.4](42.4-chain-checkpoint-history.md) |
+| Player/operator entry commands; developer labs; agent setup | [README](../README.md); [20.5](20.5-tools-and-next-boundaries.md); [34](34-forgejo-workflow.md) respectively |
+
+Retain historical evidence in the repository. Keep witness scripts at their
+existing paths; moving documentation does not authorize deleting or adapting them.
+A historical witness may require its recorded revision and input, rather than HEAD.
+Keep source pins, dates, workload/seed/shape/roster, machine/runtime/browser/viewport
+where known, dirty-source state, dependency pins, run order/count, aggregation,
+input hashes, raw locations and negative findings with each measurement. Explicitly
+mark missing provenance as unknown; do not borrow another record's machine details.
+A new rerun is new evidence, never a replacement for a missing historical artifact.
+
+Before moving a section that cites local raw artifacts, inspect those artifacts and
+retain substantiated durable data under `docs/reports/` with source paths, checksums
+and provenance. Keep original local files intact. If a required artifact or input pin
+cannot be established, leave the affected block in place and record the gap. A
+compact guide must not replace the evidence it links to. Keep safety-critical
+fixture rules in AGENTS even when complete provenance has one owner.
+
+### Runnable tools and historical witnesses
+
+| Class | Retained paths and source context |
+| --- | --- |
+| Maintained command/test surface | `tools/{micro-region,decompose-region,builder-fill}.mjs`; `map/tools/{cli,mcp,sweep}.mts` and dependencies; `tools/forgejo-usage.mjs` is machine-local process tooling |
+| Active navigation research/test dependencies | `tools/navigation/{clearance,graph,hierarchy,optimistic,witnesses}.mjs`; retain while #353 remains open and while tests import them |
+| Reproducible navigation reports | `tools/navigation/{report,continuation}.mjs`, `docs/reports/navigation-364.json`, `navigation-364-continuation.json`; source pins and limits in [42.1](42.1-navigation-experiment.md) |
+| Fixture-reproduction witnesses | `tools/compound-siting-audit.mjs`, `compound-siting-solution-audit.mjs`; exact briefs and commands in the fixture README; full-map regeneration is a different workload |
+| Pinned migration witness | `map/tools/tests/library-v3-audit.mjs`, S3 source pin `3fe884f`, 224-case comparison; a HEAD assertion failure does not justify deletion |
+| Historical audit/timing harnesses | `tools/{boundary-portal-audit,depot-portal-audit,local-quarter-fill-audit,delegation-adoption-audit,compound-delegation-audit,compound-delegation-timing,hut-delegation-audit,hut-delegation-timing}.mjs`; source/input context in 42.3 |
+
+Hut witnesses load `3b54da0`, with `e6d0449` also used by timing. Compound
+preparation timing defaults to `4a7a5ba`; the recorded after run uses `0a8e3aa`
+and contemporaneous sibling modules. Compound adoption consumes the preserved
+`types-24` candidate report, not an equivalent rerun on an already-adopting HEAD.
+Timing harnesses may create temporary patched source files; they are not unit gates.
+Do not claim fresh-checkout reproducibility without verifying retained input
+locations and explicit input flags or a non-destructive setup recipe.
+
 ## Rules for this documentation
 
 - The number is the identity. Do not renumber a file or reuse a retired number.

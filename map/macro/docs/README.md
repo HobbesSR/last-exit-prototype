@@ -14,6 +14,9 @@ mapgen's design documentation moved into the repository's numbered docs on
 
 The original statement of intent is [design_notes.txt](../design_notes.txt).
 
+Historical chain captures are in [42.4](../../../docs/42.4-chain-checkpoint-history.md);
+active compatibility and tools remain in 53.
+
 ## Archive
 
 - [pre-integration/](archive/pre-integration/README.md): mapgen's docs up to
@@ -23,6 +26,6 @@ The original statement of intent is [design_notes.txt](../design_notes.txt).
   proposal separated from the original design notes.
 - [pre-editor-cleanup/](archive/pre-editor-cleanup/) and
   [editor-cleanup/](archive/editor-cleanup/): the editor cleanup milestone.
-- [2026-09-12-macro-review/](archive/2026-09-12-macro-review/) and
-  [2026-09-12-macro-revalidation/](archive/2026-09-12-macro-revalidation/): the
+- [2026-09-12-macro-review/](archive/2026-09-12-macro-review/README.md) and
+  [2026-09-12-macro-revalidation/](archive/2026-09-12-macro-revalidation/README.md): the
   review of the macro composition contract.

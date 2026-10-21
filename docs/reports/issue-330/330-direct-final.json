@@ -1,0 +1,933 @@
+{
+  "audit": "hut-delegation-1",
+  "baseline": {
+    "commit": "3b54da0",
+    "source": "git show commit:map/micro/strategies/hut.ts",
+    "note": "The baseline hut strategy is loaded from the pinned source file; its unchanged relative imports resolve from a temporary sibling file. Current supporting modules come from this checkout."
+  },
+  "current": {
+    "commit": "3b54da030df17cb8832dd9f599a8b281dac7d87f",
+    "workingTreeHutChanges": true
+  },
+  "seeds": 20,
+  "direct": [
+    {
+      "id": "small-6x6",
+      "cells": 36,
+      "portals": 1,
+      "seeds": 20,
+      "before": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 0.775,
+          "median": 1.842,
+          "mean": 3.037,
+          "p95": 8.192,
+          "max": 20.681
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 15,
+          "median": 15,
+          "mean": 15,
+          "p95": 15,
+          "max": 15
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 21,
+          "median": 21,
+          "mean": 21,
+          "p95": 21,
+          "max": 21
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.583,
+          "median": 0.583,
+          "mean": 0.583,
+          "p95": 0.583,
+          "max": 0.583
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        }
+      },
+      "after": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 1.303,
+          "median": 2.898,
+          "mean": 3.021,
+          "p95": 4.071,
+          "max": 9.695
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 15,
+          "median": 15,
+          "mean": 15,
+          "p95": 15,
+          "max": 15
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 21,
+          "median": 21,
+          "mean": 21,
+          "p95": 21,
+          "max": 21
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.583,
+          "median": 0.583,
+          "mean": 0.583,
+          "p95": 0.583,
+          "max": 0.583
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        }
+      },
+      "delegation": {
+        "offers": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "rejectionReasons": {},
+        "stoppingReasons": {},
+        "stoppingKinds": {}
+      },
+      "preparationAudit": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "receiverCalls": 0,
+        "receiverAccepted": 0,
+        "receiverRejected": 0,
+        "matchesProduction": true,
+        "samples": 20
+      }
+    },
+    {
+      "id": "rectangle-24x18",
+      "cells": 432,
+      "portals": 2,
+      "seeds": 20,
+      "before": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 4.504,
+          "median": 5.579,
+          "mean": 6.809,
+          "p95": 11.208,
+          "max": 13.227
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 20,
+          "median": 21,
+          "mean": 23.55,
+          "p95": 32,
+          "max": 33
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 399,
+          "median": 408,
+          "mean": 408.45,
+          "p95": 412,
+          "max": 412
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.924,
+          "median": 0.944,
+          "mean": 0.945,
+          "p95": 0.954,
+          "max": 0.954
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 2,
+          "median": 3,
+          "mean": 3.2,
+          "p95": 4,
+          "max": 4
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 192,
+          "median": 264,
+          "mean": 259.2,
+          "p95": 306,
+          "max": 336
+        }
+      },
+      "after": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 14.615,
+          "median": 17.18,
+          "mean": 18.773,
+          "p95": 24.305,
+          "max": 25.357
+        },
+        "elements": {
+          "samples": 20,
+          "min": 2,
+          "median": 4,
+          "mean": 4.8,
+          "p95": 10,
+          "max": 13
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 3,
+          "mean": 3.8,
+          "p95": 9,
+          "max": 12
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 23,
+          "median": 29,
+          "mean": 29.05,
+          "p95": 36,
+          "max": 37
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 395,
+          "median": 403,
+          "mean": 402.95,
+          "p95": 409,
+          "max": 409
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.914,
+          "median": 0.933,
+          "mean": 0.933,
+          "p95": 0.947,
+          "max": 0.947
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 4,
+          "median": 5,
+          "mean": 5.35,
+          "p95": 7,
+          "max": 8
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 102,
+          "median": 180,
+          "mean": 173.95,
+          "p95": 234,
+          "max": 288
+        }
+      },
+      "delegation": {
+        "offers": 21,
+        "accepted": 21,
+        "rejected": 0,
+        "rejectionReasons": {},
+        "stoppingReasons": {},
+        "stoppingKinds": {}
+      },
+      "preparationAudit": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 5.903,
+          "median": 6.695,
+          "mean": 7.135,
+          "p95": 9.438,
+          "max": 10.047
+        },
+        "receiverCalls": 22,
+        "receiverAccepted": 22,
+        "receiverRejected": 0,
+        "matchesProduction": true,
+        "samples": 20
+      }
+    },
+    {
+      "id": "concave-yard-28x12",
+      "cells": 296,
+      "portals": 2,
+      "seeds": 20,
+      "before": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 3.856,
+          "median": 5.226,
+          "mean": 6.142,
+          "p95": 10.563,
+          "max": 18.583
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 20,
+          "median": 24,
+          "mean": 26,
+          "p95": 33,
+          "max": 33
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 263,
+          "median": 271,
+          "mean": 270,
+          "p95": 276,
+          "max": 276
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.889,
+          "median": 0.916,
+          "mean": 0.912,
+          "p95": 0.932,
+          "max": 0.932
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 2,
+          "median": 3,
+          "mean": 3,
+          "p95": 4,
+          "max": 4
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 112,
+          "median": 140,
+          "mean": 146.2,
+          "p95": 204,
+          "max": 224
+        }
+      },
+      "after": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 11.045,
+          "median": 13.714,
+          "mean": 14.326,
+          "p95": 20.111,
+          "max": 24.518
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 2,
+          "mean": 2.25,
+          "p95": 5,
+          "max": 5
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 1,
+          "mean": 1.25,
+          "p95": 4,
+          "max": 4
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 20,
+          "median": 25,
+          "mean": 27.7,
+          "p95": 35,
+          "max": 36
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 260,
+          "median": 270,
+          "mean": 268.3,
+          "p95": 276,
+          "max": 276
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.878,
+          "median": 0.912,
+          "mean": 0.906,
+          "p95": 0.932,
+          "max": 0.932
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 2,
+          "median": 4,
+          "mean": 3.7,
+          "p95": 5,
+          "max": 6
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 72,
+          "median": 120,
+          "mean": 123.5,
+          "p95": 168,
+          "max": 184
+        }
+      },
+      "delegation": {
+        "offers": 29,
+        "accepted": 13,
+        "rejected": 16,
+        "rejectionReasons": {
+          "Receiving builder for yard:2,2: cover has no usable placement in the inherited fill": 9,
+          "Receiving builder for yard:20,2: cover has no usable placement in the inherited fill": 1,
+          "Receiving builder for yard:15,2: cover has no usable placement in the inherited fill": 1,
+          "Receiving builder for yard:14,2: cover has no usable placement in the inherited fill": 2,
+          "Receiving builder for yard:12,2: cover has no usable placement in the inherited fill": 2,
+          "Receiving builder for yard:16,2: cover has no usable placement in the inherited fill": 1
+        },
+        "stoppingReasons": {},
+        "stoppingKinds": {}
+      },
+      "preparationAudit": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 3.825,
+          "median": 4.392,
+          "mean": 5.12,
+          "p95": 6.716,
+          "max": 7.157
+        },
+        "receiverCalls": 34,
+        "receiverAccepted": 18,
+        "receiverRejected": 16,
+        "matchesProduction": true,
+        "samples": 20
+      }
+    },
+    {
+      "id": "ell-12x12",
+      "cells": 108,
+      "portals": 3,
+      "seeds": 20,
+      "before": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 3.444,
+          "median": 6.378,
+          "mean": 7.006,
+          "p95": 15.04,
+          "max": 15.514
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 20,
+          "median": 21,
+          "mean": 20.7,
+          "p95": 21,
+          "max": 21
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 87,
+          "median": 87,
+          "mean": 87.3,
+          "p95": 88,
+          "max": 88
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.806,
+          "median": 0.806,
+          "mean": 0.809,
+          "p95": 0.815,
+          "max": 0.815
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 1,
+          "median": 2,
+          "mean": 1.7,
+          "p95": 2,
+          "max": 2
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 48,
+          "median": 48,
+          "mean": 48,
+          "p95": 48,
+          "max": 48
+        }
+      },
+      "after": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 4.883,
+          "median": 7.222,
+          "mean": 8.315,
+          "p95": 14.579,
+          "max": 18.151
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 20,
+          "median": 21,
+          "mean": 20.7,
+          "p95": 21,
+          "max": 21
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 87,
+          "median": 87,
+          "mean": 87.3,
+          "p95": 88,
+          "max": 88
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.806,
+          "median": 0.806,
+          "mean": 0.809,
+          "p95": 0.815,
+          "max": 0.815
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 1,
+          "median": 2,
+          "mean": 1.7,
+          "p95": 2,
+          "max": 2
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 48,
+          "median": 48,
+          "mean": 48,
+          "p95": 48,
+          "max": 48
+        }
+      },
+      "delegation": {
+        "offers": 0,
+        "accepted": 0,
+        "rejected": 0,
+        "rejectionReasons": {},
+        "stoppingReasons": {},
+        "stoppingKinds": {}
+      },
+      "preparationAudit": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "receiverCalls": 0,
+        "receiverAccepted": 0,
+        "receiverRejected": 0,
+        "matchesProduction": true,
+        "samples": 20
+      }
+    },
+    {
+      "id": "ring-14x14",
+      "cells": 180,
+      "portals": 3,
+      "seeds": 20,
+      "before": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 3.715,
+          "median": 12.864,
+          "mean": 11.828,
+          "p95": 17.185,
+          "max": 31.849
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0,
+          "p95": 0,
+          "max": 0
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 20,
+          "median": 20,
+          "mean": 20,
+          "p95": 20,
+          "max": 20
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 160,
+          "median": 160,
+          "mean": 160,
+          "p95": 160,
+          "max": 160
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.889,
+          "median": 0.889,
+          "mean": 0.889,
+          "p95": 0.889,
+          "max": 0.889
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 3,
+          "median": 3,
+          "mean": 3,
+          "p95": 3,
+          "max": 3
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 70,
+          "median": 70,
+          "mean": 70,
+          "p95": 70,
+          "max": 70
+        }
+      },
+      "after": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 6.558,
+          "median": 16.57,
+          "mean": 17.341,
+          "p95": 31.799,
+          "max": 36.879
+        },
+        "elements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1.15,
+          "p95": 2,
+          "max": 2
+        },
+        "houseElements": {
+          "samples": 20,
+          "min": 1,
+          "median": 1,
+          "mean": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "coverElements": {
+          "samples": 20,
+          "min": 0,
+          "median": 0,
+          "mean": 0.15,
+          "p95": 1,
+          "max": 1
+        },
+        "occupiedCells": {
+          "samples": 20,
+          "min": 20,
+          "median": 20,
+          "mean": 20.3,
+          "p95": 22,
+          "max": 22
+        },
+        "freeCells": {
+          "samples": 20,
+          "min": 158,
+          "median": 160,
+          "mean": 159.7,
+          "p95": 160,
+          "max": 160
+        },
+        "freeShare": {
+          "samples": 20,
+          "min": 0.878,
+          "median": 0.889,
+          "mean": 0.887,
+          "p95": 0.889,
+          "max": 0.889
+        },
+        "gaps": {
+          "samples": 20,
+          "min": 3,
+          "median": 3,
+          "mean": 3,
+          "p95": 3,
+          "max": 3
+        },
+        "largestGapCells": {
+          "samples": 20,
+          "min": 45,
+          "median": 70,
+          "mean": 66.75,
+          "p95": 70,
+          "max": 70
+        }
+      },
+      "delegation": {
+        "offers": 34,
+        "accepted": 3,
+        "rejected": 31,
+        "rejectionReasons": {
+          "Receiving builder for yard:11,8: cover has no usable placement in the inherited fill": 13,
+          "Receiving builder for yard:7,2: cover has no usable placement in the inherited fill": 12,
+          "Patch disconnects retained ownership.": 6
+        },
+        "stoppingReasons": {},
+        "stoppingKinds": {}
+      },
+      "preparationAudit": {
+        "elapsedMs": {
+          "samples": 20,
+          "min": 1.132,
+          "median": 3.61,
+          "mean": 3.242,
+          "p95": 5.082,
+          "max": 5.482
+        },
+        "receiverCalls": 29,
+        "receiverAccepted": 4,
+        "receiverRejected": 25,
+        "matchesProduction": true,
+        "samples": 20
+      }
+    }
+  ],
+  "fill": {
+    "width": 24,
+    "height": 18,
+    "min": 3,
+    "seeds": 20,
+    "before": {
+      "built": 20,
+      "failed": 0,
+      "freeShare": 0.936,
+      "gapsPerRegion": 3.35,
+      "gapCellsShare": 0.889,
+      "largestGapCells": 312
+    },
+    "after": {
+      "built": 20,
+      "failed": 0,
+      "freeShare": 0.924,
+      "gapsPerRegion": 5.4,
+      "gapCellsShare": 0.828,
+      "largestGapCells": 288
+    }
+  }
+}

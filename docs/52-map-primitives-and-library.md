@@ -321,10 +321,7 @@ catalogue, and it grows from here. The fixture libraries in
     `block-ground`, `market-ground`, `plant-ground`, and `checkpoint-ground`: a whole tile of their type, with the same aligned three-segment passable stretch and complementary hint as `cover-ground`. They are weighted 0, so only set pieces place
     them (below).
   - `park-ground`: a whole tile of `park`, with the same perimeter pattern, weighted
-    0.6 since #214 (`cover-ground` is 0.4). The earlier 0.15 weight (#221)
-    took `park`, over the 224 sweep maps, from
-    297 regions on 139 maps to 1,682 on 211, and its share of cells from 3.6%
-    to 4.4%. Park's own strategy places a tree at most in a lone tile, so the
+    0.6 since #214 (`cover-ground` is 0.4). The earlier weight and 224-map sample are in [42.3](42.3-generation-and-delegation-evidence.md#park-weight-221-sample). Park's own strategy places a tree at most in a lone tile, so the
     weight is Corey's to veto (17.2.8 M34).
   - `arrival-ground`, `departure-ground`, `charging-ground` and `transit-ground`: whole tiles of
     their core element class, retaining the three-segment passable stretch on
@@ -426,17 +423,8 @@ included modules (521 references). The library input authors block, compound
 and depot slots in its local set pieces; other local classes stay as supplied. Future content changes still require reviewed
 module versions; the tool supports authored copies with matching includes.
 
-Larger fill areas do not ensure a warehouse in every depot. #325 traced three
-sparse witnesses to the first-portal star of protected routes, which crossed
-every owned warehouse-sized rectangle in either orientation and every lane
-phase. Depots now reserve a nearby-portal tree (20.3, 54). On the same 20 game
-seeds (`last-exit-001` through `last-exit-020`), depots with warehouses rise
-from 19 of 43 to 43 of 43, warehouses from 47 to 118, and container rows from
-252 to 560; the one empty depot gains content. The obstacle-only fill diagnostic
-counts 5,836 occupied cells instead of 2,415 across 43,308 owned depot cells.
-This measure excludes roofs and doors and is not a warehouse-floor coverage
-measure. Clear margins and the all-portals reachability promise remain unchanged.
-These are bounded samples, not a requirement that every depot have a warehouse.
+Larger fill areas do not ensure a warehouse in every depot. The #325
+route-reservation diagnosis and bounded sample are in [42.3](42.3-generation-and-delegation-evidence.md#depot-route-reservation-sample).
 
 31 describes the library's acceptance checks. The tools and live matches use
 the same library through `map/chain.ts`; live conversion is separate (14, 22).
@@ -463,9 +451,7 @@ The old designs were rings of fence and gate tiles around an unclaimed
 middle. They are filled here: the builders now draw enclosures themselves
 (`compound`'s ring, `depot`'s walls), and a ring one tile wide is below every
 structure type's shape needs. So the footprints are larger than the old
-ones. Over 20 game seeds, set pieces covered 12.9% of tiles before and 55.3%
-after: enormous 16.0%, medium 14.6%, small 20.3%, core element pieces 4.2%.
-The old footprints with hollow rings would have covered about 47%.
+ones. The S5 footprint coverage sample is in [42.3](42.3-generation-and-delegation-evidence.md#s5-footprint-coverage-sample).
 
 Every non-`open` type rolls loot, so the default loot gradient was scaled to
 keep loot per map level (14).
@@ -503,9 +489,7 @@ Sizes are in tiles.
   (block over market and park), `military-quarter` 26 × 15 (compound over a
   checkpoint lane) and `ruined-quarter` 28 × 14 (ruins, cover and park).
 
-At the S6 checkpoint (#171), over 20 game seeds each, set pieces covered a median 54.8% of tiles at 12 × 6,
-52.1% at 24 × 12 and 53.6% at 36 × 18. Loot per tile has a median of 1.04,
-1.07 and 1.16 under the then-default gradient (42).
+The three-size S6 coverage and loot sample is in [42.3](42.3-generation-and-delegation-evidence.md#s6-authored-size-sample).
 
 ## The old library
 
@@ -527,11 +511,4 @@ forcing openings along every side. This pass adopts selective guaranteed
 openings and deferred/hinted perimeter segments; it retains the current
 three-cell tile grid, shapes and weights. The #214 follow-up adds rotated rubble
 bands and bends, a centered courtyard feature, and deliberately larger building
-fill areas within selected structure set pieces. Against main with the implemented
-margin policy, the same 12 game seeds (`fill-214-1` through `fill-214-12`) reduce
-fields from 77.0% to 40.9% of fill slots and resolved open cells from 39.8% to 27.9%.
-Cover, park and rubble together place 385 obstacles before and 1,033 after; the
-courtyard appears 15 times across those maps. Mean loot rises from 756 to 834 despite
-the reduced default gradient (14). All 12 maps report no defects, and three
-full-map portal diagnoses find no broken promises. These are bounded samples,
-not a guarantee for every seed.
+fill areas within selected structure set pieces. The bounded #214 fill composition and portal diagnosis sample is in [42.3](42.3-generation-and-delegation-evidence.md#fill-composition-214-sample).

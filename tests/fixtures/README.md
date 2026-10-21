@@ -84,7 +84,8 @@ before a bot walks it. Both move what the simulation does, so both move the trac
 the generator, and that was checked rather than assumed — `generated` carried forward unchanged, and
 so did `maps`.
 
-`netcode-1` was the `95b7f1b` checkpoint; the current fixture is `nav-1`, at `5e83119`. Its full historical chain is
+`netcode-1` was the `95b7f1b` checkpoint; the current fixture is `nav-1`, captured
+from simulation tree `5e83119` and introduced in commit `fa6c143`. Its full historical chain is
 `5dd7d61` (captured at `0cd204e`) → `elements-1` (`9fe2d94`) → the stored-arenas
 split (`aa833a6`) → hash-only cover update (`dede8fe`) → `netcode-1` → `nav-1`.
 The historical fixture names remain in git history;
@@ -123,8 +124,14 @@ and name it for the new checkpoint.
 
 To audit the existing `nav-1` fixture on this tree, select `content-1` and use
 its stored maps, never today's default content or freshly generated arenas.
-The three-hunter checkpoint preserved the existing gzip bytes, SHA-256
+The three-hunter checkpoint preserved the then-current `behavior-netcode-1.json.gz`
+bytes (present at `95b7f1b` and `5e83119`), SHA-256
 `b8734d7cbf1292f8e5fad5c5f7007ed368bc33fc7d82b5965b23d71303a48ea2`.
+The current `behavior-nav-1.json.gz`, introduced at `fa6c143`, has gzip SHA-256
+`708222c5e226019b2d601e4574f2d83c3832ed1b0cb09827bc5e9866e83ed7c8`.
+`nav-1` changed the seed-4217 bot trace when route ends stopped snapping across
+walls thinner than a tile (#351); generated hashes, stored arenas, other bot traces
+and the scripted trace carried forward byte-identical.
 
 Carry `maps` over from the previous fixture unless the arenas themselves are meant to
 change: regenerating them folds whatever the generator has done since into a change

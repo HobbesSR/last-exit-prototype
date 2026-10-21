@@ -86,6 +86,9 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [41-roadmap.md](41-roadmap.md) | Completed boundaries, the next implementation boundaries, and sequencing |
 | [42-performance-history.md](42-performance-history.md) | Measured baselines and their limits, from completed verification passes |
 | [42.1-navigation-experiment.md](42.1-navigation-experiment.md) | Safe local graph experiment (#364), passage failures and measured hierarchy costs |
+| [42.2-runtime-performance.md](42.2-runtime-performance.md) | Runtime, privacy, crowd, rendering and live-match measurements, with historical checkpoint routes |
+| [42.3-generation-and-delegation-evidence.md](42.3-generation-and-delegation-evidence.md) | Generation, delegation, catalogue samples and verification-cost evidence, with retained raw reports |
+| [42.4-chain-checkpoint-history.md](42.4-chain-checkpoint-history.md) | Dated chain captures and their input provenance; active compatibility remains in 53 |
 
 ### 5x — Map generation
 

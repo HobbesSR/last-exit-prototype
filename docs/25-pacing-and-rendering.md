@@ -36,9 +36,8 @@ would invent motion the recording never contained. See
 The playhead advances against the **wall clock**, anchored at the last jump, not by
 accumulating the per-frame delta. Phaser smooths and clamps the delta it reports, so
 accumulating it runs a replay slow in exact proportion to how long the client's
-frames are: measured here, a viewer rendering at about four frames a second received
-roughly six percent of the speed they selected, and the speed control silently
-became a fiction. Anchoring also keeps rounding from accumulating across the
+frames are; the observed effect is recorded in
+[42.2](42.2-runtime-performance.md#replay-wall-clock-observation). Anchoring also keeps rounding from accumulating across the
 thousands of frames a ten-minute match lasts. Every jump — opening a replay,
 seeking, resuming, changing speed — must re-anchor, or the elapsed time since the
 last anchor is re-scaled by the new rate and the playhead leaps.
