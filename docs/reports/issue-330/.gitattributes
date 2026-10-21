@@ -1,4 +1,4 @@
 # Preserve raw historical bytes; review provenance in README.
-* -text -diff
+* -text -diff -whitespace
 README.md text eol=lf diff
 .gitattributes text eol=lf diff
