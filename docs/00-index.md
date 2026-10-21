@@ -98,9 +98,9 @@ existed.
 | [51-generation-chain.md](51-generation-chain.md) | Pipeline and guide: invariants (51.1), individual stages (51.2–51.10), core elements (51.11), saving (51.12), reuse (51.13), build history (51.14–51.15) |
 | [52-map-primitives-and-library.md](52-map-primitives-and-library.md) | Cells, segments and prescriptions, region types, tiles, set pieces and set piece classes, tier zones, scale |
 | [53-map-artifacts-and-tools.md](53-map-artifacts-and-tools.md) | Determinism, what is stored, the wire form and BSON, the sweep, the Map Lab, CLI and MCP |
-| [54-region-types.md](54-region-types.md) | The region type catalogue, a working draft: each type's role, strategy, core elements, shape needs and material |
+| [54-region-types.md](54-region-types.md) | The region type catalogue: each type's role, strategy, core elements, shape needs and material |
 | [55-zone-plans.md](55-zone-plans.md) | Zone plans, starting with the diamond: the zone grid, mask, tiers, zone sizes, where placement rules anchor, and who authors what |
-| [56-buildings.md](56-buildings.md) | The building library, a request for comments: building designs, their realization in cells, walls from runs, and the build order |
+| [56-buildings.md](56-buildings.md) | The building library, its first milestone implemented: building designs, their realization in cells, walls from runs, and the build order |
 | [56.1-roofs.md](56.1-roofs.md) | Declared roofs: cell-grid geometry, relationship to Building, invariant sight rules, versioning (#292) |
 | [56.2-ground-decals.md](56.2-ground-decals.md) | Ground decals at outside doors and windows: the primitive, derivation, themes, drawing (#293) |
 
@@ -116,7 +116,7 @@ requirements.
 `map/macro/` is the map generator, imported with its history from the former
 `last_exit_map` repository. Its design documentation was folded into 17 and 50–53
 on 2026-09-29. Its former docs are archived in
-`map/macro/docs/archive/pre-integration/`, where they still describe the old paths
-that retire when the chain lands (51). `map/macro/design_notes.txt` is the original
+`map/macro/docs/archive/pre-integration/`, where they describe the old paths
+that were retired when the chain landed (51.14.5, #146). `map/macro/design_notes.txt` is the original
 statement of the map's intent. `map/macro/README.md` covers running it, and
 `map/macro/AGENTS.md` its commands.

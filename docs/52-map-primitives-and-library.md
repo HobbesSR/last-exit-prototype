@@ -172,8 +172,8 @@ one."
   uses, its quota, and the core elements it owns, each with a count per instance
   (a positive whole number, or a count param: `exitCount`, `contestantCount`
   or `hunterCount`).
-  It is the only macro structure the engine treats as first class, and today's
-  code calls it `category`. Where each rule may anchor is the zone plan's (55).
+  It is the only macro structure the engine treats as first class; code calls
+  it `ChainSetPieceClass`, listed in a library's `setPieceClasses`. Where each rule may anchor is the zone plan's (55).
   The shipped 12 × 6 library's classes:
 
 | Set piece class | Rule | Quota | Owns |
@@ -222,8 +222,8 @@ shared map space (51 C0):
 | clearance margin beyond a body's radius | 0.05 |
 
 The shortest portal, `ceil(2 × hunterRadius)`, is 2 (`MIN_PORTAL_LENGTH`).
-The SDK's `cell` profile (`microMetrics`) and mapgen's `DEFAULT_PARAMS` radii
-and `APERTURES` read these. They were the SDK's values. mapgen's radii were
+The SDK's `cell` profile (`microMetrics`) and mapgen's chain stages read these
+from `CELL_SCALE` and `MIN_PORTAL_LENGTH`. They were the SDK's values. mapgen's radii were
 0.55 and 0.90 until C0, and Corey chose the SDK's values with a recaptured
 sweep baseline (17 M5).
 

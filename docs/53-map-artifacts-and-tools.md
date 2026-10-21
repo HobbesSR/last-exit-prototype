@@ -104,7 +104,8 @@ things stay documents.
 
 `node map/tools/cli.mts sweep --check map/tools/fixtures/chain-baseline.json`
 (from the repository root, about 25 s) reruns the pinned seed set and compares
-per-view content hashes: 224 maps, 120 of them game maps, with spreads over
+per-view content hashes: 224 maps, 121 of them default game maps (120 sweep
+seeds and one quick case), with spreads over
 spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
 - Each map's two objects, the Layout and the region results, and every view
   `mapViews` gives (the declared grid, the resolved layout, the regions, the
