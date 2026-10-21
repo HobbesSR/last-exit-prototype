@@ -4,7 +4,6 @@
  * show the same map. Run from the repository root: `node map/tools/tests/lab.browser.mts`.
  */
 import { createRequire } from "node:module";
-import { spawn } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";

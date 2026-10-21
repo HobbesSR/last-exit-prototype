@@ -1,7 +1,7 @@
 import { insideMap, litPoint, visibilityPolygon } from './movement.ts';
 import { MAX_VIEW_HEIGHT, MAX_VIEW_WIDTH, roofConceals } from './view.ts';
 import { nextVersion } from './frame-layers.ts';
-import type { CollisionMap, DiscoveryMemory, DiscoveryWire, GameMap, Gate, GroundItem, ItemId, Player, PlayerId, Role, Vec2, World } from './types.ts';
+import type { CollisionMap, DiscoveryMemory, DiscoveryWire, GameMap, Gate, ItemId, Player, PlayerId, Role, Vec2, World } from './types.ts';
 export type { DiscoveryMemory, DiscoveryWire };
 
 /** The side length of a coarse discovery cell in world units (4 x 48 map cells). */
