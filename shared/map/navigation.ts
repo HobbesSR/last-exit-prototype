@@ -30,6 +30,16 @@ interface NavigationCache {
 
 const navigationCache = new WeakMap<CollisionMap, NavigationCache>();
 
+/** The map's cache, started afresh when its gates or obstacles have changed. */
+function cacheOf(map: CollisionMap): NavigationCache {
+  const gateKey = map.gates.map(g => `${Number(g.open)}${Number(!!g.locked)}`).join('');
+  let cached = navigationCache.get(map);
+  if (!cached || cached.key !== gateKey || cached.obstacles !== map.obstacles || cached.count !== map.obstacles.length) {
+    cached = { key: gateKey, obstacles: map.obstacles, count: map.obstacles.length, grids: new Map<string, number[][]>(), maps: new Map<DoorPermission, CollisionMap>() }; navigationCache.set(map, cached);
+  }
+  return cached;
+}
+
 /**
  * Walkability for PathFinding, as `[y][x]` rows of 0 (walkable) or 1 (blocked).
  *
@@ -38,11 +48,7 @@ const navigationCache = new WeakMap<CollisionMap, NavigationCache>();
  * absolute tiles, and multiplies by `TILE` to reach world space.
  */
 export function navigationGrid(map: CollisionMap, role: Role, bounds: TileRect = { x: 0 as TileIndex, y: 0 as TileIndex, width: Math.ceil(map.width / TILE) as TileCount, height: Math.ceil(map.height / TILE) as TileCount }, openDoors: DoorPermission = false): number[][] {
-  const gateKey = map.gates.map(g => `${Number(g.open)}${Number(!!g.locked)}`).join('');
-  let cached = navigationCache.get(map);
-  if (!cached || cached.key !== gateKey || cached.obstacles !== map.obstacles || cached.count !== map.obstacles.length) {
-    cached = { key: gateKey, obstacles: map.obstacles, count: map.obstacles.length, grids: new Map<string, number[][]>(), maps: new Map<DoorPermission, CollisionMap>() }; navigationCache.set(map, cached);
-  }
+  const cached = cacheOf(map);
   const key = [role, bounds.x, bounds.y, bounds.width, bounds.height, openDoors].join(':');
   count('calls.navigationGrid');
   if (!cached.grids.has(key)) {
@@ -55,10 +61,18 @@ export function navigationGrid(map: CollisionMap, role: Role, bounds: TileRect =
   return cached.grids.get(key)!;
 }
 
+/**
+ * Whether one absolute navigation tile is walkable for a body: the test `navigationGrid` fills its
+ * matrix with, for a search that reads only some tiles of a large rectangle. Not cached.
+ */
+export function tileWalkable(map: CollisionMap, role: Role, openDoors: DoorPermission = false): (x: number, y: number) => boolean {
+  const navMap = navigationMap(map, openDoors), clearance = navigationClearance(role);
+  return (x, y) => canOccupy(navMap, (x + 0.5) * TILE, (y + 0.5) * TILE, clearance);
+}
+
 /** The map a route is planned against: the real one, minus whichever gates the mover may open. */
 function navigationMap(map: CollisionMap, openDoors: DoorPermission): CollisionMap {
-  const cached = navigationCache.get(map);
-  if (!cached) return openDoors ? { ...map, gates: map.gates.filter((g: Gate) => openDoors !== 'all' && g.locked) } : map;
+  const cached = cacheOf(map);
   if (!cached.maps.has(openDoors)) cached.maps.set(openDoors, openDoors ? { ...map, gates: map.gates.filter((g: Gate) => openDoors !== 'all' && g.locked) } : map);
   return cached.maps.get(openDoors)!;
 }
