@@ -8,4 +8,4 @@ Closed vocabularies are literal unions rather than `string`, carried items are a
 
 `erasableSyntaxOnly` and `exactOptionalPropertyTypes` are on; `noUncheckedIndexedAccess` is not. Enabling it is worthwhile and is deliberately left as separate work: this codebase indexes arrays constantly, and the change belongs in a pass that can consider each site rather than one that sprays assertions.
 
-Conversion covered `shared/` only. `server/`, `public/` and `tests/` remain JavaScript and are not type checked; they import the shared modules by their `.ts` specifiers, which Node and the asset route both resolve.
+The original conversion covered `shared/` only. `npm run typecheck` now checks two configurations: the root `tsconfig.json` (`shared/`, `map/micro/`, `map/kernel/` and the top-level `map/*.ts`), and `map/tools/tsconfig.json` (the tools, and what they import). `map/macro/` typechecks in its own `npm test`. `server/`, `public/` and `tests/` remain JavaScript and are not type checked; they import the shared modules by their `.ts` specifiers, which Node and the asset route both resolve.
