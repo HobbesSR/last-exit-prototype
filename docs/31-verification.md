@@ -278,11 +278,13 @@ establishes nothing about the reported slowdown.
 loot, region/tier ownership, determinism and JSON prediction agreement. The
 boundary tests cover concave edges, holes and whole-body clearance while pinning
 legacy diamond movement. `tests/slow/live-map.test.js` plays combat-neutralized
-bots through all three extraction slots on seeds 1, 9 and 4217. Transit strategy
+bots through all three extraction slots on seeds 1, 9 and 4217, each bounded by
+the match duration so a stalled match fails rather than hangs. Transit strategy
 and macro library tests check hunter access, standing space, six separate owned
 regions and longitudinal distribution. `tests/slow/room-sizes.test.js` runs a bot
-match to its end in a room at each authored size (14), checks every tick was
-recorded in order, and reads sparse frames back through the replay timeline; it
+match to its end in a room at each authored size (14), the owner disconnected and
+an owner spectator keeping it from abandonment, checks each tick reaches the
+recorder once and in order, and reads sparse frames back through the replay timeline; it
 takes about 11 s, 1 min and 4.5 min at 12 × 6, 24 × 12 and 36 × 18. Only 12 × 6 runs
 by default, since the larger sizes rarely find what it misses; set `ROOM_SIZES` when a change
 targets size-dependent generation, room limits or recording. These samples do not establish human balance or
