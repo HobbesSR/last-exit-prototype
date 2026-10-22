@@ -173,6 +173,10 @@ benchmarks only: another agent's `npm test` or browser run can still overlap a
 timing run. Treat an unexpected regression as possibly contended, and repeat it
 before reporting it.
 
+Owner-probe socket resets are ignored: a waiting process may time out its probe
+while the holder is CPU-bound, and that diagnostic disconnect must not crash the
+holder (#437).
+
 `npm run bench:client` runs a client render and network benchmark in Chrome.
 Options include `--seconds=<N>`, `--headed`, `--location=dense|crowded|offscreen`
 to arrange entity crowds, and `--spectator` (`node tests/bench-client.mjs --spectator`)
