@@ -37,6 +37,17 @@ export interface PortalGraph {
   portals: PortalNode[];
 }
 
+const attached = new WeakMap<object, PortalGraph>();
+
+/**
+ * Give a map its portal graph as a runtime resource (22.6): held beside the map object, never as
+ * one of its fields, so no projection, snapshot, recording or clone carries it. A map that crosses
+ * a worker arrives without it, and its receiver attaches what was posted alongside.
+ */
+export function attachPortalGraph(map: object, graph: PortalGraph): void { attached.set(map, graph); }
+/** The portal graph attached to a map, or undefined: a map without regions, such as `content-1`'s. */
+export function portalGraphOf(map: object): PortalGraph | undefined { return attached.get(map); }
+
 /** The region a world point lies in, or -1 outside every region. */
 export function regionAt(graph: PortalGraph, point: Vec2): number {
   const col = Math.floor(point.x / graph.cellSize), row = Math.floor(point.y / graph.cellSize);

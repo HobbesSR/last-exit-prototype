@@ -1,5 +1,5 @@
-import { TILE } from '../movement.ts';
-import { moveClear, stepClear, tileWalkable } from '../map/navigation.ts';
+import { bodyRadius, TILE } from '../movement.ts';
+import { moveClear, tileWalkable } from '../map/navigation.ts';
 import { nearestTile } from '../map/route.ts';
 import type { CollisionMap, DoorPermission, Role, TileCount, TileIndex, TileRect, TileStep, Vec2, World } from '../types.ts';
 import type { PortalGraph, Reach } from './portal-graph.ts';
@@ -87,12 +87,16 @@ const FORWARD = [0, 2, 4, 5], OPPOSITE = [1, 0, 3, 2, 7, 6, 5, 4];
  * Distances over the grid for one body, with the door permission today's planner uses. Moves
  * are the eight neighbours `gridRoute`'s finder takes, a diagonal only where both sides of its
  * corner are walkable, here within the region's tiles, and every one swept, so a distance is a
- * route the body can travel (22.6, "Safety"). A portal's stands and crossings must also sweep
- * clear to the tile they snap to; other points, such as a bot pressed against a wall, snap as
- * `gridRoute` does.
+ * route the body can travel (22.6, "Safety"). So is every endpoint's connector to the tile it
+ * snaps to, or that endpoint is unreachable: a portal's stands and crossings at navigation
+ * clearance, and any other point, such as a bot pressed against a wall, at the body's own
+ * collision radius, since the body is already there. Snapping searches outward as `gridRoute`'s
+ * does, taking the first tile whose connector sweeps clear, so a fallback tile across a wall is
+ * never counted.
  */
 export function gridReach(map: CollisionMap, role: Role, graph: PortalGraph, openDoors: DoorPermission = true): Reach {
   const ready = new Map<number, RegionTiles>(), walkable = tileWalkable(map, role, openDoors), clear = moveClear(map, role, openDoors);
+  const bodyClear = moveClear(map, role, openDoors, bodyRadius({ role }));
   const strict = new Set(graph.portals.flatMap(p => [p, ...p.stands]).map(p => `${p.x},${p.y}`));
   const tilesOf = (region: number): RegionTiles => {
     let found = ready.get(region);
@@ -109,12 +113,13 @@ export function gridReach(map: CollisionMap, role: Role, graph: PortalGraph, ope
       const key = `${point.x},${point.y}`;
       let index = area.snapped.get(key);
       if (index === undefined) {
-        // `gridRoute`'s snapping, over the region's tiles: so the two agree on where an endpoint starts.
         const inside = (tx: number, ty: number) => tx >= 0 && ty >= 0 && tx < width && ty < bounds.height && area.compact[ty * width + tx]! >= 0;
         const local = { x: point.x - bounds.x * TILE, y: point.y - bounds.y * TILE };
-        const t = nearestTile(inside, local, c => stepClear(map, openDoors, point, { x: c.x + bounds.x * TILE, y: c.y + bounds.y * TILE }));
+        const connects = strict.has(key) ? clear : bodyClear;
+        const t = nearestTile(inside, local, c => connects(point, { x: c.x + bounds.x * TILE, y: c.y + bounds.y * TILE }));
         index = inside(t.x, t.y) ? area.compact[t.y * width + t.x]! : -1;
-        if (index >= 0 && strict.has(key) && !clear(point, centre(area.tiles[index]!))) index = -1;
+        // `nearestTile` takes the point's own tile, or its first walkable fallback, unchecked.
+        if (index >= 0 && !connects(point, centre(area.tiles[index]!))) index = -1;
         area.snapped.set(key, index);
       }
       return index;

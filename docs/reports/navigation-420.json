@@ -1,6 +1,6 @@
 {
-  "revision": "c666bd464f2be3c8e17a0aadbacfba6ac1bf8347",
-  "created": "2026-10-22T00:45:40.406Z",
+  "revision": "a2426631bd25301a9c0f7e8d71371af1cd1f0b4b",
+  "created": "2026-10-22T01:44:12.005Z",
   "node": "v24.15.0",
   "platform": "win32",
   "arch": "x64",
@@ -9,18 +9,18 @@
   "totalMemory": 68638261248,
   "sourceHashes": {
     "map/navigation.ts": "b0e5dadd0f428eec55b7e1be5762b60d5c479a1b725be3210cbf4a0cefd2b3ad",
-    "shared/navigation/portal-graph.ts": "b364159e85b68ee8ed9bc6d8569635c96da0d189f06c61895602c493bdf780f4",
-    "shared/navigation/grid-level.ts": "c83854979b108fffc94ad1e6721cf26a6c15ad79a7326ea8665dade701b91edc",
+    "shared/navigation/portal-graph.ts": "0c8a5dacc9f4bc1cfdb231768bc5855b3143c17dfb346f45a8acf77cffa2e3bf",
+    "shared/navigation/grid-level.ts": "716e8a04957ace881e7877394aad44b1cb53862b973064be1546b15bcfa4cb9c",
     "shared/movement.ts": "bfec945ef6d72b35560309486dc92a735c3336f31cceed0997a5fd8c514bb2da",
-    "shared/map/navigation.ts": "d5ec8251a0f14d374ce044a160425ae5f8f899926e637ef149630496f56aed58",
+    "shared/map/navigation.ts": "b5e909933a94a862e1591a6fde55e7f88d1ede9803de86d7edbf55fe21b016a9",
     "tools/navigation/portal-report.mjs": "fa069928e75ad507d612fc7b5574e47ff33cf9cd31ed1a36a8eb84ab6d74b0df"
   },
   "maps": [
     {
       "size": "12x6",
       "seed": 1,
-      "generationMs": 1265.3629999999998,
-      "graphMs": 14.083000000000084,
+      "generationMs": 1220.6635,
+      "graphMs": 12.271299999999883,
       "regions": 311,
       "portals": 996,
       "promisedPairs": 12367,
@@ -29,18 +29,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 414.23620000000005,
+              "tablesMs": 394.7152000000001,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 313.0265999999999,
+              "standsMs": 290.6426999999999,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 284.57490000000007,
+              "tablesMs": 280.68139999999994,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 213.5965000000001,
+              "standsMs": 206.38779999999997,
               "dividedPortals": 0,
               "divided": []
             }
@@ -51,15 +51,15 @@
               "length": 17223.342557091768,
               "waypoints": 20,
               "hierarchyMs": [
-                4.406399999999849,
-                1.1230999999997948,
-                0.7979999999997744
+                4.859100000000126,
+                1.1347999999998137,
+                0.8244999999997162
               ],
-              "hierarchyMedianMs": 1.1230999999997948,
-              "fineMs": 28.396000000000186,
+              "hierarchyMedianMs": 1.1347999999998137,
+              "fineMs": 22.290199999999913,
               "fineLength": 16444.162713799695,
               "stretch": 1.0473833698226664,
-              "windowedMs": 7.29989999999998,
+              "windowedMs": 6.442700000000059,
               "windowedFound": true,
               "distance": 16344.158589538954
             },
@@ -68,15 +68,15 @@
               "length": 747.4112549695428,
               "waypoints": 1,
               "hierarchyMs": [
-                0.850800000000163,
-                0.18739999999979773,
-                0.1048000000000684
+                0.18869999999969878,
+                0.0751999999997679,
+                0.057299999999941065
               ],
-              "hierarchyMedianMs": 0.18739999999979773,
-              "fineMs": 1.5835000000001855,
+              "hierarchyMedianMs": 0.0751999999997679,
+              "fineMs": 0.8753999999998996,
               "fineLength": 747.4112549695428,
               "stretch": 1,
-              "windowedMs": 0.45650000000023283,
+              "windowedMs": 0.45269999999982247,
               "windowedFound": true,
               "distance": 691.0166423466225
             },
@@ -85,15 +85,15 @@
               "length": 325.77079481390683,
               "waypoints": 1,
               "hierarchyMs": [
-                0.11029999999982465,
-                0.07249999999976353,
-                0.07450000000017099
+                0.11439999999993233,
+                0.07690000000002328,
+                0.06989999999996144
               ],
-              "hierarchyMedianMs": 0.07450000000017099,
-              "fineMs": 0.7244999999998072,
+              "hierarchyMedianMs": 0.07690000000002328,
+              "fineMs": 0.930699999999888,
               "fineLength": 307.44193131986344,
               "stretch": 1.059617318351328,
-              "windowedMs": 0.3061000000002423,
+              "windowedMs": 0.28749999999990905,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -102,18 +102,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 398.2858000000001,
+              "tablesMs": 396.39879999999994,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 335.3962999999999,
+              "standsMs": 401.1781000000001,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 308.09550000000036,
+              "tablesMs": 329.5164999999997,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 241.36940000000004,
+              "standsMs": 251.1287000000002,
               "dividedPortals": 0,
               "divided": []
             }
@@ -124,15 +124,15 @@
               "length": 17223.342557091768,
               "waypoints": 20,
               "hierarchyMs": [
-                3.050299999999879,
-                0.8078999999997905,
-                0.5177999999996246
+                3.5028000000002066,
+                1.423500000000331,
+                0.49719999999979336
               ],
-              "hierarchyMedianMs": 0.8078999999997905,
-              "fineMs": 22.103900000000067,
+              "hierarchyMedianMs": 1.423500000000331,
+              "fineMs": 22.901099999999587,
               "fineLength": 16477.29979878954,
               "stretch": 1.045277003356887,
-              "windowedMs": 5.645900000000438,
+              "windowedMs": 6.516200000000026,
               "windowedFound": true,
               "distance": 16344.158589538954
             },
@@ -141,15 +141,15 @@
               "length": 747.4112549695428,
               "waypoints": 1,
               "hierarchyMs": [
-                0.15079999999943539,
-                0.0658000000003085,
-                0.057800000000497676
+                0.141500000000633,
+                0.09519999999974971,
+                0.08489999999983411
               ],
-              "hierarchyMedianMs": 0.0658000000003085,
-              "fineMs": 1.3807999999999083,
+              "hierarchyMedianMs": 0.09519999999974971,
+              "fineMs": 0.6579000000001543,
               "fineLength": 747.4112549695428,
               "stretch": 1,
-              "windowedMs": 0.5090000000000146,
+              "windowedMs": 0.8287000000000262,
               "windowedFound": true,
               "distance": 691.0166423466225
             },
@@ -158,15 +158,15 @@
               "length": 325.77079481390683,
               "waypoints": 1,
               "hierarchyMs": [
-                0.09699999999975262,
-                0.07119999999940774,
-                0.06660000000010768
+                0.14649999999983265,
+                0.11799999999948341,
+                0.113999999999578
               ],
-              "hierarchyMedianMs": 0.07119999999940774,
-              "fineMs": 0.49140000000079453,
+              "hierarchyMedianMs": 0.11799999999948341,
+              "fineMs": 0.7847000000001572,
               "fineLength": 307.44193131986344,
               "stretch": 1.059617318351328,
-              "windowedMs": 0.2960000000002765,
+              "windowedMs": 0.5294000000003507,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -177,8 +177,8 @@
     {
       "size": "12x6",
       "seed": 2,
-      "generationMs": 1045.7380999999996,
-      "graphMs": 12.080500000000029,
+      "generationMs": 1302.2032999999992,
+      "graphMs": 17.9367000000002,
       "regions": 286,
       "portals": 950,
       "promisedPairs": 14758,
@@ -187,18 +187,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 438.08519999999953,
+              "tablesMs": 500.77480000000014,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 335.5620999999992,
+              "standsMs": 369.9449000000004,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 297.10229999999956,
+              "tablesMs": 368.58560000000034,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 206.51140000000032,
+              "standsMs": 259.0796,
               "dividedPortals": 0,
               "divided": []
             }
@@ -209,15 +209,15 @@
               "length": 17043.88049055839,
               "waypoints": 23,
               "hierarchyMs": [
-                2.2193999999999505,
-                0.36569999999937863,
-                0.3382000000001426
+                2.9263999999993757,
+                0.9284000000006927,
+                1.0443999999997686
               ],
-              "hierarchyMedianMs": 0.36569999999937863,
-              "fineMs": 18.600900000000365,
+              "hierarchyMedianMs": 1.0443999999997686,
+              "fineMs": 20.356700000000274,
               "fineLength": 16351.629658416468,
               "stretch": 1.0423352807397768,
-              "windowedMs": 4.844999999999345,
+              "windowedMs": 5.689399999999296,
               "windowedFound": true,
               "distance": 16202.559797760352
             },
@@ -226,15 +226,15 @@
               "length": 420.1627137996935,
               "waypoints": 1,
               "hierarchyMs": [
-                0.14810000000034051,
-                0.06199999999989814,
-                0.04610000000047876
+                0.10580000000027212,
+                0.06280000000060681,
+                0.04820000000017899
               ],
-              "hierarchyMedianMs": 0.06199999999989814,
-              "fineMs": 0.5583999999998923,
+              "hierarchyMedianMs": 0.06280000000060681,
+              "fineMs": 0.5340000000005602,
               "fineLength": 407.2440322567695,
               "stretch": 1.031722212039141,
-              "windowedMs": 0.2879000000002634,
+              "windowedMs": 0.5673999999999069,
               "windowedFound": true,
               "distance": 366.34410053936995
             },
@@ -243,15 +243,15 @@
               "length": 375.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.08280000000013388,
-                0.05940000000009604,
-                0.052400000000488944
+                0.12520000000040454,
+                0.10019999999985885,
+                0.0941000000002532
               ],
-              "hierarchyMedianMs": 0.05940000000009604,
-              "fineMs": 0.5562999999992826,
+              "hierarchyMedianMs": 0.10019999999985885,
+              "fineMs": 0.5195000000003347,
               "fineLength": 341.4129526986357,
               "stretch": 1.0989505715211625,
-              "windowedMs": 0.31080000000019936,
+              "windowedMs": 0.38040000000000873,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -260,18 +260,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 442.16629999999986,
+              "tablesMs": 461.5207999999993,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 364.1319999999996,
+              "standsMs": 351.95890000000054,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 341.5110000000004,
+              "tablesMs": 330.83290000000034,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 238.5635000000002,
+              "standsMs": 238.33400000000074,
               "dividedPortals": 0,
               "divided": []
             }
@@ -282,15 +282,15 @@
               "length": 17043.88049055839,
               "waypoints": 23,
               "hierarchyMs": [
-                2.789099999999962,
-                0.9021999999995387,
-                0.5987999999997555
+                2.620599999998376,
+                0.8634000000001834,
+                0.5684000000001106
               ],
-              "hierarchyMedianMs": 0.9021999999995387,
-              "fineMs": 22.230099999999766,
+              "hierarchyMedianMs": 0.8634000000001834,
+              "fineMs": 22.61449999999968,
               "fineLength": 16351.62965841647,
               "stretch": 1.0423352807397765,
-              "windowedMs": 5.685199999999895,
+              "windowedMs": 5.787599999999657,
               "windowedFound": true,
               "distance": 16202.559797760352
             },
@@ -299,15 +299,15 @@
               "length": 420.1627137996935,
               "waypoints": 1,
               "hierarchyMs": [
-                0.09749999999985448,
-                0.05540000000019063,
-                0.04389999999966676
+                0.12820000000101572,
+                0.11219999999957508,
+                0.08699999999953434
               ],
-              "hierarchyMedianMs": 0.05540000000019063,
-              "fineMs": 0.6046000000005733,
+              "hierarchyMedianMs": 0.11219999999957508,
+              "fineMs": 0.8307999999997264,
               "fineLength": 407.2440322567695,
               "stretch": 1.031722212039141,
-              "windowedMs": 0.32989999999972497,
+              "windowedMs": 0.6204999999990832,
               "windowedFound": true,
               "distance": 366.34410053936995
             },
@@ -316,15 +316,15 @@
               "length": 375.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.07459999999991851,
-                0.058399999999892316,
-                0.059200000000600994
+                0.12010000000009313,
+                0.0911999999989348,
+                0.08810000000084983
               ],
-              "hierarchyMedianMs": 0.059200000000600994,
-              "fineMs": 0.6015000000006694,
+              "hierarchyMedianMs": 0.0911999999989348,
+              "fineMs": 0.8581000000012864,
               "fineLength": 341.4129526986357,
               "stretch": 1.0989505715211625,
-              "windowedMs": 0.3162000000002081,
+              "windowedMs": 0.631600000000617,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -335,8 +335,8 @@
     {
       "size": "12x6",
       "seed": 3,
-      "generationMs": 790.7302000000009,
-      "graphMs": 13.328100000000632,
+      "generationMs": 960.4855000000007,
+      "graphMs": 13.81800000000112,
       "regions": 272,
       "portals": 962,
       "promisedPairs": 23151,
@@ -345,18 +345,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 415.15819999999985,
+              "tablesMs": 449.676300000001,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 285.46240000000034,
+              "standsMs": 306.0479000000014,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 336.7400999999991,
+              "tablesMs": 329.15639999999985,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 214.95480000000134,
+              "standsMs": 219.35000000000036,
               "dividedPortals": 0,
               "divided": []
             }
@@ -367,15 +367,15 @@
               "length": 17242.04956088526,
               "waypoints": 17,
               "hierarchyMs": [
-                3.1820999999999913,
-                1.0321999999996478,
-                0.7919000000001688
+                3.261500000000524,
+                1.6536999999989348,
+                1.6388999999999214
               ],
-              "hierarchyMedianMs": 1.0321999999996478,
-              "fineMs": 18.511399999999412,
+              "hierarchyMedianMs": 1.6536999999989348,
+              "fineMs": 18.834500000000844,
               "fineLength": 16626.497783593513,
               "stretch": 1.0370223353891854,
-              "windowedMs": 3.8040000000000873,
+              "windowedMs": 3.8682000000007974,
               "windowedFound": true,
               "distance": 16560.626075121676
             },
@@ -384,15 +384,15 @@
               "length": 666.842712474619,
               "waypoints": 1,
               "hierarchyMs": [
-                0.1323999999985972,
-                0.07009999999900174,
-                0.058699999999589636
+                0.16519999999945867,
+                0.11989999999968859,
+                0.10959999999977299
               ],
-              "hierarchyMedianMs": 0.07009999999900174,
-              "fineMs": 0.8186999999998079,
+              "hierarchyMedianMs": 0.11989999999968859,
+              "fineMs": 0.8575000000000728,
               "fineLength": 650.842712474619,
               "stretch": 1.0245835125650637,
-              "windowedMs": 0.33620000000155414,
+              "windowedMs": 0.4448000000011234,
               "windowedFound": true,
               "distance": 592.7562736909665
             },
@@ -401,15 +401,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.10639999999875727,
-                0.07380000000011933,
-                0.06300000000010186
+                0.0941000000002532,
+                0.07049999999981083,
+                0.06130000000121072
               ],
-              "hierarchyMedianMs": 0.07380000000011933,
-              "fineMs": 0.592000000000553,
+              "hierarchyMedianMs": 0.07049999999981083,
+              "fineMs": 0.5975999999991473,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.3058000000000902,
+              "windowedMs": 0.2931000000007771,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -418,18 +418,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 434.564699999999,
+              "tablesMs": 445.78189999999995,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 336.7516999999989,
+              "standsMs": 332.9233000000004,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 350.7655999999988,
+              "tablesMs": 344.2605999999996,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 234.46330000000125,
+              "standsMs": 238.29620000000068,
               "dividedPortals": 0,
               "divided": []
             }
@@ -440,15 +440,15 @@
               "length": 17242.04956088526,
               "waypoints": 17,
               "hierarchyMs": [
-                3.0851000000002387,
-                0.7759999999998399,
-                0.8088000000007014
+                3.183899999999994,
+                0.5379000000011729,
+                0.5210000000006403
               ],
-              "hierarchyMedianMs": 0.8088000000007014,
-              "fineMs": 20.8770999999997,
+              "hierarchyMedianMs": 0.5379000000011729,
+              "fineMs": 23.366100000001097,
               "fineLength": 16626.497783593513,
               "stretch": 1.0370223353891854,
-              "windowedMs": 5.150799999999435,
+              "windowedMs": 5.036199999998644,
               "windowedFound": true,
               "distance": 16560.626075121676
             },
@@ -457,15 +457,15 @@
               "length": 666.842712474619,
               "waypoints": 1,
               "hierarchyMs": [
-                0.12049999999908323,
-                0.06820000000152504,
-                0.061700000000200816
+                0.12129999999888241,
+                0.06940000000031432,
+                0.056900000001405715
               ],
-              "hierarchyMedianMs": 0.06820000000152504,
-              "fineMs": 1.5357000000003609,
+              "hierarchyMedianMs": 0.06940000000031432,
+              "fineMs": 0.6144999999996799,
               "fineLength": 650.842712474619,
               "stretch": 1.0245835125650637,
-              "windowedMs": 0.42999999999847205,
+              "windowedMs": 0.37849999999889405,
               "windowedFound": true,
               "distance": 592.7562736909665
             },
@@ -474,15 +474,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.12219999999979336,
-                0.07490000000143482,
-                0.06309999999939464
+                0.08760000000074797,
+                0.06809999999859428,
+                0.05980000000090513
               ],
-              "hierarchyMedianMs": 0.07490000000143482,
-              "fineMs": 1.0169999999998254,
+              "hierarchyMedianMs": 0.06809999999859428,
+              "fineMs": 0.592000000000553,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.381600000000617,
+              "windowedMs": 0.3539999999993597,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -493,8 +493,8 @@
     {
       "size": "12x6",
       "seed": 4,
-      "generationMs": 955.8558999999987,
-      "graphMs": 13.127300000000105,
+      "generationMs": 1079.4171999999999,
+      "graphMs": 14.668000000001484,
       "regions": 300,
       "portals": 954,
       "promisedPairs": 10903,
@@ -503,18 +503,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 474.0408000000007,
+              "tablesMs": 451.9008999999987,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 414.7652999999991,
+              "standsMs": 417.02869999999893,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 279.4853999999996,
+              "tablesMs": 290.4628999999986,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 208.20839999999953,
+              "standsMs": 211.97179999999935,
               "dividedPortals": 0,
               "divided": []
             }
@@ -525,15 +525,15 @@
               "length": 17590.642623520907,
               "waypoints": 20,
               "hierarchyMs": [
-                2.7898000000004686,
-                1.0434999999997672,
-                0.45820000000094296
+                2.9648999999990338,
+                0.9263000000009924,
+                0.6126000000003842
               ],
-              "hierarchyMedianMs": 1.0434999999997672,
-              "fineMs": 20.52089999999953,
+              "hierarchyMedianMs": 0.9263000000009924,
+              "fineMs": 19.915399999999863,
               "fineLength": 16728.198200911393,
               "stretch": 1.0515563249700453,
-              "windowedMs": 5.689399999999296,
+              "windowedMs": 6.19839999999931,
               "windowedFound": true,
               "distance": 16563.912581271372
             },
@@ -542,15 +542,15 @@
               "length": 850.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.09840000000076543,
-                0.05520000000069558,
-                0.047599999999874854
+                0.10930000000007567,
+                0.05739999999968859,
+                0.04930000000058499
               ],
-              "hierarchyMedianMs": 0.05520000000069558,
-              "fineMs": 0.5727999999999156,
+              "hierarchyMedianMs": 0.05739999999968859,
+              "fineMs": 0.6340000000000146,
               "fineLength": 818.4570863149221,
               "stretch": 1.0390979570402146,
-              "windowedMs": 0.2789999999986321,
+              "windowedMs": 0.27070000000094296,
               "windowedFound": true,
               "distance": 792.3635529225205
             },
@@ -559,15 +559,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.07710000000042783,
-                0.05229999999937718,
-                0.046900000001187436
+                0.08009999999922002,
+                0.05280000000129803,
+                0.043900000000576256
               ],
-              "hierarchyMedianMs": 0.05229999999937718,
-              "fineMs": 1.7727000000013504,
+              "hierarchyMedianMs": 0.05280000000129803,
+              "fineMs": 0.5042000000012195,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.32330000000001746,
+              "windowedMs": 0.2894000000014785,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -576,18 +576,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 498.0534000000007,
+              "tablesMs": 513.8972000000012,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 443.09109999999964,
+              "standsMs": 567.0256000000008,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 295.29110000000037,
+              "tablesMs": 347.07840000000033,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 234.20559999999932,
+              "standsMs": 263.10349999999926,
               "dividedPortals": 0,
               "divided": []
             }
@@ -598,15 +598,15 @@
               "length": 17590.642623520907,
               "waypoints": 20,
               "hierarchyMs": [
-                2.326600000000326,
-                0.504399999999805,
-                0.395699999999124
+                2.6484999999993306,
+                0.8244999999988067,
+                0.5912000000007538
               ],
-              "hierarchyMedianMs": 0.504399999999805,
-              "fineMs": 24.90990000000056,
+              "hierarchyMedianMs": 0.8244999999988067,
+              "fineMs": 23.78559999999925,
               "fineLength": 16728.198200911393,
               "stretch": 1.0515563249700453,
-              "windowedMs": 6.737500000001091,
+              "windowedMs": 6.768100000001141,
               "windowedFound": true,
               "distance": 16563.912581271372
             },
@@ -615,15 +615,15 @@
               "length": 850.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.1073000000014872,
-                0.05069999999977881,
-                0.04309999999895808
+                0.1103000000002794,
+                0.055100000001402805,
+                0.04609999999956926
               ],
-              "hierarchyMedianMs": 0.05069999999977881,
-              "fineMs": 0.5472000000008848,
+              "hierarchyMedianMs": 0.055100000001402805,
+              "fineMs": 0.6683000000011816,
               "fineLength": 818.4570863149221,
               "stretch": 1.0390979570402146,
-              "windowedMs": 0.4981999999999971,
+              "windowedMs": 0.31750000000101863,
               "windowedFound": true,
               "distance": 792.3635529225205
             },
@@ -632,15 +632,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.0771999999997206,
-                0.05129999999917345,
-                0.04349999999976717
+                0.07930000000123982,
+                0.05219999999826541,
+                0.0433999999986554
               ],
-              "hierarchyMedianMs": 0.05129999999917345,
-              "fineMs": 0.524199999999837,
+              "hierarchyMedianMs": 0.05219999999826541,
+              "fineMs": 1.9955000000009022,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.36710000000130094,
+              "windowedMs": 0.3631999999997788,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -651,8 +651,8 @@
     {
       "size": "12x6",
       "seed": 5,
-      "generationMs": 987.6418000000012,
-      "graphMs": 11.83140000000094,
+      "generationMs": 1139.597700000002,
+      "graphMs": 12.543499999999767,
       "regions": 287,
       "portals": 951,
       "promisedPairs": 12122,
@@ -661,18 +661,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 472.34450000000106,
+              "tablesMs": 492.774599999997,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 426.3788999999997,
+              "standsMs": 437.45280000000275,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 271.5640999999996,
+              "tablesMs": 320.70750000000044,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 212.60970000000088,
+              "standsMs": 240.39029999999912,
               "dividedPortals": 0,
               "divided": []
             }
@@ -683,15 +683,15 @@
               "length": 17481.52713697422,
               "waypoints": 18,
               "hierarchyMs": [
-                4.080500000000029,
-                1.0921000000016647,
-                1.046200000000681
+                6.5525999999990745,
+                1.0319000000017695,
+                0.9775000000008731
               ],
-              "hierarchyMedianMs": 1.0921000000016647,
-              "fineMs": 24.71059999999852,
+              "hierarchyMedianMs": 1.0319000000017695,
+              "fineMs": 29.719200000003184,
               "fineLength": 16704.870013777632,
               "stretch": 1.0464928564278575,
-              "windowedMs": 8.253000000000611,
+              "windowedMs": 9.54780000000028,
               "windowedFound": true,
               "distance": 16202.559797760352
             },
@@ -700,15 +700,15 @@
               "length": 370.2741699796952,
               "waypoints": 1,
               "hierarchyMs": [
-                0.13130000000091968,
-                0.06929999999920256,
-                0.05830000000059954
+                0.14359999999942374,
+                0.07019999999829452,
+                0.0591999999996915
               ],
-              "hierarchyMedianMs": 0.06929999999920256,
-              "fineMs": 0.5334000000002561,
+              "hierarchyMedianMs": 0.07019999999829452,
+              "fineMs": 0.7669999999998254,
               "fineLength": 363.0663260884375,
               "stretch": 1.0198526918453517,
-              "windowedMs": 0.29640000000290456,
+              "windowedMs": 0.3811999999998079,
               "windowedFound": true,
               "distance": 312.9217154497271
             },
@@ -717,15 +717,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.09270000000105938,
-                0.07010000000082073,
-                0.062000000001717126
+                0.11609999999927823,
+                0.07519999999931315,
+                0.06520000000091386
               ],
-              "hierarchyMedianMs": 0.07010000000082073,
-              "fineMs": 0.5080000000016298,
+              "hierarchyMedianMs": 0.07519999999931315,
+              "fineMs": 0.7242000000005646,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.33739999999670545,
+              "windowedMs": 0.3775999999998021,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -734,18 +734,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 497.4429000000018,
+              "tablesMs": 586.4958999999981,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 437.90429999999833,
+              "standsMs": 514.9611000000004,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 297.1828999999998,
+              "tablesMs": 334.7600999999995,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 237.8233999999975,
+              "standsMs": 267.05449999999837,
               "dividedPortals": 0,
               "divided": []
             }
@@ -756,15 +756,15 @@
               "length": 17481.52713697422,
               "waypoints": 18,
               "hierarchyMs": [
-                3.8654999999998836,
-                1.1866999999983818,
-                0.5946000000003551
+                3.1044999999976426,
+                0.7698999999993248,
+                0.8171000000002095
               ],
-              "hierarchyMedianMs": 1.1866999999983818,
-              "fineMs": 26.314800000000105,
+              "hierarchyMedianMs": 0.8171000000002095,
+              "fineMs": 32.294200000000274,
               "fineLength": 16704.870013777632,
               "stretch": 1.0464928564278575,
-              "windowedMs": 9.487300000000687,
+              "windowedMs": 10.404699999999139,
               "windowedFound": true,
               "distance": 16202.559797760352
             },
@@ -773,15 +773,15 @@
               "length": 370.2741699796952,
               "waypoints": 1,
               "hierarchyMs": [
-                0.15079999999943539,
-                0.06790000000182772,
-                0.08819999999832362
+                0.15260000000125729,
+                0.066900000001624,
+                0.0977999999995518
               ],
-              "hierarchyMedianMs": 0.08819999999832362,
-              "fineMs": 0.5867999999973108,
+              "hierarchyMedianMs": 0.0977999999995518,
+              "fineMs": 0.5627000000022235,
               "fineLength": 363.0663260884375,
               "stretch": 1.0198526918453517,
-              "windowedMs": 0.7540999999982887,
+              "windowedMs": 0.408899999998539,
               "windowedFound": true,
               "distance": 312.9217154497271
             },
@@ -790,15 +790,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.09039999999731663,
-                0.06589999999778229,
-                0.06179999999949359
+                0.09210000000166474,
+                0.07289999999920838,
+                0.0632000000005064
               ],
-              "hierarchyMedianMs": 0.06589999999778229,
-              "fineMs": 0.7471000000005006,
+              "hierarchyMedianMs": 0.07289999999920838,
+              "fineMs": 0.6002000000007683,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.4249000000017986,
+              "windowedMs": 0.4353999999984808,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -809,8 +809,8 @@
     {
       "size": "12x6",
       "seed": 6,
-      "generationMs": 941.3733999999968,
-      "graphMs": 13.617699999998877,
+      "generationMs": 1100.3567999999977,
+      "graphMs": 12.816999999999098,
       "regions": 283,
       "portals": 934,
       "promisedPairs": 12341,
@@ -819,18 +819,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 447.6147000000019,
+              "tablesMs": 467.6769999999997,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 381.77160000000003,
+              "standsMs": 397.08790000000226,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 264.3771000000015,
+              "tablesMs": 286.53830000000016,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 205.10540000000037,
+              "standsMs": 234.78159999999843,
               "dividedPortals": 0,
               "divided": []
             }
@@ -841,15 +841,15 @@
               "length": 17185.189723871776,
               "waypoints": 21,
               "hierarchyMs": [
-                2.769400000001042,
-                0.7890000000006694,
-                0.8091999999996915
+                2.1965999999993073,
+                0.32890000000043074,
+                0.3224000000009255
               ],
-              "hierarchyMedianMs": 0.8091999999996915,
-              "fineMs": 19.9429999999993,
+              "hierarchyMedianMs": 0.32890000000043074,
+              "fineMs": 20.782500000001164,
               "fineLength": 16550.452168355558,
               "stretch": 1.0383516745681327,
-              "windowedMs": 7.091300000000047,
+              "windowedMs": 7.247299999999086,
               "windowedFound": true,
               "distance": 16202.559797760352
             },
@@ -858,15 +858,15 @@
               "length": 420.1627137996935,
               "waypoints": 1,
               "hierarchyMs": [
-                0.10719999999855645,
-                0.05760000000009313,
-                0.049399999999877764
+                0.11739999999917927,
+                0.05679999999847496,
+                0.047599999998055864
               ],
-              "hierarchyMedianMs": 0.05760000000009313,
-              "fineMs": 0.5397999999986496,
+              "hierarchyMedianMs": 0.05679999999847496,
+              "fineMs": 0.6643000000003667,
               "fineLength": 407.2440322567695,
               "stretch": 1.031722212039141,
-              "windowedMs": 0.33580000000074506,
+              "windowedMs": 0.2786999999989348,
               "windowedFound": true,
               "distance": 366.34410053936995
             },
@@ -875,15 +875,15 @@
               "length": 375.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.08269999999902211,
-                0.06190000000060536,
-                0.05130000000281143
+                0.08770000000004075,
+                0.05699999999706051,
+                0.049399999999877764
               ],
-              "hierarchyMedianMs": 0.06190000000060536,
-              "fineMs": 0.5940000000009604,
+              "hierarchyMedianMs": 0.05699999999706051,
+              "fineMs": 0.7528999999994994,
               "fineLength": 341.4129526986357,
               "stretch": 1.0989505715211625,
-              "windowedMs": 0.27639999999883,
+              "windowedMs": 0.2793999999994412,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -892,18 +892,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 457.8040000000001,
+              "tablesMs": 489.85969999999725,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 401.09690000000046,
+              "standsMs": 388.9782000000014,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 288.3036000000029,
+              "tablesMs": 296.70550000000003,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 230.42859999999928,
+              "standsMs": 231.0581999999995,
               "dividedPortals": 0,
               "divided": []
             }
@@ -914,15 +914,15 @@
               "length": 17218.326808861624,
               "waypoints": 21,
               "hierarchyMs": [
-                2.881500000003143,
-                0.8885000000009313,
-                1.3911999999982072
+                2.3198000000011234,
+                0.36490000000048894,
+                0.3328000000001339
               ],
-              "hierarchyMedianMs": 1.3911999999982072,
-              "fineMs": 24.314500000000407,
+              "hierarchyMedianMs": 0.36490000000048894,
+              "fineMs": 25.64020000000164,
               "fineLength": 16663.589253345406,
               "stretch": 1.0332904002302414,
-              "windowedMs": 8.026999999998225,
+              "windowedMs": 7.8695000000006985,
               "windowedFound": true,
               "distance": 16202.559797760352
             },
@@ -931,15 +931,15 @@
               "length": 420.1627137996935,
               "waypoints": 1,
               "hierarchyMs": [
-                0.10970000000088476,
-                0.0625,
-                0.04830000000220025
+                0.1540000000022701,
+                0.0830999999998312,
+                0.0797999999995227
               ],
-              "hierarchyMedianMs": 0.0625,
-              "fineMs": 1.8198999999985972,
+              "hierarchyMedianMs": 0.0830999999998312,
+              "fineMs": 0.8591999999989639,
               "fineLength": 407.2440322567695,
               "stretch": 1.031722212039141,
-              "windowedMs": 0.33989999999903375,
+              "windowedMs": 0.6231999999981781,
               "windowedFound": true,
               "distance": 366.34410053936995
             },
@@ -948,15 +948,15 @@
               "length": 375.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.0871000000006461,
-                0.056599999999889405,
-                0.04750000000058208
+                0.11209999999846332,
+                0.09099999999671127,
+                0.08150000000023283
               ],
-              "hierarchyMedianMs": 0.056599999999889405,
-              "fineMs": 0.5636999999987893,
+              "hierarchyMedianMs": 0.09099999999671127,
+              "fineMs": 0.7309999999997672,
               "fineLength": 341.4129526986357,
               "stretch": 1.0989505715211625,
-              "windowedMs": 0.5020000000004075,
+              "windowedMs": 0.5527000000001863,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -967,8 +967,8 @@
     {
       "size": "12x6",
       "seed": 7,
-      "generationMs": 1002.4367999999995,
-      "graphMs": 9.807499999998981,
+      "generationMs": 1012.4148999999998,
+      "graphMs": 11.121299999998882,
       "regions": 261,
       "portals": 930,
       "promisedPairs": 18138,
@@ -977,18 +977,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 438.60359999999855,
+              "tablesMs": 423.7123999999967,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 344.7635999999984,
+              "standsMs": 363.70130000000063,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 294.4531999999999,
+              "tablesMs": 299.3277999999991,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 202.41609999999855,
+              "standsMs": 200.71119999999792,
               "dividedPortals": 0,
               "divided": []
             }
@@ -999,15 +999,15 @@
               "length": 17398.877186339796,
               "waypoints": 16,
               "hierarchyMs": [
-                3.496899999998277,
-                1.2692000000024564,
-                0.8086999999977706
+                4.180000000000291,
+                1.3571000000010827,
+                0.8493999999991502
               ],
-              "hierarchyMedianMs": 1.2692000000024564,
-              "fineMs": 19.562000000001717,
+              "hierarchyMedianMs": 1.3571000000010827,
+              "fineMs": 18.846300000001065,
               "fineLength": 16827.609455880935,
               "stretch": 1.0339482403580036,
-              "windowedMs": 5.619999999998981,
+              "windowedMs": 5.429200000002311,
               "windowedFound": true,
               "distance": 16563.912581271372
             },
@@ -1016,15 +1016,15 @@
               "length": 824,
               "waypoints": 1,
               "hierarchyMs": [
-                0.11389999999664724,
-                0.054499999998370185,
-                0.04650000000037835
+                0.08280000000013388,
+                0.05340000000069267,
+                0.04790000000139116
               ],
-              "hierarchyMedianMs": 0.054499999998370185,
-              "fineMs": 0.5956999999980326,
+              "hierarchyMedianMs": 0.05340000000069267,
+              "fineMs": 2.094199999999546,
               "fineLength": 792,
               "stretch": 1.0404040404040404,
-              "windowedMs": 0.2610999999997148,
+              "windowedMs": 0.2613999999994121,
               "windowedFound": true,
               "distance": 792
             },
@@ -1033,15 +1033,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.09309999999823049,
-                0.06919999999809079,
-                0.0610000000015134
+                0.10629999999946449,
+                0.07229999999981374,
+                0.06240000000252621
               ],
-              "hierarchyMedianMs": 0.06919999999809079,
-              "fineMs": 0.558100000002014,
+              "hierarchyMedianMs": 0.07229999999981374,
+              "fineMs": 0.6525000000001455,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.3061999999990803,
+              "windowedMs": 0.6016999999992549,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -1050,18 +1050,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 455.1198000000004,
+              "tablesMs": 452.72409999999945,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 372.45780000000013,
+              "standsMs": 372.08120000000054,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 328.4347000000016,
+              "tablesMs": 324.0138999999981,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 233.54309999999896,
+              "standsMs": 231.35729999999967,
               "dividedPortals": 0,
               "divided": []
             }
@@ -1072,15 +1072,15 @@
               "length": 17398.877186339796,
               "waypoints": 16,
               "hierarchyMs": [
-                2.569100000000617,
-                0.4062000000012631,
-                0.40529999999853317
+                2.893000000000029,
+                0.45349999999962165,
+                0.42589999999836436
               ],
-              "hierarchyMedianMs": 0.4062000000012631,
-              "fineMs": 23.994699999999284,
+              "hierarchyMedianMs": 0.45349999999962165,
+              "fineMs": 23.46230000000287,
               "fineLength": 16860.746540870783,
               "stretch": 1.0319161814196407,
-              "windowedMs": 7.136199999997189,
+              "windowedMs": 7.30739999999787,
               "windowedFound": true,
               "distance": 16563.912581271372
             },
@@ -1089,15 +1089,15 @@
               "length": 824,
               "waypoints": 1,
               "hierarchyMs": [
-                0.09909999999945285,
-                0.05139999999664724,
-                0.04299999999784632
+                0.09800000000177533,
+                0.05080000000089058,
+                0.0433999999986554
               ],
-              "hierarchyMedianMs": 0.05139999999664724,
-              "fineMs": 0.5586000000002969,
+              "hierarchyMedianMs": 0.05080000000089058,
+              "fineMs": 0.6156000000009954,
               "fineLength": 792,
               "stretch": 1.0404040404040404,
-              "windowedMs": 0.29589999999734573,
+              "windowedMs": 0.3757000000005064,
               "windowedFound": true,
               "distance": 792
             },
@@ -1106,15 +1106,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.08660000000236323,
-                0.06229999999777647,
-                0.05849999999918509
+                0.09819999999672291,
+                0.06639999999970314,
+                0.05970000000161235
               ],
-              "hierarchyMedianMs": 0.06229999999777647,
-              "fineMs": 0.5736000000033528,
+              "hierarchyMedianMs": 0.06639999999970314,
+              "fineMs": 0.639500000001135,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.36300000000119326,
+              "windowedMs": 0.375,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -1125,8 +1125,8 @@
     {
       "size": "12x6",
       "seed": 8,
-      "generationMs": 1174.6234000000004,
-      "graphMs": 11.183199999999488,
+      "generationMs": 1338.0456999999988,
+      "graphMs": 11.27610000000277,
       "regions": 282,
       "portals": 958,
       "promisedPairs": 13204,
@@ -1135,18 +1135,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 373.5786999999982,
+              "tablesMs": 383.15380000000005,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 316.1183999999994,
+              "standsMs": 345.78779999999824,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 267.0011999999988,
+              "tablesMs": 270.98739999999816,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 208.81890000000203,
+              "standsMs": 199.318299999999,
               "dividedPortals": 0,
               "divided": []
             }
@@ -1157,15 +1157,15 @@
               "length": 17524.378011296576,
               "waypoints": 26,
               "hierarchyMs": [
-                2.5993000000016764,
-                0.4091999999982363,
-                0.3827000000019325
+                3.3486999999986438,
+                1.1064000000005763,
+                0.8103999999984808
               ],
-              "hierarchyMedianMs": 0.4091999999982363,
-              "fineMs": 19.18510000000242,
+              "hierarchyMedianMs": 1.1064000000005763,
+              "fineMs": 19.538699999997334,
               "fineLength": 16709.116882454317,
               "stretch": 1.0487913954146995,
-              "windowedMs": 5.340700000000652,
+              "windowedMs": 5.997899999998481,
               "windowedFound": true,
               "distance": 16563.912581271372
             },
@@ -1174,15 +1174,15 @@
               "length": 654.1564209736038,
               "waypoints": 1,
               "hierarchyMs": [
-                0.11549999999988358,
-                0.06400000000212458,
-                0.05789999999979045
+                0.11290000000008149,
+                0.06569999999919673,
+                0.05709999999817228
               ],
-              "hierarchyMedianMs": 0.06400000000212458,
-              "fineMs": 0.5388000000020838,
+              "hierarchyMedianMs": 0.06569999999919673,
+              "fineMs": 0.5640999999995984,
               "fineLength": 654.1564209736038,
               "stretch": 1,
-              "windowedMs": 0.3173000000024331,
+              "windowedMs": 0.3621000000021013,
               "windowedFound": true,
               "distance": 584.4381917705242
             },
@@ -1191,15 +1191,15 @@
               "length": 314.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.07730000000083237,
-                0.054800000001705484,
-                0.04790000000139116
+                0.08849999999802094,
+                0.05830000000059954,
+                0.05070000000341679
               ],
-              "hierarchyMedianMs": 0.054800000001705484,
-              "fineMs": 0.5054999999993015,
+              "hierarchyMedianMs": 0.05830000000059954,
+              "fineMs": 0.5812000000005355,
               "fineLength": 307.16498505761786,
               "stretch": 1.0237400146892928,
-              "windowedMs": 0.29209999999875436,
+              "windowedMs": 0.2985999999982596,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -1208,18 +1208,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 401.3881000000001,
+              "tablesMs": 385.4363999999987,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 353.6320999999989,
+              "standsMs": 349.4495999999999,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 297.6735000000008,
+              "tablesMs": 298.2510000000002,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 236.98709999999846,
+              "standsMs": 240.63940000000002,
               "dividedPortals": 0,
               "divided": []
             }
@@ -1230,15 +1230,15 @@
               "length": 17538.473944005687,
               "waypoints": 26,
               "hierarchyMs": [
-                2.5600000000013097,
-                0.36079999999856227,
-                0.36220000000321306
+                3.3676999999988766,
+                0.5552000000025146,
+                0.45310000000245054
               ],
-              "hierarchyMedianMs": 0.36220000000321306,
-              "fineMs": 22.952799999999115,
+              "hierarchyMedianMs": 0.5552000000025146,
+              "fineMs": 23.881099999998696,
               "fineLength": 16709.116882454317,
               "stretch": 1.0496350026985717,
-              "windowedMs": 6.289600000000064,
+              "windowedMs": 7.411399999997229,
               "windowedFound": true,
               "distance": 16563.912581271372
             },
@@ -1247,15 +1247,15 @@
               "length": 654.1564209736038,
               "waypoints": 1,
               "hierarchyMs": [
-                0.15829999999914435,
-                0.06369999999878928,
-                0.056000000000494765
+                0.10959999999977299,
+                0.06289999999717111,
+                0.0540999999975611
               ],
-              "hierarchyMedianMs": 0.06369999999878928,
-              "fineMs": 0.6350999999995111,
+              "hierarchyMedianMs": 0.06289999999717111,
+              "fineMs": 0.7987999999968451,
               "fineLength": 654.1564209736038,
               "stretch": 1,
-              "windowedMs": 0.3572999999996682,
+              "windowedMs": 0.3977999999988242,
               "windowedFound": true,
               "distance": 584.4381917705242
             },
@@ -1264,15 +1264,15 @@
               "length": 314.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.07589999999981956,
-                0.05340000000069267,
-                0.054499999998370185
+                0.08000000000174623,
+                0.055899999999383,
+                0.046000000002095476
               ],
-              "hierarchyMedianMs": 0.054499999998370185,
-              "fineMs": 0.5390999999981432,
+              "hierarchyMedianMs": 0.055899999999383,
+              "fineMs": 0.5851000000002387,
               "fineLength": 307.16498505761786,
               "stretch": 1.0237400146892928,
-              "windowedMs": 0.3382000000019616,
+              "windowedMs": 0.36049999999886495,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -1283,8 +1283,8 @@
     {
       "size": "12x6",
       "seed": 9,
-      "generationMs": 969.959600000002,
-      "graphMs": 13.458999999998923,
+      "generationMs": 1080.8418999999994,
+      "graphMs": 12.370499999997264,
       "regions": 302,
       "portals": 982,
       "promisedPairs": 15082,
@@ -1293,18 +1293,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 356.77809999999954,
+              "tablesMs": 389.096000000005,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 275.8613000000005,
+              "standsMs": 330.0214999999953,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 283.9483,
+              "tablesMs": 300.777700000006,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 207.58369999999923,
+              "standsMs": 235.23689999999624,
               "dividedPortals": 0,
               "divided": []
             }
@@ -1315,15 +1315,15 @@
               "length": 17357.0982331049,
               "waypoints": 23,
               "hierarchyMs": [
-                3.0106999999989057,
-                0.71480000000156,
-                0.4327999999986787
+                2.9641999999948894,
+                0.5884999999980209,
+                0.5106000000014319
               ],
-              "hierarchyMedianMs": 0.71480000000156,
-              "fineMs": 18.900399999998626,
+              "hierarchyMedianMs": 0.5884999999980209,
+              "fineMs": 21.916299999997136,
               "fineLength": 16651.63486858336,
               "stretch": 1.042366012111672,
-              "windowedMs": 4.742000000002008,
+              "windowedMs": 6.434399999998277,
               "windowedFound": true,
               "distance": 16561.408635741103
             },
@@ -1332,15 +1332,15 @@
               "length": 666.842712474619,
               "waypoints": 1,
               "hierarchyMs": [
-                0.13279999999940628,
-                0.06830000000263681,
-                0.05879999999888241
+                0.1702000000004773,
+                0.07959999999729916,
+                0.06569999999919673
               ],
-              "hierarchyMedianMs": 0.06830000000263681,
-              "fineMs": 0.7668999999987136,
+              "hierarchyMedianMs": 0.07959999999729916,
+              "fineMs": 0.7211000000024796,
               "fineLength": 650.842712474619,
               "stretch": 1.0245835125650637,
-              "windowedMs": 0.3319999999985157,
+              "windowedMs": 0.3525999999983469,
               "windowedFound": true,
               "distance": 592.7562736909665
             },
@@ -1349,15 +1349,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.0852999999988242,
-                0.05830000000059954,
-                0.049300000002403976
+                0.10169999999925494,
+                0.06259999999747379,
+                0.053299999999580905
               ],
-              "hierarchyMedianMs": 0.05830000000059954,
-              "fineMs": 0.7353000000002794,
+              "hierarchyMedianMs": 0.06259999999747379,
+              "fineMs": 1.0879000000059023,
               "fineLength": 322.80942160916794,
               "stretch": 1.0135886302879855,
-              "windowedMs": 0.2644000000000233,
+              "windowedMs": 0.3319999999948777,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -1366,18 +1366,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 378.45130000000063,
+              "tablesMs": 417.4913000000015,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 302.89770000000135,
+              "standsMs": 343.84850000000006,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 323.3922999999995,
+              "tablesMs": 329.70969999999943,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 239.77730000000156,
+              "standsMs": 266.2746999999945,
               "dividedPortals": 0,
               "divided": []
             }
@@ -1388,15 +1388,15 @@
               "length": 17357.0982331049,
               "waypoints": 23,
               "hierarchyMs": [
-                2.4112999999997555,
-                0.3503000000055181,
-                0.3486999999950058
+                4.775399999998626,
+                0.6497000000017579,
+                0.5937000000049011
               ],
-              "hierarchyMedianMs": 0.3503000000055181,
-              "fineMs": 21.80040000000008,
+              "hierarchyMedianMs": 0.6497000000017579,
+              "fineMs": 25.834900000001653,
               "fineLength": 16651.63486858336,
               "stretch": 1.042366012111672,
-              "windowedMs": 5.659500000001572,
+              "windowedMs": 6.362699999997858,
               "windowedFound": true,
               "distance": 16561.408635741103
             },
@@ -1405,15 +1405,15 @@
               "length": 666.842712474619,
               "waypoints": 1,
               "hierarchyMs": [
-                0.11830000000190921,
-                0.06300000000192085,
-                0.05200000000331784
+                0.1342000000004191,
+                0.06749999999738066,
+                0.056900000003224704
               ],
-              "hierarchyMedianMs": 0.06300000000192085,
-              "fineMs": 0.5129000000015367,
+              "hierarchyMedianMs": 0.06749999999738066,
+              "fineMs": 0.5539999999964493,
               "fineLength": 650.842712474619,
               "stretch": 1.0245835125650637,
-              "windowedMs": 0.3771000000051572,
+              "windowedMs": 0.3919999999998254,
               "windowedFound": true,
               "distance": 592.7562736909665
             },
@@ -1422,15 +1422,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.06880000000091968,
-                0.05219999999826541,
-                0.04529999999795109
+                0.0771999999997206,
+                0.05060000000230502,
+                0.043900000004214235
               ],
-              "hierarchyMedianMs": 0.05219999999826541,
-              "fineMs": 0.5506999999997788,
+              "hierarchyMedianMs": 0.05060000000230502,
+              "fineMs": 0.9251000000003842,
               "fineLength": 322.80942160916794,
               "stretch": 1.0135886302879855,
-              "windowedMs": 0.2989000000015949,
+              "windowedMs": 0.4275999999954365,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -1441,8 +1441,8 @@
     {
       "size": "12x6",
       "seed": 10,
-      "generationMs": 1000.5508000000045,
-      "graphMs": 11.57549999999901,
+      "generationMs": 1331.179799999998,
+      "graphMs": 13.516900000002352,
       "regions": 291,
       "portals": 987,
       "promisedPairs": 21937,
@@ -1451,18 +1451,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 434.9667999999947,
+              "tablesMs": 447.0933999999979,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 346.29349999999977,
+              "standsMs": 339.03280000000086,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 309.2957999999999,
+              "tablesMs": 315.39510000000155,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 203.24730000000272,
+              "standsMs": 213.01440000000002,
               "dividedPortals": 0,
               "divided": []
             }
@@ -1473,15 +1473,15 @@
               "length": 17335.86292193883,
               "waypoints": 16,
               "hierarchyMs": [
-                2.60570000000007,
-                0.5667000000030384,
-                0.5230000000010477
+                3.626399999993737,
+                1.1085000000020955,
+                1.326999999997497
               ],
-              "hierarchyMedianMs": 0.5667000000030384,
-              "fineMs": 19.309399999998277,
+              "hierarchyMedianMs": 1.326999999997497,
+              "fineMs": 20.344599999996717,
               "fineLength": 16691.56905080987,
               "stretch": 1.0385999584082062,
-              "windowedMs": 9.21940000000177,
+              "windowedMs": 8.296399999999267,
               "windowedFound": true,
               "distance": 16240.908348980976
             },
@@ -1490,15 +1490,15 @@
               "length": 811.4112549695428,
               "waypoints": 1,
               "hierarchyMs": [
-                0.10940000000118744,
-                0.053899999998975545,
-                0.04590000000462169
+                0.15720000000146683,
+                0.09459999999671709,
+                0.08849999999802094
               ],
-              "hierarchyMedianMs": 0.053899999998975545,
-              "fineMs": 0.4853000000002794,
+              "hierarchyMedianMs": 0.09459999999671709,
+              "fineMs": 0.8584999999948195,
               "fineLength": 779.4112549695428,
               "stretch": 1.0410566306246765,
-              "windowedMs": 0.3695000000006985,
+              "windowedMs": 0.6636999999973341,
               "windowedFound": true,
               "distance": 691.0166423466225
             },
@@ -1507,15 +1507,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.07770000000164146,
-                0.05730000000039581,
-                0.05070000000705477
+                0.08179999999993015,
+                0.05799999999726424,
+                0.06139999999868451
               ],
-              "hierarchyMedianMs": 0.05730000000039581,
-              "fineMs": 0.46609999999782303,
+              "hierarchyMedianMs": 0.06139999999868451,
+              "fineMs": 0.620600000002014,
               "fineLength": 322.80942160916794,
               "stretch": 1.0135886302879855,
-              "windowedMs": 0.25720000000001164,
+              "windowedMs": 0.25499999999738066,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -1524,18 +1524,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 464.7057999999961,
+              "tablesMs": 445.7684999999983,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 373.8925999999992,
+              "standsMs": 379.0080999999991,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 333.9369000000006,
+              "tablesMs": 333.957699999999,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 235.8454999999958,
+              "standsMs": 243.35639999999694,
               "dividedPortals": 0,
               "divided": []
             }
@@ -1546,15 +1546,15 @@
               "length": 17458.70563441345,
               "waypoints": 16,
               "hierarchyMs": [
-                2.685700000001816,
-                0.5581999999994878,
-                0.5084000000060769
+                2.6206999999994878,
+                0.8642000000036205,
+                0.8335000000006403
               ],
-              "hierarchyMedianMs": 0.5581999999994878,
-              "fineMs": 23.993500000004133,
+              "hierarchyMedianMs": 0.8642000000036205,
+              "fineMs": 24.191500000000815,
               "fineLength": 16724.706135799715,
               "stretch": 1.0438871387427602,
-              "windowedMs": 10.094599999996717,
+              "windowedMs": 10.27390000000014,
               "windowedFound": true,
               "distance": 16240.908348980976
             },
@@ -1563,15 +1563,15 @@
               "length": 811.4112549695428,
               "waypoints": 1,
               "hierarchyMs": [
-                0.14420000000245636,
-                0.05340000000433065,
-                0.0452000000004773
+                0.09109999999782303,
+                0.050900000002002344,
+                0.04190000000380678
               ],
-              "hierarchyMedianMs": 0.05340000000433065,
-              "fineMs": 0.6175999999977648,
+              "hierarchyMedianMs": 0.050900000002002344,
+              "fineMs": 0.6621999999988475,
               "fineLength": 779.4112549695428,
               "stretch": 1.0410566306246765,
-              "windowedMs": 0.4429999999993015,
+              "windowedMs": 0.40930000000662403,
               "windowedFound": true,
               "distance": 691.0166423466225
             },
@@ -1580,15 +1580,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.1209000000017113,
-                0.06269999999494758,
-                0.0537999999942258
+                0.07649999999557622,
+                0.051800000001094304,
+                0.04529999999795109
               ],
-              "hierarchyMedianMs": 0.06269999999494758,
-              "fineMs": 0.991200000004028,
+              "hierarchyMedianMs": 0.051800000001094304,
+              "fineMs": 1.4455000000016298,
               "fineLength": 322.80942160916794,
               "stretch": 1.0135886302879855,
-              "windowedMs": 0.3165999999982887,
+              "windowedMs": 0.2959000000046217,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -1599,8 +1599,8 @@
     {
       "size": "12x6",
       "seed": 11,
-      "generationMs": 957.5555000000022,
-      "graphMs": 11.242300000005343,
+      "generationMs": 1087.0650999999998,
+      "graphMs": 11.398500000002969,
       "regions": 295,
       "portals": 980,
       "promisedPairs": 13783,
@@ -1609,18 +1609,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 542.8455000000031,
+              "tablesMs": 499.2525999999998,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 472.65980000000127,
+              "standsMs": 433.91889999999694,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 281.6293000000005,
+              "tablesMs": 286.74009999999544,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 205.63869999999588,
+              "standsMs": 217.16210000000137,
               "dividedPortals": 0,
               "divided": []
             }
@@ -1631,15 +1631,15 @@
               "length": 17729.15593426844,
               "waypoints": 17,
               "hierarchyMs": [
-                2.955499999996391,
-                0.9562000000005355,
-                0.9413999999960652
+                4.200700000001234,
+                1.1875999999974738,
+                1.0523000000030152
               ],
-              "hierarchyMedianMs": 0.9562000000005355,
-              "fineMs": 20.775699999998324,
+              "hierarchyMedianMs": 1.1875999999974738,
+              "fineMs": 22.12779999999475,
               "fineLength": 17116.86117753186,
               "stretch": 1.0357714390732045,
-              "windowedMs": 7.471400000002177,
+              "windowedMs": 7.788300000000163,
               "windowedFound": true,
               "distance": 16572.673411372107
             },
@@ -1648,15 +1648,15 @@
               "length": 670.1564209736038,
               "waypoints": 1,
               "hierarchyMs": [
-                0.13990000000194414,
-                0.05760000000009313,
-                0.05000000000291038
+                0.10780000000522705,
+                0.05700000000069849,
+                0.08860000000277068
               ],
-              "hierarchyMedianMs": 0.05760000000009313,
-              "fineMs": 0.8083000000042375,
+              "hierarchyMedianMs": 0.08860000000277068,
+              "fineMs": 2.085800000000745,
               "fineLength": 638.1564209736038,
               "stretch": 1.0501444457005997,
-              "windowedMs": 0.36129999999684514,
+              "windowedMs": 0.3698000000003958,
               "windowedFound": true,
               "distance": 584.4381917705242
             },
@@ -1665,15 +1665,15 @@
               "length": 375.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.08469999999942956,
-                0.06030000000464497,
-                0.05310000000463333
+                0.09440000000176951,
+                0.060499999999592546,
+                0.052999999999883585
               ],
-              "hierarchyMedianMs": 0.06030000000464497,
-              "fineMs": 0.6332000000038533,
+              "hierarchyMedianMs": 0.060499999999592546,
+              "fineMs": 0.5313000000023749,
               "fineLength": 341.4129526986357,
               "stretch": 1.0989505715211625,
-              "windowedMs": 0.30670000000100117,
+              "windowedMs": 0.2779999999984284,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -1682,18 +1682,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 558.7244000000064,
+              "tablesMs": 567.604800000001,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 496.8319999999949,
+              "standsMs": 518.8199999999997,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 305.3150999999998,
+              "tablesMs": 333.908399999993,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 236.5547000000006,
+              "standsMs": 286.1183999999994,
               "dividedPortals": 0,
               "divided": []
             }
@@ -1704,15 +1704,15 @@
               "length": 17805.530288827424,
               "waypoints": 19,
               "hierarchyMs": [
-                3.7177000000010594,
-                1.0063999999983935,
-                0.8619000000035157
+                3.970500000003085,
+                1.0023999999975786,
+                0.741200000004028
               ],
-              "hierarchyMedianMs": 1.0063999999983935,
-              "fineMs": 24.707399999999325,
+              "hierarchyMedianMs": 1.0023999999975786,
+              "fineMs": 32.999400000000605,
               "fineLength": 17245.389314955723,
               "stretch": 1.0324806221327767,
-              "windowedMs": 10.380199999999604,
+              "windowedMs": 10.492200000000594,
               "windowedFound": true,
               "distance": 16572.673411372107
             },
@@ -1721,15 +1721,15 @@
               "length": 670.1564209736038,
               "waypoints": 1,
               "hierarchyMs": [
-                0.10149999999703141,
-                0.05309999999735737,
-                0.04509999999572756
+                0.17079999999987194,
+                0.05500000000029104,
+                0.047299999998358544
               ],
-              "hierarchyMedianMs": 0.05309999999735737,
-              "fineMs": 0.5348999999987427,
+              "hierarchyMedianMs": 0.05500000000029104,
+              "fineMs": 0.668599999997241,
               "fineLength": 638.1564209736038,
               "stretch": 1.0501444457005997,
-              "windowedMs": 0.3879000000015367,
+              "windowedMs": 0.4230999999999767,
               "windowedFound": true,
               "distance": 584.4381917705242
             },
@@ -1738,15 +1738,15 @@
               "length": 375.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.07269999999698484,
-                0.055899999999383,
-                0.04920000000129221
+                0.08030000000144355,
+                0.06139999999868451,
+                0.05619999999908032
               ],
-              "hierarchyMedianMs": 0.055899999999383,
-              "fineMs": 0.5067000000053667,
+              "hierarchyMedianMs": 0.06139999999868451,
+              "fineMs": 0.5599999999976717,
               "fineLength": 341.4129526986357,
               "stretch": 1.0989505715211625,
-              "windowedMs": 0.3230000000039581,
+              "windowedMs": 0.3231000000014319,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -1757,8 +1757,8 @@
     {
       "size": "12x6",
       "seed": 12,
-      "generationMs": 781.3410000000003,
-      "graphMs": 8.76299999999901,
+      "generationMs": 987.4302000000025,
+      "graphMs": 11.928599999999278,
       "regions": 283,
       "portals": 982,
       "promisedPairs": 18153,
@@ -1767,18 +1767,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 384.8932000000059,
+              "tablesMs": 390.956299999998,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 294.0567999999985,
+              "standsMs": 300.5925000000061,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 297.5829999999987,
+              "tablesMs": 298.4856,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 208.32979999999952,
+              "standsMs": 204.3423000000039,
               "dividedPortals": 0,
               "divided": []
             }
@@ -1789,15 +1789,15 @@
               "length": 17379.03394038905,
               "waypoints": 17,
               "hierarchyMs": [
-                3.0776000000041677,
-                0.5998000000035972,
-                0.4945000000006985
+                2.376400000001013,
+                0.43069999999715947,
+                0.6069999999963329
               ],
-              "hierarchyMedianMs": 0.5998000000035972,
-              "fineMs": 19.212800000001153,
+              "hierarchyMedianMs": 0.6069999999963329,
+              "fineMs": 20.71310000000085,
               "fineLength": 16957.076477383252,
               "stretch": 1.0248838568115552,
-              "windowedMs": 6.982099999993807,
+              "windowedMs": 7.911199999995006,
               "windowedFound": true,
               "distance": 16586.431080856426
             },
@@ -1806,15 +1806,15 @@
               "length": 660.7312562946173,
               "waypoints": 1,
               "hierarchyMs": [
-                0.10199999999895226,
-                0.06540000000677537,
-                0.056300000003830064
+                0.13130000000091968,
+                0.07820000000356231,
+                0.058400000001711305
               ],
-              "hierarchyMedianMs": 0.06540000000677537,
-              "fineMs": 0.6313000000009197,
+              "hierarchyMedianMs": 0.07820000000356231,
+              "fineMs": 0.6979999999966822,
               "fineLength": 660.7312562946173,
               "stretch": 1,
-              "windowedMs": 0.2988000000041211,
+              "windowedMs": 0.4524999999994179,
               "windowedFound": true,
               "distance": 592.7562736909665
             },
@@ -1823,15 +1823,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.07249999999476131,
-                0.06330000000161817,
-                0.04349999999976717
+                0.08209999999962747,
+                0.05399999999644933,
+                0.04490000000077998
               ],
-              "hierarchyMedianMs": 0.06330000000161817,
-              "fineMs": 0.6134999999994761,
+              "hierarchyMedianMs": 0.05399999999644933,
+              "fineMs": 0.5002000000022235,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.4859999999971478,
+              "windowedMs": 0.31209999999555293,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -1840,18 +1840,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 415.46860000000015,
+              "tablesMs": 411.8515000000043,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 328.5506999999998,
+              "standsMs": 318.3660000000018,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 327.8938000000053,
+              "tablesMs": 322.39860000000044,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 235.41939999999886,
+              "standsMs": 314.7789000000048,
               "dividedPortals": 0,
               "divided": []
             }
@@ -1862,15 +1862,15 @@
               "length": 17432.95852421274,
               "waypoints": 17,
               "hierarchyMs": [
-                3.0185999999957858,
-                0.6705999999976484,
-                0.6419000000023516
+                4.228299999995215,
+                0.5480999999999767,
+                0.4187999999994645
               ],
-              "hierarchyMedianMs": 0.6705999999976484,
-              "fineMs": 24.75680000000284,
+              "hierarchyMedianMs": 0.5480999999999767,
+              "fineMs": 27.967799999998533,
               "fineLength": 16957.076477383252,
               "stretch": 1.0280639205386732,
-              "windowedMs": 8.400799999995797,
+              "windowedMs": 8.053299999999581,
               "windowedFound": true,
               "distance": 16586.431080856426
             },
@@ -1879,15 +1879,15 @@
               "length": 660.7312562946173,
               "waypoints": 1,
               "hierarchyMs": [
-                0.12000000000261934,
-                0.06260000000474975,
-                0.053299999999580905
+                0.17199999999866122,
+                0.09339999999792781,
+                0.09360000000015134
               ],
-              "hierarchyMedianMs": 0.06260000000474975,
-              "fineMs": 0.6231000000043423,
+              "hierarchyMedianMs": 0.09360000000015134,
+              "fineMs": 0.6539999999949941,
               "fineLength": 660.7312562946173,
               "stretch": 1,
-              "windowedMs": 0.3459999999977299,
+              "windowedMs": 0.3658999999970547,
               "windowedFound": true,
               "distance": 592.7562736909665
             },
@@ -1896,15 +1896,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.07819999999628635,
-                0.05040000000008149,
-                0.04200000000128057
+                0.07949999999982538,
+                0.05849999999918509,
+                0.04290000000037253
               ],
-              "hierarchyMedianMs": 0.05040000000008149,
-              "fineMs": 0.5996999999988475,
+              "hierarchyMedianMs": 0.05849999999918509,
+              "fineMs": 0.6339000000007218,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.3559000000022934,
+              "windowedMs": 0.3764000000010128,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -1915,8 +1915,8 @@
     {
       "size": "12x6",
       "seed": 13,
-      "generationMs": 896.4747000000061,
-      "graphMs": 10.266499999997905,
+      "generationMs": 1036.8688000000038,
+      "graphMs": 8.872499999997672,
       "regions": 312,
       "portals": 993,
       "promisedPairs": 12961,
@@ -1925,18 +1925,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 375.5002999999997,
+              "tablesMs": 386.5524000000005,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 324.6322,
+              "standsMs": 321.7126999999964,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 272.13239999999496,
+              "tablesMs": 300.57540000000154,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 206.8804999999993,
+              "standsMs": 207.27679999999964,
               "dividedPortals": 0,
               "divided": []
             }
@@ -1947,15 +1947,15 @@
               "length": 17186.620201121223,
               "waypoints": 20,
               "hierarchyMs": [
-                2.4835999999995693,
-                0.38070000000152504,
-                0.7833000000027823
+                3.2677000000039698,
+                0.8360000000029686,
+                1.3012999999991735
               ],
-              "hierarchyMedianMs": 0.7833000000027823,
-              "fineMs": 17.939400000002934,
+              "hierarchyMedianMs": 1.3012999999991735,
+              "fineMs": 23.75100000000384,
               "fineLength": 16482.038671967515,
               "stretch": 1.0427484453335285,
-              "windowedMs": 4.682600000000093,
+              "windowedMs": 4.696299999995972,
               "windowedFound": true,
               "distance": 16344.634348923195
             },
@@ -1964,15 +1964,15 @@
               "length": 747.4112549695428,
               "waypoints": 1,
               "hierarchyMs": [
-                0.10910000000149012,
-                0.08780000000115251,
-                0.052100000000791624
+                0.1841000000058557,
+                0.12840000000142027,
+                0.09950000000389991
               ],
-              "hierarchyMedianMs": 0.08780000000115251,
-              "fineMs": 0.6875999999974738,
+              "hierarchyMedianMs": 0.12840000000142027,
+              "fineMs": 0.9099000000060187,
               "fineLength": 747.4112549695428,
               "stretch": 1,
-              "windowedMs": 0.3261999999958789,
+              "windowedMs": 0.5663000000058673,
               "windowedFound": true,
               "distance": 691.0166423466225
             },
@@ -1981,15 +1981,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.08610000000044238,
-                0.05939999999827705,
-                0.05199999999604188
+                0.08870000000024447,
+                0.06730000000243308,
+                0.05730000000039581
               ],
-              "hierarchyMedianMs": 0.05939999999827705,
-              "fineMs": 0.5290999999997439,
+              "hierarchyMedianMs": 0.06730000000243308,
+              "fineMs": 0.5146000000022468,
               "fineLength": 311.19595949289334,
               "stretch": 1.0514145492957963,
-              "windowedMs": 0.23359999999956926,
+              "windowedMs": 0.2331999999951222,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -1998,18 +1998,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 417.5977999999959,
+              "tablesMs": 461.5310000000027,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 361.2202000000034,
+              "standsMs": 366.67379999999685,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 302.8269,
+              "tablesMs": 321.65759999999864,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 238.3591000000015,
+              "standsMs": 257.238400000002,
               "dividedPortals": 0,
               "divided": []
             }
@@ -2020,15 +2020,15 @@
               "length": 17186.620201121223,
               "waypoints": 20,
               "hierarchyMs": [
-                2.6036999999996624,
-                0.5025000000023283,
-                0.5152999999991152
+                2.548800000004121,
+                0.7155000000057044,
+                0.3543999999965308
               ],
-              "hierarchyMedianMs": 0.5152999999991152,
-              "fineMs": 22.853399999999965,
+              "hierarchyMedianMs": 0.7155000000057044,
+              "fineMs": 22.80359999999928,
               "fineLength": 16482.038671967515,
               "stretch": 1.0427484453335285,
-              "windowedMs": 5.836899999994785,
+              "windowedMs": 5.659400000004098,
               "windowedFound": true,
               "distance": 16344.634348923195
             },
@@ -2037,15 +2037,15 @@
               "length": 747.4112549695428,
               "waypoints": 1,
               "hierarchyMs": [
-                0.10760000000300352,
-                0.05380000000150176,
-                0.04469999999855645
+                0.12580000000161817,
+                0.08450000000448199,
+                0.09799999999813735
               ],
-              "hierarchyMedianMs": 0.05380000000150176,
-              "fineMs": 0.5884999999980209,
+              "hierarchyMedianMs": 0.09799999999813735,
+              "fineMs": 0.6336000000010245,
               "fineLength": 747.4112549695428,
               "stretch": 1,
-              "windowedMs": 0.37889999999606516,
+              "windowedMs": 0.4702000000033877,
               "windowedFound": true,
               "distance": 691.0166423466225
             },
@@ -2054,15 +2054,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.0768000000025495,
-                0.05450000000564614,
-                0.04830000000220025
+                0.08719999999448191,
+                0.055499999994935934,
+                0.04770000000280561
               ],
-              "hierarchyMedianMs": 0.05450000000564614,
-              "fineMs": 0.4971000000005006,
+              "hierarchyMedianMs": 0.055499999994935934,
+              "fineMs": 0.5498000000006869,
               "fineLength": 311.19595949289334,
               "stretch": 1.0514145492957963,
-              "windowedMs": 0.29369999999471474,
+              "windowedMs": 0.2790999999997439,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -2073,8 +2073,8 @@
     {
       "size": "12x6",
       "seed": 14,
-      "generationMs": 953.2695999999996,
-      "graphMs": 12.360399999997753,
+      "generationMs": 1055.9020999999993,
+      "graphMs": 11.77440000000206,
       "regions": 305,
       "portals": 1041,
       "promisedPairs": 14066,
@@ -2083,18 +2083,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 477.38959999999497,
+              "tablesMs": 495.6930999999968,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 423.39650000000256,
+              "standsMs": 463.14719999999943,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 273.5780999999988,
+              "tablesMs": 304.084299999995,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 223.36879999999655,
+              "standsMs": 212.09930000000168,
               "dividedPortals": 0,
               "divided": []
             }
@@ -2105,15 +2105,15 @@
               "length": 17801.421762060476,
               "waypoints": 22,
               "hierarchyMs": [
-                3.2616000000052736,
-                0.7703000000037719,
-                0.6066999999966356
+                2.3637999999991735,
+                0.44280000000435393,
+                0.41129999999975553
               ],
-              "hierarchyMedianMs": 0.7703000000037719,
-              "fineMs": 19.090000000003783,
+              "hierarchyMedianMs": 0.44280000000435393,
+              "fineMs": 19.157200000001467,
               "fineLength": 16717.355488436773,
               "stretch": 1.0648467560777506,
-              "windowedMs": 4.8127000000022235,
+              "windowedMs": 4.366000000001804,
               "windowedFound": true,
               "distance": 16632.623364941563
             },
@@ -2122,15 +2122,15 @@
               "length": 420.1627137996935,
               "waypoints": 1,
               "hierarchyMs": [
-                0.09200000000419095,
-                0.0529000000024098,
-                0.04430000000138534
+                0.08209999999962747,
+                0.051700000003620517,
+                0.04320000000006985
               ],
-              "hierarchyMedianMs": 0.0529000000024098,
-              "fineMs": 0.4978999999948428,
+              "hierarchyMedianMs": 0.051700000003620517,
+              "fineMs": 0.6581999999980326,
               "fineLength": 407.2440322567695,
               "stretch": 1.031722212039141,
-              "windowedMs": 0.2813000000023749,
+              "windowedMs": 0.28870000000461005,
               "windowedFound": true,
               "distance": 366.34410053936995
             },
@@ -2139,15 +2139,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.08229999999457505,
-                0.06240000000252621,
-                0.055400000004738104
+                0.08539999999629799,
+                0.06309999999939464,
+                0.0573999999978696
               ],
-              "hierarchyMedianMs": 0.06240000000252621,
-              "fineMs": 0.501300000003539,
+              "hierarchyMedianMs": 0.06309999999939464,
+              "fineMs": 0.6519999999945867,
               "fineLength": 322.80942160916794,
               "stretch": 1.0135886302879855,
-              "windowedMs": 0.20679999999993015,
+              "windowedMs": 0.2044000000023516,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -2156,18 +2156,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 506.0963000000047,
+              "tablesMs": 511.97839999999997,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 448.00479999999516,
+              "standsMs": 454.95470000000205,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 301.4676000000036,
+              "tablesMs": 312.2138999999952,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 238.0841999999975,
+              "standsMs": 262.4838000000018,
               "dividedPortals": 0,
               "divided": []
             }
@@ -2178,15 +2178,15 @@
               "length": 17834.558847050324,
               "waypoints": 22,
               "hierarchyMs": [
-                2.788699999997334,
-                0.5959999999977299,
-                0.42109999999956926
+                2.738900000003923,
+                0.4256999999997788,
+                0.4186000000045169
               ],
-              "hierarchyMedianMs": 0.5959999999977299,
-              "fineMs": 24.978399999999965,
+              "hierarchyMedianMs": 0.4256999999997788,
+              "fineMs": 24.549499999993714,
               "fineLength": 16717.355488436773,
               "stretch": 1.0668289526645713,
-              "windowedMs": 5.527000000001863,
+              "windowedMs": 5.38010000000213,
               "windowedFound": true,
               "distance": 16632.623364941563
             },
@@ -2195,15 +2195,15 @@
               "length": 420.1627137996935,
               "waypoints": 1,
               "hierarchyMs": [
-                0.10120000000461005,
-                0.051799999993818346,
-                0.04329999999754364
+                0.16709999999875436,
+                0.0838000000003376,
+                0.07939999999507563
               ],
-              "hierarchyMedianMs": 0.051799999993818346,
-              "fineMs": 0.7951000000030035,
+              "hierarchyMedianMs": 0.0838000000003376,
+              "fineMs": 0.7898999999961234,
               "fineLength": 407.2440322567695,
               "stretch": 1.031722212039141,
-              "windowedMs": 0.366199999996752,
+              "windowedMs": 0.6569000000017695,
               "windowedFound": true,
               "distance": 366.34410053936995
             },
@@ -2212,15 +2212,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.08570000000327127,
-                0.06280000000697328,
-                0.05249999999796273
+                0.1209000000017113,
+                0.09309999999823049,
+                0.09019999999873107
               ],
-              "hierarchyMedianMs": 0.06280000000697328,
-              "fineMs": 0.5633000000016182,
+              "hierarchyMedianMs": 0.09309999999823049,
+              "fineMs": 0.7380999999950291,
               "fineLength": 322.80942160916794,
               "stretch": 1.0135886302879855,
-              "windowedMs": 0.26929999999993015,
+              "windowedMs": 0.4375,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -2231,8 +2231,8 @@
     {
       "size": "12x6",
       "seed": 15,
-      "generationMs": 1182.2072999999946,
-      "graphMs": 13.138600000005681,
+      "generationMs": 1171.5732999999964,
+      "graphMs": 11.670099999995728,
       "regions": 295,
       "portals": 1005,
       "promisedPairs": 16862,
@@ -2241,18 +2241,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 428.46889999999985,
+              "tablesMs": 439.54939999999624,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 357.6100000000006,
+              "standsMs": 363.81690000000526,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 316.91359999999986,
+              "tablesMs": 294.60139999999956,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 207.5309000000052,
+              "standsMs": 205.34560000000056,
               "dividedPortals": 0,
               "divided": []
             }
@@ -2263,15 +2263,15 @@
               "length": 17018.57563003736,
               "waypoints": 11,
               "hierarchyMs": [
-                3.422999999995227,
-                1.256600000000617,
-                1.2576000000044587
+                3.040899999999965,
+                0.8052000000025146,
+                0.3988000000026659
               ],
-              "hierarchyMedianMs": 1.2576000000044587,
-              "fineMs": 25.971900000004098,
+              "hierarchyMedianMs": 0.8052000000025146,
+              "fineMs": 20.208999999995285,
               "fineLength": 16548.87376755878,
               "stretch": 1.0283827086408353,
-              "windowedMs": 6.523800000002666,
+              "windowedMs": 5.19380000000092,
               "windowedFound": true,
               "distance": 16272.159291255723
             },
@@ -2280,15 +2280,15 @@
               "length": 360.5159608179678,
               "waypoints": 1,
               "hierarchyMs": [
-                0.10700000000360887,
-                0.07820000000356231,
-                0.04700000000593718
+                0.14359999999578577,
+                0.08159999999770662,
+                0.04889999999431893
               ],
-              "hierarchyMedianMs": 0.07820000000356231,
-              "fineMs": 0.7916000000041095,
+              "hierarchyMedianMs": 0.08159999999770662,
+              "fineMs": 0.6353999999992084,
               "fineLength": 353.2238595606636,
               "stretch": 1.020644418716148,
-              "windowedMs": 0.32730000000447035,
+              "windowedMs": 0.2525000000023283,
               "windowedFound": true,
               "distance": 312
             },
@@ -2297,15 +2297,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.07690000000002328,
-                0.04980000000068685,
-                0.04320000000006985
+                0.06820000000152504,
+                0.046699999998963904,
+                0.042799999995622784
               ],
-              "hierarchyMedianMs": 0.04980000000068685,
-              "fineMs": 0.7122000000017579,
+              "hierarchyMedianMs": 0.046699999998963904,
+              "fineMs": 0.617500000000291,
               "fineLength": 322.80942160916794,
               "stretch": 1.0135886302879855,
-              "windowedMs": 0.30860000000393484,
+              "windowedMs": 0.29650000000401633,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -2314,18 +2314,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 458.3191999999981,
+              "tablesMs": 457.68960000000516,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 384.42319999999745,
+              "standsMs": 410.14710000000196,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 317.89970000000176,
+              "tablesMs": 331.6877000000022,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 241.52040000000125,
+              "standsMs": 237.341499999995,
               "dividedPortals": 0,
               "divided": []
             }
@@ -2336,15 +2336,15 @@
               "length": 17018.57563003736,
               "waypoints": 11,
               "hierarchyMs": [
-                3.4254000000000815,
-                1.1669999999940046,
-                0.6847000000052503
+                2.944199999998091,
+                0.37850000000617,
+                0.3558000000048196
               ],
-              "hierarchyMedianMs": 1.1669999999940046,
-              "fineMs": 22.92659999999887,
+              "hierarchyMedianMs": 0.37850000000617,
+              "fineMs": 22.99079999999958,
               "fineLength": 16548.873767558784,
               "stretch": 1.028382708640835,
-              "windowedMs": 6.223700000002282,
+              "windowedMs": 6.036699999996927,
               "windowedFound": true,
               "distance": 16272.159291255723
             },
@@ -2353,15 +2353,15 @@
               "length": 360.5159608179678,
               "waypoints": 1,
               "hierarchyMs": [
-                0.08989999999903375,
-                0.046300000001792796,
-                0.03889999999955762
+                0.08799999999610009,
+                0.04860000000189757,
+                0.03979999999864958
               ],
-              "hierarchyMedianMs": 0.046300000001792796,
-              "fineMs": 0.5404000000053202,
+              "hierarchyMedianMs": 0.04860000000189757,
+              "fineMs": 1.8971999999994296,
               "fineLength": 353.2238595606636,
               "stretch": 1.020644418716148,
-              "windowedMs": 0.2992000000012922,
+              "windowedMs": 0.36789999999746215,
               "windowedFound": true,
               "distance": 312
             },
@@ -2370,15 +2370,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.06719999999768334,
-                0.04980000000068685,
-                0.04129999999713618
+                0.07770000000164146,
+                0.05049999999755528,
+                0.041199999999662396
               ],
-              "hierarchyMedianMs": 0.04980000000068685,
-              "fineMs": 0.5331000000005588,
+              "hierarchyMedianMs": 0.05049999999755528,
+              "fineMs": 0.5455000000001746,
               "fineLength": 322.80942160916794,
               "stretch": 1.0135886302879855,
-              "windowedMs": 0.37700000000040745,
+              "windowedMs": 0.3883999999961816,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -2389,8 +2389,8 @@
     {
       "size": "12x6",
       "seed": 16,
-      "generationMs": 916.6391000000003,
-      "graphMs": 12.71660000000702,
+      "generationMs": 975.4512000000032,
+      "graphMs": 8.10729999999603,
       "regions": 278,
       "portals": 957,
       "promisedPairs": 13317,
@@ -2399,18 +2399,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 342.62089999999444,
+              "tablesMs": 370.7836000000025,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 263.6296000000002,
+              "standsMs": 264.7245000000039,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 276.8603000000003,
+              "tablesMs": 290.20320000000356,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 203.91419999999925,
+              "standsMs": 202.8087000000014,
               "dividedPortals": 0,
               "divided": []
             }
@@ -2421,15 +2421,15 @@
               "length": 17208.448249445362,
               "waypoints": 19,
               "hierarchyMs": [
-                3.397999999993772,
-                0.6850999999951455,
-                0.7494999999980791
+                3.0046999999976833,
+                0.8137999999962631,
+                0.7570000000050641
               ],
-              "hierarchyMedianMs": 0.7494999999980791,
-              "fineMs": 19.45549999999639,
+              "hierarchyMedianMs": 0.8137999999962631,
+              "fineMs": 21.678399999997055,
               "fineLength": 16440.893970094312,
               "stretch": 1.0466856778437486,
-              "windowedMs": 5.732100000001083,
+              "windowedMs": 5.742900000004738,
               "windowedFound": true,
               "distance": 16275.981813703283
             },
@@ -2438,15 +2438,15 @@
               "length": 360.5159608179678,
               "waypoints": 1,
               "hierarchyMs": [
-                0.11699999999837019,
-                0.05159999999887077,
-                0.04499999999825377
+                0.0816999999951804,
+                0.04890000000159489,
+                0.042399999998451676
               ],
-              "hierarchyMedianMs": 0.05159999999887077,
-              "fineMs": 0.5979000000006636,
+              "hierarchyMedianMs": 0.04890000000159489,
+              "fineMs": 0.6244000000006054,
               "fineLength": 353.2238595606636,
               "stretch": 1.020644418716148,
-              "windowedMs": 0.24549999999726424,
+              "windowedMs": 0.2888999999995576,
               "windowedFound": true,
               "distance": 312
             },
@@ -2455,15 +2455,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.06729999999515712,
-                0.04869999999937136,
-                0.043999999994412065
+                0.06950000000506407,
+                0.049000000006344635,
+                0.04379999999946449
               ],
-              "hierarchyMedianMs": 0.04869999999937136,
-              "fineMs": 0.4470000000001164,
+              "hierarchyMedianMs": 0.049000000006344635,
+              "fineMs": 0.6206999999994878,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.30010000000038417,
+              "windowedMs": 0.29860000000189757,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -2472,18 +2472,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 362.24430000000575,
+              "tablesMs": 356.6788000000015,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 289.8850999999995,
+              "standsMs": 285.2703000000038,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 305.71140000000014,
+              "tablesMs": 310.12430000000313,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 239.88239999999496,
+              "standsMs": 234.20360000000073,
               "dividedPortals": 0,
               "divided": []
             }
@@ -2494,15 +2494,15 @@
               "length": 17208.448249445362,
               "waypoints": 19,
               "hierarchyMs": [
-                2.7168000000019674,
-                0.4363000000012107,
-                0.3886999999958789
+                2.811199999996461,
+                0.8836000000010245,
+                1.5169000000023516
               ],
-              "hierarchyMedianMs": 0.4363000000012107,
-              "fineMs": 22.834600000001956,
+              "hierarchyMedianMs": 1.5169000000023516,
+              "fineMs": 24.37960000000021,
               "fineLength": 16440.893970094312,
               "stretch": 1.0466856778437486,
-              "windowedMs": 6.678200000002107,
+              "windowedMs": 6.19720000000234,
               "windowedFound": true,
               "distance": 16275.981813703283
             },
@@ -2511,15 +2511,15 @@
               "length": 360.5159608179678,
               "waypoints": 1,
               "hierarchyMs": [
-                0.11140000000159489,
-                0.046699999998963904,
-                0.04139999999460997
+                0.1304999999993015,
+                0.083199999993667,
+                0.07959999999729916
               ],
-              "hierarchyMedianMs": 0.046699999998963904,
-              "fineMs": 0.6261000000013155,
+              "hierarchyMedianMs": 0.083199999993667,
+              "fineMs": 0.8732000000018161,
               "fineLength": 353.2238595606636,
               "stretch": 1.020644418716148,
-              "windowedMs": 0.30529999999998836,
+              "windowedMs": 0.5374999999985448,
               "windowedFound": true,
               "distance": 312
             },
@@ -2528,15 +2528,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.0904000000009546,
-                0.04910000000381842,
-                0.04950000000098953
+                0.07910000000265427,
+                0.05019999999785796,
+                0.041800000006332994
               ],
-              "hierarchyMedianMs": 0.04950000000098953,
-              "fineMs": 0.6659999999974389,
+              "hierarchyMedianMs": 0.05019999999785796,
+              "fineMs": 0.6088999999992666,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.36990000000514556,
+              "windowedMs": 0.3669000000008964,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -2547,8 +2547,8 @@
     {
       "size": "12x6",
       "seed": 17,
-      "generationMs": 973.8988000000027,
-      "graphMs": 10.44430000000284,
+      "generationMs": 1062.722099999999,
+      "graphMs": 10.591999999996915,
       "regions": 282,
       "portals": 975,
       "promisedPairs": 15698,
@@ -2557,18 +2557,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 343.9617999999973,
+              "tablesMs": 356.9354999999996,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 265.9400000000023,
+              "standsMs": 261.4121000000014,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 293.4311999999991,
+              "tablesMs": 286.68840000000637,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 205.39280000000144,
+              "standsMs": 200.0497000000032,
               "dividedPortals": 0,
               "divided": []
             }
@@ -2579,15 +2579,15 @@
               "length": 17044.838319865707,
               "waypoints": 20,
               "hierarchyMs": [
-                2.24040000000241,
-                0.2878000000055181,
-                0.28610000000480795
+                2.29309999999532,
+                0.33030000000144355,
+                0.2900999999983469
               ],
-              "hierarchyMedianMs": 0.2878000000055181,
-              "fineMs": 17.55329999999958,
+              "hierarchyMedianMs": 0.33030000000144355,
+              "fineMs": 18.50899999999092,
               "fineLength": 16252.218403446925,
               "stretch": 1.0487699523069833,
-              "windowedMs": 4.269399999997404,
+              "windowedMs": 3.8313000000052853,
               "windowedFound": true,
               "distance": 16200
             },
@@ -2596,15 +2596,15 @@
               "length": 420.1627137996935,
               "waypoints": 1,
               "hierarchyMs": [
-                0.1345999999975902,
-                0.07880000000295695,
-                0.05320000000210712
+                0.08209999999962747,
+                0.053899999998975545,
+                0.04389999998966232
               ],
-              "hierarchyMedianMs": 0.07880000000295695,
-              "fineMs": 0.8830000000016298,
+              "hierarchyMedianMs": 0.053899999998975545,
+              "fineMs": 0.595099999991362,
               "fineLength": 407.2440322567695,
               "stretch": 1.031722212039141,
-              "windowedMs": 0.3153999999994994,
+              "windowedMs": 0.2911000000021886,
               "windowedFound": true,
               "distance": 366.34410053936995
             },
@@ -2613,15 +2613,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.0992000000042026,
-                0.0712000000057742,
-                0.07960000000457512
+                0.08329999999841675,
+                0.06320000000414439,
+                0.05719999999564607
               ],
-              "hierarchyMedianMs": 0.07960000000457512,
-              "fineMs": 0.5011999999987893,
+              "hierarchyMedianMs": 0.06320000000414439,
+              "fineMs": 0.5991000000067288,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.29609999999956926,
+              "windowedMs": 0.3004999999975553,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -2630,18 +2630,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 372.7112999999954,
+              "tablesMs": 371.0871999999945,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 295.2607999999964,
+              "standsMs": 289.45040000000154,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 316.3718000000008,
+              "tablesMs": 322.0025000000023,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 236.38930000000255,
+              "standsMs": 243.22990000000573,
               "dividedPortals": 0,
               "divided": []
             }
@@ -2652,15 +2652,15 @@
               "length": 17071.664388990732,
               "waypoints": 18,
               "hierarchyMs": [
-                2.474499999996624,
-                0.34939999999915017,
-                0.313800000003539
+                2.909400000004098,
+                0.4914999999891734,
+                0.4370000000053551
               ],
-              "hierarchyMedianMs": 0.34939999999915017,
-              "fineMs": 21.329200000000128,
+              "hierarchyMedianMs": 0.4914999999891734,
+              "fineMs": 23.101399999999558,
               "fineLength": 16252.218403446925,
               "stretch": 1.050420561993556,
-              "windowedMs": 5.102200000001176,
+              "windowedMs": 4.641100000008009,
               "windowedFound": true,
               "distance": 16200
             },
@@ -2669,15 +2669,15 @@
               "length": 420.1627137996935,
               "waypoints": 1,
               "hierarchyMs": [
-                0.10549999999784632,
-                0.05410000000119908,
-                0.04490000000077998
+                0.09500000000116415,
+                0.053299999999580905,
+                0.04320000000006985
               ],
-              "hierarchyMedianMs": 0.05410000000119908,
-              "fineMs": 0.579699999994773,
+              "hierarchyMedianMs": 0.053299999999580905,
+              "fineMs": 0.572199999995064,
               "fineLength": 407.2440322567695,
               "stretch": 1.031722212039141,
-              "windowedMs": 0.3416999999972177,
+              "windowedMs": 0.6202999999950407,
               "windowedFound": true,
               "distance": 366.34410053936995
             },
@@ -2686,15 +2686,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.08389999999781139,
-                0.0639999999984866,
-                0.05659999999625143
+                0.13059999998949934,
+                0.09890000001178123,
+                0.10849999998754356
               ],
-              "hierarchyMedianMs": 0.0639999999984866,
-              "fineMs": 0.5443999999988591,
+              "hierarchyMedianMs": 0.10849999998754356,
+              "fineMs": 0.7231000000028871,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.3699999999953434,
+              "windowedMs": 0.6854999999923166,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -2705,8 +2705,8 @@
     {
       "size": "12x6",
       "seed": 18,
-      "generationMs": 865.3145000000004,
-      "graphMs": 9.144999999996799,
+      "generationMs": 997.5825000000041,
+      "graphMs": 13.13409999999567,
       "regions": 276,
       "portals": 965,
       "promisedPairs": 15262,
@@ -2715,18 +2715,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 383.8200999999972,
+              "tablesMs": 368.2430000000022,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 316.52730000000156,
+              "standsMs": 290.6944999999978,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 289.8377000000037,
+              "tablesMs": 319.8287999999884,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 210.65669999999955,
+              "standsMs": 215.09749999998894,
               "dividedPortals": 0,
               "divided": []
             }
@@ -2737,15 +2737,15 @@
               "length": 17230.80307917568,
               "waypoints": 17,
               "hierarchyMs": [
-                2.923800000004121,
-                0.9841000000014901,
-                0.6990000000005239
+                2.3319999999948777,
+                0.556799999991199,
+                0.5800000000017462
               ],
-              "hierarchyMedianMs": 0.9841000000014901,
-              "fineMs": 21.7100999999966,
+              "hierarchyMedianMs": 0.5800000000017462,
+              "fineMs": 21.629199999995762,
               "fineLength": 16691.56905080987,
               "stretch": 1.0323057722569016,
-              "windowedMs": 8.71979999999894,
+              "windowedMs": 9.176499999986845,
               "windowedFound": true,
               "distance": 16223.023639260347
             },
@@ -2754,15 +2754,15 @@
               "length": 841.4701294725885,
               "waypoints": 1,
               "hierarchyMs": [
-                0.1113000000041211,
-                0.05849999999918509,
-                0.05069999999977881
+                0.12099999999918509,
+                0.05709999999089632,
+                0.06160000000090804
               ],
-              "hierarchyMedianMs": 0.05849999999918509,
-              "fineMs": 0.522899999996298,
+              "hierarchyMedianMs": 0.06160000000090804,
+              "fineMs": 0.6142000000108965,
               "fineLength": 841.4701294725885,
               "stretch": 1,
-              "windowedMs": 0.3562999999994645,
+              "windowedMs": 0.3907000000035623,
               "windowedFound": true,
               "distance": 751.7020686415597
             },
@@ -2771,15 +2771,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.06990000000223517,
-                0.04950000000098953,
-                0.04649999999674037
+                0.07489999999233987,
+                0.05040000000735745,
+                0.042799999995622784
               ],
-              "hierarchyMedianMs": 0.04950000000098953,
-              "fineMs": 0.4971000000005006,
+              "hierarchyMedianMs": 0.05040000000735745,
+              "fineMs": 0.5182999999960884,
               "fineLength": 322.80942160916794,
               "stretch": 1.0135886302879855,
-              "windowedMs": 0.31199999999807915,
+              "windowedMs": 0.3098000000027241,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -2788,18 +2788,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 406.8938999999955,
+              "tablesMs": 442.6405999999988,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 339.98739999999816,
+              "standsMs": 330.49619999999413,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 315.07500000001164,
+              "tablesMs": 329.5587999999989,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 244.64569999999367,
+              "standsMs": 243.89689999999246,
               "dividedPortals": 0,
               "divided": []
             }
@@ -2810,15 +2810,15 @@
               "length": 17254.234536680753,
               "waypoints": 17,
               "hierarchyMs": [
-                2.6089999999967404,
-                0.5806000000011409,
-                0.3663000000087777
+                2.875499999994645,
+                0.5918999999994412,
+                0.9915000000037253
               ],
-              "hierarchyMedianMs": 0.5806000000011409,
-              "fineMs": 25.611900000003516,
+              "hierarchyMedianMs": 0.9915000000037253,
+              "fineMs": 30.371200000008685,
               "fineLength": 16691.569050809878,
               "stretch": 1.0337095622441543,
-              "windowedMs": 10.129000000000815,
+              "windowedMs": 10.384699999995064,
               "windowedFound": true,
               "distance": 16223.023639260347
             },
@@ -2827,15 +2827,15 @@
               "length": 841.4701294725885,
               "waypoints": 1,
               "hierarchyMs": [
-                0.11849999999685679,
-                0.053899999998975545,
-                0.04589999999734573
+                0.18119999999180436,
+                0.08150000000023283,
+                0.06240000000980217
               ],
-              "hierarchyMedianMs": 0.053899999998975545,
-              "fineMs": 0.5394000000087544,
+              "hierarchyMedianMs": 0.08150000000023283,
+              "fineMs": 0.6788999999989755,
               "fineLength": 841.4701294725885,
               "stretch": 1,
-              "windowedMs": 0.424299999998766,
+              "windowedMs": 0.9089999999996508,
               "windowedFound": true,
               "distance": 751.7020686415597
             },
@@ -2844,15 +2844,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.06480000000738073,
-                0.04260000000067521,
-                0.036399999997229315
+                0.07790000000386499,
+                0.04959999999846332,
+                0.03929999998945277
               ],
-              "hierarchyMedianMs": 0.04260000000067521,
-              "fineMs": 0.46330000000307336,
+              "hierarchyMedianMs": 0.04959999999846332,
+              "fineMs": 0.5904999999911524,
               "fineLength": 322.80942160916794,
               "stretch": 1.0135886302879855,
-              "windowedMs": 0.37810000000172295,
+              "windowedMs": 0.3834999999962747,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -2863,8 +2863,8 @@
     {
       "size": "12x6",
       "seed": 19,
-      "generationMs": 927.425700000007,
-      "graphMs": 11.164999999993597,
+      "generationMs": 974.9533000000083,
+      "graphMs": 14.19550000000163,
       "regions": 283,
       "portals": 895,
       "promisedPairs": 12168,
@@ -2873,18 +2873,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 368.0521000000008,
+              "tablesMs": 351.29959999999846,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 286.3049000000028,
+              "standsMs": 285.6195000000007,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 270.72849999999744,
+              "tablesMs": 266.728099999993,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 205.28210000001127,
+              "standsMs": 196.82170000000042,
               "dividedPortals": 0,
               "divided": []
             }
@@ -2895,15 +2895,15 @@
               "length": 16929.248731886684,
               "waypoints": 14,
               "hierarchyMs": [
-                2.361799999998766,
-                0.3021000000007916,
-                0.42660000000614673
+                3.4746000000013737,
+                1.0126000000018394,
+                0.6269000000029337
               ],
-              "hierarchyMedianMs": 0.42660000000614673,
-              "fineMs": 17.735100000005332,
+              "hierarchyMedianMs": 1.0126000000018394,
+              "fineMs": 20.323300000003655,
               "fineLength": 16447.959594928932,
               "stretch": 1.0292613277762512,
-              "windowedMs": 6.201000000000931,
+              "windowedMs": 5.693400000003749,
               "windowedFound": true,
               "distance": 16210.236765698397
             },
@@ -2912,15 +2912,15 @@
               "length": 818.842712474619,
               "waypoints": 1,
               "hierarchyMs": [
-                0.16790000000037253,
-                0.061599999986356124,
-                0.05490000000281725
+                0.11160000000381842,
+                0.062000000005355105,
+                0.05310000000463333
               ],
-              "hierarchyMedianMs": 0.061599999986356124,
-              "fineMs": 0.6407999999937601,
+              "hierarchyMedianMs": 0.062000000005355105,
+              "fineMs": 0.6517000000021653,
               "fineLength": 818.842712474619,
               "stretch": 1,
-              "windowedMs": 0.42720000000554137,
+              "windowedMs": 0.4470000000001164,
               "windowedFound": true,
               "distance": 751.7020686415597
             },
@@ -2929,15 +2929,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.09010000000125729,
-                0.06760000000940636,
-                0.05959999999322463
+                0.09550000001036096,
+                0.06519999999727588,
+                0.05779999999504071
               ],
-              "hierarchyMedianMs": 0.06760000000940636,
-              "fineMs": 0.628100000001723,
+              "hierarchyMedianMs": 0.06519999999727588,
+              "fineMs": 0.4953000000095926,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.3070000000006985,
+              "windowedMs": 0.31059999999706633,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -2946,18 +2946,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 390.00560000000405,
+              "tablesMs": 397.2021000000095,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 314.1918999999907,
+              "standsMs": 329.92170000000624,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 303.6805000000022,
+              "tablesMs": 322.16350000000966,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 225.37890000001062,
+              "standsMs": 228.64489999999932,
               "dividedPortals": 0,
               "divided": []
             }
@@ -2968,15 +2968,15 @@
               "length": 16929.248731886684,
               "waypoints": 14,
               "hierarchyMs": [
-                2.551999999996042,
-                0.3537999999971362,
-                0.2857999999978347
+                3.0587999999988824,
+                0.39280000000144355,
+                0.38659999999799766
               ],
-              "hierarchyMedianMs": 0.3537999999971362,
-              "fineMs": 21.76029999999446,
+              "hierarchyMedianMs": 0.39280000000144355,
+              "fineMs": 24.461999999999534,
               "fineLength": 16447.959594928936,
               "stretch": 1.029261327776251,
-              "windowedMs": 7.409799999993993,
+              "windowedMs": 7.792600000000675,
               "windowedFound": true,
               "distance": 16210.236765698397
             },
@@ -2985,15 +2985,15 @@
               "length": 818.842712474619,
               "waypoints": 1,
               "hierarchyMs": [
-                0.0951000000059139,
-                0.05809999999473803,
-                0.04899999999906868
+                0.12570000000414439,
+                0.061799999995855615,
+                0.051400000011199154
               ],
-              "hierarchyMedianMs": 0.05809999999473803,
-              "fineMs": 0.6891999999934342,
+              "hierarchyMedianMs": 0.061799999995855615,
+              "fineMs": 0.5614000000059605,
               "fineLength": 818.842712474619,
               "stretch": 1,
-              "windowedMs": 0.4860999999946216,
+              "windowedMs": 0.506600000007893,
               "windowedFound": true,
               "distance": 751.7020686415597
             },
@@ -3002,15 +3002,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.08599999999569263,
-                0.06420000000798609,
-                0.0575000000098953
+                0.08959999999206048,
+                0.06359999999403954,
+                0.05989999999292195
               ],
-              "hierarchyMedianMs": 0.06420000000798609,
-              "fineMs": 0.5485000000044238,
+              "hierarchyMedianMs": 0.06359999999403954,
+              "fineMs": 0.5932999999931781,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.3469000000040978,
+              "windowedMs": 0.36740000000281725,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -3021,8 +3021,8 @@
     {
       "size": "12x6",
       "seed": 20,
-      "generationMs": 952.9884999999922,
-      "graphMs": 9.04989999999816,
+      "generationMs": 1141.6413999999932,
+      "graphMs": 14.710399999996298,
       "regions": 306,
       "portals": 959,
       "promisedPairs": 11239,
@@ -3031,18 +3031,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 473.9910999999993,
+              "tablesMs": 501.4174999999959,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 416.7792999999947,
+              "standsMs": 415.41359999999986,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 264.42200000000594,
+              "tablesMs": 272.1981000000087,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 206.0182999999961,
+              "standsMs": 205.9140000000043,
               "dividedPortals": 0,
               "divided": []
             }
@@ -3053,15 +3053,15 @@
               "length": 17723.909774026884,
               "waypoints": 21,
               "hierarchyMs": [
-                3.103499999997439,
-                1.025500000003376,
-                0.9501000000018394
+                2.7839999999996508,
+                0.4171000000060303,
+                0.41520000000309665
               ],
-              "hierarchyMedianMs": 1.025500000003376,
-              "fineMs": 20.340299999996205,
+              "hierarchyMedianMs": 0.4171000000060303,
+              "fineMs": 19.951600000000326,
               "fineLength": 16761.90382839616,
               "stretch": 1.0573924033617828,
-              "windowedMs": 6.223599999997532,
+              "windowedMs": 5.88980000000447,
               "windowedFound": true,
               "distance": 16560.626075121676
             },
@@ -3070,15 +3070,15 @@
               "length": 670.1564209736038,
               "waypoints": 1,
               "hierarchyMs": [
-                0.13439999999536667,
-                0.05969999999797437,
-                0.04959999999846332
+                0.10220000000845175,
+                0.056299999996554106,
+                0.04839999999967404
               ],
-              "hierarchyMedianMs": 0.05969999999797437,
-              "fineMs": 0.7103000000061002,
+              "hierarchyMedianMs": 0.056299999996554106,
+              "fineMs": 0.5751999999920372,
               "fineLength": 638.1564209736038,
               "stretch": 1.0501444457005997,
-              "windowedMs": 0.32159999999566935,
+              "windowedMs": 0.3032000000093831,
               "windowedFound": true,
               "distance": 584.4381917705242
             },
@@ -3087,15 +3087,15 @@
               "length": 314.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.08770000000367872,
-                0.07040000001143198,
-                0.062000000005355105
+                0.08960000000661239,
+                0.06739999999990687,
+                0.06139999999140855
               ],
-              "hierarchyMedianMs": 0.07040000001143198,
-              "fineMs": 0.6310000000084983,
+              "hierarchyMedianMs": 0.06739999999990687,
+              "fineMs": 0.5540999999939231,
               "fineLength": 307.16498505761786,
               "stretch": 1.0237400146892928,
-              "windowedMs": 0.3231999999989057,
+              "windowedMs": 0.31309999999939464,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -3104,18 +3104,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 485.626299999989,
+              "tablesMs": 466.92519999999786,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 430.3503000000055,
+              "standsMs": 419.30779999999504,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 293.072800000009,
+              "tablesMs": 325.0228000000061,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 236.48760000000766,
+              "standsMs": 247.05999999999767,
               "dividedPortals": 0,
               "divided": []
             }
@@ -3126,15 +3126,15 @@
               "length": 17757.046859016733,
               "waypoints": 21,
               "hierarchyMs": [
-                2.833199999993667,
-                0.628100000001723,
-                0.41569999999774154
+                3.145300000003772,
+                0.6224999999976717,
+                0.6441999999951804
               ],
-              "hierarchyMedianMs": 0.628100000001723,
-              "fineMs": 23.205100000006496,
+              "hierarchyMedianMs": 0.6441999999951804,
+              "fineMs": 24.637699999992037,
               "fineLength": 16761.90382839616,
               "stretch": 1.0593693318377542,
-              "windowedMs": 7.084199999997509,
+              "windowedMs": 7.182399999990594,
               "windowedFound": true,
               "distance": 16560.626075121676
             },
@@ -3143,15 +3143,15 @@
               "length": 670.1564209736038,
               "waypoints": 1,
               "hierarchyMs": [
-                0.09929999998712447,
-                0.052499999990686774,
-                0.045199999993201345
+                0.10330000000249129,
+                0.05169999999634456,
+                0.04569999998784624
               ],
-              "hierarchyMedianMs": 0.052499999990686774,
-              "fineMs": 0.5857000000105472,
+              "hierarchyMedianMs": 0.05169999999634456,
+              "fineMs": 0.6824999999953434,
               "fineLength": 638.1564209736038,
               "stretch": 1.0501444457005997,
-              "windowedMs": 0.3496000000013737,
+              "windowedMs": 0.35699999998905696,
               "windowedFound": true,
               "distance": 584.4381917705242
             },
@@ -3160,15 +3160,15 @@
               "length": 314.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.07940000000235159,
-                0.07060000000637956,
-                0.05620000000635628
+                0.09500000000116415,
+                0.06539999999222346,
+                0.05640000000130385
               ],
-              "hierarchyMedianMs": 0.07060000000637956,
-              "fineMs": 0.5059000000037486,
+              "hierarchyMedianMs": 0.06539999999222346,
+              "fineMs": 0.5421000000060303,
               "fineLength": 307.16498505761786,
               "stretch": 1.0237400146892928,
-              "windowedMs": 0.3702999999950407,
+              "windowedMs": 0.37910000000556465,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -3179,8 +3179,8 @@
     {
       "size": "24x12",
       "seed": 1,
-      "generationMs": 4531.488599999997,
-      "graphMs": 40.640600000013364,
+      "generationMs": 4706.367099999989,
+      "graphMs": 50.32869999999821,
       "regions": 1035,
       "portals": 3835,
       "promisedPairs": 92852,
@@ -3189,18 +3189,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 3506.1949000000022,
+              "tablesMs": 4036.7339000000065,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 2991.8501000000106,
+              "standsMs": 2985.521999999997,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 1360.8597000000009,
+              "tablesMs": 1406.4130000000005,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 844.575199999992,
+              "standsMs": 877.2871000000014,
               "dividedPortals": 0,
               "divided": []
             }
@@ -3211,15 +3211,15 @@
               "length": 35325.786604316505,
               "waypoints": 39,
               "hierarchyMs": [
-                6.959800000011455,
-                2.6811000000016065,
-                1.8065000000060536
+                7.450599999996484,
+                2.899100000009639,
+                2.5874000000039814
               ],
-              "hierarchyMedianMs": 2.6811000000016065,
-              "fineMs": 86.87769999999728,
+              "hierarchyMedianMs": 2.899100000009639,
+              "fineMs": 90.54720000000088,
               "fineLength": 34338.72149726143,
               "stretch": 1.0287449579954162,
-              "windowedMs": 32.612999999997555,
+              "windowedMs": 32.8973999999871,
               "windowedFound": true,
               "distance": 33604.18259681374
             },
@@ -3228,15 +3228,15 @@
               "length": 344,
               "waypoints": 1,
               "hierarchyMs": [
-                0.15020000000367872,
-                0.06040000000211876,
-                0.055900000006658956
+                0.11109999999462161,
+                0.0590000000083819,
+                0.0590000000083819
               ],
-              "hierarchyMedianMs": 0.06040000000211876,
-              "fineMs": 2.8884000000107335,
+              "hierarchyMedianMs": 0.0590000000083819,
+              "fineMs": 2.503499999991618,
               "fineLength": 344,
               "stretch": 1,
-              "windowedMs": 0.3277000000089174,
+              "windowedMs": 0.29119999999238644,
               "windowedFound": true,
               "distance": 312
             },
@@ -3245,15 +3245,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.11320000000705477,
-                0.075700000001234,
-                0.0684999999939464
+                0.10750000001280569,
+                0.06809999998949934,
+                0.05849999999918509
               ],
-              "hierarchyMedianMs": 0.075700000001234,
-              "fineMs": 6.052999999999884,
+              "hierarchyMedianMs": 0.06809999998949934,
+              "fineMs": 6.776100000002771,
               "fineLength": 322.80942160916794,
               "stretch": 1.0135886302879855,
-              "windowedMs": 0.4152999999932945,
+              "windowedMs": 0.4081000000005588,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -3262,18 +3262,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 3576.2950999999885,
+              "tablesMs": 3457.694499999998,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 3104.328899999993,
+              "standsMs": 3040.1872000000003,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 1487.6208000000042,
+              "tablesMs": 1512.8064999999915,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 963.4906000000046,
+              "standsMs": 1028.3145999999979,
               "dividedPortals": 0,
               "divided": []
             }
@@ -3284,15 +3284,15 @@
               "length": 35392.0607742962,
               "waypoints": 39,
               "hierarchyMs": [
-                5.51140000000305,
-                2.420400000002701,
-                1.7006000000110362
+                5.539999999993597,
+                2.749100000000908,
+                2.55109999999695
               ],
-              "hierarchyMedianMs": 2.420400000002701,
-              "fineMs": 103.25780000000668,
+              "hierarchyMedianMs": 2.749100000000908,
+              "fineMs": 105.8408000000054,
               "fineLength": 34338.72149726141,
               "stretch": 1.030674970735844,
-              "windowedMs": 38.318299999999,
+              "windowedMs": 37.08589999999094,
               "windowedFound": true,
               "distance": 33604.18259681374
             },
@@ -3301,15 +3301,15 @@
               "length": 344,
               "waypoints": 1,
               "hierarchyMs": [
-                0.19019999999727588,
-                0.06840000000374857,
-                0.052799999990384094
+                0.12539999998989515,
+                0.05690000001050066,
+                0.04740000001038425
               ],
-              "hierarchyMedianMs": 0.06840000000374857,
-              "fineMs": 3.535600000002887,
+              "hierarchyMedianMs": 0.05690000001050066,
+              "fineMs": 5.31679999998596,
               "fineLength": 344,
               "stretch": 1,
-              "windowedMs": 0.43739999999525025,
+              "windowedMs": 0.33629999999538995,
               "windowedFound": true,
               "distance": 312
             },
@@ -3318,15 +3318,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.13640000000305008,
-                0.08500000000640284,
-                0.06169999999110587
+                0.11109999999462161,
+                0.06360000000859145,
+                0.05349999999452848
               ],
-              "hierarchyMedianMs": 0.08500000000640284,
-              "fineMs": 2.637699999992037,
+              "hierarchyMedianMs": 0.06360000000859145,
+              "fineMs": 2.4043000000092434,
               "fineLength": 322.80942160916794,
               "stretch": 1.0135886302879855,
-              "windowedMs": 0.43710000001010485,
+              "windowedMs": 0.40949999999429565,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -3337,8 +3337,8 @@
     {
       "size": "24x12",
       "seed": 2,
-      "generationMs": 3628.7311000000045,
-      "graphMs": 37.8859999999986,
+      "generationMs": 3733.6493000000046,
+      "graphMs": 44.120000000009895,
       "regions": 990,
       "portals": 3726,
       "promisedPairs": 88697,
@@ -3347,18 +3347,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 2986.267599999992,
+              "tablesMs": 2961.3901999999944,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 2466.897800000006,
+              "standsMs": 2471.8338000000076,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 1348.4468999999954,
+              "tablesMs": 1364.3631999999925,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 842.1664000000019,
+              "standsMs": 813.7812000000122,
               "dividedPortals": 0,
               "divided": []
             }
@@ -3369,15 +3369,15 @@
               "length": 35762.63851002707,
               "waypoints": 31,
               "hierarchyMs": [
-                6.028999999994994,
-                2.264500000004773,
-                2.587599999998929
+                8.131799999988289,
+                4.232499999998254,
+                3.237200000003213
               ],
-              "hierarchyMedianMs": 2.587599999998929,
-              "fineMs": 98.6311999999889,
+              "hierarchyMedianMs": 4.232499999998254,
+              "fineMs": 101.13120000000345,
               "fineLength": 34936.97857267586,
               "stretch": 1.0236328375000625,
-              "windowedMs": 44.41710000000603,
+              "windowedMs": 43.452599999989616,
               "windowedFound": true,
               "distance": 34057.21773721394
             },
@@ -3386,15 +3386,15 @@
               "length": 792,
               "waypoints": 1,
               "hierarchyMs": [
-                0.13340000000607688,
-                0.06429999999818392,
-                0.05749999999534339
+                0.12709999999788124,
+                0.06270000000949949,
+                0.0565000000060536
               ],
-              "hierarchyMedianMs": 0.06429999999818392,
-              "fineMs": 5.7471000000077765,
+              "hierarchyMedianMs": 0.06270000000949949,
+              "fineMs": 2.538300000000163,
               "fineLength": 792,
               "stretch": 1,
-              "windowedMs": 0.46499999999650754,
+              "windowedMs": 0.9324999999953434,
               "windowedFound": true,
               "distance": 792
             },
@@ -3403,15 +3403,15 @@
               "length": 313.94112549695427,
               "waypoints": 1,
               "hierarchyMs": [
-                0.14280000000144355,
-                0.07620000001043081,
-                0.07980000000679865
+                0.15150000000721775,
+                0.07179999999061693,
+                0.05460000000311993
               ],
-              "hierarchyMedianMs": 0.07980000000679865,
-              "fineMs": 2.6975000000093132,
+              "hierarchyMedianMs": 0.07179999999061693,
+              "fineMs": 2.3629999999975553,
               "fineLength": 295.6122620029108,
               "stretch": 1.0620030555223146,
-              "windowedMs": 0.2878999999957159,
+              "windowedMs": 0.3025000000052387,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -3420,18 +3420,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 3022.7930999999953,
+              "tablesMs": 2879.257899999997,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 2548.934599999993,
+              "standsMs": 2440.9440999999933,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 1450.6208999999944,
+              "tablesMs": 1476.1643999999942,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 943.7986999999994,
+              "standsMs": 955.9055999999982,
               "dividedPortals": 0,
               "divided": []
             }
@@ -3442,15 +3442,15 @@
               "length": 35762.63851002707,
               "waypoints": 31,
               "hierarchyMs": [
-                5.399700000009034,
-                1.824800000002142,
-                1.7888999999995576
+                5.854500000001281,
+                2.0828999999939697,
+                2.7198000000062166
               ],
-              "hierarchyMedianMs": 1.824800000002142,
-              "fineMs": 110.92919999999867,
+              "hierarchyMedianMs": 2.7198000000062166,
+              "fineMs": 109.37680000001274,
               "fineLength": 34936.97857267581,
               "stretch": 1.0236328375000638,
-              "windowedMs": 47.02030000000377,
+              "windowedMs": 48.016399999993155,
               "windowedFound": true,
               "distance": 34057.21773721394
             },
@@ -3459,15 +3459,15 @@
               "length": 792,
               "waypoints": 1,
               "hierarchyMs": [
-                0.12690000000293367,
-                0.05860000000393484,
-                0.05690000001050066
+                0.11400000000139698,
+                0.061400000005960464,
+                0.05490000000281725
               ],
-              "hierarchyMedianMs": 0.05860000000393484,
-              "fineMs": 7.529399999999441,
+              "hierarchyMedianMs": 0.061400000005960464,
+              "fineMs": 6.423699999999371,
               "fineLength": 792,
               "stretch": 1,
-              "windowedMs": 0.42099999998754356,
+              "windowedMs": 0.4064000000071246,
               "windowedFound": true,
               "distance": 792
             },
@@ -3476,15 +3476,15 @@
               "length": 313.94112549695427,
               "waypoints": 1,
               "hierarchyMs": [
-                0.11800000000221189,
-                0.0580000000045402,
-                0.04830000000947621
+                0.09909999999217689,
+                0.06220000000030268,
+                0.05009999999310821
               ],
-              "hierarchyMedianMs": 0.0580000000045402,
-              "fineMs": 2.7722000000067055,
+              "hierarchyMedianMs": 0.06220000000030268,
+              "fineMs": 2.45679999999993,
               "fineLength": 295.6122620029108,
               "stretch": 1.0620030555223146,
-              "windowedMs": 0.35169999999925494,
+              "windowedMs": 0.31979999999748543,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -3495,8 +3495,8 @@
     {
       "size": "24x12",
       "seed": 3,
-      "generationMs": 4172.977200000008,
-      "graphMs": 40.69070000000647,
+      "generationMs": 4203.094599999997,
+      "graphMs": 41.537100000001374,
       "regions": 1077,
       "portals": 4011,
       "promisedPairs": 112061,
@@ -3505,18 +3505,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 3581.7657000000036,
+              "tablesMs": 3362.2307,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 3027.206600000005,
+              "standsMs": 2842.284799999994,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 1418.1757999999973,
+              "tablesMs": 1642.2804000000178,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 851.91859999999,
+              "standsMs": 937.8910000000033,
               "dividedPortals": 0,
               "divided": []
             }
@@ -3527,15 +3527,15 @@
               "length": 35060.74421920654,
               "waypoints": 36,
               "hierarchyMs": [
-                7.700899999996182,
-                3.3831999999965774,
-                1.9499999999970896
+                8.581599999975879,
+                4.469600000011269,
+                3.277200000011362
               ],
-              "hierarchyMedianMs": 3.3831999999965774,
-              "fineMs": 82.0448999999935,
+              "hierarchyMedianMs": 4.469600000011269,
+              "fineMs": 84.0743000000075,
               "fineLength": 33834.58700755217,
               "stretch": 1.036239757009024,
-              "windowedMs": 18.33969999999681,
+              "windowedMs": 25.139999999984866,
               "windowedFound": true,
               "distance": 33491.14653158354
             },
@@ -3544,15 +3544,15 @@
               "length": 669.8683412844649,
               "waypoints": 1,
               "hierarchyMs": [
-                0.10700000000360887,
-                0.06779999998980202,
-                0.07929999999760184
+                0.147400000016205,
+                0.08410000000731088,
+                0.07269999998970889
               ],
-              "hierarchyMedianMs": 0.07929999999760184,
-              "fineMs": 2.732399999993504,
+              "hierarchyMedianMs": 0.08410000000731088,
+              "fineMs": 2.9825999999884516,
               "fineLength": 666.1184009258822,
               "stretch": 1.0056295402639688,
-              "windowedMs": 0.46429999999236315,
+              "windowedMs": 0.5060999999986961,
               "windowedFound": true,
               "distance": 590.3219460599445
             },
@@ -3561,15 +3561,15 @@
               "length": 314.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.10940000000118744,
-                0.06859999999869615,
-                0.060800000006565824
+                0.12260000000242144,
+                0.09140000000479631,
+                0.08499999999185093
               ],
-              "hierarchyMedianMs": 0.06859999999869615,
-              "fineMs": 2.6687999999994645,
+              "hierarchyMedianMs": 0.09140000000479631,
+              "fineMs": 5.380600000004051,
               "fineLength": 307.16498505761786,
               "stretch": 1.0237400146892928,
-              "windowedMs": 0.3787999999913154,
+              "windowedMs": 0.5298999999940861,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -3578,18 +3578,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 3600.215599999996,
+              "tablesMs": 3591.677800000005,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 3140.958500000008,
+              "standsMs": 2966.8826999999874,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 1523.7502000000095,
+              "tablesMs": 1486.6206999999995,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 990.4708999999857,
+              "standsMs": 1001.8059999999823,
               "dividedPortals": 0,
               "divided": []
             }
@@ -3600,15 +3600,15 @@
               "length": 35107.60713421669,
               "waypoints": 36,
               "hierarchyMs": [
-                5.51480000000447,
-                1.8017999999865424,
-                1.7315999999991618
+                5.782099999982165,
+                2.407600000005914,
+                3.0001000000047497
               ],
-              "hierarchyMedianMs": 1.8017999999865424,
-              "fineMs": 92.14530000000377,
+              "hierarchyMedianMs": 3.0001000000047497,
+              "fineMs": 102.85860000000685,
               "fineLength": 33834.58700755217,
               "stretch": 1.0376248164749395,
-              "windowedMs": 19.67960000000312,
+              "windowedMs": 20.14910000000964,
               "windowedFound": true,
               "distance": 33491.14653158354
             },
@@ -3617,15 +3617,15 @@
               "length": 669.8683412844649,
               "waypoints": 1,
               "hierarchyMs": [
-                0.12059999999473803,
-                0.054899999988265336,
-                0.050500000012107193
+                0.11239999998360872,
+                0.0537999999942258,
+                0.07310000000870787
               ],
-              "hierarchyMedianMs": 0.054899999988265336,
-              "fineMs": 2.961700000014389,
+              "hierarchyMedianMs": 0.07310000000870787,
+              "fineMs": 2.6120999999984633,
               "fineLength": 666.1184009258822,
               "stretch": 1.0056295402639688,
-              "windowedMs": 0.4328000000095926,
+              "windowedMs": 0.3901999999943655,
               "windowedFound": true,
               "distance": 590.3219460599445
             },
@@ -3634,15 +3634,15 @@
               "length": 314.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.1468999999924563,
-                0.06459999998332933,
-                0.054100000008475035
+                0.09669999999459833,
+                0.062200000014854595,
+                0.05480000001261942
               ],
-              "hierarchyMedianMs": 0.06459999998332933,
-              "fineMs": 6.989400000020396,
+              "hierarchyMedianMs": 0.062200000014854595,
+              "fineMs": 2.3567000000039116,
               "fineLength": 307.16498505761786,
               "stretch": 1.0237400146892928,
-              "windowedMs": 0.49390000000130385,
+              "windowedMs": 0.3929000000061933,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -3653,8 +3653,8 @@
     {
       "size": "24x12",
       "seed": 4,
-      "generationMs": 3731.0581999999995,
-      "graphMs": 39.28179999999702,
+      "generationMs": 3830.896700000012,
+      "graphMs": 39.74330000000191,
       "regions": 1024,
       "portals": 3849,
       "promisedPairs": 105944,
@@ -3663,18 +3663,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 2924.247000000003,
+              "tablesMs": 2769.268299999996,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 2364.7718999999925,
+              "standsMs": 2224.7319000000134,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 1429.0690999999933,
+              "tablesMs": 1413.496999999974,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 841.020199999999,
+              "standsMs": 822.0380999999761,
               "dividedPortals": 0,
               "divided": []
             }
@@ -3685,15 +3685,15 @@
               "length": 35616.42564085166,
               "waypoints": 26,
               "hierarchyMs": [
-                8.955500000010943,
-                2.9505000000062864,
-                3.137799999996787
+                8.979600000020582,
+                3.0622999999905005,
+                2.429900000017369
               ],
-              "hierarchyMedianMs": 3.137799999996787,
-              "fineMs": 82.0787999999884,
+              "hierarchyMedianMs": 3.0622999999905005,
+              "fineMs": 79.80290000000969,
               "fineLength": 34851.054541744175,
               "stretch": 1.0219612034462466,
-              "windowedMs": 27.574900000006892,
+              "windowedMs": 28.363000000012107,
               "windowedFound": true,
               "distance": 34043.744094914124
             },
@@ -3702,15 +3702,15 @@
               "length": 834.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.11499999999068677,
-                0.05849999998463318,
-                0.051500000001396984
+                0.10300000000279397,
+                0.05970000001252629,
+                0.0507999999972526
               ],
-              "hierarchyMedianMs": 0.05849999998463318,
-              "fineMs": 6.295699999987846,
+              "hierarchyMedianMs": 0.05970000001252629,
+              "fineMs": 6.47609999999986,
               "fineLength": 834.4570863149221,
               "stretch": 1,
-              "windowedMs": 0.33480000001145527,
+              "windowedMs": 0.3187999999790918,
               "windowedFound": true,
               "distance": 792.3635529225205
             },
@@ -3719,15 +3719,15 @@
               "length": 313.94112549695427,
               "waypoints": 1,
               "hierarchyMs": [
-                0.1518999999971129,
-                0.07839999999850988,
-                0.06919999999809079
+                0.10570000001462176,
+                0.06010000000242144,
+                0.053500000009080395
               ],
-              "hierarchyMedianMs": 0.07839999999850988,
-              "fineMs": 2.4380000000237487,
+              "hierarchyMedianMs": 0.06010000000242144,
+              "fineMs": 2.389599999994971,
               "fineLength": 295.6122620029108,
               "stretch": 1.0620030555223146,
-              "windowedMs": 0.3010000000067521,
+              "windowedMs": 0.2961000000068452,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -3736,18 +3736,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 3010.801999999996,
+              "tablesMs": 2846.4456000000064,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 2480.171000000002,
+              "standsMs": 2331.0438999999897,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 1515.3602000000246,
+              "tablesMs": 1475.089799999987,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 957.9780000000028,
+              "standsMs": 933.5768000000098,
               "dividedPortals": 0,
               "divided": []
             }
@@ -3758,15 +3758,15 @@
               "length": 35715.8368958212,
               "waypoints": 26,
               "hierarchyMs": [
-                6.542199999996228,
-                2.3527999999932945,
-                2.3030000000144355
+                5.801200000016252,
+                2.5468999999866355,
+                2.3473999999987427
               ],
-              "hierarchyMedianMs": 2.3527999999932945,
-              "fineMs": 93.54349999999977,
+              "hierarchyMedianMs": 2.5468999999866355,
+              "fineMs": 96.24320000002626,
               "fineLength": 34851.054541744146,
               "stretch": 1.0248136639033758,
-              "windowedMs": 31.920599999983096,
+              "windowedMs": 32.22029999998631,
               "windowedFound": true,
               "distance": 34043.744094914124
             },
@@ -3775,15 +3775,15 @@
               "length": 834.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.11770000000251457,
-                0.05560000002151355,
-                0.05009999999310821
+                0.09789999999338761,
+                0.05359999998472631,
+                0.0473000000056345
               ],
-              "hierarchyMedianMs": 0.05560000002151355,
-              "fineMs": 5.178400000004331,
+              "hierarchyMedianMs": 0.05359999998472631,
+              "fineMs": 2.3950000000186265,
               "fineLength": 834.4570863149221,
               "stretch": 1,
-              "windowedMs": 0.3832999999867752,
+              "windowedMs": 0.3206999999820255,
               "windowedFound": true,
               "distance": 792.3635529225205
             },
@@ -3792,15 +3792,15 @@
               "length": 313.94112549695427,
               "waypoints": 1,
               "hierarchyMs": [
-                0.11650000000372529,
-                0.061000000016065314,
-                0.055300000007264316
+                0.09329999997862615,
+                0.05479999998351559,
+                0.054700000007869676
               ],
-              "hierarchyMedianMs": 0.061000000016065314,
-              "fineMs": 3.3652000000001863,
+              "hierarchyMedianMs": 0.05479999998351559,
+              "fineMs": 6.374599999981001,
               "fineLength": 295.6122620029108,
               "stretch": 1.0620030555223146,
-              "windowedMs": 0.4090999999898486,
+              "windowedMs": 0.40770000001066364,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -3811,8 +3811,8 @@
     {
       "size": "24x12",
       "seed": 5,
-      "generationMs": 3913.997399999993,
-      "graphMs": 42.28320000000531,
+      "generationMs": 3681.7393999999913,
+      "graphMs": 55.03230000002077,
       "regions": 1065,
       "portals": 3978,
       "promisedPairs": 83923,
@@ -3821,18 +3821,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 3410.8755999999994,
+              "tablesMs": 3095.4848000000056,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 3021.866800000018,
+              "standsMs": 2706.7191000000166,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 1285.5957000000053,
+              "tablesMs": 1249.2501000000047,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 880.4447000000218,
+              "standsMs": 853.8086000000185,
               "dividedPortals": 0,
               "divided": []
             }
@@ -3843,15 +3843,15 @@
               "length": 35483.1567256781,
               "waypoints": 38,
               "hierarchyMs": [
-                8.11019999999553,
-                4.541499999992084,
-                2.739499999996042
+                7.465100000001257,
+                3.821300000010524,
+                2.1480000000155997
               ],
-              "hierarchyMedianMs": 4.541499999992084,
-              "fineMs": 80.3810999999987,
+              "hierarchyMedianMs": 3.821300000010524,
+              "fineMs": 75.69109999999637,
               "fineLength": 34026.23376490864,
               "stretch": 1.0428176380270444,
-              "windowedMs": 10.76380000001518,
+              "windowedMs": 11.666299999982584,
               "windowedFound": true,
               "distance": 33696
             },
@@ -3860,15 +3860,15 @@
               "length": 344,
               "waypoints": 1,
               "hierarchyMs": [
-                0.13810000001103617,
-                0.061799999995855615,
-                0.05280000000493601
+                0.11410000000614673,
+                0.05920000001788139,
+                0.04939999998896383
               ],
-              "hierarchyMedianMs": 0.061799999995855615,
-              "fineMs": 6.90470000001369,
+              "hierarchyMedianMs": 0.05920000001788139,
+              "fineMs": 2.409700000018347,
               "fineLength": 344,
               "stretch": 1,
-              "windowedMs": 0.506599999993341,
+              "windowedMs": 0.26439999998547137,
               "windowedFound": true,
               "distance": 312
             },
@@ -3877,15 +3877,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.10649999999441206,
-                0.061799999995855615,
-                0.0537999999942258
+                0.09159999998519197,
+                0.05989999999292195,
+                0.05760000000009313
               ],
-              "hierarchyMedianMs": 0.061799999995855615,
-              "fineMs": 2.482899999973597,
+              "hierarchyMedianMs": 0.05989999999292195,
+              "fineMs": 2.2635000000009313,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.29349999999976717,
+              "windowedMs": 0.2692000000097323,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -3894,18 +3894,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 3500.3702999999805,
+              "tablesMs": 3218.0560000000114,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 3114.5855000000156,
+              "standsMs": 3091.4769999999844,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 1431.326000000001,
+              "tablesMs": 1430.462599999999,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 992.6449000000139,
+              "standsMs": 1009.2476999999781,
               "dividedPortals": 0,
               "divided": []
             }
@@ -3916,15 +3916,15 @@
               "length": 35483.1567256781,
               "waypoints": 38,
               "hierarchyMs": [
-                5.478800000011688,
-                1.9609000000054948,
-                1.8342000000120606
+                6.3179999999993015,
+                2.467499999998836,
+                3.766200000012759
               ],
-              "hierarchyMedianMs": 1.9609000000054948,
-              "fineMs": 90.91939999998431,
+              "hierarchyMedianMs": 3.766200000012759,
+              "fineMs": 101.09579999998095,
               "fineLength": 34026.233764908626,
               "stretch": 1.0428176380270449,
-              "windowedMs": 12.21229999998468,
+              "windowedMs": 12.795799999992596,
               "windowedFound": true,
               "distance": 33696
             },
@@ -3933,15 +3933,15 @@
               "length": 344,
               "waypoints": 1,
               "hierarchyMs": [
-                0.11070000001927838,
-                0.055099999997764826,
-                0.04839999999967404
+                0.1160000000090804,
+                0.05660000001080334,
+                0.0478000000002794
               ],
-              "hierarchyMedianMs": 0.055099999997764826,
-              "fineMs": 5.861299999989569,
+              "hierarchyMedianMs": 0.05660000001080334,
+              "fineMs": 7.0820999999996275,
               "fineLength": 344,
               "stretch": 1,
-              "windowedMs": 0.354700000025332,
+              "windowedMs": 0.4671999999845866,
               "windowedFound": true,
               "distance": 312
             },
@@ -3950,15 +3950,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.09309999999823049,
-                0.05460000000311993,
-                0.04860000000917353
+                0.11609999998472631,
+                0.05760000000009313,
+                0.04869999998481944
               ],
-              "hierarchyMedianMs": 0.05460000000311993,
-              "fineMs": 2.367500000022119,
+              "hierarchyMedianMs": 0.05760000000009313,
+              "fineMs": 2.6838000000279862,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.38829999999143183,
+              "windowedMs": 0.3122999999905005,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -3969,8 +3969,8 @@
     {
       "size": "36x18",
       "seed": 1,
-      "generationMs": 10652.404299999995,
-      "graphMs": 80.69620000000577,
+      "generationMs": 10951.157199999987,
+      "graphMs": 85.18409999998403,
       "regions": 2101,
       "portals": 8133,
       "promisedPairs": 271430,
@@ -3979,18 +3979,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 13551.173900000023,
+              "tablesMs": 13317.804400000023,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 11974.07090000002,
+              "standsMs": 11275.564900000027,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 3642.3537999999826,
+              "tablesMs": 3567.461500000005,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 1931.8231000000087,
+              "standsMs": 1842.7704999999842,
               "dividedPortals": 0,
               "divided": []
             }
@@ -4001,15 +4001,15 @@
               "length": 52922.9225500667,
               "waypoints": 42,
               "hierarchyMs": [
-                13.215499999991152,
-                5.346599999989849,
-                4.186099999991711
+                11.379500000010012,
+                4.492499999993015,
+                3.943299999984447
               ],
-              "hierarchyMedianMs": 5.346599999989849,
-              "fineMs": 175.52429999999003,
+              "hierarchyMedianMs": 4.492499999993015,
+              "fineMs": 181.87799999999697,
               "fineLength": 51525.401904982675,
               "stretch": 1.027122945060403,
-              "windowedMs": 31.936799999995856,
+              "windowedMs": 31.44680000000517,
               "windowedFound": true,
               "distance": 50984.59249616495
             },
@@ -4018,15 +4018,15 @@
               "length": 360.5159608179678,
               "waypoints": 1,
               "hierarchyMs": [
-                0.21880000000237487,
-                0.07889999999315478,
-                0.06909999999334104
+                0.1728999999759253,
+                0.06560000000172295,
+                0.05969999998342246
               ],
-              "hierarchyMedianMs": 0.07889999999315478,
-              "fineMs": 10.090700000000652,
+              "hierarchyMedianMs": 0.06560000000172295,
+              "fineMs": 8.760599999979604,
               "fineLength": 353.2238595606636,
               "stretch": 1.020644418716148,
-              "windowedMs": 0.3646000000007916,
+              "windowedMs": 0.34159999998519197,
               "windowedFound": true,
               "distance": 312
             },
@@ -4035,15 +4035,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.13829999999143183,
-                0.07200000001466833,
-                0.06339999998454005
+                0.12640000000828877,
+                0.06869999997434206,
+                0.06010000000242144
               ],
-              "hierarchyMedianMs": 0.07200000001466833,
-              "fineMs": 10.77359999998589,
+              "hierarchyMedianMs": 0.06869999997434206,
+              "fineMs": 11.3519999999844,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.4512000000104308,
+              "windowedMs": 0.3418999999994412,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -4052,18 +4052,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 13553.363699999987,
+              "tablesMs": 12870.556300000026,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 12079.015700000018,
+              "standsMs": 11676.14929999999,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 3889.410200000013,
+              "tablesMs": 3932.3377000000037,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 2178.9300999999978,
+              "standsMs": 2196.530299999984,
               "dividedPortals": 0,
               "divided": []
             }
@@ -4074,15 +4074,15 @@
               "length": 53022.33380503624,
               "waypoints": 42,
               "hierarchyMs": [
-                7.092800000013085,
-                3.6880999999993946,
-                3.97630000000936
+                7.441599999991013,
+                3.9579999999841675,
+                4.060700000001816
               ],
-              "hierarchyMedianMs": 3.97630000000936,
-              "fineMs": 224.93950000000768,
+              "hierarchyMedianMs": 4.060700000001816,
+              "fineMs": 244.17910000000848,
               "fineLength": 51624.81315995222,
               "stretch": 1.0270707157961814,
-              "windowedMs": 43.397200000006706,
+              "windowedMs": 47.194799999997485,
               "windowedFound": true,
               "distance": 50984.59249616495
             },
@@ -4091,15 +4091,15 @@
               "length": 360.5159608179678,
               "waypoints": 1,
               "hierarchyMs": [
-                0.12359999999171123,
-                0.06539999999222346,
-                0.05689999999594875
+                0.14050000000861473,
+                0.10810000001220033,
+                0.08179999998537824
               ],
-              "hierarchyMedianMs": 0.06539999999222346,
-              "fineMs": 5.9500000000116415,
+              "hierarchyMedianMs": 0.10810000001220033,
+              "fineMs": 6.2317000000039116,
               "fineLength": 353.2238595606636,
               "stretch": 1.020644418716148,
-              "windowedMs": 0.41249999997671694,
+              "windowedMs": 0.37390000000596046,
               "windowedFound": true,
               "distance": 312
             },
@@ -4108,15 +4108,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.13029999998980202,
-                0.06799999999930151,
-                0.06320000000414439
+                0.125,
+                0.06709999998565763,
+                0.07970000000204891
               ],
-              "hierarchyMedianMs": 0.06799999999930151,
-              "fineMs": 8.63289999999688,
+              "hierarchyMedianMs": 0.07970000000204891,
+              "fineMs": 9.880700000008801,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.40820000000530854,
+              "windowedMs": 0.46700000000419095,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -4127,8 +4127,8 @@
     {
       "size": "36x18",
       "seed": 2,
-      "generationMs": 44370.50389999998,
-      "graphMs": 87.32880000001751,
+      "generationMs": 46714.298699999985,
+      "graphMs": 83.6710000000312,
       "regions": 2028,
       "portals": 7992,
       "promisedPairs": 299110,
@@ -4137,18 +4137,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 14547.507700000016,
+              "tablesMs": 13759.248599999992,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 12929.889099999971,
+              "standsMs": 12066.573499999999,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 3840.8831000000355,
+              "tablesMs": 3820.0685999999987,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 1903.1227000000072,
+              "standsMs": 1971.8808999999892,
               "dividedPortals": 0,
               "divided": []
             }
@@ -4159,15 +4159,15 @@
               "length": 53443.22992847132,
               "waypoints": 38,
               "hierarchyMs": [
-                9.991399999998976,
-                5.532899999991059,
-                5.362100000027567
+                13.90679999999702,
+                5.719900000025518,
+                5.1907000000355765
               ],
-              "hierarchyMedianMs": 5.532899999991059,
-              "fineMs": 188.00430000002962,
+              "hierarchyMedianMs": 5.719900000025518,
+              "fineMs": 238.01520000002347,
               "fineLength": 51769.62792531293,
               "stretch": 1.0323278738949575,
-              "windowedMs": 22.761200000008103,
+              "windowedMs": 30.32520000002114,
               "windowedFound": true,
               "distance": 51264
             },
@@ -4176,15 +4176,15 @@
               "length": 676.7312562946173,
               "waypoints": 1,
               "hierarchyMs": [
-                0.16849999997066334,
-                0.07459999999264255,
-                0.06780000001890585
+                0.2236999999731779,
+                0.10240000003250316,
+                0.09510000003501773
               ],
-              "hierarchyMedianMs": 0.07459999999264255,
-              "fineMs": 12.731499999994412,
+              "hierarchyMedianMs": 0.10240000003250316,
+              "fineMs": 15.70339999999851,
               "fineLength": 644.7312562946173,
               "stretch": 1.0496330830676794,
-              "windowedMs": 0.48290000000270084,
+              "windowedMs": 0.7353999999468215,
               "windowedFound": true,
               "distance": 592.7562736909665
             },
@@ -4193,15 +4193,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.11989999999059364,
-                0.06899999995948747,
-                0.06229999999050051
+                0.15350000001490116,
+                0.10089999996125698,
+                0.10800000000745058
               ],
-              "hierarchyMedianMs": 0.06899999995948747,
-              "fineMs": 13.668200000014622,
+              "hierarchyMedianMs": 0.10800000000745058,
+              "fineMs": 14.131599999964237,
               "fineLength": 311.19595949289334,
               "stretch": 1.0514145492957963,
-              "windowedMs": 0.37000000005355105,
+              "windowedMs": 0.32340000005206093,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -4210,18 +4210,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 14709.868799999997,
+              "tablesMs": 14875.799999999988,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 13027.465499999991,
+              "standsMs": 12357.557199999981,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 4067.364100000006,
+              "tablesMs": 4081.312799999956,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 2174.223100000003,
+              "standsMs": 2172.441899999976,
               "dividedPortals": 0,
               "divided": []
             }
@@ -4232,15 +4232,15 @@
               "length": 53514.58218916194,
               "waypoints": 41,
               "hierarchyMs": [
-                7.526399999973364,
-                5.142900000035297,
-                6.865400000009686
+                7.858000000007451,
+                5.430200000002515,
+                5.769900000013877
               ],
-              "hierarchyMedianMs": 6.865400000009686,
-              "fineMs": 218.94349999999395,
+              "hierarchyMedianMs": 5.769900000013877,
+              "fineMs": 219.91399999998976,
               "fineLength": 51802.76501030278,
               "stretch": 1.0330448997948027,
-              "windowedMs": 25.271899999992456,
+              "windowedMs": 26.107099999964703,
               "windowedFound": true,
               "distance": 51264
             },
@@ -4249,15 +4249,15 @@
               "length": 676.7312562946173,
               "waypoints": 1,
               "hierarchyMs": [
-                0.14059999998426065,
-                0.0692999999737367,
-                0.060600000026170164
+                0.13490000000456348,
+                0.0874999999650754,
+                0.05989999999292195
               ],
-              "hierarchyMedianMs": 0.0692999999737367,
-              "fineMs": 12.98130000004312,
+              "hierarchyMedianMs": 0.0874999999650754,
+              "fineMs": 12.02980000001844,
               "fineLength": 644.7312562946173,
               "stretch": 1.0496330830676794,
-              "windowedMs": 0.5339000000385568,
+              "windowedMs": 0.49839999998221174,
               "windowedFound": true,
               "distance": 592.7562736909665
             },
@@ -4266,15 +4266,15 @@
               "length": 327.19595949289334,
               "waypoints": 1,
               "hierarchyMs": [
-                0.1424000000115484,
-                0.06799999997019768,
-                0.060200000007171184
+                0.1317999999737367,
+                0.1013999999850057,
+                0.06030000001192093
               ],
-              "hierarchyMedianMs": 0.06799999997019768,
-              "fineMs": 12.987900000007357,
+              "hierarchyMedianMs": 0.1013999999850057,
+              "fineMs": 11.2837999999756,
               "fineLength": 311.19595949289334,
               "stretch": 1.0514145492957963,
-              "windowedMs": 0.46359999995911494,
+              "windowedMs": 0.6174999999930151,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -4285,8 +4285,8 @@
     {
       "size": "36x18",
       "seed": 3,
-      "generationMs": 10913.839199999988,
-      "graphMs": 77.23060000000987,
+      "generationMs": 11087.636600000027,
+      "graphMs": 87.95939999999246,
       "regions": 2127,
       "portals": 8318,
       "promisedPairs": 362280,
@@ -4295,18 +4295,18 @@
         "contestant": {
           "doors": {
             "closed": {
-              "tablesMs": 13916.496000000043,
+              "tablesMs": 13575.48080000002,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 11998.78389999998,
+              "standsMs": 11698.336499999976,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 4128.642200000002,
+              "tablesMs": 4324.406499999983,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 1993.154600000009,
+              "standsMs": 1973.0199999999604,
               "dividedPortals": 0,
               "divided": []
             }
@@ -4317,15 +4317,15 @@
               "length": 53429.9195787125,
               "waypoints": 29,
               "hierarchyMs": [
-                11.394099999975879,
-                5.198099999979604,
-                4.852499999979045
+                14.414900000032503,
+                5.040000000037253,
+                4.832400000013877
               ],
-              "hierarchyMedianMs": 5.198099999979604,
-              "fineMs": 246.4539999999688,
+              "hierarchyMedianMs": 5.040000000037253,
+              "fineMs": 238.3188000000082,
               "fineLength": 52630.2501430003,
               "stretch": 1.015194102888347,
-              "windowedMs": 123.87810000003083,
+              "windowedMs": 120.08850000001257,
               "windowedFound": true,
               "distance": 51246.60378990982
             },
@@ -4334,15 +4334,15 @@
               "length": 636.7312562946173,
               "waypoints": 1,
               "hierarchyMs": [
-                0.1399000000092201,
-                0.0771999999997206,
-                0.0625
+                0.13829999999143183,
+                0.0650000000023283,
+                0.05760000000009313
               ],
-              "hierarchyMedianMs": 0.0771999999997206,
-              "fineMs": 16.15829999995185,
+              "hierarchyMedianMs": 0.0650000000023283,
+              "fineMs": 15.041300000040792,
               "fineLength": 636.7312562946173,
               "stretch": 1,
-              "windowedMs": 0.4432999999844469,
+              "windowedMs": 0.3612000000430271,
               "windowedFound": true,
               "distance": 584.4381917705242
             },
@@ -4351,15 +4351,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.16399999998975545,
-                0.08309999998891726,
-                0.07510000001639128
+                0.1468000000459142,
+                0.08090000000083819,
+                0.0816000000340864
               ],
-              "hierarchyMedianMs": 0.08309999998891726,
-              "fineMs": 14.84220000001369,
+              "hierarchyMedianMs": 0.0816000000340864,
+              "fineMs": 11.117900000012014,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.47820000001229346,
+              "windowedMs": 0.426099999982398,
               "windowedFound": true,
               "distance": 288.99826989101507
             }
@@ -4368,18 +4368,18 @@
         "gladiator": {
           "doors": {
             "closed": {
-              "tablesMs": 13995.770299999975,
+              "tablesMs": 13246.98060000001,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 12124.091199999966,
+              "standsMs": 11546.883700000006,
               "dividedPortals": 0,
               "divided": []
             },
             "openable": {
-              "tablesMs": 4376.059599999979,
+              "tablesMs": 4332.385999999999,
               "brokenPairs": 0,
               "broken": [],
-              "standsMs": 2299.3500999999815,
+              "standsMs": 2274.6668000000063,
               "dividedPortals": 0,
               "divided": []
             }
@@ -4390,15 +4390,15 @@
               "length": 53429.9195787125,
               "waypoints": 29,
               "hierarchyMs": [
-                11.647699999972247,
-                5.129799999995157,
-                5.482399999978952
+                15.09299999999348,
+                4.978600000031292,
+                4.922100000025239
               ],
-              "hierarchyMedianMs": 5.482399999978952,
-              "fineMs": 280.14749999996275,
+              "hierarchyMedianMs": 4.978600000031292,
+              "fineMs": 269.7559000000474,
               "fineLength": 52630.25014300031,
               "stretch": 1.015194102888347,
-              "windowedMs": 133.33309999998892,
+              "windowedMs": 140.5889999999781,
               "windowedFound": true,
               "distance": 51246.60378990982
             },
@@ -4407,15 +4407,15 @@
               "length": 636.7312562946173,
               "waypoints": 1,
               "hierarchyMs": [
-                0.17570000002160668,
-                0.061600000015459955,
-                0.05339999997522682
+                0.17190000001573935,
+                0.09169999998994172,
+                0.09239999996498227
               ],
-              "hierarchyMedianMs": 0.061600000015459955,
-              "fineMs": 12.151000000012573,
+              "hierarchyMedianMs": 0.09239999996498227,
+              "fineMs": 12.919899999978952,
               "fineLength": 636.7312562946173,
               "stretch": 1,
-              "windowedMs": 0.4727000000420958,
+              "windowedMs": 0.5411000000312924,
               "windowedFound": true,
               "distance": 584.4381917705242
             },
@@ -4424,15 +4424,15 @@
               "length": 330.4570863149221,
               "waypoints": 1,
               "hierarchyMs": [
-                0.1300000000046566,
-                0.07679999998072162,
-                0.06919999996898696
+                0.13169999996898696,
+                0.07530000002589077,
+                0.06750000000465661
               ],
-              "hierarchyMedianMs": 0.07679999998072162,
-              "fineMs": 13.188200000033248,
+              "hierarchyMedianMs": 0.07530000002589077,
+              "fineMs": 11.104600000020582,
               "fineLength": 308.34563013492044,
               "stretch": 1.0717099709515148,
-              "windowedMs": 0.6483000000007451,
+              "windowedMs": 0.46970000001601875,
               "windowedFound": true,
               "distance": 288.99826989101507
             }

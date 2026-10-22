@@ -70,10 +70,13 @@ export function tileWalkable(map: CollisionMap, role: Role, openDoors: DoorPermi
   return (x, y) => canOccupy(navMap, (x + 0.5) * TILE, (y + 0.5) * TILE, clearance);
 }
 
-/** Whether a body can travel straight between two points at navigation clearance, swept (22.6, "Safety"). */
-export function moveClear(map: CollisionMap, role: Role, openDoors: DoorPermission = false): (a: Vec2, b: Vec2) => boolean {
-  const navMap = navigationMap(map, openDoors), clearance = navigationClearance(role);
-  return (a, b) => sweptClear(navMap, a, b, clearance);
+/**
+ * Whether a body can travel straight between two points, swept (22.6, "Safety"): at navigation
+ * clearance unless a smaller radius, such as the body's own, is given.
+ */
+export function moveClear(map: CollisionMap, role: Role, openDoors: DoorPermission = false, radius: World = navigationClearance(role)): (a: Vec2, b: Vec2) => boolean {
+  const navMap = navigationMap(map, openDoors);
+  return (a, b) => sweptClear(navMap, a, b, radius);
 }
 
 /** The map a route is planned against: the real one, minus whichever gates the mover may open. */

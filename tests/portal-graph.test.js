@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createPortalPlanner, regionAt, standJoins } from '../shared/navigation/portal-graph.ts';
+import { createPortalPlanner, portalGraphOf, regionAt, standJoins } from '../shared/navigation/portal-graph.ts';
 import { gridReach, stepsLength } from '../shared/navigation/grid-level.ts';
 import { gridRoute } from '../shared/map/route.ts';
 import { canOccupy, sweptClear, TILE } from '../shared/movement.ts';
 import { generate } from '../map/chain.ts';
 import { composeRegions } from '../map/micro/compose.ts';
 import { builtMapCollision, builtMapFrame } from '../map/micro/adapter.ts';
-import { liveChainParams } from '../map/live.ts';
+import { generateLiveMap, liveChainParams } from '../map/live.ts';
+import { createGame } from '../shared/simulation.ts';
 import { DEFAULT_CELL_SIZE } from '../map/engines.ts';
 import { buildPortalGraph } from '../map/navigation.ts';
 
@@ -129,4 +130,26 @@ test('a portal whose stands a wall divides is reported for each region that prom
   assert.deepEqual(divided, [{ portal: 'p0', region: 'r0', unreached: 1, stands: 2 }, { portal: 'p0', region: 'r1', unreached: 1, stands: 2 }]);
   graph.portals[0].stands = [{ x: 96, y: 60 }, { x: 96, y: 100 }];
   assert.deepEqual(standJoins(graph, gridReach(map, 'contestant', graph)), []);
+});
+
+test('an endpoint whose only walkable tile lies across a wall is unreachable, not routed through it', () => {
+  // The point is clear for a body, but its own tile is too near the thin wall, the tile behind it
+  // is under a block, and the first walkable tile is across the wall: `gridRoute`'s fallback.
+  const map = thinWall(4, 4, { x: 58, y: 0, w: 4, h: 192 });
+  map.obstacles.push({ id: 'block', kind: 'wall', x: 0, y: 0, w: 30, h: 192 });
+  const graph = strip([4], 4, []), from = { x: 45, y: 100 }, to = { x: 140, y: 100 };
+  assert.ok(canOccupy(map, from.x, from.y, 12), 'a contestant can stand there');
+  const box = { x: 0, y: 0, width: Math.ceil(map.width / TILE), height: Math.ceil(map.height / TILE) };
+  assert.ok(gridRoute(map, 'contestant', box, from, to, true), 'the unswept snapping falls back across the wall');
+  assert.deepEqual(gridReach(map, 'contestant', graph)(from, [to], 0), [null]);
+  assert.deepEqual(gridReach(map, 'contestant', graph)(to, [from], 0), [null], 'as a target too');
+});
+
+test('a live map carries its portal graph beside it, never in it', () => {
+  const map = generateLiveMap(1), graph = portalGraphOf(map);
+  assert.ok(graph?.portals.length, 'live assembly attaches the graph');
+  assert.equal(Object.keys(map).some(key => map[key] === graph), false, 'not a field of the map');
+  assert.equal(JSON.stringify(map).includes('"owner"'), false, 'so no recording or projection serializes it');
+  assert.equal(portalGraphOf(structuredClone(map)), undefined, 'and no clone carries it');
+  assert.equal(portalGraphOf(createGame(1, map).map), graph, 'the game holds the same map, graph and all');
 });
