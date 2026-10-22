@@ -11,9 +11,10 @@ import { COVER_PIECE, COVER_PIECES } from '../placeables/cover-piece.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types.ts';
 import type { ExecutionBuilder } from '../delegation-execute.ts';
+import { createBuilderCanvas } from '../canvas.ts';
 
 /**
- * The cover executor implementation (20.7); bump it when `buildCover` changes. The aggregate
+ * The cover executor implementation (20.7); bump it when `buildCover` output changes. The aggregate
  * `REGION_TYPES_VERSION` tracks a separate contract and does not move this.
  */
 export const COVER_EXECUTOR_VERSION = 'cover-types-23';
@@ -101,7 +102,7 @@ export function buildCover(brief: RegionBrief): BuiltRegion {
     return false;
   };
 
-  const elements: RegionElement[] = [];
+  const canvas = createBuilderCanvas(brief, protectedShapes);
   for (const slot of cells) {
     if (!onLattice(slot.x, phase.x) || !onLattice(slot.y, phase.y)) continue;
     // Every slot draws the same numbers whether or not it is taken, so one slot's fate never shifts another's.
@@ -121,8 +122,9 @@ export function buildCover(brief: RegionBrief): BuiltRegion {
       const y = hint?.y ?? slot.y + Math.floor(jy * (PERIOD - AISLE - h + 1));
       const grown = box ? { x0: Math.min(box.x0, x), y0: Math.min(box.y0, y), x1: Math.max(box.x1, x + w), y1: Math.max(box.y1, y + h) } : { x0: x, y0: y, x1: x + w, y1: y + h };
       if (occupied(x, y, w, h) || !clear(grown.x0, grown.y0, grown.x1 - grown.x0, grown.y1 - grown.y0)) continue;
+      const assembly = placedElements(expectPlaced(COVER_PIECE.build({ piece: piece.name, turned, length, offset }, size)), `cover-${piece.name}-${canvas.elements.length + 1}`, x, y, size);
+      if (!canvas.commit({ elements: assembly })) continue;
       box = grown;
-      elements.push(...placedElements(expectPlaced(COVER_PIECE.build({ piece: piece.name, turned, length, offset }, size)), `cover-${piece.name}-${elements.length + 1}`, x, y, size));
       for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) footprints.add(`${i},${j}`);
     }
   }
@@ -139,6 +141,7 @@ export function buildCover(brief: RegionBrief): BuiltRegion {
     if (roll < zone.lootChance && standing(cell.x, cell.y)) loot.push({ x: (cell.x + 0.35 + jx * 0.3) * size, y: (cell.y + 0.35 + jy * 0.3) * size, tier: zone.tier });
   }
 
+  const elements = [...canvas.elements];
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0, loot: loot.length, coreElements: 0 } };
 }
