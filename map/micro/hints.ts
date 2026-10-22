@@ -1,6 +1,6 @@
 import { compareCells } from '../kernel/cell.ts';
 import { LIMITS } from './limits.ts';
-import type { Cell, RegionBrief } from './types.ts';
+import type { Cell, Hint, RegionBrief } from './types.ts';
 
 /** What the hint helpers read of a brief. */
 export type HintedRegion = Pick<RegionBrief, 'cells'> & Partial<Pick<RegionBrief, 'hints' | 'portals'>>;
@@ -64,9 +64,59 @@ function stretchesOf(run: { axis: 'h' | 'v'; x: number; y: number; length: numbe
 
 const ownedOf = (region: HintedRegion): Set<string> => new Set(region.cells.map(c => keyOf(c.x, c.y)));
 
+const STATED: readonly unknown[] = ['not-passable-hint', 'any', 'unstated', null];
+/** Labels a hint can carry: the inside is on the map, and at least one side hints. */
+const statedFits = (stated: unknown): boolean => {
+  if (!stated || typeof stated !== 'object') return false;
+  const { inside, across } = stated as Record<string, unknown>;
+  return STATED.includes(inside) && inside !== null && STATED.includes(across) && (inside === 'not-passable-hint' || across === 'not-passable-hint');
+};
+
+/**
+ * How strongly a hint suggests geometry (#406). It is `mutual` when both sides state
+ * `not-passable-hint`, and `one-sided` when the other side states `any`, states nothing,
+ * or is the map's outside, or when the hint carries no labels. Either stays guidance.
+ */
+export type HintStrength = 'mutual' | 'one-sided';
+export function hintStrength(hint: Hint): HintStrength {
+  return hint.stated?.inside === 'not-passable-hint' && hint.stated.across === 'not-passable-hint' ? 'mutual' : 'one-sided';
+}
+
+/**
+ * The region with only the hints of one strength, so a builder can hand it to any hint
+ * helper to prefer the stronger hints. Every helper reads all hints unless given this.
+ */
+export function hintsOfStrength<R extends HintedRegion>(region: R, strength: HintStrength): R {
+  return { ...region, hints: (region.hints ?? []).filter(hint => hintStrength(hint) === strength) };
+}
+
+/**
+ * The parent's hints clipped to a child's cells: each keeps the segments whose inside cell
+ * the child owns, with its labels. `parentCells` tells the inside of each segment.
+ */
+export function clipHints(hints: readonly Hint[], parentCells: readonly Cell[], cells: readonly Cell[]): Hint[] {
+  if (!hints.length) return [];
+  const parent = ownedOf({ cells: [...parentCells] }), owned = ownedOf({ cells: [...cells] }), clipped: Hint[] = [];
+  for (const hint of hints) {
+    let start = -1;
+    for (let i = 0; i <= hint.length; i++) {
+      const x = hint.axis === 'h' ? hint.x + i : hint.x, y = hint.axis === 'v' ? hint.y + i : hint.y;
+      const before = hint.axis === 'h' ? keyOf(x, y - 1) : keyOf(x - 1, y);
+      const keep = i < hint.length && owned.has(parent.has(before) ? before : keyOf(x, y));
+      if (keep && start < 0) start = i;
+      if (!keep && start >= 0) {
+        clipped.push({ ...hint, x: hint.x + (hint.axis === 'h' ? start : 0), y: hint.y + (hint.axis === 'v' ? start : 0), length: i - start });
+        start = -1;
+      }
+    }
+  }
+  return clipped;
+}
+
 /**
  * Why a brief's hints are malformed, or none. Each must be a run on the perimeter with the
- * region on one side, and none may overlap a portal: a hint is never a requirement, so it
+ * region on one side, whose labels, if any, have a side hinting and the inside on the map,
+ * and none may overlap a portal: a hint is never a requirement, so it
  * can't claim a segment the portal promise already holds.
  */
 export function hintErrors(region: HintedRegion): string[] {
@@ -78,6 +128,7 @@ export function hintErrors(region: HintedRegion): string[] {
     promised.add(portal.axis === 'h' ? segmentKey('h', portal.x + i, portal.y) : segmentKey('v', portal.x, portal.y + i));
   for (const hint of region.hints) {
     try { stretchesOf(hint, owned); } catch (error) { errors.push(error instanceof Error ? error.message : String(error)); continue; }
+    if (hint.stated !== undefined && !statedFits(hint.stated)) { errors.push('A hint\'s labels must say what each side stated, with one side hinting.'); continue; }
     for (let i = 0; i < hint.length; i++)
       if (promised.has(hint.axis === 'h' ? segmentKey('h', hint.x + i, hint.y) : segmentKey('v', hint.x, hint.y + i))) { errors.push('A hint overlaps a portal.'); break; }
   }

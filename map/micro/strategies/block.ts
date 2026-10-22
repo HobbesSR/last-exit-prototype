@@ -10,7 +10,7 @@ import { buildRuins } from './ruins.ts';
 import { draw } from '../random.ts';
 import { createRegionMask } from '../geometry.ts';
 import { inheritBriefMargins } from '../margins.ts';
-import { portalMargin } from '../hints.ts';
+import { clipHints, portalMargin } from '../hints.ts';
 import { portalStands } from '../portals.ts';
 import type { BuiltRegion, Cell, Portal, RegionBrief } from '../types.ts';
 
@@ -184,37 +184,16 @@ export function planBlock(brief: RegionBrief): BlockPlan {
     const portals = corner.map((side): Portal => ({ id: unique(`lot-${k + 1}-${side}`), ...run(lot, side) }));
     frontages.push(...portals);
     return { id: `${brief.id}/lot-${k + 1}`, seed: childSeed(lot.x, lot.y), type, cellSize: size, cells, zones: restrict(cells), portals,
-      ...(brief.hints ? { hints: inheritedHints(brief, cells) } : {}) };
+      ...(brief.hints ? { hints: clipHints(brief.hints, brief.cells, cells) } : {}) };
   });
   const alleyCells = mask.cells.filter(c => !claimed.has(`${c.x},${c.y}`)).map(c => ({ x: c.x, y: c.y }));
   const alleys: RegionBrief = { id: `${brief.id}/alleys`, seed: childSeed(x0, y0), type: 'open', cellSize: size, cells: alleyCells,
     zones: restrict(alleyCells), portals: [...structuredClone(brief.portals), ...frontages.map(portal => ({ ...portal }))],
-    ...(brief.hints ? { hints: inheritedHints(brief, alleyCells) } : {}) };
+    ...(brief.hints ? { hints: clipHints(brief.hints, brief.cells, alleyCells) } : {}) };
   // Margin cells remain owned by lots/alleys. They are constraints, not extra children.
   // Only genuinely new frontages add clearance; inherited exclusions are never inset again.
   const constrained = inheritBriefMargins(brief, [...children, alleys]);
   return { lots: constrained.slice(0, children.length), alleys: constrained[children.length]! };
-}
-
-/** Clip the parent's hinted segments to the child owning its inside cell. */
-function inheritedHints(parent: RegionBrief, cells: Cell[]): NonNullable<RegionBrief['hints']> {
-  const parentCells = new Set(parent.cells.map(c => `${c.x},${c.y}`)), owned = new Set(cells.map(c => `${c.x},${c.y}`));
-  const hints: NonNullable<RegionBrief['hints']> = [];
-  for (const hint of parent.hints ?? []) {
-    let start = -1;
-    for (let i = 0; i <= hint.length; i++) {
-      const x = hint.axis === 'h' ? hint.x + i : hint.x, y = hint.axis === 'v' ? hint.y + i : hint.y;
-      const before = hint.axis === 'h' ? `${x},${y - 1}` : `${x - 1},${y}`, after = `${x},${y}`;
-      const key = parentCells.has(before) ? before : after;
-      const keep = i < hint.length && owned.has(key);
-      if (keep && start < 0) start = i;
-      if (!keep && start >= 0) {
-        hints.push({ axis: hint.axis, x: hint.x + (hint.axis === 'h' ? start : 0), y: hint.y + (hint.axis === 'v' ? start : 0), length: i - start });
-        start = -1;
-      }
-    }
-  }
-  return hints;
 }
 
 /** The run along one whole side of a box, in cells. */

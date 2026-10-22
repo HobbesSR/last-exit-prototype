@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { boundaryBoxFilter, boxesAgainstHints, hintedCells, hintErrors, portalMargin } from '../map/micro/hints.ts';
+import { boundaryBoxFilter, boxesAgainstHints, clipHints, hintedCells, hintErrors, hintsOfStrength, hintStrength, portalMargin } from '../map/micro/hints.ts';
 import { briefErrors } from '../map/micro/region-types.ts';
 
 const cellsOf = (w, h, x0 = 0, y0 = 0) => Array.from({ length: w * h }, (_, i) => ({ x: x0 + i % w, y: y0 + Math.floor(i / w) }));
@@ -84,4 +84,44 @@ test('hints are checked as input: runs on the perimeter that avoid the portals',
   const brief = { id: 'r', seed: 1, type: 'open', cellSize: 40, cells: region.cells, zones: [{ tier: 1, bonus: 0, lootChance: 0, cells: region.cells }], ...region };
   assert.deepEqual(briefErrors(brief), []);
   assert.match(briefErrors({ ...brief, hints: [{ axis: 'v', x: 3, y: 1, length: 2 }] }).join(';'), /perimeter/);
+});
+
+// What each side stated (#406): the west hint is hinted from both sides, the north one only from inside.
+const mutual = { inside: 'not-passable-hint', across: 'not-passable-hint' };
+const labelled = { ...region, hints: [{ ...region.hints[0], stated: mutual }, { ...region.hints[1], stated: { inside: 'not-passable-hint', across: null } }] };
+
+test('a hint is mutual only when both sides hint; anything else, or no labels, is one-sided', () => {
+  assert.equal(hintStrength(labelled.hints[0]), 'mutual');
+  assert.equal(hintStrength(labelled.hints[1]), 'one-sided');
+  assert.equal(hintStrength({ ...region.hints[0], stated: { inside: 'any', across: 'not-passable-hint' } }), 'one-sided');
+  assert.equal(hintStrength({ ...region.hints[0], stated: { inside: 'not-passable-hint', across: 'unstated' } }), 'one-sided');
+  assert.equal(hintStrength(region.hints[0]), 'one-sided');
+});
+
+test('a builder opts in to the stronger hints by handing the helpers a filtered region', () => {
+  const strong = hintsOfStrength(labelled, 'mutual');
+  assert.deepEqual(strong.hints, [labelled.hints[0]]);
+  assert.equal(strong.cells, labelled.cells);
+  assert.deepEqual(hintedCells(strong).map(key), ['0,1', '0,2']);
+  assert.deepEqual(hintsOfStrength(labelled, 'one-sided').hints, [labelled.hints[1]]);
+  // The helpers read every hint, whatever its strength, unless given the filtered region.
+  assert.deepEqual(hintedCells(labelled), hintedCells(region));
+});
+
+test('labels are checked as input: the inside is on the map and one side hints', () => {
+  assert.deepEqual(hintErrors(labelled), []);
+  const bad = stated => hintErrors({ ...region, hints: [{ ...region.hints[0], stated }] });
+  assert.match(bad({ inside: 'any', across: 'unstated' })[0], /labels/);
+  assert.match(bad({ inside: null, across: 'not-passable-hint' })[0], /labels/);
+  assert.match(bad({ inside: 'passable', across: 'not-passable-hint' })[0], /labels/);
+  assert.match(bad(null)[0], /labels/);
+  assert.deepEqual(bad({ inside: 'unstated', across: 'not-passable-hint' }), []);
+});
+
+test('clipping hints to a child keeps the segments it owns, with their labels', () => {
+  // The child is the region's top-left 3 × 2: one west segment and none of the north hint.
+  const child = cellsOf(3, 2);
+  assert.deepEqual(clipHints(labelled.hints, labelled.cells, child), [{ axis: 'v', x: 0, y: 1, length: 1, stated: mutual }]);
+  assert.deepEqual(clipHints(labelled.hints, labelled.cells, cellsOf(8, 1)), [{ axis: 'h', x: 5, y: 0, length: 3, stated: labelled.hints[1].stated }]);
+  assert.deepEqual(clipHints([], labelled.cells, child), []);
 });

@@ -23,6 +23,20 @@ export const CORE_ELEMENT_KINDS: readonly CoreElementKind[] = Object.freeze(['sp
  */
 export interface Portal extends Run { id: string }
 
+/**
+ * What one side of a hinted segment stated (52): `null` where no cell of the map is across.
+ * Neither side states `passable`, since that would guarantee a passage and leave no hint.
+ */
+export type HintStated = 'not-passable-hint' | 'any' | 'unstated' | null;
+
+/**
+ * A hinted perimeter run (51 stage 5), with what each side of it stated, `inside` being
+ * the region's side. The labels are passed as stated; `hintStrength` (`map/micro/hints.ts`)
+ * says what they imply. A run ends where either label changes. A hint without labels,
+ * as in briefs made before #406, claims nothing beyond the hint itself.
+ */
+export interface Hint extends Run { stated?: { inside: HintStated; across: HintStated } }
+
 /** One zone's context for the brief cells it covers (51 stage 5). Loot chance is per cell, from 0 to 1. */
 export interface ZoneContext { tier: number; bonus: number; lootChance: number; cells: Cell[] }
 
@@ -64,9 +78,10 @@ export interface RegionBrief {
    * requirement: guaranteed clear cells and portal connectivity remain the obligations; a builder that ignores a hint
    * is still correct. A run lies on the perimeter with the region's cells on one side,
    * like a portal's, and no hint overlaps a portal. It faces a single owner (another
-   * region, or the map's edge and mask) and names none. Absent when nothing is hinted.
+   * region, or the map's edge and mask) and names none, but carries what each side stated.
+   * Absent when nothing is hinted.
    */
-  hints?: Run[];
+  hints?: Hint[];
 }
 
 /** A point in world units, in the frame where cell (x, y) spans [x, x + 1) × [y, y + 1) times `cellSize`. */
