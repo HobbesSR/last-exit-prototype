@@ -1,17 +1,16 @@
-import { OPPOSITE, type Side } from '../port-terms.ts';
+import type { Side } from '../port-terms.ts';
 import { circle, rect } from '../../../shared/shape.ts';
 import { rng } from '../index.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
 import { portalStands } from '../portals.ts';
 import { boxesAgainstHints } from '../hints.ts';
-import { allocateBuilding } from '../building/allocation.ts';
-import { realizeBuilding } from '../building/realize.ts';
-import type { BuildingRealization } from '../building/realize.ts';
-import { OUTSIDE } from '../building/design.ts';
-import type { BuildingAllocation, BuildingDesign } from '../building/design.ts';
+import { HOUSE } from '../placeables/house.ts';
+import type { HouseDetails } from '../placeables/house.ts';
+import { placedElements } from '../placeables/placeable.ts';
+import type { Placed } from '../placeables/placeable.ts';
 import type { BuildingObserver } from '../building/trace.ts';
-import type { BuiltRegion, LootSite, RegionBrief } from '../types.ts';
+import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types.ts';
 import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
 import { createAddressedArea } from '../addressed.ts';
@@ -20,8 +19,6 @@ import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../d
 
 /** The one-space house's box in cells (54, proposed). */
 const BOX = 4;
-/** Wall thickness, in cells. */
-const WALL = 0.25;
 /** A hunter fits a 2 × 2 block of cells, and moving it by one cell sweeps a 2 × 3 rectangle. */
 const BODY = 2;
 /**
@@ -34,9 +31,12 @@ const LARGER: ReadonlyArray<{ spaces: number; boxes: ReadonlyArray<readonly [num
 ];
 
 const SIDES: readonly Side[] = ['N', 'E', 'S', 'W'];
-type Built = { design: BuildingDesign; allocation: BuildingAllocation; realization: BuildingRealization };
-/** A box's house with its door on one side, and where along that side the door's doorstep blocks start, in cells. */
-type House = Built & { steps: number[] };
+/** A box's house with its door on one side, as `HOUSE` builds it, or nothing where it refuses. */
+type House = Placed<HouseDetails>;
+const houseFor = (w: number, h: number, door: Side, spaces: number, size: number, seed: number): House | undefined => {
+  const result = HOUSE.build({ w, h, door, spaces, seed }, size);
+  return 'refused' in result ? undefined : result;
+};
 
 /**
  * The `hut` region type (54): one small building with optional yard-to-cover delegation.
@@ -88,20 +88,20 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
   let site: Site | undefined;
   for (const { spaces, boxes } of LARGER) {
     const houses = new Map<string, House | null>();
-    const built = (w: number, h: number, side: Side) => {
+    const cached = (w: number, h: number, side: Side) => {
       const key = `${w},${h},${side}`;
-      if (!houses.has(key)) houses.set(key, larger(spaces, w, h, side, size, seed) ?? null);
+      if (!houses.has(key)) houses.set(key, houseFor(w, h, side, spaces, size, seed) ?? null);
       return houses.get(key) ?? undefined;
     };
-    site = siteHut(brief, mask, accessMask, boxes, `${brief.id}:hut-site-${spaces}`, built);
+    site = siteHut(brief, mask, accessMask, boxes, `${brief.id}:hut-site-${spaces}`, cached);
     if (site) break;
   }
   const smallBoxes: ReadonlyArray<readonly [number, number]> = [[BOX, BOX], [BOX, 3], [3, BOX], [3, 3]];
-  site ??= siteHut(brief, mask, accessMask, smallBoxes, `${brief.id}:hut-site`, (w, h, side) => house(size, side, w, h));
+  site ??= siteHut(brief, mask, accessMask, smallBoxes, `${brief.id}:hut-site`, (w, h, side) => houseFor(w, h, side, 1, size, seed));
   if (!site) return context.empty('hut has no house with a reachable doorstep');
 
-  const { design, allocation, realization } = site.house;
-  const element = { label: 'hut-building', x: site.x * size, y: site.y * size, template: realization.template! };
+  const { design, allocation, realization } = site.house.details;
+  const [element] = placedElements(site.house, 'hut-building', site.x, site.y, size) as [RegionElement];
   observe?.({ label: element.label, origin: { x: element.x, y: element.y }, cellSize: size, design, allocation, realization });
   const shapes = elementShapes(element, true), radius = microMetrics({ cellSize: size, bodyProfile: 'cell' }).lootRadius;
   const offers = yardOffers(brief, site);
@@ -133,7 +133,7 @@ type Site = { x: number; y: number; house: House; steps: string[] };
 function yardOffers(brief: RegionBrief, site: Site): PatchOffer[] {
   const key = (x: number, y: number) => `${x},${y}`;
   const owned = createRegionMask(brief), fill = createFillMask(brief), access = createAccessMask(brief);
-  const w = site.house.realization.template!.w / brief.cellSize, h = site.house.realization.template!.h / brief.cellSize;
+  const { w, h } = site.house.demand.body;
   const inHouse = (x: number, y: number) => x >= site.x && x < site.x + w && y >= site.y && y < site.y + h;
   const area = createAddressedArea(owned), size = brief.cellSize;
   // The house and its two-cell yard, then non-fill cells and the two-cell perimeter band around it.
@@ -268,80 +268,11 @@ function siteHut(brief: RegionBrief, mask: ReturnType<typeof createRegionMask>, 
       for (const side of sides) {
         const house = built(w, h, side);
         if (!house) continue;
-        const steps = house.steps.map(t => side === 'N' ? key(x + t, y - BODY) : side === 'S' ? key(x + t, y + h)
+        const steps = house.details.steps.map(t => side === 'N' ? key(x + t, y - BODY) : side === 'S' ? key(x + t, y + h)
           : side === 'W' ? key(x - BODY, y + t) : key(x + w, y + t));
         if (steps.every(clear)) return { x, y, house, steps };
       }
     }
   }
   return undefined;
-}
-
-/** Where the doorstep blocks start along the door's side, in the box's cells: one, or two where the door sits between cells. */
-function doorsteps(realization: BuildingRealization): number[] | undefined {
-  const door = realization.openings.find(opening => opening.connectionId === 'door');
-  if (!door) return undefined;
-  const start = (door.run.axis === 'h' ? door.run.x : door.run.y) + door.center - BODY / 2;
-  return [...new Set([Math.floor(start), Math.ceil(start)])];
-}
-
-const realized = (cellSize: number) => ({ cellSize, thickness: WALL, encloses: true, exteriorOrder: SIDES, corners: 'horizontal' as const, decalTheme: 'hut' });
-
-/**
- * The one-space house in its box's local world units: four walls, a door on `door`, and a
- * window on the opposite wall, each a doorway wide (52's worked case) and centred. It
- * encloses, so it has a roof.
- */
-function house(size: number, door: Side, width = BOX, height = BOX): House {
-  const cells = Array.from({ length: width * height }, (_, i) => ({ x: i % width, y: Math.floor(i / width) }));
-  const design: BuildingDesign = {
-    spaces: [{ id: 'room', area: { min: width * height, max: width * height }, outside: 'prefer', tags: ['house'] }],
-    connections: [
-      { id: 'door', a: 'room', b: OUTSIDE, kind: 'door', side: door },
-      { id: 'window', a: 'room', b: OUTSIDE, kind: 'window', side: OPPOSITE[door] },
-    ],
-  };
-  const allocation = { footprint: cells, spaces: [{ id: 'room', cells }] };
-  const realization = realizeBuilding(design, allocation, realized(size));
-  // This fixed design always fits. A miss here is an implementation defect, not a new fallback.
-  if (!realization.template || realization.issues.length || realization.misses.length) throw new Error('The fixed hut design could not be realized.');
-  return { design, allocation, realization, steps: doorsteps(realization)! };
-}
-
-/**
- * A house of `spaces` spaces in a `w` × `h` box with its door on `side`, or nothing. The front
- * space holds the door and a window; each other space is asked for a door into the
- * front and a window. The allocation adds interior doors where the asked ones can't join every
- * space. A house whose outside door misses, or whose openings don't join every space, isn't
- * used: each space is reached through the one door. Missed windows and asked doors are
- * guidance, and stay as misses (M29).
- */
-function larger(spaces: number, w: number, h: number, side: Side, size: number, seed: number): House | undefined {
-  const cells = Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w) }));
-  const ids = Array.from({ length: spaces }, (_, i) => i ? `back-${i}` : 'front');
-  const asked: BuildingDesign = {
-    spaces: ids.map(id => ({ id, area: { min: 9, max: w * h }, outside: 'prefer' as const, tags: [id === 'front' ? 'entry' : 'room'] })),
-    connections: [
-      { id: 'door', a: 'front', b: OUTSIDE, kind: 'door', side },
-      { id: 'window', a: 'front', b: OUTSIDE, kind: 'window' },
-      ...ids.slice(1).flatMap((id, i) => [
-        { id: `link-${i + 1}`, a: 'front', b: id, kind: 'door' as const },
-        { id: `window-${i + 1}`, a: id, b: OUTSIDE, kind: 'window' as const },
-      ]),
-    ],
-  };
-  const allocated = allocateBuilding(asked, cells, { seed });
-  if (!allocated.ok) return undefined;
-  const { design, allocation } = allocated, realization = realizeBuilding(design, allocation, realized(size));
-  const steps = doorsteps(realization);
-  if (!realization.template || realization.issues.length || !steps) return undefined;
-  const reached = new Set(['front']);
-  for (let grown = true; grown;) {
-    grown = false;
-    for (const { kind, a, b } of realization.openings) {
-      if (kind === 'window' || a === OUTSIDE || b === OUTSIDE || reached.has(a) === reached.has(b)) continue;
-      reached.add(a); reached.add(b); grown = true;
-    }
-  }
-  return reached.size === spaces ? { design, allocation, realization, steps } : undefined;
 }

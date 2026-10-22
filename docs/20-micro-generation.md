@@ -27,6 +27,7 @@ bounded candidate analysis and allocation; its design record is [19](19-decompos
 | 20.5 | Tools and next boundaries | [20.5](20.5-tools-and-next-boundaries.md) |
 | 20.6 | Guaranteed passability and automatic clear margins | [20.6](20.6-passable-margins.md) |
 | 20.7 | Builder patch preparation, bounded execution, owning snapshots, hut-to-cover pilot and compound exterior-yard adoption | [20.7](20.7-builder-delegation.md) |
+| 20.8 | Placeables: the registered things builders put down, what they own and how to add one | [20.8](20.8-placeables.md) |
 
 ## Earlier heading links
 
