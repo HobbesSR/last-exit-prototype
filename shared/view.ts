@@ -404,9 +404,13 @@ export function roofConceals(map: RoofMap, eye: Vec2, point: Vec2): boolean {
 
 /** How far apart two walls may sit and still count as one shared edge (wall thickness is thinner). */
 const ROOF_EDGE = 2;
-/** Distance from a door or window at which a roof starts to fade, and how transparent it gets there. */
-export const ROOF_FADE_RANGE = 160;
-export const ROOF_FADE_FLOOR = 0.4;
+/**
+ * How near a door, window or threshold cell of its group the viewer must be for a roof to reveal: a
+ * body pressed to a window from outside, or standing in a doorway's threshold cell (distance 0).
+ */
+export const ROOF_REVEAL_RANGE = 32;
+/** How long a complete fade between covered and revealed takes; a partial fade takes its share. */
+export const ROOF_FADE_MS = 300;
 /** Roofs extend this far past the walls they cover, except where another room of the group abuts. */
 export const ROOF_OVERHANG = 12;
 /** Extra camera zoom while the viewer stands inside a building. */
@@ -471,14 +475,21 @@ export function roofOverhang(building: RoofBox, group: readonly RoofBox[]): Reco
   return out;
 }
 
-/** Roof opacity target: gone for a viewer inside the group, fading toward the floor near an opening. */
-export function roofTargetAlpha(inside: boolean, openingDistance: number): number {
-  if (inside) return 0;
-  const near = Math.min(1, Math.max(0, 1 - openingDistance / ROOF_FADE_RANGE));
-  return 1 - (1 - ROOF_FADE_FLOOR) * near;
+/** A roof is revealed for a viewer inside its group or within reach of one of its openings, else covered. */
+export function roofRevealed(inside: boolean, openingDistance: number): boolean {
+  return inside || openingDistance <= ROOF_REVEAL_RANGE;
 }
 
-/** Nearest door or window of the group to a point, for the fade; Infinity when it has none. */
+/**
+ * Moves roof opacity toward 0 (revealed) or 1 (covered) at a constant rate, so a full fade takes
+ * `ROOF_FADE_MS` and a target flip mid-fade reverses from the current alpha for the remaining share.
+ */
+export function stepRoofAlpha(alpha: number, revealed: boolean, dtMs: number): number {
+  const step = Math.max(0, dtMs) / ROOF_FADE_MS;
+  return revealed ? Math.max(0, alpha - step) : Math.min(1, alpha + step);
+}
+
+/** Nearest door, window or threshold cell of the group to a point, for the reveal; Infinity when it has none. */
 export function openingDistance(map: Pick<GameMap, 'gates' | 'obstacles'> & { playableArea?: PlayableArea }, group: readonly (RoofBox | Roof)[], point: Vec2): number {
   const ids = new Set<string>();
   for (const item of group) {

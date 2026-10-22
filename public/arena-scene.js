@@ -1,5 +1,5 @@
 import { visibilityPolygon, gateShape, insideMap } from '/shared/movement.ts';
-import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofAt, roofGroups, roofOverhang, roofCellBorders, roofTargetAlpha, openingDistance, INSIDE_ZOOM, ROOF_OVERHANG, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
+import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofAt, roofGroups, roofOverhang, roofCellBorders, roofRevealed, stepRoofAlpha, openingDistance, INSIDE_ZOOM, ROOF_OVERHANG, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
 import { shapeOf, outline, bounds } from '/shared/shape.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
@@ -606,9 +606,9 @@ export function makeArenaScene(api) {
       const halfHeight = this.cameras.main.height / zoom / 2;
       const nearView = (x, y, margin = 400) => Math.abs(x - cx) < halfWidth + margin && Math.abs(y - cy) < halfHeight + margin;
       const inside = eye && roofAt(map, eye);
-      // A roof fades toward a door or window as the viewer nears it, and away entirely once they are inside
-      // any room of its group. This is cosmetic: concealment above is still decided by `roofConceals`.
-      const fadeStep = 1 - Math.exp(-(rawDelta ?? delta) / 120);
+      // A roof is either revealed (inside its group, or at one of its openings) or covered, and fades
+      // between the two at a constant rate. This is cosmetic: concealment is still decided by `roofConceals`.
+      const fadeMs = rawDelta ?? delta;
       const insideMembers = inside ? (this.roofMembers.get(inside.id) || [inside]) : [];
       const insideGroupIds = new Set(insideMembers.map(m => 'groupId' in m ? m.groupId : m.id));
       const insideIds = new Set(insideMembers.map(m => m.id));
@@ -619,9 +619,8 @@ export function makeArenaScene(api) {
           if (!roofObj) continue;
           const isInside = insideGroupIds.has(roof.groupId) || insideIds.has(roof.id);
           const members = this.roofMembers.get(roof.id) || [roof];
-          const target = !fogged ? 0 : !eye ? 1 : roofTargetAlpha(isInside, openingDistance(map, members, eye));
-          roofObj.alpha += (target - roofObj.alpha) * fadeStep;
-          if (Math.abs(target - roofObj.alpha) < 0.01) roofObj.alpha = target;
+          const revealed = !fogged || !!eye && roofRevealed(isInside, openingDistance(map, members, eye));
+          roofObj.alpha = stepRoofAlpha(roofObj.alpha, revealed, fadeMs);
           roofObj.visible = roofObj.alpha > 0 && nearView(roof.bounds.x + roof.bounds.w / 2, roof.bounds.y + roof.bounds.h / 2);
         }
       }
@@ -631,9 +630,8 @@ export function makeArenaScene(api) {
         if (!roof) continue;
         const isInside = insideIds.has(building.id);
         const members = this.roofMembers.get(building.id) || [building];
-        const target = !fogged ? 0 : !eye ? 1 : roofTargetAlpha(isInside, openingDistance(map, members, eye));
-        roof.alpha += (target - roof.alpha) * fadeStep;
-        if (Math.abs(target - roof.alpha) < 0.01) roof.alpha = target;
+        const revealed = !fogged || !!eye && roofRevealed(isInside, openingDistance(map, members, eye));
+        roof.alpha = stepRoofAlpha(roof.alpha, revealed, fadeMs);
         roof.visible = roof.alpha > 0 && nearView(building.x + building.w / 2, building.y + building.h / 2);
       }
       start('render.tiles'); this.updateTiles(); stop('render.tiles');

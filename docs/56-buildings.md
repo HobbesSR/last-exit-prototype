@@ -201,7 +201,7 @@ footprint continues to set `encloses: true` for backwards compatibility with
 legacy rectangular building boxes, while non-rectangular footprints emit
 `roofs` with `encloses: false`. Exterior perimeter edges derive `ROOF_OVERHANG`
 (12 units), interior abutting edges have zero overhang, and exterior door openings
-derive doorway threshold cells for approach fading. See [56.1](56.1-roofs.md) for
+derive doorway threshold cells that reveal the roof (29). See [56.1](56.1-roofs.md) for
 data shape, relation to `Building`, sight rules, and versioning. Outside doors and windows also
 emit ground decals (`template.decals`), themed by the strategy; see [56.2](56.2-ground-decals.md).
 The caller still owns the

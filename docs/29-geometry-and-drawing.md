@@ -208,11 +208,16 @@ retiring the client-side door-edge derivation when declared roofs are present; l
 maps without declared roofs fall back to deriving groups from abutting building boxes
 sharing a door edge. A builder states its groups. The compound's rule is reachability: roofs
 fade together when one can walk between their spaces without leaving the structure
-(`reachableRoofGroups`, 56.1). A group fades together: the target
-opacity (`roofTargetAlpha`) is zero while the viewer is inside any room of the group, and otherwise
-falls from opaque to `ROOF_FADE_FLOOR` as the viewer nears one of the group's doors, windows, or
-doorway threshold cells (`openingDistance`, within `ROOF_FADE_RANGE`). The client eases toward the target in real time, and a
-roof that reaches zero stops being drawn. While the viewer is indoors a player camera zooms in by
+(`reachableRoofGroups`, 56.1). A group fades together, and its target is binary
+(`roofRevealed`): revealed (alpha 0) while the viewer is inside any room of the group or within
+`ROOF_REVEAL_RANGE` (32 world units) of one of the group's doors, windows or doorway threshold
+cells (`openingDistance`), and covered (alpha 1) otherwise. The reveal zone is therefore the
+threshold cell outside each exterior door, plus a band about a body's width outside each door and
+window; approaching an opening reveals nothing partially. The client moves alpha toward the target
+at a constant rate (`stepRoofAlpha`), so a complete fade takes `ROOF_FADE_MS` (300 ms) and a target
+flip mid-fade reverses from the current alpha, taking the remaining share of that time. A roof that
+reaches zero stops being drawn. An unfogged directed view reveals every roof; a fogged view with no
+eye covers them. While the viewer is indoors a player camera zooms in by
 `INSIDE_ZOOM`, eased; a directed camera is not touched. None of these presentation changes alters `roofConceals` or sight.
 
 ## What a physics system would need next
