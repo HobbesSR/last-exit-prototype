@@ -14,4 +14,7 @@ References: [Phaser](https://github.com/phaserjs/phaser), [SAT.js collision resp
 
 Physics design [29.1](29.1-physics-design.md) recommends evaluating Rapier 2D/WASM
 against a bounded custom candidate. [41.1](41.1-physics-plan.md) requires measured
-evidence before selection. This does not replace SAT.js or add a dependency yet.
+evidence before selection. The isolated P0 lab pins the Apache-2.0
+`@dimforge/rapier2d-compat` package at **0.21.0** as a development dependency;
+it does not replace SAT.js or initialize WASM in the game. The measured decision
+and integration limits are in [42.6](42.6-physics-comparison.md).
