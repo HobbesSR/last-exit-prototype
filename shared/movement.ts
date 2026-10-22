@@ -2,7 +2,7 @@ import SAT from 'sat';
 import type { Circle, Polygon } from 'sat';
 import { count } from './profiler.ts';
 import { finite } from './numbers.ts';
-import { shapeOf, bounds, nearBounds, edgesOf, body, separate } from './shape.ts';
+import { shapeOf, bounds, nearBounds, edgesOf, body, separate, segmentShapeDistance } from './shape.ts';
 import type { Bounded, Edge, Shape } from './shape.ts';
 import type { Box, CollisionMap, GateId, Obstacle, PlayableArea, Player, PlayerInput, Vec2, World } from './types.ts';
 
@@ -134,6 +134,32 @@ export function canOccupy(map: CollisionMap, x: World, y: World, radius: World =
     const o = collider(box);
     if (separate(circle, o.shape, o.body)) return false;
   }
+  return true;
+}
+/**
+ * Can a disk of `radius` travel the closed segment from `a` to `b`: the swept form of `canOccupy`,
+ * so a move between two clear points cannot pass through a wall thinner than the gap between their
+ * disks (22.6, "Safety"). Distances are exact, through `segmentShapeDistance`, against obstacles,
+ * closed gates and the playable area's void cells, with `canOccupy`'s tolerances: obstacles may
+ * overlap by 0.01, gates not at all.
+ */
+export function sweptClear(map: CollisionMap, a: Vec2, b: Vec2, radius: World): boolean {
+  count('calls.sweptClear');
+  if (!insideMap(map, a.x, a.y, radius) || !insideMap(map, b.x, b.y, radius)) return false;
+  const left = Math.min(a.x, b.x) - radius, right = Math.max(a.x, b.x) + radius;
+  const top = Math.min(a.y, b.y) - radius, bottom = Math.max(a.y, b.y) + radius;
+  const near = (box: Box) => box.x <= right && box.y <= bottom && box.x + box.w >= left && box.y + box.h >= top;
+  const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, reach = Math.hypot(b.x - a.x, b.y - a.y) / 2 + radius;
+  for (const o of nearbyShapes(map, mid.x, mid.y, reach)) if (near(o.box) && segmentShapeDistance(a, b, o.shape) < radius - 0.01) return false;
+  for (const g of map.gates) if (!g.open) {
+    // Bounds first, before any allocation: a planner sweeps every move against every gate.
+    const w = g.w || 26, h = g.h || 54;
+    if (g.x - w / 2 > right || g.y - h / 2 > bottom || g.x + w / 2 < left || g.y + h / 2 < top) continue;
+    if (segmentShapeDistance(a, b, shapeOf(gateShape(g))) < radius) return false;
+  }
+  // The playable area is convex only without a mask; a mask's holes are tested as filled cells.
+  if (map.playableArea) for (const box of voidCellsNear(map, mid.x, mid.y, reach))
+    if (near(box) && segmentShapeDistance(a, b, shapeOf(box)) < radius) return false;
   return true;
 }
 /** A player's collision radius: what movement slides and what a placed body must fit. */

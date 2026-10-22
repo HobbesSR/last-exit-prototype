@@ -13,15 +13,16 @@ import type { CollisionMap, DoorPermission, Role, TileIndex, TilePoint, TileRect
 
 /**
  * The walkable tile nearest a point, searching outward up to five tiles; the point's own tile otherwise.
+ * Tiles and point share one frame, whichever the caller indexes `walkable` in.
  * A body pressed against a wall thinner than a tile can have its own tile blocked and the next one over
  * on the far side of the wall; snapping there plans a route it cannot start. So the first tile it can
  * step to is preferred, in the same search order, and the first walkable tile is the fallback.
  */
-function nearestNode(matrix: number[][], point: Vec2, reachable: (centre: Vec2) => boolean): TilePoint {
+export function nearestTile(walkable: (x: number, y: number) => boolean, point: Vec2, reachable: (centre: Vec2) => boolean): TilePoint {
   const t = { x: Math.floor(point.x / TILE) as TileIndex, y: Math.floor(point.y / TILE) as TileIndex };
   let fallback: TilePoint | null = null;
   for (let r = 0; r < 5; r++) for (let y = t.y - r; y <= t.y + r; y++) for (let x = t.x - r; x <= t.x + r; x++) {
-    if (matrix[y]?.[x] !== 0) continue;
+    if (!walkable(x, y)) continue;
     const node = { x: x as TileIndex, y: y as TileIndex };
     if (r === 0 || reachable({ x: (x + 0.5) * TILE, y: (y + 0.5) * TILE })) return node;
     fallback ??= node;
@@ -38,8 +39,9 @@ export function gridRoute(map: CollisionMap, role: Role, bounds: TileRect, from:
   // and steps come out plus it.
   const matrix = navigationGrid(map, role, bounds, openDoors);
   const local = (world: Vec2) => (centre: Vec2) => stepClear(map, openDoors, world, { x: centre.x + bounds.x * TILE, y: centre.y + bounds.y * TILE });
-  const a = nearestNode(matrix, { x: from.x - bounds.x * TILE, y: from.y - bounds.y * TILE }, local(from));
-  const b = nearestNode(matrix, { x: to.x - bounds.x * TILE, y: to.y - bounds.y * TILE }, local(to));
+  const walkable = (x: number, y: number) => matrix[y]?.[x] === 0;
+  const a = nearestTile(walkable, { x: from.x - bounds.x * TILE, y: from.y - bounds.y * TILE }, local(from));
+  const b = nearestTile(walkable, { x: to.x - bounds.x * TILE, y: to.y - bounds.y * TILE }, local(to));
   start('sim.repathGrid'); const grid = new PF.Grid(matrix); stop('sim.repathGrid');
   const found = new PF.AStarFinder({ allowDiagonal: true, dontCrossCorners: true }).findPath(a.x, a.y, b.x, b.y, grid);
   if (!found.length) return null;

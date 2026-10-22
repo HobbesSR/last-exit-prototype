@@ -3,14 +3,17 @@ import assert from 'node:assert/strict';
 import { createMapGenerator } from '../server/map-generator.js';
 import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
+import { portalGraphOf } from '../shared/navigation/portal-graph.ts';
 import { roomHarness } from './helpers/room-harness.js';
 
 test('the map worker returns exactly the map generated inline', async () => {
   const maps = createMapGenerator();
   try {
     const [first, second] = await Promise.all([maps.generate(4217, DEFAULT_LIVE_ZONE_SIZE), maps.generate(9, DEFAULT_LIVE_ZONE_SIZE)]);
-    assert.equal(JSON.stringify(first), JSON.stringify(generateLiveMap(4217, defaultContent(), DEFAULT_LIVE_ZONE_SIZE)));
+    const inline = generateLiveMap(4217, defaultContent(), DEFAULT_LIVE_ZONE_SIZE);
+    assert.equal(JSON.stringify(first), JSON.stringify(inline));
     assert.equal(JSON.stringify(second), JSON.stringify(generateLiveMap(9, defaultContent(), DEFAULT_LIVE_ZONE_SIZE)), 'requests are answered in their own order');
+    assert.deepEqual(portalGraphOf(first), portalGraphOf(inline), 'the portal graph crosses beside the map');
   } finally { await maps.close(); }
 });
 
