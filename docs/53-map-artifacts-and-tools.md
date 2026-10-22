@@ -132,8 +132,8 @@ default game sweep seeds, 20 crowded, 20 sparse, and one quick game case) and
 63 playground cases (20 each at default, 4 × 2, and 6 × 3, plus three quick
 2 × 1 cases). These are the stored case groups, not a new zero-drift run.
 They span spawn and exit counts and playground sizes (`map/tools/sweep.mts`).
-The current baseline provenance is content commit `7953b1e82e498b850bf908f86d643d28868434bf`,
-captured `2026-10-15T04:20:28.821Z` under Node v24.15.0.
+The current baseline provenance is content commit `7a19694184c07d846833b045488773c3fc12960c`,
+captured `2026-10-22T19:53:32.180Z` under Node v24.15.0.
 - Each map's two objects, the Layout and the region results, and every view
   `mapViews` gives (the declared grid, the resolved layout, the regions, the
   proof, the zones, the briefs, the built map and the report) get one hash
@@ -149,6 +149,10 @@ captured `2026-10-15T04:20:28.821Z` under Node v24.15.0.
   and records the last commit that touched them.
 
 Historical recaptures from #361 through the first baseline have moved to [42.4](42.4-chain-checkpoint-history.md). The entries below retain their former 53 landing anchors.
+
+### #407's re-capture
+
+See [the dated capture record](42.4-chain-checkpoint-history.md#407s-re-capture).
 
 ### #361's re-capture
 
