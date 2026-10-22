@@ -29,7 +29,8 @@ export function buildPortalGraph(built: BuiltMap<RegionElement>, origin: Vec2 = 
       let node = byId.get(portal.id);
       if (node === undefined) {
         const crossing = points[Math.floor((points.length - 1) / 2)] ?? midpoint(portal, size);
-        node = portals.push({ id: portal.id, x: crossing.x + origin.x, y: crossing.y + origin.y, regions: [index, index], slots: [ids.length, ids.length] }) - 1;
+        const stands = points.map(p => ({ x: p.x + origin.x, y: p.y + origin.y }));
+        node = portals.push({ id: portal.id, x: crossing.x + origin.x, y: crossing.y + origin.y, stands, regions: [index, index], slots: [ids.length, ids.length] }) - 1;
         byId.set(portal.id, node);
       } else { portals[node]!.regions[1] = index; portals[node]!.slots[1] = ids.length; }
       ids.push(node);

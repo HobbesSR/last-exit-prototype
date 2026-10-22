@@ -10,7 +10,7 @@ import { builtMapCollision, builtMapFrame } from '../../map/micro/adapter.ts';
 import { liveChainParams, LIVE_ZONE_SIZES, zoneSizeName } from '../../map/live.ts';
 import { DEFAULT_CELL_SIZE } from '../../map/engines.ts';
 import { buildPortalGraph } from '../../map/navigation.ts';
-import { createPortalPlanner, regionTables } from '../../shared/navigation/portal-graph.ts';
+import { createPortalPlanner, regionTables, standJoins } from '../../shared/navigation/portal-graph.ts';
 import { gridReach, stepsLength } from '../../shared/navigation/grid-level.ts';
 import { gridRoute } from '../../shared/map/route.ts';
 import { TILE } from '../../shared/movement.ts';
@@ -18,7 +18,7 @@ import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 
 const SEEDS = { '12x6': 20, '24x12': 5, '36x18': 3 };
 const ROLES = ['contestant', 'gladiator'];
-const SOURCES = ['map/navigation.ts', 'shared/navigation/portal-graph.ts', 'shared/navigation/grid-level.ts', 'tools/navigation/portal-report.mjs'];
+const SOURCES = ['map/navigation.ts', 'shared/navigation/portal-graph.ts', 'shared/navigation/grid-level.ts', 'shared/movement.ts', 'shared/map/navigation.ts', 'tools/navigation/portal-report.mjs'];
 const time = fn => { const start = performance.now(); const value = fn(); return { ms: performance.now() - start, value }; };
 const median = values => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 
@@ -56,7 +56,9 @@ function measureMap(size, seed) {
         for (let i = 0; i < k; i++) for (let j = i + 1; j < k; j++) if (table[i * k + j] === Infinity)
           broken.push({ region: region.id, type: built.regions[index].brief.type, a: graph.portals[region.portals[i]].id, b: graph.portals[region.portals[j]].id });
       });
-      doors[openDoors ? 'openable' : 'closed'] = { tablesMs: tabled.ms, brokenPairs: broken.length, broken: broken.slice(0, 20) };
+      const joined = time(() => standJoins(graph, reach));
+      doors[openDoors ? 'openable' : 'closed'] = { tablesMs: tabled.ms, brokenPairs: broken.length, broken: broken.slice(0, 20),
+        standsMs: joined.ms, dividedPortals: joined.value.length, divided: joined.value.slice(0, 20) };
       if (openDoors) planner = createPortalPlanner(graph, reach, tabled.value);
     }
     const routes = {};

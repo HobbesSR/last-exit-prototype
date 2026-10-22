@@ -11,9 +11,11 @@ import type { Box, Vec2, World } from '../types.ts';
 export interface PortalNode {
   /** The portal's id in both regions' briefs. */
   id: string;
-  /** Where a route crosses it: a stand on the portal's line, or the line's midpoint when no hunter fits. */
+  /** Where a route crosses it, its representative: the middle stand, or the line's midpoint when no hunter fits. */
   x: World;
   y: World;
+  /** Every hunter stand on the portal's line, in order along it; empty when no hunter fits (22.6, "Nodes and stands"). */
+  stands: Vec2[];
   /** The two regions it joins, by index into `regions`, and its index in each region's `portals`. */
   regions: [number, number];
   slots: [number, number];
@@ -74,6 +76,27 @@ export function regionTables(graph: PortalGraph, reach: Reach): Float64Array[] {
     }
     return table;
   });
+}
+
+/** A portal whose stands do not all join its representative within a region that promises they do (20.1). */
+export interface DividedPortal { portal: string; region: string; unreached: number; stands: number }
+
+/**
+ * Each portal's stands, checked against its representative within every region on either side
+ * that has two or more portals, where 20.1 promises they join. The portal's node stands for the
+ * group that does join; the rest are reported here and not used (22.6, "Nodes and stands").
+ */
+export function standJoins(graph: PortalGraph, reach: Reach): DividedPortal[] {
+  const divided: DividedPortal[] = [];
+  graph.portals.forEach(portal => {
+    if (!portal.stands.length) return;
+    for (const region of new Set(portal.regions)) {
+      if (graph.regions[region]!.portals.length < 2) continue;
+      const unreached = reach(portal, portal.stands, region).filter(d => d === null).length;
+      if (unreached) divided.push({ portal: portal.id, region: graph.regions[region]!.id, unreached, stands: portal.stands.length });
+    }
+  });
+  return divided;
 }
 
 /**

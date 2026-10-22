@@ -1,5 +1,5 @@
 import { TILE } from '../movement.ts';
-import { stepClear, tileWalkable } from '../map/navigation.ts';
+import { moveClear, stepClear, tileWalkable } from '../map/navigation.ts';
 import { nearestTile } from '../map/route.ts';
 import type { CollisionMap, DoorPermission, Role, TileCount, TileIndex, TileRect, TileStep, Vec2, World } from '../types.ts';
 import type { PortalGraph, Reach } from './portal-graph.ts';
@@ -44,7 +44,7 @@ interface RegionTiles {
   snapped: Map<string, number>;
 }
 
-function regionTiles(map: CollisionMap, walkable: (x: number, y: number) => boolean, graph: PortalGraph, region: number): RegionTiles {
+function regionTiles(map: CollisionMap, walkable: (x: number, y: number) => boolean, clear: (a: Vec2, b: Vec2) => boolean, graph: PortalGraph, region: number): RegionTiles {
   const box = graph.regions[region]!.box;
   const x = Math.max(0, Math.floor((box.x - MARGIN) / TILE)), y = Math.max(0, Math.floor((box.y - MARGIN) / TILE));
   const bounds = { x: x as TileIndex, y: y as TileIndex,
@@ -61,30 +61,43 @@ function regionTiles(map: CollisionMap, walkable: (x: number, y: number) => bool
   }
   const compact = new Int32Array(width * height).fill(-1), tiles: number[] = [];
   for (let i = 0; i < near.length; i++) if (near[i] && walkable(i % width + x, Math.floor(i / width) + y)) compact[i] = tiles.push(i) - 1;
-  // Each tile's moves, orthogonal first: a diagonal only where both sides of its corner are open.
+  // Each tile's moves, orthogonal first: a diagonal only where both sides of its corner are open, and
+  // every move only where the body's sweep between the two centres is clear (22.6, "Safety"). A move
+  // is tested once, in its forward direction, and mirrored.
   const open = (tx: number, ty: number) => tx >= 0 && ty >= 0 && tx < width && ty < height && compact[ty * width + tx]! >= 0;
+  const centre = (tx: number, ty: number) => ({ x: (tx + x + 0.5) * TILE, y: (ty + y + 0.5) * TILE });
   const moves = new Int32Array(tiles.length * 8).fill(-1);
   tiles.forEach((at, i) => {
     const tx = at % width, ty = (at - tx) / width;
-    MOVES.forEach(([dx, dy], m) => {
-      if (open(tx + dx, ty + dy) && (!dx || !dy || open(tx + dx, ty) && open(tx, ty + dy))) moves[i * 8 + m] = compact[(ty + dy) * width + tx + dx]!;
-    });
+    for (const m of FORWARD) {
+      const [dx, dy] = MOVES[m]!;
+      if (!open(tx + dx, ty + dy) || dx && dy && !(open(tx + dx, ty) && open(tx, ty + dy))) continue;
+      if (!clear(centre(tx, ty), centre(tx + dx, ty + dy))) continue;
+      const next = compact[(ty + dy) * width + tx + dx]!;
+      moves[i * 8 + m] = next; moves[next * 8 + OPPOSITE[m]!] = i;
+    }
   });
   return { bounds, compact, tiles: Int32Array.from(tiles), moves, snapped: new Map() };
 }
 const MOVES = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]] as const;
+/** The moves tested, one of each opposite pair, and each move's opposite. */
+const FORWARD = [0, 2, 4, 5], OPPOSITE = [1, 0, 3, 2, 7, 6, 5, 4];
 
 /**
  * Distances over the grid for one body, with the door permission today's planner uses. Moves
  * are the eight neighbours `gridRoute`'s finder takes, a diagonal only where both sides of its
- * corner are walkable, so the two agree on what connects, here within the region's tiles.
+ * corner are walkable, here within the region's tiles, and every one swept, so a distance is a
+ * route the body can travel (22.6, "Safety"). A portal's stands and crossings must also sweep
+ * clear to the tile they snap to; other points, such as a bot pressed against a wall, snap as
+ * `gridRoute` does.
  */
 export function gridReach(map: CollisionMap, role: Role, graph: PortalGraph, openDoors: DoorPermission = true): Reach {
-  const ready = new Map<number, RegionTiles>(), walkable = tileWalkable(map, role, openDoors);
+  const ready = new Map<number, RegionTiles>(), walkable = tileWalkable(map, role, openDoors), clear = moveClear(map, role, openDoors);
+  const strict = new Set(graph.portals.flatMap(p => [p, ...p.stands]).map(p => `${p.x},${p.y}`));
   const tilesOf = (region: number): RegionTiles => {
     let found = ready.get(region);
     if (found) return found;
-    found = regionTiles(map, walkable, graph, region);
+    found = regionTiles(map, walkable, clear, graph, region);
     if (ready.size >= KEEP) ready.delete(ready.keys().next().value!);
     ready.set(region, found);
     return found;
@@ -101,6 +114,7 @@ export function gridReach(map: CollisionMap, role: Role, graph: PortalGraph, ope
         const local = { x: point.x - bounds.x * TILE, y: point.y - bounds.y * TILE };
         const t = nearestTile(inside, local, c => stepClear(map, openDoors, point, { x: c.x + bounds.x * TILE, y: c.y + bounds.y * TILE }));
         index = inside(t.x, t.y) ? area.compact[t.y * width + t.x]! : -1;
+        if (index >= 0 && strict.has(key) && !clear(point, centre(area.tiles[index]!))) index = -1;
         area.snapped.set(key, index);
       }
       return index;
@@ -114,7 +128,7 @@ export function gridReach(map: CollisionMap, role: Role, graph: PortalGraph, ope
       const tile = ends[i]!;
       if (tile < 0 || distance[tile] === Infinity) return null;
       // Through tile centres, as `stepsLength` counts a route; the same tile is the straight line.
-      if (tile === source) return Math.hypot(target.x - from.x, target.y - from.y);
+      if (tile === source && clear(from, target)) return Math.hypot(target.x - from.x, target.y - from.y);
       const end = centre(area.tiles[tile]!);
       return lead + distance[tile]! + Math.hypot(target.x - end.x, target.y - end.y);
     });

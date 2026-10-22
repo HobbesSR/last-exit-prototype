@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createPortalPlanner, regionAt } from '../shared/navigation/portal-graph.ts';
+import { createPortalPlanner, regionAt, standJoins } from '../shared/navigation/portal-graph.ts';
 import { gridReach, stepsLength } from '../shared/navigation/grid-level.ts';
 import { gridRoute } from '../shared/map/route.ts';
-import { TILE } from '../shared/movement.ts';
+import { canOccupy, sweptClear, TILE } from '../shared/movement.ts';
 import { generate } from '../map/chain.ts';
 import { composeRegions } from '../map/micro/compose.ts';
 import { builtMapCollision, builtMapFrame } from '../map/micro/adapter.ts';
@@ -27,7 +27,7 @@ function strip(widths, height, joins) {
   });
   const portals = joins.map(({ a, b, x, y }, node) => {
     const slots = [regions[a].portals.push(node) - 1, regions[b].portals.push(node) - 1];
-    return { id: `p${node}`, x, y, regions: [a, b], slots };
+    return { id: `p${node}`, x, y, stands: [], regions: [a, b], slots };
   });
   return { cellSize: CELL, cols, rows: height, owner, regions, portals };
 }
@@ -90,9 +90,43 @@ test('on a live map every promised pair connects, and routes stay close to the u
   for (const role of ['contestant', 'gladiator']) {
     const planner = createPortalPlanner(graph, gridReach(collision, role, graph));
     assert.ok(planner.tables.every(table => !table.includes(Infinity)), `${role}: every portal reaches every other in its region`);
+    assert.deepEqual(standJoins(graph, gridReach(collision, role, graph)), [], `${role}: every portal's stands join`);
     const route = planner.route(from, to), reference = stepsLength(from, gridRoute(collision, role, full, from, to, true), to);
     assert.equal(route.status, 'complete');
     // Grid lengths through tile centres can undercut the hierarchy only by the hierarchy's own detours.
     assert.ok(route.length >= reference - 1e-6 && route.length <= reference * 1.1, `${role}: ${route.length} against ${reference}`);
   }
+});
+
+/** An open map of `cols` × `rows` cells with one thin wall, 4 units thick: thinner than the gap between two clear tile disks. */
+function thinWall(cols, rows, wall) {
+  const playableArea = { cellSize: CELL, rows: Array.from({ length: rows }, (_, y) => ({ y, runs: [[0, cols]] })) };
+  return { width: cols * CELL, height: rows * CELL, playableArea, gates: [], obstacles: [{ id: 'thin', kind: 'wall', ...wall }] };
+}
+
+test('a body cannot sweep through a wall that both ends of the move are clear of', () => {
+  const map = thinWall(4, 4, { x: 38, y: 0, w: 4, h: 192 });
+  const a = { x: 20, y: 100 }, b = { x: 60, y: 100 };
+  assert.ok(canOccupy(map, a.x, a.y, 14) && canOccupy(map, b.x, b.y, 14), 'both tile centres are clear');
+  assert.equal(sweptClear(map, a, b, 14), false);
+  assert.equal(sweptClear(map, b, { x: 100, y: 100 }, 14), true);
+});
+
+test('the grid level never links tiles across a thin wall, where the unswept grid does', () => {
+  const map = thinWall(4, 4, { x: 38, y: 0, w: 4, h: 192 });
+  const graph = strip([4], 4, []), from = { x: 20, y: 100 }, to = { x: 100, y: 100 };
+  assert.deepEqual(gridReach(map, 'contestant', graph)(from, [to], 0), [null]);
+  const box = { x: 0, y: 0, width: Math.ceil(map.width / TILE), height: Math.ceil(map.height / TILE) };
+  assert.ok(gridRoute(map, 'contestant', box, from, to, true), 'the unswept grid steps over the wall');
+});
+
+test('a portal whose stands a wall divides is reported for each region that promises they join', () => {
+  // A horizontal wall across both regions, between the portal's two stands.
+  const map = thinWall(4, 6, { x: 0, y: 138, w: 192, h: 4 });
+  const graph = strip([2, 2], 6, [{ a: 0, b: 1, x: 96, y: 60 }, { a: 0, b: 1, x: 96, y: 20 }]);
+  graph.portals[0].stands = [{ x: 96, y: 60 }, { x: 96, y: 220 }];
+  const divided = standJoins(graph, gridReach(map, 'contestant', graph));
+  assert.deepEqual(divided, [{ portal: 'p0', region: 'r0', unreached: 1, stands: 2 }, { portal: 'p0', region: 'r1', unreached: 1, stands: 2 }]);
+  graph.portals[0].stands = [{ x: 96, y: 60 }, { x: 96, y: 100 }];
+  assert.deepEqual(standJoins(graph, gridReach(map, 'contestant', graph)), []);
 });
