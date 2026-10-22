@@ -78,7 +78,9 @@ export function moveClear(map: CollisionMap, role: Role, openDoors: DoorPermissi
 
 /** The map a route is planned against: the real one, minus whichever gates the mover may open. */
 function navigationMap(map: CollisionMap, openDoors: DoorPermission): CollisionMap {
-  const cached = cacheOf(map);
+  // An existing entry is used as it stands, as `navigationGrid` left it, which keeps this off the
+  // per-call gate key; only a map no grid has been built for starts one.
+  const cached = navigationCache.get(map) ?? cacheOf(map);
   if (!cached.maps.has(openDoors)) cached.maps.set(openDoors, openDoors ? { ...map, gates: map.gates.filter((g: Gate) => openDoors !== 'all' && g.locked) } : map);
   return cached.maps.get(openDoors)!;
 }

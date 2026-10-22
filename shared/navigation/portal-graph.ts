@@ -89,12 +89,14 @@ export interface DividedPortal { portal: string; region: string; unreached: numb
  */
 export function standJoins(graph: PortalGraph, reach: Reach): DividedPortal[] {
   const divided: DividedPortal[] = [];
-  graph.portals.forEach(portal => {
-    if (!portal.stands.length) return;
-    for (const region of new Set(portal.regions)) {
-      if (graph.regions[region]!.portals.length < 2) continue;
-      const unreached = reach(portal, portal.stands, region).filter(d => d === null).length;
-      if (unreached) divided.push({ portal: portal.id, region: graph.regions[region]!.id, unreached, stands: portal.stands.length });
+  // Region by region, so a level below that prepares each region once does so here too.
+  graph.regions.forEach((region, index) => {
+    if (region.portals.length < 2) return;
+    for (const node of region.portals) {
+      const portal = graph.portals[node]!;
+      if (!portal.stands.length) continue;
+      const unreached = reach(portal, portal.stands, index).filter(d => d === null).length;
+      if (unreached) divided.push({ portal: portal.id, region: region.id, unreached, stands: portal.stands.length });
     }
   });
   return divided;

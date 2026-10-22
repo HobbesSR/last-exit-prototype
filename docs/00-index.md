@@ -89,7 +89,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.2-runtime-performance.md](42.2-runtime-performance.md) | Runtime, privacy, crowd, rendering and live-match measurements, with historical checkpoint routes |
 | [42.3-generation-and-delegation-evidence.md](42.3-generation-and-delegation-evidence.md) | Generation, delegation, catalogue samples and verification-cost evidence, with retained raw reports |
 | [42.4-chain-checkpoint-history.md](42.4-chain-checkpoint-history.md) | Dated chain captures and their input provenance; active compatibility remains in 53 |
-| [42.5-portal-graph.md](42.5-portal-graph.md) | Portal graph stage 1 (#420): promise connectivity, table and query costs, route stretch |
+| [42.5-portal-graph.md](42.5-portal-graph.md) | Portal graph stage 1 (#420): swept promise confirmation, table and query costs, route stretch |
 
 ### 5x — Map generation
 
