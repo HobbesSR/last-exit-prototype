@@ -34,6 +34,10 @@ range because they concern ownership, and numbers never change (33).
 
 ## Reading guide
 
+Future physics ownership and cross-system changes are proposed in
+[29.1](29.1-physics-design.md) and [29.2](29.2-physics-state-networking.md).
+They do not replace the current owners recorded here until implementation.
+
 | ID | Topic | Read |
 | --- | --- | --- |
 | 22.1 | Shared simulation | [22.1](22.1-shared-simulation.md) |

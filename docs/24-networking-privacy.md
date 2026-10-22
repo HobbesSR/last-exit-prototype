@@ -2,6 +2,10 @@
 
 The rules this mechanism enforces are in [15](15-information-rules.md).
 
+Future dynamic-physics prediction and projection are proposed in
+[29.2](29.2-physics-state-networking.md). Current movement prediction below remains
+implemented; exact reconciliation is not promised for future hidden contacts.
+
 ## Client authority
 
 Clients send bounded movement axes, aim, button state, and monotonic sequence numbers. They cannot set health, world positions, inventory, or match outcomes. The server expires stale input and checks interaction range, cooldowns, collision, and extraction availability. Local movement is predicted with the same collision code and reconciled from authoritative snapshots. Input is queued per player and a tick spends exactly one. That is what makes reconciliation exact, and it replaced coalescing rather than refining it: clients send on their own interval, so two messages can land between two ticks and none between the next two, and a merge applied one movement step where the client had already predicted two while a late packet applied the previous step twice. Both directions diverged, on a large fraction of ticks, and reached the player as a correction indistinguishable from a real one. Latching went with it — a one-shot press needed rescuing only because a merge could erase it, and nothing is merged now.
