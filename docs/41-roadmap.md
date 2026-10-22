@@ -127,8 +127,8 @@ whole-map enforcement stage. See [19](19-decomposition-design.md),
 
 The physics and equipment program now has a scoped delivery plan in
 [41.1](41.1-physics-plan.md), including engine evaluation before selection,
-character contact, physical loot, hook abilities and independent tier/reload
-work. Its proposed contracts are [29.1](29.1-physics-design.md) and
+character contact, physical loot and hook abilities (epic #436). Tier and
+reload work (#443, #444) is tracked outside that epic. Its proposed contracts are [29.1](29.1-physics-design.md) and
 [29.2](29.2-physics-state-networking.md); none is implemented by that design.
 
 The sequencing below is the other gameplay backlog, not an instruction to
