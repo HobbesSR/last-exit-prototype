@@ -39,7 +39,7 @@ test('the registry lists every placeable module in the folder, each under its ow
     assert.equal(exports.length, 1, `${file} exports one placeable`);
     const [placeable] = exports;
     assert.equal(PLACEABLES[placeable.id], placeable, `${placeable.id} is registered`);
-    assert.match(readFileSync(new URL(file, FOLDER), 'utf8'), new RegExp(`/\\*\\n \\* \`${placeable.id}\`: `), `${file} opens with a header naming ${placeable.id}`);
+    assert.match(readFileSync(new URL(file, FOLDER), 'utf8'), new RegExp(`/\\*\\r?\\n \\* \`${placeable.id}\`: `), `${file} opens with a header naming ${placeable.id}`);
     found.push(placeable.id);
   }
   assert.deepEqual(found.sort(), Object.keys(PLACEABLES).sort());
