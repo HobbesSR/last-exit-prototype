@@ -1,6 +1,5 @@
 import { cellKey, type Cell } from '../kernel/cell.ts';
-import SAT from 'sat';
-import { bounds, overlaps, rect } from '../../shared/shape.ts';
+import { bounds, rect, sharesArea } from '../../shared/shape.ts';
 import type { Shape } from '../../shared/shape.ts';
 import { boxesOverlap, validShape } from './geometry.ts';
 import { unusedComponents } from './components.ts';
@@ -12,9 +11,7 @@ const EPS = 1e-7;
 // on the separating axes, using the same tolerance as the geometry broad phase.
 function areasOverlap(a: Shape, b: Shape): boolean {
   if (!boxesOverlap(bounds(a), bounds(b))) return false;
-  if (a.kind === 'rect' && b.kind === 'rect') return true;
-  const response = new SAT.Response();
-  return overlaps(a, b, undefined, undefined, response) && response.overlap > EPS;
+  return a.kind === 'rect' && b.kind === 'rect' || sharesArea(a, b, EPS);
 }
 
 /**

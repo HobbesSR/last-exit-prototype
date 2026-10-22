@@ -130,6 +130,15 @@ export function overlaps(a: Shape, b: Shape, bodyA: Circle | Polygon = body(a), 
 }
 
 /**
+ * Do two shapes share area, penetrating deeper than `tolerance`? Unlike `overlaps`, contact at an
+ * edge, a point or a tangent doesn't count. Authored areas use it (#404); collision does not.
+ */
+export function sharesArea(a: Shape, b: Shape, tolerance = 0): boolean {
+  const response = new SAT.Response();
+  return overlaps(a, b, undefined, undefined, response) && response.overlap > tolerance;
+}
+
+/**
  * Move and optionally rotate a shape, returning a new one. Rotation is about the shape's own anchor,
  * which is what a jointed assembly needs: a part keeps its local points and only its placement
  * changes. A rect rotates into a polygon, since an axis-aligned box cannot express the result.
