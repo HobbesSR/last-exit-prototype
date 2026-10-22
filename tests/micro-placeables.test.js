@@ -24,6 +24,7 @@ const PINNED = {
   'container-row': ['container-row-1', '9840d185b0ad635e'],
   house: ['house-1', 'c41930e3e9dfa4d7'],
   'cover-piece': ['cover-piece-1', '86aac37c1290a2fa'],
+  'wall-run': ['wall-run-1', 'b561356f4a5ad4c6'],
 };
 
 const digest = placeable => createHash('sha256').update(JSON.stringify(placeable.examples.map(params => {

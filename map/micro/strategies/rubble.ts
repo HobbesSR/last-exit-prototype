@@ -3,6 +3,7 @@ import { rect } from '../../../shared/shape.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
+import { wallHints } from '../hint-walls.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 
@@ -12,7 +13,8 @@ const DEFAULT_SQUEEZE_SHARE = 0.8;
 /**
  * Rubble has no children (54). Two-cell-spaced debris leaves selected 1.5-cell
  * gaps. Full portal approaches and one hunter route from the first portal to
- * each other portal are protected before any debris is placed.
+ * each other portal are protected before any debris is placed. Plain walls then
+ * stand along every hinted run where no debris or route is (`wallHints`).
  */
 export function buildRubble(brief: RegionBrief): BuiltRegion {
   const density = fraction(brief, 'Rubble', 'density', DEFAULT_DENSITY);
@@ -43,8 +45,10 @@ export function buildRubble(brief: RegionBrief): BuiltRegion {
     if (squeeze) squeezeDebris++;
   }
 
-  const loot = cellLoot(brief, createRegionMask(brief), debris, 3);
+  const walls = wallHints(brief, { kind: 'ruin-wall', avoid: [...protectedShapes, ...debris] });
+  elements.push(...walls.elements);
+  const loot = cellLoot(brief, createRegionMask(brief), [...debris, ...walls.shapes], 3);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0,
-      loot: loot.length, coreElements: 0, squeezeDebris } };
+      loot: loot.length, coreElements: 0, squeezeDebris, hintWalls: walls.shapes.length } };
 }
