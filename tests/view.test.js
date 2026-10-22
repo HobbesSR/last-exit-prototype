@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { roofAt, roofConceals, roofGroups, roofOverhang, roofCellBorders, roofTargetAlpha, openingDistance, ROOF_FADE_RANGE, ROOF_FADE_FLOOR, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '../shared/view.ts';
+import { roofAt, roofConceals, roofGroups, roofOverhang, roofCellBorders, roofRevealed, stepRoofAlpha, openingDistance, ROOF_REVEAL_RANGE, ROOF_FADE_MS, ROOF_OVERHANG, playerZoom, markerScale, labelScale, seesPoint, seesActor, revealsActor, viewBounds, viewRadius, observeGates, POTENTIAL_RADIUS, MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT, LABEL_SCREEN_PX, LABEL_FONT_PX, MARKER_ZOOM, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '../shared/view.ts';
 import { visibilityPolygon, litPoint } from '../shared/movement.ts';
 import { generateLiveMap } from '../map/live.ts';
 
@@ -273,12 +273,19 @@ test('declared roof cells drop overhang and edge seams where physically abutting
   assert.deepEqual(bCorner1.e.exposed, [{ start: 0, end: 40 }]);
 });
 
-test('roofs fade toward an opening and vanish for a viewer inside', () => {
-  assert.equal(roofTargetAlpha(true, 0), 0);
-  assert.equal(roofTargetAlpha(false, Infinity), 1, 'a roof with no opening never fades');
-  assert.equal(roofTargetAlpha(false, ROOF_FADE_RANGE), 1);
-  assert.equal(roofTargetAlpha(false, 0), ROOF_FADE_FLOOR, 'it stays partly opaque at the threshold');
-  assert.ok(roofTargetAlpha(false, ROOF_FADE_RANGE / 2) < 1 && roofTargetAlpha(false, ROOF_FADE_RANGE / 2) > ROOF_FADE_FLOOR);
+test('roofs are revealed or covered, never partly, and fade between them at a constant rate', () => {
+  assert.equal(roofRevealed(true, Infinity), true, 'inside reveals');
+  assert.equal(roofRevealed(false, Infinity), false, 'a roof with no opening stays covered from outside');
+  assert.equal(roofRevealed(false, 0), true, 'standing on a threshold cell reveals');
+  assert.equal(roofRevealed(false, ROOF_REVEAL_RANGE), true, 'at a window reveals');
+  assert.equal(roofRevealed(false, ROOF_REVEAL_RANGE + 1), false, 'nearing an opening holds nothing partial');
+  assert.equal(stepRoofAlpha(1, true, ROOF_FADE_MS), 0, 'a full fade takes ROOF_FADE_MS');
+  assert.equal(stepRoofAlpha(0, false, ROOF_FADE_MS), 1);
+  assert.equal(stepRoofAlpha(1, true, ROOF_FADE_MS / 4), 0.75, 'constant rate, not eased');
+  assert.equal(stepRoofAlpha(0.75, true, ROOF_FADE_MS / 4), 0.5);
+  assert.equal(stepRoofAlpha(0.5, false, ROOF_FADE_MS / 2), 1, 'a flip mid-fade reverses from the current alpha for the remaining share');
+  assert.equal(stepRoofAlpha(0.2, true, ROOF_FADE_MS * 10), 0, 'it stops at the target');
+  assert.equal(stepRoofAlpha(0.5, true, -16), 0.5, 'a negative frame delta does not move it');
   const group = [{ id: 'a', x: 0, y: 0, w: 200, h: 200 }];
   const map = { gates: [{ x: 90, y: 190, w: 20, h: 20, buildingId: 'a' }], obstacles: [{ kind: 'window', x: 0, y: 50, w: 10, h: 60, buildingId: 'a' }, { kind: 'window', x: 500, y: 0, w: 10, h: 60, buildingId: 'z' }] };
   assert.equal(openingDistance(map, group, { x: 100, y: 260 }), 50);

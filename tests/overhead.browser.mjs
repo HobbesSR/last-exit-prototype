@@ -82,10 +82,14 @@ try {
   await page.evaluate(() => { const f = window.fixture; f.map.gates.push({ id: 'door', x: 280, y: 296, w: 40, h: 18, open: false, locked: false, kind: 'door', buildingId: 'house' }); f.player.x = 700; f.player.y = 700; });
   const far = await frames();
   assert.equal(far.alpha, 1, 'a roof away from every opening stays opaque');
+  await page.evaluate(() => { const f = window.fixture; f.player.x = 300; f.player.y = 420; });
+  assert.equal((await frames()).alpha, 1, 'nearing a door outside the reveal zone holds nothing partial');
   await page.evaluate(() => { const f = window.fixture; f.player.x = 300; f.player.y = 340; });
+  const crossing = await frames(4);
+  assert.ok(crossing.alpha < 1 && crossing.alpha > 0, `crossing into the reveal zone starts a fade (${crossing.alpha})`);
+  assert.ok(crossing.textures.every(a => a === crossing.alpha), 'fading reuses the cached textures');
   const near = await frames();
-  assert.ok(near.alpha < 0.5 && near.alpha > 0, `approaching a door fades the roof (${near.alpha})`);
-  assert.ok(near.textures.every(a => a === near.alpha), 'fading reuses the cached textures');
+  assert.equal(near.alpha, 0, 'at a door the fade completes to revealed');
   await page.evaluate(() => { const f = window.fixture; f.player.x = 300; f.player.y = 200; });
   const inside = await frames();
   assert.equal(inside.alpha, 0); assert.equal(inside.visible, false, 'a roof fully faded stops being drawn');
