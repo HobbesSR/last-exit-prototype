@@ -31,6 +31,8 @@ export interface AddressedArea {
    * edge doesn't. An area overlapping an earlier one is refused and nothing is recorded.
    */
   mark(shape: Shape): boolean;
+  /** Record several areas atomically; overlaps within the batch are refused too. */
+  markAll(shapes: readonly Shape[]): boolean;
   /** Record each owned cell's square as an area, all or none. Unowned cells are skipped. */
   markCells(cells: Iterable<Cell>): boolean;
   addressed(x: number, y: number): boolean;
@@ -59,15 +61,18 @@ export function createAddressedArea(mask: Pick<RegionMask, 'cells' | 'cellSize' 
     areas.push(shape);
     for (const k of keys) { const list = byCell.get(k); if (list) list.push(shape); else byCell.set(k, [shape]); }
   };
+  const markAll = (shapes: readonly Shape[]): boolean => {
+    if (shapes.some(shape => !validShape(shape))) throw new Error('An addressed area must be a valid convex shape.');
+    if (shapes.some((shape, i) => areas.some(o => areasOverlap(shape, o))
+      || shapes.slice(0, i).some(o => areasOverlap(shape, o)))) return false;
+    const entries = shapes.map(shape => [structuredClone(shape), touched(shape)] as const);
+    for (const [shape, keys] of entries) record(shape, keys);
+    return true;
+  };
   return {
     cells: mask.cells, areas,
-    mark(shape) {
-      if (!validShape(shape)) throw new Error('An addressed area must be a valid convex shape.');
-      if (areas.some(o => areasOverlap(shape, o))) return false;
-      const keys = touched(shape);
-      record(shape, keys);
-      return true;
-    },
+    mark: shape => markAll([shape]),
+    markAll,
     markCells(cells) {
       const squares: Array<[Shape, string]> = [], seen = new Set<string>();
       for (const c of cells) {
