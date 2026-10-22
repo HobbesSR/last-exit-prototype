@@ -4,7 +4,7 @@ import { boundaryRuns } from '../kernel/run.ts';
 import type { Run } from '../kernel/run.ts';
 import { clearFootprint } from '../kernel/margins.ts';
 import { checkedMargins, checkedRegionCells, LIMITS } from './limits.ts';
-import { hintErrors } from './hints.ts';
+import { clipHints, hintErrors } from './hints.ts';
 import { inheritBriefMargins } from './margins.ts';
 import { createFillMask, createRegionMask, travelClear, validShape } from './geometry.ts';
 import { hunterClearance, portalStands } from './portals.ts';
@@ -118,20 +118,9 @@ export function canonicalDelegationBrief(input: RegionBrief): RegionBrief {
   return result;
 }
 
-function localBrief(parent: RegionBrief, cells: Cell[], parentOwned: ReadonlySet<string>, offer?: PatchOffer): RegionBrief {
+function localBrief(parent: RegionBrief, cells: Cell[], offer?: PatchOffer): RegionBrief {
   const owned = new Set(cells.map(cellKey));
-  const hints = (parent.hints ?? []).flatMap(run => {
-    const inside = insideCells(run, parentOwned), result: Run[] = [];
-    let start = -1;
-    for (let i = 0; i <= run.length; i++) {
-      const keep = i < run.length && owned.has(cellKey(inside[i]!));
-      if (keep && start < 0) start = i;
-      if (!keep && start >= 0) {
-        result.push({ axis: run.axis, x: run.x + (run.axis === 'h' ? start : 0), y: run.y + (run.axis === 'v' ? start : 0), length: i - start }); start = -1;
-      }
-    }
-    return result;
-  });
+  const hints = clipHints(parent.hints ?? [], parent.cells, cells);
   const brief: RegionBrief = offer ? {
     id: `${parent.id}/delegate/${encodeURIComponent(offer.key)}`, seed: delegationSeed(parent.seed, offer.key),
     type: offer.type,
@@ -313,7 +302,7 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
       local.find(b => b.id === seam.b)!.portals.push(structuredClone(selected));
       crossings.push({ a: seam.a, b: seam.b, portal: selected });
     }
-    const complete = local.map((part, i) => ({ ...localBrief(parent, part.cells, owned, i ? accepted[i - 1] : undefined), portals: part.portals }));
+    const complete = local.map((part, i) => ({ ...localBrief(parent, part.cells, i ? accepted[i - 1] : undefined), portals: part.portals }));
     const briefs = inheritBriefMargins(parent, complete).map(b => ({ ...b, portals: [...b.portals].sort((a, b) => a.id.localeCompare(b.id)) }));
     if (blockers.length) {
       const retainedFill = createFillMask(briefs[0]!);

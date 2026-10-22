@@ -89,6 +89,9 @@ with a don't-care value. This is Corey's model (verbatim in 17, 2026-09-27).
     guarantee. The Map Lab authors the value without requiring any geometry.
   - The brief carries the hinted runs and the SDK offers helpers for them (#287;
     20.1, 20.3, 51.7). Builders adopt them one at a time.
+  - A hint both sides state counts for more than one facing `any` or unstated:
+    the brief carries both stated values, and builders may prefer mutual hints
+    (Corey, #406; 20.1). It is still not a requirement.
 - **When geometry returns:** a label will imply values on several dimensions.
   - `wall` implies not passable.
   - A fence blocks movement but is passable, because hunters can break fences
