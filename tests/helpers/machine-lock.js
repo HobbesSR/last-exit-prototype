@@ -34,7 +34,13 @@ export async function acquireMachineLock(name, { port = LOCK_PORTS[name], timeou
 /** A listening server that answers each connection with its owner, or null when the port is taken. */
 function listen(port, owner) {
   return new Promise((resolve, reject) => {
-    const server = net.createServer(socket => { socket.unref(); socket.end(owner); });
+    const server = net.createServer(socket => {
+      // A waiting benchmark abandons its owner probe after one second. The
+      // holder may be CPU-bound until later, so that peer can already be gone.
+      // A reset probe must not crash the benchmark holding the lock.
+      socket.on('error', () => {});
+      socket.unref(); socket.end(owner);
+    });
     server.once('error', error => error.code === 'EADDRINUSE' ? resolve(null) : reject(error));
     // Unreferenced: holding the lock never keeps a finished script alive.
     server.listen({ port, host: '127.0.0.1', exclusive: true }, () => { server.unref(); resolve(server); });

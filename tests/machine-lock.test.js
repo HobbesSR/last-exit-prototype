@@ -78,3 +78,22 @@ test('a port taken by another program is reported as such', async () => {
     await assert.rejects(acquireMachineLock('test', { ...quiet, port, timeoutMs: 30 }), /another program/);
   } finally { foreign.close(); }
 });
+
+test('an abandoned owner probe does not crash a busy holder', async () => {
+  const port = await freePort();
+  const child = contender(port, `
+    console.log('held');
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    lock.release();`);
+  const exited = once(child, 'exit');
+  try {
+    await once(child.stdout, 'data');
+    const probe = net.connect({ port, host: '127.0.0.1' });
+    probe.on('error', () => {});
+    await once(probe, 'connect');
+    probe.resetAndDestroy();
+    const [code] = await exited;
+    assert.equal(code, 0, 'a disconnected diagnostic client killed the lock owner');
+  } finally { if (child.exitCode === null) child.kill(); }
+});
