@@ -7,7 +7,8 @@ import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
 import { protectedRoutes } from './scatter.ts';
 import { microMetrics } from '../metrics.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
-import type { ObstacleKind } from '../../../shared/types.ts';
+import { COVER_PIECE, COVER_PIECES } from '../placeables/cover-piece.ts';
+import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types.ts';
 import type { ExecutionBuilder } from '../delegation-execute.ts';
 
@@ -51,13 +52,9 @@ const DENSITY = 0.55;
 /** The most pieces in one slot's cluster. */
 const CLUSTER = 3;
 
-/** A piece of cover: its footprint in cells, and how to draw it inside that footprint. */
-interface Piece { kind: ObstacleKind; name: string; w: number; h: number; weight: number }
-const PIECES: Piece[] = [
-  { kind: 'crate', name: 'crate', w: 1, h: 1, weight: 0.5 },
-  { kind: 'ruin-wall', name: 'barrier', w: 2, h: 1, weight: 0.35 },
-  { kind: 'container', name: 'container', w: 2, h: 1, weight: 0.15 },
-];
+/** The pieces a cluster draws from (`COVER_PIECE`), with their footprints in cells and their chance. */
+const PIECES = ([['crate', 0.5], ['barrier', 0.35], ['container', 0.15]] as const)
+  .map(([name, weight]) => ({ name, weight, w: COVER_PIECES[name].w, h: COVER_PIECES[name].h }));
 
 function densityOf(brief: RegionBrief): number {
   const density = brief.parameters?.density ?? DENSITY;
@@ -125,8 +122,7 @@ export function buildCover(brief: RegionBrief): BuiltRegion {
       const grown = box ? { x0: Math.min(box.x0, x), y0: Math.min(box.y0, y), x1: Math.max(box.x1, x + w), y1: Math.max(box.y1, y + h) } : { x0: x, y0: y, x1: x + w, y1: y + h };
       if (occupied(x, y, w, h) || !clear(grown.x0, grown.y0, grown.x1 - grown.x0, grown.y1 - grown.y0)) continue;
       box = grown;
-      const shape = drawn(piece, w * size, h * size, length, offset);
-      elements.push({ label: `cover-${piece.name}-${elements.length + 1}`, x: x * size, y: y * size, template: { w: w * size, h: h * size, parts: [{ part: 'obstacle', shape, kind: piece.kind }] } });
+      elements.push(...placedElements(expectPlaced(COVER_PIECE.build({ piece: piece.name, turned, length, offset }, size)), `cover-${piece.name}-${elements.length + 1}`, x, y, size));
       for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) footprints.add(`${i},${j}`);
     }
   }
@@ -145,15 +141,6 @@ export function buildCover(brief: RegionBrief): BuiltRegion {
 
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0, loot: loot.length, coreElements: 0 } };
-}
-
-/** A piece's shape inside its footprint of `w` × `h` world units, along the footprint's long axis. */
-function drawn(piece: Piece, w: number, h: number, length: number, offset: number) {
-  const along = w >= h, long = Math.max(w, h), short = Math.min(w, h);
-  const [l, t] = piece.name === 'crate' ? [long * (0.6 + length * 0.25), long * (0.6 + length * 0.25)]
-    : piece.name === 'barrier' ? [long * (0.7 + length * 0.25), short * 0.3] : [long * 0.95, short * 0.9];
-  const a = (long - l) * offset, b = (short - t) / 2;
-  return along ? rect(Math.round(a), Math.round(b), Math.round(l), Math.round(t)) : rect(Math.round(b), Math.round(a), Math.round(t), Math.round(l));
 }
 
 /**
@@ -212,13 +199,11 @@ export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements
     return (routed || boundary.fits({ x, y, w, h }))
       && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
   };
-  const piece = PIECES.find(candidate => candidate.name === 'container')!;
   const places: RegionElement[] = [];
   for (const cell of [...fill].sort(compareCells)) for (const turned of [false, true]) {
-    const w = turned ? piece.h : piece.w, h = turned ? piece.w : piece.h;
+    const guard = expectPlaced(COVER_PIECE.build({ piece: 'container', turned, length: 1, offset: 0.5 }, size)), { w, h } = guard.demand.body;
     if (!clear(cell.x, cell.y, w, h)) continue;
-    const element = { label: 'cover-guard', x: cell.x * size, y: cell.y * size,
-      template: { w: w * size, h: h * size, parts: [{ part: 'obstacle' as const, shape: drawn(piece, w * size, h * size, 1, 0.5), kind: piece.kind }] } };
+    const [element] = placedElements(guard, 'cover-guard', cell.x, cell.y, size) as [RegionElement];
     const shapes = elementShapes(element);
     if (shapes.some(shape => shapesOverlap(shape, near)) && !shapes.some(shape => shapesOverlap(shape, disc))) places.push(element);
   }

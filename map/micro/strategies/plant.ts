@@ -1,7 +1,8 @@
 import { polygon, rect } from '../../../shared/shape.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import { largestRectangle } from './hall.ts';
-import { warehouse } from './depot.ts';
+import { WAREHOUSE } from '../placeables/warehouse.ts';
+import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
@@ -110,11 +111,10 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
       const shed = box(site.slot), label = 'plant-shed-1';
       for (let j = 0; j < down; j++) for (let i = 0; i < across; i++) shedSlots.add(key(site.slot.x + i * PERIOD, site.slot.y + j * PERIOD));
       const seed = Math.floor(draw(brief.seed, shed.x, shed.y, CHANNEL.design) * 2 ** 31);
-      const built = warehouse(size, shed.w, shed.h, shed.w >= shed.h, seed);
-      if (built.design.spaces.length > 1) designed++;
-      observe?.({ label, origin: { x: shed.x * size, y: shed.y * size }, cellSize: size, design: built.design, allocation: built.allocation,
-        realization: built.realization, ...built.rejected.length ? { rejected: built.rejected } : {} });
-      elements.push({ label, x: shed.x * size, y: shed.y * size, template: built.template });
+      const built = expectPlaced(WAREHOUSE.build({ w: shed.w, h: shed.h, alongX: shed.w >= shed.h, seed }, size)), { design, allocation, realization, rejected } = built.details;
+      if (design.spaces.length > 1) designed++;
+      observe?.({ label, origin: { x: shed.x * size, y: shed.y * size }, cellSize: size, design, allocation, realization, ...rejected.length ? { rejected } : {} });
+      elements.push(...placedElements(built, label, shed.x, shed.y, size));
       sheds = 1;
     }
   }

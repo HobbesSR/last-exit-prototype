@@ -1,6 +1,7 @@
 import { rect } from '../../../shared/shape.ts';
 import type { BuildingObserver } from '../building/trace.ts';
-import { warehouse } from './depot.ts';
+import { WAREHOUSE } from '../placeables/warehouse.ts';
+import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot } from './scatter.ts';
 import { draw } from '../random.ts';
 import { capsule, createAccessMask, createFillMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap, travelClear } from '../geometry.ts';
@@ -194,13 +195,12 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
   let posts = 0, designed = 0;
   for (const { box } of sites.slice(0, POST_TRIES)) {
     const seed = Math.floor(draw(brief.seed, box.x, box.y, CHANNEL.design) * 2 ** 31);
-    const built = warehouse(size, box.w, box.h, box.w >= box.h, seed);
-    const element: RegionElement = { label: 'checkpoint-post-1', x: box.x * size, y: box.y * size, template: built.template };
+    const built = expectPlaced(WAREHOUSE.build({ w: box.w, h: box.h, alongX: box.w >= box.h, seed }, size)), { design, allocation, realization, rejected } = built.details;
+    const [element] = placedElements(built, 'checkpoint-post-1', box.x, box.y, size) as [RegionElement];
     elements.push(element);
     if (!holds(blockers())) { elements.pop(); continue; }
-    if (built.design.spaces.length > 1) designed++;
-    observe?.({ label: element.label, origin: { x: box.x * size, y: box.y * size }, cellSize: size, design: built.design, allocation: built.allocation,
-      realization: built.realization, ...built.rejected.length ? { rejected: built.rejected } : {} });
+    if (design.spaces.length > 1) designed++;
+    observe?.({ label: element.label, origin: { x: box.x * size, y: box.y * size }, cellSize: size, design, allocation, realization, ...rejected.length ? { rejected } : {} });
     posts = 1;
     break;
   }
