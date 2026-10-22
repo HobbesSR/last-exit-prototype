@@ -8,6 +8,8 @@
   },
   "packageManager": "npm@12.0.2",
   "scripts": {
+    "physics:report": "node --expose-gc tools/physics/report.mjs",
+    "test:physics": "node --test tests/physics-lab.test.js tests/physics-rapier.test.js",
     "dev": "node --env-file-if-exists=.env.local server/index.js --dev-tools=all",
     "dev:lan": "node --env-file-if-exists=.env.local server/index.js --lan --dev-tools=all",
     "test": "node --test --test-concurrency=4 tests/*.test.js",
@@ -35,6 +37,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@dimforge/rapier2d-compat": "0.21.0",
     "@playwright/test": "^1.55.0",
     "@types/node": "^22.20.2",
     "typescript": "^7.0.2"
