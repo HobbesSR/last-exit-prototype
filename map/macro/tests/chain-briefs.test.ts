@@ -163,7 +163,9 @@ test("a hand-placed brief has global cells, its class rule's parameters, and the
 test("hinted perimeter stretches reach both briefs as maximal runs, apart from the portal", () => {
   const { list } = hand({ "1,1": "hut-hinted" });
   const hut = list.find((b) => b.id === "hut@11,6")!, open = list.find((b) => b.id === "open@6,6")!;
-  const runs = [{ axis: "v", x: 11, y: 6, length: 2 }, { axis: "v", x: 11, y: 10, length: 2 }];
+  // An internal tile segment states the same for both sides (51.4), so the hint is mutual.
+  const stated = { inside: "not-passable-hint", across: "not-passable-hint" };
+  const runs = [{ axis: "v", x: 11, y: 6, length: 2, stated }, { axis: "v", x: 11, y: 10, length: 2, stated }];
   assert.deepEqual(hut.hints, runs);
   assert.deepEqual(open.hints, runs);
   assert.deepEqual(hut.portals.map(({ id: _, ...run }) => run), [{ axis: "v", x: 11, y: 8, length: 2 }]);
@@ -175,7 +177,7 @@ test("hinted perimeter stretches reach both briefs as maximal runs, apart from t
 test("a hint facing no region, here an unplaced slot, is one run, and is not a portal", () => {
   const { list } = hand({ "1,1": "hut-edge" });
   const hut = list.find((b) => b.type === "hut")!;
-  assert.deepEqual(hut.hints, [{ axis: "v", x: 6, y: 6, length: 6 }]);
+  assert.deepEqual(hut.hints, [{ axis: "v", x: 6, y: 6, length: 6, stated: { inside: "not-passable-hint", across: null } }]);
   assert.deepEqual(hut.portals, []);
 });
 
@@ -197,7 +199,9 @@ test("a hint is split where a concave region passes to the other side of its lin
   const layout: Layout = { seed: "hand", params, library: "hand", slots, setPieces: [] };
   const list = briefs(layout, resolution(layout, library), derive(layout, library), chainZones(params), library, 3);
   assert.equal(list.length, 1);
-  assert.deepEqual(list[0]!.hints, [{ axis: "v", x: 36, y: 30, length: 6 }, { axis: "v", x: 36, y: 36, length: 6 }]);
+  // Across each run is an absent slot, which no cell of the map fills.
+  const stated = { inside: "not-passable-hint", across: null };
+  assert.deepEqual(list[0]!.hints, [{ axis: "v", x: 36, y: 30, length: 6, stated }, { axis: "v", x: 36, y: 36, length: 6, stated }]);
   assert.deepEqual(contractErrors(list[0]!), []);
 });
 
@@ -208,7 +212,27 @@ test("a hint under a passable side is a portal, not a hint", () => {
     slots: [{ col: 1, row: 1, design: "hut-both", orientation: 0 }], setPieces: [] };
   const [first] = briefs(layout, resolution(layout, library), derive(layout, library), chainZones(PLAYGROUND), library, 3);
   assert.deepEqual(first!.portals.map(({ id: _, ...run }) => run), [{ axis: "v", x: 11, y: 8, length: 1 }]);
-  assert.deepEqual(first!.hints, [{ axis: "v", x: 11, y: 9, length: 1 }]);
+  assert.deepEqual(first!.hints, [{ axis: "v", x: 11, y: 9, length: 1, stated: { inside: "not-passable-hint", across: "not-passable-hint" } }]);
+});
+
+test("a hint carries what each side stated, and is split where that changes (#406)", () => {
+  // The field west of the hut hints the top half of their shared edge and states `any` on the rest.
+  const library: ChainLibrary = { ...HAND, tiles: [...HAND.tiles, { id: "field-east", defaultCellClass: "open", orientations: [0],
+    segments: { ...hinted("v:6,0", "v:6,1", "v:6,2"), ...Object.fromEntries([3, 4, 5].map((y) => [`v:6,${y}`, { passability: "any" as const }])) } }] };
+  const slots: PlacedSlot[] = [{ col: 1, row: 1, design: "field-east", orientation: 0 }, { col: 2, row: 1, design: "hut-edge", orientation: 0 }];
+  const layout: Layout = { seed: "hand", params: PLAYGROUND, library: "hand", slots, setPieces: [] };
+  const list = briefs(layout, resolution(layout, library), derive(layout, library), chainZones(PLAYGROUND), library, 3);
+  const hut = list.find((b) => b.type === "hut")!, field = list.find((b) => b.id === "open@6,6")!;
+  assert.deepEqual(hut.hints, [
+    { axis: "v", x: 12, y: 6, length: 3, stated: { inside: "not-passable-hint", across: "not-passable-hint" } },
+    { axis: "v", x: 12, y: 9, length: 3, stated: { inside: "not-passable-hint", across: "any" } },
+  ]);
+  // The field's brief names the same stretches from its own side.
+  assert.deepEqual(field.hints, [
+    { axis: "v", x: 12, y: 6, length: 3, stated: { inside: "not-passable-hint", across: "not-passable-hint" } },
+    { axis: "v", x: 12, y: 9, length: 3, stated: { inside: "any", across: "not-passable-hint" } },
+  ]);
+  assert.deepEqual(list.map(contractErrors).flat(), []);
 });
 
 test("a region across zones gets one zone context per zone, and a region with no portal lists none", () => {
