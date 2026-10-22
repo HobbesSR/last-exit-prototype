@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createAddressedArea } from '../map/micro/addressed.ts';
 import { unusedComponents } from '../map/micro/components.ts';
 import { createRegionMask } from '../map/micro/geometry.ts';
-import { polygon, rect } from '../shared/shape.ts';
+import { circle, polygon, rect } from '../shared/shape.ts';
 
 const SIZE = 40;
 const rectangle = (w, h, keep = () => true) => Array.from({ length: w * h }, (_, n) =>
@@ -24,6 +24,87 @@ test('a sliver addresses its whole cell', () => {
   record.mark(rect(SIZE * 4.9, SIZE * 2.9, SIZE * 0.05, SIZE * 0.05));
   assert.equal(record.addressed(4, 2), true);
   assert.equal(record.unaddressed().length, 23);
+});
+
+test('a polygon addresses only cells it overlaps with positive area', () => {
+  const record = area(rectangle(2, 2));
+  assert.equal(record.mark(polygon(0, 0, [{ x: 0, y: 0 }, { x: 80, y: 0 }, { x: 0, y: 80 }])), true);
+  assert.deepEqual(record.unaddressed(), [{ x: 1, y: 1 }], 'the far cell only touches the diagonal');
+  assert.equal(record.addressed(1, 1), false);
+  assert.equal(record.markCells([{ x: 1, y: 1 }]), true, 'the cell square only touches the triangle');
+  assert.deepEqual(record.unaddressed(), []);
+});
+
+test('complementary triangles may share a cell along their diagonal', () => {
+  const record = area([{ x: 0, y: 0 }]);
+  const lower = polygon(0, 0, [{ x: 0, y: 0 }, { x: 40, y: 0 }, { x: 0, y: 40 }]);
+  const upper = polygon(0, 0, [{ x: 40, y: 40 }, { x: 0, y: 40 }, { x: 40, y: 0 }]);
+  assert.equal(record.mark(lower), true);
+  assert.equal(record.mark(upper), true);
+  assert.equal(record.areas.length, 2);
+  assert.equal(record.addressed(0, 0), true);
+});
+
+test('tangent circles may be marked in either order, but an overlap is refused', () => {
+  for (const [first, tangent, overlapping] of [
+    [circle(20, 20, 10), circle(40, 20, 10), circle(39, 20, 10)],
+    [circle(20, 20, 5), circle(26, 28, 5), circle(26, 27, 5)],
+  ]) {
+    for (const [a, b] of [[first, tangent], [tangent, first]]) {
+      const record = area();
+      assert.equal(record.mark(a), true);
+      assert.equal(record.mark(b), true);
+      assert.equal(record.areas.length, 2);
+    }
+    for (const [a, b] of [[first, overlapping], [overlapping, first]]) {
+      const record = area();
+      assert.equal(record.mark(a), true);
+      assert.equal(record.mark(b), false);
+      assert.equal(record.areas.length, 1, 'refusal does not record an area');
+    }
+  }
+});
+
+test('a circle and polygon may touch in either order, but cannot overlap', () => {
+  const square = polygon(0, 0, [{ x: 0, y: 0 }, { x: 20, y: 0 }, { x: 20, y: 20 }, { x: 0, y: 20 }]);
+  for (const [tangent, overlapping] of [
+    [circle(30, 10, 10), circle(29, 10, 10)],
+    [circle(23, 24, 5), circle(22, 24, 5)],
+  ]) {
+    for (const [a, b] of [[square, tangent], [tangent, square]]) {
+      const record = area([{ x: 0, y: 0 }]);
+      assert.equal(record.mark(a), true);
+      assert.equal(record.mark(b), true);
+      assert.equal(record.areas.length, 2);
+    }
+    for (const [a, b] of [[square, overlapping], [overlapping, square]]) {
+      const record = area([{ x: 0, y: 0 }]);
+      assert.equal(record.mark(a), true);
+      assert.equal(record.mark(b), false);
+      assert.equal(record.areas.length, 1, 'refusal does not record an area');
+    }
+  }
+});
+
+test('overlap outside owned cells is refused without changing addressed queries', () => {
+  const cells = [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 2, y: 0 }];
+  const record = area(cells);
+  assert.equal(record.mark(rect(0, 0, 70, 40)), true);
+  const before = record.unaddressed();
+  const components = record.unaddressedComponents();
+  assert.equal(record.mark(rect(50, 0, 70, 40)), false, 'the shapes overlap in the unowned top middle cell');
+  assert.equal(record.areas.length, 1);
+  assert.deepEqual(record.unaddressed(), before);
+  assert.deepEqual(record.unaddressedComponents(), components);
+  assert.equal(record.addressed(2, 0), false);
+});
+
+test('entirely outside areas still conflict where they overlap', () => {
+  const record = area([{ x: 0, y: 0 }]);
+  assert.equal(record.mark(rect(80, 0, 30, 30)), true);
+  assert.equal(record.mark(rect(100, 0, 30, 30)), false);
+  assert.equal(record.areas.length, 1);
+  assert.deepEqual(record.unaddressed(), [{ x: 0, y: 0 }]);
 });
 
 test('areas may share a cell when they do not overlap, and an overlapping area is refused', () => {
