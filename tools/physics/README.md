@@ -31,6 +31,11 @@ as `error` entries and must be inspected. Reports save after each timing cell.
 Generated reports in `test-results/` are scratch; durable evidence belongs in
 `docs/reports/` with a numbered interpretation.
 
+An interrupted Node sweep can resume with `--mode=node --resume=<saved.json>
+--out=<saved.json>`. It refuses changed solver/witness/runner/lockfile hashes or
+different sample settings, records the restart and source manifest, warms the
+candidate again, and skips only saved cells with the same complete configuration.
+
 The legacy control invokes actual `moveBody` once per 20 Hz tick on the same
 actor-only workload. It does not implement dynamics, new-body collisions,
 constraints or projectile queries, so its timing is not an equivalent engine

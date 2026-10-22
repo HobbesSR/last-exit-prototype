@@ -16,6 +16,7 @@ if(!['correctness','node','browser','all'].includes(mode))throw Error('mode must
 const samples=Number(args.get('samples')??100),warmup=Number(args.get('warmup')??20);
 if(!Number.isInteger(samples)||samples<1||!Number.isInteger(warmup)||warmup<0)throw Error('Invalid sample count');
 const names=(args.get('candidates')??'custom,rapier').split(',');
+const prior=args.has('resume')?JSON.parse(await readFile(args.get('resume'),'utf8')):null;
 const lock=await acquireMachineLock('bench');
 const report={schema:1,date:new Date().toISOString(),command:process.argv.slice(2),
   provenance:{commit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
@@ -40,20 +41,33 @@ try{
   report.provenance.wasm={bytes:wasm.length,sha256:createHash('sha256').update(wasm).digest('hex')};
   const pack=JSON.parse(await readFile('node_modules/@dimforge/rapier2d-compat/package.json','utf8'));
   report.provenance.dependency={name:pack.name,version:pack.version,license:pack.license};
+  if(prior){
+    if(mode!=='node'||prior.provenance.samples!==samples||prior.provenance.warmup!==warmup)
+      throw Error('Resume requires Node mode and identical sample/warmup settings');
+    for(const file of Object.keys(report.provenance.files).filter(f=>f.endsWith('.mjs')&&!f.endsWith('/report.mjs')||f==='package-lock.json'))
+      if(prior.provenance.files[file]!==report.provenance.files[file])throw Error(`Cannot resume changed simulation source: ${file}`);
+    const resume={date:report.date,command:report.command,commit:report.provenance.commit,
+      files:report.provenance.files,startingCells:Object.fromEntries(Object.entries(prior.node).map(([k,v])=>[k,v.benchmarks?.length??0]))};
+    report.provenance=prior.provenance;
+    (report.provenance.resumes??=[]).push(resume);
+    report.node=prior.node;
+  }
   if(mode!=='browser') for(const name of names){
-    const entry=report.node[name]={};
-    entry.coldStart=await attempt(()=>coldStart(name));
+    const entry=report.node[name]??={};
+    if(entry.coldStart)(entry.resumeInitialization??=[]).push(await attempt(()=>coldStart(name)));
+    else entry.coldStart=await attempt(()=>coldStart(name));
     console.log(`${name}: correctness`);
-    entry.correctness=await attempt(()=>correctness(name));await save();
+    entry.correctness??=await attempt(()=>correctness(name));await save();
     global.gc?.();const before=process.memoryUsage();
-    entry.lifecycle=await attempt(()=>lifecycle(name));global.gc?.();
-    entry.memory={before,after:process.memoryUsage(),forcedGC:!!global.gc};
-    entry.prediction=[];
-    for(const rttMs of [0,50,100,200])entry.prediction.push(await attempt(()=>prediction(name,{rttMs})));
+    if(!entry.lifecycle){entry.lifecycle=await attempt(()=>lifecycle(name));global.gc?.();
+      entry.memory={before,after:process.memoryUsage(),forcedGC:!!global.gc};}
+    if(!entry.prediction){entry.prediction=[];
+      for(const rttMs of [0,50,100,200])entry.prediction.push(await attempt(()=>prediction(name,{rttMs})));}
     await save();
     if(mode==='node'||mode==='all'){
-      entry.benchmarks=[];
+      entry.benchmarks??=[];
       for(const config of envelopeConfigs({full:!args.has('diagonal')}))for(const substeps of [2,4,8]){
+        if(entry.benchmarks.some(row=>row.substeps===substeps&&JSON.stringify(row.config)===JSON.stringify(config)))continue;
         console.log(`${name}: ${config.actors}/${config.bodies}/${config.tethers} ${config.clustered?'clustered':'sparse'} sleep=${config.sleeping} sub=${substeps}`);
         entry.benchmarks.push(await attempt(()=>benchmark(name,config,substeps,{samples,warmup})));await save();
       }
