@@ -2,7 +2,7 @@
 
 Status: living documentation
 Prototype rules version: `last-exit-0.7`; default content: `content-2`
-Updated: 2026-10-14
+Updated: 2026-10-22
 
 This directory is the canonical product and engineering record for the prototype.
 It is split so a task can load the two or three files it actually needs instead of
@@ -69,6 +69,8 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [27-rust-path.md](27-rust-path.md) | The conditions for moving the core to Rust/WASM, and what stays outside it |
 | [28-operational-limits.md](28-operational-limits.md) | What this build deliberately does not do, and what public hosting would need |
 | [29-geometry-and-drawing.md](29-geometry-and-drawing.md) | Shape descriptions, collision, sight edges, how drawing is cached, physics prerequisites |
+| [29.1-physics-design.md](29.1-physics-design.md) | Proposed rigid bodies, character contact, middleware evaluation, springs/hooks and physical item contracts |
+| [29.2-physics-state-networking.md](29.2-physics-state-networking.md) | Proposed physics tick phases, prediction/privacy, state/checkpoints and replay compatibility |
 
 ### 3x — Process
 
@@ -84,6 +86,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | File | Holds |
 | --- | --- |
 | [41-roadmap.md](41-roadmap.md) | Completed boundaries, the next implementation boundaries, and sequencing |
+| [41.1-physics-plan.md](41.1-physics-plan.md) | Physics/equipment issue sequence, comparison workloads, provisional tuning and rollout gates |
 | [42-performance-history.md](42-performance-history.md) | Measured baselines and their limits, from completed verification passes |
 | [42.1-navigation-experiment.md](42.1-navigation-experiment.md) | Safe local graph experiment (#364), passage failures and measured hierarchy costs |
 | [42.2-runtime-performance.md](42.2-runtime-performance.md) | Runtime, privacy, crowd, rendering and live-match measurements, with historical checkpoint routes |

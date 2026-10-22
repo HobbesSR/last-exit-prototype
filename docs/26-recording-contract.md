@@ -6,6 +6,10 @@ display descriptor in the header). Masked live maps require reader 4; legacy map
 minimum schema 0.
 Storage-only changes must preserve frozen gameplay fixtures.
 
+Future physics state, checkpoint and compatibility proposals are in
+[29.2](29.2-physics-state-networking.md). They do not change the current schema,
+rules version or playback contract in this document.
+
 How a reader labels a recording's weapons, kits and timers, including archives
 without a descriptor, follows [22.7](22.7-content-and-presentation.md#recording-compatibility)
 ([Presentation descriptor](#presentation-descriptor-schema-6) below).

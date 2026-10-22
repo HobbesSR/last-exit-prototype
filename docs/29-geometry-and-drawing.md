@@ -217,6 +217,12 @@ roof that reaches zero stops being drawn. While the viewer is indoors a player c
 
 ## What a physics system would need next
 
+The proposed design is now in [29.1](29.1-physics-design.md) (physical behavior,
+engine comparison, character bodies and items) and
+[29.2](29.2-physics-state-networking.md) (ticks, state, prediction and replay).
+The issue sequence and evaluation gates are [41.1](41.1-physics-plan.md).
+These are design records, not implemented behavior; the baseline below remains.
+
 The shape module is the primitive layer for it, and deliberately stops short of being one:
 
 - `transform(shape, dx, dy, angle)` moves and rotates about a shape's own anchor, which is what a

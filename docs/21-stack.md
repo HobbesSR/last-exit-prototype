@@ -11,3 +11,7 @@ The authoritative simulation and browser prediction share movement and geometry 
 Profiling is off by default. `shared/profiler.ts` keeps frame-scoped timing/counters separate from event-scoped packet and pacing observations. The server exposes `/api/profile`, `PROFILE=1` enables server profiling, `P` toggles browser profiling, and the benchmark scripts must remain runnable without opening a public server.
 
 References: [Phaser](https://github.com/phaserjs/phaser), [SAT.js collision response](https://github.com/jriecken/sat-js), [PathFinding.js](https://github.com/qiao/PathFinding.js).
+
+Physics design [29.1](29.1-physics-design.md) recommends evaluating Rapier 2D/WASM
+against a bounded custom candidate. [41.1](41.1-physics-plan.md) requires measured
+evidence before selection. This does not replace SAT.js or add a dependency yet.

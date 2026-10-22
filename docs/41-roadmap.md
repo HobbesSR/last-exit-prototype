@@ -125,6 +125,12 @@ whole-map enforcement stage. See [19](19-decomposition-design.md),
 
 ### Gameplay backlog
 
+The physics and equipment program now has a scoped delivery plan in
+[41.1](41.1-physics-plan.md), including engine evaluation before selection,
+character contact, physical loot and hook abilities (epic #436). Tier and
+reload work (#443, #444) is tracked outside that epic. Its proposed contracts are [29.1](29.1-physics-design.md) and
+[29.2](29.2-physics-state-networking.md); none is implemented by that design.
+
 The sequencing below is the other gameplay backlog, not an instruction to
 leave the current micro-generation effort for reward tiers.
 
@@ -140,11 +146,10 @@ checkpoint, formerly the first item, is complete: `content-2` (13, 14, 26).
    alter map geometry. Track vertical novelty separately from quality. Tier
    statistics, distribution weights and special-item definitions still need
    concrete recorded tuning assumptions; preserve spawn/charger reservations.
-2. **Physics evaluation (F-14).** Compare sliding/slowing surfaces, explosion
-   impulses, pushing dynamic bodies and hook/drag corner cases at fixed ticks.
-   Elevation/ballistics need a collision-plane contract before implementation.
-   Profile geometry in controlled crowd workloads; current evidence has not
-   established the cause of the reported severe slowdown.
+2. **Physics evaluation (F-14).** Now planned in [41.1](41.1-physics-plan.md);
+   the engine comparison and its witnesses are P0 (#437). Current evidence has
+   not established the cause of the reported severe slowdown, and installing a
+   solver does not establish it either.
 
 ## Boundaries these tasks need
 
