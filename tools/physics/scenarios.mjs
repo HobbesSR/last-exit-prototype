@@ -18,7 +18,8 @@ export function scenarios() {
       actor('c', 7, 12, { vx: -4, vy: -14 }),
     ], [], 55),
     scene('mixed-roles', [
-      wall('wall', 35, 0, 2, 40), actor('a', -32, 0, { vx: 30 }),
+      wall('wall', 35, 0, 2, 40), actor('a', -32, 0, { vx: 30, role: 'contestant' }),
+      actor('gladiator', -32, -22, { vx: 30, radius: 10, role: 'gladiator' }),
       prop('crate', 0, 0, { mass: 4 }),
       { id: 'loot', kind: 'loot', shape: 'circle', radius: 3, x: -17, y: 19, vx: 22, vy: 0 },
     ], [], 55),
@@ -69,7 +70,7 @@ export function scenarios() {
       actor('b', 28, 0, { mass: 10, vx: 30 })],
       [{ id: 'rope', kind: 'rope', a: 'a', b: 'b', length: 30 }], 35),
     scene('rope-blocked-pull', [wall('wall', 0, 0, 3, 30),
-      actor('a', -18, 0, { vx: -30 }), actor('b', 18, 0, { vx: 30 })],
+      actor('a', -18, 0, { vx: -30, motor: { x: -80, y: 0, accel: 120 } }), actor('b', 18, 0)],
       [{ id: 'rope', kind: 'rope', a: 'a', b: 'b', length: 36 }], 40),
     scene('opposing-tethers', [actor('left', -30, 0, { mass: 10 }),
       actor('middle', 0, 0, { vx: 20 }), actor('right', 30, 0, { mass: 10 })],

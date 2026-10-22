@@ -8,6 +8,7 @@ import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 import { correctness, benchmark, lifecycle, envelopeConfigs, coldStart } from './runner.mjs';
 import { prediction } from './prediction.mjs';
 import { digest } from './common.mjs';
+import { queryBenchmark } from './queries.mjs';
 
 const args=new Map(process.argv.slice(2).map(s=>s.replace(/^--/,'').split('=')));
 const out=args.get('out')??'test-results/physics-437.json';
@@ -64,6 +65,12 @@ try{
     if(!entry.prediction){entry.prediction=[];
       for(const rttMs of [0,50,100,200])entry.prediction.push(await attempt(()=>prediction(name,{rttMs})));}
     await save();
+    if(args.has('queries')){
+      entry.targetedQueries=[];
+      for(const config of envelopeConfigs({full:false}).filter(c=>!c.sleeping))
+        entry.targetedQueries.push(await attempt(()=>queryBenchmark(name,config,{samples,warmup})));
+      await save();
+    }
     if(mode==='node'||mode==='all'){
       entry.benchmarks??=[];
       for(const config of envelopeConfigs({full:!args.has('diagonal')}))for(const substeps of [2,4,8]){
@@ -79,7 +86,7 @@ try{
       report.node.legacy.benchmarks.push(await attempt(()=>benchmark('legacy',{actors,bodies:0,tethers:0,clustered,sleeping:0,seed:437},1,{samples,warmup,projectiles:0})));
     }await save();
   }
-  if(mode==='browser'||mode==='all'){
+  if(mode==='browser'||mode==='all'||args.has('browser')){
     const root=process.cwd();
     const server=createServer(async(req,res)=>{
       const url=new URL(req.url,'http://localhost');
@@ -107,9 +114,15 @@ try{
         e.prediction=[];
         for(const rttMs of [0,50,100,200])e.prediction.push(await attempt(()=>page.evaluate(async({name,rttMs})=>(await import('/tools/physics/prediction.mjs')).prediction(name,{rttMs}),{name,rttMs})));
         e.benchmarks=[];
-        for(const config of envelopeConfigs({full:false})){
+        for(const config of (mode==='correctness'?[]:envelopeConfigs({full:false}))){
           console.log(`browser ${name}: ${config.actors}/${config.bodies}/${config.tethers} clustered=${config.clustered}`);
           e.benchmarks.push(await attempt(()=>page.evaluate(async({name,config,samples,warmup})=>(await import('/tools/physics/runner.mjs')).benchmark(name,config,4,{samples,warmup}),{name,config,samples,warmup})));await save();
+        }
+        if(args.has('queries')){
+          e.targetedQueries=[];
+          for(const config of envelopeConfigs({full:false}).filter(c=>!c.sleeping))
+            e.targetedQueries.push(await attempt(()=>page.evaluate(async({name,config,samples,warmup})=>(await import('/tools/physics/queries.mjs')).queryBenchmark(name,config,{samples,warmup}),{name,config,samples,warmup})));
+          await save();
         }
       }
     }finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}

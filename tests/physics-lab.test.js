@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { inspect, createMetrics } from '../tools/physics/metrics.mjs';
 import { loadCandidate, correctness, lifecycle } from '../tools/physics/runner.mjs';
+import { scenarios } from '../tools/physics/scenarios.mjs';
+import { queryBenchmark } from '../tools/physics/queries.mjs';
 
 const circle = (id, x, y, extra = {}) =>
   ({ id, kind: 'actor', shape: 'circle', radius: 1, x, y, ...extra });
@@ -142,4 +144,19 @@ test('runner records initial overlap separately and checks lifecycle without a f
   const result = await lifecycle('custom', 2);
   assert.equal(result.zeroCounts, true);
   assert.equal(result.postDisposeThrows, true);
+});
+
+test('blocked-pull witness reaches the wall; mixed roles include different actor sizes', async () => {
+  const mixed=scenarios().find(s=>s.name==='mixed-roles').scene.bodies.filter(b=>b.kind==='actor');
+  assert.equal(new Set(mixed.map(b=>b.radius)).size,2);
+  const [row]=await correctness('custom',{substepsList:[4],only:['rope-blocked-pull']});
+  assert.ok(row.final.find(b=>b.id==='b').x<=12,'tether must actually pull its target to the wall');
+});
+
+test('targeted projectile query supplement traverses the dynamic population', async () => {
+  for(const name of ['custom','rapier']){
+    const result=await queryBenchmark(name,{actors:11,bodies:0,tethers:0,seed:437},{samples:2,warmup:1});
+    assert.ok(result.hits.p50>=96);
+    assert.equal(result.castMs.n,2);
+  }
 });
