@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { rect, circle, polygon, shapeOf, fieldsOf, bounds, nearBounds, outline, edgesOf, body, contains, overlaps, transform, convex, CIRCLE_SEGMENTS } from '../shared/shape.ts';
+import { rect, circle, polygon, shapeOf, fieldsOf, bounds, nearBounds, outline, edgesOf, body, contains, overlaps, sharesArea, transform, convex, CIRCLE_SEGMENTS } from '../shared/shape.ts';
 import { canOccupy, lineClear, movePlayer } from '../shared/movement.ts';
 
 const square = [{ x: -30, y: -30 }, { x: 30, y: -30 }, { x: 30, y: 30 }, { x: -30, y: 30 }];
@@ -54,6 +54,19 @@ test('point containment and overlap work across every pair of forms', () => {
   assert.equal(overlaps(near, rect(95, 95, 10, 10)), true, 'overlap is symmetric across kinds');
   assert.equal(overlaps(near, far), false);
   assert.equal(overlaps(circle(0, 0, 10), circle(15, 0, 10)), true);
+});
+
+test('sharesArea needs penetration, where overlaps counts contact', () => {
+  const lower = polygon(0, 0, [{ x: 0, y: 0 }, { x: 40, y: 0 }, { x: 0, y: 40 }]);
+  const upper = polygon(0, 0, [{ x: 40, y: 40 }, { x: 0, y: 40 }, { x: 40, y: 0 }]);
+  for (const [a, b] of [[lower, upper], [circle(0, 0, 10), circle(20, 0, 10)], [rect(0, 0, 10, 10), circle(20, 5, 10)]]) {
+    assert.equal(overlaps(a, b), true, 'contact is collision');
+    assert.equal(sharesArea(a, b), false, 'contact shares no area');
+    assert.equal(sharesArea(b, a), false);
+  }
+  assert.equal(sharesArea(circle(0, 0, 10), circle(19, 0, 10)), true);
+  assert.equal(sharesArea(circle(0, 0, 10), circle(19, 0, 10), 2), false, 'tolerance is a penetration depth');
+  assert.equal(sharesArea(rect(0, 0, 100, 100), circle(50, 50, 5)), true, 'containment shares area');
 });
 
 test('transform moves a shape and rotates it about its own anchor', () => {

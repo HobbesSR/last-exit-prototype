@@ -1,5 +1,5 @@
 import { OPPOSITE, type Side } from '../port-terms.ts';
-import { circle } from '../../../shared/shape.ts';
+import { circle, rect } from '../../../shared/shape.ts';
 import { rng } from '../index.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
@@ -14,7 +14,7 @@ import type { BuildingObserver } from '../building/trace.ts';
 import type { BuiltRegion, LootSite, RegionBrief } from '../types.ts';
 import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
-import { unusedComponents } from '../components.ts';
+import { createAddressedArea } from '../addressed.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
 import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
 
@@ -135,10 +135,11 @@ function yardOffers(brief: RegionBrief, site: Site): PatchOffer[] {
   const owned = createRegionMask(brief), fill = createFillMask(brief), access = createAccessMask(brief);
   const w = site.house.realization.template!.w / brief.cellSize, h = site.house.realization.template!.h / brief.cellSize;
   const inHouse = (x: number, y: number) => x >= site.x && x < site.x + w && y >= site.y && y < site.y + h;
-  const kept = new Set<string>();
-  for (const c of owned.cells) if (!fill.has(c.x, c.y)
-    || c.x >= site.x - BODY && c.x < site.x + w + BODY && c.y >= site.y - BODY && c.y < site.y + h + BODY
-    || [-2, -1, 1, 2].some(d => !owned.has(c.x + d, c.y) || !owned.has(c.x, c.y + d))) kept.add(key(c.x, c.y));
+  const area = createAddressedArea(owned), size = brief.cellSize;
+  // The house and its two-cell yard, then non-fill cells and the two-cell perimeter band around it.
+  area.mark(rect((site.x - BODY) * size, (site.y - BODY) * size, (w + 2 * BODY) * size, (h + 2 * BODY) * size));
+  area.markCells(owned.cells.filter(c => !area.addressed(c.x, c.y) && (!fill.has(c.x, c.y)
+    || [-2, -1, 1, 2].some(d => !owned.has(c.x + d, c.y) || !owned.has(c.x, c.y + d)))));
   const fits = (x: number, y: number) => {
     for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) if (!access.has(i, j) || inHouse(i, j)) return false;
     return true;
@@ -167,7 +168,7 @@ function yardOffers(brief: RegionBrief, site: Site): PatchOffer[] {
       const next = key(nx, ny);
       if (!fits(nx, ny)) continue;
       let cost = 0;
-      for (let j = ny; j < ny + BODY; j++) for (let i = nx; i < nx + BODY; i++) if (!kept.has(key(i, j))) cost = 1;
+      for (let j = ny; j < ny + BODY; j++) for (let i = nx; i < nx + BODY; i++) if (!area.addressed(i, j)) cost = 1;
       const nextDistance = distance + cost;
       if (nextDistance < (distances.get(next) ?? Infinity)) {
         distances.set(next, nextDistance); parents.set(next, at);
@@ -180,12 +181,12 @@ function yardOffers(brief: RegionBrief, site: Site): PatchOffer[] {
   for (const entrance of entrances) {
     for (let at: string | null = entrance; at !== null; at = parents.get(at)!) {
       const [x, y] = at.split(',').map(Number) as [number, number];
-      for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) kept.add(key(i, j));
+      for (let j = y; j < y + BODY; j++) for (let i = x; i < x + BODY; i++) if (!area.addressed(i, j)) area.markCells([{ x: i, y: j }]);
     }
   }
   // The canonical first cell uniquely names a connected lobe in this batch.
   // Keep identities short even on macro-sized yards; snapshots retain its full footprint.
-  return unusedComponents(owned.cells, kept).filter(cells => cells.length >= 9)
+  return area.unaddressedComponents().filter(cells => cells.length >= 9)
     .map((cells): PatchOffer => ({ key: `yard:${cells[0]!.x},${cells[0]!.y}`, cells, type: 'cover', reasonTags: ['unused-yard-lobe'] }));
 }
 

@@ -122,11 +122,20 @@ export function contains(shape: Shape, x: World, y: World, cached?: Circle | Pol
   return SAT.pointInPolygon(vec(x, y), (cached || body(shape)) as Polygon);
 }
 
-/** Do two shapes overlap? The general primitive a physics step needs; the sweep above is the hot path. */
-export function overlaps(a: Shape, b: Shape, bodyA: Circle | Polygon = body(a), bodyB: Circle | Polygon = body(b)): boolean {
-  if (a.kind === 'circle') return separate(bodyA as Circle, b, bodyB);
-  if (b.kind === 'circle') return separate(bodyB as Circle, a, bodyA);
-  return SAT.testPolygonPolygon(bodyA as Polygon, bodyB as Polygon);
+/** Do two shapes overlap (including contact)? Optional SAT response exposes penetration depth. */
+export function overlaps(a: Shape, b: Shape, bodyA: Circle | Polygon = body(a), bodyB: Circle | Polygon = body(b), response?: Response): boolean {
+  if (a.kind === 'circle') return separate(bodyA as Circle, b, bodyB, response);
+  if (b.kind === 'circle') return separate(bodyB as Circle, a, bodyA, response);
+  return SAT.testPolygonPolygon(bodyA as Polygon, bodyB as Polygon, response);
+}
+
+/**
+ * Do two shapes share area, penetrating deeper than `tolerance`? Unlike `overlaps`, contact at an
+ * edge, a point or a tangent doesn't count. Authored areas use it (#404); collision does not.
+ */
+export function sharesArea(a: Shape, b: Shape, tolerance = 0): boolean {
+  const response = new SAT.Response();
+  return overlaps(a, b, undefined, undefined, response) && response.overlap > tolerance;
 }
 
 /**

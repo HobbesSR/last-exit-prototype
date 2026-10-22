@@ -12,11 +12,12 @@ import { splitBuilding } from '../building/pieces.ts';
 import { reachableRoofGroups } from '../building/groups.ts';
 import { realizeBuilding } from '../building/realize.ts';
 import type { BuildingObserver } from '../building/trace.ts';
+import { rect } from '../../../shared/shape.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
-import { unusedComponents } from '../components.ts';
+import { createAddressedArea } from '../addressed.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
 import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
 
@@ -332,15 +333,14 @@ function exteriorYard(brief: RegionBrief, box: Box, gates: { x: number; y: numbe
   const owned = createRegionMask(brief), fill = createFillMask(brief), access = createAccessMask(brief);
   const inside = (x: number, y: number, pad = 0) => x >= box.x - pad && x < box.x + box.w + pad
     && y >= box.y - pad && y < box.y + box.h + pad;
-  const kept = new Set<string>(), protectedKeys = new Set<string>();
-  for (const c of owned.cells) {
-    const k = key(c.x, c.y);
-    // Inherited clear margins may be thin interior strips. They stay reserved;
-    // a new crossing there can have clear stands but no retained hunter route.
-    if (inside(c.x, c.y) || !fill.has(c.x, c.y)) protectedKeys.add(k);
-    if (!fill.has(c.x, c.y) || inside(c.x, c.y, 2)
-      || [-2, -1, 1, 2].some(d => !owned.has(c.x + d, c.y) || !owned.has(c.x, c.y + d))) kept.add(k);
-  }
+  const area = createAddressedArea(owned), size = brief.cellSize, protectedKeys = new Set<string>();
+  // The complete box and its two-cell approach band, then non-fill cells and the perimeter band.
+  area.mark(rect((box.x - 2) * size, (box.y - 2) * size, (box.w + 4) * size, (box.h + 4) * size));
+  area.markCells(owned.cells.filter(c => !area.addressed(c.x, c.y) && (!fill.has(c.x, c.y)
+    || [-2, -1, 1, 2].some(d => !owned.has(c.x + d, c.y) || !owned.has(c.x, c.y + d)))));
+  // Inherited clear margins may be thin interior strips. They stay reserved;
+  // a new crossing there can have clear stands but no retained hunter route.
+  for (const c of owned.cells) if (inside(c.x, c.y) || !fill.has(c.x, c.y)) protectedKeys.add(key(c.x, c.y));
   const fits = (x: number, y: number) => {
     for (let j = y; j < y + 2; j++) for (let i = x; i < x + 2; i++) if (!access.has(i, j) || inside(i, j)) return false;
     return true;
@@ -365,7 +365,7 @@ function exteriorYard(brief: RegionBrief, box: Box, gates: { x: number; y: numbe
         if (!fits(nx, ny)) continue;
         const next = key(nx, ny);
         let cost = 0;
-        for (let j = ny; j < ny + 2; j++) for (let i = nx; i < nx + 2; i++) if (!kept.has(key(i, j))) cost = 1;
+        for (let j = ny; j < ny + 2; j++) for (let i = nx; i < nx + 2; i++) if (!area.addressed(i, j)) cost = 1;
         const nd = distance + cost;
         if (nd >= (distances.get(next) ?? Infinity)) continue;
         distances.set(next, nd); parents.set(next, at); (buckets[nd] ??= []).push(next);
@@ -378,11 +378,12 @@ function exteriorYard(brief: RegionBrief, box: Box, gates: { x: number; y: numbe
   for (const target of targets) for (let at: string | null = target; at !== null; at = parents.get(at)!) {
     const [x, y] = at.split(',').map(Number) as [number, number];
     for (let j = y; j < y + 2; j++) for (let i = x; i < x + 2; i++) if (owned.has(i, j)) {
-      kept.add(key(i, j)); protectedKeys.add(key(i, j));
+      if (!area.addressed(i, j)) area.markCells([{ x: i, y: j }]);
+      protectedKeys.add(key(i, j));
     }
   }
   const offers: PatchOffer[] = [];
-  for (const cells of unusedComponents(owned.cells, kept)) {
+  for (const cells of area.unaddressedComponents()) {
     const start = cells[0]!;
     // Compound authorship keeps narrow strips as circulation. An offered
     // component must contain a 3x3 yard pocket; this is a cheap suitability

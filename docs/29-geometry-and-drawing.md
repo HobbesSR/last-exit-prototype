@@ -223,7 +223,9 @@ The shape module is the primitive layer for it, and deliberately stops short of 
   jointed assembly needs — a part keeps its local points and only its placement changes. Nothing in
   the simulation rotates bodies yet.
 - `overlaps(a, b)` is the general shape-against-shape test. The movement sweep uses the narrower
-  circle-against-shape path because that is the hot one.
+  circle-against-shape path because that is the hot one. It counts contact as overlap;
+  `sharesArea(a, b, tolerance)` does not, and serves authored areas such as a builder's
+  addressed-area record ([20.2](20.2-geometry-access.md#addressed-area)), never collision.
 - Missing, in the order they would be needed: velocity and integration, an impulse/restitution model,
   rotational inertia, joints, continuous collision for fast bodies, and convex decomposition for
   concave generated content. F-14 in [13](13-accepted-features.md) accepts the direction and requires

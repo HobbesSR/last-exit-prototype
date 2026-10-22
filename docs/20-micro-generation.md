@@ -44,6 +44,10 @@ These links preserve bookmarks into the former single file.
 
 - Geometry and reachability: [Geometry and reachability](20.2-geometry-access.md#geometry-and-reachability).
 
+<a id="addressed-area"></a>
+
+- Addressed area: [Addressed area](20.2-geometry-access.md#addressed-area).
+
 <a id="segment-requirements-across-hierarchy-levels"></a>
 
 - Segment requirements across hierarchy levels: [Segment requirements across hierarchy levels](20.2-geometry-access.md#segment-requirements-across-hierarchy-levels).
