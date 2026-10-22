@@ -54,7 +54,7 @@ test('the shorter of two crossings wins, and a crossing its region cannot reach 
   assert.deepEqual(createPortalPlanner(graph, straightReach([[from, near]])).route(from, to).waypoints, [far, to]);
 });
 
-test('a broken promise inside a region is no route, and a point outside every region is an invalid endpoint', () => {
+test('an unconnected pair inside a region is no route, and a point outside every region is an invalid endpoint', () => {
   const graph = strip([4, 4, 4], 4, [{ a: 0, b: 1, x: 192, y: 96 }, { a: 1, b: 2, x: 384, y: 96 }]);
   const planner = createPortalPlanner(graph, straightReach([[{ x: 192, y: 96 }, { x: 384, y: 96 }]]));
   assert.ok(planner.tables[1].includes(Infinity), 'the walled pair is recorded as unreached');

@@ -62,8 +62,9 @@ export interface PortalRoute {
 
 /**
  * Each region's portal-to-portal distances, `table[region][i * k + j]` for its `k` portals,
- * Infinity where the level below finds no way: there a region's promise is broken, or the
- * level below is too coarse to see the passage. One reach per portal, less the last.
+ * Infinity where the level below finds no way. Infinity is unconfirmed, not a broken promise:
+ * the level below may be too coarse to see the passage (22.6, "Safety"). One reach per portal,
+ * less the last.
  */
 export function regionTables(graph: PortalGraph, reach: Reach): Float64Array[] {
   return graph.regions.map((region, index) => {
@@ -78,7 +79,7 @@ export function regionTables(graph: PortalGraph, reach: Reach): Float64Array[] {
   });
 }
 
-/** A portal whose stands do not all join its representative within a region that promises they do (20.1). */
+/** A portal whose stands the level below does not join to its representative where 20.1 promises they do: unconfirmed, not proven divided. */
 export interface DividedPortal { portal: string; region: string; unreached: number; stands: number }
 
 /**
