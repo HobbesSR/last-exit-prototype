@@ -1,6 +1,7 @@
 import { CONTAINER_ROW } from './container-row.ts';
 import { COVER_PIECE } from './cover-piece.ts';
 import { HOUSE } from './house.ts';
+import { WALL_RUN } from './wall-run.ts';
 import { WAREHOUSE } from './warehouse.ts';
 import { placeableErrors } from './placeable.ts';
 import type { Placeable, Placed, Refusal } from './placeable.ts';
@@ -15,6 +16,7 @@ export const PLACEABLES: Readonly<Record<string, Placeable<any, unknown>>> = Obj
   [CONTAINER_ROW.id]: CONTAINER_ROW,
   [HOUSE.id]: HOUSE,
   [COVER_PIECE.id]: COVER_PIECE,
+  [WALL_RUN.id]: WALL_RUN,
 });
 
 /**

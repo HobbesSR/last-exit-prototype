@@ -2,6 +2,7 @@ import { rect } from '../../../shared/shape.ts';
 import { unfilledRegion, cellLoot, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
+import { wallHints } from '../hint-walls.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
 import type { BuiltRegion, RegionBrief, RegionMask } from '../types.ts';
@@ -36,8 +37,9 @@ type Box = { x: number; y: number; w: number; h: number };
  * staggered: staggering both pinches pillar corners together.
  *
  * Portal approaches and one hunter route between portals are protected in the empty shape
- * first, and a pillar that would touch them is left out, as `rubble` and `ruins` do. So the
- * region keeps the portal promise whenever its shape does. With `roofed`, the rectangle has a
+ * first, and a pillar that would touch them is left out, as `rubble` and `ruins` do. Then
+ * plain walls stand along every hinted run where nothing of the hall's or the routes' is
+ * (`wallHints`). So the region keeps the portal promise whenever its shape does. With `roofed`, the rectangle has a
  * roof, which hides what's under it as a building's does. A region with no such rectangle
  * goes to `open` (17 M24).
  *
@@ -79,10 +81,12 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
 
   const elements = parts.length || roofed ? [{ label: 'hall', x: box.x * size, y: box.y * size,
     template: { w: box.w * size, h: box.h * size, ...(roofed ? { encloses: true } : {}), parts } }] : [];
-  const loot = cellLoot(brief, createRegionMask(brief), pillars, CHANNEL.loot);
+  const walls = wallHints(brief, { kind: 'building', avoid: [...protectedShapes, ...pillars] });
+  elements.push(...walls.elements);
+  const loot = cellLoot(brief, createRegionMask(brief), [...pillars, ...walls.shapes], CHANNEL.loot);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
-    manifest: { cells: brief.cells.length, structures: roofed ? 1 : 0, obstacles: pillars.length, gates: 0,
-      loot: loot.length, coreElements: 0, pillars: pillars.length } };
+    manifest: { cells: brief.cells.length, structures: roofed ? 1 : 0, obstacles: pillars.length + walls.shapes.length, gates: 0,
+      loot: loot.length, coreElements: 0, pillars: pillars.length, hintWalls: walls.shapes.length } };
 }
 
 /**

@@ -155,6 +155,8 @@ points, and routes that aren't a straight shot.
   approaches and hunter routes, then places seeded debris on a two-cell
   lattice. The `density` and `squeezeShare` parameters range from 0 to 1.
   Squeezes are opportunistic; the strategy promises no minimum count.
+  Then it stands `ruin-wall` walls along every hinted run where no debris
+  or route is (`wallHints`, 20.3; #407).
   Regions below the proposed shape needs use the `open` builder.
 - **Shape needs:** *proposed*, at least 12 cells and 3 cells across, so that a
   hunter route and a squeeze both fit.
@@ -174,6 +176,8 @@ points, and routes that aren't a straight shot.
   **Built (#157):** `map/micro/strategies/ruins.ts`. It protects the portal
   approaches and hunter routes as `rubble` does, with the helpers both share
   in `strategies/scatter.ts`, and drops any piece that would touch them.
+  After its rooms, it stands quarter-cell `ruin-wall` walls along every
+  hinted run where no piece or route is (`wallHints`, 20.3; #407).
   - **Builder mechanics:** [20.3](20.3-builders-decomposition.md#ruins-builder).
   - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
     disc stands clear of every piece.
@@ -192,10 +196,13 @@ points, and routes that aren't a straight shot.
   breaks a sightline without blocking a walk, so it's good ground for
   pursuit.
 - **Strategy:** no decomposer. A builder picks a contained rectangle, lays the
-  lattice on it, and keeps the rest of the region clear.
+  lattice on it, and keeps the rest of the region clear but for walls along
+  its hints.
   **Built (#158):** `map/micro/strategies/hall.ts`. It protects the portal
   approaches and hunter routes as `rubble` and `ruins` do, and drops any
-  pillar that would touch them.
+  pillar that would touch them. Then it stands quarter-cell `building` walls
+  along every hinted run where no pillar or route is (`wallHints`, 20.3;
+  #407). `market`, bound to `hall`, gets them too.
   - **Builder mechanics:** [20.3](20.3-builders-decomposition.md#hall-builder).
   - **Loot:** each cell rolls its chance and takes its tier, wherever a loot
     disc stands clear of every pillar.

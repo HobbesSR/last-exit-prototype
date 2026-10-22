@@ -8,6 +8,8 @@ export { portalStands, validatePortalReach } from './portals.ts';
 export type { PortalReachInput, PortalReachResult, PortalStands } from './portals.ts';
 export { boundaryBoxFilter, boxesAgainstHints, clipHints, hintedCells, hintErrors, hintsOfStrength, hintStrength, portalMargin } from './hints.ts';
 export type { CellBox, HintedRegion, HintStrength } from './hints.ts';
+export { wallHints } from './hint-walls.ts';
+export type { HintWallOptions, HintWalls } from './hint-walls.ts';
 export { inheritBoundaryPorts, pairedBoundaryPort, validateBoundaryComposition } from './boundary.ts';
 export type { RegionBoundary, ChildBoundary } from './boundary.ts';
 export type { SpreadPointOptions, SpreadPointResult } from './placement.ts';

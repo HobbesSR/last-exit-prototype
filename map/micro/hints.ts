@@ -38,7 +38,7 @@ export function boundaryBoxFilter(region: HintedRegion, aisle: number): { rectan
 }
 
 /** One segment of a run: the region's cell beside it, and which way the region lies from it. */
-interface Stretch { cell: Cell; inward: Cell }
+export interface Stretch { cell: Cell; inward: Cell }
 
 const keyOf = (x: number, y: number): string => `${x},${y}`;
 
@@ -46,7 +46,7 @@ const keyOf = (x: number, y: number): string => `${x},${y}`;
  * The segments of a run in order, each with the region's cell beside it. Throws unless every
  * segment lies on the perimeter with the region on one side, as a portal must.
  */
-function stretchesOf(run: { axis: 'h' | 'v'; x: number; y: number; length: number }, owned: ReadonlySet<string>): Stretch[] {
+export function stretchesOf(run: { axis: 'h' | 'v'; x: number; y: number; length: number }, owned: ReadonlySet<string>): Stretch[] {
   const { axis, x, y, length } = run;
   if (axis !== 'h' && axis !== 'v' || ![x, y, length].every(Number.isInteger) || length < 1 || length > LIMITS.run) throw new Error('A hint is not a run.');
   const stretches = Array.from({ length }, (_, i) => {
@@ -62,7 +62,8 @@ function stretchesOf(run: { axis: 'h' | 'v'; x: number; y: number; length: numbe
   return stretches;
 }
 
-const ownedOf = (region: HintedRegion): Set<string> => new Set(region.cells.map(c => keyOf(c.x, c.y)));
+/** The keys of the region's cells, as `stretchesOf` reads them. */
+export const ownedOf = (region: HintedRegion): Set<string> => new Set(region.cells.map(c => keyOf(c.x, c.y)));
 
 const STATED: readonly unknown[] = ['not-passable-hint', 'any', 'unstated', null];
 /** Labels a hint can carry: the inside is on the map, and at least one side hints. */

@@ -344,3 +344,24 @@ were replaced with raw timing — none of which is evidence of a fix.
 What would be: a real slow-run capture from Replays → Download performance
 diagnostics, longer-lived matches, and runs on the affected device. Passing local
 tests does not establish that this is fixed.
+
+## Hint walls (#407, 2026-10-22)
+
+`types-31` adds plain walls along hints in `hall`, `ruins` and `rubble`, about
+71 a sweep map (42.4). The live map grows with them: seed 1 ends at obstacle
+`o511` instead of `o415`. `npm run bench` (seed 4217, 12 × 6, one room, one
+viewer), run sequentially on this machine, two runs on `main` and three on the
+branch:
+
+| | `main` (`types-30`) | `types-31` |
+| --- | --- | --- |
+| Tick mean | 1.957 / 1.967 ms | 2.442 / 2.474 / 2.483 ms |
+| Tick p50 | 1.156 / 1.162 ms | 1.780 / 1.792 / 1.794 ms |
+| Tick p95 | 5.840 / 5.665 ms | 6.809 / 7.186 / 7.086 ms |
+| Ticks in the match | 3,204 | 2,997 |
+
+The match itself differs, so this is not a like-for-like cost per wall.
+`sim.step` rose from 0.257 to 0.376 ms a frame, with bots, nav-grid rebuilds
+and sight-ray edge tests (524 to 802 a frame) carrying most of it. Mean use of
+the 50 ms budget went from 3.9% to 5.0%. It is a real increase, recorded so a
+later slowdown report can start from it; it was not optimized here.

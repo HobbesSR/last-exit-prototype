@@ -3,6 +3,7 @@ import { polygon, rect } from '../../../shared/shape.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
+import { wallHints } from '../hint-walls.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 
@@ -34,6 +35,7 @@ type Side = typeof SIDES[number];
  *
  * Portal approaches and one hunter route between portals are protected in the empty shape
  * before any piece is laid, and a piece that would touch them is left out, as `rubble` does.
+ * Then plain walls stand along every hinted run where no piece or route is (`wallHints`).
  * So the region keeps the portal promise whenever its shape does. A region smaller than
  * `MIN_CELLS`, or with no owned 3 × 3 box for a room, goes to `open` (17 M24).
  *
@@ -105,10 +107,12 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
     }
   }
 
-  const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
+  const hinted = wallHints(brief, { kind: 'ruin-wall', thickness: WALL, avoid: [...protectedShapes, ...pieces] });
+  elements.push(...hinted.elements);
+  const loot = cellLoot(brief, createRegionMask(brief), [...pieces, ...hinted.shapes], CHANNEL.loot);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0,
-      loot: loot.length, coreElements: 0, rooms, walls, debris } };
+      loot: loot.length, coreElements: 0, rooms, walls, debris, hintWalls: hinted.shapes.length } };
 }
 
 /** A fallen span: a convex slab inside its own cell, at a turn and length drawn from 0 to 1. */
