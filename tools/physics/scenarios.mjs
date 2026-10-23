@@ -6,7 +6,7 @@ const act = (tick, method, ...args) => ({ tick, method, args });
 const scene = (name, bodies, joints = [], ticks = 40, actions = [], metadata = {}) =>
   ({ name, scene: { bodies, joints }, ticks, actions, ...metadata });
 
-export function scenarios() {
+export function baselineScenarios() {
   return [
     scene('head-on', [actor('a', -30, 0, { vx: 35 }), actor('b', 30, 0, { vx: -35 })], [], 35),
     scene('glancing-slide', [actor('a', -30, -6, { vx: 32 }), actor('b', 0, 8)], [], 35),
@@ -85,6 +85,82 @@ export function scenarios() {
       [act(10, 'closeDoor', wall('door', 0, 0, 2, 25)), act(32, 'removeBody', 'door')],
       { doorClosure: { doorId: 'door', deferUntilClear: true } }),
   ];
+}
+
+// #451: frozen P0 reports retain baselineScenarios. Scale contact geometry to
+// contestant r=12, use the real r=23 gladiator, and test supported live extents.
+export function bodySpeedCap(radius, substeps) {
+  if (!Number.isFinite(radius) || !(radius > 0) || ![2, 4, 8].includes(substeps)) throw new RangeError('invalid motion envelope');
+  return 16 * Math.min(radius, 12) * substeps;
+}
+
+export function admitMotion(bodies, substeps) {
+  for (const body of bodies) {
+    if (body.kind === 'static') continue;
+    const radius = body.shape === 'box' ? Math.min(body.hx, body.hy) : (body.radius ?? 8);
+    const speed = Math.hypot(body.vx ?? 0, body.vy ?? 0);
+    if (!Number.isFinite(speed) || speed > bodySpeedCap(radius, substeps))
+      return { admitted: false, id: body.id, speed, cap: bodySpeedCap(radius, substeps), route: 'swept-query-or-explicit-teleport' };
+  }
+  return { admitted: true };
+}
+
+export function scenarios(substeps = 4) {
+  const rows = baselineScenarios().map(source => {
+    const s = structuredClone(source);
+    const scaleBody = b => {
+      for (const k of ['x', 'y', 'radius', 'hx', 'hy']) if (b[k] != null) b[k] *= 1.5;
+    };
+    s.scene.bodies.forEach(scaleBody);
+    for (const j of s.scene.joints) j.length *= 1.5;
+    for (const a of s.actions) {
+      if (['addBody', 'closeDoor'].includes(a.method)) scaleBody(a.args[0]);
+      if (a.method === 'addJoint') a.args[0].length *= 1.5;
+    }
+    delete s.springReference;
+    return s;
+  });
+  const find = name => rows.find(s => s.name === name);
+  const mixed = find('mixed-roles').scene.bodies;
+  mixed.find(b => b.id === 'gladiator').radius = 23;
+  mixed.find(b => b.id === 'gladiator').y = -42;
+  const cap = bodySpeedCap(12, substeps);
+  find('fast-thin-wall').scene.bodies.find(b => b.id === 'fast').vx = cap;
+  const pair = find('moving-pair-crossing');
+  pair.scene.bodies[0].vx = cap; pair.scene.bodies[1].vx = -cap;
+  // Eight phase offsets prevent a lucky substep alignment hiding pass-through.
+  pair.speedAdmission = true;
+  for (const offset of [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]) {
+    const s = structuredClone(pair); s.name = `moving-pair-offset-${offset}`;
+    s.scene.bodies.forEach(b => { b.x += cap * 0.05 / substeps * offset; });
+    // Vary separation too, rather than merely translating the whole pair.
+    s.scene.bodies[1].x += cap * 0.05 / substeps * offset;
+    rows.push(s);
+  }
+  for (const radius of [12, 23]) {
+    const c = bodySpeedCap(radius, substeps);
+    rows.push(scene(`over-cap-refused-r${radius}`, [actor('a', -60, 0, { radius, vx: c * 1.01 }),
+      actor('b', 60, 0, { radius, vx: -c * 1.01 })], [], 4, [],
+      { speedAdmission: true, expectRefused: true }));
+    rows.push(scene(`game-pair-r${radius}`, [actor('a', -60, 0, { radius, vx: c }),
+      actor('b', 60, 0, { radius, vx: -c })], [], 12, [], { speedAdmission: true }));
+  }
+  const mask = find('mask-hole-ring').scene.bodies;
+  Object.assign(mask.find(b => b.id === 'inside'), { vx: cap });
+  Object.assign(mask.find(b => b.id === 'outside'), { vx: cap / Math.SQRT2, vy: cap / Math.SQRT2 });
+  const distant = find('distant-coordinates');
+  distant.scene.bodies = [wall('thin', 51_820, 25_900, 0.5, 25), actor('a', 51_785, 25_900, { radius: 12, vx: cap })];
+  distant.liveEnvelope = { width: 51_840, height: 25_920 };
+  for (const [stiffness, damping] of [[20, 4], [2000, 60], [20000, 200]]) {
+    const s = stiffness === 20 ? find('spring-decay') : structuredClone(find('spring-decay'));
+    if (stiffness !== 20) s.name = `native-spring-stiff-${stiffness}`;
+    Object.assign(s.scene.joints[0], { backend: 'native', stiffness, damping });
+    s.springStability = { a: 'a', b: 'b', length: 60, maxAmplitude: 15, settleSeconds: 3, settledAmplitude: 0.5 };
+    if (stiffness !== 20) rows.push(s);
+  }
+  // Invalid coincident probe remains explicitly outside promotion gates.
+  find('zero-distance-spring').scene.joints[0].backend = 'native';
+  return rows;
 }
 
 // Capacity cells are reproducible and separated even at 64 actors/512 bodies.
