@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPortalPlanner, portalGraphOf, regionAt, standJoins } from '../shared/navigation/portal-graph.ts';
 import { gridReach, stepsLength } from '../shared/navigation/grid-level.ts';
+import { meshReach } from '../shared/navigation/mesh-level.ts';
 import { gridRoute } from '../shared/map/route.ts';
 import { canOccupy, sweptClear, TILE } from '../shared/movement.ts';
 import { generate } from '../map/chain.ts';
@@ -71,15 +72,17 @@ test('a detour past today\'s search box is found through the portal around the w
     obstacles: [{ id: 'wall', kind: 'wall', x: 12 * CELL - 16, y: 0, w: 16, h: 2352 }] };
   const graph = strip([12, 12], height, [{ a: 0, b: 1, x: 12 * CELL, y: 2500 }]);
   const from = { x: 480, y: 120 }, to = { x: 700, y: 120 };
-  const route = createPortalPlanner(graph, gridReach(map, 'contestant', graph)).route(from, to);
-  assert.equal(route.status, 'complete');
-  assert.deepEqual(route.waypoints[0], { x: 576, y: 2500 });
+  for (const reach of [meshReach(map, 'contestant', graph), gridReach(map, 'contestant', graph)]) {
+    const route = createPortalPlanner(graph, reach).route(from, to);
+    assert.equal(route.status, 'complete');
+    assert.deepEqual(route.waypoints[0], { x: 576, y: 2500 });
+  }
   // The box around both ends plus 600 units stops short of the gap, so today's planner finds nothing.
   const x = 0, y = 0, box = { x, y, width: Math.ceil((700 + 600) / TILE), height: Math.ceil((120 + 600) / TILE) };
   assert.equal(gridRoute(map, 'contestant', box, from, to, true), null);
 });
 
-test('on a live map every promised pair connects, and routes stay close to the unrestricted search', () => {
+test('on a live map every promised pair connects over the mesh, and routes stay close to the unrestricted grid search', () => {
   const built = composeRegions(generate(1, liveChainParams(), undefined, DEFAULT_CELL_SIZE).results);
   const { origin } = builtMapFrame(built), collision = builtMapCollision(built);
   const graph = buildPortalGraph(built, origin);
@@ -89,13 +92,14 @@ test('on a live map every promised pair connects, and routes stay close to the u
   const from = sites.find(s => s.kind === 'spawn'), to = sites.find(s => s.kind === 'exit');
   const full = { x: 0, y: 0, width: Math.ceil(collision.width / TILE), height: Math.ceil(collision.height / TILE) };
   for (const role of ['contestant', 'gladiator']) {
-    const planner = createPortalPlanner(graph, gridReach(collision, role, graph));
+    const reach = meshReach(collision, role, graph), planner = createPortalPlanner(graph, reach);
     assert.ok(planner.tables.every(table => !table.includes(Infinity)), `${role}: every portal reaches every other in its region`);
-    assert.deepEqual(standJoins(graph, gridReach(collision, role, graph)), [], `${role}: every portal's stands join`);
+    assert.deepEqual(standJoins(graph, reach), [], `${role}: every portal's stands join`);
+    assert.deepEqual(reach.defects, [], `${role}: collision accepts every path the mesh found`);
     const route = planner.route(from, to), reference = stepsLength(from, gridRoute(collision, role, full, from, to, true), to);
     assert.equal(route.status, 'complete');
-    // Grid lengths through tile centres can undercut the hierarchy only by the hierarchy's own detours.
-    assert.ok(route.length >= reference - 1e-6 && route.length <= reference * 1.1, `${role}: ${route.length} against ${reference}`);
+    // Any-angle legs undercut the grid's tile steps; crossing each portal at its middle stand costs a little back.
+    assert.ok(route.length >= Math.hypot(to.x - from.x, to.y - from.y) && route.length <= reference * 1.1, `${role}: ${route.length} against ${reference}`);
   }
 });
 

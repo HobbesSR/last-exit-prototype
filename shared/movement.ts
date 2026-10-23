@@ -2,7 +2,7 @@ import SAT from 'sat';
 import type { Circle, Polygon } from 'sat';
 import { count } from './profiler.ts';
 import { finite } from './numbers.ts';
-import { shapeOf, bounds, nearBounds, edgesOf, body, separate, segmentShapeDistance } from './shape.ts';
+import { shapeOf, bounds, nearBounds, edgesOf, body, separate, segmentShapeDistance, rect } from './shape.ts';
 import type { Bounded, Edge, Shape } from './shape.ts';
 import type { Box, CollisionMap, GateId, Obstacle, PlayableArea, Player, PlayerInput, Vec2, World } from './types.ts';
 
@@ -96,6 +96,29 @@ function voidCellsNear(map: CollisionMap, x: number, y: number, reach: number): 
     if (!occupiedCell(area, col, row)) boxes.push({ x: col * size, y: row * size, w: size, h: size });
   return boxes;
 }
+/**
+ * Each cell of a `size` grid within `radius` of segment `ab`: row by row, only the columns the
+ * segment's band crosses, so a long diagonal costs its length rather than its bounding square.
+ * With `cols` and `rows`, cells are clamped to that grid; without, indices may be negative.
+ */
+function cellsAlong(a: Vec2, b: Vec2, radius: number, size: number, visit: (col: number, row: number) => void, cols?: number, rows?: number): void {
+  const low = cols === undefined ? -Infinity : 0;
+  const top = Math.max(low, Math.floor((Math.min(a.y, b.y) - radius) / size));
+  const bottom = Math.min((rows ?? Infinity) - 1, Math.floor((Math.max(a.y, b.y) + radius) / size));
+  const dy = b.y - a.y;
+  for (let row = top; row <= bottom; row++) {
+    // The part of the segment within `radius` of this row, as a range of x.
+    let t0 = 0, t1 = 1;
+    if (dy) {
+      const u = (row * size - radius - a.y) / dy, v = ((row + 1) * size + radius - a.y) / dy;
+      t0 = Math.max(0, Math.min(u, v)); t1 = Math.min(1, Math.max(u, v));
+      if (t0 > t1) continue;
+    }
+    const x0 = a.x + t0 * (b.x - a.x), x1 = a.x + t1 * (b.x - a.x);
+    const right = Math.min((cols ?? Infinity) - 1, Math.floor((Math.max(x0, x1) + radius) / size));
+    for (let col = Math.max(low, Math.floor((Math.min(x0, x1) - radius) / size)); col <= right; col++) visit(col, row);
+  }
+}
 export function insideMap(map: Pick<CollisionMap, 'width' | 'height' | 'playableArea'>, x: World, y: World, radius: World = 0): boolean {
   if (map.playableArea) {
     if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(radius) || radius < 0
@@ -149,8 +172,17 @@ export function sweptClear(map: CollisionMap, a: Vec2, b: Vec2, radius: World): 
   const left = Math.min(a.x, b.x) - radius, right = Math.max(a.x, b.x) + radius;
   const top = Math.min(a.y, b.y) - radius, bottom = Math.max(a.y, b.y) + radius;
   const near = (box: Box) => box.x <= right && box.y <= bottom && box.x + box.w >= left && box.y + box.h >= top;
-  const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, reach = Math.hypot(b.x - a.x, b.y - a.y) / 2 + radius;
-  for (const o of nearbyShapes(map, mid.x, mid.y, reach)) if (near(o.box) && segmentShapeDistance(a, b, o.shape) < radius - 0.01) return false;
+  const { buckets } = geometry(map), seen = new Set<Collider>();
+  let blocked = false;
+  cellsAlong(a, b, radius, BUCKET, (col, row) => {
+    if (blocked) return;
+    for (const o of buckets.get(`${col},${row}`) || []) {
+      if (seen.has(o)) continue;
+      seen.add(o);
+      if (near(o.box) && segmentShapeDistance(a, b, o.shape) < radius - 0.01) { blocked = true; return; }
+    }
+  });
+  if (blocked) return false;
   for (const g of map.gates) if (!g.open) {
     // Bounds first, before any allocation: a planner sweeps every move against every gate.
     const w = g.w || 26, h = g.h || 54;
@@ -158,9 +190,14 @@ export function sweptClear(map: CollisionMap, a: Vec2, b: Vec2, radius: World): 
     if (segmentShapeDistance(a, b, shapeOf(gateShape(g))) < radius) return false;
   }
   // The playable area is convex only without a mask; a mask's holes are tested as filled cells.
-  if (map.playableArea) for (const box of voidCellsNear(map, mid.x, mid.y, reach))
-    if (near(box) && segmentShapeDistance(a, b, shapeOf(box)) < radius) return false;
-  return true;
+  const area = map.playableArea;
+  if (area) {
+    const size = area.cellSize;
+    cellsAlong(a, b, radius, size, (col, row) => {
+      if (!blocked && !occupiedCell(area, col, row) && segmentShapeDistance(a, b, rect(col * size, row * size, size, size)) < radius) blocked = true;
+    }, Math.ceil(map.width / size), Math.ceil(map.height / size));
+  }
+  return !blocked;
 }
 /** A player's collision radius: what movement slides and what a placed body must fit. */
 export const bodyRadius = (p: Pick<Player, 'role'>): World => p.role === 'gladiator' ? 23 : 12;
