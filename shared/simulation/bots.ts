@@ -2,7 +2,7 @@ import { bodyRadius, canOccupy, insideMap, lineClear, reachClear, sweptClear, TI
 import { cellCenter, cellIndexAt, discoveryGrid, isFeatureDiscovered, DISCOVERY_INTERVAL } from '../discovery.ts';
 import { straightenPath, blockAt, blockRoute } from '../map.ts';
 import { gridRoute } from '../map/route.ts';
-import { contestantKnowledge, createKnowledgePlanner, packedTilesFor, type Knowledge, type KnownRouteStatus } from '../navigation/knowledge.ts';
+import { contestantKnowledge, createKnowledgePlanner, frozenKnowledge, packedTilesFor, type Knowledge, type KnownRoute, type KnownRouteStatus, type RouteSearch } from '../navigation/knowledge.ts';
 import type { PackedTiles } from '../free-space.ts';
 import { count, start, stop } from '../profiler.ts';
 import { carriedCell, syncWeapon } from '../equipment.ts';
@@ -142,6 +142,25 @@ const REPLAN_AFTER = 5 * HZ;
  * nearest its goal and plans on from there (22.6, "budget-exhausted").
  */
 const BOT_ROUTE_BUDGET = 12_000;
+/**
+ * Under `replanning: 'sliced'` (#470), a repath runs as one search of up to SLICED_BUDGET
+ * expansions, at most SLICE of them a tick, while the bot walks the route it has. Its knowledge is
+ * frozen when it starts, so the result is the route a whole search would have found then; what is
+ * learnt meanwhile is caught by the usual checks once it is adopted. All bots' searches share
+ * TICK_EXPANSIONS a tick, taken in player order, so searches that coincide queue rather than
+ * add up on one tick.
+ */
+const SLICE = 2_000, SLICED_BUDGET = 100_000, TICK_EXPANSIONS = 3_000;
+const allowances = new WeakMap<Game, { tick: Tick; left: number }>();
+interface Search {
+  search: RouteSearch;
+  knowledge: Knowledge;
+  goal: Vec2;
+  /** Where the bot was when it started, and the door observations it started with. */
+  from: Vec2;
+  doors: string;
+}
+const searches = new WeakMap<Player, Search>();
 
 /**
  * The tiles bots would otherwise build on their first plans, for whoever generates a map to build
@@ -222,15 +241,76 @@ function repathTiles(s: Game, p: Player, target: Vec2): KnownRouteStatus | null 
     due = p.route?.length ? scheduled && (changed || s.tick - plan.at >= REPLAN_AFTER)
       : changed || short && distance(plan.from, p) >= 11 || scheduled && s.tick - plan.at >= REPATH;
   }
+  if (s.content.replanning === 'sliced') return repathSliced(s, p, target, due, contestant, knowledge, planner);
   if (!due) return null;
   start('sim.repath'); count('work.repath');
   const route = planner.route(knowledge, p, target, BOT_ROUTE_BUDGET);
   count('work.route.expansions', route.expansions);
-  p.route = route.points.filter((point, i) => i > 0 || distance(p, point) >= 11).map(({ x, y }) => ({ x, y }));
-  plans.set(p, { goal: { x: target.x, y: target.y }, from: { x: p.x, y: p.y }, at: s.tick, status: route.status, keys: knowledge.keys,
-    doors: contestant ? doorsSeen(p) : '', watch: contestant ? unknownAlong(planner, knowledge, s.map, route.points) : [], route: p.route });
+  adopt(s, p, planner, route, knowledge, target, contestant ? doorsSeen(p) : '', route.points.filter((point, i) => i > 0 || distance(p, point) >= 11));
   stop('sim.repath');
   return route.status;
+}
+
+/**
+ * A repath spread over ticks: start a search when one is due and none is running for this goal,
+ * advance the running one by a slice, and adopt its route when it ends. The bot walks its old
+ * route meanwhile.
+ */
+function repathSliced(s: Game, p: Player, target: Vec2, due: boolean, contestant: boolean, knowledge: Knowledge,
+  planner: ReturnType<typeof createKnowledgePlanner>): KnownRouteStatus | null {
+  let running = searches.get(p);
+  if (due && (!running || distance(running.goal, target) >= GOAL_MOVED || running.knowledge.keys !== knowledge.keys)) {
+    count('work.repath');
+    const { cols, rows } = discoveryGrid(s.map), frozen = frozenKnowledge(knowledge, cols * rows, s.map.gates.map(g => g.id));
+    searches.set(p, running = { search: planner.search(frozen, p, target, SLICED_BUDGET), knowledge: frozen, goal: { x: target.x, y: target.y },
+      from: { x: p.x, y: p.y }, doors: contestant ? doorsSeen(p) : '' });
+  }
+  let allowance = allowances.get(s);
+  if (allowance?.tick !== s.tick) allowances.set(s, allowance = { tick: s.tick, left: TICK_EXPANSIONS });
+  if (!running || allowance.left <= 0) return null;
+  start('sim.repath');
+  const before = running.search.expansions, route = running.search.advance(Math.min(SLICE, allowance.left));
+  allowance.left -= running.search.expansions - before;
+  count('work.route.expansions', running.search.expansions - before); count('work.route.slices');
+  if (route) {
+    searches.delete(p);
+    adopt(s, p, planner, route, running.knowledge, running.goal, running.doors, fromHere(s, p, route.points, distance(running.from, p)));
+  }
+  stop('sim.repath');
+  return route?.status ?? null;
+}
+
+/** Make `route` the bot's plan, walked as `points`. */
+function adopt(s: Game, p: Player, planner: ReturnType<typeof createKnowledgePlanner>, route: KnownRoute, knowledge: Knowledge, goal: Vec2,
+  doors: string, points: readonly Vec2[]): void {
+  const contestant = p.role === 'contestant' && !!p.discovery;
+  if (route.status === 'budget-exhausted') count('work.route.exhausted');
+  p.route = points.map(({ x, y }) => ({ x, y }));
+  plans.set(p, { goal: { x: goal.x, y: goal.y }, from: { x: p.x, y: p.y }, at: s.tick, status: route.status, keys: knowledge.keys,
+    doors, watch: contestant ? unknownAlong(planner, knowledge, s.map, route.points) : [], route: p.route });
+}
+
+/**
+ * A route planned from where the bot was `moved` units ago, taken up from where it is now: from the
+ * end of the segment it is nearest, among those it could have walked along, when the way toward
+ * it starts clear; otherwise from the route's start.
+ */
+function fromHere(s: Game, p: Player, points: readonly Vec2[], moved: World): readonly Vec2[] {
+  let best = 0, nearest = Infinity, along = 0;
+  for (let i = 0; i + 1 < points.length && along <= moved + TILE; i++) {
+    const a = points[i]!, b = points[i + 1]!, dx = b.x - a.x, dy = b.y - a.y, n = dx * dx + dy * dy;
+    const t = n ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / n)) : 0;
+    const d = Math.hypot(a.x + t * dx - p.x, a.y + t * dy - p.y);
+    if (d < nearest) { nearest = d; best = i; }
+    along += Math.sqrt(n);
+  }
+  const rest = points.slice(best + 1), next = rest[0];
+  if (next) {
+    // Swept only as far as `passed` sweeps, within sight, so it reads nothing hidden.
+    const t = Math.min(1, TURN_AHEAD / Math.max(distance(p, next), 1e-9));
+    if (sweptClear(s.map, p, { x: p.x + (next.x - p.x) * t, y: p.y + (next.y - p.y) * t }, bodyRadius(p))) return rest;
+  }
+  return points.filter((point, i) => i > 0 || distance(p, point) >= 11);
 }
 
 export function botInput(s: Game, p: Player): PlayerInput {

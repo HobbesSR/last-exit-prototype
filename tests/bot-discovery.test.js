@@ -95,7 +95,7 @@ test('item, door and survey memory stay out of snapshots and every projection', 
   }
 });
 
-for (const content of ['content-2', 'content-3']) test(`a bot enters a reachable roofed frontier cell rather than giving it up from outside (#354 review, ${content})`, () => {
+for (const content of ['content-2', 'content-3', 'content-4']) test(`a bot enters a reachable roofed frontier cell rather than giving it up from outside (#354 review, ${content})`, () => {
   // Open ground with one roofed room. Everything has been seen but the room's cell, index 84, whose centre
   // (864, 1632) stays concealed until the bot stands under the roof. The room holds the only cell.
   const cell = { id: 'indoor-cell', kind: 'cell', x: 864, y: 1632, charge: 0 };
@@ -123,7 +123,7 @@ for (const content of ['content-2', 'content-3']) test(`a bot enters a reachable
 // a twin that agrees wherever it looked and has nothing beyond: no obstacles or doors, and no ground.
 // The two walks must match tick for tick. The bot remembers a cell far across unseen ground,
 // so its route runs where the twins differ; the grid planner, which reads the truth, parts.
-for (const [content, alike] of [['content-3', true], ['content-2', false]]) test(`information test: over tiles, a bot's targets, routes and inputs depend only on what it knows (${content})`, () => {
+for (const [content, alike] of [['content-4', true], ['content-3', true], ['content-2', false]]) test(`information test: over tiles, a bot's targets, routes and inputs depend only on what it knows (${content})`, () => {
   const seed = 4217;
   liveMap ??= generateLiveMap(seed);
   const spawn = liveMap.spawns[0], far = { id: 'far-cell', kind: 'cell', x: spawn.x + 6000, y: spawn.y, charge: 0 };

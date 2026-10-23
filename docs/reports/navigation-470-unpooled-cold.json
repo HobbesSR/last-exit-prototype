@@ -1,0 +1,813 @@
+{
+  "revision": "5e54c0c2e1514e7d1e2fc52b4586d2c5fc07d187",
+  "created": "2026-10-23T17:14:01.971Z",
+  "node": "v24.15.0",
+  "platform": "win32",
+  "arch": "x64",
+  "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+  "cpuCount": 24,
+  "sourceHashes": {
+    "shared/simulation/bots.ts": "860d02e4f3f3398716a8ff462e0e98f7ac496fcbca2f9d20a38ced33434bf34f",
+    "shared/navigation/knowledge.ts": "6273cfcda16321b50435588b20f9268bfa0f52082449f9801add1e7112921ed2",
+    "shared/free-space.ts": "215d4e941347815fb6b970e8831278d23faeecc201f1d1cdb32fdb60d08744e3",
+    "shared/discovery.ts": "41fdb267277fc66d943cd7802e110a8c132b0c7e1550e276d86f29b0e78f7dad",
+    "shared/map/route.ts": "5548b17e20cb7266c9583ff056a3c59b67cd6954df31bc653a8143bdc3f6cb30",
+    "shared/simulation/content.ts": "1c3df2b3f3d66923b206c91dcaf94fe1480e652504506ea0c9aed27e24037fe3",
+    "tools/navigation/adoption-report.mjs": "a9895f270bdfde0e5c7650205a89a8f8ab6e14c33c481de81ad0fd6d95066263"
+  },
+  "maps": [
+    {
+      "size": "12x6",
+      "seed": 1,
+      "routes": {
+        "grid": {
+          "ms": 29.501700000000028,
+          "length": 16430.43688377939,
+          "kinks": 7
+        },
+        "full": {
+          "ms": 124.02510000000007,
+          "status": "complete",
+          "expansions": 3326,
+          "length": 16402.282639544188,
+          "stretch": 0.99828645796613,
+          "kinks": 3
+        },
+        "half": {
+          "ms": 3.470299999999952,
+          "status": "speculative",
+          "expansions": 753,
+          "length": 16346.287564569704,
+          "stretch": 0.9948784490756444,
+          "kinks": 0
+        }
+      },
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 2787,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 1.0850584140652944,
+          "p95Ms": 2.8683999999998377,
+          "maxMs": 108.70579999999995,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 735,
+          "exhausted": 0,
+          "slices": 0,
+          "doorsOpened": 26,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 2757,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 1.0903782734856786,
+          "p95Ms": 3.182600000000093,
+          "maxMs": 31.219900000000052,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 723,
+          "exhausted": 0,
+          "slices": 763,
+          "doorsOpened": 22,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 2,
+      "routes": {
+        "grid": {
+          "ms": 28.355999999999767,
+          "length": 16349.005110246722,
+          "kinks": 13
+        },
+        "full": {
+          "ms": 46.44620000000032,
+          "status": "complete",
+          "expansions": 2470,
+          "length": 16206.461821464025,
+          "stretch": 0.9912812255044585,
+          "kinks": 0
+        },
+        "half": {
+          "ms": 4.7893999999996595,
+          "status": "speculative",
+          "expansions": 2111,
+          "length": 16208.918622035988,
+          "stretch": 0.9914314976803735,
+          "kinks": 0
+        }
+      },
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 2892,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 1.0762984439834233,
+          "p95Ms": 2.7018000000007305,
+          "maxMs": 51.44770000000062,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 710,
+          "exhausted": 0,
+          "slices": 0,
+          "doorsOpened": 16,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 2892,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 1.088065733056716,
+          "p95Ms": 2.7184999999990396,
+          "maxMs": 36.953700000000026,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 710,
+          "exhausted": 0,
+          "slices": 714,
+          "doorsOpened": 16,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 3,
+      "routes": {
+        "grid": {
+          "ms": 25.593399999999747,
+          "length": 16625.81988988496,
+          "kinks": 3
+        },
+        "full": {
+          "ms": 38.25429999999869,
+          "status": "complete",
+          "expansions": 1850,
+          "length": 16560.978792556336,
+          "stretch": 0.9960999759555875,
+          "kinks": 0
+        },
+        "half": {
+          "ms": 2.3870999999999185,
+          "status": "speculative",
+          "expansions": 766,
+          "length": 16560.781672768,
+          "stretch": 0.9960881197109246,
+          "kinks": 0
+        }
+      },
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 2753,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 0.7511447511805555,
+          "p95Ms": 1.9884000000020023,
+          "maxMs": 50.72890000000007,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 649,
+          "exhausted": 0,
+          "slices": 0,
+          "doorsOpened": 5,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 2753,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 0.7767395931710738,
+          "p95Ms": 2.035599999999249,
+          "maxMs": 36.773700000001554,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 647,
+          "exhausted": 0,
+          "slices": 653,
+          "doorsOpened": 5,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 4,
+      "routes": {
+        "grid": {
+          "ms": 23.842899999999645,
+          "length": 16725.573652741645,
+          "kinks": 13
+        },
+        "full": {
+          "ms": 62.249800000001414,
+          "status": "complete",
+          "expansions": 3230,
+          "length": 16629.813123041513,
+          "stretch": 0.9942746041667495,
+          "kinks": 1
+        },
+        "half": {
+          "ms": 4.280099999999948,
+          "status": "speculative",
+          "expansions": 1635,
+          "length": 16608.489745803745,
+          "stretch": 0.992999707551513,
+          "kinks": 2
+        }
+      },
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 2723,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 1.2662271391847453,
+          "p95Ms": 3.6873999999988882,
+          "maxMs": 47.572900000002846,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 725,
+          "exhausted": 0,
+          "slices": 0,
+          "doorsOpened": 19,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 2723,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 1.2929796547925172,
+          "p95Ms": 3.408500000001368,
+          "maxMs": 47.481400000000576,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 720,
+          "exhausted": 0,
+          "slices": 740,
+          "doorsOpened": 19,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 5,
+      "routes": {
+        "grid": {
+          "ms": 27.397699999997712,
+          "length": 16715.214249077704,
+          "kinks": 8
+        },
+        "full": {
+          "ms": 146.91960000000108,
+          "status": "complete",
+          "expansions": 11481,
+          "length": 16553.859163242596,
+          "stretch": 0.9903468131828456,
+          "kinks": 3
+        },
+        "half": {
+          "ms": 2.9016999999985273,
+          "status": "speculative",
+          "expansions": 2115,
+          "length": 16215.417649745821,
+          "stretch": 0.9700993004406473,
+          "kinks": 1
+        }
+      },
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 3008,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 1.2470148936170486,
+          "p95Ms": 2.8047000000005937,
+          "maxMs": 93.56299999999828,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 768,
+          "exhausted": 0,
+          "slices": 0,
+          "doorsOpened": 32,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 3008,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 1.2701768284574946,
+          "p95Ms": 2.9852000000028056,
+          "maxMs": 31.655500000000757,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 766,
+          "exhausted": 0,
+          "slices": 797,
+          "doorsOpened": 32,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 6,
+      "routes": {
+        "grid": {
+          "ms": 26.045799999999872,
+          "length": 16547.827620185813,
+          "kinks": 19
+        },
+        "full": {
+          "ms": 98.76100000000588,
+          "status": "complete",
+          "expansions": 7207,
+          "length": 16475.4951174124,
+          "stretch": 0.9956288822657797,
+          "kinks": 5
+        },
+        "half": {
+          "ms": 2.048500000004424,
+          "status": "speculative",
+          "expansions": 1362,
+          "length": 16233.928232592825,
+          "stretch": 0.9810307797012534,
+          "kinks": 2
+        }
+      },
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 2520,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 1.5076046428570637,
+          "p95Ms": 3.263999999995576,
+          "maxMs": 85.97449999999662,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 784,
+          "exhausted": 0,
+          "slices": 0,
+          "doorsOpened": 25,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 2560,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 1.3018294140625244,
+          "p95Ms": 2.895700000000943,
+          "maxMs": 32.018800000005285,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 752,
+          "exhausted": 0,
+          "slices": 824,
+          "doorsOpened": 23,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 7,
+      "routes": {
+        "grid": {
+          "ms": 25.204299999997602,
+          "length": 16824.984907711187,
+          "kinks": 17
+        },
+        "full": {
+          "ms": 76.71450000000186,
+          "status": "complete",
+          "expansions": 4329,
+          "length": 16798.872369780354,
+          "stretch": 0.9984479904098539,
+          "kinks": 1
+        },
+        "half": {
+          "ms": 1.874599999995553,
+          "status": "speculative",
+          "expansions": 1093,
+          "length": 16788.632085728805,
+          "stretch": 0.9978393548534049,
+          "kinks": 1
+        }
+      },
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 3219,
+          "escaped": 2,
+          "eliminated": 6,
+          "meanMs": 1.0085418142278912,
+          "p95Ms": 3.0178999999989173,
+          "maxMs": 91.96100000000297,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 656,
+          "exhausted": 0,
+          "slices": 0,
+          "doorsOpened": 21,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 3174,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 1.1147131064902238,
+          "p95Ms": 3.155299999998533,
+          "maxMs": 30.986400000001595,
+          "maxAt": 11,
+          "over50": 0,
+          "repaths": 709,
+          "exhausted": 0,
+          "slices": 752,
+          "doorsOpened": 23,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 8,
+      "routes": {
+        "grid": {
+          "ms": 21.338700000000244,
+          "length": 16709.116882454317,
+          "kinks": 16
+        },
+        "full": {
+          "ms": 53.444299999995565,
+          "status": "complete",
+          "expansions": 3378,
+          "length": 16611.19215498902,
+          "stretch": 0.994139443265962,
+          "kinks": 3
+        },
+        "half": {
+          "ms": 1.4491999999954714,
+          "status": "speculative",
+          "expansions": 804,
+          "length": 16606.25083368779,
+          "stretch": 0.9938437172059917,
+          "kinks": 2
+        }
+      },
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 2302,
+          "escaped": 1,
+          "eliminated": 7,
+          "meanMs": 0.7307920069504643,
+          "p95Ms": 2.383300000001327,
+          "maxMs": 76.58369999999559,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 437,
+          "exhausted": 0,
+          "slices": 0,
+          "doorsOpened": 2,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 2302,
+          "escaped": 1,
+          "eliminated": 7,
+          "meanMs": 0.7580089921807212,
+          "p95Ms": 2.5878000000011525,
+          "maxMs": 31.125,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 434,
+          "exhausted": 0,
+          "slices": 468,
+          "doorsOpened": 2,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "24x12",
+      "seed": 1,
+      "routes": {
+        "grid": {
+          "ms": 101.46600000000035,
+          "length": 34325.07839920552,
+          "kinks": 42
+        },
+        "full": {
+          "ms": 297.32510000000184,
+          "status": "complete",
+          "expansions": 20095,
+          "length": 33788.40391951475,
+          "stretch": 0.984364945261037,
+          "kinks": 4
+        },
+        "half": {
+          "ms": 22.629799999995157,
+          "status": "speculative",
+          "expansions": 14539,
+          "length": 33869.92918061098,
+          "stretch": 0.9867400384843673,
+          "kinks": 6
+        }
+      },
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 7329,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 2.3000682221313267,
+          "p95Ms": 5.567500000004657,
+          "maxMs": 196.46689999999944,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 1565,
+          "exhausted": 26,
+          "slices": 0,
+          "doorsOpened": 62,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 7329,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 2.323125405921749,
+          "p95Ms": 6.043600000004517,
+          "maxMs": 73.06060000001162,
+          "maxAt": 13,
+          "over50": 3,
+          "repaths": 1550,
+          "exhausted": 0,
+          "slices": 1831,
+          "doorsOpened": 62,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "24x12",
+      "seed": 2,
+      "routes": {
+        "grid": {
+          "ms": 123.43420000000333,
+          "length": 34890.39814681728,
+          "kinks": 44
+        },
+        "full": {
+          "ms": 271.9213000000018,
+          "status": "complete",
+          "expansions": 17902,
+          "length": 34255.37284222634,
+          "stretch": 0.9817994251049018,
+          "kinks": 8
+        },
+        "half": {
+          "ms": 20.461900000009337,
+          "status": "speculative",
+          "expansions": 12772,
+          "length": 34318.325846603766,
+          "stretch": 0.9836037325281799,
+          "kinks": 6
+        }
+      },
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 5012,
+          "escaped": 2,
+          "eliminated": 6,
+          "meanMs": 1.6014477254589694,
+          "p95Ms": 3.50800000000163,
+          "maxMs": 168.38730000000214,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 944,
+          "exhausted": 20,
+          "slices": 0,
+          "doorsOpened": 9,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 5012,
+          "escaped": 2,
+          "eliminated": 6,
+          "meanMs": 1.6769107342378218,
+          "p95Ms": 4.684999999997672,
+          "maxMs": 46.33860000000277,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 929,
+          "exhausted": 0,
+          "slices": 1224,
+          "doorsOpened": 9,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "24x12",
+      "seed": 3,
+      "routes": {
+        "grid": {
+          "ms": 87.57690000000002,
+          "length": 33823.671637215026,
+          "kinks": 19
+        },
+        "full": {
+          "ms": 194.66109999999753,
+          "status": "complete",
+          "expansions": 13484,
+          "length": 33592.493753804054,
+          "stretch": 0.9931652043607053,
+          "kinks": 4
+        },
+        "half": {
+          "ms": 5.937799999999697,
+          "status": "speculative",
+          "expansions": 4365,
+          "length": 33557.82143615706,
+          "stretch": 0.9921401140624407,
+          "kinks": 2
+        }
+      },
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 5325,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 2.0805756619716544,
+          "p95Ms": 4.071900000009919,
+          "maxMs": 143.4198999999935,
+          "maxAt": 10,
+          "over50": 2,
+          "repaths": 1098,
+          "exhausted": 56,
+          "slices": 0,
+          "doorsOpened": 53,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 5325,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 2.3147345352113224,
+          "p95Ms": 5.920199999993201,
+          "maxMs": 43.80959999997867,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 1098,
+          "exhausted": 0,
+          "slices": 1684,
+          "doorsOpened": 52,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "36x18",
+      "seed": 1,
+      "routes": {
+        "grid": {
+          "ms": 205.5234000000055,
+          "length": 51522.09499919749,
+          "kinks": 39
+        },
+        "full": {
+          "ms": 586.5521000000008,
+          "status": "complete",
+          "expansions": 35055,
+          "length": 51244.77852096474,
+          "stretch": 0.9946175232541093,
+          "kinks": 5
+        },
+        "half": {
+          "ms": 19.30799999998999,
+          "status": "speculative",
+          "expansions": 11105,
+          "length": 51178.46129993511,
+          "stretch": 0.9933303624538611,
+          "kinks": 3
+        }
+      },
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 8308,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 5.904188360616172,
+          "p95Ms": 10.10109999999986,
+          "maxMs": 229.5855000000156,
+          "maxAt": 10,
+          "over50": 6,
+          "repaths": 2163,
+          "exhausted": 69,
+          "slices": 0,
+          "doorsOpened": 104,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 8300,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 6.338203602409722,
+          "p95Ms": 12.973300000012387,
+          "maxMs": 103.90679999999702,
+          "maxAt": 10,
+          "over50": 11,
+          "repaths": 2139,
+          "exhausted": 0,
+          "slices": 2920,
+          "doorsOpened": 113,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "36x18",
+      "seed": 2,
+      "routes": {
+        "grid": {
+          "ms": 227.22889999998733,
+          "length": 51767.003377143184,
+          "kinks": 38
+        },
+        "full": {
+          "ms": 788.0663999999524,
+          "status": "complete",
+          "expansions": 45769,
+          "length": 51502.39782925968,
+          "stretch": 0.9948885287804714,
+          "kinks": 11
+        },
+        "half": {
+          "ms": 38.59480000002077,
+          "status": "speculative",
+          "expansions": 24341,
+          "length": 51481.533428239236,
+          "stretch": 0.994485484376521,
+          "kinks": 5
+        }
+      },
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 8217,
+          "escaped": 3,
+          "eliminated": 2,
+          "meanMs": 6.926762747961394,
+          "p95Ms": 11.304100000008475,
+          "maxMs": 261.1685999999754,
+          "maxAt": 10,
+          "over50": 4,
+          "repaths": 2568,
+          "exhausted": 113,
+          "slices": 0,
+          "doorsOpened": 87,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 8217,
+          "escaped": 3,
+          "eliminated": 2,
+          "meanMs": 10.42174527199716,
+          "p95Ms": 19.258100000035483,
+          "maxMs": 70.14309999998659,
+          "maxAt": 5816,
+          "over50": 15,
+          "repaths": 2545,
+          "exhausted": 0,
+          "slices": 4124,
+          "doorsOpened": 86,
+          "stalls": []
+        }
+      ]
+    }
+  ]
+}

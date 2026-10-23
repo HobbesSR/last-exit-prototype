@@ -60,6 +60,25 @@ export interface KnownRoute {
   keys: number;
 }
 
+/** A route query in progress (`createKnowledgePlanner(...).search`). */
+export interface RouteSearch {
+  /** Places expanded so far. */
+  readonly expansions: number;
+  /** Expand up to `limit` more places: the route once the search has ended, else null. */
+  advance(limit: number): KnownRoute | null;
+}
+
+/**
+ * A copy of `knowledge` as it stands, for a search spread over ticks: the cells it knows and the
+ * doors it has observed now, whatever is learnt while the search runs.
+ */
+export function frozenKnowledge(knowledge: Knowledge, cells: number, doors: Iterable<GateId>): Knowledge {
+  const known = new Uint8Array(cells), seen = new Map<GateId, GateObservation>();
+  for (let cell = 0; cell < cells; cell++) known[cell] = +knowledge.known(cell);
+  for (const id of doors) { const door = knowledge.door(id); if (door) seen.set(id, { open: door.open, locked: door.locked }); }
+  return { known: cell => known[cell] === 1, door: id => seen.get(id), keys: knowledge.keys, revision: knowledge.revision };
+}
+
 /** Expansions a query may make before it reports `budget-exhausted`: a count, never a clock (22.6). */
 export const ROUTE_BUDGET = 200_000;
 
@@ -125,96 +144,112 @@ export function createKnowledgePlanner(map: CollisionMap, role: Role) {
     support,
     tile,
     route(knowledge: Knowledge, from: Vec2, to: Vec2, budget: number = ROUTE_BUDGET): KnownRoute {
-      const tiles = new Map<number, FreeTile | null>();
-      const tileAt = (cell: number) => {
-        let found = tiles.get(cell);
-        if (found === undefined) tiles.set(cell, found = tile(knowledge, cell));
-        return found;
-      };
-      const result = (status: KnownRouteStatus, expansions = 0): KnownRoute =>
-        ({ status, points: [], length: Infinity, prefix: [], doors: [], expansions, tiles: [...tiles.values()].filter(Boolean).length, revision: knowledge.revision, keys: knowledge.keys });
+      return search(knowledge, from, to, budget).advance(Infinity)!;
+    },
+    search,
+  };
 
-      // A point's place: the known triangle it enters, in its own tile or a known neighbour's, or its unknown cell.
-      const placeOf = (p: Vec2): { cell: number; tri: number; point: Vec2; moved: boolean } | null => {
-        const cell = cellAt(p);
-        if (cell < 0) return null;
-        if (!tileAt(cell)) return { cell, tri: -1, point: { x: p.x, y: p.y }, moved: false };
-        let best: { cell: number; tri: number; point: Vec2; moved: boolean } | null = null, distance = Infinity;
-        for (const c of support(cell)) {
-          const tile = tileAt(c), found = tile && entry(tile, p, clearance + 1);
-          if (!found) continue;
-          const d = Math.hypot(found.point.x - p.x, found.point.y - p.y);
-          if (d < distance) { distance = d; best = { cell: c, tri: found.triangle, point: { x: found.point.x, y: found.point.y }, moved: found.point !== p }; }
-        }
-        return best;
-      };
-      const start = placeOf(from), goal = placeOf(to);
-      if (!start || !goal) return result('invalid-endpoint');
+  /**
+   * A route query that can be advanced a number of expansions at a time, so one search may span
+   * several ticks (#470). Advanced in slices or all at once, it expands the same places in the same
+   * order and returns the same route. It reads `knowledge` as it goes, so a caller spreading it over
+   * ticks passes knowledge that does not change meanwhile (`frozenKnowledge`).
+   */
+  function search(knowledge: Knowledge, from: Vec2, to: Vec2, budget: number = ROUTE_BUDGET): RouteSearch {
+    const tiles = new Map<number, FreeTile | null>();
+    const tileAt = (cell: number) => {
+      let found = tiles.get(cell);
+      if (found === undefined) tiles.set(cell, found = tile(knowledge, cell));
+      return found;
+    };
+    const result = (status: KnownRouteStatus, expansions = 0): KnownRoute =>
+      ({ status, points: [], length: Infinity, prefix: [], doors: [], expansions, tiles: [...tiles.values()].filter(Boolean).length, revision: knowledge.revision, keys: knowledge.keys });
 
-      const states = new Map<number, State>(), closed = new Set<number>(), heap = new Heap();
-      const goalKey = (cell: number, tri: number) => cell === goal.cell && tri === goal.tri;
-      const relax = (key: number, state: State) => {
-        const old = states.get(key);
-        if (old && old.g <= state.g || closed.has(key)) return;
-        states.set(key, state);
-        heap.push({ f: state.g + Math.hypot(goal.point.x - state.x, goal.point.y - state.y), g: state.g, node: key });
-      };
-      /** Enter a place through portal `p`–`q` from the state `parent` at `at`: costed to the portal's nearest point. */
-      const enter = (parent: number, at: State, cell: number, tri: number, used: number, p: Vec2, q: Vec2, confirmed: boolean, spent: GateId[]) => {
-        const centre = centreOf(cell, tri), crossing = closestOnSegment(at, p, q);
-        const left = (q.x - p.x) * (centre.y - p.y) - (q.y - p.y) * (centre.x - p.x) > 0;
-        relax(keyOf(cell, tri, used), {
-          g: at.g + Math.hypot(crossing.x - at.x, crossing.y - at.y), x: crossing.x, y: crossing.y, parent,
-          portal: left ? [p.x, p.y, q.x, q.y] : [q.x, q.y, p.x, p.y], confirmed: at.confirmed && confirmed, spent,
-        });
-      };
-      const centreOf = (cell: number, tri: number): Vec2 => {
-        if (tri < 0) { const b = boxOf(cell); return { x: b.x + b.w / 2, y: b.y + b.h / 2 }; }
-        const t = tileAt(cell)!, v = t.triangles;
-        return { x: (t.points[v[tri * 3]! * 2]! + t.points[v[tri * 3 + 1]! * 2]! + t.points[v[tri * 3 + 2]! * 2]!) / 3,
-          y: (t.points[v[tri * 3]! * 2 + 1]! + t.points[v[tri * 3 + 1]! * 2 + 1]! + t.points[v[tri * 3 + 2]! * 2 + 1]!) / 3 };
-      };
-      /**
-       * Entering a known triangle from a place with doors `through`: null when a locked door needs
-       * a key none is left for. A door already passed through costs nothing more; one never observed
-       * is assumed openable but leaves the route unconfirmed.
-       */
-      const doorsInto = (tile: FreeTile, tri: number, used: number, through: readonly GateId[]) => {
-        const set = tile.gateSet[tri]!;
-        if (set < 0) return { used, confirmed: true, spent: [] as GateId[] };
-        let confirmed = true;
-        const spent: GateId[] = [];
-        for (const id of tile.gateSets[set]! as GateId[]) {
-          const seen = knowledge.door(id);
-          if (!seen) { confirmed = false; continue; }
-          if (seen.open || !seen.locked || through.includes(id)) continue;
-          if (used + spent.length >= Math.min(knowledge.keys, USED - 1)) return null;
-          spent.push(id);
-        }
-        return { used: used + spent.length, confirmed, spent };
-      };
-      const gatesOf = (cell: number, tri: number): readonly GateId[] => {
-        if (tri < 0) return [];
-        const tile = tileAt(cell)!, set = tile.gateSet[tri]!;
-        return set < 0 ? [] : tile.gateSets[set]! as GateId[];
-      };
-      /** Enter a known triangle, through its doors. */
-      const enterTriangle = (parent: number, at: State, used: number, through: readonly GateId[], cell: number, tri: number, p: Vec2, q: Vec2) => {
-        const doors = doorsInto(tileAt(cell)!, tri, used, through);
-        if (doors) enter(parent, at, cell, tri, doors.used, p, q, doors.confirmed, doors.spent);
-      };
+    // A point's place: the known triangle it enters, in its own tile or a known neighbour's, or its unknown cell.
+    const placeOf = (p: Vec2): { cell: number; tri: number; point: Vec2; moved: boolean } | null => {
+      const cell = cellAt(p);
+      if (cell < 0) return null;
+      if (!tileAt(cell)) return { cell, tri: -1, point: { x: p.x, y: p.y }, moved: false };
+      let best: { cell: number; tri: number; point: Vec2; moved: boolean } | null = null, distance = Infinity;
+      for (const c of support(cell)) {
+        const tile = tileAt(c), found = tile && entry(tile, p, clearance + 1);
+        if (!found) continue;
+        const d = Math.hypot(found.point.x - p.x, found.point.y - p.y);
+        if (d < distance) { distance = d; best = { cell: c, tri: found.triangle, point: { x: found.point.x, y: found.point.y }, moved: found.point !== p }; }
+      }
+      return best;
+    };
+    const start = placeOf(from), goal = placeOf(to);
+    if (!start || !goal) { const done = result('invalid-endpoint'); return { expansions: 0, advance: () => done }; }
 
-      const startDoors = start.tri < 0 ? { used: 0, confirmed: false, spent: [] } : doorsInto(tileAt(start.cell)!, start.tri, 0, []) ?? { used: 0, confirmed: false, spent: [] };
-      relax(keyOf(start.cell, start.tri, startDoors.used), { g: 0, x: start.point.x, y: start.point.y, parent: GOAL, portal: null, confirmed: start.tri >= 0 && startDoors.confirmed, spent: startDoors.spent });
+    const states = new Map<number, State>(), closed = new Set<number>(), heap = new Heap();
+    const goalKey = (cell: number, tri: number) => cell === goal.cell && tri === goal.tri;
+    const relax = (key: number, state: State) => {
+      const old = states.get(key);
+      if (old && old.g <= state.g || closed.has(key)) return;
+      states.set(key, state);
+      heap.push({ f: state.g + Math.hypot(goal.point.x - state.x, goal.point.y - state.y), g: state.g, node: key });
+    };
+    /** Enter a place through portal `p`–`q` from the state `parent` at `at`: costed to the portal's nearest point. */
+    const enter = (parent: number, at: State, cell: number, tri: number, used: number, p: Vec2, q: Vec2, confirmed: boolean, spent: GateId[]) => {
+      const centre = centreOf(cell, tri), crossing = closestOnSegment(at, p, q);
+      const left = (q.x - p.x) * (centre.y - p.y) - (q.y - p.y) * (centre.x - p.x) > 0;
+      relax(keyOf(cell, tri, used), {
+        g: at.g + Math.hypot(crossing.x - at.x, crossing.y - at.y), x: crossing.x, y: crossing.y, parent,
+        portal: left ? [p.x, p.y, q.x, q.y] : [q.x, q.y, p.x, p.y], confirmed: at.confirmed && confirmed, spent,
+      });
+    };
+    const centreOf = (cell: number, tri: number): Vec2 => {
+      if (tri < 0) { const b = boxOf(cell); return { x: b.x + b.w / 2, y: b.y + b.h / 2 }; }
+      const t = tileAt(cell)!, v = t.triangles;
+      return { x: (t.points[v[tri * 3]! * 2]! + t.points[v[tri * 3 + 1]! * 2]! + t.points[v[tri * 3 + 2]! * 2]!) / 3,
+        y: (t.points[v[tri * 3]! * 2 + 1]! + t.points[v[tri * 3 + 1]! * 2 + 1]! + t.points[v[tri * 3 + 2]! * 2 + 1]!) / 3 };
+    };
+    /**
+     * Entering a known triangle from a place with doors `through`: null when a locked door needs
+     * a key none is left for. A door already passed through costs nothing more; one never observed
+     * is assumed openable but leaves the route unconfirmed.
+     */
+    const doorsInto = (tile: FreeTile, tri: number, used: number, through: readonly GateId[]) => {
+      const set = tile.gateSet[tri]!;
+      if (set < 0) return { used, confirmed: true, spent: [] as GateId[] };
+      let confirmed = true;
+      const spent: GateId[] = [];
+      for (const id of tile.gateSets[set]! as GateId[]) {
+        const seen = knowledge.door(id);
+        if (!seen) { confirmed = false; continue; }
+        if (seen.open || !seen.locked || through.includes(id)) continue;
+        if (used + spent.length >= Math.min(knowledge.keys, USED - 1)) return null;
+        spent.push(id);
+      }
+      return { used: used + spent.length, confirmed, spent };
+    };
+    const gatesOf = (cell: number, tri: number): readonly GateId[] => {
+      if (tri < 0) return [];
+      const tile = tileAt(cell)!, set = tile.gateSet[tri]!;
+      return set < 0 ? [] : tile.gateSets[set]! as GateId[];
+    };
+    /** Enter a known triangle, through its doors. */
+    const enterTriangle = (parent: number, at: State, used: number, through: readonly GateId[], cell: number, tri: number, p: Vec2, q: Vec2) => {
+      const doors = doorsInto(tileAt(cell)!, tri, used, through);
+      if (doors) enter(parent, at, cell, tri, doors.used, p, q, doors.confirmed, doors.spent);
+    };
 
-      let expansions = 0, nearest = -2, nearestH = Infinity;
-      let reached = false;
-      while (heap.size) {
+    const startDoors = start.tri < 0 ? { used: 0, confirmed: false, spent: [] } : doorsInto(tileAt(start.cell)!, start.tri, 0, []) ?? { used: 0, confirmed: false, spent: [] };
+    relax(keyOf(start.cell, start.tri, startDoors.used), { g: 0, x: start.point.x, y: start.point.y, parent: GOAL, portal: null, confirmed: start.tri >= 0 && startDoors.confirmed, spent: startDoors.spent });
+
+    let expansions = 0, nearest = -2, nearestH = Infinity;
+    let reached = false, done: KnownRoute | null = null;
+    /** Expand up to `limit` more places; the route once the search has ended, else null. */
+    const advance = (limit: number): KnownRoute | null => {
+      if (done) return done;
+      for (let n = 0; heap.size && n < limit;) {
         const { node: key, g } = heap.pop()!;
         if (closed.has(key) || g > (states.get(key)?.g ?? Infinity)) continue;
         if (key === GOAL) { reached = true; break; }
         closed.add(key);
         if (++expansions > budget) break;
+        n++;
         const at = states.get(key)!, used = key % USED, place = Math.floor(key / USED), cell = Math.floor(place / TRI), tri = place % TRI - 1;
         const h = Math.hypot(goal.point.x - at.x, goal.point.y - at.y);
         if (h < nearestH) { nearestH = h; nearest = key; }
@@ -250,7 +285,10 @@ export function createKnowledgePlanner(map: CollisionMap, role: Role) {
           }
         }
       }
-
+      if (!reached && expansions <= budget && heap.size) return null;
+      return done = finish();
+    };
+    const finish = (): KnownRoute => {
       const end = reached ? GOAL : expansions > budget ? nearest : -2;
       if (end === -2) return result(expansions > budget ? 'budget-exhausted' : 'no-known-route', expansions);
       const chain: State[] = [];
@@ -279,8 +317,9 @@ export function createKnowledgePlanner(map: CollisionMap, role: Role) {
       for (let i = 1; i < points.length; i++) length += Math.hypot(points[i]!.x - points[i - 1]!.x, points[i]!.y - points[i - 1]!.y);
       const status: KnownRouteStatus = end !== GOAL ? 'budget-exhausted' : firstUnconfirmed < 0 ? 'complete' : 'speculative';
       return { ...result(status, expansions), points, length, prefix, doors: chain.flatMap(s => s.spent) };
-    },
-  };
+    };
+    return { get expansions() { return expansions; }, advance };
+  }
 
   /** The neighbouring cell across a side (0 west, 1 north, 2 east, 3 south), or -1 past the world's edge. */
   function neighbour(cell: number, side: number): number {

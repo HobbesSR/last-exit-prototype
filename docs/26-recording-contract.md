@@ -1,7 +1,7 @@
 # 26. Recording contract
 
 Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
-default content is `content-3`, and recordings use schema 7 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
+default content is `content-4`, and recordings use schema 7 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
 display descriptor in the header, 7 bots' world-point routes in player state). Masked live maps require reader 4; legacy maps keep
 minimum schema 0.
 Storage-only changes must preserve frozen gameplay fixtures.
@@ -83,6 +83,11 @@ over tiles keeps its route as world points in `route`, where the grid planner ke
 in `path`. The field is new recorded player state, so schema rose to 7 and `minSchema` stayed:
 playback reads recorded frames and never the route, so any reader plays these recordings.
 `content-2` stays selectable and keeps its grid planner.
+
+`content-4` (#470, Corey 2026-10-23) spreads each bot's repath over several ticks. It changes
+when a bot's route changes, not what is recorded: still world points in `route`, so the schema
+stays 7 and rules stay `last-exit-0.7`. A search in progress is derived state, like the plan
+it replaces: it is not recorded or snapshotted, and a resumed match plans afresh.
 
 `version` is a separate axis and keeps its meaning: which simulation rules produced the recording.
 The schema pair decides whether a file can be *read*; `version` says what its contents *mean*.

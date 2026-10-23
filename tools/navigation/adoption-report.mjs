@@ -1,7 +1,10 @@
 // Measure #424, bots planning over free-space tiles (22.6 stage 4): whole bot-only live-chain
-// matches under content-2 (grid planner) and content-3 (tiles), and route quality against the
-// unrestricted grid search. node tools/navigation/adoption-report.mjs [output.json]
-// Runs sequentially under the bench lock.
+// matches under each content in CONTENTS (default content-3, tiles searched within a tick, and
+// content-4, searches sliced over ticks, #470; content-2 is the grid planner), and route quality
+// against the unrestricted grid search. node tools/navigation/adoption-report.mjs [output.json]
+// Runs sequentially under the bench lock. COLD=1 leaves gladiators to build their tiles on their
+// first plans, as 42.8 measured; by default each match adopts the tiles a map worker would build,
+// as a room does (22.6, "Tiles built ahead").
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -10,6 +13,8 @@ import { generateLiveMap, LIVE_ZONE_SIZES, zoneSizeName } from '../../map/live.t
 import { createGame, step } from '../../shared/simulation.ts';
 import { contentById } from '../../shared/simulation/content.ts';
 import { createKnowledgePlanner } from '../../shared/navigation/knowledge.ts';
+import { prebuiltTiles } from '../../shared/simulation/bots.ts';
+import { adoptPackedTiles } from '../../shared/free-space.ts';
 import { discoveryGrid } from '../../shared/discovery.ts';
 import { gridRoute } from '../../shared/map/route.ts';
 import { straightenPath } from '../../shared/map.ts';
@@ -18,9 +23,10 @@ import * as profiler from '../../shared/profiler.ts';
 import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 
 const SEEDS = { '12x6': Number(process.env.SEEDS_12 ?? 8), '24x12': Number(process.env.SEEDS_24 ?? 3), '36x18': Number(process.env.SEEDS_36 ?? 2) };
-const CONTENTS = ['content-2', 'content-3'];
+const CONTENTS = (process.env.CONTENTS ?? 'content-3,content-4').split(',');
 const SOURCES = ['shared/simulation/bots.ts', 'shared/navigation/knowledge.ts', 'shared/free-space.ts', 'shared/discovery.ts', 'shared/map/route.ts',
   'shared/simulation/content.ts', 'tools/navigation/adoption-report.mjs'];
+const ROUTES = process.env.ROUTES !== '0', COLD = process.env.COLD === '1';
 /** A stall: an active contestant, not charging, that moves under STALL_RANGE units in STALL_TICKS ticks. */
 const STALL_TICKS = 100, STALL_RANGE = 40;
 const percentile = (sorted, q) => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))];
@@ -32,14 +38,22 @@ const kinks = points => points.slice(1, -1).filter((p, i) => {
 }).length;
 
 /** One whole bot-only match. */
-function playMatch(map, seed, contentId) {
-  const s = createGame(seed, structuredClone(map), contentById(contentId));
+function playMatch(map, seed, contentId, packed) {
+  const copy = structuredClone(map);
+  for (const tiles of packed) adoptPackedTiles(copy, tiles);
+  const s = createGame(seed, copy, contentById(contentId));
   profiler.reset(); profiler.enable(true);
   const ticks = [], anchor = new Map(), stalls = [];
-  let repaths = 0, doorsOpened = 0;
+  let repaths = 0, exhausted = 0, slices = 0, doorsOpened = 0;
   const open = new Map(s.map.gates.map(g => [g.id, g.open]));
   // The profiler keeps a window of frames, so its repath counts are folded in before it fills.
-  const fold = () => { for (const row of profiler.report()) if (row.name === 'work.repath') repaths += row.mean * row.samples; profiler.reset(); };
+  const fold = () => {
+    for (const row of profiler.report()) {
+      const total = row.mean * row.samples;
+      if (row.name === 'work.repath') repaths += total; else if (row.name === 'work.route.exhausted') exhausted += total; else if (row.name === 'work.route.slices') slices += total;
+    }
+    profiler.reset();
+  };
   while (s.phase === 'live') {
     const start = performance.now(); step(s); ticks.push(performance.now() - start);
     profiler.frame();
@@ -57,7 +71,7 @@ function playMatch(map, seed, contentId) {
   return { content: contentId, ticks: s.tick, escaped: contestants.filter(p => p.status === 'escaped').length,
     eliminated: contestants.filter(p => p.status === 'eliminated').length, meanMs: ticks.reduce((a, b) => a + b, 0) / ticks.length,
     p95Ms: percentile(sorted, 0.95), maxMs: sorted.at(-1), maxAt: ticks.indexOf(sorted.at(-1)) + 1, over50: ticks.filter(t => t > 50).length,
-    repaths: Math.round(repaths), doorsOpened, stalls };
+    repaths: Math.round(repaths), exhausted: Math.round(exhausted), slices: Math.round(slices), doorsOpened, stalls };
 }
 
 /** Spawn → exit with everything known, and with the half nearer the spawn known: length and kinks against the unrestricted grid route. */
@@ -82,13 +96,13 @@ function routeQuality(map) {
 const lock = await acquireMachineLock('bench');
 try {
   const out = process.argv[2] ?? 'test-results/navigation-424.json';
-  const report = { revision: spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout.trim(), created: new Date().toISOString(),
+  const report = { cold: COLD, revision: spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout.trim(), created: new Date().toISOString(),
     node: process.version, platform: process.platform, arch: process.arch, cpu: os.cpus()[0].model, cpuCount: os.cpus().length,
     sourceHashes: Object.fromEntries(SOURCES.map(path => [path, createHash('sha256').update(readFileSync(path)).digest('hex')])), maps: [] };
   for (const size of LIVE_ZONE_SIZES) for (let seed = 1; seed <= SEEDS[zoneSizeName(size)]; seed++) {
     console.error(`Measuring ${zoneSizeName(size)} seed ${seed}`);
     const map = generateLiveMap(seed, contentById('content-3'), size);
-    report.maps.push({ size: zoneSizeName(size), seed, routes: routeQuality(map), matches: CONTENTS.map(id => playMatch(map, seed, id)) });
+    report.maps.push({ size: zoneSizeName(size), seed, routes: ROUTES ? routeQuality(map) : null, matches: CONTENTS.map(id => playMatch(map, seed, id, COLD ? [] : prebuiltTiles(map, contentById(id)))) });
     writeFileSync(out, JSON.stringify(report, null, 2) + '\n');
   }
 } finally { lock.release(); }
