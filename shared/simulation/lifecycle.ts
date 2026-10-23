@@ -1,6 +1,6 @@
 import { canOccupy } from '../movement.ts';
 import { syncWeapon } from '../equipment.ts';
-import { distance } from './geometry.ts';
+import { clearRoute, distance } from './geometry.ts';
 import { RESPAWN_CLEARANCE_RADIUS, RESPAWN_CONTESTANT_DISTANCE, RESPAWN_HAZARD_MARGIN } from './rules.ts';
 import { event, effect, dropEquipment } from './loot.ts';
 import type { Game, Player } from '../types.ts';
@@ -21,7 +21,7 @@ export function respawn(s: Game, p: Player): void {
     const candidates = s.map.stations.filter(st => st.x > s.hazardX + RESPAWN_HAZARD_MARGIN && canOccupy(s.map, st.x, st.y, RESPAWN_CLEARANCE_RADIUS)
       && s.players.every(other => other.role !== 'contestant' || other.status !== 'active' || distance(other, st) > RESPAWN_CONTESTANT_DISTANCE));
     const station = candidates.sort((a, b) => a.x - b.x)[0];
-    if (station) { p.x = station.x; p.y = station.y; p.hp = p.maxHp; p.shield = 0; p.status = 'active'; p.respawnAt = null; p.input = {}; p.inputTick = s.tick; p.path = []; p.cooldown = 0; p.attackCd = 0; p.stun = 0; p.boost = 0; p.railCd = 0; event(s, `${p.name} returned to the hunt`); }
+    if (station) { p.x = station.x; p.y = station.y; p.hp = p.maxHp; p.shield = 0; p.status = 'active'; p.respawnAt = null; p.input = {}; p.inputTick = s.tick; clearRoute(p); p.cooldown = 0; p.attackCd = 0; p.stun = 0; p.boost = 0; p.railCd = 0; event(s, `${p.name} returned to the hunt`); }
   }
 }
 export function finishMatch(s: Game): void {

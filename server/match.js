@@ -3,6 +3,7 @@ import { resetInput } from '../shared/simulation/input.ts';
 import { changeSeat } from '../shared/simulation/state.ts';
 import { viewLagFrom } from '../shared/simulation/rewind.ts';
 import { teleport } from '../shared/simulation/dev.ts';
+import { clearRoute } from '../shared/simulation/geometry.ts';
 import { generateLiveMap } from '../map/live.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
@@ -35,7 +36,7 @@ function seatsOf(game) {
     resume(id) {
       const p = game.players.find(p => p.id === id);
       if (!p) return null;
-      p.bot = false; resetInput(p); delete p.viewLagTicks; p.path = [];
+      p.bot = false; resetInput(p); delete p.viewLagTicks; clearRoute(p);
       return identity(p);
     },
     leave(id) {

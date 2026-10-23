@@ -1,15 +1,16 @@
-import { canOccupy, insideMap, lineClear, reachClear, TILE } from '../movement.ts';
+import { bodyRadius, canOccupy, insideMap, lineClear, reachClear, sweptClear, TILE } from '../movement.ts';
 import { cellCenter, cellIndexAt, discoveryGrid, isFeatureDiscovered, DISCOVERY_INTERVAL } from '../discovery.ts';
 import { straightenPath, blockAt, blockRoute } from '../map.ts';
 import { gridRoute } from '../map/route.ts';
+import { contestantKnowledge, createKnowledgePlanner, type Knowledge, type KnownRouteStatus } from '../navigation/knowledge.ts';
 import { count, start, stop } from '../profiler.ts';
 import { carriedCell, syncWeapon } from '../equipment.ts';
 import { GATE_REACH, HZ } from './rules.ts';
-import { distance, center } from './geometry.ts';
+import { distance, center, clearRoute } from './geometry.ts';
 import { visibleTo } from './visibility.ts';
 import { attack } from './combat.ts';
 import { dropEquipment } from './loot.ts';
-import type { DiscoveryMemory, GroundItem, Game, ItemId, Player, PlayerInput, Tick, TileCount, TileIndex, Vec2, World } from '../types.ts';
+import type { CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, Player, PlayerInput, Role, Tick, TileCount, TileIndex, Vec2, World } from '../types.ts';
 
 // What a bot that decides from discovery is after, kept between ticks (#230). A bot searching for what
 // it needs heads for the frontier of what it has *seen*: loot needs line of sight, so a cell the view
@@ -59,7 +60,7 @@ function exploreTarget(s: Game, p: Player, memory: DiscoveryMemory): Vec2 | null
   const state = pursuitOf(p), seen = memory.seen ?? memory.discovered;
   if (state.cell >= 0) {
     const centre = cellCenter(s.map, state.cell);
-    const settled = seen.has(state.cell) || centre.x <= s.hazardX + EXPLORE_HAZARD_MARGIN;
+    const settled = seen.has(state.cell) || centre.x <= s.hazardX + EXPLORE_HAZARD_MARGIN || !ground(s, memory, state.cell, centre);
     const inside = cellIndexAt(s.map, p.x, p.y) === state.cell;
     if (!inside) state.entered = -1; else if (state.entered < 0) state.entered = s.tick;
     const arrived = inside && s.tick - state.entered > DISCOVERY_INTERVAL;
@@ -76,20 +77,150 @@ function exploreTarget(s: Game, p: Player, memory: DiscoveryMemory): Vec2 | null
       const c = col + dc, r = row + dr, next = r * cols + c;
       if (c < 0 || r < 0 || c >= cols || r >= rows || seen.has(next) || state.abandoned.has(next)) continue;
       const centre = cellCenter(s.map, next);
-      if (centre.x <= s.hazardX + EXPLORE_HAZARD_MARGIN || !insideMap(s.map, centre.x, centre.y)) continue;
+      if (centre.x <= s.hazardX + EXPLORE_HAZARD_MARGIN || !ground(s, memory, next, centre)) continue;
       const score = distance(p, centre) - (centre.x - p.x) * EXPLORE_RIGHTWARD;
       if (score < bestScore) { bestScore = score; best = next; }
     }
   }
   if (best < 0) return null;
   state.cell = best; state.entered = -1;
-  p.path = []; // A new destination: route to it now rather than finish the old route first.
+  // A new destination: route to it now rather than finish the old route first. Over tiles a moved goal is replanned anyway.
+  if (s.content.navigation !== 'tiles') clearRoute(p);
   return cellCenter(s.map, best);
+}
+
+/**
+ * Whether a cell may be ground worth exploring. Planning over tiles reads only what the bot knows: a
+ * cell the view window has covered shows whether its centre is ground, and any other is assumed to be,
+ * inside the public world bounds (22.6). The grid planner reads the truth, as it always has.
+ */
+function ground(s: Game, memory: DiscoveryMemory, cell: number, centre: Vec2): boolean {
+  if (s.content.navigation === 'tiles' && !memory.surveyed?.has(cell)) return true;
+  return insideMap(s.map, centre.x, centre.y);
 }
 
 function abandonExploration(p: Player): void {
   const state = pursuits.get(p);
   if (state && state.cell >= 0) { state.abandoned.add(state.cell); state.cell = -1; }
+}
+
+// Planning over free-space tiles (22.6, #424). A contestant plans with what it knows; a gladiator
+// with the whole map, as 15 has it, through the same planner. The route is the whole tentative
+// path, walked on past its confirmed prefix: stepping into unknown ground is how the bot learns
+// what is there.
+//
+// Unknown ground is planned as open, so learning more can only close a route or lengthen it, never
+// open a shorter one elsewhere. A route therefore stands until its goal moves, the keys or door
+// observations change, or a cell it was planned through as unknown becomes a known tile; not at
+// every discovery sample, which would replan a moving bot twice a second for nothing.
+interface Plan {
+  /** The goal planned for, where the bot was, and when. */
+  goal: Vec2;
+  from: Vec2;
+  at: Tick;
+  status: KnownRouteStatus;
+  keys: number;
+  /** The door observations planned with, as `doorsSeen` writes them. */
+  doors: string;
+  /** Cells the route crosses whose tiles were unknown: when one becomes known, the route is replanned. */
+  watch: number[];
+  /** The route as planned, walked by shifting: a bot whose route is another array has had it cleared (`clearRoute`). */
+  route: Vec2[];
+}
+const plans = new WeakMap<Player, Plan>();
+const planners = new WeakMap<CollisionMap, Map<Role, ReturnType<typeof createKnowledgePlanner>>>();
+/** A goal that has moved this far is planned for afresh. */
+const GOAL_MOVED: World = TILE;
+/** Ticks between a bot's scheduled repaths, staggered by its place in the player list. */
+const REPATH = 20;
+/** A route still standing this long is replanned at the next scheduled repath regardless. */
+const REPLAN_AFTER = 5 * HZ;
+/**
+ * Expansions one repath may make. A query across a 36 × 18 map with everything known makes about
+ * 60,000 (about 110 ms), too long for one tick; at the budget the bot walks to the place searched
+ * nearest its goal and plans on from there (22.6, "budget-exhausted").
+ */
+const BOT_ROUTE_BUDGET = 12_000;
+
+function plannerOf(map: CollisionMap, role: Role) {
+  let byRole = planners.get(map);
+  if (!byRole) planners.set(map, byRole = new Map());
+  let planner = byRole.get(role);
+  if (!planner) byRole.set(role, planner = createKnowledgePlanner(map, role));
+  return planner;
+}
+
+/** The whole map as it stands: what a gladiator plans with. */
+function fullKnowledge(s: Game, keys: number): Knowledge {
+  const gates = new Map(s.map.gates.map(g => [g.id, g]));
+  return { known: () => true, door: (id: GateId) => { const g = gates.get(id); return g && { open: g.open, locked: !!g.locked }; }, keys, revision: 0 };
+}
+
+/**
+ * A contestant's door observations, to compare between plans. A gladiator's are the doors as they
+ * stand; it does not watch them, since a door only ever stops being locked, which no route through
+ * other doors needs to hear about.
+ */
+const doorsSeen = (p: Player): string => [...p.discovery?.gates ?? []].map(([id, g]) => `${id}:${+g.open}${+g.locked}`).join();
+
+/** Cells along a route whose tiles the knowledge does not hold. */
+function unknownAlong(planner: ReturnType<typeof createKnowledgePlanner>, knowledge: Knowledge, map: CollisionMap, points: readonly Vec2[]): number[] {
+  const { cols, size } = discoveryGrid(map), cells = new Set<number>();
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]!, b = points[i]!, steps = Math.ceil(distance(a, b) / (size / 4));
+    for (let k = 0; k <= steps; k++) {
+      const x = a.x + (b.x - a.x) * k / steps, y = a.y + (b.y - a.y) * k / steps;
+      if (x >= 0 && y >= 0 && x < map.width && y < map.height) cells.add(Math.floor(y / size) * cols + Math.floor(x / size));
+    }
+  }
+  return [...cells].filter(cell => !planner.support(cell).every(c => knowledge.known(c)));
+}
+
+/** How far ahead a waypoint's next leg is swept before the bot turns onto it: within sight, so it reads nothing hidden. */
+const TURN_AHEAD: World = 24;
+/**
+ * Whether the bot may turn from `waypoint` onto the leg to `next`. A taut route turns at corners an
+ * obstacle's clearance away, so steering for the next point while still short of the corner cuts it
+ * and presses into the obstacle: near a waypoint, the bot turns only once the first stretch of the
+ * next leg is clear for its body, or when it is on the waypoint itself.
+ */
+function passed(s: Game, p: Player, waypoint: Vec2, next: Vec2): boolean {
+  const d = distance(p, waypoint);
+  if (d < 2) return true;
+  if (d >= 11) return false;
+  const length = distance(p, next), t = Math.min(1, TURN_AHEAD / Math.max(length, 1e-9));
+  return sweptClear(s.map, p, { x: p.x + (next.x - p.x) * t, y: p.y + (next.y - p.y) * t }, bodyRadius(p));
+}
+
+/**
+ * Plan when due, and return the new route's status, or null when the bot keeps its route. Repaths
+ * are staggered across bots by their place in the player list. A bot plans at once when its route
+ * was cleared, or, having walked it out, when its goal or knowledge has changed or it has moved on
+ * from where a route that stopped short began; a first plan, and a retry of a route that failed,
+ * wait for its turn.
+ */
+function repathTiles(s: Game, p: Player, target: Vec2): KnownRouteStatus | null {
+  const contestant = p.role === 'contestant' && !!p.discovery;
+  const knowledge = contestant ? contestantKnowledge(p.discovery!, p.keys) : fullKnowledge(s, p.keys);
+  const planner = plannerOf(s.map, p.role), plan = plans.get(p);
+  const scheduled = (s.tick + s.players.indexOf(p)) % REPATH === 0;
+  let due = scheduled && !plan || !!plan && p.route !== plan.route;
+  if (plan && !due) {
+    const changed = distance(plan.goal, target) >= GOAL_MOVED || plan.keys !== knowledge.keys
+      || contestant && (plan.doors !== doorsSeen(p) || plan.watch.some(cell => planner.support(cell).every(c => knowledge.known(c))));
+    const short = plan.status === 'speculative' || plan.status === 'budget-exhausted';
+    due = p.route?.length ? scheduled && (changed || s.tick - plan.at >= REPLAN_AFTER)
+      : changed || short && distance(plan.from, p) >= 11 || scheduled && s.tick - plan.at >= REPATH;
+  }
+  if (!due) return null;
+  start('sim.repath'); count('work.repath');
+  const route = planner.route(knowledge, p, target, BOT_ROUTE_BUDGET);
+  count('work.route.expansions', route.expansions);
+  p.route = route.points.filter((point, i) => i > 0 || distance(p, point) >= 11).map(({ x, y }) => ({ x, y }));
+  plans.set(p, { goal: { x: target.x, y: target.y }, from: { x: p.x, y: p.y }, at: s.tick, status: route.status, keys: knowledge.keys,
+    doors: contestant ? doorsSeen(p) : '', watch: contestant ? unknownAlong(planner, knowledge, s.map, route.points) : [], route: p.route });
+  stop('sim.repath');
+  return route.status;
 }
 
 export function botInput(s: Game, p: Player): PlayerInput {
@@ -108,13 +239,16 @@ export function botInput(s: Game, p: Player): PlayerInput {
     && t.status === 'active' && visibleTo(s, p, t)).sort((a, b) => distance(p, a) - distance(p, b))[0];
   let target: Vec2 = p.role === 'gladiator' ? nearest || s.map.stations.find(st => st.x > s.hazardX + 1200) || s.map.exit : s.map.exit;
   let exploring = false;
+  const tiles = s.content.navigation === 'tiles';
   if (p.role === 'contestant') {
     // A contestant knows what it has discovered (15, #230). Without discovery (content-1) it keeps the
     // whole map, which is what the frozen characterization traces recorded.
     const memory = p.discovery, pursuit = memory ? pursuitOf(p) : null;
     const known = (feature: Vec2) => !memory || isFeatureDiscovered(memory, s.map, feature);
     const items = memory ? [...memory.items?.values() ?? []].filter(i => !(pursuit!.ignored.get(i.id)! > s.tick)) : s.map.items;
-    const accessible = (i: GroundItem) => p.keys > 0 || !i.buildingId || !s.map.gates.some(g => g.buildingId === i.buildingId && g.locked && !g.open);
+    // Over tiles, a door is locked when the bot last saw it locked; the grid planner reads the doors as they stand.
+    const locked = (g: Gate) => { const seen = tiles ? memory?.gates?.get(g.id) : g; return !!seen && !!seen.locked && !seen.open; };
+    const accessible = (i: GroundItem) => p.keys > 0 || !i.buildingId || !s.map.gates.some(g => g.buildingId === i.buildingId && locked(g));
     const charged = !!cell && cell.charge >= s.content.cellChargeTicks;
     const objective: Vec2[] = !cell ? items.filter(i => i.kind === 'cell' && i.x > s.hazardX + 100 && accessible(i))
       : !charged ? s.map.chargers.filter(st => st.x > s.hazardX + 100 && known(st)) : [];
@@ -124,8 +258,9 @@ export function botInput(s: Game, p: Player): PlayerInput {
       if (frontier) { target = frontier; exploring = true; } else if (!known(s.map.exit)) target = p;
     }
     if (objective.length) {
-      const from = blockAt(s.map, p);
-      const cost = (t: Vec2) => blockRoute(s.map, from, blockAt(s.map, t)).length * 1000 + distance(p, t) * 0.05;
+      // Over tiles, nearest first: the street graph is truth, and a chain map has none anyway.
+      const from = tiles ? null : blockAt(s.map, p);
+      const cost = (t: Vec2) => from === null ? distance(p, t) : blockRoute(s.map, from, blockAt(s.map, t)).length * 1000 + distance(p, t) * 0.05;
       target = objective.sort((a, b) => cost(a) - cost(b))[0];
       if (!cell && p.inventory!.every(Boolean)) {
         const discard = p.inventory!.findIndex(item => item?.kind !== 'weapon' || item.ammo === 0);
@@ -141,11 +276,19 @@ export function botInput(s: Game, p: Player): PlayerInput {
     if (pursuit && !exploring) {
       pursuit.cell = -1;
       const item = target as Partial<GroundItem>;
-      if (item.kind && item.id && stalled(s, p, pursuit, item.id, target)) { pursuit.ignored.set(item.id, s.tick + IGNORE_FOR as Tick); p.path = []; }
+      if (item.kind && item.id && stalled(s, p, pursuit, item.id, target)) { pursuit.ignored.set(item.id, s.tick + IGNORE_FOR as Tick); clearRoute(p); }
       else if (!item.kind) pursuit.goal = '';
     }
   }
-  if (!p.path?.length || s.tick % 20 === p.name.length % 20) {
+  if (tiles) {
+    const status = repathTiles(s, p, target);
+    if (status === 'no-known-route' || status === 'invalid-endpoint') {
+      if (exploring) abandonExploration(p);
+      // A known dead end sets the item aside, as a stall would; it is not given up for good (22.6).
+      const item = target as Partial<GroundItem>, pursuit = pursuits.get(p);
+      if (pursuit && item.kind && item.id) { pursuit.ignored.set(item.id, s.tick + IGNORE_FOR as Tick); clearRoute(p); }
+    }
+  } else if (!p.path?.length || s.tick % 20 === p.name.length % 20) {
     start('sim.repath'); count('work.repath');
     // The coarse street graph supplies the next block; local collision-aware A* handles its passage.
     const route = blockRoute(s.map, blockAt(s.map, p), blockAt(s.map, target));
@@ -163,8 +306,9 @@ export function botInput(s: Game, p: Player): PlayerInput {
     p.path = straightenPath(s.map, p.role, p, steps, p.keys > 0 ? 'all' : true);
     stop('sim.repath');
   }
-  let waypoint = p.path?.[0] ? center(...p.path[0]) : target;
+  let waypoint = tiles ? p.route?.[0] ?? target : p.path?.[0] ? center(...p.path[0]) : target;
   if (distance(p, target) < 55 && lineClear(s.map, p, target)) waypoint = target;
+  else if (tiles) { while (p.route?.length && passed(s, p, p.route[0]!, p.route[1] ?? target)) p.route.shift(); waypoint = p.route?.[0] ?? target; }
   else if (distance(p, waypoint) < 11 && p.path?.length) { p.path.shift(); waypoint = p.path[0] ? center(...p.path[0]) : target; }
   let dx = waypoint.x - p.x, dy = waypoint.y - p.y;
   const hunter = p.role === 'contestant' && s.players.find(t => t.role === 'gladiator' && t.status === 'active' && distance(p, t) < 170 && visibleTo(s, p, t));

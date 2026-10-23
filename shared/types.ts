@@ -198,6 +198,11 @@ export interface MatchContent {
   gladiatorRespawnTicks: Tick;
   hazardGraceTicks: Tick;
   discovery?: boolean | undefined;
+  /**
+   * How bots plan routes: `grid`, the default, is the windowed tile search of `content-1` and
+   * `content-2`; `tiles` plans over the free-space tiles, contestants over what they know (22.6).
+   */
+  navigation?: 'grid' | 'tiles' | undefined;
 }
 
 /**
@@ -486,6 +491,8 @@ export interface Player extends Vec2 {
   selectedSlot?: SlotIndex | undefined;
   /** Remaining bot route, in absolute tile coordinates. Not world units. */
   path?: TileStep[] | undefined;
+  /** Remaining bot route in world points, for content that plans over free-space tiles (22.6). */
+  route?: Vec2[] | undefined;
   /** The charger being used, or null when not charging. */
   charging?: ChargerId | null | undefined;
   respawnAt?: Tick | null | undefined;
