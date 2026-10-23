@@ -80,12 +80,17 @@ test('a bot that knows of nothing it needs explores', () => {
   assert.ok(Math.hypot(p.x - start.x, p.y - start.y) > 500, 'it went looking');
 });
 
-test('item memory stays out of snapshots and every projection', () => {
+test('item, door and survey memory stay out of snapshots and every projection', () => {
   const { s, p } = lone();
   p.discovery.items.set('remembered-cell', { id: 'remembered-cell', kind: 'cell', x: p.x + 5000, y: p.y });
+  // Door observations and surveyed cells, which navigation's knowledge filter reads (22.6, #423), stay private too.
+  p.discovery.gates = new Map([['remembered-door', { open: false, locked: true }]]);
+  p.discovery.surveyed = new Set([1, 2, 3]);
   const frame = snapshot(s);
-  assert.equal(JSON.stringify(frame).includes('remembered-cell'), false);
-  for (const viewer of s.players) assert.equal(JSON.stringify(playerView(s, frame, viewer.id)).includes('remembered-cell'), false, viewer.id);
+  for (const secret of ['remembered-cell', 'remembered-door', 'surveyed', 'revision']) {
+    assert.equal(JSON.stringify(frame).includes(secret), false, secret);
+    for (const viewer of s.players) assert.equal(JSON.stringify(playerView(s, frame, viewer.id)).includes(secret), false, viewer.id);
+  }
 });
 
 test('a bot enters a reachable roofed frontier cell rather than giving it up from outside (#354 review)', () => {

@@ -1,6 +1,7 @@
 import { lineClear, reachClear, gateShape, bodyRadius, TILE } from '../movement.ts';
 import { carriedCell, equipped, collectEquipment, syncWeapon } from '../equipment.ts';
 import { nearbyGate } from '../gate-query.ts';
+import { observeGate } from '../discovery.ts';
 import { distance } from './geometry.ts';
 import { CHARGE_REACH, EXTRACTION_REACH, PICKUP_REACH, TRANSIT_REACH } from './rules.ts';
 import { event, effect, dropEquipment } from './loot.ts';
@@ -35,6 +36,8 @@ export function interact(s: Game, p: Player): void {
       const occupied = s.players.some(other => other.status === 'active' && Math.hypot(other.x - Math.max(box.x, Math.min(box.x + box.w, other.x)), other.y - Math.max(box.y, Math.min(box.y + box.h, other.y))) < bodyRadius(other));
       if (!occupied) { gate.open = false; p.path = []; }
     }
+    // Trying a door shows how it stands, locked or not, whatever sight showed before (22.6, "Doors").
+    if (p.discovery) observeGate(p.discovery, gate);
     return;
   }
   if (p.role === 'gladiator' && p.railCd === 0) {

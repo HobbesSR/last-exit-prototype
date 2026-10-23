@@ -174,13 +174,13 @@ export function createPortalPlanner(graph: PortalGraph, reach: Reach, tables: Fl
   };
 }
 
-interface Entry { f: World; g: World; node: number }
+export interface Entry { f: World; g: World; node: number }
 
 /**
  * A binary min-heap on `f`. Ties go to the larger `g`, which is nearer the goal, then to the
  * lower node number, so the search order never depends on insertion order.
  */
-class Heap {
+export class Heap {
   private items: Entry[] = [];
   get size(): number { return this.items.length; }
   private less(a: Entry, b: Entry): boolean { return a.f < b.f || a.f === b.f && (a.g > b.g || a.g === b.g && a.node < b.node); }
