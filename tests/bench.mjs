@@ -16,7 +16,7 @@ const budget = 1000 / HZ;
 const [zoneWidth, zoneHeight] = (args.get('size') ?? zoneSizeName(DEFAULT_LIVE_ZONE_SIZE)).split('x').map(Number);
 const size = liveZoneSize({ zoneWidth, zoneHeight });
 if (!size) { console.error(`--size must be one of ${LIVE_ZONE_SIZES.map(zoneSizeName).join(', ')}`); process.exit(2); }
-// `--content=content-2` measures an earlier content set, such as the grid planner content-3 replaced (#424).
+// `--content=<id>` measures an earlier content set, such as content-2's grid planner (#424) or content-3's whole-tick searches (#470).
 const contentId = args.get('content') ?? CONTENT_ID;
 // Rooms adopt the tiles their map worker built (22.6, "Bot adoption"), untimed here as there; `--cold` leaves bots to build them.
 const prepared = map => { if (!args.has('cold')) for (const packed of prebuiltTiles(map, contentById(contentId))) adoptPackedTiles(map, packed); return map; };

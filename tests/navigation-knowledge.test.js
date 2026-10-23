@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkRoute, contestantKnowledge, createKnowledgePlanner, packedTilesFor } from '../shared/navigation/knowledge.ts';
+import { checkRoute, contestantKnowledge, createKnowledgePlanner, frozenKnowledge, packedTilesFor } from '../shared/navigation/knowledge.ts';
 import { adoptPackedTiles, freeSpaceTile } from '../shared/free-space.ts';
 import { createDiscovery, discover, discoveryGrid, observeGate } from '../shared/discovery.ts';
 import { sweptClear } from '../shared/movement.ts';
@@ -193,6 +193,33 @@ test('a budget is a count of expansions: exhausted, the search reports where it 
   assert.ok(runs[0].points.length >= 2);
   assert.deepEqual(runs[1], runs[0]);
   assert.equal(planner.route(knowledge, { x: 300, y: 1152 }, { x: 4300, y: 1152 }).status, 'complete', 'a budget failure is not unreachability');
+});
+
+test('a search advanced a slice at a time expands the same places and returns the same route as one run whole (#470)', () => {
+  const planner = createKnowledgePlanner(twinA, 'contestant'), from = { x: 300, y: 1152 }, to = { x: 4300, y: 1152 };
+  for (const [known, budget] of [[everything, undefined], [cellsWhere(col => col < 11), undefined], [everything, 30]]) {
+    const { knowledge } = knowing(known, { gates: { d1: { open: true, locked: false } } });
+    const whole = planner.route(knowledge, from, to, budget), search = planner.search(knowledge, from, to, budget);
+    let sliced = null, slices = 0;
+    while (!(sliced = search.advance(7))) slices++;
+    assert.ok(slices > 0, 'the search spanned several slices');
+    assert.deepEqual(sliced, whole);
+    assert.equal(search.advance(7), sliced, 'an ended search keeps its route');
+  }
+});
+
+test('frozen knowledge keeps the cells and doors known when it was taken', () => {
+  const memory = createDiscovery();
+  discover(memory, twinA, { x: 300, y: 1152 }, undefined, true);
+  // A door the map does not have, so discovery leaves its observation alone.
+  memory.gates.set('x1', { open: false, locked: true });
+  const live = contestantKnowledge(memory, 1), frozen = frozenKnowledge(live, COLS * ROWS, ['x1', 'x2']), before = [...memory.discovered];
+  discover(memory, twinA, { x: 2700, y: 1152 }, undefined, true);
+  memory.gates.set('x1', { open: true, locked: false });
+  const cells = Array.from({ length: COLS * ROWS }, (_, cell) => cell);
+  assert.ok(cells.some(cell => live.known(cell) && !frozen.known(cell)), 'the live knowledge grew');
+  assert.ok(before.every(cell => frozen.known(cell)));
+  assert.deepEqual([frozen.door('x1'), frozen.door('x2'), frozen.keys], [{ open: false, locked: true }, undefined, 1]);
 });
 
 test('information test on a live map: obstacles out of every known cell, removed or reordered, change nothing', () => {

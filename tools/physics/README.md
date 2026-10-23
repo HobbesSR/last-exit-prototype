@@ -112,4 +112,4 @@ lock and runs a short seeded legacy/experimental whole-match comparison sequenti
 It measures step, authoritative snapshot and one projection over 500 samples after
 100 warmup ticks. Frame sizing is outside the timed interval. It is not the P0
 physics-only workload or P9 capacity qualification. Findings and limits are in
-[42.10](../../docs/42.10-physics-p1.md).
+[42.11](../../docs/42.11-physics-p1.md).

@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, step, snapshot, playerView } from '../shared/simulation.ts';
-import { botInput } from '../shared/simulation/bots.ts';
-import { canOccupy, movePlayer } from '../shared/movement.ts';
+import { botInput, joinRoute, passed } from '../shared/simulation/bots.ts';
+import { canOccupy, movePlayer, sweptClear } from '../shared/movement.ts';
 import { createDiscovery, discover, attachDiscovery, discoveryGrid, DISCOVERY_INTERVAL, DISCOVERY_RADIUS } from '../shared/discovery.ts';
 import { bounds, shapeOf } from '../shared/shape.ts';
 import { contentById } from '../shared/simulation/content.ts';
@@ -95,7 +95,7 @@ test('item, door and survey memory stay out of snapshots and every projection', 
   }
 });
 
-for (const content of ['content-2', 'content-3']) test(`a bot enters a reachable roofed frontier cell rather than giving it up from outside (#354 review, ${content})`, () => {
+for (const content of ['content-2', 'content-3', 'content-4']) test(`a bot enters a reachable roofed frontier cell rather than giving it up from outside (#354 review, ${content})`, () => {
   // Open ground with one roofed room. Everything has been seen but the room's cell, index 84, whose centre
   // (864, 1632) stays concealed until the bot stands under the roof. The room holds the only cell.
   const cell = { id: 'indoor-cell', kind: 'cell', x: 864, y: 1632, charge: 0 };
@@ -123,7 +123,7 @@ for (const content of ['content-2', 'content-3']) test(`a bot enters a reachable
 // a twin that agrees wherever it looked and has nothing beyond: no obstacles or doors, and no ground.
 // The two walks must match tick for tick. The bot remembers a cell far across unseen ground,
 // so its route runs where the twins differ; the grid planner, which reads the truth, parts.
-for (const [content, alike] of [['content-3', true], ['content-2', false]]) test(`information test: over tiles, a bot's targets, routes and inputs depend only on what it knows (${content})`, () => {
+for (const [content, alike] of [['content-4', true], ['content-3', true], ['content-2', false]]) test(`information test: over tiles, a bot's targets, routes and inputs depend only on what it knows (${content})`, () => {
   const seed = 4217;
   liveMap ??= generateLiveMap(seed);
   const spawn = liveMap.spawns[0], far = { id: 'far-cell', kind: 'cell', x: spawn.x + 6000, y: spawn.y, charge: 0 };
@@ -171,4 +171,42 @@ for (const [content, alike] of [['content-3', true], ['content-2', false]]) test
   if (!alike) return assert.ok(first >= 0, 'the grid planner reads the truth, so its walk parts');
   assert.equal(first, -1, `the walks part at tick ${first + 1}: ${truth.trace[first]?.slice(0, 300)} vs ${other.trace[first]?.slice(0, 300)}`);
   assert.ok(Math.hypot(truth.s.players[0].x - spawn.x, truth.s.players[0].y - spawn.y) > 1000, 'the bot went a long way');
+});
+
+test('a route that arrives late is joined only within its clearance margin, else by the trail back (#473 review)', () => {
+  const playableArea = { cellSize: 200, rows: Array.from({ length: 6 }, (_, y) => ({ y, runs: [[0, 6]] })) };
+  const map = { width: 1200, height: 1200, playableArea, obstacles: [{ id: 'wall', x: 200, y: 300, w: 100, h: 300 }], gates: [], buildings: [], items: [] };
+  const clear = (bot, way) => way.every((point, i) => sweptClear(map, i ? way[i - 1] : bot, point, 12));
+  const contestant = (x, y) => ({ role: 'contestant', x, y });
+
+  // The bot walked round the wall while its search ran: the nearest segment lies beyond it.
+  const round = [{ x: 100, y: 100 }, { x: 180, y: 620 }, { x: 400, y: 900 }], far = contestant(400, 100);
+  assert.ok(clear(round[0], round.slice(1)), 'the planned legs are clear');
+  const back = joinRoute(far, round, [{ x: 100, y: 100 }, { x: 250, y: 100 }, { x: 400, y: 100 }]);
+  assert.deepEqual(back.slice(0, 3), [{ x: 400, y: 100 }, { x: 250, y: 100 }, { x: 100, y: 100 }], 'it walks back the way it came');
+  assert.ok(clear(far, back));
+
+  // Beside a segment along the wall, 10 units off it: the diagonal to its end would meet the wall.
+  const along = [{ x: 186, y: 100 }, { x: 186, y: 900 }], beside = contestant(196, 100);
+  assert.ok(clear(along[0], along.slice(1)) && !clear(beside, along.slice(1)));
+  const stepped = joinRoute(beside, along, [{ x: 186, y: 100 }, { x: 196, y: 100 }]);
+  assert.deepEqual(stepped, [{ x: 196, y: 100 }, ...along]);
+  assert.ok(clear(beside, stepped));
+
+  // Within the margin the planner keeps beyond the body, it joins where it is.
+  const close = contestant(187.5, 100), joined = joinRoute(close, along, [{ x: 186, y: 100 }, { x: 187.5, y: 100 }]);
+  assert.deepEqual(joined, along.slice(1));
+  assert.ok(clear(close, joined));
+  assert.deepEqual(joinRoute(contestant(140, 360), round, [{ x: 100, y: 100 }, { x: 140, y: 360 }]), round.slice(1), 'on the route');
+});
+
+test('under sliced replanning a bot turns short of a waypoint only within the margin of the next leg (#473 review)', () => {
+  const playableArea = { cellSize: 200, rows: Array.from({ length: 6 }, (_, y) => ({ y, runs: [[0, 6]] })) };
+  const map = { width: 1200, height: 1200, playableArea, obstacles: [{ id: 'wall', x: 200, y: 300, w: 100, h: 300 }], gates: [], buildings: [], items: [] };
+  const game = content => ({ map, content: contentById(content) }), corner = { x: 186, y: 100 }, end = { x: 186, y: 900 };
+  // 10 units off a leg along the wall, the first 24 units toward its end are clear but the rest is not.
+  const beside = { role: 'contestant', x: 196, y: 100 };
+  assert.equal(passed(game('content-3'), beside, corner, end), true, 'content-3 keeps its rule');
+  assert.equal(passed(game('content-4'), beside, corner, end), false);
+  assert.equal(passed(game('content-4'), { role: 'contestant', x: 187.5, y: 100 }, corner, end), true);
 });

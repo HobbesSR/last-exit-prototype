@@ -31,7 +31,7 @@ test('reading a descriptor validates the whole shape and copies it', () => {
   const copy = readPresentation({ ...structuredClone(good), extra: 'ignored' });
   assert.deepEqual(copy, good);
   assert.ok(frozenThrough(copy));
-  assert.equal(readPresentation(good, 'content-3')?.contentId, 'content-3');
+  assert.equal(readPresentation(good, 'content-4')?.contentId, 'content-4');
   assert.equal(readPresentation(good, 'content-1'), null, 'expected id must match');
   const unknown = readPresentation({ ...structuredClone(good), contentId: 'brand-new' }, 'brand-new');
   assert.equal(unknown?.contentId, 'brand-new', 'unknown content is still describable');

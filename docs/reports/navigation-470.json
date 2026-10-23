@@ -1,0 +1,554 @@
+{
+  "cold": false,
+  "revision": "95d665eaa8633bad236972376f26c042ff236e07",
+  "created": "2026-10-23T22:08:39.023Z",
+  "node": "v24.15.0",
+  "platform": "win32",
+  "arch": "x64",
+  "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+  "cpuCount": 24,
+  "sourceHashes": {
+    "shared/simulation/bots.ts": "dc6e97c7868715cbee46a6b1031381e262856f088043d0525ca514630b685b10",
+    "shared/navigation/knowledge.ts": "2825400d528934ea74ee161a977a0b98ba0f643182e708ba38e6ecf289555a49",
+    "shared/free-space.ts": "9748b2188a2d5ffa8f0a3e61743dd71ef242792048f36f13387d0b3eeaad8226",
+    "shared/discovery.ts": "41fdb267277fc66d943cd7802e110a8c132b0c7e1550e276d86f29b0e78f7dad",
+    "shared/map/route.ts": "5548b17e20cb7266c9583ff056a3c59b67cd6954df31bc653a8143bdc3f6cb30",
+    "shared/simulation/content.ts": "4b5ca2389d13c6563539aea33375614cc2f8a557567b44930ff62e8752499a42",
+    "tools/navigation/adoption-report.mjs": "f58e882a30fcf034695507c697a40b8c587e5a4c889dc41ec7d7cef55fad08ba"
+  },
+  "maps": [
+    {
+      "size": "12x6",
+      "seed": 1,
+      "routes": null,
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 2787,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 1.20796157158235,
+          "p95Ms": 2.9461999999998625,
+          "maxMs": 25.991899999999987,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 735,
+          "exhausted": 0,
+          "slices": 0,
+          "backtracked": 0,
+          "doorsOpened": 26,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 2866,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 1.2404653175156837,
+          "p95Ms": 3.0515999999997803,
+          "maxMs": 16.471799999999348,
+          "maxAt": 134,
+          "over50": 0,
+          "repaths": 746,
+          "exhausted": 0,
+          "slices": 796,
+          "backtracked": 49,
+          "doorsOpened": 15,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 2,
+      "routes": null,
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 2892,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 1.2006876556016703,
+          "p95Ms": 3.1482000000014523,
+          "maxMs": 10.216699999999037,
+          "maxAt": 1550,
+          "over50": 0,
+          "repaths": 710,
+          "exhausted": 0,
+          "slices": 0,
+          "backtracked": 0,
+          "doorsOpened": 16,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 2818,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 1.077753406671391,
+          "p95Ms": 2.782499999999345,
+          "maxMs": 9.408400000000256,
+          "maxAt": 1588,
+          "over50": 0,
+          "repaths": 636,
+          "exhausted": 0,
+          "slices": 640,
+          "backtracked": 43,
+          "doorsOpened": 14,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 3,
+      "routes": null,
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 2753,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 0.8161223029422898,
+          "p95Ms": 2.1715000000003783,
+          "maxMs": 14.139100000000326,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 649,
+          "exhausted": 0,
+          "slices": 0,
+          "backtracked": 0,
+          "doorsOpened": 5,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 2522,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 0.8807824345757329,
+          "p95Ms": 2.36620000000039,
+          "maxMs": 10.63430000000153,
+          "maxAt": 1369,
+          "over50": 0,
+          "repaths": 565,
+          "exhausted": 0,
+          "slices": 571,
+          "backtracked": 16,
+          "doorsOpened": 4,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 4,
+      "routes": null,
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 2723,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 1.2742926184355219,
+          "p95Ms": 3.727999999999156,
+          "maxMs": 7.907899999998335,
+          "maxAt": 611,
+          "over50": 0,
+          "repaths": 725,
+          "exhausted": 0,
+          "slices": 0,
+          "backtracked": 0,
+          "doorsOpened": 19,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 2877,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 1.28640747306224,
+          "p95Ms": 3.7697000000007392,
+          "maxMs": 9.531299999998737,
+          "maxAt": 684,
+          "over50": 0,
+          "repaths": 677,
+          "exhausted": 0,
+          "slices": 700,
+          "backtracked": 25,
+          "doorsOpened": 23,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 5,
+      "routes": null,
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 3008,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 1.322218118351115,
+          "p95Ms": 3.003899999996065,
+          "maxMs": 13.987699999997858,
+          "maxAt": 110,
+          "over50": 0,
+          "repaths": 768,
+          "exhausted": 0,
+          "slices": 0,
+          "backtracked": 0,
+          "doorsOpened": 32,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 2970,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 1.247261481481406,
+          "p95Ms": 3.1512999999977183,
+          "maxMs": 11.4774000000034,
+          "maxAt": 13,
+          "over50": 0,
+          "repaths": 609,
+          "exhausted": 0,
+          "slices": 644,
+          "backtracked": 33,
+          "doorsOpened": 20,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 6,
+      "routes": null,
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 2520,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 1.5849065873014831,
+          "p95Ms": 3.598500000000058,
+          "maxMs": 15.73359999999957,
+          "maxAt": 11,
+          "over50": 0,
+          "repaths": 784,
+          "exhausted": 0,
+          "slices": 0,
+          "backtracked": 0,
+          "doorsOpened": 25,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 2656,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 1.2312496987952748,
+          "p95Ms": 3.3793000000005122,
+          "maxMs": 10.911499999994703,
+          "maxAt": 2179,
+          "over50": 0,
+          "repaths": 596,
+          "exhausted": 0,
+          "slices": 691,
+          "backtracked": 44,
+          "doorsOpened": 21,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 7,
+      "routes": null,
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 3219,
+          "escaped": 2,
+          "eliminated": 6,
+          "meanMs": 1.0836610748679263,
+          "p95Ms": 3.218699999997625,
+          "maxMs": 14.376899999995658,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 656,
+          "exhausted": 0,
+          "slices": 0,
+          "backtracked": 0,
+          "doorsOpened": 21,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 2897,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 1.4594386952018028,
+          "p95Ms": 3.589299999999639,
+          "maxMs": 10.214099999997416,
+          "maxAt": 135,
+          "over50": 0,
+          "repaths": 780,
+          "exhausted": 0,
+          "slices": 855,
+          "backtracked": 35,
+          "doorsOpened": 24,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 8,
+      "routes": null,
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 2302,
+          "escaped": 1,
+          "eliminated": 7,
+          "meanMs": 0.7815438314509203,
+          "p95Ms": 2.596899999996822,
+          "maxMs": 25.10360000000219,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 437,
+          "exhausted": 0,
+          "slices": 0,
+          "backtracked": 0,
+          "doorsOpened": 2,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 2439,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 1.0096725707256913,
+          "p95Ms": 2.5491000000038184,
+          "maxMs": 11.649300000004587,
+          "maxAt": 1876,
+          "over50": 0,
+          "repaths": 541,
+          "exhausted": 0,
+          "slices": 583,
+          "backtracked": 32,
+          "doorsOpened": 5,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "24x12",
+      "seed": 1,
+      "routes": null,
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 7329,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 2.3873115295402716,
+          "p95Ms": 5.87860000001092,
+          "maxMs": 56.77399999999034,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 1565,
+          "exhausted": 26,
+          "slices": 0,
+          "backtracked": 0,
+          "doorsOpened": 62,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 6966,
+          "escaped": 1,
+          "eliminated": 7,
+          "meanMs": 1.5754929227677088,
+          "p95Ms": 5.610200000010082,
+          "maxMs": 20.096400000009453,
+          "maxAt": 1349,
+          "over50": 0,
+          "repaths": 817,
+          "exhausted": 0,
+          "slices": 1202,
+          "backtracked": 100,
+          "doorsOpened": 50,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "24x12",
+      "seed": 2,
+      "routes": null,
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 5012,
+          "escaped": 2,
+          "eliminated": 6,
+          "meanMs": 1.6970404828412926,
+          "p95Ms": 4.375899999999092,
+          "maxMs": 43.21700000000419,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 944,
+          "exhausted": 20,
+          "slices": 0,
+          "backtracked": 0,
+          "doorsOpened": 9,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 5184,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 2.3140661265431053,
+          "p95Ms": 5.26830000001064,
+          "maxMs": 33.924400000003516,
+          "maxAt": 381,
+          "over50": 0,
+          "repaths": 1058,
+          "exhausted": 0,
+          "slices": 1446,
+          "backtracked": 64,
+          "doorsOpened": 18,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "24x12",
+      "seed": 3,
+      "routes": null,
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 5325,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 2.2472266854462215,
+          "p95Ms": 4.913899999985006,
+          "maxMs": 50.35529999999562,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 1098,
+          "exhausted": 56,
+          "slices": 0,
+          "backtracked": 0,
+          "doorsOpened": 53,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 5392,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 2.948068416171936,
+          "p95Ms": 6.933099999994738,
+          "maxMs": 37.321300000010524,
+          "maxAt": 606,
+          "over50": 0,
+          "repaths": 1060,
+          "exhausted": 0,
+          "slices": 1782,
+          "backtracked": 84,
+          "doorsOpened": 41,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "36x18",
+      "seed": 1,
+      "routes": null,
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 8308,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 6.0448816803082215,
+          "p95Ms": 10.262400000006892,
+          "maxMs": 90.05030000000261,
+          "maxAt": 611,
+          "over50": 3,
+          "repaths": 2163,
+          "exhausted": 69,
+          "slices": 0,
+          "backtracked": 0,
+          "doorsOpened": 104,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 8693,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 4.868186713447591,
+          "p95Ms": 10.24989999999525,
+          "maxMs": 47.668800000014016,
+          "maxAt": 279,
+          "over50": 0,
+          "repaths": 1694,
+          "exhausted": 0,
+          "slices": 2664,
+          "backtracked": 119,
+          "doorsOpened": 115,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "36x18",
+      "seed": 2,
+      "routes": null,
+      "matches": [
+        {
+          "content": "content-3",
+          "ticks": 8217,
+          "escaped": 3,
+          "eliminated": 2,
+          "meanMs": 6.909670962638754,
+          "p95Ms": 11.263299999991432,
+          "maxMs": 53.243099999963306,
+          "maxAt": 7557,
+          "over50": 1,
+          "repaths": 2568,
+          "exhausted": 113,
+          "slices": 0,
+          "backtracked": 0,
+          "doorsOpened": 87,
+          "stalls": []
+        },
+        {
+          "content": "content-4",
+          "ticks": 8586,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 4.741295609131242,
+          "p95Ms": 11.794799999974202,
+          "maxMs": 49.99059999996098,
+          "maxAt": 300,
+          "over50": 0,
+          "repaths": 1388,
+          "exhausted": 0,
+          "slices": 3301,
+          "backtracked": 132,
+          "doorsOpened": 76,
+          "stalls": []
+        }
+      ]
+    }
+  ]
+}

@@ -23,5 +23,5 @@ unsustainable. The P0 comparison and retained failures are in
 [42.6](42.6-physics-comparison.md); reviewed remediation gates are in
 [42.9](42.9-physics-remediation.md). The explicit experimental P1 adapter is a
 production dependency, initialized only by the async physics factory; it retains
-legacy defaults. Its boundaries/evidence are [42.10](42.10-physics-p1.md), with
+legacy defaults. Its boundaries/evidence are [42.11](42.11-physics-p1.md), with
 remaining promotion work in [41.1](41.1-physics-plan.md).

@@ -1,6 +1,6 @@
 # 14. Match rules and implemented defaults
 
-Every number here is a tuning default of `content-3` under `last-exit-0.7` rules,
+Every number here is a tuning default of `content-4` under `last-exit-0.7` rules,
 not a design constant. When one changes, it must stay named in code and updated
 here in the same change. Accepted-but-unimplemented changes live in
 [13](13-accepted-features.md).
@@ -25,6 +25,12 @@ a content revision, with unchanged simulation rules and recording structure; see
 changes how bots plan: over free-space tiles, contestants from what they know
 ([22.6](22.6-hierarchical-navigation.md), #424). `content-2` remains selectable with the
 grid planner.
+
+`content-4`, the default since #470, is `content-3` with each bot's repath spread over several
+ticks while it walks its current route (`replanning: 'sliced'`, 22.6). Because a route arrives
+after the bot has moved on, a bot turns a corner early only when it is within the 2-unit margin
+the planner keeps beyond its body. Its numbers and roster are unchanged; `content-3` remains
+selectable with whole-tick searches.
 
 The power-cell objective supplements limited escape capacity; three extraction slots remain a baseline tuning default. Contestant equipment changes do not remove gladiator kits or kill-based progression. The ten-minute deadline leaves time for exploration and combat, not ten minutes of uninterrupted running. Existing early match-end conditions remain.
 

@@ -1,9 +1,10 @@
 import { bodyRadius, canOccupy, insideMap, lineClear, reachClear, sweptClear, TILE } from '../movement.ts';
 import { cellCenter, cellIndexAt, discoveryGrid, isFeatureDiscovered, DISCOVERY_INTERVAL } from '../discovery.ts';
 import { straightenPath, blockAt, blockRoute } from '../map.ts';
+import { navigationClearance } from '../map/navigation.ts';
 import { gridRoute } from '../map/route.ts';
-import { contestantKnowledge, createKnowledgePlanner, packedTilesFor, type Knowledge, type KnownRouteStatus } from '../navigation/knowledge.ts';
-import type { PackedTiles } from '../free-space.ts';
+import { contestantKnowledge, createKnowledgePlanner, frozenKnowledge, packedTilesFor, type Knowledge, type KnownRoute, type KnownRouteStatus, type RouteSearch } from '../navigation/knowledge.ts';
+import { closestOnSegment, type PackedTiles } from '../free-space.ts';
 import { count, start, stop } from '../profiler.ts';
 import { carriedCell, syncWeapon } from '../equipment.ts';
 import { GATE_REACH, HZ } from './rules.ts';
@@ -142,6 +143,29 @@ const REPLAN_AFTER = 5 * HZ;
  * nearest its goal and plans on from there (22.6, "budget-exhausted").
  */
 const BOT_ROUTE_BUDGET = 12_000;
+/**
+ * Under `replanning: 'sliced'` (#470), a repath runs as one search of up to SLICED_BUDGET
+ * expansions, at most SLICE of them a tick, while the bot walks the route it has. Its knowledge is
+ * frozen when it starts, so the result is the route a whole search would have found then; what is
+ * learnt meanwhile is caught by the usual checks once it is adopted. All bots' searches share
+ * TICK_EXPANSIONS a tick, taken in player order, so searches that coincide queue rather than
+ * add up on one tick.
+ */
+const SLICE = 2_000, SLICED_BUDGET = 100_000, TICK_EXPANSIONS = 3_000;
+const allowances = new WeakMap<Game, { tick: Tick; left: number }>();
+interface Search {
+  search: RouteSearch;
+  knowledge: Knowledge;
+  goal: Vec2;
+  /**
+   * Where the bot has been while it ran, one place a tick from where it started: a way its body has
+   * crossed, back to the route's start.
+   */
+  trail: Vec2[];
+  /** The door observations it started with. */
+  doors: string;
+}
+const searches = new WeakMap<Player, Search>();
 
 /**
  * The tiles bots would otherwise build on their first plans, for whoever generates a map to build
@@ -186,18 +210,28 @@ function unknownAlong(planner: ReturnType<typeof createKnowledgePlanner>, knowle
   return [...cells].filter(cell => !planner.support(cell).every(c => knowledge.known(c)));
 }
 
+/**
+ * How much wider than the bot's body the planner keeps a route's legs from walls. A bot within it
+ * of a leg can steer straight for the leg's end and stay in the cleared space, since its distance
+ * from the leg only shrinks along the way.
+ */
+const margin = (p: Player): World => navigationClearance(p.role) - bodyRadius(p);
 /** How far ahead a waypoint's next leg is swept before the bot turns onto it: within sight, so it reads nothing hidden. */
 const TURN_AHEAD: World = 24;
 /**
  * Whether the bot may turn from `waypoint` onto the leg to `next`. A taut route turns at corners an
  * obstacle's clearance away, so steering for the next point while still short of the corner cuts it
  * and presses into the obstacle: near a waypoint, the bot turns only once the first stretch of the
- * next leg is clear for its body, or when it is on the waypoint itself.
+ * next leg is clear for its body, or when it is on the waypoint itself. Under `replanning: 'sliced'`
+ * it must also be within `margin` of that leg, since the leg may run along a wall beyond the
+ * stretch swept (#473 review); within 9 units steering slows to land on the waypoint, so it gets there.
+ * Exported for its test.
  */
-function passed(s: Game, p: Player, waypoint: Vec2, next: Vec2): boolean {
+export function passed(s: Game, p: Player, waypoint: Vec2, next: Vec2): boolean {
   const d = distance(p, waypoint);
   if (d < 2) return true;
   if (d >= 11) return false;
+  if (s.content.replanning === 'sliced' && distance(p, closestOnSegment(p, waypoint, next)) > margin(p)) return false;
   const length = distance(p, next), t = Math.min(1, TURN_AHEAD / Math.max(length, 1e-9));
   return sweptClear(s.map, p, { x: p.x + (next.x - p.x) * t, y: p.y + (next.y - p.y) * t }, bodyRadius(p));
 }
@@ -222,15 +256,78 @@ function repathTiles(s: Game, p: Player, target: Vec2): KnownRouteStatus | null 
     due = p.route?.length ? scheduled && (changed || s.tick - plan.at >= REPLAN_AFTER)
       : changed || short && distance(plan.from, p) >= 11 || scheduled && s.tick - plan.at >= REPATH;
   }
+  if (s.content.replanning === 'sliced') return repathSliced(s, p, target, due, contestant, knowledge, planner);
   if (!due) return null;
   start('sim.repath'); count('work.repath');
   const route = planner.route(knowledge, p, target, BOT_ROUTE_BUDGET);
   count('work.route.expansions', route.expansions);
-  p.route = route.points.filter((point, i) => i > 0 || distance(p, point) >= 11).map(({ x, y }) => ({ x, y }));
-  plans.set(p, { goal: { x: target.x, y: target.y }, from: { x: p.x, y: p.y }, at: s.tick, status: route.status, keys: knowledge.keys,
-    doors: contestant ? doorsSeen(p) : '', watch: contestant ? unknownAlong(planner, knowledge, s.map, route.points) : [], route: p.route });
+  adopt(s, p, planner, route, knowledge, target, contestant ? doorsSeen(p) : '', route.points.filter((point, i) => i > 0 || distance(p, point) >= 11));
   stop('sim.repath');
   return route.status;
+}
+
+/**
+ * A repath spread over ticks: start a search when one is due and none is running for this goal,
+ * advance the running one by a slice, and adopt its route when it ends. The bot walks its old
+ * route meanwhile.
+ */
+function repathSliced(s: Game, p: Player, target: Vec2, due: boolean, contestant: boolean, knowledge: Knowledge,
+  planner: ReturnType<typeof createKnowledgePlanner>): KnownRouteStatus | null {
+  let running = searches.get(p);
+  if (due && (!running || distance(running.goal, target) >= GOAL_MOVED || running.knowledge.keys !== knowledge.keys)) {
+    count('work.repath');
+    const { cols, rows } = discoveryGrid(s.map), frozen = frozenKnowledge(knowledge, cols * rows, s.map.gates.map(g => g.id));
+    searches.set(p, running = { search: planner.search(frozen, p, target, SLICED_BUDGET), knowledge: frozen, goal: { x: target.x, y: target.y },
+      trail: [], doors: contestant ? doorsSeen(p) : '' });
+  }
+  const last = running?.trail.at(-1);
+  if (running && (!last || distance(last, p) >= 2)) running.trail.push({ x: p.x, y: p.y });
+  let allowance = allowances.get(s);
+  if (allowance?.tick !== s.tick) allowances.set(s, allowance = { tick: s.tick, left: TICK_EXPANSIONS });
+  if (!running || allowance.left <= 0) return null;
+  start('sim.repath');
+  const before = running.search.expansions, route = running.search.advance(Math.min(SLICE, allowance.left));
+  allowance.left -= running.search.expansions - before;
+  count('work.route.expansions', running.search.expansions - before); count('work.route.slices');
+  if (route) {
+    searches.delete(p);
+    adopt(s, p, planner, route, running.knowledge, running.goal, running.doors, joinRoute(p, route.points, running.trail));
+  }
+  stop('sim.repath');
+  return route?.status ?? null;
+}
+
+/** Make `route` the bot's plan, walked as `points`. */
+function adopt(s: Game, p: Player, planner: ReturnType<typeof createKnowledgePlanner>, route: KnownRoute, knowledge: Knowledge, goal: Vec2,
+  doors: string, points: readonly Vec2[]): void {
+  const contestant = p.role === 'contestant' && !!p.discovery;
+  if (route.status === 'budget-exhausted') count('work.route.exhausted');
+  p.route = points.map(({ x, y }) => ({ x, y }));
+  plans.set(p, { goal: { x: goal.x, y: goal.y }, from: { x: p.x, y: p.y }, at: s.tick, status: route.status, keys: knowledge.keys,
+    doors, watch: contestant ? unknownAlong(planner, knowledge, s.map, route.points) : [], route: p.route });
+}
+
+/**
+ * A route planned from where the bot was when its search started, `trail[0]`, taken up from where
+ * it is now. The planner keeps a route's legs `navigationClearance` from walls, wider than the
+ * bot's body by a margin, so when the bot is within that margin of a segment, among those it could
+ * have walked along, the way straight to the segment's end stays inside the cleared space (its
+ * distance from the segment only shrinks along the way) and the bot joins there. Otherwise nothing
+ * it knows says the way onto the route is clear, and it walks its trail back to the route's start.
+ * Exported for its test.
+ */
+export function joinRoute(p: Player, points: readonly Vec2[], trail: readonly Vec2[]): Vec2[] {
+  let walked = 0;
+  for (let i = 1; i < trail.length; i++) walked += distance(trail[i - 1]!, trail[i]!);
+  let best = 0, nearest = Infinity, along = 0;
+  for (let i = 0; i + 1 < points.length && along <= walked + TILE; i++) {
+    const d = distance(p, closestOnSegment(p, points[i]!, points[i + 1]!));
+    if (d < nearest) { nearest = d; best = i; }
+    along += distance(points[i]!, points[i + 1]!);
+  }
+  if (best + 1 < points.length && nearest <= margin(p)) return points.slice(best + 1);
+  count('work.route.backtracked');
+  return [...trail.slice(1).reverse(), ...points];
 }
 
 export interface BotIntent {
