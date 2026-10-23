@@ -144,3 +144,14 @@ test('unaddressed components follow the shared walk in owned order', () => {
 test('an invalid shape throws rather than addressing nothing', () => {
   assert.throws(() => area().mark(rect(0, 0, 0, SIZE)), /valid convex shape/);
 });
+
+test('a batch validates every shape before marking any, including overlaps within the batch', () => {
+  const record = area();
+  assert.throws(() => record.markAll([rect(0, 0, SIZE, SIZE), rect(SIZE, 0, 0, SIZE)]), /valid convex shape/);
+  assert.equal(record.markAll([rect(0, 0, SIZE, SIZE), rect(20, 0, SIZE, SIZE)]), false);
+  assert.equal(record.areas.length, 0);
+  const { mark } = record;
+  assert.equal(mark(rect(0, 0, SIZE, SIZE)), true, 'mark remains usable as a callback');
+  assert.equal(record.markAll([rect(80, 0, SIZE, SIZE), rect(0, 0, SIZE, SIZE)]), false);
+  assert.equal(record.addressed(2, 0), false);
+});

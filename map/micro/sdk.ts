@@ -45,3 +45,5 @@ export { prepareDelegation, patchFootprintKey, validateBriefPartition } from './
 export type { PatchOffer, PreparedPatch, PatchRejection, BriefCrossing, PreparedDelegation, PatchPreparationPolicy } from './delegation.ts';
 export { createAddressedArea } from './addressed.ts';
 export type { AddressedArea } from './addressed.ts';
+export { createBuilderCanvas } from './canvas.ts';
+export type { CanvasAssembly } from './canvas.ts';
