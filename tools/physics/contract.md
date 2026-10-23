@@ -12,11 +12,25 @@ Defaults: circle radius 8; mass 1; zero velocities/angle/drag/friction/restituti
 drag is constant speed deceleration in world units/s², applied before motor.
 actor locks rotation. Static boxes use centre and half extents. Loot contacts
 statics only. Actor/prop contact each other and statics. IDs unique strings.
-Joint: `{id,kind:'spring'|'rope',a,b,length,stiffness?,damping?,maxForce?}`;
+Joint: `{id,kind:'spring'|'rope',a,b,length,stiffness?,damping?,maxForce?,backend?}`;
 centre anchors initially, default stiffness 20, damping 4, maxForce 10000.
 Ropes use predictive velocity impulses, bounded by maxForce * dt; spring
 stiffness/damping do not apply to rope. Springs use explicit Hooke/damping forces.
+`backend:'native'` selects a Rapier centre-anchor spring instead. It is uncapped:
+omitting maxForce (or passing Infinity) is required, and a finite cap is rejected.
+This evaluates stability for later jelly/squish (#455), not a force-limited hook.
+Default game-owned springs/ropes retain their old policy. Native joint handles
+are private and included in exact lab checkpoint continuation.
 Options/settings are exposed as `world.settings`; report any unsupported feature.
+
+The #451 suite uses 40 units/metre and a 24-unit speculative contact distance
+(`normalizedPredictionDistance:0.6`), with otherwise unchanged Rapier settings.
+`admitMotion` is a **lab initial-velocity admission check**, not a production
+speed limiter: cap = `0.8*min(minimumRadius,12)/substepSeconds`. Boxes use their
+smaller half extent. Above-cap witnesses are refused before any step; they
+require a swept query or explicit teleport contract. P1 must validate the entire
+substep's movement after motors, forces, impulses and constraints; this helper
+does not establish that integration. Angular sweep remains independently tested.
 
 Methods (synchronous after initialization):
 - `step(dt)` applies bounded velocity-target motor acceleration and linear floor

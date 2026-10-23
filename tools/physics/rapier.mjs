@@ -60,9 +60,16 @@ function jointDescriptor(source, bodies) {
   if (typeof source?.id !== 'string' || !source.id) throw new TypeError('joint id must be a nonempty string');
   if (source.kind !== 'spring' && source.kind !== 'rope') throw new TypeError('unsupported joint kind');
   if (source.a === source.b || !bodies.has(source.a) || !bodies.has(source.b)) throw new Error('joint endpoints must be distinct existing bodies');
+  const backend = source.backend ?? 'game';
+  if (backend !== 'game' && backend !== 'native') throw new TypeError('unsupported joint backend');
+  if (backend === 'native' && source.kind !== 'spring') throw new TypeError('native backend supports springs only');
+  if (backend === 'native' && source.maxForce != null && source.maxForce !== Infinity) {
+    throw new TypeError('native springs do not support a finite maxForce');
+  }
   return {
     ...source, length: nonnegative(source.length), stiffness: nonnegative(source.stiffness, 20),
-    damping: nonnegative(source.damping, 4), maxForce: nonnegative(source.maxForce, 10000),
+    damping: nonnegative(source.damping, 4),
+    maxForce: backend === 'native' ? Infinity : nonnegative(source.maxForce, 10000),
   };
 }
 
@@ -72,7 +79,9 @@ export async function createWorld(scene, options = {}) {
   let native = new RAPIER.World(ZERO);
   native.lengthUnit = 1;
   native.integrationParameters.normalizedAllowedLinearError = 0.0001;
-  native.integrationParameters.normalizedPredictionDistance = 0.02;
+  // 24 world units: cover capped relative translation (19.2/substep), rather
+  // than relying on moving-pair CCD. This is speculative contact, not a skin.
+  native.integrationParameters.normalizedPredictionDistance = 0.6;
   native.numSolverIterations = 8;
   native.numInternalPgsIterations = 2;
   native.maxCcdSubsteps = 4;
@@ -84,6 +93,7 @@ export async function createWorld(scene, options = {}) {
   native.timestep = 1 / 60;
   let bodies = new Map();
   let joints = new Map();
+  let nativeJointHandles = new Map();
   let colliderIds = new Map();
   let broadPhaseDirty = true;
   let disposed = false;
@@ -97,11 +107,12 @@ export async function createWorld(scene, options = {}) {
     maxCcdSubsteps: native.maxCcdSubsteps, ccd: 'enabled on every dynamic body',
     contactGroups: 'loot-static only; actor/prop with actor/prop/static',
     motor: 'bounded velocity target; game-owned linear floor drag',
-    joints: 'game-owned centre spring forces and rope velocity impulses, bounded by maxForce; no native impulse joints',
+    joints: 'default game-owned centre spring forces and rope velocity impulses bounded by maxForce; opt-in native centre spring impulse joints are uncapped evaluation-only',
     limitations: [
       'Force-limited rope can stretch past length under saturation or subsequent contact; it has no hard positional constraint.',
       'Rope stiffness and damping fields are unused; rope applies the bounded impulse needed to enforce its length.',
       'Centre anchors only; joint forces do not produce torque.',
+      'Native springs do not support finite maxForce and are not an approved hook/rope contract.',
       'Rapier CCD can miss fast relative motion between two moving CCD bodies.',
       'Rapier shape casts use current poses and do not include target motion during the query.',
       'Contact and cast thresholds are limited by Rapier floating-point precision at distant coordinates.',
@@ -136,6 +147,11 @@ export async function createWorld(scene, options = {}) {
 
   function removeJoint(id) {
     ensure();
+    const handle = nativeJointHandles.get(id);
+    if (handle !== undefined) {
+      native.removeImpulseJoint(native.getImpulseJoint(handle), true);
+      nativeJointHandles.delete(id);
+    }
     return joints.delete(id);
   }
 
@@ -143,7 +159,7 @@ export async function createWorld(scene, options = {}) {
     ensure();
     const record = bodies.get(id);
     if (!record) return false;
-    for (const [jointId, joint] of joints) if (joint.a === id || joint.b === id) joints.delete(jointId);
+    for (const [jointId, joint] of joints) if (joint.a === id || joint.b === id) removeJoint(jointId);
     native.removeRigidBody(rigid(record));
     colliderIds.delete(record.colliderHandle);
     bodies.delete(id);
@@ -155,6 +171,13 @@ export async function createWorld(scene, options = {}) {
     ensure();
     const joint = jointDescriptor(source, bodies);
     if (joints.has(joint.id)) throw new Error(`duplicate joint ${joint.id}`);
+    if (joint.backend === 'native') {
+      const nativeJoint = native.createImpulseJoint(
+        RAPIER.JointData.spring(joint.length / SCALE, joint.stiffness, joint.damping, ZERO, ZERO),
+        rigid(bodies.get(joint.a)), rigid(bodies.get(joint.b)), true,
+      );
+      nativeJointHandles.set(joint.id, nativeJoint.handle);
+    }
     joints.set(joint.id, joint);
     for (const id of [joint.a, joint.b]) if (dynamic(bodies.get(id))) rigid(bodies.get(id)).wakeUp();
   }
@@ -206,6 +229,7 @@ export async function createWorld(scene, options = {}) {
     }
     for (const id of sorted(joints)) {
       const joint = joints.get(id);
+      if (joint.backend === 'native') continue;
       const a = bodies.get(joint.a), b = bodies.get(joint.b);
       const ar = rigid(a), br = rigid(b);
       const ap = ar.translation(), bp = br.translation();
@@ -283,7 +307,8 @@ export async function createWorld(scene, options = {}) {
 
   function checkpoint() {
     ensure();
-    return { snapshot: native.takeSnapshot(), bodies: clone([...bodies]), joints: clone([...joints]) };
+    return { snapshot: native.takeSnapshot(), bodies: clone([...bodies]), joints: clone([...joints]),
+      nativeJointHandles: clone([...nativeJointHandles]) };
   }
 
   function restore(checkpoint) {
@@ -294,6 +319,7 @@ export async function createWorld(scene, options = {}) {
     native = replacement;
     bodies = new Map(clone(checkpoint.bodies));
     joints = new Map(clone(checkpoint.joints));
+    nativeJointHandles = new Map(clone(checkpoint.nativeJointHandles ?? []));
     colliderIds = new Map([...bodies].map(([id, record]) => [record.colliderHandle, id]));
     broadPhaseDirty = true;
   }
@@ -303,7 +329,7 @@ export async function createWorld(scene, options = {}) {
   function dispose() {
     if (disposed) return;
     native.free();
-    bodies.clear(); joints.clear(); colliderIds.clear();
+    bodies.clear(); joints.clear(); nativeJointHandles.clear(); colliderIds.clear();
     disposed = true;
   }
 

@@ -14,9 +14,11 @@ Navigation's free-space mesh ([22.6](22.6-hierarchical-navigation.md#bottom-leve
 
 References: [Phaser](https://github.com/phaserjs/phaser), [SAT.js collision response](https://github.com/jriecken/sat-js), [PathFinding.js](https://github.com/qiao/PathFinding.js), [Clipper](https://github.com/junmer/clipper-lib), [Delaunator](https://github.com/mapbox/delaunator), [Constrainautor](https://github.com/kninnug/Constrainautor).
 
-Physics design [29.1](29.1-physics-design.md) recommends evaluating Rapier 2D/WASM
-against a bounded custom candidate. [41.1](41.1-physics-plan.md) requires measured
-evidence before selection. The isolated P0 lab pins the Apache-2.0
-`@dimforge/rapier2d-compat` package at **0.21.0** as a development dependency;
-it does not replace SAT.js or initialize WASM in the game. The measured decision
-and integration limits are in [42.6](42.6-physics-comparison.md).
+Physics uses Rapier 2D/WASM as the selected development direction, pinned at
+Apache-2.0 `@dimforge/rapier2d-compat` **0.21.0**. This selection does not activate
+physics in default matches or replace SAT.js in production. The custom solver is
+retired as a candidate; its code and tests remain only as an archival comparison
+baseline. Planck.js is the reserve if Rapier integration fails or becomes
+unsustainable. The P0 comparison and retained failures are in
+[42.6](42.6-physics-comparison.md); proposed remediation gates and the remaining
+P1 decision are in [41.1](41.1-physics-plan.md).
