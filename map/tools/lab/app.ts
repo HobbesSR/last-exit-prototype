@@ -14,19 +14,19 @@ import { chainMapToBson, chainMapToJson } from "../../macro/src/chain/saving.ts"
 import type { ChainParams, PlacedSlot, SetPieceInstance } from "../../macro/src/chain/types.ts";
 import type { RegionBrief } from "../../kernel/contract.ts";
 import type { BrokenPromise } from "../../micro/diagnose.ts";
-import { elementShapes } from "../../micro/geometry.ts";
 import type { RegionElement } from "../../micro/types.ts";
 import { briefFragment } from "../../micro/brief-link.ts";
 import { designsNotUsed, drawAllocation, drawDesignGraph, drawOpenings, drawSpans, guidanceNotMet, traceSummary } from "../../micro/building/draw.ts";
 import type { BuildingTrace } from "../../micro/building/trace.ts";
 import type { RouteMeasure } from "../routes.ts";
-import { outline } from "../../../shared/shape.ts";
-import type { ObstacleKind } from "../../../shared/types.ts";
 import { liveChainParams, liveSeed } from "../../live.ts";
 import { builtMapFrame, builtPlayableArea } from "../../micro/adapter.ts";
 import { MAX_ARENA_SEED } from "../../../shared/simulation/rules.ts";
 import { chainDraft, openChainEntry, renderChainLibrary } from "./chain-author.ts";
 import type { LabReply, LabRequest } from "./worker.ts";
+import { PARTS, PART_FILL, addElementParts, partPaths } from "./parts.ts";
+import type { Part } from "./parts.ts";
+import { renderPlaceables } from "./placeables.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as T;
 const input = (id: string) => $<HTMLInputElement>(id);
@@ -350,14 +350,6 @@ function cellOutline(cells: Array<{ x: number; y: number }>): Path2D {
   return edge;
 }
 
-/** The built map's parts, by what they are, each drawn by a layer of its own. */
-type Part = "walls" | "ruins" | "cover" | "windows" | "pipes" | "doors" | "roofs";
-const PARTS: Part[] = ["walls", "ruins", "cover", "windows", "pipes", "doors", "roofs"];
-/** Every obstacle kind's part, so a new kind can't be drawn as nothing. */
-const OBSTACLE_PART: Record<ObstacleKind, Part> = {
-  building: "walls", "ruin-wall": "ruins", container: "cover", crate: "cover", tree: "cover", hedge: "cover", window: "windows", pipe: "pipes",
-};
-
 interface BuiltParts {
   /** Each part's shapes, in cell units. */
   paths: Record<Part, Path2D>;
@@ -368,44 +360,19 @@ interface BuiltParts {
 
 const noParts = (): Record<Part, number> => Object.fromEntries(PARTS.map((part) => [part, 0])) as Record<Part, number>;
 
-/**
- * The built map's colliders and gates (`elementShapes`) and roofs (an enclosing element's
- * footprint), sorted into parts. `elementShapes` gives one shape per obstacle or gate part,
- * in part order, so each shape takes the part it came from.
- */
+/** The built map's parts, each drawn by a layer of its own. */
 function buildParts(v: Views): BuiltParts {
-  const paths = Object.fromEntries(PARTS.map((part) => [part, new Path2D()])) as Record<Part, Path2D>;
-  const count = noParts(), regions: BuiltParts["regions"] = new Map();
+  const paths = partPaths(), count = noParts(), regions: BuiltParts["regions"] = new Map();
   const { cellSize } = v.built;
   for (const region of v.built.regions) {
     const own = { count: noParts(), labels: [] as string[] };
     regions.set(region.brief.id, own);
-    const add = (part: Part) => {
-      count[part]++;
-      own.count[part]++;
-    };
     for (const element of region.elements) {
       own.labels.push(element.label);
-      const drawn = element.template.parts.filter((part) => part.part === "obstacle" || part.part === "gate");
-      elementShapes(element, true).forEach((shape, i) => {
-        const source = drawn[i]!, part = source.part === "obstacle" ? OBSTACLE_PART[source.kind] : "doors";
-        outline(shape).forEach((p, j) => (j ? paths[part].lineTo(p.x / cellSize, p.y / cellSize) : paths[part].moveTo(p.x / cellSize, p.y / cellSize)));
-        paths[part].closePath();
-        add(part);
+      addElementParts(element, cellSize, paths, (part) => {
+        count[part]++;
+        own.count[part]++;
       });
-      if (element.template.roofs?.length) {
-        for (const roof of element.template.roofs) {
-          const rx = (element.x + (roof.origin?.x ?? 0)) / cellSize;
-          const ry = (element.y + (roof.origin?.y ?? 0)) / cellSize;
-          for (const c of roof.cells) {
-            paths.roofs.rect(rx + c.x, ry + c.y, 1, 1);
-          }
-          add("roofs");
-        }
-      } else if (element.template.encloses) {
-        paths.roofs.rect(element.x / cellSize, element.y / cellSize, element.template.w / cellSize, element.template.h / cellSize);
-        add("roofs");
-      }
     }
   }
   return { paths, count, regions };
@@ -544,7 +511,8 @@ function typeColour(type: string): Rgb {
 }
 
 /** One part of the built map, filled in its colour. */
-function partLayer(part: Part, label: string, fill: string, legend: string): Layer {
+function partLayer(part: Part, label: string, legend: string): Layer {
+  const fill = PART_FILL[part];
   return {
     id: part, pass: "areas", label, stage: "built", on: true, opacity: 1,
     legend: () => [[legend, fill]],
@@ -827,7 +795,7 @@ const LAYERS: Layer[] = [
   traceLayer("openings", "Drill-down: openings", "marks", true, drawOpenings),
   traceLayer("graph", "Drill-down: design graph", "marks", false, drawDesignGraph),
   {
-    ...partLayer("walls", "Building walls", "#c3ccc7", "building wall"),
+    ...partLayer("walls", "Building walls", "building wall"),
     inspect: (_, { built }) => {
       if (!built) return [];
       const own = parts?.regions.get(built.brief.id);
@@ -837,13 +805,12 @@ const LAYERS: Layer[] = [
       ];
     },
   },
-  partLayer("ruins", "Ruin walls and rubble", "#9b8a72", "ruin wall"),
-  partLayer("cover", "Cover", "#6e9a72", "container, crate, tree or hedge"),
-  partLayer("windows", "Windows", "#6fc8ff", "window"),
-  partLayer("pipes", "Pipe runs", "#c79a5b", "pipe run"),
-  // Chain maps place every door closed and unlocked (micro's adapter), so one colour says it.
-  partLayer("doors", "Doors", "#d66955", "door, closed"),
-  { ...partLayer("roofs", "Roofs", "#7a4f74", "roof"), on: false, opacity: 0.6 },
+  partLayer("ruins", "Ruin walls and rubble", "ruin wall"),
+  partLayer("cover", "Cover", "container, crate, tree or hedge"),
+  partLayer("windows", "Windows", "window"),
+  partLayer("pipes", "Pipe runs", "pipe run"),
+  partLayer("doors", "Doors", "door, closed"),
+  { ...partLayer("roofs", "Roofs", "roof"), on: false, opacity: 0.6 },
   {
     id: "loot", pass: "marks", label: "Loot", stage: "built", on: false, opacity: 1,
     legend: () => [["loot", "#f2ca55"]],
@@ -1298,7 +1265,7 @@ function renderInspector(): void {
     const button = Object.assign(element("button", link.label, "full"), { type: "button" });
     button.onclick = () => {
       link.open();
-      if (link.chain) showTab(true);
+      if (link.chain) showTab("chain");
     };
     return button;
   }));
@@ -1368,16 +1335,21 @@ input("seed").onkeydown = (event) => {
   if (event.key === "Enter") generateMap();
 };
 
-function showTab(chain: boolean): void {
-  $("worldView").hidden = chain;
-  $("chainViewContainer").hidden = !chain;
-  $("worldTab").classList.toggle("active", !chain);
-  $("chainTab").classList.toggle("active", chain);
-  if (chain) renderChainLibrary();
+type Tab = "world" | "chain" | "placeables";
+function showTab(tab: Tab): void {
+  $("worldView").hidden = tab !== "world";
+  $("chainViewContainer").hidden = tab !== "chain";
+  $("placeablesView").hidden = tab !== "placeables";
+  $("worldTab").classList.toggle("active", tab === "world");
+  $("chainTab").classList.toggle("active", tab === "chain");
+  $("placeablesTab").classList.toggle("active", tab === "placeables");
+  if (tab === "chain") renderChainLibrary();
+  else if (tab === "placeables") renderPlaceables($("placeablesView"));
   else resize();
 }
-$("worldTab").onclick = () => showTab(false);
-$("chainTab").onclick = () => showTab(true);
+$("worldTab").onclick = () => showTab("world");
+$("chainTab").onclick = () => showTab("chain");
+$("placeablesTab").onclick = () => showTab("placeables");
 
 let drag: { x: number; y: number; camera: typeof camera; moved: boolean } | null = null;
 canvas.onpointerdown = (event) => {
