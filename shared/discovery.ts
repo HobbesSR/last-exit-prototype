@@ -1,7 +1,7 @@
-import { insideMap, litPoint, visibilityPolygon } from './movement.ts';
+import { gateShape, insideMap, litPoint, visibilityPolygon } from './movement.ts';
 import { MAX_VIEW_HEIGHT, MAX_VIEW_WIDTH, roofConceals } from './view.ts';
 import { nextVersion } from './frame-layers.ts';
-import type { CollisionMap, DiscoveryMemory, DiscoveryWire, GameMap, Gate, ItemId, Player, PlayerId, Role, Vec2, World } from './types.ts';
+import type { CollisionMap, DiscoveryMemory, DiscoveryWire, GameMap, Gate, GateObservation, ItemId, Player, PlayerId, Role, Vec2, World } from './types.ts';
 export type { DiscoveryMemory, DiscoveryWire };
 
 /** The side length of a coarse discovery cell in world units (4 x 48 map cells). */
@@ -94,8 +94,9 @@ export function isFeatureDiscovered(memory: DiscoveryMemory | null | undefined, 
  * - **Dynamic state** needs line of sight. With `observe` (bots, #230), one visibility polygon marks the
  *   cells whose centres are lit and not roof-concealed as `memory.seen`, which a bot searches against,
  *   and updates `memory.items`: items in sight are remembered, and a remembered item whose spot is seen
- *   empty is forgotten.
- * Returns the newly discovered cell indices.
+ *   empty is forgotten. Doors in sight are remembered as they stand (`memory.gates`), and every cell
+ *   the view window covers is `memory.surveyed`, the layout navigation may treat as known (22.6).
+ * Returns the newly discovered cell indices; `memory.revision` counts each sample that changed anything.
  */
 export function discover(
   memory: DiscoveryMemory,
@@ -106,19 +107,24 @@ export function discover(
 ): number[] {
   const { cols, rows } = discoveryGrid(map);
   const newlyDiscovered: number[] = [];
+  let changed = false;
   const mark = (idx: number) => { if (!memory.discovered.has(idx)) { memory.discovered.add(idx); newlyDiscovered.push(idx); } };
-  const cells = (halfWidth: World, halfHeight: World, visit: (idx: number, cx: World, cy: World) => void) => {
+  const cells = (halfWidth: World, halfHeight: World, visit: (idx: number, cx: World, cy: World) => void, anyGround = false) => {
     const minCol = Math.max(0, Math.floor((eye.x - halfWidth) / DISCOVERY_CELL_SIZE));
     const maxCol = Math.min(cols - 1, Math.floor((eye.x + halfWidth) / DISCOVERY_CELL_SIZE));
     const minRow = Math.max(0, Math.floor((eye.y - halfHeight) / DISCOVERY_CELL_SIZE));
     const maxRow = Math.min(rows - 1, Math.floor((eye.y + halfHeight) / DISCOVERY_CELL_SIZE));
     for (let row = minRow; row <= maxRow; row++) for (let col = minCol; col <= maxCol; col++) {
       const cx = col * DISCOVERY_CELL_SIZE + DISCOVERY_CELL_SIZE / 2, cy = row * DISCOVERY_CELL_SIZE + DISCOVERY_CELL_SIZE / 2;
-      if (Math.abs(cx - eye.x) <= halfWidth && Math.abs(cy - eye.y) <= halfHeight && insideMap(map, cx, cy)) visit(row * cols + col, cx, cy);
+      if (Math.abs(cx - eye.x) <= halfWidth && Math.abs(cy - eye.y) <= halfHeight && (anyGround || insideMap(map, cx, cy))) visit(row * cols + col, cx, cy);
     }
   };
 
   cells(DISCOVERY_VIEW.halfWidth, DISCOVERY_VIEW.halfHeight, mark);
+  if (observe) {
+    const surveyed = memory.surveyed ??= new Set();
+    cells(DISCOVERY_VIEW.halfWidth, DISCOVERY_VIEW.halfHeight, idx => { if (!surveyed.has(idx)) { surveyed.add(idx); changed = true; } }, true);
+  }
   // A landmark's beacon shows over walls and roofs, so its cell is discovered from much further away.
   for (const landmark of landmarks(map)) {
     if ((landmark.x - eye.x) ** 2 + (landmark.y - eye.y) ** 2 > BEACON_RADIUS ** 2) continue;
@@ -148,9 +154,31 @@ export function discover(
       }
       for (const [id, item] of items) if (!present.has(id) && sees(item.x, item.y)) items.delete(id);
     }
+    // A door is seen at the point of its outline nearest the eye, a unit toward the eye, so a closed door's own face does not hide it.
+    for (const gate of map.gates) {
+      const box = gateShape(gate);
+      const nx = Math.max(box.x, Math.min(box.x + box.w, eye.x)), ny = Math.max(box.y, Math.min(box.y + box.h, eye.y));
+      const dx = eye.x - nx, dy = eye.y - ny, d = Math.hypot(dx, dy);
+      if (d <= radius && sees(d > 1 ? nx + dx / d : eye.x, d > 1 ? ny + dy / d : eye.y)) changed = observeGate(memory, gate, false) || changed;
+    }
   }
 
+  if (changed || newlyDiscovered.length) memory.revision = (memory.revision ?? 0) + 1;
   return newlyDiscovered;
+}
+
+/**
+ * Remember a door as it stands, seen or tried (22.6, "Doors"). Returns whether the memory
+ * changed; `bump` counts the change in `memory.revision` at once, for an observation made
+ * outside a discovery sample, such as an interaction.
+ */
+export function observeGate(memory: DiscoveryMemory, gate: Pick<Gate, 'id' | 'open' | 'locked'>, bump = true): boolean {
+  const gates = memory.gates ??= new Map(), seen: GateObservation | undefined = gates.get(gate.id);
+  const locked = !!gate.locked;
+  if (seen && seen.open === gate.open && seen.locked === locked) return false;
+  gates.set(gate.id, { open: gate.open, locked });
+  if (bump) memory.revision = (memory.revision ?? 0) + 1;
+  return true;
 }
 
 /**
