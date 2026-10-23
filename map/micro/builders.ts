@@ -1,8 +1,9 @@
 import { polygon, rect } from '../../shared/shape.ts';
 import { microMetrics } from './metrics.ts';
+import { EXAMPLE_ROOM_SHELL } from './placeables/example-room-shell.ts';
+import { expectPlaced } from './placeables/placeable.ts';
 import type { Shape } from '../../shared/shape.ts';
 import type { Box, Vec2 } from '../../shared/types.ts';
-import type { ElementTemplate } from '../../shared/map/element.ts';
 import type { BuilderContext, BuilderId, RegionBuilder, RegionRandom } from './types.ts';
 
 const WALL = 18;
@@ -11,33 +12,6 @@ const clamp = (value: number, low: number, high: number): number => Math.max(low
 const densityOf = (context: BuilderContext): number => clamp(context.spec.parameters?.density ?? .55, 0, 1);
 const roomCellsOf = (context: BuilderContext): number => clamp(Math.round(context.spec.parameters?.roomCells ?? 6), 4, 12);
 const decayOf = (context: BuilderContext): number => clamp(context.spec.parameters?.decay ?? .35, 0, 1);
-
-/** A roofed room with a south doorway wide enough for the navigation grid and both player roles. */
-function roomTemplate(w: number, h: number, shelves: boolean, door: number): ElementTemplate {
-  const DOOR = door;
-  const doorX = Math.round(w / 2);
-  const left = Math.round((w - DOOR) / 2);
-  const parts: ElementTemplate['parts'] = [
-    { part: 'obstacle', shape: rect(0, 0, Math.round(w * .28), WALL), kind: 'building' },
-    { part: 'obstacle', shape: rect(Math.round(w * .28), 0, Math.round(w * .3), WALL), kind: 'window' },
-    { part: 'obstacle', shape: rect(Math.round(w * .58), 0, w - Math.round(w * .58), WALL), kind: 'building' },
-    { part: 'obstacle', shape: rect(0, WALL, WALL, h - WALL), kind: 'building' },
-    { part: 'obstacle', shape: rect(w - WALL, WALL, WALL, h - WALL), kind: 'building' },
-    { part: 'obstacle', shape: rect(0, h - WALL, left, WALL), kind: 'building' },
-    { part: 'obstacle', shape: rect(left + DOOR, h - WALL, w - left - DOOR, WALL), kind: 'building' },
-    { part: 'gate', x: doorX, y: h - WALL / 2, w: DOOR, h: WALL },
-    { part: 'spot', x: Math.round(w * .28), y: Math.round(h * .35) },
-    { part: 'spot', x: Math.round(w * .72), y: Math.round(h * .58) },
-  ];
-  if (shelves) {
-    // Aisles remain at least 105 wide from the walls and doorway approach.
-    const leftShelfH = Math.max(36, h - 176), rightShelfH = Math.max(36, h - 206);
-    parts.splice(7, 0,
-      { part: 'obstacle', shape: rect(58, 82, 46, leftShelfH), kind: 'container' },
-      { part: 'obstacle', shape: rect(w - 104, 112, 46, rightShelfH), kind: 'container' });
-  }
-  return { w, h, encloses: true, parts };
-}
 
 const pickAnchors = (context: BuilderContext, widthCells: number, heightCells: number, random: RegionRandom): Box[] =>
   random.shuffle(context.mask.rectangles(widthCells, heightCells));
@@ -62,7 +36,8 @@ function placeRooms(context: BuilderContext, label: string, count: number, shelv
   for (const box of anchors.slice(0, 100)) {
     if (placed >= count) break;
     const point = randomAnchor(box, w, h, random);
-    if (context.element(`${label}-${placed + 1}`, roomTemplate(w, h, shelves, microMetrics(context.spec).doorway), point.x, point.y)) {
+    const room = expectPlaced(EXAMPLE_ROOM_SHELL.build({ w, h, shelves, door: microMetrics(context.spec).doorway }, context.spec.cellSize));
+    if (context.element(`${label}-${placed + 1}`, room.elements[0]!.template, point.x, point.y)) {
       offerRoomLoot(context, point.x, point.y, w, h);
       placed++;
     }
@@ -128,7 +103,8 @@ const courtyard: RegionBuilder = context => {
   for (const box of candidates.slice(0, 100)) {
     if (placed === target) break;
     const point = randomAnchor(box, w, h, random);
-    if (context.element(`courtyard-room-${placed + 1}`, roomTemplate(w, h, false, microMetrics(context.spec).doorway), point.x, point.y)) {
+    const room = expectPlaced(EXAMPLE_ROOM_SHELL.build({ w, h, shelves: false, door: microMetrics(context.spec).doorway }, context.spec.cellSize));
+    if (context.element(`courtyard-room-${placed + 1}`, room.elements[0]!.template, point.x, point.y)) {
       offerRoomLoot(context, point.x, point.y, w, h);
       placed++;
     }

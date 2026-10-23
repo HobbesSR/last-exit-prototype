@@ -13,7 +13,7 @@ import { libraryFingerprint } from "../../macro/src/coding.ts";
 import { planBlock } from "../../micro/strategies/block.ts";
 import { chainMapToBson, chainMapToJson } from "../../macro/src/chain/saving.ts";
 import { mapViews } from "../../macro/src/chain/map.ts";
-import { GAME_ENGINES } from "../engines.ts";
+import { DEFAULT_CELL_SIZE, GAME_ENGINES } from "../engines.ts";
 import { measureRoutes } from "../routes.ts";
 import { liveChainParams } from "../../live.ts";
 import { PLACEABLES } from "../../micro/placeables/index.ts";
@@ -2028,7 +2028,10 @@ try {
     for (let i = 0; i < placeable.examples.length; i++) assert.equal(await painted(thumbs.nth(i)), true, `${id} example ${i + 1} is drawn`);
     assert.equal(await painted(view.locator(".placeable-preview")), true, `${id} is previewed`);
     assert.equal(await view.locator("[name]").count(), placeable.params.length, `${id} edits each parameter`);
-    assert.match(await view.locator(".readout").innerText(), /^Demand: body \d+ × \d+ cells/);
+    const example = placeable.build(placeable.examples[0], DEFAULT_CELL_SIZE);
+    assert.ok(!('refused' in example), `${id} has a buildable first example`);
+    assert.ok((await view.locator(".readout").innerText()).startsWith(
+      `Demand: body ${example.demand.body.w} × ${example.demand.body.h} cells`), `${id} shows its exact demand, including fractional cells`);
   }
   await view.locator('[data-placeable="house"]').click();
   assert.match(await view.locator(".readout").innerText(), /, clear \d+ × \d+ at \(/, "a house demands its doorstep");

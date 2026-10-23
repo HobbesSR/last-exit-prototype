@@ -1,5 +1,6 @@
-import { CELL_SCALE } from '../../kernel/scale.ts';
 import { rect } from '../../../shared/shape.ts';
+import { RUBBLE_DEBRIS } from '../placeables/rubble-debris.ts';
+import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
@@ -34,9 +35,12 @@ export function buildRubble(brief: RegionBrief): BuiltRegion {
   for (const cell of mask.cells) {
     if ((cell.x & 1) || (cell.y & 1) || draw(brief.seed, cell.x, cell.y, 1) >= density) continue;
     const squeeze = draw(brief.seed, cell.x, cell.y, 2) < squeezeShare;
-    const width = (squeeze ? 2 - CELL_SCALE.squeeze : 0.1) * brief.cellSize;
-    const shape = rect((cell.x + .5) * brief.cellSize - width / 2,
-      (cell.y + .5) * brief.cellSize - width / 2, width, width);
+    const built = expectPlaced(RUBBLE_DEBRIS.build({ squeeze }, brief.cellSize));
+    const local = (built.elements[0]!.template.parts[0] as { shape: Shape }).shape;
+    if (local.kind !== 'rect') throw new Error('Rubble debris must be a rectangle.');
+    // Preserve the centre-first arithmetic of the legacy absolute-shape record.
+    const shape = rect((cell.x + .5) * brief.cellSize - local.w / 2,
+      (cell.y + .5) * brief.cellSize - local.h / 2, local.w, local.h);
     if (!mask.contains(shape) || protectedShapes.some(keep => shapesOverlap(shape, keep))) continue;
     const label = `rubble-${cell.x}-${cell.y}`;
     elements.push({ label, x: 0, y: 0, template: { w: mask.bounds.w, h: mask.bounds.h,

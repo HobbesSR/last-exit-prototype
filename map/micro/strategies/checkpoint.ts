@@ -1,5 +1,5 @@
-import { rect } from '../../../shared/shape.ts';
 import type { BuildingObserver } from '../building/trace.ts';
+import { CHECKPOINT_BARRIER } from '../placeables/checkpoint-barrier.ts';
 import { WAREHOUSE } from '../placeables/warehouse.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot } from './scatter.ts';
@@ -161,8 +161,8 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
       const [from, to] = low ? [lo, hi - AISLE] : [lo + AISLE, hi];
       const box: Box = alongX ? { x: column + (1 - THICK) / 2, y: from, w: THICK, h: to - from }
         : { x: from, y: column + (1 - THICK) / 2, w: to - from, h: THICK };
-      const element: RegionElement = { label: `checkpoint-barrier-${barriers.length + 1}`, x: box.x * size, y: box.y * size,
-        template: { w: box.w * size, h: box.h * size, parts: [{ part: 'obstacle', kind: 'ruin-wall', shape: rect(0, 0, box.w * size, box.h * size) }] } };
+      const [element] = placedElements(expectPlaced(CHECKPOINT_BARRIER.build({ w: box.w, h: box.h }, size)),
+        `checkpoint-barrier-${barriers.length + 1}`, box.x, box.y, size) as [RegionElement];
       elements.push(element);
       if (holds(blockers())) barriers.push(box); else elements.pop();
     }

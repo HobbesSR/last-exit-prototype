@@ -1,7 +1,9 @@
-import { polygon, rect } from '../../../shared/shape.ts';
+import { rect } from '../../../shared/shape.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import { largestRectangle } from './hall.ts';
 import { WAREHOUSE } from '../placeables/warehouse.ts';
+import { PLANT_MACHINE } from '../placeables/plant-machine.ts';
+import { PLANT_PIPE_RUN } from '../placeables/plant-pipe-run.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
@@ -21,11 +23,11 @@ const AISLE = CELL_SCALE.doorway;
 const PERIOD = 8, BAND = PERIOD - AISLE;
 const DEFAULT_DENSITY = 0.6, DEFAULT_SHED = 0.5;
 /** A machine's sides in cells, and how far its body stands inside them. */
-const MACHINE_MIN = 2, MACHINE_MAX = 4, INSET = 0.05;
+const MACHINE_MIN = 2, MACHINE_MAX = 4;
 /** How much of a machine's corner a chamfer cuts, in cells, and the chance a machine has one. */
-const CHAMFER = 0.5, CHAMFERED = 0.5;
+const CHAMFERED = 0.5;
 /** The chance two neighbouring machines are joined, and a pipe's thickness in cells, centred in its row. */
-const JOINED = 0.7, PIPE = 0.3;
+const JOINED = 0.7;
 /** How far a pipe reaches into the machines it joins, in cells, so it meets a chamfered face. */
 const SEAT = 0.5;
 /** The shed's size in slots: two by one, one by two, or two by two. */
@@ -95,9 +97,6 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
   const key = (x: number, y: number) => `${x},${y}`;
 
   const elements: RegionElement[] = [];
-  const place = (label: string, box: Box, parts: RegionElement['template']['parts'], encloses = false) =>
-    elements.push({ label, x: box.x * size, y: box.y * size, template: { w: box.w * size, h: box.h * size, ...encloses ? { encloses } : {}, parts } });
-
   // The shed, at the first block of slots in a seeded order whose box fits.
   const shedSlots = new Set<string>();
   let sheds = 0, designed = 0;
@@ -135,7 +134,8 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
     if (!clear(box)) continue;
     machines.set(key(slot.x, slot.y), box);
     const chamfered = draw(brief.seed, slot.x, slot.y, CHANNEL.chamfer) < CHAMFERED;
-    place(`plant-machine-${machines.size}`, box, [{ part: 'obstacle', shape: machine(size, w, h, chamfered), kind: 'container' }]);
+    const built = expectPlaced(PLANT_MACHINE.build({ w, h, chamfered }, size));
+    elements.push(...placedElements(built, `plant-machine-${machines.size}`, box.x, box.y, size));
   }
 
   // Pipe runs between neighbouring machines, across then down, each with one door-wide gap.
@@ -161,16 +161,14 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
           if (!accessMask.has(x, y)) runRing = false;
       if (!runRing) continue;
       // Local to the run's box, which reaches SEAT into each machine.
-      const stubs: [number, number][] = [[-SEAT, gap], [gap + AISLE, length + SEAT]];
-      const parts = stubs.filter(([s, e]) => e - s > SEAT).map(([s, e]) => ({ part: 'obstacle' as const, kind: 'pipe' as const,
-        shape: across ? rect((s + SEAT) * size, (0.5 - PIPE / 2) * size, (e - s) * size, PIPE * size)
-          : rect((0.5 - PIPE / 2) * size, (s + SEAT) * size, PIPE * size, (e - s) * size) }));
+      const built = expectPlaced(PLANT_PIPE_RUN.build({ length, gap, aisle: AISLE, across }, size));
+      const parts = built.elements[0]!.template.parts;
       if (!parts.length) continue;
       const seated = across ? { ...run, x: run.x - SEAT, w: run.w + 2 * SEAT } : { ...run, y: run.y - SEAT, h: run.h + 2 * SEAT };
       const shapes = elementShapes({ label: 'pipe-trial', x: seated.x * size, y: seated.y * size,
         template: { w: seated.w * size, h: seated.h * size, parts } });
       if (shapes.some(shape => !mask.contains(shape) || protectedShapes.some(keep => shapesOverlap(shape, keep)))) continue;
-      place(`plant-pipe-${++pipes}`, seated, parts);
+      elements.push(...placedElements(built, `plant-pipe-${++pipes}`, seated.x, seated.y, size));
     }
   }
 
@@ -181,13 +179,4 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
     manifest: { cells: brief.cells.length, structures: sheds, obstacles: parts.filter(p => p.part === 'obstacle').length,
       gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0,
       machines: machines.size, pipes, sheds, designed } };
-}
-
-/** A machine's body in a `w` × `h` cell box: a block a little inside it, its corners cut when `chamfered`. */
-function machine(size: number, w: number, h: number, chamfered: boolean): Shape {
-  const x0 = INSET * size, y0 = INSET * size, x1 = (w - INSET) * size, y1 = (h - INSET) * size;
-  if (!chamfered) return rect(x0, y0, x1 - x0, y1 - y0);
-  const c = CHAMFER * size;
-  return polygon(0, 0, [{ x: x0 + c, y: y0 }, { x: x1 - c, y: y0 }, { x: x1, y: y0 + c }, { x: x1, y: y1 - c },
-    { x: x1 - c, y: y1 }, { x: x0 + c, y: y1 }, { x: x0, y: y1 - c }, { x: x0, y: y0 + c }]);
 }
