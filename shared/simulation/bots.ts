@@ -10,7 +10,7 @@ import { carriedCell, syncWeapon } from '../equipment.ts';
 import { GATE_REACH, HZ } from './rules.ts';
 import { distance, center, clearRoute } from './geometry.ts';
 import { visibleTo } from './visibility.ts';
-import { attack } from './combat.ts';
+import { attack, utilityApplies, utilityOutcome } from './combat.ts';
 import { dropEquipment } from './loot.ts';
 import type { CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, MatchContent, Player, PlayerInput, Role, Tick, TileCount, TileIndex, Vec2, World } from '../types.ts';
 
@@ -338,7 +338,8 @@ export interface BotIntent {
   discardSlot?: number;
 }
 
-/** Decide from the current world without applying equipment, utility, or drop effects. */
+/** Collect equipment/utility/drop intents without applying them; private planning memory,
+ * routes, sliced searches and their shared per-tick allowance may still change. */
 export function collectBotIntent(s: Game, p: Player): BotIntent { return decideBot(s, p, true); }
 
 /** Legacy bot behavior, including its pre-movement side effects. */
@@ -357,8 +358,9 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
       intent.input.slot = selected;
       if (utility >= 0 && p.attackCd <= 0 && p.role === 'contestant') {
         const item = p.inventory[utility]!;
-        if (item.kind === 'med' && p.hp < p.maxHp) effectiveHp = Math.min(p.maxHp, p.hp + 40);
-        if ((item.kind === 'med' && p.hp < p.maxHp || item.kind === 'shield' && p.shield < 75)) {
+        const outcome = utilityOutcome(p, item);
+        if (outcome && utilityApplies(p, item)) {
+          effectiveHp = outcome.hp;
           intent.utilitySlot = utility;
           if (item.count <= 1) spentUtility = utility;
         }

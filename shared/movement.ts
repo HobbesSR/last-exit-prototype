@@ -201,13 +201,18 @@ export function sweptClear(map: CollisionMap, a: Vec2, b: Vec2, radius: World): 
 }
 /** A player's collision radius: what movement slides and what a placed body must fit. */
 export const bodyRadius = (p: Pick<Player, 'role'>): World => p.role === 'gladiator' ? 23 : 12;
-export function movePlayer(map: CollisionMap, p: Player, input: PlayerInput): Player {
-  count('calls.movePlayer');
-  let speed = p.role === 'contestant' ? 9 : 8;
+/** Movement distance in world units per legacy tick. Scale the base before modifiers to retain
+ * the existing floating-point order when a caller needs units per second. */
+export function movementSpeed(p: Pick<Player, 'role' | 'boost' | 'stun'>, input: Pick<PlayerInput, 'sneak'>, unitScale = 1): World {
+  let speed = (p.role === 'contestant' ? 9 : 8) * unitScale;
   if (p.boost) speed *= p.role === 'contestant' ? 1.45 : 1.5;
   if (p.stun) speed *= 0.35;
   if (input.sneak && p.role === 'contestant') speed *= 0.55;
-  return moveBody(map, p, input, bodyRadius(p), speed);
+  return speed;
+}
+export function movePlayer(map: CollisionMap, p: Player, input: PlayerInput): Player {
+  count('calls.movePlayer');
+  return moveBody(map, p, input, bodyRadius(p), movementSpeed(p, input));
 }
 
 /** Shared SAT sliding for tools and actors with explicit body dimensions. Input is normalized here. */

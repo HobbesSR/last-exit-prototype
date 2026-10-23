@@ -1,5 +1,6 @@
 import { createGame } from './state.ts';
-import { bodyRadius, canOccupy, reachClear } from '../movement.ts';
+import { bodyRadius, canOccupy, reachClear, movementSpeed } from '../movement.ts';
+import { HZ } from './rules.ts';
 import { syncWeapon, rearrangeEquipment } from '../equipment.ts';
 import { collectBotIntent } from './bots.ts';
 import type { BotIntent } from './bots.ts';
@@ -10,14 +11,13 @@ import { solvePhysicsProjectiles } from './physics-projectiles.ts';
 import { interact, advanceCharging } from './interactions.ts';
 import { automaticPickups, dropEquipment, effect } from './loot.ts';
 import { stepTraps } from '../traps.ts';
-import { DISCOVERY_INTERVAL, discover } from '../discovery.ts';
+import { advanceTick, advanceTimers, applyEnvironment, advanceDiscovery } from './tick-rules.ts';
 import { recordRewind } from './rewind.ts';
 import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
 import { attachPhysics, physicsRuntime, PHYSICS_VERSION } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GameMap, MatchContent, Player, Vec2 } from '../types.ts';
 
-const timers = ['cooldown', 'attackCd', 'railCd', 'cloak', 'revealed', 'boost', 'stun'] as const;
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const actorId = (p: Player) => `actor:${p.id}`;
 const ordered = (s: Game) => [...s.players].sort((a, b) => compare(a.id, b.id));
@@ -109,12 +109,10 @@ export function stepPhysics(s: Game): void {
   if (!r) throw new Error('physics world missing or disposed');
   if (s.phase !== 'live') return;
   // 1: all timers and previous-boundary lifecycle, before anyone decides.
-  s.tick++;
-  s.hazardX = Math.round(-80 + Math.max(0, s.tick - s.content.hazardGraceTicks) / (s.content.durationTicks - s.content.hazardGraceTicks) * (s.map.width + 100));
-  s.effects = s.effects.filter(e => --e.life > 0);
+  advanceTick(s);
   for (const p of s.players) {
     p.movedThisTick = 0; respawn(s, p);
-    if (p.status === 'active') for (const key of timers) p[key] = Math.max(0, p[key] - 1);
+    if (p.status === 'active') advanceTimers(p);
   }
   synchronize(s, r);
   s.projectiles.push(...r.pendingSpawns.splice(0));
@@ -141,10 +139,7 @@ export function stepPhysics(s: Game): void {
     if (discard !== undefined && p.inventory?.[discard]) { dropEquipment(s, p, p.inventory[discard]!); p.inventory[discard] = null; p.charging = null; syncWeapon(p, s.content.weapons); }
     if (input.skill && p.kit !== 'warden') skill(s, p);
     if (input.attack && p.role === 'contestant') attack(s, p);
-    let speed = p.role === 'contestant' ? 180 : 160;
-    if (p.boost) speed *= p.role === 'contestant' ? 1.45 : 1.5;
-    if (p.stun) speed *= 0.35;
-    if (input.sneak && p.role === 'contestant') speed *= 0.55;
+    const speed = movementSpeed(p, input, HZ);
     const x = input.x ?? 0, y = input.y ?? 0, length = Math.max(1, Math.hypot(x, y));
     r.world.setMotor(actorId(p), { x: x / length * speed, y: y / length * speed, accel: 3600 });
   }
@@ -175,8 +170,7 @@ export function stepPhysics(s: Game): void {
     automaticPickups(s, p, input);
   }
   for (const p of ordered(s)) if (p.status === 'active') {
-    if (p.x < s.hazardX && s.tick % 5 === 0) damage(s, p, 9, null);
-    if (s.tick % 12 === 0 && s.map.hazards.some(h => p.x > h.x && p.x < h.x + h.w && p.y > h.y && p.y < h.y + h.h)) damage(s, p, 5, null);
+    applyEnvironment(s, p);
   }
   const admittedProjectiles = s.projectiles.length;
   stepTraps(s, damage, effect);
@@ -184,9 +178,6 @@ export function stepPhysics(s: Game): void {
   if (r.pendingSpawns.length > 128) throw new RangeError('pending projectile capacity');
   // 7: next-boundary body state, discovery, terminal result, rewind and capture readiness.
   synchronize(s, r);
-  if (s.content.discovery) for (let i = 0; i < s.players.length; i++) {
-    const p = s.players[i]!;
-    if (p.role === 'contestant' && p.discovery && p.status === 'active' && (s.tick + i) % DISCOVERY_INTERVAL === 0) discover(p.discovery, s.map, p, undefined, p.bot);
-  }
+  advanceDiscovery(s);
   finishMatch(s); synchronize(s, r); recordRewind(s);
 }
