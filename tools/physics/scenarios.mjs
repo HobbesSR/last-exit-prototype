@@ -97,7 +97,7 @@ export function bodySpeedCap(radius, substeps) {
 export function admitMotion(bodies, substeps) {
   for (const body of bodies) {
     if (body.kind === 'static') continue;
-    const radius = body.shape === 'box' ? Math.min(body.hx, body.hy) : body.radius;
+    const radius = body.shape === 'box' ? Math.min(body.hx, body.hy) : (body.radius ?? 8);
     const speed = Math.hypot(body.vx ?? 0, body.vy ?? 0);
     if (!Number.isFinite(speed) || speed > bodySpeedCap(radius, substeps))
       return { admitted: false, id: body.id, speed, cap: bodySpeedCap(radius, substeps), route: 'swept-query-or-explicit-teleport' };

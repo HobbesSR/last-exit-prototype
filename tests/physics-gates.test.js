@@ -17,6 +17,8 @@ test('motion admission bounds size and refuses excess speed before simulation', 
     }
   }
   assert.equal(admitMotion([{ id: 'bad', kind: 'actor', radius: 12, vx: Infinity }], 4).admitted, false);
+  assert.equal(admitMotion([{ id: 'default-radius', kind: 'actor', vx: 512 }], 4).admitted, true);
+  assert.equal(admitMotion([{ id: 'default-radius', kind: 'actor', vx: 513 }], 4).admitted, false);
 });
 
 test('speculative contacts keep offset capped pairs inside the actor overlap bound', async () => {
@@ -52,7 +54,7 @@ test('static recovery tracks each pair and resets only when it recovers', () => 
   assert.equal(m.summary().staticUnrecoveredPairs, 0);
 });
 
-test('revised stiff native springs settle without growth; old fixture inputs stay legal', async () => {
+test('revised springs settle; contact and far-coordinate witnesses start legally', async () => {
   const rows = await correctness('rapier', { only: ['spring-decay', 'native-spring-stiff-2000', 'native-spring-stiff-20000', 'dense-doorway-queue', 'distant-coordinates'] });
   for (const row of rows) {
     assert.equal(row.numericalGate, true, `${row.scenario}/${row.substeps}`);

@@ -11,7 +11,7 @@ import { digest } from './common.mjs';
 import { queryBenchmark } from './queries.mjs';
 
 const args=new Map(process.argv.slice(2).map(s=>s.replace(/^--/,'').split('=')));
-const out=args.get('out')??'test-results/physics-437.json';
+const out=args.get('out')??'test-results/physics-451.json';
 const mode=args.get('mode')??'correctness';
 if(!['correctness','node','browser','all'].includes(mode))throw Error('mode must be correctness, node, browser or all');
 const samples=Number(args.get('samples')??100),warmup=Number(args.get('warmup')??20);

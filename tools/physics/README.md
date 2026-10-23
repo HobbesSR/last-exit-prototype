@@ -15,6 +15,12 @@ npm run physics:report -- --mode=browser --out=test-results/physics-browser.json
 npm run physics:report -- --mode=correctness --browser --queries --out=test-results/physics-supplement.json
 ```
 
+On npm versions that reject forwarded `--mode` flags, use the direct equivalent:
+`node --expose-gc tools/physics/report.mjs --mode=all --queries --out=test-results/physics-451.json`.
+Focused cost repetitions: `node tools/physics/repeat-timing.mjs test-results/physics-451-repeats.json`.
+Optional visual QA (Python/matplotlib): `python tools/physics/plot-springs.py test-results/physics-451.json docs/reports/physics-451-springs.png`.
+The retained revised measurements and limitations are in [42.9](../../docs/42.9-physics-remediation.md).
+
 The physics test files also run in the normal fast tier through `tests/*.test.js`.
 
 `node` measures the full actor × prop × tether × sparse/clustered × substep
