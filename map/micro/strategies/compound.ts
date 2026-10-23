@@ -1,4 +1,4 @@
-import { OPPOSITE, type Side } from '../port-terms.ts';
+import type { Side } from '../port-terms.ts';
 import { largestRectangle } from './hall.ts';
 import { cellLoot } from './scatter.ts';
 import { draw } from '../random.ts';
@@ -6,15 +6,12 @@ import { createAccessMask, createFillMask, createRegionMask, elementShapes } fro
 import { boxesAgainstHints } from '../hints.ts';
 import { portalStands } from '../portals.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
-import { OUTSIDE } from '../building/design.ts';
-import type { BuildingAllocation, BuildingDesign } from '../building/design.ts';
-import { splitBuilding } from '../building/pieces.ts';
-import { reachableRoofGroups } from '../building/groups.ts';
-import { realizeBuilding } from '../building/realize.ts';
 import type { BuildingObserver } from '../building/trace.ts';
-import { rect } from '../../../shared/shape.ts';
+import { COMPOUND_RING } from '../placeables/compound-ring.ts';
+import { demandShapes, expectPlaced, placedElements } from '../placeables/placeable.ts';
+import type { Demand } from '../placeables/placeable.ts';
 import type { Shape } from '../../../shared/shape.ts';
-import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
+import type { BuiltRegion, RegionBrief } from '../types.ts';
 import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
 import { createAddressedArea } from '../addressed.ts';
@@ -27,18 +24,15 @@ const MIN_SIDE = 10;
 const MAX_SIDE = 24;
 /** How deep the ring of rooms is, in cells: a hunter fits inside, between quarter-cell walls. */
 const DEPTH = 3;
-/** The least length of a room along its side, in cells, and the range a side's rooms aim for. */
-const MIN_ROOM = 3, MAX_ROOM = 5;
+const MIN_ROOM = 3;
 const MIN_GATES = 1, MAX_GATES = 4, DEFAULT_GATES = 2;
-/** Wall thickness, in cells, as `hut`'s are. */
-const WALL = 0.25;
 /** A gate's passage through the ring: a doorway (52). */
 const PASSAGE = CELL_SCALE.doorway;
 
 const SIDES: readonly Side[] = ['N', 'E', 'S', 'W'];
 
 /** Per-side draw channels, so no choice shifts another. */
-const CHANNEL = { offset: 1, gateSide: 2, gateAt: 3, room: 4, loot: 5 };
+const CHANNEL = { offset: 1, gateSide: 2, gateAt: 3, loot: 5 };
 
 /** A box in the compound's own cells. */
 interface Box { x: number; y: number; w: number; h: number }
@@ -240,102 +234,40 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
   if (!site) return context.empty('compound has no ring with reachable yard gates');
   const { x: bx, y: by, w: W, h: H, gated } = site;
 
-  // The ring in the box's own cells. A side's middle runs between the corner rooms; `strip` is the box `length` long from `t` along it, `DEPTH` deep.
-  const strip = (side: Side, t: number, length: number): Box => {
-    switch (side) {
-      case 'N': return { x: DEPTH + t, y: 0, w: length, h: DEPTH };
-      case 'S': return { x: DEPTH + t, y: H - DEPTH, w: length, h: DEPTH };
-      case 'W': return { x: 0, y: DEPTH + t, w: DEPTH, h: length };
-      case 'E': return { x: W - DEPTH, y: DEPTH + t, w: DEPTH, h: length };
-    }
-  };
-  const rooms: { id: string; box: Box; side?: Side }[] = [
-    { id: 'room-1', box: { x: 0, y: 0, w: DEPTH, h: DEPTH } }, { id: 'room-2', box: { x: W - DEPTH, y: 0, w: DEPTH, h: DEPTH } },
-    { id: 'room-3', box: { x: 0, y: H - DEPTH, w: DEPTH, h: DEPTH } }, { id: 'room-4', box: { x: W - DEPTH, y: H - DEPTH, w: DEPTH, h: DEPTH } },
-  ];
-  const passages: { id: string; box: Box; side: Side }[] = [];
-  for (const [i, side] of SIDES.entries()) {
-    const middle = (side === 'N' || side === 'S' ? W : H) - 2 * DEPTH;
-    // A gate's passage is PASSAGE wide at a seeded place, widened to the corner where what's left is too short for a room.
-    let segments: [number, number][] = [[0, middle]];
-    if (gated.has(side)) {
-      let a = Math.floor(draw(brief.seed, i, 1, CHANNEL.gateAt) * (middle - PASSAGE + 1)), b = a + PASSAGE;
-      if (a < MIN_ROOM) a = 0;
-      if (middle - b < MIN_ROOM) b = middle;
-      passages.push({ id: `gate-${side}`, box: strip(side, a, b - a), side });
-      segments = [[0, a], [b, middle]];
-    }
-    const aim = MIN_ROOM + Math.floor(draw(brief.seed, i, 2, CHANNEL.room) * (MAX_ROOM - MIN_ROOM + 1));
-    for (const [from, to] of segments) {
-      const span = to - from;
-      if (!span) continue;
-      // Lengths as even as whole cells allow, each at least MIN_ROOM.
-      const count = Math.max(1, Math.min(Math.floor(span / MIN_ROOM), Math.round(span / aim)));
-      for (let k = 0; k < count; k++) {
-        const t0 = from + Math.floor(span * k / count), t1 = from + Math.floor(span * (k + 1) / count);
-        rooms.push({ id: `room-${rooms.length + 1}`, box: strip(side, t0, t1 - t0), side });
-      }
-    }
-  }
-  const cellsOf = ({ x, y, w, h }: Box) => Array.from({ length: w * h }, (_, i) => ({ x: x + i % w, y: y + Math.floor(i / w) }));
-  const spaces = [...rooms, ...passages];
-  const allocation: BuildingAllocation = { footprint: spaces.flatMap(s => cellsOf(s.box)), spaces: spaces.map(s => ({ id: s.id, cells: cellsOf(s.box) })) };
-  const at = (x: number, y: number) => spaces.find(({ box }) => x >= box.x && x < box.x + box.w && y >= box.y && y < box.y + box.h)!.id;
-  const widths: Record<string, number> = {};
-  const design: BuildingDesign = {
-    spaces: spaces.map(({ id, box }) => ({ id, area: { min: box.w * box.h, max: box.w * box.h }, outside: 'any',
-      tags: [id.startsWith('gate') ? 'passage' : 'room'] })),
-    connections: [
-      // Each side's rooms open onto the court; each corner room only into its neighbour along the north or south side.
-      ...rooms.filter(room => room.side).map(room => ({ id: `${room.id}-court`, a: room.id, b: OUTSIDE, kind: 'door' as const, side: OPPOSITE[room.side!] })),
-      { id: 'room-1-door', a: 'room-1', b: at(DEPTH, 0), kind: 'door' }, { id: 'room-2-door', a: 'room-2', b: at(W - DEPTH - 1, 0), kind: 'door' },
-      { id: 'room-3-door', a: 'room-3', b: at(DEPTH, H - 1), kind: 'door' }, { id: 'room-4-door', a: 'room-4', b: at(W - DEPTH - 1, H - 1), kind: 'door' },
-      // A passage has a door in the outer wall and lies open to the court along its whole length.
-      ...passages.flatMap(({ id, box, side }) => {
-        widths[`${id}-court`] = side === 'N' || side === 'S' ? box.w : box.h;
-        return [{ id, a: id, b: OUTSIDE, kind: 'door' as const, side }, { id: `${id}-court`, a: id, b: OUTSIDE, kind: 'open' as const, side: OPPOSITE[side] }];
-      }),
-    ],
-  };
-  const realization = realizeBuilding(design, allocation, { cellSize: size, thickness: WALL, encloses: false, exteriorOrder: SIDES, corners: 'horizontal', clear: passages.map(passage => passage.id), widths, decalTheme: 'compound' });
-  const split = realization.template && splitBuilding(realization, allocation, { cellSize: size, roofed: rooms.map(room => room.id),
-    groupId: reachableRoofGroups(realization, allocation, brief.id) });
-  // The ring's design always fits. A miss here is an implementation defect, not a new fallback.
-  if (!split || realization.issues.length || realization.misses.length || split.issues.length) throw new Error('The compound ring could not be realized.');
+  const gatedBits = SIDES.reduce((bits, side, i) => bits | (gated.has(side) ? 1 << i : 0), 0);
+  const ring = expectPlaced(COMPOUND_RING.build({ w: W, h: H, gates: gatedBits, seed: brief.seed }, size));
+  const { design, allocation, realization, rooms, passages } = ring.details;
+  // The placeable gives local roof-group suffixes; the builder scopes them to this region.
+  for (const element of ring.elements) for (const roof of element.template.roofs ?? [])
+    if (roof.groupId) roof.groupId = brief.id + roof.groupId;
   observe?.({ label: 'compound', origin: { x: bx * size, y: by * size }, cellSize: size, design, allocation, realization });
-
-  const elements: RegionElement[] = split.pieces.map(piece => ({ label: `compound-${piece.space}`,
-    x: bx * size + piece.origin.x, y: by * size + piece.origin.y, template: piece.template }));
+  const elements = placedElements(ring, 'compound', bx, by, size);
   const parts = elements.flatMap(element => element.template.parts);
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
-  // Use the realized opening centers, including half-cell centers, rather than
-  // assuming a passage's midpoint is the actual outer door.
-  const steps: { x: number; y: number }[] = [];
-  for (const passage of passages) {
-    const opening = realization.openings.find(o => o.connectionId === passage.id)!;
-    const along = (opening.run.axis === 'h' ? opening.run.x : opening.run.y) + opening.center - 1;
-    steps.push(...gateYardStands(site, passage.side, along));
-  }
-  const yard = exteriorYard(brief, site, steps);
+  const steps = ring.details.steps.map(step => ({ x: bx + step.x, y: by + step.y }));
+  const yard = exteriorYard(brief, site, steps, ring.demand);
   if (yard.offers.length) context.delegate(yard.offers, { blockers: pieces, protectedCells: yard.protectedCells });
   brief = context.brief;
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
-    manifest: { cells: brief.cells.length, structures: rooms.length, obstacles: parts.filter(p => p.part === 'obstacle').length,
-      gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0, rooms: rooms.length, compoundGates: passages.length } };
+    manifest: { cells: brief.cells.length, structures: rooms, obstacles: parts.filter(p => p.part === 'obstacle').length,
+      gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0, rooms, compoundGates: passages.length } };
 }
 
 /** Compound authorship: retain the complete court/ring, approach and perimeter;
  * reserve a swept standing-block tree to every portal and actual gate stand. */
-function exteriorYard(brief: RegionBrief, box: Box, gates: { x: number; y: number }[]):
+function exteriorYard(brief: RegionBrief, box: Box, gates: { x: number; y: number }[], demand: Demand):
   { offers: PatchOffer[]; protectedCells: RegionBrief['cells'] } {
   const key = (x: number, y: number) => `${x},${y}`;
   const owned = createRegionMask(brief), fill = createFillMask(brief), access = createAccessMask(brief);
   const inside = (x: number, y: number, pad = 0) => x >= box.x - pad && x < box.x + box.w + pad
     && y >= box.y - pad && y < box.y + box.h + pad;
   const area = createAddressedArea(owned), size = brief.cellSize, protectedKeys = new Set<string>();
-  // The complete box and its two-cell approach band, then non-fill cells and the perimeter band.
-  area.mark(rect((box.x - 2) * size, (box.y - 2) * size, (box.w + 4) * size, (box.h + 4) * size));
+  // Grant the ring and gate stands first. Keep the same two-cell approach band
+  // without asking the addressed area to overlap that demand.
+  if (!area.markAll(demandShapes(demand, box.x, box.y, size))) throw new Error('Compound ring demand overlaps itself.');
+  if (!area.markCells(owned.cells.filter(c => inside(c.x, c.y, 2) && !area.addressed(c.x, c.y))))
+    throw new Error('Compound approach band overlaps its demand.');
   area.markCells(owned.cells.filter(c => !area.addressed(c.x, c.y) && (!fill.has(c.x, c.y)
     || [-2, -1, 1, 2].some(d => !owned.has(c.x + d, c.y) || !owned.has(c.x, c.y + d)))));
   // Inherited clear margins may be thin interior strips. They stay reserved;

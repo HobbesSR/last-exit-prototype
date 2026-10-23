@@ -1,5 +1,5 @@
 import type { Side } from '../port-terms.ts';
-import { circle, rect } from '../../../shared/shape.ts';
+import { circle } from '../../../shared/shape.ts';
 import { rng } from '../index.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
@@ -7,7 +7,7 @@ import { portalStands } from '../portals.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { HOUSE } from '../placeables/house.ts';
 import type { HouseDetails } from '../placeables/house.ts';
-import { placedElements } from '../placeables/placeable.ts';
+import { demandShapes, placedElements } from '../placeables/placeable.ts';
 import type { Placed } from '../placeables/placeable.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types.ts';
@@ -136,8 +136,12 @@ function yardOffers(brief: RegionBrief, site: Site): PatchOffer[] {
   const { w, h } = site.house.demand.body;
   const inHouse = (x: number, y: number) => x >= site.x && x < site.x + w && y >= site.y && y < site.y + h;
   const area = createAddressedArea(owned), size = brief.cellSize;
-  // The house and its two-cell yard, then non-fill cells and the two-cell perimeter band around it.
-  area.mark(rect((site.x - BODY) * size, (site.y - BODY) * size, (w + 2 * BODY) * size, (h + 2 * BODY) * size));
+  // Grant the house and its doorstep, then keep the same two-cell yard band
+  // without overlapping the demand already recorded.
+  if (!area.markAll(demandShapes(site.house.demand, site.x, site.y, size))) throw new Error('House demand overlaps itself.');
+  if (!area.markCells(owned.cells.filter(c => c.x >= site.x - BODY && c.x < site.x + w + BODY
+    && c.y >= site.y - BODY && c.y < site.y + h + BODY && !area.addressed(c.x, c.y))))
+    throw new Error('House yard band overlaps its demand.');
   area.markCells(owned.cells.filter(c => !area.addressed(c.x, c.y) && (!fill.has(c.x, c.y)
     || [-2, -1, 1, 2].some(d => !owned.has(c.x + d, c.y) || !owned.has(c.x, c.y + d)))));
   const fits = (x: number, y: number) => {

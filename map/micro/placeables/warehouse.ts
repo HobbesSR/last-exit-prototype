@@ -4,6 +4,7 @@ import type { BuildingRealization } from '../building/realize.ts';
 import { OUTSIDE } from '../building/design.ts';
 import type { BuildingAllocation, BuildingDesign, BuildingSide } from '../building/design.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
+import type { Box } from '../../../shared/types.ts';
 import { oriented } from './frame.ts';
 import type { Placeable } from './placeable.ts';
 
@@ -115,9 +116,36 @@ export interface WarehouseParams {
 /** What a warehouse's build reports beyond its geometry, for tools: its design and the designs passed over. */
 export type WarehouseDetails = Omit<Warehouse, 'template'>;
 
+/** Two-cell-deep stands outside every exterior door; coalesce overlapping stands on an end. */
+function doorsteps(realization: BuildingRealization, w: number, h: number): Box[] {
+  const ends = new Map<BuildingSide, { from: number; to: number }[]>();
+  for (const opening of realization.openings) {
+    if (opening.kind !== 'door' || opening.a !== OUTSIDE && opening.b !== OUTSIDE) continue;
+    const { run, center } = opening;
+    const side: BuildingSide = run.axis === 'h' ? (run.y === 0 ? 'N' : 'S') : (run.x === 0 ? 'W' : 'E');
+    const start = (run.axis === 'h' ? run.x : run.y) + center - 1;
+    const intervals = ends.get(side) ?? [];
+    intervals.push({ from: Math.floor(start), to: Math.ceil(start) + 2 });
+    ends.set(side, intervals);
+  }
+  const clear: Box[] = [];
+  for (const [side, intervals] of ends) {
+    const merged: { from: number; to: number }[] = [];
+    for (const interval of intervals.sort((a, b) => a.from - b.from)) {
+      const last = merged.at(-1);
+      if (last && interval.from <= last.to) last.to = Math.max(last.to, interval.to);
+      else merged.push({ ...interval });
+    }
+    for (const { from, to } of merged) clear.push(side === 'N' ? { x: from, y: -2, w: to - from, h: 2 }
+      : side === 'S' ? { x: from, y: h, w: to - from, h: 2 }
+        : side === 'W' ? { x: -2, y: from, w: 2, h: to - from } : { x: w, y: from, w: 2, h: to - from });
+  }
+  return clear;
+}
+
 export const WAREHOUSE = Object.freeze<Placeable<WarehouseParams, WarehouseDetails>>({
   id: 'warehouse',
-  version: 'warehouse-1',
+  version: 'warehouse-2',
   summary: 'A roofed warehouse with two doors out, an office and store where they fit, and shelf islands on its floor.',
   params: [
     { name: 'w', summary: 'Width in cells.', kind: 'int', min: 5, max: 32 },
@@ -133,6 +161,6 @@ export const WAREHOUSE = Object.freeze<Placeable<WarehouseParams, WarehouseDetai
   ],
   build({ w, h, alongX, seed }: WarehouseParams, cellSize: number) {
     const { template, ...details } = warehouse(cellSize, w, h, alongX, seed);
-    return { elements: [{ x: 0, y: 0, template }], demand: { body: { w, h }, clear: [] }, details };
+    return { elements: [{ x: 0, y: 0, template }], demand: { body: { w, h }, clear: doorsteps(details.realization, w, h) }, details };
   },
 });

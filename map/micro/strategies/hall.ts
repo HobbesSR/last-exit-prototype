@@ -1,4 +1,6 @@
 import { rect } from '../../../shared/shape.ts';
+import { HALL_PILLAR, HALL_PILLAR_INSET as INSET } from '../placeables/hall-pillar.ts';
+import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
@@ -11,8 +13,6 @@ import type { BuiltRegion, RegionBrief, RegionMask } from '../types.ts';
 const MIN_SIDE = 6;
 /** A pillar stands on a 2 × 2 block of cells, as mapgen's `pillar-hall` blocks did. */
 const BLOCK = 2;
-/** How far a pillar stands inside its block, in cells, as `hut`'s house does inside its box. */
-const INSET = 0.25;
 /**
  * Cells from one pillar's block to the next. The least leaves an aisle of 2½ cells between
  * pillars, a doorway (52) with room for the sampled route search (20).
@@ -64,7 +64,10 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
   const [us, ul, vs, vl] = staggerRows ? [box.x, box.w, box.y, box.h] : [box.y, box.h, box.x, box.w];
   // Centre the lattice across: the slack past the last whole line is split between the two ends.
   const ou = us + Math.floor((ul - BLOCK) % spacing / 2), ov = vs + Math.floor((vl - BLOCK) % spacing / 2);
-  const span = (BLOCK - 2 * INSET) * size;
+  const pillar = expectPlaced(HALL_PILLAR.build({}, size));
+  const local = (pillar.elements[0]!.template.parts[0] as { shape: Shape }).shape;
+  if (local.kind !== 'rect') throw new Error('A hall pillar must be a rectangle.');
+  const span = local.w;
 
   const parts: ElementTemplate['parts'] = [], pillars: Shape[] = [];
   for (let v = ov, line = 0; v + BLOCK <= vs + vl; v += spacing, line++) {

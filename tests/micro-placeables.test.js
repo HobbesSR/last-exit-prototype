@@ -5,6 +5,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { PLACEABLES, buildPlaceable } from '../map/micro/placeables/index.ts';
 import { demandShapes, placeableErrors, placedElements } from '../map/micro/placeables/placeable.ts';
 import { HOUSE } from '../map/micro/placeables/house.ts';
+import { WAREHOUSE } from '../map/micro/placeables/warehouse.ts';
 import { createAddressedArea } from '../map/micro/addressed.ts';
 import { createRegionMask } from '../map/micro/geometry.ts';
 import { bounds } from '../shared/shape.ts';
@@ -20,11 +21,22 @@ const MACHINERY = new Set(['index.ts', 'placeable.ts', 'frame.ts']);
  * and `REGION_TYPES_VERSION`, then update both here (20.8).
  */
 const PINNED = {
-  warehouse: ['warehouse-1', 'bd986fb4e98e10eb'],
+  warehouse: ['warehouse-2', '909410dc06fd461f'],
   'container-row': ['container-row-1', '9840d185b0ad635e'],
   house: ['house-1', 'c41930e3e9dfa4d7'],
   'cover-piece': ['cover-piece-1', '86aac37c1290a2fa'],
   'wall-run': ['wall-run-1', 'b561356f4a5ad4c6'],
+  'compound-ring': ['compound-ring-1', '095003e5438bad82'],
+  'checkpoint-barrier': ['checkpoint-barrier-1', 'de6b024a4cea7410'],
+  'example-room-shell': ['example-room-shell-1', '27464143c2deb445'],
+  'fallen-slab': ['fallen-slab-1', '714ae94d6dcc1fbb'],
+  'hall-pillar': ['hall-pillar-1', 'f16b2fc1db46654b'],
+  'ruin-room-span': ['ruin-room-span-1', '05cc9a34bef0eb9a'],
+  'rubble-debris': ['rubble-debris-1', '209ff412b34fdc6a'],
+  'park-tree': ['park-tree-1', '92d74038005d8c5a'],
+  'park-hedge-run': ['park-hedge-run-1', '53e26ff94e80e196'],
+  'plant-machine': ['plant-machine-1', '8975ce930b7a04e3'],
+  'plant-pipe-run': ['plant-pipe-run-1', '3c4eed0ac5a59880'],
 };
 
 const digest = placeable => createHash('sha256').update(JSON.stringify(placeable.examples.map(params => {
@@ -101,6 +113,26 @@ test('a house that cannot fit its spaces is refused, not thrown', () => {
   const result = HOUSE.build({ w: 3, h: 6, door: 'N', spaces: 3, seed: 1 }, SIZE);
   assert.ok('refused' in result);
   assert.match(result.refused, /3-space house/);
+});
+
+test('warehouse door demands cover both whole-cell stands and merge adjacent doorsteps', () => {
+  for (const params of WAREHOUSE.examples) {
+    const { demand, details } = WAREHOUSE.build(params, SIZE);
+    for (const door of details.realization.openings.filter(o => o.kind === 'door' && (o.a === 'outside' || o.b === 'outside'))) {
+      const { run } = door, horizontal = run.axis === 'h';
+      const start = (horizontal ? run.x : run.y) + door.center - 1;
+      for (const along of new Set([Math.floor(start), Math.ceil(start)])) {
+        const step = horizontal ? { x: along, y: run.y === 0 ? -2 : params.h }
+          : { x: run.x === 0 ? -2 : params.w, y: along };
+        assert.ok(demand.clear.some(b => b.x <= step.x && b.y <= step.y && b.x + b.w >= step.x + 2 && b.y + b.h >= step.y + 2),
+          `${door.connectionId} has its complete two-cell stand`);
+      }
+    }
+  }
+  const merged = WAREHOUSE.build({ w: 6, h: 8, alongX: false, seed: 2 }, SIZE);
+  assert.deepEqual(merged.demand.clear, [{ x: 0, y: -2, w: 3, h: 2 }, { x: 0, y: 8, w: 6, h: 2 }]);
+  const separated = WAREHOUSE.build({ w: 10, h: 8, alongX: true, seed: 7 }, SIZE);
+  assert.equal(separated.demand.clear.filter(b => b.x === 10).length, 2, 'separated doors retain their gap');
 });
 
 test('parameters are checked against their specs, then the placeable\'s own rules', () => {

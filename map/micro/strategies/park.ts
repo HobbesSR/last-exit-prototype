@@ -1,4 +1,7 @@
-import { circle, rect } from '../../../shared/shape.ts';
+import { rect } from '../../../shared/shape.ts';
+import { PARK_TREE } from '../placeables/park-tree.ts';
+import { PARK_HEDGE_RUN } from '../placeables/park-hedge-run.ts';
+import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
@@ -15,17 +18,14 @@ const AISLE = CELL_SCALE.doorway;
 const PERIOD = 6, BAND = PERIOD - AISLE;
 const DEFAULT_DENSITY = 0.6, DEFAULT_HEDGES = 0.2;
 /** A tree's footprint in cells, how much of it the trunk and crown fill, and the most trees in a clump. */
-const TREE = 2, TREE_REACH = 0.75, CLUMP = 3;
+const TREE = 2, CLUMP = 3;
 /** A hedge run spans two slots: a slot, the aisle after it, and the next slot's band. Its thickness is in cells, centred in its row. */
-const HEDGE_LENGTH = PERIOD + BAND, HEDGE_THICK = 0.4;
+const HEDGE_LENGTH = PERIOD + BAND;
 
 /** Per-cell draw channels, so no choice shifts another. */
 const CHANNEL = { phaseX: 1, phaseY: 2, hedge: 3, hedgeTurn: 4, hedgeRow: 5, hedgeGap: 6, clump: 7, count: 8, treeX: 9, treeY: 10, loot: 11 };
 /** A clump's tries: each draws its own place, so a tree dropped for overlap never shifts the next. */
 const TRY = (n: number, channel: number) => channel * 8 + n;
-
-/** A length to a thousandth of a world unit, so float noise stays out of a saved map without a small cell size rounding a thin piece to nothing. */
-const thousandth = (value: number) => Math.round(value * 1000) / 1000;
 
 type Box = { x: number; y: number; w: number; h: number };
 
@@ -92,11 +92,8 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
     taken.add(key(slot.x, slot.y)).add(next);
     // The gap leaves at least a cell of hedge each side.
     const gap = 1 + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.hedgeGap) * (HEDGE_LENGTH - AISLE - 1));
-    const stubs: [number, number][] = [[0, gap], [gap + AISLE, HEDGE_LENGTH]];
-    const parts = stubs.map(([s, e]) => ({ part: 'obstacle' as const, kind: 'hedge' as const,
-      shape: across ? rect(s * size, thousandth((0.5 - HEDGE_THICK / 2) * size), (e - s) * size, thousandth(HEDGE_THICK * size))
-        : rect(thousandth((0.5 - HEDGE_THICK / 2) * size), s * size, thousandth(HEDGE_THICK * size), (e - s) * size) }));
-    elements.push({ label: `park-hedge-${++hedges}`, x: box.x * size, y: box.y * size, template: { w: box.w * size, h: box.h * size, parts } });
+    const built = expectPlaced(PARK_HEDGE_RUN.build({ length: HEDGE_LENGTH, gap, aisle: AISLE, across }, size));
+    elements.push(...placedElements(built, `park-hedge-${++hedges}`, box.x, box.y, size));
   }
 
   // A clump in each other slot that rolls under `density`, if its footprint fits.
@@ -118,9 +115,8 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
     taken.add(key(slot.x, slot.y));
     clumps++;
     for (const f of footprints) {
-      const middle = TREE * size / 2;
-      elements.push({ label: `park-tree-${++trees}`, x: f.x * size, y: f.y * size,
-        template: { w: TREE * size, h: TREE * size, parts: [{ part: 'obstacle', kind: 'tree', shape: circle(middle, middle, thousandth(TREE_REACH * size)) }] } });
+      const built = expectPlaced(PARK_TREE.build({}, size));
+      elements.push(...placedElements(built, `park-tree-${++trees}`, f.x, f.y, size));
     }
   }
 

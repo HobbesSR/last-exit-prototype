@@ -3,6 +3,17 @@ import { COVER_PIECE } from './cover-piece.ts';
 import { HOUSE } from './house.ts';
 import { WALL_RUN } from './wall-run.ts';
 import { WAREHOUSE } from './warehouse.ts';
+import { COMPOUND_RING } from './compound-ring.ts';
+import { CHECKPOINT_BARRIER } from './checkpoint-barrier.ts';
+import { EXAMPLE_ROOM_SHELL } from './example-room-shell.ts';
+import { FALLEN_SLAB } from './fallen-slab.ts';
+import { HALL_PILLAR } from './hall-pillar.ts';
+import { RUIN_ROOM_SPAN } from './ruin-room-span.ts';
+import { RUBBLE_DEBRIS } from './rubble-debris.ts';
+import { PARK_TREE } from './park-tree.ts';
+import { PARK_HEDGE_RUN } from './park-hedge-run.ts';
+import { PLANT_MACHINE } from './plant-machine.ts';
+import { PLANT_PIPE_RUN } from './plant-pipe-run.ts';
 import { placeableErrors } from './placeable.ts';
 import type { Placeable, Placed, Refusal } from './placeable.ts';
 
@@ -17,6 +28,17 @@ export const PLACEABLES: Readonly<Record<string, Placeable<any, unknown>>> = Obj
   [HOUSE.id]: HOUSE,
   [COVER_PIECE.id]: COVER_PIECE,
   [WALL_RUN.id]: WALL_RUN,
+  [COMPOUND_RING.id]: COMPOUND_RING,
+  [CHECKPOINT_BARRIER.id]: CHECKPOINT_BARRIER,
+  [EXAMPLE_ROOM_SHELL.id]: EXAMPLE_ROOM_SHELL,
+  [FALLEN_SLAB.id]: FALLEN_SLAB,
+  [HALL_PILLAR.id]: HALL_PILLAR,
+  [RUIN_ROOM_SPAN.id]: RUIN_ROOM_SPAN,
+  [RUBBLE_DEBRIS.id]: RUBBLE_DEBRIS,
+  [PARK_TREE.id]: PARK_TREE,
+  [PARK_HEDGE_RUN.id]: PARK_HEDGE_RUN,
+  [PLANT_MACHINE.id]: PLANT_MACHINE,
+  [PLANT_PIPE_RUN.id]: PLANT_PIPE_RUN,
 });
 
 /**
