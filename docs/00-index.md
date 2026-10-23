@@ -60,7 +60,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [20-micro-generation.md](20-micro-generation.md) | Guide to micro contracts, geometry, builders, decomposition, tools, passable margins (20.6) builder delegation (20.7: preparation/execution, hut and compound adoption implemented), placeables (20.8) and a builder's usual structure (20.9); load the relevant 20.x part |
 | [21-stack.md](21-stack.md) | Chosen components, why, and the constraints a replacement must satisfy |
 | [22-ownership.md](22-ownership.md) | Guide to ownership by subsystem and the boundaries tests enforce; load the relevant 22.x part |
-| [22.6-hierarchical-navigation.md](22.6-hierarchical-navigation.md) | Direction recorded, not built: portal-graph navigation over a navmesh, private map knowledge and optimistic bot planning (#353) |
+| [22.6-hierarchical-navigation.md](22.6-hierarchical-navigation.md) | Portal graph (#420) over a free-space mesh (#422), built but not adopted; private map knowledge and optimistic bot planning still direction only (#353) |
 | [22.7-content-and-presentation.md](22.7-content-and-presentation.md) | Content/presentation and shared-rule ownership (#385, implemented in #386): display descriptors, live/replay metadata, client configuration and compatibility defaults |
 | [23-types.md](23-types.md) | The TypeScript arrangement in `shared/`, branding policy, erasure |
 | [24-networking-privacy.md](24-networking-privacy.md) | Server authority, potential visibility, field contracts, spectator delay |
@@ -94,6 +94,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.4-chain-checkpoint-history.md](42.4-chain-checkpoint-history.md) | Dated chain captures and their input provenance; active compatibility remains in 53 |
 | [42.5-portal-graph.md](42.5-portal-graph.md) | Portal graph stage 1 (#420): swept promise confirmation, table and query costs, route stretch |
 | [42.6-physics-comparison.md](42.6-physics-comparison.md) | Physics P0 (#437): common witnesses, solver comparison, failed gates and integration limits |
+| [42.7-navigation-mesh.md](42.7-navigation-mesh.md) | Free-space mesh as navigation's bottom level (#422): promise confirmation against the grid, build time and memory, table and route costs |
 
 ### 5x — Map generation
 

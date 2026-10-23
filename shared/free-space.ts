@@ -290,8 +290,8 @@ export interface FreePath {
 /**
  * Shortest-corridor paths from `from` to each of `targets`, or null for a target the mesh cannot
  * reach. An endpoint outside the free space enters it through `entry`, within `reach`. One search
- * over edge crossings, each costed from the one before to its nearest point, finds every target's corridor; the funnel
- * algorithm pulls each taut.
+ * over edge crossings, each costed from the one before to its nearest point, finds every target's
+ * corridor; the funnel algorithm pulls each taut.
  */
 export function freePaths(space: FreeSpace, from: Vec2, targets: readonly Vec2[], reach: World): (FreePath | null)[] {
   const start = entry(space, from, reach);
@@ -311,13 +311,13 @@ export function freePaths(space: FreeSpace, from: Vec2, targets: readonly Vec2[]
   // Each state's crossing point: the nearest point of its edge to the crossing before, which
   // follows a taut path far better than edge midpoints do across large triangles.
   const where = new Float64Array(states * 2);
-  const relax = (state: number, g: World, via: number) => { if (g < best[state]!) { best[state] = g; parent[state] = via; heap.push(state, g); return true; } return false; };
-  const enter = (state: number, from: Vec2, g: World, via: number) => {
-    // The state's edge, as its own triangle numbers it.
-    const n = Math.floor(state / 3), k = state % 3, p = closestOnSegment(from, at(space, vertexOf(space, n, k)), at(space, vertexOf(space, n, k + 1)));
-    if (relax(state, g + span(from, p), via)) { where[state * 2] = p.x; where[state * 2 + 1] = p.y; }
-  };
   const span = (a: Vec2, b: Vec2) => Math.hypot(b.x - a.x, b.y - a.y);
+  const relax = (state: number, g: World, via: number) => { if (g < best[state]!) { best[state] = g; parent[state] = via; heap.push(state, g); return true; } return false; };
+  const enter = (state: number, previous: Vec2, g: World, via: number) => {
+    // The state's edge, as its own triangle numbers it.
+    const n = Math.floor(state / 3), k = state % 3, p = closestOnSegment(previous, at(space, vertexOf(space, n, k)), at(space, vertexOf(space, n, k + 1)));
+    if (relax(state, g + span(previous, p), via)) { where[state * 2] = p.x; where[state * 2 + 1] = p.y; }
+  };
   // A state `n * 3 + k` is being in triangle n, having entered it through its edge k.
   for (const i of waiting.get(start.triangle) ?? []) relax(states + i, span(start.point, ends[i]!.point), -1);
   for (let k = 0; k < 3; k++) { const into = space.twins[start.triangle * 3 + k]!; if (into >= 0) enter(into, start.point, 0, -1); }
