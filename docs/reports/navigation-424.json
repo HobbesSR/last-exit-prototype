@@ -1,0 +1,991 @@
+{
+  "revision": "56bcda23cafb0cc6f4a92fb0a8f8e47a9de0d869",
+  "created": "2026-10-23T07:13:47.576Z",
+  "node": "v24.15.0",
+  "platform": "win32",
+  "arch": "x64",
+  "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+  "cpuCount": 24,
+  "sourceHashes": {
+    "shared/simulation/bots.ts": "c8799c11f6fc1492ea45f6c744b11c8619a8a6b88f377250997eb3d21755f64a",
+    "shared/navigation/knowledge.ts": "5d10ab1982417dc3108e5500aa5a9624f0d3551627726e931863d3699f7f74b0",
+    "shared/free-space.ts": "977209d88a3fd73951d2ca4ad262a64463687e6b7bef053faadb6020306574f4",
+    "shared/discovery.ts": "41fdb267277fc66d943cd7802e110a8c132b0c7e1550e276d86f29b0e78f7dad",
+    "shared/map/route.ts": "5548b17e20cb7266c9583ff056a3c59b67cd6954df31bc653a8143bdc3f6cb30",
+    "shared/simulation/content.ts": "6fed6ca4b7e9bfb59410a0d615c259d813d96e8a631f835e8b04f30e2e1ec973",
+    "tools/navigation/adoption-report.mjs": "0c4df24c64f6fcb85e681455bf3adb387f89fed8f6a4be818fb25fae92e18fa7"
+  },
+  "maps": [
+    {
+      "size": "12x6",
+      "seed": 1,
+      "routes": {
+        "grid": {
+          "ms": 27.84609999999998,
+          "length": 16430.43688377939,
+          "kinks": 7
+        },
+        "full": {
+          "ms": 123.7536,
+          "status": "complete",
+          "expansions": 3326,
+          "length": 16402.282639544188,
+          "stretch": 0.99828645796613,
+          "kinks": 3
+        },
+        "half": {
+          "ms": 3.4618000000000393,
+          "status": "speculative",
+          "expansions": 753,
+          "length": 16346.287564569704,
+          "stretch": 0.9948784490756444,
+          "kinks": 0
+        }
+      },
+      "matches": [
+        {
+          "content": "content-2",
+          "ticks": 2635,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 1.5736674762808307,
+          "p95Ms": 5.531800000000203,
+          "maxMs": 46.11979999999994,
+          "maxAt": 1,
+          "over50": 0,
+          "repaths": 4248,
+          "doorsOpened": 14,
+          "stalls": [
+            {
+              "name": "Rook",
+              "tick": 866,
+              "x": 6222,
+              "y": 5660
+            },
+            {
+              "name": "Juno",
+              "tick": 877,
+              "x": 6222,
+              "y": 5660
+            },
+            {
+              "name": "Nova",
+              "tick": 897,
+              "x": 6222,
+              "y": 5660
+            },
+            {
+              "name": "Patch",
+              "tick": 969,
+              "x": 6222,
+              "y": 5660
+            }
+          ]
+        },
+        {
+          "content": "content-3",
+          "ticks": 2787,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 1.0876343738787102,
+          "p95Ms": 3.1341999999995096,
+          "maxMs": 113.73059999999987,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 735,
+          "doorsOpened": 26,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 2,
+      "routes": {
+        "grid": {
+          "ms": 23.62830000000031,
+          "length": 16349.005110246722,
+          "kinks": 13
+        },
+        "full": {
+          "ms": 51.45209999999861,
+          "status": "complete",
+          "expansions": 2470,
+          "length": 16206.461821464025,
+          "stretch": 0.9912812255044585,
+          "kinks": 0
+        },
+        "half": {
+          "ms": 5.676000000001295,
+          "status": "speculative",
+          "expansions": 2111,
+          "length": 16208.918622035988,
+          "stretch": 0.9914314976803735,
+          "kinks": 0
+        }
+      },
+      "matches": [
+        {
+          "content": "content-2",
+          "ticks": 9229,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 0.7352205872792288,
+          "p95Ms": 2.5767000000014377,
+          "maxMs": 27.32420000000093,
+          "maxAt": 1,
+          "over50": 0,
+          "repaths": 22252,
+          "doorsOpened": 16,
+          "stalls": [
+            {
+              "name": "Mica",
+              "tick": 1922,
+              "x": 11634,
+              "y": 3353
+            }
+          ]
+        },
+        {
+          "content": "content-3",
+          "ticks": 2892,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 1.029625484094052,
+          "p95Ms": 2.5898999999990338,
+          "maxMs": 60.737199999999575,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 710,
+          "doorsOpened": 16,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 3,
+      "routes": {
+        "grid": {
+          "ms": 22.08060000000114,
+          "length": 16625.81988988496,
+          "kinks": 3
+        },
+        "full": {
+          "ms": 37.06459999999788,
+          "status": "complete",
+          "expansions": 1850,
+          "length": 16560.978792556336,
+          "stretch": 0.9960999759555875,
+          "kinks": 0
+        },
+        "half": {
+          "ms": 2.261500000000524,
+          "status": "speculative",
+          "expansions": 766,
+          "length": 16560.781672768,
+          "stretch": 0.9960881197109246,
+          "kinks": 0
+        }
+      },
+      "matches": [
+        {
+          "content": "content-2",
+          "ticks": 2485,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 1.3735710663984202,
+          "p95Ms": 5.07300000000032,
+          "maxMs": 28.475099999999657,
+          "maxAt": 1,
+          "over50": 0,
+          "repaths": 3567,
+          "doorsOpened": 3,
+          "stalls": []
+        },
+        {
+          "content": "content-3",
+          "ticks": 2753,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 0.7097591354885353,
+          "p95Ms": 1.9058999999979278,
+          "maxMs": 47.553899999998976,
+          "maxAt": 10,
+          "over50": 0,
+          "repaths": 649,
+          "doorsOpened": 5,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 4,
+      "routes": {
+        "grid": {
+          "ms": 22.230400000000373,
+          "length": 16725.573652741645,
+          "kinks": 13
+        },
+        "full": {
+          "ms": 52.69470000000001,
+          "status": "complete",
+          "expansions": 3230,
+          "length": 16629.813123041513,
+          "stretch": 0.9942746041667495,
+          "kinks": 1
+        },
+        "half": {
+          "ms": 2.023300000000745,
+          "status": "speculative",
+          "expansions": 1635,
+          "length": 16608.489745803745,
+          "stretch": 0.992999707551513,
+          "kinks": 2
+        }
+      },
+      "matches": [
+        {
+          "content": "content-2",
+          "ticks": 8043,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 0.7756226408056773,
+          "p95Ms": 3.1599999999998545,
+          "maxMs": 27.568500000001222,
+          "maxAt": 1,
+          "over50": 0,
+          "repaths": 19804,
+          "doorsOpened": 17,
+          "stalls": [
+            {
+              "name": "Nova",
+              "tick": 1399,
+              "x": 9123,
+              "y": 7260
+            }
+          ]
+        },
+        {
+          "content": "content-3",
+          "ticks": 2723,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 1.165582776349561,
+          "p95Ms": 3.333099999996193,
+          "maxMs": 53.135699999998906,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 725,
+          "doorsOpened": 19,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 5,
+      "routes": {
+        "grid": {
+          "ms": 25.1961999999985,
+          "length": 16715.214249077704,
+          "kinks": 8
+        },
+        "full": {
+          "ms": 152.0396999999939,
+          "status": "complete",
+          "expansions": 11481,
+          "length": 16553.859163242596,
+          "stretch": 0.9903468131828456,
+          "kinks": 3
+        },
+        "half": {
+          "ms": 3.142200000002049,
+          "status": "speculative",
+          "expansions": 2115,
+          "length": 16215.417649745821,
+          "stretch": 0.9700993004406473,
+          "kinks": 1
+        }
+      },
+      "matches": [
+        {
+          "content": "content-2",
+          "ticks": 2686,
+          "escaped": 3,
+          "eliminated": 4,
+          "meanMs": 2.119083730454196,
+          "p95Ms": 6.713000000003376,
+          "maxMs": 29.392199999994773,
+          "maxAt": 1,
+          "over50": 0,
+          "repaths": 5667,
+          "doorsOpened": 28,
+          "stalls": []
+        },
+        {
+          "content": "content-3",
+          "ticks": 3008,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 1.2075325465425086,
+          "p95Ms": 2.5939999999973224,
+          "maxMs": 91.87969999999768,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 768,
+          "doorsOpened": 32,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 6,
+      "routes": {
+        "grid": {
+          "ms": 22.711300000002666,
+          "length": 16547.827620185813,
+          "kinks": 19
+        },
+        "full": {
+          "ms": 95.87710000000516,
+          "status": "complete",
+          "expansions": 7207,
+          "length": 16475.4951174124,
+          "stretch": 0.9956288822657797,
+          "kinks": 5
+        },
+        "half": {
+          "ms": 2.0810999999957858,
+          "status": "speculative",
+          "expansions": 1362,
+          "length": 16233.928232592825,
+          "stretch": 0.9810307797012534,
+          "kinks": 2
+        }
+      },
+      "matches": [
+        {
+          "content": "content-2",
+          "ticks": 2398,
+          "escaped": 3,
+          "eliminated": 2,
+          "meanMs": 1.9344282318599109,
+          "p95Ms": 6.545500000000175,
+          "maxMs": 38.199399999997695,
+          "maxAt": 1,
+          "over50": 0,
+          "repaths": 4947,
+          "doorsOpened": 21,
+          "stalls": [
+            {
+              "name": "Rook",
+              "tick": 361,
+              "x": 3455,
+              "y": 3468
+            },
+            {
+              "name": "Pip",
+              "tick": 1588,
+              "x": 10420,
+              "y": 3822
+            },
+            {
+              "name": "Pip",
+              "tick": 1720,
+              "x": 10460,
+              "y": 3822
+            }
+          ]
+        },
+        {
+          "content": "content-3",
+          "ticks": 2520,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 1.4146905158730685,
+          "p95Ms": 3.0869999999995343,
+          "maxMs": 101.59199999999691,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 784,
+          "doorsOpened": 25,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 7,
+      "routes": {
+        "grid": {
+          "ms": 22.443399999996473,
+          "length": 16824.984907711187,
+          "kinks": 17
+        },
+        "full": {
+          "ms": 82.09619999999995,
+          "status": "complete",
+          "expansions": 4329,
+          "length": 16798.872369780354,
+          "stretch": 0.9984479904098539,
+          "kinks": 1
+        },
+        "half": {
+          "ms": 1.6709999999948195,
+          "status": "speculative",
+          "expansions": 1093,
+          "length": 16788.632085728805,
+          "stretch": 0.9978393548534049,
+          "kinks": 1
+        }
+      },
+      "matches": [
+        {
+          "content": "content-2",
+          "ticks": 1735,
+          "escaped": 0,
+          "eliminated": 8,
+          "meanMs": 1.8528165994236354,
+          "p95Ms": 7.673099999999977,
+          "maxMs": 35.98569999999745,
+          "maxAt": 1,
+          "over50": 0,
+          "repaths": 954,
+          "doorsOpened": 21,
+          "stalls": []
+        },
+        {
+          "content": "content-3",
+          "ticks": 3219,
+          "escaped": 2,
+          "eliminated": 6,
+          "meanMs": 0.9669727555140933,
+          "p95Ms": 2.851199999997334,
+          "maxMs": 90.83179999999993,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 656,
+          "doorsOpened": 21,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "12x6",
+      "seed": 8,
+      "routes": {
+        "grid": {
+          "ms": 22.395300000003772,
+          "length": 16709.116882454317,
+          "kinks": 16
+        },
+        "full": {
+          "ms": 61.84219999999914,
+          "status": "complete",
+          "expansions": 3378,
+          "length": 16611.19215498902,
+          "stretch": 0.994139443265962,
+          "kinks": 3
+        },
+        "half": {
+          "ms": 2.268100000001141,
+          "status": "speculative",
+          "expansions": 804,
+          "length": 16606.25083368779,
+          "stretch": 0.9938437172059917,
+          "kinks": 2
+        }
+      },
+      "matches": [
+        {
+          "content": "content-2",
+          "ticks": 7877,
+          "escaped": 2,
+          "eliminated": 6,
+          "meanMs": 0.7739868350895107,
+          "p95Ms": 2.687099999995553,
+          "maxMs": 40.19340000000375,
+          "maxAt": 1,
+          "over50": 0,
+          "repaths": 15223,
+          "doorsOpened": 6,
+          "stalls": [
+            {
+              "name": "Patch",
+              "tick": 1533,
+              "x": 10359,
+              "y": 4660
+            }
+          ]
+        },
+        {
+          "content": "content-3",
+          "ticks": 2302,
+          "escaped": 1,
+          "eliminated": 7,
+          "meanMs": 0.7131579496090031,
+          "p95Ms": 2.215199999991455,
+          "maxMs": 84.85190000000875,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 437,
+          "doorsOpened": 2,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "24x12",
+      "seed": 1,
+      "routes": {
+        "grid": {
+          "ms": 102.08140000001004,
+          "length": 34325.07839920552,
+          "kinks": 42
+        },
+        "full": {
+          "ms": 299.83699999999953,
+          "status": "complete",
+          "expansions": 20095,
+          "length": 33788.40391951475,
+          "stretch": 0.984364945261037,
+          "kinks": 4
+        },
+        "half": {
+          "ms": 21.025500000003376,
+          "status": "speculative",
+          "expansions": 14539,
+          "length": 33869.92918061098,
+          "stretch": 0.9867400384843673,
+          "kinks": 6
+        }
+      },
+      "matches": [
+        {
+          "content": "content-2",
+          "ticks": 4766,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 4.26441682752837,
+          "p95Ms": 19.11810000000696,
+          "maxMs": 197.55160000000615,
+          "maxAt": 1,
+          "over50": 31,
+          "repaths": 6568,
+          "doorsOpened": 22,
+          "stalls": []
+        },
+        {
+          "content": "content-3",
+          "ticks": 7329,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 2.13218725610587,
+          "p95Ms": 5.302300000010291,
+          "maxMs": 206.41210000000137,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 1565,
+          "doorsOpened": 62,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "24x12",
+      "seed": 2,
+      "routes": {
+        "grid": {
+          "ms": 107.54450000000361,
+          "length": 34890.39814681728,
+          "kinks": 44
+        },
+        "full": {
+          "ms": 273.05280000000494,
+          "status": "complete",
+          "expansions": 17902,
+          "length": 34255.37284222634,
+          "stretch": 0.9817994251049018,
+          "kinks": 8
+        },
+        "half": {
+          "ms": 18.301399999996647,
+          "status": "speculative",
+          "expansions": 12772,
+          "length": 34318.325846603766,
+          "stretch": 0.9836037325281799,
+          "kinks": 6
+        }
+      },
+      "matches": [
+        {
+          "content": "content-2",
+          "ticks": 4736,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 3.310421241554014,
+          "p95Ms": 11.354300000006333,
+          "maxMs": 68.03299999999581,
+          "maxAt": 1,
+          "over50": 1,
+          "repaths": 9665,
+          "doorsOpened": 16,
+          "stalls": []
+        },
+        {
+          "content": "content-3",
+          "ticks": 5012,
+          "escaped": 2,
+          "eliminated": 6,
+          "meanMs": 1.5484981045494441,
+          "p95Ms": 3.339899999991758,
+          "maxMs": 182.55980000001728,
+          "maxAt": 10,
+          "over50": 1,
+          "repaths": 944,
+          "doorsOpened": 9,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "24x12",
+      "seed": 3,
+      "routes": {
+        "grid": {
+          "ms": 88.74760000000242,
+          "length": 33823.671637215026,
+          "kinks": 19
+        },
+        "full": {
+          "ms": 200.15110000001732,
+          "status": "complete",
+          "expansions": 13484,
+          "length": 33592.493753804054,
+          "stretch": 0.9931652043607053,
+          "kinks": 4
+        },
+        "half": {
+          "ms": 8.301399999996647,
+          "status": "speculative",
+          "expansions": 4365,
+          "length": 33557.82143615706,
+          "stretch": 0.9921401140624407,
+          "kinks": 2
+        }
+      },
+      "matches": [
+        {
+          "content": "content-2",
+          "ticks": 6963,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 4.294963406577448,
+          "p95Ms": 10.116699999984121,
+          "maxMs": 221.21979999999166,
+          "maxAt": 1,
+          "over50": 62,
+          "repaths": 12093,
+          "doorsOpened": 52,
+          "stalls": [
+            {
+              "name": "Mica",
+              "tick": 3060,
+              "x": 23022,
+              "y": 10100
+            },
+            {
+              "name": "Rook",
+              "tick": 3945,
+              "x": 27822,
+              "y": 7980
+            },
+            {
+              "name": "Mica",
+              "tick": 4043,
+              "x": 23022,
+              "y": 10140
+            },
+            {
+              "name": "Nova",
+              "tick": 4092,
+              "x": 27822,
+              "y": 8020
+            },
+            {
+              "name": "Sol",
+              "tick": 4102,
+              "x": 27822,
+              "y": 7980
+            },
+            {
+              "name": "Mica",
+              "tick": 4171,
+              "x": 23022,
+              "y": 10180
+            },
+            {
+              "name": "Mica",
+              "tick": 5219,
+              "x": 27822,
+              "y": 7980
+            },
+            {
+              "name": "Nova",
+              "tick": 5322,
+              "x": 27822,
+              "y": 7980
+            },
+            {
+              "name": "Rook",
+              "tick": 5467,
+              "x": 27822,
+              "y": 7980
+            }
+          ]
+        },
+        {
+          "content": "content-3",
+          "ticks": 5325,
+          "escaped": 3,
+          "eliminated": 5,
+          "meanMs": 2.0663962441316954,
+          "p95Ms": 4.019299999985378,
+          "maxMs": 154.1714000000211,
+          "maxAt": 10,
+          "over50": 2,
+          "repaths": 1098,
+          "doorsOpened": 53,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "36x18",
+      "seed": 1,
+      "routes": {
+        "grid": {
+          "ms": 199.5676000000094,
+          "length": 51522.09499919749,
+          "kinks": 39
+        },
+        "full": {
+          "ms": 556.318100000004,
+          "status": "complete",
+          "expansions": 35055,
+          "length": 51244.77852096474,
+          "stretch": 0.9946175232541093,
+          "kinks": 5
+        },
+        "half": {
+          "ms": 14.931899999995949,
+          "status": "speculative",
+          "expansions": 11105,
+          "length": 51178.46129993511,
+          "stretch": 0.9933303624538611,
+          "kinks": 3
+        }
+      },
+      "matches": [
+        {
+          "content": "content-2",
+          "ticks": 12000,
+          "escaped": 0,
+          "eliminated": 7,
+          "meanMs": 3.7604055833332217,
+          "p95Ms": 12.870200000004843,
+          "maxMs": 149.2153999999864,
+          "maxAt": 1,
+          "over50": 2,
+          "repaths": 10330,
+          "doorsOpened": 63,
+          "stalls": [
+            {
+              "name": "Juno",
+              "tick": 838,
+              "x": 5262,
+              "y": 12020
+            },
+            {
+              "name": "Pip",
+              "tick": 1237,
+              "x": 8862,
+              "y": 13340
+            },
+            {
+              "name": "Juno",
+              "tick": 1500,
+              "x": 6222,
+              "y": 11420
+            },
+            {
+              "name": "Patch",
+              "tick": 1502,
+              "x": 9100,
+              "y": 13902
+            },
+            {
+              "name": "Sol",
+              "tick": 1641,
+              "x": 8862,
+              "y": 13340
+            },
+            {
+              "name": "Pip",
+              "tick": 1719,
+              "x": 9100,
+              "y": 13902
+            },
+            {
+              "name": "Juno",
+              "tick": 1911,
+              "x": 6258,
+              "y": 13140
+            },
+            {
+              "name": "Juno",
+              "tick": 2696,
+              "x": 8862,
+              "y": 13340
+            },
+            {
+              "name": "Pip",
+              "tick": 5789,
+              "x": 33700,
+              "y": 17502
+            }
+          ]
+        },
+        {
+          "content": "content-3",
+          "ticks": 8308,
+          "escaped": 3,
+          "eliminated": 3,
+          "meanMs": 5.446144631680296,
+          "p95Ms": 8.758899999957066,
+          "maxMs": 226.60069999998086,
+          "maxAt": 10,
+          "over50": 5,
+          "repaths": 2163,
+          "doorsOpened": 104,
+          "stalls": []
+        }
+      ]
+    },
+    {
+      "size": "36x18",
+      "seed": 2,
+      "routes": {
+        "grid": {
+          "ms": 221.32049999997253,
+          "length": 51767.003377143184,
+          "kinks": 38
+        },
+        "full": {
+          "ms": 691.8955999999889,
+          "status": "complete",
+          "expansions": 45769,
+          "length": 51502.39782925968,
+          "stretch": 0.9948885287804714,
+          "kinks": 11
+        },
+        "half": {
+          "ms": 37.04869999998482,
+          "status": "speculative",
+          "expansions": 24341,
+          "length": 51481.533428239236,
+          "stretch": 0.994485484376521,
+          "kinks": 5
+        }
+      },
+      "matches": [
+        {
+          "content": "content-2",
+          "ticks": 8820,
+          "escaped": 3,
+          "eliminated": 2,
+          "meanMs": 8.418140782312552,
+          "p95Ms": 20.29719999997178,
+          "maxMs": 358.9120000000112,
+          "maxAt": 1,
+          "over50": 136,
+          "repaths": 16575,
+          "doorsOpened": 162,
+          "stalls": [
+            {
+              "name": "Rook",
+              "tick": 6006,
+              "x": 41502,
+              "y": 13540
+            },
+            {
+              "name": "Echo",
+              "tick": 6334,
+              "x": 40302,
+              "y": 20620
+            },
+            {
+              "name": "Mica",
+              "tick": 6430,
+              "x": 40302,
+              "y": 20620
+            },
+            {
+              "name": "Echo",
+              "tick": 6741,
+              "x": 38658,
+              "y": 20660
+            },
+            {
+              "name": "Nova",
+              "tick": 6841,
+              "x": 41502,
+              "y": 13540
+            },
+            {
+              "name": "Echo",
+              "tick": 6876,
+              "x": 38658,
+              "y": 20620
+            },
+            {
+              "name": "Mica",
+              "tick": 7823,
+              "x": 36978,
+              "y": 20660
+            },
+            {
+              "name": "Echo",
+              "tick": 7940,
+              "x": 38730,
+              "y": 20500
+            },
+            {
+              "name": "Mica",
+              "tick": 8443,
+              "x": 36654,
+              "y": 19701
+            }
+          ]
+        },
+        {
+          "content": "content-3",
+          "ticks": 8217,
+          "escaped": 3,
+          "eliminated": 2,
+          "meanMs": 6.179397529512273,
+          "p95Ms": 9.797200000029989,
+          "maxMs": 208.16659999999683,
+          "maxAt": 10,
+          "over50": 3,
+          "repaths": 2568,
+          "doorsOpened": 87,
+          "stalls": []
+        }
+      ]
+    }
+  ]
+}

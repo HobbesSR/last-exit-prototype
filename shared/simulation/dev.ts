@@ -1,4 +1,5 @@
 import { bodyRadius, canOccupy } from '../movement.ts';
+import { clearRoute } from './geometry.ts';
 import type { Game, PlayerId, Vec2 } from '../types.ts';
 
 /**
@@ -16,6 +17,6 @@ export function teleport(s: Game, id: PlayerId, x: number, y: number): Vec2 | nu
   if (!p || p.status !== 'active' || !Number.isFinite(x) || !Number.isFinite(y)) return null;
   const at = { x: Math.round(x), y: Math.round(y) };
   if (!canOccupy(s.map, at.x, at.y, bodyRadius(p))) return null;
-  p.x = at.x; p.y = at.y; p.path = [];
+  p.x = at.x; p.y = at.y; clearRoute(p);
   return at;
 }

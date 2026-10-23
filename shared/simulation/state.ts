@@ -3,6 +3,7 @@ import { SLOT_COUNT } from '../equipment.ts';
 import { DEFAULT_KIT, INITIAL_ESCAPE_SLOTS, MAX_PLAYER_NAME, ROLES, VERSION } from './rules.ts';
 import { queueInput, resetInput } from './input.ts';
 import { defaultContent } from './content.ts';
+import { clearRoute } from './geometry.ts';
 import { createDiscovery, attachDiscovery, discover } from '../discovery.ts';
 import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role } from '../types.ts';
 
@@ -53,7 +54,7 @@ export function joinGame(s: Game, id: PlayerId, role: Role = 'contestant', kit: 
   if (!p) return null;
   p.id = id; p.name = name.slice(0, MAX_PLAYER_NAME); p.bot = false;
   if (Object.hasOwn(s.content.kits, kit)) p.kit = kit;
-  resetInput(p); delete p.viewLagTicks; p.path = [];
+  resetInput(p); delete p.viewLagTicks; clearRoute(p);
   return p;
 }
 /**
@@ -70,9 +71,9 @@ export function changeSeat(s: Game, id: PlayerId, role: Role, kit?: Kit): Player
   if (to !== from) {
     const { name } = from;
     Object.assign(from, rosterBot(s, from.role, s.players.filter(p => p.role === from.role).indexOf(from)), { bot: true });
-    resetInput(from); delete from.viewLagTicks; delete from.path;
+    resetInput(from); delete from.viewLagTicks; delete from.path; delete from.route;
     to.id = id; to.name = name; to.bot = false;
-    resetInput(to); delete to.viewLagTicks; to.path = [];
+    resetInput(to); delete to.viewLagTicks; clearRoute(to);
   }
   if (kit !== undefined && Object.hasOwn(s.content.kits, kit)) to.kit = kit;
   return to;

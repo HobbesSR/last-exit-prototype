@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkRoute, contestantKnowledge, createKnowledgePlanner } from '../shared/navigation/knowledge.ts';
-import { freeSpaceTile } from '../shared/free-space.ts';
+import { checkRoute, contestantKnowledge, createKnowledgePlanner, packedTilesFor } from '../shared/navigation/knowledge.ts';
+import { adoptPackedTiles, freeSpaceTile } from '../shared/free-space.ts';
 import { createDiscovery, discover, discoveryGrid, observeGate } from '../shared/discovery.ts';
 import { sweptClear } from '../shared/movement.ts';
 import { bounds, shapeOf } from '../shared/shape.ts';
@@ -215,4 +215,22 @@ test('information test on a live map: obstacles out of every known cell, removed
   });
   assert.deepEqual(plans[1], plans[0]);
   assert.ok(plans[0].some(route => route.tiles > 20), 'the plans read known ground');
+});
+
+test('tiles packed on one copy of a map and adopted by another are the tiles it would build, and plan the same', () => {
+  // Doors, so some tiles carry gate sets; a wall, so triangles vary. The worker packs a gladiator's (22.6, "Bot adoption").
+  const map = field({ obstacles: wallWithDoorway('w', 12 * S), gates: [door('d', 12 * S - 6, 1104, { locked: true })] });
+  const packed = structuredClone(packedTilesFor(map, 'gladiator')), adopted = structuredClone(map), built = structuredClone(map);
+  adoptPackedTiles(adopted, packed);
+  const { cols, rows, size } = discoveryGrid(map);
+  for (let cell = 0; cell < cols * rows; cell++) {
+    const box = { x: (cell % cols) * size, y: Math.floor(cell / cols) * size, w: size, h: size };
+    const tile = freeSpaceTile(adopted, box, 25);
+    assert.equal(tile.points.buffer, packed.floats.buffer, `cell ${cell} is read from the packed tiles`);
+    assert.deepEqual(tile, freeSpaceTile(built, box, 25), `cell ${cell}`);
+  }
+  assert.ok(freeSpaceTile(adopted, { x: 0, y: 0, w: S, h: S }, 14).points.buffer !== packed.floats.buffer, 'another body builds its own');
+  const all = { known: () => true, door: () => ({ open: false, locked: true }), keys: 1, revision: 0 };
+  const [a, b] = [adopted, built].map(m => createKnowledgePlanner(m, 'gladiator').route(all, { x: 300, y: 300 }, { x: 4300, y: 2000 }));
+  assert.equal(a.status, 'complete'); assert.deepEqual(a, b);
 });

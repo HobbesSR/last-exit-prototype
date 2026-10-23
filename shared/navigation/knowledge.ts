@@ -1,5 +1,5 @@
 import { discoveryGrid } from '../discovery.ts';
-import { entry, freeSpaceTile, pullTaut, type FreeTile } from '../free-space.ts';
+import { entry, freeSpaceTile, packTiles, pullTaut, type FreeTile, type PackedTiles } from '../free-space.ts';
 import { navigationClearance } from '../map/navigation.ts';
 import type { Box, CollisionMap, DiscoveryMemory, GateId, GateObservation, Role, Vec2, World } from '../types.ts';
 import { Heap } from './portal-graph.ts';
@@ -84,6 +84,17 @@ interface State {
   portal: [number, number, number, number] | null;
   confirmed: boolean;
   spent: GateId[];
+}
+
+/**
+ * Every tile a planner for `role` can read, built and packed to cross a worker (22.6, "Bot
+ * adoption"). A gladiator plans over the whole map, so its first plan would otherwise build them all
+ * on one tick; the map worker builds them beside the map, and the room adopts them.
+ */
+export function packedTilesFor(map: CollisionMap, role: Role): PackedTiles {
+  const planner = createKnowledgePlanner(map, role), { cols, rows, size } = discoveryGrid(map);
+  const all: Knowledge = { known: () => true, door: () => undefined, keys: 0, revision: 0 };
+  return packTiles(Array.from({ length: cols * rows }, (_, cell) => planner.tile(all, cell)!), navigationClearance(role), size, cols);
 }
 
 /** Plans for one body over the knowledge a caller supplies at each query; the map is read only through known tiles. */

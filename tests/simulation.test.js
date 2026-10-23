@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createGame, generateMap, joinGame, setInput, step, snapshot, visibleTo, couldSee, playerView, POTENTIAL, TILE, DURATION, CELL_CHARGE_TICKS } from '../shared/simulation.ts';
 import { movePlayer, canOccupy, lineClear, visibilityPolygon } from '../shared/movement.ts';
 import { collectEquipment, carriedCell } from '../shared/equipment.ts';
+import { contentById } from '../shared/simulation/content.ts';
 
 function fixture(role = 'contestant', kit = 'warden') {
   const s = createGame(4217);
@@ -129,18 +130,21 @@ test('sneaking avoids sensors, contestants have no innate skill, hazard affects 
   const g = s.players.find(p => p.role === 'gladiator'); const hp = g.hp;
   step(s); assert.ok(g.hp < hp);
 });
-test('snapshots are independent copies including bot paths and accepted input', () => {
-  const s = createGame(4217); const human = s.players[0]; human.bot = false; human.input = {};
-  assert.ok(setInput(s, human.id, { seq: human.lastSeq + 1, x: 1, y: 0 })); step(s);
-  const bot = s.players.find(p => p.bot && p.path?.length);
-  assert.ok(bot, 'a bot must hold a path to witness');
+for (const [content, field] of [['content-2', 'path'], ['content-3', 'route']]) test(`snapshots are independent copies including bot ${field}s and accepted input (${content})`, () => {
+  const s = createGame(4217, undefined, contentById(content)); const human = s.players[0]; human.bot = false; human.input = {};
+  assert.ok(setInput(s, human.id, { seq: human.lastSeq + 1, x: 1, y: 0 }));
+  // A tile planner's first plans are staggered across its bots' turns.
+  for (let i = 0; i < 20 && !s.players.some(p => p.bot && p[field]?.length); i++) step(s);
+  const bot = s.players.find(p => p.bot && p[field]?.length);
+  assert.ok(bot, `a bot must hold a ${field} to witness`);
   const frame = snapshot(s), mine = frame.players.find(p => p.id === human.id), theirs = frame.players.find(p => p.id === bot.id);
-  assert.deepEqual(theirs.path, bot.path); assert.ok(theirs.path.length > 0);
+  assert.deepEqual(theirs[field], bot[field]); assert.ok(theirs[field].length > 0);
   assert.deepEqual(mine.input, human.input); assert.equal(mine.input.x, 1); assert.equal(mine.lastSeq, human.lastSeq);
-  const path = structuredClone(theirs.path), accepted = structuredClone(mine.input), before = JSON.stringify(frame);
-  bot.path[0][0] += 99; bot.path.push([...bot.path[0]]); human.input.x = -1;
+  const route = structuredClone(theirs[field]), accepted = structuredClone(mine.input), before = JSON.stringify(frame);
+  if (field === 'path') { bot.path[0][0] += 99; bot.path.push([...bot.path[0]]); } else { bot.route[0].x += 99; bot.route.push({ ...bot.route[0] }); }
+  human.input.x = -1;
   for (let i = 0; i < 20; i++) step(s);
-  assert.deepEqual(theirs.path, path); assert.deepEqual(mine.input, accepted);
+  assert.deepEqual(theirs[field], route); assert.deepEqual(mine.input, accepted);
   assert.equal(JSON.stringify(frame), before);
 });
 test('joining claims an active bot and refuses a finished match', () => {

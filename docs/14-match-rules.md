@@ -1,6 +1,6 @@
 # 14. Match rules and implemented defaults
 
-Every number here is a tuning default of `content-2` under `last-exit-0.7` rules,
+Every number here is a tuning default of `content-3` under `last-exit-0.7` rules,
 not a design constant. When one changes, it must stay named in code and updated
 here in the same change. Accepted-but-unimplemented changes live in
 [13](13-accepted-features.md).
@@ -16,10 +16,15 @@ and VESPER (Specter). The chain's departure region supplies each hunter's initia
 stations are separate redeployment and fast-travel sites. The name and one-of-each-kit roster
 are tuning choices for this checkpoint. Contestant and extraction capacities stay
 unchanged. `contentById('content-1')` retains the two-hunter baseline for frozen
-characterization; `defaultContent()` selects `content-2`. Each selection returns
+characterization. Each selection returns
 an independent deeply frozen copy, and unknown content IDs are rejected. This is
 a content revision, with unchanged simulation rules and recording structure; see
 [26](26-recording-contract.md) and [31](31-verification.md).
+
+`content-3`, the default (`defaultContent()`), keeps `content-2`'s numbers and roster and
+changes how bots plan: over free-space tiles, contestants from what they know
+([22.6](22.6-hierarchical-navigation.md), #424). `content-2` remains selectable with the
+grid planner.
 
 The power-cell objective supplements limited escape capacity; three extraction slots remain a baseline tuning default. Contestant equipment changes do not remove gladiator kits or kill-based progression. The ten-minute deadline leaves time for exploration and combat, not ten minutes of uninterrupted running. Existing early match-end conditions remain.
 

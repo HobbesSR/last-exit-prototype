@@ -1,8 +1,8 @@
 # 26. Recording contract
 
 Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
-default content is `content-2`, and recordings use schema 6 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
-display descriptor in the header). Masked live maps require reader 4; legacy maps keep
+default content is `content-3`, and recordings use schema 7 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
+display descriptor in the header, 7 bots' world-point routes in player state). Masked live maps require reader 4; legacy maps keep
 minimum schema 0.
 Storage-only changes must preserve frozen gameplay fixtures.
 
@@ -49,6 +49,7 @@ The schema history, with the sections that explain each step:
 | 4 | cell-masked maps ([Cell-masked maps](#cell-masked-maps-schema-4)) | 4 for a masked map, else 0 |
 | 5 | the diagnostics trailer ([Diagnostic markers](#diagnostic-markers-schema-5)) | unchanged |
 | 6 | an optional `presentation` display descriptor in the header ([Presentation descriptor](#presentation-descriptor-schema-6)) | unchanged |
+| 7 | an optional `route` of world points in recorded player state, for bots planning over tiles (below) | unchanged |
 
 The paragraphs below describe each change as it was made, so a number in one
 is the schema current at the time, not today's.
@@ -73,6 +74,15 @@ an extra roster entry is data, not a new field or format. Playback uses recorded
 maps and frames, not a resimulation with today's default content, so both old and
 new rosters remain playable without a content lookup. `content-1` remains explicitly
 selectable for simulation characterization; this does not restore a 0.6 engine.
+
+`content-3` (#424, Corey 2026-10-23) changes the default again: bots plan over free-space
+tiles, contestants over what they know ([22.6](22.6-hierarchical-navigation.md)). Its numbers
+and roster are `content-2`'s, and it retains `last-exit-0.7`: how bots choose their inputs is
+not a rule a player's inputs are judged by, and the content id names the change. A bot planning
+over tiles keeps its route as world points in `route`, where the grid planner keeps tile steps
+in `path`. The field is new recorded player state, so schema rose to 7 and `minSchema` stayed:
+playback reads recorded frames and never the route, so any reader plays these recordings.
+`content-2` stays selectable and keeps its grid planner.
 
 `version` is a separate axis and keeps its meaning: which simulation rules produced the recording.
 The schema pair decides whether a file can be *read*; `version` says what its contents *mean*.

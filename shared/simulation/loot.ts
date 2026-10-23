@@ -1,7 +1,7 @@
 import { canOccupy, reachClear } from '../movement.ts';
 import { carriedCell, collectEquipment } from '../equipment.ts';
 import { HZ } from './rules.ts';
-import { distance } from './geometry.ts';
+import { clearRoute, distance } from './geometry.ts';
 import type { EffectKind, Game, GroundItem, InventoryItem, ItemId, Player, PlayerInput, Vec2, World } from '../types.ts';
 
 export function event(s: Game, text: string): void { s.events.push({ id: s.serial++, tick: s.tick, text }); s.events = s.events.slice(-6); }
@@ -26,7 +26,7 @@ export function automaticPickups(s: Game, p: Player, input: PlayerInput): void {
       if (distance(p, item) > 38 || !reachClear(s.map, p, item) || item.droppedBy === p.id && item.pickupAfter! > s.tick || p.bot && item.kind === 'cell' && carriedCell(p)) return true;
       if (item.kind === 'access') p.keys++;
       if (['weapon', 'med', 'shield', 'cell'].includes(item.kind) && !collectEquipment(p, item, s.content.weapons)) return true;
-      if (item.kind === 'cell') p.path = [];
+      if (item.kind === 'cell') clearRoute(p);
       effect(s, p, 'loot', 30); return false;
     });
     if (!input.sneak && !p.cloak && s.map.sensors.some(sensor => distance(p, sensor) < 180)) p.revealed = 65;
