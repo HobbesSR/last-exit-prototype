@@ -1,9 +1,10 @@
 import { bodyRadius, canOccupy, insideMap, lineClear, reachClear, sweptClear, TILE } from '../movement.ts';
 import { cellCenter, cellIndexAt, discoveryGrid, isFeatureDiscovered, DISCOVERY_INTERVAL } from '../discovery.ts';
 import { straightenPath, blockAt, blockRoute } from '../map.ts';
+import { navigationClearance } from '../map/navigation.ts';
 import { gridRoute } from '../map/route.ts';
 import { contestantKnowledge, createKnowledgePlanner, frozenKnowledge, packedTilesFor, type Knowledge, type KnownRoute, type KnownRouteStatus, type RouteSearch } from '../navigation/knowledge.ts';
-import type { PackedTiles } from '../free-space.ts';
+import { closestOnSegment, type PackedTiles } from '../free-space.ts';
 import { count, start, stop } from '../profiler.ts';
 import { carriedCell, syncWeapon } from '../equipment.ts';
 import { GATE_REACH, HZ } from './rules.ts';
@@ -209,18 +210,28 @@ function unknownAlong(planner: ReturnType<typeof createKnowledgePlanner>, knowle
   return [...cells].filter(cell => !planner.support(cell).every(c => knowledge.known(c)));
 }
 
+/**
+ * How much wider than the bot's body the planner keeps a route's legs from walls. A bot within it
+ * of a leg can steer straight for the leg's end and stay in the cleared space, since its distance
+ * from the leg only shrinks along the way.
+ */
+const margin = (p: Player): World => navigationClearance(p.role) - bodyRadius(p);
 /** How far ahead a waypoint's next leg is swept before the bot turns onto it: within sight, so it reads nothing hidden. */
 const TURN_AHEAD: World = 24;
 /**
  * Whether the bot may turn from `waypoint` onto the leg to `next`. A taut route turns at corners an
  * obstacle's clearance away, so steering for the next point while still short of the corner cuts it
  * and presses into the obstacle: near a waypoint, the bot turns only once the first stretch of the
- * next leg is clear for its body, or when it is on the waypoint itself.
+ * next leg is clear for its body, or when it is on the waypoint itself. Under `replanning: 'sliced'`
+ * it must also be within `margin` of that leg, since the leg may run along a wall beyond the
+ * stretch swept (#473 review); within 9 units steering slows to land on the waypoint, so it gets there.
+ * Exported for its test.
  */
-function passed(s: Game, p: Player, waypoint: Vec2, next: Vec2): boolean {
+export function passed(s: Game, p: Player, waypoint: Vec2, next: Vec2): boolean {
   const d = distance(p, waypoint);
   if (d < 2) return true;
   if (d >= 11) return false;
+  if (s.content.replanning === 'sliced' && distance(p, closestOnSegment(p, waypoint, next)) > margin(p)) return false;
   const length = distance(p, next), t = Math.min(1, TURN_AHEAD / Math.max(length, 1e-9));
   return sweptClear(s.map, p, { x: p.x + (next.x - p.x) * t, y: p.y + (next.y - p.y) * t }, bodyRadius(p));
 }
@@ -280,7 +291,7 @@ function repathSliced(s: Game, p: Player, target: Vec2, due: boolean, contestant
   count('work.route.expansions', running.search.expansions - before); count('work.route.slices');
   if (route) {
     searches.delete(p);
-    adopt(s, p, planner, route, running.knowledge, running.goal, running.doors, joinRoute(s.map, p, route.points, running.trail));
+    adopt(s, p, planner, route, running.knowledge, running.goal, running.doors, joinRoute(p, route.points, running.trail));
   }
   stop('sim.repath');
   return route?.status ?? null;
@@ -296,37 +307,27 @@ function adopt(s: Game, p: Player, planner: ReturnType<typeof createKnowledgePla
     doors, watch: contestant ? unknownAlong(planner, knowledge, s.map, route.points) : [], route: p.route });
 }
 
-/** How near a route's segment a bot must be to join it where it is, as near as `passed` lets it be to a corner. */
-const JOIN: World = 11;
 /**
  * A route planned from where the bot was when its search started, `trail[0]`, taken up from where
- * it is now. The bot joins the segment it is nearest, among those it could have walked along, when
- * it is within JOIN of it and the way toward the segment's end starts clear. Otherwise it walks its
- * trail back to the route's start, since nothing it knows says the way from here onto the route is
- * clear. Exported for its test.
+ * it is now. The planner keeps a route's legs `navigationClearance` from walls, wider than the
+ * bot's body by a margin, so when the bot is within that margin of a segment, among those it could
+ * have walked along, the way straight to the segment's end stays inside the cleared space (its
+ * distance from the segment only shrinks along the way) and the bot joins there. Otherwise nothing
+ * it knows says the way onto the route is clear, and it walks its trail back to the route's start.
+ * Exported for its test.
  */
-export function joinRoute(map: CollisionMap, p: Player, points: readonly Vec2[], trail: readonly Vec2[]): Vec2[] {
+export function joinRoute(p: Player, points: readonly Vec2[], trail: readonly Vec2[]): Vec2[] {
   let walked = 0;
   for (let i = 1; i < trail.length; i++) walked += distance(trail[i - 1]!, trail[i]!);
   let best = 0, nearest = Infinity, along = 0;
   for (let i = 0; i + 1 < points.length && along <= walked + TILE; i++) {
-    const a = points[i]!, b = points[i + 1]!, dx = b.x - a.x, dy = b.y - a.y, n = dx * dx + dy * dy;
-    const t = n ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / n)) : 0;
-    const d = Math.hypot(a.x + t * dx - p.x, a.y + t * dy - p.y);
+    const d = distance(p, closestOnSegment(p, points[i]!, points[i + 1]!));
     if (d < nearest) { nearest = d; best = i; }
-    along += Math.sqrt(n);
+    along += distance(points[i]!, points[i + 1]!);
   }
-  const rest = points.slice(best + 1), next = rest[0];
-  if (next && nearest < JOIN) {
-    // Swept only as far as `passed` sweeps, within sight, so it reads nothing hidden.
-    const t = Math.min(1, TURN_AHEAD / Math.max(distance(p, next), 1e-9));
-    if (sweptClear(map, p, { x: p.x + (next.x - p.x) * t, y: p.y + (next.y - p.y) * t }, bodyRadius(p))) return [...rest];
-  }
+  if (best + 1 < points.length && nearest <= margin(p)) return points.slice(best + 1);
   count('work.route.backtracked');
-  const way = [...trail.slice(1).reverse(), ...points];
-  let from = 0;
-  while (from + 1 < way.length && distance(p, way[from]!) < JOIN) from++;
-  return way.slice(from);
+  return [...trail.slice(1).reverse(), ...points];
 }
 
 export function botInput(s: Game, p: Player): PlayerInput {

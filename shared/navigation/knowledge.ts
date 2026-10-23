@@ -1,5 +1,5 @@
 import { discoveryGrid } from '../discovery.ts';
-import { entry, freeSpaceTile, packTiles, pullTaut, type FreeTile, type PackedTiles } from '../free-space.ts';
+import { closestOnSegment, entry, freeSpaceTile, packTiles, pullTaut, type FreeTile, type PackedTiles } from '../free-space.ts';
 import { navigationClearance } from '../map/navigation.ts';
 import type { Box, CollisionMap, DiscoveryMemory, GateId, GateObservation, Role, Vec2, World } from '../types.ts';
 import { Heap } from './portal-graph.ts';
@@ -368,12 +368,6 @@ function overlapOf(p: Vec2, q: Vec2, r: Vec2, s: Vec2, side: number): [Vec2, Vec
   const lo = Math.max(Math.min(p[along], q[along]), Math.min(r[along], s[along])), hi = Math.min(Math.max(p[along], q[along]), Math.max(r[along], s[along]));
   if (hi - lo <= 1e-6) return null;
   return along === 'y' ? [{ x: p.x, y: lo }, { x: p.x, y: hi }] : [{ x: lo, y: p.y }, { x: hi, y: p.y }];
-}
-
-function closestOnSegment(p: Vec2, a: Vec2, b: Vec2): Vec2 {
-  const dx = b.x - a.x, dy = b.y - a.y, n = dx * dx + dy * dy;
-  const t = n ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / n)) : 0;
-  return { x: a.x + t * dx, y: a.y + t * dy };
 }
 
 /**
