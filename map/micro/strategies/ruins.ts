@@ -1,5 +1,8 @@
 import { compareCells } from '../../kernel/cell.ts';
 import { polygon, rect } from '../../../shared/shape.ts';
+import { FALLEN_SLAB } from '../placeables/fallen-slab.ts';
+import { RUIN_ROOM_SPAN } from '../placeables/ruin-room-span.ts';
+import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
@@ -97,9 +100,12 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
         const cy = across ? (side === 'north' ? slot.y : slot.y + h - 1) : slot.y + i;
         const label = `ruins-${side}-${cx}-${cy}`;
         if (draw(brief.seed, cx, cy, CHANNEL.span + s) >= decay) {
-          const t = WALL * size;
-          const shape = across ? rect(cx * size, side === 'north' ? cy * size : (cy + 1) * size - t, size, t)
-            : rect(side === 'west' ? cx * size : (cx + 1) * size - t, cy * size, t, size);
+          const span = expectPlaced(RUIN_ROOM_SPAN.build({ side }, size));
+          const local = (span.elements[0]!.template.parts[0] as { shape: Shape }).shape;
+          if (local.kind !== 'rect') throw new Error('A ruin room span must be a rectangle.');
+          // Keep the old arithmetic order in the absolute-shape record, including fractional cell sizes.
+          const shape = rect(side === 'east' ? (cx + 1) * size - local.w : cx * size,
+            side === 'south' ? (cy + 1) * size - local.h : cy * size, local.w, local.h);
           if (lay(`${label}-wall`, shape)) walls++;
         } else if (draw(brief.seed, cx, cy, CHANNEL.debris + s) < .5
           && lay(`${label}-debris`, slab(cx, cy, size, draw(brief.seed, cx, cy, CHANNEL.angle + s), draw(brief.seed, cx, cy, CHANNEL.size + s)))) debris++;
@@ -115,14 +121,10 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
       loot: loot.length, coreElements: 0, rooms, walls, debris, hintWalls: hinted.shapes.length } };
 }
 
-/** A fallen span: a convex slab inside its own cell, at a turn and length drawn from 0 to 1. */
+/** Adapt a locally built slab to the legacy world-absolute element record. */
 function slab(cx: number, cy: number, size: number, turn: number, length: number): Shape {
-  const angle = turn * Math.PI, long = size * (.55 + length * .25), wide = size * WALL * 1.2;
-  const cos = Math.cos(angle), sin = Math.sin(angle);
-  // Engines may differ in trig's last bit, so the corners are rounded to a thousandth: the
-  // browser Lab and the server then build the same slab.
-  const round = (n: number) => Math.round(n * 1000) / 1000;
-  const points = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) => ({
-    x: round(u! * long / 2 * cos - v! * wide / 2 * sin), y: round(u! * long / 2 * sin + v! * wide / 2 * cos) }));
-  return polygon((cx + .5) * size, (cy + .5) * size, points);
+  const built = expectPlaced(FALLEN_SLAB.build({ turn, length }, size));
+  const local = (built.elements[0]!.template.parts[0] as { shape: Shape }).shape;
+  if (local.kind !== 'polygon') throw new Error('A fallen slab must be a polygon.');
+  return polygon((cx + .5) * size, (cy + .5) * size, local.points);
 }
