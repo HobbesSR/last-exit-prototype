@@ -4,6 +4,7 @@ import { distance } from './geometry.ts';
 import { start, stop } from '../profiler.ts';
 import { frameFields, ownPlayerFields, itemFields, gateFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
 import type { Game, Player, PlayerId, Snapshot, Vec2, World } from '../types.ts';
+import { physicsState } from './physics-runtime.ts';
 // The reach the server transmits within. Generous on purpose: it carries everything that could become
 // visible before the next update — through cover clearing, a cloak dropping, a scan reveal, or simply
 // movement — so the client never has to wait on the server to show something that just became
@@ -52,6 +53,6 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
 }
 export function snapshot(s: Game): Snapshot {
   start('sim.snapshot');
-  try { return structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: s.map.items, gates: s.map.gates, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events }); }
+  try { const physics = physicsState(s); return structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: s.map.items, gates: s.map.gates, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(physics ? { physics } : {}) }); }
   finally { stop('sim.snapshot'); }
 }

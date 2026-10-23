@@ -7,11 +7,12 @@ import { clearRoute } from '../shared/simulation/geometry.ts';
 import { generateLiveMap } from '../map/live.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
+import { createPhysicsGame, disposePhysics, synchronizePhysics } from '../shared/simulation.ts';
 
 const identity = p => p && ({ id: p.id, name: p.name, role: p.role, kit: p.kit });
 
 // Who holds which place, over any game's roster: the match's own, or a lobby's before its map exists.
-function seatsOf(game) {
+function seatsOf(game, reconcile = () => {}) {
   const capacity = role => role === 'gladiator' ? game.content.roster.gladiators.length : game.content.roster.contestants.length;
   // A place is open while a bot holds it, for a joining player to take over.
   const openPlaces = role => game.players.filter(p => p.bot && p.status === 'active' && p.role === role).length;
@@ -30,9 +31,9 @@ function seatsOf(game) {
       const share = role => game.players.filter(p => p.role === role && !p.bot).length / capacity(role);
       return roles.sort((a, b) => share(a) - share(b))[0];
     },
-    join: (id, role, kit, name) => identity(joinGame(game, id, role, kit, name)),
+    join(id, role, kit, name) { const player = joinGame(game, id, role, kit, name); reconcile(); return identity(player); },
     /** A joined player's change of role or kit before the start (#235), or null when that role is full. */
-    choose: (id, role, kit) => identity(changeSeat(game, id, role, kit)),
+    choose(id, role, kit) { const player = changeSeat(game, id, role, kit); reconcile(); return identity(player); },
     resume(id) {
       const p = game.players.find(p => p.id === id);
       if (!p) return null;
@@ -80,7 +81,18 @@ export function createLobby(content = defaultContent()) {
 // `map` is the same seed and size already generated elsewhere (the room service's worker, #253).
 export function createMatch(seed, size, map, content = defaultContent()) {
   const game = createGame(seed, map ?? generateLiveMap(seed, content, size), content);
+  return matchOf(game);
+}
+
+/** Experimental explicit rules selection; not offered by the public room protocol. */
+export async function createPhysicsMatch(seed, size, map, content = defaultContent()) {
+  return matchOf(await createPhysicsGame(seed, map ?? generateLiveMap(seed, content, size), content));
+}
+
+function matchOf(game) {
+  let disposedFrame;
   return {
+    get version() { return game.version; },
     get tick() { return game.tick; },
     get phase() { return game.phase; },
     get seed() { return game.seed; },
@@ -88,7 +100,7 @@ export function createMatch(seed, size, map, content = defaultContent()) {
     get contentId() { return game.content.id; },
     /** How this match's content is labelled for display (22.7): data only, never authority. */
     presentation: describeContent(game.content),
-    ...seatsOf(game),
+    ...seatsOf(game, () => synchronizePhysics(game)),
     // Compatibility escape hatch for existing scenario/benchmark tools, not application code.
     get diagnosticState() { return game; },
     acceptInput(id, command) {
@@ -115,10 +127,12 @@ export function createMatch(seed, size, map, content = defaultContent()) {
     /** A dev teleport (24), as the command the recording keeps, or null when refused. */
     teleport(id, x, y) {
       const at = teleport(game, id, x, y);
+      if (at) synchronizePhysics(game);
       return at && { type: 'teleport', id, ...at };
     },
-    advance() { step(game); return snapshot(game); },
-    snapshot: () => snapshot(game),
+    advance() { if (disposedFrame) throw new Error('match disposed'); step(game); return snapshot(game); },
+    snapshot: () => disposedFrame ? structuredClone(disposedFrame) : snapshot(game),
+    dispose() { if (!disposedFrame) { disposedFrame = snapshot(game); disposePhysics(game); } },
     project: (frame, id) => playerView(game, frame, id),
     map: () => structuredClone(game.map),
     liveMap: () => structuredClone({ ...game.map, traps: [] }),

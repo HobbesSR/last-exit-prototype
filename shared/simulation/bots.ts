@@ -233,14 +233,46 @@ function repathTiles(s: Game, p: Player, target: Vec2): KnownRouteStatus | null 
   return route.status;
 }
 
-export function botInput(s: Game, p: Player): PlayerInput {
+export interface BotIntent {
+  input: PlayerInput;
+  /** A utility to activate after selecting input.slot, before movement. */
+  utilitySlot?: number;
+  /** Equipment to discard when pursuing a cell with a full inventory. */
+  discardSlot?: number;
+}
+
+/** Decide from the current world without applying equipment, utility, or drop effects. */
+export function collectBotIntent(s: Game, p: Player): BotIntent { return decideBot(s, p, true); }
+
+/** Legacy bot behavior, including its pre-movement side effects. */
+export function botInput(s: Game, p: Player): PlayerInput { return decideBot(s, p, false).input; }
+
+function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
+  const intent: BotIntent = { input: {} };
   const cell = carriedCell(p);
+  let spentUtility = -1;
+  let effectiveHp = p.hp;
   if (p.inventory) {
     const utility = p.inventory.findIndex(i => !!i && (i.kind === 'med' && p.hp < 65 || i.kind === 'shield' && p.shield < 45));
     const weapon = p.inventory.findIndex(i => i?.kind === 'weapon' && (i.ammo ?? s.content.weapons[i.weaponType].ammo) > 0);
-    p.selectedSlot = utility >= 0 ? utility : weapon >= 0 ? weapon : 0; syncWeapon(p, s.content.weapons);
-    if (utility >= 0) attack(s, p);
+    const selected = utility >= 0 ? utility : weapon >= 0 ? weapon : 0;
+    if (collecting) {
+      intent.input.slot = selected;
+      if (utility >= 0 && p.attackCd <= 0 && p.role === 'contestant') {
+        const item = p.inventory[utility]!;
+        if (item.kind === 'med' && p.hp < p.maxHp) effectiveHp = Math.min(p.maxHp, p.hp + 40);
+        if ((item.kind === 'med' && p.hp < p.maxHp || item.kind === 'shield' && p.shield < 75)) {
+          intent.utilitySlot = utility;
+          if (item.count <= 1) spentUtility = utility;
+        }
+      }
+    } else {
+      p.selectedSlot = selected; syncWeapon(p, s.content.weapons);
+      if (utility >= 0) attack(s, p);
+    }
   }
+  if (!collecting) effectiveHp = p.hp;
+  const effectiveInventory = () => p.inventory!.map((item, slot) => slot === spentUtility ? null : item);
   // Mixed temperaments create occasional betrayal, rather than every converging bot starting
   // a deathmatch simultaneously. All bots can retaliate; roughly one third initiate disputes.
   const opportunistic = p.id.charCodeAt(p.id.length - 1) % 3 === 0;
@@ -272,16 +304,20 @@ export function botInput(s: Game, p: Player): PlayerInput {
       const from = tiles ? null : blockAt(s.map, p);
       const cost = (t: Vec2) => from === null ? distance(p, t) : blockRoute(s.map, from, blockAt(s.map, t)).length * 1000 + distance(p, t) * 0.05;
       target = objective.sort((a, b) => cost(a) - cost(b))[0];
-      if (!cell && p.inventory!.every(Boolean)) {
-        const discard = p.inventory!.findIndex(item => item?.kind !== 'weapon' || item.ammo === 0);
-        if (discard >= 0) { dropEquipment(s, p, p.inventory![discard]!); p.inventory![discard] = null; }
+      if (!cell && (collecting ? effectiveInventory() : p.inventory!).every(Boolean)) {
+        const discard = (collecting ? effectiveInventory() : p.inventory!).findIndex(item => item?.kind !== 'weapon' || item.ammo === 0);
+        if (discard >= 0) {
+          if (collecting) intent.discardSlot = discard;
+          else { dropEquipment(s, p, p.inventory![discard]!); p.inventory![discard] = null; }
+        }
       }
     }
+    const inventory = collecting ? effectiveInventory().map((item, slot) => slot === intent.discardSlot ? null : item) : p.inventory!;
     const loot = items.filter(i => i.kind !== 'cell' && i.x > s.hazardX + 100 && i.x >= p.x - 60 && distance(p, i) < 210 && accessible(i)
-      && (i.kind !== 'med' || p.hp < 75)
-      && (i.kind === 'access' || p.inventory!.some(slot => !slot) || p.inventory!.some(slot => slot?.kind === i.kind && slot.kind !== 'weapon' && slot.kind !== 'cell' && slot.count < 3
+      && (i.kind !== 'med' || effectiveHp < 75)
+      && (i.kind === 'access' || inventory.some(slot => !slot) || inventory.some(slot => slot?.kind === i.kind && slot.kind !== 'weapon' && slot.kind !== 'cell' && slot.count < 3
         || slot?.kind === 'weapon' && slot.weaponType === i.weaponType && slot.ammo < s.content.weapons[i.weaponType!]?.maxAmmo))
-      && (i.kind !== 'weapon' || i.ammo !== 0 && !p.inventory!.some(slot => slot?.kind === 'weapon' && slot.weaponType === i.weaponType && slot.ammo >= s.content.weapons[i.weaponType!].maxAmmo))).sort((a, b) => distance(p, a) - distance(p, b))[0];
+      && (i.kind !== 'weapon' || i.ammo !== 0 && !inventory.some(slot => slot?.kind === 'weapon' && slot.weaponType === i.weaponType && slot.ammo >= s.content.weapons[i.weaponType!].maxAmmo))).sort((a, b) => distance(p, a) - distance(p, b))[0];
     if (loot && loot.kind !== 'cell' && !p.charging && (!nearest || distance(p, nearest) > 250)) { target = loot; exploring = false; }
     if (pursuit && !exploring) {
       pursuit.cell = -1;
@@ -334,11 +370,14 @@ export function botInput(s: Game, p: Player): PlayerInput {
     if (options.length) { dx = options[0].x * 9; dy = options[0].y * 9; }
   }
   const length = Math.max(9, Math.hypot(dx, dy));
-  if (p.role === 'contestant' && cell != null && cell.charge < s.content.cellChargeTicks && s.map.chargers.some(st => distance(p, st) < 55 && lineClear(s.map, p, st))) return { x: 0, y: 0, interact: true };
+  if (p.role === 'contestant' && cell != null && cell.charge < s.content.cellChargeTicks && s.map.chargers.some(st => distance(p, st) < 55 && lineClear(s.map, p, st))) {
+    intent.input = { ...intent.input, x: 0, y: 0, interact: true }; return intent;
+  }
   const allyInLine = p.role === 'contestant' && nearest && s.players.some(other => {
     if (other.id === p.id || other.id === nearest.id || other.role !== 'contestant' || other.status !== 'active') return false;
     const nx = nearest.x - p.x, ny = nearest.y - p.y, projection = ((other.x - p.x) * nx + (other.y - p.y) * ny) / (nx * nx + ny * ny);
     return projection > 0 && projection < 1 && Math.hypot(other.x - p.x - projection * nx, other.y - p.y - projection * ny) < 28;
   });
-  return { x: dx / length, y: dy / length, aim: nearest ? Math.atan2(nearest.y - p.y, nearest.x - p.x) : Math.atan2(dy, dx), attack: !!nearest && !allyInLine && distance(p, nearest) < (p.role === 'gladiator' ? 86 : 450) && lineClear(s.map, p, nearest), skill: !!nearest && distance(p, nearest) < (p.kit === 'specter' && p.role === 'gladiator' ? 320 : 125), interact: p.role === 'contestant' || s.map.gates.some(g => !g.open && distance(p, g) < GATE_REACH) || p.x < s.hazardX + 200 };
+  intent.input = { ...intent.input, x: dx / length, y: dy / length, aim: nearest ? Math.atan2(nearest.y - p.y, nearest.x - p.x) : Math.atan2(dy, dx), attack: !!nearest && !allyInLine && distance(p, nearest) < (p.role === 'gladiator' ? 86 : 450) && lineClear(s.map, p, nearest), skill: !!nearest && distance(p, nearest) < (p.kit === 'specter' && p.role === 'gladiator' ? 320 : 125), interact: p.role === 'contestant' || s.map.gates.some(g => !g.open && distance(p, g) < GATE_REACH) || p.x < s.hazardX + 200 };
+  return intent;
 }

@@ -68,6 +68,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   app.use('/vendor/phaser', express.static(path.join(ROOT, 'node_modules/phaser/dist')));
   app.use('/vendor/lucide', express.static(path.join(ROOT, 'node_modules/lucide/dist/umd')));
   app.use('/vendor/sat', express.static(path.join(ROOT, 'node_modules/sat')));
+  app.use('/vendor/rapier', express.static(path.join(ROOT, 'node_modules/@dimforge/rapier2d-compat/dist')));
 
   // The game client maps bare `sat` through an import map. Only the dev labs, whose workers cannot use
   // one, need the imports rewritten, so a server without dev tools serves the shared modules untouched.

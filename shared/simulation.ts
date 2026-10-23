@@ -19,11 +19,16 @@ import { consumeInput } from './simulation/input.ts';
 import { recordRewind } from './simulation/rewind.ts';
 import { DISCOVERY_INTERVAL, discover } from './discovery.ts';
 import type { Game } from './types.ts';
+import { PHYSICS_VERSION } from './simulation/physics-runtime.ts';
+import { stepPhysics } from './simulation/phased.ts';
+export { createPhysicsGame, synchronizePhysics } from './simulation/phased.ts';
+export { disposePhysics, enqueuePhysicsImpulse, enqueuePhysicsAttachment, PHYSICS_VERSION } from './simulation/physics-runtime.ts';
 
 /** Per-player countdown fields, all measured in ticks. */
 const TIMERS = ['cooldown', 'attackCd', 'railCd', 'cloak', 'revealed', 'boost', 'stun'] as const;
 
 export function step(s: Game): void {
+  if (s.version === PHYSICS_VERSION) return stepPhysics(s);
   if (s.phase !== 'live') return;
   start('sim.step');
   s.tick++;
