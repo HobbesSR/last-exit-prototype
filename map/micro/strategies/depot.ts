@@ -6,12 +6,13 @@ import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { boxesAgainstHints, hintedCells } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
+import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import { WAREHOUSE } from '../placeables/warehouse.ts';
 import { CONTAINER_ROW } from '../placeables/container-row.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import type { Placed } from '../placeables/placeable.ts';
-import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
+import type { BuiltRegion, RegionBrief } from '../types.ts';
 
 /** The catalogue's proposed shape need (54): a contained square at least this many cells a side. */
 const MIN_SIDE = 10;
@@ -87,10 +88,13 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   };
   const cells = [...mask.cells].map(c => alongX ? { u: c.x, v: c.y } : { u: c.y, v: c.x });
 
-  const elements: RegionElement[] = [];
+  const canvas = createBuilderCanvas(brief, protectedShapes);
   const place = (label: string, u: number, v: number, placed: Placed<unknown>) => {
     const [x, y] = alongX ? [u, v] : [v, u];
-    elements.push(...placedElements(placed, label, x, y, size));
+    // Siting has already accepted this box. A canvas refusal is a broken placement
+    // invariant, rather than a new fallback that silently changes the seeded build.
+    if (!canvas.commit({ elements: placedElements(placed, label, x, y, size) }))
+      throw new Error(`Depot placement ${label} failed its canvas commit.`);
   };
 
   // Lanes run along u, one every LANE cells across, at a seeded phase. Warehouses and rows both start on one.
@@ -139,6 +143,7 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
     }
   }
 
+  const elements = [...canvas.elements];
   const parts = elements.flatMap(element => element.template.parts);
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
