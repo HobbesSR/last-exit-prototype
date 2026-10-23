@@ -130,11 +130,12 @@ test('sneaking avoids sensors, contestants have no innate skill, hazard affects 
   const g = s.players.find(p => p.role === 'gladiator'); const hp = g.hp;
   step(s); assert.ok(g.hp < hp);
 });
-for (const [content, field] of [['content-2', 'path'], ['content-3', 'route']]) test(`snapshots are independent copies including bot ${field}s and accepted input (${content})`, () => {
+for (const [content, field] of [['content-2', 'path'], ['content-3', 'route'], ['content-4', 'route']]) test(`snapshots are independent copies including bot ${field}s and accepted input (${content})`, () => {
   const s = createGame(4217, undefined, contentById(content)); const human = s.players[0]; human.bot = false; human.input = {};
+  // A tile planner's first plans are staggered across its bots' turns, and a sliced one's may span ticks.
+  for (let i = 0; i < 40 && !s.players.some(p => p.bot && p[field]?.length); i++) step(s);
   assert.ok(setInput(s, human.id, { seq: human.lastSeq + 1, x: 1, y: 0 }));
-  // A tile planner's first plans are staggered across its bots' turns.
-  for (let i = 0; i < 20 && !s.players.some(p => p.bot && p[field]?.length); i++) step(s);
+  step(s);
   const bot = s.players.find(p => p.bot && p[field]?.length);
   assert.ok(bot, `a bot must hold a ${field} to witness`);
   const frame = snapshot(s), mine = frame.players.find(p => p.id === human.id), theirs = frame.players.find(p => p.id === bot.id);

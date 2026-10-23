@@ -1,7 +1,7 @@
 # Last Exit documentation index
 
 Status: living documentation
-Prototype rules version: `last-exit-0.7`; default content: `content-3`
+Prototype rules version: `last-exit-0.7`; default content: `content-4`
 Updated: 2026-10-23
 
 This directory is the canonical product and engineering record for the prototype.
@@ -60,7 +60,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [20-micro-generation.md](20-micro-generation.md) | Guide to micro contracts, geometry, builders, decomposition, tools, passable margins (20.6) builder delegation (20.7: preparation/execution, hut and compound adoption implemented), placeables (20.8) and a builder's usual structure (20.9); load the relevant 20.x part |
 | [21-stack.md](21-stack.md) | Chosen components, why, and the constraints a replacement must satisfy |
 | [22-ownership.md](22-ownership.md) | Guide to ownership by subsystem and the boundaries tests enforce; load the relevant 22.x part |
-| [22.6-hierarchical-navigation.md](22.6-hierarchical-navigation.md) | Portal graph (#420) over a free-space mesh (#422); knowledge tiles and optimistic planning (#423), adopted by bots under `content-3` (#424); middle level and extra crossings deferred (#425) |
+| [22.6-hierarchical-navigation.md](22.6-hierarchical-navigation.md) | Portal graph (#420) over a free-space mesh (#422); knowledge tiles and optimistic planning (#423), adopted by bots under `content-3` (#424); sliced replanning under `content-4` (#470); middle level and extra crossings deferred (#425) |
 | [22.7-content-and-presentation.md](22.7-content-and-presentation.md) | Content/presentation and shared-rule ownership (#385, implemented in #386): display descriptors, live/replay metadata, client configuration and compatibility defaults |
 | [23-types.md](23-types.md) | The TypeScript arrangement in `shared/`, branding policy, erasure |
 | [24-networking-privacy.md](24-networking-privacy.md) | Server authority, potential visibility, field contracts, spectator delay |
@@ -97,6 +97,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.7-navigation-mesh.md](42.7-navigation-mesh.md) | Free-space mesh as navigation's bottom level (#422): promise confirmation against the grid, build time and memory, table and route costs |
 | [42.8-bot-adoption.md](42.8-bot-adoption.md) | Bots planning over free-space tiles under `content-3` (#424): whole-match stalls, escapes and tick cost against `content-2`, route quality, tiles built ahead in the map worker |
 | [42.9-physics-remediation.md](42.9-physics-remediation.md) | Rapier remediation (#451): revised gates, native springs, bounded speed and capacity proposal; P1 review prerequisites |
+| [42.10-sliced-replanning.md](42.10-sliced-replanning.md) | Repaths spread over ticks under `content-4` (#470 part 1): budget exhaustion gone, tick cost against `content-3`, why bots share one allowance a tick |
 
 ### 5x — Map generation
 

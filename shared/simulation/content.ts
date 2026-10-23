@@ -25,7 +25,7 @@ import type { MatchContent } from '../types.ts';
  * format change. It identifies balance, where `VERSION` identifies rules: two matches can run the
  * same rules over different numbers, and a reader looking at an old recording needs to tell which.
  */
-export const CONTENT_ID = 'content-3';
+export const CONTENT_ID = 'content-4';
 
 /** Recursively freeze, so a match cannot edit the balance it is running under. */
 function deepFreeze<T>(value: T): T {
@@ -81,7 +81,9 @@ const CONTENT_2: MatchContent = {
 
 // Bots plan over free-space tiles, contestants over what they know (#424, 22.6); the numbers are content-2's.
 const CONTENT_3: MatchContent = { ...CONTENT_2, id: 'content-3', navigation: 'tiles' };
-const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3 };
+// A repath spreads over ticks while the bot walks its current route (#470, 22.6); otherwise content-3.
+const CONTENT_4: MatchContent = { ...CONTENT_3, id: 'content-4', replanning: 'sliced' };
+const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4 };
 
 /** Return an independent, deeply frozen copy of a shipped content set. */
 export function contentById(id: string): MatchContent {

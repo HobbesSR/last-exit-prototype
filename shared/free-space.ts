@@ -278,7 +278,8 @@ function onSegment(px: number, py: number, ax: number, ay: number, bx: number, b
   return Math.hypot(px - ax - t * dx, py - ay - t * dy) <= 1e-6;
 }
 
-function closestOnSegment(p: Vec2, a: Vec2, b: Vec2): Vec2 {
+/** The point of segment `a`–`b` nearest `p`. */
+export function closestOnSegment(p: Vec2, a: Vec2, b: Vec2): Vec2 {
   const dx = b.x - a.x, dy = b.y - a.y, n = dx * dx + dy * dy;
   const t = n ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / n)) : 0;
   return { x: a.x + t * dx, y: a.y + t * dy };
