@@ -23,7 +23,7 @@ let selected = ids[0]!;
 /** The parameters being edited, as typed: possibly outside their specs. */
 let params: Record<string, unknown> = { ...PLACEABLES[selected]!.examples[0] };
 let traced = true;
-/** Paints the tab's canvases. A canvas's bitmap is sized when painted, so a resize repaints. */
+/** Paints the tab's canvases while it shows. A canvas's bitmap is sized when painted, so a resize repaints. */
 let repaint = () => {};
 let resizes: ResizeObserver | undefined;
 
@@ -49,7 +49,9 @@ function traceOf(placed: Placed<unknown>, label: string): BuildingTrace | undefi
 
 /** Draws the demand (body, then clear boxes), the elements' parts and, optionally, the building trace, fitted to the canvas. */
 function paint(canvas: HTMLCanvasElement, placed: Placed<unknown>, label: string, withTrace: boolean): void {
-  const ratio = window.devicePixelRatio || 1, width = canvas.clientWidth || canvas.width, height = canvas.clientHeight || canvas.height;
+  // Sized from layout alone: a hidden or collapsed canvas has nothing to fit, and the resize that shows it repaints.
+  const ratio = window.devicePixelRatio || 1, width = canvas.clientWidth, height = canvas.clientHeight;
+  if (width <= 0 || height <= 0) return;
   canvas.width = Math.round(width * ratio);
   canvas.height = Math.round(height * ratio);
   const g = canvas.getContext("2d")!;
@@ -119,22 +121,27 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, props: Record<string,
   return node;
 }
 
-/** One parameter's input. A value that won't parse is kept as typed, so `placeableErrors` names it. */
-function field(spec: ParamSpec, rerender: () => void): HTMLElement {
-  const value = params[spec.name], set = (next: unknown) => { params = { ...params, [spec.name]: next }; rerender(); };
+/**
+ * One parameter's control, and a function that shows the current value in it. A value that
+ * won't parse is kept as typed, so `placeableErrors` names it. An edit calls `changed` and
+ * leaves the control in place, so focus, spinners and typing carry on.
+ */
+function field(spec: ParamSpec, changed: () => void): { control: HTMLElement; show: () => void } {
+  const set = (next: unknown) => { params = { ...params, [spec.name]: next }; changed(); };
   if (spec.kind === "boolean") {
-    const input = el("input", { type: "checkbox", name: spec.name, checked: value === true });
+    const input = el("input", { type: "checkbox", name: spec.name });
     input.onchange = () => set(input.checked);
-    return el("label", { className: "placeable-check", title: spec.summary }, input, spec.name);
+    return { control: el("label", { className: "placeable-check", title: spec.summary }, input, spec.name), show: () => (input.checked = params[spec.name] === true) };
   }
   if (spec.kind === "enum") {
-    const select = el("select", { name: spec.name }, ...spec.values.map((v) => el("option", { value: v, selected: v === value }, v)));
+    const select = el("select", { name: spec.name }, ...spec.values.map((v) => el("option", { value: v }, v)));
     select.onchange = () => set(select.value);
-    return el("label", { title: spec.summary }, spec.name, select);
+    return { control: el("label", { title: spec.summary }, spec.name, select), show: () => (select.value = String(params[spec.name] ?? "")) };
   }
-  const input = el("input", { type: "number", name: spec.name, min: String(spec.min), max: String(spec.max), step: spec.kind === "int" ? "1" : "0.05", value: String(value ?? "") });
-  input.onchange = () => set(input.value.trim() === "" ? undefined : Number(input.value));
-  return el("label", { title: spec.summary }, `${spec.name} (${spec.min}–${spec.max})`, input);
+  // Bounds come from the spec; a number's granularity doesn't, so the browser shouldn't flag any.
+  const input = el("input", { type: "number", name: spec.name, min: String(spec.min), max: String(spec.max), step: spec.kind === "int" ? "1" : "any" });
+  input.oninput = () => set(input.value.trim() === "" ? undefined : Number(input.value));
+  return { control: el("label", { title: spec.summary }, `${spec.name} (${spec.min}–${spec.max})`, input), show: () => (input.value = String(params[spec.name] ?? "")) };
 }
 
 /** The readout for a result: demand and elements, or what stopped it. */
@@ -149,30 +156,46 @@ function readout(r: Result, label: string): string[] {
   ];
 }
 
+/**
+ * Builds the tab for the selected placeable. Choosing another placeable builds it again; an
+ * edit or a chosen example only updates what depends on the parameters.
+ */
 export function renderPlaceables(root: HTMLElement): void {
-  const rerender = () => renderPlaceables(root);
-  const paints: Array<() => void> = [];
   const placeable = PLACEABLES[selected]!;
   const list = el("div", { className: "placeable-list" }, ...ids.map((id) => {
     const p = PLACEABLES[id]!, button = el("button", { type: "button", className: id === selected ? "active" : "" },
       el("strong", {}, id), el("span", {}, p.version));
     button.dataset.placeable = id;
-    button.onclick = () => { selected = id; params = { ...p.examples[0] }; rerender(); };
+    button.onclick = () => { selected = id; params = { ...p.examples[0] }; renderPlaceables(root); };
     return button;
   }));
-  const fields = el("div", { className: "placeable-fields" }, ...placeable.params.map((spec) => field(spec, rerender)));
-  const traceToggle = el("input", { type: "checkbox", checked: traced });
-  traceToggle.onchange = () => { traced = traceToggle.checked; rerender(); };
-
-  const current = result(placeable, params), canvas = el("canvas", { className: "placeable-preview" });
-  const examples = el("div", { className: "placeable-examples" }, ...placeable.examples.map((example, i) => {
-    const r = result(placeable, example), thumb = el("canvas"), same = JSON.stringify(example) === JSON.stringify(params);
-    const card = el("button", { type: "button", className: same ? "active" : "", title: JSON.stringify(example) }, thumb,
+  const paints: Array<() => void> = [];
+  const canvas = el("canvas", { className: "placeable-preview" }), out = el("pre"), json = el("pre");
+  const cards = placeable.examples.map((example, i) => {
+    const r = result(placeable, example), thumb = el("canvas");
+    const card = el("button", { type: "button", title: JSON.stringify(example) }, thumb,
       "elements" in r ? `Example ${i + 1}` : `Example ${i + 1}: ${readout(r, placeable.id)[0]}`);
-    card.onclick = () => { params = { ...example }; rerender(); };
+    card.onclick = () => { params = { ...example }; fields.forEach((f) => f.show()); update(); };
     if ("elements" in r) paints.push(() => paint(thumb, r, placeable.id, false));
     return card;
-  }));
+  });
+  let current: Result = { errors: [] };
+  const preview = () => { if ("elements" in current) paint(canvas, current, placeable.id, traced); };
+  const update = () => {
+    current = result(placeable, params);
+    out.className = "readout" + ("elements" in current ? "" : " invalid");
+    out.textContent = readout(current, placeable.id).join("\n");
+    json.textContent = JSON.stringify(params, null, 2);
+    const shown = JSON.stringify(params);
+    placeable.examples.forEach((example, i) => cards[i]!.classList.toggle("active", JSON.stringify(example) === shown));
+    canvas.hidden = !("elements" in current);
+    preview();
+  };
+  paints.push(preview);
+  const fields = placeable.params.map((spec) => field(spec, update));
+  fields.forEach((f) => f.show());
+  const traceToggle = el("input", { type: "checkbox", checked: traced });
+  traceToggle.onchange = () => { traced = traceToggle.checked; preview(); };
 
   root.replaceChildren(
     el("div", { className: "chain-heading" }, el("div", {}, el("h2", {}, "Placeables"),
@@ -181,10 +204,10 @@ export function renderPlaceables(root: HTMLElement): void {
       el("aside", { className: "chain-sidebar" }, list),
       el("div", { className: "chain-work" },
         el("div", {}, el("h3", { className: "placeable-title" }, `${placeable.id} `, el("span", {}, placeable.version)), el("p", { className: "hint" }, placeable.summary)),
-        examples,
+        el("div", { className: "placeable-examples" }, ...cards),
         el("h3", {}, "Parameters"),
-        fields,
-        el("pre", { className: "readout" + ("elements" in current ? "" : " invalid") }, readout(current, placeable.id).join("\n")),
+        el("div", { className: "placeable-fields" }, ...fields.map((f) => f.control)),
+        out,
         el("label", { className: "placeable-check" }, traceToggle, "Building trace: spaces, allocation and openings"),
         canvas,
         el("div", { className: "placeable-legend" },
@@ -193,11 +216,11 @@ export function renderPlaceables(root: HTMLElement): void {
             swatch.style.background = colour!;
             return el("span", {}, swatch, name!);
           })),
-        el("details", {}, el("summary", {}, "Parameters as JSON"), el("pre", {}, JSON.stringify(params, null, 2))),
+        el("details", {}, el("summary", {}, "Parameters as JSON"), json),
       )),
   );
-  if ("elements" in current) paints.push(() => paint(canvas, current, placeable.id, traced));
-  repaint = () => paints.forEach((p) => p());
+  update();
+  repaint = () => { if (!root.hidden) paints.forEach((p) => p()); };
   if (!resizes) (resizes = new ResizeObserver(() => repaint())).observe(root);
   repaint();
 }

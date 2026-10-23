@@ -2032,25 +2032,34 @@ try {
   }
   await view.locator('[data-placeable="house"]').click();
   assert.match(await view.locator(".readout").innerText(), /, clear \d+ × \d+ at \(/, "a house demands its doorstep");
+  // An edit updates the readout, preview and JSON in place: the control keeps focus, and an
+  // open disclosure stays open.
+  await view.locator("details summary").click();
+  await view.locator('[name="w"]').focus();
+  await placeablesPage.keyboard.press("ArrowUp");
+  assert.equal(await placeablesPage.evaluate(() => (document.activeElement as HTMLInputElement | null)?.name), "w");
+  assert.equal(await view.locator("details").evaluate((d: HTMLDetailsElement) => d.open), true);
+  assert.match(await view.locator("details pre").innerText(), /"w": 5/);
   await view.locator('[name="w"]').fill("99");
-  await view.locator('[name="w"]').dispatchEvent("change");
   assert.match(await view.locator(".readout.invalid").innerText(), /house w must be a whole number from 3 to 12\./);
+  assert.equal(await view.locator(".placeable-preview").isVisible(), false, "no preview the specs don't allow");
   await view.locator('[name="w"]').fill("4");
-  await view.locator('[name="w"]').dispatchEvent("change");
   await view.locator('[name="h"]').fill("5");
-  await view.locator('[name="h"]').dispatchEvent("change");
   await view.locator('[name="spaces"]').fill("3");
-  await view.locator('[name="spaces"]').dispatchEvent("change");
   assert.match(await view.locator(".readout.invalid").innerText(), /A house of 3 spaces needs at least 27 cells\./);
   await view.locator('[name="spaces"]').fill("2");
-  await view.locator('[name="spaces"]').dispatchEvent("change");
   assert.match(await view.locator(".readout.invalid").innerText(), /^Refused: no 2-space house fits 4 × 5/);
   assert.equal(await view.locator(".placeable-examples button.active").count(), 0);
   await view.locator(".placeable-examples button").nth(2).click();
   assert.equal(await view.locator(".placeable-examples button.active").count(), 1);
+  assert.equal(await view.locator('[name="w"]').inputValue(), String(PLACEABLES.house!.examples[2].w), "an example's values show in the controls");
+  assert.equal(await view.locator("details").evaluate((d: HTMLDetailsElement) => d.open), true);
   assert.equal(await painted(view.locator(".placeable-preview")), true);
   await view.locator('[data-placeable="warehouse"]').click();
   assert.match(await view.locator(".readout").innerText(), /warehouse: \d+ spaces?, /, "a building placeable reads as its trace");
+  // A number parameter's spec bounds it but sets no granularity.
+  await view.locator('[data-placeable="cover-piece"]').click();
+  assert.equal(await view.locator('[name="length"]').getAttribute("step"), "any");
   await placeablesPage.screenshot({ path: `${OUT}/placeables.png`, fullPage: true });
   await placeablesPage.setViewportSize({ width: 390, height: 900 });
   assert.equal(await placeablesPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "no sideways scroll at phone width");
