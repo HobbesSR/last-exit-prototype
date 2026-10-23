@@ -364,6 +364,8 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     enclosing element's footprint, at 60% opacity. The inspector gives the
     selected region's part counts and its elements by name, numbers
     folded together.
+    The obstacle-kind sorting and part colours live in `lab/parts.ts`, which
+    the Placeables tab draws with too.
   - **Inspecting:** clicking a cell fills the inspector, and hovering shows
     its first lines. Zoom with the wheel or the buttons; Reset fits the
     map, which the readout calls 100%.
@@ -423,6 +425,18 @@ the source the CLI and MCP execute. `tsc` is only a checker, with
     leaves the submitted source text available to correct. World generation
     retains its full library and strategy checks. A safely reopened draft is not
     a publishable library or a promise that its region strategies exist.
+  - **The Placeables tab** (#433; `lab/placeables.ts`) lists `PLACEABLES`
+    (20.8) with each one's version and summary, and previews every example
+    at the brief's default cell size (`DEFAULT_CELL_SIZE`, 48): the demand's
+    body and clear boxes (`demandShapes`), and the elements' parts in the
+    World tab's colours. Its parameters are edited by their specs (a number
+    input with the spec's bounds, a checkbox, or a menu) and built through
+    `buildPlaceable`, as a tool's unchecked input is. Out-of-spec values
+    aren't clamped: the readout shows `placeableErrors`, the placeable's
+    `check`, or a refusal's reason in place of a preview. A building
+    placeable's `details` (design, allocation, realization) are drawn and
+    summarised as the drill-down's trace: spaces, openings, designs not
+    used and guidance not met.
   - **Serving:** The game server (`server/index.js`) serves the lab at `/dev/map` when `devTools` is enabled, alongside macro's `content/`, `map/micro/`, `map/kernel/`, `shared/`, the map-level
     modules `map/chain.ts`, `map/engines.ts` and `map/live.ts`, and the
     tools' `core.ts`, `engines.ts` and `routes.ts`, at their repository

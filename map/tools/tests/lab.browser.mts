@@ -16,6 +16,7 @@ import { mapViews } from "../../macro/src/chain/map.ts";
 import { GAME_ENGINES } from "../engines.ts";
 import { measureRoutes } from "../routes.ts";
 import { liveChainParams } from "../../live.ts";
+import { PLACEABLES } from "../../micro/placeables/index.ts";
 // @ts-expect-error The game server is JavaScript without declarations.
 import { createArenaServer } from "../../../server/index.js";
 
@@ -2003,12 +2004,66 @@ try {
   assert.match(edited.note, /layout\.slots\[0\]\.orientation/);
   await playPage.close();
 
+  // The Placeables tab (#433, 20.8): every registered placeable, each example previewed, and
+  // parameters edited within their specs, with errors and refusals shown in place of a preview.
+  const placeablesPage = await browser.newPage({ viewport: { width: 1280, height: 1000 } });
+  const placeableErrors: string[] = [];
+  placeablesPage.on("pageerror", (e: Error) => placeableErrors.push(e.message));
+  await placeablesPage.goto(base, { waitUntil: "domcontentloaded" });
+  await placeablesPage.locator("#placeablesTab").click();
+  const view = placeablesPage.locator("#placeablesView");
+  assert.equal(await view.isVisible(), true);
+  assert.equal(await placeablesPage.locator("#worldView").isVisible(), false);
+  /** Whether a canvas has anything drawn on it. */
+  const painted = (canvas: any) => canvas.evaluate((c: HTMLCanvasElement) => {
+    const data = c.getContext("2d")!.getImageData(0, 0, c.width, c.height).data;
+    for (let i = 3; i < data.length; i += 4) if (data[i]) return true;
+    return false;
+  });
+  for (const [id, placeable] of Object.entries(PLACEABLES)) {
+    await view.locator(`[data-placeable="${id}"]`).click();
+    assert.match(await view.locator(".placeable-title").innerText(), new RegExp(`^${id} ${placeable.version}$`));
+    const thumbs = view.locator(".placeable-examples canvas");
+    assert.equal(await thumbs.count(), placeable.examples.length, `${id} previews each example`);
+    for (let i = 0; i < placeable.examples.length; i++) assert.equal(await painted(thumbs.nth(i)), true, `${id} example ${i + 1} is drawn`);
+    assert.equal(await painted(view.locator(".placeable-preview")), true, `${id} is previewed`);
+    assert.equal(await view.locator("[name]").count(), placeable.params.length, `${id} edits each parameter`);
+    assert.match(await view.locator(".readout").innerText(), /^Demand: body \d+ × \d+ cells/);
+  }
+  await view.locator('[data-placeable="house"]').click();
+  assert.match(await view.locator(".readout").innerText(), /, clear \d+ × \d+ at \(/, "a house demands its doorstep");
+  await view.locator('[name="w"]').fill("99");
+  await view.locator('[name="w"]').dispatchEvent("change");
+  assert.match(await view.locator(".readout.invalid").innerText(), /house w must be a whole number from 3 to 12\./);
+  await view.locator('[name="w"]').fill("4");
+  await view.locator('[name="w"]').dispatchEvent("change");
+  await view.locator('[name="h"]').fill("5");
+  await view.locator('[name="h"]').dispatchEvent("change");
+  await view.locator('[name="spaces"]').fill("3");
+  await view.locator('[name="spaces"]').dispatchEvent("change");
+  assert.match(await view.locator(".readout.invalid").innerText(), /A house of 3 spaces needs at least 27 cells\./);
+  await view.locator('[name="spaces"]').fill("2");
+  await view.locator('[name="spaces"]').dispatchEvent("change");
+  assert.match(await view.locator(".readout.invalid").innerText(), /^Refused: no 2-space house fits 4 × 5/);
+  assert.equal(await view.locator(".placeable-examples button.active").count(), 0);
+  await view.locator(".placeable-examples button").nth(2).click();
+  assert.equal(await view.locator(".placeable-examples button.active").count(), 1);
+  assert.equal(await painted(view.locator(".placeable-preview")), true);
+  await view.locator('[data-placeable="warehouse"]').click();
+  assert.match(await view.locator(".readout").innerText(), /warehouse: \d+ spaces?, /, "a building placeable reads as its trace");
+  await placeablesPage.screenshot({ path: `${OUT}/placeables.png`, fullPage: true });
+  await placeablesPage.setViewportSize({ width: 390, height: 900 });
+  assert.equal(await placeablesPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "no sideways scroll at phone width");
+  await placeablesPage.screenshot({ path: `${OUT}/placeables-mobile.png`, fullPage: true });
+  assert.deepEqual(placeableErrors, []);
+  await placeablesPage.close();
+
   await page.setViewportSize({ width: 560, height: 900 });
   await page.locator("#librarySource").selectOption("bundled");
   await generateIn("lab-mobile");
   await page.screenshot({ path: `${OUT}/mobile.png`, fullPage: true });
   assert.deepEqual(errors, []);
-  console.log("Map Lab browser checks passed: chain maps and their layers, saves equal to the core's, read-back, the diagnostic, drill-down, routes, playing a map in the game, and chain library authoring.");
+  console.log("Map Lab browser checks passed: chain maps and their layers, saves equal to the core's, read-back, the diagnostic, drill-down, routes, playing a map in the game, chain library authoring, and placeables.");
 } finally {
   await browser?.close();
   await game.close();

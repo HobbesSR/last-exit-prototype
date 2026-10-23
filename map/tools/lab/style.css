@@ -146,6 +146,82 @@ button.active {
   color: #e2e9ee;
   font: inherit;
 }
+#placeablesView {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 22px 30px;
+}
+.placeable-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.placeable-list button {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+}
+.placeable-list span,
+.placeable-title span {
+  color: #8195a3;
+  font-weight: 400;
+}
+.placeable-title {
+  margin: 0;
+}
+.placeable-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.placeable-examples button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: 180px;
+}
+.placeable-examples canvas {
+  width: 150px;
+  height: 110px;
+}
+.placeable-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+.chain-work label.placeable-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.placeable-preview {
+  width: 100%;
+  height: min(60vh, 520px);
+  background: #0e1b24;
+  border: 1px solid #344754;
+  border-radius: 5px;
+}
+.placeable-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: #aebcc4;
+}
+.placeable-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  border-radius: 2px;
+}
+.readout.invalid {
+  color: #f2b787;
+}
 #chainEditor {
   display: grid;
   gap: 12px;
@@ -992,6 +1068,9 @@ button.active {
 @media (max-width: 700px) {
   .chain-layout {
     grid-template-columns: 1fr;
+  }
+  #placeablesView {
+    padding: 16px;
   }
   .chain-sidebar {
     position: static;
