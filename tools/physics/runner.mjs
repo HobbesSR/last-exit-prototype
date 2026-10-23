@@ -1,4 +1,4 @@
-import { scenarios, workload } from './scenarios.mjs';
+import { scenarios, baselineScenarios, workload, admitMotion } from './scenarios.mjs';
 import { createMetrics } from './metrics.mjs';
 import { DT, quantiles, stateText, digest, actionsAt, doorStats } from './common.mjs';
 
@@ -11,10 +11,13 @@ async function trace(create, scenario, substeps, { checkpoint = false, metrics =
   const world = await create(structuredClone(scenario.scene));
   const metricScene=structuredClone(scenario.scene);
   const diagnostics = metrics ? createMetrics(metricScene) : null;
-  const frames = [], errors = [];
+  const frames = [], errors = [], springTrace = [];
   let previous = world.states(), checkpointBytes = null, restored = false, spring = null;
+  let springPeak = 0, springTailPeak = 0;
+  const admission = scenario.speedAdmission ? admitMotion(scenario.scene.bodies, substeps) : null;
   const initial = createMetrics(scenario.scene); initial.inspect(previous, previous);
   try {
+    if (admission && !admission.admitted) return { admission, refused: true, settings: world.settings };
     for (let tick = 0; tick < scenario.ticks; tick++) {
       actionsAt(world, scenario, tick);
       for(const a of scenario.actions??[])if(a.tick===tick){
@@ -33,8 +36,17 @@ async function trace(create, scenario, substeps, { checkpoint = false, metrics =
         const states = world.states();
         diagnostics?.inspect(states, previous);
         previous = states;
+        const stability = scenario.springStability;
+        if (stability) {
+          const a = states.find(b => b.id === stability.a), b = states.find(b => b.id === stability.b);
+          const amplitude = Math.abs(Math.hypot(a.x - b.x, a.y - b.y) - stability.length);
+          springPeak = Math.max(springPeak, amplitude);
+          if ((tick + (i + 1) / substeps) * DT >= stability.settleSeconds)
+            springTailPeak = Math.max(springTailPeak, amplitude);
+        }
       }
       frames.push(stateText(previous));
+      if (scenario.springStability) springTrace.push({ tick: tick + 1, bodies: previous.map(({ id, x, y }) => ({ id, x, y })) });
       const ref=scenario.springReference;
       if(ref && tick+1===Math.round(ref.atSeconds/DT)){
         const a=previous.find(b=>b.id===ref.a),b=previous.find(b=>b.id===ref.b);
@@ -43,27 +55,43 @@ async function trace(create, scenario, substeps, { checkpoint = false, metrics =
         spring.pass=spring.relativeError<=ref.tolerance;
       }
     }
+    if (scenario.springStability) {
+      const s = scenario.springStability;
+      spring = { peakAmplitude: springPeak, tailPeakAmplitude: springTailPeak,
+        settleSeconds: s.settleSeconds, pass: springPeak <= s.maxAmplitude && springTailPeak <= s.settledAmplitude };
+    }
     return { hash: await digest(frames.join('\n')), final: previous,
       initial: initial.summary(), metrics: diagnostics?.summary(), checkpointBytes, restored,
-      settings: world.settings, errors, spring, doors:doorStats(world) };
+      settings: world.settings, errors, spring, springTrace, admission, doors:doorStats(world) };
   } finally { world.dispose(); world.dispose(); if (world.counts().bodies || world.counts().joints) throw new Error('Dispose leaked handles'); }
 }
 
 export async function correctness(name, { substepsList = [2,4,8], only } = {}) {
   const create = await loadCandidate(name), rows = [];
-  for (const substeps of substepsList) for (const scenario of scenarios().filter(s=>!only || only.includes(s.name))) {
+  // Custom is retained solely as the archived P0 evidence/test baseline.
+  for (const substeps of substepsList) for (const scenario of (name === 'custom' ? baselineScenarios() : scenarios(substeps)).filter(s=>!only || only.includes(s.name))) {
     try {
       const first = await trace(create, scenario, substeps, {metrics:true});
       const second = await trace(create, scenario, substeps);
+      if (first.refused) {
+        rows.push({ scenario: scenario.name, substeps, admission: first.admission,
+          expectedRefusal: !!scenario.expectRefused, repeatExact: JSON.stringify(first) === JSON.stringify(second),
+          numericalGate: !!scenario.expectRefused, promotionEligible: !scenario.invalidStart });
+        continue;
+      }
       let checkpoint;
       try { const continued = await trace(create, scenario, substeps, {checkpoint:true});
         checkpoint = {exact:continued.hash === first.hash, bytes:continued.checkpointBytes, restored:continued.restored};
       } catch(error) { checkpoint = {exact:false,error:String(error)}; }
       const m = first.metrics;
       rows.push({scenario:scenario.name,substeps,hash:first.hash,repeatExact:first.hash===second.hash,
-        checkpoint,metrics:m,initial:first.initial,final:first.final,settings:first.settings,spring:first.spring,doors:first.doors,
+        checkpoint,metrics:m,initial:first.initial,final:first.final,settings:first.settings,spring:first.spring,
+        springTrace: first.springTrace, doors:first.doors,
+        admission: first.admission, promotionEligible: !scenario.invalidStart,
         metadata:Object.fromEntries(Object.entries(scenario).filter(([k])=>!['scene','actions'].includes(k))),
-        numericalGate:m.finite && m.staticPenetration<=.01 && m.actorPenetration<=.5 && m.propPenetration<=.5 && m.crossings===0 && m.ropeExcess<=1 && (!first.spring||first.spring.pass)});
+        numericalGate:!scenario.expectRefused && m.finite && m.staticPenetration<=(name === 'custom' ? .01 : .5) &&
+          (name === 'custom' || (m.staticRecoverySamples * DT/substeps <= .2 && m.staticUnrecoveredPairs === 0)) && m.actorPenetration<=.5 && m.propPenetration<=.5 &&
+          m.crossings===0 && m.ropeExcess<=1 && (!first.spring||first.spring.pass)});
     } catch(error) { rows.push({scenario:scenario.name,substeps,error:String(error),numericalGate:false}); }
   }
   return rows;

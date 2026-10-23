@@ -16,10 +16,11 @@ const mode=args.get('mode')??'correctness';
 if(!['correctness','node','browser','all'].includes(mode))throw Error('mode must be correctness, node, browser or all');
 const samples=Number(args.get('samples')??100),warmup=Number(args.get('warmup')??20);
 if(!Number.isInteger(samples)||samples<1||!Number.isInteger(warmup)||warmup<0)throw Error('Invalid sample count');
-const names=(args.get('candidates')??'custom,rapier').split(',');
+const names=(args.get('candidates')??'rapier').split(',');
+if (names.some(name => name !== 'rapier')) throw Error('Revised #451 reports evaluate Rapier only; custom is an archived P0 baseline');
 const prior=args.has('resume')?JSON.parse(await readFile(args.get('resume'),'utf8')):null;
 const lock=await acquireMachineLock('bench');
-const report={schema:1,date:new Date().toISOString(),command:process.argv.slice(2),
+const report={schema:2,suite:'451-revised-gates',date:new Date().toISOString(),command:process.argv.slice(2),
   provenance:{commit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
     trackedStatus:execFileSync('git',['status','--short','--untracked-files=no'],{encoding:'utf8'}).trim(),
     node:process.version,v8:process.versions.v8,platform:process.platform,arch:process.arch,
