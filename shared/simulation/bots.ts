@@ -2,7 +2,8 @@ import { bodyRadius, canOccupy, insideMap, lineClear, reachClear, sweptClear, TI
 import { cellCenter, cellIndexAt, discoveryGrid, isFeatureDiscovered, DISCOVERY_INTERVAL } from '../discovery.ts';
 import { straightenPath, blockAt, blockRoute } from '../map.ts';
 import { gridRoute } from '../map/route.ts';
-import { contestantKnowledge, createKnowledgePlanner, type Knowledge, type KnownRouteStatus } from '../navigation/knowledge.ts';
+import { contestantKnowledge, createKnowledgePlanner, packedTilesFor, type Knowledge, type KnownRouteStatus } from '../navigation/knowledge.ts';
+import type { PackedTiles } from '../free-space.ts';
 import { count, start, stop } from '../profiler.ts';
 import { carriedCell, syncWeapon } from '../equipment.ts';
 import { GATE_REACH, HZ } from './rules.ts';
@@ -10,7 +11,7 @@ import { distance, center, clearRoute } from './geometry.ts';
 import { visibleTo } from './visibility.ts';
 import { attack } from './combat.ts';
 import { dropEquipment } from './loot.ts';
-import type { CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, Player, PlayerInput, Role, Tick, TileCount, TileIndex, Vec2, World } from '../types.ts';
+import type { CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, MatchContent, Player, PlayerInput, Role, Tick, TileCount, TileIndex, Vec2, World } from '../types.ts';
 
 // What a bot that decides from discovery is after, kept between ticks (#230). A bot searching for what
 // it needs heads for the frontier of what it has *seen*: loot needs line of sight, so a cell the view
@@ -141,6 +142,15 @@ const REPLAN_AFTER = 5 * HZ;
  * nearest its goal and plans on from there (22.6, "budget-exhausted").
  */
 const BOT_ROUTE_BUDGET = 12_000;
+
+/**
+ * The tiles bots would otherwise build on their first plans, for whoever generates a map to build
+ * beside it and the room to adopt (`adoptPackedTiles`). A gladiator plans over the whole map, so
+ * its first plan reads every tile; a contestant reads only what it has discovered, a few at a time.
+ */
+export function prebuiltTiles(map: CollisionMap, content: MatchContent): PackedTiles[] {
+  return content.navigation === 'tiles' ? [packedTilesFor(map, 'gladiator')] : [];
+}
 
 function plannerOf(map: CollisionMap, role: Role) {
   let byRole = planners.get(map);

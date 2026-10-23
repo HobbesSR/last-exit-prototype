@@ -430,14 +430,14 @@ export function mapFreeSpace(map: CollisionMap, key: string, domain: readonly Bo
   return space;
 }
 
-const spaces = new WeakMap<CollisionMap, { obstacles: CollisionMap['obstacles']; count: number; buckets: Map<string, number[]>; meshes: Map<string, { signature: string; space: FreeSpace }>; tiles: Map<string, FreeTile> }>();
+const spaces = new WeakMap<CollisionMap, { obstacles: CollisionMap['obstacles']; count: number; buckets: Map<string, number[]>; meshes: Map<string, { signature: string; space: FreeSpace }>; tiles: Map<string, FreeTile>; packed: PackedTiles[] }>();
 const OBSTACLE_BUCKET = 192;
 
 /** The map's derived-index cache, started afresh when its obstacle list has changed. */
 function cacheOf(map: CollisionMap) {
   let cache = spaces.get(map);
   if (!cache || cache.obstacles !== map.obstacles || cache.count !== map.obstacles.length) {
-    cache = { obstacles: map.obstacles, count: map.obstacles.length, buckets: obstacleBuckets(map), meshes: new Map(), tiles: new Map() };
+    cache = { obstacles: map.obstacles, count: map.obstacles.length, buckets: obstacleBuckets(map), meshes: new Map(), tiles: new Map(), packed: [] };
     spaces.set(map, cache);
   }
   return cache;
@@ -479,8 +479,8 @@ export interface FreeTile extends FreeSpace {
  */
 export function freeSpaceTile(map: CollisionMap, box: Box, clearance: World): FreeTile {
   const cache = cacheOf(map), key = `${box.x},${box.y},${box.w},${box.h}@${clearance}`;
-  const kept = cache.tiles.get(key);
-  if (kept) return kept;
+  const kept = cache.tiles.get(key) ?? cache.packed.reduce<FreeTile | undefined>((found, packed) => found ?? unpackTile(packed, box, clearance), undefined);
+  if (kept) { cache.tiles.set(key, kept); return kept; }
   const reach = clearance + ERODE_MARGIN + 1;
   const window = { x: box.x - reach, y: box.y - reach, w: box.w + 2 * reach, h: box.h + 2 * reach };
   const blocked = nearInBucketOrder(cache.buckets, window).map(i => shapeOf(map.obstacles[i]!));
@@ -502,6 +502,68 @@ export function freeSpaceTile(map: CollisionMap, box: Box, clearance: World): Fr
   const tile = joinPieces(pieces.map((piece, i) => ({ space: triangulateRings(rings[i]!, clearance), gates: piece.gates })), box, reach, clearance);
   cache.tiles.set(key, tile);
   return tile;
+}
+
+/**
+ * Tiles of one clearance on a grid of `size`-unit cells, `cols` wide, packed to cross a worker
+ * (22.6, "Bot adoption"): their arrays laid end to end in three buffers, which transfer without
+ * copying. Posting the tiles as objects would cost the receiving thread a long deserialization;
+ * packed, a tile is unpacked into views of the buffers only when a planner first reads it.
+ */
+export interface PackedTiles {
+  clearance: World;
+  size: World;
+  cols: number;
+  /** Per tile, `PACKED_FIELDS` numbers: where its arrays start and how long they are, then its scalars. */
+  index: Float64Array;
+  /** Every tile's `points`, end to end. */
+  floats: Float64Array;
+  /** Every tile's `triangles`, `twins`, locator `starts` and `items`, and `gateSet`, end to end. */
+  ints: Int32Array;
+  /** The `gateSets` of each tile that has doors, by tile number, as JSON. */
+  gates: string;
+}
+const PACKED_FIELDS = 16;
+
+/** Pack the tiles of every cell of a grid, in cell order (row by row). */
+export function packTiles(tiles: readonly FreeTile[], clearance: World, size: World, cols: number): PackedTiles {
+  const index = new Float64Array(tiles.length * PACKED_FIELDS), gates: Record<number, string[][]> = {};
+  let floats = 0, ints = 0;
+  for (const t of tiles) { floats += t.points.length; ints += t.triangles.length * 2 + t.locator.starts.length + t.locator.items.length + t.gateSet.length; }
+  const packed: PackedTiles = { clearance, size, cols, index, floats: new Float64Array(floats), ints: new Int32Array(ints), gates: '' };
+  floats = 0; ints = 0;
+  tiles.forEach((t, i) => {
+    const { x, y, size: bucket, cols: across, rows: down, starts, items } = t.locator;
+    index.set([floats, t.points.length, ints, t.triangles.length, starts.length, items.length, x, y, bucket, across, down, t.box.x, t.box.y, t.box.w, t.box.h, t.reach], i * PACKED_FIELDS);
+    packed.floats.set(t.points, floats); floats += t.points.length;
+    for (const part of [t.triangles, t.twins, starts, items, t.gateSet]) { packed.ints.set(part, ints); ints += part.length; }
+    if (t.gateSets.length) gates[i] = t.gateSets;
+  });
+  packed.gates = JSON.stringify(gates);
+  return packed;
+}
+
+/** Let a map's planners read tiles packed elsewhere, from the same map, rather than build them. */
+export function adoptPackedTiles(map: CollisionMap, packed: PackedTiles): void { cacheOf(map).packed.push(packed); }
+
+const packedGates = new WeakMap<PackedTiles, Record<number, string[][]>>();
+/** The packed tile with exactly this box and clearance, as views of the packed buffers, or undefined. */
+function unpackTile(packed: PackedTiles, box: Box, clearance: World): FreeTile | undefined {
+  const col = box.x / packed.size, row = box.y / packed.size, at = (row * packed.cols + col) * PACKED_FIELDS, f = packed.index;
+  if (packed.clearance !== clearance || !Number.isInteger(col) || !Number.isInteger(row) || col >= packed.cols || at + PACKED_FIELDS > f.length) return undefined;
+  if (f[at + 11] !== box.x || f[at + 12] !== box.y || f[at + 13] !== box.w || f[at + 14] !== box.h) return undefined;
+  let gates = packedGates.get(packed);
+  if (!gates) packedGates.set(packed, gates = JSON.parse(packed.gates) as Record<number, string[][]>);
+  const pointsAt = f[at]!, intsAt = f[at + 2]!, triangles = f[at + 3]!, starts = f[at + 4]!, items = f[at + 5]!;
+  const ints = (from: number, length: number) => packed.ints.subarray(from, from + length);
+  return {
+    clearance, points: packed.floats.subarray(pointsAt, pointsAt + f[at + 1]!),
+    triangles: ints(intsAt, triangles), twins: ints(intsAt + triangles, triangles),
+    locator: { x: f[at + 6]!, y: f[at + 7]!, size: f[at + 8]!, cols: f[at + 9]!, rows: f[at + 10]!,
+      starts: ints(intsAt + 2 * triangles, starts), items: ints(intsAt + 2 * triangles + starts, items) },
+    box: { x: box.x, y: box.y, w: box.w, h: box.h }, reach: f[at + 15]!,
+    gateSet: ints(intsAt + 2 * triangles + starts + items, triangles / 3), gateSets: gates[at / PACKED_FIELDS] ?? [],
+  };
 }
 
 function clip(subject: ClipperLib.Paths, by: ClipperLib.Paths, type: ClipperLib.ClipType): ClipperLib.Paths {

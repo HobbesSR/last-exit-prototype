@@ -4,6 +4,8 @@ import { createMapGenerator } from '../server/map-generator.js';
 import { generateLiveMap, DEFAULT_LIVE_ZONE_SIZE } from '../map/live.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { portalGraphOf } from '../shared/navigation/portal-graph.ts';
+import { freeSpaceTile } from '../shared/free-space.ts';
+import { discoveryGrid } from '../shared/discovery.ts';
 import { roomHarness } from './helpers/room-harness.js';
 
 test('the map worker returns exactly the map generated inline', async () => {
@@ -14,6 +16,11 @@ test('the map worker returns exactly the map generated inline', async () => {
     assert.equal(JSON.stringify(first), JSON.stringify(inline));
     assert.equal(JSON.stringify(second), JSON.stringify(generateLiveMap(9, defaultContent(), DEFAULT_LIVE_ZONE_SIZE)), 'requests are answered in their own order');
     assert.deepEqual(portalGraphOf(first), portalGraphOf(inline), 'the portal graph crosses beside the map');
+    // A gladiator's tiles cross too, packed (22.6, "Bot adoption"): read from one buffer, equal to those built inline.
+    const { cols, size } = discoveryGrid(inline), boxOf = cell => ({ x: (cell % cols) * size, y: Math.floor(cell / cols) * size, w: size, h: size });
+    const crossed = [cols * 3 + 5, cols * 5 + 40, cols * 10 + 90].map(cell => freeSpaceTile(first, boxOf(cell), 25));
+    assert.ok(crossed.every(t => t.points.buffer === crossed[0].points.buffer), 'one packed buffer, not tiles built here');
+    crossed.forEach((tile, i) => assert.deepEqual(tile, freeSpaceTile(inline, tile.box, 25), `tile ${i}`));
   } finally { await maps.close(); }
 });
 

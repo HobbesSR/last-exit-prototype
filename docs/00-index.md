@@ -95,7 +95,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.5-portal-graph.md](42.5-portal-graph.md) | Portal graph stage 1 (#420): swept promise confirmation, table and query costs, route stretch |
 | [42.6-physics-comparison.md](42.6-physics-comparison.md) | Physics P0 (#437): common witnesses, solver comparison, failed gates and integration limits |
 | [42.7-navigation-mesh.md](42.7-navigation-mesh.md) | Free-space mesh as navigation's bottom level (#422): promise confirmation against the grid, build time and memory, table and route costs |
-| [42.8-bot-adoption.md](42.8-bot-adoption.md) | Bots planning over free-space tiles under `content-3` (#424): whole-match stalls, escapes and tick cost against `content-2`, route quality |
+| [42.8-bot-adoption.md](42.8-bot-adoption.md) | Bots planning over free-space tiles under `content-3` (#424): whole-match stalls, escapes and tick cost against `content-2`, route quality, tiles built ahead in the map worker |
 
 ### 5x — Map generation
 

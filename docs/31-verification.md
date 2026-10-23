@@ -305,5 +305,5 @@ past its cover so the sampled projectile survives long enough to measure.
 
 `npm run bench` now measures a live-chain match; `--legacy` keeps a comparable
 legacy workload available, and `--content=<id>` runs an earlier content set, such as
-`content-2`'s grid planner against the default `content-3` (#424). Client crowd fixtures use a central transit site when
+`content-2`'s grid planner against the default `content-3` (#424). Like a room, it adopts the tiles a map worker would build, untimed; `--cold` leaves bots to build them on their first plans (42.8). Client crowd fixtures use a central transit site when
 there is no street graph, and the dense fixture uses a real building loot site.
