@@ -1,6 +1,6 @@
 # Physics P0 comparison lab
 
-Isolated research for #437. Nothing in the game imports these candidates. Rapier
+Isolated research for #437 and #451. Nothing in the game imports these candidates. Rapier
 is an exact, development-only dependency; `npm ci` installs the pinned artifact.
 The scenario/action contract is in [contract.md](contract.md). This is neither a
 production physics API nor permission to activate new gameplay rules.
@@ -15,6 +15,12 @@ npm run physics:report -- --mode=browser --out=test-results/physics-browser.json
 npm run physics:report -- --mode=correctness --browser --queries --out=test-results/physics-supplement.json
 ```
 
+On npm versions that reject forwarded `--mode` flags, use the direct equivalent:
+`node --expose-gc tools/physics/report.mjs --mode=all --queries --out=test-results/physics-451.json`.
+Focused cost repetitions: `node tools/physics/repeat-timing.mjs test-results/physics-451-repeats.json`.
+Optional visual QA (Python/matplotlib): `python tools/physics/plot-springs.py test-results/physics-451.json docs/reports/physics-451-springs.png`.
+The retained revised measurements and limitations are in [42.9](../../docs/42.9-physics-remediation.md).
+
 The physics test files also run in the normal fast tier through `tests/*.test.js`.
 
 `node` measures the full actor × prop × tether × sparse/clustered × substep
@@ -22,8 +28,9 @@ matrix, plus separate sleeping populations. `browser` runs all correctness
 scenarios at 2/4/8 substeps, then the diagonal capacity envelope at four substeps
 in installed headless Chrome. `all` runs Node then Chrome. `--diagonal` reduces
 only Node timing coverage; it is recorded in the command. `--samples=N` and
-`--warmup=N` default to 100 and 20 ticks. `--candidates=custom,rapier` chooses
-ordering. Every report invocation acquires the existing machine benchmark lock.
+`--warmup=N` default to 100 and 20 ticks. Revised reports evaluate Rapier only,
+plus the legacy timing control; the retired custom solver and its tests remain
+an archived P0 baseline. Every invocation acquires the machine benchmark lock.
 
 With `correctness`, `--browser` adds Chrome correctness without the full timing
 matrix. `--queries` adds 18 populated query microbenchmarks per candidate/runtime:
@@ -32,7 +39,7 @@ centres. Original timing-grid casts run along the northern fringe; use the
 supplement for populated-query evidence. Input hashes and hit counts are retained.
 
 Reports keep exact state SHA-256 hashes, repeated runs, checkpoint continuation,
-per-substep geometry diagnostics, a one-second analytic spring reference,
+per-substep geometry diagnostics, native spring stability/settling traces,
 startup/disposal and heap observations, ordered-network projection probes, and
 raw per-tick step/cast/serialization/byte samples. Numeric gate failures are
 results, not reasons to alter the witness. Unexpected exceptions are retained
@@ -60,21 +67,25 @@ Limits that constrain interpretation:
   Body counts mean props; loot-only masking is covered by separate witnesses.
 - The 128 moving-projectile queries are swept circles against current poses.
   They do not model projectile damage, lifecycle or moving-target queries.
-- Both candidates use game-owned centre spring forces and force-limited rope
-  impulses. Native Rapier joints are not evaluated. Spring forces use explicit
-  substep integration. Their first-order error measures the shared integration
-  policy, not native engine spring quality; native implicit joints alone would
-  not satisfy the current one-second reference at 2/4/8 substeps. See 42.6 for
-  the oscillator calculation and the pending user decision in #451. The recorded
-  failures and current gate remain in force until that decision.
+- P0 used game-owned springs and ropes; its unchanged evidence is in 42.6.
+  The #451 suite adds opt-in native centre springs, uncapped and evaluation-only,
+  and retains force-limited game-owned ropes. Native springs reject finite force
+  caps. They are not an approved hook contract; jelly/squish remain #455.
+- Revised gates and the speed admission policy are in 41.1 and contract.md.
+  Contact witnesses scale the old r=8 geometry to r=12; the mixed gladiator is
+  r=23. The doorway keeps its relative clearances and still rejects actor overlap
+  above 0.5. The maximum live-map coordinate witness is 51,840 by 25,920 units,
+  rather than a million. The generator playground has no universal size limit.
+  Old scenarios remain in baselineScenarios for custom's historical tests.
 - Paths between observed substeps are checked independently. Relative circles
   have an analytic straight-path test; rotating boxes are sampled at up to 1024
   intervals. These cannot prove arbitrary continuous containment or reconstruct
   an engine's internal curved/bouncing CCD path. A pair with overlap at either
   endpoint is excluded from the crossing counter and reported as penetration.
   Consequently a pass-through with an overlapping sample can show zero crossings;
-  Rapier's moving-pair witness does this while the bodies swap sides. Inspect
-  penetration and trajectories together when interpreting containment.
+  the old Rapier moving-pair witness did this while bodies swapped sides. Inspect
+  penetration and trajectories together. Rotating interpolation uses the short
+  angle arc, avoiding a false crossing when Rapier wraps from +pi to -pi.
 - Coincident placement is deliberately invalid, marked separately from legal
   starts. Door closure is a caller policy that waits for a clear footprint.
 - Prediction is a synthetic fresh-island reconstruction with authorized proxies,

@@ -96,7 +96,8 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.6-physics-comparison.md](42.6-physics-comparison.md) | Physics P0 (#437): common witnesses, solver comparison, failed gates and integration limits |
 | [42.7-navigation-mesh.md](42.7-navigation-mesh.md) | Free-space mesh as navigation's bottom level (#422): promise confirmation against the grid, build time and memory, table and route costs |
 | [42.8-bot-adoption.md](42.8-bot-adoption.md) | Bots planning over free-space tiles under `content-3` (#424): whole-match stalls, escapes and tick cost against `content-2`, route quality, tiles built ahead in the map worker |
-| [42.9-sliced-replanning.md](42.9-sliced-replanning.md) | Repaths spread over ticks under `content-4` (#470 part 1): budget exhaustion gone, tick cost against `content-3`, why bots share one allowance a tick |
+| [42.9-physics-remediation.md](42.9-physics-remediation.md) | Rapier remediation (#451): revised gates, native springs, bounded speed and capacity proposal; P1 review prerequisites |
+| [42.10-sliced-replanning.md](42.10-sliced-replanning.md) | Repaths spread over ticks under `content-4` (#470 part 1): budget exhaustion gone, tick cost against `content-3`, why bots share one allowance a tick |
 
 ### 5x — Map generation
 

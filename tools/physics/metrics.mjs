@@ -47,8 +47,9 @@ export function penetration(a, b) {
   return minimum;
 }
 const lerp = (a, b, t) => a + (b - a) * t;
+const angleDelta = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
 const between = (a, b, t) => ({ ...b, x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t),
-  angle: lerp(a.angle ?? 0, b.angle ?? 0, t) });
+  angle: (a.angle ?? 0) + angleDelta(a.angle ?? 0, b.angle ?? 0) * t });
 
 function pathCrosses(a0, a1, b0, b1) {
   if (penetration(a0, b0) > EPS || penetration(a1, b1) > EPS) return false;
@@ -65,8 +66,8 @@ function pathCrosses(a0, a1, b0, b1) {
   }
   const travel = Math.hypot((a1.x - a0.x) - (b1.x - b0.x),
     (a1.y - a0.y) - (b1.y - b0.y)) +
-    Math.abs((a1.angle ?? 0) - (a0.angle ?? 0)) * radius(a1) +
-    Math.abs((b1.angle ?? 0) - (b0.angle ?? 0)) * radius(b1);
+    Math.abs(angleDelta(a0.angle ?? 0, a1.angle ?? 0)) * radius(a1) +
+    Math.abs(angleDelta(b0.angle ?? 0, b1.angle ?? 0)) * radius(b1);
   const thin = Math.min(a1.shape === 'box' ? Math.min(a1.hx ?? 8, a1.hy ?? 8) : a1.radius ?? 8,
     b1.shape === 'box' ? Math.min(b1.hx ?? 8, b1.hy ?? 8) : b1.radius ?? 8);
   const steps = Math.min(1024, Math.max(8, Math.ceil(travel / Math.max(0.1, thin * 0.5))));
@@ -138,7 +139,20 @@ export function createMetrics(scene) {
       return measured;
     },
     summary() {
+      const runs = new Map();
+      let staticRecoverySamples = 0;
+      for (const r of results) {
+        const active = new Set(r.details.filter(d => d.type === 'penetration' &&
+          d.class === 'staticPenetration' && d.depth > 0.05).map(d => JSON.stringify(d.ids)));
+        for (const key of runs.keys()) if (!active.has(key)) runs.delete(key);
+        for (const key of active) {
+          const count = (runs.get(key) ?? 0) + 1;
+          runs.set(key, count); staticRecoverySamples = Math.max(staticRecoverySamples, count);
+        }
+      }
       return {
+        staticRecoverySamples,
+        staticUnrecoveredPairs: runs.size,
         finite: results.every(r => r.finite),
         staticPenetration: Math.max(0, ...results.map(r => r.staticPenetration)),
         actorPenetration: Math.max(0, ...results.map(r => r.actorPenetration)),
