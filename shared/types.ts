@@ -511,6 +511,22 @@ export interface DiscoveryMemory {
   seen?: Set<number> | undefined;
   /** Items as last seen, kept for bots, which decide from them (#230). Never projected or recorded. */
   items?: Map<ItemId, GroundItem> | undefined;
+  /**
+   * Every cell the view window has covered, void or not, kept for bots: the layout their
+   * navigation may treat as known (22.6). `discovered` leaves out cells whose centre is off the
+   * playable ground, which the minimap has nothing to draw in.
+   */
+  surveyed?: Set<number> | undefined;
+  /** Doors as a bot last observed them, by sight or by trying one (22.6, "Doors"). Never projected or recorded. */
+  gates?: Map<GateId, GateObservation> | undefined;
+  /** Counts each change to what a bot knows, so a plan made before one is known to be stale. */
+  revision?: number | undefined;
+}
+
+/** A door's state as one contestant last observed it: never the live gate, which may have changed since. */
+export interface GateObservation {
+  open: boolean;
+  locked: boolean;
 }
 
 export interface Projectile extends Vec2 {

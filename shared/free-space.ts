@@ -48,6 +48,11 @@ const ERODE_MARGIN: World = 0.2;
  * become circumscribed polygons, so the free space here never includes ground a circle covers.
  */
 export function triangulateFreeSpace(within: readonly Shape[], open: readonly Shape[], blocked: readonly Shape[], clearance: World): FreeSpace {
+  return triangulateRings(erodedRings(within, open, blocked, clearance), clearance);
+}
+
+/** `within ∩ open − blocked`, eroded by `clearance`, as strictly simple integer rings. */
+function erodedRings(within: readonly Shape[], open: readonly Shape[], blocked: readonly Shape[], clearance: World): ClipperLib.Paths {
   const { PolyType, ClipType, PolyFillType, JoinType, EndType } = ClipperLib;
   const area: ClipperLib.Paths = [], free: ClipperLib.Paths = [], eroded: ClipperLib.Paths = [], tidy: ClipperLib.Paths = [];
   const meet = new ClipperLib.Clipper();
@@ -66,7 +71,7 @@ export function triangulateFreeSpace(within: readonly Shape[], open: readonly Sh
   simple.StrictlySimple = true;
   simple.AddPaths(eroded, PolyType.ptSubject, true);
   simple.Execute(ClipType.ctUnion, tidy, PolyFillType.pftNonZero, PolyFillType.pftNonZero);
-  return triangulateRings(tidy.filter(ring => ring.length >= 3), clearance);
+  return tidy.filter(ring => ring.length >= 3);
 }
 
 /** A shape's outline as one integer ring, wound one way, so overlapping shapes add under the non-zero rule. */
@@ -360,6 +365,17 @@ function funnel(space: FreeSpace, from: Vec2, to: Vec2, crossings: readonly numb
     ends[i * 2] = l; ends[i * 2 + 1] = r;
     xy[i * 4] = space.points[l * 2]!; xy[i * 4 + 1] = space.points[l * 2 + 1]!; xy[i * 4 + 2] = space.points[r * 2]!; xy[i * 4 + 3] = space.points[r * 2 + 1]!;
   });
+  return pullTaut(from, to, ends, xy);
+}
+
+/**
+ * The simple stupid funnel over any corridor of convex places: `ends` holds each portal's left
+ * and right end as an id, the same id wherever the same point recurs, and `xy` their
+ * coordinates, four per portal. The first portal is the start (ids -1) and the last the goal
+ * (ids -2), each a point. Entering a place through a portal, its left end is on the left.
+ */
+export function pullTaut(from: Vec2, to: Vec2, ends: Int32Array, xy: Float64Array): Vec2[] {
+  const count = ends.length / 2;
   // The apex and each side as a vertex number and its coordinates.
   let apex = -1, ax = from.x, ay = from.y, apexAt = 0;
   let left = -1, lx = ax, ly = ay, leftAt = 0, right = -1, rx = ax, ry = ay, rightAt = 0;
@@ -399,11 +415,7 @@ function funnel(space: FreeSpace, from: Vec2, to: Vec2, crossings: readonly numb
  * the obstacle list rebuilds every one.
  */
 export function mapFreeSpace(map: CollisionMap, key: string, domain: readonly Box[], clearance: World): FreeSpace {
-  let cache = spaces.get(map);
-  if (!cache || cache.obstacles !== map.obstacles || cache.count !== map.obstacles.length) {
-    cache = { obstacles: map.obstacles, count: map.obstacles.length, buckets: obstacleBuckets(map), meshes: new Map() };
-    spaces.set(map, cache);
-  }
+  const cache = cacheOf(map);
   const box = domain.reduce<Box | null>((all, b) => all ? union(all, b) : b, null);
   if (!box) return emptySpace(clearance);
   const gates = map.gates.filter(g => !g.open).map(gateShape).filter(g => meets(g, box));
@@ -411,18 +423,171 @@ export function mapFreeSpace(map: CollisionMap, key: string, domain: readonly Bo
   const kept = cache.meshes.get(`${key}@${clearance}`);
   if (kept && kept.signature === signature) return kept.space;
   const blocked: Shape[] = [];
-  const seen = new Set<number>();
-  for (let bx = Math.floor(box.x / OBSTACLE_BUCKET); bx <= Math.floor((box.x + box.w) / OBSTACLE_BUCKET); bx++)
-    for (let by = Math.floor(box.y / OBSTACLE_BUCKET); by <= Math.floor((box.y + box.h) / OBSTACLE_BUCKET); by++)
-      for (const i of cache.buckets.get(`${bx},${by}`) ?? []) if (!seen.has(i)) { seen.add(i); blocked.push(shapeOf(map.obstacles[i]!)); }
+  for (const i of nearInBucketOrder(cache.buckets, box)) blocked.push(shapeOf(map.obstacles[i]!));
   for (const g of gates) blocked.push(rect(g.x, g.y, g.w, g.h));
   const space = triangulateFreeSpace(domain.map(b => rect(b.x, b.y, b.w, b.h)), openGround(map, box), blocked, clearance);
   cache.meshes.set(`${key}@${clearance}`, { signature, space });
   return space;
 }
 
-const spaces = new WeakMap<CollisionMap, { obstacles: CollisionMap['obstacles']; count: number; buckets: Map<string, number[]>; meshes: Map<string, { signature: string; space: FreeSpace }> }>();
+const spaces = new WeakMap<CollisionMap, { obstacles: CollisionMap['obstacles']; count: number; buckets: Map<string, number[]>; meshes: Map<string, { signature: string; space: FreeSpace }>; tiles: Map<string, FreeTile> }>();
 const OBSTACLE_BUCKET = 192;
+
+/** The map's derived-index cache, started afresh when its obstacle list has changed. */
+function cacheOf(map: CollisionMap) {
+  let cache = spaces.get(map);
+  if (!cache || cache.obstacles !== map.obstacles || cache.count !== map.obstacles.length) {
+    cache = { obstacles: map.obstacles, count: map.obstacles.length, buckets: obstacleBuckets(map), meshes: new Map(), tiles: new Map() };
+    spaces.set(map, cache);
+  }
+  return cache;
+}
+
+/** The obstacles whose buckets meet a box, each once, in the order the buckets list them. */
+function nearInBucketOrder(buckets: Map<string, number[]>, box: Box): number[] {
+  const found: number[] = [], seen = new Set<number>();
+  for (let bx = Math.floor(box.x / OBSTACLE_BUCKET); bx <= Math.floor((box.x + box.w) / OBSTACLE_BUCKET); bx++)
+    for (let by = Math.floor(box.y / OBSTACLE_BUCKET); by <= Math.floor((box.y + box.h) / OBSTACLE_BUCKET); by++)
+      for (const i of buckets.get(`${bx},${by}`) ?? []) if (!seen.has(i)) { seen.add(i); found.push(i); }
+  return found;
+}
+
+/**
+ * One tile of a map's free space for a body of `clearance` (22.6, "Knowledge"): the eroded
+ * ground within `box`, triangulated on its own. Doors count as open; the triangles within a
+ * door's reach (its outline widened by the erosion) carry its gate, so a planner applies each
+ * door's state as an edge condition rather than rebuilding geometry.
+ */
+export interface FreeTile extends FreeSpace {
+  box: Box;
+  /** How far past `box` the geometry it was built from reaches: any change there may change the tile. */
+  reach: World;
+  /** Per triangle, an index into `gateSets`, or -1 where no door matters. */
+  gateSet: Int32Array;
+  /** Each set's gate ids, sorted: the doors a triangle needs open to be passable. */
+  gateSets: string[][];
+}
+
+/**
+ * The tile of a map's free space within `box` for a body of `clearance`, built on first use and
+ * kept until the obstacle list changes. A tile is a function of the geometry within its reach
+ * alone: ground and obstacles are clipped to the box widened by the erosion and a unit more, the
+ * eroded result is cut to the box, and its rings are put in a canonical order before they are
+ * triangulated, so neither the obstacle list's order nor anything beyond the reach changes it.
+ * Neighbouring tiles meet edge to edge along their shared side, where both cut the same eroded
+ * boundary.
+ */
+export function freeSpaceTile(map: CollisionMap, box: Box, clearance: World): FreeTile {
+  const cache = cacheOf(map), key = `${box.x},${box.y},${box.w},${box.h}@${clearance}`;
+  const kept = cache.tiles.get(key);
+  if (kept) return kept;
+  const reach = clearance + ERODE_MARGIN + 1;
+  const window = { x: box.x - reach, y: box.y - reach, w: box.w + 2 * reach, h: box.h + 2 * reach };
+  const blocked = nearInBucketOrder(cache.buckets, window).map(i => shapeOf(map.obstacles[i]!));
+  const eroded = erodedRings([rect(window.x, window.y, window.w, window.h)], openGround(map, window), blocked, clearance);
+  let pieces: { rings: ClipperLib.Paths; gates: string[] }[] = [{ rings: clip(eroded, [pathOf(rect(box.x, box.y, box.w, box.h))], ClipperLib.ClipType.ctIntersection), gates: [] }];
+  // A door matters wherever a disk of the clearance would meet it closed: its outline widened by the erosion, squared off.
+  const widen = clearance + ERODE_MARGIN;
+  const doors = map.gates.map(g => ({ id: g.id, zone: gateShape(g) }))
+    .map(({ id, zone }) => ({ id, zone: { x: zone.x - widen, y: zone.y - widen, w: zone.w + 2 * widen, h: zone.h + 2 * widen } }))
+    .filter(({ zone }) => meets(zone, box)).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  for (const door of doors) {
+    const zone = [pathOf(rect(door.zone.x, door.zone.y, door.zone.w, door.zone.h))];
+    pieces = pieces.flatMap(piece => [
+      { rings: clip(piece.rings, zone, ClipperLib.ClipType.ctDifference), gates: piece.gates },
+      { rings: clip(piece.rings, zone, ClipperLib.ClipType.ctIntersection), gates: [...piece.gates, door.id] },
+    ]).filter(piece => piece.rings.length);
+  }
+  const rings = sharePoints(pieces.map(piece => canonical(piece.rings)));
+  const tile = joinPieces(pieces.map((piece, i) => ({ space: triangulateRings(rings[i]!, clearance), gates: piece.gates })), box, reach, clearance);
+  cache.tiles.set(key, tile);
+  return tile;
+}
+
+function clip(subject: ClipperLib.Paths, by: ClipperLib.Paths, type: ClipperLib.ClipType): ClipperLib.Paths {
+  const out: ClipperLib.Paths = [], clipper = new ClipperLib.Clipper();
+  clipper.StrictlySimple = true;
+  clipper.AddPaths(subject, ClipperLib.PolyType.ptSubject, true);
+  clipper.AddPaths(by, ClipperLib.PolyType.ptClip, true);
+  clipper.Execute(type, out, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+  return out.filter(ring => ring.length >= 3);
+}
+
+/**
+ * Rings in an order that depends only on the region they bound: repeated and collinear points
+ * dropped, each ring started at its least point (by y, then x), and the rings sorted by it.
+ * The clipper's own order follows its inputs', which would let geometry elsewhere change a tile.
+ */
+function canonical(rings: ClipperLib.Paths): ClipperLib.Paths {
+  const out: ClipperLib.Paths = [];
+  for (const ring of rings) {
+    let points = ring;
+    for (let changed = true; changed && points.length >= 3;) {
+      changed = false;
+      const kept: ClipperLib.Path = [];
+      for (let i = 0; i < points.length; i++) {
+        const a = kept.at(-1) ?? points.at(-1)!, p = points[i]!, b = points[(i + 1) % points.length]!;
+        if (p.X === a.X && p.Y === a.Y || (p.X - a.X) * (b.Y - a.Y) - (p.Y - a.Y) * (b.X - a.X) === 0) { changed = true; continue; }
+        kept.push(p);
+      }
+      points = kept;
+    }
+    if (points.length < 3) continue;
+    let first = 0;
+    points.forEach((p, i) => { const f = points[first]!; if (p.Y < f.Y || p.Y === f.Y && p.X < f.X) first = i; });
+    out.push([...points.slice(first), ...points.slice(0, first)]);
+  }
+  return out.sort((a, b) => a[0]!.Y - b[0]!.Y || a[0]!.X - b[0]!.X || a.length - b.length || a[1]!.Y - b[1]!.Y || a[1]!.X - b[1]!.X);
+}
+
+/**
+ * Each piece's rings with every other piece's points that lie on their edges added, so pieces that
+ * meet along a stretch have the same points along it and their triangles join edge to edge. A door's
+ * zone side can lie along a wall's eroded edge, which would otherwise meet it in a T.
+ */
+function sharePoints(pieces: readonly ClipperLib.Paths[]): ClipperLib.Paths[] {
+  if (pieces.length < 2) return [...pieces];
+  return pieces.map((rings, i) => {
+    const others = pieces.flatMap((other, j) => j === i ? [] : other.flat());
+    return rings.map(ring => ring.flatMap((a, k) => {
+      const b = ring[(k + 1) % ring.length]!, dx = b.X - a.X, dy = b.Y - a.Y, length = dx * dx + dy * dy;
+      const on = others.filter(p => (p.X - a.X) * dy - (p.Y - a.Y) * dx === 0)
+        .map(p => ({ p, along: (p.X - a.X) * dx + (p.Y - a.Y) * dy })).filter(({ along }) => along > 0 && along < length)
+        .sort((u, v) => u.along - v.along).map(({ p }) => p)
+        .filter((p, n, all) => n === 0 || p.X !== all[n - 1]!.X || p.Y !== all[n - 1]!.Y);
+      return [a, ...on];
+    }));
+  });
+}
+
+/** Pieces triangulated apart, joined into one tile: shared points merged, and an edge one piece's boundary shares with another's joined. */
+function joinPieces(pieces: readonly { space: FreeSpace; gates: string[] }[], box: Box, reach: World, clearance: World): FreeTile {
+  const index = new Map<string, number>(), coords: number[] = [], triangles: number[] = [], twins: number[] = [], gateSet: number[] = [], gateSets: string[][] = [];
+  for (const { space, gates } of pieces) {
+    const remap = new Int32Array(space.points.length / 2);
+    for (let v = 0; v < remap.length; v++) {
+      const x = space.points[v * 2]!, y = space.points[v * 2 + 1]!, key = `${x},${y}`;
+      let i = index.get(key);
+      if (i === undefined) { i = coords.length / 2; coords.push(x, y); index.set(key, i); }
+      remap[v] = i;
+    }
+    const base = triangles.length, set = gates.length ? gateSets.push(gates) - 1 : -1;
+    for (let s = 0; s < space.triangles.length; s++) { triangles.push(remap[space.triangles[s]!]!); twins.push(space.twins[s]! < 0 ? -1 : base + space.twins[s]!); }
+    for (let t = 0; t < space.triangles.length / 3; t++) gateSet.push(set);
+  }
+  // Boundary edges from different pieces that run between the same two points, opposite ways, are one edge.
+  const open = new Map<string, number>();
+  for (let s = 0; s < triangles.length; s++) {
+    if (twins[s]! >= 0) continue;
+    const t = Math.floor(s / 3), a = triangles[s]!, b = triangles[t * 3 + (s - t * 3 + 1) % 3]!;
+    const other = open.get(`${b},${a}`);
+    if (other !== undefined) { twins[s] = other; twins[other] = s; open.delete(`${b},${a}`); }
+    else open.set(`${a},${b}`, s);
+  }
+  if (!triangles.length) return { ...emptySpace(clearance), box, reach, gateSet: new Int32Array(), gateSets: [] };
+  const points = Float64Array.from(coords), out = Int32Array.from(triangles);
+  return { clearance, points, triangles: out, twins: Int32Array.from(twins), locator: gridOf(points, out, 3), box, reach, gateSet: Int32Array.from(gateSet), gateSets };
+}
 
 function obstacleBuckets(map: CollisionMap): Map<string, number[]> {
   const buckets = new Map<string, number[]>();
