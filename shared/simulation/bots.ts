@@ -156,8 +156,12 @@ interface Search {
   search: RouteSearch;
   knowledge: Knowledge;
   goal: Vec2;
-  /** Where the bot was when it started, and the door observations it started with. */
-  from: Vec2;
+  /**
+   * Where the bot has been while it ran, one place a tick from where it started: a way its body has
+   * crossed, back to the route's start.
+   */
+  trail: Vec2[];
+  /** The door observations it started with. */
   doors: string;
 }
 const searches = new WeakMap<Player, Search>();
@@ -263,8 +267,10 @@ function repathSliced(s: Game, p: Player, target: Vec2, due: boolean, contestant
     count('work.repath');
     const { cols, rows } = discoveryGrid(s.map), frozen = frozenKnowledge(knowledge, cols * rows, s.map.gates.map(g => g.id));
     searches.set(p, running = { search: planner.search(frozen, p, target, SLICED_BUDGET), knowledge: frozen, goal: { x: target.x, y: target.y },
-      from: { x: p.x, y: p.y }, doors: contestant ? doorsSeen(p) : '' });
+      trail: [], doors: contestant ? doorsSeen(p) : '' });
   }
+  const last = running?.trail.at(-1);
+  if (running && (!last || distance(last, p) >= 2)) running.trail.push({ x: p.x, y: p.y });
   let allowance = allowances.get(s);
   if (allowance?.tick !== s.tick) allowances.set(s, allowance = { tick: s.tick, left: TICK_EXPANSIONS });
   if (!running || allowance.left <= 0) return null;
@@ -274,7 +280,7 @@ function repathSliced(s: Game, p: Player, target: Vec2, due: boolean, contestant
   count('work.route.expansions', running.search.expansions - before); count('work.route.slices');
   if (route) {
     searches.delete(p);
-    adopt(s, p, planner, route, running.knowledge, running.goal, running.doors, fromHere(s, p, route.points, distance(running.from, p)));
+    adopt(s, p, planner, route, running.knowledge, running.goal, running.doors, joinRoute(s.map, p, route.points, running.trail));
   }
   stop('sim.repath');
   return route?.status ?? null;
@@ -290,14 +296,20 @@ function adopt(s: Game, p: Player, planner: ReturnType<typeof createKnowledgePla
     doors, watch: contestant ? unknownAlong(planner, knowledge, s.map, route.points) : [], route: p.route });
 }
 
+/** How near a route's segment a bot must be to join it where it is, as near as `passed` lets it be to a corner. */
+const JOIN: World = 11;
 /**
- * A route planned from where the bot was `moved` units ago, taken up from where it is now: from the
- * end of the segment it is nearest, among those it could have walked along, when the way toward
- * it starts clear; otherwise from the route's start.
+ * A route planned from where the bot was when its search started, `trail[0]`, taken up from where
+ * it is now. The bot joins the segment it is nearest, among those it could have walked along, when
+ * it is within JOIN of it and the way toward the segment's end starts clear. Otherwise it walks its
+ * trail back to the route's start, since nothing it knows says the way from here onto the route is
+ * clear. Exported for its test.
  */
-function fromHere(s: Game, p: Player, points: readonly Vec2[], moved: World): readonly Vec2[] {
+export function joinRoute(map: CollisionMap, p: Player, points: readonly Vec2[], trail: readonly Vec2[]): Vec2[] {
+  let walked = 0;
+  for (let i = 1; i < trail.length; i++) walked += distance(trail[i - 1]!, trail[i]!);
   let best = 0, nearest = Infinity, along = 0;
-  for (let i = 0; i + 1 < points.length && along <= moved + TILE; i++) {
+  for (let i = 0; i + 1 < points.length && along <= walked + TILE; i++) {
     const a = points[i]!, b = points[i + 1]!, dx = b.x - a.x, dy = b.y - a.y, n = dx * dx + dy * dy;
     const t = n ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / n)) : 0;
     const d = Math.hypot(a.x + t * dx - p.x, a.y + t * dy - p.y);
@@ -305,12 +317,16 @@ function fromHere(s: Game, p: Player, points: readonly Vec2[], moved: World): re
     along += Math.sqrt(n);
   }
   const rest = points.slice(best + 1), next = rest[0];
-  if (next) {
+  if (next && nearest < JOIN) {
     // Swept only as far as `passed` sweeps, within sight, so it reads nothing hidden.
     const t = Math.min(1, TURN_AHEAD / Math.max(distance(p, next), 1e-9));
-    if (sweptClear(s.map, p, { x: p.x + (next.x - p.x) * t, y: p.y + (next.y - p.y) * t }, bodyRadius(p))) return rest;
+    if (sweptClear(map, p, { x: p.x + (next.x - p.x) * t, y: p.y + (next.y - p.y) * t }, bodyRadius(p))) return [...rest];
   }
-  return points.filter((point, i) => i > 0 || distance(p, point) >= 11);
+  count('work.route.backtracked');
+  const way = [...trail.slice(1).reverse(), ...points];
+  let from = 0;
+  while (from + 1 < way.length && distance(p, way[from]!) < JOIN) from++;
+  return way.slice(from);
 }
 
 export function botInput(s: Game, p: Player): PlayerInput {

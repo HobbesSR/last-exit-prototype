@@ -44,13 +44,14 @@ function playMatch(map, seed, contentId, packed) {
   const s = createGame(seed, copy, contentById(contentId));
   profiler.reset(); profiler.enable(true);
   const ticks = [], anchor = new Map(), stalls = [];
-  let repaths = 0, exhausted = 0, slices = 0, doorsOpened = 0;
+  let repaths = 0, exhausted = 0, slices = 0, backtracked = 0, doorsOpened = 0;
   const open = new Map(s.map.gates.map(g => [g.id, g.open]));
   // The profiler keeps a window of frames, so its repath counts are folded in before it fills.
   const fold = () => {
     for (const row of profiler.report()) {
       const total = row.mean * row.samples;
       if (row.name === 'work.repath') repaths += total; else if (row.name === 'work.route.exhausted') exhausted += total; else if (row.name === 'work.route.slices') slices += total;
+      else if (row.name === 'work.route.backtracked') backtracked += total;
     }
     profiler.reset();
   };
@@ -71,7 +72,7 @@ function playMatch(map, seed, contentId, packed) {
   return { content: contentId, ticks: s.tick, escaped: contestants.filter(p => p.status === 'escaped').length,
     eliminated: contestants.filter(p => p.status === 'eliminated').length, meanMs: ticks.reduce((a, b) => a + b, 0) / ticks.length,
     p95Ms: percentile(sorted, 0.95), maxMs: sorted.at(-1), maxAt: ticks.indexOf(sorted.at(-1)) + 1, over50: ticks.filter(t => t > 50).length,
-    repaths: Math.round(repaths), exhausted: Math.round(exhausted), slices: Math.round(slices), doorsOpened, stalls };
+    repaths: Math.round(repaths), exhausted: Math.round(exhausted), slices: Math.round(slices), backtracked: Math.round(backtracked), doorsOpened, stalls };
 }
 
 /** Spawn → exit with everything known, and with the half nearer the spawn known: length and kinks against the unrestricted grid route. */
