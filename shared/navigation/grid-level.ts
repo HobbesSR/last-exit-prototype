@@ -1,6 +1,7 @@
 import { bodyRadius, TILE } from '../movement.ts';
 import { moveClear, tileWalkable } from '../map/navigation.ts';
 import { nearestTile } from '../map/route.ts';
+import { IndexHeap } from '../index-heap.ts';
 import type { CollisionMap, DoorPermission, Role, TileCount, TileIndex, TileRect, TileStep, Vec2, World } from '../types.ts';
 import type { PortalGraph, Reach } from './portal-graph.ts';
 
@@ -148,7 +149,7 @@ export function gridReach(map: CollisionMap, role: Role, graph: PortalGraph, ope
 function flood(area: RegionTiles, source: number, targets: readonly number[]): Float64Array {
   const { tiles, moves } = area;
   const distance = new Float64Array(tiles.length).fill(Infinity);
-  const heap = new TileHeap(tiles.length);
+  const heap = new IndexHeap(tiles.length);
   const wanted = new Uint8Array(tiles.length);
   let pending = 0;
   for (const tile of targets) if (!wanted[tile]) { wanted[tile] = 1; pending++; }
@@ -165,42 +166,4 @@ function flood(area: RegionTiles, source: number, targets: readonly number[]): F
     }
   }
   return distance;
-}
-
-/** A binary min-heap of tile indices by key; equal keys pop the lower index first, so floods are deterministic. */
-class TileHeap {
-  private tiles: Int32Array;
-  private keys: Float64Array;
-  size = 0;
-  lastKey = 0;
-  constructor(capacity: number) { this.tiles = new Int32Array(Math.max(16, capacity)); this.keys = new Float64Array(this.tiles.length); }
-  private less(i: number, j: number): boolean { return this.keys[i]! < this.keys[j]! || this.keys[i] === this.keys[j] && this.tiles[i]! < this.tiles[j]!; }
-  private swap(i: number, j: number): void {
-    const t = this.tiles[i]!, k = this.keys[i]!;
-    this.tiles[i] = this.tiles[j]!; this.keys[i] = this.keys[j]!; this.tiles[j] = t; this.keys[j] = k;
-  }
-  push(tile: number, key: number): void {
-    if (this.size === this.tiles.length) {
-      const tiles = new Int32Array(this.size * 2), keys = new Float64Array(this.size * 2);
-      tiles.set(this.tiles); keys.set(this.keys); this.tiles = tiles; this.keys = keys;
-    }
-    let i = this.size++;
-    this.tiles[i] = tile; this.keys[i] = key;
-    while (i > 0) { const up = (i - 1) >> 1; if (!this.less(i, up)) break; this.swap(i, up); i = up; }
-  }
-  pop(): number {
-    const top = this.tiles[0]!; this.lastKey = this.keys[0]!;
-    if (--this.size > 0) {
-      this.tiles[0] = this.tiles[this.size]!; this.keys[0] = this.keys[this.size]!;
-      for (let i = 0; ;) {
-        const l = 2 * i + 1, r = l + 1;
-        let m = i;
-        if (l < this.size && this.less(l, m)) m = l;
-        if (r < this.size && this.less(r, m)) m = r;
-        if (m === i) break;
-        this.swap(i, m); i = m;
-      }
-    }
-    return top;
-  }
 }

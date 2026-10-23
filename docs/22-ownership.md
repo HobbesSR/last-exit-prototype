@@ -3,7 +3,7 @@
 Each decision has exactly one owner. Boundary tests enforce the ones that matter;
 the rest are conventions this file records so a change lands in the right module.
 
-`shared/shape.ts` owns what a shape is: the rect/circle/polygon description, its bounds, outline, edges, SAT body, containment, overlap and transform. It is a dependency-free leaf, and collision, sight and the renderer all read geometry through it rather than from raw `w`/`h`/`r` fields; see [29](29-geometry-and-drawing.md). `shared/map.ts` exposes map generation and routing. `shared/movement.ts` owns what the simulation does with a shape: occupancy, the movement sweep, sight queries and visibility polygons. `shared/simulation.ts` is the public simulation facade and explicit fixed-tick coordinator. `server/index.js` composes the server and serves static assets. `shared/frame-layers.ts` owns how a live frame's slow-changing layers travel, keyframes and change sets, encoded on the server and decoded per socket on the client ([24](24-networking-privacy.md#layered-frames)). `public/client.js` owns application startup, networking, authoritative state, prediction/reconciliation and lobby flow; `public/replay-controller.js` owns recorded-match playback. `public/snapshot-buffer.js` owns the receive buffer and the delayed, interpolated frame drawn from it, and knows nothing of sockets, Phaser or the scene: frames go in and one interpolated frame comes out, which is the seam a state-sync framework would replace. `client.js` decides which frame the renderer sees — the buffered one live, the replay's own playhead when a recording is open — so the scene draws what it is given rather than deciding what is current. `public/arena-scene.js` renders the world and visibility mask. `public/ui.js` owns the client's shared presentation vocabulary — DOM lookup, tick formatting and kit naming read from the authoritative kit table rather than a transcribed copy.
+`shared/shape.ts` owns what a shape is: the rect/circle/polygon description, its bounds, outline, edges, SAT body, containment, overlap and transform. It is a dependency-free leaf, and collision, sight and the renderer all read geometry through it rather than from raw `w`/`h`/`r` fields; see [29](29-geometry-and-drawing.md). `shared/free-space.ts` is the shape module's derived free-space index: each region's ground outside those outlines, eroded by a body's clearance and triangulated, with its corridors and funnel paths ([22.6](22.6-hierarchical-navigation.md#bottom-level-free-space-triangulation)); it keeps `shape.ts` a leaf by depending on it, never the reverse. `shared/map.ts` exposes map generation and routing. `shared/movement.ts` owns what the simulation does with a shape: occupancy, the movement sweep, sight queries and visibility polygons. `shared/simulation.ts` is the public simulation facade and explicit fixed-tick coordinator. `server/index.js` composes the server and serves static assets. `shared/frame-layers.ts` owns how a live frame's slow-changing layers travel, keyframes and change sets, encoded on the server and decoded per socket on the client ([24](24-networking-privacy.md#layered-frames)). `public/client.js` owns application startup, networking, authoritative state, prediction/reconciliation and lobby flow; `public/replay-controller.js` owns recorded-match playback. `public/snapshot-buffer.js` owns the receive buffer and the delayed, interpolated frame drawn from it, and knows nothing of sockets, Phaser or the scene: frames go in and one interpolated frame comes out, which is the seam a state-sync framework would replace. `client.js` decides which frame the renderer sees — the buffered one live, the replay's own playhead when a recording is open — so the scene draws what it is given rather than deciding what is current. `public/arena-scene.js` renders the world and visibility mask. `public/ui.js` owns the client's shared presentation vocabulary — DOM lookup, tick formatting and kit naming read from the authoritative kit table rather than a transcribed copy.
 
 ## Scope
 
@@ -28,8 +28,8 @@ named owner decides. Smaller owners that the parts don't list:
   untrusted file content; `public/sat-browser.js` hands the browser the global
   SAT build.
 
-22.6 is not a record of existing code: it is the recorded direction for #353,
-none of it built yet. 22.7, designed for #385, was implemented in #386. Their numbers sit in this
+22.6 is mostly the recorded direction for #353: its portal graph (#420) and
+free-space mesh (#422) are built, and nothing uses them yet. 22.7, designed for #385, was implemented in #386. Their numbers sit in this
 range because they concern ownership, and numbers never change (33).
 
 ## Reading guide
@@ -45,7 +45,7 @@ They do not replace the current owners recorded here until implementation.
 | 22.3 | Server | [22.3](22.3-server.md) |
 | 22.4 | Client | [22.4](22.4-client.md) |
 | 22.5 | Lobbies, matchmaking and rooms: the design for #237, what each part owns and the stages | [22.5](22.5-lobbies-and-matchmaking.md) |
-| 22.6 | Hierarchical navigation (portal graph over a navmesh, direction recorded), private map knowledge and optimistic bot planning (#353) | [22.6](22.6-hierarchical-navigation.md) |
+| 22.6 | Hierarchical navigation (portal graph over a free-space mesh, built but not adopted), private map knowledge and optimistic bot planning (#353) | [22.6](22.6-hierarchical-navigation.md) |
 | 22.7 | Content/presentation metadata, client configuration, compatibility defaults and shared-rule ownership (#385; implemented in #386) | [22.7](22.7-content-and-presentation.md) |
 
 ## Earlier heading links

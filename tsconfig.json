@@ -24,7 +24,9 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": false,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    // A vendor whose published types are TypeScript source this configuration cannot check.
+    "paths": { "@kninnug/constrainautor": ["./shared/constrainautor.d.ts"] }
   },
   "include": ["shared/**/*.ts", "map/micro/**/*.ts", "map/kernel/**/*.ts", "map/*.ts"]
 }
