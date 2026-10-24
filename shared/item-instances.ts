@@ -11,7 +11,13 @@ export function validateItemPayload(item: GroundItem | InventoryItem, s: Game): 
     if (!Object.hasOwn(s.content.weapons, type)) return false;
     const spec = s.content.weapons[type];
     const ammo = item.ammo ?? spec?.ammo;
-    return !!spec && Number.isSafeInteger(ammo) && ammo >= 0 && ammo <= spec.maxAmmo;
+    // Under L2 a weapon's rounds are its loaded magazine.
+    const limit = s.content.reloading?.weapons[type]?.magazine ?? spec?.maxAmmo;
+    return !!spec && Number.isSafeInteger(ammo) && ammo >= 0 && ammo <= limit!;
+  }
+  if (item.kind === 'ammo') {
+    const family = 'family' in item ? item.family : undefined;
+    return 'id' in item && !!s.content.reloading && typeof family === 'string' && Object.hasOwn(s.content.reloading.reserves, family) && validCount(item.count);
   }
   if (item.kind === 'cell') return Number.isSafeInteger(item.charge ?? 0) && (item.charge ?? 0) >= 0;
   if (item.kind === 'med' || item.kind === 'shield') {

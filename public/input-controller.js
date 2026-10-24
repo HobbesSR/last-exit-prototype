@@ -6,7 +6,7 @@ export function createInputController({ getPlayer, onSelectionChange, onToggleFu
   const listen = (target, type, handler) => target.addEventListener(type, handler, { signal: listeners.signal });
   let pulseSkill = false, pulseInteract = false, pointerFire = false, sneakHeld = false, currentAim = 0;
   let selectedSlot;
-  let pulseDrop = false;
+  let pulseDrop = false, pulseReload = false, pendingAmmoDrop = null;
   let moveFrom = null, pendingMove = null, dragDropSource = null;
   const validSlot = index => Number.isInteger(index) && index >= 0 && index < 6;
   function selectSlot(index) {
@@ -33,16 +33,22 @@ export function createInputController({ getPlayer, onSelectionChange, onToggleFu
     selectedSlot = from; pendingMove = null; moveFrom = null; dragDropSource = from; pulseDrop = true;
     onSelectionChange();
   }
+  // L2 drops a family's whole reserve as one pickup; the server bounds it by what is held.
+  function dropAmmo(family) {
+    const count = getPlayer()?.reserves?.[family];
+    if (Number.isSafeInteger(count) && count > 0) pendingAmmoDrop = { family, count };
+  }
   const movementStick = { x: 0, y: 0, active: false }, aimingStick = { x: 0, y: 0, active: false };
   const held = new Set();
-  function clearInput() { moveFrom = null; pendingMove = null; dragDropSource = null; held.clear(); pointerFire = false; sneakHeld = false; pulseSkill = false; pulseInteract = false; pulseDrop = false; selectedSlot = undefined; for (const stick of [movementStick, aimingStick]) Object.assign(stick, { x: 0, y: 0, active: false }); document.querySelectorAll('.virtual-stick span').forEach(el => el.style.transform = ''); }
+  function clearInput() { moveFrom = null; pendingMove = null; dragDropSource = null; held.clear(); pointerFire = false; sneakHeld = false; pulseSkill = false; pulseInteract = false; pulseDrop = false; pulseReload = false; pendingAmmoDrop = null; selectedSlot = undefined; for (const stick of [movementStick, aimingStick]) Object.assign(stick, { x: 0, y: 0, active: false }); document.querySelectorAll('.virtual-stick span').forEach(el => el.style.transform = ''); }
   listen(document, 'keydown', e => {
     if (e.target.matches('input,select,textarea') || document.querySelector('dialog:modal')) return;
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
     held.add(e.code);
     if (!e.repeat && e.code === 'KeyG') pulseDrop = true;
     if (/^Digit[1-6]$/.test(e.code)) selectSlot(Number(e.code.slice(-1)) - 1);
-    if (!e.repeat && e.code === 'KeyR') toggleArrange();
+    if (!e.repeat && e.code === 'KeyR') pulseReload = true;
+    if (!e.repeat && e.code === 'KeyM') toggleArrange();
     if (!e.repeat) { if (e.code === 'KeyQ') pulseSkill = true; if (e.code === 'KeyE') pulseInteract = true; if (e.code === 'KeyF') onToggleFullscreen(); if (e.code === 'KeyB') onMarkLag(); if (e.code === 'Space') onToggleReplay(); }
   });
   listen(document, 'keyup', e => held.delete(e.code));
@@ -78,15 +84,18 @@ export function createInputController({ getPlayer, onSelectionChange, onToggleFu
     currentAim = input.aim;
     if (!blocked && pendingMove && dragDropSource === null) input.moveSlot = pendingMove; pendingMove = null;
     input.drop = !blocked && pulseDrop; pulseDrop = false;
+    // Sent only when pressed, matching the server's optional L2 commands.
+    if (!blocked && pulseReload) input.reload = true; pulseReload = false;
+    if (!blocked && pendingAmmoDrop) input.dropAmmo = pendingAmmoDrop; pendingAmmoDrop = null;
     if (dragDropSource !== null) { if (!blocked) input.slot = dragDropSource; dragDropSource = null; selectedSlot = undefined; }
     else if (selectedSlot !== undefined) { input.slot = selectedSlot; selectedSlot = undefined; }
     return input;
   }
   return {
-    collectIntent, reset: clearInput, selectSlot, toggleArrange, moveSlot, dropSlot,
+    collectIntent, reset: clearInput, selectSlot, toggleArrange, moveSlot, dropSlot, dropAmmo,
     selection: () => ({ moveFrom }), aim: () => currentAim,
     setPointerFire: value => pointerFire = value,
-    skill: () => pulseSkill = true, interact: () => pulseInteract = true, drop: () => pulseDrop = true,
+    skill: () => pulseSkill = true, interact: () => pulseInteract = true, drop: () => pulseDrop = true, reload: () => pulseReload = true,
     // Preserve consumption after the application has sent and predicted this input.
     consumeActions: () => { pulseSkill = false; pulseInteract = false; },
     destroy() { listeners.abort(); for (const release of releaseCaptures) release(); clearInput(); }

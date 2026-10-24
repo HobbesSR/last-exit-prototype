@@ -3,6 +3,7 @@ import { syncWeapon } from '../equipment.ts';
 import { clearRoute, distance } from './geometry.ts';
 import { RESPAWN_CLEARANCE_RADIUS, RESPAWN_CONTESTANT_DISTANCE, RESPAWN_HAZARD_MARGIN } from './rules.ts';
 import { event, effect, dropEquipment, dropInventorySlot } from './loot.ts';
+import { dropReserves } from './ammo.ts';
 import type { Game, Player } from '../types.ts';
 
 export function eliminate(s: Game, target: Player, source: Player | null): void {
@@ -13,6 +14,7 @@ export function eliminate(s: Game, target: Player, source: Player | null): void 
     // A mandatory drop refuses only an entry no ground record can represent; that one is cleared
     // below rather than halting the room's tick (14).
     for (let slot = 0; slot < (target.inventory?.length ?? 0); slot++) dropInventorySlot(s, target, slot, true);
+    dropReserves(s, target);
   } else for (const item of target.inventory || []) if (item) dropEquipment(s, target, item);
   if (target.inventory) { target.inventory.fill(null); syncWeapon(target, s.content.weapons); }
   if (source?.role === 'gladiator') {

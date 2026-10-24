@@ -76,8 +76,15 @@ export function createHUDController(actions) {
       e.preventDefault(); e.stopImmediatePropagation();
     }
   }, { capture: true, signal: listeners.signal });
-  for (const [id, action] of [['skill', 'skill'], ['interact', 'interact'], ['drop-item', 'drop'], ['arrange-item', 'arrange'], ['fullscreen-toggle', 'toggleFullscreen']]) {
-    listen($(id), 'click', () => actions[action]());
+  for (const [id, action] of [['skill', 'skill'], ['interact', 'interact'], ['drop-item', 'drop'], ['arrange-item', 'arrange'], ['reload-item', 'reload'], ['fullscreen-toggle', 'toggleFullscreen']]) {
+    listen($(id), 'click', () => actions[action]?.());
+  }
+  // One chip per L2 reserve family; activating a chip drops that family's reserve beside the player.
+  const reserveChips = new Map();
+  for (const [family, label] of [['pistol', 'Pistol rounds'], ['rifle', 'Rifle rounds'], ['shell', 'Shells']]) {
+    const chip = document.createElement('button'); chip.type = 'button'; chip.className = 'reserve-chip'; chip.dataset.family = family; chip.dataset.label = label;
+    listen(chip, 'click', () => actions.dropAmmo?.(family));
+    $('ammo-reserves').append(chip); reserveChips.set(family, chip);
   }
   const showTooltip = (target) => {
     const tip = $('tooltip'); setText(tip, target.dataset.tip); setHidden(tip, false);
@@ -132,7 +139,7 @@ export function createHUDController(actions) {
     const waiting = state.phase === 'waiting';
     $('arena').classList.toggle('waiting', waiting);
     if (waiting) { cancelDrag(); return; }
-    if (!me) { cancelDrag(); setHidden($('arrange-item'), true); setHidden($('objective'), true); setHidden($('equipment-slots'), true); setHidden($('drop-item'), true); }
+    if (!me) { cancelDrag(); setHidden($('ammo-panel'), true); setHidden($('arrange-item'), true); setHidden($('objective'), true); setHidden($('equipment-slots'), true); setHidden($('drop-item'), true); }
     const duration = ticksOf(state.duration) ?? presentation?.durationTicks ?? null;
     const chargeTicks = ticksOf(state.cellChargeTicks) ?? presentation?.cellChargeTicks ?? null;
     setText($('clock'), duration === null ? UNAVAILABLE : time(duration - state.tick, hz));
@@ -158,7 +165,19 @@ export function createHUDController(actions) {
       const cell = carriedCell(me) || me.cell; // Older recordings stored a dedicated cell.
       setHidden($('drop-item'), gladiator || !isPlay);
       setHidden($('arrange-item'), $('drop-item').hidden);
-      setText($('arrange-item'), moveFrom === null ? 'Move / merge · R' : 'Choose destination · R cancels');
+      setText($('arrange-item'), moveFrom === null ? 'Move / merge · M' : 'Choose destination · M cancels');
+      // Only L2 matches carry reserves; older content and recordings show no reload controls.
+      setHidden($('ammo-panel'), gladiator || !isPlay || !me.reserves);
+      if (me.reserves) {
+        setText($('reload-item'), me.reload ? 'Reloading…' : 'Reload · R');
+        for (const [family, chip] of reserveChips) {
+          const count = me.reserves[family] ?? 0;
+          setText(chip, `${chip.dataset.label} ${count}`);
+          chip.disabled = count <= 0;
+          const label = count > 0 ? `${chip.dataset.label}: ${count} in reserve. Drop them` : `${chip.dataset.label}: none in reserve`;
+          if (chip.ariaLabel !== label) { chip.ariaLabel = label; chip.title = label; }
+        }
+      }
       
       const arr = $('arrange-item');
       if (arr.getAttribute('aria-pressed') !== String(moveFrom !== null)) arr.setAttribute('aria-pressed', String(moveFrom !== null));

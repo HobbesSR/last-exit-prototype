@@ -76,7 +76,7 @@ Each cell occupies one of the six ordinary equipment slots and never stacks; car
 
 ## Equipment and inventory
 
-Equipment has six mixed slots. 1–6 or slot buttons select equipment; fire/use activates it. Items use icons with numeric ammo, stack or charge badges, tooltips and accessible names. R or Move/merge selects the current item for rearrangement; choose a destination with a number key or slot button. Matching medkit/shield stacks combine up to three; other items swap. Medkits restore 40 HP and shields restore 30 (75 maximum). Each cell takes one slot and never stacks.
+Equipment has six mixed slots. 1–6 or slot buttons select equipment; fire/use activates it. Items use icons with numeric ammo, stack or charge badges, tooltips and accessible names. M or Move/merge selects the current item for rearrangement; choose a destination with a number key or slot button. Matching medkit/shield stacks combine up to three; other items swap. Medkits restore 40 HP and shields restore 30 (75 maximum). Each cell takes one slot and never stacks.
 
 Drag an occupied slot at least eight screen pixels to another slot to move,
 swap or merge it. Release over the arena canvas to drop that source item beside
@@ -87,7 +87,7 @@ stick. Cancellation, blur, dialogs, inactive players and replay mode prevent
 unfinished gestures from producing inventory commands. Inventory changes remain
 authoritative; the UI does not move items before the server responds.
 
-E swaps nearby loot into the selected slot when full. G or Drop selected drops the whole selected slot; a one-second owner pickup delay avoids immediate recollection. Drops retain cell charge and remaining weapon ammunition. Pistol/rifle/scattergun pickups start with 48/90/24 rounds, capped at 192/360/96 per weapon. One shot costs one round, including a scattergun's five-pellet shot. Matching weapon pickups replenish ammo even with full inventory; untransferred rounds remain on the ground. There is no reload mechanic or separate reserve-ammo slot yet. Existing damage/cooldowns remain pistol 10/8 ticks, rifle 6/4, scattergun five 7-damage pellets/18. No contestant ability slot is implemented.
+E swaps nearby loot into the selected slot when full. G or Drop selected drops the whole selected slot; a one-second owner pickup delay avoids immediate recollection. Drops retain cell charge and remaining weapon ammunition. Pistol/rifle/scattergun pickups start with 48/90/24 rounds, capped at 192/360/96 per weapon. One shot costs one round, including a scattergun's five-pellet shot. Matching weapon pickups replenish ammo even with full inventory; untransferred rounds remain on the ground. Default content has no reload mechanic or reserve ammunition; see "Reloading (L2)" below. Existing damage/cooldowns remain pistol 10/8 ticks, rifle 6/4, scattergun five 7-damage pellets/18. No contestant ability slot is implemented.
 
 ### Explicit L0 item instances (#442)
 
@@ -172,6 +172,51 @@ Novelty is a separate vertical axis (0 in the middle row, 2 at the top and
 bottom). Its catalogue is empty until special items are authored, so nothing is
 placed by it. Danger reads the same selector but owns its own curves and safety
 reservations. The chain places no traps yet (16), so no danger curve is defined.
+
+### Reloading (L2, #444)
+
+`contentById('content-ammo-1')` selects `last-exit-0.8-ammo-1`: L1 plus reloads.
+It requires L0. Default rooms and the frozen fixture are unchanged. R reloads in
+every match but only this content has reloads; M moves/merges everywhere.
+
+A weapon's `ammo` is its loaded magazine and travels with the weapon instance:
+a dropped, swapped or death-dropped weapon keeps it, never the player's reserve.
+Each contestant holds pistol, rifle and shell reserves outside the six slots.
+Provisional numbers (41.1; the user will rebalance, 17.3 Q4):
+
+| Weapon | Family | Magazine | Reserve cap | Reload |
+| --- | --- | --- | --- | --- |
+| Pistol | pistol | 12 | 72 | 20 ticks (1.0 s) |
+| Rifle | rifle | 30 | 120 | 30 ticks (1.5 s) |
+| Scattergun | shell | 6 | 30 | 30 ticks (1.5 s), whole magazine |
+
+At match creation each map weapon keeps at most one full magazine; any rounds
+above that become an `ammo` pickup of its family beside it, so a pistol's 48 is
+12 loaded plus a 36-round pickup. Nothing is counted twice and nothing is lost.
+Contestants start with empty reserves.
+
+Ammo pickups are collected by walking over them, even with six full slots. They
+add what fits under the reserve cap; the remainder stays on the ground under the
+same identity, and a full reserve leaves the pickup untouched. A same-type,
+same-quality weapon pickup feeds its loaded rounds to the reserve the same way;
+it never merges into the carried magazine. E does not take ammo into a slot.
+
+Reloading is a one-shot command. It starts when the selected weapon is not full,
+its family reserve is not empty and the player is not stunned; pressing again
+while reloading does nothing. Movement continues; attacking is blocked. A change
+of selected slot or weapon (switch, move, drop, swap), a stun or elimination
+cancels it with nothing transferred. On completion it moves exactly
+`min(magazine - loaded, reserve)` once and keeps every unused loaded round.
+There is no automatic reload for players. Within one tick the order is: slot,
+move, drop, ammo drop, reload, attack, interact, so R+M in one input moves first
+and then reloads the still-selected weapon.
+
+A living contestant may drop up to a requested count of one family's reserve as
+one pickup, bounded by what it holds, with the one-second self-pickup delay and
+L0's optional capacity and placement refusal. The HUD's reserve chips drop a
+family's whole reserve. Elimination drops every non-empty reserve as mandatory
+pickups alongside the slots. Bots reload when empty, or when no one is in sight,
+and seek ammo while their reserve has room.
 
 ## Traps
 

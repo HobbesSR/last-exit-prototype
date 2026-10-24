@@ -5,6 +5,7 @@ import { serveWithBrowser } from './helpers/browser.js';
 import path from 'node:path';
 import { checkClientControllers } from './client-controllers.mjs';
 import { checkContentPresentation } from './content-presentation.mjs';
+import { checkReloadControls } from './reload-controls.mjs';
 import { createMapGenerator } from '../server/map-generator.js';
 
 await mkdir('test-results', { recursive: true });
@@ -38,6 +39,7 @@ async function ready(page, url = base) {
 }
 try {
   await checkClientControllers(browser, base);
+  await checkReloadControls(browser, base);
   await checkContentPresentation(browser);
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await page.goto(`${base}/?seed=4217`);
@@ -78,7 +80,7 @@ try {
   await page.getByRole('button', { name: 'Move or merge selected item', exact: true }).click();
   await page.locator('#equipment-slots button').nth(5).click();
   await page.waitForFunction(() => window.arenaDebug().me.inventory[5]?.kind === 'weapon' && window.arenaDebug().me.selectedSlot === 5);
-  await page.keyboard.press('KeyR'); await page.keyboard.press('Digit1');
+  await page.keyboard.press('KeyM'); await page.keyboard.press('Digit1');
   await page.waitForFunction(() => window.arenaDebug().me.inventory[0]?.kind === 'weapon' && window.arenaDebug().me.selectedSlot === 0);
   await page.getByRole('button', { name: 'Drop selected', exact: false }).click();
   await page.waitForFunction(() => window.arenaDebug().me.inventory[0] === null);
