@@ -225,7 +225,7 @@ function sample(
     };
   });
   adjacencyLinks(grid);
-  const solved = solveWfc(grid, columns, rows, adjacencyCompatibility(library), () => random.next(),
+  const solved = solveWfc(grid, adjacencyCompatibility(library), () => random.next(),
     openFace ? { accept: openFaceRule(library, grid, columns, rows, refused) } : {});
   if (!solved) return "wfc";
 

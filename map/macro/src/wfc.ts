@@ -33,7 +33,7 @@ export type WfcGrid = WfcCell[];
  * Narrows domains to a fixed point, from `startQueue`'s links or from every cell. Given
  * `trail`, it records each domain it replaces, so the caller can undo the narrowing.
  */
-export function propagate(grid: WfcGrid, _columns: number, _rows: number, startQueue?: number, trail?: { cells: number[]; domains: TileOption[][] }): boolean {
+export function propagate(grid: WfcGrid, startQueue?: number, trail?: { cells: number[]; domains: TileOption[][] }): boolean {
   const inQueue = new Uint8Array(grid.length);
   const queue: number[] = [];
   
@@ -100,8 +100,8 @@ export interface WfcOptions {
  */
 export const wfcIterationCap = (cells: number): number => Math.max(10_000, 10 * cells);
 
-export function solveWfc(grid: WfcGrid, columns: number, rows: number, compatible: WfcCompatibility, random: () => number, options: WfcOptions = {}): WfcGrid | null {
-  return search(grid, columns, rows, compatible, random, options.state ?? { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, options.accept);
+export function solveWfc(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, options: WfcOptions = {}): WfcGrid | null {
+  return search(grid, compatible, random, options.state ?? { iterations: 0, maxIterations: wfcIterationCap(grid.length) }, options.accept);
 }
 
 /**
@@ -176,7 +176,7 @@ function prepare(grid: WfcGrid, compatible: WfcCompatibility): void {
  * bounded by the call stack. Choices, `random()` calls and iteration counts follow the
  * recursive search this replaced, node for node.
  */
-function search(grid: WfcGrid, columns: number, rows: number, compatible: WfcCompatibility, random: () => number, state: { iterations: number; maxIterations: number }, accept?: WfcAccept): WfcGrid | null {
+function search(grid: WfcGrid, compatible: WfcCompatibility, random: () => number, state: { iterations: number; maxIterations: number }, accept?: WfcAccept): WfcGrid | null {
   const trail: { cells: number[]; domains: TileOption[][] } = { cells: [], domains: [] };
   const undoTo = (mark: number) => {
     while (trail.cells.length > mark) grid[trail.cells.pop()!]!.domain = trail.domains.pop()!;
@@ -191,7 +191,7 @@ function search(grid: WfcGrid, columns: number, rows: number, compatible: WfcCom
   const enter = (depth: number, startQueue?: number): Frame | true | Conflict => {
     if (state.iterations++ > state.maxIterations) return null;
     if (depth === 0) prepare(grid, compatible);
-    if (!propagate(grid, columns, rows, startQueue, trail)) return null;
+    if (!propagate(grid, startQueue, trail)) return null;
 
     const placed: number[] = [];
     for (let i = 0; i < grid.length; i++) if (grid[i]!.domain.length === 1 && !now[i]) {

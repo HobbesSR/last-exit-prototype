@@ -67,18 +67,13 @@ function emptyTopology(cells: Cell[], own: Set<string>, bounds: CellRect): { hol
       if (n.x >= minX && n.x <= maxX && n.y >= minY && n.y <= maxY && !own.has(key) && !outside.has(key)) { outside.add(key); queue.push(n); }
     }
   }
-  const holes: Cell[][] = [], visited = new Set(outside);
+  // Holes are the components of the empty cells the outside flood never reached, gathered in canonical order.
+  const enclosed: Cell[] = [];
   for (let y = minY; y <= maxY; y++) for (let x = minX; x <= maxX; x++) {
-    const first = { x, y }, firstKey = cellKey(first);
-    if (own.has(firstKey) || visited.has(firstKey)) continue;
-    const part: Cell[] = [], pending = [first]; visited.add(firstKey);
-    for (let i = 0; i < pending.length; i++) {
-      const c = pending[i]; part.push(c);
-      for (const [dx, dy] of DIRS) { const n = { x: c.x + dx, y: c.y + dy }, key = cellKey(n); if (n.x >= minX && n.x <= maxX && n.y >= minY && n.y <= maxY && !own.has(key) && !visited.has(key)) { visited.add(key); pending.push(n); } }
-    }
-    holes.push(part.sort(compareCells));
+    const key = `${x},${y}`;
+    if (!own.has(key) && !outside.has(key)) enclosed.push({ x, y });
   }
-  return { holes: holes.sort((a, b) => compareCells(a[0], b[0])), outside };
+  return { holes: componentsFromCanonical(enclosed), outside };
 }
 
 function maximalRectangles(cells: Cell[], bounds: CellRect): CellRect[] {

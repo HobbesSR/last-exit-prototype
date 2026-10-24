@@ -1,4 +1,5 @@
 import { compareCells } from '../kernel/cell.ts';
+import { cellComponents } from './components.ts';
 import { withClearMargins } from '../kernel/margins.ts';
 import type { MarginRegion } from '../kernel/margins.ts';
 import type { Cell, Portal, RegionBrief } from './types.ts';
@@ -40,15 +41,7 @@ export function checkedRegionCells(cells: readonly Cell[]): Cell[] {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const c of sorted) { minX = Math.min(minX, c.x); minY = Math.min(minY, c.y); maxX = Math.max(maxX, c.x); maxY = Math.max(maxY, c.y); }
   if (maxX - minX >= LIMITS.regionSpan || maxY - minY >= LIMITS.regionSpan) throw new Error(`A region may span at most ${LIMITS.regionSpan} cells per axis.`);
-  const seen = new Set<string>([`${sorted[0]!.x},${sorted[0]!.y}`]), queue = [sorted[0]!];
-  for (let i = 0; i < queue.length; i++) {
-    const c = queue[i]!;
-    for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]] as const) {
-      const key = `${c.x + dx},${c.y + dy}`;
-      if (keys.has(key) && !seen.has(key)) { seen.add(key); queue.push({ x: c.x + dx, y: c.y + dy }); }
-    }
-  }
-  if (seen.size !== keys.size) throw new Error('Region cells must form one connected area.');
+  if (cellComponents(sorted).length !== 1) throw new Error('Region cells must form one connected area.');
   return sorted;
 }
 
