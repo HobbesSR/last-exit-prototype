@@ -206,9 +206,10 @@ export interface MatchContent {
   /**
    * How a tile planner's repath runs: `whole`, the default, searches within one tick; `sliced`
    * spreads one search over several ticks, a fixed number of expansions each, while the bot walks
-   * its current route (#470).
+   * its current route (#470); `repair` is `sliced` with changes near a contestant repaired at once
+   * by a short search round them (#470 part 2).
    */
-  replanning?: 'whole' | 'sliced' | undefined;
+  replanning?: 'whole' | 'sliced' | 'repair' | undefined;
 }
 
 /**

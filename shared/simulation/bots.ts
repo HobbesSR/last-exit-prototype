@@ -128,6 +128,11 @@ interface Plan {
   watch: number[];
   /** The route as planned, walked by shifting: a bot whose route is another array has had it cleared (`clearRoute`). */
   route: Vec2[];
+  /**
+   * A repair took up what changed but the next sliced repath must still run: a change was further on,
+   * a door was seen opened, a running search was dropped, or the repair found no way through.
+   */
+  stale: boolean;
 }
 const plans = new WeakMap<Player, Plan>();
 const planners = new WeakMap<CollisionMap, Map<Role, ReturnType<typeof createKnowledgePlanner>>>();
@@ -152,6 +157,14 @@ const BOT_ROUTE_BUDGET = 12_000;
  * add up on one tick.
  */
 const SLICE = 2_000, SLICED_BUDGET = 100_000, TICK_EXPANSIONS = 3_000;
+/**
+ * Under `replanning: 'repair'` (#470 part 2), a contestant whose door observations or watched cells
+ * change within REPAIR_NEAR of itself or of the next REPAIR_AHEAD of its route repairs the route at
+ * once: one search of up to REPAIR_BUDGET expansions from where it stands to the waypoint
+ * REPAIR_REJOIN past the change, the rest of the route kept. A change further on waits for the
+ * sliced repath, as does one the repair cannot get round.
+ */
+const REPAIR_NEAR: World = 192, REPAIR_AHEAD: World = 384, REPAIR_REJOIN: World = 576, REPAIR_BUDGET = 500;
 const allowances = new WeakMap<Game, { tick: Tick; left: number }>();
 interface Search {
   search: RouteSearch;
@@ -166,6 +179,8 @@ interface Search {
   doors: string;
 }
 const searches = new WeakMap<Player, Search>();
+/** Whether repaths spread over ticks: `sliced`, and `repair`, which adds local repair. */
+const sliced = (s: Game): boolean => s.content.replanning === 'sliced' || s.content.replanning === 'repair';
 
 /**
  * The tiles bots would otherwise build on their first plans, for whoever generates a map to build
@@ -231,7 +246,7 @@ export function passed(s: Game, p: Player, waypoint: Vec2, next: Vec2): boolean 
   const d = distance(p, waypoint);
   if (d < 2) return true;
   if (d >= 11) return false;
-  if (s.content.replanning === 'sliced' && distance(p, closestOnSegment(p, waypoint, next)) > margin(p)) return false;
+  if (sliced(s) && distance(p, closestOnSegment(p, waypoint, next)) > margin(p)) return false;
   const length = distance(p, next), t = Math.min(1, TURN_AHEAD / Math.max(length, 1e-9));
   return sweptClear(s.map, p, { x: p.x + (next.x - p.x) * t, y: p.y + (next.y - p.y) * t }, bodyRadius(p));
 }
@@ -249,14 +264,18 @@ function repathTiles(s: Game, p: Player, target: Vec2): KnownRouteStatus | null 
   const planner = plannerOf(s.map, p.role), plan = plans.get(p);
   const scheduled = (s.tick + s.players.indexOf(p)) % REPATH === 0;
   let due = scheduled && !plan || !!plan && p.route !== plan.route;
+  if (plan && !due && contestant && s.content.replanning === 'repair' && p.route?.length && distance(plan.goal, target) < GOAL_MOVED
+    && plan.keys === knowledge.keys) due = repairNear(s, p, plan, planner, knowledge) === false;
   if (plan && !due) {
-    const changed = distance(plan.goal, target) >= GOAL_MOVED || plan.keys !== knowledge.keys
-      || contestant && (plan.doors !== doorsSeen(p) || plan.watch.some(cell => planner.support(cell).every(c => knowledge.known(c))));
+    const learnt = contestant && (plan.stale || plan.doors !== doorsSeen(p) || plan.watch.some(cell => planner.support(cell).every(c => knowledge.known(c))));
+    const changed = learnt || distance(plan.goal, target) >= GOAL_MOVED || plan.keys !== knowledge.keys;
+    // Ticks a contestant walks a route after learning something it has not yet planned with.
+    if (learnt && p.route?.length) count('work.route.waiting');
     const short = plan.status === 'speculative' || plan.status === 'budget-exhausted';
     due = p.route?.length ? scheduled && (changed || s.tick - plan.at >= REPLAN_AFTER)
       : changed || short && distance(plan.from, p) >= 11 || scheduled && s.tick - plan.at >= REPATH;
   }
-  if (s.content.replanning === 'sliced') return repathSliced(s, p, target, due, contestant, knowledge, planner);
+  if (sliced(s)) return repathSliced(s, p, target, due, contestant, knowledge, planner);
   if (!due) return null;
   start('sim.repath'); count('work.repath');
   const route = planner.route(knowledge, p, target, BOT_ROUTE_BUDGET);
@@ -297,6 +316,73 @@ function repathSliced(s: Game, p: Player, target: Vec2, due: boolean, contestant
   return route?.status ?? null;
 }
 
+/**
+ * Repair a contestant's route round what has changed near it (#470 part 2): door observations, and
+ * cells it was planned through as unknown that now have known tiles. A change within REPAIR_NEAR of
+ * the bot or of the next REPAIR_AHEAD of its route is searched round at once, from where the bot
+ * stands to the waypoint REPAIR_REJOIN past it, and the rest of the route is kept. The plan then
+ * takes up what changed; a change further on, a door seen opened, or a search running from before
+ * leaves it stale for the next sliced repath. Returns null when nothing changed near the bot, true when the route was
+ * repaired, and false when the repair found no way through, so the sliced repath starts now.
+ */
+function repairNear(s: Game, p: Player, plan: Plan, planner: ReturnType<typeof createKnowledgePlanner>, knowledge: Knowledge): boolean | null {
+  const seen = doorsSeen(p), before = new Map(plan.doors.split(',').map(d => [d.slice(0, d.lastIndexOf(':')), d]));
+  const gates = new Map(s.map.gates.map(g => [g.id, g]));
+  // A door seen unlocked or open after being seen locked may shorten the route anywhere, not only here.
+  const changes: Vec2[] = [];
+  let opened = false;
+  for (const d of seen ? seen.split(',') : []) {
+    const id = d.slice(0, d.lastIndexOf(':')), g = gates.get(id as GateId), was = before.get(id);
+    if (was === d || !g) continue;
+    changes.push({ x: g.x, y: g.y });
+    opened ||= !!was?.endsWith(':01');
+  }
+  for (const cell of plan.watch) if (planner.support(cell).every(c => knowledge.known(c))) changes.push(cellCenter(s.map, cell));
+  if (!changes.length) return null;
+  // Where along the route each change lies, and whether it is near the bot or the stretch ahead.
+  const route = p.route ?? [], points = [{ x: p.x, y: p.y }, ...route];
+  let reach = -1, far = false;
+  for (const change of changes) {
+    let nearest = Infinity, at = 0, along = 0, ahead = Infinity;
+    for (let i = 0; i + 1 < points.length; i++) {
+      const a = points[i]!, b = points[i + 1]!, q = closestOnSegment(change, a, b), d = distance(change, q);
+      if (d < nearest) { nearest = d; at = along + distance(a, q); }
+      const length = distance(a, b);
+      if (along < REPAIR_AHEAD) {
+        const t = Math.min(1, (REPAIR_AHEAD - along) / Math.max(length, 1e-9));
+        ahead = Math.min(ahead, distance(change, closestOnSegment(change, a, { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t })));
+      }
+      along += length;
+    }
+    if (Math.min(ahead, distance(p, change)) <= REPAIR_NEAR) reach = Math.max(reach, at); else far = true;
+  }
+  far ||= opened;
+  if (reach < 0) return null;
+  // The waypoint REPAIR_REJOIN past the furthest near change, or the route's end.
+  let rejoin = route.length - 1;
+  for (let i = 0, along = 0; i < route.length; i++) {
+    along += distance(points[i]!, points[i + 1]!);
+    if (along >= reach + REPAIR_REJOIN) { rejoin = i; break; }
+  }
+  start('sim.repath'); count('work.route.repairs');
+  const repair = planner.route(knowledge, p, route[rejoin]!, REPAIR_BUDGET);
+  count('work.route.expansions', repair.expansions);
+  const allowance = allowances.get(s);
+  if (allowance?.tick === s.tick) allowance.left -= repair.expansions;
+  else allowances.set(s, { tick: s.tick, left: TICK_EXPANSIONS - repair.expansions });
+  const repaired = repair.status === 'complete' || repair.status === 'speculative';
+  if (repaired) {
+    p.route = [...repair.points.filter((point, i) => i > 0 || distance(p, point) >= 11), ...route.slice(rejoin + 1)].map(({ x, y }) => ({ x, y }));
+    if (repair.status === 'speculative' && plan.status === 'complete') plan.status = 'speculative';
+  } else count('work.route.repairFailed');
+  // A search running from before this change would bring back a route that ignores it.
+  const running = searches.delete(p);
+  Object.assign(plan, { route: p.route, doors: seen, watch: unknownAlong(planner, knowledge, s.map, [{ x: p.x, y: p.y }, ...p.route ?? []]),
+    stale: plan.stale || far || running || !repaired });
+  stop('sim.repath');
+  return repaired;
+}
+
 /** Make `route` the bot's plan, walked as `points`. */
 function adopt(s: Game, p: Player, planner: ReturnType<typeof createKnowledgePlanner>, route: KnownRoute, knowledge: Knowledge, goal: Vec2,
   doors: string, points: readonly Vec2[]): void {
@@ -304,7 +390,7 @@ function adopt(s: Game, p: Player, planner: ReturnType<typeof createKnowledgePla
   if (route.status === 'budget-exhausted') count('work.route.exhausted');
   p.route = points.map(({ x, y }) => ({ x, y }));
   plans.set(p, { goal: { x: goal.x, y: goal.y }, from: { x: p.x, y: p.y }, at: s.tick, status: route.status, keys: knowledge.keys,
-    doors, watch: contestant ? unknownAlong(planner, knowledge, s.map, route.points) : [], route: p.route });
+    doors, watch: contestant ? unknownAlong(planner, knowledge, s.map, route.points) : [], route: p.route, stale: false });
 }
 
 /**

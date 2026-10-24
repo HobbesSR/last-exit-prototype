@@ -123,7 +123,7 @@ for (const content of ['content-2', 'content-3', 'content-4']) test(`a bot enter
 // a twin that agrees wherever it looked and has nothing beyond: no obstacles or doors, and no ground.
 // The two walks must match tick for tick. The bot remembers a cell far across unseen ground,
 // so its route runs where the twins differ; the grid planner, which reads the truth, parts.
-for (const [content, alike] of [['content-4', true], ['content-3', true], ['content-2', false]]) test(`information test: over tiles, a bot's targets, routes and inputs depend only on what it knows (${content})`, () => {
+for (const [content, alike] of [['content-5', true], ['content-4', true], ['content-3', true], ['content-2', false]]) test(`information test: over tiles, a bot's targets, routes and inputs depend only on what it knows (${content})`, () => {
   const seed = 4217;
   liveMap ??= generateLiveMap(seed);
   const spawn = liveMap.spawns[0], far = { id: 'far-cell', kind: 'cell', x: spawn.x + 6000, y: spawn.y, charge: 0 };
@@ -209,4 +209,39 @@ test('under sliced replanning a bot turns short of a waypoint only within the ma
   assert.equal(passed(game('content-3'), beside, corner, end), true, 'content-3 keeps its rule');
   assert.equal(passed(game('content-4'), beside, corner, end), false);
   assert.equal(passed(game('content-4'), { role: 'contestant', x: 187.5, y: 100 }, corner, end), true);
+});
+
+test('under content-5 a door seen opening near a bot reroutes it at once, and one further off at its next repath (#470 part 2)', () => {
+  // A wall at x 600–640 with a door in it, and a gap at its foot. The bot saw the door locked, so it
+  // routes through the gap; then the door is seen open.
+  const cell = { id: 'cell', kind: 'cell', x: 1100, y: 330, charge: 0 };
+  const map = { ...openMap([cell]), nodes: [], streets: [], hazards: [], traps: [], chargers: [], stations: [], exit: { x: 1800, y: 100 },
+    obstacles: [{ id: 'upper', x: 600, y: 0, w: 40, h: 300 }, { id: 'lower', x: 600, y: 360, w: 40, h: 440 }],
+    gates: [{ id: 'door', x: 620, y: 330, w: 40, h: 60, open: true, locked: false, kind: 'door' }] };
+  const run = (content, x, y) => {
+    const p = { id: 'c0', name: 'contestant-1', role: 'contestant', kit: 'warden', bot: true, x, y, hp: 100, maxHp: 100, shield: 0, keys: 0,
+      weapon: 0, kills: 0, level: 1, status: 'active', cooldown: 0, attackCd: 0, railCd: 0, cloak: 0, revealed: 0, boost: 0, stun: 0, heading: 0,
+      input: {}, lastSeq: -1, inventory: Array(4).fill(null), selectedSlot: 0, path: [] };
+    const memory = createDiscovery();
+    memory.seen = new Set();
+    for (let i = 0; i < 50; i++) { memory.discovered.add(i); memory.seen.add(i); }
+    memory.items = new Map([[cell.id, { ...cell }]]);
+    memory.gates = new Map([['door', { open: false, locked: true }]]);
+    attachDiscovery(p, memory);
+    const s = { tick: 0, phase: 'live', content: contentById(content), map, players: [p], projectiles: [], effects: [], events: [], hazardX: -80, slots: 3, serial: 0 };
+    const through = () => !p.route.some(q => q.y >= 800);
+    // The bot stands still, so only what it knows changes.
+    for (; s.tick < 60 && !p.route?.length; s.tick++) botInput(s, p);
+    assert.ok(p.route.length && !through(), 'it routes round by the gap: ' + JSON.stringify(p.route));
+    for (; s.tick % 20 !== 1; s.tick++) botInput(s, p);
+    memory.gates.set('door', { open: true, locked: false });
+    const seenAt = s.tick;
+    for (; s.tick < seenAt + 40 && !through(); s.tick++) botInput(s, p);
+    assert.ok(through(), `it takes the door in the end (${content}): ${JSON.stringify(p.route)}`);
+    return s.tick - seenAt;
+  };
+  assert.equal(run('content-5', 420, 330), 1, 'near: repaired on the tick it is seen');
+  assert.ok(run('content-4', 420, 330) >= 19, 'content-4 waits for its turn');
+  const later = run('content-5', 100, 330);
+  assert.ok(later >= 19, `further off: at its next repath, not after ${later}`);
 });

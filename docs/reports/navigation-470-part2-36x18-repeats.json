@@ -1,0 +1,350 @@
+{
+  "note": "Three sequential repeats of the 36 x 18 matches, content-4 against content-5 (42.12)",
+  "runs": [
+    {
+      "cold": false,
+      "revision": "fe37e5db058f8e40bbbf963878932011dc149178",
+      "created": "2026-10-24T00:40:34.747Z",
+      "node": "v24.15.0",
+      "platform": "win32",
+      "arch": "x64",
+      "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+      "cpuCount": 24,
+      "sourceHashes": {
+        "shared/simulation/bots.ts": "c6b31231e6e2c9278b7fd8a511ebcbf2ce24d1c3cf9cb7671462fcad77fc529c",
+        "shared/navigation/knowledge.ts": "0ba5222462f367347f98ffa00543cf3a3c83e3be1ad3eb686cd49ba71b611082",
+        "shared/free-space.ts": "a1b31f5585023fa0e362cb230cca8cad6034eee3ade11896a4958a0d67280f74",
+        "shared/discovery.ts": "41fdb267277fc66d943cd7802e110a8c132b0c7e1550e276d86f29b0e78f7dad",
+        "shared/map/route.ts": "5548b17e20cb7266c9583ff056a3c59b67cd6954df31bc653a8143bdc3f6cb30",
+        "shared/simulation/content.ts": "5db8f8773876ef3b173d63fe1fca941582b85cd6280af7322e1e2d580cae7991",
+        "tools/navigation/adoption-report.mjs": "0ce9cd828fa246991e1653cf9e1f3c99a5d8051ec0f6d16c38ebefdcc0fec7ec"
+      },
+      "maps": [
+        {
+          "size": "36x18",
+          "seed": 1,
+          "routes": null,
+          "matches": [
+            {
+              "content": "content-4",
+              "ticks": 8693,
+              "escaped": 3,
+              "eliminated": 4,
+              "meanMs": 4.752883170366967,
+              "p95Ms": 9.911500000001979,
+              "maxMs": 37.57530000000406,
+              "maxAt": 2794,
+              "over50": 0,
+              "repaths": 1694,
+              "exhausted": 0,
+              "slices": 2664,
+              "backtracked": 119,
+              "repairs": 0,
+              "repairsFailed": 0,
+              "waiting": 10057,
+              "doorsOpened": 115,
+              "stalls": []
+            },
+            {
+              "content": "content-5",
+              "ticks": 8041,
+              "escaped": 3,
+              "eliminated": 4,
+              "meanMs": 5.535336276582626,
+              "p95Ms": 12.006600000007893,
+              "maxMs": 43.80589999999211,
+              "maxAt": 4369,
+              "over50": 0,
+              "repaths": 1751,
+              "exhausted": 0,
+              "slices": 2674,
+              "backtracked": 101,
+              "repairs": 68,
+              "repairsFailed": 0,
+              "waiting": 10601,
+              "doorsOpened": 98,
+              "stalls": []
+            }
+          ]
+        },
+        {
+          "size": "36x18",
+          "seed": 2,
+          "routes": null,
+          "matches": [
+            {
+              "content": "content-4",
+              "ticks": 8586,
+              "escaped": 3,
+              "eliminated": 5,
+              "meanMs": 4.578843011879699,
+              "p95Ms": 11.038999999989755,
+              "maxMs": 43.86499999999069,
+              "maxAt": 486,
+              "over50": 0,
+              "repaths": 1388,
+              "exhausted": 0,
+              "slices": 3301,
+              "backtracked": 132,
+              "repairs": 0,
+              "repairsFailed": 0,
+              "waiting": 10547,
+              "doorsOpened": 76,
+              "stalls": []
+            },
+            {
+              "content": "content-5",
+              "ticks": 11635,
+              "escaped": 3,
+              "eliminated": 5,
+              "meanMs": 3.7279894456385323,
+              "p95Ms": 10.340200000006007,
+              "maxMs": 45.301800000015646,
+              "maxAt": 168,
+              "over50": 0,
+              "repaths": 1547,
+              "exhausted": 0,
+              "slices": 3437,
+              "backtracked": 147,
+              "repairs": 119,
+              "repairsFailed": 4,
+              "waiting": 9364,
+              "doorsOpened": 73,
+              "stalls": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cold": false,
+      "revision": "fe37e5db058f8e40bbbf963878932011dc149178",
+      "created": "2026-10-24T00:44:26.123Z",
+      "node": "v24.15.0",
+      "platform": "win32",
+      "arch": "x64",
+      "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+      "cpuCount": 24,
+      "sourceHashes": {
+        "shared/simulation/bots.ts": "c6b31231e6e2c9278b7fd8a511ebcbf2ce24d1c3cf9cb7671462fcad77fc529c",
+        "shared/navigation/knowledge.ts": "0ba5222462f367347f98ffa00543cf3a3c83e3be1ad3eb686cd49ba71b611082",
+        "shared/free-space.ts": "a1b31f5585023fa0e362cb230cca8cad6034eee3ade11896a4958a0d67280f74",
+        "shared/discovery.ts": "41fdb267277fc66d943cd7802e110a8c132b0c7e1550e276d86f29b0e78f7dad",
+        "shared/map/route.ts": "5548b17e20cb7266c9583ff056a3c59b67cd6954df31bc653a8143bdc3f6cb30",
+        "shared/simulation/content.ts": "5db8f8773876ef3b173d63fe1fca941582b85cd6280af7322e1e2d580cae7991",
+        "tools/navigation/adoption-report.mjs": "0ce9cd828fa246991e1653cf9e1f3c99a5d8051ec0f6d16c38ebefdcc0fec7ec"
+      },
+      "maps": [
+        {
+          "size": "36x18",
+          "seed": 1,
+          "routes": null,
+          "matches": [
+            {
+              "content": "content-4",
+              "ticks": 8693,
+              "escaped": 3,
+              "eliminated": 4,
+              "meanMs": 4.80722030369261,
+              "p95Ms": 9.846199999999953,
+              "maxMs": 35.4861000000019,
+              "maxAt": 805,
+              "over50": 0,
+              "repaths": 1694,
+              "exhausted": 0,
+              "slices": 2664,
+              "backtracked": 119,
+              "repairs": 0,
+              "repairsFailed": 0,
+              "waiting": 10057,
+              "doorsOpened": 115,
+              "stalls": []
+            },
+            {
+              "content": "content-5",
+              "ticks": 8041,
+              "escaped": 3,
+              "eliminated": 4,
+              "meanMs": 5.569472876507977,
+              "p95Ms": 11.739999999990687,
+              "maxMs": 44.217700000008335,
+              "maxAt": 3967,
+              "over50": 0,
+              "repaths": 1751,
+              "exhausted": 0,
+              "slices": 2674,
+              "backtracked": 101,
+              "repairs": 68,
+              "repairsFailed": 0,
+              "waiting": 10601,
+              "doorsOpened": 98,
+              "stalls": []
+            }
+          ]
+        },
+        {
+          "size": "36x18",
+          "seed": 2,
+          "routes": null,
+          "matches": [
+            {
+              "content": "content-4",
+              "ticks": 8586,
+              "escaped": 3,
+              "eliminated": 5,
+              "meanMs": 4.687608991381183,
+              "p95Ms": 11.08719999997993,
+              "maxMs": 53.40249999999651,
+              "maxAt": 618,
+              "over50": 1,
+              "repaths": 1388,
+              "exhausted": 0,
+              "slices": 3301,
+              "backtracked": 132,
+              "repairs": 0,
+              "repairsFailed": 0,
+              "waiting": 10547,
+              "doorsOpened": 76,
+              "stalls": []
+            },
+            {
+              "content": "content-5",
+              "ticks": 11635,
+              "escaped": 3,
+              "eliminated": 5,
+              "meanMs": 3.674092960893847,
+              "p95Ms": 10.097100000013597,
+              "maxMs": 42.92550000001211,
+              "maxAt": 55,
+              "over50": 0,
+              "repaths": 1547,
+              "exhausted": 0,
+              "slices": 3437,
+              "backtracked": 147,
+              "repairs": 119,
+              "repairsFailed": 4,
+              "waiting": 9364,
+              "doorsOpened": 73,
+              "stalls": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "cold": false,
+      "revision": "fe37e5db058f8e40bbbf963878932011dc149178",
+      "created": "2026-10-24T00:48:34.368Z",
+      "node": "v24.15.0",
+      "platform": "win32",
+      "arch": "x64",
+      "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+      "cpuCount": 24,
+      "sourceHashes": {
+        "shared/simulation/bots.ts": "c6b31231e6e2c9278b7fd8a511ebcbf2ce24d1c3cf9cb7671462fcad77fc529c",
+        "shared/navigation/knowledge.ts": "0ba5222462f367347f98ffa00543cf3a3c83e3be1ad3eb686cd49ba71b611082",
+        "shared/free-space.ts": "a1b31f5585023fa0e362cb230cca8cad6034eee3ade11896a4958a0d67280f74",
+        "shared/discovery.ts": "41fdb267277fc66d943cd7802e110a8c132b0c7e1550e276d86f29b0e78f7dad",
+        "shared/map/route.ts": "5548b17e20cb7266c9583ff056a3c59b67cd6954df31bc653a8143bdc3f6cb30",
+        "shared/simulation/content.ts": "5db8f8773876ef3b173d63fe1fca941582b85cd6280af7322e1e2d580cae7991",
+        "tools/navigation/adoption-report.mjs": "0ce9cd828fa246991e1653cf9e1f3c99a5d8051ec0f6d16c38ebefdcc0fec7ec"
+      },
+      "maps": [
+        {
+          "size": "36x18",
+          "seed": 1,
+          "routes": null,
+          "matches": [
+            {
+              "content": "content-4",
+              "ticks": 8693,
+              "escaped": 3,
+              "eliminated": 4,
+              "meanMs": 4.642816173933048,
+              "p95Ms": 9.635699999998906,
+              "maxMs": 34.30869999999413,
+              "maxAt": 2086,
+              "over50": 0,
+              "repaths": 1694,
+              "exhausted": 0,
+              "slices": 2664,
+              "backtracked": 119,
+              "repairs": 0,
+              "repairsFailed": 0,
+              "waiting": 10057,
+              "doorsOpened": 115,
+              "stalls": []
+            },
+            {
+              "content": "content-5",
+              "ticks": 8041,
+              "escaped": 3,
+              "eliminated": 4,
+              "meanMs": 5.471420805869921,
+              "p95Ms": 11.677499999990687,
+              "maxMs": 41.79469999999856,
+              "maxAt": 4369,
+              "over50": 0,
+              "repaths": 1751,
+              "exhausted": 0,
+              "slices": 2674,
+              "backtracked": 101,
+              "repairs": 68,
+              "repairsFailed": 0,
+              "waiting": 10601,
+              "doorsOpened": 98,
+              "stalls": []
+            }
+          ]
+        },
+        {
+          "size": "36x18",
+          "seed": 2,
+          "routes": null,
+          "matches": [
+            {
+              "content": "content-4",
+              "ticks": 8586,
+              "escaped": 3,
+              "eliminated": 5,
+              "meanMs": 4.4550445259725615,
+              "p95Ms": 10.853000000002794,
+              "maxMs": 43.26000000000931,
+              "maxAt": 470,
+              "over50": 0,
+              "repaths": 1388,
+              "exhausted": 0,
+              "slices": 3301,
+              "backtracked": 132,
+              "repairs": 0,
+              "repairsFailed": 0,
+              "waiting": 10547,
+              "doorsOpened": 76,
+              "stalls": []
+            },
+            {
+              "content": "content-5",
+              "ticks": 11635,
+              "escaped": 3,
+              "eliminated": 5,
+              "meanMs": 3.6908121100128732,
+              "p95Ms": 10.230599999980768,
+              "maxMs": 36.578000000008615,
+              "maxAt": 1147,
+              "over50": 0,
+              "repaths": 1547,
+              "exhausted": 0,
+              "slices": 3437,
+              "backtracked": 147,
+              "repairs": 119,
+              "repairsFailed": 4,
+              "waiting": 9364,
+              "doorsOpened": 73,
+              "stalls": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

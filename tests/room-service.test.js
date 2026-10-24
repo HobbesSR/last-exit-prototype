@@ -27,7 +27,7 @@ test('three hunter places are advertised, admitted, reclaimed and recorded', asy
     assert.equal(room.match.player(welcome.id).kit, 'striker');
     owner.send({ type: 'start' });
     const writer = h.writers.get(room.id);
-    assert.equal(writer.header.contentId, 'content-4');
+    assert.equal(writer.header.contentId, 'content-5');
     assert.equal(writer.header.version, 'last-exit-0.7');
     assert.equal(writer.header.schema, 8);
     assert.equal(writer.header.minSchema, 4);

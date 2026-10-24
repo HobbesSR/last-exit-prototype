@@ -1,6 +1,7 @@
 // Measure #424, bots planning over free-space tiles (22.6 stage 4): whole bot-only live-chain
 // matches under each content in CONTENTS (default content-3, tiles searched within a tick, and
-// content-4, searches sliced over ticks, #470; content-2 is the grid planner), and route quality
+// content-4, searches sliced over ticks, #470; content-5 adds local repair, #470 part 2; content-2 is
+// the grid planner), and route quality
 // against the unrestricted grid search. node tools/navigation/adoption-report.mjs [output.json]
 // Runs sequentially under the bench lock. COLD=1 leaves gladiators to build their tiles on their
 // first plans, as 42.8 measured; by default each match adopts the tiles a map worker would build,
@@ -44,7 +45,7 @@ function playMatch(map, seed, contentId, packed) {
   const s = createGame(seed, copy, contentById(contentId));
   profiler.reset(); profiler.enable(true);
   const ticks = [], anchor = new Map(), stalls = [];
-  let repaths = 0, exhausted = 0, slices = 0, backtracked = 0, doorsOpened = 0;
+  let repaths = 0, exhausted = 0, slices = 0, backtracked = 0, repairs = 0, repairsFailed = 0, waiting = 0, doorsOpened = 0;
   const open = new Map(s.map.gates.map(g => [g.id, g.open]));
   // The profiler keeps a window of frames, so its repath counts are folded in before it fills.
   const fold = () => {
@@ -52,6 +53,8 @@ function playMatch(map, seed, contentId, packed) {
       const total = row.mean * row.samples;
       if (row.name === 'work.repath') repaths += total; else if (row.name === 'work.route.exhausted') exhausted += total; else if (row.name === 'work.route.slices') slices += total;
       else if (row.name === 'work.route.backtracked') backtracked += total;
+      else if (row.name === 'work.route.repairs') repairs += total; else if (row.name === 'work.route.repairFailed') repairsFailed += total;
+      else if (row.name === 'work.route.waiting') waiting += total;
     }
     profiler.reset();
   };
@@ -72,7 +75,8 @@ function playMatch(map, seed, contentId, packed) {
   return { content: contentId, ticks: s.tick, escaped: contestants.filter(p => p.status === 'escaped').length,
     eliminated: contestants.filter(p => p.status === 'eliminated').length, meanMs: ticks.reduce((a, b) => a + b, 0) / ticks.length,
     p95Ms: percentile(sorted, 0.95), maxMs: sorted.at(-1), maxAt: ticks.indexOf(sorted.at(-1)) + 1, over50: ticks.filter(t => t > 50).length,
-    repaths: Math.round(repaths), exhausted: Math.round(exhausted), slices: Math.round(slices), backtracked: Math.round(backtracked), doorsOpened, stalls };
+    repaths: Math.round(repaths), exhausted: Math.round(exhausted), slices: Math.round(slices), backtracked: Math.round(backtracked),
+    repairs: Math.round(repairs), repairsFailed: Math.round(repairsFailed), waiting: Math.round(waiting), doorsOpened, stalls };
 }
 
 /** Spawn → exit with everything known, and with the half nearer the spawn known: length and kinks against the unrestricted grid route. */
