@@ -11,7 +11,7 @@ import { equipped, syncWeapon, rearrangeEquipment, rearrangeInstanceEquipment } 
 import { ensureItemIdentity } from './item-instances.ts';
 import { stepTraps } from './traps.ts';
 import { distance } from './simulation/geometry.ts';
-import { effect, dropEquipment, dropInventorySlot, automaticPickups } from './simulation/loot.ts';
+import { effect, dropInventorySlot, automaticPickups } from './simulation/loot.ts';
 import { respawn, finishMatch } from './simulation/lifecycle.ts';
 import { damage, skill, attack, advanceProjectiles } from './simulation/combat.ts';
 import { interact, advanceCharging } from './simulation/interactions.ts';
@@ -51,10 +51,7 @@ export function step(s: Game): void {
       if (s.content.itemInstances) rearrangeInstanceEquipment(s, p, input.moveSlot.from, input.moveSlot.to);
       else rearrangeEquipment(p, input.moveSlot.from, input.moveSlot.to, s.content.weapons);
     }
-    if (input.drop && equipped(p)) {
-      if (s.content.itemInstances) dropInventorySlot(s, p, p.selectedSlot!);
-      else { dropEquipment(s, p, equipped(p)!); p.inventory![p.selectedSlot!] = null; p.charging = null; syncWeapon(p, s.content.weapons); }
-    }
+    if (input.drop && equipped(p)) dropInventorySlot(s, p, p.selectedSlot!);
     if (input.skill) skill(s, p);
     if (input.attack) attack(s, p);
     if (input.interact) interact(s, p);

@@ -60,6 +60,8 @@ export function rearrangeEquipment(p: Player, from: SlotIndex, to: SlotIndex, we
 }
 
 const qualityOf = (item: { quality?: number | undefined }): number => item.quality ?? 1;
+/** Only equal qualities merge or refill; omitted quality means 1 (14). */
+export const sameQuality = (a: { quality?: number | undefined }, b: { quality?: number | undefined }): boolean => qualityOf(a) === qualityOf(b);
 const stackKind = (kind: string): kind is StackKind => kind === 'med' || kind === 'shield';
 const validIdentityState = (s: Game, p: Player, ground?: GroundItem): boolean => {
   const capacity = s.content.itemInstances?.groundCapacity;
@@ -84,11 +86,10 @@ const prepareCarried = (s: Game, p: Player): void => {
 export function collectInstanceEquipment(s: Game, p: Player, item: GroundItem): boolean {
   if (!validIdentityState(s, p, item) || item.kind === 'access') return false;
   const inventory = p.inventory!;
-  const quality = qualityOf(item);
   const root = item.lineageId ?? item.id;
   if (item.kind === 'weapon') {
     const type = item.weaponType ?? 'pistol', weapon = s.content.weapons[type];
-    const existing = inventory.find((slot): slot is WeaponItem => slot?.kind === 'weapon' && slot.weaponType === type && qualityOf(slot) === quality);
+    const existing = inventory.find((slot): slot is WeaponItem => slot?.kind === 'weapon' && slot.weaponType === type && sameQuality(slot, item));
     if (existing) {
       const current = existing.ammo ?? weapon.ammo, incoming = item.ammo ?? weapon.ammo;
       const transfer = Math.min(incoming, weapon.maxAmmo - current);
@@ -99,7 +100,7 @@ export function collectInstanceEquipment(s: Game, p: Player, item: GroundItem): 
       return item.ammo === 0;
     }
   } else if (stackKind(item.kind)) {
-    const target = inventory.find((slot): slot is StackItem => !!slot && stackKind(slot.kind) && slot.kind === item.kind && qualityOf(slot) === quality && (slot as StackItem).count < 3);
+    const target = inventory.find((slot): slot is StackItem => !!slot && stackKind(slot.kind) && slot.kind === item.kind && sameQuality(slot, item) && (slot as StackItem).count < 3);
     if (target) {
       const count = item.count ?? 1, transfer = Math.min(count, 3 - target.count);
       prepareCarried(s, p);
@@ -132,7 +133,7 @@ export function rearrangeInstanceEquipment(s: Game, p: Player, from: SlotIndex, 
   if (!validIdentityState(s, p) || !Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to < 0 || from >= SLOT_COUNT || to >= SLOT_COUNT || from === to) return false;
   const source = p.inventory![from], target = p.inventory![to];
   if (!source) return false;
-  if (target && stackKind(source.kind) && stackKind(target.kind) && source.kind === target.kind && qualityOf(source) === qualityOf(target)) {
+  if (target && stackKind(source.kind) && stackKind(target.kind) && source.kind === target.kind && sameQuality(source, target)) {
     const stackSource = source as StackItem, stackTarget = target as StackItem;
     const transfer = Math.min(stackSource.count, 3 - stackTarget.count);
     if (transfer <= 0) return false;

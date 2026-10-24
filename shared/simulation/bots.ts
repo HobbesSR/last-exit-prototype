@@ -6,7 +6,7 @@ import { gridRoute } from '../map/route.ts';
 import { contestantKnowledge, createKnowledgePlanner, frozenKnowledge, packedTilesFor, type Knowledge, type KnownRoute, type KnownRouteStatus, type RouteSearch } from '../navigation/knowledge.ts';
 import { closestOnSegment, type PackedTiles } from '../free-space.ts';
 import { count, start, stop } from '../profiler.ts';
-import { carriedCell, syncWeapon } from '../equipment.ts';
+import { carriedCell, sameQuality, syncWeapon } from '../equipment.ts';
 import { GATE_REACH, HZ } from './rules.ts';
 import { distance, center, clearRoute } from './geometry.ts';
 import { visibleTo } from './visibility.ts';
@@ -510,9 +510,9 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     const inventory = collecting ? effectiveInventory().map((item, slot) => slot === intent.discardSlot ? null : item) : p.inventory!;
     const loot = items.filter(i => i.kind !== 'cell' && i.x > s.hazardX + 100 && i.x >= p.x - 60 && distance(p, i) < 210 && accessible(i)
       && (i.kind !== 'med' || effectiveHp < 75)
-      && (i.kind === 'access' || inventory.some(slot => !slot) || inventory.some(slot => slot?.kind === i.kind && slot.kind !== 'weapon' && slot.kind !== 'cell' && slot.count < 3
-        || slot?.kind === 'weapon' && slot.weaponType === i.weaponType && slot.ammo < s.content.weapons[i.weaponType!]?.maxAmmo))
-      && (i.kind !== 'weapon' || i.ammo !== 0 && !inventory.some(slot => slot?.kind === 'weapon' && slot.weaponType === i.weaponType && slot.ammo >= s.content.weapons[i.weaponType!].maxAmmo))).sort((a, b) => distance(p, a) - distance(p, b))[0];
+      && (i.kind === 'access' || inventory.some(slot => !slot) || inventory.some(slot => slot?.kind === i.kind && slot.kind !== 'weapon' && slot.kind !== 'cell' && slot.count < 3 && sameQuality(slot, i)
+        || slot?.kind === 'weapon' && slot.weaponType === i.weaponType && sameQuality(slot, i) && slot.ammo < s.content.weapons[i.weaponType!]?.maxAmmo))
+      && (i.kind !== 'weapon' || i.ammo !== 0 && !inventory.some(slot => slot?.kind === 'weapon' && slot.weaponType === i.weaponType && sameQuality(slot, i) && slot.ammo >= s.content.weapons[i.weaponType!].maxAmmo))).sort((a, b) => distance(p, a) - distance(p, b))[0];
     if (loot && loot.kind !== 'cell' && !p.charging && (!nearest || distance(p, nearest) > 250)) { target = loot; exploring = false; }
     if (pursuit && !exploring) {
       pursuit.cell = -1;

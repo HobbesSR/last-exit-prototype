@@ -10,7 +10,9 @@ export function eliminate(s: Game, target: Player, source: Player | null): void 
   target.charging = null;
   if (target.role === 'gladiator') { target.status = 'respawning'; target.respawnAt = s.tick + s.content.gladiatorRespawnTicks; target.input = {}; }
   if (s.content.itemInstances) {
-    for (let slot = 0; slot < (target.inventory?.length ?? 0); slot++) if (target.inventory![slot] && !dropInventorySlot(s, target, slot, true)) throw new Error('invalid mandatory item drop');
+    // A mandatory drop refuses only an entry no ground record can represent; that one is cleared
+    // below rather than halting the room's tick (14).
+    for (let slot = 0; slot < (target.inventory?.length ?? 0); slot++) dropInventorySlot(s, target, slot, true);
   } else for (const item of target.inventory || []) if (item) dropEquipment(s, target, item);
   if (target.inventory) { target.inventory.fill(null); syncWeapon(target, s.content.weapons); }
   if (source?.role === 'gladiator') {
