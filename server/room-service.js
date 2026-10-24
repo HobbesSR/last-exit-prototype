@@ -158,7 +158,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   function startRecording(room) {
     try {
       const map = room.match.map();
-      room.writer = replays.start({ version: room.match.version, schema: SCHEMA, minSchema: minimumReaderForMatch(map, room.match.version), contentId: room.match.contentId, presentation: room.presentation, id: room.id, seed: room.match.seed, hz: HZ, createdAt: room.createdAt, map },
+      room.writer = replays.start({ version: room.match.version, schema: SCHEMA, minSchema: minimumReaderForMatch(map, room.match.hasPhysics === true), contentId: room.match.contentId, presentation: room.presentation, id: room.id, seed: room.match.seed, hz: HZ, createdAt: room.createdAt, map },
         { onError: error => failRecording(room, error) });
       if (room.recordingError) room.writer?.abort?.(room.recordingError);
     } catch (error) { failRecording(room, error); }

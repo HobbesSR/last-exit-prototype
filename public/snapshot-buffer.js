@@ -129,13 +129,13 @@ export function createSnapshotBuffer({ hz, delayTicks, clock = () => performance
       return { ...next, x: lerp(trap.x, next.x, t), y: lerp(trap.y, next.y, t), heading: lerpAngle(trap.heading ?? 0, next.heading ?? 0, t) };
     });
     // A physics projection is a complete authorized list. Its IDs and geometry are never inferred
-    // from the simulation or a later frame. Skipped ticks and profile/lifecycle boundaries cut.
+    // from the simulation or a later frame. Skipped ticks and profile/lifecycle boundaries cut per
+    // body, while an unrelated body appearing or disappearing need not interrupt existing motion.
     let bodies = a.bodies;
     let tethers = a.tethers;
     if (Array.isArray(a.bodies)) {
       const adjacent = b !== a && b.tick === a.tick + 1 && a.physicsProfile === b.physicsProfile &&
-        Array.isArray(b.bodies) && a.bodies.length === b.bodies.length &&
-        a.bodies.every((body, i) => body.id === b.bodies[i].id) &&
+        Array.isArray(b.bodies) &&
         (a.tethers || []).length === (b.tethers || []).length &&
         (a.tethers || []).every((rope, i) => rope.id === b.tethers[i].id && rope.a === b.tethers[i].a && rope.b === b.tethers[i].b);
       const laterBodies = adjacent && Array.isArray(b.bodies) ? new Map(b.bodies.map(body => [body.id, body])) : null;

@@ -68,7 +68,7 @@ export interface Sight {
   points: VisibilityPoint[];
 }
 // Entities are shown slightly beyond the camera edge so one does not pop as it enters frame.
-const ENTITY_MARGIN: World = 30;
+export const ENTITY_MARGIN: World = 30;
 
 // What a viewer may know is a gameplay rule, not a rendering detail — see docs/15. The world view and
 // the minimap each used to answer this separately and had already drifted apart: the minimap applied

@@ -47,6 +47,22 @@ try {
   assert.ok(result.calls.some(([method, args]) => (method === 'fillRect' || method === 'fillRoundedRect') && args[0] >= 638 && args[0] <= 650 && args[1] >= 388 && args[1] <= 400), 'item art uses its linked body position');
   assert.ok(!result.calls.some(([, args]) => args.includes(4000) || args.includes(2500)), 'hidden body and rope are withheld');
   assert.equal(result.engineLoaded, false);
+  const edge = await page.evaluate(() => {
+    const { map, state } = window.fixture, scene = window.scene;
+    map.obstacles.push({ id: 'edge-wall', kind: 'wall', x: 700, y: 300, w: 10, h: 200 });
+    state.bodies.push({ id: 'edge-circle', kind: 'prop', x: 715, y: 400, angle: 0, shape: { kind: 'circle', radius: 25 } });
+    state.bodies.push({ id: 'occluded-circle', kind: 'prop', x: 750, y: 400, angle: 0, shape: { kind: 'circle', radius: 10 } });
+    state.tethers.push({ id: 'edge-rope', a: 'circle', b: 'edge-circle' });
+    const calls = [], graphics = scene.dynamic, original = graphics.fillCircle.bind(graphics);
+    const lines = [], originalLine = graphics.lineBetween.bind(graphics);
+    graphics.lineBetween = (...args) => { lines.push(args); return originalLine(...args); };
+    graphics.fillCircle = (...args) => { calls.push(args); return original(...args); };
+    scene.update(performance.now(), 16);
+    return { calls, lines };
+  });
+  assert.ok(edge.calls.some(args => args[0] === 715 && args[1] === 400), 'visible prop edge draws when its center is behind a sight wall');
+  assert.ok(!edge.calls.some(args => args[0] === 750 && args[1] === 400), 'wholly occluded prop stays hidden');
+  assert.ok(!edge.lines.some(args => args[2] === 715 && args[3] === 400), 'visible prop edge does not reveal its hidden tether anchor');
   const revealed = await page.evaluate(() => {
     window.fixture.player.role = 'gladiator';
     window.fixture.state.players[1].revealed = 1;

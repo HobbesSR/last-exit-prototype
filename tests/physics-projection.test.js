@@ -4,7 +4,7 @@ import { createPhysicsGame, disposePhysics, snapshot, playerView, PHYSICS_VERSIO
 import { contentById } from '../shared/simulation/content.ts';
 import { POTENTIAL } from '../shared/simulation/visibility.ts';
 import { minimumReaderForMatch, minimumReaderForMap, SCHEMA } from '../shared/recording.ts';
-import { createPhysicsMatch } from '../server/match.js';
+import { createMatch, createPhysicsMatch } from '../server/match.js';
 import { createRoomService } from '../server/room-service.js';
 import { capturePhysicsPresentation } from '../shared/simulation/physics-presentation.ts';
 import { physicsRuntime } from '../shared/simulation/physics-runtime.ts';
@@ -85,6 +85,13 @@ test('projection gates actors, prop bounds, item associations and both tether en
     assert.deepEqual(view.tethers, [{ id: 'shown', a: ownBody.id, b: nearBody.id }]);
     assert.equal(view.bodies[0].vx, 7);
     assert.equal(view.bodies[0].generation, 8);
+    const seenOpponent = view.bodies.find(b => b.id === nearBody.id);
+    for (const key of ['vx', 'vy', 'omega', 'sleeping']) {
+      assert.equal(Object.hasOwn(seenOpponent, key), false, `observed actor omits ${key}`);
+      assert.equal(playerView(game, frame, near.id).bodies.find(b => b.id === nearBody.id)[key], nearBody[key], `own body retains ${key}`);
+      assert.equal(playerView(game, frame, null).bodies.find(b => b.id === nearBody.id)[key], nearBody[key], `directed body retains ${key}`);
+      assert.equal(frame.bodies.find(b => b.id === nearBody.id)[key], nearBody[key], `recorded body retains ${key}`);
+    }
     assert.equal(view.physics, undefined);
     const wire = JSON.stringify(view);
     for (const secret of ['own-secret', 'shape-secret', 'private', 'settings-secret', 'actor:far', 'item:hidden-loot', 'item:orphan']) assert.equal(wire.includes(secret), false, secret);
@@ -98,10 +105,20 @@ test('projection gates actors, prop bounds, item associations and both tether en
 
 test('physics recording floor is explicit and stamped by the room writer', async () => {
   assert.equal(SCHEMA, 10);
-  for (const version of ['last-exit-0.8-physics-1', 'last-exit-0.8-physics-2']) assert.equal(minimumReaderForMatch(arena(), version), 10);
-  assert.equal(minimumReaderForMatch({ obstacles: [] }, 'last-exit-0.8'), minimumReaderForMap({ obstacles: [] }));
+  for (const map of [arena(), { obstacles: [] }]) {
+    assert.equal(minimumReaderForMatch(map, true), 10);
+    assert.equal(minimumReaderForMatch(map, false), minimumReaderForMap(map));
+  }
+  const legacy = createMatch(1, undefined, arena(), content());
+  assert.equal(legacy.hasPhysics, false);
+  legacy.dispose();
   let header;
-  const service = createRoomService({ content, matchFactory: createPhysicsMatch,
+  const service = createRoomService({ content, matchFactory: async (...args) => {
+    const match = await createPhysicsMatch(...args);
+    // A future version must inherit the format floor through capability, without editing a version list.
+    Object.defineProperty(match, 'version', { value: 'future-physics-rules' });
+    return match;
+  },
     replays: { start(h) { header = h; return { append() { return true; }, finish() { return {}; } }; } } });
   const room = service.makeRoom(1, false, undefined, arena());
   try {
@@ -111,5 +128,7 @@ test('physics recording floor is explicit and stamped by the room writer', async
     service.receive(peer, { type: 'start' });
     assert.equal(header.schema, 10);
     assert.equal(header.minSchema, 10);
+    assert.equal(header.version, 'future-physics-rules');
+    assert.equal(room.match.hasPhysics, true);
   } finally { await service.close(); }
 });

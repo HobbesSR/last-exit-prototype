@@ -34,8 +34,8 @@ export function minimumReaderForMap(map: { playableArea?: unknown }): number {
 }
 
 /** Physics visuals are required for these explicitly selected rules; ordinary archives keep their floor. */
-export function minimumReaderForMatch(map: { playableArea?: unknown }, version: string): number {
-  return version === 'last-exit-0.8-physics-1' || version === 'last-exit-0.8-physics-2' ? 10 : minimumReaderForMap(map);
+export function minimumReaderForMatch(map: { playableArea?: unknown }, hasPhysics: boolean): number {
+  return hasPhysics ? 10 : minimumReaderForMap(map);
 }
 
 /**

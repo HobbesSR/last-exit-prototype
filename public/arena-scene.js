@@ -1,6 +1,7 @@
 import { visibilityPolygon, gateShape, insideMap } from '/shared/movement.ts';
 import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofAt, roofGroups, roofOverhang, roofCellBorders, roofRevealed, stepRoofAlpha, openingDistance, INSIDE_ZOOM, ROOF_OVERHANG, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
 import { shapeOf, outline, bounds } from '/shared/shape.ts';
+import { bodyRadius, bodyVertices, seesBody } from '/shared/physics/presentation-geometry.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
 
@@ -695,7 +696,7 @@ export function makeArenaScene(api) {
       // actor (cloak, roof, status). Tethers must use the same actor rule as the sprite they join.
       const playersById = new Map(state.players.map(player => [player.id, player]));
       const visibleBodies = new Map((state.bodies || []).filter(body => {
-        if (body.kind !== 'actor') return lit(body.x, body.y);
+        if (body.kind !== 'actor') return !fogged || seesBody(this.sight, map, body);
         const player = playersById.get(body.actorId);
         if (!player || player.status !== 'active') return false;
         const atBody = { ...player, x: body.x, y: body.y };
@@ -704,22 +705,21 @@ export function makeArenaScene(api) {
       for (const tether of state.tethers || []) {
         const a = visibleBodies.get(tether.a), b = visibleBodies.get(tether.b);
         if (!a || !b || !nearView((a.x + b.x) / 2, (a.y + b.y) / 2, Math.hypot(a.x - b.x, a.y - b.y) / 2)) continue;
+        // Seeing a prop's edge does not expose its hidden center anchor. Omit that tether rather
+        // than drawing a line into shadow; actor anchors retain their cloak/reveal policy above.
+        if (fogged && (a.kind === 'prop' && !lit(a.x, a.y) || b.kind === 'prop' && !lit(b.x, b.y))) continue;
         g.lineStyle(3, 0xd6dfbd, 0.85); g.lineBetween(a.x, a.y, b.x, b.y);
       }
       const drawnItems = new Set((state.items || []).map(item => item.id));
       for (const body of visibleBodies.values()) {
         if (body.kind !== 'prop' || body.itemId != null && drawnItems.has(body.itemId)) continue;
         const shape = body.shape;
-        const radius = shape.kind === 'circle' ? shape.radius : shape.kind === 'box' ? Math.hypot(shape.hx, shape.hy)
-          : Math.max(0, ...shape.vertices.map(v => Math.hypot(v.x, v.y)));
-        if (!nearView(body.x, body.y, radius)) continue;
+        if (!nearView(body.x, body.y, bodyRadius(shape))) continue;
         g.fillStyle(0x8fa9a0, 0.9); g.lineStyle(2, 0xdce8d7, 0.95);
-        if (shape?.kind === 'circle') {
+        if (shape.kind === 'circle') {
           g.fillCircle(body.x, body.y, shape.radius); g.strokeCircle(body.x, body.y, shape.radius);
-        } else if (shape?.kind === 'box' || shape?.kind === 'convex') {
-          const vertices = shape.vertices || [{ x: -shape.hx, y: -shape.hy }, { x: shape.hx, y: -shape.hy }, { x: shape.hx, y: shape.hy }, { x: -shape.hx, y: shape.hy }];
-          const c = Math.cos(body.angle), s = Math.sin(body.angle);
-          const points = vertices.map(v => ({ x: body.x + v.x * c - v.y * s, y: body.y + v.x * s + v.y * c }));
+        } else {
+          const points = bodyVertices(body);
           g.fillPoints(points, true); g.strokePoints(points, true);
         }
       }

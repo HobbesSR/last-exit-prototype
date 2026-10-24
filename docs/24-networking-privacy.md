@@ -118,11 +118,22 @@ Physics live projections are closed display records built from the captured tick
 Actors use the same potential-visibility authorization as their player record;
 props use the potential radius plus their bounding radius, and item bodies also
 require the ground item to be authorized. Unknown actor associations are omitted.
+Observed opponent actor bodies carry pose, shape, generation and placement only;
+their velocity, angular velocity and sleep state are omitted, matching the
+observed-player contract. The viewer's own actor retains those correction values.
+Directed views and recordings retain full body values; non-actor physics props
+retain their authorized dynamic state. Closed body, shape and tether field copies
+are owned by `simulation/projection-contract.ts` alongside the other wire contracts.
 A tether is omitted unless both endpoint bodies are authorized. No pending
 commands, motors, force sources, contacts, engine settings or private gameplay
 state accompany it. Delayed spectators project the complete delayed frame through
 this same boundary, never today's world. The renderer also applies current sight
 and actor concealment before drawing endpoints/tethers in a fogged view.
+Props may draw when their geometry intersects current sight and camera coverage,
+even if their center lies in shadow. Roof concealment remains center-based,
+matching the existing prop/loot roof policy. A visible edge alone does not make
+a hidden center tether anchor visible: that tether is omitted. Shared
+`physics/presentation-geometry.ts` owns shape radii and prop sight intersection.
 
 A live `state` frame carries the map's items and gates as layers: each is sent whole once, as a keyframe, and then as the changes since that keyframe (#250, `shared/frame-layers.ts`). The historical payload comparison is retained in [42.2](42.2-runtime-performance.md#layered-frame-payload-observations). Everything else in the frame is still sent whole every tick.
 

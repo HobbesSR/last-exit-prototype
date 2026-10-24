@@ -36,10 +36,50 @@ test('body interpolation uses adjacent compatible ticks and shortest arc; art fo
   assert.deepEqual([read.players[0].x, read.players[0].y], [50, 20]);
 });
 
-test('spawn, removal, generation, profile, placement and tick gaps hold then cut bodies and ropes', () => {
+test('unrelated untethered loot spawn, removal and reordering preserve actor motion', () => {
+  const actor = x => body('actor', x, 0, { kind: 'actor', actorId: 'a' });
+  const loot = body('loot', 200, 0, { itemId: 'loot' });
+  const other = body('other', 300);
+  for (const [firstBodies, laterBodies] of [
+    [[actor(0)], [loot, actor(100)]],
+    [[loot, actor(0)], [actor(100)]],
+    [[loot, actor(0), other], [other, actor(100), loot]],
+  ]) {
+    let now = 0;
+    const buffer = createSnapshotBuffer({ hz: 20, delayTicks: 0, clock: () => now });
+    buffer.push(state(1, firstBodies, [], { players: [{ id: 'a', x: 0, y: 20, heading: 0 }] }));
+    now = 50;
+    buffer.push(state(2, laterBodies, [], { players: [{ id: 'a', x: 100, y: 20, heading: 0 }] }));
+    now = 25;
+    const read = buffer.frame();
+    assert.equal(read.bodies.find(entry => entry.id === 'actor').x, 50);
+    assert.equal(read.players[0].x, 50, 'actor art follows the interpolated body');
+    assert.deepEqual(read.bodies.map(entry => entry.id), firstBodies.map(entry => entry.id),
+      'the earlier authorized list holds until the boundary');
+    now = 50;
+    assert.deepEqual(buffer.frame().bodies, laterBodies);
+  }
+});
+
+test('one body lifecycle cut does not stop another matching body', () => {
+  let now = 0;
+  const buffer = createSnapshotBuffer({ hz: 20, delayTicks: 0, clock: () => now });
+  const first = [body('actor', 0, 0, { kind: 'actor', actorId: 'a' }), body('loot', 10)];
+  const later = [body('actor', 100, 0, { kind: 'actor', actorId: 'a', generation: 2 }), body('loot', 110)];
+  buffer.push(state(1, first));
+  now = 50;
+  buffer.push(state(2, later));
+  now = 25;
+  assert.deepEqual(buffer.frame().bodies.map(entry => entry.x), [0, 60]);
+  now = 50;
+  assert.deepEqual(buffer.frame().bodies, later);
+});
+
+test('own lifecycle, profile, placement, tether and tick gaps hold then cut bodies and ropes', () => {
   const scenarios = [
-    [state(1, [body('p', 0)]), state(2, [body('p', 100), body('q', 200)])],
+    [state(1, [body('p', 0)]), state(2, [body('q', 200)])],
     [state(1, [body('p', 0), body('q', 10)], [{ id: 'r', a: 'p', b: 'q' }]), state(2, [body('p', 100)])],
+    [state(1, [body('p', 0), body('q', 10)]), state(2, [body('q', 100), body('p', 200)], [{ id: 'r', a: 'p', b: 'q' }])],
     [state(1, [body('p', 0)]), state(2, [body('p', 100, 0, { generation: 2 })])],
     [state(1, [body('p', 0)]), state(2, [body('p', 100)], [], { physicsProfile: 'other' })],
     [state(1, [body('p', 0)]), state(2, [body('p', 100, 0, { discontinuity: 'placed' })])],

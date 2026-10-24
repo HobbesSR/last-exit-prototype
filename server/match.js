@@ -86,12 +86,14 @@ export function createMatch(seed, size, map, content = defaultContent()) {
 
 /** Experimental explicit rules selection; not offered by the public room protocol. */
 export async function createPhysicsMatch(seed, size, map, content = defaultContent()) {
-  return matchOf(await createPhysicsGame(seed, map ?? generateLiveMap(seed, content, size), content));
+  return matchOf(await createPhysicsGame(seed, map ?? generateLiveMap(seed, content, size), content), true);
 }
 
-function matchOf(game) {
+function matchOf(game, hasPhysics = false) {
   let disposedFrame;
   return {
+    /** Pinned capability, independent of rules-version spelling and world disposal. */
+    get hasPhysics() { return hasPhysics; },
     get version() { return game.version; },
     get tick() { return game.tick; },
     get phase() { return game.phase; },

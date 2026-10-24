@@ -16,8 +16,10 @@ substeps inside a tick rather than in a faster authoritative rate.
 
 Experimental physics presentation (#440) uses recorded/projected body poses for
 actors, props and linked items. The receive buffer interpolates position and
-shortest-arc physical angle only across compatible adjacent ticks; lifecycle,
-generation, placement, profile, endpoint or gap boundaries hold then cut. Sleep
+shortest-arc physical angle only across compatible adjacent ticks. Bodies match
+by ID, so unrelated untethered loot spawning or disappearing does not interrupt
+actor motion. Each body's lifecycle, generation and placement boundaries hold
+then cut; profile, endpoint-list and tick-gap changes still hold the body group. Sleep
 and velocities remain authoritative values. Props use their embedded shape
 descriptors and tethers join authorized, currently visible endpoints. Replay
 draws the selected stored frame directly, including held sparse gaps, with no
