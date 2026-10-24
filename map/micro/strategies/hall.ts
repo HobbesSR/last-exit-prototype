@@ -4,7 +4,8 @@ import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
-import { wallHints } from '../hint-walls.ts';
+import { commitHintWalls, wallHints } from '../hint-walls.ts';
+import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
 import type { BuiltRegion, RegionBrief, RegionMask } from '../types.ts';
@@ -82,10 +83,17 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
     }
   }
 
-  const elements = parts.length || roofed ? [{ label: 'hall', x: box.x * size, y: box.y * size,
-    template: { w: box.w * size, h: box.h * size, ...(roofed ? { encloses: true } : {}), parts } }] : [];
+  const canvas = createBuilderCanvas(brief, protectedShapes);
+  // Hint walls may stand inside the rectangle, between pillars, so the pillars are the hall's
+  // intent; a roof without pillars intends its rectangle. Siting has already accepted the hall,
+  // so a refusal is a broken placement invariant.
+  if ((parts.length || roofed) && !canvas.commit({ elements: [{ label: 'hall', x: box.x * size, y: box.y * size,
+    template: { w: box.w * size, h: box.h * size, ...(roofed ? { encloses: true } : {}), parts } }],
+    areas: pillars.length ? pillars : [rect(box.x * size, box.y * size, box.w * size, box.h * size)] }))
+    throw new Error('Hall placement failed its canvas commit.');
   const walls = wallHints(brief, { kind: 'building', avoid: [...protectedShapes, ...pillars] });
-  elements.push(...walls.elements);
+  commitHintWalls(canvas, walls);
+  const elements = [...canvas.elements];
   const loot = cellLoot(brief, createRegionMask(brief), [...pillars, ...walls.shapes], CHANNEL.loot);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: roofed ? 1 : 0, obstacles: pillars.length + walls.shapes.length, gates: 0,
