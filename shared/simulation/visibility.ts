@@ -49,6 +49,11 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
   const authorized = frame.players.filter(p => couldSee(s, viewer, p));
   return { ...rest, duration: s.content.durationTicks, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
     ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.id)), inRange) : {}),
+    ...(frame.bodies && viewer ? { predictionMotor: {
+      acceleration: s.content.actorPhysics?.acceleration ?? 3600,
+      braking: s.content.actorPhysics?.braking ?? 3600,
+      maxSpeed: s.content.actorPhysics?.maxSpeed ?? 768,
+    }, predictionTethered: (frame.physics?.world.constraints ?? []).some(c => c.a === `actor:${viewer.id}` || c.b === `actor:${viewer.id}`) } : {}),
     players: authorized.map(p => p.id === id ? ownPlayerFields(p, discovery) : observed(p)),
     items: frame.items.filter(inRange).map(itemFields), gates: frame.gates?.map(gateFields),
     traps: (frame.traps || []).filter(inRange).map(trapFields), projectiles: frame.projectiles.filter(inRange).map(projectileFields),

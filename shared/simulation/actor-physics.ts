@@ -1,5 +1,5 @@
 import { bodyRadius } from '../movement.ts';
-import type { ActorPhysics, Game, GameMap, Player } from '../types.ts';
+import type { ActorPhysics, Game, GameMap, MotorSurface, Player, Vec2 } from '../types.ts';
 
 export const PHYSICS_CHARACTER_VERSION = 'last-exit-0.8-physics-2';
 export const actorRadius = (s: Game, p: Player): number => s.content.actorPhysics?.geometry[p.role].bodyRadius ?? bodyRadius(p);
@@ -25,9 +25,14 @@ export function validateActorPhysics(profile: ActorPhysics | undefined, map: Gam
 }
 
 export function actorMotor(s: Game, p: Player, x: number, y: number, speed: number): { x: number; y: number; accel: number } {
+  return characterMotor(s.content.actorPhysics, s.map.motorSurfaces, p, x, y, speed);
+}
+
+/** Shared motor calculation for the authoritative solver and local prediction. */
+export function characterMotor(profile: Pick<ActorPhysics, 'acceleration' | 'braking'> | undefined,
+  surfaces: MotorSurface[] | undefined, p: Vec2, x: number, y: number, speed: number): { x: number; y: number; accel: number } {
   const length = Math.max(1, Math.hypot(x, y));
-  const profile = s.content.actorPhysics;
-  const surface = profile ? s.map.motorSurfaces?.filter(f => p.x >= f.x && p.x < f.x + f.w && p.y >= f.y && p.y < f.y + f.h)
+  const surface = profile ? surfaces?.filter(f => p.x >= f.x && p.x < f.x + f.w && p.y >= f.y && p.y < f.y + f.h)
     .sort((a, b) => b.priority - a.priority || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0] : undefined;
   const moving = x !== 0 || y !== 0;
   const accel = moving ? (profile?.acceleration ?? 3600) * (surface?.traction ?? 1) : (profile?.braking ?? 3600) * (surface?.braking ?? 1);

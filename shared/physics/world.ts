@@ -106,6 +106,11 @@ export async function createPhysicsWorld(): Promise<PhysicsWorld> {
   return PhysicsWorld.create();
 }
 
+/** Initialize once, then synchronously allocate fresh islands without restoring solver caches. */
+export async function createPhysicsWorldFactory(): Promise<() => PhysicsWorld> {
+  return PhysicsWorld.factory();
+}
+
 /** One room owns one instance. Mutations are applied at a tick boundary. */
 export class PhysicsWorld {
   readonly settings = Object.freeze({ engine: 'rapier2d-compat', version: '0.21.0', unitsPerMetre: SCALE,
@@ -134,6 +139,10 @@ export class PhysicsWorld {
   static async create(): Promise<PhysicsWorld> {
     await RAPIER.init();
     return new PhysicsWorld();
+  }
+  static async factory(): Promise<() => PhysicsWorld> {
+    await RAPIER.init();
+    return () => new PhysicsWorld();
   }
   private constructor() {
     this.native = new RAPIER.World({ x: 0, y: 0 });
