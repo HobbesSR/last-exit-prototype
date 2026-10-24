@@ -5,13 +5,9 @@ import { createRegionMask, elementShapes, shapesOverlap } from '../map/micro/geo
 import { microMetrics } from '../map/micro/metrics.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
 import { circle } from '../shared/shape.ts';
+import { cellsOf } from './helpers/cells.js';
 
 const SIZE = 40;
-const cellsOf = (w, h, keep = () => true) => {
-  const cells = [];
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (keep(x, y)) cells.push({ x, y });
-  return cells;
-};
 const brief = (id, seed, cells, portals = [], extra = {}) => ({
   id, seed, type: 'arrival', cellSize: SIZE, cells,
   zones: [{ tier: 2, bonus: 0, lootChance: 1, cells }], portals,

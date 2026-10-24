@@ -1,4 +1,4 @@
-export function renderDevNav(mainUrl, mapgenUrl) {
+export function renderDevNav() {
   const wrapper = document.createElement('div');
   wrapper.className = 'global-tool-wrapper';
 
@@ -66,4 +66,4 @@ export function renderDevNav(mainUrl, mapgenUrl) {
   else document.addEventListener('DOMContentLoaded', insert);
 }
 
-renderDevNav('', '');
+renderDevNav();

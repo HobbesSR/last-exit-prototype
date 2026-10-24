@@ -3,18 +3,14 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { chromium } from '@playwright/test';
-import { createArenaServer } from '../server/index.js';
-import { listen } from './helpers/listen.js';
+import { serveWithBrowser } from './helpers/browser.js';
 import { REGION_TYPES, buildRegion } from '../map/micro/region-types.ts';
 import { regionExample } from '../map/micro/region-examples.ts';
 import { builtMapCollision } from '../map/micro/adapter.ts';
 import { canOccupy } from '../shared/movement.ts';
 
 const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-region-explorer-'));
-const server = await createArenaServer({ replayDir, profileSummary: false, devTools: 'all' });
-const base = await listen(server);
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const { server, base, browser } = await serveWithBrowser({ replayDir, profileSummary: false, devTools: 'all' });
 try {
   await mkdir('test-results', { recursive: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });

@@ -79,7 +79,7 @@ function solve(slots: Record<string, string[]>, columns: number, rows: number): 
   });
   adjacencyLinks(grid);
   const refusals: string[] = [];
-  const solved = solveWfc(grid, columns, rows, adjacencyCompatibility(HAND), () => 0.5,
+  const solved = solveWfc(grid, adjacencyCompatibility(HAND), () => 0.5,
     { accept: openFaceRule(HAND, grid, columns, rows, (reason) => refusals.push(reason)) });
   return { placed: solved && solved.map((slot) => `${slot.domain[0]!.templateId}@${slot.domain[0]!.orientation}`), refusals };
 }
@@ -125,7 +125,7 @@ test("a refusal backjumps to the choice that caused it, past every later one", (
   const options = () => ["a", "b"].map((templateId) => ({ templateId, orientation: 0 as const, difficulty: 0, weight: 1 }));
   const grid: WfcGrid = Array.from({ length: cells }, (_, x) => ({ x, y: 0, domain: options(), links: [] }));
   const state = { iterations: 0, maxIterations: 10000 };
-  const solved = solveWfc(grid, cells, 1, () => true, () => 0.5, {
+  const solved = solveWfc(grid, () => true, () => 0.5, {
     state,
     accept: (solving) => solving.every((cell) => cell.domain.length === 1) && solving[0]!.domain[0]!.templateId === "a" ? [0] : true,
   });

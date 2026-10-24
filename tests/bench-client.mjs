@@ -12,8 +12,9 @@ import { HZ } from '../shared/simulation.ts';
 import { canOccupy } from '../shared/movement.ts';
 import path from 'node:path';
 import { arrangeCrowd } from './crowd-workload.mjs';
+import { cliArgs } from './helpers/args.js';
 
-const args = new Map(process.argv.slice(2).map(a => a.replace(/^--/, '').split('=')).map(([k, v]) => [k, v ?? '1']));
+const args = cliArgs();
 const seconds = Number(args.get('seconds') ?? 12);
 await acquireMachineLock('bench');
 await mkdir('test-results', { recursive: true });

@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
-import { chromium } from '@playwright/test';
-import { createArenaServer } from '../server/index.js';
-import { listen } from './helpers/listen.js';
+import { serveWithBrowser } from './helpers/browser.js';
 import { createPhysicsWorld } from '../shared/physics/world.ts';
 
 const bodies = [
@@ -15,9 +13,7 @@ try {
   world.setMotor('actor:c0', { x: 180, y: 0, accel: 3600 });
   for (let i = 1; i <= 8; i++) { world.step(); world.drainContacts(); expected.push(world.snapshot()); }
 } finally { world.dispose(); }
-const server = await createArenaServer({ replayDir: 'test-results/physics-browser-replays' });
-const base = await listen(server);
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const { server, base, browser } = await serveWithBrowser({ replayDir: 'test-results/physics-browser-replays' });
 try {
   const page = await browser.newPage();
   const errors = []; page.on('pageerror', error => errors.push(error.message));

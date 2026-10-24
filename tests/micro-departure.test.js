@@ -5,14 +5,10 @@ import { createAccessMask, createRegionMask, elementShapes, findRegionRoute, sha
 import { microMetrics } from '../map/micro/metrics.ts';
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { circle } from '../shared/shape.ts';
+import { cellsOf } from './helpers/cells.js';
 
 const SIZE = 40;
 const { clearance, lootRadius } = microMetrics({ cellSize: SIZE, bodyProfile: 'cell' });
-const cellsOf = (w, h, keep = () => true) => {
-  const cells = [];
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (keep(x, y)) cells.push({ x, y });
-  return cells;
-};
 const brief = (id, seed, cells, portals = [], extra = {}) => ({
   id, seed, type: 'departure', cellSize: SIZE, cells,
   zones: [{ tier: 3, bonus: 0, lootChance: 1, cells }], portals,

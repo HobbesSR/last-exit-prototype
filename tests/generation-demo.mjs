@@ -3,9 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { chromium } from '@playwright/test';
-import { createArenaServer } from '../server/index.js';
-import { listen } from './helpers/listen.js';
+import { serveWithBrowser } from './helpers/browser.js';
 import { generate } from '../map/tools/core.ts';
 import { mapViews } from '../map/macro/src/chain/map.ts';
 import { briefFragment } from '../map/micro/brief-link.ts';
@@ -13,8 +11,7 @@ import { REGION_TYPES } from '../map/micro/region-types.ts';
 
 const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-generation-demo-'));
 await mkdir('test-results', { recursive: true });
-const server = await createArenaServer({ replayDir, profileSummary: false, devTools: 'all' });
-const base = await listen(server), browser = await chromium.launch({ channel: 'chrome', headless: true });
+const { server, base, browser } = await serveWithBrowser({ replayDir, profileSummary: false, devTools: 'all' });
 try {
   const page = await browser.newPage({ viewport: { width: 1200, height: 900 } }), errors = [];
   page.on('pageerror', error => errors.push(error.message));

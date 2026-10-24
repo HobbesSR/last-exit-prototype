@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { measureFill } from '../map/micro/fill.ts';
 import { rect } from '../shared/shape.ts';
+import { cellsOf } from './helpers/cells.js';
 
 const SIZE = 40;
-const cellsOf = (w, h) => Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w) }));
 const wall = (x, y, w, h) => ({ label: 'wall', x, y, template: { w, h, parts: [{ part: 'obstacle', shape: rect(0, 0, w, h), kind: 'ruin-wall' }] } });
 const brief = (w, h) => ({ id: 'r', cells: cellsOf(w, h), cellSize: SIZE });
 

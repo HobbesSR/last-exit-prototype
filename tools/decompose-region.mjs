@@ -1,13 +1,9 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { decompositionExample, planExample } from '../map/micro/decomposition/example.ts';
 import { validateDecompositionPlan } from '../map/micro/decomposition/validate.ts';
+import { options } from './options.mjs';
 
-const args = new Map();
-for (const argument of process.argv.slice(2)) {
-  const match = /^--([a-z-]+)=(.+)$/.exec(argument);
-  if (!match || !['shape', 'spec', 'beam', 'residual-penalty', 'piece-penalty', 'validate', 'out'].includes(match[1]) || args.has(match[1])) throw new Error(`Invalid option ${argument}. Use --shape=neck --beam=8 --out=plan.json, --spec=context.json, or --validate=plan.json.`);
-  args.set(match[1], match[2]);
-}
+const args = options(process.argv.slice(2), ['shape', 'spec', 'beam', 'residual-penalty', 'piece-penalty', 'validate', 'out'], argument => `Invalid option ${argument}. Use --shape=neck --beam=8 --out=plan.json, --spec=context.json, or --validate=plan.json.`, { unique: true });
 if (args.has('validate') && [...args.keys()].some(k => !['validate', 'out'].includes(k))) throw new Error('Validation cannot be combined with generation options.');
 if (args.has('spec') && args.has('shape')) throw new Error('Choose a custom context or an example shape.');
 let output;
