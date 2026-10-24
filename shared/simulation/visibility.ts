@@ -5,6 +5,7 @@ import { start, stop } from '../profiler.ts';
 import { frameFields, ownPlayerFields, itemFields, gateFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
 import type { Game, Player, PlayerId, Snapshot, Vec2, World } from '../types.ts';
 import { physicsState } from './physics-runtime.ts';
+import { capturePhysicsPresentation, projectPhysicsPresentation } from './physics-presentation.ts';
 // The reach the server transmits within. Generous on purpose: it carries everything that could become
 // visible before the next update — through cover clearing, a cloak dropping, a scan reveal, or simply
 // movement — so the client never has to wait on the server to show something that just became
@@ -45,14 +46,27 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
   // Effects are sized, so a wide ring counts as reachable when its edge is, not just its centre.
   const inRange = (p: Vec2 & { radius?: World | undefined }) => !viewer || distance(viewer, p) < POTENTIAL + (p.radius ?? 0);
   const rest = frameFields(frame); // Replay bookkeeping and unlisted internal fields stay private.
+  const authorized = frame.players.filter(p => couldSee(s, viewer, p));
   return { ...rest, duration: s.content.durationTicks, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
-    players: frame.players.filter(p => couldSee(s, viewer, p)).map(p => p.id === id ? ownPlayerFields(p, discovery) : observed(p)),
+    ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.id)), inRange) : {}),
+    players: authorized.map(p => p.id === id ? ownPlayerFields(p, discovery) : observed(p)),
     items: frame.items.filter(inRange).map(itemFields), gates: frame.gates?.map(gateFields),
     traps: (frame.traps || []).filter(inRange).map(trapFields), projectiles: frame.projectiles.filter(inRange).map(projectileFields),
     effects: frame.effects.filter(inRange).map(effectFields), events: frame.events?.map(eventFields) };
 }
 export function snapshot(s: Game): Snapshot {
   start('sim.snapshot');
-  try { const physics = physicsState(s); return structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items: s.map.items, gates: s.map.gates, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(physics ? { physics } : {}) }); }
+  try {
+    const physics = physicsState(s);
+    const presentation = physics ? capturePhysicsPresentation(physics, { players: s.players, items: s.map.items }) : undefined;
+    const itemBodies = new Map(presentation?.bodies.filter(b => b.itemId !== undefined).map(b => [b.itemId, b]));
+    // A physical item's stored/projection pose changes the item layer too, even before its gameplay
+    // owner synchronizes the map record. Never mutate that gameplay record while taking a snapshot.
+    const items = itemBodies.size ? s.map.items.map(item => {
+      const body = itemBodies.get(item.id);
+      return body ? { ...item, x: body.x, y: body.y } : item;
+    }) : s.map.items;
+    return structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items, gates: s.map.gates, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(physics ? { physics, ...presentation } : {}) });
+  }
   finally { stop('sim.snapshot'); }
 }

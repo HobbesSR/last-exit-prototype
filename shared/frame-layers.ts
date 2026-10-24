@@ -5,6 +5,8 @@
 // of a 113 KB frame, while a few of them change in a typical tick. Each is a layer, independent of the
 // other and of the rest of the frame, which is still sent whole: a layer may be on a different version
 // from its neighbour and nothing reads across them.
+// Physics bodies and tethers use the same mechanism (#440). Moving entries participate in comparison
+// every tick; a busy body layer simply rekeys when its changes exceed the ordinary budget.
 //
 // The scheme is the standard one for snapshot delta compression (Quake 3, Source, MPEG's I- and
 // P-frames), shaped by two facts of this server:
@@ -25,7 +27,7 @@
 // Keyframe numbers are unique in the process, so one never matches a table from another view or room.
 // Contestant discovery uses the same delivery tracking and process-wide keyframe numbering through shared/discovery.ts.
 
-export const LAYERS = ['items', 'gates'] as const;
+export const LAYERS = ['items', 'gates', 'bodies', 'tethers'] as const;
 export type Layer = typeof LAYERS[number];
 type Id = string | number;
 type Entry = { id: Id };

@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-24T04:30:38.064Z",
+  "commit": "5f8693ba3134f8a8a34440f58ea6ea6cf28d7fce",
+  "node": "v24.15.0",
+  "files": {
+    "tools/physics/presentation-report.mjs": "cc254489bc3394e7986c2ac9a80dcb878a0f565c3355e04efc659fc175be0f20",
+    "shared/frame-layers.ts": "60f68ef287839010c3e41424e7a8b0302d3c5184472bd08d09100933fdbfbb77",
+    "server/replay-writer.js": "c6118aaf74adc01d7c8ac730943473eeca85eaadb5ce6826e814e618589be877"
+  },
+  "workload": {
+    "samples": 200,
+    "dynamicBodies": 128,
+    "tethers": 8,
+    "moving": true,
+    "privateGameplayState": true
+  },
+  "serializationMs": {
+    "mean": 0.4794674999999991,
+    "p95": 0.5945999999999998,
+    "max": 0.836199999999991
+  },
+  "plainBytes": 9639362,
+  "wireBytes": 4188678,
+  "peakPendingBytes": 50719,
+  "gzipBytes": 515107,
+  "droppedFrames": 0,
+  "sha256": "1d1b3b405a3ef6752a2df9e9eb2c80bea1f37aa27ee71419dec4e87549bbd548",
+  "limitations": [
+    "Synthetic transport includes private gameplay-state duplication for recording, but excludes simulation, map and player payloads.",
+    "Layer encoding, JSON serialization and writer append CPU measured together; gzip drains outside the timed interval.",
+    "No production throughput or tail-latency guarantee."
+  ]
+}

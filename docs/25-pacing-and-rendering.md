@@ -14,6 +14,17 @@ substeps inside a tick rather than in a faster authoritative rate.
 
 ## Presentation smoothing
 
+Experimental physics presentation (#440) uses recorded/projected body poses for
+actors, props and linked items. The receive buffer interpolates position and
+shortest-arc physical angle only across compatible adjacent ticks; lifecycle,
+generation, placement, profile, endpoint or gap boundaries hold then cut. Sleep
+and velocities remain authoritative values. Props use their embedded shape
+descriptors and tethers join authorized, currently visible endpoints. Replay
+draws the selected stored frame directly, including held sparse gaps, with no
+solver or velocity extrapolation. This slice presents the local physics body
+from authority too; P4 owns its future prediction and correction, so the legacy
+own-player prediction description below does not qualify physics contacts.
+
 Presentation smoothing is separate from simulation rate and belongs entirely to the client. Camera, own sprite, fog and cover all read one eased eye position rather than easing independently, because a fog polygon sampled at the raw predicted position while the camera eased toward it led the world by the easing lag and stepped at the input tick. Anything that only moves on an authoritative frame — projectiles, effect rings — is advanced by the elapsed fraction of a tick, since drawing it at the last received position makes 20 Hz motion visibly step at frame rate. The visibility polygon culls each segment to the angular wedge its endpoints subtend and sweeps those wedges in ray order, which is an exact optimisation, not an approximation, and is tested as such.
 
 Everyone but the viewer is drawn from a receive buffer rather than from the newest frame. `public/snapshot-buffer.js` keeps recent authoritative frames and reads them back at a playhead held two ticks behind the newest arrival, interpolating position and heading between the two frames that bracket it. Frames do not arrive evenly — the loop wakes on a coarser granularity than a tick, a catch-up batch collapses several ticks into one payload, and the network adds its own jitter — so a renderer that eases toward the newest position turns every one of those into a velocity spike, and does it at a rate that changes with frame rate. Paying a fixed 100 ms instead buys motion as smooth as the path the simulation actually took. The viewer's own player does not pay it, because that one is predicted forward from unacknowledged input instead.

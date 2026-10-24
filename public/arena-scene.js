@@ -571,8 +571,12 @@ export function makeArenaScene(api) {
       const rawDelta = noteFrame();
       start('render.frame'); if (rawDelta !== null) observe('render.delta', rawDelta);
       api.onFrame(delta);
-      const state = api.state(), map = api.map(), self = api.self();
+      const state = api.state(), map = api.map(), rawSelf = api.self();
       if (!state || !map) { stop('render.frame'); endProfileFrame(); return; }
+      const actorBodies = new Map((state.bodies || []).filter(body => body.kind === 'actor' && body.actorId != null).map(body => [body.actorId, body]));
+      const itemBodies = new Map((state.bodies || []).filter(body => body.kind === 'prop' && body.itemId != null).map(body => [body.itemId, body]));
+      const selfBody = rawSelf && actorBodies.get(rawSelf.id);
+      const self = selfBody ? { ...rawSelf, x: selfBody.x, y: selfBody.y } : rawSelf;
       // Camera, own sprite, fog and cover all read one eased eye. Previously the fog sampled the raw
       // predicted position while the camera and sprite eased toward it, so the shadows led the world
       // by the easing lag and stepped at the 20 Hz input tick instead of gliding with the frame.
@@ -585,15 +589,30 @@ export function makeArenaScene(api) {
       // A directed view's eye is the followed player or nobody: never the viewer's own player, whose
       // position would otherwise cull a whole-arena view down to the area around them.
       if (api.directed()) api.director.step(rawDelta ?? delta);
-      const focus = api.directed() ? api.follow() : self;
+      const rawFollow = api.directed() ? api.follow() : null;
+      const followBody = rawFollow && actorBodies.get(rawFollow.id);
+      const follow = followBody ? { ...rawFollow, x: followBody.x, y: followBody.y } : rawFollow;
+      const focus = api.directed() ? follow : self;
+      const focusBody = api.directed() ? followBody : selfBody;
+      const eyeBodyKey = focus ? { focusId: focus.id, bodyId: focusBody?.id, generation: focusBody?.generation,
+        profile: focusBody ? state.physicsProfile : undefined,
+        placementTick: focusBody?.discontinuity === 'placed' ? state.tick : null } : null;
+      const previousEyeBodyKey = this.eyeBodyKey;
+      const bodyCut = eyeBodyKey && previousEyeBodyKey && (focusBody || previousEyeBodyKey.bodyId != null) &&
+        (eyeBodyKey.focusId !== previousEyeBodyKey.focusId || eyeBodyKey.bodyId !== previousEyeBodyKey.bodyId ||
+          eyeBodyKey.generation !== previousEyeBodyKey.generation || eyeBodyKey.profile !== previousEyeBodyKey.profile ||
+          eyeBodyKey.placementTick != null && eyeBodyKey.placementTick !== previousEyeBodyKey.placementTick);
+      this.eyeBodyKey = eyeBodyKey;
       if (!focus) this.eye = null;
-      else if (!this.eye || Math.hypot(focus.x - this.eye.x, focus.y - this.eye.y) > 150) this.eye = { x: focus.x, y: focus.y };
+      else if (!this.eye || bodyCut || Math.hypot(focus.x - this.eye.x, focus.y - this.eye.y) > 150) this.eye = { x: focus.x, y: focus.y };
       else { this.eye.x = Phaser.Math.Linear(this.eye.x, focus.x, ease); this.eye.y = Phaser.Math.Linear(this.eye.y, focus.y, ease); }
       const eye = this.eye;
       // Whose sight the view is cut to: the player's own, a followed player's in a fogged directed
       // view, or nobody's, which is the unfogged directed view.
       const fogged = !api.directed() || api.director.fog() && !!api.director.followId();
-      const viewer = api.directed() ? api.director.viewer() : self;
+      const rawViewer = api.directed() ? api.director.viewer() : self;
+      const viewerBody = rawViewer && actorBodies.get(rawViewer.id);
+      const viewer = viewerBody ? { ...rawViewer, x: viewerBody.x, y: viewerBody.y } : rawViewer;
       // Raw frame time, not Phaser's smoothed and clamped delta, so a slow client pans as far as a fast one.
       // Stepping indoors eases the camera a little closer; a directed camera is the director's alone.
       const insideCurrent = this.eye && roofAt(map, this.eye);
@@ -672,6 +691,38 @@ export function makeArenaScene(api) {
       // zoom >= LOD_MEDIUM_ZOOM: full detail with floating animations, drop shadows and glyphs.
       const lowLod = zoom < LOD_LOW_ZOOM;
       const medLod = zoom < LOD_MEDIUM_ZOOM;
+      // Physics projections contain authorized endpoints, but current sight can still withhold an
+      // actor (cloak, roof, status). Tethers must use the same actor rule as the sprite they join.
+      const playersById = new Map(state.players.map(player => [player.id, player]));
+      const visibleBodies = new Map((state.bodies || []).filter(body => {
+        if (body.kind !== 'actor') return lit(body.x, body.y);
+        const player = playersById.get(body.actorId);
+        if (!player || player.status !== 'active') return false;
+        const atBody = { ...player, x: body.x, y: body.y };
+        return !fogged || player.id === viewer?.id || seesActor(this.sight, map, viewer, atBody);
+      }).map(body => [body.id, body]));
+      for (const tether of state.tethers || []) {
+        const a = visibleBodies.get(tether.a), b = visibleBodies.get(tether.b);
+        if (!a || !b || !nearView((a.x + b.x) / 2, (a.y + b.y) / 2, Math.hypot(a.x - b.x, a.y - b.y) / 2)) continue;
+        g.lineStyle(3, 0xd6dfbd, 0.85); g.lineBetween(a.x, a.y, b.x, b.y);
+      }
+      const drawnItems = new Set((state.items || []).map(item => item.id));
+      for (const body of visibleBodies.values()) {
+        if (body.kind !== 'prop' || body.itemId != null && drawnItems.has(body.itemId)) continue;
+        const shape = body.shape;
+        const radius = shape.kind === 'circle' ? shape.radius : shape.kind === 'box' ? Math.hypot(shape.hx, shape.hy)
+          : Math.max(0, ...shape.vertices.map(v => Math.hypot(v.x, v.y)));
+        if (!nearView(body.x, body.y, radius)) continue;
+        g.fillStyle(0x8fa9a0, 0.9); g.lineStyle(2, 0xdce8d7, 0.95);
+        if (shape?.kind === 'circle') {
+          g.fillCircle(body.x, body.y, shape.radius); g.strokeCircle(body.x, body.y, shape.radius);
+        } else if (shape?.kind === 'box' || shape?.kind === 'convex') {
+          const vertices = shape.vertices || [{ x: -shape.hx, y: -shape.hy }, { x: shape.hx, y: -shape.hy }, { x: shape.hx, y: shape.hy }, { x: -shape.hx, y: shape.hy }];
+          const c = Math.cos(body.angle), s = Math.sin(body.angle);
+          const points = vertices.map(v => ({ x: body.x + v.x * c - v.y * s, y: body.y + v.x * s + v.y * c }));
+          g.fillPoints(points, true); g.strokePoints(points, true);
+        }
+      }
       for (const gate of fogged ? this.rememberedGates : state.gates) {
         if (!nearView(gate.x, gate.y, 60)) continue;
         if (gate.kind === 'door') {
@@ -715,7 +766,9 @@ export function makeArenaScene(api) {
           if (!gate.known) { fixed.lineBetween(gate.x, gate.y - 4, gate.x, gate.y + 1); fixed.fillStyle(0xb2c4c9); fixed.fillCircle(gate.x, gate.y + 4, 1); }
         }
       }
-      for (const item of state.items) {
+      for (const rawItem of state.items) {
+        const itemBody = itemBodies.get(rawItem.id);
+        const item = itemBody ? { ...rawItem, x: itemBody.x, y: itemBody.y } : rawItem;
         if (!nearView(item.x, item.y, 30)) continue;
         if (!lit(item.x, item.y)) continue;
         if (lowLod) {
@@ -808,7 +861,9 @@ export function makeArenaScene(api) {
       start('render.actors');
       const actorGeometry = api.geometryOverlay?.();
       const ids = new Set();
-      for (const p of state.players) {
+      for (const rawPlayer of state.players) {
+        const body = actorBodies.get(rawPlayer.id);
+        const p = body ? { ...rawPlayer, x: body.x, y: body.y } : rawPlayer;
         ids.add(p.id); const actor = this.actors.get(p.id) || this.makeActor(p); const own = p.id === api.playerId();
         // Own marks the viewer's player in any view; only a live one is steered by local aim and eye.
         const controlled = own && !api.directed();

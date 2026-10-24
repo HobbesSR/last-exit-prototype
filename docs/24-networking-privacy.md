@@ -108,6 +108,22 @@ A socket that has fallen 512 KB behind skips state frames, which the next frame 
 
 ## Layered frames
 
+P3 (#440) adds independent `bodies` and `tethers` layers alongside items/gates.
+Every transform, angle, velocity, sleep/generation change participates in entry
+comparison; moving loot changes its item entry as well. No static-layer revision
+shortcut may suppress those changes. Existing per-view keyframe delivery covers
+late joins, skipped sends, deletions and room replacement for these lists too.
+
+Physics live projections are closed display records built from the captured tick.
+Actors use the same potential-visibility authorization as their player record;
+props use the potential radius plus their bounding radius, and item bodies also
+require the ground item to be authorized. Unknown actor associations are omitted.
+A tether is omitted unless both endpoint bodies are authorized. No pending
+commands, motors, force sources, contacts, engine settings or private gameplay
+state accompany it. Delayed spectators project the complete delayed frame through
+this same boundary, never today's world. The renderer also applies current sight
+and actor concealment before drawing endpoints/tethers in a fogged view.
+
 A live `state` frame carries the map's items and gates as layers: each is sent whole once, as a keyframe, and then as the changes since that keyframe (#250, `shared/frame-layers.ts`). The historical payload comparison is retained in [42.2](42.2-runtime-performance.md#layered-frame-payload-observations). Everything else in the frame is still sent whole every tick.
 
 On the wire a layer is a plain list as before, or `{ k, set?, drop? }`: keyframe `k` with those entries replaced or added and those ids removed. A session that lacks keyframe `k` gets the same object with `all`, the keyframe itself. A keyframe never changes once cut. `all` is always the layer as it was when `k` was cut, never the current list, so a session given it late rebuilds the same frames as one that had it from the start. The client's decoder, one per socket, rebuilds the plain list before anything else reads the frame, so the snapshot buffer, renderer, HUD and prediction see the same frames as before. The rebuilt frame is identical to the projection, entry order included: the encoder cuts a new keyframe instead of sending a change set the decoder would rebuild in a different order. Waiting-yard frames, welcomes, `ready` and recordings carry plain lists. Recordings are unaffected, and the projection contract above holds for the rebuilt frame.
