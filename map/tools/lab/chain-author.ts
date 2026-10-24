@@ -21,6 +21,7 @@ import type { CoreElementKind } from "../../kernel/contract.ts";
 import { MIN_PORTAL_LENGTH } from "../../kernel/scale.ts";
 import { CHAIN_LIBRARIES, CHAIN_LIBRARY } from "../core.ts";
 import { renderableDraft } from "./draft-safety.ts";
+import { download } from "./download.ts";
 
 const $ = (id: string): HTMLElement => document.getElementById(id)!;
 const select = (id: string): HTMLSelectElement => $(id) as HTMLSelectElement;
@@ -2756,20 +2757,13 @@ function accept(raw: unknown): void {
   selectedId = "";
   changed();
 }
-function download(): void {
+function exportLibrary(): void {
   const result = validateLibrary(library, declaredRegionTypeIds(library));
   if (!result.valid) {
     status("Export refused: fix validation issues first.");
     return;
   }
-  const url = URL.createObjectURL(
-    new Blob([JSON.stringify(library, null, 2)], { type: "application/json" }),
-  );
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "last-exit-chain-library-v3.json";
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  download("last-exit-chain-library-v3.json", JSON.stringify(library, null, 2), "application/json");
 }
 select("chainSection").onchange = () => {
   selectedId = "";
@@ -2784,7 +2778,7 @@ $("chainClone").onclick = clone;
 $("cloneTemplate").onclick = clone;
 $("chainDelete").onclick = remove;
 $("tileFilter").addEventListener("input", () => renderGallery());
-$("chainExport").onclick = download;
+$("chainExport").onclick = exportLibrary;
 $("chainApply").onclick = () => {
   try {
     accept(JSON.parse(area("chainSource").value));

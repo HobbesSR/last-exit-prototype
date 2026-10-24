@@ -1,9 +1,9 @@
 // The experimental content's display circles are visible only in an authorized dev view.
 import assert from 'node:assert/strict';
-import { chromium } from '@playwright/test';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { createArenaServer } from '../server/index.js';
+import { serveWithBrowser } from './helpers/browser.js';
 import { listen } from './helpers/listen.js';
 import { contentById } from '../shared/simulation/content.ts';
 import { createPhysicsMatch } from '../server/match.js';
@@ -11,10 +11,8 @@ import { createPhysicsMatch } from '../server/match.js';
 const scratch = path.resolve('test-results');
 await mkdir(scratch, { recursive: true });
 const replayDir = await mkdtemp(path.join(scratch, 'physics-geometry-'));
-const server = await createArenaServer({ replayDir, content: () => contentById('content-physics-2'), matchFactory: createPhysicsMatch,
+const { server, base, browser } = await serveWithBrowser({ replayDir, content: () => contentById('content-physics-2'), matchFactory: createPhysicsMatch,
   devTools: 'all', profileSummary: false });
-const base = await listen(server);
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const errors = [];
 const expected = contentById('content-physics-2').actorPhysics.geometry.contestant;
 const color = { headRadius: 0x79d7ff, bodyRadius: 0xffd46d, hurtRadius: 0xff6d9a };

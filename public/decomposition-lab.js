@@ -1,4 +1,5 @@
 import { updateTreeExplorer } from '/decomposition-tree-panel.js';
+import { downloadJson } from '/download.js';
 import { decompositionExample, planExample } from '/map/micro/decomposition/example.ts';
 import { analyzeRegion } from '/map/micro/decomposition/analysis.ts';
 
@@ -58,7 +59,7 @@ $('view').addEventListener('change', event => { view=event.target.value; $('view
 $('candidate').addEventListener('change', event => { selectedCandidateId = event.target.value; renderInspector(); draw(); });
 $('piece-list').addEventListener('change', event => { selectedId = event.target.value; renderInspector(); draw(); });
 $('preview').addEventListener('click', event => { if (view !== 'selected' || !plan) return; const box=$('preview').getBoundingClientRect(), x=(event.clientX-box.left)*$('preview').width/box.width, y=(event.clientY-box.top)*$('preview').height/box.height; const cx=Math.floor((x-layout.originX)/layout.scale+layout.bounds.minX), cy=Math.floor((y-layout.originY)/layout.scale+layout.bounds.minY); const hit=plan.pieces.find(piece=>piece.cells.some(cell=>cell.x===cx&&cell.y===cy)); if(hit){selectedId=hit.id;renderPieceControl();renderInspector();draw();} });
-$('download').addEventListener('click', () => { const blob=new Blob([JSON.stringify(plan,null,2)],{type:'application/json'}), url=URL.createObjectURL(blob), link=document.createElement('a');link.href=url;link.download=`decomposition-${input.id || 'plan'}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),0); });
+$('download').addEventListener('click', () => downloadJson(`decomposition-${input.id || 'plan'}.json`, plan, 2));
 $('import').addEventListener('change', async event => { const file=event.target.files?.[0]; if(!file)return; try { const loaded=JSON.parse(await file.text()); if(!loaded || !Array.isArray(loaded.cells) || typeof loaded.id !== 'string') throw new Error('expected a RegionContextInput with id and cells'); if (generate(loaded)) $('status').textContent=`Loaded ${file.name}; its allocation was recomputed with the current policy.`; } catch(error) { $('status').textContent=`Import rejected: ${error.message}. The previous context remains active.`; } event.target.value=''; });
 window.decompositionLabDebug = () => structuredClone({ input, plan, selectedId, selectedCandidateId, view, analysis, preset: $('preset').value });
 setPreset('balanced');

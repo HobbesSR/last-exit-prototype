@@ -14,10 +14,9 @@ import { validateFillConstraints } from '../map/micro/margins.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { measurement } from '../map/macro/src/chain/measurement.ts';
 import { liveMapFromBuilt } from '../map/live.ts';
+import { cellsOf } from './helpers/cells.js';
 
 const SIZE = 40;
-const cellsOf = (w, h, keep = () => true) => Array.from({ length: w * h }, (_, n) =>
-  ({ x: n % w, y: Math.floor(n / w) })).filter(cell => keep(cell.x, cell.y));
 const brief = (id, cells, portals, extra = {}) => ({ id, seed: 1, type: 'compound', cellSize: SIZE, cells,
   zones: [{ tier: 1, bonus: 0, lootChance: 0.3, cells }], portals, ...extra });
 const concave = () => brief('compound-concave', cellsOf(40, 34, (x, y) => y < 20 || x < 20), [

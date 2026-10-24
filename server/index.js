@@ -14,7 +14,7 @@ import { createMapPool, MAP_POOL_SIZE } from './map-pool.js';
 import { installHttpApi } from './http-api.js';
 import { attachWebSockets } from './websocket.js';
 import { startScheduler } from './scheduler.js';
-import { serveSharedModules } from './shared-assets.js';
+import { serveSharedModules, VENDOR_MODULES } from './shared-assets.js';
 import { devToolsPolicy } from './protocol.js';
 export { EMPTY_ROOM_GRACE_MS } from './room-service.js';
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
@@ -73,12 +73,10 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   // The game client maps bare `sat` through an import map. Only the dev labs, whose workers cannot use
   // one, need the imports rewritten, so a server without dev tools serves the shared modules untouched.
   app.use('/shared', serveSharedModules(path.join(ROOT, 'shared'), policy !== 'none'));
-  app.get('/shared/dev-nav.js', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.js')));
-  app.get('/shared/dev-nav.css', (_req, res) => res.sendFile(path.join(ROOT, 'shared/dev-nav.css')));
 
   if (policy !== 'none') {
-    app.get('/vendor/sat.mjs', async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule('sat')); });
-    app.get('/vendor/pathfinding.mjs', async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule('pathfinding')); });
+    for (const [name, url] of Object.entries(VENDOR_MODULES))
+      app.get(url, async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule(name)); });
 
     app.use('/map/micro', serveSharedModules(path.join(ROOT, 'map/micro'), true));
     app.use('/map/kernel', serveSharedModules(path.join(ROOT, 'map/kernel'), true));

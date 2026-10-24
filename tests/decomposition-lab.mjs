@@ -3,15 +3,11 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { chromium } from '@playwright/test';
-import { createArenaServer } from '../server/index.js';
-import { listen } from './helpers/listen.js';
+import { serveWithBrowser } from './helpers/browser.js';
 
 const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-decomposition-lab-'));
 await mkdir('test-results', { recursive: true });
-const server = await createArenaServer({ replayDir, profileSummary: false, devTools: 'all' });
-const base = await listen(server);
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const { server, base, browser } = await serveWithBrowser({ replayDir, profileSummary: false, devTools: 'all' });
 try {
   const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
   const errors = [];

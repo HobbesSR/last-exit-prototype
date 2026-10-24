@@ -1,15 +1,11 @@
 // Retained overhead art: real Phaser pixels and texture lifecycle on a small controlled map.
 import assert from 'node:assert/strict';
-import { chromium } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
-import { createArenaServer } from '../server/index.js';
-import { listen } from './helpers/listen.js';
+import { serveWithBrowser } from './helpers/browser.js';
 import { generateLiveMap } from '../map/live.ts';
 
 await mkdir('test-results', { recursive: true });
-const server = await createArenaServer({ profileSummary: false });
-const base = await listen(server);
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const { server, base, browser } = await serveWithBrowser({ profileSummary: false });
 const errors = [];
 try {
   const page = await browser.newPage({ viewport: { width: 900, height: 700 } });

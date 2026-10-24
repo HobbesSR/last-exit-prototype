@@ -15,9 +15,10 @@ import { createArenaServer } from '../server/index.js';
 import { listen } from './helpers/listen.js';
 import { lineClear } from '../shared/movement.ts';
 import path from 'node:path';
+import { cliArgs } from './helpers/args.js';
 
 const run = promisify(execFile);
-const args = new Map(process.argv.slice(2).map(a => a.replace(/^--/, '').split('=')).map(([k, v]) => [k, v ?? '1']));
+const args = cliArgs();
 const seed = Number(args.get('seed') ?? 4217);
 const outDir = path.resolve(args.get('out') ?? 'media');
 const frameDir = path.resolve('test-results/demo-frames');

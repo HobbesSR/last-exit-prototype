@@ -4,10 +4,9 @@ import { createAddressedArea } from '../map/micro/addressed.ts';
 import { unusedComponents } from '../map/micro/components.ts';
 import { createRegionMask } from '../map/micro/geometry.ts';
 import { circle, polygon, rect } from '../shared/shape.ts';
+import { cellsOf as rectangle } from './helpers/cells.js';
 
 const SIZE = 40;
-const rectangle = (w, h, keep = () => true) => Array.from({ length: w * h }, (_, n) =>
-  ({ x: n % w, y: Math.floor(n / w) })).filter(({ x, y }) => keep(x, y));
 const area = (cells = rectangle(6, 4)) => createAddressedArea(createRegionMask({ cells, cellSize: SIZE }));
 
 test('an area addresses the owned cells it overlaps, not those it only touches', () => {

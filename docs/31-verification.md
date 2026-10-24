@@ -144,6 +144,13 @@ once per file, as `room-directory` does (#376: about 26 s to 3 s). Files already
 when this was added: `room-service`, `room-directory` (since fixed), `server`, `map-generator`
 and the slow `map-library`; they are the first candidates, not a precedent.
 
+Shared test helpers live in `tests/helpers/`. Use them rather than copying them:
+`cells.js` (`cellsOf`, a rectangle's cells row by row), `listen.js`, `browser.js`
+(`serveWithBrowser`, a server and headless Chrome for the browser scripts), `args.js`
+(the bench and demo `--key=value` map), `room-harness.js` and `machine-lock.js`. The
+maintained command-line tools share `tools/options.mjs`; the one-off audit scripts
+under `tools/` are evidence and keep their own parsing.
+
 The timing command exits 1 when any test process fails, cannot launch, or terminates
 by signal, even without `--strict`. It prints the failure reason and captured test output.
 No gate runs `--strict`: the budgets are wall-clock times on a machine other agents'

@@ -7,9 +7,9 @@ import { buildRegion, briefErrors } from '../map/micro/region-types.ts';
 import { createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../map/micro/geometry.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
 import { bounds, circle, rect } from '../shared/shape.ts';
+import { cellsOf } from './helpers/cells.js';
 
 const SIZE = 40;
-const cellsOf = (w, h) => Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w) }));
 const key = c => `${c.x},${c.y}`;
 const MUTUAL = { inside: 'not-passable-hint', across: 'not-passable-hint' };
 const ONE_SIDED = { inside: 'not-passable-hint', across: 'any' };

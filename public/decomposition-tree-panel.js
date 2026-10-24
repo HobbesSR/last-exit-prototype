@@ -1,4 +1,5 @@
 import { exploreDecomposition } from '/map/micro/decomposition/explore.ts';
+import { downloadJson } from '/download.js';
 
 const $ = id => document.getElementById(id);
 const colors = ['#54c7bb', '#6f9de0', '#d884a8', '#d7a65d', '#a18ada', '#72b777', '#dc7d66', '#70b9d8'];
@@ -105,7 +106,6 @@ $('tree-depth').addEventListener('change', regenerate);
 $('tree-alternative').addEventListener('change', event => { alternativeIndex = Number(event.target.value); selectedId = selectedTree().root.id; renderSelection(); });
 $('tree-download').addEventListener('click', () => {
   if (!portfolio) return;
-  const url = URL.createObjectURL(new Blob([JSON.stringify(portfolio, null, 2)], { type: 'application/json' })), link = document.createElement('a');
-  link.href = url; link.download = `decomposition-trees-${input.id}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 0);
+  downloadJson(`decomposition-trees-${input.id}.json`, portfolio, 2);
 });
 window.decompositionTreeDebug = () => structuredClone({ portfolio, alternativeIndex, selectedId });
