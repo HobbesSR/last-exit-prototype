@@ -137,8 +137,8 @@ function matchOf(game, hasPhysics = false) {
     dispose() { if (!disposedFrame) { disposedFrame = snapshot(game); disposePhysics(game); } },
     project: (frame, id) => playerView(game, frame, id),
     map: () => structuredClone(game.map),
-    liveMap: () => structuredClone({ ...game.map, traps: [] }),
-    spectatorMap: frame => structuredClone({ ...game.map, gates: frame.gates, items: frame.items, traps: [] }),
+    liveMap: () => { const map = structuredClone({ ...game.map, traps: [] }); delete map.physicsProps; return map; },
+    spectatorMap: frame => { const map = structuredClone({ ...game.map, gates: frame.gates, items: frame.items, traps: [] }); delete map.physicsProps; return map; },
     end({ strand = false } = {}) {
       game.phase = 'finished';
       if (strand) for (const p of game.players) if (p.role === 'contestant' && p.status === 'active') p.status = 'stranded';

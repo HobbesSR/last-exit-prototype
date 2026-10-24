@@ -1,8 +1,9 @@
 import { createGame } from './state.ts';
 import { canOccupy, reachClear, movementSpeed, gateShape } from '../movement.ts';
 import { actorRadius, actorMotor, validateActorPhysics, PHYSICS_CHARACTER_VERSION } from './actor-physics.ts';
+import { addAuthoredProps, applyFloorDrag, synchronizePhysicalItems, validateWorldPhysics, writePhysicalItemPoses, PHYSICS_WORLD_VERSION } from './world-physics.ts';
 import { HZ } from './rules.ts';
-import { syncWeapon, rearrangeEquipment } from '../equipment.ts';
+import { syncWeapon, rearrangeEquipment, rearrangeInstanceEquipment } from '../equipment.ts';
 import { collectBotIntent } from './bots.ts';
 import type { BotIntent } from './bots.ts';
 import { consumeInput } from './input.ts';
@@ -10,7 +11,7 @@ import { respawn, finishMatch } from './lifecycle.ts';
 import { damage, skill, attack } from './combat.ts';
 import { solvePhysicsProjectiles } from './physics-projectiles.ts';
 import { interact, advanceCharging } from './interactions.ts';
-import { automaticPickups, dropEquipment, effect } from './loot.ts';
+import { automaticPickups, dropInventorySlot, effect } from './loot.ts';
 import { stepTraps } from '../traps.ts';
 import { advanceTick, advanceTimers, applyEnvironment, advanceDiscovery } from './tick-rules.ts';
 import { recordRewind } from './rewind.ts';
@@ -27,9 +28,16 @@ const stepping = new WeakSet<Game>();
 
 /** Explicit opt-in. Legacy createGame stays synchronous and never initializes WASM. */
 export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: MatchContent): Promise<Game> {
-  if (content?.itemInstances) throw new RangeError('physical item integration requires P5; use createGame for L0');
+  if (content?.itemInstances && !content.worldPhysics) throw new RangeError('physical item integration requires P5; use createGame for L0');
   const s = createGame(seed, map, content);
   validateActorPhysics(s.content.actorPhysics, s.map);
+  validateWorldPhysics(s.content, s.map);
+  if (s.content.worldPhysics) {
+    s.content = Object.freeze({ ...s.content, worldPhysics: Object.freeze({ ...s.content.worldPhysics, loot: Object.freeze({ ...s.content.worldPhysics.loot }), prop: Object.freeze({ ...s.content.worldPhysics.prop }) }) });
+    s.map.physicsProps = structuredClone(s.map.physicsProps ?? []);
+    s.map.physicsProps.forEach(Object.freeze); Object.freeze(s.map.physicsProps);
+    Object.defineProperty(s.map, 'physicsProps', { writable: false, configurable: false });
+  }
   // P2 tuning is match-pinned, including caller-supplied profiles and floor regions.
   if (s.content.actorPhysics) {
     const profile = structuredClone(s.content.actorPhysics);
@@ -44,7 +52,7 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
   if (s.players.length > 27) throw new RangeError('physics actor capacity is 27');
   const { createPhysicsWorld } = await import('../physics/world.ts');
   const world = await createPhysicsWorld();
-  const runtime: PhysicsRuntime = { world, actors: new Set(), gates: new Map(), discontinuities: [], synchronize: () => synchronize(s, runtime, stepping.has(s) ? s.tick : s.tick + 1),
+  const runtime: PhysicsRuntime = { discontinuityCapacity: s.content.worldPhysics ? 256 : 128, world, actors: new Set(), items: new Set(), itemLaunches: new Map(), gates: new Map(), discontinuities: [], synchronize: options => synchronize(s, runtime, stepping.has(s) ? s.tick : s.tick + 1, options?.deferItemAdmission),
     placement: (p, destination) => placement(s, runtime, p, ordered(s).filter(q => q !== p && q.status === 'active'), destination),
     pendingSpawns: [], pendingImpulses: [], pendingAttachments: [] };
   try {
@@ -67,8 +75,9 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
     for (const gate of s.map.gates) for (const key of ['id', 'x', 'y', 'w', 'h', 'kind'] as const) Object.defineProperty(gate, key, { writable: false, configurable: false });
     Object.freeze(s.map.gates);
     for (const key of ['width', 'height', 'obstacles', 'playableArea', 'gates'] as const) Object.defineProperty(s.map, key, { writable: false, configurable: false });
+    addAuthoredProps(s, runtime);
     attachPhysics(s, runtime);
-    Object.defineProperty(s, 'version', { value: s.content.actorPhysics ? PHYSICS_CHARACTER_VERSION : PHYSICS_VERSION, enumerable: true, writable: false });
+    Object.defineProperty(s, 'version', { value: s.content.worldPhysics ? PHYSICS_WORLD_VERSION : s.content.actorPhysics ? PHYSICS_CHARACTER_VERSION : PHYSICS_VERSION, enumerable: true, writable: false });
     synchronize(s, runtime, s.tick + 1);
     return s;
   } catch (error) { world.dispose(); throw error; }
@@ -94,7 +103,7 @@ function placement(s: Game, r: PhysicsRuntime, p: Player, admitted: Player[], or
  * `markTick` is the last tick whose capture carries a discontinuity marked here: the current one
  * inside a step, the next one between ticks, whose capture has already been taken.
  */
-function synchronize(s: Game, r: PhysicsRuntime, markTick: number): void {
+function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferItemAdmission = false): void {
   const active = ordered(s).filter(p => p.status === 'active');
   const wanted = new Set(active.map(actorId));
   for (const id of [...r.actors].sort(compare)) if (!wanted.has(id)) {
@@ -134,6 +143,12 @@ function synchronize(s: Game, r: PhysicsRuntime, markTick: number): void {
     r.gates.set(gate.id, gate.open);
     r.world.commitMutations();
   }
+  synchronizePhysicalItems(s, r, markTick, !deferItemAdmission);
+  if (s.content.worldPhysics) {
+    r.pendingImpulses = r.pendingImpulses.filter(entry => r.world.getGeneration(entry.id) === entry.generation);
+    r.pendingAttachments = r.pendingAttachments.filter(entry => r.world.getGeneration(entry.a) === entry.generationA
+      && r.world.getGeneration(entry.b) === entry.generationB);
+  }
 }
 
 /** Match seat/teleport boundaries reconcile game IDs before the first recorded frame. */
@@ -159,7 +174,7 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
   }
   synchronize(s, r, s.tick);
   s.projectiles.push(...r.pendingSpawns.splice(0));
-  for (const impulse of r.pendingImpulses.splice(0)) if (r.actors.has(impulse.id) && r.world.getGeneration(impulse.id) === impulse.generation) r.world.queueImpulse(impulse.id, impulse.value);
+  for (const impulse of r.pendingImpulses.splice(0)) if ((r.actors.has(impulse.id) || s.content.worldPhysics && r.world.hasBody(impulse.id)) && r.world.getGeneration(impulse.id) === impulse.generation) r.world.queueImpulse(impulse.id, impulse.value);
   for (const attachment of r.pendingAttachments.splice(0).sort((a, b) => compare(a.id, b.id))) {
     const a = r.world.getTransform(attachment.a), b = r.world.getTransform(attachment.b);
     if (a && b && r.actors.has(attachment.a) && r.actors.has(attachment.b)
@@ -176,17 +191,22 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
     const input = intent.input;
     p.heading = input.aim || 0;
     if (p.inventory && input.slot !== undefined) { p.selectedSlot = input.slot; syncWeapon(p, s.content.weapons); }
-    if (input.moveSlot) rearrangeEquipment(p, input.moveSlot.from, input.moveSlot.to, s.content.weapons);
+    if (input.moveSlot) {
+      if (s.content.itemInstances) rearrangeInstanceEquipment(s, p, input.moveSlot.from, input.moveSlot.to);
+      else rearrangeEquipment(p, input.moveSlot.from, input.moveSlot.to, s.content.weapons);
+    }
     if (intent.utilitySlot !== undefined && p.selectedSlot === intent.utilitySlot) attack(s, p);
     const discard = intent.discardSlot ?? (input.drop ? p.selectedSlot : undefined);
-    if (discard !== undefined && p.inventory?.[discard]) { dropEquipment(s, p, p.inventory[discard]!); p.inventory[discard] = null; p.charging = null; syncWeapon(p, s.content.weapons); }
+    if (discard !== undefined) dropInventorySlot(s, p, discard);
     if (input.skill && p.kit !== 'warden') skill(s, p);
     if (input.attack && p.role === 'contestant') attack(s, p);
     const speed = movementSpeed(p, input, HZ);
     r.world.setMotor(actorId(p), actorMotor(s, p, input.x ?? 0, input.y ?? 0, speed));
   }
   // 4: all bodies together. Query projectiles use these actual substep paths.
+  applyFloorDrag(s, r);
   const result = r.world.step();
+  writePhysicalItemPoses(s, r);
   for (const p of s.players) if (p.status === 'active') {
     const at = r.world.getTransform(actorId(p));
     if (at) { p.x = at.x; p.y = at.y; p.movedThisTick = result.distance[actorId(p)] ?? 0; }

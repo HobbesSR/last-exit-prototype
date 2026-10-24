@@ -7,8 +7,10 @@ export type BodyShape =
 export type BodyKind = 'actor' | 'prop' | 'static';
 export type BodySpec = {
   id: string; kind: BodyKind; shape: BodyShape; x: number; y: number;
+  collisionProfile?: 'loot';
   angle?: number; vx?: number; vy?: number; omega?: number;
   mass?: number; friction?: number; restitution?: number;
+  linearDamping?: number; angularDamping?: number;
   maxSpeed?: number;
 };
 export type BodyDefinition = BodySpec;

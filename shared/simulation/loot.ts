@@ -1,6 +1,8 @@
 import { canOccupy, reachClear } from '../movement.ts';
 import { carriedCell, collectEquipment, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
 import { allocateItemId, ensureItemIdentity, validateItemPayload } from '../item-instances.ts';
+import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
+import { physicsRuntime } from './physics-runtime.ts';
 import { HZ } from './rules.ts';
 import { clearRoute, distance } from './geometry.ts';
 import type { EffectKind, Game, GroundItem, InventoryItem, ItemId, Player, PlayerInput, Vec2, World } from '../types.ts';
@@ -33,7 +35,7 @@ function dropInstance(s: Game, p: Player, item: InventoryItem, mandatory: boolea
   if (!Number.isInteger(copies) || copies < 1 || copies > 3
     || item.kind === 'weapon' && (!Number.isSafeInteger(item.ammo) || item.ammo < 0)
     || item.kind === 'cell' && (!Number.isSafeInteger(item.charge) || item.charge < 0)) return false;
-  if (!mandatory && s.map.items.length + copies > s.content.itemInstances!.groundCapacity) return false;
+  if (!mandatory && (s.map.items.length + copies > s.content.itemInstances!.groundCapacity || !canRepresentPhysicalDrop(s, copies))) return false;
   const points: Vec2[] = [];
   for (let i = 0; i < copies; i++) {
     let point: Vec2 | undefined;
@@ -66,6 +68,7 @@ function dropInstance(s: Game, p: Player, item: InventoryItem, mandatory: boolea
   s.itemSerial = allocation.itemSerial;
   s.map.items.push(...records);
   p.inventory[p.inventory.indexOf(item)] = null; p.charging = null; syncWeapon(p, s.content.weapons);
+  launchPhysicalDrops(s, records, p);
   return true;
 }
 
@@ -91,7 +94,7 @@ export function automaticPickups(s: Game, p: Player, input: PlayerInput): void {
       // Commit each consumed instance before the next pickup inspects ownership or allocates IDs.
       for (let i = 0; i < s.map.items.length;) {
         if (keep(s.map.items[i]!)) i++;
-        else s.map.items.splice(i, 1);
+        else { s.map.items.splice(i, 1); physicsRuntime(s)?.synchronize(); }
       }
     } else s.map.items = s.map.items.filter(keep);
     if (!input.sneak && !p.cloak && s.map.sensors.some(sensor => distance(p, sensor) < 180)) p.revealed = 65;
