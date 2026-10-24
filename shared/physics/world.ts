@@ -1,0 +1,414 @@
+import RAPIER from '@dimforge/rapier2d-compat';
+import type { BodySpec, ConstraintSpec, MotorIntent, PhysicsContact, PhysicsSnapshot, Point, Transform } from './types.ts';
+
+const SCALE = 40;
+const SUBSTEPS = 4;
+const DT = 0.0125;
+const MAX_DYNAMIC = 128;
+const MAX_ACTORS = 27;
+const MAX_STATIC = 100000;
+const MAX_PENDING = 1024;
+const MAX_EVENTS = 8192;
+// Keep inputs representable through world-unit conversion and the f32 backend.
+// This is an admission guard, not a promise of useful precision at this extent.
+const MAX_MAGNITUDE = 1e9;
+const order = (a: string, b: string): number => a < b ? -1 : a > b ? 1 : 0;
+const finite = (n: number | undefined, fallback = 0): number => {
+  const value = n ?? fallback;
+  if (!Number.isFinite(value) || Math.abs(value) > MAX_MAGNITUDE)
+    throw new TypeError('physics value must be finite and within representable bounds');
+  return value;
+};
+const positive = (n: number | undefined, fallback?: number): number => {
+  const value = finite(n, fallback);
+  if (value <= 0) throw new RangeError('physics value must be positive');
+  return value;
+};
+const nonnegative = (n: number | undefined, fallback = 0): number => {
+  const value = finite(n, fallback);
+  if (value < 0) throw new RangeError('physics value must be nonnegative');
+  return value;
+};
+const dimension = (n: number | undefined): number => {
+  const value = positive(n);
+  if (value < 1e-6) throw new RangeError('physics dimension must be at least 1e-6');
+  return value;
+};
+const mass = (n: number | undefined): number => {
+  const value = positive(n, 1);
+  if (value < 1e-6 || value > 1e6) throw new RangeError('physics mass must be within 1e-6..1e6');
+  return value;
+};
+const clone = <T>(value: T): T => structuredClone(value);
+const vector = (value: Point): Point => ({ x: finite(value.x), y: finite(value.y) });
+const validId = (id: string): string => {
+  if (typeof id !== 'string' || !id.length) throw new TypeError('physics ID must be a nonempty string');
+  return id;
+};
+function shapeRadii(shape: BodySpec['shape']): { minimum: number; tip: number } {
+  if (shape.kind === 'circle') return { minimum: shape.radius, tip: 0 };
+  if (shape.kind === 'box') return { minimum: Math.min(shape.hx, shape.hy), tip: Math.hypot(shape.hx, shape.hy) };
+  return {
+    minimum: Math.min(...shape.vertices.map((point, i, vertices) => {
+      const next = vertices[(i + 1) % vertices.length]!;
+      return Math.abs(point.x * next.y - point.y * next.x) / Math.hypot(next.x - point.x, next.y - point.y);
+    })),
+    tip: Math.max(...shape.vertices.map(point => Math.hypot(point.x, point.y))),
+  };
+}
+
+function validateBody(input: BodySpec): BodySpec {
+  validId(input.id);
+  if (!['actor', 'prop', 'static'].includes(input.kind)) throw new TypeError('invalid body kind');
+  const shape = input.shape;
+  let checked: BodySpec['shape'];
+  if (shape.kind === 'circle') checked = { kind: 'circle', radius: dimension(shape.radius) };
+  else if (shape.kind === 'box') checked = { kind: 'box', hx: dimension(shape.hx), hy: dimension(shape.hy) };
+  else if (shape.kind === 'convex') {
+    if (!Array.isArray(shape.vertices) || shape.vertices.length < 3 || shape.vertices.length > 64) throw new RangeError('convex body needs 3..64 vertices');
+    checked = { kind: 'convex', vertices: shape.vertices.map(vector) };
+    const vertices = checked.vertices;
+    const area = vertices.reduce((sum, p, i) => {
+      const q = vertices[(i + 1) % vertices.length]!;
+      return sum + p.x * q.y - q.x * p.y;
+    }, 0);
+    if (Math.abs(area) < 1e-6) throw new RangeError('convex body has zero area');
+    const winding = Math.sign(area);
+    for (let i = 0; i < vertices.length; i++) {
+      const a = vertices[i]!, b = vertices[(i + 1) % vertices.length]!, c = vertices[(i + 2) % vertices.length]!;
+      const turn = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
+      const centerSide = (b.x - a.x) * -a.y - (b.y - a.y) * -a.x;
+      if (turn * winding <= 1e-8 || centerSide * winding <= 1e-8)
+        throw new RangeError('convex body must be strictly convex and centered around origin');
+    }
+  } else throw new TypeError('invalid body shape');
+  const result: BodySpec = { id: input.id, kind: input.kind, shape: checked,
+    x: finite(input.x), y: finite(input.y), angle: finite(input.angle),
+    vx: finite(input.vx), vy: finite(input.vy), omega: finite(input.omega),
+    mass: mass(input.mass), friction: nonnegative(input.friction, 0.5),
+    restitution: nonnegative(input.restitution) };
+  if (result.restitution! > 1) throw new RangeError('restitution must be <= 1');
+  if (result.kind === 'static' && (result.vx || result.vy || result.omega)) throw new RangeError('static body cannot move');
+  if (result.kind !== 'static') {
+    const { minimum, tip } = shapeRadii(checked);
+    const speed = Math.hypot(result.vx!, result.vy!) + Math.abs(result.omega!) * tip;
+    const limit = 0.8 * Math.min(minimum, 12) / DT;
+    if (speed > limit) throw new RangeError('initial physics speed requires swept-query-or-explicit-teleport');
+  }
+  return result;
+}
+
+type RecordBody = { spec: BodySpec; handle: number; collider: number; generation: number;
+  motor?: MotorIntent; minimumRadius: number; tipRadius: number };
+
+export async function createPhysicsWorld(): Promise<PhysicsWorld> {
+  return PhysicsWorld.create();
+}
+
+/** One room owns one instance. Mutations are applied at a tick boundary. */
+export class PhysicsWorld {
+  readonly settings = Object.freeze({ engine: 'rapier2d-compat', version: '0.21.0', unitsPerMetre: SCALE,
+    substeps: SUBSTEPS, substepSeconds: DT, speculativeDistanceMetres: 0.6,
+    exactCheckpoint: 'unsupported' as const, maxConstraints: 8,
+    constraintLimitations: 'native center max-distance rope; no finite force cap or break policy' });
+  private native: RAPIER.World;
+  private events: RAPIER.EventQueue;
+  private bodies = new Map<string, RecordBody>();
+  private sortedDynamic: Array<[string, RecordBody]> = [];
+  private actorCount = 0;
+  private dynamicCount = 0;
+  private staticCount = 0;
+  private nextGeneration = 0;
+  private colliderIds = new Map<number, string>();
+  private constraints = new Map<string, { spec: ConstraintSpec; handle: number }>();
+  private pendingAdd: BodySpec[] = [];
+  private pendingRemove: string[] = [];
+  private pendingAddConstraints: ConstraintSpec[] = [];
+  private pendingRemoveConstraints: string[] = [];
+  private forces: Array<{ id: string; value: Point }> = [];
+  private impulses: Array<{ id: string; value: Point }> = [];
+  private contacts: PhysicsContact[] = [];
+  private disposed = false;
+
+  static async create(): Promise<PhysicsWorld> {
+    await RAPIER.init();
+    return new PhysicsWorld();
+  }
+  private constructor() {
+    this.native = new RAPIER.World({ x: 0, y: 0 });
+    this.native.lengthUnit = 1;
+    this.native.integrationParameters.normalizedAllowedLinearError = 0.0001;
+    this.native.integrationParameters.normalizedPredictionDistance = 0.6;
+    this.native.numSolverIterations = 8;
+    this.native.numInternalPgsIterations = 2;
+    this.native.maxCcdSubsteps = 4;
+    this.native.timestep = DT;
+    this.events = new RAPIER.EventQueue(true);
+  }
+
+  private ensure(): void { if (this.disposed) throw new Error('physics world disposed'); }
+  private roomCount(kind: BodySpec['kind']): number {
+    return (kind === 'actor' ? this.actorCount : kind === 'static' ? this.staticCount : this.dynamicCount - this.actorCount)
+      + this.pendingAdd.filter(spec => spec.kind === kind).length
+      - this.pendingRemove.filter(id => this.bodies.get(id)?.spec.kind === kind).length;
+  }
+  private checkQueue(): void {
+    if (this.pendingAdd.length + this.pendingRemove.length + this.pendingAddConstraints.length +
+        this.pendingRemoveConstraints.length + this.forces.length + this.impulses.length >= MAX_PENDING)
+      throw new RangeError('physics command queue capacity exceeded');
+  }
+  queueAddBody(input: BodySpec): void {
+    this.ensure(); this.checkQueue();
+    const spec = validateBody(input);
+    if (this.bodies.has(spec.id) && !this.pendingRemove.includes(spec.id) || this.pendingAdd.some(body => body.id === spec.id))
+      throw new Error(`duplicate physics body ${spec.id}`);
+    const dynamic = this.roomCount('actor') + this.roomCount('prop');
+    if (spec.kind === 'actor' && this.roomCount('actor') >= MAX_ACTORS ||
+        spec.kind !== 'static' && dynamic >= MAX_DYNAMIC ||
+        spec.kind === 'static' && this.roomCount('static') >= MAX_STATIC)
+      throw new RangeError('physics body capacity exceeded');
+    this.pendingAdd.push(spec);
+  }
+  queueRemoveBody(id: string): void {
+    this.ensure(); this.checkQueue(); validId(id);
+    if (!this.bodies.has(id) && !this.pendingAdd.some(body => body.id === id)) throw new Error(`unknown physics body ${id}`);
+    if (this.pendingRemove.includes(id)) throw new Error(`duplicate physics removal ${id}`);
+    this.pendingRemove.push(id);
+  }
+  queueAddConstraint(input: ConstraintSpec): void {
+    this.ensure(); this.checkQueue();
+    const spec = { id: validId(input.id), a: validId(input.a), b: validId(input.b),
+      maxDistance: positive(input.maxDistance) };
+    if (spec.a === spec.b) throw new RangeError('constraint endpoints must differ');
+    if (this.constraints.has(spec.id) && !this.pendingRemoveConstraints.includes(spec.id) ||
+        this.pendingAddConstraints.some(item => item.id === spec.id)) throw new Error(`duplicate physics constraint ${spec.id}`);
+    if (this.constraints.size - this.pendingRemoveConstraints.length + this.pendingAddConstraints.length >= 8)
+      throw new RangeError('physics constraint capacity exceeded');
+    for (const id of [spec.a, spec.b]) {
+      if ((!this.bodies.has(id) || this.pendingRemove.includes(id)) && !this.pendingAdd.some(body => body.id === id))
+        throw new Error(`unknown physics constraint endpoint ${id}`);
+    }
+    this.pendingAddConstraints.push(spec);
+  }
+  queueRemoveConstraint(id: string): void {
+    this.ensure(); this.checkQueue(); validId(id);
+    if (!this.constraints.has(id) && !this.pendingAddConstraints.some(item => item.id === id))
+      throw new Error(`unknown physics constraint ${id}`);
+    if (this.pendingRemoveConstraints.includes(id)) throw new Error(`duplicate physics constraint removal ${id}`);
+    this.pendingRemoveConstraints.push(id);
+  }
+  private add(spec: BodySpec): void {
+    const descriptor = spec.kind === 'static' ? RAPIER.RigidBodyDesc.fixed() : RAPIER.RigidBodyDesc.dynamic();
+    descriptor.setTranslation(spec.x / SCALE, spec.y / SCALE).setRotation(spec.angle!)
+      .setLinvel(spec.vx! / SCALE, spec.vy! / SCALE).setAngvel(spec.omega!);
+    if (spec.kind !== 'static') descriptor.setCcdEnabled(true);
+    if (spec.kind === 'actor') descriptor.lockRotations();
+    const body = this.native.createRigidBody(descriptor);
+    let collider: RAPIER.ColliderDesc;
+    const { minimum: minimumRadius, tip: tipRadius } = shapeRadii(spec.shape);
+    if (spec.shape.kind === 'circle') {
+      collider = RAPIER.ColliderDesc.ball(spec.shape.radius / SCALE);
+    } else if (spec.shape.kind === 'box') {
+      collider = RAPIER.ColliderDesc.cuboid(spec.shape.hx / SCALE, spec.shape.hy / SCALE);
+    } else {
+      const vertices = spec.shape.vertices.flatMap(point => [point.x / SCALE, point.y / SCALE]);
+      const hull = RAPIER.ColliderDesc.convexHull(new Float32Array(vertices));
+      if (!hull) { this.native.removeRigidBody(body); throw new RangeError('invalid convex body'); }
+      collider = hull;
+    }
+    collider.setMass(spec.mass!).setFriction(spec.friction!).setRestitution(spec.restitution!)
+      .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+    const attached = this.native.createCollider(collider, body);
+    this.bodies.set(spec.id, { spec, handle: body.handle, collider: attached.handle,
+      generation: ++this.nextGeneration, minimumRadius, tipRadius });
+    if (spec.kind === 'static') this.staticCount++;
+    else { this.dynamicCount++; if (spec.kind === 'actor') this.actorCount++; }
+    this.colliderIds.set(attached.handle, spec.id);
+  }
+  commitMutations(): void {
+    this.ensure();
+    const bodiesChanged = this.pendingAdd.length > 0 || this.pendingRemove.length > 0;
+    const removed = new Set(this.pendingRemove);
+    const existingBeforeRemoval = new Set(this.pendingRemove.filter(id => this.bodies.has(id)));
+    for (const id of this.pendingRemoveConstraints.sort(order)) {
+      const record = this.constraints.get(id);
+      if (record) {
+        this.native.removeImpulseJoint(this.native.getImpulseJoint(record.handle)!, true);
+        this.constraints.delete(id);
+      }
+    }
+    for (const id of this.pendingRemove.sort(order)) {
+      const record = this.bodies.get(id);
+      if (record) {
+        for (const [jointId, joint] of this.constraints) {
+          if (joint.spec.a === id || joint.spec.b === id) this.constraints.delete(jointId);
+        }
+        this.native.removeRigidBody(this.native.getRigidBody(record.handle)!);
+        this.colliderIds.delete(record.collider);
+        this.bodies.delete(id);
+        if (record.spec.kind === 'static') this.staticCount--;
+        else { this.dynamicCount--; if (record.spec.kind === 'actor') this.actorCount--; }
+      }
+    }
+    for (const spec of this.pendingAdd.sort((a, b) => order(a.id, b.id))) {
+      // A create/remove pair cancels before admission. Removing an existing ID
+      // and re-adding it is a replacement with a new private engine handle.
+      if (!removed.has(spec.id) || existingBeforeRemoval.has(spec.id)) this.add(spec);
+    }
+    for (const spec of this.pendingAddConstraints.sort((a, b) => order(a.id, b.id))) {
+      if (this.pendingRemoveConstraints.includes(spec.id) ||
+          this.pendingRemove.includes(spec.a) || this.pendingRemove.includes(spec.b)) continue;
+      const a = this.bodies.get(spec.a), b = this.bodies.get(spec.b);
+      if (!a || !b) continue;
+      const native = this.native.createImpulseJoint(
+        RAPIER.JointData.rope(spec.maxDistance / SCALE, { x: 0, y: 0 }, { x: 0, y: 0 }),
+        this.native.getRigidBody(a.handle)!, this.native.getRigidBody(b.handle)!, true);
+      this.constraints.set(spec.id, { spec, handle: native.handle });
+    }
+    this.pendingRemove = []; this.pendingAdd = [];
+    this.pendingRemoveConstraints = []; this.pendingAddConstraints = [];
+    this.forces = this.forces.filter(entry => !removed.has(entry.id));
+    this.impulses = this.impulses.filter(entry => !removed.has(entry.id));
+    if (bodiesChanged) this.sortedDynamic = [...this.bodies].filter(([, record]) => record.spec.kind !== 'static')
+      .sort(([a], [b]) => order(a, b));
+  }
+  hasBody(id: string): boolean { this.ensure(); return this.bodies.has(id); }
+  getGeneration(id: string): number | undefined {
+    this.ensure(); return this.bodies.get(validId(id))?.generation;
+  }
+  private dynamic(id: string): { record: RecordBody; body: RAPIER.RigidBody } {
+    const record = this.bodies.get(validId(id));
+    if (!record || record.spec.kind === 'static') throw new Error(`unknown dynamic physics body ${id}`);
+    return { record, body: this.native.getRigidBody(record.handle)! };
+  }
+  setMotor(id: string, input: MotorIntent): void {
+    this.ensure(); const { record, body } = this.dynamic(id);
+    record.motor = { ...vector(input), accel: nonnegative(input.accel) };
+    body.wakeUp();
+  }
+  setTransform(id: string, value: Pick<Transform, 'x' | 'y' | 'angle'>): void {
+    this.ensure(); const { record, body } = this.dynamic(id);
+    const x = finite(value.x), y = finite(value.y), angle = finite(value.angle);
+    for (const [jointId, joint] of this.constraints) {
+      if (joint.spec.a !== id && joint.spec.b !== id) continue;
+      this.native.removeImpulseJoint(this.native.getImpulseJoint(joint.handle)!, true);
+      this.constraints.delete(jointId);
+    }
+    this.pendingAddConstraints = this.pendingAddConstraints.filter(spec => spec.a !== id && spec.b !== id);
+    this.pendingRemoveConstraints = this.pendingRemoveConstraints.filter(jointId =>
+      this.constraints.has(jointId) || this.pendingAddConstraints.some(spec => spec.id === jointId));
+    this.forces = this.forces.filter(entry => entry.id !== id);
+    this.impulses = this.impulses.filter(entry => entry.id !== id);
+    delete record.motor;
+    record.generation = ++this.nextGeneration;
+    body.setTranslation({ x: x / SCALE, y: y / SCALE }, true);
+    body.setRotation(angle, true);
+    body.setLinvel({ x: 0, y: 0 }, true);
+    body.setAngvel(0, true);
+  }
+  queueForce(id: string, input: Point): void {
+    this.ensure(); this.checkQueue(); this.dynamic(id);
+    this.forces.push({ id, value: vector(input) });
+  }
+  queueImpulse(id: string, input: Point): void {
+    this.ensure(); this.checkQueue(); this.dynamic(id);
+    this.impulses.push({ id, value: vector(input) });
+  }
+  getTransform(id: string): Transform | undefined {
+    this.ensure(); const record = this.bodies.get(validId(id));
+    if (!record) return undefined;
+    const body = this.native.getRigidBody(record.handle)!;
+    const p = body.translation(), v = body.linvel();
+    return { x: p.x * SCALE, y: p.y * SCALE, angle: body.rotation(),
+      vx: v.x * SCALE, vy: v.y * SCALE, omega: body.angvel(), sleeping: body.isSleeping() };
+  }
+  private capSpeeds(): void {
+    for (const [id, record] of this.sortedDynamic) {
+      const body = this.native.getRigidBody(record.handle)!;
+      const v = body.linvel(), speed = Math.hypot(v.x, v.y) * SCALE;
+      const limit = 0.8 * Math.min(record.minimumRadius, 12) / DT;
+      if (!Number.isFinite(speed)) throw new Error(`nonfinite physics speed ${id}`);
+      const omega = body.angvel();
+      if (!Number.isFinite(omega)) throw new Error(`nonfinite physics angular speed ${id}`);
+      const angularSpeed = Math.abs(omega) * record.tipRadius;
+      if (angularSpeed > limit) body.setAngvel(omega * limit / angularSpeed, true);
+      const linearBudget = Math.max(0, limit - Math.min(limit, angularSpeed));
+      if (speed > linearBudget) body.setLinvel({ x: v.x * linearBudget / speed, y: v.y * linearBudget / speed }, true);
+    }
+  }
+  step(): { distance: Record<string, number>; paths: Record<string, Point[]> } {
+    this.ensure(); this.commitMutations();
+    const distance: Record<string, number> = Object.create(null);
+    const paths: Record<string, Point[]> = Object.create(null);
+    const previous = new Map<string, Point>();
+    for (const [id] of this.sortedDynamic) {
+      const state = this.getTransform(id)!;
+      previous.set(id, { x: state.x, y: state.y }); distance[id] = 0;
+      paths[id] = [{ x: state.x, y: state.y }];
+    }
+    const forces = this.forces.sort((a, b) => order(a.id, b.id));
+    const impulses = this.impulses.sort((a, b) => order(a.id, b.id));
+    this.forces = []; this.impulses = [];
+    for (let substep = 0; substep < SUBSTEPS; substep++) {
+      for (const [, record] of this.sortedDynamic) {
+        const body = this.native.getRigidBody(record.handle)!;
+        body.resetForces(false);
+        const motor = record.motor;
+        if (motor) {
+          const v = body.linvel(), dx = motor.x - v.x * SCALE, dy = motor.y - v.y * SCALE;
+          const magnitude = Math.hypot(dx, dy), fraction = magnitude ? Math.min(1, motor.accel * DT / magnitude) : 0;
+          body.setLinvel({ x: v.x + dx * fraction / SCALE, y: v.y + dy * fraction / SCALE }, true);
+        }
+      }
+      for (const entry of forces) {
+        if (this.hasBody(entry.id)) this.dynamic(entry.id).body.addForce({ x: entry.value.x / SCALE, y: entry.value.y / SCALE }, true);
+      }
+      if (substep === 0) for (const entry of impulses) {
+        if (this.hasBody(entry.id)) this.dynamic(entry.id).body.applyImpulse({ x: entry.value.x / SCALE, y: entry.value.y / SCALE }, true);
+      }
+      this.capSpeeds(); this.native.step(this.events); this.capSpeeds();
+      this.events.drainCollisionEvents((a, b, started) => {
+        const first = this.colliderIds.get(a), second = this.colliderIds.get(b);
+        if (first && second) {
+          if (this.contacts.length >= MAX_EVENTS) throw new RangeError('physics event capacity exceeded');
+          this.contacts.push({ a: order(first, second) <= 0 ? first : second,
+            b: order(first, second) <= 0 ? second : first, substep, type: started ? 'start' : 'stop' });
+        }
+      });
+      for (const id of previous.keys()) {
+        const next = this.getTransform(id)!;
+        const old = previous.get(id)!;
+        distance[id]! += Math.hypot(next.x - old.x, next.y - old.y);
+        paths[id]!.push({ x: next.x, y: next.y });
+        previous.set(id, { x: next.x, y: next.y });
+      }
+    }
+    this.contacts.sort((a, b) => a.substep - b.substep || order(a.a, b.a) || order(a.b, b.b) || order(a.type, b.type));
+    return { distance, paths };
+  }
+  drainContacts(): PhysicsContact[] { this.ensure(); return this.contacts.splice(0); }
+  counts(): { actors: number; dynamic: number; static: number; constraints: number } {
+    this.ensure();
+    return { actors: this.actorCount, dynamic: this.dynamicCount, static: this.staticCount, constraints: this.constraints.size };
+  }
+  snapshot(options: { includeStatic?: boolean } = {}): PhysicsSnapshot {
+    this.ensure();
+    return clone({ bodies: [...this.bodies].filter(([, record]) => options.includeStatic !== false || record.spec.kind !== 'static')
+      .sort(([a], [b]) => order(a, b)).map(([id, record]) => ({
+        spec: record.spec, transform: this.getTransform(id)!, generation: record.generation,
+        ...(record.motor ? { motor: record.motor } : {}) })),
+    constraints: [...this.constraints].sort(([a], [b]) => order(a, b)).map(([, record]) => record.spec),
+    pending: { add: this.pendingAdd, remove: this.pendingRemove,
+      addConstraints: this.pendingAddConstraints, removeConstraints: this.pendingRemoveConstraints,
+      forces: this.forces, impulses: this.impulses } });
+  }
+  dispose(): void {
+    if (this.disposed) return;
+    this.events.free(); this.native.free(); this.bodies.clear(); this.colliderIds.clear(); this.constraints.clear();
+    this.sortedDynamic = []; this.actorCount = 0; this.dynamicCount = 0; this.staticCount = 0;
+    this.nextGeneration = 0;
+    this.pendingAdd = []; this.pendingRemove = []; this.pendingAddConstraints = []; this.pendingRemoveConstraints = [];
+    this.forces = []; this.impulses = []; this.contacts = [];
+    this.disposed = true;
+  }
+}

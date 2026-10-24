@@ -17,23 +17,23 @@ import { interact, advanceCharging } from './simulation/interactions.ts';
 import { botInput } from './simulation/bots.ts';
 import { consumeInput } from './simulation/input.ts';
 import { recordRewind } from './simulation/rewind.ts';
-import { DISCOVERY_INTERVAL, discover } from './discovery.ts';
+import { advanceTick, advanceTimers, applyEnvironment, advanceDiscovery } from './simulation/tick-rules.ts';
 import type { Game } from './types.ts';
-
-/** Per-player countdown fields, all measured in ticks. */
-const TIMERS = ['cooldown', 'attackCd', 'railCd', 'cloak', 'revealed', 'boost', 'stun'] as const;
+import { PHYSICS_VERSION } from './simulation/physics-runtime.ts';
+import { stepPhysics } from './simulation/phased.ts';
+export { createPhysicsGame, synchronizePhysics } from './simulation/phased.ts';
+export { disposePhysics, enqueuePhysicsImpulse, enqueuePhysicsAttachment, PHYSICS_VERSION } from './simulation/physics-runtime.ts';
 
 export function step(s: Game): void {
+  if (s.version === PHYSICS_VERSION) return stepPhysics(s);
   if (s.phase !== 'live') return;
   start('sim.step');
-  s.tick++;
-  s.hazardX = Math.round(-80 + Math.max(0, s.tick - s.content.hazardGraceTicks) / (s.content.durationTicks - s.content.hazardGraceTicks) * (s.map.width + 100));
-  s.effects = s.effects.filter(e => --e.life > 0);
+  advanceTick(s);
   for (const p of s.players) {
     p.movedThisTick = 0;
     respawn(s, p);
     if (p.status !== 'active') continue;
-    for (const key of TIMERS) p[key] = Math.max(0, p[key] - 1);
+    advanceTimers(p);
     if (p.bot) start('sim.bots');
     const input = p.bot ? botInput(s, p) : consumeInput(p, s.tick);
     if (p.bot) stop('sim.bots');
@@ -54,21 +54,9 @@ export function step(s: Game): void {
     automaticPickups(s, p, input);
     stop('sim.pickups');
     if (p.status !== 'active') continue;
-    if (p.x < s.hazardX && s.tick % 5 === 0) damage(s, p, 9, null);
-    if (s.tick % 12 === 0 && s.map.hazards.some(h => p.x > h.x && p.x < h.x + h.w && p.y > h.y && p.y < h.y + h.h)) damage(s, p, 5, null);
+    applyEnvironment(s, p);
   }
-  if (s.content.discovery) {
-    start('sim.discovery');
-    for (let i = 0; i < s.players.length; i++) {
-      const p = s.players[i]!;
-      if (p.role === 'contestant' && p.discovery) {
-        if (p.status === 'active' && (s.tick + i) % DISCOVERY_INTERVAL === 0) {
-          discover(p.discovery, s.map, p, undefined, p.bot);
-        }
-      }
-    }
-    stop('sim.discovery');
-  }
+  advanceDiscovery(s);
   stepTraps(s, damage, effect);
   start('sim.projectiles');
   advanceProjectiles(s);

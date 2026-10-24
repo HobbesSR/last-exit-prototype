@@ -1,0 +1,5082 @@
+{
+  "schema": "physics-438-phase-traces-1",
+  "provenance": {
+    "baseCommit": "d668586",
+    "node": "v24.15.0",
+    "generatedBy": "tools/physics/phase-traces.mjs",
+    "fixture": {
+      "seed": 438,
+      "map": "800x800 full 8x8 playable mask; no obstacles or gates",
+      "content": "content-1 tuning with one or two contestants and one warden gladiator",
+      "fixedTickHz": 20,
+      "physicsSubsteps": 4,
+      "variants": [
+        {
+          "contestants": 1,
+          "map": {
+            "seed": 438,
+            "width": 800,
+            "height": 800,
+            "playableArea": {
+              "cellSize": 100,
+              "rows": [
+                {
+                  "y": 0,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                },
+                {
+                  "y": 1,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                },
+                {
+                  "y": 2,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                },
+                {
+                  "y": 3,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                },
+                {
+                  "y": 4,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                },
+                {
+                  "y": 5,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                },
+                {
+                  "y": 6,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                },
+                {
+                  "y": 7,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                }
+              ]
+            },
+            "modules": [],
+            "buildings": [],
+            "obstacles": [],
+            "gates": [],
+            "hazards": [],
+            "gaps": [],
+            "stations": [],
+            "chargers": [],
+            "sensors": [],
+            "items": [],
+            "traps": [],
+            "routes": [],
+            "nodes": [],
+            "streets": [],
+            "entry": {
+              "x": 80,
+              "y": 400
+            },
+            "exit": {
+              "x": 750,
+              "y": 400
+            },
+            "spawns": [
+              {
+                "x": 150,
+                "y": 400
+              }
+            ],
+            "hunterSpawns": [
+              {
+                "x": 650,
+                "y": 400
+              }
+            ]
+          },
+          "content": {
+            "id": "content-1",
+            "roster": {
+              "contestants": [
+                "C0"
+              ],
+              "gladiators": [
+                {
+                  "name": "G",
+                  "kit": "warden"
+                }
+              ]
+            },
+            "weapons": {
+              "pistol": {
+                "name": "Pistol",
+                "ammo": 48,
+                "maxAmmo": 192,
+                "cooldown": 8,
+                "damage": 10,
+                "speed": 35,
+                "life": 24,
+                "spread": [
+                  0
+                ]
+              },
+              "rifle": {
+                "name": "Rifle",
+                "ammo": 90,
+                "maxAmmo": 360,
+                "cooldown": 4,
+                "damage": 6,
+                "speed": 44,
+                "life": 28,
+                "spread": [
+                  0
+                ]
+              },
+              "scattergun": {
+                "name": "Scattergun",
+                "ammo": 24,
+                "maxAmmo": 96,
+                "cooldown": 18,
+                "damage": 7,
+                "speed": 30,
+                "life": 12,
+                "spread": [
+                  -0.18,
+                  -0.09,
+                  0,
+                  0.09,
+                  0.18
+                ]
+              }
+            },
+            "kits": {
+              "warden": {
+                "name": "Warden",
+                "color": 16739184,
+                "damage": 24,
+                "cooldown": 110,
+                "skill": "Shockwave"
+              },
+              "specter": {
+                "name": "Specter",
+                "color": 11770623,
+                "damage": 19,
+                "cooldown": 150,
+                "skill": "Pulse scan"
+              },
+              "striker": {
+                "name": "Striker",
+                "color": 16759394,
+                "damage": 29,
+                "cooldown": 95,
+                "skill": "Overdrive"
+              }
+            },
+            "traps": {
+              "mine": {
+                "trigger": 65,
+                "blast": 120,
+                "damage": 45
+              },
+              "turret": {
+                "range": 650,
+                "cooldown": 35,
+                "speed": 24,
+                "damage": 12,
+                "life": 30
+              },
+              "flame": {
+                "cycle": 160,
+                "warnAt": 80,
+                "fireAt": 120,
+                "interval": 5,
+                "range": 240,
+                "cone": 0.8,
+                "damage": 6
+              },
+              "spider": {
+                "leash": 360,
+                "acquire": 240,
+                "step": 5,
+                "grapple": 150,
+                "cooldown": 50,
+                "stun": 30,
+                "damage": 10
+              }
+            },
+            "durationTicks": 12000,
+            "cellChargeTicks": 100,
+            "gladiatorRespawnTicks": 400,
+            "hazardGraceTicks": 1200,
+            "discovery": false
+          },
+          "sha256": "8e33ac6a9653a1913c14defa97dc7b400f91f3438ccf65708c43b77ca792edc3"
+        },
+        {
+          "contestants": 2,
+          "map": {
+            "seed": 438,
+            "width": 800,
+            "height": 800,
+            "playableArea": {
+              "cellSize": 100,
+              "rows": [
+                {
+                  "y": 0,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                },
+                {
+                  "y": 1,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                },
+                {
+                  "y": 2,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                },
+                {
+                  "y": 3,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                },
+                {
+                  "y": 4,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                },
+                {
+                  "y": 5,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                },
+                {
+                  "y": 6,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                },
+                {
+                  "y": 7,
+                  "runs": [
+                    [
+                      0,
+                      8
+                    ]
+                  ]
+                }
+              ]
+            },
+            "modules": [],
+            "buildings": [],
+            "obstacles": [],
+            "gates": [],
+            "hazards": [],
+            "gaps": [],
+            "stations": [],
+            "chargers": [],
+            "sensors": [],
+            "items": [],
+            "traps": [],
+            "routes": [],
+            "nodes": [],
+            "streets": [],
+            "entry": {
+              "x": 80,
+              "y": 400
+            },
+            "exit": {
+              "x": 750,
+              "y": 400
+            },
+            "spawns": [
+              {
+                "x": 150,
+                "y": 400
+              },
+              {
+                "x": 220,
+                "y": 400
+              }
+            ],
+            "hunterSpawns": [
+              {
+                "x": 650,
+                "y": 400
+              }
+            ]
+          },
+          "content": {
+            "id": "content-1",
+            "roster": {
+              "contestants": [
+                "C0",
+                "C1"
+              ],
+              "gladiators": [
+                {
+                  "name": "G",
+                  "kit": "warden"
+                }
+              ]
+            },
+            "weapons": {
+              "pistol": {
+                "name": "Pistol",
+                "ammo": 48,
+                "maxAmmo": 192,
+                "cooldown": 8,
+                "damage": 10,
+                "speed": 35,
+                "life": 24,
+                "spread": [
+                  0
+                ]
+              },
+              "rifle": {
+                "name": "Rifle",
+                "ammo": 90,
+                "maxAmmo": 360,
+                "cooldown": 4,
+                "damage": 6,
+                "speed": 44,
+                "life": 28,
+                "spread": [
+                  0
+                ]
+              },
+              "scattergun": {
+                "name": "Scattergun",
+                "ammo": 24,
+                "maxAmmo": 96,
+                "cooldown": 18,
+                "damage": 7,
+                "speed": 30,
+                "life": 12,
+                "spread": [
+                  -0.18,
+                  -0.09,
+                  0,
+                  0.09,
+                  0.18
+                ]
+              }
+            },
+            "kits": {
+              "warden": {
+                "name": "Warden",
+                "color": 16739184,
+                "damage": 24,
+                "cooldown": 110,
+                "skill": "Shockwave"
+              },
+              "specter": {
+                "name": "Specter",
+                "color": 11770623,
+                "damage": 19,
+                "cooldown": 150,
+                "skill": "Pulse scan"
+              },
+              "striker": {
+                "name": "Striker",
+                "color": 16759394,
+                "damage": 29,
+                "cooldown": 95,
+                "skill": "Overdrive"
+              }
+            },
+            "traps": {
+              "mine": {
+                "trigger": 65,
+                "blast": 120,
+                "damage": 45
+              },
+              "turret": {
+                "range": 650,
+                "cooldown": 35,
+                "speed": 24,
+                "damage": 12,
+                "life": 30
+              },
+              "flame": {
+                "cycle": 160,
+                "warnAt": 80,
+                "fireAt": 120,
+                "interval": 5,
+                "range": 240,
+                "cone": 0.8,
+                "damage": 6
+              },
+              "spider": {
+                "leash": 360,
+                "acquire": 240,
+                "step": 5,
+                "grapple": 150,
+                "cooldown": 50,
+                "stun": 30,
+                "damage": 10
+              }
+            },
+            "durationTicks": 12000,
+            "cellChargeTicks": 100,
+            "gladiatorRespawnTicks": 400,
+            "hazardGraceTicks": 1200,
+            "discovery": false
+          },
+          "sha256": "8239dff62b0c3a31fc003d21dcc37308a26091708a4744f4fb410c52a283283d"
+        }
+      ]
+    },
+    "sources": {
+      "shared/simulation.ts": "8c75df8b856d89032f2bbab317ee1956d34d0ea6a5a04ece333caf415dd35c78",
+      "shared/simulation/phased.ts": "85484bc2853e654d94177ae2002ac7fb550f94538a8659506d3177abe47b5eb3",
+      "shared/simulation/physics-projectiles.ts": "f1aa03b61bbf28318f4381ec5e7b61e800a6828223fef94764c9a6f5f0a1a6ee",
+      "shared/simulation/physics-runtime.ts": "b249896f2388d8a43b69908c4788f632fc6f0e7c644be5158238ca368e50e2a6",
+      "shared/simulation/bots.ts": "44da230a7d4177cbec81bab010b7a3b551621dbb2dfdb2582ac695401d65c879",
+      "shared/physics/world.ts": "9034c06a5fd55a017e5d2fe9073690697cb84fd03eab0e8b6bb1f40efd5f378f",
+      "shared/physics/types.ts": "a92bdd4fd2f336b60c523b45b4ef695319c5bf5c9cd46bd321f7ce5c2d294c68",
+      "shared/simulation/physics-geometry.ts": "8da66c90c1a6678251a313a7abf4042dad7dd646631ccbd4c4994d92388fed38",
+      "shared/simulation/visibility.ts": "bf2bf940afb278d819558d13f809b41deec3d81ce3961b7a7f8bc0b763c325ce",
+      "tools/physics/phase-traces.mjs": "b2594756256a1d928e31d3c84d5bc6625bafcfdbca87139a07b7be99f6eca35d"
+    },
+    "exactBackendRestore": "unsupported"
+  },
+  "scenarios": [
+    {
+      "id": "utility",
+      "label": "Bot utility before movement",
+      "notes": [
+        "Legacy botInput applies healing while deciding. Physics phase 2 collects it; phase 3 commits it."
+      ],
+      "frames": [
+        {
+          "boundary": "initial",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 150,
+                "y": 400,
+                "hp": 40,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "med",
+                    "count": 1
+                  },
+                  {
+                    "kind": "weapon",
+                    "ammo": 2,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "8c592ce2e43c856a850fcfaeb906505906036afc9fe5ce9261e541a165eb1fe5"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 150,
+                "y": 400,
+                "hp": 40,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "med",
+                    "count": 1
+                  },
+                  {
+                    "kind": "weapon",
+                    "ammo": 2,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "2b9a8860a982008c8992808127ebcd4dff8da219defbe14751e028daaaa1e691"
+          }
+        },
+        {
+          "boundary": "before tick 1",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 150,
+                "y": 400,
+                "hp": 40,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "med",
+                    "count": 1
+                  },
+                  {
+                    "kind": "weapon",
+                    "ammo": 2,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "8c592ce2e43c856a850fcfaeb906505906036afc9fe5ce9261e541a165eb1fe5"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 150,
+                "y": 400,
+                "hp": 40,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "med",
+                    "count": 1
+                  },
+                  {
+                    "kind": "weapon",
+                    "ammo": 2,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "2b9a8860a982008c8992808127ebcd4dff8da219defbe14751e028daaaa1e691"
+          }
+        },
+        {
+          "boundary": "after tick 1",
+          "legacy": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 158.975,
+                "y": 400.665,
+                "hp": 80,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 20,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 8.999602769011526,
+                "inventory": [
+                  null,
+                  {
+                    "kind": "weapon",
+                    "ammo": 2,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "884c4bdb5b28a95dcdf7001357ec97379edf7e3f22f11394f6bc1bb155ccd4dc"
+          },
+          "physics": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 155.6096649169922,
+                "y": 400.41534423828125,
+                "hp": 80,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 20,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 5.6250201292516415,
+                "inventory": [
+                  null,
+                  {
+                    "kind": "weapon",
+                    "ammo": 2,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "5afe7e6c56674c50a1ab4324af1b5003fad2370d7d41d9866f3e11f8c2566051"
+          }
+        }
+      ]
+    },
+    {
+      "id": "stun",
+      "label": "Early roster stun versus shared movement phase",
+      "notes": [
+        "Legacy reversed roster lets g0 stun c0 before c0 moves. Physics stun affects the following motor tick."
+      ],
+      "frames": [
+        {
+          "boundary": "initial",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "g0",
+                "x": 350,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "b10fdcc17cf3127901534a306d4931ae3f97424deccc78d63595207c8e2d6dd3"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "g0",
+                "x": 350,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "13eb412fcac86e645a766a929800a8d8a4b4e6970c108b898fde0c115a450b06"
+          }
+        },
+        {
+          "boundary": "before tick 1",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "g0",
+                "x": 350,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "b10fdcc17cf3127901534a306d4931ae3f97424deccc78d63595207c8e2d6dd3"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "g0",
+                "x": 350,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "13eb412fcac86e645a766a929800a8d8a4b4e6970c108b898fde0c115a450b06"
+          }
+        },
+        {
+          "boundary": "after tick 1",
+          "legacy": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "g0",
+                "x": 350,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c0",
+                "x": 303.15,
+                "y": 400,
+                "hp": 77,
+                "shield": 0,
+                "status": "active",
+                "stun": 21,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 3.1499999999999773,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "168bc10a4a893244c1c4db1140740affae406877be52c8f35b173025e6c9cf97"
+          },
+          "physics": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "g0",
+                "x": 350,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c0",
+                "x": 305.625,
+                "y": 400,
+                "hp": 77,
+                "shield": 0,
+                "status": "active",
+                "stun": 22,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 5.625,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "d751ed0cc4be6229f2f55e394ee57306047e1e29a9126b979a0cb957e1600753"
+          }
+        },
+        {
+          "boundary": "before tick 2",
+          "legacy": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "g0",
+                "x": 350,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c0",
+                "x": 303.15,
+                "y": 400,
+                "hp": 77,
+                "shield": 0,
+                "status": "active",
+                "stun": 21,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 3.1499999999999773,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "3e23374af43cad15bacaa6da2273dd04bf26ee223e5cefed2daf466f234d3e17"
+          },
+          "physics": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "g0",
+                "x": 350,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c0",
+                "x": 305.625,
+                "y": 400,
+                "hp": 77,
+                "shield": 0,
+                "status": "active",
+                "stun": 22,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 5.625,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "0e5c48d1e6174ed7dd4b0fc77b9bb74da8fd8de1079c4ce30f37526daede0013"
+          }
+        },
+        {
+          "boundary": "after tick 2",
+          "legacy": {
+            "tick": 2,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "g0",
+                "x": 350,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c0",
+                "x": 306.3,
+                "y": 400,
+                "hp": 77,
+                "shield": 0,
+                "status": "active",
+                "stun": 20,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 3.150000000000034,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "3efb8ecefbe224366c42dd6964bccb5823d0abb9744f9208809213c84c97d637"
+          },
+          "physics": {
+            "tick": 2,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "g0",
+                "x": 350,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c0",
+                "x": 310.01251220703125,
+                "y": 400,
+                "hp": 77,
+                "shield": 0,
+                "status": "active",
+                "stun": 21,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 4.38751220703125,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "12901d355130a2e1c816bf5b5c6bf08a7b66b05542500b32db8d519e88f09a90"
+          }
+        }
+      ]
+    },
+    {
+      "id": "charging",
+      "label": "Blocked request and next-tick push",
+      "notes": [
+        "Legacy cancels charge from requested movement on tick 1.",
+        "Physics preserves charge at a blocked boundary, then a queued impulse moves c0 on tick 2.",
+        "Legacy has no impulse path; the tick-2 legacy frame is a no-input comparison."
+      ],
+      "frames": [
+        {
+          "boundary": "initial",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 12,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": 0,
+                "charging": "charger",
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "cell",
+                    "charge": 0
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "92ec0a0f8048a0af82b2246b0f25b0ac070b81821bc5b93e256e1697b72f1f0f"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 12,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": 0,
+                "charging": "charger",
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "cell",
+                    "charge": 0
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "075cb8e85cacf6114afd4a5af1867a55bd5f45d7a3d04af5051b11da6c621f96"
+          }
+        },
+        {
+          "boundary": "before tick 1",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 12,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": 0,
+                "charging": "charger",
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "cell",
+                    "charge": 0
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "92ec0a0f8048a0af82b2246b0f25b0ac070b81821bc5b93e256e1697b72f1f0f"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 12,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": 0,
+                "charging": "charger",
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "cell",
+                    "charge": 0
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "075cb8e85cacf6114afd4a5af1867a55bd5f45d7a3d04af5051b11da6c621f96"
+          }
+        },
+        {
+          "boundary": "after tick 1",
+          "legacy": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 12,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": 0,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "cell",
+                    "charge": 0
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "d11ee719c74ef740a5c7e617ecbfbdce4b88c63c5e543fddedda42f16e911ac6"
+          },
+          "physics": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 11.986751556396484,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": 1,
+                "charging": "charger",
+                "moved": 0.013248920440673828,
+                "inventory": [
+                  {
+                    "kind": "cell",
+                    "charge": 1
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "ea4f5af83b643617033f2cf5e0875b7fcb6ee6c3c4fcbe59bd427b6a9a3addfc"
+          }
+        },
+        {
+          "boundary": "before tick 2",
+          "legacy": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 12,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": 0,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "cell",
+                    "charge": 0
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "d11ee719c74ef740a5c7e617ecbfbdce4b88c63c5e543fddedda42f16e911ac6"
+          },
+          "physics": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 11.986751556396484,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": 1,
+                "charging": "charger",
+                "moved": 0.013248920440673828,
+                "inventory": [
+                  {
+                    "kind": "cell",
+                    "charge": 1
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 1,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "a65f83351acb5fcfaa6d60e703a74e2f76f2102c7f4aa4d6219ad13f49f25a9d"
+          }
+        },
+        {
+          "boundary": "after tick 2",
+          "legacy": {
+            "tick": 2,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 12,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": 0,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "cell",
+                    "charge": 0
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "8c497feee25eec9c82232d0cbc243ff3f9690d221daf5a332e93d7cacfca4a38"
+          },
+          "physics": {
+            "tick": 2,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 12.000000476837158,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": 1,
+                "charging": null,
+                "moved": 1.6117548942565918,
+                "inventory": [
+                  {
+                    "kind": "cell",
+                    "charge": 1
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "1f5463843f3ddf204039fc2965a45f99d34b6bbd8c547c6b31cc495cfd702c76"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pickup",
+      "label": "Competing final-position pickup",
+      "notes": [
+        "Reversed legacy roster awards the item to c1. Physics stable actor ID awards it to c0."
+      ],
+      "frames": [
+        {
+          "boundary": "initial",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c1",
+                "x": 350,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c0",
+                "x": 340,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [
+              {
+                "id": "prize",
+                "kind": "med",
+                "x": 345,
+                "y": 400,
+                "droppedBy": null
+              }
+            ],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "3aad10152814d58cfed54cfc296a34e51b0229769d478b6d3b240ab4eafe11ad"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c1",
+                "x": 350,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c0",
+                "x": 340,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [
+              {
+                "id": "prize",
+                "kind": "med",
+                "x": 345,
+                "y": 400,
+                "droppedBy": null
+              }
+            ],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "e0578d0003ff7ad20417e07eb39cae03dcdfb1bcf456f7c9691b302a6c277061"
+          }
+        },
+        {
+          "boundary": "before tick 1",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c1",
+                "x": 350,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c0",
+                "x": 340,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [
+              {
+                "id": "prize",
+                "kind": "med",
+                "x": 345,
+                "y": 400,
+                "droppedBy": null
+              }
+            ],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "3aad10152814d58cfed54cfc296a34e51b0229769d478b6d3b240ab4eafe11ad"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c1",
+                "x": 350,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c0",
+                "x": 340,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [
+              {
+                "id": "prize",
+                "kind": "med",
+                "x": 345,
+                "y": 400,
+                "droppedBy": null
+              }
+            ],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "e0578d0003ff7ad20417e07eb39cae03dcdfb1bcf456f7c9691b302a6c277061"
+          }
+        },
+        {
+          "boundary": "after tick 1",
+          "legacy": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c1",
+                "x": 350,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "med",
+                    "count": 1
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c0",
+                "x": 340,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "8a78eea33f9afd7d8dd7b12ccb4ef6d8dedc2f279b514d33d536f0c771fbb1c8"
+          },
+          "physics": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c1",
+                "x": 350,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c0",
+                "x": 328.68629455566406,
+                "y": 411.31370544433594,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "med",
+                    "count": 1
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "baef660f2addb25ef968ba204655fc4a823cc36ad8af1395eba95a962dcd65b0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "traps",
+      "label": "Impulse movement triggers a mine after pickups",
+      "notes": [
+        "Physics mine reads actual impulse path distance. Legacy has no impulse path and sees a stationary actor."
+      ],
+      "frames": [
+        {
+          "boundary": "initial",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [
+              {
+                "id": "med",
+                "kind": "med",
+                "x": 300,
+                "y": 400,
+                "droppedBy": null
+              }
+            ],
+            "traps": [
+              {
+                "id": "mine",
+                "kind": "mine",
+                "spent": false,
+                "cooldown": 0,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "0d5475d3ea0f49c9a50bfaec429057b7e83f9ab02b1b324858676400d471506e"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [
+              {
+                "id": "med",
+                "kind": "med",
+                "x": 300,
+                "y": 400,
+                "droppedBy": null
+              }
+            ],
+            "traps": [
+              {
+                "id": "mine",
+                "kind": "mine",
+                "spent": false,
+                "cooldown": 0,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "ee0b61eec8e05b902dc27be87c54f78bb6505ac49369b40615f9bbc168f74bb7"
+          }
+        },
+        {
+          "boundary": "before tick 1",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [
+              {
+                "id": "med",
+                "kind": "med",
+                "x": 300,
+                "y": 400,
+                "droppedBy": null
+              }
+            ],
+            "traps": [
+              {
+                "id": "mine",
+                "kind": "mine",
+                "spent": false,
+                "cooldown": 0,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "0d5475d3ea0f49c9a50bfaec429057b7e83f9ab02b1b324858676400d471506e"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [
+              {
+                "id": "med",
+                "kind": "med",
+                "x": 300,
+                "y": 400,
+                "droppedBy": null
+              }
+            ],
+            "traps": [
+              {
+                "id": "mine",
+                "kind": "mine",
+                "spent": false,
+                "cooldown": 0,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 1,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "f4eb728fb836a50aac42e3e91758085b3fb558952470ec4efaf57559c414d8ee"
+          }
+        },
+        {
+          "boundary": "after tick 1",
+          "legacy": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "med",
+                    "count": 1
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [
+              {
+                "id": "mine",
+                "kind": "mine",
+                "spent": false,
+                "cooldown": 0,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "74648a7092c1e23efdf02e1122a146297e165ff47734fe81ef9ea240f0493a4b"
+          },
+          "physics": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 302.0625305175781,
+                "y": 400,
+                "hp": 55,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 2.062530517578125,
+                "inventory": [
+                  {
+                    "kind": "med",
+                    "count": 1
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [
+              {
+                "id": "mine",
+                "kind": "mine",
+                "spent": true,
+                "cooldown": 0,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "0d8f0e4ae21dde8c02a66d997f4b18b7b53eeb72a4b86ab4e66614c854422886"
+          }
+        }
+      ]
+    },
+    {
+      "id": "projectiles",
+      "label": "Actor bullet and delayed turret bullet",
+      "notes": [
+        "Actor bullet enters physics phase 4 on tick 1.",
+        "Legacy turret bullet advances in its firing tick; physics turret bullet waits in pendingSpawns."
+      ],
+      "frames": [
+        {
+          "boundary": "initial",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 2,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [
+              {
+                "id": "turret",
+                "kind": "turret",
+                "spent": false,
+                "cooldown": 0,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "c448d0f2a9953195b933b20606632542bbb4efa43ed198464f29ab5c14b88a14"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 2,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [
+              {
+                "id": "turret",
+                "kind": "turret",
+                "spent": false,
+                "cooldown": 0,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "02959bd22dc395fbff9090c3d787666285b26cbdf69160c6647bf6d3e4e33ab3"
+          }
+        },
+        {
+          "boundary": "before tick 1",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 2,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [
+              {
+                "id": "turret",
+                "kind": "turret",
+                "spent": false,
+                "cooldown": 0,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "c448d0f2a9953195b933b20606632542bbb4efa43ed198464f29ab5c14b88a14"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 2,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [
+              {
+                "id": "turret",
+                "kind": "turret",
+                "spent": false,
+                "cooldown": 0,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "02959bd22dc395fbff9090c3d787666285b26cbdf69160c6647bf6d3e4e33ab3"
+          }
+        },
+        {
+          "boundary": "after tick 1",
+          "legacy": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 8,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 1,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [
+              {
+                "id": "turret",
+                "kind": "turret",
+                "spent": false,
+                "cooldown": 35,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [
+              {
+                "id": 0,
+                "owner": "c0",
+                "x": 335,
+                "y": 400,
+                "dx": 35,
+                "dy": 0,
+                "life": 23
+              },
+              {
+                "id": 1,
+                "owner": "turret",
+                "x": 284,
+                "y": 400,
+                "dx": 24,
+                "dy": 0,
+                "life": 29
+              }
+            ],
+            "pending": null,
+            "captureSha256": "5396f530191c26e1ca662ed512efdec6432002ff1c95019dbfae25b2d6b68e84"
+          },
+          "physics": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 8,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 1,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [
+              {
+                "id": "turret",
+                "kind": "turret",
+                "spent": false,
+                "cooldown": 35,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [
+              {
+                "id": 0,
+                "owner": "c0",
+                "x": 335,
+                "y": 400,
+                "dx": 35,
+                "dy": 0,
+                "life": 23
+              }
+            ],
+            "pending": {
+              "spawns": 1,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "bf94b0311453a93f4c33bb8c34b994dd622fe1b643154cbd96a9e5b510fd6992"
+          }
+        },
+        {
+          "boundary": "before tick 2",
+          "legacy": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 8,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 1,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [
+              {
+                "id": "turret",
+                "kind": "turret",
+                "spent": false,
+                "cooldown": 35,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [
+              {
+                "id": 0,
+                "owner": "c0",
+                "x": 335,
+                "y": 400,
+                "dx": 35,
+                "dy": 0,
+                "life": 23
+              },
+              {
+                "id": 1,
+                "owner": "turret",
+                "x": 284,
+                "y": 400,
+                "dx": 24,
+                "dy": 0,
+                "life": 29
+              }
+            ],
+            "pending": null,
+            "captureSha256": "5396f530191c26e1ca662ed512efdec6432002ff1c95019dbfae25b2d6b68e84"
+          },
+          "physics": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 8,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 1,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [
+              {
+                "id": "turret",
+                "kind": "turret",
+                "spent": false,
+                "cooldown": 35,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [
+              {
+                "id": 0,
+                "owner": "c0",
+                "x": 335,
+                "y": 400,
+                "dx": 35,
+                "dy": 0,
+                "life": 23
+              }
+            ],
+            "pending": {
+              "spawns": 1,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "bf94b0311453a93f4c33bb8c34b994dd622fe1b643154cbd96a9e5b510fd6992"
+          }
+        },
+        {
+          "boundary": "after tick 2",
+          "legacy": {
+            "tick": 2,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 88,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 7,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 1,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [
+              {
+                "id": "turret",
+                "kind": "turret",
+                "spent": false,
+                "cooldown": 34,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [
+              {
+                "id": 0,
+                "owner": "c0",
+                "x": 370,
+                "y": 400,
+                "dx": 35,
+                "dy": 0,
+                "life": 22
+              }
+            ],
+            "pending": null,
+            "captureSha256": "c6efab2ad0ac9449994d58bac3093157e33b2cc74739b8ed9fda518315280ea0"
+          },
+          "physics": {
+            "tick": 2,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 7,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 1,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [
+              {
+                "id": "turret",
+                "kind": "turret",
+                "spent": false,
+                "cooldown": 34,
+                "targetId": null
+              }
+            ],
+            "events": [],
+            "projectiles": [
+              {
+                "id": 0,
+                "owner": "c0",
+                "x": 370,
+                "y": 400,
+                "dx": 35,
+                "dy": 0,
+                "life": 22
+              },
+              {
+                "id": 1,
+                "owner": "turret",
+                "x": 284,
+                "y": 400,
+                "dx": 24,
+                "dy": 0,
+                "life": 29
+              }
+            ],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "c4f8b0e905b8c4670897d51eddafa3726de16cdac9d4956aa27761a9fc5a80fc"
+          }
+        }
+      ]
+    },
+    {
+      "id": "simultaneous",
+      "label": "Equal-time projectile deaths and item conservation",
+      "notes": [
+        "Both actor bullets are admitted before phase 4; equal-time physical impacts can trade kills.",
+        "The no-trade tie in 29.2 applies to finalized-pose attacks, not already admitted physical impacts."
+      ],
+      "frames": [
+        {
+          "boundary": "initial",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c1",
+                "x": 335,
+                "y": 400,
+                "hp": 5,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 1,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 5,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 1,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "6bb94385a09b45edddee4b6e0c245cb7079cc07adaa6bfae1ad2374853cee389"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c1",
+                "x": 335,
+                "y": 400,
+                "hp": 5,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 1,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 5,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 1,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "a5807ccc665043b897633ba19324bffd3455b7d1dfd19228451d0506c22cada6"
+          }
+        },
+        {
+          "boundary": "before tick 1",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c1",
+                "x": 335,
+                "y": 400,
+                "hp": 5,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 1,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 5,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 1,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "6bb94385a09b45edddee4b6e0c245cb7079cc07adaa6bfae1ad2374853cee389"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c1",
+                "x": 335,
+                "y": 400,
+                "hp": 5,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 1,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 5,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "weapon",
+                    "ammo": 1,
+                    "weaponType": "pistol"
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "a5807ccc665043b897633ba19324bffd3455b7d1dfd19228451d0506c22cada6"
+          }
+        },
+        {
+          "boundary": "after tick 1",
+          "legacy": {
+            "tick": 1,
+            "phase": "finished",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c1",
+                "x": 335,
+                "y": 400,
+                "hp": 0,
+                "shield": 0,
+                "status": "eliminated",
+                "stun": 0,
+                "attackCd": 8,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 0,
+                "shield": 0,
+                "status": "eliminated",
+                "stun": 0,
+                "attackCd": 8,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [
+              {
+                "id": "equipment-drop-3",
+                "kind": "weapon",
+                "x": 321.9040758106401,
+                "y": 428.56941481517833,
+                "droppedBy": "c0"
+              },
+              {
+                "id": "equipment-drop-5",
+                "kind": "weapon",
+                "x": 365.374878581811,
+                "y": 380.6772995898545,
+                "droppedBy": "c1"
+              }
+            ],
+            "traps": [],
+            "events": [
+              {
+                "id": 2,
+                "tick": 1,
+                "text": "C0 eliminated by C1"
+              },
+              {
+                "id": 4,
+                "tick": 1,
+                "text": "C1 eliminated by C0"
+              },
+              {
+                "id": 6,
+                "tick": 1,
+                "text": "Broadcast complete"
+              }
+            ],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "d5085a6a72bfb201702a4c1911da6d6a71681a732c62e701f4b8109f5436005d"
+          },
+          "physics": {
+            "tick": 1,
+            "phase": "finished",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              },
+              {
+                "id": "c1",
+                "x": 335,
+                "y": 400,
+                "hp": 0,
+                "shield": 0,
+                "status": "eliminated",
+                "stun": 0,
+                "attackCd": 8,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 400,
+                "hp": 0,
+                "shield": 0,
+                "status": "eliminated",
+                "stun": 0,
+                "attackCd": 8,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              }
+            ],
+            "pickups": [
+              {
+                "id": "equipment-drop-3",
+                "kind": "weapon",
+                "x": 356.9040758106401,
+                "y": 428.56941481517833,
+                "droppedBy": "c1"
+              },
+              {
+                "id": "equipment-drop-5",
+                "kind": "weapon",
+                "x": 330.374878581811,
+                "y": 380.6772995898545,
+                "droppedBy": "c0"
+              }
+            ],
+            "traps": [],
+            "events": [
+              {
+                "id": 2,
+                "tick": 1,
+                "text": "C1 eliminated by C0"
+              },
+              {
+                "id": 4,
+                "tick": 1,
+                "text": "C0 eliminated by C1"
+              },
+              {
+                "id": 6,
+                "tick": 1,
+                "text": "Broadcast complete"
+              }
+            ],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "6e021e62f31c99709dff0f6fd99ef7c453327111d015f5d3b70cccd66ac18ac1"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pending",
+      "label": "Next-boundary impulse and attachment",
+      "notes": [
+        "Physics queue is visible in the before-tick capture, then consumed at the boundary.",
+        "Legacy has no impulse or attachment path and receives no surrogate action."
+      ],
+      "frames": [
+        {
+          "boundary": "initial",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 350,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c1",
+                "x": 360,
+                "y": 350,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "f9d115af7da8ae015c41fbd5b907c5d1826b1609aadf8f168b6f1fa1f22352ab"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 350,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c1",
+                "x": 360,
+                "y": 350,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "90e6a7b2641c39b3dde3f7c1e22a8e0b6af45de3da000b1f8e74f21dff6e993c"
+          }
+        },
+        {
+          "boundary": "before tick 1",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 350,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c1",
+                "x": 360,
+                "y": 350,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "f9d115af7da8ae015c41fbd5b907c5d1826b1609aadf8f168b6f1fa1f22352ab"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 350,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c1",
+                "x": 360,
+                "y": 350,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 1,
+              "attachments": 1,
+              "constraints": 0
+            },
+            "captureSha256": "2802c62bdcf92e40e0c0dc08872e3169953b6622385fccf2ef0bf75aa060a138"
+          }
+        },
+        {
+          "boundary": "after tick 1",
+          "legacy": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 300,
+                "y": 350,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c1",
+                "x": 360,
+                "y": 350,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "30a0a5233f22bf0bfefe077438d19a4bab99f76e205abb19b471eba4cf2580ae"
+          },
+          "physics": {
+            "tick": 1,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 302.0625305175781,
+                "y": 350,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 2.062530517578125,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "c1",
+                "x": 360,
+                "y": 350,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 1
+            },
+            "captureSha256": "f20719aa9f59b493f2843967fe1d68b2dd7ab7274bbf4b56ba5e5139eb0f2fc5"
+          }
+        }
+      ]
+    },
+    {
+      "id": "capture",
+      "label": "Authoritative frame capture after completed phases",
+      "notes": [
+        "A final extraction consumes the last slot and yields one finished match and captured tick.",
+        "captureSha256 hashes each public authoritative snapshot after the complete tick.",
+        "The physics backend declares exactCheckpoint unsupported; these hashes do not claim backend restore."
+      ],
+      "frames": [
+        {
+          "boundary": "initial",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 730,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": 100,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "cell",
+                    "charge": 100
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "0fb99c9d6e066996c3b8cea05c91e188ed25e52a7f8dd8c0bf6b70e6df00f385"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 730,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": 100,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "cell",
+                    "charge": 100
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "5576f1cdd7e5707d8b18c789610a132f1581ae337076eb53b50fb958bea20b17"
+          }
+        },
+        {
+          "boundary": "before tick 1",
+          "legacy": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 730,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": 100,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "cell",
+                    "charge": 100
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "0fb99c9d6e066996c3b8cea05c91e188ed25e52a7f8dd8c0bf6b70e6df00f385"
+          },
+          "physics": {
+            "tick": 0,
+            "phase": "live",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 730,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": 100,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  {
+                    "kind": "cell",
+                    "charge": 100
+                  },
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "5576f1cdd7e5707d8b18c789610a132f1581ae337076eb53b50fb958bea20b17"
+          }
+        },
+        {
+          "boundary": "after tick 1",
+          "legacy": {
+            "tick": 1,
+            "phase": "finished",
+            "version": "last-exit-0.7",
+            "players": [
+              {
+                "id": "c0",
+                "x": 730,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "escaped",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [
+              {
+                "id": 0,
+                "tick": 1,
+                "text": "C0 powered an escape pod. 0 slots remain"
+              },
+              {
+                "id": 1,
+                "tick": 1,
+                "text": "Broadcast complete"
+              }
+            ],
+            "projectiles": [],
+            "pending": null,
+            "captureSha256": "84ce1550c99eebac4ebd46899d2424d702b1b15f8c5bd430ab7a949fc3076fd1"
+          },
+          "physics": {
+            "tick": 1,
+            "phase": "finished",
+            "version": "last-exit-0.8-physics-1",
+            "players": [
+              {
+                "id": "c0",
+                "x": 730,
+                "y": 400,
+                "hp": 100,
+                "shield": 0,
+                "status": "escaped",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": 0,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": [
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null
+                ]
+              },
+              {
+                "id": "g0",
+                "x": 650,
+                "y": 400,
+                "hp": 360,
+                "shield": 0,
+                "status": "active",
+                "stun": 0,
+                "attackCd": 0,
+                "selectedSlot": null,
+                "charge": null,
+                "charging": null,
+                "moved": 0,
+                "inventory": null
+              }
+            ],
+            "pickups": [],
+            "traps": [],
+            "events": [
+              {
+                "id": 0,
+                "tick": 1,
+                "text": "C0 powered an escape pod. 0 slots remain"
+              },
+              {
+                "id": 1,
+                "tick": 1,
+                "text": "Broadcast complete"
+              }
+            ],
+            "projectiles": [],
+            "pending": {
+              "spawns": 0,
+              "impulses": 0,
+              "attachments": 0,
+              "constraints": 0
+            },
+            "captureSha256": "588d17138e66384ab0f6b29832702406d41c9921ca0faf6f2765e376615bc3d3"
+          }
+        }
+      ]
+    }
+  ]
+}

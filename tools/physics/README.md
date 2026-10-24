@@ -98,3 +98,18 @@ Limits that constrain interpretation:
 
 Read [41.1](../../docs/41.1-physics-plan.md) for promotion gates. If neither
 candidate passes, report a no-go and keep production integration blocked.
+
+## Experimental P1 evidence (#438)
+
+The production adapter now lives in `shared/physics/`, separately from these lab
+implementations. Default matches stay legacy. Reproduce the retained paired tick
+traces with `node tools/physics/phase-traces.mjs <output.json>`; run focused tests
+with `npm run test:physics` and the actual shared adapter's Chrome witness with
+`node tests/physics-world.browser.mjs`.
+
+`node tools/physics/bench-integration.mjs <output.json>` takes the machine benchmark
+lock and runs a short seeded legacy/experimental whole-match comparison sequentially.
+It measures step, authoritative snapshot and one projection over 500 samples after
+100 warmup ticks. Frame sizing is outside the timed interval. It is not the P0
+physics-only workload or P9 capacity qualification. Findings and limits are in
+[42.11](../../docs/42.11-physics-p1.md).

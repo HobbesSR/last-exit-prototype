@@ -1,14 +1,21 @@
 # 26. Recording contract
 
 Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
-default content is `content-4`, and recordings use schema 7 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
-display descriptor in the header, 7 bots' world-point routes in player state). Masked live maps require reader 4; legacy maps keep
+default content is `content-4`, and recordings use schema 8 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
+display descriptor in the header, 7 bots' world-point routes, 8 optional private physics gameplay state). Masked live maps require reader 4; legacy maps keep
 minimum schema 0.
 Storage-only changes must preserve frozen gameplay fixtures.
 
-Future physics state, checkpoint and compatibility proposals are in
-[29.2](29.2-physics-state-networking.md). They do not change the current schema,
-rules version or playback contract in this document.
+The explicit experimental factory pins `last-exit-0.8-physics-1`; normal matches
+retain `last-exit-0.7`. Schema 8 adds optional `physics` on authoritative frames:
+dynamic body IDs/generations, transforms, motor state, ropes and bounded pending
+spawns/impulses/attachments. Static colliders come from the recorded map and are
+not repeated each tick. This private gameplay state is stripped from every live
+projection. It is not an exact backend checkpoint; production exact restore is
+explicitly unsupported. Playback continues drawing stored states without a solver.
+See [29.2](29.2-physics-state-networking.md); P3 owns physical rendering/projection
+and any later format changes. No content ID changes: the shipped tuning remains
+`content-4` (which only changed bot planning, #473), with P1 motor acceleration an experimental rules constant.
 
 How a reader labels a recording's weapons, kits and timers, including archives
 without a descriptor, follows [22.7](22.7-content-and-presentation.md#recording-compatibility)
@@ -50,6 +57,7 @@ The schema history, with the sections that explain each step:
 | 5 | the diagnostics trailer ([Diagnostic markers](#diagnostic-markers-schema-5)) | unchanged |
 | 6 | an optional `presentation` display descriptor in the header ([Presentation descriptor](#presentation-descriptor-schema-6)) | unchanged |
 | 7 | an optional `route` of world points in recorded player state, for bots planning over tiles (below) | unchanged |
+| 8 | optional private physics gameplay state in experimental authoritative frames; no solver blob | unchanged |
 
 The paragraphs below describe each change as it was made, so a number in one
 is the schema current at the time, not today's.

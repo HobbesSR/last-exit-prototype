@@ -1,5 +1,5 @@
 import { randomUUID, randomBytes } from 'node:crypto';
-import { DEFAULT_KIT, HZ, ROLES, VERSION } from '../shared/simulation/rules.ts';
+import { DEFAULT_KIT, HZ, ROLES } from '../shared/simulation/rules.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
 import { SCHEMA, minimumReaderForMap } from '../shared/recording.ts';
@@ -32,7 +32,7 @@ const byRole = count => Object.fromEntries(ROLES.map(role => [role, count(role)]
  * `content` supplies each new room's content: the shipped default, or a differing set a test injects.
  */
 export function createRoomService({ replays, devTools = 'none', wallNow = Date.now, reportError = console.error,
-  replayFinishTimeoutMs = 5000, setTimer = setTimeout, clearTimer = clearTimeout, content = defaultContent }) {
+  replayFinishTimeoutMs = 5000, setTimer = setTimeout, clearTimer = clearTimeout, content = defaultContent, matchFactory = createMatch }) {
   const rooms = new Map();
   const finalizations = new Set();
   let closing;
@@ -55,7 +55,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
     if (typeof map?.then === 'function') {
       // Settles once the room has its match or has been given up, and never rejects, so it can be awaited.
       room.ready = map.then(map => openMatch(room, map), error => abandonGeneration(room, error));
-    } else { openMatch(room, map); room.ready = Promise.resolve(); }
+    } else { room.ready = Promise.resolve(openMatch(room, map)); }
     return room;
   }
   const current = room => rooms.get(room.id) === room && !room.finished && !closing;
@@ -63,7 +63,12 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   const described = room => ({ contentId: room.presentation.contentId, presentation: room.presentation });
   function openMatch(room, map) {
     if (room.match || !current(room)) return;
-    const match = createMatch(room.seed, room.size, map, room.content);
+    const match = matchFactory(room.seed, room.size, map, room.content);
+    if (typeof match?.then === 'function') return room.initializing = match.then(ready => adoptMatch(room, ready), error => abandonGeneration(room, error));
+    adoptMatch(room, match);
+  }
+  function adoptMatch(room, match) {
+    if (!current(room)) { match.dispose(); return; }
     // Nothing is recorded before the start, so every command so far is a seat the lobby gave out.
     match.seat(room.inputs);
     // `game` stays the tests' and benchmarks' escape hatch; nothing here reads it.
@@ -153,7 +158,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   function startRecording(room) {
     try {
       const map = room.match.map();
-      room.writer = replays.start({ version: VERSION, schema: SCHEMA, minSchema: minimumReaderForMap(map), contentId: room.match.contentId, presentation: room.presentation, id: room.id, seed: room.match.seed, hz: HZ, createdAt: room.createdAt, map },
+      room.writer = replays.start({ version: room.match.version, schema: SCHEMA, minSchema: minimumReaderForMap(map), contentId: room.match.contentId, presentation: room.presentation, id: room.id, seed: room.match.seed, hz: HZ, createdAt: room.createdAt, map },
         { onError: error => failRecording(room, error) });
       if (room.recordingError) room.writer?.abort?.(room.recordingError);
     } catch (error) { failRecording(room, error); }
@@ -170,6 +175,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   function finish(room) {
     if (room.finalization) return room.finalization;
     room.finished = true; settlePause(room);
+    room.match?.dispose();
     room.finalization = (async () => {
       let deadline;
       try {
@@ -324,7 +330,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
       for (const session of room.clients) pingSession(session, wallNow(), send);
       // The countdown runs while the map generates, but the match waits for it.
       if (room.matchmade && !room.started && room.match && room.startsAt && wallNow() >= room.startsAt && room.clients.size > 0) startMatch(room);
-      if ((!room.started || room.finished) && room.clients.size === 0 && wallNow() - room.createdAt > UNSTARTED_ROOM_IDLE_MS) { rooms.delete(id); continue; }
+      if ((!room.started || room.finished) && room.clients.size === 0 && wallNow() - room.createdAt > UNSTARTED_ROOM_IDLE_MS) { room.match?.dispose(); rooms.delete(id); continue; }
       if (room.waiting && !room.finished) { advanceWaiting(room, elapsed); continue; }
       if (!room.started || room.finished) continue;
       // Keep a short reconnect window, but abandoned playtests must not run ten minutes of bots
@@ -381,6 +387,8 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   function close() {
     if (!closing) closing = (async () => {
       for (const room of rooms.values()) if (room.started && !room.finished) { room.match.end(); record(room, room.match.snapshot()); void finish(room); }
+      for (const room of rooms.values()) room.match?.dispose();
+      await Promise.all([...rooms.values()].map(room => room.initializing));
       await Promise.all([...finalizations]);
     })();
     return closing;

@@ -20,5 +20,8 @@ physics in default matches or replace SAT.js in production. The custom solver is
 retired as a candidate; its code and tests remain only as an archival comparison
 baseline. Planck.js is the reserve if Rapier integration fails or becomes
 unsustainable. The P0 comparison and retained failures are in
-[42.6](42.6-physics-comparison.md); proposed remediation gates and the remaining
-P1 decision are in [41.1](41.1-physics-plan.md).
+[42.6](42.6-physics-comparison.md); reviewed remediation gates are in
+[42.9](42.9-physics-remediation.md). The explicit experimental P1 adapter is a
+production dependency, initialized only by the async physics factory; it retains
+legacy defaults. Its boundaries/evidence are [42.11](42.11-physics-p1.md), with
+remaining promotion work in [41.1](41.1-physics-plan.md).

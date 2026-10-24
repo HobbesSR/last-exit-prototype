@@ -5,7 +5,21 @@ import { distance } from './geometry.ts';
 import { effect } from './loot.ts';
 import { eliminate } from './lifecycle.ts';
 import { asSeenBy } from './rewind.ts';
-import type { Game, Player } from '../types.ts';
+import type { Game, Player, InventoryItem, StackItem } from '../types.ts';
+
+type UtilityState = Pick<Player, 'hp' | 'maxHp' | 'shield'>;
+
+/** Whether this utility can change the current health/shield state. */
+export function utilityApplies(p: UtilityState, item: InventoryItem | null | undefined): item is StackItem {
+  return item?.kind === 'med' ? p.hp < p.maxHp : item?.kind === 'shield' && p.shield < 75;
+}
+
+/** Pure utility effect, shared by actual use and bots previewing their own use. */
+export function utilityOutcome(p: UtilityState, item: InventoryItem | null | undefined): Pick<Player, 'hp' | 'shield'> | null {
+  if (!utilityApplies(p, item)) return null;
+  return item.kind === 'med' ? { hp: Math.min(p.maxHp, p.hp + 40), shield: p.shield }
+    : { hp: p.hp, shield: Math.min(75, p.shield + 30) };
+}
 
 export function damage(s: Game, target: Player, amount: number, source: Player | null): void {
   if (target.status !== 'active') return;
@@ -42,9 +56,9 @@ export function attack(s: Game, p: Player): void {
     const item = equipped(p);
     if (!item) return;
     if (item.kind === 'med' || item.kind === 'shield') {
-      if (item.kind === 'med' && p.hp >= p.maxHp || item.kind === 'shield' && p.shield >= 75) return;
-      if (item.kind === 'med') p.hp = Math.min(p.maxHp, p.hp + 40);
-      else p.shield = Math.min(75, p.shield + 30);
+      const outcome = utilityOutcome(p, item);
+      if (!outcome) return;
+      Object.assign(p, outcome);
       if (--item.count <= 0) p.inventory![p.selectedSlot!] = null;
       p.attackCd = HZ; syncWeapon(p, s.content.weapons); effect(s, p, 'loot', 30); return;
     }

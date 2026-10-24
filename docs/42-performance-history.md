@@ -7,6 +7,8 @@ The isolated physics comparison and no-go evidence for #437 are in
 [42.6](42.6-physics-comparison.md). The user-directed Rapier remediation, revised
 gate results and bounded integration proposal for #451 are in
 [42.9](42.9-physics-remediation.md).
+P1's experimental integration, paired tick traces and validation are in
+[42.11](42.11-physics-p1.md).
 
 The current unresolved slowdown is recorded below. Historical runtime measurements are in [42.2](42.2-runtime-performance.md), generation and delegation measurements in [42.3](42.3-generation-and-delegation-evidence.md), and map chain captures in [42.4](42.4-chain-checkpoint-history.md). The navigation experiment remains in [42.1](42.1-navigation-experiment.md), the portal graph's first measurements are in [42.5](42.5-portal-graph.md), its free-space mesh bottom level in [42.7](42.7-navigation-mesh.md), bots' adoption of the tile planner in [42.8](42.8-bot-adoption.md), and replanning spread over ticks in [42.10](42.10-sliced-replanning.md).
 

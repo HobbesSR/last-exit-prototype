@@ -2,7 +2,7 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { stripTypeScriptTypes } from 'node:module';
 
-const BARE = { sat: "/vendor/sat.mjs", pathfinding: "/vendor/pathfinding.mjs" };
+const BARE = { sat: "/vendor/sat.mjs", pathfinding: "/vendor/pathfinding.mjs", '@dimforge/rapier2d-compat': '/vendor/rapier/rapier.mjs' };
 
 function bareResolved(source) {
   return source.replace(/(\bfrom\s*|\bimport\s*)(["'])([^"'./][^"']*)\2/g, (match, keyword, quote, name) =>
