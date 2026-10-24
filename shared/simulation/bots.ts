@@ -162,10 +162,18 @@ const SLICE = 2_000, SLICED_BUDGET = 100_000, TICK_EXPANSIONS = 3_000;
  * change within REPAIR_NEAR of itself or of the next REPAIR_AHEAD of its route repairs the route at
  * once: one search of up to REPAIR_BUDGET expansions from where it stands to the waypoint
  * REPAIR_REJOIN past the change, the rest of the route kept. A change further on waits for the
- * sliced repath, as does one the repair cannot get round.
+ * sliced repath, as does one the repair cannot get round. A repair reserves its whole budget from
+ * the tick's TICK_EXPANSIONS; when less than that is left, it waits for the next tick.
  */
 const REPAIR_NEAR: World = 192, REPAIR_AHEAD: World = 384, REPAIR_REJOIN: World = 576, REPAIR_BUDGET = 500;
 const allowances = new WeakMap<Game, { tick: Tick; left: number }>();
+
+/** What is left of this tick's TICK_EXPANSIONS. Exported for its test. */
+export function tickAllowance(s: Game): { tick: Tick; left: number } {
+  let allowance = allowances.get(s);
+  if (allowance?.tick !== s.tick) allowances.set(s, allowance = { tick: s.tick, left: TICK_EXPANSIONS });
+  return allowance;
+}
 interface Search {
   search: RouteSearch;
   knowledge: Knowledge;
@@ -301,8 +309,7 @@ function repathSliced(s: Game, p: Player, target: Vec2, due: boolean, contestant
   }
   const last = running?.trail.at(-1);
   if (running && (!last || distance(last, p) >= 2)) running.trail.push({ x: p.x, y: p.y });
-  let allowance = allowances.get(s);
-  if (allowance?.tick !== s.tick) allowances.set(s, allowance = { tick: s.tick, left: TICK_EXPANSIONS });
+  const allowance = tickAllowance(s);
   if (!running || allowance.left <= 0) return null;
   start('sim.repath');
   const before = running.search.expansions, route = running.search.advance(Math.min(SLICE, allowance.left));
@@ -322,7 +329,9 @@ function repathSliced(s: Game, p: Player, target: Vec2, due: boolean, contestant
  * the bot or of the next REPAIR_AHEAD of its route is searched round at once, from where the bot
  * stands to the waypoint REPAIR_REJOIN past it, and the rest of the route is kept. The plan then
  * takes up what changed; a change further on, a door seen opened, or a search running from before
- * leaves it stale for the next sliced repath. Returns null when nothing changed near the bot, true when the route was
+ * leaves it stale for the next sliced repath. When the tick's allowance cannot cover REPAIR_BUDGET,
+ * the plan is left as it was, so the change is still pending and the repair is tried next tick.
+ * Returns null when nothing changed near the bot or the repair waits, true when the route was
  * repaired, and false when the repair found no way through, so the sliced repath starts now.
  */
 function repairNear(s: Game, p: Player, plan: Plan, planner: ReturnType<typeof createKnowledgePlanner>, knowledge: Knowledge): boolean | null {
@@ -364,12 +373,12 @@ function repairNear(s: Game, p: Player, plan: Plan, planner: ReturnType<typeof c
     along += distance(points[i]!, points[i + 1]!);
     if (along >= reach + REPAIR_REJOIN) { rejoin = i; break; }
   }
+  const allowance = tickAllowance(s);
+  if (allowance.left < REPAIR_BUDGET) { count('work.route.repairDeferred'); return null; }
   start('sim.repath'); count('work.route.repairs');
   const repair = planner.route(knowledge, p, route[rejoin]!, REPAIR_BUDGET);
   count('work.route.expansions', repair.expansions);
-  const allowance = allowances.get(s);
-  if (allowance?.tick === s.tick) allowance.left -= repair.expansions;
-  else allowances.set(s, { tick: s.tick, left: TICK_EXPANSIONS - repair.expansions });
+  allowance.left -= repair.expansions;
   const repaired = repair.status === 'complete' || repair.status === 'speculative';
   if (repaired) {
     p.route = [...repair.points.filter((point, i) => i > 0 || distance(p, point) >= 11), ...route.slice(rejoin + 1)].map(({ x, y }) => ({ x, y }));

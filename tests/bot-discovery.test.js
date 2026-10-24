@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, step, snapshot, playerView } from '../shared/simulation.ts';
-import { botInput, joinRoute, passed } from '../shared/simulation/bots.ts';
+import { botInput, joinRoute, passed, tickAllowance } from '../shared/simulation/bots.ts';
 import { canOccupy, movePlayer, sweptClear } from '../shared/movement.ts';
 import { createDiscovery, discover, attachDiscovery, discoveryGrid, DISCOVERY_INTERVAL, DISCOVERY_RADIUS } from '../shared/discovery.ts';
 import { bounds, shapeOf } from '../shared/shape.ts';
@@ -211,15 +211,16 @@ test('under sliced replanning a bot turns short of a waypoint only within the ma
   assert.equal(passed(game('content-4'), { role: 'contestant', x: 187.5, y: 100 }, corner, end), true);
 });
 
-test('under content-5 a door seen opening near a bot reroutes it at once, and one further off at its next repath (#470 part 2)', () => {
-  // A wall at x 600–640 with a door in it, and a gap at its foot. The bot saw the door locked, so it
-  // routes through the gap; then the door is seen open.
+// A wall at x 600–640 with a door in it, and a gap at its foot. Each bot saw the door locked, so it
+// routes through the gap; then `see()` has the door seen open.
+function doorScene(content, positions) {
   const cell = { id: 'cell', kind: 'cell', x: 1100, y: 330, charge: 0 };
   const map = { ...openMap([cell]), nodes: [], streets: [], hazards: [], traps: [], chargers: [], stations: [], exit: { x: 1800, y: 100 },
     obstacles: [{ id: 'upper', x: 600, y: 0, w: 40, h: 300 }, { id: 'lower', x: 600, y: 360, w: 40, h: 440 }],
     gates: [{ id: 'door', x: 620, y: 330, w: 40, h: 60, open: true, locked: false, kind: 'door' }] };
-  const run = (content, x, y) => {
-    const p = { id: 'c0', name: 'contestant-1', role: 'contestant', kit: 'warden', bot: true, x, y, hp: 100, maxHp: 100, shield: 0, keys: 0,
+  const memories = [];
+  const players = positions.map(([x, y], i) => {
+    const p = { id: `c${i}`, name: `contestant-${i + 1}`, role: 'contestant', kit: 'warden', bot: true, x, y, hp: 100, maxHp: 100, shield: 0, keys: 0,
       weapon: 0, kills: 0, level: 1, status: 'active', cooldown: 0, attackCd: 0, railCd: 0, cloak: 0, revealed: 0, boost: 0, stun: 0, heading: 0,
       input: {}, lastSeq: -1, inventory: Array(4).fill(null), selectedSlot: 0, path: [] };
     const memory = createDiscovery();
@@ -228,20 +229,61 @@ test('under content-5 a door seen opening near a bot reroutes it at once, and on
     memory.items = new Map([[cell.id, { ...cell }]]);
     memory.gates = new Map([['door', { open: false, locked: true }]]);
     attachDiscovery(p, memory);
-    const s = { tick: 0, phase: 'live', content: contentById(content), map, players: [p], projectiles: [], effects: [], events: [], hazardX: -80, slots: 3, serial: 0 };
-    const through = () => !p.route.some(q => q.y >= 800);
-    // The bot stands still, so only what it knows changes.
-    for (; s.tick < 60 && !p.route?.length; s.tick++) botInput(s, p);
-    assert.ok(p.route.length && !through(), 'it routes round by the gap: ' + JSON.stringify(p.route));
-    for (; s.tick % 20 !== 1; s.tick++) botInput(s, p);
-    memory.gates.set('door', { open: true, locked: false });
+    memories.push(memory);
+    return p;
+  });
+  const s = { tick: 0, phase: 'live', content: contentById(content), map, players, projectiles: [], effects: [], events: [], hazardX: -80, slots: 3, serial: 0 };
+  const through = p => !p.route.some(q => q.y >= 800);
+  // The bots stand still, so only what they know changes.
+  for (; s.tick < 60 && players.some(p => !p.route?.length); s.tick++) for (const p of players) botInput(s, p);
+  for (const p of players) assert.ok(p.route.length && !through(p), 'it routes round by the gap: ' + JSON.stringify(p.route));
+  for (; s.tick % 20 !== 1; s.tick++) for (const p of players) botInput(s, p);
+  const see = () => { for (const memory of memories) memory.gates.set('door', { open: true, locked: false }); };
+  return { s, players, through, see };
+}
+
+test('under content-5 a door seen opening near a bot reroutes it at once, and one further off at its next repath (#470 part 2)', () => {
+  const run = (content, x, y) => {
+    const { s, players: [p], through, see } = doorScene(content, [[x, y]]);
+    see();
     const seenAt = s.tick;
-    for (; s.tick < seenAt + 40 && !through(); s.tick++) botInput(s, p);
-    assert.ok(through(), `it takes the door in the end (${content}): ${JSON.stringify(p.route)}`);
+    for (; s.tick < seenAt + 40 && !through(p); s.tick++) botInput(s, p);
+    assert.ok(through(p), `it takes the door in the end (${content}): ${JSON.stringify(p.route)}`);
     return s.tick - seenAt;
   };
   assert.equal(run('content-5', 420, 330), 1, 'near: repaired on the tick it is seen');
   assert.ok(run('content-4', 420, 330) >= 19, 'content-4 waits for its turn');
   const later = run('content-5', 100, 330);
   assert.ok(later >= 19, `further off: at its next repath, not after ${later}`);
+});
+
+test(`under content-5 a repair reserves its budget from the tick's shared allowance, and waits a tick when it is short (#470 part 2)`, () => {
+  // Whatever earlier bots left this tick: none, or one short of a repair's budget.
+  for (const left of [0, 499]) {
+    const { s, players: [p], through, see } = doorScene('content-5', [[420, 330]]);
+    see();
+    tickAllowance(s).left = left;
+    botInput(s, p);
+    assert.equal(through(p), false, `with ${left} left it waits`);
+    assert.equal(tickAllowance(s).left, left, 'and spends nothing');
+    s.tick++;
+    botInput(s, p);
+    assert.ok(through(p), 'it repairs on the next tick');
+  }
+  // Two near bots and one further off, whose sliced repath competes with the repairs, with each tick
+  // starting 520 short of nothing: the first repair leaves too little for the second, which waits.
+  const { s, players, through, see } = doorScene('content-5', [[420, 330], [420, 300], [100, 330]]);
+  see();
+  const took = new Map();
+  for (const seenAt = s.tick; s.tick < seenAt + 40 && took.size < players.length; s.tick++) {
+    tickAllowance(s).left = 520;
+    for (const p of players) {
+      botInput(s, p);
+      assert.ok(tickAllowance(s).left >= 0, `tick ${s.tick}: the allowance stays within the cap (${tickAllowance(s).left})`);
+      if (!took.has(p) && through(p)) took.set(p, s.tick - seenAt);
+    }
+  }
+  assert.deepEqual(players.map(p => took.get(p) !== undefined), [true, true, true], 'all take the door in the end');
+  assert.equal(took.get(players[0]), 0, 'the first repairs at once');
+  assert.equal(took.get(players[1]), 1, 'the second waits a tick');
 });
