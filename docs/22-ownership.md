@@ -19,14 +19,16 @@ named owner decides. Smaller owners that the parts don't list:
   injected so it stays a leaf.
 - `shared/profiler.ts` owns the off-by-default sampling profiler shared by the
   server loop, the bench and the client ([21](21-stack.md), [24](24-networking-privacy.md)).
-- `shared/dev-nav.js` and `.css` own the developer tools' shared navigation bar
-  ([20.5](20.5-tools-and-next-boundaries.md)).
 - `public/diagnostics.js` owns the client's bounded timing sample and its
   downloadable performance report (17.3 #8).
 - `public/equipment-ui.js` owns equipment glyphs; `public/replay-timeline.js`
   owns the replay timeline and its diagnostic markers, which it treats as
   untrusted file content; `public/sat-browser.js` hands the browser the global
   SAT build.
+- `public/dev/dev-nav.js` and `.css` own the developer tools' shared navigation
+  bar, and `public/lab-walk.js` the labs' walker keys and gate toggle
+  ([20.5](20.5-tools-and-next-boundaries.md)). They are DOM-only, so they sit
+  outside the portable core.
 
 22.6 is mostly the recorded direction for #353: its portal graph (#420) and
 free-space mesh (#422) are built, and nothing uses them yet. 22.7, designed for #385, was implemented in #386. Their numbers sit in this
