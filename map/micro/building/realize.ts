@@ -10,6 +10,7 @@ import { placeBuildingOpenings, sameBuildingRun } from './openings.ts';
 import type { BuildingOpeningResult, BuildingRunLimits, PlacedBuildingOpening } from './openings.ts';
 import { emitWallRun } from './walls.ts';
 import { roofGroupOf } from './groups.ts';
+import { cellComponents } from '../components.ts';
 import { marksOpening, openingDecals } from './decals.ts';
 import type { BuildingRoofGroups } from './groups.ts';
 
@@ -168,29 +169,7 @@ export function deriveContiguousRoofs(
   if (!cells.length) return [];
   const sortedCells = [...cells].sort(compareCells);
   const cellSet = new Set(sortedCells.map(c => `${c.x},${c.y}`));
-  const visited = new Set<string>();
-  const components: { x: number; y: number }[][] = [];
-
-  for (const c of sortedCells) {
-    const k = `${c.x},${c.y}`;
-    if (visited.has(k)) continue;
-    const comp: { x: number; y: number }[] = [];
-    const queue = [c];
-    visited.add(k);
-    while (queue.length) {
-      const curr = queue.pop()!;
-      comp.push(curr);
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-        const nx = curr.x + dx, ny = curr.y + dy, nk = `${nx},${ny}`;
-        if (cellSet.has(nk) && !visited.has(nk)) {
-          visited.add(nk);
-          queue.push({ x: nx, y: ny });
-        }
-      }
-    }
-    comp.sort(compareCells);
-    components.push(comp);
-  }
+  const components = cellComponents(sortedCells).map(comp => comp.sort(compareCells));
   components.sort((a, b) => a[0]!.y - b[0]!.y || a[0]!.x - b[0]!.x);
 
   return components.map((comp, idx) => {

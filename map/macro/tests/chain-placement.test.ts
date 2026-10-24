@@ -317,7 +317,7 @@ function solveCorner(northOptions: string[], withMiddle = true): string | null {
     ...(withMiddle ? [{ x: 1, y: 1, domain: [option("corner-any")], links: [] }] : []),
   ];
   adjacencyLinks(grid);
-  const solved = solveWfc(grid, 2, 2, adjacencyCompatibility(CORNER_LIBRARY), () => 0.5);
+  const solved = solveWfc(grid, adjacencyCompatibility(CORNER_LIBRARY), () => 0.5);
   return solved ? solved[1]!.domain[0]!.templateId : null;
 }
 
