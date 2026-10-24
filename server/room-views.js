@@ -40,9 +40,9 @@ export function broadcast(room, state) {
     let view = views.get(key);
     if (view === undefined) {
       const projected = room.match.project(session.playerId || session.dev ? state : delayed, session.playerId);
-      const layers = encoderFor(room, key).encode(projected);
+      const layers = encoderFor(room.layerEncoders, key, createLayerEncoder).encode(projected);
       const me = session.playerId && projected.players?.find(p => p.id === session.playerId);
-      if (me?.discovered) layers.discovered = discoveryEncoderFor(room, key).encode(me.discovered);
+      if (me?.discovered) layers.discovered = encoderFor(room.discoveryEncoders, key, createDiscoveryEncoder).encode(me.discovered);
       views.set(key, view = { state: projected, layers });
     }
     // Items, gates and contestant discovery go as changes against a keyframe, and whole to a session
@@ -67,19 +67,15 @@ export function broadcast(room, state) {
     if (session.deliver(payload, true) !== false) for (const layer of whole) held[layer] = view.layers[layer].k;
   }
   // A view nobody holds any more (a player who left) takes its keyframes with it.
-  for (const key of room.layerEncoders?.keys() ?? []) if (!views.has(key)) room.layerEncoders.delete(key);
-  for (const key of room.discoveryEncoders?.keys() ?? []) if (!views.has(key)) room.discoveryEncoders.delete(key);
+  for (const encoders of [room.layerEncoders, room.discoveryEncoders]) for (const key of encoders.keys()) if (!views.has(key)) encoders.delete(key);
   profiler.count('loop.viewsBuilt', views.size); profiler.count('loop.viewsSent', room.clients.size);
 }
-function encoderFor(room, key) {
-  const encoders = room.layerEncoders ||= new Map();
-  let encoder = encoders.get(key);
-  if (!encoder) encoders.set(key, encoder = createLayerEncoder());
-  return encoder;
+/** The keyframe encoders a room's views keep, one of each kind per view. Every room starts with them. */
+export function viewEncoders() {
+  return { layerEncoders: new Map(), discoveryEncoders: new Map() };
 }
-function discoveryEncoderFor(room, key) {
-  const encoders = room.discoveryEncoders ||= new Map();
+function encoderFor(encoders, key, create) {
   let encoder = encoders.get(key);
-  if (!encoder) encoders.set(key, encoder = createDiscoveryEncoder());
+  if (!encoder) encoders.set(key, encoder = create());
   return encoder;
 }
