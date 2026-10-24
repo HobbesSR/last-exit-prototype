@@ -11,6 +11,7 @@ import { createLayerDecoder } from '/shared/frame-layers.ts';
 import { createDiscoveryDecoder } from '/shared/discovery.ts';
 import { readPresentation } from '/shared/presentation.ts';
 import { DEFAULT_KIT } from '/shared/simulation/rules.ts';
+import { PHYSICS_CHARACTER_VERSION } from '/shared/simulation/actor-physics.ts';
 import { $, HZ, INTERPOLATION_DELAY_TICKS, kitName, time, fillFollowOptions, fillKitOptions } from '/ui.js';
 
 const icon = name => `<i data-lucide="${name}"></i>`;
@@ -394,8 +395,9 @@ const ArenaScene = makeArenaScene({
   map: () => arenaMap, state: () => presentationFrame(), playerId: () => playerId,
   self: () => !replayController.active() && predicted ? predicted : state?.players.find(p => p.id === playerId) || null,
   replay: () => replayController.active(), directed, aim: () => inputController.aim(),
-  // Geometry is match display data, shown only after a dev welcome has authorized this view.
-  geometryOverlay: () => !replayController.active() && presentationFrame()?.version === 'last-exit-0.8-physics-2'
+  // Geometry is match display data, shown only after a dev welcome has authorized this view. The
+  // version check stays: a legacy match factory can carry the same descriptor without the bodies.
+  geometryOverlay: () => !replayController.active() && presentationFrame()?.version === PHYSICS_CHARACTER_VERSION
     && (devView || devFeed && devPresentation)
     ? displayPresentation()?.actorGeometry ?? null : null,
   director, follow: () => directed() ? director.subject() : null,

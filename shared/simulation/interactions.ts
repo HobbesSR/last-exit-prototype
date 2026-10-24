@@ -6,6 +6,7 @@ import { clearRoute, distance } from './geometry.ts';
 import { CHARGE_REACH, EXTRACTION_REACH, PICKUP_REACH, TRANSIT_REACH } from './rules.ts';
 import { event, effect, dropEquipment } from './loot.ts';
 import { physicsRuntime } from './physics-runtime.ts';
+import { actorRadius } from './actor-physics.ts';
 import type { CellItem, Game, Player, PlayerInput } from '../types.ts';
 
 export function interact(s: Game, p: Player): void {
@@ -35,8 +36,10 @@ export function interact(s: Game, p: Player): void {
     } else if (gate.open && gate.kind === 'door' && !p.bot) {
       const box = gateShape(gate);
       const runtime = s.content.actorPhysics ? physicsRuntime(s) : undefined;
-      const occupied = runtime ? runtime.world.overlapsDynamicBox(box)
-        : s.players.some(other => other.status === 'active' && Math.hypot(other.x - Math.max(box.x, Math.min(box.x + box.w, other.x)), other.y - Math.max(box.y, Math.min(box.y + box.h, other.y))) < bodyRadius(other));
+      // Under P2 the players are tested as well as the bodies: a transit earlier this phase has moved
+      // its player but not yet its body, and synchronize would refuse the close only after discovery saw it.
+      const occupied = s.players.some(other => other.status === 'active' && Math.hypot(other.x - Math.max(box.x, Math.min(box.x + box.w, other.x)), other.y - Math.max(box.y, Math.min(box.y + box.h, other.y))) < (runtime ? actorRadius(s, other) : bodyRadius(other)))
+        || !!runtime?.world.overlapsDynamicBox(box);
       if (!occupied) { gate.open = false; clearRoute(p); }
     }
     // Trying a door shows how it stands, locked or not, whatever sight showed before (22.6, "Doors").

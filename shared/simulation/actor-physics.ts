@@ -4,16 +4,15 @@ import type { ActorPhysics, Game, GameMap, Player } from '../types.ts';
 export const PHYSICS_CHARACTER_VERSION = 'last-exit-0.8-physics-2';
 export const actorRadius = (s: Game, p: Player): number => s.content.actorPhysics?.geometry[p.role].bodyRadius ?? bodyRadius(p);
 
-/** Reject malformed experimental tuning before allocating a world. */
+/** Reject malformed experimental tuning before allocating a world. Without a profile, motor surfaces are unread. */
 export function validateActorPhysics(profile: ActorPhysics | undefined, map: GameMap): void {
-  if (profile) {
-    for (const role of ['contestant', 'gladiator'] as const) {
-      const g = profile.geometry[role];
-      if (![g.bodyRadius, g.headRadius, g.hurtRadius, profile.acceleration, profile.braking, profile.maxImpulse, profile.maxSpeed]
-        .every(n => Number.isFinite(n) && n > 0 && n <= 100000)) throw new RangeError('invalid actor physics profile');
-      if (g.bodyRadius >= g.headRadius || g.hurtRadius !== bodyRadius({ role }))
-        throw new RangeError('narrow body and unchanged combat hurt radius required');
-    }
+  if (!profile) return;
+  for (const role of ['contestant', 'gladiator'] as const) {
+    const g = profile.geometry[role];
+    if (![g.bodyRadius, g.headRadius, g.hurtRadius, profile.acceleration, profile.braking, profile.maxImpulse, profile.maxSpeed]
+      .every(n => Number.isFinite(n) && n > 0 && n <= 100000)) throw new RangeError('invalid actor physics profile');
+    if (g.bodyRadius >= g.headRadius || g.hurtRadius !== bodyRadius({ role }))
+      throw new RangeError('narrow body and unchanged combat hurt radius required');
   }
   const ids = new Set<string>();
   if ((map.motorSurfaces?.length ?? 0) > 1024) throw new RangeError('motor surface capacity');

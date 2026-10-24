@@ -22,6 +22,8 @@ import type { Game, GameMap, MatchContent, Player, Vec2 } from '../types.ts';
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const actorId = (p: Player) => `actor:${p.id}`;
 const ordered = (s: Game) => [...s.players].sort((a, b) => compare(a.id, b.id));
+/** Games inside stepPhysics; a synchronize anywhere else is between ticks. */
+const stepping = new WeakSet<Game>();
 
 /** Explicit opt-in. Legacy createGame stays synchronous and never initializes WASM. */
 export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: MatchContent): Promise<Game> {
@@ -41,7 +43,7 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
   if (s.players.length > 27) throw new RangeError('physics actor capacity is 27');
   const { createPhysicsWorld } = await import('../physics/world.ts');
   const world = await createPhysicsWorld();
-  const runtime: PhysicsRuntime = { world, actors: new Set(), gates: new Map(), discontinuities: [], synchronize: () => synchronize(s, runtime),
+  const runtime: PhysicsRuntime = { world, actors: new Set(), gates: new Map(), discontinuities: [], synchronize: () => synchronize(s, runtime, stepping.has(s) ? s.tick : s.tick + 1),
     placement: (p, destination) => placement(s, runtime, p, ordered(s).filter(q => q !== p && q.status === 'active'), destination),
     pendingSpawns: [], pendingImpulses: [], pendingAttachments: [] };
   try {
@@ -66,7 +68,7 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
     for (const key of ['width', 'height', 'obstacles', 'playableArea', 'gates'] as const) Object.defineProperty(s.map, key, { writable: false, configurable: false });
     attachPhysics(s, runtime);
     Object.defineProperty(s, 'version', { value: s.content.actorPhysics ? PHYSICS_CHARACTER_VERSION : PHYSICS_VERSION, enumerable: true, writable: false });
-    synchronize(s, runtime);
+    synchronize(s, runtime, s.tick + 1);
     return s;
   } catch (error) { world.dispose(); throw error; }
 }
@@ -87,11 +89,15 @@ function placement(s: Game, r: PhysicsRuntime, p: Player, admitted: Player[], or
   return null;
 }
 
-function synchronize(s: Game, r: PhysicsRuntime): void {
+/**
+ * `markTick` is the last tick whose capture carries a discontinuity marked here: the current one
+ * inside a step, the next one between ticks, whose capture has already been taken.
+ */
+function synchronize(s: Game, r: PhysicsRuntime, markTick: number): void {
   const active = ordered(s).filter(p => p.status === 'active');
   const wanted = new Set(active.map(actorId));
   for (const id of [...r.actors].sort(compare)) if (!wanted.has(id)) {
-    if (s.content.actorPhysics) markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'removed', tick: s.tick });
+    if (s.content.actorPhysics) markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'removed', tick: markTick });
     r.world.queueRemoveBody(id); r.actors.delete(id);
   }
   r.world.commitMutations();
@@ -110,13 +116,14 @@ function synchronize(s: Game, r: PhysicsRuntime): void {
     if (current) r.world.setTransform(id, { ...at, angle: 0 });
     else { r.world.queueAddBody({ id, kind: 'actor', shape: { kind: 'circle', radius: actorRadius(s, p) }, ...at, mass: 1, friction: 0, restitution: 0,
       ...(s.content.actorPhysics ? { maxSpeed: s.content.actorPhysics.maxSpeed } : {}) }); r.actors.add(id); r.world.commitMutations(); }
-    if (s.content.actorPhysics) markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'placed', tick: s.tick });
+    if (s.content.actorPhysics) markPhysicsDiscontinuity(r, { id, generation: r.world.getGeneration(id)!, kind: 'placed', tick: markTick });
     admitted.push(p);
   }
   for (const gate of [...s.map.gates].sort((a, b) => compare(a.id, b.id))) {
     if (r.gates.get(gate.id) === gate.open) continue;
     if (s.content.actorPhysics && !gate.open && r.world.overlapsDynamicBox(gateShape(gate))) {
-      // Closing is deferred while any active actor or solid prop occupies the footprint.
+      // Closing is refused while any active actor or solid prop occupies the footprint; nothing
+      // retries it, so the gate stays open until someone closes it again.
       gate.open = true;
       r.gates.set(gate.id, true);
       continue;
@@ -136,15 +143,20 @@ export function stepPhysics(s: Game): void {
   const r = physicsRuntime(s);
   if (!r) throw new Error('physics world missing or disposed');
   if (s.phase !== 'live') return;
-  // Preserve between-tick teleports through the following completed capture.
-  r.discontinuities = r.discontinuities.filter(entry => entry.tick >= s.tick);
+  stepping.add(s);
+  try { advancePhysics(s, r); } finally { stepping.delete(s); }
+}
+
+function advancePhysics(s: Game, r: PhysicsRuntime): void {
   // 1: all timers and previous-boundary lifecycle, before anyone decides.
   advanceTick(s);
+  // Each marker reaches exactly one stepped capture: its own tick's, or the next after a between-tick change.
+  r.discontinuities = r.discontinuities.filter(entry => entry.tick >= s.tick);
   for (const p of s.players) {
     p.movedThisTick = 0; respawn(s, p);
     if (p.status === 'active') advanceTimers(p);
   }
-  synchronize(s, r);
+  synchronize(s, r, s.tick);
   s.projectiles.push(...r.pendingSpawns.splice(0));
   for (const impulse of r.pendingImpulses.splice(0)) if (r.actors.has(impulse.id) && r.world.getGeneration(impulse.id) === impulse.generation) r.world.queueImpulse(impulse.id, impulse.value);
   for (const attachment of r.pendingAttachments.splice(0).sort((a, b) => compare(a.id, b.id))) {
@@ -206,7 +218,7 @@ export function stepPhysics(s: Game): void {
   r.pendingSpawns.push(...s.projectiles.splice(admittedProjectiles));
   if (r.pendingSpawns.length > 128) throw new RangeError('pending projectile capacity');
   // 7: next-boundary body state, discovery, terminal result, rewind and capture readiness.
-  synchronize(s, r);
+  synchronize(s, r, s.tick);
   advanceDiscovery(s);
-  finishMatch(s); synchronize(s, r); recordRewind(s);
+  finishMatch(s); synchronize(s, r, s.tick); recordRewind(s);
 }

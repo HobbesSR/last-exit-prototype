@@ -174,6 +174,20 @@ test('door interaction respects narrow body clearance and solid prop occupancy',
   } finally { disposePhysics(s); }
 });
 
+test('a door is not closed on a transit that landed in it earlier the same phase', async () => {
+  const fixture = parts(1);
+  fixture.map.gates = [{ id: 'door', x: 300, y: 400, w: 24, h: 60, open: true, kind: 'door' }];
+  fixture.map.stations = [{ id: 'from', x: 650, y: 400 }, { id: 'to', x: 300, y: 400 }];
+  const s = await game(fixture);
+  try {
+    const { c0, g0 } = byId(s);
+    assert.ok(teleport(s, c0.id, 276, 400)); // its body alone leaves the door clear, as above
+    interact(s, g0); // phase 6 moves the player now and its body at the next synchronize
+    assert.ok(Math.abs(g0.x - 300) < 30 && g0.railCd > 0, 'transit landed in the doorway');
+    interact(s, c0);
+    assert.equal(s.map.gates[0].open, true, 'refused before discovery observes a closed door');  } finally { disposePhysics(s); }
+});
+
 test('blocked transit preserves cooldown; a valid landing clears motion and constraints', async () => {
   const fixture = parts(1);
   fixture.map.stations = [{ id: 'from', x: 650, y: 400 }, { id: 'to', x: 400, y: 650 }];
@@ -269,5 +283,18 @@ test('a gladiator respawn defers while a solid prop blocks every nearby placemen
     step(s);
     assert.equal(g.status, 'active');
     assert.equal(world.hasBody('actor:g0'), true);
+    assert.ok(snapshot(s).physics.discontinuities.some(d => d.id === 'actor:g0' && d.kind === 'placed'));
+    step(s);
+    assert.equal(snapshot(s).physics.discontinuities.some(d => d.id === 'actor:g0'), false,
+      'a placement made inside a step reaches only that step\'s capture');
   } finally { disposePhysics(s); }
+});
+
+test('P1 ignores motor surfaces, so it does not validate them', async () => {
+  const { map, content } = parts(1, 'content-1');
+  map.motorSurfaces = [{ id: '', x: 0, y: 0, w: -1, h: 0, priority: NaN, speed: 2, traction: 2, braking: 2 }];
+  disposePhysics(await game({ map, content }));
+  const p2 = parts(1);
+  p2.map.motorSurfaces = map.motorSurfaces;
+  await assert.rejects(game(p2), /invalid motor surface/);
 });
