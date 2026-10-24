@@ -9,7 +9,7 @@ const EPS = 1e-7;
 
 // Collision includes contact. Authored area does not: require positive penetration
 // on the separating axes, using the same tolerance as the geometry broad phase.
-function areasOverlap(a: Shape, b: Shape): boolean {
+export function areasOverlap(a: Shape, b: Shape): boolean {
   if (!boxesOverlap(bounds(a), bounds(b))) return false;
   return a.kind === 'rect' && b.kind === 'rect' || sharesArea(a, b, EPS);
 }

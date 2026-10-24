@@ -59,3 +59,5 @@ export function createBuilderCanvas(brief: RegionBrief, protectedShapes: readonl
     },
   };
 }
+
+export type BuilderCanvas = ReturnType<typeof createBuilderCanvas>;
