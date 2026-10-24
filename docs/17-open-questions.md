@@ -14,7 +14,7 @@ Use the smallest relevant record. Preserve answers in that record, including the
 | Part | Load for |
 | --- | --- |
 | [17.1](17.1-micro-direction.md) | Micro-generation direction and answers |
-| [17.2](17.2-map-questions.md) | Map generation: checkpoint, answers, M1-M35 and delegation decisions D1-D10 |
+| [17.2](17.2-map-questions.md) | Map generation: checkpoint, answers, M1-M36 and delegation decisions D1-D10 |
 | [17.3](17.3-product-gameplay.md) | Product and gameplay questions |
 | [17.4](17.4-live-service.md) | Live-service policy |
 | [17.5](17.5-playtests.md) | Open playtest questions |
