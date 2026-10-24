@@ -52,7 +52,7 @@ Provisional authored tuning, independent of item art/quality:
 | Profile | Shape | Mass | Linear/angular damping | Other |
 | --- | --- | ---: | --- | --- |
 | Ordinary ground loot | Circle radius 6 | 0.2 | 5 / 5 per second | Initial outward drop speed 60; zero friction/restitution |
-| Inert crate | Rotating box half extents 24 ? 12 | 2 | 2 / 2 per second | Friction 0.4; zero restitution |
+| Inert crate | Rotating box half extents 24 by 12 | 2 | 2 / 2 per second | Friction 0.4; zero restitution |
 
 `GameMap.physicsProps` explicitly authors at most 64 unique `crate` placements;
 there is no procedural placement or art inference. Circumscribed placement must
