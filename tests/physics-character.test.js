@@ -185,7 +185,9 @@ test('a door is not closed on a transit that landed in it earlier the same phase
     interact(s, g0); // phase 6 moves the player now and its body at the next synchronize
     assert.ok(Math.abs(g0.x - 300) < 30 && g0.railCd > 0, 'transit landed in the doorway');
     interact(s, c0);
-    assert.equal(s.map.gates[0].open, true, 'refused before discovery observes a closed door');  } finally { disposePhysics(s); }
+    assert.equal(s.map.gates[0].open, true, 'refused before discovery observes a closed door');
+    assert.equal(c0.discovery.gates.get('door').open, true, 'the recorded observation also remains open');
+  } finally { disposePhysics(s); }
 });
 
 test('blocked transit preserves cooldown; a valid landing clears motion and constraints', async () => {
@@ -293,7 +295,12 @@ test('a gladiator respawn defers while a solid prop blocks every nearby placemen
 test('P1 ignores motor surfaces, so it does not validate them', async () => {
   const { map, content } = parts(1, 'content-1');
   map.motorSurfaces = [{ id: '', x: 0, y: 0, w: -1, h: 0, priority: NaN, speed: 2, traction: 2, braking: 2 }];
-  disposePhysics(await game({ map, content }));
+  const p1 = await game({ map, content });
+  try {
+    input(p1, 'c0', { x: 1 }); step(p1);
+    assert.deepEqual(body(p1, 'c0').motor, { x: 180, y: 0, accel: 3600 });
+    assert.ok(byId(p1).c0.x > map.spawns[0].x, 'P1 movement ignores the malformed unused floor');
+  } finally { disposePhysics(p1); }
   const p2 = parts(1);
   p2.map.motorSurfaces = map.motorSurfaces;
   await assert.rejects(game(p2), /invalid motor surface/);
