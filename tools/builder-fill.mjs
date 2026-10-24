@@ -2,13 +2,9 @@
 // A measure for builder work, not a check: nothing enforces it, and the sweep's report never calls it.
 import { REGION_TYPES, buildRegion } from '../map/micro/region-types.ts';
 import { measureFill } from '../map/micro/fill.ts';
+import { options } from './options.mjs';
 
-const args = new Map();
-for (const argument of process.argv.slice(2)) {
-  const match = /^--([a-z-]+)=(.+)$/.exec(argument);
-  if (!match || !['types', 'seeds', 'width', 'height', 'min', 'json'].includes(match[1])) throw new Error(`Unknown option ${argument}. Use --types=hut,block --seeds=20 --width=24 --height=18 --min=3 --json=1.`);
-  args.set(match[1], match[2]);
-}
+const args = options(process.argv.slice(2), ['types', 'seeds', 'width', 'height', 'min', 'json'], argument => `Unknown option ${argument}. Use --types=hut,block --seeds=20 --width=24 --height=18 --min=3 --json=1.`);
 const width = Number(args.get('width') ?? 24), height = Number(args.get('height') ?? 18), min = Number(args.get('min') ?? 3), seeds = Number(args.get('seeds') ?? 20);
 const types = args.has('types') ? args.get('types').split(',') : Object.keys(REGION_TYPES).filter(type => !type.startsWith('example-'));
 const cells = [];

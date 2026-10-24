@@ -1,9 +1,7 @@
-import { chromium } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import assert from 'node:assert/strict';
-import { createArenaServer } from '../server/index.js';
 import { generateMap } from '../shared/map.ts';
-import { listen } from './helpers/listen.js';
+import { serveWithBrowser } from './helpers/browser.js';
 import path from 'node:path';
 import { checkClientControllers } from './client-controllers.mjs';
 import { checkContentPresentation } from './content-presentation.mjs';
@@ -18,9 +16,7 @@ const failableMaps = (seed, size) => {
   holdNextGeneration = false;
   return new Promise((_resolve, reject) => { failHeldGeneration = () => reject(new Error('generation failure arranged by the browser suite')); });
 };
-const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps });
-const base = await listen(server);
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const { server, base, browser } = await serveWithBrowser({ replayDir: path.resolve('test-results/replays'), generateMap: failableMaps });
 const errors = [];
 /** Wait until a player has stopped moving on the server and the page shows them where they stopped. */
 async function settled(page, player, timeout = 10000) {

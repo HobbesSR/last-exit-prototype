@@ -3,13 +3,9 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { generateMicroRegion, validateMicroRegion } from '../map/micro/index.ts';
 import { microExample } from '../map/micro/examples.ts';
 import { composeMicroRegions } from '../map/micro/compose.ts';
+import { options } from './options.mjs';
 
-const args = new Map();
-for (const argument of process.argv.slice(2)) {
-  const match = /^--([a-z-]+)=(.+)$/.exec(argument);
-  if (!match || !['builder', 'seed', 'shape', 'profile', 'count', 'spec', 'layout', 'validate', 'out', 'batch'].includes(match[1])) throw new Error(`Unknown option ${argument}. Use --builder=depot --seed=42 --shape=rectangle --profile=cell --out=region.json, --builder=entry --count=24, --spec=spec.json, --layout=spec-list.json, --batch=20, or --validate=region.json.`);
-  args.set(match[1], match[2]);
-}
+const args = options(process.argv.slice(2), ['builder', 'seed', 'shape', 'profile', 'count', 'spec', 'layout', 'validate', 'out', 'batch'], argument => `Unknown option ${argument}. Use --builder=depot --seed=42 --shape=rectangle --profile=cell --out=region.json, --builder=entry --count=24, --spec=spec.json, --layout=spec-list.json, --batch=20, or --validate=region.json.`);
 let output;
 if (args.has('validate')) {
   const result = JSON.parse(await readFile(args.get('validate'), 'utf8'));

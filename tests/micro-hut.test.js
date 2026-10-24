@@ -4,13 +4,9 @@ import { buildRegion } from '../map/micro/region-types.ts';
 import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes, findRegionRoute, travelClear } from '../map/micro/geometry.ts';
 import { circle, overlaps } from '../shared/shape.ts';
+import { cellsOf } from './helpers/cells.js';
 
 const SIZE = 40;
-const cellsOf = (w, h, keep = () => true) => {
-  const cells = [];
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (keep(x, y)) cells.push({ x, y });
-  return cells;
-};
 const brief = (id, seed, cells, portals, extra = {}) => ({ id, seed, type: 'hut', cellSize: SIZE, cells,
   zones: [{ tier: 3, bonus: 0, lootChance: 0.5, cells }], portals, ...extra });
 

@@ -2,9 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { allocateBuilding, createRegionMask, elementShapes, findRegionRoute, OUTSIDE, realizeBuilding } from '../map/micro/sdk.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
+import { cellsOf } from './helpers/cells.js';
 
-const cellsOf = (width, height, keep = () => true) => Array.from({ length: width * height }, (_, i) =>
-  ({ x: i % width, y: Math.floor(i / width) })).filter(cell => keep(cell.x, cell.y));
 const room = (id, min = 9, max = 100, outside = 'any') => ({ id, area: { min, max }, outside });
 const designOf = (ids = ['a', 'b']) => ({ spaces: ids.map(id => room(id)), connections: [] });
 const key = cell => `${cell.x},${cell.y}`;

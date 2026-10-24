@@ -8,8 +8,9 @@ import { generateLiveMap, liveZoneSize, zoneSizeName, DEFAULT_LIVE_ZONE_SIZE, LI
 import { contentById, CONTENT_ID } from '../shared/simulation/content.ts';
 import { prebuiltTiles } from '../shared/simulation/bots.ts';
 import { adoptPackedTiles } from '../shared/free-space.ts';
+import { cliArgs } from './helpers/args.js';
 
-const args = new Map(process.argv.slice(2).map(a => a.replace(/^--/, '').split('=')).map(([k, v]) => [k, v ?? '1']));
+const args = cliArgs();
 const number = (key, fallback) => Number(args.get(key) ?? fallback);
 const seed = number('seed', 4217), ticks = number('ticks', DURATION), rooms = number('rooms', 1), clients = number('clients', 1);
 const budget = 1000 / HZ;

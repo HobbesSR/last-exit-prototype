@@ -5,13 +5,9 @@ import { createRegionMask, elementShapes } from '../map/micro/geometry.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
 import { portalMargin } from '../map/micro/hints.ts';
 import { bounds } from '../shared/shape.ts';
+import { cellsOf } from './helpers/cells.js';
 
 const SIZE = 40;
-const cellsOf = (w, h, keep = () => true) => {
-  const cells = [];
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (keep(x, y)) cells.push({ x, y });
-  return cells;
-};
 const brief = (id, seed, cells, portals) => ({ id, seed, type: 'checkpoint', cellSize: SIZE, cells,
   zones: [{ tier: 3, bonus: 0, lootChance: 0.4, cells }], portals });
 

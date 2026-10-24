@@ -13,10 +13,9 @@ import { measurement } from '../map/macro/src/chain/measurement.ts';
 import { liveMapFromBuilt } from '../map/live.ts';
 import { generate, readMap } from '../map/tools/core.ts';
 import { chainMapToJson, chainMapToBson } from '../map/macro/src/chain/saving.ts';
+import { cellsOf as rectangle } from './helpers/cells.js';
 
 const SIZE = 40;
-const rectangle = (w, h, keep = () => true) => Array.from({ length: w * h }, (_, n) =>
-  ({ x: n % w, y: Math.floor(n / w) })).filter(({ x, y }) => keep(x, y));
 const input = (id, cells, portals = [], extra = {}) => ({ id, seed: 3, type: 'hut', cellSize: SIZE, cells,
   zones: [{ tier: 3, bonus: 0, lootChance: 0, cells }], portals, ...extra });
 const broad = () => input('concave-yard', rectangle(28, 12, (x, y) => y < 8 || x < 18), [

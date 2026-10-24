@@ -19,6 +19,8 @@ import { liveChainParams } from "../../live.ts";
 import { PLACEABLES } from "../../micro/placeables/index.ts";
 // @ts-expect-error The game server is JavaScript without declarations.
 import { createArenaServer } from "../../../server/index.js";
+// @ts-expect-error The test helpers are JavaScript without declarations.
+import { listen } from "../../../tests/helpers/listen.js";
 
 const require = createRequire(import.meta.url);
 let playwright: any;
@@ -32,8 +34,7 @@ await mkdir(OUT, { recursive: true });
 // The game's server, which the lab links to as its peer (20.5) for "Play in the game".
 const replayDir = await mkdtemp(path.join(tmpdir(), "map-lab-browser-"));
 const game = await createArenaServer({ replayDir, profileSummary: false, devTools: 'all' });
-await new Promise<void>((resolve) => game.http.listen(0, "127.0.0.1", resolve));
-const gameUrl = `http://127.0.0.1:${game.http.address().port}`;
+const gameUrl: string = await listen(game);
 // A room's player waits in the yard (#236) until its owner starts the match, so the first map a
 // room shows is the yard's. The linked room is the page's own, so it starts the match and waits
 // for the map it was asked for.

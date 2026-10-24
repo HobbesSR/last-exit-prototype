@@ -4,8 +4,8 @@ import { OUTSIDE, validateBuildingDesign, deriveBuildingBoundaries, placeBuildin
 import { createGenerationContext } from '../shared/map/context.ts';
 import { placeElement } from '../shared/map/element.ts';
 import { roofConceals, roofGroups } from '../shared/view.ts';
+import { cellsOf } from './helpers/cells.js';
 
-const cellsOf = (w, h, keep = () => true) => Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w) })).filter(c => keep(c.x, c.y));
 const space = id => ({ id, area: { min: 1, max: 100 }, outside: 'prefer', tags: ['guidance'] });
 const designOf = (ids = ['room'], connections = []) => ({ spaces: ids.map(space), connections });
 const allocationOf = cells => ({ footprint: cells, spaces: [{ id: 'room', cells }] });

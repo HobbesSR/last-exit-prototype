@@ -3,9 +3,8 @@ import assert from 'node:assert/strict';
 import { unusedComponents } from '../map/micro/components.ts';
 import { connectedComponents } from '../map/micro/decomposition/analysis.ts';
 import { rng } from '../map/micro/index.ts';
+import { cellsOf as rectangle } from './helpers/cells.js';
 
-const rectangle = (w, h, keep = () => true) => Array.from({ length: w * h }, (_, n) =>
-  ({ x: n % w, y: Math.floor(n / w) })).filter(({ x, y }) => keep(x, y));
 const keyed = cells => new Set(cells.map(c => `${c.x},${c.y}`));
 
 /** The walk hut and compound each inlined before #383, kept verbatim as the equivalence oracle. */
