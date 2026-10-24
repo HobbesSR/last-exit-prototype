@@ -4,7 +4,7 @@ import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
-import { commitHintWalls, wallHints } from '../hint-walls.ts';
+import { separateAreas, wallHints } from '../hint-walls.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
@@ -83,16 +83,17 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
     }
   }
 
-  const canvas = createBuilderCanvas(brief, protectedShapes);
-  // Hint walls may stand inside the rectangle, between pillars, so the pillars are the hall's
-  // intent; a roof without pillars intends its rectangle. Siting has already accepted the hall,
-  // so a refusal is a broken placement invariant.
-  if ((parts.length || roofed) && !canvas.commit({ elements: [{ label: 'hall', x: box.x * size, y: box.y * size,
-    template: { w: box.w * size, h: box.h * size, ...(roofed ? { encloses: true } : {}), parts } }],
-    areas: pillars.length ? pillars : [rect(box.x * size, box.y * size, box.w * size, box.h * size)] }))
-    throw new Error('Hall placement failed its canvas commit.');
   const walls = wallHints(brief, { kind: 'building', avoid: [...protectedShapes, ...pillars] });
-  commitHintWalls(canvas, walls);
+  const canvas = createBuilderCanvas(brief, protectedShapes);
+  // The hall and its hint walls commit as one assembly. Walls may stand inside the rectangle,
+  // between pillars, so the pillars and the walls are its intent; a hall with neither intends
+  // its rectangle. Siting has already accepted the hall, so a refusal is a broken placement invariant.
+  const hall = parts.length || roofed ? [{ label: 'hall', x: box.x * size, y: box.y * size,
+    template: { w: box.w * size, h: box.h * size, ...(roofed ? { encloses: true } : {}), parts } }] : [];
+  const areas = [...pillars, ...separateAreas(walls.shapes)];
+  if ((hall.length || walls.elements.length) && !canvas.commit({ elements: [...hall, ...walls.elements],
+    areas: areas.length ? areas : [rect(box.x * size, box.y * size, box.w * size, box.h * size)] }))
+    throw new Error('Hall placement failed its canvas commit.');
   const elements = [...canvas.elements];
   const loot = cellLoot(brief, createRegionMask(brief), [...pillars, ...walls.shapes], CHANNEL.loot);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
