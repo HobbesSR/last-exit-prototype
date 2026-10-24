@@ -28,7 +28,7 @@ const summarizeCounts = values => ({ p50: percentile(values, .50), min: Math.min
 const memory = () => ({ ...process.memoryUsage(), maxRssBytes: process.resourceUsage().maxRSS * 1024 });
 const seed = 445;
 
-function arena(lootCount, clustered, withProp) {
+function arena(lootCount, clustered, propCount) {
   const width = 2400, height = 1200;
   const rows = Array.from({ length: height / 100 }, (_, y) => ({ y, runs: [[0, width / 100]] }));
   const items = Array.from({ length: lootCount }, (_, i) => {
@@ -44,12 +44,18 @@ function arena(lootCount, clustered, withProp) {
     entry: { x: 60, y: 600 }, exit: { x: 2300, y: 600 },
     spawns: Array.from({ length: 8 }, (_, i) => ({ x: 100 + i * 52, y: 200 })),
     hunterSpawns: Array.from({ length: 3 }, (_, i) => ({ x: 2240 - i * 52, y: 1000 })),
-    physicsProps: withProp ? [{ id: 'report-crate', profile: 'crate', x: 1800, y: 600 }] : [],
+    physicsProps: propCount === 1 ? [{ id: 'report-crate', profile: 'crate', x: 1800, y: 600 }]
+      : Array.from({ length: propCount }, (_, i) => {
+      const columns = 8, spacing = clustered ? 60 : 90;
+      return { id: `report-crate-${i.toString().padStart(2, '0')}`, profile: 'crate',
+        x: (clustered ? 800 : 650) + (i % columns) * spacing,
+        y: (clustered ? 600 : 350) + Math.floor(i / columns) * spacing };
+      }),
   };
 }
 
-async function runCase({ lootCount, clustered, withProp, awake }) {
-  const map = arena(lootCount, clustered, withProp);
+async function runCase({ lootCount, clustered, propCount, awake }) {
+  const map = arena(lootCount, clustered, propCount);
   const mapSha256 = hash(JSON.stringify(map));
   const content = structuredClone(contentById('content-physics-5'));
   content.roster = { contestants: Array.from({ length: 8 }, (_, i) => `C${i}`),
@@ -72,10 +78,14 @@ async function runCase({ lootCount, clustered, withProp, awake }) {
     for (let tick = 0; tick < warmup + samples; tick++) {
       const prepStarted = performance.now();
       if (awake) {
-        // Queue directly on the world before timing step(); alternating small impulses prevent
-        // settling while keeping net motion bounded. Preparation is reported separately.
-        const sign = tick % 2 === 0 ? 1 : -1;
-        for (const id of affectedBodyIds) runtime.world.queueImpulse(id, { x: sign * 2, y: 0 });
+        // Queue directly on the world before timing step(); preparations are reported separately.
+        for (let i = 0; i < affectedBodyIds.length; i++) {
+          const id = affectedBodyIds[i];
+          const isLoot = id.startsWith('item:');
+          const magnitude = isLoot || propCount === 1 ? 2 : clustered ? 40 : 20;
+          const sign = (tick + (propCount === 64 && !isLoot ? i : 0)) % 2 === 0 ? 1 : -1;
+          runtime.world.queueImpulse(id, { x: sign * magnitude, y: 0 });
+        }
       }
       const elapsedPreparation = performance.now() - prepStarted;
       const startStep = performance.now();
@@ -112,17 +122,21 @@ async function runCase({ lootCount, clustered, withProp, awake }) {
     disposalMs = performance.now() - disposeStarted;
   }
   const actualBodies = lastState.physics.world.bodies.length;
-  const expectedBodies = 11 + lootCount + (withProp ? 1 : 0);
+  const expectedBodies = 11 + lootCount + propCount;
   if (actualBodies !== expectedBodies) throw new Error(`Expected ${expectedBodies} dynamic bodies, observed ${actualBodies}`);
   return {
       layout: clustered ? 'clustered' : 'sparse', bodyCondition: awake ? 'awake' : 'settling-sleep',
-      loot: lootCount, authoredProps: withProp ? 1 : 0,
+      loot: lootCount, authoredProps: propCount,
       awakeStimulus: awake ? { affectedBodyCount: affectedBodyIds.length, impulsesPerTick: affectedBodyIds.length,
-        impulseXAlternates: [-2, 2], preparationOutsideStepTiming: true } : null,
+        lootImpulseX: [-2, 2], crateImpulseX: propCount === 64 ? clustered ? [-40, 40] : [-20, 20] : [-2, 2],
+        crateSignAlternatesByTickAndBodyIndex: propCount === 64, preparationOutsideStepTiming: true } : null,
       dynamicBodyCount: actualBodies, warmup, samples,
       ticks: game.tick, phase: game.phase, initializationMs: round(initializationMs), disposalMs: round(disposalMs),
       map: { width: map.width, height: map.height, playableCellSize: map.playableArea.cellSize,
-        playableRows: map.playableArea.rows.length, obstacles: map.obstacles.length, gates: map.gates.length, sha256: mapSha256 },
+        playableRows: map.playableArea.rows.length, obstacles: map.obstacles.length, gates: map.gates.length,
+        ...(propCount === 64 ? { authoredCrateGrid: { columns: 8, rows: 8, centerSpacing: clustered ? 60 : 90,
+          origin: clustered ? { x: 800, y: 600 } : { x: 650, y: 350 }, minimumCenterSeparation: clustered ? 60 : 90 } } : {}),
+        sha256: mapSha256 },
       settings: latestSettings, timing: { impulsePreparation: awake ? summarize(impulsePreparationMs) : null,
         impulsePreparationIncludedInStep: false, step: summarize(stepMs), snapshot: summarize(snapshotMs),
         projection: summarize(projectionMs), serialization: summarize(serializationMs) },
@@ -153,7 +167,7 @@ const report = {
   memoryBefore: memory(),
   limitations: [
     'Synthetic authored map and stationary 11-actor roster; not a whole-room or production capacity qualification.',
-    'Loot is kept away from all actor spawn points; the one crate is inert and is not a damage or blast-cover witness.',
+    'Loot and authored crates are kept away from actor spawn points; crates are inert and are not damage or blast-cover witnesses.',
     'Each metric times only its named synchronous operation; serialization covers JSON.stringify({state, view}) and byte sizing is outside the timed interval.',
     'Finite-sample p99 is descriptive, not a tail-latency guarantee. Memory includes JS and WASM wrappers and runtime noise.',
   ],
@@ -170,16 +184,19 @@ try {
   for (const file of files) report.provenance.hashes[file] = hash(await readFile(file));
   const rapierPackage = JSON.parse(await readFile('node_modules/@dimforge/rapier2d-compat/package.json', 'utf8'));
   report.provenance.rapier = { name: rapierPackage.name, version: rapierPackage.version, license: rapierPackage.license };
-  report.workload = { actors: 11, lootCounts: [0, 64, 117], additionalPropCase: '116 loot + 1 inert crate; total dynamic capacity 128 including actors',
+  report.workload = { actors: 11, lootCounts: [0, 64, 117], additionalCases: [
+      '116 loot + 1 inert crate', '53 loot + 64 authored inert crates; total dynamic capacity 128 including actors'],
     layouts: ['sparse', 'clustered'], bodyConditions: ['settling-sleep', 'awake'],
-    awakeMethod: 'Outside each timed step, queue alternating +/-2 world-unit x impulses to every item/prop body; actors receive none.' };
+    awakeMethod: 'Outside each timed step, queue alternating +/-2 world-unit x impulses to every loot body and +/-20 (sparse) or +/-40 (clustered) to each crate; crate signs alternate by tick and body index; actors receive none.' };
   for (const clustered of [false, true]) {
     for (const lootCount of [0, 64, 117]) {
       for (const awake of [false, true])
-        report.scenarios.push(await runCase({ lootCount, clustered, withProp: false, awake }));
+        report.scenarios.push(await runCase({ lootCount, clustered, propCount: 0, awake }));
       if (lootCount === 117) for (const awake of [false, true])
-        report.scenarios.push(await runCase({ lootCount: 116, clustered, withProp: true, awake }));
+        report.scenarios.push(await runCase({ lootCount: 116, clustered, propCount: 1, awake }));
     }
+    for (const awake of [false, true])
+      report.scenarios.push(await runCase({ lootCount: 53, clustered, propCount: 64, awake }));
   }
   report.memoryAfter = memory();
   console.log(JSON.stringify(report, null, 2));

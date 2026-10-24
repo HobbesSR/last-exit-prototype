@@ -95,3 +95,29 @@ test('invalid tiny physical profiles are refused before item/body admission', as
     await assert.rejects(createPhysicsGame(445, map, content), /world physics profile/);
   }
 });
+
+test('forty physical pickup/drop cycles conserve the objective without body or joint growth', async () => {
+  const { map, content } = parts(), s = await createPhysicsGame(445, map, content);
+  try {
+    const p = s.players[0], r = physicsRuntime(s); p.bot = false;
+    p.x = 300; p.y = 200; automaticPickups(s, p, {});
+    const baseline = r.world.counts().dynamic;
+    let generation = 0;
+    for (let cycle = 0; cycle < 40; cycle++) {
+      p.x = 120; p.y = 200; synchronizePhysics(s);
+      assert.equal(dropInventorySlot(s, p, 0), true);
+      const dropped = s.map.items[0];
+      assert.equal(dropped.id, 'sleeping'); assert.equal(dropped.charge, 100);
+      assert.equal(r.world.counts().dynamic, baseline + 1);
+      const nextGeneration = r.world.getGeneration('item:sleeping');
+      assert.ok(nextGeneration > generation); generation = nextGeneration;
+      p.x = dropped.x; p.y = dropped.y; dropped.pickupAfter = 0;
+      automaticPickups(s, p, {});
+      assert.equal(p.inventory[0].instanceId, 'sleeping'); assert.equal(p.inventory[0].charge, 100);
+      assert.equal(s.map.items.length, 0);
+      assert.equal(r.world.counts().dynamic, baseline);
+      assert.equal(r.world.counts().constraints, 0);
+      assert.equal(r.pendingImpulses.length, 0); assert.equal(r.pendingAttachments.length, 0);
+    }
+  } finally { disposePhysics(s); }
+});
