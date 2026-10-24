@@ -524,10 +524,10 @@ export function makeArenaScene(api) {
       if (p.role === 'gladiator' && p.kit === 'specter') sprite.setTint(0xc5b0ff);
       if (p.role === 'gladiator' && p.kit === 'striker') sprite.setTint(0xffd485);
       if (p.role === 'contestant' && p.id !== api.playerId()) sprite.setTint([0xffffff, 0x9de6df, 0xfbdba2, 0xb9bdff][p.name.length % 4]);
-      const ring = this.add.graphics(), bar = this.add.graphics();
+      const ring = this.add.graphics(), bar = this.add.graphics(), geometry = this.add.graphics().setVisible(false);
       const name = this.add.text(0, -35, p.id === api.playerId() && !api.replay() ? 'YOU' : p.name, { fontFamily: 'Arial', fontSize: LABEL_FONT_PX, fontStyle: 'bold', color: '#f8fce9', stroke: '#294a3e', strokeThickness: 8 }).setOrigin(0.5).setScale(this.nameScale);
-      const container = this.add.container(p.x, p.y, [ring, sprite, bar, name]); this.world.add(container); this.world.bringToTop(this.overheadLayer);
-      const actor = { sprite, ring, bar, name, container }; this.actors.set(p.id, actor); return actor;
+      const container = this.add.container(p.x, p.y, [ring, sprite, bar, name, geometry]); this.world.add(container); this.world.bringToTop(this.overheadLayer);
+      const actor = { sprite, ring, bar, name, geometry, container }; this.actors.set(p.id, actor); return actor;
     }
     /** The active player nearest a pointer, within a fixed screen distance of it, or null. */
     playerAt(pointer) {
@@ -806,6 +806,7 @@ export function makeArenaScene(api) {
       }
       stop('render.world');
       start('render.actors');
+      const actorGeometry = api.geometryOverlay?.();
       const ids = new Set();
       for (const p of state.players) {
         ids.add(p.id); const actor = this.actors.get(p.id) || this.makeActor(p); const own = p.id === api.playerId();
@@ -826,6 +827,15 @@ export function makeArenaScene(api) {
         // Markers hold their apparent size as the camera pulls back; names hold a fixed pixel height
         // rather than riding that scale, which would leave them unreadable at whole arena zoom.
         actor.container.setScale(this.marker); actor.name.setScale(this.nameScale);
+        if (actorGeometry) {
+          // The marker may grow as the camera pulls back; these radii remain world distances.
+          actor.geometry.clear(); actor.geometry.setVisible(true);
+          actor.geometry.setScale(1 / this.marker);
+          const { headRadius, bodyRadius, hurtRadius } = actorGeometry[p.role];
+          actor.geometry.lineStyle(2, 0x79d7ff, 0.9); actor.geometry.strokeCircle(0, 0, headRadius);
+          actor.geometry.lineStyle(2, 0xffd46d, 0.9); actor.geometry.strokeCircle(0, 0, bodyRadius);
+          actor.geometry.lineStyle(2, 0xff6d9a, 0.9); actor.geometry.strokeCircle(0, 0, hurtRadius);
+        } else if (actor.geometry.visible) { actor.geometry.clear(); actor.geometry.setVisible(false); }
         actor.ring.clear(); actor.bar.clear();
         if (own) { actor.ring.lineStyle(2, 0xf8ffd0, 0.8); actor.ring.strokeCircle(0, 0, p.role === 'gladiator' ? 34 : 25); }
         // A directed view carries no fog to separate the roster by, so role reads from a ring instead.

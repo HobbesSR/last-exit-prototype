@@ -83,7 +83,14 @@ const CONTENT_2: MatchContent = {
 const CONTENT_3: MatchContent = { ...CONTENT_2, id: 'content-3', navigation: 'tiles' };
 // A repath spreads over ticks while the bot walks its current route (#470, 22.6); otherwise content-3.
 const CONTENT_4: MatchContent = { ...CONTENT_3, id: 'content-4', replanning: 'sliced' };
-const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4 };
+// Explicit experimental P2 selection; ordinary rooms still select content-4.
+const CONTENT_PHYSICS_2: MatchContent = { ...CONTENT_4, id: 'content-physics-2', actorPhysics: {
+  geometry: {
+    contestant: { headRadius: 14.109375, bodyRadius: 11.2875, hurtRadius: 12 },
+    gladiator: { headRadius: 20.3125, bodyRadius: 16.25, hurtRadius: 23 },
+  }, acceleration: 3600, braking: 3600, maxImpulse: 600, maxSpeed: 600,
+} };
+const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4, 'content-physics-2': CONTENT_PHYSICS_2 };
 
 /** Return an independent, deeply frozen copy of a shipped content set. */
 export function contentById(id: string): MatchContent {
