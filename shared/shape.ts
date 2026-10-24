@@ -99,6 +99,47 @@ export function edgesOf(shape: Shape): Edge[] {
   return points.map((a, i) => ({ a, b: points[(i + 1) % points.length] }));
 }
 
+/** Clip a convex world-space polygon to an axis-aligned box, preserving its winding. */
+export function clipPolygonToRect(points: readonly Vec2[], box: Box): Vec2[] {
+  if (points.length < 3 || box.w <= 0 || box.h <= 0) return [];
+
+  let clipped: Vec2[] = points.map(point => ({ x: point.x, y: point.y }));
+  const clip = (inside: (point: Vec2) => boolean, intersect: (a: Vec2, b: Vec2) => Vec2): void => {
+    const result: Vec2[] = [];
+    for (let i = 0; i < clipped.length; i++) {
+      const a = clipped[i], b = clipped[(i + 1) % clipped.length];
+      const aInside = inside(a), bInside = inside(b);
+      if (aInside && bInside) result.push(b);
+      else if (aInside) result.push(intersect(a, b));
+      else if (bInside) result.push(intersect(a, b), b);
+    }
+    clipped = result;
+  };
+  const vertical = (x: number) => (a: Vec2, b: Vec2): Vec2 =>
+    ({ x, y: a.y + (b.y - a.y) * ((x - a.x) / (b.x - a.x)) });
+  const horizontal = (y: number) => (a: Vec2, b: Vec2): Vec2 =>
+    ({ x: a.x + (b.x - a.x) * ((y - a.y) / (b.y - a.y)), y });
+  clip(point => point.x >= box.x, vertical(box.x));
+  clip(point => point.x <= box.x + box.w, vertical(box.x + box.w));
+  clip(point => point.y >= box.y, horizontal(box.y));
+  clip(point => point.y <= box.y + box.h, horizontal(box.y + box.h));
+
+  const unique: Vec2[] = [];
+  for (const point of clipped) {
+    const last = unique[unique.length - 1];
+    if (!last || point.x !== last.x || point.y !== last.y) unique.push(point);
+  }
+  if (unique.length > 1 && unique[0].x === unique[unique.length - 1].x && unique[0].y === unique[unique.length - 1].y) unique.pop();
+  if (unique.length < 3) return [];
+  const first = unique[0];
+  let twiceArea = 0;
+  for (let i = 1; i < unique.length - 1; i++) {
+    const a = unique[i], b = unique[i + 1];
+    twiceArea += (a.x - first.x) * (b.y - first.y) - (a.y - first.y) * (b.x - first.x);
+  }
+  return twiceArea === 0 ? [] : unique;
+}
+
 const vec = (x: World, y: World) => new SAT.Vector(x, y);
 /** The SAT body for a shape. Callers that test a shape every tick should cache the result. */
 export function body(shape: Shape): Circle | Polygon {

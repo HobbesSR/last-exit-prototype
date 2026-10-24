@@ -132,8 +132,12 @@ and actor concealment before drawing endpoints/tethers in a fogged view.
 Props may draw when their geometry intersects current sight and camera coverage,
 even if their center lies in shadow. Roof concealment remains center-based,
 matching the existing prop/loot roof policy. A visible edge alone does not make
-a hidden center tether anchor visible: that tether is omitted. Shared
-`physics/presentation-geometry.ts` owns shape radii and prop sight intersection.
+a hidden center tether anchor visible: that tether is omitted. `view.ts` owns
+this shape visibility rule alongside point/actor visibility, including camera
+margin and roof policy. It clips the star-shaped sight fan to camera coverage
+once per fogged frame, then uses shared shape bounds, containment and overlap.
+An off-camera bounds reject precedes SAT/sight work. The physics presentation
+adapter supplies shapes/radii without owning a separate visibility predicate.
 
 A live `state` frame carries the map's items and gates as layers: each is sent whole once, as a keyframe, and then as the changes since that keyframe (#250, `shared/frame-layers.ts`). The historical payload comparison is retained in [42.2](42.2-runtime-performance.md#layered-frame-payload-observations). Everything else in the frame is still sent whole every tick.
 

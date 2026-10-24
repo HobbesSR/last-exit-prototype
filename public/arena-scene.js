@@ -1,7 +1,8 @@
 import { visibilityPolygon, gateShape, insideMap } from '/shared/movement.ts';
 import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofAt, roofGroups, roofOverhang, roofCellBorders, roofRevealed, stepRoofAlpha, openingDistance, INSIDE_ZOOM, ROOF_OVERHANG, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
 import { shapeOf, outline, bounds } from '/shared/shape.ts';
-import { bodyRadius, bodyVertices, seesBody } from '/shared/physics/presentation-geometry.ts';
+import { bodyRadius, bodyShape } from '/shared/physics/presentation-geometry.ts';
+import { createShapeVisibility } from '/shared/view.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
 
@@ -695,8 +696,9 @@ export function makeArenaScene(api) {
       // Physics projections contain authorized endpoints, but current sight can still withhold an
       // actor (cloak, roof, status). Tethers must use the same actor rule as the sprite they join.
       const playersById = new Map(state.players.map(player => [player.id, player]));
+      const propVisible = createShapeVisibility(this.sight, map);
       const visibleBodies = new Map((state.bodies || []).filter(body => {
-        if (body.kind !== 'actor') return !fogged || seesBody(this.sight, map, body);
+        if (body.kind !== 'actor') return !fogged || propVisible(bodyShape(body));
         const player = playersById.get(body.actorId);
         if (!player || player.status !== 'active') return false;
         const atBody = { ...player, x: body.x, y: body.y };
@@ -719,7 +721,7 @@ export function makeArenaScene(api) {
         if (shape.kind === 'circle') {
           g.fillCircle(body.x, body.y, shape.radius); g.strokeCircle(body.x, body.y, shape.radius);
         } else {
-          const points = bodyVertices(body);
+          const points = outline(bodyShape(body));
           g.fillPoints(points, true); g.strokePoints(points, true);
         }
       }

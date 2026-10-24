@@ -1,4 +1,6 @@
 import { lineClear, litPoint } from './movement.ts';
+import { body as shapeBody, bounds as shapeBounds, contains, nearBounds, overlaps, polygon, clipPolygonToRect } from './shape.ts';
+import type { Shape } from './shape.ts';
 import type { VisibilityPoint } from './movement.ts';
 import type { Building, Cell, CollisionMap, GameMap, Gate, GateId, ObservedGate, PlayableArea, Player, Roof, Tick, Vec2, ViewBounds, World } from './types.ts';
 
@@ -68,7 +70,7 @@ export interface Sight {
   points: VisibilityPoint[];
 }
 // Entities are shown slightly beyond the camera edge so one does not pop as it enters frame.
-export const ENTITY_MARGIN: World = 30;
+const ENTITY_MARGIN: World = 30;
 
 // What a viewer may know is a gameplay rule, not a rendering detail — see docs/15. The world view and
 // the minimap each used to answer this separately and had already drifted apart: the minimap applied
@@ -88,6 +90,41 @@ export function seesActor(sight: Sight | null | undefined, map: RoofMap, viewer:
   if (revealsActor(viewer, actor)) return true;
   if (actor.cloak) return false;
   return seesPoint(sight, map, actor.x, actor.y);
+}
+
+/** Shape visibility has the same viewport/roof policy as points, with a visible edge sufficient.
+ * The shape anchor keeps the existing prop center's roof-concealment meaning. */
+export function seesShape(sight: Sight | null | undefined, map: RoofMap, shape: Shape): boolean {
+  return createShapeVisibility(sight, map)(shape);
+}
+
+/** One fogged frame's shape query. Prepare its lit camera coverage lazily, once for all props. */
+export function createShapeVisibility(sight: Sight | null | undefined, map: RoofMap): (shape: Shape) => boolean {
+  let regions: { shape: Shape; target: ReturnType<typeof shapeBody>; box: ReturnType<typeof shapeBounds> }[] | undefined;
+  return shape => {
+    if (!sight || sight.points.length < 3) return false;
+    const box = shapeBounds(shape), x = box.x + box.w / 2, y = box.y + box.h / 2;
+    // Reject off-camera props before constructing SAT bodies or touching the sight boundary.
+    if (!inViewport(sight.bounds, x, y, ENTITY_MARGIN + Math.hypot(box.w, box.h) / 2)
+      || roofConceals(map, sight.eye, shape)) return false;
+    const target = shapeBody(shape);
+    if (contains(shape, shape.x, shape.y, target) && seesPoint(sight, map, shape.x, shape.y)) return true;
+    if (!regions) {
+      regions = [];
+      const camera = { x: sight.bounds.x - ENTITY_MARGIN, y: sight.bounds.y - ENTITY_MARGIN,
+        w: sight.bounds.width + 2 * ENTITY_MARGIN, h: sight.bounds.height + 2 * ENTITY_MARGIN };
+      // Visibility polygons are star-shaped about their eye. Clipped fan triangles stay convex,
+      // so shared shape overlap handles circles exactly without duplicating intersection math.
+      for (let i = 0; i < sight.points.length; i++) {
+        const points = clipPolygonToRect([sight.eye, sight.points[i]!, sight.points[(i + 1) % sight.points.length]!], camera);
+        if (points.length < 3) continue;
+        const region = polygon(sight.eye.x, sight.eye.y, points.map(p => ({ x: p.x - sight.eye.x, y: p.y - sight.eye.y })));
+        regions.push({ shape: region, target: shapeBody(region), box: shapeBounds(region) });
+      }
+    }
+    const extent = Math.max(box.w, box.h) / 2;
+    return regions.some(region => nearBounds(region.box, x, y, extent) && overlaps(shape, region.shape, target, region.target));
+  };
 }
 export function buildingAt(map: RoofMap, point: Vec2): Building | null {
   return map.buildings?.find(b => point.x > b.x && point.x < b.x + b.w && point.y > b.y && point.y < b.y + b.h) || null;
