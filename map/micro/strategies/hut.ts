@@ -14,6 +14,7 @@ import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types
 import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
 import { createAddressedArea } from '../addressed.ts';
+import { createBuilderCanvas } from '../canvas.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
 import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
 
@@ -102,6 +103,8 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
 
   const { design, allocation, realization } = site.house.details;
   const [element] = placedElements(site.house, 'hut-building', site.x, site.y, size) as [RegionElement];
+  // Siting has already accepted this box. A canvas refusal is a broken placement invariant.
+  if (!createBuilderCanvas(brief).commit({ elements: [element] })) throw new Error('Hut placement failed its canvas commit.');
   observe?.({ label: element.label, origin: { x: element.x, y: element.y }, cellSize: size, design, allocation, realization });
   const shapes = elementShapes(element, true), radius = microMetrics({ cellSize: size, bodyProfile: 'cell' }).lootRadius;
   const offers = yardOffers(brief, site);

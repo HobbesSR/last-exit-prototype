@@ -42,8 +42,10 @@ export function createBuilderCanvas(brief: RegionBrief, protectedShapes: readonl
           e.y + (roof.origin?.y ?? 0) + c.y * size, size, size));
       }));
       const clear = next.access ?? [];
-      if (!areas.length || [...areas, ...geometry, ...footprints, ...reserves, ...spots, ...roofs].some(s => !fill.contains(s)
-        || protections.some(p => shapesOverlap(s, p)))) return false;
+      if (!areas.length || [...areas, ...geometry, ...footprints, ...reserves, ...spots, ...roofs].some(s => !fill.contains(s))) return false;
+      // Only what stands is kept off protections. Roofs only conceal sight (15), so routes may pass
+      // beneath them, and intent is not occupancy, so it may include a route, as `markEmpty`'s may.
+      if ([...geometry, ...reserves, ...spots].some(s => protections.some(p => shapesOverlap(s, p)))) return false;
       if (geometry.some(s => blockers.some(p => shapesOverlap(s, p)))) return false;
       if (reserves.some(s => blockers.some(p => shapesOverlap(s, p)))) return false;
       if (clear.some(s => !access.contains(s) || [...blockers, ...geometry].some(p => shapesOverlap(s, p)))) return false;
@@ -59,3 +61,5 @@ export function createBuilderCanvas(brief: RegionBrief, protectedShapes: readonl
     },
   };
 }
+
+export type BuilderCanvas = ReturnType<typeof createBuilderCanvas>;

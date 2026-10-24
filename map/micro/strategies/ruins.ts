@@ -6,7 +6,8 @@ import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
-import { wallHints } from '../hint-walls.ts';
+import { commitHintWalls, separateAreas, wallHints } from '../hint-walls.ts';
+import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 
@@ -59,12 +60,16 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
     return true;
   };
 
-  const elements: RegionElement[] = [], pieces: Shape[] = [];
+  const canvas = createBuilderCanvas(brief, protectedShapes);
+  // A room's laid spans and their shapes, committed together once it is done: spans meet at its corners.
+  let room: RegionElement[] = [], roomShapes: Shape[] = [];
+  const pieces: Shape[] = [];
   let rooms = 0, walls = 0, debris = 0;
   const lay = (label: string, shape: Shape) => {
     if (!mask.contains(shape) || protectedShapes.some(keep => shapesOverlap(shape, keep))) return false;
-    elements.push({ label, x: 0, y: 0, template: { w: mask.bounds.w, h: mask.bounds.h,
+    room.push({ label, x: 0, y: 0, template: { w: mask.bounds.w, h: mask.bounds.h,
       parts: [{ part: 'obstacle', shape, kind: 'ruin-wall' }] } });
+    roomShapes.push(shape);
     pieces.push(shape);
     return true;
   };
@@ -84,6 +89,7 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
     if (!open.length) continue;
     const door = open[Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.door) * open.length)]!;
     rooms++;
+    room = []; roomShapes = [];
     const doorLength = door === 'north' || door === 'south' ? w : h;
     const doorAt = Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.doorAt) * (doorLength - 1));
     // The doorway's two spans, and the end span of a side it meets at a corner, so the gap stays two cells wide.
@@ -111,10 +117,16 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
           && lay(`${label}-debris`, slab(cx, cy, size, draw(brief.seed, cx, cy, CHANNEL.angle + s), draw(brief.seed, cx, cy, CHANNEL.size + s)))) debris++;
       }
     }
+    // These legacy world-absolute records' template boxes are not their intent; their shapes are.
+    // The room's box is not either, as a protected route may run through a fallen span.
+    // Siting has already accepted every span, so a refusal is a broken placement invariant.
+    if (room.length && !canvas.commit({ elements: room, areas: separateAreas(roomShapes) }))
+      throw new Error(`Ruins room at ${slot.x},${slot.y} failed its canvas commit.`);
   }
 
   const hinted = wallHints(brief, { kind: 'ruin-wall', thickness: WALL, avoid: [...protectedShapes, ...pieces] });
-  elements.push(...hinted.elements);
+  commitHintWalls(canvas, hinted);
+  const elements = [...canvas.elements];
   const loot = cellLoot(brief, createRegionMask(brief), [...pieces, ...hinted.shapes], CHANNEL.loot);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0,

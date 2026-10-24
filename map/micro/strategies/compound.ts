@@ -15,6 +15,7 @@ import type { BuiltRegion, RegionBrief } from '../types.ts';
 import { COVER_EXECUTION, previewedCoverExecution } from './cover.ts';
 import type { PatchOffer } from '../delegation.ts';
 import { createAddressedArea } from '../addressed.ts';
+import { createBuilderCanvas } from '../canvas.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
 import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
 
@@ -242,6 +243,8 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
     if (roof.groupId) roof.groupId = brief.id + roof.groupId;
   observe?.({ label: 'compound', origin: { x: bx * size, y: by * size }, cellSize: size, design, allocation, realization });
   const elements = placedElements(ring, 'compound', bx, by, size);
+  // Siting has already accepted this box. A canvas refusal is a broken placement invariant.
+  if (!createBuilderCanvas(brief).commit({ elements })) throw new Error('Compound placement failed its canvas commit.');
   const parts = elements.flatMap(element => element.template.parts);
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const steps = ring.details.steps.map(step => ({ x: bx + step.x, y: by + step.y }));

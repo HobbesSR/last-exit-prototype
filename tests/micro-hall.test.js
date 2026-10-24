@@ -108,6 +108,15 @@ test('a roofed hall is one enclosing element over its rectangle', () => {
   assert.throws(() => buildRegion(brief('field', 2, cells, portals, { roofed: 'yes' })), /roofed/);
 });
 
+test('a roofed hall with no pillars still walls its hints', () => {
+  const cells = cellsOf(8, 6);
+  const portals = [{ id: 'west', axis: 'v', x: 0, y: 2, length: 2 }, { id: 'east', axis: 'v', x: 8, y: 2, length: 2 }];
+  const result = buildRegion({ ...brief('hinted', 1, cells, portals, { roofed: true }),
+    zones: [{ tier: 3, bonus: 0, lootChance: 0, cells }], hints: [{ axis: 'h', x: 0, y: 0, length: 8 }] });
+  assert.deepEqual([result.manifest.structures, result.manifest.pillars, result.manifest.hintWalls], [1, 0, 1]);
+  assert.equal(result.elements[0].template.encloses, true);
+});
+
 test('every aisle is open to a contestant', () => {
   const radius = microMetrics({ cellSize: SIZE, bodyProfile: 'cell' }).clearance.contestant;
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS.slice(0, 3)) {

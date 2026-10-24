@@ -4,9 +4,10 @@ import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
-import { wallHints } from '../hint-walls.ts';
+import { commitHintWalls, wallHints } from '../hint-walls.ts';
+import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
-import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
+import type { BuiltRegion, RegionBrief } from '../types.ts';
 
 const DEFAULT_DENSITY = 0.85;
 const DEFAULT_SQUEEZE_SHARE = 0.8;
@@ -27,7 +28,7 @@ export function buildRubble(brief: RegionBrief): BuiltRegion {
   if (!mask.cells.length || brief.cells.length < 12 || Math.min(spanX, spanY) < 3) return unfilledRegion(brief, 3);
 
   const protectedShapes = protectedRoutes(brief, 'Rubble');
-  const elements: RegionElement[] = [];
+  const canvas = createBuilderCanvas(brief, protectedShapes);
   const debris: Shape[] = [];
   let squeezeDebris = 0;
   // A half-cell square at every other cell leaves exactly 1.5 cells between
@@ -43,14 +44,18 @@ export function buildRubble(brief: RegionBrief): BuiltRegion {
       (cell.y + .5) * brief.cellSize - local.h / 2, local.w, local.h);
     if (!mask.contains(shape) || protectedShapes.some(keep => shapesOverlap(shape, keep))) continue;
     const label = `rubble-${cell.x}-${cell.y}`;
-    elements.push({ label, x: 0, y: 0, template: { w: mask.bounds.w, h: mask.bounds.h,
-      parts: [{ part: 'obstacle', shape, kind: 'ruin-wall' }] } });
+    // A legacy world-absolute record: its template box is not its intent, so the debris is.
+    // Siting has already accepted it, so a refusal is a broken placement invariant.
+    if (!canvas.commit({ elements: [{ label, x: 0, y: 0, template: { w: mask.bounds.w, h: mask.bounds.h,
+      parts: [{ part: 'obstacle', shape, kind: 'ruin-wall' }] } }], areas: [shape] }))
+      throw new Error(`Rubble placement ${label} failed its canvas commit.`);
     debris.push(shape);
     if (squeeze) squeezeDebris++;
   }
 
   const walls = wallHints(brief, { kind: 'ruin-wall', avoid: [...protectedShapes, ...debris] });
-  elements.push(...walls.elements);
+  commitHintWalls(canvas, walls);
+  const elements = [...canvas.elements];
   const loot = cellLoot(brief, createRegionMask(brief), [...debris, ...walls.shapes], 3);
   return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0,

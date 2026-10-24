@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { wallHints } from '../map/micro/hint-walls.ts';
+import { commitHintWalls, separateAreas, wallHints } from '../map/micro/hint-walls.ts';
+import { createBuilderCanvas } from '../map/micro/canvas.ts';
 import { hintsOfStrength } from '../map/micro/hints.ts';
-import { createAddressedArea } from '../map/micro/addressed.ts';
+import { areasOverlap, createAddressedArea } from '../map/micro/addressed.ts';
 import { buildRegion, briefErrors } from '../map/micro/region-types.ts';
 import { createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../map/micro/geometry.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
@@ -34,6 +35,23 @@ test('walls stand in the cells beside each hint, against its line, and close a c
   // The corner cell is walled by both and listed once.
   assert.equal(walls.cells.filter(c => c.x === 0 && c.y === 0).length, 1);
   assert.equal(walls.cells.length, 8 + 5 + 4);
+});
+
+test('walls meeting at a corner commit as one assembly, the earlier keeping the corner as intent', () => {
+  const b = brief([NORTH, WEST, SOUTH]), walls = wallHints(b, { kind: 'building' });
+  const areas = separateAreas(walls.shapes);
+  assert.deepEqual(areas.map(bounds), [
+    { x: 0, y: 0, w: 8 * SIZE, h: 10 },
+    // The west wall's intent stops short of the north wall's.
+    { x: 0, y: 10, w: 10, h: 6 * SIZE - 10 },
+    { x: 2 * SIZE, y: 6 * SIZE - 10, w: 4 * SIZE, h: 10 },
+  ]);
+  assert.equal(areas.some((a, i) => areas.slice(0, i).some(o => areasOverlap(a, o))), false);
+  const canvas = createBuilderCanvas(b);
+  commitHintWalls(canvas, walls);
+  assert.deepEqual(canvas.elements, walls.elements);
+  // A wall wholly inside an earlier rectangle, or a polygon over one, adds no area of its own.
+  assert.deepEqual(separateAreas([rect(0, 0, 40, 10), rect(10, 0, 20, 10), circle(5, 5, 3)]).map(bounds), [{ x: 0, y: 0, w: 40, h: 10 }]);
 });
 
 test('thickness and inset set the wall across its cells', () => {
