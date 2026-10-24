@@ -23,3 +23,8 @@ export function unusedComponents<C extends Cell>(cells: readonly C[], kept: Read
   }
   return components;
 }
+
+/** Every 4-connected component of `cells`, in `unusedComponents`' order, with nothing kept. */
+export function cellComponents<C extends Cell>(cells: readonly C[]): C[][] {
+  return unusedComponents(cells, new Set());
+}

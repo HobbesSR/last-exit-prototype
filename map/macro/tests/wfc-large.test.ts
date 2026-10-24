@@ -27,7 +27,7 @@ test("a 20,000-cell chain solves without exhausting the stack", () => {
     links: [...(i > 0 ? [{ cell: i - 1, relation: "r" }] : []), ...(i < cells - 1 ? [{ cell: i + 1, relation: "r" }] : [])],
   }));
   let n = 0;
-  const solved = solveWfc(grid, cells, 1, () => true, () => (n = (n * 7 + 3) % 11) / 11, { state: { iterations: 0, maxIterations: 1e9 } });
+  const solved = solveWfc(grid, () => true, () => (n = (n * 7 + 3) % 11) / 11, { state: { iterations: 0, maxIterations: 1e9 } });
   assert.ok(solved);
   assert.equal(solved.length, cells);
   assert.ok(solved.every((cell) => cell.domain.length === 1));
@@ -55,7 +55,7 @@ test("options of one kind share an id and a table, however many fixed slots carr
     x: i, y: 0, domain: [fixed()],
     links: [...(i > 0 ? [{ cell: i - 1, relation: "W" }] : []), ...(i < cells - 1 ? [{ cell: i + 1, relation: "E" }] : [])],
   }));
-  const solved = solveWfc(grid, cells, 1, () => true, () => 0.5);
+  const solved = solveWfc(grid, () => true, () => 0.5);
   assert.ok(solved);
   assert.equal(new Set(solved.map((cell) => cell.domain[0]!.id)).size, 1);
   assert.equal(new Set(solved.map((cell) => cell.domain[0]!.valid)).size, 1);
