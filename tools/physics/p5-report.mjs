@@ -201,12 +201,12 @@ try {
   for (const clustered of [false, true]) {
     for (const lootCount of [0, 64, 117]) {
       for (const awake of [false, true])
-        report.scenarios.push(await runCase({ lootCount, clustered, propCount: 0, awake }));
+        await retain({ lootCount, clustered, propCount: 0, awake });
       if (lootCount === 117) for (const awake of [false, true])
-        report.scenarios.push(await runCase({ lootCount: 116, clustered, propCount: 1, awake }));
+        await retain({ lootCount: 116, clustered, propCount: 1, awake });
     }
     for (const awake of [false, true])
-      report.scenarios.push(await runCase({ lootCount: 53, clustered, propCount: 64, awake }));
+      await retain({ lootCount: 53, clustered, propCount: 64, awake });
   }
   report.memoryAfter = memory();
   console.log(JSON.stringify(report, null, 2));
