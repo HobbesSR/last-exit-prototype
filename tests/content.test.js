@@ -25,7 +25,7 @@ test('shipped content ids return independent deeply frozen retained and current 
   const current = contentById('content-2');
   assert.equal(legacy.id, 'content-1');
   assert.equal(current.id, 'content-2');
-  assert.equal(defaultContent().id, 'content-4', 'the shipped default advances without changing legacy content');
+  assert.equal(defaultContent().id, 'content-5', 'the shipped default advances without changing legacy content');
   // content-3 changes only how bots plan (#424): content-2's numbers and roster, over free-space tiles.
   const { id, navigation, ...tuning } = contentById('content-3'), { id: _, ...previous } = current;
   assert.deepEqual([id, navigation, tuning], ['content-3', 'tiles', previous]);
@@ -33,6 +33,9 @@ test('shipped content ids return independent deeply frozen retained and current 
   // content-4 changes only how a repath runs (#470): content-3, with searches spread over ticks.
   const { id: id4, replanning, ...rest } = contentById('content-4'), { id: _3, ...three } = contentById('content-3');
   assert.deepEqual([id4, replanning, rest], ['content-4', 'sliced', three]);
+  // content-5 repairs a contestant's route round nearby changes at once (#470 part 2); otherwise content-4.
+  const { id: id5, replanning: replanning5, ...rest5 } = contentById('content-5'), { id: _4, replanning: _r4, ...four } = contentById('content-4');
+  assert.deepEqual([id5, replanning5, rest5], ['content-5', 'repair', four]);
   assert.notEqual(legacy, legacyAgain);
   assert.notEqual(legacy.roster, legacyAgain.roster);
   assert.notEqual(legacy.roster, current.roster);

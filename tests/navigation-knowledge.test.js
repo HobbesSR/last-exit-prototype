@@ -190,9 +190,16 @@ test('a budget is a count of expansions: exhausted, the search reports where it 
   const planner = createKnowledgePlanner(twinA, 'contestant'), { knowledge } = knowing(everything, { gates: { d1: { open: true, locked: false } } });
   const runs = [0, 1].map(() => planner.route(knowledge, { x: 300, y: 1152 }, { x: 4300, y: 1152 }, 30));
   assert.equal(runs[0].status, 'budget-exhausted');
+  assert.equal(runs[0].expansions, 30, 'it never spends more than its budget');
   assert.ok(runs[0].points.length >= 2);
   assert.deepEqual(runs[1], runs[0]);
-  assert.equal(planner.route(knowledge, { x: 300, y: 1152 }, { x: 4300, y: 1152 }).status, 'complete', 'a budget failure is not unreachability');
+  const whole = planner.route(knowledge, { x: 300, y: 1152 }, { x: 4300, y: 1152 });
+  assert.equal(whole.status, 'complete', 'a budget failure is not unreachability');
+  // A budget of exactly what the search needs is enough; one less is not, and spends one less.
+  const exact = planner.route(knowledge, { x: 300, y: 1152 }, { x: 4300, y: 1152 }, whole.expansions);
+  assert.deepEqual([exact.status, exact.expansions], ['complete', whole.expansions]);
+  const short = planner.route(knowledge, { x: 300, y: 1152 }, { x: 4300, y: 1152 }, whole.expansions - 1);
+  assert.deepEqual([short.status, short.expansions], ['budget-exhausted', whole.expansions - 1]);
 });
 
 test('a search advanced a slice at a time expands the same places and returns the same route as one run whole (#470)', () => {

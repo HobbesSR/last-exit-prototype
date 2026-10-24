@@ -1,6 +1,6 @@
 # 14. Match rules and implemented defaults
 
-Every number here is a tuning default of `content-4` under `last-exit-0.7` rules,
+Every number here is a tuning default of `content-5` under `last-exit-0.7` rules,
 not a design constant. When one changes, it must stay named in code and updated
 here in the same change. Accepted-but-unimplemented changes live in
 [13](13-accepted-features.md).
@@ -26,11 +26,17 @@ changes how bots plan: over free-space tiles, contestants from what they know
 ([22.6](22.6-hierarchical-navigation.md), #424). `content-2` remains selectable with the
 grid planner.
 
-`content-4`, the default since #470, is `content-3` with each bot's repath spread over several
+`content-4`, the default from #470 part 1 to part 2, is `content-3` with each bot's repath spread over several
 ticks while it walks its current route (`replanning: 'sliced'`, 22.6). Because a route arrives
 after the bot has moved on, a bot turns a corner early only when it is within the 2-unit margin
 the planner keeps beyond its body. Its numbers and roster are unchanged; `content-3` remains
 selectable with whole-tick searches.
+
+`content-5`, the default since #470 part 2, is `content-4` with local repair
+(`replanning: 'repair'`, 22.6): when a contestant learns of a door or ground near itself or on
+the next stretch of its route, it searches round the change at once and keeps the rest of its
+route, rather than walking on until its next sliced repath. Its numbers and roster are unchanged;
+`content-4` remains selectable.
 
 The power-cell objective supplements limited escape capacity; three extraction slots remain a baseline tuning default. Contestant equipment changes do not remove gladiator kits or kill-based progression. The ten-minute deadline leaves time for exploration and combat, not ten minutes of uninterrupted running. Existing early match-end conditions remain.
 
@@ -39,7 +45,7 @@ The power-cell objective supplements limited escape capacity; three extraction s
 Explicitly pass `contentById('content-physics-2')` to `createPhysicsGame` or
 `createPhysicsMatch` to select `last-exit-0.8-physics-2`. Neither the normal room
 nor the physics factory's omitted-content default selects it. P1 remains
-available with content-1 through content-4. These are provisional playtest
+available with content-1 through content-5. These are provisional playtest
 settings, not a default balance change.
 
 | Role | Nominal head radius | Movement radius | Retained combat radius |
