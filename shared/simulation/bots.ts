@@ -528,6 +528,8 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
       const item = target as Partial<GroundItem>, pursuit = pursuits.get(p);
       if (pursuit && item.kind && item.id) { pursuit.ignored.set(item.id, s.tick + IGNORE_FOR as Tick); clearRoute(p); }
     }
+  // The replan phase comes from the name's length (B04, #368). That is recorded behaviour: changing it
+  // is a deliberate gameplay change with its own version and fixture decision, never cleanup.
   } else if (!p.path?.length || s.tick % 20 === p.name.length % 20) {
     start('sim.repath'); count('work.repath');
     // The coarse street graph supplies the next block; local collision-aware A* handles its passage.
