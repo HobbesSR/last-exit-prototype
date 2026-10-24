@@ -6,6 +6,7 @@ import { defaultContent } from './content.ts';
 import { clearRoute } from './geometry.ts';
 import { createDiscovery, attachDiscovery, discover } from '../discovery.ts';
 import { initializeItemInstances } from '../item-instances.ts';
+import { assignWeaponQualities } from '../loot-tiers.ts';
 import type { Game, GameMap, Kit, Player, PlayerId, PlayerInput, Role } from '../types.ts';
 
 /**
@@ -26,11 +27,13 @@ export function createGame(seed = 4217, map: GameMap = generateMap(seed), conten
   s.players.filter(p => p.role === 'gladiator').forEach((p, i) => {
     const station = map.hunterSpawns?.[i] ?? map.stations.at(-1 - i) ?? map.exit; p.x = station.x; p.y = station.y;
   });
+  if (content.lootTiers && !content.itemInstances) throw new RangeError('weapon quality requires L0 item instances');
   if (content.itemInstances) {
     const itemInstances = Object.freeze({ ...content.itemInstances });
     s.content = Object.freeze({ ...content, itemInstances });
-    s.version = 'last-exit-0.8-equipment-1';
+    s.version = content.lootTiers ? 'last-exit-0.8-loot-1' : 'last-exit-0.8-equipment-1';
     initializeItemInstances(s);
+    assignWeaponQualities(s);
   }
   if (content.discovery) {
     for (const p of s.players) {

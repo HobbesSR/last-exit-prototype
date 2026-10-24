@@ -105,8 +105,8 @@ identity/root and retire the fully consumed source. This is bounded root lineage
 not an accumulating ancestry log. IDs for old carried entries are assigned in
 player-ID/slot order before tick actions. A separate recorded `itemSerial` counter
 does not consume legacy RNG or event IDs; initial IDs in its namespace are reserved.
-Item definitions remain kind/weaponType; optional quality 1..5 is preserved but
-does not alter statistics. Only equal qualities merge (omitted quality means 1).
+Item definitions remain kind/weaponType; optional quality 1..5 is preserved; under L0
+alone it does not alter statistics (L1 below). Only equal qualities merge (omitted quality means 1).
 
 Utility stacks stay capped at three in inventory; partial ground transfers retain
 the source remainder. Drops scatter one ground entry per utility unit. Optional
@@ -127,7 +127,51 @@ The mandatory reserve is all carried value: at most eighteen utility units per
 six-slot inventory, with no cap rejection. Overflow creates no extra value and
 is bounded by the match's finite admitted loot quantity; repeated transfers do
 not grow it. P5 must reserve bodies separately and keep this logical fallback when
-body admission fails. L0 creates no bodies or joints. Tiers/reloading remain later work.
+body admission fails. L0 creates no bodies or joints. Reloading remains later work.
+
+### Weapon quality (L1, #443)
+
+`contentById('content-loot-1')` selects `last-exit-0.8-loot-1`: L0 plus weapon
+quality. It requires L0, which already keeps quality through pickup, drop,
+death, snapshots and schema-11 recordings, and never merges or refills across
+qualities (an omitted quality is 1). Default rooms and the frozen fixture are
+unchanged; legacy equipment ignores quality.
+
+At match creation each map weapon without a quality gets one; other kinds get
+none. A weapon within 100 units of a contestant spawn is the spawn kit and is
+quality 1. Every other weapon draws from its spatial mix, keyed by the match
+seed and the item's id, so the roll consumes no match RNG and does not depend on
+item order. Positions, map `tier` metadata and every other item are unchanged,
+so spawn, charger and reach reservations hold as generated. Map `tier` is the
+generator's zone column; quality is the weapon's own statistic, and only quality
+changes play.
+
+The spatial selector (`shared/loot-tiers.ts`) splits the map's bounding
+rectangle into five virtual columns and rows. Points on or past an edge clamp
+into the outer zone, and a map without extent is column 0, middle row. Mix =
+column + 1 + distance from the middle row (0/1/2), capped at 5. A live chain
+map's frame is the diamond plan's 5 x 5 zone grid, so its columns are the zones'
+tiers; a legacy diamond is inscribed in the same rectangle; any other map gets
+the same proportional split. On a live map, mix 1 is the entry zone, which rolls
+no loot, so only the spawn kit is there. Provisional weights for qualities 1..5 (41.1):
+
+| Mix | Q1 | Q2 | Q3 | Q4 | Q5 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 70 | 25 | 5 | 0 | 0 |
+| 2 | 35 | 45 | 18 | 2 | 0 |
+| 3 | 10 | 30 | 40 | 18 | 2 |
+| 4 | 0 | 10 | 30 | 45 | 15 |
+| 5 | 0 | 0 | 10 | 40 | 50 |
+
+Quality multiplies a shot's damage by 1.00/1.08/1.16/1.24/1.32, unrounded;
+cooldown, ammunition, speed and range are unchanged. These are tuning
+assumptions (17.3 Q10), not a balance claim. Population tests check that higher
+mixes give higher quality on average; an individual pickup need not improve.
+
+Novelty is a separate vertical axis (0 in the middle row, 2 at the top and
+bottom). Its catalogue is empty until special items are authored, so nothing is
+placed by it. Danger reads the same selector but owns its own curves and safety
+reservations. The chain places no traps yet (16), so no danger curve is defined.
 
 ## Traps
 
@@ -213,7 +257,7 @@ old 0.04 and 0.09 were scaled by 0.37 to keep about 950 sites per live map
 (Corey, 2026-10-04). The provisional
 seeded kind weights are cell 3, weapon 3, medkit 1, shield 1, access 1; a weapon
 selects pistol, rifle or scattergun equally. Cells start uncharged. Tier metadata
-does not change weapon statistics or inventory rules; weapon tiers remain
-separate work (17). Traps, sensors and locked-door authoring remain deferred
+does not change weapon statistics or inventory rules; weapon quality is the
+explicit L1 selection above. Traps, sensors and locked-door authoring remain deferred
 for the chain (16), so this library emits none of them. Their existing simulation
 mechanics still apply to stored legacy maps.
