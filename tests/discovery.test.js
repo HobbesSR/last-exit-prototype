@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, step, snapshot, playerView, joinGame } from '../shared/simulation.ts';
 import { createMatch } from '../server/match.js';
-import { broadcast } from '../server/room-views.js';
+import { broadcast, viewEncoders } from '../server/room-views.js';
 import {
   DISCOVERY_CELL_SIZE,
   DISCOVERY_RADIUS,
@@ -271,6 +271,7 @@ test('room broadcast: dropped frames and catch-up batches preserve client discov
     match,
     clients: new Set([session]),
     history: [],
+    ...viewEncoders(),
   };
 
   const decoder = createDiscoveryDecoder();
