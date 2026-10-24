@@ -1,9 +1,11 @@
 # 26. Recording contract
 
 Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
-default content is `content-5`, and recordings use schema 9 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
+default content is `content-5`, and recordings use schema 10 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
 display descriptor in the header, 7 bots' world-point routes, 8 optional private physics gameplay state, 9 optional character geometry and discontinuities). Masked live maps require reader 4; legacy maps keep
 minimum schema 0.
+Schema 10 adds required engine-free physics presentation for experimental physics
+matches; those matches require reader 10. Ordinary match reader floors stay unchanged.
 Storage-only changes must preserve frozen gameplay fixtures.
 
 Without a P2 character profile the explicit experimental factory pins
@@ -27,6 +29,25 @@ client prediction implementation. Old frame playback still needs no solver.
 Minimum readers are unchanged because these are optional experimental diagnostics;
 normal actor art/hit rules remain unchanged. P3 owns required physics presentation
 and its eventual reader floor. See [14](14-match-rules.md) and [29.1](29.1-physics-design.md).
+
+P3 (#440) records optional top-level `physicsProfile`, `bodies` and `tethers`.
+Bodies carry closed shape descriptors, world-unit poses/velocities, radians,
+sleep state, generation and optional placement boundaries. Actor art remains
+independent of physical angle. Actor/item associations link existing art to the
+body pose; an `item:<item id>` body associates only with an existing ground item.
+Complete lists express removal, including constraint removal. Tethers contain
+only their ID and two body IDs; geometry is read from those stored endpoints.
+Playback uses these values without importing or initializing a solver, including
+backward seeks, partial tails and held omitted ticks. It never reconstructs spring
+motion. The private `physics` field remains diagnostic gameplay state, unused by
+the renderer, and no exact engine checkpoint is required or sent live.
+
+Schema rises to 10 and `minimumReaderForMatch` requires 10 whenever the match's
+pinned `hasPhysics` capability is true, independently of its rules-version string.
+The physics match factory sets this capability; legacy matches keep it false,
+and disposal does not change it. An older renderer would omit props/tethers
+and misrepresent physical poses. No rules or content ID changes accompany this
+representation change, and existing schema 0–9 archives remain readable unchanged.
 
 How a reader labels a recording's weapons, kits and timers, including archives
 without a descriptor, follows [22.7](22.7-content-and-presentation.md#recording-compatibility)
@@ -61,6 +82,7 @@ The schema history, with the sections that explain each step:
 
 | Schema | Added | `minSchema` written |
 | --- | --- | --- |
+| 10 | Renderable physics bodies, lifecycle/placement and tether endpoints (#440) | 10 for experimental physics matches; ordinary floors unchanged |
 | 9 | Optional experimental character geometry, floor motor regions and physics discontinuities (#439) | unchanged |
 | none, then 1 | older recordings carry no `schema`; 1 introduced the pair | 0 |
 | 2 | a sequence number on each recorded command, and the per-player input queue (below) | 0 |

@@ -70,7 +70,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [28-operational-limits.md](28-operational-limits.md) | What this build deliberately does not do, and what public hosting would need |
 | [29-geometry-and-drawing.md](29-geometry-and-drawing.md) | Shape descriptions, collision, sight edges, how drawing is cached, physics prerequisites |
 | [29.1-physics-design.md](29.1-physics-design.md) | Proposed rigid bodies, character contact, middleware evaluation, springs/hooks and physical item contracts |
-| [29.2-physics-state-networking.md](29.2-physics-state-networking.md) | Proposed physics tick phases, prediction/privacy, state/checkpoints and replay compatibility |
+| [29.2-physics-state-networking.md](29.2-physics-state-networking.md) | Experimental physics tick/state contracts, private live projections and engine-free playback (#440); prediction and rollout remain proposed |
 
 ### 3x — Process
 
@@ -101,6 +101,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.12-physics-p2.md](42.12-physics-p2.md) | Experimental P2 (#439): narrower actor profiles, motor surfaces, contact and lifecycle witnesses |
 | [42.11-physics-p1.md](42.11-physics-p1.md) | Experimental P1 (#438): room-owned worlds, paired phase traces, gameplay state and integration validation |
 | [42.13-local-repair.md](42.13-local-repair.md) | Local route repair under `content-5` (#470 part 2): reaction to nearby changes, repairs and their cost against `content-4`; whether #425 is needed for latency |
+| [42.14-physics-p3.md](42.14-physics-p3.md) | Physics privacy, engine-free body/tether playback and body-heavy serialization evidence (#440) |
 
 ### 5x — Map generation
 

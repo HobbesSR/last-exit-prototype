@@ -1,0 +1,94 @@
+{
+  "date": "2026-10-24T05:14:30.781Z",
+  "commit": "ae7c24bfb8aceebb022a0e214058af1aaa98388b",
+  "node": "v24.15.0",
+  "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+  "rendererType": 2,
+  "files": {
+    "tools/physics/visibility-report.mjs": "3727d59661963795a549796e31ed4dc2a1fb858c2e09a667464c36546f15ebf1",
+    "public/arena-scene.js": "2ded6e5cddb622872cad4ac73ddd9ba1b4b898defb89894fbeb7b994c1875fcc",
+    "shared/view.ts": "2170a51e4cdb4a950dd41d017e1188a87a79f5c680f64c2a213509abb7b9b39a",
+    "shared/shape.ts": "8830b2a0979ad03453d8d00f832bf868df0cfc6e3b4d230bf2fec8fea99ef855",
+    "shared/physics/presentation-geometry.ts": "820497921c8039bc0fb69bd455226e1ac15afb69d4021d101dbfff370dd3f490"
+  },
+  "workload": {
+    "warmup": 30,
+    "samples": 120,
+    "viewport": {
+      "width": 900,
+      "height": 700,
+      "zoom": 1.12
+    },
+    "actor": {
+      "x": 500,
+      "y": 400
+    },
+    "wall": {
+      "x": 700,
+      "y": 200,
+      "w": 10,
+      "h": 400
+    },
+    "cases": [
+      "no props",
+      "32 visible + 32 edge + 32 shadow + 32 offscreen",
+      "64 shadow + 64 offscreen"
+    ]
+  },
+  "measurements": [
+    {
+      "name": "baseline",
+      "bodies": 0,
+      "sightEdges": 124,
+      "drawnByCohort": {
+        "visible": 0,
+        "edge": 0,
+        "shadow": 0,
+        "offscreen": 0
+      },
+      "updateCpuMs": {
+        "mean": 0.044166666766007744,
+        "p95": 0.10000002384185791,
+        "max": 0.29999998211860657
+      }
+    },
+    {
+      "name": "mixed",
+      "bodies": 128,
+      "sightEdges": 124,
+      "drawnByCohort": {
+        "visible": 32,
+        "edge": 32,
+        "shadow": 0,
+        "offscreen": 0
+      },
+      "updateCpuMs": {
+        "mean": 0.273333332935969,
+        "p95": 0.4000000059604645,
+        "max": 0.7000000178813934
+      }
+    },
+    {
+      "name": "shadowOffscreen",
+      "bodies": 128,
+      "sightEdges": 124,
+      "drawnByCohort": {
+        "visible": 0,
+        "edge": 0,
+        "shadow": 0,
+        "offscreen": 0
+      },
+      "updateCpuMs": {
+        "mean": 0.24249999995032948,
+        "p95": 0.4000000059604645,
+        "max": 1.0999999940395355
+      }
+    }
+  ],
+  "limitations": [
+    "Synthetic static playback projection; excludes physics simulation, transport and real match scheduling.",
+    "Synchronous scene.update CPU only; excludes Phaser render, GPU time and frame pacing.",
+    "Graphics method hooks count submitted prop circles in one untimed update, not pixels.",
+    "No before/after speedup is inferred from these case timings."
+  ]
+}

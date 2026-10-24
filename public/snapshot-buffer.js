@@ -128,7 +128,34 @@ export function createSnapshotBuffer({ hz, delayTicks, clock = () => performance
       if (!next) return trap;
       return { ...next, x: lerp(trap.x, next.x, t), y: lerp(trap.y, next.y, t), heading: lerpAngle(trap.heading ?? 0, next.heading ?? 0, t) };
     });
-    return { ...a, players, traps, hazardX: a.hazardX == null ? a.hazardX : lerp(a.hazardX, b.hazardX ?? a.hazardX, t), alpha };
+    // A physics projection is a complete authorized list. Its IDs and geometry are never inferred
+    // from the simulation or a later frame. Skipped ticks and profile/lifecycle boundaries cut per
+    // body, while an unrelated body appearing or disappearing need not interrupt existing motion.
+    let bodies = a.bodies;
+    let tethers = a.tethers;
+    if (Array.isArray(a.bodies)) {
+      const adjacent = b !== a && b.tick === a.tick + 1 && a.physicsProfile === b.physicsProfile &&
+        Array.isArray(b.bodies) &&
+        (a.tethers || []).length === (b.tethers || []).length &&
+        (a.tethers || []).every((rope, i) => rope.id === b.tethers[i].id && rope.a === b.tethers[i].a && rope.b === b.tethers[i].b);
+      const laterBodies = adjacent && Array.isArray(b.bodies) ? new Map(b.bodies.map(body => [body.id, body])) : null;
+      bodies = a.bodies.map(body => {
+        const next = laterBodies?.get(body.id);
+        if (!next || next.kind !== body.kind || next.generation !== body.generation || next.discontinuity) return body;
+        return { ...body, x: lerp(body.x, next.x, t), y: lerp(body.y, next.y, t), angle: lerpAngle(body.angle, next.angle, t) };
+      });
+      const shownBodies = new Set(bodies.map(body => body.id));
+      tethers = (a.tethers || []).filter(tether => shownBodies.has(tether.a) && shownBodies.has(tether.b));
+    }
+    const bodyActors = new Map((bodies || []).filter(body => body.kind === 'actor' && body.actorId != null).map(body => [body.actorId, body]));
+    const bodyItems = new Map((bodies || []).filter(body => body.kind === 'prop' && body.itemId != null).map(body => [body.itemId, body]));
+    const alignedPlayers = players.map(p => { const body = bodyActors.get(p.id); return body ? { ...p, x: body.x, y: body.y } : p; });
+    const items = bodyItems.size ? (a.items || []).map(item => {
+      const body = bodyItems.get(item.id); return body ? { ...item, x: body.x, y: body.y } : item;
+    }) : a.items;
+    return { ...a, players: alignedPlayers, items, traps,
+      ...(Array.isArray(a.bodies) ? { bodies, tethers } : {}),
+      hazardX: a.hazardX == null ? a.hazardX : lerp(a.hazardX, b.hazardX ?? a.hazardX, t), alpha };
   }
 
   const stats = () => ({ depth: frames.length, playhead: playhead(), newest: frames.length ? frames[frames.length - 1].tick : null, rate, starved, snaps, delayTicks });

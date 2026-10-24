@@ -23,6 +23,14 @@ export type PhysicsSnapshot = {
     forces: Array<{ id: string; value: Point }>; impulses: Array<{ id: string; value: Point }> };
 };
 
+/** Engine-free display/correction values. Observed actor projections omit optional motion/sleep.
+ * No motors, forces, pending commands or backend settings. */
+export type PhysicsBodyView = Pick<Transform, 'x' | 'y' | 'angle'> & Partial<Pick<Transform, 'vx' | 'vy' | 'omega' | 'sleeping'>> & {
+  id: string; kind: 'actor' | 'prop'; shape: BodyShape; generation: number;
+  actorId?: string; itemId?: string | number; discontinuity?: 'placed';
+};
+export type PhysicsTetherView = { id: string; a: string; b: string };
+
 /** Private, engine-free authoritative state. This is not a backend continuation checkpoint. */
 export interface PhysicsGameplayState {
   discontinuities?: Array<{ id: string; generation: number; kind: 'placed' | 'removed' }> | undefined;

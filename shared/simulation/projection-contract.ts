@@ -1,6 +1,7 @@
 // Closed field contracts for live frame projection. New simulation fields require deliberate opt-in.
 // Iterate source keys so existing serialized field order and optional-field presence are preserved.
 import type { DiscoveryMemory, Inventory, Player, Projected } from '../types.ts';
+import type { BodyShape, PhysicsBodyView, PhysicsTetherView } from '../physics/types.ts';
 
 const projection = (fields: string) => {
   const allowed = new Set(fields.split(' '));
@@ -18,6 +19,21 @@ export const trapFields = projection('id kind x y homeX homeY heading offset coo
 export const projectileFields = projection('id owner trap x y dx dy life damage');
 export const effectFields = projection('id x y kind radius life');
 export const eventFields = projection('id tick text');
+// Physics display records use the same closed boundary as other live fields, including nested shapes.
+export function physicsShapeFields(shape: BodyShape): BodyShape {
+  if (shape.kind === 'circle') return { kind: 'circle', radius: shape.radius };
+  if (shape.kind === 'box') return { kind: 'box', hx: shape.hx, hy: shape.hy };
+  return { kind: 'convex', vertices: shape.vertices.map(({ x, y }) => ({ x, y })) };
+}
+export function physicsBodyFields(body: PhysicsBodyView, full = true): PhysicsBodyView {
+  const { id, kind, x, y, angle, vx, vy, omega, sleeping, generation } = body;
+  return { id, kind, shape: physicsShapeFields(body.shape), x, y, angle,
+    ...(full ? { vx, vy, omega, sleeping } : {}), generation,
+    ...(body.actorId !== undefined ? { actorId: body.actorId } : {}),
+    ...(body.itemId !== undefined ? { itemId: body.itemId } : {}),
+    ...(body.discontinuity === 'placed' ? { discontinuity: 'placed' as const } : {}) };
+}
+export function physicsTetherFields({ id, a, b }: PhysicsTetherView): PhysicsTetherView { return { id, a, b }; }
 export function ownPlayerFields(player: Player, discovery?: DiscoveryMemory | null): Projected<Player> {
   const result = ownFields(player);
   // Carried items are projected through the same item contract; both sides are wire records.

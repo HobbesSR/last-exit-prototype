@@ -618,6 +618,9 @@ export interface Game {
 
 /** A complete authoritative state clone, as recorded and as sent to spectators. */
 export interface Snapshot {
+  physicsProfile?: string;
+  bodies?: import('./physics/types.ts').PhysicsBodyView[];
+  tethers?: import('./physics/types.ts').PhysicsTetherView[];
   /** Private authoritative gameplay physics state, never an exact backend checkpoint or live projection. */
   physics?: import('./physics/types.ts').PhysicsGameplayState;
   version: string;

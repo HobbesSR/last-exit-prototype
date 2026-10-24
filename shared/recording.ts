@@ -21,7 +21,7 @@
  */
 
 /** The schema this build writes. Bump on any change to recorded structure. */
-export const SCHEMA = 9;
+export const SCHEMA = 10;
 /**
  * The oldest schema this build can read. Zero, because recordings predating the schema field carry
  * no `schema` at all and are still playable; raise it only when support is deliberately dropped.
@@ -31,6 +31,11 @@ export const MIN_SCHEMA = 0;
 /** Older renderers assume a diamond, so a recording of a cell-masked arena needs this reader. */
 export function minimumReaderForMap(map: { playableArea?: unknown }): number {
   return map.playableArea ? 4 : MIN_SCHEMA;
+}
+
+/** Physics visuals are required for these explicitly selected rules; ordinary archives keep their floor. */
+export function minimumReaderForMatch(map: { playableArea?: unknown }, hasPhysics: boolean): number {
+  return hasPhysics ? 10 : minimumReaderForMap(map);
 }
 
 /**

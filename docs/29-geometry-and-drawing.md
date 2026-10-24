@@ -21,6 +21,16 @@ maps or recordings changes. The three consumers are collision (`shared/movement.
 re-derives geometry from raw fields any more, which is what previously allowed the renderer and the
 physics to disagree about what an obstacle looked like.
 
+P3 shape visibility follows the same boundary: the physics display adapter
+converts body records with `circle`, `polygon` and `transform`; rendering reads
+their `outline`. `view.ts` owns whether a shape is visible, just as it owns
+point/actor visibility. Its per-frame query clips sight-fan triangles to the
+camera with `clipPolygonToRect`, then asks shared `bounds`, `contains` and
+`overlaps`. Clipping is a geometry primitive in `shape.ts`: it preserves convex
+winding/world coordinates and input arrays, and returns no polygon when the
+intersection has zero area. No second point-in-polygon or segment-intersection
+implementation lives in the physics presentation adapter.
+
 Polygons must be **convex** and consistently wound: SAT separation is only defined for convex bodies,
 and a concave one separates in the wrong direction rather than failing loudly. `convex(points)`
 checks this; generated content should be validated once at build time rather than trusted. Concave

@@ -2,7 +2,7 @@ import { randomUUID, randomBytes } from 'node:crypto';
 import { DEFAULT_KIT, HZ, ROLES } from '../shared/simulation/rules.ts';
 import { defaultContent } from '../shared/simulation/content.ts';
 import { describeContent } from '../shared/presentation.ts';
-import { SCHEMA, minimumReaderForMap } from '../shared/recording.ts';
+import { SCHEMA, minimumReaderForMatch } from '../shared/recording.ts';
 import * as profiler from '../shared/profiler.ts';
 import { createMatch, createLobby } from './match.js';
 import { DEFAULT_LIVE_ZONE_SIZE, zoneSizeName } from '../map/live.ts';
@@ -158,7 +158,7 @@ export function createRoomService({ replays, devTools = 'none', wallNow = Date.n
   function startRecording(room) {
     try {
       const map = room.match.map();
-      room.writer = replays.start({ version: room.match.version, schema: SCHEMA, minSchema: minimumReaderForMap(map), contentId: room.match.contentId, presentation: room.presentation, id: room.id, seed: room.match.seed, hz: HZ, createdAt: room.createdAt, map },
+      room.writer = replays.start({ version: room.match.version, schema: SCHEMA, minSchema: minimumReaderForMatch(map, room.match.hasPhysics === true), contentId: room.match.contentId, presentation: room.presentation, id: room.id, seed: room.match.seed, hz: HZ, createdAt: room.createdAt, map },
         { onError: error => failRecording(room, error) });
       if (room.recordingError) room.writer?.abort?.(room.recordingError);
     } catch (error) { failRecording(room, error); }
