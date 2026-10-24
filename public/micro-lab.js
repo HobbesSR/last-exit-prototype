@@ -6,8 +6,8 @@ import { regionExample, REGION_SHAPES } from '/map/micro/region-examples.ts';
 import { drawAllocation, drawDesignGraph, drawOpenings, drawSpans, guidanceNotMet, traceSummary } from '/map/micro/building/draw.ts';
 import { briefFromFragment } from '/map/micro/brief-link.ts';
 import { firstDifference } from '/map/micro/difference.ts';
-import { canOccupy, moveBody } from '/shared/movement.ts';
-import { GATE_REACH } from '/shared/simulation/rules.ts';
+import { canOccupy } from '/shared/movement.ts';
+import { MOVEMENT_KEYS, toggleNearbyGate, walkWithKeys } from './lab-walk.js';
 import { microMetrics } from '/map/micro/metrics.ts';
 import { createRegionMask, elementShapes, portalStands, spreadPoints, validatePortalReach } from '/map/micro/sdk.ts';
 import { outline, transform } from '/shared/shape.ts';
@@ -211,20 +211,13 @@ canvas.addEventListener('pointerdown', event => {
 canvas.addEventListener('pointermove', event => { if (!drag) return; const point = canvasPoint(event); pan = { x: drag.pan.x + point.x - drag.point.x, y: drag.pan.y + point.y - drag.point.y }; draw(); });
 canvas.addEventListener('pointerup', () => { drag = null; });
 canvas.addEventListener('lostpointercapture', () => { drag = null; });
-function toggleNearbyGate() {
+function toggleGate() {
   if (!avatar || !collision) return;
-  const gate = collision.gates.filter(g => Math.hypot(g.x - avatar.x, g.y - avatar.y) < GATE_REACH).sort((a, b) => Math.hypot(a.x - avatar.x, a.y - avatar.y) - Math.hypot(b.x - avatar.x, b.y - avatar.y))[0];
-  if (!gate) return;
-  if (gate.open) {
-    const closedMap = { ...collision, gates: collision.gates.map(candidate => candidate === gate ? { ...candidate, open: false } : candidate) };
-    const radius = walkerRadius();
-    if (!canOccupy(closedMap, avatar.x, avatar.y, radius)) { $('status').textContent = 'Cannot close a gate on the walker.'; draw(); return; }
-  }
-  gate.open = !gate.open; $('status').textContent = `${gate.open ? 'Opened' : 'Closed'} nearby gate.`; draw();
+  const status = toggleNearbyGate(collision, avatar, walkerRadius());
+  if (status) { $('status').textContent = status; draw(); }
 }
-const movementKeys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight'];
-setInterval(() => { if (!avatar || !collision) return; const input = { x: (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0), y: (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) - (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) }; if (input.x || input.y) { moveBody(collision, avatar, input, walkerRadius(), avatar.role === 'contestant' ? 9 : 8); draw(); } }, 50);
-addEventListener('keydown', event => { if (document.activeElement !== canvas) return; if (movementKeys.includes(event.code)) { keys.add(event.code); event.preventDefault(); } if (event.code === 'KeyE' && !event.repeat) toggleNearbyGate(); });
+walkWithKeys(keys, () => avatar && collision && { map: collision, body: avatar, radius: walkerRadius() }, draw);
+addEventListener('keydown', event => { if (document.activeElement !== canvas) return; if (MOVEMENT_KEYS.includes(event.code)) { keys.add(event.code); event.preventDefault(); } if (event.code === 'KeyE' && !event.repeat) toggleGate(); });
 addEventListener('keyup', event => keys.delete(event.code));
 canvas.addEventListener('blur', () => keys.clear());
 addEventListener('blur', () => keys.clear());
