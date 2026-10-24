@@ -8,7 +8,8 @@ import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
-import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
+import { boundaryBoxFilter, boxesAgainstHints } from '../hints.ts';
+import { latticeSlots } from './lattice.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
@@ -84,16 +85,7 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
       && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
   };
 
-  // Slot origins over the mask's bounds, in row order, so nothing depends on the brief's cell order.
-  const phase = { x: Math.floor(draw(brief.seed, 0, 0, CHANNEL.phaseX) * PERIOD), y: Math.floor(draw(brief.seed, 0, 0, CHANNEL.phaseY) * PERIOD) };
-  const firstHint = hintedCells(brief)[0];
-  if (firstHint) { phase.x = ((firstHint.x % PERIOD) + PERIOD) % PERIOD; phase.y = ((firstHint.y % PERIOD) + PERIOD) % PERIOD; }
-  const span = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
-  for (const { x, y } of mask.cells) Object.assign(span, { x0: Math.min(span.x0, x), y0: Math.min(span.y0, y), x1: Math.max(span.x1, x), y1: Math.max(span.y1, y) });
-  const first = (min: number, offset: number) => offset + Math.floor((min - offset) / PERIOD) * PERIOD;
-  const slots: { x: number; y: number }[] = [];
-  for (let y = first(span.y0, phase.y); y <= span.y1; y += PERIOD)
-    for (let x = first(span.x0, phase.x); x <= span.x1; x += PERIOD) slots.push({ x, y });
+  const slots = latticeSlots(brief, mask, PERIOD, { x: CHANNEL.phaseX, y: CHANNEL.phaseY });
   const key = (x: number, y: number) => `${x},${y}`;
 
   const elements: RegionElement[] = [];
