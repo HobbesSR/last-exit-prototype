@@ -23,6 +23,7 @@ import { liveChainParams, liveSeed } from "../../live.ts";
 import { builtMapFrame, builtPlayableArea } from "../../micro/adapter.ts";
 import { MAX_ARENA_SEED } from "../../../shared/simulation/rules.ts";
 import { chainDraft, openChainEntry, renderChainLibrary } from "./chain-author.ts";
+import { download } from "./download.ts";
 import type { LabReply, LabRequest } from "./worker.ts";
 import { PARTS, PART_FILL, addElementParts, partPaths } from "./parts.ts";
 import type { Part } from "./parts.ts";
@@ -1285,15 +1286,6 @@ function showTooltip(event: PointerEvent): void {
 }
 
 // ── Saving and loading ──────────────────────────────────────────────────────
-
-function download(name: string, body: string | Uint8Array, type: string): void {
-  const url = URL.createObjectURL(new Blob([body as BlobPart], { type }));
-  const link = element("a");
-  link.href = url;
-  link.download = name;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 const saveName = (suffix: string) => `chain-${(map?.layout.seed ?? "map").replace(/[^a-z0-9-]/gi, "_")}${suffix}`;
 

@@ -8,6 +8,7 @@ import { briefFromFragment } from '/map/micro/brief-link.ts';
 import { firstDifference } from '/map/micro/difference.ts';
 import { canOccupy } from '/shared/movement.ts';
 import { MOVEMENT_KEYS, toggleNearbyGate, walkWithKeys } from './lab-walk.js';
+import { downloadJson } from '/download.js';
 import { microMetrics } from '/map/micro/metrics.ts';
 import { createRegionMask, elementShapes, portalStands, spreadPoints, validatePortalReach } from '/map/micro/sdk.ts';
 import { outline, transform } from '/shared/shape.ts';
@@ -230,7 +231,7 @@ $('generate').addEventListener('click', generate); $('reset').addEventListener('
 for (const id of ['design-graph', 'allocation', 'spans', 'openings']) $(id).addEventListener('change', draw);
 $('builder').addEventListener('change', updateApplicableControls);
 for (const id of ['builder', 'body-profile', 'entry-count', 'region-shape', 'region-width', 'region-height', 'seed', 'loot-budget', 'loot-tier', 'north-port']) $(id).addEventListener('change', generate);
-$('download').addEventListener('click', () => { const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' }), url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = result.brief ? `region-${result.brief.type}-${result.brief.seed}.json` : `micro-region-${result.spec.seed}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 0); });
+$('download').addEventListener('click', () => downloadJson(result.brief ? `region-${result.brief.type}-${result.brief.seed}.json` : `micro-region-${result.spec.seed}.json`, result, 2));
 window.microLabDebug = () => structuredClone({ result, imported: imported?.id ?? null, buildings: traces, promise, portalRoutes, drawn, view: { zoom, pan, scale, offset, origin }, avatar: avatar && { x: avatar.x, y: avatar.y, role: avatar.role }, collision: collision && { obstacles: collision.obstacles.length, gates: collision.gates.length } });
 $('import').addEventListener('change', async event => {
   clearTimeout(generationTimer);

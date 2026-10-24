@@ -12,6 +12,7 @@ import { createDiscoveryDecoder } from '/shared/discovery.ts';
 import { readPresentation } from '/shared/presentation.ts';
 import { DEFAULT_KIT } from '/shared/simulation/rules.ts';
 import { PHYSICS_CHARACTER_VERSION } from '/shared/simulation/actor-physics.ts';
+import { downloadJson } from '/download.js';
 import { $, HZ, INTERPOLATION_DELAY_TICKS, kitName, time, fillFollowOptions, fillKitOptions } from '/ui.js';
 
 const icon = name => `<i data-lucide="${name}"></i>`;
@@ -604,8 +605,7 @@ async function downloadReplay(id) {
   try {
     const cached = replayController.cachedData(id);
     const data = cached || await json(`/api/replays/${id}`);
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
-    const a = document.createElement('a'); a.href = url; a.download = `last-exit-${id}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    downloadJson(`last-exit-${id}.json`, data);
   } catch (error) { toast(error.message); }
 }
 $('new-game').onclick = $('play-again').onclick = () => { clearInput(); $('deploy-error').hidden = true; openDeploy('join'); };
@@ -662,9 +662,7 @@ async function downloadDiagnostics() {
     userAgent: navigator.userAgent, hardwareConcurrency: navigator.hardwareConcurrency, visibility: document.visibilityState,
     socketBufferedBytes: ws?.bufferedAmount, timings: diagnosticTimings(), profile: profiler.report() };
   try { report.server = await json('/api/health'); } catch { report.server = { reachable: false }; }
-  const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
-  const a = document.createElement('a'); a.href = url; a.download = `last-exit-diagnostics-${Date.now()}.json`; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadJson(`last-exit-diagnostics-${Date.now()}.json`, report, 2);
 }
 $('download-diagnostics').onclick = () => void downloadDiagnostics();
 $('finish-recording').onclick = () => { if (ws?.readyState === WebSocket.OPEN && owner) { ws.send(JSON.stringify({ type: 'finish' })); $('finish-recording').disabled = true; } };
