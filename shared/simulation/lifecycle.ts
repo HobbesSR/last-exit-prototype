@@ -2,14 +2,16 @@ import { canOccupy } from '../movement.ts';
 import { syncWeapon } from '../equipment.ts';
 import { clearRoute, distance } from './geometry.ts';
 import { RESPAWN_CLEARANCE_RADIUS, RESPAWN_CONTESTANT_DISTANCE, RESPAWN_HAZARD_MARGIN } from './rules.ts';
-import { event, effect, dropEquipment } from './loot.ts';
+import { event, effect, dropEquipment, dropInventorySlot } from './loot.ts';
 import type { Game, Player } from '../types.ts';
 
 export function eliminate(s: Game, target: Player, source: Player | null): void {
   target.status = 'eliminated'; event(s, `${target.name} ${source ? 'eliminated by ' + source.name : 'lost to the arena'}`);
   target.charging = null;
   if (target.role === 'gladiator') { target.status = 'respawning'; target.respawnAt = s.tick + s.content.gladiatorRespawnTicks; target.input = {}; }
-  for (const item of target.inventory || []) if (item) dropEquipment(s, target, item);
+  if (s.content.itemInstances) {
+    for (let slot = 0; slot < (target.inventory?.length ?? 0); slot++) if (target.inventory![slot] && !dropInventorySlot(s, target, slot, true)) throw new Error('invalid mandatory item drop');
+  } else for (const item of target.inventory || []) if (item) dropEquipment(s, target, item);
   if (target.inventory) { target.inventory.fill(null); syncWeapon(target, s.content.weapons); }
   if (source?.role === 'gladiator') {
     source.kills++; source.level = Math.min(4, 1 + source.kills); source.maxHp += 20; source.hp = Math.min(source.maxHp, source.hp + 45); source.cooldown = 0; effect(s, source, 'upgrade', 90);

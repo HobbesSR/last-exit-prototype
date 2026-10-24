@@ -73,7 +73,7 @@ export function snapshot(s: Game): Snapshot {
       const body = itemBodies.get(item.id);
       return body ? { ...item, x: body.x, y: body.y } : item;
     }) : s.map.items;
-    return structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items, gates: s.map.gates, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(physics ? { physics, ...presentation } : {}) });
+    return structuredClone({ version: s.version, duration: s.content.durationTicks, cellChargeTicks: s.content.cellChargeTicks, tick: s.tick, phase: s.phase, rng: s.rng, hazardX: s.hazardX, slots: s.slots, serial: s.serial, players: s.players, items, gates: s.map.gates, traps: s.map.traps, projectiles: s.projectiles, effects: s.effects, events: s.events, ...(s.itemSerial !== undefined ? { itemSerial: s.itemSerial } : {}), ...(physics ? { physics, ...presentation } : {}) });
   }
   finally { stop('sim.snapshot'); }
 }
