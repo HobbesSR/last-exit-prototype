@@ -25,7 +25,7 @@ try {
         { id: 'cloaked-rope', a: 'circle', b: 'cloaked-body' }, { id: 'hidden-rope', a: 'circle', b: 'hidden' }] };
     const api = { map: () => map, state: () => state, self: () => player, playerId: () => player.id, directed: () => false,
       follow: () => null, replay: () => true, onFrame() {}, onReady(scene) { window.scene = scene; }, onFire() {}, frameAlpha: () => 0, aim: () => 0 };
-    window.fixture = { map, player, state };
+    window.fixture = { map, player, state, api };
     window.game = new Phaser.Game({ type: Phaser.WEBGL, width: 900, height: 700, audio: { noAudio: true }, scene: makeArenaScene(api) });
   });
   await page.waitForFunction(() => window.scene?.ready && window.scene.dynamic);
@@ -93,6 +93,22 @@ try {
   assert.ok(cut.sameGenerationEyeX > 600 && cut.sameGenerationEyeX < 620, 'ordinary body motion still eases');
   assert.equal(cut.placementEyeX, 650, 'new placement marker cuts without generation change');
   assert.ok(cut.samePlacementEyeX > 650 && cut.samePlacementEyeX < 670, 'placement marker does not reset the eye every animation frame');
+  const local = await page.evaluate(() => {
+    const { map, state, player, api } = window.fixture, scene = window.scene;
+    api.localPhysics = () => true;
+    api.predictionCut = () => 1;
+    player.x = 600; player.y = 400;
+    scene.update(performance.now(), 16);
+    const first = { x: scene.eye.x, sprite: scene.actors.get('self').container.x };
+    // The render body's retained pose is still 670. Only the local character uses prediction.
+    map.obstacles.push({ id: 'correction-wall', x: 625, y: 300, w: 10, h: 200 });
+    player.x = 660;
+    scene.update(performance.now(), 16);
+    return { first, afterWall: scene.eye.x, sprite: scene.actors.get('self').container.x,
+      renderBody: state.bodies.find(b => b.actorId === 'self').x };
+  });
+  assert.deepEqual(local.first, { x: 600, sprite: 600 }, 'local eye and sprite use prediction rather than the delayed render body');
+  assert.deepEqual([local.afterWall, local.sprite, local.renderBody], [660, 660, 670], 'wall-crossing correction snaps the shared eye without changing the retained body');
   assert.deepEqual(errors, []);
   await page.close();
 } finally {

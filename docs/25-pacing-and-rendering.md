@@ -23,9 +23,17 @@ then cut; profile, endpoint-list and tick-gap changes still hold the body group.
 and velocities remain authoritative values. Props use their embedded shape
 descriptors and tethers join authorized, currently visible endpoints. Replay
 draws the selected stored frame directly, including held sparse gaps, with no
-solver or velocity extrapolation. This slice presents the local physics body
-from authority too; P4 owns its future prediction and correction, so the legacy
-own-player prediction description below does not qualify physics contacts.
+solver or velocity extrapolation. P4 (#441) takes the local live character from
+bounded motor prediction ([29.2](29.2-physics-state-networking.md)), rather than
+overwriting it with the delayed body's pose. Replay and directed views continue
+using recorded/projected bodies. Physical correction is immediate; the one
+camera/sprite/fog/cover eye eases with the existing 31 ms time constant, cutting
+on lifecycle/prediction resets, errors over 150 units, frame intervals over
+`PREDICTION_LIMITS.eyeSnapMs` (200 ms) or a blocked swept path through known geometry.
+The engine-free `public/physics-prediction-limits.js` owns this threshold and
+`staleMs` (500 ms), the prediction authority timeout in [29.2](29.2-physics-state-networking.md).
+This prevents smoothing a correction through a known wall. Remote shortest-angle
+interpolation is unchanged.
 
 Presentation smoothing is separate from simulation rate and belongs entirely to the client. Camera, own sprite, fog and cover all read one eased eye position rather than easing independently, because a fog polygon sampled at the raw predicted position while the camera eased toward it led the world by the easing lag and stepped at the input tick. Anything that only moves on an authoritative frame — projectiles, effect rings — is advanced by the elapsed fraction of a tick, since drawing it at the last received position makes 20 Hz motion visibly step at frame rate. The visibility polygon culls each segment to the angular wedge its endpoints subtend and sweeps those wedges in ray order, which is an exact optimisation, not an approximation, and is tested as such.
 

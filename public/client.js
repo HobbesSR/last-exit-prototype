@@ -19,6 +19,29 @@ const icon = name => `<i data-lucide="${name}"></i>`;
 const icons = () => window.lucide?.createIcons();
 let ws, roomId, ownerKey, playerId, owner = false, arenaMap, state, liveMap, liveState, predicted;
 let seq = 0, pending = [], selectedRole = 'contestant', savedReplay, recordingFailed = false;
+let physicsPrediction = null, predictionLoading = false, predictionEpoch = 0;
+function resetPhysicsPrediction() {
+  predictionEpoch++; physicsPrediction?.dispose(); physicsPrediction = null; predictionLoading = false;
+}
+function correctPhysicsPrediction(frame) {
+  if (physicsPrediction) { predicted = physicsPrediction.correct(frame) || predicted; return; }
+  if (predictionLoading) return;
+  predictionLoading = true;
+  const epoch = predictionEpoch, map = arenaMap, id = playerId;
+  import('/physics-prediction.js').then(m => m.createPhysicsPrediction(map, id)).then(controller => {
+    if (epoch !== predictionEpoch) { controller.dispose(); return; }
+    physicsPrediction = controller; predictionLoading = false;
+    if (state?.physicsProfile && !directed()) {
+      predicted = controller.correct(state) || predicted;
+      for (const input of pending) predicted = controller.input(input) || predicted;
+    }
+  }).catch(error => {
+    if (epoch === predictionEpoch) {
+      // Keep server-driven motion if initialization is unavailable. No legacy motor fallback.
+      console.error('Physics prediction unavailable', error);
+    }
+  });
+}
 let discoveryDecoder = createDiscoveryDecoder();
 // This connection is the dev view (24): undelayed and unfogged, with the director's free camera.
 let devView = false, devRoster = '';
@@ -105,7 +128,13 @@ async function json(url, options) {
   return result;
 }
 function clearInput() { hudController.cancelDrag(); inputController.reset(); }
-function changeMap(map) { director.clearPosition(); arenaMap = structuredClone(map); if (scene?.ready) scene.buildMap(); }
+document.addEventListener('visibilitychange', () => {
+  if (!state?.physicsProfile) return;
+  resetPhysicsPrediction(); clearInput();
+  const me = state.players.find(p => p.id === playerId);
+  predicted = me && { ...me }; scene?.cutTo();
+});
+function changeMap(map) { resetPhysicsPrediction(); director.clearPosition(); arenaMap = structuredClone(map); if (scene?.ready) scene.buildMap(); }
 /** The descriptor of whatever is shown: the open recording, the dev feed, or the live room. */
 function displayPresentation() {
   if (replayController.active()) return replayController.presentation();
@@ -214,6 +243,7 @@ async function connect({ room, key, role = 'contestant', kit = DEFAULT_KIT, name
   savedDevCamera = null;
   if (ws) { disconnecting = true; ws.close(); }
   clearInput(); pending = []; seq = 0; savedReplay = null; recordingFailed = false; playerId = null;
+  resetPhysicsPrediction();
   // Nothing of the previous room carries over: a room still generating sends no state until `ready`,
   // and an error before then must find this room stateless, not the last one's frame.
   state = null; liveMap = null; liveState = null; predicted = null;
@@ -326,7 +356,7 @@ async function connect({ room, key, role = 'contestant', kit = DEFAULT_KIT, name
     }
   });
   socket.addEventListener('close', () => {
-    if (ws === socket && !disconnecting) { connection('OFFLINE'); clearInput(); if (!replayController.active()) toast('Connection closed. Open Lobbies to reconnect.'); }
+    if (ws === socket && !disconnecting) { connection('OFFLINE'); clearInput(); resetPhysicsPrediction(); if (!replayController.active()) toast('Connection closed. Open Lobbies to reconnect.'); }
   });
   socket.addEventListener('error', () => { if (ws === socket) toast('Unable to connect to the arena server.'); });
 }
@@ -340,7 +370,13 @@ function acceptState(next) {
   if (me && !replayController.active() && !devFeed) {
     pending = pending.filter(i => i.seq > me.lastSeq).slice(-20);
     predicted = { ...me };
-    if (me.status === 'active') for (const input of pending) movePlayer(arenaMap, predicted, input);
+    if (state.physicsProfile) correctPhysicsPrediction(state);
+    else {
+      if (physicsPrediction || predictionLoading) resetPhysicsPrediction();
+      if (me.status === 'active') for (const input of pending) movePlayer(arenaMap, predicted, input);
+    }
+  } else if (!me && !directed()) {
+    predicted = null; resetPhysicsPrediction();
   }
   updateHUD();
 }
@@ -395,6 +431,8 @@ let scene;
 const ArenaScene = makeArenaScene({
   map: () => arenaMap, state: () => presentationFrame(), playerId: () => playerId,
   self: () => !replayController.active() && predicted ? predicted : state?.players.find(p => p.id === playerId) || null,
+  localPhysics: () => !directed() && !!state?.physicsProfile,
+  predictionCut: () => physicsPrediction?.stats().cuts,
   replay: () => replayController.active(), directed, aim: () => inputController.aim(),
   // Geometry is match display data, shown only after a dev welcome has authorized this view. The
   // version check stays: a legacy match factory can carry the same descriptor without the bodies.
@@ -439,6 +477,7 @@ function togglePause() {
   if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'dev', action: paused ? 'resume' : 'pause' }));
 }
 function inputTick() {
+  if (state?.physicsProfile && document.hidden) return;
   if (paused || devFeed || replayController.active() || !state || !predicted || !ws || ws.readyState !== WebSocket.OPEN || predicted.status !== 'active') { hudController.cancelDrag(); return; }
   const blocked = document.querySelector('dialog:modal');
   if (blocked) hudController.cancelDrag();
@@ -449,7 +488,9 @@ function inputTick() {
   }
   const input = { type: 'input', seq: seq++, ...inputController.collectIntent({ blocked, pointerAim }) };
   ws.send(JSON.stringify(input)); pending.push(input); pending = pending.slice(-20);
-  movePlayer(arenaMap, predicted, input); inputController.consumeActions();
+  if (state.physicsProfile) predicted = physicsPrediction?.input(input) || predicted;
+  else movePlayer(arenaMap, predicted, input);
+  inputController.consumeActions();
   hudController.setSneak(input.sneak);
 }
 /** Runs one way into a room from the deploy dialog, reporting a refusal there; one at a time. */
@@ -787,4 +828,5 @@ window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, role: 'spect
 // Read-only inspection surface for reproducible browser smoke tests.
 window.arenaDebug = () => ({ tick: state?.tick, version: state?.version, room: roomId, content: displayPresentation()?.contentId ?? null, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: director.followId(), dev: inDevView(), devFeed: !!devFeed, view: currentView(), paused, fog: director.fog(), viewer: director.viewer()?.id ?? null, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y, geometry: { visible: a.geometry.visible, scale: a.geometry.scaleX, commands: a.geometry.visible ? a.geometry.commandBuffer : [] } })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, map: arenaMap && { seed: arenaMap.seed, width: arenaMap.width, height: arenaMap.height, playableArea: arenaMap.playableArea, exit: arenaMap.exit, spawns: arenaMap.spawns, hunterSpawns: arenaMap.hunterSpawns, stations: arenaMap.stations.map(({ x, y }) => ({ x, y })), chargers: arenaMap.chargers.map(({ x, y }) => ({ x, y })) }, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
   discoveredCount: discoveryDecoder?.known.size ?? 0,
+  physicsPrediction: physicsPrediction?.stats() ?? null,
   pending: pending.length, inputStalled: state?.players.find(p => p.id === playerId)?.inputStalled ?? null, rtt: roundTripMs });

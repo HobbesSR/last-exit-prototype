@@ -1,10 +1,11 @@
-import { visibilityPolygon, gateShape, insideMap } from '/shared/movement.ts';
+import { visibilityPolygon, gateShape, insideMap, sweptClear } from '/shared/movement.ts';
 import { playerZoom, markerScale, labelScale, LABEL_FONT_PX, viewBounds, viewRadius, seesPoint, seesActor, observeGates, buildingAt, roofAt, roofGroups, roofOverhang, roofCellBorders, roofRevealed, stepRoofAlpha, openingDistance, INSIDE_ZOOM, ROOF_OVERHANG, LOD_LOW_ZOOM, LOD_LABEL_ZOOM, LOD_MEDIUM_ZOOM } from '/shared/view.ts';
 import { shapeOf, outline, bounds } from '/shared/shape.ts';
 import { bodyRadius, bodyShape } from '/shared/physics/presentation-geometry.ts';
 import { createShapeVisibility } from '/shared/view.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
+import { PREDICTION_LIMITS } from '/physics-prediction-limits.js';
 
 const COLORS = { access: 0xf4d26c, med: 0xff8b97, weapon: 0x8bd9f0, shield: 0xa3b9ff, cell: 0xffe98a };
 const PALETTE = [0x8d5669, 0x526f80, 0x8c815a];
@@ -578,7 +579,7 @@ export function makeArenaScene(api) {
       const actorBodies = new Map((state.bodies || []).filter(body => body.kind === 'actor' && body.actorId != null).map(body => [body.actorId, body]));
       const itemBodies = new Map((state.bodies || []).filter(body => body.kind === 'prop' && body.itemId != null).map(body => [body.itemId, body]));
       const selfBody = rawSelf && actorBodies.get(rawSelf.id);
-      const self = selfBody ? { ...rawSelf, x: selfBody.x, y: selfBody.y } : rawSelf;
+      const self = selfBody && !api.localPhysics?.() ? { ...rawSelf, x: selfBody.x, y: selfBody.y } : rawSelf;
       // Camera, own sprite, fog and cover all read one eased eye. Previously the fog sampled the raw
       // predicted position while the camera and sprite eased toward it, so the shadows led the world
       // by the easing lag and stepped at the 20 Hz input tick instead of gliding with the frame.
@@ -597,16 +598,18 @@ export function makeArenaScene(api) {
       const focus = api.directed() ? follow : self;
       const focusBody = api.directed() ? followBody : selfBody;
       const eyeBodyKey = focus ? { focusId: focus.id, bodyId: focusBody?.id, generation: focusBody?.generation,
+        predictionCut: api.localPhysics?.() ? api.predictionCut?.() : undefined,
         profile: focusBody ? state.physicsProfile : undefined,
         placementTick: focusBody?.discontinuity === 'placed' ? state.tick : null } : null;
       const previousEyeBodyKey = this.eyeBodyKey;
       const bodyCut = eyeBodyKey && previousEyeBodyKey && (focusBody || previousEyeBodyKey.bodyId != null) &&
         (eyeBodyKey.focusId !== previousEyeBodyKey.focusId || eyeBodyKey.bodyId !== previousEyeBodyKey.bodyId ||
-          eyeBodyKey.generation !== previousEyeBodyKey.generation || eyeBodyKey.profile !== previousEyeBodyKey.profile ||
+          eyeBodyKey.generation !== previousEyeBodyKey.generation || eyeBodyKey.profile !== previousEyeBodyKey.profile || eyeBodyKey.predictionCut !== previousEyeBodyKey.predictionCut ||
           eyeBodyKey.placementTick != null && eyeBodyKey.placementTick !== previousEyeBodyKey.placementTick);
       this.eyeBodyKey = eyeBodyKey;
       if (!focus) this.eye = null;
-      else if (!this.eye || bodyCut || Math.hypot(focus.x - this.eye.x, focus.y - this.eye.y) > 150) this.eye = { x: focus.x, y: focus.y };
+      else if (!this.eye || bodyCut || Math.hypot(focus.x - this.eye.x, focus.y - this.eye.y) > 150 ||
+        api.localPhysics?.() && ((rawDelta ?? delta) > PREDICTION_LIMITS.eyeSnapMs || !sweptClear(map, this.eye, focus, selfBody ? bodyRadius(selfBody.shape) : 12))) this.eye = { x: focus.x, y: focus.y };
       else { this.eye.x = Phaser.Math.Linear(this.eye.x, focus.x, ease); this.eye.y = Phaser.Math.Linear(this.eye.y, focus.y, ease); }
       const eye = this.eye;
       // Whose sight the view is cut to: the player's own, a followed player's in a fogged directed

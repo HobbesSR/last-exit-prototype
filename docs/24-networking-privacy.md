@@ -25,6 +25,18 @@ never as a client statement.
 
 ## Lag compensation
 
+Experimental physics P4 (#441) adds own-view-only `predictionMotor` tuning
+(acceleration, braking, maximum speed) beside the authorized correction-tick
+body lists. Own velocity remains private to that player; observed actors still
+omit motion and sleep fields. Fixed prediction proxies use only authorized
+projected poses. No hidden contacts, force sources, endpoint IDs or backend
+checkpoints are sent to explain correction. Tick, consumed `lastSeq`, body
+generation and placement define reconciliation boundaries ([29.2](29.2-physics-state-networking.md)).
+The own-only `predictionTethered` movement-status flag enables fallback without
+revealing a hidden tether endpoint.
+This live-only addition changes no recording/schema, server rules or content
+identity, and physics remains explicitly opt-in.
+
 A player aims at what is on their screen, and what is on their screen is old: two ticks of
 interpolation delay by design, plus however long the frame took to arrive. Resolving a swing against
 where the target is *now* charges the attacker for both, and the amount is invisible and varies with

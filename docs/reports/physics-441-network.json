@@ -1,0 +1,773 @@
+{
+  "witness": "P4 deterministic scheduled-delivery lab",
+  "date": "2026-10-24T18:35:47.949Z",
+  "commit": "e4658f7d59ab8f328d79803de4815d40ccda4dce",
+  "dirtySources": [
+    "M public/physics-prediction.js",
+    " M shared/physics/world.ts",
+    " M shared/simulation/actor-physics.ts",
+    " M shared/simulation/visibility.ts",
+    " M tools/physics/prediction-network.mjs",
+    "?? public/physics-prediction-limits.js",
+    "?? shared/physics/motion-limits.ts"
+  ],
+  "hashes": {
+    "tools/physics/prediction-network.mjs": "45913ad269016da03263fcafff67de67c37df2cb801bce0b4c0c632fc542dd58",
+    "tests/physics-prediction.browser.mjs": "d6d630ee75cfe132743fa1bcde7c0bfb466b1aedee25e8a91d0f7694654e8a2c",
+    "public/physics-prediction.js": "bbe0832625391803c4b434c8a23da78bb9811e7584bc92d100927ff8738fd224",
+    "public/physics-prediction-limits.js": "a3a4b340f518e27ef0019760f6ad2469c94753f64451496dff791e8504e5a79d",
+    "shared/physics/world.ts": "75f79f1609d5b1f1e91b5d7a8298f7fa67952fb542f490bbe8dbe4e3d5a6aa77",
+    "shared/physics/motion-limits.ts": "9c4de805fb8891b64a3c7b941ad84f243e663de91bbb902967397e56f8ba4583",
+    "shared/simulation/phased.ts": "0b67373e7e7212415ea13f5fa74b5d870ca1f54a9201d1b788b686115c22e1ad",
+    "shared/simulation/visibility.ts": "60655e336f8c4f7cf7939ab4f58afc1e8a450dbe842630cc5af476f9f020a1f1",
+    "shared/simulation/input.ts": "ba56a69f07f379071ea2902c0314e9d95850dccbea9692755f57bd0ba42c4d5c",
+    "shared/simulation/actor-physics.ts": "73705bc50efea49f63373747b509601a88aa1899cc1a2812f1f19a5e9fdd5b52",
+    "shared/simulation/content.ts": "455ded1d558b23e96921e5608d1dcbcdc960d0928e897d569b662ac0f370fc58",
+    "package-lock.json": "1e984c99c6e11c1647fe3deea7b2b3e099e6db5bae697a68a1882aabdc8974d6",
+    "node_modules/@dimforge/rapier2d-compat/dist/rapier_wasm2d_bg.wasm": "322b00649f412e75e047c79741b6b89e6323f6f81034d114a9e8ab872bae7435"
+  },
+  "runtime": {
+    "node": "v24.15.0",
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "cpu": "AMD Ryzen 9 5900X 12-Core Processor            ",
+    "rapierPackage": "0.21.0"
+  },
+  "settings": {
+    "seed": 441,
+    "map": "authored 800x600 full mask, wall and gate; two contestants plus gladiator",
+    "physicsContent": "content-physics-2",
+    "actorPhysics": {
+      "geometry": {
+        "contestant": {
+          "headRadius": 14.109375,
+          "bodyRadius": 11.2875,
+          "hurtRadius": 12
+        },
+        "gladiator": {
+          "headRadius": 20.3125,
+          "bodyRadius": 16.25,
+          "hurtRadius": 23
+        }
+      },
+      "acceleration": 3600,
+      "braking": 3600,
+      "maxImpulse": 600,
+      "maxSpeed": 600
+    },
+    "profiles": [
+      {
+        "name": "rtt-0",
+        "rtt": 0
+      },
+      {
+        "name": "rtt-50",
+        "rtt": 50
+      },
+      {
+        "name": "rtt-100",
+        "rtt": 100
+      },
+      {
+        "name": "rtt-200",
+        "rtt": 200
+      },
+      {
+        "name": "jitter-and-stall",
+        "rtt": 100,
+        "jitter": true,
+        "stall": true
+      },
+      {
+        "name": "application-frame-gaps",
+        "rtt": 50,
+        "frameGaps": true
+      },
+      {
+        "name": "background-resume",
+        "rtt": 100,
+        "background": true
+      },
+      {
+        "name": "reconnect",
+        "rtt": 100,
+        "reconnect": true
+      },
+      {
+        "name": "hidden-contact",
+        "rtt": 50,
+        "hidden": true
+      },
+      {
+        "name": "stale-known-door",
+        "rtt": 50,
+        "staleDoor": true
+      },
+      {
+        "name": "queue-trim-and-repeats",
+        "rtt": 100,
+        "burst": true,
+        "stall": true
+      }
+    ],
+    "sampling": "once per tick at t+49 ms after scheduled events",
+    "clock": "synthetic millisecond event time",
+    "ordering": "reliable FIFO per connection direction"
+  },
+  "tickMs": 50,
+  "ticks": 85,
+  "limitations": [
+    "Synthetic ordered/reliable message scheduling; no real socket, browser event loop, packet loss or bandwidth congestion",
+    "Hidden proxy withholding and stale gate memory are injected into projections for stress; not emitted by playerView in these nearby scenarios",
+    "CPU numbers are Node wall-clock samples for predictor calls and require uncontended repeat runs for regression claims",
+    "Error samples compare current predictor pose with current authority each tick, including legitimate in-flight delay"
+  ],
+  "results": [
+    {
+      "name": "rtt-0",
+      "rttMs": 0,
+      "samples": 85,
+      "errorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "neutralInputTick": 60,
+      "settleTicksAfterNeutral": 0,
+      "settleThresholdUnits": 1,
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "maxReplay": 0,
+      "witnessCounts": {
+        "predictorResets": 0,
+        "serverQueueResets": 0,
+        "trimmedInputs": 0,
+        "authorityRepeatTicks": 0
+      },
+      "bytes": {
+        "inputs": 3060,
+        "frames": 143243,
+        "total": 146303
+      },
+      "cpuMs": {
+        "input": {
+          "p50": 0.129,
+          "p95": 0.762,
+          "p99": 4.542,
+          "max": 4.542
+        },
+        "correct": {
+          "p50": 0.179,
+          "p95": 0.614,
+          "p99": 2.803,
+          "max": 2.803
+        }
+      },
+      "authority": {
+        "maxQueueDepthObserved": 0,
+        "maxRepeatTicks": 0,
+        "finalAckBySession": [
+          84
+        ]
+      }
+    },
+    {
+      "name": "rtt-50",
+      "rttMs": 50,
+      "samples": 85,
+      "errorUnits": {
+        "p50": 9,
+        "p95": 9,
+        "p99": 9,
+        "max": 9
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "neutralInputTick": 60,
+      "settleTicksAfterNeutral": 1,
+      "settleThresholdUnits": 1,
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "maxReplay": 1,
+      "witnessCounts": {
+        "predictorResets": 0,
+        "serverQueueResets": 0,
+        "trimmedInputs": 0,
+        "authorityRepeatTicks": 1
+      },
+      "bytes": {
+        "inputs": 3060,
+        "frames": 143215,
+        "total": 146275
+      },
+      "cpuMs": {
+        "input": {
+          "p50": 0.065,
+          "p95": 0.125,
+          "p99": 0.511,
+          "max": 0.511
+        },
+        "correct": {
+          "p50": 0.22,
+          "p95": 0.345,
+          "p99": 1.462,
+          "max": 1.462
+        }
+      },
+      "authority": {
+        "maxQueueDepthObserved": 0,
+        "maxRepeatTicks": 1,
+        "finalAckBySession": [
+          83
+        ]
+      }
+    },
+    {
+      "name": "rtt-100",
+      "rttMs": 100,
+      "samples": 85,
+      "errorUnits": {
+        "p50": 9,
+        "p95": 9,
+        "p99": 9,
+        "max": 9
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "neutralInputTick": 60,
+      "settleTicksAfterNeutral": 1,
+      "settleThresholdUnits": 1,
+      "corrections": 86,
+      "predictedTicks": 83,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "maxReplay": 2,
+      "witnessCounts": {
+        "predictorResets": 0,
+        "serverQueueResets": 0,
+        "trimmedInputs": 0,
+        "authorityRepeatTicks": 1
+      },
+      "bytes": {
+        "inputs": 3060,
+        "frames": 143215,
+        "total": 146275
+      },
+      "cpuMs": {
+        "input": {
+          "p50": 0.055,
+          "p95": 0.089,
+          "p99": 0.154,
+          "max": 0.154
+        },
+        "correct": {
+          "p50": 0.239,
+          "p95": 0.353,
+          "p99": 1.319,
+          "max": 1.319
+        }
+      },
+      "authority": {
+        "maxQueueDepthObserved": 0,
+        "maxRepeatTicks": 1,
+        "finalAckBySession": [
+          83
+        ]
+      }
+    },
+    {
+      "name": "rtt-200",
+      "rttMs": 200,
+      "samples": 85,
+      "errorUnits": {
+        "p50": 18,
+        "p95": 18,
+        "p99": 18,
+        "max": 18
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "neutralInputTick": 60,
+      "settleTicksAfterNeutral": 2,
+      "settleThresholdUnits": 1,
+      "corrections": 86,
+      "predictedTicks": 82,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "maxReplay": 4,
+      "witnessCounts": {
+        "predictorResets": 0,
+        "serverQueueResets": 0,
+        "trimmedInputs": 0,
+        "authorityRepeatTicks": 2
+      },
+      "bytes": {
+        "inputs": 3060,
+        "frames": 143187,
+        "total": 146247
+      },
+      "cpuMs": {
+        "input": {
+          "p50": 0.048,
+          "p95": 0.089,
+          "p99": 0.159,
+          "max": 0.159
+        },
+        "correct": {
+          "p50": 0.309,
+          "p95": 0.468,
+          "p99": 0.72,
+          "max": 0.72
+        }
+      },
+      "authority": {
+        "maxQueueDepthObserved": 0,
+        "maxRepeatTicks": 2,
+        "finalAckBySession": [
+          82
+        ]
+      }
+    },
+    {
+      "name": "jitter-and-stall",
+      "rttMs": 100,
+      "samples": 85,
+      "errorUnits": {
+        "p50": 18,
+        "p95": 45.001,
+        "p99": 72.002,
+        "max": 72.002
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "neutralInputTick": 60,
+      "settleTicksAfterNeutral": 4,
+      "settleThresholdUnits": 1,
+      "corrections": 86,
+      "predictedTicks": 82,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "maxReplay": 8,
+      "witnessCounts": {
+        "predictorResets": 0,
+        "serverQueueResets": 0,
+        "trimmedInputs": 5,
+        "authorityRepeatTicks": 9
+      },
+      "bytes": {
+        "inputs": 3060,
+        "frames": 143302,
+        "total": 146362
+      },
+      "cpuMs": {
+        "input": {
+          "p50": 0.053,
+          "p95": 0.082,
+          "p99": 0.122,
+          "max": 0.122
+        },
+        "correct": {
+          "p50": 0.309,
+          "p95": 0.474,
+          "p99": 0.958,
+          "max": 0.958
+        }
+      },
+      "authority": {
+        "maxQueueDepthObserved": 0,
+        "maxRepeatTicks": 7,
+        "finalAckBySession": [
+          80
+        ]
+      }
+    },
+    {
+      "name": "application-frame-gaps",
+      "rttMs": 50,
+      "samples": 85,
+      "errorUnits": {
+        "p50": 9,
+        "p95": 9,
+        "p99": 9,
+        "max": 9
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "neutralInputTick": 60,
+      "settleTicksAfterNeutral": 1,
+      "settleThresholdUnits": 1,
+      "corrections": 80,
+      "predictedTicks": 83,
+      "cutsByReason": {
+        "placement": 2,
+        "frame-gap": 1
+      },
+      "maxReplay": 1,
+      "witnessCounts": {
+        "predictorResets": 0,
+        "serverQueueResets": 0,
+        "trimmedInputs": 0,
+        "authorityRepeatTicks": 1
+      },
+      "bytes": {
+        "inputs": 3060,
+        "frames": 133105,
+        "total": 136165
+      },
+      "cpuMs": {
+        "input": {
+          "p50": 0.05,
+          "p95": 0.094,
+          "p99": 0.154,
+          "max": 0.154
+        },
+        "correct": {
+          "p50": 0.18,
+          "p95": 0.336,
+          "p99": 0.774,
+          "max": 0.774
+        }
+      },
+      "authority": {
+        "maxQueueDepthObserved": 0,
+        "maxRepeatTicks": 1,
+        "finalAckBySession": [
+          83
+        ]
+      }
+    },
+    {
+      "name": "background-resume",
+      "rttMs": 100,
+      "samples": 69,
+      "errorUnits": {
+        "p50": 9,
+        "p95": 9,
+        "p99": 9,
+        "max": 9
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 5.625,
+        "max": 5.625
+      },
+      "neutralInputTick": 60,
+      "settleTicksAfterNeutral": 1,
+      "settleThresholdUnits": 1,
+      "corrections": 70,
+      "predictedTicks": 67,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "maxReplay": 2,
+      "witnessCounts": {
+        "predictorResets": 1,
+        "serverQueueResets": 0,
+        "trimmedInputs": 0,
+        "authorityRepeatTicks": 17
+      },
+      "bytes": {
+        "inputs": 2484,
+        "frames": 143203,
+        "total": 145687
+      },
+      "cpuMs": {
+        "input": {
+          "p50": 0.048,
+          "p95": 0.095,
+          "p99": 0.599,
+          "max": 0.599
+        },
+        "correct": {
+          "p50": 0.211,
+          "p95": 0.574,
+          "p99": 1.47,
+          "max": 1.47
+        }
+      },
+      "authority": {
+        "maxQueueDepthObserved": 0,
+        "maxRepeatTicks": 16,
+        "finalAckBySession": [
+          67
+        ]
+      }
+    },
+    {
+      "name": "reconnect",
+      "rttMs": 100,
+      "samples": 77,
+      "errorUnits": {
+        "p50": 9,
+        "p95": 9,
+        "p99": 9,
+        "max": 9
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 5.625,
+        "max": 5.625
+      },
+      "neutralInputTick": 60,
+      "settleTicksAfterNeutral": 1,
+      "settleThresholdUnits": 1,
+      "corrections": 78,
+      "predictedTicks": 75,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "maxReplay": 2,
+      "witnessCounts": {
+        "predictorResets": 1,
+        "serverQueueResets": 1,
+        "trimmedInputs": 0,
+        "authorityRepeatTicks": 10
+      },
+      "bytes": {
+        "inputs": 2762,
+        "frames": 129718,
+        "total": 132480
+      },
+      "cpuMs": {
+        "input": {
+          "p50": 0.04,
+          "p95": 0.068,
+          "p99": 0.164,
+          "max": 0.164
+        },
+        "correct": {
+          "p50": 0.185,
+          "p95": 0.288,
+          "p99": 1.344,
+          "max": 1.344
+        }
+      },
+      "authority": {
+        "maxQueueDepthObserved": 0,
+        "maxRepeatTicks": 8,
+        "finalAckBySession": [
+          24,
+          48
+        ]
+      }
+    },
+    {
+      "name": "hidden-contact",
+      "rttMs": 50,
+      "samples": 85,
+      "errorUnits": {
+        "p50": 7.313,
+        "p95": 9,
+        "p99": 9,
+        "max": 9
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 5.06,
+        "p95": 5.063,
+        "p99": 5.063,
+        "max": 5.063
+      },
+      "neutralInputTick": 60,
+      "settleTicksAfterNeutral": 1,
+      "settleThresholdUnits": 1,
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "maxReplay": 1,
+      "witnessCounts": {
+        "predictorResets": 0,
+        "serverQueueResets": 0,
+        "trimmedInputs": 0,
+        "authorityRepeatTicks": 1
+      },
+      "bytes": {
+        "inputs": 3060,
+        "frames": 134041,
+        "total": 137101
+      },
+      "cpuMs": {
+        "input": {
+          "p50": 0.038,
+          "p95": 0.079,
+          "p99": 0.086,
+          "max": 0.086
+        },
+        "correct": {
+          "p50": 0.137,
+          "p95": 0.227,
+          "p99": 0.401,
+          "max": 0.401
+        }
+      },
+      "authority": {
+        "maxQueueDepthObserved": 0,
+        "maxRepeatTicks": 1,
+        "finalAckBySession": [
+          83
+        ]
+      }
+    },
+    {
+      "name": "stale-known-door",
+      "rttMs": 50,
+      "samples": 85,
+      "errorUnits": {
+        "p50": 5.625,
+        "p95": 9,
+        "p99": 9,
+        "max": 9
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 5.625,
+        "p99": 5.625,
+        "max": 5.625
+      },
+      "neutralInputTick": 60,
+      "settleTicksAfterNeutral": 1,
+      "settleThresholdUnits": 1,
+      "corrections": 86,
+      "predictedTicks": 84,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "maxReplay": 1,
+      "witnessCounts": {
+        "predictorResets": 0,
+        "serverQueueResets": 0,
+        "trimmedInputs": 0,
+        "authorityRepeatTicks": 1
+      },
+      "door": {
+        "authorityMaxX": 396.735,
+        "predictionMaxX": 402.36,
+        "maxPredictedLead": 9
+      },
+      "bytes": {
+        "inputs": 3060,
+        "frames": 143385,
+        "total": 146445
+      },
+      "cpuMs": {
+        "input": {
+          "p50": 0.039,
+          "p95": 0.064,
+          "p99": 0.31,
+          "max": 0.31
+        },
+        "correct": {
+          "p50": 0.152,
+          "p95": 0.246,
+          "p99": 0.49,
+          "max": 0.49
+        }
+      },
+      "authority": {
+        "maxQueueDepthObserved": 0,
+        "maxRepeatTicks": 1,
+        "finalAckBySession": [
+          83
+        ]
+      }
+    },
+    {
+      "name": "queue-trim-and-repeats",
+      "rttMs": 100,
+      "samples": 85,
+      "errorUnits": {
+        "p50": 9,
+        "p95": 54.001,
+        "p99": 72.002,
+        "max": 72.002
+      },
+      "preCorrectionErrorUnits": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "neutralInputTick": 60,
+      "settleTicksAfterNeutral": 4,
+      "settleThresholdUnits": 1,
+      "corrections": 86,
+      "predictedTicks": 79,
+      "cutsByReason": {
+        "placement": 2
+      },
+      "maxReplay": 8,
+      "witnessCounts": {
+        "predictorResets": 0,
+        "serverQueueResets": 0,
+        "trimmedInputs": 11,
+        "authorityRepeatTicks": 6
+      },
+      "bytes": {
+        "inputs": 3384,
+        "frames": 143303,
+        "total": 146687
+      },
+      "cpuMs": {
+        "input": {
+          "p50": 0.036,
+          "p95": 0.056,
+          "p99": 0.376,
+          "max": 0.376
+        },
+        "correct": {
+          "p50": 0.267,
+          "p95": 0.457,
+          "p99": 0.67,
+          "max": 0.67
+        }
+      },
+      "authority": {
+        "maxQueueDepthObserved": 4,
+        "maxRepeatTicks": 5,
+        "finalAckBySession": [
+          89
+        ]
+      }
+    }
+  ]
+}
