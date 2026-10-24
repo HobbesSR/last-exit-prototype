@@ -8,6 +8,7 @@ import { capsule, createAccessMask, createFillMask, createRegionMask, elementSha
 import { hunterClearance, portalStands, validatePortalReach } from '../portals.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
+import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, Portal, RegionBrief, RegionElement } from '../types.ts';
 
@@ -128,8 +129,14 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
   };
   if (!holds([])) return unfilledRegion(brief, CHANNEL.loot);
 
-  const elements: RegionElement[] = [];
+  // `elements` holds the accepted pieces and one trial; the canvas takes each accepted piece.
+  const elements: RegionElement[] = [], canvas = createBuilderCanvas(brief);
   const blockers = (): Shape[] => elements.flatMap(element => elementShapes(element));
+  // Siting and the route proof have already accepted the piece. A canvas refusal is a broken
+  // placement invariant, rather than a new fallback that silently changes the seeded build.
+  const commit = (element: RegionElement) => {
+    if (!canvas.commit({ elements: [element] })) throw new Error(`Checkpoint placement ${element.label} failed its canvas commit.`);
+  };
   const barriers: Box[] = [];
 
   // The line between the two farthest portals, and the barriers stood along it.
@@ -164,7 +171,7 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
       const [element] = placedElements(expectPlaced(CHECKPOINT_BARRIER.build({ w: box.w, h: box.h }, size)),
         `checkpoint-barrier-${barriers.length + 1}`, box.x, box.y, size) as [RegionElement];
       elements.push(element);
-      if (holds(blockers())) barriers.push(box); else elements.pop();
+      if (holds(blockers())) { commit(element); barriers.push(box); } else elements.pop();
     }
   }
 
@@ -199,6 +206,7 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
     const [element] = placedElements(built, 'checkpoint-post-1', box.x, box.y, size) as [RegionElement];
     elements.push(element);
     if (!holds(blockers())) { elements.pop(); continue; }
+    commit(element);
     if (design.spaces.length > 1) designed++;
     observe?.({ label: element.label, origin: { x: box.x * size, y: box.y * size }, cellSize: size, design, allocation, realization, ...rejected.length ? { rejected } : {} });
     posts = 1;
@@ -206,9 +214,9 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
   }
   if (!posts && !barriers.length) return unfilledRegion(brief, CHANNEL.loot);
 
-  const parts = elements.flatMap(element => element.template.parts);
-  const loot = cellLoot(brief, createRegionMask(brief), elements.flatMap(element => elementShapes(element, true)), CHANNEL.loot);
-  return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
+  const placed = [...canvas.elements], parts = placed.flatMap(element => element.template.parts);
+  const loot = cellLoot(brief, createRegionMask(brief), placed.flatMap(element => elementShapes(element, true)), CHANNEL.loot);
+  return { version: 'region-2', brief: structuredClone(brief), elements: placed, coreElements: [], loot,
     manifest: { cells: brief.cells.length, structures: posts, obstacles: parts.filter(p => p.part === 'obstacle').length,
       gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0,
       barriers: barriers.length, posts, designed } };

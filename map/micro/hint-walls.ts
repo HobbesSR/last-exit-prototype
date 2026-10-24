@@ -3,8 +3,11 @@ import { ownedOf, stretchesOf } from './hints.ts';
 import { expectPlaced, placedElements } from './placeables/placeable.ts';
 import { WALL_RUN } from './placeables/wall-run.ts';
 import type { WallRunParams } from './placeables/wall-run.ts';
+import { areasOverlap } from './addressed.ts';
 import type { AddressedArea } from './addressed.ts';
+import { rect } from '../../shared/shape.ts';
 import type { Shape } from '../../shared/shape.ts';
+import type { BuilderCanvas } from './canvas.ts';
 import type { Cell, RegionBrief, RegionElement } from './types.ts';
 
 export interface HintWallOptions {
@@ -75,4 +78,41 @@ export function wallHints(brief: RegionBrief, options: HintWallOptions): HintWal
   result.cells = [...walled.values()];
   if (addressed && !addressed.markCells(result.cells)) throw new Error('Hint walls overlap an area already addressed.');
   return result;
+}
+
+/**
+ * Commits `walls` through a builder canvas (20.2) as one assembly, since walls at a convex
+ * corner overlap. Their addressed intent is their own shapes (`separateAreas`), as they share
+ * cells with the builder's pieces. The walls avoided the builder's pieces and routes, so a
+ * refusal is a broken placement invariant.
+ */
+export function commitHintWalls(canvas: BuilderCanvas, walls: HintWalls): void {
+  if (walls.elements.length && !canvas.commit({ elements: walls.elements, areas: separateAreas(walls.shapes) }))
+    throw new Error('Hint walls failed their canvas commit.');
+}
+
+/**
+ * Addressed areas (20.2) for pieces that may overlap one another, as walls meeting at a corner
+ * do. Each rectangle stops short of an earlier area it runs into along its length, so the
+ * earlier keeps the shared corner. Any other overlapping shape adds no area of its own: the
+ * piece it overlaps already addresses that place.
+ */
+export function separateAreas(shapes: readonly Shape[]): Shape[] {
+  const areas: Shape[] = [];
+  for (const shape of shapes) {
+    if (shape.kind !== 'rect') {
+      if (!areas.some(area => areasOverlap(area, shape))) areas.push(shape);
+      continue;
+    }
+    let { x, y, w, h } = shape;
+    for (const area of areas) {
+      if (!areasOverlap(area, rect(x, y, w, h))) continue;
+      if (area.kind !== 'rect') { w = 0; break; }
+      if (w >= h) [x, w] = area.x <= x ? [area.x + area.w, x + w - area.x - area.w] : [x, area.x - x];
+      else [y, h] = area.y <= y ? [area.y + area.h, y + h - area.y - area.h] : [y, area.y - y];
+      if (w <= 0 || h <= 0) break;
+    }
+    if (w > 0 && h > 0) areas.push(rect(x, y, w, h));
+  }
+  return areas;
 }

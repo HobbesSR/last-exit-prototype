@@ -53,6 +53,17 @@ test('fill, protected geometry and access are separate constraints', () => {
   assert.equal(canvas.commit({ elements: [piece(40, 0)], access: [rect(280, 0, 40, 40)] }), false);
 });
 
+test('a roof and intent may cover a protected route; only what stands is kept off it', () => {
+  const canvas = createBuilderCanvas(brief(), [rect(40, 40, 40, 40)]);
+  // A roofed shell over the route whose only collider stands beside it.
+  const shell = { label: 'shell', x: 0, y: 0, template: { w: 120, h: 120, encloses: true,
+    roofs: [{ cells: [{ x: 0, y: 0 }, { x: 1, y: 1 }], cellSize: 40 }],
+    parts: [{ part: 'obstacle', kind: 'building', shape: rect(5, 5, 30, 30) }] } };
+  assert.equal(canvas.commit({ elements: [shell] }), true, 'roof, footprint and intent cross the route');
+  const blocked = createBuilderCanvas(brief(), [rect(40, 40, 40, 40)]);
+  assert.equal(blocked.commit({ elements: [piece(40, 40)], areas: [rect(160, 0, 40, 40)] }), false, 'a collider on the route is refused');
+});
+
 test('access reservations reject blocked standing room and protect later commits', () => {
   const canvas = createBuilderCanvas(brief());
   assert.equal(canvas.commit({ elements: [piece(0, 0)], access: [rect(5, 5, 20, 20)] }), false);

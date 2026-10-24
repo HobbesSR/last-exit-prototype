@@ -7,6 +7,7 @@ import { draw } from '../random.ts';
 import { createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { latticeSlots } from './lattice.ts';
+import { createBuilderCanvas } from '../canvas.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
@@ -69,7 +70,12 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
   const key = (x: number, y: number) => `${x},${y}`;
   const hintedTrees = new Set(boxesAgainstHints(brief, TREE, TREE).map(b => key(b.x, b.y)));
 
-  const elements: RegionElement[] = [];
+  const canvas = createBuilderCanvas(brief, protectedShapes);
+  // Siting has already accepted each assembly. A canvas refusal is a broken placement
+  // invariant, rather than a new fallback that silently changes the seeded build.
+  const place = (label: string, elements: RegionElement[]) => {
+    if (!canvas.commit({ elements })) throw new Error(`Park placement ${label} failed its canvas commit.`);
+  };
   const taken = new Set<string>();
   let hedges = 0, trees = 0, clumps = 0;
 
@@ -85,7 +91,8 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
     // The gap leaves at least a cell of hedge each side.
     const gap = 1 + Math.floor(draw(brief.seed, slot.x, slot.y, CHANNEL.hedgeGap) * (HEDGE_LENGTH - AISLE - 1));
     const built = expectPlaced(PARK_HEDGE_RUN.build({ length: HEDGE_LENGTH, gap, aisle: AISLE, across }, size));
-    elements.push(...placedElements(built, `park-hedge-${++hedges}`, box.x, box.y, size));
+    const label = `park-hedge-${++hedges}`;
+    place(label, placedElements(built, label, box.x, box.y, size));
   }
 
   // A clump in each other slot that rolls under `density`, if its footprint fits.
@@ -106,12 +113,12 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
     if (!clear(box)) continue;
     taken.add(key(slot.x, slot.y));
     clumps++;
-    for (const f of footprints) {
-      const built = expectPlaced(PARK_TREE.build({}, size));
-      elements.push(...placedElements(built, `park-tree-${++trees}`, f.x, f.y, size));
-    }
+    // A clump commits as one assembly.
+    place(`park-clump-${clumps}`, footprints.flatMap(f =>
+      placedElements(expectPlaced(PARK_TREE.build({}, size)), `park-tree-${++trees}`, f.x, f.y, size)));
   }
 
+  const elements = [...canvas.elements];
   const parts = elements.flatMap(element => element.template.parts);
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
