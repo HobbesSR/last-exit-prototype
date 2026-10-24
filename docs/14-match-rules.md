@@ -120,6 +120,19 @@ Each cell occupies one of the six ordinary equipment slots and never stacks; car
 
 ## Equipment and inventory
 
+Equipment has six mixed slots. 1–6 or slot buttons select equipment; fire/use activates it. Items use icons with numeric ammo, stack or charge badges, tooltips and accessible names. R or Move/merge selects the current item for rearrangement; choose a destination with a number key or slot button. Matching medkit/shield stacks combine up to three; other items swap. Medkits restore 40 HP and shields restore 30 (75 maximum). Each cell takes one slot and never stacks.
+
+Drag an occupied slot at least eight screen pixels to another slot to move,
+swap or merge it. Release over the arena canvas to drop that source item beside
+the player, using the same placement and pickup delay as G; the pointer does not
+choose a remote world location. Releasing over other UI cancels. Mouse and touch
+share the gesture, including touch dragging while another finger holds the move
+stick. Cancellation, blur, dialogs, inactive players and replay mode prevent
+unfinished gestures from producing inventory commands. Inventory changes remain
+authoritative; the UI does not move items before the server responds.
+
+E swaps nearby loot into the selected slot when full. G or Drop selected drops the whole selected slot; a one-second owner pickup delay avoids immediate recollection. Drops retain cell charge and remaining weapon ammunition. Pistol/rifle/scattergun pickups start with 48/90/24 rounds, capped at 192/360/96 per weapon. One shot costs one round, including a scattergun's five-pellet shot. Matching weapon pickups replenish ammo even with full inventory; untransferred rounds remain on the ground. There is no reload mechanic or separate reserve-ammo slot yet. Existing damage/cooldowns remain pistol 10/8 ticks, rifle 6/4, scattergun five 7-damage pellets/18. No contestant ability slot is implemented.
+
 ### Explicit L0 item instances (#442)
 
 `createGame(seed, map, contentById('content-equipment-1'))` selects
@@ -136,8 +149,8 @@ identity/root and retire the fully consumed source. This is bounded root lineage
 not an accumulating ancestry log. IDs for old carried entries are assigned in
 player-ID/slot order before tick actions. A separate recorded `itemSerial` counter
 does not consume legacy RNG or event IDs; initial IDs in its namespace are reserved.
-Item definitions remain kind/weaponType; optional quality 1..5 is preserved but
-does not alter statistics. Only equal qualities merge (omitted quality means 1).
+Item definitions remain kind/weaponType; optional quality 1..5 is preserved; under L0
+alone it does not alter statistics (L1 below). Only equal qualities merge (omitted quality means 1).
 
 Utility stacks stay capped at three in inventory; partial ground transfers retain
 the source remainder. Drops scatter one ground entry per utility unit. Optional
@@ -152,26 +165,57 @@ player-ID order in this separately versioned loop.
 Mandatory death drops may exceed the optional capacity and fall back to the
 player's position when scattering is impossible. They remain ordinary recoverable
 logical loot, including fully charged cells. Capacity never deletes their value.
+A malformed carried entry that no ground record can represent is cleared without
+halting the tick; well-formed value always drops.
 The mandatory reserve is all carried value: at most eighteen utility units per
 six-slot inventory, with no cap rejection. Overflow creates no extra value and
 is bounded by the match's finite admitted loot quantity; repeated transfers do
 not grow it. P5 must reserve bodies separately and keep this logical fallback when
-body admission fails. L0 creates no bodies or joints. Tiers/reloading remain later work.
+body admission fails. L0 creates no bodies or joints. Reloading remains later work.
 
-### Existing controls and defaults
+### Weapon quality (L1, #443)
 
-Equipment has six mixed slots. 1–6 or slot buttons select equipment; fire/use activates it. Items use icons with numeric ammo, stack or charge badges, tooltips and accessible names. R or Move/merge selects the current item for rearrangement; choose a destination with a number key or slot button. Matching medkit/shield stacks combine up to three; other items swap. Medkits restore 40 HP and shields restore 30 (75 maximum). Each cell takes one slot and never stacks.
+`contentById('content-loot-1')` selects `last-exit-0.8-loot-1`: L0 plus weapon
+quality. It requires L0, which already keeps quality through pickup, drop,
+death, snapshots and schema-11 recordings, and never merges or refills across
+qualities (an omitted quality is 1). Default rooms and the frozen fixture are
+unchanged; legacy equipment ignores quality.
 
-Drag an occupied slot at least eight screen pixels to another slot to move,
-swap or merge it. Release over the arena canvas to drop that source item beside
-the player, using the same placement and pickup delay as G; the pointer does not
-choose a remote world location. Releasing over other UI cancels. Mouse and touch
-share the gesture, including touch dragging while another finger holds the move
-stick. Cancellation, blur, dialogs, inactive players and replay mode prevent
-unfinished gestures from producing inventory commands. Inventory changes remain
-authoritative; the UI does not move items before the server responds.
+At match creation each map weapon without a quality gets one; other kinds get
+none. A weapon within 100 units of a contestant spawn is the spawn kit and is
+quality 1. Every other weapon draws from its spatial mix, keyed by the match
+seed and the item's id, so the roll consumes no match RNG and does not depend on
+item order. Positions, map `tier` metadata and every other item are unchanged,
+so spawn, charger and reach reservations hold as generated. Map `tier` is the
+generator's zone column; quality is the weapon's own statistic, and only quality
+changes play.
 
-E swaps nearby loot into the selected slot when full. G or Drop selected drops the whole selected slot; a one-second owner pickup delay avoids immediate recollection. Drops retain cell charge and remaining weapon ammunition. Pistol/rifle/scattergun pickups start with 48/90/24 rounds, capped at 192/360/96 per weapon. One shot costs one round, including a scattergun's five-pellet shot. Matching weapon pickups replenish ammo even with full inventory; untransferred rounds remain on the ground. There is no reload mechanic or separate reserve-ammo slot yet. Existing damage/cooldowns remain pistol 10/8 ticks, rifle 6/4, scattergun five 7-damage pellets/18. No contestant ability slot is implemented.
+The spatial selector (`shared/loot-tiers.ts`) splits the map's bounding
+rectangle into five virtual columns and rows. Points on or past an edge clamp
+into the outer zone, and a map without extent is column 0, middle row. Mix =
+column + 1 + distance from the middle row (0/1/2), capped at 5. A live chain
+map's frame is the diamond plan's 5 x 5 zone grid, so its columns are the zones'
+tiers; a legacy diamond is inscribed in the same rectangle; any other map gets
+the same proportional split. On a live map, mix 1 is the entry zone, which rolls
+no loot, so only the spawn kit is there. Provisional weights for qualities 1..5 (41.1):
+
+| Mix | Q1 | Q2 | Q3 | Q4 | Q5 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 70 | 25 | 5 | 0 | 0 |
+| 2 | 35 | 45 | 18 | 2 | 0 |
+| 3 | 10 | 30 | 40 | 18 | 2 |
+| 4 | 0 | 10 | 30 | 45 | 15 |
+| 5 | 0 | 0 | 10 | 40 | 50 |
+
+Quality multiplies a shot's damage by 1.00/1.08/1.16/1.24/1.32, unrounded;
+cooldown, ammunition, speed and range are unchanged. These are tuning
+assumptions (17.3 Q10), not a balance claim. Population tests check that higher
+mixes give higher quality on average; an individual pickup need not improve.
+
+Novelty is a separate vertical axis (0 in the middle row, 2 at the top and
+bottom). Its catalogue is empty until special items are authored, so nothing is
+placed by it. Danger reads the same selector but owns its own curves and safety
+reservations. The chain places no traps yet (16), so no danger curve is defined.
 
 ## Traps
 
@@ -257,7 +301,7 @@ old 0.04 and 0.09 were scaled by 0.37 to keep about 950 sites per live map
 (Corey, 2026-10-04). The provisional
 seeded kind weights are cell 3, weapon 3, medkit 1, shield 1, access 1; a weapon
 selects pistol, rifle or scattergun equally. Cells start uncharged. Tier metadata
-does not change weapon statistics or inventory rules; weapon tiers remain
-separate work (17). Traps, sensors and locked-door authoring remain deferred
+does not change weapon statistics or inventory rules; weapon quality is the
+explicit L1 selection above. Traps, sensors and locked-door authoring remain deferred
 for the chain (16), so this library emits none of them. Their existing simulation
 mechanics still apply to stored legacy maps.

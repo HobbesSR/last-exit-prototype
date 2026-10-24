@@ -87,6 +87,11 @@ const CONTENT_4: MatchContent = { ...CONTENT_3, id: 'content-4', replanning: 'sl
 const CONTENT_5: MatchContent = { ...CONTENT_4, id: 'content-5', replanning: 'repair' };
 // L0 remains explicit while physical loot and its rollout gates are developed.
 const CONTENT_EQUIPMENT_1: MatchContent = { ...CONTENT_5, id: 'content-equipment-1', itemInstances: { groundCapacity: 4096 } };
+// L1 weapon quality over L0 (#443, 14); the weights and damage-only multipliers are 41.1's provisional proposal.
+const CONTENT_LOOT_1: MatchContent = { ...CONTENT_EQUIPMENT_1, id: 'content-loot-1', lootTiers: {
+  mixes: [[70, 25, 5, 0, 0], [35, 45, 18, 2, 0], [10, 30, 40, 18, 2], [0, 10, 30, 45, 15], [0, 0, 10, 40, 50]],
+  damage: [1, 1.08, 1.16, 1.24, 1.32],
+} };
 // Explicit experimental P2 selection; ordinary rooms select content-5.
 const CONTENT_PHYSICS_2: MatchContent = { ...CONTENT_4, id: 'content-physics-2', actorPhysics: {
   geometry: {
@@ -101,7 +106,8 @@ const CONTENT_PHYSICS_5: MatchContent = { ...CONTENT_PHYSICS_2, id: 'content-phy
     prop: { hx: 24, hy: 12, mass: 2, friction: 0.4, linearDamping: 2, angularDamping: 2 },
     maxImpulse: 300,
   } };
-const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4, 'content-5': CONTENT_5, 'content-physics-2': CONTENT_PHYSICS_2, 'content-equipment-1': CONTENT_EQUIPMENT_1, 'content-physics-5': CONTENT_PHYSICS_5 };
+const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4, 'content-5': CONTENT_5, 'content-physics-2': CONTENT_PHYSICS_2, 'content-equipment-1': CONTENT_EQUIPMENT_1, 'content-physics-5': CONTENT_PHYSICS_5, 'content-loot-1': CONTENT_LOOT_1 };
+
 
 /** Return an independent, deeply frozen copy of a shipped content set. */
 export function contentById(id: string): MatchContent {

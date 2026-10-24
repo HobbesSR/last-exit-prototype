@@ -9,9 +9,8 @@ import type { EffectKind, Game, GroundItem, InventoryItem, ItemId, Player, Playe
 
 export function event(s: Game, text: string): void { s.events.push({ id: s.serial++, tick: s.tick, text }); s.events = s.events.slice(-6); }
 export function effect(s: Game, p: Vec2, kind: EffectKind, radius: World = 60): void { s.effects.push({ id: s.serial++, x: p.x, y: p.y, kind, radius, life: 12 }); }
-/** Legacy emission only; L0 atomically removes its carried owner. Prefer dropInventorySlot. */
-export function dropEquipment(s: Game, p: Player, item: InventoryItem, mandatory = false): boolean {
-  if (s.content.itemInstances) return dropInstance(s, p, item, mandatory);
+/** Legacy emission only: L0 drops go through dropInventorySlot, which may refuse. */
+export function dropEquipment(s: Game, p: Player, item: InventoryItem): void {
   // Stacks drop one entry per unit; weapons and cells are single items.
   const copies = item.kind === 'med' || item.kind === 'shield' ? item.count || 1 : 1;
   for (let i = 0; i < copies; i++) {
@@ -24,18 +23,22 @@ export function dropEquipment(s: Game, p: Player, item: InventoryItem, mandatory
     const dropped: GroundItem = { ...item, count: 1, id: `equipment-drop-${s.serial++}` as ItemId, x: point.x, y: point.y, droppedBy: p.id, pickupAfter: s.tick + HZ };
     s.map.items.push(dropped);
   }
-  return true;
 }
 
-/** Validate and stage every record before committing any inventory/world transfer. */
-function dropInstance(s: Game, p: Player, item: InventoryItem, mandatory: boolean): boolean {
-  if (!p.inventory?.includes(item) || !['weapon', 'med', 'shield', 'cell'].includes(item.kind)
-    || ![p.x, p.y].every(Number.isFinite) || !validateItemPayload(item, s)) return false;
+/** An L0 drop, fully represented but not yet committed. */
+export interface DropPlan { records: GroundItem[]; itemSerial: number }
+
+/**
+ * Validate, place and identify every ground record of one carried L0 item without changing the
+ * match. `items` stands in for the ground list, so a swap can plan around the pickup it removes.
+ */
+export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = false, items: readonly GroundItem[] = s.map.items): DropPlan | null {
+  if (!['weapon', 'med', 'shield', 'cell'].includes(item.kind) || ![p.x, p.y].every(Number.isFinite) || !validateItemPayload(item, s)) return null;
   const copies = item.kind === 'med' || item.kind === 'shield' ? item.count : 1;
   if (!Number.isInteger(copies) || copies < 1 || copies > 3
     || item.kind === 'weapon' && (!Number.isSafeInteger(item.ammo) || item.ammo < 0)
-    || item.kind === 'cell' && (!Number.isSafeInteger(item.charge) || item.charge < 0)) return false;
-  if (!mandatory && (s.map.items.length + copies > s.content.itemInstances!.groundCapacity || !canRepresentPhysicalDrop(s, copies))) return false;
+    || item.kind === 'cell' && (!Number.isSafeInteger(item.charge) || item.charge < 0)) return null;
+  if (!mandatory && items.length + copies > s.content.itemInstances!.groundCapacity) return null;
   const points: Vec2[] = [];
   for (let i = 0; i < copies; i++) {
     let point: Vec2 | undefined;
@@ -43,41 +46,44 @@ function dropInstance(s: Game, p: Player, item: InventoryItem, mandatory: boolea
       const angle = ((s.itemSerial ?? 0) + i + j) * 2.39996, radius = 36 + Math.floor(j / 12) * 24;
       const candidate = { x: p.x + Math.cos(angle) * radius, y: p.y + Math.sin(angle) * radius };
       if (canOccupy(s.map, candidate.x, candidate.y, 16) && reachClear(s.map, p, candidate)
-        && s.map.items.every(other => distance(other, candidate) > 32)
+        && items.every(other => distance(other, candidate) > 32)
         && points.every(other => distance(other, candidate) > 32)) { point = candidate; break; }
     }
-    if (!point && !mandatory) return false;
+    if (!point && !mandatory) return null;
     // Mandatory overflow is logical loot, not a promise that P5 can allocate a body here.
     points.push(point ?? { x: p.x, y: p.y });
   }
-  if (item.instanceId && (s.map.items.some(other => other.id === item.instanceId)
-    || s.players.some(player => player.inventory?.some(other => other && other !== item && other.instanceId === item.instanceId)))) return false;
+  if (item.instanceId && (items.some(other => other.id === item.instanceId)
+    || s.players.some(player => player.inventory?.some(other => other && other !== item && other.instanceId === item.instanceId)))) return null;
   // Allocation is staged too: an exhausted counter cannot partly split a carried stack.
   const allocation = { ...s }, identity = { ...item };
-  let records: GroundItem[];
   try {
     ensureItemIdentity(allocation, identity);
-    records = points.map((point, i): GroundItem => ({
+    const records = points.map((point, i): GroundItem => ({
       kind: item.kind, id: i ? allocateItemId(allocation) : identity.instanceId!, lineageId: identity.lineageId,
       ...(item.quality !== undefined ? { quality: item.quality } : {}),
       ...(item.kind === 'weapon' ? { weaponType: item.weaponType, ammo: item.ammo }
         : item.kind === 'cell' ? { charge: item.charge } : { count: 1 }),
       ...point, droppedBy: p.id, pickupAfter: s.tick + HZ,
     }));
-  } catch { return false; }
-  s.itemSerial = allocation.itemSerial;
-  s.map.items.push(...records);
-  p.inventory[p.inventory.indexOf(item)] = null; p.charging = null; syncWeapon(p, s.content.weapons);
-  launchPhysicalDrops(s, records, p);
-  return true;
+    return { records, itemSerial: allocation.itemSerial! };
+  } catch { return null; }
 }
 
-/** The inventory owner commits the removal only after its entire drop has been represented. */
+/** Drop one slot. L0 commits only a complete plan and may refuse; legacy content always drops. */
 export function dropInventorySlot(s: Game, p: Player, slot: number, mandatory = false): boolean {
   if (!Number.isInteger(slot) || slot < 0 || slot >= (p.inventory?.length ?? 0)) return false;
   const item = p.inventory![slot];
-  if (!item || !dropEquipment(s, p, item, mandatory)) return false;
+  if (!item) return false;
+  let records: GroundItem[] = [];
+  if (s.content.itemInstances) {
+    const plan = planDrop(s, p, item, mandatory);
+    if (!plan || !mandatory && !canRepresentPhysicalDrop(s, plan.records.length)) return false;
+    s.itemSerial = plan.itemSerial;
+    s.map.items.push(...plan.records); records = plan.records;
+  } else dropEquipment(s, p, item);
   p.inventory![slot] = null; p.charging = null; syncWeapon(p, s.content.weapons);
+  if (records.length) launchPhysicalDrops(s, records, p);
   return true;
 }
 export function automaticPickups(s: Game, p: Player, input: PlayerInput): void {
