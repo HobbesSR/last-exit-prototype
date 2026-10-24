@@ -1,5 +1,6 @@
 import { canOccupy, lineClear } from '../movement.ts';
 import { equipped, syncWeapon } from '../equipment.ts';
+import { qualityDamage } from '../loot-tiers.ts';
 import { HZ } from './rules.ts';
 import { distance } from './geometry.ts';
 import { effect } from './loot.ts';
@@ -69,7 +70,7 @@ export function attack(s: Game, p: Player): void {
     if (item.ammo <= 0) return;
     item.ammo--;
     p.attackCd = weapon.cooldown;
-    for (const spread of weapon.spread) s.projectiles.push({ id: s.serial++, owner: p.id, x: p.x, y: p.y, dx: Math.cos(p.heading + spread) * weapon.speed, dy: Math.sin(p.heading + spread) * weapon.speed, life: weapon.life, damage: weapon.damage }); p.cloak = 0;
+    for (const spread of weapon.spread) s.projectiles.push({ id: s.serial++, owner: p.id, x: p.x, y: p.y, dx: Math.cos(p.heading + spread) * weapon.speed, dy: Math.sin(p.heading + spread) * weapon.speed, life: weapon.life, damage: weapon.damage * qualityDamage(s.content, item) }); p.cloak = 0;
   }
 }
 export function advanceProjectiles(s: Game): void {

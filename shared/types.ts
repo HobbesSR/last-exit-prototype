@@ -205,6 +205,11 @@ export interface MatchContent {
   /** Explicit L0 selection; optional drops stop at this logical ground-entry limit. */
   itemInstances?: { groundCapacity: number } | undefined;
   /**
+   * Explicit L1 selection (14 "Weapon quality"); requires `itemInstances`. `mixes[m - 1]` weighs
+   * qualities 1..5 for spatial mix m; `damage[q - 1]` multiplies a quality-q weapon's damage.
+   */
+  lootTiers?: { mixes: number[][]; damage: number[] } | undefined;
+  /**
    * Who a match is made of. Its lengths are the role capacities, so spawning, lobby display and
    * matchmaking all count the same list instead of each repeating the numbers.
    */
