@@ -9,6 +9,7 @@ export type BodySpec = {
   id: string; kind: BodyKind; shape: BodyShape; x: number; y: number;
   angle?: number; vx?: number; vy?: number; omega?: number;
   mass?: number; friction?: number; restitution?: number;
+  maxSpeed?: number;
 };
 export type BodyDefinition = BodySpec;
 export type Transform = { x: number; y: number; angle: number; vx: number; vy: number; omega: number; sleeping: boolean };
@@ -24,6 +25,7 @@ export type PhysicsSnapshot = {
 
 /** Private, engine-free authoritative state. This is not a backend continuation checkpoint. */
 export interface PhysicsGameplayState {
+  discontinuities?: Array<{ id: string; generation: number; kind: 'placed' | 'removed' }> | undefined;
   profile: string;
   settings: {
     engine: string; version: string; unitsPerMetre: number; substeps: number;

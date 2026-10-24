@@ -98,8 +98,9 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.8-bot-adoption.md](42.8-bot-adoption.md) | Bots planning over free-space tiles under `content-3` (#424): whole-match stalls, escapes and tick cost against `content-2`, route quality, tiles built ahead in the map worker |
 | [42.9-physics-remediation.md](42.9-physics-remediation.md) | Rapier remediation (#451): revised gates, native springs, bounded speed and capacity proposal; P1 review prerequisites |
 | [42.10-sliced-replanning.md](42.10-sliced-replanning.md) | Repaths spread over ticks under `content-4` (#470 part 1): budget exhaustion gone, tick cost against `content-3`, why bots share one allowance a tick |
-| [42.12-local-repair.md](42.12-local-repair.md) | Local route repair under `content-5` (#470 part 2): reaction to nearby changes, repairs and their cost against `content-4`; whether #425 is needed for latency |
+| [42.12-physics-p2.md](42.12-physics-p2.md) | Experimental P2 (#439): narrower actor profiles, motor surfaces, contact and lifecycle witnesses |
 | [42.11-physics-p1.md](42.11-physics-p1.md) | Experimental P1 (#438): room-owned worlds, paired phase traces, gameplay state and integration validation |
+| [42.13-local-repair.md](42.13-local-repair.md) | Local route repair under `content-5` (#470 part 2): reaction to nearby changes, repairs and their cost against `content-4`; whether #425 is needed for latency |
 
 ### 5x — Map generation
 

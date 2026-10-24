@@ -179,9 +179,29 @@ export interface TrapContent {
  * because this file is the dependency-free vocabulary every layer reads and must not import back
  * out of one.
  */
+export interface ActorGeometry {
+  contestant: { headRadius: number; bodyRadius: number; hurtRadius: number };
+  gladiator: { headRadius: number; bodyRadius: number; hurtRadius: number };
+}
+export interface ActorPhysics {
+  geometry: ActorGeometry;
+  acceleration: number;
+  braking: number;
+  maxImpulse: number;
+  maxSpeed: number;
+}
+/** Centre-sampled floor motor modifiers. Larger priority wins, then lexical ID. */
+export interface MotorSurface extends Box {
+  id: string;
+  priority: number;
+  traction: number;
+  braking: number;
+  speed: number;
+}
 export interface MatchContent {
   /** Names the content set in a recording header. Changes when any value below changes. */
   id: string;
+  actorPhysics?: ActorPhysics | undefined;
   /**
    * Who a match is made of. Its lengths are the role capacities, so spawning, lobby display and
    * matchmaking all count the same list instead of each repeating the numbers.
@@ -218,6 +238,7 @@ export interface MatchContent {
  * strings because a descriptor may name content this build does not ship.
  */
 export interface ContentPresentation {
+  actorGeometry?: ActorGeometry | undefined;
   contentId: string;
   weapons: { id: string; name: string; ammo: number }[];
   kits: { id: string; name: string; skill: string }[];
@@ -391,6 +412,7 @@ export interface PlayableArea {
 }
 
 export interface GameMap {
+  motorSurfaces?: MotorSurface[] | undefined;
   seed: number;
   generator?: string | undefined;
   width: World;

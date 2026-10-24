@@ -1,19 +1,30 @@
 import type { PhysicsWorld } from '../physics/world.ts';
 import type { PhysicsGameplayState } from '../physics/types.ts';
-import type { Game, Projectile, Vec2 } from '../types.ts';
+import type { Game, Player, Projectile, Vec2 } from '../types.ts';
 
 export const PHYSICS_VERSION = 'last-exit-0.8-physics-1';
 export interface PendingAttachment { id: string; a: string; b: string; maxDistance: number }
 export interface PhysicsRuntime {
+  discontinuities: Array<{ id: string; generation: number; kind: 'placed' | 'removed'; tick: number }>;
   world: PhysicsWorld;
   actors: Set<string>;
   gates: Map<string, boolean>;
   synchronize: () => void;
+  placement: (p: Player, destination: Vec2) => Vec2 | null;
   pendingSpawns: Projectile[];
   pendingImpulses: { id: string; value: Vec2; generation: number }[];
   pendingAttachments: (PendingAttachment & { generationA: number; generationB: number })[];
 }
 const rooms = new WeakMap<Game, PhysicsRuntime>();
+/** Only the latest boundary per ID is needed by a future presentation/prediction reader. */
+export function markPhysicsDiscontinuity(r: PhysicsRuntime, value: PhysicsRuntime['discontinuities'][number]): void {
+  const index = r.discontinuities.findIndex(entry => entry.id === value.id);
+  if (index >= 0) r.discontinuities[index] = value;
+  else {
+    if (r.discontinuities.length >= 128) throw new RangeError('physics discontinuity capacity');
+    r.discontinuities.push(value);
+  }
+}
 export const physicsRuntime = (s: Game): PhysicsRuntime | undefined => rooms.get(s);
 export function attachPhysics(s: Game, runtime: PhysicsRuntime): void {
   if (rooms.has(s)) throw new Error('physics already attached');
@@ -25,7 +36,8 @@ export function disposePhysics(s: Game): void {
 }
 export function physicsState(s: Game): PhysicsGameplayState | undefined {
   const r = rooms.get(s);
-  return r && structuredClone({ profile: PHYSICS_VERSION, settings: r.world.settings, world: r.world.snapshot({ includeStatic: false }),
+  return r && structuredClone({ profile: s.version, settings: r.world.settings, world: r.world.snapshot({ includeStatic: false }),
+    ...(s.content.actorPhysics ? { discontinuities: r.discontinuities.map(({ id, generation, kind }) => ({ id, generation, kind })) } : {}),
     pendingSpawns: r.pendingSpawns, pendingImpulses: r.pendingImpulses, pendingAttachments: r.pendingAttachments });
 }
 /** Post-solve effects enter the next tick, never a partially completed solve. */
@@ -37,7 +49,9 @@ export function enqueuePhysicsImpulse(s: Game, id: string, value: Vec2): void {
   if (![value.x, value.y].every(n => Number.isFinite(n) && Math.abs(n) <= 1e9)) throw new TypeError('representable finite impulse required');
   const generation = r.world.getGeneration(id);
   if (generation === undefined) throw new Error('unknown impulse actor');
-  r.pendingImpulses.push({ id, value: { ...value }, generation });
+  const magnitude = Math.hypot(value.x, value.y), limit = s.content.actorPhysics?.maxImpulse ?? Infinity;
+  const scale = magnitude > limit ? limit / magnitude : 1;
+  r.pendingImpulses.push({ id, value: { x: value.x * scale, y: value.y * scale }, generation });
 }
 export function enqueuePhysicsAttachment(s: Game, attachment: PendingAttachment): void {
   const r = rooms.get(s);
