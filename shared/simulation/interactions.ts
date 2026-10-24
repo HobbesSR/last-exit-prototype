@@ -5,6 +5,8 @@ import { observeGate } from '../discovery.ts';
 import { clearRoute, distance } from './geometry.ts';
 import { CHARGE_REACH, EXTRACTION_REACH, PICKUP_REACH, TRANSIT_REACH } from './rules.ts';
 import { event, effect, dropEquipment } from './loot.ts';
+import { physicsRuntime } from './physics-runtime.ts';
+import { actorRadius } from './actor-physics.ts';
 import type { CellItem, Game, Player, PlayerInput } from '../types.ts';
 
 export function interact(s: Game, p: Player): void {
@@ -33,7 +35,11 @@ export function interact(s: Game, p: Player): void {
       gate.open = true; if (locked) { p.keys--; gate.locked = false; } clearRoute(p);
     } else if (gate.open && gate.kind === 'door' && !p.bot) {
       const box = gateShape(gate);
-      const occupied = s.players.some(other => other.status === 'active' && Math.hypot(other.x - Math.max(box.x, Math.min(box.x + box.w, other.x)), other.y - Math.max(box.y, Math.min(box.y + box.h, other.y))) < bodyRadius(other));
+      const runtime = s.content.actorPhysics ? physicsRuntime(s) : undefined;
+      // Under P2 the players are tested as well as the bodies: a transit earlier this phase has moved
+      // its player but not yet its body, and synchronize would refuse the close only after discovery saw it.
+      const occupied = s.players.some(other => other.status === 'active' && Math.hypot(other.x - Math.max(box.x, Math.min(box.x + box.w, other.x)), other.y - Math.max(box.y, Math.min(box.y + box.h, other.y))) < (runtime ? actorRadius(s, other) : bodyRadius(other)))
+        || !!runtime?.world.overlapsDynamicBox(box);
       if (!occupied) { gate.open = false; clearRoute(p); }
     }
     // Trying a door shows how it stands, locked or not, whatever sight showed before (22.6, "Doors").
@@ -45,7 +51,12 @@ export function interact(s: Game, p: Player): void {
     if (station) {
       const candidates = s.map.stations.filter(st => st.x > s.hazardX + TILE && st.id !== station.id);
       const next = candidates.find(st => st.x > p.x + TILE) || candidates[0];
-      if (next) { effect(s, p, 'rail', 60); p.x = next.x; p.y = next.y; clearRoute(p); p.railCd = 180; effect(s, p, 'rail', 60); }
+      if (next) {
+        const runtime = s.content.actorPhysics ? physicsRuntime(s) : undefined;
+        const at = runtime ? runtime.placement(p, next) : next;
+        if (!at) return; // No effects/cooldown when the physical landing cannot be represented.
+        effect(s, p, 'rail', 60); p.x = at.x; p.y = at.y; clearRoute(p); p.railCd = 180; effect(s, p, 'rail', 60);
+      }
     }
   }
 }

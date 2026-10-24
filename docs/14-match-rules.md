@@ -34,6 +34,36 @@ selectable with whole-tick searches.
 
 The power-cell objective supplements limited escape capacity; three extraction slots remain a baseline tuning default. Contestant equipment changes do not remove gladiator kits or kill-based progression. The ten-minute deadline leaves time for exploration and combat, not ten minutes of uninterrupted running. Existing early match-end conditions remain.
 
+## Experimental character profile (#439)
+
+Explicitly pass `contentById('content-physics-2')` to `createPhysicsGame` or
+`createPhysicsMatch` to select `last-exit-0.8-physics-2`. Neither the normal room
+nor the physics factory's omitted-content default selects it. P1 remains
+available with content-1 through content-4. These are provisional playtest
+settings, not a default balance change.
+
+| Role | Nominal head radius | Movement radius | Retained combat radius |
+| --- | ---: | ---: | ---: |
+| Contestant | 14.109375 | 11.2875 | 12 |
+| Gladiator | 20.3125 | 16.25 | 23 |
+
+Nominal head circles are measured from contestant.svg (21 at display scale
+43/64) and warden.svg (25 at 65/80), without outline or equipment protrusions.
+Bodies use 0.8 of those radii. Combat retains its existing attack-specific
+allowances: projectile contact remains 15/26, including the legacy allowance
+beyond the nominal combat radius. Neither movement nor art changes hit queries.
+
+Both roles and teammates have rotation-locked equal-mass bodies (mass 1), zero
+contact friction and restitution. Acceleration and braking start at 3,600 world
+units/second squared. External impulses are capped per event at magnitude 600;
+total body speed is capped at 600 units/second and also at the adapter's smaller
+radius-dependent safety limit. Motor recovery changes velocity by bounded effort
+rather than discarding external velocity. Existing movement speed modifiers stay
+owned by movementSpeed. Floor modifiers and placement behavior follow [29.1](29.1-physics-design.md).
+Navigation keeps its existing conservative radii until P8; this may reject a
+route that a narrower physical body can traverse. Live promotion still needs
+P3/P4, P8's actor-placement slice and P9.
+
 ## Power cells
 
 Each cell occupies one of the six ordinary equipment slots and never stacks; carrying several costs several slots. Keys remain separate. A cell takes 100 ticks (five seconds) to charge; press E in range and stay still. Movement or leaving the station pauses charging but retains progress. Stations can charge multiple contestants. Elimination drops the cell with its charge; extraction consumes it. Traps are placed at least 850 units from chargers so required stationary charging is not automatically covered by a trap.

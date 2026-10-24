@@ -88,11 +88,12 @@ function validateBody(input: BodySpec): BodySpec {
     mass: mass(input.mass), friction: nonnegative(input.friction, 0.5),
     restitution: nonnegative(input.restitution) };
   if (result.restitution! > 1) throw new RangeError('restitution must be <= 1');
+  if (input.maxSpeed !== undefined) result.maxSpeed = positive(input.maxSpeed);
   if (result.kind === 'static' && (result.vx || result.vy || result.omega)) throw new RangeError('static body cannot move');
   if (result.kind !== 'static') {
     const { minimum, tip } = shapeRadii(checked);
     const speed = Math.hypot(result.vx!, result.vy!) + Math.abs(result.omega!) * tip;
-    const limit = 0.8 * Math.min(minimum, 12) / DT;
+    const limit = Math.min(result.maxSpeed ?? Infinity, 0.8 * Math.min(minimum, 12) / DT);
     if (speed > limit) throw new RangeError('initial physics speed requires swept-query-or-explicit-teleport');
   }
   return result;
@@ -273,6 +274,22 @@ export class PhysicsWorld {
       .sort(([a], [b]) => order(a, b));
   }
   hasBody(id: string): boolean { this.ensure(); return this.bodies.has(id); }
+  /** Placement only; queries current colliders, including rotated props, without backend handles. */
+  overlapsProp(x: number, y: number, radius: number): boolean {
+    this.ensure();
+    this.native.propagateModifiedBodyPositionsToColliders();
+    const shape = new RAPIER.Ball(dimension(radius) / SCALE);
+    const at = { x: finite(x) / SCALE, y: finite(y) / SCALE };
+    return this.sortedDynamic.some(([, record]) => record.spec.kind === 'prop'
+      && this.native.getCollider(record.collider)!.intersectsShape(shape, at, 0));
+  }
+  overlapsDynamicBox(box: { x: number; y: number; w: number; h: number }): boolean {
+    this.ensure();
+    this.native.propagateModifiedBodyPositionsToColliders();
+    const shape = new RAPIER.Cuboid(dimension(box.w) / SCALE / 2, dimension(box.h) / SCALE / 2);
+    const at = { x: (finite(box.x) + box.w / 2) / SCALE, y: (finite(box.y) + box.h / 2) / SCALE };
+    return this.sortedDynamic.some(([, record]) => this.native.getCollider(record.collider)!.intersectsShape(shape, at, 0));
+  }
   getGeneration(id: string): number | undefined {
     this.ensure(); return this.bodies.get(validId(id))?.generation;
   }
@@ -326,7 +343,7 @@ export class PhysicsWorld {
     for (const [id, record] of this.sortedDynamic) {
       const body = this.native.getRigidBody(record.handle)!;
       const v = body.linvel(), speed = Math.hypot(v.x, v.y) * SCALE;
-      const limit = 0.8 * Math.min(record.minimumRadius, 12) / DT;
+      const limit = Math.min(record.spec.maxSpeed ?? Infinity, 0.8 * Math.min(record.minimumRadius, 12) / DT);
       if (!Number.isFinite(speed)) throw new Error(`nonfinite physics speed ${id}`);
       const omega = body.angvel();
       if (!Number.isFinite(omega)) throw new Error(`nonfinite physics angular speed ${id}`);
