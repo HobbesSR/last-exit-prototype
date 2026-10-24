@@ -239,7 +239,7 @@ export function createKnowledgePlanner(map: CollisionMap, role: Role) {
     relax(keyOf(start.cell, start.tri, startDoors.used), { g: 0, x: start.point.x, y: start.point.y, parent: GOAL, portal: null, confirmed: start.tri >= 0 && startDoors.confirmed, spent: startDoors.spent });
 
     let expansions = 0, nearest = -2, nearestH = Infinity;
-    let reached = false, done: KnownRoute | null = null;
+    let reached = false, exhausted = false, done: KnownRoute | null = null;
     /** Expand up to `limit` more places; the route once the search has ended, else null. */
     const advance = (limit: number): KnownRoute | null => {
       if (done) return done;
@@ -247,9 +247,10 @@ export function createKnowledgePlanner(map: CollisionMap, role: Role) {
         const { node: key, g } = heap.pop()!;
         if (closed.has(key) || g > (states.get(key)?.g ?? Infinity)) continue;
         if (key === GOAL) { reached = true; break; }
+        // The budget is spent: report the place nearest the goal, never more expansions than the budget.
+        if (expansions >= budget) { exhausted = true; break; }
         closed.add(key);
-        if (++expansions > budget) break;
-        n++;
+        expansions++; n++;
         const at = states.get(key)!, used = key % USED, place = Math.floor(key / USED), cell = Math.floor(place / TRI), tri = place % TRI - 1;
         const h = Math.hypot(goal.point.x - at.x, goal.point.y - at.y);
         if (h < nearestH) { nearestH = h; nearest = key; }
@@ -285,12 +286,12 @@ export function createKnowledgePlanner(map: CollisionMap, role: Role) {
           }
         }
       }
-      if (!reached && expansions <= budget && heap.size) return null;
+      if (!reached && !exhausted && heap.size) return null;
       return done = finish();
     };
     const finish = (): KnownRoute => {
-      const end = reached ? GOAL : expansions > budget ? nearest : -2;
-      if (end === -2) return result(expansions > budget ? 'budget-exhausted' : 'no-known-route', expansions);
+      const end = reached ? GOAL : exhausted ? nearest : -2;
+      if (end === -2) return result(exhausted ? 'budget-exhausted' : 'no-known-route', expansions);
       const chain: State[] = [];
       for (let k = end; ; k = states.get(k)!.parent) { chain.push(states.get(k)!); if (states.get(k)!.parent === GOAL) break; }
       chain.reverse();
