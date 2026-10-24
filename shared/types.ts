@@ -202,6 +202,8 @@ export interface MatchContent {
   /** Names the content set in a recording header. Changes when any value below changes. */
   id: string;
   actorPhysics?: ActorPhysics | undefined;
+  /** Explicit L0 selection; optional drops stop at this logical ground-entry limit. */
+  itemInstances?: { groundCapacity: number } | undefined;
   /**
    * Who a match is made of. Its lengths are the role capacities, so spawning, lobby display and
    * matchmaking all count the same list instead of each repeating the numbers.
@@ -253,16 +255,22 @@ export interface RecordingPresentation {
   presentation: ContentPresentation | null;
 }
 
-export interface WeaponItem {
+/** Optional only for legacy content/archives. L0 preserves instance and root lineage across owners. */
+export interface ItemIdentity {
+  instanceId?: ItemId | undefined;
+  lineageId?: ItemId | undefined;
+  quality?: number | undefined;
+}
+export interface WeaponItem extends ItemIdentity {
   kind: 'weapon';
   weaponType: WeaponType;
   ammo: number;
 }
-export interface CellItem {
+export interface CellItem extends ItemIdentity {
   kind: 'cell';
   charge: Tick;
 }
-export interface StackItem {
+export interface StackItem extends ItemIdentity {
   kind: StackKind;
   count: number;
 }
@@ -277,7 +285,7 @@ export type Inventory = (InventoryItem | null)[];
  * An item lying in the world. It is deliberately wider than {@link InventoryItem}: generated loot
  * carries placement metadata, and the optional payload fields depend on `kind`.
  */
-export interface GroundItem {
+export interface GroundItem extends ItemIdentity {
   id: ItemId;
   x: World;
   y: World;
@@ -590,6 +598,8 @@ export interface GameEvent {
 }
 
 export interface Game {
+  /** L0 deterministic allocation counter; independent of legacy RNG/event IDs. */
+  itemSerial?: number | undefined;
   version: string;
   /** The tunable content this match was created with, fixed for its lifetime. */
   content: MatchContent;
@@ -618,6 +628,7 @@ export interface Game {
 
 /** A complete authoritative state clone, as recorded and as sent to spectators. */
 export interface Snapshot {
+  itemSerial?: number | undefined;
   physicsProfile?: string;
   bodies?: import('./physics/types.ts').PhysicsBodyView[];
   tethers?: import('./physics/types.ts').PhysicsTetherView[];

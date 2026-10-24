@@ -7,10 +7,11 @@ export { createGame, joinGame, setInput } from './simulation/state.ts';
 export { POTENTIAL, couldSee, visibleTo, playerView, snapshot } from './simulation/visibility.ts';
 import { movePlayer } from './movement.ts';
 import { start, stop } from './profiler.ts';
-import { equipped, syncWeapon, rearrangeEquipment } from './equipment.ts';
+import { equipped, syncWeapon, rearrangeEquipment, rearrangeInstanceEquipment } from './equipment.ts';
+import { ensureItemIdentity } from './item-instances.ts';
 import { stepTraps } from './traps.ts';
 import { distance } from './simulation/geometry.ts';
-import { effect, dropEquipment, automaticPickups } from './simulation/loot.ts';
+import { effect, dropEquipment, dropInventorySlot, automaticPickups } from './simulation/loot.ts';
 import { respawn, finishMatch } from './simulation/lifecycle.ts';
 import { damage, skill, attack, advanceProjectiles } from './simulation/combat.ts';
 import { interact, advanceCharging } from './simulation/interactions.ts';
@@ -30,7 +31,9 @@ export function step(s: Game): void {
   if (s.phase !== 'live') return;
   start('sim.step');
   advanceTick(s);
-  for (const p of s.players) {
+  const players = s.content.itemInstances ? [...s.players].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0) : s.players;
+  if (s.content.itemInstances) for (const p of players) for (const item of p.inventory ?? []) if (item) ensureItemIdentity(s, item);
+  for (const p of players) {
     p.movedThisTick = 0;
     respawn(s, p);
     if (p.status !== 'active') continue;
@@ -44,8 +47,14 @@ export function step(s: Game): void {
     stop('sim.move');
     start('sim.actions');
     if (p.inventory && input.slot !== undefined) { p.selectedSlot = input.slot; syncWeapon(p, s.content.weapons); }
-    if (input.moveSlot) rearrangeEquipment(p, input.moveSlot.from, input.moveSlot.to, s.content.weapons);
-    if (input.drop && equipped(p)) { dropEquipment(s, p, equipped(p)!); p.inventory![p.selectedSlot!] = null; p.charging = null; syncWeapon(p, s.content.weapons); }
+    if (input.moveSlot) {
+      if (s.content.itemInstances) rearrangeInstanceEquipment(s, p, input.moveSlot.from, input.moveSlot.to);
+      else rearrangeEquipment(p, input.moveSlot.from, input.moveSlot.to, s.content.weapons);
+    }
+    if (input.drop && equipped(p)) {
+      if (s.content.itemInstances) dropInventorySlot(s, p, p.selectedSlot!);
+      else { dropEquipment(s, p, equipped(p)!); p.inventory![p.selectedSlot!] = null; p.charging = null; syncWeapon(p, s.content.weapons); }
+    }
     if (input.skill) skill(s, p);
     if (input.attack) attack(s, p);
     if (input.interact) interact(s, p);

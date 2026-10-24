@@ -11,7 +11,7 @@ import { GATE_REACH, HZ } from './rules.ts';
 import { distance, center, clearRoute } from './geometry.ts';
 import { visibleTo } from './visibility.ts';
 import { attack, utilityApplies, utilityOutcome } from './combat.ts';
-import { dropEquipment } from './loot.ts';
+import { dropEquipment, dropInventorySlot } from './loot.ts';
 import type { CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, MatchContent, Player, PlayerInput, Role, Tick, TileCount, TileIndex, Vec2, World } from '../types.ts';
 
 // What a bot that decides from discovery is after, kept between ticks (#230). A bot searching for what
@@ -502,6 +502,7 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
         const discard = (collecting ? effectiveInventory() : p.inventory!).findIndex(item => item?.kind !== 'weapon' || item.ammo === 0);
         if (discard >= 0) {
           if (collecting) intent.discardSlot = discard;
+          else if (s.content.itemInstances) dropInventorySlot(s, p, discard);
           else { dropEquipment(s, p, p.inventory![discard]!); p.inventory![discard] = null; }
         }
       }

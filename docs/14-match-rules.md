@@ -76,6 +76,46 @@ Each cell occupies one of the six ordinary equipment slots and never stacks; car
 
 ## Equipment and inventory
 
+### Explicit L0 item instances (#442)
+
+`createGame(seed, map, contentById('content-equipment-1'))` selects
+`last-exit-0.8-equipment-1`. Default rooms, retained content sets and the frozen
+fixture keep their existing behavior. L0 uses the ordinary movement loop without
+a solver; `createPhysicsGame` refuses this selection until P5 integrates it.
+The content otherwise retains content-5 tuning and six-slot controls.
+
+Ground `id` is the persistent instance identity. Carried entries retain it as
+`instanceId`, with a `lineageId` naming the original root. A whole pickup/drop
+keeps that identity; splitting retains the original on one survivor and allocates
+deterministic `instance-N` children for the others. Merges retain the target's
+identity/root and retire the fully consumed source. This is bounded root lineage,
+not an accumulating ancestry log. IDs for old carried entries are assigned in
+player-ID/slot order before tick actions. A separate recorded `itemSerial` counter
+does not consume legacy RNG or event IDs; initial IDs in its namespace are reserved.
+Item definitions remain kind/weaponType; optional quality 1..5 is preserved but
+does not alter statistics. Only equal qualities merge (omitted quality means 1).
+
+Utility stacks stay capped at three in inventory; partial ground transfers retain
+the source remainder. Drops scatter one ground entry per utility unit. Optional
+drops reject the entire operation if the provisional 4,096-entry ground capacity
+or bounded placement search cannot represent it. Inventory and allocation state
+are unchanged on rejection. Full-inventory E swaps stage pickup and outgoing drop
+together; an incomplete incoming refill rejects that swap without transferring
+ammo. Automatic matching pickups still refill partially. Both E and automatic
+pickup honor the one-second self-drop delay. Competing pickups resolve in lexical
+player-ID order in this separately versioned loop.
+
+Mandatory death drops may exceed the optional capacity and fall back to the
+player's position when scattering is impossible. They remain ordinary recoverable
+logical loot, including fully charged cells. Capacity never deletes their value.
+The mandatory reserve is all carried value: at most eighteen utility units per
+six-slot inventory, with no cap rejection. Overflow creates no extra value and
+is bounded by the match's finite admitted loot quantity; repeated transfers do
+not grow it. P5 must reserve bodies separately and keep this logical fallback when
+body admission fails. L0 creates no bodies or joints. Tiers/reloading remain later work.
+
+### Existing controls and defaults
+
 Equipment has six mixed slots. 1–6 or slot buttons select equipment; fire/use activates it. Items use icons with numeric ammo, stack or charge badges, tooltips and accessible names. R or Move/merge selects the current item for rearrangement; choose a destination with a number key or slot button. Matching medkit/shield stacks combine up to three; other items swap. Medkits restore 40 HP and shields restore 30 (75 maximum). Each cell takes one slot and never stacks.
 
 Drag an occupied slot at least eight screen pixels to another slot to move,
