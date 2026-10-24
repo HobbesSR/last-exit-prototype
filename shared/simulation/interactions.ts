@@ -4,27 +4,28 @@ import { nearbyGate } from '../gate-query.ts';
 import { observeGate } from '../discovery.ts';
 import { clearRoute, distance } from './geometry.ts';
 import { CHARGE_REACH, EXTRACTION_REACH, PICKUP_REACH, TRANSIT_REACH } from './rules.ts';
-import { event, effect, dropEquipment, dropInventorySlot } from './loot.ts';
+import { event, effect, dropEquipment, planDrop } from './loot.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { actorRadius } from './actor-physics.ts';
 import type { CellItem, Game, GroundItem, Player, PlayerInput } from '../types.ts';
 
-/** Work on a detached transfer plan so partial refills or rejected drops cannot leak value. */
+/**
+ * Stage only the inventory and the pickup, so partial refills or rejected drops cannot leak value.
+ * The outgoing drop is planned against the real map, keeping its geometry caches warm.
+ */
 function swapInstanceEquipment(s: Game, p: Player, pickup: GroundItem): void {
-  const index = p.selectedSlot ?? 0, old = p.inventory?.[index];
-  if (!old) return;
-  const draft = { ...p, inventory: structuredClone(p.inventory) };
-  const plan: Game = { ...s, map: { ...s.map, items: structuredClone(s.map.items) }, players: s.players.map(other => other === p ? draft : { ...other, inventory: structuredClone(other.inventory) }) };
-  const incoming = plan.map.items.find(item => item.id === pickup.id)!;
-  const outgoing = draft.inventory![index]!;
+  const index = p.selectedSlot ?? 0, outgoing = p.inventory?.[index];
+  if (!outgoing) return;
+  const draft = { ...p, inventory: structuredClone(p.inventory) }, incoming = structuredClone(pickup);
   draft.inventory![index] = null;
-  if (!collectInstanceEquipment(plan, draft, incoming)) return;
-  plan.map.items = plan.map.items.filter(item => item.id !== incoming.id);
-  const accepted = [...draft.inventory!], selectedSlot = draft.selectedSlot;
-  draft.inventory![index] = outgoing;
-  if (!dropInventorySlot(plan, draft, index)) return;
-  p.inventory = accepted; p.selectedSlot = selectedSlot; p.charging = null;
-  s.map.items = plan.map.items; s.itemSerial = plan.itemSerial;
+  // Collection reads only the ground list and carried identities, never map geometry.
+  const pickupStage: Game = { ...s, players: s.players.map(other => other === p ? draft : other), map: { ...s.map, items: s.map.items.map(item => item === pickup ? incoming : item) } };
+  if (!collectInstanceEquipment(pickupStage, draft, incoming)) return;
+  const remaining = s.map.items.filter(item => item !== pickup);
+  const drop = planDrop({ ...s, itemSerial: pickupStage.itemSerial }, p, outgoing, false, remaining);
+  if (!drop) return;
+  p.inventory = draft.inventory; p.selectedSlot = draft.selectedSlot; p.charging = null;
+  s.map.items = [...remaining, ...drop.records]; s.itemSerial = drop.itemSerial;
   syncWeapon(p, s.content.weapons);
 }
 

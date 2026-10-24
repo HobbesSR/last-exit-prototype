@@ -76,6 +76,19 @@ Each cell occupies one of the six ordinary equipment slots and never stacks; car
 
 ## Equipment and inventory
 
+Equipment has six mixed slots. 1–6 or slot buttons select equipment; fire/use activates it. Items use icons with numeric ammo, stack or charge badges, tooltips and accessible names. R or Move/merge selects the current item for rearrangement; choose a destination with a number key or slot button. Matching medkit/shield stacks combine up to three; other items swap. Medkits restore 40 HP and shields restore 30 (75 maximum). Each cell takes one slot and never stacks.
+
+Drag an occupied slot at least eight screen pixels to another slot to move,
+swap or merge it. Release over the arena canvas to drop that source item beside
+the player, using the same placement and pickup delay as G; the pointer does not
+choose a remote world location. Releasing over other UI cancels. Mouse and touch
+share the gesture, including touch dragging while another finger holds the move
+stick. Cancellation, blur, dialogs, inactive players and replay mode prevent
+unfinished gestures from producing inventory commands. Inventory changes remain
+authoritative; the UI does not move items before the server responds.
+
+E swaps nearby loot into the selected slot when full. G or Drop selected drops the whole selected slot; a one-second owner pickup delay avoids immediate recollection. Drops retain cell charge and remaining weapon ammunition. Pistol/rifle/scattergun pickups start with 48/90/24 rounds, capped at 192/360/96 per weapon. One shot costs one round, including a scattergun's five-pellet shot. Matching weapon pickups replenish ammo even with full inventory; untransferred rounds remain on the ground. There is no reload mechanic or separate reserve-ammo slot yet. Existing damage/cooldowns remain pistol 10/8 ticks, rifle 6/4, scattergun five 7-damage pellets/18. No contestant ability slot is implemented.
+
 ### Explicit L0 item instances (#442)
 
 `createGame(seed, map, contentById('content-equipment-1'))` selects
@@ -108,26 +121,13 @@ player-ID order in this separately versioned loop.
 Mandatory death drops may exceed the optional capacity and fall back to the
 player's position when scattering is impossible. They remain ordinary recoverable
 logical loot, including fully charged cells. Capacity never deletes their value.
+A malformed carried entry that no ground record can represent is cleared without
+halting the tick; well-formed value always drops.
 The mandatory reserve is all carried value: at most eighteen utility units per
 six-slot inventory, with no cap rejection. Overflow creates no extra value and
 is bounded by the match's finite admitted loot quantity; repeated transfers do
 not grow it. P5 must reserve bodies separately and keep this logical fallback when
 body admission fails. L0 creates no bodies or joints. Tiers/reloading remain later work.
-
-### Existing controls and defaults
-
-Equipment has six mixed slots. 1–6 or slot buttons select equipment; fire/use activates it. Items use icons with numeric ammo, stack or charge badges, tooltips and accessible names. R or Move/merge selects the current item for rearrangement; choose a destination with a number key or slot button. Matching medkit/shield stacks combine up to three; other items swap. Medkits restore 40 HP and shields restore 30 (75 maximum). Each cell takes one slot and never stacks.
-
-Drag an occupied slot at least eight screen pixels to another slot to move,
-swap or merge it. Release over the arena canvas to drop that source item beside
-the player, using the same placement and pickup delay as G; the pointer does not
-choose a remote world location. Releasing over other UI cancels. Mouse and touch
-share the gesture, including touch dragging while another finger holds the move
-stick. Cancellation, blur, dialogs, inactive players and replay mode prevent
-unfinished gestures from producing inventory commands. Inventory changes remain
-authoritative; the UI does not move items before the server responds.
-
-E swaps nearby loot into the selected slot when full. G or Drop selected drops the whole selected slot; a one-second owner pickup delay avoids immediate recollection. Drops retain cell charge and remaining weapon ammunition. Pistol/rifle/scattergun pickups start with 48/90/24 rounds, capped at 192/360/96 per weapon. One shot costs one round, including a scattergun's five-pellet shot. Matching weapon pickups replenish ammo even with full inventory; untransferred rounds remain on the ground. There is no reload mechanic or separate reserve-ammo slot yet. Existing damage/cooldowns remain pistol 10/8 ticks, rifle 6/4, scattergun five 7-damage pellets/18. No contestant ability slot is implemented.
 
 ## Traps
 

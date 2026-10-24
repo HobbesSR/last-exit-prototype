@@ -193,6 +193,19 @@ test('failed E preview leaves a partially refillable pistol and the outgoing sta
   assert.equal(s.map.items[0].ammo, 7);
 });
 
+test('a successful E swap stages only the pickup: the map and other ground entries are untouched', () => {
+  const { s, p } = fixture();
+  for (let i = 0; i < 6; i++) p.inventory[i] = { kind: 'cell', charge: i + 1, instanceId: `owned-${i}`, lineageId: `owned-${i}` };
+  const bystander = ground('bystander', 'med', { x: 500, y: 300 });
+  s.map.items.push(bystander, ground('incoming', 'cell', { charge: 9 }));
+  const map = s.map;
+  interact(s, p);
+  assert.equal(p.inventory[0].instanceId, 'incoming');
+  assert.equal(s.map, map);
+  assert.ok(s.map.items.includes(bystander), 'unrelated ground entries keep their object identity');
+  assert.deepEqual(s.map.items.map(i => i.id).sort(), ['bystander', 'owned-0']);
+});
+
 test('E cannot swap back a fresh self-drop even when all slots are filled again', () => {
   const { s, p } = fixture(2);
   for (let i = 0; i < 6; i++) p.inventory[i] = { kind: 'cell', charge: i + 1, instanceId: `owned-${i}`, lineageId: `owned-${i}` };
@@ -203,6 +216,15 @@ test('E cannot swap back a fresh self-drop even when all slots are filled again'
   const before = structuredClone({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial });
   interact(s, p);
   assert.deepEqual({ inventory: p.inventory, items: s.map.items, itemSerial: s.itemSerial }, before);
+});
+
+test('a malformed carried entry cannot halt elimination; well-formed value still drops', () => {
+  const { s, p } = fixture();
+  p.inventory[0] = { kind: 'cell', charge: 12, instanceId: 'good', lineageId: 'good' };
+  p.inventory[1] = { kind: 'weapon', weaponType: 'pistol', ammo: Number.NaN, instanceId: 'bad', lineageId: 'bad' };
+  assert.doesNotThrow(() => eliminate(s, p, null));
+  assert.deepEqual(s.map.items.map(i => i.id), ['good']);
+  assert.ok(p.inventory.every(i => i === null));
 });
 
 test('failed optional scattering leaves all state intact; mandatory drop keeps a logical fallback', () => {

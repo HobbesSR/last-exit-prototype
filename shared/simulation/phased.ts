@@ -10,7 +10,7 @@ import { respawn, finishMatch } from './lifecycle.ts';
 import { damage, skill, attack } from './combat.ts';
 import { solvePhysicsProjectiles } from './physics-projectiles.ts';
 import { interact, advanceCharging } from './interactions.ts';
-import { automaticPickups, dropEquipment, effect } from './loot.ts';
+import { automaticPickups, dropInventorySlot, effect } from './loot.ts';
 import { stepTraps } from '../traps.ts';
 import { advanceTick, advanceTimers, applyEnvironment, advanceDiscovery } from './tick-rules.ts';
 import { recordRewind } from './rewind.ts';
@@ -179,7 +179,7 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
     if (input.moveSlot) rearrangeEquipment(p, input.moveSlot.from, input.moveSlot.to, s.content.weapons);
     if (intent.utilitySlot !== undefined && p.selectedSlot === intent.utilitySlot) attack(s, p);
     const discard = intent.discardSlot ?? (input.drop ? p.selectedSlot : undefined);
-    if (discard !== undefined && p.inventory?.[discard]) { dropEquipment(s, p, p.inventory[discard]!); p.inventory[discard] = null; p.charging = null; syncWeapon(p, s.content.weapons); }
+    if (discard !== undefined) dropInventorySlot(s, p, discard);
     if (input.skill && p.kit !== 'warden') skill(s, p);
     if (input.attack && p.role === 'contestant') attack(s, p);
     const speed = movementSpeed(p, input, HZ);
