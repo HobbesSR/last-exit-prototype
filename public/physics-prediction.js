@@ -4,16 +4,15 @@ import { characterMotor } from '../shared/simulation/actor-physics.ts';
 import { movementSpeed } from '../shared/movement.ts';
 import { bodyRadius } from '../shared/physics/presentation-geometry.ts';
 
-// Limits are deliberately independent of server queue trimming. A lost/stalled
-// application frame may require a cut, never unbounded catch-up on the UI thread.
-export const PREDICTION_LIMITS = Object.freeze({ inputs: 32, frames: 32, replay: 8, statics: 512, proxies: 128, staleMs: 500 });
+import { PREDICTION_LIMITS } from './physics-prediction-limits.js';
+export { PREDICTION_LIMITS } from './physics-prediction-limits.js';
 
 /** Approximate local motor only. No simulation, inventory, damage or joint owner is imported. */
 export async function createPhysicsPrediction(map, playerId, { clock = () => performance.now() } = {}) {
   const factory = await createPhysicsWorldFactory();
   const geometry = buildPhysicsGeometry(map);
   let world, authority, own, motor, surfaces, value, tick, receivedAt = -Infinity, floor = -1;
-  let inputs = [], frames = [], topology, identity;
+  let inputs = [], frames = [], identity;
   const poses = new Map();
   let lastReason = 'initial', replayed = 0, rebuilds = 0, cuts = 0, error = 0;
   const close = () => { world?.dispose(); world = null; };
@@ -75,18 +74,16 @@ export async function createPhysicsPrediction(map, playerId, { clock = () => per
     frames.push(frame); frames = frames.slice(-PREDICTION_LIMITS.frames);
     inputs = inputs.filter(i => i.seq > (authority?.lastSeq ?? -1));
     const nextIdentity = own && JSON.stringify([frame.physicsProfile, own.id, own.generation, own.shape, motor]);
-    const nextTopology = own && motor && JSON.stringify(proxiesFor(frame).map(b => [b.id, b.generation, b.shape]).sort());
     let reason;
     if (!authority || authority.status !== 'active' || !own || !motor || !Number.isFinite(own.vx) || !Number.isFinite(own.vy)) reason = 'unsupported';
     else if (frame.predictionTethered || frame.tethers?.some(t => t.a === own.id || t.b === own.id)) reason = 'tethered';
     else if (identity !== undefined && nextIdentity !== identity) reason = 'profile-or-generation';
     else if (own.discontinuity) reason = 'placement';
     else if (previousTick !== undefined && frame.tick !== previousTick + 1) reason = 'frame-gap';
-    else if (topology !== undefined && nextTopology !== topology) reason = 'proxy-lifecycle';
     else if (pending().length > PREDICTION_LIMITS.replay) reason = 'replay-cap';
     else if (inputs.length && (inputs[0].seq > Math.max(floor, authority.lastSeq) + 1 ||
       inputs.some((input, index) => index > 0 && input.seq !== inputs[index - 1].seq + 1))) reason = 'missing-input';
-    identity = nextIdentity; topology = nextTopology;
+    identity = nextIdentity;
     error = previousPose && authority ? Math.hypot(previousPose.x - authority.x, previousPose.y - authority.y) : null;
     if (reason) cut(reason);
     else { lastReason = null; rebuild(frame); }

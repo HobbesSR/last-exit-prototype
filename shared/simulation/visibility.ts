@@ -5,6 +5,8 @@ import { start, stop } from '../profiler.ts';
 import { frameFields, ownPlayerFields, itemFields, gateFields, trapFields, projectileFields, effectFields, eventFields } from './projection-contract.ts';
 import type { Game, Player, PlayerId, Snapshot, Vec2, World } from '../types.ts';
 import { physicsState } from './physics-runtime.ts';
+import { DEFAULT_CHARACTER_MOTOR } from './actor-physics.ts';
+import { MAX_PHYSICS_SPEED } from '../physics/motion-limits.ts';
 import { capturePhysicsPresentation, projectPhysicsPresentation } from './physics-presentation.ts';
 // The reach the server transmits within. Generous on purpose: it carries everything that could become
 // visible before the next update — through cover clearing, a cloak dropping, a scan reveal, or simply
@@ -50,9 +52,9 @@ function buildPlayerView(s: Game, frame: Snapshot, id: PlayerId) {
   return { ...rest, duration: s.content.durationTicks, directed: !viewer, contestantsActive: frame.players.filter(p => p.role === 'contestant' && p.status === 'active').length,
     ...(frame.bodies ? projectPhysicsPresentation(frame, viewer, new Set(authorized.map(p => p.id)), inRange) : {}),
     ...(frame.bodies && viewer ? { predictionMotor: {
-      acceleration: s.content.actorPhysics?.acceleration ?? 3600,
-      braking: s.content.actorPhysics?.braking ?? 3600,
-      maxSpeed: s.content.actorPhysics?.maxSpeed ?? 768,
+      acceleration: s.content.actorPhysics?.acceleration ?? DEFAULT_CHARACTER_MOTOR.acceleration,
+      braking: s.content.actorPhysics?.braking ?? DEFAULT_CHARACTER_MOTOR.braking,
+      maxSpeed: s.content.actorPhysics?.maxSpeed ?? MAX_PHYSICS_SPEED,
     }, predictionTethered: (frame.physics?.world.constraints ?? []).some(c => c.a === `actor:${viewer.id}` || c.b === `actor:${viewer.id}`) } : {}),
     players: authorized.map(p => p.id === id ? ownPlayerFields(p, discovery) : observed(p)),
     items: frame.items.filter(inRange).map(itemFields), gates: frame.gates?.map(gateFields),

@@ -1,9 +1,10 @@
 import RAPIER from '@dimforge/rapier2d-compat';
+import { PHYSICS_SUBSTEP_SECONDS, physicsSpeedLimit } from './motion-limits.ts';
 import type { BodySpec, ConstraintSpec, MotorIntent, PhysicsContact, PhysicsSnapshot, Point, Transform } from './types.ts';
 
 const SCALE = 40;
 const SUBSTEPS = 4;
-const DT = 0.0125;
+const DT = PHYSICS_SUBSTEP_SECONDS;
 const MAX_DYNAMIC = 128;
 const MAX_ACTORS = 27;
 const MAX_STATIC = 100000;
@@ -93,7 +94,7 @@ function validateBody(input: BodySpec): BodySpec {
   if (result.kind !== 'static') {
     const { minimum, tip } = shapeRadii(checked);
     const speed = Math.hypot(result.vx!, result.vy!) + Math.abs(result.omega!) * tip;
-    const limit = Math.min(result.maxSpeed ?? Infinity, 0.8 * Math.min(minimum, 12) / DT);
+    const limit = Math.min(result.maxSpeed ?? Infinity, physicsSpeedLimit(minimum));
     if (speed > limit) throw new RangeError('initial physics speed requires swept-query-or-explicit-teleport');
   }
   return result;
@@ -352,7 +353,7 @@ export class PhysicsWorld {
     for (const [id, record] of this.sortedDynamic) {
       const body = this.native.getRigidBody(record.handle)!;
       const v = body.linvel(), speed = Math.hypot(v.x, v.y) * SCALE;
-      const limit = Math.min(record.spec.maxSpeed ?? Infinity, 0.8 * Math.min(record.minimumRadius, 12) / DT);
+      const limit = Math.min(record.spec.maxSpeed ?? Infinity, physicsSpeedLimit(record.minimumRadius));
       if (!Number.isFinite(speed)) throw new Error(`nonfinite physics speed ${id}`);
       const omega = body.angvel();
       if (!Number.isFinite(omega)) throw new Error(`nonfinite physics angular speed ${id}`);

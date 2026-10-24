@@ -5,6 +5,7 @@ import { bodyRadius, bodyShape } from '/shared/physics/presentation-geometry.ts'
 import { createShapeVisibility } from '/shared/view.ts';
 import { observe, start, stop, count, frame as endProfileFrame } from '/shared/profiler.ts';
 import { noteFrame } from '/diagnostics.js';
+import { PREDICTION_LIMITS } from '/physics-prediction-limits.js';
 
 const COLORS = { access: 0xf4d26c, med: 0xff8b97, weapon: 0x8bd9f0, shield: 0xa3b9ff, cell: 0xffe98a };
 const PALETTE = [0x8d5669, 0x526f80, 0x8c815a];
@@ -608,7 +609,7 @@ export function makeArenaScene(api) {
       this.eyeBodyKey = eyeBodyKey;
       if (!focus) this.eye = null;
       else if (!this.eye || bodyCut || Math.hypot(focus.x - this.eye.x, focus.y - this.eye.y) > 150 ||
-        api.localPhysics?.() && ((rawDelta ?? delta) > 200 || !sweptClear(map, this.eye, focus, selfBody ? bodyRadius(selfBody.shape) : 12))) this.eye = { x: focus.x, y: focus.y };
+        api.localPhysics?.() && ((rawDelta ?? delta) > PREDICTION_LIMITS.eyeSnapMs || !sweptClear(map, this.eye, focus, selfBody ? bodyRadius(selfBody.shape) : 12))) this.eye = { x: focus.x, y: focus.y };
       else { this.eye.x = Phaser.Math.Linear(this.eye.x, focus.x, ease); this.eye.y = Phaser.Math.Linear(this.eye.y, focus.y, ease); }
       const eye = this.eye;
       // Whose sight the view is cut to: the player's own, a followed player's in a fogged directed

@@ -199,7 +199,8 @@ async function run(profile) {
 }
 
 const files = ['tools/physics/prediction-network.mjs', 'tests/physics-prediction.browser.mjs',
-  'public/physics-prediction.js', 'shared/physics/world.ts', 'shared/simulation/phased.ts',
+  'public/physics-prediction.js', 'public/physics-prediction-limits.js',
+  'shared/physics/world.ts', 'shared/physics/motion-limits.ts', 'shared/simulation/phased.ts',
   'shared/simulation/visibility.ts', 'shared/simulation/input.ts', 'shared/simulation/actor-physics.ts',
   'shared/simulation/content.ts', 'package-lock.json',
   'node_modules/@dimforge/rapier2d-compat/dist/rapier_wasm2d_bg.wasm'];

@@ -59,6 +59,43 @@ test('same-tick authorized proxy blocks movement; omission of hidden body does n
   } finally { open.dispose(); blocked.dispose(); }
 });
 
+test('walking across both range edges of a stationary prop keeps pending replay', async () => {
+  const arena = map();
+  arena.width = 1800;
+  arena.playableArea.rows = Array.from({ length: 4 }, (_, y) => ({ y, runs: [[0, 18]] }));
+  const prop = { id: 'prop:crate', kind: 'prop', shape: { kind: 'circle', radius: 12 },
+    x: 1000, y: 250, angle: 0, vx: 0, vy: 0, generation: 1 };
+  const p = await predictor(arena);
+  const correction = tick => {
+    const x = 650 + 20 * (tick - 1);
+    return frame(tick, { players: [player({ x, lastSeq: tick - 2 })],
+      bodies: [body({ x, vx: 400 }), prop] });
+  };
+  try {
+    p.correct(correction(1));
+    for (let seq = 0; seq < 3; seq++) p.input(move(seq));
+    assert.equal(p.stats().inputs, 3);
+    let rangeChanges = 0, wasNear = false;
+    for (let tick = 2; tick <= 36; tick++) {
+      const authoritative = correction(tick);
+      const ownX = authoritative.bodies[0].x;
+      const reach = 9.6 + authoritative.predictionMotor.maxSpeed * PREDICTION_LIMITS.replay / 20 + 48 + prop.shape.radius;
+      const near = Math.abs(prop.x - ownX) <= reach;
+      if (near !== wasNear) rangeChanges++;
+      wasNear = near;
+      p.correct(authoritative);
+      assert.equal(p.stats().reason, null, `correction ${tick} at x=${ownX}`);
+      assert.equal(p.stats().replayed, 2, `correction ${tick} replays both unconsumed inputs`);
+      p.input(move(tick + 1));
+      assert.equal(p.stats().inputs, 3, `tick ${tick} retains three pending inputs`);
+      assert.equal(p.stats().reason, null, `tick ${tick} continues prediction`);
+      assert.ok(p.value().x > ownX, `tick ${tick} remains ahead of authority`);
+    }
+    assert.equal(rangeChanges, 2, 'crate enters and leaves the replay horizon');
+    assert.equal(p.stats().cuts, 0);
+  } finally { p.dispose(); }
+});
+
 test('map wall remains a fixed blocker in the prediction island', async () => {
   const arena = map();
   arena.obstacles.push({ id: 'wall', x: 130, y: 150, w: 20, h: 100 });

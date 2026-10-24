@@ -1,24 +1,27 @@
 {
   "witness": "P4 deterministic scheduled-delivery lab",
-  "date": "2026-10-24T18:01:33.019Z",
-  "commit": "aee79015ad6e81c3eac1dfc0b27f061dda22028b",
+  "date": "2026-10-24T18:35:47.949Z",
+  "commit": "e4658f7d59ab8f328d79803de4815d40ccda4dce",
   "dirtySources": [
-    "M shared/physics/world.ts",
+    "M public/physics-prediction.js",
+    " M shared/physics/world.ts",
     " M shared/simulation/actor-physics.ts",
     " M shared/simulation/visibility.ts",
-    "?? public/physics-prediction.js",
-    "?? tests/physics-prediction.browser.mjs",
-    "?? tools/physics/prediction-network.mjs"
+    " M tools/physics/prediction-network.mjs",
+    "?? public/physics-prediction-limits.js",
+    "?? shared/physics/motion-limits.ts"
   ],
   "hashes": {
-    "tools/physics/prediction-network.mjs": "5d0ff4f5c560fc5beebb2da85f0a8961db05b830caf9a5181d4bf4b247edfd97",
+    "tools/physics/prediction-network.mjs": "45913ad269016da03263fcafff67de67c37df2cb801bce0b4c0c632fc542dd58",
     "tests/physics-prediction.browser.mjs": "d6d630ee75cfe132743fa1bcde7c0bfb466b1aedee25e8a91d0f7694654e8a2c",
-    "public/physics-prediction.js": "84151429e513f03a730a998e907ea671610b88eba5231536cf16f1842be37fbe",
-    "shared/physics/world.ts": "4e67ccbc2a78999ce086d1df046bb8e20d59c3d1054baea7b9eb275643bc2a23",
+    "public/physics-prediction.js": "bbe0832625391803c4b434c8a23da78bb9811e7584bc92d100927ff8738fd224",
+    "public/physics-prediction-limits.js": "a3a4b340f518e27ef0019760f6ad2469c94753f64451496dff791e8504e5a79d",
+    "shared/physics/world.ts": "75f79f1609d5b1f1e91b5d7a8298f7fa67952fb542f490bbe8dbe4e3d5a6aa77",
+    "shared/physics/motion-limits.ts": "9c4de805fb8891b64a3c7b941ad84f243e663de91bbb902967397e56f8ba4583",
     "shared/simulation/phased.ts": "0b67373e7e7212415ea13f5fa74b5d870ca1f54a9201d1b788b686115c22e1ad",
-    "shared/simulation/visibility.ts": "3bf11c57e6b1de13b09f17c402c1026831b640c933e22f07b4468fc9251575bb",
+    "shared/simulation/visibility.ts": "60655e336f8c4f7cf7939ab4f58afc1e8a450dbe842630cc5af476f9f020a1f1",
     "shared/simulation/input.ts": "ba56a69f07f379071ea2902c0314e9d95850dccbea9692755f57bd0ba42c4d5c",
-    "shared/simulation/actor-physics.ts": "38169ac2235504194f450c58476bac498dda074762514a911bc484893e060c63",
+    "shared/simulation/actor-physics.ts": "73705bc50efea49f63373747b509601a88aa1899cc1a2812f1f19a5e9fdd5b52",
     "shared/simulation/content.ts": "455ded1d558b23e96921e5608d1dcbcdc960d0928e897d569b662ac0f370fc58",
     "package-lock.json": "1e984c99c6e11c1647fe3deea7b2b3e099e6db5bae697a68a1882aabdc8974d6",
     "node_modules/@dimforge/rapier2d-compat/dist/rapier_wasm2d_bg.wasm": "322b00649f412e75e047c79741b6b89e6323f6f81034d114a9e8ab872bae7435"
@@ -141,10 +144,9 @@
       "settleTicksAfterNeutral": 0,
       "settleThresholdUnits": 1,
       "corrections": 86,
-      "predictedTicks": 83,
+      "predictedTicks": 84,
       "cutsByReason": {
-        "placement": 2,
-        "proxy-lifecycle": 1
+        "placement": 2
       },
       "maxReplay": 0,
       "witnessCounts": {
@@ -160,16 +162,16 @@
       },
       "cpuMs": {
         "input": {
-          "p50": 0.124,
-          "p95": 0.385,
-          "p99": 9.073,
-          "max": 9.073
+          "p50": 0.129,
+          "p95": 0.762,
+          "p99": 4.542,
+          "max": 4.542
         },
         "correct": {
-          "p50": 0.17,
-          "p95": 0.535,
-          "p99": 1.786,
-          "max": 1.786
+          "p50": 0.179,
+          "p95": 0.614,
+          "p99": 2.803,
+          "max": 2.803
         }
       },
       "authority": {
@@ -200,10 +202,9 @@
       "settleTicksAfterNeutral": 1,
       "settleThresholdUnits": 1,
       "corrections": 86,
-      "predictedTicks": 83,
+      "predictedTicks": 84,
       "cutsByReason": {
-        "placement": 2,
-        "proxy-lifecycle": 1
+        "placement": 2
       },
       "maxReplay": 1,
       "witnessCounts": {
@@ -219,16 +220,16 @@
       },
       "cpuMs": {
         "input": {
-          "p50": 0.066,
-          "p95": 0.097,
-          "p99": 0.488,
-          "max": 0.488
+          "p50": 0.065,
+          "p95": 0.125,
+          "p99": 0.511,
+          "max": 0.511
         },
         "correct": {
-          "p50": 0.209,
-          "p95": 0.411,
-          "p99": 1.463,
-          "max": 1.463
+          "p50": 0.22,
+          "p95": 0.345,
+          "p99": 1.462,
+          "max": 1.462
         }
       },
       "authority": {
@@ -259,10 +260,9 @@
       "settleTicksAfterNeutral": 1,
       "settleThresholdUnits": 1,
       "corrections": 86,
-      "predictedTicks": 82,
+      "predictedTicks": 83,
       "cutsByReason": {
-        "placement": 2,
-        "proxy-lifecycle": 1
+        "placement": 2
       },
       "maxReplay": 2,
       "witnessCounts": {
@@ -278,16 +278,16 @@
       },
       "cpuMs": {
         "input": {
-          "p50": 0.054,
-          "p95": 0.079,
-          "p99": 0.45,
-          "max": 0.45
+          "p50": 0.055,
+          "p95": 0.089,
+          "p99": 0.154,
+          "max": 0.154
         },
         "correct": {
-          "p50": 0.235,
-          "p95": 0.335,
-          "p99": 0.52,
-          "max": 0.52
+          "p50": 0.239,
+          "p95": 0.353,
+          "p99": 1.319,
+          "max": 1.319
         }
       },
       "authority": {
@@ -318,10 +318,9 @@
       "settleTicksAfterNeutral": 2,
       "settleThresholdUnits": 1,
       "corrections": 86,
-      "predictedTicks": 81,
+      "predictedTicks": 82,
       "cutsByReason": {
-        "placement": 2,
-        "proxy-lifecycle": 1
+        "placement": 2
       },
       "maxReplay": 4,
       "witnessCounts": {
@@ -338,15 +337,15 @@
       "cpuMs": {
         "input": {
           "p50": 0.048,
-          "p95": 0.069,
-          "p99": 0.263,
-          "max": 0.263
+          "p95": 0.089,
+          "p99": 0.159,
+          "max": 0.159
         },
         "correct": {
-          "p50": 0.302,
-          "p95": 0.385,
-          "p99": 0.641,
-          "max": 0.641
+          "p50": 0.309,
+          "p95": 0.468,
+          "p99": 0.72,
+          "max": 0.72
         }
       },
       "authority": {
@@ -363,7 +362,7 @@
       "samples": 85,
       "errorUnits": {
         "p50": 18,
-        "p95": 54.001,
+        "p95": 45.001,
         "p99": 72.002,
         "max": 72.002
       },
@@ -377,12 +376,11 @@
       "settleTicksAfterNeutral": 4,
       "settleThresholdUnits": 1,
       "corrections": 86,
-      "predictedTicks": 81,
+      "predictedTicks": 82,
       "cutsByReason": {
-        "placement": 2,
-        "proxy-lifecycle": 1
+        "placement": 2
       },
-      "maxReplay": 5,
+      "maxReplay": 8,
       "witnessCounts": {
         "predictorResets": 0,
         "serverQueueResets": 0,
@@ -396,16 +394,16 @@
       },
       "cpuMs": {
         "input": {
-          "p50": 0.054,
-          "p95": 0.079,
-          "p99": 0.093,
-          "max": 0.093
+          "p50": 0.053,
+          "p95": 0.082,
+          "p99": 0.122,
+          "max": 0.122
         },
         "correct": {
-          "p50": 0.315,
-          "p95": 0.476,
-          "p99": 0.85,
-          "max": 0.85
+          "p50": 0.309,
+          "p95": 0.474,
+          "p99": 0.958,
+          "max": 0.958
         }
       },
       "authority": {
@@ -455,16 +453,16 @@
       },
       "cpuMs": {
         "input": {
-          "p50": 0.049,
-          "p95": 0.072,
-          "p99": 0.377,
-          "max": 0.377
+          "p50": 0.05,
+          "p95": 0.094,
+          "p99": 0.154,
+          "max": 0.154
         },
         "correct": {
-          "p50": 0.176,
-          "p95": 0.216,
-          "p99": 0.389,
-          "max": 0.389
+          "p50": 0.18,
+          "p95": 0.336,
+          "p99": 0.774,
+          "max": 0.774
         }
       },
       "authority": {
@@ -513,16 +511,16 @@
       },
       "cpuMs": {
         "input": {
-          "p50": 0.043,
-          "p95": 0.072,
-          "p99": 0.49,
-          "max": 0.49
+          "p50": 0.048,
+          "p95": 0.095,
+          "p99": 0.599,
+          "max": 0.599
         },
         "correct": {
-          "p50": 0.203,
-          "p95": 0.382,
-          "p99": 9.834,
-          "max": 9.834
+          "p50": 0.211,
+          "p95": 0.574,
+          "p99": 1.47,
+          "max": 1.47
         }
       },
       "authority": {
@@ -571,16 +569,16 @@
       },
       "cpuMs": {
         "input": {
-          "p50": 0.039,
-          "p95": 0.06,
-          "p99": 0.076,
-          "max": 0.076
+          "p50": 0.04,
+          "p95": 0.068,
+          "p99": 0.164,
+          "max": 0.164
         },
         "correct": {
           "p50": 0.185,
-          "p95": 0.238,
-          "p99": 0.542,
-          "max": 0.542
+          "p95": 0.288,
+          "p99": 1.344,
+          "max": 1.344
         }
       },
       "authority": {
@@ -630,16 +628,16 @@
       },
       "cpuMs": {
         "input": {
-          "p50": 0.039,
-          "p95": 0.075,
-          "p99": 0.372,
-          "max": 0.372
+          "p50": 0.038,
+          "p95": 0.079,
+          "p99": 0.086,
+          "max": 0.086
         },
         "correct": {
-          "p50": 0.138,
-          "p95": 0.171,
-          "p99": 0.557,
-          "max": 0.557
+          "p50": 0.137,
+          "p95": 0.227,
+          "p99": 0.401,
+          "max": 0.401
         }
       },
       "authority": {
@@ -670,10 +668,9 @@
       "settleTicksAfterNeutral": 1,
       "settleThresholdUnits": 1,
       "corrections": 86,
-      "predictedTicks": 82,
+      "predictedTicks": 84,
       "cutsByReason": {
-        "placement": 2,
-        "proxy-lifecycle": 2
+        "placement": 2
       },
       "maxReplay": 1,
       "witnessCounts": {
@@ -695,15 +692,15 @@
       "cpuMs": {
         "input": {
           "p50": 0.039,
-          "p95": 0.11,
-          "p99": 0.328,
-          "max": 0.328
+          "p95": 0.064,
+          "p99": 0.31,
+          "max": 0.31
         },
         "correct": {
           "p50": 0.152,
-          "p95": 0.306,
-          "p99": 0.506,
-          "max": 0.506
+          "p95": 0.246,
+          "p99": 0.49,
+          "max": 0.49
         }
       },
       "authority": {
@@ -734,10 +731,9 @@
       "settleTicksAfterNeutral": 4,
       "settleThresholdUnits": 1,
       "corrections": 86,
-      "predictedTicks": 78,
+      "predictedTicks": 79,
       "cutsByReason": {
-        "placement": 2,
-        "proxy-lifecycle": 1
+        "placement": 2
       },
       "maxReplay": 8,
       "witnessCounts": {
@@ -753,16 +749,16 @@
       },
       "cpuMs": {
         "input": {
-          "p50": 0.035,
-          "p95": 0.058,
-          "p99": 0.309,
-          "max": 0.309
+          "p50": 0.036,
+          "p95": 0.056,
+          "p99": 0.376,
+          "max": 0.376
         },
         "correct": {
-          "p50": 0.268,
-          "p95": 0.359,
-          "p99": 0.515,
-          "max": 0.515
+          "p50": 0.267,
+          "p95": 0.457,
+          "p99": 0.67,
+          "max": 0.67
         }
       },
       "authority": {
