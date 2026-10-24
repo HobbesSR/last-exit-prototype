@@ -12,7 +12,7 @@ import { adoptPackedTiles } from '../../shared/free-space.ts';
 
 const output = process.argv[2] ?? 'test-results/physics-439-integration.json';
 const hash = data => createHash('sha256').update(data).digest('hex');
-await acquireMachineLock('bench');
+await acquireMachineLock('bench', { pollMs: 100 });
 const content = contentById('content-4'), map = generateLiveMap(4217, content, DEFAULT_LIVE_ZONE_SIZE);
 const rows = [];
 for (const mode of ['P1', 'P2']) {

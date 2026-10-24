@@ -53,6 +53,7 @@ test('P2 pins measured narrow bodies and physics-2 while P1 keeps its radius and
   const p1 = await game(parts(2, 'content-1'));
   try {
     assert.equal(p2.version, 'last-exit-0.8-physics-2');
+    assert.throws(() => { p2.map.motorSurfaces = []; }, TypeError, 'an absent floor list is pinned too');
     assert.equal(p1.version, 'last-exit-0.8-physics-1');
     assert.deepEqual([body(p2, 'c0').spec.shape.radius, body(p2, 'g0').spec.shape.radius], [11.2875, 16.25]);
     assert.deepEqual([body(p1, 'c0').spec.shape.radius, body(p1, 'g0').spec.shape.radius], [12, 23]);

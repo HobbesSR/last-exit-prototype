@@ -35,8 +35,8 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
     if (s.map.motorSurfaces) {
       s.map.motorSurfaces = structuredClone(s.map.motorSurfaces);
       s.map.motorSurfaces.forEach(Object.freeze); Object.freeze(s.map.motorSurfaces);
-      Object.defineProperty(s.map, 'motorSurfaces', { writable: false, configurable: false });
     }
+    Object.defineProperty(s.map, 'motorSurfaces', { writable: false, configurable: false });
   }
   if (s.players.length > 27) throw new RangeError('physics actor capacity is 27');
   const { createPhysicsWorld } = await import('../physics/world.ts');
