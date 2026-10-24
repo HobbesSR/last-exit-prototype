@@ -147,6 +147,9 @@ async function runCase({ lootCount, clustered, propCount, awake }) {
     };
 }
 
+// Optional forced collection is outside all timed phases and exposes retained-memory trends.
+const collect = () => { if (typeof global.gc === 'function') { global.gc(); global.gc(); } };
+collect();
 const report = {
   schema: 'physics-445-p5-report-1',
   date: new Date().toISOString(),
@@ -164,6 +167,7 @@ const report = {
     gladiators: Array.from({ length: 3 }, (_, i) => ({ name: `G${i}`, kit: 'warden' })),
   } },
   scenarios: [],
+  forcedGcBetweenScenes: typeof global.gc === 'function',
   memoryBefore: memory(),
   limitations: [
     'Synthetic authored map and stationary 11-actor roster; not a whole-room or production capacity qualification.',
@@ -188,6 +192,12 @@ try {
       '116 loot + 1 inert crate', '53 loot + 64 authored inert crates; total dynamic capacity 128 including actors'],
     layouts: ['sparse', 'clustered'], bodyConditions: ['settling-sleep', 'awake'],
     awakeMethod: 'Outside each timed step, queue alternating +/-2 world-unit x impulses to every loot body and +/-20 (sparse) or +/-40 (clustered) to each crate; crate signs alternate by tick and body index; actors receive none.' };
+  const retain = async config => {
+    const row = await runCase(config);
+    collect();
+    row.memoryAfterDisposal = memory();
+    report.scenarios.push(row);
+  };
   for (const clustered of [false, true]) {
     for (const lootCount of [0, 64, 117]) {
       for (const awake of [false, true])
