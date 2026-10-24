@@ -1,7 +1,7 @@
 import { compareCells } from '../../kernel/cell.ts';
 import { circle, rect } from '../../../shared/shape.ts';
 import type { Shape } from '../../../shared/shape.ts';
-import { createAccessMask, createFillMask, elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
+import { createFillMask, elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
 import { rng } from '../index.ts';
 import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
 import { protectedRoutes } from './scatter.ts';
@@ -12,6 +12,7 @@ import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types.ts';
 import type { ExecutionBuilder } from '../delegation-execute.ts';
 import { createBuilderCanvas } from '../canvas.ts';
+import type { BuilderCanvas } from '../canvas.ts';
 
 /**
  * The cover executor implementation (20.7); bump it when `buildCover` output changes. The aggregate
@@ -77,6 +78,11 @@ function densityOf(brief: RegionBrief): number {
  * no core elements; any the brief lists are left for the report to name (51 stage 8).
  */
 export function buildCover(brief: RegionBrief): BuiltRegion {
+  return sitedCover(brief).region;
+}
+
+/** `buildCover`'s region with the protections its canvas held, so the post-filters commit against the same ones. */
+function sitedCover(brief: RegionBrief): { region: BuiltRegion; protectedShapes: readonly Shape[] } {
   const density = densityOf(brief), size = brief.cellSize;
   const owned = new Set(createFillMask(brief).cells.map(c => `${c.x},${c.y}`)), footprints = new Set<string>();
   const cells = [...brief.cells].sort(compareCells);
@@ -142,8 +148,14 @@ export function buildCover(brief: RegionBrief): BuiltRegion {
   }
 
   const elements = [...canvas.elements];
-  return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
-    manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0, loot: loot.length, coreElements: 0 } };
+  return { protectedShapes, region: { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
+    manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0, loot: loot.length, coreElements: 0 } } };
+}
+
+/** Commits each piece as its own assembly, as `buildCover` did. Siting has accepted them, so a refusal is an invariant failure. */
+function commitPieces(brief: RegionBrief, canvas: BuilderCanvas, elements: readonly RegionElement[]) {
+  for (const element of elements) if (!canvas.commit({ elements: [element] }))
+    throw new Error(`Region ${brief.id}: the canvas refused cover piece ${element.label}, which cover's siting accepted.`);
 }
 
 /**
@@ -158,20 +170,20 @@ export interface ClearSite { x: number; y: number; radius: number; reach?: numbe
  * its sites reachable from its first portal. Dropping cover can't break a portal route.
  */
 export function coverAround(brief: RegionBrief, sites: readonly ClearSite[], root?: { x: number; y: number }): Pick<BuiltRegion, 'elements' | 'loot'> {
-  const mask = createAccessMask(brief), lootRadius = microMetrics({ cellSize: brief.cellSize, bodyProfile: 'cell' }).lootRadius;
+  const lootRadius = microMetrics({ cellSize: brief.cellSize, bodyProfile: 'cell' }).lootRadius;
   const discs = sites.map(site => circle(site.x, site.y, site.radius));
-  const cover = buildCover(brief);
-  const elements: RegionElement[] = [], blockers: Shape[] = [];
+  const { region: cover, protectedShapes } = sitedCover(brief);
+  const canvas = createBuilderCanvas(brief, protectedShapes), blockers: Shape[] = [];
   for (const element of cover.elements) {
     const shapes = elementShapes(element);
     if (shapes.some(shape => discs.some(disc => shapesOverlap(shape, disc)))) continue;
     const next = [...blockers, ...shapes];
-    if (root && sites.some(site => !findRegionRoute(mask, next, root, site, site.reach ?? site.radius))) continue;
-    elements.push(element);
+    if (root && sites.some(site => !findRegionRoute(canvas.access, next, root, site, site.reach ?? site.radius))) continue;
+    commitPieces(brief, canvas, [element]);
     blockers.push(...shapes);
   }
   const loot = cover.loot.filter(site => !discs.some(disc => shapesOverlap(circle(site.x, site.y, lootRadius), disc)));
-  return { elements, loot };
+  return { elements: [...canvas.elements], loot };
 }
 
 /**
@@ -182,15 +194,17 @@ export function coverAround(brief: RegionBrief, sites: readonly ClearSite[], roo
  */
 export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements' | 'loot'>, site: ClearSite, within: number,
   root?: { x: number; y: number }): Pick<BuiltRegion, 'elements' | 'loot'> {
-  const size = brief.cellSize, mask = createAccessMask(brief), disc = circle(site.x, site.y, site.radius), near = circle(site.x, site.y, site.radius + within);
+  const size = brief.cellSize, disc = circle(site.x, site.y, site.radius), near = circle(site.x, site.y, site.radius + within);
   const blockers = cover.elements.flatMap(element => elementShapes(element));
   if (blockers.some(shape => shapesOverlap(shape, near))) return cover;
 
-  const fill = createFillMask(brief).cells, owned = new Set(fill.map(c => `${c.x},${c.y}`)), taken = new Set<string>();
   // Routes between portals are protected; past 32 portals that search is too dear, and
   // boxes keep an aisle from the boundary instead.
   const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
   const protectedShapes = routed ? protectedRoutes(brief, 'Cover') : [];
+  const canvas = createBuilderCanvas(brief, protectedShapes);
+  commitPieces(brief, canvas, cover.elements);
+  const fill = canvas.fill.cells, owned = new Set(fill.map(c => `${c.x},${c.y}`)), taken = new Set<string>();
 
   for (const element of cover.elements) {
     const x0 = Math.round(element.x / size), y0 = Math.round(element.y / size);
@@ -212,9 +226,10 @@ export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements
   }
   for (const element of rng(brief.seed, `${brief.id}:cover-near`).shuffle(places)) {
     const shapes = elementShapes(element);
-    if (root && !findRegionRoute(mask, [...blockers, ...shapes], root, site, site.reach ?? site.radius)) continue;
+    if (root && !findRegionRoute(canvas.access, [...blockers, ...shapes], root, site, site.reach ?? site.radius)) continue;
     const lootRadius = microMetrics({ cellSize: size, bodyProfile: 'cell' }).lootRadius;
-    return { elements: [...cover.elements, element],
+    if (!canvas.commit({ elements: [element] })) throw new Error(`Region ${brief.id}: the canvas refused cover's guard, which its siting accepted.`);
+    return { elements: [...canvas.elements],
       loot: cover.loot.filter(loot => !shapes.some(shape => shapesOverlap(shape, circle(loot.x, loot.y, lootRadius)))) };
   }
   return cover;
