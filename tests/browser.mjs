@@ -286,6 +286,8 @@ try {
   await page.locator('#replay-seek').fill('5');
   assert.equal(await page.evaluate(() => window.arenaDebug().tick), 0);
   assert.equal(await page.locator('#replay-status').textContent(), 'MISSING DATA · showing tick 0');
+  // Seeking updates the controller before Phaser's next render; wait for that rendered pose.
+  await page.waitForFunction(x => window.arenaDebug().shots[0]?.x === x, originX);
   assert.equal(await page.evaluate(() => window.arenaDebug().shots[0].x), originX, 'gaps do not advance held projectiles');
   // The same must hold while playing, not merely at an integer seek position: a
   // retained tick interpolates within itself, a gap holds its recorded position.
@@ -320,6 +322,7 @@ try {
   await page.getByRole('button', { name: 'Play replay', exact: true }).click();
   await page.waitForFunction(() => Number(document.getElementById('replay-seek').value) === 30, null, { timeout: PLAYBACK_DEADLINE });
   assert.equal(await page.locator('#replay-status').textContent(), 'MISSING DATA · showing tick 24');
+  await page.waitForFunction(x => window.arenaDebug().shots[0]?.x === x, originX + 240);
   assert.equal(await page.evaluate(() => window.arenaDebug().shots[0].x), originX + 240, 'tail gap holds final projectile position');
   // A recording can omit a player from its authoritative frame even while that player remains in
   // the replay roster. Give two subjects separate leading and middle gaps, then reappear far away:
