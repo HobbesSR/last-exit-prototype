@@ -3,7 +3,7 @@ import type { BuildingObserver } from '../building/trace.ts';
 import { largestRectangle } from './hall.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
-import { createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
+import { createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { boxesAgainstHints, hintedCells } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import { createBuilderCanvas } from '../canvas.ts';
@@ -71,24 +71,18 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
 
   // Lines run along u. `alongX` maps (u, v) to (x, y), or else to (y, x).
   const alongX = draw(brief.seed, 0, 0, CHANNEL.axis) < 0.5;
-  const taken = new Set<string>();
-  const cellAt = (u: number, v: number) => alongX ? `${u},${v}` : `${v},${u}`;
-  const owns = (u: number, v: number) => alongX ? mask.has(u, v) : mask.has(v, u);
-  // A box must be owned and clear of portal approaches; only other pieces need an aisle.
-  const clear = (u: number, v: number, length: number, width: number) => {
-    for (let j = v; j < v + width; j++) for (let i = u; i < u + length; i++)
-      if (!owns(i, j)) return false;
-    for (let j = v - AISLE; j < v + width + AISLE; j++) for (let i = u - AISLE; i < u + length + AISLE; i++)
-      if (taken.has(cellAt(i, j))) return false;
-    const [x, y, w, h] = alongX ? [u, v, length, width] : [v, u, width, length];
-    return !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
-  };
-  const take = (u: number, v: number, length: number, width: number) => {
-    for (let j = v; j < v + width; j++) for (let i = u; i < u + length; i++) taken.add(cellAt(i, j));
-  };
   const cells = [...mask.cells].map(c => alongX ? { u: c.x, v: c.y } : { u: c.y, v: c.x });
 
   const canvas = createBuilderCanvas(brief, protectedShapes);
+  const boxAt = (u: number, v: number, length: number, width: number) => {
+    const [x, y, w, h] = alongX ? [u, v, length, width] : [v, u, width, length];
+    return rect(x * size, y * size, w * size, h * size);
+  };
+  // A box must be owned and clear of portal approaches; only other pieces need an aisle.
+  const clear = (u: number, v: number, length: number, width: number) => {
+    const box = boxAt(u, v, length, width);
+    return canvas.fits(box) && canvas.spaced(box, AISLE * size);
+  };
   const place = (label: string, u: number, v: number, placed: Placed<unknown>) => {
     const [x, y] = alongX ? [u, v] : [v, u];
     // Siting has already accepted this box. A canvas refusal is a broken placement
@@ -114,7 +108,6 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
     .sort((a, b) => Number(b.hinted) - Number(a.hinted) || a.order - b.order || a.v - b.v || a.u - b.u)) {
     if (warehouses === target) break;
     if (!clear(u, v, room, across)) continue;
-    take(u, v, room, across);
     const label = `depot-warehouse-${++warehouses}`;
     const seed = Math.floor(draw(brief.seed, u, v, CHANNEL.design) * 2 ** 31);
     const [x, y] = alongX ? [u, v] : [v, u];
@@ -136,7 +129,6 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
       const length = CONTAINER * (ROW_MIN + Math.floor(draw(brief.seed, u, v, CHANNEL.length) * (ROW_MAX - ROW_MIN + 1)));
       if (!clear(u, v, length, 1)) { u++; continue; }
       if (draw(brief.seed, u, v, CHANNEL.row) < density) {
-        take(u, v, length, 1);
         place(`depot-row-${++rows}`, u, v, expectPlaced(CONTAINER_ROW.build({ length, alongX }, size)));
       }
       u += length + AISLE;

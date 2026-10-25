@@ -1,7 +1,7 @@
 import { compareCells } from '../../kernel/cell.ts';
 import { circle, rect } from '../../../shared/shape.ts';
 import type { Shape } from '../../../shared/shape.ts';
-import { createFillMask, elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
+import { elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
 import { rng } from '../index.ts';
 import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
 import { protectedRoutes } from './scatter.ts';
@@ -84,7 +84,6 @@ export function buildCover(brief: RegionBrief): BuiltRegion {
 /** `buildCover`'s region with the protections its canvas held, so the post-filters commit against the same ones. */
 function sitedCover(brief: RegionBrief): { region: BuiltRegion; protectedShapes: readonly Shape[] } {
   const density = densityOf(brief), size = brief.cellSize;
-  const owned = new Set(createFillMask(brief).cells.map(c => `${c.x},${c.y}`)), footprints = new Set<string>();
   const cells = [...brief.cells].sort(compareCells);
   // Routes between portals are protected; past 32 portals that search is too dear, and
   // boxes keep an aisle from the boundary instead.
@@ -98,17 +97,9 @@ function sitedCover(brief: RegionBrief): { region: BuiltRegion; protectedShapes:
   const firstHint = hintedCells(brief)[0];
   if (firstHint) { phase.x = ((firstHint.x % PERIOD) + PERIOD) % PERIOD; phase.y = ((firstHint.y % PERIOD) + PERIOD) % PERIOD; }
   const onLattice = (value: number, offset: number) => ((value - offset) % PERIOD + PERIOD) % PERIOD === 0;
-  const clear = (x: number, y: number, w: number, h: number) => {
-    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!owned.has(`${i},${j}`)) return false;
-    return (routed || boundary.fits({ x, y, w, h }))
-      && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
-  };
-  const occupied = (x: number, y: number, w: number, h: number) => {
-    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (footprints.has(`${i},${j}`)) return true;
-    return false;
-  };
-
   const canvas = createBuilderCanvas(brief, protectedShapes);
+  const cellBox = (x: number, y: number, w: number, h: number) => rect(x * size, y * size, w * size, h * size);
+  const clear = (x: number, y: number, w: number, h: number) => (routed || boundary.fits({ x, y, w, h })) && canvas.fits(cellBox(x, y, w, h));
   for (const slot of cells) {
     if (!onLattice(slot.x, phase.x) || !onLattice(slot.y, phase.y)) continue;
     // Every slot draws the same numbers whether or not it is taken, so one slot's fate never shifts another's.
@@ -127,11 +118,10 @@ function sitedCover(brief: RegionBrief): { region: BuiltRegion; protectedShapes:
       const x = hint?.x ?? slot.x + Math.floor(jx * (PERIOD - AISLE - w + 1));
       const y = hint?.y ?? slot.y + Math.floor(jy * (PERIOD - AISLE - h + 1));
       const grown = box ? { x0: Math.min(box.x0, x), y0: Math.min(box.y0, y), x1: Math.max(box.x1, x + w), y1: Math.max(box.y1, y + h) } : { x0: x, y0: y, x1: x + w, y1: y + h };
-      if (occupied(x, y, w, h) || !clear(grown.x0, grown.y0, grown.x1 - grown.x0, grown.y1 - grown.y0)) continue;
+      if (!canvas.spaced(cellBox(x, y, w, h)) || !clear(grown.x0, grown.y0, grown.x1 - grown.x0, grown.y1 - grown.y0)) continue;
       const assembly = placedElements(expectPlaced(COVER_PIECE.build({ piece: piece.name, turned, length, offset }, size)), `cover-${piece.name}-${canvas.elements.length + 1}`, x, y, size);
       if (!canvas.commit({ elements: assembly })) continue;
       box = grown;
-      for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) footprints.add(`${i},${j}`);
     }
   }
 
@@ -139,8 +129,8 @@ function sitedCover(brief: RegionBrief): { region: BuiltRegion; protectedShapes:
   const lootRandom = rng(brief.seed, `${brief.id}:cover-loot`), loot: LootSite[] = [];
   const lootOwned = new Set(brief.cells.map(c => `${c.x},${c.y}`));
   const standing = (x: number, y: number) => {
-    for (let j = y - 1; j <= y + 1; j++) for (let i = x - 1; i <= x + 1; i++) if (!lootOwned.has(`${i},${j}`) || footprints.has(`${i},${j}`)) return false;
-    return true;
+    for (let j = y - 1; j <= y + 1; j++) for (let i = x - 1; i <= x + 1; i++) if (!lootOwned.has(`${i},${j}`)) return false;
+    return canvas.spaced(cellBox(x - 1, y - 1, 3, 3));
   };
   for (const cell of cells) {
     const zone = zones.get(`${cell.x},${cell.y}`)!, roll = lootRandom.next(), jx = lootRandom.next(), jy = lootRandom.next();
@@ -204,17 +194,10 @@ export function coverNear(brief: RegionBrief, cover: Pick<BuiltRegion, 'elements
   const protectedShapes = routed ? protectedRoutes(brief, 'Cover') : [];
   const canvas = createBuilderCanvas(brief, protectedShapes);
   commitPieces(brief, canvas, cover.elements);
-  const fill = canvas.fill.cells, owned = new Set(fill.map(c => `${c.x},${c.y}`)), taken = new Set<string>();
-
-  for (const element of cover.elements) {
-    const x0 = Math.round(element.x / size), y0 = Math.round(element.y / size);
-    for (let j = y0; j < y0 + Math.round(element.template.h / size); j++) for (let i = x0; i < x0 + Math.round(element.template.w / size); i++) taken.add(`${i},${j}`);
-  }
+  const fill = canvas.fill.cells;
   const clear = (x: number, y: number, w: number, h: number) => {
-    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!owned.has(`${i},${j}`)) return false;
-    for (let j = y - AISLE; j < y + h + AISLE; j++) for (let i = x - AISLE; i < x + w + AISLE; i++) if (taken.has(`${i},${j}`)) return false;
-    return (routed || boundary.fits({ x, y, w, h }))
-      && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
+    const box = rect(x * size, y * size, w * size, h * size);
+    return (routed || boundary.fits({ x, y, w, h })) && canvas.fits(box) && canvas.spaced(box, AISLE * size);
   };
   const places: RegionElement[] = [];
   for (const cell of [...fill].sort(compareCells)) for (const turned of [false, true]) {
