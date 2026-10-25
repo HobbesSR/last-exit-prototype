@@ -1,3 +1,4 @@
+import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
 import { lineClear, reachClear, gateShape, bodyRadius, TILE } from '../movement.ts';
 import { carriedCell, equipped, collectEquipment, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
 import { nearbyGate } from '../gate-query.ts';
@@ -23,9 +24,10 @@ function swapInstanceEquipment(s: Game, p: Player, pickup: GroundItem): void {
   if (!collectInstanceEquipment(pickupStage, draft, incoming)) return;
   const remaining = s.map.items.filter(item => item !== pickup);
   const drop = planDrop({ ...s, itemSerial: pickupStage.itemSerial }, p, outgoing, false, remaining);
-  if (!drop) return;
+  if (!drop || !canRepresentPhysicalDrop(s, drop.records.length, [pickup])) return;
   p.inventory = draft.inventory; p.selectedSlot = draft.selectedSlot; p.reserves = draft.reserves; p.charging = null;
   s.map.items = [...remaining, ...drop.records]; s.itemSerial = drop.itemSerial;
+  launchPhysicalDrops(s, drop.records, p);
   syncWeapon(p, s.content.weapons);
 }
 

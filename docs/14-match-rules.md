@@ -40,6 +40,50 @@ route, rather than walking on until its next sliced repath. Its numbers and rost
 
 The power-cell objective supplements limited escape capacity; three extraction slots remain a baseline tuning default. Contestant equipment changes do not remove gladiator kits or kill-based progression. The ten-minute deadline leaves time for exploration and combat, not ten minutes of uninterrupted running. Existing early match-end conditions remain.
 
+## Experimental physical world profile (#445)
+
+Explicit `content-physics-5` passed to `createPhysicsGame`/`createPhysicsMatch`
+selects `last-exit-0.8-physics-5`: P2 character rules plus L0 item ownership and
+physical world items. Default matches retain content-5/last-exit-0.7. This is an
+experimental integration for review; full P8 navigation and P9 promotion remain.
+
+Provisional authored tuning, independent of item art/quality:
+
+| Profile | Shape | Mass | Linear/angular damping | Other |
+| --- | --- | ---: | --- | --- |
+| Ordinary ground loot | Circle radius 6 | 0.2 | 5 / 5 per second | Initial outward drop speed 60; zero friction/restitution |
+| Inert crate | Rotating box half extents 24 by 12 | 2 | 2 / 2 per second | Friction 0.4; zero restitution |
+
+`GameMap.physicsProps` explicitly authors at most 64 unique `crate` placements;
+there is no procedural placement or art inference. Circumscribed placement must
+clear world geometry and other crates. Actors push crates; ordinary contact has
+no damage, destruction, chain reaction, or sight occlusion. Their navigation
+integration is P8. Loot collides only with static world geometry, never actors,
+solid props or other loot, and never blocks placement or gate closing. Sleep
+retains normal pickup and visibility authorization. Floor regions use P2's
+priority then lexical-ID/centre convention; optional `drag` in [0,1] scales loot
+and crate damping, with 1 on uncovered floor. Zero drag permits prolonged sliding.
+
+The adapter admits at most 128 total dynamic bodies, including at most 27 actors.
+Missing roster actors reserve body slots for respawn. Optional drops and E swaps
+preflight the whole body batch; failed admission retains inventory and the item
+counter. A swap may reuse the incoming pickup's slot; the committing batch reserves its
+slots before older logical overflow is retried. Mandatory death loot keeps
+its exact logical instance and charge when capacity or placement prevents a body;
+it stays recoverable and is reconsidered in lexical item-ID order at subsequent
+boundaries. Ground instances have at most one body; carried instances have none.
+Pickup removes attached joints. Existing pickup reach and self-drop cooldown apply.
+
+Mine damage retains its existing radius/cover/shield rules. Independently, each
+visible-to-blast dynamic body receives outward impulse `300 * (1-distance/radius)`
+inside the blast radius, tested against the same static `lineClear` cover used
+by damage. The zero-distance direction is +X. Crates do not provide blast cover.
+Targets use stable body-ID order. Post-solve impulses apply at the next tick;
+per-body/generation pending impulses combine and clamp at 600 for actors, 300 for
+other bodies. Solver speed limits still apply after mass conversion. Removing or
+relocating a body invalidates its queued generation. These are implementation
+assumptions for experimental review, not new user balance answers.
+
 ## Experimental character profile (#439)
 
 Explicitly pass `contentById('content-physics-2')` to `createPhysicsGame` or
@@ -178,6 +222,8 @@ reservations. The chain places no traps yet (16), so no danger curve is defined.
 `contentById('content-ammo-1')` selects `last-exit-0.8-ammo-1`: L1 plus reloads.
 It requires L0. Default rooms and the frozen fixture are unchanged. R reloads in
 every match but only this content has reloads; M moves/merges everywhere.
+The physics tick (P5) has no reload phase yet, so `createPhysicsGame` refuses
+reloading content rather than run it without reloads.
 
 A weapon's `ammo` is its loaded magazine and travels with the weapon instance:
 a dropped, swapped or death-dropped weapon keeps it, never the player's reserve.

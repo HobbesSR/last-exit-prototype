@@ -329,7 +329,7 @@ test('L0 recording roundtrip and backward seeks retain exact item-instance frame
   const header = { id: 'item-roundtrip', version: s.version, contentId: s.content.id,
     schema: SCHEMA, minSchema: minimumReaderForMatch(map, false), seed: s.seed,
     hz: 20, createdAt: 1, map: structuredClone(map) };
-  assert.equal(header.schema, 12);
+  assert.equal(header.schema, 13);
   assert.equal(header.minSchema, 4);
   assert.equal(recordingFit(header), 'ok');
   assert.equal(recordingFit({ ...header, schema: 10, minSchema: 10 }), 'ok');

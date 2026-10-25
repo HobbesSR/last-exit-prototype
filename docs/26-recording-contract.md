@@ -1,5 +1,13 @@
 # 26. Recording contract
 
+P5 (#445) raises the writer schema to **12** for optional authored map
+`physicsProps`, floor `drag`, and private body `collisionProfile`, `linearDamping`
+and `angularDamping`. Its explicit content/rules identities are in
+[14](14-match-rules.md). Required renderable shapes/poses retain the schema-10
+physics contract, so minimum readers stay unchanged. These optional fields do
+not require solver initialization during old or new playback. Live/spectator map
+payloads omit private prop authoring; the recorded source map retains it.
+
 L0 (#442) raises the writer schema to **11** for optional item `instanceId`,
 `lineageId`, `quality` and private authoritative `itemSerial` allocation state.
 These fields do not change drawing requirements, so minimum readers remain
@@ -10,12 +18,13 @@ retain `last-exit-0.7`. Playback consumes stored item/inventory states, never
 allocates IDs or resimulates transfers. Persisting the allocation counter retains
 the history of IDs no longer present in the current frame. See [14](14-match-rules.md).
 Explicit `content-loot-1` and `content-ammo-1` select `last-exit-0.8-loot-1` and
-`last-exit-0.8-ammo-1`. Schema 12 frames of the latter carry player `reserves`
-and `reload`, `ammo` ground items and `reload`/`dropAmmo` commands; older readers
-ignore the fields and draw an ammo pickup as an unknown item, so the floor stays.
+`last-exit-0.8-ammo-1`. L2 (#444) raises the writer schema to **13**: frames of
+the latter carry player `reserves` and `reload`, `ammo` ground items and
+`reload`/`dropAmmo` commands; older readers ignore the fields and draw an ammo
+pickup as an unknown item, so the floor stays.
 
 Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
-default content is `content-5`, and recordings use schema 12 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
+default content is `content-5`, and recordings use schema 13 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
 display descriptor in the header, 7 bots' world-point routes, 8 optional private physics gameplay state, 9 optional character geometry and discontinuities). Masked live maps require reader 4; legacy maps keep
 minimum schema 0.
 Schema 10 adds required engine-free physics presentation for experimental physics
@@ -96,7 +105,8 @@ The schema history, with the sections that explain each step:
 
 | Schema | Added | `minSchema` written |
 | --- | --- | --- |
-| 12 | Optional L2 player reserves and reload, `ammo` ground items and `reload`/`dropAmmo` commands (#444) | unchanged |
+| 13 | Optional L2 player reserves and reload, `ammo` ground items and `reload`/`dropAmmo` commands (#444) | unchanged |
+| 12 | Optional P5 map `physicsProps`, floor `drag` and private body collision/damping state (#445) | unchanged |
 | 11 | Optional L0 item identity/lineage/quality and private allocation counter (#442) | unchanged |
 | 10 | Renderable physics bodies, lifecycle/placement and tether endpoints (#440) | 10 for experimental physics matches; ordinary floors unchanged |
 | 9 | Optional experimental character geometry, floor motor regions and physics discontinuities (#439) | unchanged |

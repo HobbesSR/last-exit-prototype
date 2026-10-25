@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
-import { createGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
+import { createGame, createPhysicsGame, setInput, step, snapshot, playerView } from '../shared/simulation.ts';
 import { contentById } from '../shared/simulation/content.ts';
 import { collectAmmo, collectInstanceEquipment } from '../shared/equipment.ts';
 import { automaticPickups, dropInventorySlot } from '../shared/simulation/loot.ts';
@@ -53,6 +53,11 @@ test('L2 is opt-in, versioned, requires L0 and leaves loot-1 without reserves', 
   assert.equal(loot.version, 'last-exit-0.8-loot-1');
   assert.equal(loot.players[0].reserves, undefined);
   assert.throws(() => createGame(17, arena(), { ...content(), itemInstances: undefined }), /requires L0/);
+});
+
+test('the physics tick refuses L2 content rather than silently never reloading', async () => {
+  const physical = { ...contentById('content-physics-5'), reloading: contentById('content-ammo-1').reloading };
+  await assert.rejects(createPhysicsGame(17, arena(), physical), /no physics tick/);
 });
 
 test('spawn migration splits each map weapon into a full magazine and an ammo pickup, never duplicating', () => {
@@ -279,13 +284,13 @@ test('bots reload from their reserves, and a whole bot match conserves every rou
   assert.equal(total(), start - shots.size);
 });
 
-test('schema 12 recordings keep reserves, reloads and ammo pickups exactly through backward seeks', async () => {
+test('schema 13 recordings keep reserves, reloads and ammo pickups exactly through backward seeks', async () => {
   const { s, p } = fixture();
   p.inventory[0] = pistol(2); p.reserves.pistol = 30;
   const chunks = [], frames = [];
   const header = { id: 'ammo-roundtrip', version: s.version, contentId: s.content.id, schema: SCHEMA,
     minSchema: minimumReaderForMatch(s.map, false), seed: s.seed, hz: 20, createdAt: 1, map: structuredClone(s.map) };
-  assert.equal(header.schema, 12);
+  assert.equal(header.schema, 13);
   const output = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
   const writer = createReplayWriter({ header, output, publish: async () => {}, onError: error => assert.fail(error.message) });
   const retain = () => { const frame = snapshot(s); frames.push(JSON.parse(JSON.stringify(frame))); assert.equal(writer.append(frame, []), true); };

@@ -2,7 +2,7 @@
 
 Status: living documentation
 Prototype rules version: `last-exit-0.7`; default content: `content-5`
-Updated: 2026-10-23
+Updated: 2026-10-24
 
 This directory is the canonical product and engineering record for the prototype.
 It is split so a task can load the two or three files it actually needs instead of
@@ -103,6 +103,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.13-local-repair.md](42.13-local-repair.md) | Local route repair under `content-5` (#470 part 2): reaction to nearby changes, repairs and their cost against `content-4`; whether #425 is needed for latency |
 | [42.14-physics-p3.md](42.14-physics-p3.md) | Physics privacy, engine-free body/tether playback and body-heavy serialization evidence (#440) |
 | [42.15-physics-p4.md](42.15-physics-p4.md) | Bounded local prediction, scheduled network witnesses and correction/cost evidence (#441) |
+| [42.16-physics-p5.md](42.16-physics-p5.md) | Opt-in physical loot/crates, floor drag and covered blast impulses; body-heavy serialization and current baseline evidence (#445) |
 
 ### 5x — Map generation
 

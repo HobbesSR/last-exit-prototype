@@ -22,13 +22,14 @@ import { advanceReload, dropReserve } from './simulation/ammo.ts';
 import { advanceTick, advanceTimers, applyEnvironment, advanceDiscovery } from './simulation/tick-rules.ts';
 import type { Game } from './types.ts';
 import { PHYSICS_VERSION } from './simulation/physics-runtime.ts';
+import { PHYSICS_WORLD_VERSION } from './simulation/world-physics.ts';
 import { PHYSICS_CHARACTER_VERSION } from './simulation/actor-physics.ts';
 import { stepPhysics } from './simulation/phased.ts';
 export { createPhysicsGame, synchronizePhysics } from './simulation/phased.ts';
 export { disposePhysics, enqueuePhysicsImpulse, enqueuePhysicsAttachment, PHYSICS_VERSION } from './simulation/physics-runtime.ts';
 
 export function step(s: Game): void {
-  if (s.version === PHYSICS_VERSION || s.version === PHYSICS_CHARACTER_VERSION) return stepPhysics(s);
+  if (s.version === PHYSICS_VERSION || s.version === PHYSICS_CHARACTER_VERSION || s.version === PHYSICS_WORLD_VERSION) return stepPhysics(s);
   if (s.phase !== 'live') return;
   start('sim.step');
   advanceTick(s);

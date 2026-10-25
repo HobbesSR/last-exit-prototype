@@ -13,6 +13,12 @@ const MAX_EVENTS = 8192;
 // Keep inputs representable through world-unit conversion and the f32 backend.
 // This is an admission guard, not a promise of useful precision at this extent.
 const MAX_MAGNITUDE = 1e9;
+const STATIC_GROUP = 0x0001;
+const ACTOR_GROUP = 0x0002;
+const PROP_GROUP = 0x0004;
+const LOOT_GROUP = 0x0008;
+const solidMask = STATIC_GROUP | ACTOR_GROUP | PROP_GROUP;
+const groups = (membership: number, mask: number): number => (membership << 16) | mask;
 const order = (a: string, b: string): number => a < b ? -1 : a > b ? 1 : 0;
 const finite = (n: number | undefined, fallback = 0): number => {
   const value = n ?? fallback;
@@ -88,6 +94,13 @@ function validateBody(input: BodySpec): BodySpec {
     vx: finite(input.vx), vy: finite(input.vy), omega: finite(input.omega),
     mass: mass(input.mass), friction: nonnegative(input.friction, 0.5),
     restitution: nonnegative(input.restitution) };
+  if (input.collisionProfile !== undefined) {
+    if (input.collisionProfile !== 'loot' || input.kind !== 'prop')
+      throw new TypeError('invalid physics collision profile');
+    result.collisionProfile = input.collisionProfile;
+  }
+  if (input.linearDamping !== undefined) result.linearDamping = nonnegative(input.linearDamping);
+  if (input.angularDamping !== undefined) result.angularDamping = nonnegative(input.angularDamping);
   if (result.restitution! > 1) throw new RangeError('restitution must be <= 1');
   if (input.maxSpeed !== undefined) result.maxSpeed = positive(input.maxSpeed);
   if (result.kind === 'static' && (result.vx || result.vy || result.omega)) throw new RangeError('static body cannot move');
@@ -168,6 +181,15 @@ export class PhysicsWorld {
         this.pendingRemoveConstraints.length + this.forces.length + this.impulses.length >= MAX_PENDING)
       throw new RangeError('physics command queue capacity exceeded');
   }
+  /** Whether a batch of dynamic bodies fits without partial queue admission. */
+  canAddBodies(count: number): boolean {
+    this.ensure();
+    if (!Number.isSafeInteger(count) || count < 0) throw new RangeError('physics body count must be a nonnegative integer');
+    const queued = this.pendingAdd.length + this.pendingRemove.length + this.pendingAddConstraints.length +
+      this.pendingRemoveConstraints.length + this.forces.length + this.impulses.length;
+    return count <= MAX_DYNAMIC - this.roomCount('actor') - this.roomCount('prop') &&
+      count <= MAX_PENDING - queued;
+  }
   queueAddBody(input: BodySpec): void {
     this.ensure(); this.checkQueue();
     const spec = validateBody(input);
@@ -212,6 +234,8 @@ export class PhysicsWorld {
     const descriptor = spec.kind === 'static' ? RAPIER.RigidBodyDesc.fixed() : RAPIER.RigidBodyDesc.dynamic();
     descriptor.setTranslation(spec.x / SCALE, spec.y / SCALE).setRotation(spec.angle!)
       .setLinvel(spec.vx! / SCALE, spec.vy! / SCALE).setAngvel(spec.omega!);
+    if (spec.linearDamping !== undefined) descriptor.setLinearDamping(spec.linearDamping);
+    if (spec.angularDamping !== undefined) descriptor.setAngularDamping(spec.angularDamping);
     if (spec.kind !== 'static') descriptor.setCcdEnabled(true);
     if (spec.kind === 'actor') descriptor.lockRotations();
     const body = this.native.createRigidBody(descriptor);
@@ -229,6 +253,10 @@ export class PhysicsWorld {
     }
     collider.setMass(spec.mass!).setFriction(spec.friction!).setRestitution(spec.restitution!)
       .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+    if (spec.collisionProfile === 'loot') collider.setCollisionGroups(groups(LOOT_GROUP, STATIC_GROUP));
+    else if (spec.kind === 'static') collider.setCollisionGroups(groups(STATIC_GROUP, solidMask | LOOT_GROUP));
+    else if (spec.kind === 'actor') collider.setCollisionGroups(groups(ACTOR_GROUP, solidMask));
+    else collider.setCollisionGroups(groups(PROP_GROUP, solidMask));
     const attached = this.native.createCollider(collider, body);
     this.bodies.set(spec.id, { spec, handle: body.handle, collider: attached.handle,
       generation: ++this.nextGeneration, minimumRadius, tipRadius });
@@ -290,7 +318,7 @@ export class PhysicsWorld {
     this.native.propagateModifiedBodyPositionsToColliders();
     const shape = new RAPIER.Ball(dimension(radius) / SCALE);
     const at = { x: finite(x) / SCALE, y: finite(y) / SCALE };
-    return this.sortedDynamic.some(([, record]) => record.spec.kind === 'prop'
+    return this.sortedDynamic.some(([, record]) => record.spec.kind === 'prop' && record.spec.collisionProfile !== 'loot'
       && this.native.getCollider(record.collider)!.intersectsShape(shape, at, 0));
   }
   overlapsDynamicBox(box: { x: number; y: number; w: number; h: number }): boolean {
@@ -298,7 +326,8 @@ export class PhysicsWorld {
     this.native.propagateModifiedBodyPositionsToColliders();
     const shape = new RAPIER.Cuboid(dimension(box.w) / SCALE / 2, dimension(box.h) / SCALE / 2);
     const at = { x: (finite(box.x) + box.w / 2) / SCALE, y: (finite(box.y) + box.h / 2) / SCALE };
-    return this.sortedDynamic.some(([, record]) => this.native.getCollider(record.collider)!.intersectsShape(shape, at, 0));
+    return this.sortedDynamic.some(([, record]) => record.spec.collisionProfile !== 'loot'
+      && this.native.getCollider(record.collider)!.intersectsShape(shape, at, 0));
   }
   getGeneration(id: string): number | undefined {
     this.ensure(); return this.bodies.get(validId(id))?.generation;
@@ -312,6 +341,19 @@ export class PhysicsWorld {
     this.ensure(); const { record, body } = this.dynamic(id);
     record.motor = { ...vector(input), accel: nonnegative(input.accel) };
     body.wakeUp();
+  }
+  setDamping(id: string, linear: number, angular: number): void {
+    this.ensure();
+    const nextLinear = nonnegative(linear), nextAngular = nonnegative(angular);
+    const { record, body } = this.dynamic(id);
+    if ((record.spec.linearDamping ?? 0) !== nextLinear) {
+      body.setLinearDamping(nextLinear);
+      record.spec.linearDamping = nextLinear;
+    }
+    if ((record.spec.angularDamping ?? 0) !== nextAngular) {
+      body.setAngularDamping(nextAngular);
+      record.spec.angularDamping = nextAngular;
+    }
   }
   setTransform(id: string, value: Pick<Transform, 'x' | 'y' | 'angle'>): void {
     this.ensure(); const { record, body } = this.dynamic(id);

@@ -1,5 +1,6 @@
 import { canOccupy, lineClear } from './movement.ts';
 import { distance } from './vector.ts';
+import { enqueueExplosionImpulses } from './simulation/explosion-physics.ts';
 import type { EffectKind, Game, Player, PlayerId, Vec2, World } from './types.ts';
 
 // Injected rather than imported, so hazards stay a leaf: traps never reach back into combat.
@@ -18,6 +19,7 @@ export function stepTraps(s: Game, damage: DamageFn, effect: EffectFn): void {
       if (!active.some(p => distance(p, trap) < mine.trigger && (p.movedThisTick ?? 0) > 0.5 && lineClear(s.map, trap, p))) continue;
       trap.spent = true; effect(s, trap, 'shock', mine.blast);
       for (const p of active) if (distance(p, trap) < mine.blast && lineClear(s.map, trap, p)) damage(s, p, mine.damage, null);
+      enqueueExplosionImpulses(s, trap, mine.blast);
     } else if (trap.kind === 'turret') {
       const turret = s.content.traps.turret;
       const target = active.filter(p => distance(p, trap) < turret.range && lineClear(s.map, trap, p)).sort((a, b) => distance(a, trap) - distance(b, trap))[0];

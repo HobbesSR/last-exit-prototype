@@ -199,11 +199,19 @@ export interface MotorSurface extends Box {
   traction: number;
   braking: number;
   speed: number;
+  /** P5 floor drag multiplier; uncovered floor uses 1. */
+  drag?: number | undefined;
+}
+export interface WorldPhysics {
+  loot: { radius: number; mass: number; linearDamping: number; angularDamping: number; dropSpeed: number };
+  prop: { hx: number; hy: number; mass: number; friction: number; linearDamping: number; angularDamping: number };
+  maxImpulse: number;
 }
 export interface MatchContent {
   /** Names the content set in a recording header. Changes when any value below changes. */
   id: string;
   actorPhysics?: ActorPhysics | undefined;
+  worldPhysics?: WorldPhysics | undefined;
   /** Explicit L0 selection; optional drops stop at this logical ground-entry limit. */
   itemInstances?: { groundCapacity: number } | undefined;
   /**
@@ -437,6 +445,8 @@ export interface PlayableArea {
 }
 
 export interface GameMap {
+  /** Explicit inert crate authoring, never inferred from map art. */
+  physicsProps?: Array<Vec2 & { id: string; profile: 'crate'; angle?: number }> | undefined;
   motorSurfaces?: MotorSurface[] | undefined;
   seed: number;
   generator?: string | undefined;
