@@ -43,7 +43,7 @@ and are history.
 | Elective validation utilities for builders, composing built regions, and adapting them to the live game's geometry | the game | 20 |
 | Machinery builders share: masks, shapes, swept routes, spacing, interface runs, access validation | the SDK, `map/micro/sdk.ts`. Macro calls it where a mechanism fits both scopes | 20, 22 |
 | What macro and micro must share: the contract between them (a region brief and its result), body scale and passage widths, the definition of a run, and a cell's key and row-major order | the **shared map space**, which neither level owns (Corey, 2026-09-29, M1). It is the kernel, `map/kernel/` (51 C0): `contract.ts`, `scale.ts`, `cell.ts` and `run.ts` | 51, 52 |
-| The Map Lab, CLI and MCP, which show both halves | neither: the tools, `map/tools/`, using the shared map-level assembly (Corey, 2026-10-02, 17 "Where the tools live") | 53 |
+| The Map Lab, CLI and MCP, which show both halves | neither: the tools, `map/tools/`, using the shared map-level assembly (Corey, 2026-10-02, 17 "Where the tools live") | [53.1](53.1-map-lab-and-tools.md) |
 | The live game's current map | `map/live.ts` consumes the authored generation chain; `shared/map/generate.ts` remains the legacy generator | 22 |
 
 ## The SDK is a library
@@ -138,7 +138,7 @@ The completed migration ledger is retained in
     `map/`, and a test holds that too.
   - mapgen doesn't import the SDK's builders or strategies; `map/engines.ts` lends
     them to it as `MapEngines`. The server invokes `map/live.ts` before creating a match.
-- **Serving:** the game server (`server/index.js`) hosts all of the Map Labs and developer tools directly under the `/dev/` route hierarchy, serving map generator code via ES modules (53).
+- **Serving:** the game server (`server/index.js`) hosts all of the Map Labs and developer tools directly under the `/dev/` route hierarchy, serving map generator code via ES modules (53.1).
 - *Assumption:* the name `kernel` (17 M1's open part).
 
 ## Reading guide
@@ -149,11 +149,12 @@ The completed migration ledger is retained in
 | A chain stage or its interfaces | [51](51-generation-chain.md) routes to the stage; read [51.1](51.1-principles-and-names.md) for shared invariants and only the needed stage in 51.2–51.10 |
 | Tiles, set pieces, cell classes, prescriptions | 52 |
 | The map's macro shape: the diamond, zones, zone sizes, where placement rules anchor | 55 |
-| Artifacts, saving, determinism, the sweep, the Map Lab, CLI and MCP | 53 |
-| A building: its design, spaces, walls and openings | [56](56-buildings.md), then 54 for the type that builds it |
-| A region type, a builder, a decomposer, the SDK | 54 (the catalogue, a working draft), 19 (design), then the relevant part of [20](20-micro-generation.md); [22.2](22.2-map-generation.md) for map ownership |
+| Artifacts, saving, determinism, compatibility, the sweep | 53 |
+| The Map Lab, CLI and MCP | [53.1](53.1-map-lab-and-tools.md) |
+| A building: its design, spaces, walls and openings | [56](56-buildings.md), then the part of 54 that holds the type that builds it |
+| A region type, a builder, a decomposer, the SDK | 54 (the catalogue, a working draft) and the one of 54.1–54.4 that holds the type, 19 (design), then the relevant part of [20](20-micro-generation.md); [22.2](22.2-map-generation.md) for map ownership |
 | Macro/micro briefs and passability | [51.7](51.7-briefs.md), [20.1](20.1-region-contract.md), and [17.2.4](17.2.4-contract-questions.md) for M1–M5 |
 | Open questions, and your verbatim answers | [17.2](17.2-map-questions.md) routes by topic and M-number; [17.2.7](17.2.7-zone-plans.md) holds the zone-plan answers |
-| Generation measurements and chain captures | [42.3](42.3-generation-and-delegation-evidence.md) and [42.4](42.4-chain-checkpoint-history.md); current compatibility and tools remain in [53](53-map-artifacts-and-tools.md) |
+| Generation measurements and chain captures | [42.3](42.3-generation-and-delegation-evidence.md) and [42.4](42.4-chain-checkpoint-history.md); current compatibility remains in [53](53-map-artifacts-and-tools.md), and tools in [53.1](53.1-map-lab-and-tools.md) |
 | Chain implementation history | [51.14](51.14-build-order.md), then the relevant track; not required for a stage-only task |
 | What's next | 41, and the Forgejo tracker it names |

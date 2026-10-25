@@ -121,5 +121,6 @@ belong in one place, linked by the guide and by the parts that need them.
 
 Issue #100 migrates 17, 20, 22 and 51, whose breadth was already making tasks load
 unrelated context. Other files keep their identities and content; split them when
-their task boundaries justify it. New topics can use children instead of filling
+their task boundaries justify it; #510 split 53 and 54 that way, after measuring
+what agents' reads of them loaded. New topics can use children instead of filling
 another top-level range. The two-digit area system in [00](00-index.md) stays intact.
