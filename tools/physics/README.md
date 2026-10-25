@@ -99,6 +99,26 @@ Limits that constrain interpretation:
 Read [41.1](../../docs/41.1-physics-plan.md) for promotion gates. If neither
 candidate passes, report a no-go and keep production integration blocked.
 
+## P7 isolated thrown-item lab (#447)
+
+Run `npm run physics:ballistics` to create `test-results/physics-p7.json` and
+`test-results/physics-p7.html`. Open the HTML directly in a browser to select a
+witness and seek through retained ticks with the cube and its ground shadow.
+No server or WASM is needed; playback imports no solver. To choose a report path:
+`node tools/physics/ballistic-report.mjs test-results/my-ballistics.json`.
+The `.html` is written alongside it. Report identity is
+`ballistic-lab-recording-1`; source and trace SHA-256 hashes are included.
+
+Focused acceptance: `node --test tests/physics-ballistics.test.js`, then
+`node tests/physics-ballistics.browser.mjs`. The latter checks retained forward
+and backward seek, shadow/cube pixels and complete Node/Chrome witness equality.
+The 14 synthetic cases use one bounded cube profile, stationary explicit height
+boxes, a flat ground plane and a rectangular mask with rectangular holes.
+No game runtime imports this lab. It changes no live projectile, window or roof
+behavior. Contract and promotion questions are in [29.1](../../docs/29.1-physics-design.md),
+[29.2](../../docs/29.2-physics-state-networking.md), and
+[17.3](../../docs/17.3-product-gameplay.md); evidence is [42.18](../../docs/42.18-physics-p7.md).
+
 ## Experimental P1 evidence (#438)
 
 The production adapter now lives in `shared/physics/`, separately from these lab
