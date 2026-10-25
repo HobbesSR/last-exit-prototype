@@ -1,0 +1,5228 @@
+{
+  "schema": "ballistic-lab-recording-1",
+  "profile": {
+    "id": "ballistic-lab-1",
+    "dt": 0.05,
+    "gravity": 200,
+    "radius": 2,
+    "restitution": 0.5,
+    "maxBounces": 1,
+    "maxTicks": 200
+  },
+  "limitations": [
+    "Synthetic stationary axis-aligned boxes, one thrown cube and one flat ground plane.",
+    "No live activation, damage, inventory, networking, moving targets or arbitrary map geometry.",
+    "Numbers and height/roof/window semantics require review before promotion."
+  ],
+  "witnesses": [
+    {
+      "name": "low-cover",
+      "scene": {
+        "groundPlaneId": "lab-ground",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "holes": [],
+        "obstacles": [
+          {
+            "id": "low",
+            "x": 60,
+            "y": 40,
+            "w": 8,
+            "h": 20,
+            "zMin": 0,
+            "zMax": 20
+          }
+        ]
+      },
+      "initial": {},
+      "frames": [
+        {
+          "tick": 0,
+          "state": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 20,
+            "vx": 100,
+            "vy": 0,
+            "vz": 60,
+            "groundPlaneId": "lab-ground",
+            "age": 0,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying"
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 20,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 20,
+              "y": 50
+            },
+            "sprite": {
+              "x": 20,
+              "y": 30
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 1,
+          "state": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 22.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 50,
+            "groundPlaneId": "lab-ground",
+            "age": 0.05,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 22.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 25,
+              "y": 50
+            },
+            "sprite": {
+              "x": 25,
+              "y": 27.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 2,
+          "state": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 25,
+            "vx": 100,
+            "vy": 0,
+            "vz": 40,
+            "groundPlaneId": "lab-ground",
+            "age": 0.1,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 25,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 30,
+              "y": 50
+            },
+            "sprite": {
+              "x": 30,
+              "y": 25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 3,
+          "state": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 26.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 30,
+            "groundPlaneId": "lab-ground",
+            "age": 0.15000000000000002,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 26.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 35,
+              "y": 50
+            },
+            "sprite": {
+              "x": 35,
+              "y": 23.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 4,
+          "state": {
+            "id": "throw-1",
+            "x": 40,
+            "y": 50,
+            "z": 28,
+            "vx": 100,
+            "vy": 0,
+            "vz": 20,
+            "groundPlaneId": "lab-ground",
+            "age": 0.2,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 40,
+            "y": 50,
+            "z": 28,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 40,
+              "y": 50
+            },
+            "sprite": {
+              "x": 40,
+              "y": 22
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 5,
+          "state": {
+            "id": "throw-1",
+            "x": 45,
+            "y": 50,
+            "z": 28.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 10,
+            "groundPlaneId": "lab-ground",
+            "age": 0.25,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 45,
+            "y": 50,
+            "z": 28.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 45,
+              "y": 50
+            },
+            "sprite": {
+              "x": 45,
+              "y": 21.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 6,
+          "state": {
+            "id": "throw-1",
+            "x": 50,
+            "y": 50,
+            "z": 29,
+            "vx": 100,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.3,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 50,
+            "y": 50,
+            "z": 29,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 50,
+              "y": 50
+            },
+            "sprite": {
+              "x": 50,
+              "y": 21
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 7,
+          "state": {
+            "id": "throw-1",
+            "x": 55,
+            "y": 50,
+            "z": 28.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -10,
+            "groundPlaneId": "lab-ground",
+            "age": 0.35,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 55,
+            "y": 50,
+            "z": 28.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 55,
+              "y": 50
+            },
+            "sprite": {
+              "x": 55,
+              "y": 21.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 8,
+          "state": {
+            "id": "throw-1",
+            "x": 60,
+            "y": 50,
+            "z": 28,
+            "vx": 100,
+            "vy": 0,
+            "vz": -20,
+            "groundPlaneId": "lab-ground",
+            "age": 0.39999999999999997,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 60,
+            "y": 50,
+            "z": 28,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 60,
+              "y": 50
+            },
+            "sprite": {
+              "x": 60,
+              "y": 22
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 9,
+          "state": {
+            "id": "throw-1",
+            "x": 65,
+            "y": 50,
+            "z": 26.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -30,
+            "groundPlaneId": "lab-ground",
+            "age": 0.44999999999999996,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 65,
+            "y": 50,
+            "z": 26.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 65,
+              "y": 50
+            },
+            "sprite": {
+              "x": 65,
+              "y": 23.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 10,
+          "state": {
+            "id": "throw-1",
+            "x": 70,
+            "y": 50,
+            "z": 25,
+            "vx": 100,
+            "vy": 0,
+            "vz": -40,
+            "groundPlaneId": "lab-ground",
+            "age": 0.49999999999999994,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 70,
+            "y": 50,
+            "z": 25,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 70,
+              "y": 50
+            },
+            "sprite": {
+              "x": 70,
+              "y": 25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 11,
+          "state": {
+            "id": "throw-1",
+            "x": 75,
+            "y": 50,
+            "z": 22.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -50,
+            "groundPlaneId": "lab-ground",
+            "age": 0.5499999999999999,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 75,
+            "y": 50,
+            "z": 22.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 75,
+              "y": 50
+            },
+            "sprite": {
+              "x": 75,
+              "y": 27.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 12,
+          "state": {
+            "id": "throw-1",
+            "x": 80,
+            "y": 50,
+            "z": 20,
+            "vx": 100,
+            "vy": 0,
+            "vz": -60,
+            "groundPlaneId": "lab-ground",
+            "age": 0.6,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 80,
+            "y": 50,
+            "z": 20,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 80,
+              "y": 50
+            },
+            "sprite": {
+              "x": 80,
+              "y": 30
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 13,
+          "state": {
+            "id": "throw-1",
+            "x": 85,
+            "y": 50,
+            "z": 16.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -70,
+            "groundPlaneId": "lab-ground",
+            "age": 0.65,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 85,
+            "y": 50,
+            "z": 16.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 85,
+              "y": 50
+            },
+            "sprite": {
+              "x": 85,
+              "y": 33.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 14,
+          "state": {
+            "id": "throw-1",
+            "x": 90,
+            "y": 50,
+            "z": 13,
+            "vx": 100,
+            "vy": 0,
+            "vz": -80,
+            "groundPlaneId": "lab-ground",
+            "age": 0.7000000000000001,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 90,
+            "y": 50,
+            "z": 13,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 90,
+              "y": 50
+            },
+            "sprite": {
+              "x": 90,
+              "y": 37
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 15,
+          "state": {
+            "id": "throw-1",
+            "x": 95,
+            "y": 50,
+            "z": 8.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -90,
+            "groundPlaneId": "lab-ground",
+            "age": 0.7500000000000001,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 95,
+            "y": 50,
+            "z": 8.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 95,
+              "y": 50
+            },
+            "sprite": {
+              "x": 95,
+              "y": 41.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 16,
+          "state": {
+            "id": "throw-1",
+            "x": 100,
+            "y": 50,
+            "z": 4,
+            "vx": 100,
+            "vy": 0,
+            "vz": -100,
+            "groundPlaneId": "lab-ground",
+            "age": 0.8000000000000002,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 100,
+            "y": 50,
+            "z": 4,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 100,
+              "y": 50
+            },
+            "sprite": {
+              "x": 100,
+              "y": 46
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 17,
+          "state": {
+            "id": "throw-1",
+            "x": 105,
+            "y": 50,
+            "z": 0.6052193177193171,
+            "vx": 100,
+            "vy": 0,
+            "vz": 51.55494421403512,
+            "groundPlaneId": "lab-ground",
+            "age": 0.8500000000000001,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": [
+              {
+                "kind": "bounce",
+                "time": 0.038516480713450395
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 105,
+            "y": 50,
+            "z": 0.6052193177193171,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 105,
+              "y": 50
+            },
+            "sprite": {
+              "x": 105,
+              "y": 49.39478068228068
+            }
+          },
+          "events": [
+            {
+              "kind": "bounce",
+              "time": 0.038516480713450395
+            }
+          ]
+        },
+        {
+          "tick": 18,
+          "state": {
+            "id": "throw-1",
+            "x": 110,
+            "y": 50,
+            "z": 2.932966528421073,
+            "vx": 100,
+            "vy": 0,
+            "vz": 41.55494421403512,
+            "groundPlaneId": "lab-ground",
+            "age": 0.9000000000000001,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 110,
+            "y": 50,
+            "z": 2.932966528421073,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 110,
+              "y": 50
+            },
+            "sprite": {
+              "x": 110,
+              "y": 47.067033471578924
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 19,
+          "state": {
+            "id": "throw-1",
+            "x": 115,
+            "y": 50,
+            "z": 4.76071373912283,
+            "vx": 100,
+            "vy": 0,
+            "vz": 31.554944214035118,
+            "groundPlaneId": "lab-ground",
+            "age": 0.9500000000000002,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 115,
+            "y": 50,
+            "z": 4.76071373912283,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 115,
+              "y": 50
+            },
+            "sprite": {
+              "x": 115,
+              "y": 45.23928626087717
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 20,
+          "state": {
+            "id": "throw-1",
+            "x": 120,
+            "y": 50,
+            "z": 6.088460949824586,
+            "vx": 100,
+            "vy": 0,
+            "vz": 21.554944214035118,
+            "groundPlaneId": "lab-ground",
+            "age": 1.0000000000000002,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 120,
+            "y": 50,
+            "z": 6.088460949824586,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 120,
+              "y": 50
+            },
+            "sprite": {
+              "x": 120,
+              "y": 43.91153905017541
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 21,
+          "state": {
+            "id": "throw-1",
+            "x": 125,
+            "y": 50,
+            "z": 6.916208160526342,
+            "vx": 100,
+            "vy": 0,
+            "vz": 11.554944214035118,
+            "groundPlaneId": "lab-ground",
+            "age": 1.0500000000000003,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 125,
+            "y": 50,
+            "z": 6.916208160526342,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 125,
+              "y": 50
+            },
+            "sprite": {
+              "x": 125,
+              "y": 43.08379183947366
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 22,
+          "state": {
+            "id": "throw-1",
+            "x": 130,
+            "y": 50,
+            "z": 7.243955371228098,
+            "vx": 100,
+            "vy": 0,
+            "vz": 1.5549442140351175,
+            "groundPlaneId": "lab-ground",
+            "age": 1.1000000000000003,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 130,
+            "y": 50,
+            "z": 7.243955371228098,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 130,
+              "y": 50
+            },
+            "sprite": {
+              "x": 130,
+              "y": 42.7560446287719
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 23,
+          "state": {
+            "id": "throw-1",
+            "x": 135,
+            "y": 50,
+            "z": 7.071702581929854,
+            "vx": 100,
+            "vy": 0,
+            "vz": -8.445055785964882,
+            "groundPlaneId": "lab-ground",
+            "age": 1.1500000000000004,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 135,
+            "y": 50,
+            "z": 7.071702581929854,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 135,
+              "y": 50
+            },
+            "sprite": {
+              "x": 135,
+              "y": 42.928297418070144
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 24,
+          "state": {
+            "id": "throw-1",
+            "x": 140,
+            "y": 50,
+            "z": 6.39944979263161,
+            "vx": 100,
+            "vy": 0,
+            "vz": -18.445055785964882,
+            "groundPlaneId": "lab-ground",
+            "age": 1.2000000000000004,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 140,
+            "y": 50,
+            "z": 6.39944979263161,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 140,
+              "y": 50
+            },
+            "sprite": {
+              "x": 140,
+              "y": 43.60055020736839
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 25,
+          "state": {
+            "id": "throw-1",
+            "x": 145,
+            "y": 50,
+            "z": 5.227197003333366,
+            "vx": 100,
+            "vy": 0,
+            "vz": -28.445055785964882,
+            "groundPlaneId": "lab-ground",
+            "age": 1.2500000000000004,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 145,
+            "y": 50,
+            "z": 5.227197003333366,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 145,
+              "y": 50
+            },
+            "sprite": {
+              "x": 145,
+              "y": 44.772802996666634
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 26,
+          "state": {
+            "id": "throw-1",
+            "x": 150,
+            "y": 50,
+            "z": 3.554944214035122,
+            "vx": 100,
+            "vy": 0,
+            "vz": -38.44505578596488,
+            "groundPlaneId": "lab-ground",
+            "age": 1.3000000000000005,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 150,
+            "y": 50,
+            "z": 3.554944214035122,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 150,
+              "y": 50
+            },
+            "sprite": {
+              "x": 150,
+              "y": 46.445055785964875
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 27,
+          "state": {
+            "id": "throw-1",
+            "x": 155,
+            "y": 50,
+            "z": 1.3826914247368778,
+            "vx": 100,
+            "vy": 0,
+            "vz": -48.44505578596488,
+            "groundPlaneId": "lab-ground",
+            "age": 1.3500000000000005,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 155,
+            "y": 50,
+            "z": 1.3826914247368778,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 155,
+              "y": 50
+            },
+            "sprite": {
+              "x": 155,
+              "y": 48.617308575263124
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 28,
+          "state": {
+            "id": "throw-1",
+            "x": 157.70329614269008,
+            "y": 50,
+            "z": 0,
+            "vx": 0,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 1.3770329614269015,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "landed",
+            "events": [
+              {
+                "kind": "landing",
+                "time": 0.027032961426900818
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 157.70329614269008,
+            "y": 50,
+            "z": 0,
+            "groundPlaneId": "lab-ground",
+            "status": "landed",
+            "shadow": {
+              "x": 157.70329614269008,
+              "y": 50
+            },
+            "sprite": {
+              "x": 157.70329614269008,
+              "y": 50
+            }
+          },
+          "events": [
+            {
+              "kind": "landing",
+              "time": 0.027032961426900818
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "tall-cover",
+      "scene": {
+        "groundPlaneId": "lab-ground",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "holes": [],
+        "obstacles": [
+          {
+            "id": "tall",
+            "x": 60,
+            "y": 40,
+            "w": 8,
+            "h": 20,
+            "zMin": 0,
+            "zMax": 80
+          }
+        ]
+      },
+      "initial": {},
+      "frames": [
+        {
+          "tick": 0,
+          "state": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 20,
+            "vx": 100,
+            "vy": 0,
+            "vz": 60,
+            "groundPlaneId": "lab-ground",
+            "age": 0,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying"
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 20,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 20,
+              "y": 50
+            },
+            "sprite": {
+              "x": 20,
+              "y": 30
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 1,
+          "state": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 22.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 50,
+            "groundPlaneId": "lab-ground",
+            "age": 0.05,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 22.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 25,
+              "y": 50
+            },
+            "sprite": {
+              "x": 25,
+              "y": 27.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 2,
+          "state": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 25,
+            "vx": 100,
+            "vy": 0,
+            "vz": 40,
+            "groundPlaneId": "lab-ground",
+            "age": 0.1,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 25,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 30,
+              "y": 50
+            },
+            "sprite": {
+              "x": 30,
+              "y": 25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 3,
+          "state": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 26.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 30,
+            "groundPlaneId": "lab-ground",
+            "age": 0.15000000000000002,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 26.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 35,
+              "y": 50
+            },
+            "sprite": {
+              "x": 35,
+              "y": 23.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 4,
+          "state": {
+            "id": "throw-1",
+            "x": 40,
+            "y": 50,
+            "z": 28,
+            "vx": 100,
+            "vy": 0,
+            "vz": 20,
+            "groundPlaneId": "lab-ground",
+            "age": 0.2,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 40,
+            "y": 50,
+            "z": 28,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 40,
+              "y": 50
+            },
+            "sprite": {
+              "x": 40,
+              "y": 22
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 5,
+          "state": {
+            "id": "throw-1",
+            "x": 45,
+            "y": 50,
+            "z": 28.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 10,
+            "groundPlaneId": "lab-ground",
+            "age": 0.25,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 45,
+            "y": 50,
+            "z": 28.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 45,
+              "y": 50
+            },
+            "sprite": {
+              "x": 45,
+              "y": 21.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 6,
+          "state": {
+            "id": "throw-1",
+            "x": 50,
+            "y": 50,
+            "z": 29,
+            "vx": 100,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.3,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 50,
+            "y": 50,
+            "z": 29,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 50,
+              "y": 50
+            },
+            "sprite": {
+              "x": 50,
+              "y": 21
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 7,
+          "state": {
+            "id": "throw-1",
+            "x": 55,
+            "y": 50,
+            "z": 28.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -10,
+            "groundPlaneId": "lab-ground",
+            "age": 0.35,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 55,
+            "y": 50,
+            "z": 28.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 55,
+              "y": 50
+            },
+            "sprite": {
+              "x": 55,
+              "y": 21.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 8,
+          "state": {
+            "id": "throw-1",
+            "x": 58,
+            "y": 50,
+            "z": 28.36,
+            "vx": 0,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.38,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "impact",
+            "events": [
+              {
+                "kind": "impact",
+                "time": 0.03,
+                "obstacleId": "tall"
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 58,
+            "y": 50,
+            "z": 28.36,
+            "groundPlaneId": "lab-ground",
+            "status": "impact",
+            "shadow": {
+              "x": 58,
+              "y": 50
+            },
+            "sprite": {
+              "x": 58,
+              "y": 21.64
+            }
+          },
+          "events": [
+            {
+              "kind": "impact",
+              "time": 0.03,
+              "obstacleId": "tall"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "height-crossing-in-tick",
+      "scene": {
+        "groundPlaneId": "lab-ground",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "holes": [],
+        "obstacles": [
+          {
+            "id": "slab",
+            "x": 25,
+            "y": 40,
+            "w": 2,
+            "h": 20,
+            "zMin": 10,
+            "zMax": 11
+          }
+        ]
+      },
+      "initial": {
+        "x": 20,
+        "z": 20,
+        "vx": 400,
+        "vz": -400
+      },
+      "frames": [
+        {
+          "tick": 0,
+          "state": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 20,
+            "vx": 400,
+            "vy": 0,
+            "vz": -400,
+            "groundPlaneId": "lab-ground",
+            "age": 0,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying"
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 20,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 20,
+              "y": 50
+            },
+            "sprite": {
+              "x": 20,
+              "y": 30
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 1,
+          "state": {
+            "id": "throw-1",
+            "x": 28.94993664626736,
+            "y": 50,
+            "z": 11.000000000000014,
+            "vx": 0,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.0223748416156684,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "impact",
+            "events": [
+              {
+                "kind": "impact",
+                "time": 0.0223748416156684,
+                "obstacleId": "slab"
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 28.94993664626736,
+            "y": 50,
+            "z": 11.000000000000014,
+            "groundPlaneId": "lab-ground",
+            "status": "impact",
+            "shadow": {
+              "x": 28.94993664626736,
+              "y": 50
+            },
+            "sprite": {
+              "x": 28.94993664626736,
+              "y": 38.999999999999986
+            }
+          },
+          "events": [
+            {
+              "kind": "impact",
+              "time": 0.0223748416156684,
+              "obstacleId": "slab"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "landing",
+      "scene": {
+        "groundPlaneId": "lab-ground",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "holes": [],
+        "obstacles": []
+      },
+      "initial": {
+        "z": 1,
+        "vz": -15,
+        "bounces": 1
+      },
+      "frames": [
+        {
+          "tick": 0,
+          "state": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 1,
+            "vx": 100,
+            "vy": 0,
+            "vz": -15,
+            "groundPlaneId": "lab-ground",
+            "age": 0,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying"
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 1,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 20,
+              "y": 50
+            },
+            "sprite": {
+              "x": 20,
+              "y": 49
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 1,
+          "state": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 0,
+            "vx": 0,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.05,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "landed",
+            "events": [
+              {
+                "kind": "landing",
+                "time": 0.05
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 0,
+            "groundPlaneId": "lab-ground",
+            "status": "landed",
+            "shadow": {
+              "x": 25,
+              "y": 50
+            },
+            "sprite": {
+              "x": 25,
+              "y": 50
+            }
+          },
+          "events": [
+            {
+              "kind": "landing",
+              "time": 0.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "bounce-then-land",
+      "scene": {
+        "groundPlaneId": "lab-ground",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "holes": [],
+        "obstacles": []
+      },
+      "initial": {
+        "z": 1,
+        "vz": -15
+      },
+      "frames": [
+        {
+          "tick": 0,
+          "state": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 1,
+            "vx": 100,
+            "vy": 0,
+            "vz": -15,
+            "groundPlaneId": "lab-ground",
+            "age": 0,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying"
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 1,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 20,
+              "y": 50
+            },
+            "sprite": {
+              "x": 20,
+              "y": 49
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 1,
+          "state": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 0,
+            "vx": 100,
+            "vy": 0,
+            "vz": 12.5,
+            "groundPlaneId": "lab-ground",
+            "age": 0.05,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": [
+              {
+                "kind": "bounce",
+                "time": 0.05
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 0,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 25,
+              "y": 50
+            },
+            "sprite": {
+              "x": 25,
+              "y": 50
+            }
+          },
+          "events": [
+            {
+              "kind": "bounce",
+              "time": 0.05
+            }
+          ]
+        },
+        {
+          "tick": 2,
+          "state": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 0.375,
+            "vx": 100,
+            "vy": 0,
+            "vz": 2.5,
+            "groundPlaneId": "lab-ground",
+            "age": 0.1,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 0.375,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 30,
+              "y": 50
+            },
+            "sprite": {
+              "x": 30,
+              "y": 49.625
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 3,
+          "state": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 0.25,
+            "vx": 100,
+            "vy": 0,
+            "vz": -7.5,
+            "groundPlaneId": "lab-ground",
+            "age": 0.15000000000000002,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 0.25,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 35,
+              "y": 50
+            },
+            "sprite": {
+              "x": 35,
+              "y": 49.75
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 4,
+          "state": {
+            "id": "throw-1",
+            "x": 37.5,
+            "y": 50,
+            "z": 0,
+            "vx": 0,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.17500000000000002,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "landed",
+            "events": [
+              {
+                "kind": "landing",
+                "time": 0.025
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 37.5,
+            "y": 50,
+            "z": 0,
+            "groundPlaneId": "lab-ground",
+            "status": "landed",
+            "shadow": {
+              "x": 37.5,
+              "y": 50
+            },
+            "sprite": {
+              "x": 37.5,
+              "y": 50
+            }
+          },
+          "events": [
+            {
+              "kind": "landing",
+              "time": 0.025
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fuse-ground-tie",
+      "scene": {
+        "groundPlaneId": "lab-ground",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "holes": [],
+        "obstacles": []
+      },
+      "initial": {
+        "z": 1,
+        "vz": -15,
+        "fuse": 0.05
+      },
+      "frames": [
+        {
+          "tick": 0,
+          "state": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 1,
+            "vx": 100,
+            "vy": 0,
+            "vz": -15,
+            "groundPlaneId": "lab-ground",
+            "age": 0,
+            "fuse": 0.05,
+            "bounces": 0,
+            "status": "flying"
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 1,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 20,
+              "y": 50
+            },
+            "sprite": {
+              "x": 20,
+              "y": 49
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 1,
+          "state": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 0,
+            "vx": 0,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.05,
+            "fuse": 0.05,
+            "bounces": 0,
+            "status": "fused",
+            "events": [
+              {
+                "kind": "fuse",
+                "time": 0.05
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 0,
+            "groundPlaneId": "lab-ground",
+            "status": "fused",
+            "shadow": {
+              "x": 25,
+              "y": 50
+            },
+            "sprite": {
+              "x": 25,
+              "y": 50
+            }
+          },
+          "events": [
+            {
+              "kind": "fuse",
+              "time": 0.05
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "impact-fuse-ground-tie",
+      "scene": {
+        "groundPlaneId": "lab-ground",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "holes": [],
+        "obstacles": [
+          {
+            "id": "wall",
+            "x": 27,
+            "y": 40,
+            "w": 8,
+            "h": 20,
+            "zMin": 0,
+            "zMax": 80
+          }
+        ]
+      },
+      "initial": {
+        "z": 1,
+        "vz": -15,
+        "fuse": 0.05
+      },
+      "frames": [
+        {
+          "tick": 0,
+          "state": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 1,
+            "vx": 100,
+            "vy": 0,
+            "vz": -15,
+            "groundPlaneId": "lab-ground",
+            "age": 0,
+            "fuse": 0.05,
+            "bounces": 0,
+            "status": "flying"
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 1,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 20,
+              "y": 50
+            },
+            "sprite": {
+              "x": 20,
+              "y": 49
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 1,
+          "state": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 0,
+            "vx": 0,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.05,
+            "fuse": 0.05,
+            "bounces": 0,
+            "status": "impact",
+            "events": [
+              {
+                "kind": "impact",
+                "time": 0.05,
+                "obstacleId": "wall"
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 0,
+            "groundPlaneId": "lab-ground",
+            "status": "impact",
+            "shadow": {
+              "x": 25,
+              "y": 50
+            },
+            "sprite": {
+              "x": 25,
+              "y": 50
+            }
+          },
+          "events": [
+            {
+              "kind": "impact",
+              "time": 0.05,
+              "obstacleId": "wall"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "decorative-roof",
+      "scene": {
+        "groundPlaneId": "lab-ground",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "holes": [],
+        "obstacles": [],
+        "decorativeRoofs": [
+          {
+            "x": 40,
+            "y": 30,
+            "w": 60,
+            "h": 40
+          }
+        ]
+      },
+      "initial": {},
+      "frames": [
+        {
+          "tick": 0,
+          "state": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 20,
+            "vx": 100,
+            "vy": 0,
+            "vz": 60,
+            "groundPlaneId": "lab-ground",
+            "age": 0,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying"
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 20,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 20,
+              "y": 50
+            },
+            "sprite": {
+              "x": 20,
+              "y": 30
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 1,
+          "state": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 22.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 50,
+            "groundPlaneId": "lab-ground",
+            "age": 0.05,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 22.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 25,
+              "y": 50
+            },
+            "sprite": {
+              "x": 25,
+              "y": 27.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 2,
+          "state": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 25,
+            "vx": 100,
+            "vy": 0,
+            "vz": 40,
+            "groundPlaneId": "lab-ground",
+            "age": 0.1,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 25,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 30,
+              "y": 50
+            },
+            "sprite": {
+              "x": 30,
+              "y": 25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 3,
+          "state": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 26.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 30,
+            "groundPlaneId": "lab-ground",
+            "age": 0.15000000000000002,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 26.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 35,
+              "y": 50
+            },
+            "sprite": {
+              "x": 35,
+              "y": 23.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 4,
+          "state": {
+            "id": "throw-1",
+            "x": 40,
+            "y": 50,
+            "z": 28,
+            "vx": 100,
+            "vy": 0,
+            "vz": 20,
+            "groundPlaneId": "lab-ground",
+            "age": 0.2,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 40,
+            "y": 50,
+            "z": 28,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 40,
+              "y": 50
+            },
+            "sprite": {
+              "x": 40,
+              "y": 22
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 5,
+          "state": {
+            "id": "throw-1",
+            "x": 45,
+            "y": 50,
+            "z": 28.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 10,
+            "groundPlaneId": "lab-ground",
+            "age": 0.25,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 45,
+            "y": 50,
+            "z": 28.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 45,
+              "y": 50
+            },
+            "sprite": {
+              "x": 45,
+              "y": 21.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 6,
+          "state": {
+            "id": "throw-1",
+            "x": 50,
+            "y": 50,
+            "z": 29,
+            "vx": 100,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.3,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 50,
+            "y": 50,
+            "z": 29,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 50,
+              "y": 50
+            },
+            "sprite": {
+              "x": 50,
+              "y": 21
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 7,
+          "state": {
+            "id": "throw-1",
+            "x": 55,
+            "y": 50,
+            "z": 28.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -10,
+            "groundPlaneId": "lab-ground",
+            "age": 0.35,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 55,
+            "y": 50,
+            "z": 28.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 55,
+              "y": 50
+            },
+            "sprite": {
+              "x": 55,
+              "y": 21.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 8,
+          "state": {
+            "id": "throw-1",
+            "x": 60,
+            "y": 50,
+            "z": 28,
+            "vx": 100,
+            "vy": 0,
+            "vz": -20,
+            "groundPlaneId": "lab-ground",
+            "age": 0.39999999999999997,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 60,
+            "y": 50,
+            "z": 28,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 60,
+              "y": 50
+            },
+            "sprite": {
+              "x": 60,
+              "y": 22
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 9,
+          "state": {
+            "id": "throw-1",
+            "x": 65,
+            "y": 50,
+            "z": 26.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -30,
+            "groundPlaneId": "lab-ground",
+            "age": 0.44999999999999996,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 65,
+            "y": 50,
+            "z": 26.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 65,
+              "y": 50
+            },
+            "sprite": {
+              "x": 65,
+              "y": 23.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 10,
+          "state": {
+            "id": "throw-1",
+            "x": 70,
+            "y": 50,
+            "z": 25,
+            "vx": 100,
+            "vy": 0,
+            "vz": -40,
+            "groundPlaneId": "lab-ground",
+            "age": 0.49999999999999994,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 70,
+            "y": 50,
+            "z": 25,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 70,
+              "y": 50
+            },
+            "sprite": {
+              "x": 70,
+              "y": 25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 11,
+          "state": {
+            "id": "throw-1",
+            "x": 75,
+            "y": 50,
+            "z": 22.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -50,
+            "groundPlaneId": "lab-ground",
+            "age": 0.5499999999999999,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 75,
+            "y": 50,
+            "z": 22.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 75,
+              "y": 50
+            },
+            "sprite": {
+              "x": 75,
+              "y": 27.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 12,
+          "state": {
+            "id": "throw-1",
+            "x": 80,
+            "y": 50,
+            "z": 20,
+            "vx": 100,
+            "vy": 0,
+            "vz": -60,
+            "groundPlaneId": "lab-ground",
+            "age": 0.6,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 80,
+            "y": 50,
+            "z": 20,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 80,
+              "y": 50
+            },
+            "sprite": {
+              "x": 80,
+              "y": 30
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 13,
+          "state": {
+            "id": "throw-1",
+            "x": 85,
+            "y": 50,
+            "z": 16.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -70,
+            "groundPlaneId": "lab-ground",
+            "age": 0.65,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 85,
+            "y": 50,
+            "z": 16.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 85,
+              "y": 50
+            },
+            "sprite": {
+              "x": 85,
+              "y": 33.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 14,
+          "state": {
+            "id": "throw-1",
+            "x": 90,
+            "y": 50,
+            "z": 13,
+            "vx": 100,
+            "vy": 0,
+            "vz": -80,
+            "groundPlaneId": "lab-ground",
+            "age": 0.7000000000000001,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 90,
+            "y": 50,
+            "z": 13,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 90,
+              "y": 50
+            },
+            "sprite": {
+              "x": 90,
+              "y": 37
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 15,
+          "state": {
+            "id": "throw-1",
+            "x": 95,
+            "y": 50,
+            "z": 8.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -90,
+            "groundPlaneId": "lab-ground",
+            "age": 0.7500000000000001,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 95,
+            "y": 50,
+            "z": 8.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 95,
+              "y": 50
+            },
+            "sprite": {
+              "x": 95,
+              "y": 41.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 16,
+          "state": {
+            "id": "throw-1",
+            "x": 100,
+            "y": 50,
+            "z": 4,
+            "vx": 100,
+            "vy": 0,
+            "vz": -100,
+            "groundPlaneId": "lab-ground",
+            "age": 0.8000000000000002,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 100,
+            "y": 50,
+            "z": 4,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 100,
+              "y": 50
+            },
+            "sprite": {
+              "x": 100,
+              "y": 46
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 17,
+          "state": {
+            "id": "throw-1",
+            "x": 105,
+            "y": 50,
+            "z": 0.6052193177193171,
+            "vx": 100,
+            "vy": 0,
+            "vz": 51.55494421403512,
+            "groundPlaneId": "lab-ground",
+            "age": 0.8500000000000001,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": [
+              {
+                "kind": "bounce",
+                "time": 0.038516480713450395
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 105,
+            "y": 50,
+            "z": 0.6052193177193171,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 105,
+              "y": 50
+            },
+            "sprite": {
+              "x": 105,
+              "y": 49.39478068228068
+            }
+          },
+          "events": [
+            {
+              "kind": "bounce",
+              "time": 0.038516480713450395
+            }
+          ]
+        },
+        {
+          "tick": 18,
+          "state": {
+            "id": "throw-1",
+            "x": 110,
+            "y": 50,
+            "z": 2.932966528421073,
+            "vx": 100,
+            "vy": 0,
+            "vz": 41.55494421403512,
+            "groundPlaneId": "lab-ground",
+            "age": 0.9000000000000001,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 110,
+            "y": 50,
+            "z": 2.932966528421073,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 110,
+              "y": 50
+            },
+            "sprite": {
+              "x": 110,
+              "y": 47.067033471578924
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 19,
+          "state": {
+            "id": "throw-1",
+            "x": 115,
+            "y": 50,
+            "z": 4.76071373912283,
+            "vx": 100,
+            "vy": 0,
+            "vz": 31.554944214035118,
+            "groundPlaneId": "lab-ground",
+            "age": 0.9500000000000002,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 115,
+            "y": 50,
+            "z": 4.76071373912283,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 115,
+              "y": 50
+            },
+            "sprite": {
+              "x": 115,
+              "y": 45.23928626087717
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 20,
+          "state": {
+            "id": "throw-1",
+            "x": 120,
+            "y": 50,
+            "z": 6.088460949824586,
+            "vx": 100,
+            "vy": 0,
+            "vz": 21.554944214035118,
+            "groundPlaneId": "lab-ground",
+            "age": 1.0000000000000002,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 120,
+            "y": 50,
+            "z": 6.088460949824586,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 120,
+              "y": 50
+            },
+            "sprite": {
+              "x": 120,
+              "y": 43.91153905017541
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 21,
+          "state": {
+            "id": "throw-1",
+            "x": 125,
+            "y": 50,
+            "z": 6.916208160526342,
+            "vx": 100,
+            "vy": 0,
+            "vz": 11.554944214035118,
+            "groundPlaneId": "lab-ground",
+            "age": 1.0500000000000003,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 125,
+            "y": 50,
+            "z": 6.916208160526342,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 125,
+              "y": 50
+            },
+            "sprite": {
+              "x": 125,
+              "y": 43.08379183947366
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 22,
+          "state": {
+            "id": "throw-1",
+            "x": 130,
+            "y": 50,
+            "z": 7.243955371228098,
+            "vx": 100,
+            "vy": 0,
+            "vz": 1.5549442140351175,
+            "groundPlaneId": "lab-ground",
+            "age": 1.1000000000000003,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 130,
+            "y": 50,
+            "z": 7.243955371228098,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 130,
+              "y": 50
+            },
+            "sprite": {
+              "x": 130,
+              "y": 42.7560446287719
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 23,
+          "state": {
+            "id": "throw-1",
+            "x": 135,
+            "y": 50,
+            "z": 7.071702581929854,
+            "vx": 100,
+            "vy": 0,
+            "vz": -8.445055785964882,
+            "groundPlaneId": "lab-ground",
+            "age": 1.1500000000000004,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 135,
+            "y": 50,
+            "z": 7.071702581929854,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 135,
+              "y": 50
+            },
+            "sprite": {
+              "x": 135,
+              "y": 42.928297418070144
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 24,
+          "state": {
+            "id": "throw-1",
+            "x": 140,
+            "y": 50,
+            "z": 6.39944979263161,
+            "vx": 100,
+            "vy": 0,
+            "vz": -18.445055785964882,
+            "groundPlaneId": "lab-ground",
+            "age": 1.2000000000000004,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 140,
+            "y": 50,
+            "z": 6.39944979263161,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 140,
+              "y": 50
+            },
+            "sprite": {
+              "x": 140,
+              "y": 43.60055020736839
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 25,
+          "state": {
+            "id": "throw-1",
+            "x": 145,
+            "y": 50,
+            "z": 5.227197003333366,
+            "vx": 100,
+            "vy": 0,
+            "vz": -28.445055785964882,
+            "groundPlaneId": "lab-ground",
+            "age": 1.2500000000000004,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 145,
+            "y": 50,
+            "z": 5.227197003333366,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 145,
+              "y": 50
+            },
+            "sprite": {
+              "x": 145,
+              "y": 44.772802996666634
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 26,
+          "state": {
+            "id": "throw-1",
+            "x": 150,
+            "y": 50,
+            "z": 3.554944214035122,
+            "vx": 100,
+            "vy": 0,
+            "vz": -38.44505578596488,
+            "groundPlaneId": "lab-ground",
+            "age": 1.3000000000000005,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 150,
+            "y": 50,
+            "z": 3.554944214035122,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 150,
+              "y": 50
+            },
+            "sprite": {
+              "x": 150,
+              "y": 46.445055785964875
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 27,
+          "state": {
+            "id": "throw-1",
+            "x": 155,
+            "y": 50,
+            "z": 1.3826914247368778,
+            "vx": 100,
+            "vy": 0,
+            "vz": -48.44505578596488,
+            "groundPlaneId": "lab-ground",
+            "age": 1.3500000000000005,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 155,
+            "y": 50,
+            "z": 1.3826914247368778,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 155,
+              "y": 50
+            },
+            "sprite": {
+              "x": 155,
+              "y": 48.617308575263124
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 28,
+          "state": {
+            "id": "throw-1",
+            "x": 157.70329614269008,
+            "y": 50,
+            "z": 0,
+            "vx": 0,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 1.3770329614269015,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "landed",
+            "events": [
+              {
+                "kind": "landing",
+                "time": 0.027032961426900818
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 157.70329614269008,
+            "y": 50,
+            "z": 0,
+            "groundPlaneId": "lab-ground",
+            "status": "landed",
+            "shadow": {
+              "x": 157.70329614269008,
+              "y": 50
+            },
+            "sprite": {
+              "x": 157.70329614269008,
+              "y": 50
+            }
+          },
+          "events": [
+            {
+              "kind": "landing",
+              "time": 0.027032961426900818
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "explicit-ceiling",
+      "scene": {
+        "groundPlaneId": "lab-ground",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "holes": [],
+        "obstacles": [
+          {
+            "id": "ceiling",
+            "x": 10,
+            "y": 40,
+            "w": 90,
+            "h": 20,
+            "zMin": 31,
+            "zMax": 35
+          }
+        ]
+      },
+      "initial": {},
+      "frames": [
+        {
+          "tick": 0,
+          "state": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 20,
+            "vx": 100,
+            "vy": 0,
+            "vz": 60,
+            "groundPlaneId": "lab-ground",
+            "age": 0,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying"
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 20,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 20,
+              "y": 50
+            },
+            "sprite": {
+              "x": 20,
+              "y": 30
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 1,
+          "state": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 22.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 50,
+            "groundPlaneId": "lab-ground",
+            "age": 0.05,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 22.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 25,
+              "y": 50
+            },
+            "sprite": {
+              "x": 25,
+              "y": 27.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 2,
+          "state": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 25,
+            "vx": 100,
+            "vy": 0,
+            "vz": 40,
+            "groundPlaneId": "lab-ground",
+            "age": 0.1,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 25,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 30,
+              "y": 50
+            },
+            "sprite": {
+              "x": 30,
+              "y": 25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 3,
+          "state": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 26.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 30,
+            "groundPlaneId": "lab-ground",
+            "age": 0.15000000000000002,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 26.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 35,
+              "y": 50
+            },
+            "sprite": {
+              "x": 35,
+              "y": 23.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 4,
+          "state": {
+            "id": "throw-1",
+            "x": 35.85786437626905,
+            "y": 50,
+            "z": 27,
+            "vx": 0,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.1585786437626905,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "impact",
+            "events": [
+              {
+                "kind": "impact",
+                "time": 0.00857864376269049,
+                "obstacleId": "ceiling"
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 35.85786437626905,
+            "y": 50,
+            "z": 27,
+            "groundPlaneId": "lab-ground",
+            "status": "impact",
+            "shadow": {
+              "x": 35.85786437626905,
+              "y": 50
+            },
+            "sprite": {
+              "x": 35.85786437626905,
+              "y": 23
+            }
+          },
+          "events": [
+            {
+              "kind": "impact",
+              "time": 0.00857864376269049,
+              "obstacleId": "ceiling"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "window-opening",
+      "scene": {
+        "groundPlaneId": "lab-ground",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "holes": [],
+        "obstacles": [
+          {
+            "id": "sill",
+            "x": 60,
+            "y": 40,
+            "w": 8,
+            "h": 20,
+            "zMin": 0,
+            "zMax": 12
+          },
+          {
+            "id": "lintel",
+            "x": 60,
+            "y": 40,
+            "w": 8,
+            "h": 20,
+            "zMin": 40,
+            "zMax": 80
+          }
+        ]
+      },
+      "initial": {
+        "z": 20,
+        "vz": 40
+      },
+      "frames": [
+        {
+          "tick": 0,
+          "state": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 20,
+            "vx": 100,
+            "vy": 0,
+            "vz": 40,
+            "groundPlaneId": "lab-ground",
+            "age": 0,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying"
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 20,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 20,
+              "y": 50
+            },
+            "sprite": {
+              "x": 20,
+              "y": 30
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 1,
+          "state": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 21.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 30,
+            "groundPlaneId": "lab-ground",
+            "age": 0.05,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 21.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 25,
+              "y": 50
+            },
+            "sprite": {
+              "x": 25,
+              "y": 28.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 2,
+          "state": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 23,
+            "vx": 100,
+            "vy": 0,
+            "vz": 20,
+            "groundPlaneId": "lab-ground",
+            "age": 0.1,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 23,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 30,
+              "y": 50
+            },
+            "sprite": {
+              "x": 30,
+              "y": 27
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 3,
+          "state": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 23.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 10,
+            "groundPlaneId": "lab-ground",
+            "age": 0.15000000000000002,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 23.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 35,
+              "y": 50
+            },
+            "sprite": {
+              "x": 35,
+              "y": 26.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 4,
+          "state": {
+            "id": "throw-1",
+            "x": 40,
+            "y": 50,
+            "z": 24,
+            "vx": 100,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.2,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 40,
+            "y": 50,
+            "z": 24,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 40,
+              "y": 50
+            },
+            "sprite": {
+              "x": 40,
+              "y": 26
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 5,
+          "state": {
+            "id": "throw-1",
+            "x": 45,
+            "y": 50,
+            "z": 23.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -10,
+            "groundPlaneId": "lab-ground",
+            "age": 0.25,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 45,
+            "y": 50,
+            "z": 23.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 45,
+              "y": 50
+            },
+            "sprite": {
+              "x": 45,
+              "y": 26.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 6,
+          "state": {
+            "id": "throw-1",
+            "x": 50,
+            "y": 50,
+            "z": 23,
+            "vx": 100,
+            "vy": 0,
+            "vz": -20,
+            "groundPlaneId": "lab-ground",
+            "age": 0.3,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 50,
+            "y": 50,
+            "z": 23,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 50,
+              "y": 50
+            },
+            "sprite": {
+              "x": 50,
+              "y": 27
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 7,
+          "state": {
+            "id": "throw-1",
+            "x": 55,
+            "y": 50,
+            "z": 21.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -30,
+            "groundPlaneId": "lab-ground",
+            "age": 0.35,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 55,
+            "y": 50,
+            "z": 21.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 55,
+              "y": 50
+            },
+            "sprite": {
+              "x": 55,
+              "y": 28.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 8,
+          "state": {
+            "id": "throw-1",
+            "x": 60,
+            "y": 50,
+            "z": 20,
+            "vx": 100,
+            "vy": 0,
+            "vz": -40,
+            "groundPlaneId": "lab-ground",
+            "age": 0.39999999999999997,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 60,
+            "y": 50,
+            "z": 20,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 60,
+              "y": 50
+            },
+            "sprite": {
+              "x": 60,
+              "y": 30
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 9,
+          "state": {
+            "id": "throw-1",
+            "x": 65,
+            "y": 50,
+            "z": 17.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -50,
+            "groundPlaneId": "lab-ground",
+            "age": 0.44999999999999996,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 65,
+            "y": 50,
+            "z": 17.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 65,
+              "y": 50
+            },
+            "sprite": {
+              "x": 65,
+              "y": 32.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 10,
+          "state": {
+            "id": "throw-1",
+            "x": 70,
+            "y": 50,
+            "z": 15,
+            "vx": 100,
+            "vy": 0,
+            "vz": -60,
+            "groundPlaneId": "lab-ground",
+            "age": 0.49999999999999994,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 70,
+            "y": 50,
+            "z": 15,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 70,
+              "y": 50
+            },
+            "sprite": {
+              "x": 70,
+              "y": 35
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 11,
+          "state": {
+            "id": "throw-1",
+            "x": 75,
+            "y": 50,
+            "z": 11.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -70,
+            "groundPlaneId": "lab-ground",
+            "age": 0.5499999999999999,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 75,
+            "y": 50,
+            "z": 11.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 75,
+              "y": 50
+            },
+            "sprite": {
+              "x": 75,
+              "y": 38.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 12,
+          "state": {
+            "id": "throw-1",
+            "x": 80,
+            "y": 50,
+            "z": 8,
+            "vx": 100,
+            "vy": 0,
+            "vz": -80,
+            "groundPlaneId": "lab-ground",
+            "age": 0.6,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 80,
+            "y": 50,
+            "z": 8,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 80,
+              "y": 50
+            },
+            "sprite": {
+              "x": 80,
+              "y": 42
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 13,
+          "state": {
+            "id": "throw-1",
+            "x": 85,
+            "y": 50,
+            "z": 3.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -90,
+            "groundPlaneId": "lab-ground",
+            "age": 0.65,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 85,
+            "y": 50,
+            "z": 3.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 85,
+              "y": 50
+            },
+            "sprite": {
+              "x": 85,
+              "y": 46.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 14,
+          "state": {
+            "id": "throw-1",
+            "x": 90,
+            "y": 50,
+            "z": 0.48469228349534327,
+            "vx": 100,
+            "vy": 0,
+            "vz": 46.96938456699068,
+            "groundPlaneId": "lab-ground",
+            "age": 0.7000000000000001,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": [
+              {
+                "kind": "bounce",
+                "time": 0.039897948556635615
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 90,
+            "y": 50,
+            "z": 0.48469228349534327,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 90,
+              "y": 50
+            },
+            "sprite": {
+              "x": 90,
+              "y": 49.51530771650466
+            }
+          },
+          "events": [
+            {
+              "kind": "bounce",
+              "time": 0.039897948556635615
+            }
+          ]
+        },
+        {
+          "tick": 15,
+          "state": {
+            "id": "throw-1",
+            "x": 95,
+            "y": 50,
+            "z": 2.583161511844877,
+            "vx": 100,
+            "vy": 0,
+            "vz": 36.96938456699068,
+            "groundPlaneId": "lab-ground",
+            "age": 0.7500000000000001,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 95,
+            "y": 50,
+            "z": 2.583161511844877,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 95,
+              "y": 50
+            },
+            "sprite": {
+              "x": 95,
+              "y": 47.41683848815512
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 16,
+          "state": {
+            "id": "throw-1",
+            "x": 100,
+            "y": 50,
+            "z": 4.181630740194412,
+            "vx": 100,
+            "vy": 0,
+            "vz": 26.969384566990684,
+            "groundPlaneId": "lab-ground",
+            "age": 0.8000000000000002,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 100,
+            "y": 50,
+            "z": 4.181630740194412,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 100,
+              "y": 50
+            },
+            "sprite": {
+              "x": 100,
+              "y": 45.818369259805586
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 17,
+          "state": {
+            "id": "throw-1",
+            "x": 105,
+            "y": 50,
+            "z": 5.280099968543946,
+            "vx": 100,
+            "vy": 0,
+            "vz": 16.969384566990684,
+            "groundPlaneId": "lab-ground",
+            "age": 0.8500000000000002,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 105,
+            "y": 50,
+            "z": 5.280099968543946,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 105,
+              "y": 50
+            },
+            "sprite": {
+              "x": 105,
+              "y": 44.719900031456056
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 18,
+          "state": {
+            "id": "throw-1",
+            "x": 110,
+            "y": 50,
+            "z": 5.878569196893481,
+            "vx": 100,
+            "vy": 0,
+            "vz": 6.9693845669906835,
+            "groundPlaneId": "lab-ground",
+            "age": 0.9000000000000002,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 110,
+            "y": 50,
+            "z": 5.878569196893481,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 110,
+              "y": 50
+            },
+            "sprite": {
+              "x": 110,
+              "y": 44.12143080310652
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 19,
+          "state": {
+            "id": "throw-1",
+            "x": 115,
+            "y": 50,
+            "z": 5.977038425243015,
+            "vx": 100,
+            "vy": 0,
+            "vz": -3.0306154330093165,
+            "groundPlaneId": "lab-ground",
+            "age": 0.9500000000000003,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 115,
+            "y": 50,
+            "z": 5.977038425243015,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 115,
+              "y": 50
+            },
+            "sprite": {
+              "x": 115,
+              "y": 44.022961574756984
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 20,
+          "state": {
+            "id": "throw-1",
+            "x": 120,
+            "y": 50,
+            "z": 5.57550765359255,
+            "vx": 100,
+            "vy": 0,
+            "vz": -13.030615433009316,
+            "groundPlaneId": "lab-ground",
+            "age": 1.0000000000000002,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 120,
+            "y": 50,
+            "z": 5.57550765359255,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 120,
+              "y": 50
+            },
+            "sprite": {
+              "x": 120,
+              "y": 44.42449234640745
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 21,
+          "state": {
+            "id": "throw-1",
+            "x": 125,
+            "y": 50,
+            "z": 4.6739768819420835,
+            "vx": 100,
+            "vy": 0,
+            "vz": -23.030615433009316,
+            "groundPlaneId": "lab-ground",
+            "age": 1.0500000000000003,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 125,
+            "y": 50,
+            "z": 4.6739768819420835,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 125,
+              "y": 50
+            },
+            "sprite": {
+              "x": 125,
+              "y": 45.32602311805792
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 22,
+          "state": {
+            "id": "throw-1",
+            "x": 130,
+            "y": 50,
+            "z": 3.2724461102916176,
+            "vx": 100,
+            "vy": 0,
+            "vz": -33.03061543300932,
+            "groundPlaneId": "lab-ground",
+            "age": 1.1000000000000003,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 130,
+            "y": 50,
+            "z": 3.2724461102916176,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 130,
+              "y": 50
+            },
+            "sprite": {
+              "x": 130,
+              "y": 46.72755388970838
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 23,
+          "state": {
+            "id": "throw-1",
+            "x": 135,
+            "y": 50,
+            "z": 1.3709153386411517,
+            "vx": 100,
+            "vy": 0,
+            "vz": -43.03061543300932,
+            "groundPlaneId": "lab-ground",
+            "age": 1.1500000000000004,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 135,
+            "y": 50,
+            "z": 1.3709153386411517,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 135,
+              "y": 50
+            },
+            "sprite": {
+              "x": 135,
+              "y": 48.629084661358846
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 24,
+          "state": {
+            "id": "throw-1",
+            "x": 137.97958971132712,
+            "y": 50,
+            "z": 0,
+            "vx": 0,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 1.1797958971132716,
+            "fuse": 2,
+            "bounces": 1,
+            "status": "landed",
+            "events": [
+              {
+                "kind": "landing",
+                "time": 0.02979589711327126
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 137.97958971132712,
+            "y": 50,
+            "z": 0,
+            "groundPlaneId": "lab-ground",
+            "status": "landed",
+            "shadow": {
+              "x": 137.97958971132712,
+              "y": 50
+            },
+            "sprite": {
+              "x": 137.97958971132712,
+              "y": 50
+            }
+          },
+          "events": [
+            {
+              "kind": "landing",
+              "time": 0.02979589711327126
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "window-sill",
+      "scene": {
+        "groundPlaneId": "lab-ground",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "holes": [],
+        "obstacles": [
+          {
+            "id": "sill",
+            "x": 60,
+            "y": 40,
+            "w": 8,
+            "h": 20,
+            "zMin": 0,
+            "zMax": 12
+          },
+          {
+            "id": "lintel",
+            "x": 60,
+            "y": 40,
+            "w": 8,
+            "h": 20,
+            "zMin": 40,
+            "zMax": 80
+          }
+        ]
+      },
+      "initial": {
+        "z": 5,
+        "vz": 40
+      },
+      "frames": [
+        {
+          "tick": 0,
+          "state": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 5,
+            "vx": 100,
+            "vy": 0,
+            "vz": 40,
+            "groundPlaneId": "lab-ground",
+            "age": 0,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying"
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 5,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 20,
+              "y": 50
+            },
+            "sprite": {
+              "x": 20,
+              "y": 45
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 1,
+          "state": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 6.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 30,
+            "groundPlaneId": "lab-ground",
+            "age": 0.05,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 6.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 25,
+              "y": 50
+            },
+            "sprite": {
+              "x": 25,
+              "y": 43.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 2,
+          "state": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 8,
+            "vx": 100,
+            "vy": 0,
+            "vz": 20,
+            "groundPlaneId": "lab-ground",
+            "age": 0.1,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 8,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 30,
+              "y": 50
+            },
+            "sprite": {
+              "x": 30,
+              "y": 42
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 3,
+          "state": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 8.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 10,
+            "groundPlaneId": "lab-ground",
+            "age": 0.15000000000000002,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 8.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 35,
+              "y": 50
+            },
+            "sprite": {
+              "x": 35,
+              "y": 41.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 4,
+          "state": {
+            "id": "throw-1",
+            "x": 40,
+            "y": 50,
+            "z": 9,
+            "vx": 100,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.2,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 40,
+            "y": 50,
+            "z": 9,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 40,
+              "y": 50
+            },
+            "sprite": {
+              "x": 40,
+              "y": 41
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 5,
+          "state": {
+            "id": "throw-1",
+            "x": 45,
+            "y": 50,
+            "z": 8.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -10,
+            "groundPlaneId": "lab-ground",
+            "age": 0.25,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 45,
+            "y": 50,
+            "z": 8.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 45,
+              "y": 50
+            },
+            "sprite": {
+              "x": 45,
+              "y": 41.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 6,
+          "state": {
+            "id": "throw-1",
+            "x": 50,
+            "y": 50,
+            "z": 8,
+            "vx": 100,
+            "vy": 0,
+            "vz": -20,
+            "groundPlaneId": "lab-ground",
+            "age": 0.3,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 50,
+            "y": 50,
+            "z": 8,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 50,
+              "y": 50
+            },
+            "sprite": {
+              "x": 50,
+              "y": 42
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 7,
+          "state": {
+            "id": "throw-1",
+            "x": 55,
+            "y": 50,
+            "z": 6.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -30,
+            "groundPlaneId": "lab-ground",
+            "age": 0.35,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 55,
+            "y": 50,
+            "z": 6.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 55,
+              "y": 50
+            },
+            "sprite": {
+              "x": 55,
+              "y": 43.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 8,
+          "state": {
+            "id": "throw-1",
+            "x": 58,
+            "y": 50,
+            "z": 5.76,
+            "vx": 0,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.38,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "impact",
+            "events": [
+              {
+                "kind": "impact",
+                "time": 0.03,
+                "obstacleId": "sill"
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 58,
+            "y": 50,
+            "z": 5.76,
+            "groundPlaneId": "lab-ground",
+            "status": "impact",
+            "shadow": {
+              "x": 58,
+              "y": 50
+            },
+            "sprite": {
+              "x": 58,
+              "y": 44.24
+            }
+          },
+          "events": [
+            {
+              "kind": "impact",
+              "time": 0.03,
+              "obstacleId": "sill"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "window-lintel",
+      "scene": {
+        "groundPlaneId": "lab-ground",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "holes": [],
+        "obstacles": [
+          {
+            "id": "sill",
+            "x": 60,
+            "y": 40,
+            "w": 8,
+            "h": 20,
+            "zMin": 0,
+            "zMax": 12
+          },
+          {
+            "id": "lintel",
+            "x": 60,
+            "y": 40,
+            "w": 8,
+            "h": 20,
+            "zMin": 40,
+            "zMax": 80
+          }
+        ]
+      },
+      "initial": {
+        "z": 38,
+        "vz": 40
+      },
+      "frames": [
+        {
+          "tick": 0,
+          "state": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 38,
+            "vx": 100,
+            "vy": 0,
+            "vz": 40,
+            "groundPlaneId": "lab-ground",
+            "age": 0,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying"
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 38,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 20,
+              "y": 50
+            },
+            "sprite": {
+              "x": 20,
+              "y": 12
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 1,
+          "state": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 39.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 30,
+            "groundPlaneId": "lab-ground",
+            "age": 0.05,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 25,
+            "y": 50,
+            "z": 39.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 25,
+              "y": 50
+            },
+            "sprite": {
+              "x": 25,
+              "y": 10.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 2,
+          "state": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 41,
+            "vx": 100,
+            "vy": 0,
+            "vz": 20,
+            "groundPlaneId": "lab-ground",
+            "age": 0.1,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 30,
+            "y": 50,
+            "z": 41,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 30,
+              "y": 50
+            },
+            "sprite": {
+              "x": 30,
+              "y": 9
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 3,
+          "state": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 41.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": 10,
+            "groundPlaneId": "lab-ground",
+            "age": 0.15000000000000002,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 35,
+            "y": 50,
+            "z": 41.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 35,
+              "y": 50
+            },
+            "sprite": {
+              "x": 35,
+              "y": 8.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 4,
+          "state": {
+            "id": "throw-1",
+            "x": 40,
+            "y": 50,
+            "z": 42,
+            "vx": 100,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.2,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 40,
+            "y": 50,
+            "z": 42,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 40,
+              "y": 50
+            },
+            "sprite": {
+              "x": 40,
+              "y": 8
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 5,
+          "state": {
+            "id": "throw-1",
+            "x": 45,
+            "y": 50,
+            "z": 41.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -10,
+            "groundPlaneId": "lab-ground",
+            "age": 0.25,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 45,
+            "y": 50,
+            "z": 41.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 45,
+              "y": 50
+            },
+            "sprite": {
+              "x": 45,
+              "y": 8.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 6,
+          "state": {
+            "id": "throw-1",
+            "x": 50,
+            "y": 50,
+            "z": 41,
+            "vx": 100,
+            "vy": 0,
+            "vz": -20,
+            "groundPlaneId": "lab-ground",
+            "age": 0.3,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 50,
+            "y": 50,
+            "z": 41,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 50,
+              "y": 50
+            },
+            "sprite": {
+              "x": 50,
+              "y": 9
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 7,
+          "state": {
+            "id": "throw-1",
+            "x": 55,
+            "y": 50,
+            "z": 39.75,
+            "vx": 100,
+            "vy": 0,
+            "vz": -30,
+            "groundPlaneId": "lab-ground",
+            "age": 0.35,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying",
+            "events": []
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 55,
+            "y": 50,
+            "z": 39.75,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 55,
+              "y": 50
+            },
+            "sprite": {
+              "x": 55,
+              "y": 10.25
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 8,
+          "state": {
+            "id": "throw-1",
+            "x": 58,
+            "y": 50,
+            "z": 38.76,
+            "vx": 0,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.38,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "impact",
+            "events": [
+              {
+                "kind": "impact",
+                "time": 0.03,
+                "obstacleId": "lintel"
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 58,
+            "y": 50,
+            "z": 38.76,
+            "groundPlaneId": "lab-ground",
+            "status": "impact",
+            "shadow": {
+              "x": 58,
+              "y": 50
+            },
+            "sprite": {
+              "x": 58,
+              "y": 11.240000000000002
+            }
+          },
+          "events": [
+            {
+              "kind": "impact",
+              "time": 0.03,
+              "obstacleId": "lintel"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mask-hole",
+      "scene": {
+        "groundPlaneId": "lab-ground",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "holes": [
+          {
+            "id": "void",
+            "x": 40,
+            "y": 40,
+            "w": 10,
+            "h": 20
+          }
+        ],
+        "obstacles": []
+      },
+      "initial": {
+        "vx": 1000,
+        "z": 100,
+        "vz": 0
+      },
+      "frames": [
+        {
+          "tick": 0,
+          "state": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 100,
+            "vx": 1000,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying"
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 20,
+            "y": 50,
+            "z": 100,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 20,
+              "y": 50
+            },
+            "sprite": {
+              "x": 20,
+              "y": -50
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 1,
+          "state": {
+            "id": "throw-1",
+            "x": 38,
+            "y": 50,
+            "z": 99.9676,
+            "vx": 0,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.018,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "impact",
+            "events": [
+              {
+                "kind": "impact",
+                "time": 0.018,
+                "obstacleId": "void"
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 38,
+            "y": 50,
+            "z": 99.9676,
+            "groundPlaneId": "lab-ground",
+            "status": "impact",
+            "shadow": {
+              "x": 38,
+              "y": 50
+            },
+            "sprite": {
+              "x": 38,
+              "y": -49.967600000000004
+            }
+          },
+          "events": [
+            {
+              "kind": "impact",
+              "time": 0.018,
+              "obstacleId": "void"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mask-outer",
+      "scene": {
+        "groundPlaneId": "lab-ground",
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "w": 200,
+          "h": 100
+        },
+        "holes": [],
+        "obstacles": []
+      },
+      "initial": {
+        "x": 190,
+        "vx": 1000,
+        "z": 100,
+        "vz": 0
+      },
+      "frames": [
+        {
+          "tick": 0,
+          "state": {
+            "id": "throw-1",
+            "x": 190,
+            "y": 50,
+            "z": 100,
+            "vx": 1000,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "flying"
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 190,
+            "y": 50,
+            "z": 100,
+            "groundPlaneId": "lab-ground",
+            "status": "flying",
+            "shadow": {
+              "x": 190,
+              "y": 50
+            },
+            "sprite": {
+              "x": 190,
+              "y": -50
+            }
+          },
+          "events": []
+        },
+        {
+          "tick": 1,
+          "state": {
+            "id": "throw-1",
+            "x": 198,
+            "y": 50,
+            "z": 99.9936,
+            "vx": 0,
+            "vy": 0,
+            "vz": 0,
+            "groundPlaneId": "lab-ground",
+            "age": 0.008,
+            "fuse": 2,
+            "bounces": 0,
+            "status": "impact",
+            "events": [
+              {
+                "kind": "impact",
+                "time": 0.008,
+                "obstacleId": "bounds"
+              }
+            ]
+          },
+          "display": {
+            "id": "throw-1",
+            "x": 198,
+            "y": 50,
+            "z": 99.9936,
+            "groundPlaneId": "lab-ground",
+            "status": "impact",
+            "shadow": {
+              "x": 198,
+              "y": 50
+            },
+            "sprite": {
+              "x": 198,
+              "y": -49.9936
+            }
+          },
+          "events": [
+            {
+              "kind": "impact",
+              "time": 0.008,
+              "obstacleId": "bounds"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sourceHashEncoding": "utf8-lf",
+  "sourceSha256": {
+    "tools/physics/ballistics.mjs": "db1cb0fd38f8808394498edbb565bd9dd893cd3927faa48787f6f96c55832155",
+    "tools/physics/ballistic-witness.mjs": "7bc21135c1ece0680e091412d2f6d5c5306ee759375f09723cc9161b595ddaad",
+    "tools/physics/ballistic-playback.mjs": "b0d915035d7f3323a29f06fc600f2fde3e20ef95641db59ba9a8251f064f5892",
+    "tools/physics/ballistic-report.mjs": "e6ac3df7687bf2e3df2e20e04752cc0ef8b12d878e5d916fddaf670e13746116"
+  },
+  "traceSha256": "f07d24005bf6c7f850954f166989233d23145288685861eee8107cac4b7ad01c"
+}
