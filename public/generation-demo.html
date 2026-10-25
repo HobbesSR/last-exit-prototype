@@ -1,8 +1,29 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#172a2b"><title>Last Exit | Generation demo</title><link rel="stylesheet" href="/generation-demo.css"><script type="importmap">{"imports":{"sat":"/sat-browser.js"}}</script><script src="/vendor/sat/SAT.js"></script><script type="module" src="/generation-demo.js"></script>  <link rel="stylesheet" href="/dev/dev-nav.css">
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#172a2b"><title>Last Exit | Generation Trace</title><link rel="stylesheet" href="/generation-demo.css"><script type="importmap">{"imports":{"sat":"/sat-browser.js"}}</script><script src="/vendor/sat/SAT.js"></script><script type="module" src="/generation-demo.js"></script>  <link rel="stylesheet" href="/dev/dev-nav.css">
   <script type="module" src="/dev/dev-nav.js"></script>
 </head>
 <body>
-  <main class="lab"><header><div><span class="eyebrow">DEVELOPMENT TOOL</span><h1>Decompose, generate, walk</h1><p>See one owned region become child regions, each built by its own region type, and walk through the result. A block shows here from the example controls, or from the Map Lab's link to a map's block.</p></div></header>
-<section class="controls" aria-label="Generation controls"><label>Example shape<select id="shape"></select></label><label>Seed<input id="seed" type="number" value="4217" step="1"></label><button id="new-seed" type="button">New seed</button><label>Walk as (1.25 / 1.75 cells)<select id="role"><option value="contestant">Contestant</option><option value="gladiator">Hunter</option></select></label><label class="check"><input id="routes" type="checkbox" checked> Routes</label><label class="check"><input id="roofs" type="checkbox" checked> Roofs</label><div class="stages" aria-label="Stage"><button data-stage="region">Region</button><button data-stage="decomposition">Decomposition</button><button data-stage="generated">Generated</button><button data-stage="walk" class="active">Walk</button></div></section>
-<p id="status" role="status">Preparing the example block…</p><section class="workspace"><div class="canvas-wrap"><canvas id="preview" width="960" height="620" aria-label="Generation demo map"></canvas><p class="legend"><i class="owned"></i> owned child region <i class="owned"></i> ownership boundary <i class="wall"></i> physical wall <i class="gate"></i> gate <i class="loot"></i> loot <i class="portal"></i> portal <i class="walker"></i> walker</p><p class="walk-note">Walk only: click the map, then use WASD or arrows. Press E near a gate; closing is refused if it would overlap the walker.</p></div><aside><h2>Selected child</h2><label>Region / assignment<select id="piece" aria-label="Region assignment"></select></label><dl id="inspector"></dl><div class="actions"><button id="reset" type="button" disabled>Reset walker here</button><button id="download" type="button" disabled>Download JSON</button></div><h2>Physical result</h2><dl id="counts"></dl></aside></section></main></body></html>
+<main class="lab">
+  <header><div><span class="eyebrow">DEVELOPMENT TOOL</span><h1>Generation Trace</h1></div><p>Follow a block's lots and alleys through <code>planBlock</code>, its generated geometry, and walking. Open an example or a block link from the Map Lab.</p></header>
+  <p id="status" role="status">Preparing the example block?</p>
+  <section class="workspace" aria-label="Generation workspace">
+    <section class="controls" aria-label="Generation controls">
+      <h2>Example block</h2>
+      <label>Example shape<select id="shape"></select></label>
+      <label>Seed<input id="seed" type="number" value="4217" step="1"></label>
+      <button id="new-seed" type="button">New seed</button>
+      <p>Changing shape or seed replaces a linked block with a new example.</p>
+      <h2>Display &amp; walking</h2>
+      <label>Walk as (1.25 / 1.75 cells)<select id="role"><option value="contestant">Contestant</option><option value="gladiator">Hunter</option></select></label>
+      <label class="check"><input id="routes" type="checkbox" checked> Routes</label>
+      <label class="check"><input id="roofs" type="checkbox" checked> Roofs</label>
+      <button id="download" type="button" disabled>Download JSON</button>
+    </section>
+    <section class="preview-panel" aria-label="Block preview">
+      <div class="stages" aria-label="Stage"><button data-stage="region" aria-pressed="false">Region</button><button data-stage="decomposition" aria-pressed="false">Decomposition</button><button data-stage="generated" aria-pressed="false">Generated</button><button data-stage="walk" class="active" aria-pressed="true">Walk</button></div>
+      <div class="canvas-wrap"><canvas id="preview" width="960" height="620" aria-label="Generation demo map"></canvas></div>
+      <div class="preview-caption"><p class="legend"><i class="owned"></i> owned child region / ownership boundary <i class="wall"></i> physical wall <i class="gate"></i> gate <i class="loot"></i> loot <i class="portal"></i> portal <i class="walker"></i> walker</p><p class="walk-note">Click a child to inspect it. Walk: focus the map, then use WASD or arrows; E operates a gate. Reset places the walker in the selected child.</p></div>
+    </section>
+    <aside aria-label="Child and result inspection"><h2>Selected child</h2><label>Region / assignment<select id="piece" aria-label="Region assignment"></select></label><dl id="inspector"></dl><div class="actions"><button id="reset" type="button" disabled>Reset walker here</button></div><h2>Physical result</h2><dl id="counts"></dl></aside>
+  </section>
+</main></body></html>
