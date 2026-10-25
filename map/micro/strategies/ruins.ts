@@ -5,7 +5,7 @@ import { RUIN_ROOM_SPAN } from '../placeables/ruin-room-span.ts';
 import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
-import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
+import { createFillMask, createRegionMask } from '../geometry.ts';
 import { commitHintWalls, separateAreas, wallHints } from '../hint-walls.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
@@ -66,7 +66,7 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
   const pieces: Shape[] = [];
   let rooms = 0, walls = 0, debris = 0;
   const lay = (label: string, shape: Shape) => {
-    if (!mask.contains(shape) || protectedShapes.some(keep => shapesOverlap(shape, keep))) return false;
+    if (!canvas.fits(shape)) return false;
     room.push({ label, x: 0, y: 0, template: { w: mask.bounds.w, h: mask.bounds.h,
       parts: [{ part: 'obstacle', shape, kind: 'ruin-wall' }] } });
     roomShapes.push(shape);
@@ -120,7 +120,7 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
     // These legacy world-absolute records' template boxes are not their intent; their shapes are.
     // The room's box is not either, as a protected route may run through a fallen span.
     // Siting has already accepted every span, so a refusal is a broken placement invariant.
-    if (room.length && !canvas.commit({ elements: room, areas: separateAreas(roomShapes) }))
+    if (room.length && !canvas.commit({ elements: room, areas: separateAreas(roomShapes), extents: roomShapes }))
       throw new Error(`Ruins room at ${slot.x},${slot.y} failed its canvas commit.`);
   }
 

@@ -3,7 +3,7 @@ import { RUBBLE_DEBRIS } from '../placeables/rubble-debris.ts';
 import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
-import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
+import { createFillMask, createRegionMask } from '../geometry.ts';
 import { commitHintWalls, wallHints } from '../hint-walls.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
@@ -42,12 +42,12 @@ export function buildRubble(brief: RegionBrief): BuiltRegion {
     // Preserve the centre-first arithmetic of the legacy absolute-shape record.
     const shape = rect((cell.x + .5) * brief.cellSize - local.w / 2,
       (cell.y + .5) * brief.cellSize - local.h / 2, local.w, local.h);
-    if (!mask.contains(shape) || protectedShapes.some(keep => shapesOverlap(shape, keep))) continue;
+    if (!canvas.fits(shape)) continue;
     const label = `rubble-${cell.x}-${cell.y}`;
     // A legacy world-absolute record: its template box is not its intent, so the debris is.
     // Siting has already accepted it, so a refusal is a broken placement invariant.
     if (!canvas.commit({ elements: [{ label, x: 0, y: 0, template: { w: mask.bounds.w, h: mask.bounds.h,
-      parts: [{ part: 'obstacle', shape, kind: 'ruin-wall' }] } }], areas: [shape] }))
+      parts: [{ part: 'obstacle', shape, kind: 'ruin-wall' }] } }], areas: [shape], extents: [shape] }))
       throw new Error(`Rubble placement ${label} failed its canvas commit.`);
     debris.push(shape);
     if (squeeze) squeezeDebris++;
