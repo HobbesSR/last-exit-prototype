@@ -17,7 +17,7 @@ import type { CellItem, Game, GroundItem, Player, PlayerInput } from '../types.t
 function swapInstanceEquipment(s: Game, p: Player, pickup: GroundItem): void {
   const index = p.selectedSlot ?? 0, outgoing = p.inventory?.[index];
   if (!outgoing) return;
-  const draft = { ...p, inventory: structuredClone(p.inventory) }, incoming = structuredClone(pickup);
+  const draft = { ...p, inventory: structuredClone(p.inventory), reserves: p.reserves && { ...p.reserves } }, incoming = structuredClone(pickup);
   draft.inventory![index] = null;
   // Collection reads only the ground list and carried identities, never map geometry.
   const pickupStage: Game = { ...s, players: s.players.map(other => other === p ? draft : other), map: { ...s.map, items: s.map.items.map(item => item === pickup ? incoming : item) } };
@@ -25,7 +25,7 @@ function swapInstanceEquipment(s: Game, p: Player, pickup: GroundItem): void {
   const remaining = s.map.items.filter(item => item !== pickup);
   const drop = planDrop({ ...s, itemSerial: pickupStage.itemSerial }, p, outgoing, false, remaining);
   if (!drop || !canRepresentPhysicalDrop(s, drop.records.length, [pickup])) return;
-  p.inventory = draft.inventory; p.selectedSlot = draft.selectedSlot; p.charging = null;
+  p.inventory = draft.inventory; p.selectedSlot = draft.selectedSlot; p.reserves = draft.reserves; p.charging = null;
   s.map.items = [...remaining, ...drop.records]; s.itemSerial = drop.itemSerial;
   launchPhysicalDrops(s, drop.records, p);
   syncWeapon(p, s.content.weapons);

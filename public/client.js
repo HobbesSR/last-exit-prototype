@@ -78,6 +78,7 @@ const inputController = createInputController({
 const hudController = createHUDController({
   selectSlot: index => inputController.selectSlot(index), arrange: () => inputController.toggleArrange(),
   skill: () => inputController.skill(), interact: () => inputController.interact(), drop: () => inputController.drop(),
+  reload: () => inputController.reload(), dropAmmo: family => inputController.dropAmmo(family),
   moveSlot: (from, to) => inputController.moveSlot(from, to), dropSlot: from => inputController.dropSlot(from),
   cancelPointerFire: () => inputController.setPointerFire(false),
   canDrag: () => !replayController.active() && state?.players.some(p => p.id === playerId && p.role === 'contestant' && p.status === 'active'),

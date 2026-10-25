@@ -1,5 +1,5 @@
 import { finite, integer, safeInteger } from '../numbers.ts';
-import { SLOT_COUNT } from '../equipment.ts';
+import { SLOT_COUNT, isAmmoFamily } from '../equipment.ts';
 import type { Player, PlayerInput, SlotIndex, Tick } from '../types.ts';
 
 /**
@@ -23,6 +23,8 @@ import type { Player, PlayerInput, SlotIndex, Tick } from '../types.ts';
 const MAX_DEPTH = 4;
 /** How long a starved queue keeps repeating the last input before the player is treated as idle. */
 const REPEAT_TICKS = 10;
+/** Bounds an ammo-drop request; the simulation then drops at most what the reserve holds. */
+const MAX_AMMO_DROP = 9999;
 
 /** Clamp and coerce one wire input. Everything absent or malformed becomes a neutral value. */
 function sanitize(input: PlayerInput, seq: number): PlayerInput {
@@ -36,6 +38,10 @@ function sanitize(input: PlayerInput, seq: number): PlayerInput {
     moveSlot: input.moveSlot && integer(input.moveSlot.from) && integer(input.moveSlot.to)
       && input.moveSlot.from >= 0 && input.moveSlot.from < SLOT_COUNT && input.moveSlot.to >= 0 && input.moveSlot.to < SLOT_COUNT
       ? { from: input.moveSlot.from, to: input.moveSlot.to } : undefined,
+    // Added only when sent, so inputs without L2 commands keep their recorded shape.
+    ...(input.reload === true ? { reload: true as const } : {}),
+    ...(input.dropAmmo && isAmmoFamily(input.dropAmmo.family) && safeInteger(input.dropAmmo.count) && input.dropAmmo.count > 0 && input.dropAmmo.count <= MAX_AMMO_DROP
+      ? { dropAmmo: { family: input.dropAmmo.family, count: input.dropAmmo.count } } : {}),
   };
 }
 

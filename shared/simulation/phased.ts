@@ -30,6 +30,7 @@ const stepping = new WeakSet<Game>();
 /** Explicit opt-in. Legacy createGame stays synchronous and never initializes WASM. */
 export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: MatchContent): Promise<Game> {
   if (content?.itemInstances && !content.worldPhysics) throw new RangeError('physical item integration requires P5; use createGame for L0');
+  if (content?.reloading) throw new RangeError('L2 reloading has no physics tick yet; use createGame for content-ammo-1');
   const s = createGame(seed, map, content);
   validateActorPhysics(s.content.actorPhysics, s.map);
   validateWorldPhysics(s.content, s.map);

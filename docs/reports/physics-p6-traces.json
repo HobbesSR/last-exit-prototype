@@ -1,6 +1,6 @@
 {
   "schema": "physics-p6-functional-traces-1",
-  "baseCommit": "6ed90d2",
+  "baseCommit": "95b0cf6",
   "seed": 446,
   "runtime": {
     "node": "v24.15.0",
@@ -313,12 +313,12 @@
     "constraintLimitations": "legacy native center rope; explicit bounded spring/rope has no hard length projection"
   },
   "sourceSha256": {
-    "tools/physics/hook-traces.mjs": "cfdf41d7b509dfb1fec8d3c1cfbcbea4d66d1941c42a374a63121a24c7152325",
+    "tools/physics/hook-traces.mjs": "b32367b9b16799987bf9f046ef31c7802ec4f59a5b28c4e5c8b810755cbc939a",
     "shared/simulation/hook.ts": "d2d7b5da3dae049cb2b61b6d2c51ca3043ca883ff934f4da21e30c8968177d96",
-    "shared/simulation/content.ts": "b3e4f08d6a3685b55b3546449dc651d2e56461901cd016a53429f5630f25a276",
-    "shared/simulation/phased.ts": "65b0617197ff61a1c794647926380db2ede6e9b4abfd8de90603d70e6bec3aeb",
+    "shared/simulation/content.ts": "f7201a05f9ec6fb3c7e712bb6efd7ff6613d0df06058babd461721d03fdba88f",
+    "shared/simulation/phased.ts": "b2db77f1f5fe36c952636c6cb748e4f2eb34c6c734ab9b2b09ea9c708d830996",
     "shared/simulation/physics-presentation.ts": "503844f0a3fb6d26506278c067b05fab9288bfa82b51e51abb249de88ddb3a1b",
-    "shared/types.ts": "c2e0582bacaa8c1a11f60a08625ac62ef73d587599f576b6025a6923db03b8d2",
+    "shared/types.ts": "24bbb515efb38a2f1fa6d83511d7075461f8f4abb1d7ceff3b1d6e60a64f5180",
     "shared/physics/constraints.ts": "afa5e8a11674a5d428574e2fbaa131657b9267c6d103f7976a969c5bba6498b5",
     "shared/physics/types.ts": "1e6c298423e939de142a4df69d36cdf9e442ba6700a55f7a62f7ddcbaa5b899d",
     "shared/physics/world.ts": "187dcd5809e15284647921366b86b9b6c8c691c31489bb29ab15f40c58ae12f7"

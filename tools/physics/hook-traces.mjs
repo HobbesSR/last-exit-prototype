@@ -168,7 +168,7 @@ const scenarios = await hookScenarios();
 const probes = await constraintProbes();
 verify(scenarios, probes);
 const payload = { scenarios, probes };
-const report = { schema: 'physics-p6-functional-traces-1', baseCommit: '6ed90d2', seed: SEED,
+const report = { schema: 'physics-p6-functional-traces-1', baseCommit: '95b0cf6', seed: SEED,
   runtime: { node: process.version, platform: process.platform, architecture: process.arch, osRelease: os.release() },
   map: map(), content: content(), physicsSettings: (await (async () => {
     const world = await createPhysicsWorld(); try { return world.settings; } finally { world.dispose(); }

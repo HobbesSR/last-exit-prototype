@@ -1,11 +1,11 @@
 import { canOccupy, reachClear } from '../movement.ts';
-import { carriedCell, collectEquipment, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
+import { carriedCell, collectAmmo, collectEquipment, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
 import { allocateItemId, ensureItemIdentity, validateItemPayload } from '../item-instances.ts';
 import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { HZ } from './rules.ts';
 import { clearRoute, distance } from './geometry.ts';
-import type { EffectKind, Game, GroundItem, InventoryItem, ItemId, Player, PlayerInput, Vec2, World } from '../types.ts';
+import type { AmmoFamily, EffectKind, Game, GroundItem, InventoryItem, ItemId, Player, PlayerInput, Vec2, World } from '../types.ts';
 
 export function event(s: Game, text: string): void { s.events.push({ id: s.serial++, tick: s.tick, text }); s.events = s.events.slice(-6); }
 export function effect(s: Game, p: Vec2, kind: EffectKind, radius: World = 60): void { s.effects.push({ id: s.serial++, x: p.x, y: p.y, kind, radius, life: 12 }); }
@@ -25,6 +25,18 @@ export function dropEquipment(s: Game, p: Player, item: InventoryItem): void {
   }
 }
 
+/** The bounded L0 spiral search: a free, reachable point near `origin`, clear of both lists. */
+export function scatterPoint(s: Game, origin: Vec2, phase: number, items: readonly Vec2[], points: readonly Vec2[] = []): Vec2 | undefined {
+  for (let j = 0; j < 180; j++) {
+    const angle = (phase + j) * 2.39996, radius = 36 + Math.floor(j / 12) * 24;
+    const candidate = { x: origin.x + Math.cos(angle) * radius, y: origin.y + Math.sin(angle) * radius };
+    if (canOccupy(s.map, candidate.x, candidate.y, 16) && reachClear(s.map, origin, candidate)
+      && items.every(other => distance(other, candidate) > 32)
+      && points.every(other => distance(other, candidate) > 32)) return candidate;
+  }
+  return undefined;
+}
+
 /** An L0 drop, fully represented but not yet committed. */
 export interface DropPlan { records: GroundItem[]; itemSerial: number }
 
@@ -41,14 +53,7 @@ export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = fa
   if (!mandatory && items.length + copies > s.content.itemInstances!.groundCapacity) return null;
   const points: Vec2[] = [];
   for (let i = 0; i < copies; i++) {
-    let point: Vec2 | undefined;
-    for (let j = 0; j < 180; j++) {
-      const angle = ((s.itemSerial ?? 0) + i + j) * 2.39996, radius = 36 + Math.floor(j / 12) * 24;
-      const candidate = { x: p.x + Math.cos(angle) * radius, y: p.y + Math.sin(angle) * radius };
-      if (canOccupy(s.map, candidate.x, candidate.y, 16) && reachClear(s.map, p, candidate)
-        && items.every(other => distance(other, candidate) > 32)
-        && points.every(other => distance(other, candidate) > 32)) { point = candidate; break; }
-    }
+    const point = scatterPoint(s, p, (s.itemSerial ?? 0) + i, items, points);
     if (!point && !mandatory) return null;
     // Mandatory overflow is logical loot, not a promise that P5 can allocate a body here.
     points.push(point ?? { x: p.x, y: p.y });
@@ -67,6 +72,23 @@ export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = fa
       ...point, droppedBy: p.id, pickupAfter: s.tick + HZ,
     }));
     return { records, itemSerial: allocation.itemSerial! };
+  } catch { return null; }
+}
+
+/**
+ * One L2 ammo pickup of `count` reserve rounds, planned like `planDrop`: an optional drop refuses
+ * capacity or placement failure, a mandatory one falls back to the player's position.
+ */
+export function planAmmoDrop(s: Game, p: Player, family: AmmoFamily, count: number, mandatory = false): DropPlan | null {
+  if (!Number.isSafeInteger(count) || count < 1 || ![p.x, p.y].every(Number.isFinite)) return null;
+  if (!mandatory && s.map.items.length + 1 > s.content.itemInstances!.groundCapacity) return null;
+  const point = scatterPoint(s, p, s.itemSerial ?? 0, s.map.items);
+  if (!point && !mandatory) return null;
+  const allocation = { ...s };
+  try {
+    const id = allocateItemId(allocation);
+    const at = point ?? { x: p.x, y: p.y };
+    return { records: [{ kind: 'ammo', id, lineageId: id, family, count, x: at.x, y: at.y, droppedBy: p.id, pickupAfter: s.tick + HZ }], itemSerial: allocation.itemSerial! };
   } catch { return null; }
 }
 
@@ -91,6 +113,7 @@ export function automaticPickups(s: Game, p: Player, input: PlayerInput): void {
     const keep = (item: GroundItem): boolean => {
       if (distance(p, item) > 38 || !reachClear(s.map, p, item) || item.droppedBy === p.id && item.pickupAfter! > s.tick || p.bot && item.kind === 'cell' && carriedCell(p)) return true;
       if (item.kind === 'access') p.keys++;
+      if (item.kind === 'ammo' && !(s.content.reloading && collectAmmo(s, p, item))) return true;
       if (['weapon', 'med', 'shield', 'cell'].includes(item.kind)
         && !(s.content.itemInstances ? collectInstanceEquipment(s, p, item) : collectEquipment(p, item, s.content.weapons))) return true;
       if (item.kind === 'cell') clearRoute(p);

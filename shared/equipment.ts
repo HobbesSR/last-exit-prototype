@@ -1,8 +1,11 @@
 import { defaultContent } from './simulation/content.ts';
-import type { CellItem, Game, InventoryItem, GroundItem, Player, SlotIndex, StackItem, StackKind, WeaponItem, WeaponSpec, WeaponType } from './types.ts';
+import type { AmmoFamily, CellItem, Game, InventoryItem, GroundItem, Player, SlotIndex, StackItem, StackKind, WeaponItem, WeaponSpec, WeaponType } from './types.ts';
 import { allocateItemId, ensureItemIdentity, validateItemPayload } from './item-instances.ts';
 
 export const SLOT_COUNT = 6;
+/** L2 reserve families, in their fixed drop and display order. */
+export const AMMO_FAMILIES: readonly AmmoFamily[] = ['pistol', 'rifle', 'shell'];
+export const isAmmoFamily = (value: unknown): value is AmmoFamily => AMMO_FAMILIES.includes(value as AmmoFamily);
 /** The weapon table a match is pinned to. Defaults below; a match passes its own copy. */
 type WeaponTable = Record<WeaponType, WeaponSpec>;
 // A detached copy of the shipped weapons for callers without a match (22.7). Editing it changes no
@@ -84,13 +87,15 @@ const prepareCarried = (s: Game, p: Player): void => {
 
 /** Opt-in L0 transfer. True means the caller may remove the whole ground instance. */
 export function collectInstanceEquipment(s: Game, p: Player, item: GroundItem): boolean {
-  if (!validIdentityState(s, p, item) || item.kind === 'access') return false;
+  if (!validIdentityState(s, p, item) || item.kind === 'access' || item.kind === 'ammo') return false;
   const inventory = p.inventory!;
   const root = item.lineageId ?? item.id;
   if (item.kind === 'weapon') {
     const type = item.weaponType ?? 'pistol', weapon = s.content.weapons[type];
     const existing = inventory.find((slot): slot is WeaponItem => slot?.kind === 'weapon' && slot.weaponType === type && sameQuality(slot, item));
     if (existing) {
+      // Under L2 a duplicate's loaded rounds go to the family reserve; its magazine never merges.
+      if (s.content.reloading) return collectRounds(s, p, s.content.reloading.weapons[type].family, item, 'ammo');
       const current = existing.ammo ?? weapon.ammo, incoming = item.ammo ?? weapon.ammo;
       const transfer = Math.min(incoming, weapon.maxAmmo - current);
       if (transfer <= 0) return false;
@@ -126,6 +131,24 @@ export function collectInstanceEquipment(s: Game, p: Player, item: GroundItem): 
   if (!equipped(p) || item.kind === 'weapon' && equipped(p)!.kind !== 'weapon') p.selectedSlot = index;
   syncWeapon(p, s.content.weapons);
   return taken === count;
+}
+
+/** Move what fits of a ground record's rounds into a reserve. True when none remain on the ground. */
+function collectRounds(s: Game, p: Player, family: AmmoFamily, item: GroundItem, field: 'ammo' | 'count'): boolean {
+  const capacity = s.content.reloading!.reserves[family], reserves = p.reserves;
+  const incoming = item[field] ?? 0;
+  if (!reserves || !Number.isSafeInteger(incoming) || incoming < 0) return false;
+  const transfer = Math.min(incoming, capacity - reserves[family]);
+  if (transfer <= 0) return false;
+  reserves[family] += transfer;
+  item[field] = incoming - transfer;
+  return item[field] === 0;
+}
+
+/** An L2 ammo pickup adds to its family reserve, even with six full slots; a full reserve leaves it. */
+export function collectAmmo(s: Game, p: Player, item: GroundItem): boolean {
+  if (item.kind !== 'ammo' || !s.content.reloading || !validIdentityState(s, p, item)) return false;
+  return collectRounds(s, p, item.family!, item, 'count');
 }
 
 /** Opt-in L0 rearrangement; the target stack survives a same-quality merge. */

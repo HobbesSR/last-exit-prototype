@@ -57,7 +57,8 @@ export function attack(s: Game, p: Player): void {
     if (t) damage(s, t, s.content.kits[p.kit]!.damage + (p.level - 1) * 4, p);
   } else {
     const item = equipped(p);
-    if (!item) return;
+    // An L2 reload blocks attacking until it completes or is cancelled.
+    if (!item || p.reload) return;
     if (item.kind === 'med' || item.kind === 'shield') {
       const outcome = utilityOutcome(p, item);
       if (!outcome) return;

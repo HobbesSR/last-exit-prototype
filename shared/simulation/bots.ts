@@ -12,7 +12,8 @@ import { distance, center, clearRoute } from './geometry.ts';
 import { visibleTo } from './visibility.ts';
 import { attack, utilityApplies, utilityOutcome } from './combat.ts';
 import { dropEquipment, dropInventorySlot } from './loot.ts';
-import type { CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, MatchContent, Player, PlayerInput, Role, Tick, TileCount, TileIndex, Vec2, World } from '../types.ts';
+import { reloadableRounds, reserveRoom } from './ammo.ts';
+import type { CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, MatchContent, Player, PlayerInput, Role, Tick, TileCount, TileIndex, Vec2, WeaponItem, World } from '../types.ts';
 
 // What a bot that decides from discovery is after, kept between ticks (#230). A bot searching for what
 // it needs heads for the frontier of what it has *seen*: loot needs line of sight, so a cell the view
@@ -447,7 +448,9 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
   let effectiveHp = p.hp;
   if (p.inventory) {
     const utility = p.inventory.findIndex(i => !!i && (i.kind === 'med' && p.hp < 65 || i.kind === 'shield' && p.shield < 45));
-    const weapon = p.inventory.findIndex(i => i?.kind === 'weapon' && (i.ammo ?? s.content.weapons[i.weaponType].ammo) > 0);
+    const loaded = p.inventory.findIndex(i => i?.kind === 'weapon' && (i.ammo ?? s.content.weapons[i.weaponType].ammo) > 0);
+    // Under L2 an empty weapon that a reload can fill is still worth holding.
+    const weapon = loaded >= 0 || !s.content.reloading ? loaded : p.inventory.findIndex(i => i?.kind === 'weapon' && reloadableRounds(s, p, i) > 0);
     const selected = utility >= 0 ? utility : weapon >= 0 ? weapon : 0;
     if (collecting) {
       intent.input.slot = selected;
@@ -499,7 +502,7 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
       const cost = (t: Vec2) => from === null ? distance(p, t) : blockRoute(s.map, from, blockAt(s.map, t)).length * 1000 + distance(p, t) * 0.05;
       target = objective.sort((a, b) => cost(a) - cost(b))[0];
       if (!cell && (collecting ? effectiveInventory() : p.inventory!).every(Boolean)) {
-        const discard = (collecting ? effectiveInventory() : p.inventory!).findIndex(item => item?.kind !== 'weapon' || item.ammo === 0);
+        const discard = (collecting ? effectiveInventory() : p.inventory!).findIndex(item => item?.kind !== 'weapon' || item.ammo === 0 && !reloadableRounds(s, p, item));
         if (discard >= 0) {
           if (collecting) intent.discardSlot = discard;
           else if (s.content.itemInstances) dropInventorySlot(s, p, discard);
@@ -508,11 +511,15 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
       }
     }
     const inventory = collecting ? effectiveInventory().map((item, slot) => slot === intent.discardSlot ? null : item) : p.inventory!;
+    // A matching weapon refills its magazine, or under L2 the family reserve it would feed.
+    const room = (slot: WeaponItem) => reserveRoom(s, p, s.content.reloading!.weapons[slot.weaponType].family);
+    const refills = (slot: WeaponItem) => s.content.reloading ? room(slot) > 0 : slot.ammo < s.content.weapons[slot.weaponType]?.maxAmmo;
+    const full = (slot: WeaponItem) => s.content.reloading ? room(slot) <= 0 : slot.ammo >= s.content.weapons[slot.weaponType].maxAmmo;
     const loot = items.filter(i => i.kind !== 'cell' && i.x > s.hazardX + 100 && i.x >= p.x - 60 && distance(p, i) < 210 && accessible(i)
       && (i.kind !== 'med' || effectiveHp < 75)
-      && (i.kind === 'access' || inventory.some(slot => !slot) || inventory.some(slot => slot?.kind === i.kind && slot.kind !== 'weapon' && slot.kind !== 'cell' && slot.count < 3 && sameQuality(slot, i)
-        || slot?.kind === 'weapon' && slot.weaponType === i.weaponType && sameQuality(slot, i) && slot.ammo < s.content.weapons[i.weaponType!]?.maxAmmo))
-      && (i.kind !== 'weapon' || i.ammo !== 0 && !inventory.some(slot => slot?.kind === 'weapon' && slot.weaponType === i.weaponType && sameQuality(slot, i) && slot.ammo >= s.content.weapons[i.weaponType!].maxAmmo))).sort((a, b) => distance(p, a) - distance(p, b))[0];
+      && (i.kind === 'ammo' ? reserveRoom(s, p, i.family) > 0 : i.kind === 'access' || inventory.some(slot => !slot) || inventory.some(slot => slot?.kind === i.kind && slot.kind !== 'weapon' && slot.kind !== 'cell' && slot.count < 3 && sameQuality(slot, i)
+        || slot?.kind === 'weapon' && slot.weaponType === i.weaponType && sameQuality(slot, i) && refills(slot)))
+      && (i.kind !== 'weapon' || i.ammo !== 0 && !inventory.some(slot => slot?.kind === 'weapon' && slot.weaponType === i.weaponType && sameQuality(slot, i) && full(slot)))).sort((a, b) => distance(p, a) - distance(p, b))[0];
     if (loot && loot.kind !== 'cell' && !p.charging && (!nearest || distance(p, nearest) > 250)) { target = loot; exploring = false; }
     if (pursuit && !exploring) {
       pursuit.cell = -1;
@@ -575,6 +582,11 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     const nx = nearest.x - p.x, ny = nearest.y - p.y, projection = ((other.x - p.x) * nx + (other.y - p.y) * ny) / (nx * nx + ny * ny);
     return projection > 0 && projection < 1 && Math.hypot(other.x - p.x - projection * nx, other.y - p.y - projection * ny) < 28;
   });
+  if (s.content.reloading && p.role === 'contestant') {
+    // Reload when empty, or topping up when no one is in sight. Never automatic for humans (14).
+    const held = p.inventory?.[(collecting ? intent.input.slot : p.selectedSlot) ?? -1];
+    if (held?.kind === 'weapon' && reloadableRounds(s, p, held) > 0 && (held.ammo === 0 || !nearest)) intent.input.reload = true;
+  }
   intent.input = { ...intent.input, x: dx / length, y: dy / length, aim: nearest ? Math.atan2(nearest.y - p.y, nearest.x - p.x) : Math.atan2(dy, dx), attack: !!nearest && !allyInLine && distance(p, nearest) < (p.role === 'gladiator' ? 86 : 450) && lineClear(s.map, p, nearest), skill: !!nearest && distance(p, nearest) < (p.kit === 'specter' && p.role === 'gladiator' ? 320 : 125), interact: p.role === 'contestant' || s.map.gates.some(g => !g.open && distance(p, g) < GATE_REACH) || p.x < s.hazardX + 200 };
   return intent;
 }

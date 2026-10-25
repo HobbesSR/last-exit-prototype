@@ -18,6 +18,7 @@ import { interact, advanceCharging } from './simulation/interactions.ts';
 import { botInput } from './simulation/bots.ts';
 import { consumeInput } from './simulation/input.ts';
 import { recordRewind } from './simulation/rewind.ts';
+import { advanceReload, dropReserve } from './simulation/ammo.ts';
 import { advanceTick, advanceTimers, applyEnvironment, advanceDiscovery } from './simulation/tick-rules.ts';
 import type { Game } from './types.ts';
 import { PHYSICS_VERSION, PHYSICS_HOOK_VERSION } from './simulation/physics-runtime.ts';
@@ -53,6 +54,8 @@ export function step(s: Game): void {
       else rearrangeEquipment(p, input.moveSlot.from, input.moveSlot.to, s.content.weapons);
     }
     if (input.drop && equipped(p)) dropInventorySlot(s, p, p.selectedSlot!);
+    if (input.dropAmmo) dropReserve(s, p, input.dropAmmo.family, input.dropAmmo.count);
+    advanceReload(s, p, input);
     if (input.skill) skill(s, p);
     if (input.attack) attack(s, p);
     if (input.interact) interact(s, p);

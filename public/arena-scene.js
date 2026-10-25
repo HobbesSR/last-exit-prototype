@@ -7,7 +7,7 @@ import { observe, start, stop, count, frame as endProfileFrame } from '/shared/p
 import { noteFrame } from '/diagnostics.js';
 import { PREDICTION_LIMITS } from '/physics-prediction-limits.js';
 
-const COLORS = { access: 0xf4d26c, med: 0xff8b97, weapon: 0x8bd9f0, shield: 0xa3b9ff, cell: 0xffe98a };
+const COLORS = { access: 0xf4d26c, med: 0xff8b97, weapon: 0x8bd9f0, shield: 0xa3b9ff, cell: 0xffe98a, ammo: 0xc5f16f };
 const PALETTE = [0x8d5669, 0x526f80, 0x8c815a];
 // Eye settling time constant, chosen to match the previous `delta / 40` at 60 Hz.
 const EYE_TAU_MS = 31;
@@ -804,6 +804,7 @@ export function makeArenaScene(api) {
         if (item.kind === 'med') { g.fillRect(item.x - 2, y - 7, 4, 14); g.fillRect(item.x - 7, y - 2, 14, 4); }
         else if (item.kind === 'access') { g.strokeCircle(item.x - 2, y - 2, 4); g.lineBetween(item.x, y, item.x + 6, y + 6); }
         else if (item.kind === 'weapon') { g.fillRect(item.x - 7, y - 3, 14, 4); g.fillRect(item.x - 3, y, 4, 6); }
+        else if (item.kind === 'ammo') { for (const dx of [-5, 0, 5]) { g.fillRect(item.x + dx - 1.5, y - 4, 3, 10); g.fillTriangle(item.x + dx - 1.5, y - 4, item.x + dx + 1.5, y - 4, item.x + dx, y - 7); } }
         else if (item.kind === 'cell') { g.strokeRect(item.x - 5, y - 7, 10, 14); g.fillRect(item.x - 2, y - 10, 4, 3); if (item.charge > 0) g.fillRect(item.x - 3, y - 3, 6, 8); }
         else g.fillTriangle(item.x - 7, y - 5, item.x + 7, y - 5, item.x, y + 8);
       }
