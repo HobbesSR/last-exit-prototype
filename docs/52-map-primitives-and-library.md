@@ -392,8 +392,12 @@ catalogue, and it grows from here. The fixture libraries in
   carry occupancy hints rather than repeating guaranteed openings every six cells.
   Exposed sides retain the original prescriptions exactly. This deliberately authors
   larger fill areas for buildings without removing any retained guarantee from the
-  margin pipeline. Original grounds remain available unchanged; other types retain
-  their authored internal seams.
+  margin pipeline. Original grounds remain available unchanged. #530 extends this
+  convention to market, plant, hall, park, ruins and checkpoint in common,
+  district and local set pieces. Joins suppress guarantees only between
+  adjacent slots of the same ground family; mixed-family and exposed sides
+  retain their original prescriptions. All inward variants have zero fill
+  weight, including park variants; the original park ground retains weight 0.6.
   **Local quarters (#340, #347):** the 36×18 top-level library defines three
   enormous set pieces locally, outside the included modules checked by the original
   tool. `military-quarter`'s 312 compound slots (#340), `city-centre`'s 240 block
@@ -415,16 +419,21 @@ and same-class slot adjacency. It is an offline authoring tool; library loading
 does not rewrite prescriptions. For the current modules, run:
 
 ```sh
-node map/tools/author-inward-grounds.mts --primitives map/macro/content/common-primitives@4.json --common map/macro/content/common-set-pieces@4.json --district map/macro/content/district-set-pieces@3.json --local-library map/macro/content/diamond-36x18.json --check
+node map/tools/author-inward-grounds.mts --primitives map/macro/content/common-primitives@5.json --common map/macro/content/common-set-pieces@5.json --district map/macro/content/district-set-pieces@4.json --local-library map/macro/content/diamond-36x18.json --check
 ```
 
 To regenerate, replace `--check` with `--out-dir <new-directory>`. Inputs and
-existing outputs are never overwritten. The current inputs reconstruct 27
-variants and 1,253 slot references, including 732 local slots (312 compound,
-240 block, 180 depot). Omit the optional `--local-library` to check only the
-included modules (521 references). The library input authors block, compound
-and depot slots in its local set pieces; other local classes stay as supplied. Future content changes still require reviewed
-module versions; the tool supports authored copies with matching includes.
+existing outputs are never overwritten. The current inputs reconstruct 81
+variants and 3,492 slot references, including 1,988 local slots. Omit the optional
+`--local-library` to check only the included modules (1,504 references). The
+library input authors all nine ground families in its local set pieces. Other
+slot families stay as supplied. #530 adds immutable `common-primitives@5`,
+`common-set-pieces@5` and `district-set-pieces@4`; all three authored-size
+libraries pin these revisions. Earlier module files remain unchanged, and
+saved maps retain their embedded library. This authored content change needs
+no strategy, macro algorithm or wire version bump (53). Future content changes
+still require reviewed module versions; the tool supports authored copies with
+matching includes.
 
 Larger fill areas do not ensure a warehouse in every depot. The #325
 route-reservation diagnosis and bounded sample are in [42.3](42.3-generation-and-delegation-evidence.md#depot-route-reservation-sample).
