@@ -51,7 +51,6 @@
       body { height: auto; min-height: 100dvh; overflow: auto; } main { display: flex; flex-direction: column; padding: 12px; }
       .heading { display: block; } .heading p { margin-top: 5px; } .actions { flex-wrap: wrap; } .actions .hint { margin-left: 0; }
       .workspace { display: flex; flex-direction: column; } .preview { order: -1; height: 520px; } .parameters, .inspector { overflow: visible; }
-      .arena-surface { min-height: 0; } .parameters .group { max-width: none; }
     }
   </style>
 </head>
@@ -90,15 +89,14 @@
         <div class="caption"><output id="status" role="status">Select a scene and start.</output><p class="hint" id="arena-help">Click arena to control &middot; WASD move &middot; Pointer aim &middot; Space skill &middot; Enter interact</p></div>
       </section>
       <aside class="panel inspector" aria-label="Tuning, recording and help">
-      <fieldset id="tuning"><legend>Character tuning</legend>
-        <label>Acceleration <input data-tune="acceleration" type="number" min="1" max="100000" step="1"></label>
-        <label>Braking <input data-tune="braking" type="number" min="1" max="100000" step="1"></label>
-        <label>Max impulse <input data-tune="maxImpulse" type="number" min="1" max="100000" step="1"></label>
-        <label>Max speed <input data-tune="maxSpeed" type="number" min="1" max="100000" step="1"></label>
-        <label>Contestant body radius <input data-tune="contestantBodyRadius" type="number" min="1" max="100" step="0.1"></label>
-        <label>Gladiator body radius <input data-tune="gladiatorBodyRadius" type="number" min="1" max="100" step="0.1"></label>
-      </fieldset>
-
+        <fieldset id="tuning"><legend>Character tuning</legend>
+          <label>Acceleration <input data-tune="acceleration" type="number" min="1" max="100000" step="1"></label>
+          <label>Braking <input data-tune="braking" type="number" min="1" max="100000" step="1"></label>
+          <label>Max impulse <input data-tune="maxImpulse" type="number" min="1" max="100000" step="1"></label>
+          <label>Max speed <input data-tune="maxSpeed" type="number" min="1" max="100000" step="1"></label>
+          <label>Contestant body radius <input data-tune="contestantBodyRadius" type="number" min="1" max="100" step="0.1"></label>
+          <label>Gladiator body radius <input data-tune="gladiatorBodyRadius" type="number" min="1" max="100" step="0.1"></label>
+        </fieldset>
         <p class="hint">Copied match-pinned values. Reset creates a fresh world with these settings.</p>
         <details open>
           <summary>Recording</summary>
@@ -108,7 +106,7 @@
         </details>
         <details>
           <summary>Controls and diagnostic legend</summary>
-          <p class="hint">Step advances one 50 ms tick. Play runs fixed ticks. Click the arena before using movement shortcuts. Cast ahead sweeps 200 units against static geometry and solid props; actors and sensor loot are excluded.</p>
+          <p class="hint">Step advances one 50 ms tick. Play runs fixed ticks. Cast ahead sweeps 200 units against static geometry and solid props; actors and sensor loot are excluded.</p>
           <p class="legend"><b style="color:#5be1d8">Head</b><b style="color:#ffbc54">Body</b><b style="color:#ff80bb">Combat hurt</b> Dashed: sleeping body. Yellow: tether anchors. Red: final-substep contact normals. Blue: motor target. Green: requested impulse. Violet: external force (final substep; excludes motor/contact impulses). White: hook tip sweep between retained frames. Orange: static/solid-prop diagnostic cast; dashed path is the full request, disk is the swept centre at its stop. Contact impulses are unavailable.</p>
         </details>
       </aside>

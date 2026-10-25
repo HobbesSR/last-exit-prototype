@@ -151,13 +151,19 @@ button('download', () => {
 });
 button('import', async () => { stop(); await lab.import(JSON.parse(byId('recording').value)); refresh(); status(`Imported and reran ${lab.trace.length} ticks; retained frames match.`); });
 window.addEventListener('keydown', event => {
+  // A key pressed on the arena stays a simulation key through button focus.
+  // Suppress native button activation on repeats without blocking fresh presses.
+  if (keys.has(event.code)) event.preventDefault();
   if (event.target !== canvas) return;
   if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'Enter'].includes(event.code)) {
     if (event.code === 'Space' && !keys.has('Space')) skillPending = true;
     keys.add(event.code); event.preventDefault();
   }
 });
-window.addEventListener('keyup', event => keys.delete(event.code));
+window.addEventListener('keyup', event => {
+  if (keys.has(event.code)) event.preventDefault();
+  keys.delete(event.code);
+});
 window.addEventListener('blur', () => keys.clear());
 canvas.addEventListener('blur', event => {
   // Keep held movement available while clicking Step; editable fields stop it.

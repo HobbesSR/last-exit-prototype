@@ -172,6 +172,30 @@ try {
   await page.getByRole('button', { name: 'Export JSON' }).click();
   const focusRecord = JSON.parse(await page.locator('#recording').inputValue());
   assert.equal(focusRecord.trace[0].input.x, 0, 'focusing a form field clears held movement');
+  for (const key of ['Enter', 'Space']) {
+    await page.getByRole('button', { name: 'Start / Reset' }).click();
+    await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
+    await page.locator('#arena').focus();
+    await page.keyboard.down(key);
+    await page.getByRole('button', { name: 'Step tick' }).click();
+    for (let repeat = 0; repeat < 3; repeat++) await page.keyboard.down(key);
+    await page.keyboard.up(key);
+    await page.getByRole('button', { name: 'Export JSON' }).click();
+    const record = JSON.parse(await page.locator('#recording').inputValue());
+    assert.equal(record.trace.length, 1, `held ${key} does not trigger extra Step clicks after button focus`);
+    assert.equal(record.frames.length, 2, `held ${key} advances exactly one tick`);
+    assert.equal(record.trace[0].input.interact, key === 'Enter', `${key} initial canvas input interacts only for Enter`);
+    assert.equal(record.trace[0].input.skill, key === 'Space', `${key} initial canvas input uses skill only for Space`);
+  }
+  await page.getByRole('button', { name: 'Start / Reset' }).click();
+  await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
+  await page.getByRole('button', { name: 'Step tick' }).focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Space');
+  await page.getByRole('button', { name: 'Export JSON' }).click();
+  const buttonKeyboardRecord = JSON.parse(await page.locator('#recording').inputValue());
+  assert.equal(buttonKeyboardRecord.trace.length, 2, 'fresh Enter and Space activate a focused Step button');
+  assert.equal(buttonKeyboardRecord.frames.length, 3, 'fresh keyboard button activation advances two ticks');
   await page.getByRole('button', { name: 'Start / Reset' }).click();
   await page.waitForFunction(() => document.querySelector('#status')?.textContent.startsWith('Tick 0'));
   await page.getByRole('button', { name: 'Play', exact: true }).click();
@@ -182,7 +206,7 @@ try {
   assert.equal(await page.locator('#status').textContent(), paused, 'Pause stops fixed ticks');
   assert.deepEqual(errors, []);
   await page.screenshot({ path: 'test-results/physics-playtest.png', fullPage: true });
-  console.log(JSON.stringify({ passed: true, checks: ['desktop and narrow layout', 'pointer aim after resize', 'form input isolation', 'play/pause', 'local start and movement', 'reset pins tuning', 'export/import exact rerun', 'A/B/C scenes', 'no console errors'] }));
+  console.log(JSON.stringify({ passed: true, checks: ['desktop and narrow layout', 'pointer aim after resize', 'form input isolation', 'held shortcut repeat and fresh button activation', 'play/pause', 'local start and movement', 'reset pins tuning', 'export/import exact rerun', 'A/B/C scenes', 'no console errors'] }));
   await page.close();
 } finally { await browser.close(); await server.close(); }
 
