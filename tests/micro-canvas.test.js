@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createBuilderCanvas } from '../map/micro/sdk.ts';
-import { rect, circle } from '../shared/shape.ts';
+import { rect, circle, polygon } from '../shared/shape.ts';
 
 const cells = Array.from({ length: 24 }, (_, i) => ({ x: i % 6, y: Math.floor(i / 6) }));
 const brief = (extra = {}) => ({ id: 'canvas', seed: 1, type: 'cover', cellSize: 40, cells,
@@ -62,6 +62,21 @@ test('a roof and intent may cover a protected route; only what stands is kept of
   assert.equal(canvas.commit({ elements: [shell] }), true, 'roof, footprint and intent cross the route');
   const blocked = createBuilderCanvas(brief(), [rect(40, 40, 40, 40)]);
   assert.equal(blocked.commit({ elements: [piece(40, 40)], areas: [rect(160, 0, 40, 40)] }), false, 'a collider on the route is refused');
+});
+
+test('separate assemblies may stand flush; only shared area collides, and protections still refuse contact', () => {
+  // Two triangles whose hypotenuses coincide: their boxes overlap, so only the narrow phase decides.
+  const lower = polygon(0, 0, [{ x: 0, y: 0 }, { x: 80, y: 0 }, { x: 0, y: 80 }]);
+  const upper = polygon(0, 0, [{ x: 80, y: 0 }, { x: 80, y: 80 }, { x: 0, y: 80 }]);
+  const solid = (shape, label) => ({ label, x: 0, y: 0, template: { w: 80, h: 80, parts: [{ part: 'obstacle', kind: 'crate', shape }] } });
+  const canvas = createBuilderCanvas(brief());
+  assert.equal(canvas.commit({ elements: [solid(lower, 'machine')], areas: [lower] }), true);
+  assert.equal(canvas.commit({ elements: [solid(upper, 'pipe')], areas: [upper] }), true, 'contact is not collision');
+  const deeper = polygon(0, 0, [{ x: 70, y: 0 }, { x: 80, y: 80 }, { x: 0, y: 70 }]);
+  assert.equal(canvas.commit({ elements: [solid(deeper, 'into')], areas: [rect(160, 0, 40, 40)] }), false, 'shared area still collides');
+  const guarded = createBuilderCanvas(brief(), [upper]);
+  assert.equal(guarded.commit({ elements: [solid(lower, 'machine')], areas: [lower] }), false, 'a protection refuses contact');
+  assert.equal(guarded.fits(lower), false);
 });
 
 test('access reservations reject blocked standing room and protect later commits', () => {
