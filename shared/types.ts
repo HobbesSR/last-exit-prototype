@@ -115,7 +115,9 @@ export type Kit = 'warden' | 'specter' | 'striker';
 export type Phase = 'live' | 'finished';
 export type PlayerStatus = 'active' | 'eliminated' | 'respawning' | 'escaped' | 'stranded';
 export type WeaponType = 'pistol' | 'rifle' | 'scattergun';
-export type ItemKind = 'weapon' | 'med' | 'shield' | 'cell' | 'access';
+export type ItemKind = 'weapon' | 'med' | 'shield' | 'cell' | 'access' | 'ammo';
+/** L2 reserve rounds (14 "Reloading"); a weapon draws from exactly one family. */
+export type AmmoFamily = 'pistol' | 'rifle' | 'shell';
 export type StackKind = 'med' | 'shield';
 export type TrapKind = 'mine' | 'turret' | 'flame' | 'spider';
 /** `window`, `pipe` and `hedge` block bodies but not sight or shots (`seeThrough`, 29). */
@@ -218,6 +220,14 @@ export interface MatchContent {
    */
   lootTiers?: { mixes: number[][]; damage: number[] } | undefined;
   /**
+   * Explicit L2 selection (14 "Reloading"); requires `itemInstances`. A weapon's `ammo` is then its
+   * loaded magazine, at most `magazine`; reloads move rounds from the player's family reserve.
+   */
+  reloading?: {
+    weapons: Record<WeaponType, { family: AmmoFamily; magazine: number; reloadTicks: Tick }>;
+    reserves: Record<AmmoFamily, number>;
+  } | undefined;
+  /**
    * Who a match is made of. Its lengths are the role capacities, so spawning, lobby display and
    * matchmaking all count the same list instead of each repeating the numbers.
    */
@@ -306,7 +316,9 @@ export interface GroundItem extends ItemIdentity {
   weaponType?: WeaponType | undefined;
   ammo?: number | undefined;
   charge?: Tick | undefined;
+  /** Rounds in a `weapon`'s magazine is `ammo`; an `ammo` pickup holds `count` rounds of `family`. */
   count?: number | undefined;
+  family?: AmmoFamily | undefined;
   buildingId?: BuildingId | undefined;
   droppedBy?: PlayerId | undefined;
   pickupAfter?: Tick | undefined;
@@ -500,6 +512,9 @@ export interface PlayerInput {
   sneak?: boolean | undefined;
   slot?: SlotIndex | undefined;
   moveSlot?: SlotMove | undefined;
+  /** L2 one-shot commands; present only when sent, so older inputs and snapshots keep their shape. */
+  reload?: true | undefined;
+  dropAmmo?: { family: AmmoFamily; count: number } | undefined;
   /** Monotonic client sequence number; the server rejects anything not newer than the last. */
   seq?: number | undefined;
 }
@@ -541,6 +556,10 @@ export interface Player extends Vec2 {
   viewLagTicks?: number | undefined;
   inventory?: Inventory | undefined;
   selectedSlot?: SlotIndex | undefined;
+  /** L2 reserve rounds per family, outside the six slots. Contestants only. */
+  reserves?: Record<AmmoFamily, number> | undefined;
+  /** An L2 reload in progress: the slot and weapon instance it fills, and the tick it completes. */
+  reload?: { slot: SlotIndex; instanceId: ItemId; until: Tick } | null | undefined;
   /** Remaining bot route, in absolute tile coordinates. Not world units. */
   path?: TileStep[] | undefined;
   /** Remaining bot route in world points, for content that plans over free-space tiles (22.6). */

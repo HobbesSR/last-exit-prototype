@@ -12,8 +12,8 @@ const projection = (fields: string) => {
   };
 };
 export const frameFields = projection('version duration cellChargeTicks tick phase hazardX slots players items gates traps projectiles effects events');
-const ownFields = projection('id name role kit x y hp maxHp shield keys weapon kills level status cooldown attackCd railCd cloak revealed boost stun heading lastSeq inputStalled inventory selectedSlot charging respawnAt cell nodeId discovered');
-export const itemFields = projection('id x y kind weaponType ammo charge count buildingId droppedBy pickupAfter nodeId tier instanceId lineageId quality');
+const ownFields = projection('id name role kit x y hp maxHp shield keys weapon kills level status cooldown attackCd railCd cloak revealed boost stun heading lastSeq inputStalled inventory selectedSlot reserves reload charging respawnAt cell nodeId discovered');
+export const itemFields = projection('id x y kind weaponType ammo charge count buildingId droppedBy pickupAfter nodeId tier instanceId lineageId quality family');
 export const gateFields = projection('id x y w h open locked kind buildingId');
 export const trapFields = projection('id kind x y homeX homeY heading offset cooldown spent aiming firing warning');
 export const projectileFields = projection('id owner trap x y dx dy life damage');

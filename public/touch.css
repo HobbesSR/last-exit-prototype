@@ -17,6 +17,12 @@ body.inventory-dragging,#equipment-slots button.dragging{user-select:none}
 #equipment-slots button.selected{border-color:#ffe98a;color:#ffe98a;background:#3b4245}
 #drop-item{position:absolute;bottom:178px;right:calc(50% + 4px);min-height:28px;font-size:10px}
 @media(max-width:700px){#drop-item,#arrange-item{bottom:347px}#arrange-item{max-width:48%;padding:4px}}
+#ammo-panel{position:absolute;bottom:212px;left:50%;transform:translateX(-50%);display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 24px)}
+#ammo-panel[hidden]{display:none}
+#ammo-panel button{min-height:28px;font-size:10px}
+.reserve-chip{border:1px solid #3c5a5e;background:#1d2a2d;color:#d8e6e3;border-radius:6px;padding:4px 8px}
+.reserve-chip:disabled{opacity:.45}
+@media(max-width:700px){#ammo-panel{bottom:381px}}
 .matchmaking-options{margin:14px 0;font-size:12px}.matchmaking-options>label{display:block;margin:10px 0}.matchmaking-options input[type=checkbox]{width:auto;margin-right:8px;accent-color:#c5f16f}.matchmaking-options p{font-size:11px;line-height:1.5;color:#b2c7c4}
 @media(max-width:700px){#equipment-slots{bottom:290px;width:calc(100% - 24px)}#equipment-slots button{min-width:0;flex:1;font-size:8px;padding:4px}}
 @media(max-width:700px){#objective{top:108px;width:calc(100% - 24px);font-size:10px}#event-feed{top:166px}#hazard-warning{top:205px}}

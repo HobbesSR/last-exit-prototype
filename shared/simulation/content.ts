@@ -92,6 +92,15 @@ const CONTENT_LOOT_1: MatchContent = { ...CONTENT_EQUIPMENT_1, id: 'content-loot
   mixes: [[70, 25, 5, 0, 0], [35, 45, 18, 2, 0], [10, 30, 40, 18, 2], [0, 10, 30, 45, 15], [0, 0, 10, 40, 50]],
   damage: [1, 1.08, 1.16, 1.24, 1.32],
 } };
+// L2 reloads over L1 (#444, 14). Magazines, reserves and times are 41.1's placeholders; the user will rebalance ammo (17.3 Q4).
+const CONTENT_AMMO_1: MatchContent = { ...CONTENT_LOOT_1, id: 'content-ammo-1', reloading: {
+  weapons: {
+    pistol: { family: 'pistol', magazine: 12, reloadTicks: 20 },
+    rifle: { family: 'rifle', magazine: 30, reloadTicks: 30 },
+    scattergun: { family: 'shell', magazine: 6, reloadTicks: 30 },
+  },
+  reserves: { pistol: 72, rifle: 120, shell: 30 },
+} };
 // Explicit experimental P2 selection; ordinary rooms select content-5.
 const CONTENT_PHYSICS_2: MatchContent = { ...CONTENT_4, id: 'content-physics-2', actorPhysics: {
   geometry: {
@@ -106,7 +115,7 @@ const CONTENT_PHYSICS_5: MatchContent = { ...CONTENT_PHYSICS_2, id: 'content-phy
     prop: { hx: 24, hy: 12, mass: 2, friction: 0.4, linearDamping: 2, angularDamping: 2 },
     maxImpulse: 300,
   } };
-const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4, 'content-5': CONTENT_5, 'content-physics-2': CONTENT_PHYSICS_2, 'content-equipment-1': CONTENT_EQUIPMENT_1, 'content-physics-5': CONTENT_PHYSICS_5, 'content-loot-1': CONTENT_LOOT_1 };
+const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4, 'content-5': CONTENT_5, 'content-physics-2': CONTENT_PHYSICS_2, 'content-equipment-1': CONTENT_EQUIPMENT_1, 'content-physics-5': CONTENT_PHYSICS_5, 'content-loot-1': CONTENT_LOOT_1, 'content-ammo-1': CONTENT_AMMO_1 };
 
 
 /** Return an independent, deeply frozen copy of a shipped content set. */

@@ -265,7 +265,7 @@ move/merge validation, retained drops, doors and windows, hunter respawning, bot
 retreat, abandoned-room archival and immutable replay commands. Objective-route runs
 neutralize combat damage so PvP deaths do not invalidate navigation assertions.
 
-Browser coverage includes keyboard and touch input, six slot icons, move/merge,
+Browser coverage includes keyboard and touch input, six slot icons, move/merge, L2 reload controls,
 drops, charging and extraction, opening and walking through a real door, roof
 transitions, occlusion, replay and spectators, and diagnostic download. Diagnostic reports are covered by `tests/room-service.test.js` (validation, clamping, limits, never a command) and `tests/diagnostics-episodes.test.js` (episode coalescing). A
 deliberately injected 120 ms browser stall verifies diagnostics preserve long
