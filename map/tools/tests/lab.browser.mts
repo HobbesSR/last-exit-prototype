@@ -404,6 +404,10 @@ try {
   );
 
   await page.locator("#chainSection").selectOption("classes");
+  assert.equal(await page.locator("#chainSurface #chainId").count(), 1, "non-visual entry identity belongs to its central property form");
+  assert.equal(await page.locator("#chainSurface #chainRegionType").count(), 1);
+  assert.equal(await page.locator("#chainProperties input").count(), 0, "class fields are not split across panes");
+  await page.screenshot({ path: `${OUT}/class-properties.png` });
   await page.locator("#chainAdd").click();
   await page.locator("#chainId").fill("checkpoint");
   await page.locator("#chainId").blur();
@@ -441,6 +445,10 @@ try {
   await page.locator("#chainSection").selectOption("setPieces");
   await page.locator("#chainPrimaryClass").selectOption("checkpoint");
   await page.locator("#chainSection").selectOption("setPieceClasses");
+  assert.equal(await page.locator("#chainSurface #chainId").count(), 1);
+  assert.equal(await page.locator("#chainSurface #chainPlacementRule").count(), 1);
+  assert.equal(await page.locator("#chainSurface #chainQuota").count(), 1, "set-piece class properties share one form");
+  await page.screenshot({ path: `${OUT}/set-piece-class-properties.png` });
   await page.locator("#chainPlacementRule").selectOption("charger");
   await page.locator("#chainQuota").fill("2");
   await page.locator("#chainQuota").blur();
@@ -622,6 +630,62 @@ try {
   );
   assert.equal(stageTile.cells, undefined, "clearing painting removes cells");
   assert.equal(stageTile.legend, undefined, "clearing painting removes legend");
+
+  // #515: the catalogue and properties scroll beside the selected object's work surface.
+  for (const width of [1440, 1180]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.locator("#chainEditor .chain-inspector").evaluate((node: HTMLElement) => { node.scrollTop = 0; });
+    const boxes = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const r = document.querySelector(selector)!.getBoundingClientRect();
+        return { x: r.x, right: r.right, y: r.y, bottom: r.bottom };
+      };
+      return { catalogue: rect("#chainViewContainer .chain-sidebar"), surface: rect("#chainSurface"), properties: rect("#chainEditor .chain-inspector") };
+    });
+    assert.ok(boxes.catalogue.right <= boxes.surface.x && boxes.surface.right <= boxes.properties.x, `${width}: catalogue, surface and properties are side by side`);
+    assert.ok(boxes.properties.right <= width && boxes.surface.bottom <= 900, "workspace stays inside the desktop viewport");
+    assert.equal(await page.locator("#chainSelected").innerText(), await page.locator("#chainItem").inputValue());
+    await page.locator('.chain-swatch-button[data-class="arrival"]').click();
+    const gridBox = await page.locator("#chainGrid").boundingBox();
+    assert.ok(gridBox.y >= boxes.surface.y && gridBox.y + gridBox.height <= boxes.surface.bottom, `${width}: the entire tile grid is visible beside the toolbar`);
+    await page.mouse.click(gridBox.x + gridBox.width * 2.5 / 6, gridBox.y + gridBox.height * 3.5 / 6);
+    const tile = await page.evaluate(() => (window as any).chainLab.snapshot().library.tiles[0]);
+    assert.equal(tile.legend[tile.cells[3][2]], "arrival", `${width}: resized stage paints logical cell (2,3)`);
+    await page.screenshot({ path: `${OUT}/authoring-${width}.png` });
+    await page.locator('.chain-tool-group button', { hasText: "Clear painting" }).click();
+  }
+  const authoringBefore = await page.evaluate(() => (window as any).chainLab.snapshot());
+  await page.locator("#worldTab").click();
+  await page.locator("#chainTab").click();
+  assert.deepEqual(await page.evaluate(() => (window as any).chainLab.snapshot()), authoringBefore, "changing tabs preserves selected entry and draft");
+  const surfaceBeforeScroll = await page.locator("#chainSurface").boundingBox();
+  await page.locator("#chainEditor .chain-inspector").evaluate((node: HTMLElement) => { node.scrollTop = node.scrollHeight; });
+  assert.ok(await page.locator("#chainEditor .chain-inspector").evaluate((node: HTMLElement) => node.scrollTop > 0), "properties have their own scroll area");
+  assert.deepEqual(await page.locator("#chainSurface").boundingBox(), surfaceBeforeScroll, "scrolling properties keeps the stage in place");
+  await page.locator("#chainEditor .chain-inspector").evaluate((node: HTMLElement) => { node.scrollTop = 0; });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+
+  // Context menus fit beside pane edges and disappear when the workspace scrolls.
+  await page.setViewportSize({ width: 1180, height: 900 });
+  const assertPopupFits = async () => {
+    const box = await page.locator(".chain-popup").boundingBox();
+    assert.ok(box && box.x >= 8 && box.y >= 8 && box.x + box.width <= 1172 && box.y + box.height <= 892, "entire context menu fits in the viewport");
+  };
+  await page.locator('#chainGrid [data-cell="5,5"]').click({ button: "right" });
+  await assertPopupFits();
+  await page.screenshot({ path: `${OUT}/cell-menu-fitted.png` });
+  await page.locator("#chainSurface").evaluate((node: HTMLElement) => {
+    node.scrollTop = node.scrollTop > 0 ? 0 : node.scrollHeight;
+  });
+  await page.waitForFunction(() => !document.querySelector(".chain-popup"));
+  await page.locator('.chain-tool-group button[data-tool="segment"]').click();
+  await page.locator('[data-stage-segment="h:6,5"]').click({ button: "right" });
+  await assertPopupFits();
+  await page.screenshot({ path: `${OUT}/segment-menu-fitted.png` });
+  await page.locator("#chainEditor .chain-inspector").evaluate((node: HTMLElement) => { node.scrollTop = node.scrollHeight; });
+  await page.waitForFunction(() => !document.querySelector(".chain-popup"));
+  await page.locator('.chain-tool-group button[data-tool="paint"]').click();
+  await page.setViewportSize({ width: 1440, height: 1000 });
 
   // Fill tool: flood fill stops at class boundaries
   await page.locator('.chain-swatch-button[data-class="arrival"]').click();
@@ -2149,6 +2213,28 @@ try {
   assert.equal(await painted(view.locator(".placeable-preview")), true);
   await view.locator('[data-placeable="warehouse"]').click();
   assert.match(await view.locator(".readout").innerText(), /warehouse: \d+ spaces?, /, "a building placeable reads as its trace");
+  for (const width of [1440, 1180]) {
+    await placeablesPage.setViewportSize({ width, height: 900 });
+    await placeablesPage.waitForFunction(() => {
+      const c = document.querySelector(".placeable-preview") as HTMLCanvasElement;
+      return c.width === Math.round(c.clientWidth * devicePixelRatio);
+    });
+    const catalogue = await view.locator(".chain-sidebar").boundingBox();
+    const preview = await view.locator(".placeable-preview").boundingBox();
+    const inspector = await view.locator(".placeable-inspector").boundingBox();
+    assert.ok(catalogue.x + catalogue.width <= preview.x && preview.x + preview.width <= inspector.x, "placeable preview sits between catalogue and placement information");
+    assert.ok(inspector.x + inspector.width <= width && preview.y + preview.height <= 900, "selected placeable stays visible on desktop");
+    assert.equal(await painted(view.locator(".placeable-preview")), true, "preview repaints after resize");
+    const examplesHeading = await view.getByRole("heading", { name: "Examples", exact: true }).boundingBox();
+    const exampleCard = await view.locator(".placeable-examples button").first().boundingBox();
+    assert.ok(examplesHeading.y >= preview.y + preview.height && exampleCard.y + exampleCard.height <= 900, "examples heading and first card remain visible with the preview");
+    await placeablesPage.screenshot({ path: `${OUT}/placeable-workspace-${width}.png` });
+  }
+  const previewParams = await view.locator("details pre").textContent();
+  await placeablesPage.locator("#chainTab").click();
+  await placeablesPage.locator("#placeablesTab").click();
+  assert.match(await view.locator(".placeable-title").innerText(), /^warehouse /);
+  assert.equal(await view.locator("details pre").textContent(), previewParams, "placeable selection and parameters survive tab changes");
   // A number parameter's spec bounds it but sets no granularity.
   await view.locator('[data-placeable="cover-piece"]').click();
   assert.equal(await view.locator('[name="length"]').getAttribute("step"), "any");

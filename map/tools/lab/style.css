@@ -75,25 +75,34 @@ button.active {
   color: #d4f5a7;
   border-bottom: 2px solid #c8f185;
 }
-#chainViewContainer {
+#chainViewContainer,
+#placeablesView {
   flex: 1;
   min-height: 0;
-  overflow: auto;
-  padding: 22px 30px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 10px 14px;
 }
 .chain-heading {
   display: flex;
   justify-content: space-between;
-  align-items: start;
-  gap: 20px;
-  border-bottom: 1px solid #344754;
-  margin-bottom: 18px;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #344754;
+  border-radius: 9px;
+  background: #17262b;
+  padding: 10px 14px;
+  margin-bottom: 10px;
 }
 .chain-heading h2 {
   margin: 0;
+  font-size: 18px;
 }
 .chain-heading p {
   color: #9aabb7;
+  margin: 5px 0 0;
+  font-size: 12px;
 }
 .chain-actions {
   display: flex;
@@ -113,8 +122,10 @@ button.active {
 }
 .chain-layout {
   display: grid;
-  grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
 }
 .chain-sidebar,
 .chain-work {
@@ -124,12 +135,16 @@ button.active {
   min-width: 0;
 }
 .chain-sidebar {
-  position: sticky;
-  top: 0;
-  align-self: start;
+  overflow: auto;
+  padding: 14px;
+  min-height: 0;
+  border: 1px solid #344754;
+  border-radius: 9px;
+  background: #132128;
 }
 .chain-work label,
-.chain-sidebar label {
+.chain-sidebar label,
+.chain-inspector label {
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -145,12 +160,64 @@ button.active {
   padding: 8px;
   color: #e2e9ee;
   font: inherit;
+  min-width: 0;
+  max-width: 100%;
 }
-#placeablesView {
+.chain-sidebar h3, .chain-inspector > h3 {
+  margin: 0 0 10px;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #c8f185;
+}
+.chain-work { min-height: 0; gap: 0; overflow: hidden; }
+.object-heading {
+  padding: 12px 16px;
+  border: 1px solid #344754;
+  border-radius: 9px 9px 0 0;
+  background: #17262b;
+  overflow-wrap: anywhere;
+}
+.object-heading > span { color: #9aabb7; font-size: 11px; }
+.object-heading h3 { margin: 4px 0 0; font-size: 18px; }
+#chainEditor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 10px;
   flex: 1;
   min-height: 0;
+}
+.author-surface, .chain-inspector {
+  min-width: 0;
+  min-height: 0;
   overflow: auto;
-  padding: 22px 30px;
+  padding: 14px;
+  background: #101c23;
+  border: 1px solid #344754;
+  border-radius: 0 0 9px 9px;
+  scrollbar-color: #45606a transparent;
+}
+.author-surface { display: flex; flex-direction: column; gap: 12px; }
+.chain-inspector { background: #132128; }
+#chainProperties { display: grid; gap: 12px; }
+#chainPreview:empty { display: none; }
+#chainPreview { margin-top: 12px; }
+.chain-inspector > details { margin-top: 14px; }
+.chain-inspector summary { cursor: pointer; color: #aebcc4; }
+.chain-inspector pre { overflow-wrap: anywhere; white-space: pre-wrap; }
+.chain-inspector .chain-slot input { width: 100%; }
+#chainStatus { font-size: 11px; max-height: 72px; flex: none; overflow: auto; margin: 10px 0 0; }
+.chain-sidebar .pair { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.chain-sidebar .pair button { padding: 7px 3px; }
+.chain-sidebar .gallery-head { flex-wrap: wrap; gap: 6px; }
+.chain-sidebar .gallery-head label { flex-basis: 100%; }
+.chain-sidebar .chain-gallery-container { padding: 6px; }
+.chain-sidebar #tileGallery { max-height: none; overflow: visible; padding: 4px; }
+.placeable-workspace { grid-template-columns: 220px minmax(0, 1fr) 290px; }
+.placeable-workspace .author-surface { flex: 1; }
+.placeable-inspector { overflow: auto; gap: 12px; border-radius: 9px; }
+#chainViewContainer :focus-visible, #placeablesView :focus-visible {
+  outline: 2px solid #c8f185; outline-offset: 2px;
 }
 .placeable-list {
   display: flex;
@@ -175,6 +242,8 @@ button.active {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  max-height: 170px;
+  overflow: auto;
 }
 .placeable-examples button {
   display: flex;
@@ -189,7 +258,7 @@ button.active {
 }
 .placeable-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   align-items: end;
 }
@@ -199,8 +268,11 @@ button.active {
   gap: 8px;
 }
 .placeable-preview {
+  flex: 1 1 auto;
   width: 100%;
-  height: min(60vh, 520px);
+  height: min(36vh, 360px);
+  min-height: 220px;
+  max-height: 360px;
   background: #0e1b24;
   border: 1px solid #344754;
   border-radius: 5px;
@@ -221,10 +293,6 @@ button.active {
 }
 .readout.invalid {
   color: #f2b787;
-}
-#chainEditor {
-  display: grid;
-  gap: 12px;
 }
 #chainEditor h3 {
   margin: 12px 0 0;
@@ -313,9 +381,12 @@ button.active {
   color: #eaf7f9;
 }
 .chain-tile-stage {
+  align-self: center;
+  flex: none;
+  --tile-size: clamp(240px, calc(100vh - 600px), 360px);
   display: grid;
-  grid-template-columns: 24px minmax(240px, 360px);
-  grid-template-rows: 24px minmax(240px, 360px);
+  grid-template-columns: 24px var(--tile-size);
+  grid-template-rows: 24px var(--tile-size);
   gap: 3px;
   position: relative;
   user-select: none;
@@ -664,12 +735,14 @@ button.active {
 }
 .chain-layout-workspace {
   display: flex;
+  flex-direction: column;
+  min-height: 0;
   gap: 16px;
   margin-top: 10px;
   align-items: flex-start;
 }
 .chain-layout-palette {
-  width: 190px;
+  width: 100%;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -699,7 +772,7 @@ button.active {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 320px;
+  max-height: 160px;
   overflow-y: auto;
 }
 .chain-layout-palette-item {
@@ -734,7 +807,8 @@ button.active {
   flex-shrink: 0;
 }
 .chain-layout-grid-container {
-  flex: 1;
+  width: 100%;
+  flex: none;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1065,21 +1139,6 @@ button.active {
 .chain-warnings {
   color: #f2b787;
 }
-@media (max-width: 700px) {
-  .chain-layout {
-    grid-template-columns: 1fr;
-  }
-  #placeablesView {
-    padding: 16px;
-  }
-  .chain-sidebar {
-    position: static;
-  }
-  .chain-heading {
-    flex-direction: column;
-  }
-}
-
 main {
   display: flex;
   flex-direction: column;
@@ -1398,4 +1457,17 @@ a.button {
   .diagnostics.collapsed { display: grid !important; }
   .resizer { display: none !important; }
   .panel + .panel { border-left: 0; border-top: 1px solid #28343e; }
+  #chainViewContainer, #placeablesView { overflow: visible; padding: 8px; }
+  .chain-layout, .placeable-workspace { grid-template-columns: minmax(0, 1fr); }
+  .chain-sidebar { max-height: 320px; }
+  .chain-work { overflow: visible; }
+  #chainEditor { grid-template-columns: minmax(0, 1fr); }
+  .author-surface { overflow: auto; }
+  .chain-inspector { max-height: none; }
+  .chain-heading { flex-direction: column; align-items: stretch; }
+  .chain-actions { flex-wrap: wrap; }
+  .chain-tile-stage { grid-template-columns: 24px minmax(0, 360px); grid-template-rows: 24px auto; max-width: 100%; }
+  .placeable-workspace .author-surface { flex: none; }
+  .placeable-preview { flex: none; height: min(48vh, 400px); }
+  .placeable-examples { max-height: none; overflow: visible; }
 }
