@@ -22,7 +22,7 @@ bounded candidate analysis and allocation; its design record is [19](19-decompos
 | --- | --- | --- |
 | 20.1 | Region contract and briefs | [20.1](20.1-region-contract.md) |
 | 20.2 | Geometry and access | [20.2](20.2-geometry-access.md) |
-| 20.3 | Builders and child-region decomposition | [20.3](20.3-builders-decomposition.md) |
+| 20.3 | Builders and child-region decomposition: guide to canvas adoption (20.3.1), decomposition (20.3.2) and each builder's mechanics by catalogue group (20.3.3–20.3.5) | [20.3](20.3-builders-decomposition.md) |
 | 20.4 | Hierarchical generation, and the retired physical realization | [20.4](20.4-hierarchical-generation.md) |
 | 20.5 | Tools and next boundaries | [20.5](20.5-tools-and-next-boundaries.md) |
 | 20.6 | Guaranteed passability and automatic clear margins | [20.6](20.6-passable-margins.md) |
@@ -60,7 +60,7 @@ These links preserve bookmarks into the former single file.
 
 <a id="child-region-decomposition"></a>
 
-- Child-region decomposition: [Child-region decomposition](20.3-builders-decomposition.md#child-region-decomposition).
+- Child-region decomposition: [Child-region decomposition](20.3.2-child-region-decomposition.md#child-region-decomposition).
 
 <a id="combined-decomposition-and-generation"></a>
 
@@ -72,11 +72,11 @@ These links preserve bookmarks into the former single file.
 
 <a id="dispatch-and-portal-negotiation"></a>
 
-- Dispatch and portal negotiation: [Dispatch and portal negotiation](20.4-hierarchical-generation.md#dispatch-and-portal-negotiation).
+- Dispatch and portal negotiation: [Physical realization (retired)](20.4-hierarchical-generation.md#physical-realization-retired).
 
 <a id="physical-demonstration-policy"></a>
 
-- Physical demonstration policy: [Physical demonstration policy](20.4-hierarchical-generation.md#physical-demonstration-policy).
+- Physical demonstration policy: [Physical realization (retired)](20.4-hierarchical-generation.md#physical-realization-retired).
 
 <a id="inspect-and-verify"></a>
 
