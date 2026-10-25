@@ -122,6 +122,8 @@ type PaintTool = "paint" | "fill" | "rect" | "segment";
 type SegmentBrush = PassabilityPrescription | "unstated";
 let selectedPaintTool: PaintTool = "paint";
 let selectedSegmentBrush: SegmentBrush = "passable";
+/** Brings the selected entry's derived views up to date in place; set by its section's renderer. */
+let refreshEditor: (() => void) | null = null;
 let activePopup: HTMLElement | null = null;
 let popupDismissListener: ((evt: MouseEvent) => void) | null = null;
 
@@ -258,11 +260,12 @@ function current(): any {
 function option(value: string, label = value): HTMLOptionElement {
   return new Option(label, value);
 }
+/** An input that edits the selected entry in place; `change` returns false to refuse the value. */
 function field(
   label: string,
   id: string,
   value: string | number,
-  change: (value: string) => void,
+  change: (value: string) => void | false,
   kind: "text" | "number" = "text",
 ): HTMLElement {
   const wrap = document.createElement("label");
@@ -272,8 +275,7 @@ function field(
   input.type = kind;
   input.value = String(value);
   input.onchange = () => {
-    change(input.value);
-    changed();
+    if (change(input.value) !== false) edited();
   };
   wrap.append(input);
   return wrap;
@@ -296,7 +298,7 @@ function choice(
   input.value = value;
   input.onchange = () => {
     change(input.value);
-    changed();
+    edited();
   };
   wrap.append(input);
   return wrap;
@@ -356,19 +358,19 @@ function coreFields(value: {
       }
       if (Object.keys(next).length) value.coreElements = next;
       else delete value.coreElements;
-      changed();
+      edited();
     };
     wrap.append(input);
     box.append(wrap);
   }
   return box;
 }
-function rename(next: string): void {
+function rename(next: string): void | false {
   const old = selectedId;
   next = next.trim();
   if (!next || (next !== old && entries().includes(next))) {
     status(`Name must be unique and nonempty: ${next}`);
-    return;
+    return false;
   }
   if (section() === "tiles") {
     const setsUsing = library.tileSets
@@ -378,7 +380,7 @@ function rename(next: string): void {
       const msg = `Rename tile design "${old}" to "${next}"? It is referenced in tile set(s): ${setsUsing.join(", ")}. References will be updated automatically.`;
       if (!confirm(msg)) {
         render();
-        return;
+        return false;
       }
     }
   }
@@ -390,7 +392,7 @@ function rename(next: string): void {
       const msg = `Rename tile set "${old}" to "${next}"? It is referenced in set piece(s): ${piecesUsing.join(", ")}. References will be updated automatically.`;
       if (!confirm(msg)) {
         render();
-        return;
+        return false;
       }
     }
   }
@@ -402,7 +404,7 @@ function rename(next: string): void {
       const msg = `Rename set piece "${old}" to "${next}"? It is referenced in set piece class(es): ${classesUsing.join(", ")}. References will be updated automatically.`;
       if (!confirm(msg)) {
         render();
-        return;
+        return false;
       }
     }
   }
@@ -451,7 +453,8 @@ function renderClasses(root: HTMLElement): void {
   const params = document.createElement("div");
   params.id = "chainParams";
   root.append(params);
-  for (const [key, value] of Object.entries(entry.params ?? {})) {
+  for (const [initialKey, value] of Object.entries(entry.params ?? {})) {
+    let key = initialKey;
     const row = document.createElement("div");
     row.className = "chain-row";
     const name = document.createElement("input");
@@ -467,10 +470,15 @@ function renderClasses(root: HTMLElement): void {
         const parsed: unknown = JSON.parse(scalar.value);
         if (!["string", "number", "boolean"].includes(typeof parsed))
           throw Error("Parameter needs a scalar");
+        const next = name.value.trim();
+        // Taking another parameter's name replaces it, so its row must go.
+        const replaces = next !== key && !!entry.params && next in entry.params;
         delete entry.params?.[key];
         entry.params ??= {};
-        entry.params[name.value.trim()] = parsed as string | number | boolean;
-        changed();
+        entry.params[next] = parsed as string | number | boolean;
+        key = next;
+        if (replaces) changed();
+        else edited();
       } catch (error) {
         status(String(error));
       }
@@ -801,26 +809,39 @@ function renderGallery(): void {
     return;
   }
 
-  gallery.replaceChildren(
-    ...shown.map((t) => {
-      const card = document.createElement("button");
-      card.type = "button";
-      card.className = "tile-card";
-      card.dataset.tile = t.id;
-      const isActive = t.id === selectedId;
-      card.classList.toggle("active", isActive);
-      card.title = `${t.id} · default ${t.defaultCellClass}${t.labels?.length ? ` · [${t.labels.join(", ")}]` : ""}`;
-      const name = document.createElement("span");
-      name.className = "tile-card-name";
-      name.textContent = t.id;
-      card.append(tileThumbnail(t), name);
-      card.onclick = () => {
-        selectedId = t.id;
-        render();
-      };
-      return card;
-    }),
-  );
+  const cards = shown.map(galleryCard);
+  if (cards.length !== gallery.children.length || cards.some((card, i) => gallery.children[i] !== card))
+    gallery.replaceChildren(...cards);
+}
+/** Each tile's gallery card, kept while what its thumbnail draws is unchanged. */
+const galleryCards = new WeakMap<ChainTileDesign, { drawn: string; card: HTMLButtonElement }>();
+function galleryCard(t: ChainTileDesign): HTMLButtonElement {
+  let held = galleryCards.get(t);
+  if (!held) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "tile-card";
+    const name = document.createElement("span");
+    name.className = "tile-card-name";
+    card.append(document.createElement("figure"), name);
+    card.onclick = () => {
+      selectedId = t.id;
+      render();
+    };
+    held = { drawn: "", card };
+    galleryCards.set(t, held);
+  }
+  const { card } = held;
+  const drawn = JSON.stringify([t.defaultCellClass, t.cells, t.legend, t.segments]);
+  if (held.drawn !== drawn) {
+    card.firstElementChild!.replaceWith(tileThumbnail(t));
+    held.drawn = drawn;
+  }
+  card.dataset.tile = t.id;
+  card.classList.toggle("active", t.id === selectedId);
+  card.title = `${t.id} · default ${t.defaultCellClass}${t.labels?.length ? ` · [${t.labels.join(", ")}]` : ""}`;
+  card.lastElementChild!.textContent = t.id;
+  return card;
 }
 function updateTileCells(tile: ChainTileDesign, cells: string[]): void {
   const classes = [
@@ -928,7 +949,7 @@ function renderTiles(properties: HTMLElement, root: HTMLElement): void {
       tile.orientations = [0, 90, 180, 270].filter((n) =>
         n === angle ? input.checked : tile.orientations.includes(n),
       );
-      changed();
+      edited();
     };
     label.append(input, `${angle}°`);
     orientations.append(label);
@@ -1287,20 +1308,24 @@ function renderTiles(properties: HTMLElement, root: HTMLElement): void {
 
   const cells = tileCells(tile);
   const cellButtons: Map<string, HTMLButtonElement> = new Map();
+  function drawCell(x: number, y: number): void {
+    const cellVal = cells[y * CHAIN_TILE_SIZE + x]!;
+    const btn = cellButtons.get(`${x},${y}`)!;
+    btn.textContent = cellVal;
+    btn.style.background = classColor(cellVal);
+    btn.title = `Cell ${x},${y} · ${cellVal}${cellVal === tile.defaultCellClass ? " (default)" : ""}`;
+  }
 
   for (let y = 0; y < CHAIN_TILE_SIZE; y++)
     for (let x = 0; x < CHAIN_TILE_SIZE; x++) {
-      const cellVal = cells[y * CHAIN_TILE_SIZE + x]!;
       const button = document.createElement("button");
       button.type = "button";
       button.className = "chain-cell";
       button.dataset.cell = `${x},${y}`;
       button.dataset.x = String(x);
       button.dataset.y = String(y);
-      button.textContent = cellVal;
-      button.style.background = classColor(cellVal);
-      button.title = `Cell ${x},${y} · ${cellVal}${cellVal === tile.defaultCellClass ? " (default)" : ""}`;
       cellButtons.set(`${x},${y}`, button);
+      drawCell(x, y);
       grid.append(button);
     }
 
@@ -1454,12 +1479,7 @@ function renderTiles(properties: HTMLElement, root: HTMLElement): void {
 
   const paintSingleCell = (x: number, y: number) => {
     cells[y * CHAIN_TILE_SIZE + x] = selectedCellClass;
-    const btn = cellButtons.get(`${x},${y}`);
-    if (btn) {
-      btn.textContent = selectedCellClass;
-      btn.style.background = classColor(selectedCellClass);
-      btn.title = `Cell ${x},${y} · ${selectedCellClass}${selectedCellClass === tile.defaultCellClass ? " (default)" : ""}`;
-    }
+    drawCell(x, y);
   };
 
   grid.addEventListener("pointerdown", (e) => {
@@ -1772,6 +1792,16 @@ function renderTiles(properties: HTMLElement, root: HTMLElement): void {
         segments.append(button);
       }
   properties.append(segments);
+  // A property edit redraws what reads it (default class, segment statements) on the stage as built.
+  refreshEditor = () => {
+    cells.splice(0, cells.length, ...tileCells(tile));
+    for (let y = 0; y < CHAIN_TILE_SIZE; y++)
+      for (let x = 0; x < CHAIN_TILE_SIZE; x++) drawCell(x, y);
+    for (const [key, btn] of stageSegmentButtons) updateStageSegmentButton(btn, key);
+    for (const btn of segments.querySelectorAll<HTMLElement>("[data-segment]"))
+      btn.classList.toggle("stated", !!tile.segments?.[btn.dataset.segment!]);
+    renderPreview(tile);
+  };
   const prescription = tile.segments?.[selectedSegment] ?? {};
   const { isPerimeter: perimeter } = segmentDescriptor(selectedSegment);
   const controls = document.createElement("div");
@@ -1783,7 +1813,6 @@ function renderTiles(properties: HTMLElement, root: HTMLElement): void {
       dimension as "adjacency" | "passability",
       value || undefined,
     );
-    changed();
   };
   const titleP = paragraph(`Selected ${selectedSegment}`);
   const badge = document.createElement("span");
@@ -2175,7 +2204,6 @@ function renderSetPieces(root: HTMLElement, surface: HTMLElement): void {
       (v) => {
         if (v) piece.primaryRegionClass = v;
         else delete piece.primaryRegionClass;
-        changed();
       },
     ),
   );
@@ -2206,7 +2234,7 @@ function renderSetPieces(root: HTMLElement, surface: HTMLElement): void {
       else nextTiers.delete(tier);
       if (nextTiers.size === 0) delete piece.eligibleTiers;
       else piece.eligibleTiers = Array.from(nextTiers).sort((a, b) => a - b);
-      changed();
+      edited();
     };
     label.append(cb, ` Tier ${tier}`);
     tiersGroup.append(label);
@@ -2468,11 +2496,14 @@ function renderSetPieces(root: HTMLElement, surface: HTMLElement): void {
   const classesSection = document.createElement("details");
   classesSection.id = "chainPieceClassesSection";
   classesSection.open = true;
-  const referencingCount = library.setPieceClasses.filter((c) =>
-    c.setPieces.includes(piece.id),
-  ).length;
   const classesSummary = document.createElement("summary");
-  classesSummary.textContent = `Referencing Set Piece Classes (${referencingCount} / ${library.setPieceClasses.length})`;
+  const countReferences = () => {
+    const referencingCount = library.setPieceClasses.filter((c) =>
+      c.setPieces.includes(piece.id),
+    ).length;
+    classesSummary.textContent = `Referencing Set Piece Classes (${referencingCount} / ${library.setPieceClasses.length})`;
+  };
+  countReferences();
   classesSection.append(classesSummary);
 
   const classesContainer = document.createElement("div");
@@ -2504,7 +2535,7 @@ function renderSetPieces(root: HTMLElement, surface: HTMLElement): void {
         } else {
           spClass.setPieces = spClass.setPieces.filter((id) => id !== piece.id);
         }
-        changed();
+        edited();
       };
       checkLabel.append(cb, spClass.id);
 
@@ -2537,6 +2568,11 @@ function renderSetPieces(root: HTMLElement, surface: HTMLElement): void {
   }
   classesSection.append(classesContainer);
   root.append(classesSection);
+  // Slot fields and class bindings are edited in place; the blueprint and counts follow them.
+  refreshEditor = () => {
+    populateGrid();
+    countReferences();
+  };
 }
 function renderSetPieceClasses(root: HTMLElement): void {
   const group = current() as ChainLibrary["setPieceClasses"][number];
@@ -2572,7 +2608,7 @@ function renderSetPieceClasses(root: HTMLElement): void {
       group.setPieces = input.checked
         ? [...group.setPieces, piece.id]
         : group.setPieces.filter((id) => id !== piece.id);
-      changed();
+      edited();
     };
     label.append(input, piece.id);
     root.append(label);
@@ -2585,7 +2621,8 @@ function status(prefix = ""): void {
     `${prefix ? `${prefix}\n` : ""}${result.valid ? "Library valid for declared region type IDs. Strategy availability is not checked." : `${result.errors.length} validation issue(s):\n${result.errors.join("\n")}`}`;
   $("chainStatus").classList.toggle("invalid", !result.valid);
 }
-function changed(): void {
+/** Save the draft, recovering any rejected one first. */
+function save(): void {
   try {
     // If startup could not read storage, recover it before attempting any write.
     if (unreadSavedDraft) {
@@ -2613,18 +2650,53 @@ function changed(): void {
       ? "Draft not saved: the rejected original could not be backed up. Original data remains in browser storage."
       : "Draft not saved: browser storage is unavailable. Copy the source JSON to preserve these edits.";
   }
+}
+/** A change to the library's structure or the selection: save and redraw the editor. */
+function changed(): void {
+  save();
   render();
+}
+/**
+ * An edit to the selected entry's properties: save and update what reads them, leaving the
+ * editor's controls, and so their focus and caret, in place (#538).
+ */
+function edited(): void {
+  save();
+  const names = entries();
+  if (!names.includes(selectedId)) return render();
+  showEntries(names);
+  $("chainSelected").textContent = selectedId;
+  // A refused rename left its text in the ID field; once another edit commits, show the real ID.
+  const id = document.getElementById("chainId") as HTMLInputElement | null;
+  if (id && id !== document.activeElement) id.value = selectedId;
+  $("chainSurface").dataset.selection = JSON.stringify([section(), selectedId]);
+  renderGallery();
+  refreshEditor?.();
+  area("chainSource").value = JSON.stringify(library, null, 2);
+  status(savedDraftWarning);
+}
+function showEntries(names: string[]): void {
+  const item = select("chainItem");
+  if (JSON.stringify([...item.options].map((o) => o.value)) !== JSON.stringify(names))
+    item.replaceChildren(...names.map((id) => option(id)));
+  item.value = selectedId;
 }
 function render(): void {
   closePopup();
+  refreshEditor = null;
   const names = entries();
   if (!names.includes(selectedId)) selectedId = names[0] ?? "";
-  select("chainItem").replaceChildren(...names.map((id) => option(id)));
-  select("chainItem").value = selectedId;
+  showEntries(names);
   renderGallery();
   const editor = $("chainSurface");
   const properties = $("chainProperties");
   const selection = JSON.stringify([section(), selectedId]);
+  // Redrawing the same entry returns focus and caret to the control that had them.
+  const focused = document.activeElement;
+  const restore = editor.dataset.selection === selection && focused?.id &&
+    (editor.contains(focused) || properties.contains(focused))
+    ? { id: focused.id, start: (focused as HTMLInputElement).selectionStart, end: (focused as HTMLInputElement).selectionEnd }
+    : null;
   if (editor.dataset.selection !== selection) {
     editor.scrollTop = 0;
     properties.parentElement!.scrollTop = 0;
@@ -2649,6 +2721,16 @@ function render(): void {
     if (section() === "tileSets") renderTileSets(editor);
     if (section() === "setPieces") renderSetPieces(properties, editor);
     if (section() === "setPieceClasses") renderSetPieceClasses(editor);
+  }
+  const again = restore ? document.getElementById(restore.id) : null;
+  if (restore && again) {
+    again.focus({ preventScroll: true });
+    try {
+      if (again instanceof HTMLInputElement && typeof restore.start === "number")
+        again.setSelectionRange(restore.start, restore.end);
+    } catch {
+      /* number inputs have no selection */
+    }
   }
   area("chainSource").value = JSON.stringify(library, null, 2);
   status(savedDraftWarning);
