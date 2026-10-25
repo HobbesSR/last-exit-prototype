@@ -29,7 +29,8 @@
     "micro": "node tools/micro-region.mjs",
     "decompose": "node tools/decompose-region.mjs",
     "fill": "node tools/builder-fill.mjs",
-    "forgejo:usage": "node tools/forgejo-usage.mjs"
+    "forgejo:usage": "node tools/forgejo-usage.mjs",
+    "docs:reads": "node tools/doc-reads.mjs"
   },
   "dependencies": {
     "@dimforge/rapier2d-compat": "0.21.0",

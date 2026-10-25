@@ -62,7 +62,7 @@ fixture rules in AGENTS even when complete provenance has one owner.
 
 | Class | Retained paths and source context |
 | --- | --- |
-| Maintained command/test surface | `tools/{micro-region,decompose-region,builder-fill}.mjs`; `map/tools/{cli,mcp,sweep}.mts` and dependencies; `tools/forgejo-usage.mjs` is machine-local process tooling |
+| Maintained command/test surface | `tools/{micro-region,decompose-region,builder-fill}.mjs`; `map/tools/{cli,mcp,sweep}.mts` and dependencies; `tools/forgejo-usage.mjs` and `tools/doc-reads.mjs` are machine-local process tooling |
 | Active navigation research/test dependencies | `tools/navigation/{clearance,graph,hierarchy,optimistic,witnesses}.mjs`; retain while #353 remains open and while tests import them |
 | Reproducible navigation reports | `tools/navigation/{report,continuation}.mjs`, `docs/reports/navigation-364.json`, `navigation-364-continuation.json`; source pins and limits in [42.1](42.1-navigation-experiment.md). `tools/navigation/portal-report.mjs` and `docs/reports/navigation-420.json`, in [42.5](42.5-portal-graph.md). `tools/navigation/mesh-report.mjs` and `docs/reports/navigation-422.json`, in [42.7](42.7-navigation-mesh.md) |
 | Fixture-reproduction witnesses | `tools/compound-siting-audit.mjs`, `compound-siting-solution-audit.mjs`; exact briefs and commands in the fixture README; full-map regeneration is a different workload |
@@ -122,5 +122,6 @@ belong in one place, linked by the guide and by the parts that need them.
 Issue #100 migrates 17, 20, 22 and 51, whose breadth was already making tasks load
 unrelated context. Other files keep their identities and content; split them when
 their task boundaries justify it; #510 split 53, 54, 22.6 and 20.3 that way, after measuring
-what agents' reads of them loaded. New topics can use children instead of filling
+what agents' reads of them loaded (`npm run docs:reads`, from Claude Code transcripts;
+`-- --since <ISO date>` measures after a split). New topics can use children instead of filling
 another top-level range. The two-digit area system in [00](00-index.md) stays intact.
