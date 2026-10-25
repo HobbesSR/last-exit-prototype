@@ -1,4 +1,5 @@
-import { compareCells } from '../../kernel/cell.ts';
+import { cellKey, compareCells } from '../../kernel/cell.ts';
+import { unusedComponents } from '../components.ts';
 import { buildCompound } from './compound.ts';
 import { buildCover } from './cover.ts';
 import { buildDepot } from './depot.ts';
@@ -141,7 +142,6 @@ export function planBlock(brief: RegionBrief): BlockPlan {
     pending.push(across ? { ...box, w: cut } : { ...box, h: cut },
       across ? { ...box, x: box.x + cut + AISLE, w: box.w - cut - AISLE } : { ...box, y: box.y + cut + AISLE, h: box.h - cut - AISLE });
   }
-  // Row order, so lots are numbered alike whatever order the split ran in.
   const frontageFits = (lot: Box, side: Side) => {
     const p = run(lot, side);
     for (let i = 0; i < p.length; i++) for (let d = 1; d <= 2; d++) {
@@ -153,16 +153,33 @@ export function planBlock(brief: RegionBrief): BlockPlan {
   };
   const corners = (lot: Box) => CORNERS.filter(corner => corner.every(side => frontageFits(lot, side)));
   const hasHintedSide = (lot: Box) => (['N', 'E', 'S', 'W'] as Side[]).some(side => hintedSide(lot, side));
-  const lotForPart = (part: Box): Box | undefined => {
+  const candidatesFor = (part: Box): Box[] => {
     const candidates = CORNERS.map(attach => largestRectangle({ cellSize: 1, bounds: part,
       has: (x, y) => inner(x, y, attach) }, MIN_LOT))
       .filter((lot): lot is Box => !!lot && safeAttachment(lot) && corners(lot).length > 0);
     candidates.sort((a, b) => Number(hasHintedSide(b)) - Number(hasHintedSide(a))
       || b.w * b.h - a.w * a.h || a.y - b.y || a.x - b.x);
-    return candidates[0];
+    return candidates;
   };
-  const lots = parts.map(lotForPart).filter((lot): lot is Box => !!lot)
-    .sort((a, b) => a.y - b.y || a.x - b.x);
+  // A lot may not cut the alleys in two. On a concave mask, a side the lot attaches to
+  // can be boundary for only part of its length, and the lot would then wall off the
+  // circulation beyond it. The alleys are one `open` child and must keep their own
+  // promise, so each part takes its best candidate that leaves them one area, or none.
+  const chosen = new Set<string>();
+  const keepsAlleys = (lot: Box) => {
+    const kept = new Set(chosen);
+    for (let y = lot.y; y < lot.y + lot.h; y++) for (let x = lot.x; x < lot.x + lot.w; x++) kept.add(cellKey({ x, y }));
+    return unusedComponents(mask.cells, kept).length === 1;
+  };
+  // Row order, so lots are chosen and numbered alike whatever order the split ran in.
+  const lots: Box[] = [];
+  for (const part of [...parts].sort((a, b) => a.y - b.y || a.x - b.x)) {
+    const lot = candidatesFor(part).find(keepsAlleys);
+    if (!lot) continue;
+    lots.push(lot);
+    for (let y = lot.y; y < lot.y + lot.h; y++) for (let x = lot.x; x < lot.x + lot.w; x++) chosen.add(cellKey({ x, y }));
+  }
+  lots.sort((a, b) => a.y - b.y || a.x - b.x);
 
   const taken = new Set(brief.portals.map(portal => portal.id));
   const unique = (id: string) => { while (taken.has(id)) id += '+'; taken.add(id); return id; };
