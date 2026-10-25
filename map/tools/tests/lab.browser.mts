@@ -404,6 +404,10 @@ try {
   );
 
   await page.locator("#chainSection").selectOption("classes");
+  assert.equal(await page.locator("#chainSurface #chainId").count(), 1, "non-visual entry identity belongs to its central property form");
+  assert.equal(await page.locator("#chainSurface #chainRegionType").count(), 1);
+  assert.equal(await page.locator("#chainProperties input").count(), 0, "class fields are not split across panes");
+  await page.screenshot({ path: `${OUT}/class-properties.png` });
   await page.locator("#chainAdd").click();
   await page.locator("#chainId").fill("checkpoint");
   await page.locator("#chainId").blur();
@@ -441,6 +445,10 @@ try {
   await page.locator("#chainSection").selectOption("setPieces");
   await page.locator("#chainPrimaryClass").selectOption("checkpoint");
   await page.locator("#chainSection").selectOption("setPieceClasses");
+  assert.equal(await page.locator("#chainSurface #chainId").count(), 1);
+  assert.equal(await page.locator("#chainSurface #chainPlacementRule").count(), 1);
+  assert.equal(await page.locator("#chainSurface #chainQuota").count(), 1, "set-piece class properties share one form");
+  await page.screenshot({ path: `${OUT}/set-piece-class-properties.png` });
   await page.locator("#chainPlacementRule").selectOption("charger");
   await page.locator("#chainQuota").fill("2");
   await page.locator("#chainQuota").blur();
@@ -655,6 +663,28 @@ try {
   assert.ok(await page.locator("#chainEditor .chain-inspector").evaluate((node: HTMLElement) => node.scrollTop > 0), "properties have their own scroll area");
   assert.deepEqual(await page.locator("#chainSurface").boundingBox(), surfaceBeforeScroll, "scrolling properties keeps the stage in place");
   await page.locator("#chainEditor .chain-inspector").evaluate((node: HTMLElement) => { node.scrollTop = 0; });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+
+  // Context menus fit beside pane edges and disappear when the workspace scrolls.
+  await page.setViewportSize({ width: 1180, height: 900 });
+  const assertPopupFits = async () => {
+    const box = await page.locator(".chain-popup").boundingBox();
+    assert.ok(box && box.x >= 8 && box.y >= 8 && box.x + box.width <= 1172 && box.y + box.height <= 892, "entire context menu fits in the viewport");
+  };
+  await page.locator('#chainGrid [data-cell="5,5"]').click({ button: "right" });
+  await assertPopupFits();
+  await page.screenshot({ path: `${OUT}/cell-menu-fitted.png` });
+  await page.locator("#chainSurface").evaluate((node: HTMLElement) => {
+    node.scrollTop = node.scrollTop > 0 ? 0 : node.scrollHeight;
+  });
+  await page.waitForFunction(() => !document.querySelector(".chain-popup"));
+  await page.locator('.chain-tool-group button[data-tool="segment"]').click();
+  await page.locator('[data-stage-segment="h:6,5"]').click({ button: "right" });
+  await assertPopupFits();
+  await page.screenshot({ path: `${OUT}/segment-menu-fitted.png` });
+  await page.locator("#chainEditor .chain-inspector").evaluate((node: HTMLElement) => { node.scrollTop = node.scrollHeight; });
+  await page.waitForFunction(() => !document.querySelector(".chain-popup"));
+  await page.locator('.chain-tool-group button[data-tool="paint"]').click();
   await page.setViewportSize({ width: 1440, height: 1000 });
 
   // Fill tool: flood fill stops at class boundaries
@@ -2195,6 +2225,9 @@ try {
     assert.ok(catalogue.x + catalogue.width <= preview.x && preview.x + preview.width <= inspector.x, "placeable preview sits between catalogue and placement information");
     assert.ok(inspector.x + inspector.width <= width && preview.y + preview.height <= 900, "selected placeable stays visible on desktop");
     assert.equal(await painted(view.locator(".placeable-preview")), true, "preview repaints after resize");
+    const examplesHeading = await view.getByRole("heading", { name: "Examples", exact: true }).boundingBox();
+    const exampleCard = await view.locator(".placeable-examples button").first().boundingBox();
+    assert.ok(examplesHeading.y >= preview.y + preview.height && exampleCard.y + exampleCard.height <= 900, "examples heading and first card remain visible with the preview");
     await placeablesPage.screenshot({ path: `${OUT}/placeable-workspace-${width}.png` });
   }
   const previewParams = await view.locator("details pre").textContent();

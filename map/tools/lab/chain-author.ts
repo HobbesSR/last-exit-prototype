@@ -135,6 +135,23 @@ function closePopup(): void {
     activePopup = null;
   }
 }
+/** Fixed menus stay within the viewport even when opened near a pane's edge. */
+function showPopup(popup: HTMLElement, x: number, y: number): void {
+  const margin = 8;
+  popup.style.maxWidth = `${window.innerWidth - margin * 2}px`;
+  popup.style.maxHeight = `${window.innerHeight - margin * 2}px`;
+  popup.style.overflow = "auto";
+  document.body.append(popup);
+  const bounds = popup.getBoundingClientRect();
+  popup.style.left = `${Math.max(margin, Math.min(x + 4, window.innerWidth - bounds.width - margin))}px`;
+  popup.style.top = `${Math.max(margin, Math.min(y + 4, window.innerHeight - bounds.height - margin))}px`;
+  activePopup = popup;
+}
+// A menu belongs to its current stage coordinates. Scrolling the menu itself is allowed.
+document.addEventListener("scroll", (event) => {
+  if (activePopup && !activePopup.contains(event.target as Node)) closePopup();
+}, true);
+window.addEventListener("resize", closePopup);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     closePopup();
@@ -625,8 +642,6 @@ function openSegmentPopup(
 
   const popup = document.createElement("div");
   popup.className = "chain-popup";
-  popup.style.left = `${clientX + 4}px`;
-  popup.style.top = `${clientY + 4}px`;
 
   const title = document.createElement("h4");
   title.textContent = `Segment ${key} (${isPerimeter ? "perimeter" : "interior"})`;
@@ -680,8 +695,7 @@ function openSegmentPopup(
     }
   }
 
-  document.body.append(popup);
-  activePopup = popup;
+  showPopup(popup, clientX, clientY);
 
   popupDismissListener = (evt: MouseEvent) => {
     if (!popup.contains(evt.target as Node)) {
@@ -1646,8 +1660,6 @@ function renderTiles(properties: HTMLElement, root: HTMLElement): void {
 
     const popup = document.createElement("div");
     popup.className = "chain-popup";
-    popup.style.left = `${e.clientX + 4}px`;
-    popup.style.top = `${e.clientY + 4}px`;
 
     const title = document.createElement("h4");
     title.textContent = `Cell ${x},${y} (${currentClass})`;
@@ -1712,8 +1724,7 @@ function renderTiles(properties: HTMLElement, root: HTMLElement): void {
     };
 
     popup.append(fillRowBtn, fillColBtn);
-    document.body.append(popup);
-    activePopup = popup;
+    showPopup(popup, e.clientX, e.clientY);
 
     popupDismissListener = (evt: MouseEvent) => {
       if (!popup.contains(evt.target as Node)) {
@@ -2624,9 +2635,13 @@ function render(): void {
   $("chainPreview").replaceChildren();
   $("chainSelectedKind").textContent = select("chainSection").selectedOptions[0]?.textContent ?? "";
   $("chainSelected").textContent = selectedId || "No entry selected";
+  const formSection = section() === "classes" || section() === "setPieceClasses";
+  properties.parentElement!.querySelector("h3")!.textContent = formSection ? "Library tools" : "Properties";
   if (!selectedId) editor.append(paragraph("Add an entry to this section."));
   else {
-    properties.append(
+    // Non-visual entries are authored as one central form, including their identity.
+    if (formSection) editor.append(heading("Properties"));
+    (formSection ? editor : properties).append(
       field("ID", "chainId", selectedId, rename),
     );
     if (section() === "classes") renderClasses(editor);
