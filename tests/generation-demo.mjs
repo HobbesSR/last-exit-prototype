@@ -14,7 +14,7 @@ const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-generation-dem
 await mkdir('test-results', { recursive: true });
 const { server, base, browser } = await serveWithBrowser({ replayDir, profileSummary: false, devTools: 'all' });
 try {
-  const page = await browser.newPage({ viewport: { width: 1200, height: 900 } }), errors = [];
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }), errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) errors.push(message.text()); });
   await page.goto(`${base}/dev/micro/generation`);
@@ -28,6 +28,38 @@ try {
   assert.ok(initial.result.assignments.filter(a => a.role === 'lot').length >= 2, 'the example has several lots');
   assert.ok(initial.result.assignments.some(a => a.role === 'alleys'), 'the example has alleys between its lots');
   assert.ok(initial.result.assignments.every(a => Object.hasOwn(REGION_TYPES, a.builder)), 'every child has a registered builder');
+  // Each stage shares one fitted desktop preview; pointer coordinates follow its CSS size.
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    for (const stage of ['region', 'decomposition', 'generated', 'walk']) {
+      await page.locator(`[data-stage="${stage}"]`).click();
+      await page.waitForFunction(() => {
+        const rect = document.querySelector('#preview').getBoundingClientRect();
+        const view = window.generationDemoDebug().view;
+        return Math.abs(rect.width - view.width) < 1 && Math.abs(rect.height - view.height) < 1;
+      });
+      assert.equal(await page.evaluate(() => { const canvas = document.querySelector('#preview'); return Math.abs(canvas.width - canvas.getBoundingClientRect().width * devicePixelRatio) <= 1; }), true, 'canvas bitmap matches display density');
+      const box = await page.locator('#preview').boundingBox();
+      assert.ok(box.width > 200 && box.height > 200, 'active preview has useful drawing space');
+      if (viewport.width > 900) {
+        assert.ok(box.y + box.height <= viewport.height, 'desktop preview stays in the viewport');
+        assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), true, 'desktop panels scroll independently');
+      }
+      if (stage !== 'region') {
+        const target = await page.evaluate(() => {
+          const d = window.generationDemoDebug(), r = d.result.regions.at(-1), c = r.spec.cells[0], size = d.result.plan.context.cellSize;
+          return { id: r.spec.id, x: d.view.offset.x + (c.x + .5) * size * d.view.scale, y: d.view.offset.y + (c.y + .5) * size * d.view.scale };
+        });
+        await page.locator('#preview').click({ position: { x: target.x, y: target.y } });
+        assert.equal(await page.locator('#piece').inputValue(), target.id, 'canvas selects the child under the pointer after resizing');
+        await page.locator('[data-stage="region"]').click();
+        await page.locator(`[data-stage="${stage}"]`).click();
+        assert.equal(await page.locator('#piece').inputValue(), target.id, 'stage switching retains child selection');
+      }
+      await page.screenshot({ path: `test-results/generation-workspace-${viewport.width}-${stage}.png`, fullPage: true });
+    }
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.screenshot({ path: 'test-results/generation-demo-example.png', fullPage: true });
   await page.getByRole('button', { name: 'Region', exact: true }).click();
   assert.deepEqual(await page.evaluate(() => window.generationDemoDebug().stage), 'region');
