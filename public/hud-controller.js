@@ -5,7 +5,7 @@ import { carriedCell, SLOT_COUNT } from '/shared/equipment.ts';
 import { discoveryGrid, isFeatureDiscovered } from '/shared/discovery.ts';
 import { slotPresentation } from '/equipment-ui.js';
 import * as profiler from '/shared/profiler.ts';
-import { $, HZ, kitName, kitSkill, time, SHIPPED_PRESENTATION, UNAVAILABLE } from '/ui.js';
+import { $, HZ, kitName, kitSkill, tickRate, time, SHIPPED_PRESENTATION, UNAVAILABLE } from '/ui.js';
 
 // Escape pods in the matches older recordings hold, for their outcome lines; the live count is the rule's.
 const RECORDED_ESCAPE_SLOTS = 3;
@@ -134,6 +134,8 @@ export function createHUDController(actions) {
   // `presentation` is the displayed match's content descriptor, null when unknown; `hz` its tick rate.
   function hud({ state, arenaMap, playerId, view, savedReplay, selection: { moveFrom }, visibility, discovery, presentation = SHIPPED_PRESENTATION, hz = HZ }) {
     const me = state.players.find(p => p.id === playerId) || (view === 'replay' ? state.players[0] : null);
+    // Every countdown divides by the displayed match's rate, never the shipped HZ (#427).
+    const rate = tickRate(hz);
     dragEnabled = false;
     // The waiting area before a match (#236) has no clock, objective, loadout or outcome to show.
     const waiting = state.phase === 'waiting';
@@ -232,14 +234,14 @@ export function createHUDController(actions) {
       const skillTip = `${skillName} (Q)`;
       if ($('skill').dataset.tip !== skillTip) $('skill').dataset.tip = skillTip;
       
-      setText($('skill-cd'), state.hookActive ? 'RELEASE' : me.cooldown ? `${(me.cooldown / HZ).toFixed(1)}s` : 'READY');
+      setText($('skill-cd'), state.hookActive ? 'RELEASE' : me.cooldown ? `${(me.cooldown / rate).toFixed(1)}s` : 'READY');
       $('skill').classList.toggle('active', me.boost > 0 || me.cloak > 0);
       
       // A hook in flight or pulling is released by the same skill, so cooldown alone does not disable it.
       const skillDisabled = me.cooldown > 0 && !state.hookActive || me.status !== 'active';
       if ($('skill').disabled !== skillDisabled) $('skill').disabled = skillDisabled;
       
-      setText($('interact-label'), gladiator ? (me.railCd ? `${(me.railCd / HZ).toFixed(1)}s` : 'RAIL') : 'USE');
+      setText($('interact-label'), gladiator ? (me.railCd ? `${(me.railCd / rate).toFixed(1)}s` : 'RAIL') : 'USE');
       // A proximity hint in map order, deliberately not the simulation's nearest-gate choice (22.7).
       const nearbyDoor = nearbyGate(arenaMap, me, { accepts: g => g.kind === 'door', order: 'map' });
       if (nearbyDoor) setText($('interact-label'), nearbyDoor.open ? 'CLOSE' : nearbyDoor.locked ? 'UNLOCK' : 'OPEN');
@@ -264,7 +266,7 @@ export function createHUDController(actions) {
         
         if (me.status === 'respawning' && state.phase !== 'finished') {
           setText($('outcome-label'), 'GLADIATOR REDEPLOYMENT');
-          setText($('outcome-title'), `Returning in ${Math.max(0, Math.ceil((me.respawnAt - state.tick) / HZ))}s`);
+          setText($('outcome-title'), `Returning in ${Math.max(0, Math.ceil((me.respawnAt - state.tick) / rate))}s`);
           setText($('outcome-detail'), 'Earned upgrades are retained. Waiting for a safe transit station.');
         }
       }

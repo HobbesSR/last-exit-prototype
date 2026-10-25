@@ -130,6 +130,13 @@ export async function checkClientControllers(browser, base) {
       });
       const minimapDiscovery = { undiscovered, discoveredCell0, gladiatorFullMap, directedFullMap, undiscoveredPixelAlpha, discoveredPixelAlpha, undiscoveredHazardPixelAlpha };
 
+      // A replay recorded at another rate scales every countdown by that rate, not the shipped HZ (#427).
+      const timer = { ...me, role: 'gladiator', kit: 'warden', cooldown: 30, railCd: 15 };
+      render({ state: freeze({ ...state, players: [timer, state.players[1]] }), view: 'replay', hz: 10 });
+      const cooldowns = { skill: $('skill-cd').textContent, rail: $('interact-label').textContent };
+      render({ state: freeze({ ...state, players: [{ ...timer, status: 'respawning', respawnAt: state.tick + 45 }, state.players[1]] }), view: 'outcome', hz: 10 });
+      const replayTimers = { ...cooldowns, respawn: $('outcome-title').textContent };
+
       render({});
       const slots = [...$('equipment-slots').children].map(b => b.ariaLabel);
       const slot = index => $('equipment-slots').children[index];
@@ -182,7 +189,7 @@ export async function checkClientControllers(browser, base) {
       input.destroy(); hud.destroy(); key('KeyD'); key('KeyF'); $('fullscreen-toggle').click(); $('drop-item').click();
       const destroyed = collect(false);
       return { first, second, blurred, arranged, blocked, afterBlocked, reset, dialog, hidden, clicked, draggedMove, draggedDrop, cancelledDrag, tappedSlot, cancelledGestures, pinnedDrop, afterPinnedDrop, blockedDragDrop, destroyed,
-        dots: { visible, noSight, cloaked, roof, revealedUnderRoof, outsideViewport, directed }, slots, minimapDiscovery,
+        dots: { visible, noSight, cloaked, roof, revealedUnderRoof, outsideViewport, directed }, slots, minimapDiscovery, replayTimers,
         deathOutcomeVisible, deathOutcomeHiddenInDev, deathOutcomeHiddenInReplay, deathOutcomeRestored,
         beforeDestroy, afterDestroy: { selectionChanges, fullscreenActions, replayActions }, buttonsAfterDestroy: $('equipment-slots').children.length,
         sneakReleaseCancelled: sneakRelease.defaultPrevented };
@@ -224,6 +231,7 @@ export async function checkClientControllers(browser, base) {
     assert.equal(result.minimapDiscovery.undiscoveredPixelAlpha, 0, 'undiscovered terrain has empty alpha');
     assert.ok(result.minimapDiscovery.discoveredPixelAlpha > 0, 'discovered terrain draws visible pixels');
     assert.ok(result.minimapDiscovery.undiscoveredHazardPixelAlpha > 0, 'hazard wall draws across undiscovered terrain');
+    assert.deepEqual(result.replayTimers, { skill: '3.0s', rail: '1.5s', respawn: 'Returning in 5s' }, 'HUD countdowns use the displayed match tick rate');
     assert.equal(result.slots.length, 6); assert.match(result.slots[5], /^Slot 6: /);
     assert.deepEqual(result.beforeDestroy, result.afterDestroy); assert.equal(result.beforeDestroy.fullscreenActions, 3); assert.equal(result.buttonsAfterDestroy, 0);
     assert.equal(result.sneakReleaseCancelled, true, 'preserve the original property handler return-false behavior');
