@@ -31,6 +31,11 @@ Open one of the LAN URLs printed by the server, such as `http://192.168.1.25:310
 
 Development previews and their controls are in [20.5](docs/20.5-tools-and-next-boundaries.md#development-previews).
 
+For the isolated jelly and player-squish prototype, run `npm run physics:jelly`
+and open `test-results/physics-jelly.html`. Play or seek through four recorded
+scenes without a server. This lab changes no live gameplay; details and open
+decisions are in [42.21](docs/42.21-jelly-squish.md).
+
 | Action | Keyboard and mouse | Touch |
 | --- | --- | --- |
 | Move | WASD or arrow keys | Left virtual stick |

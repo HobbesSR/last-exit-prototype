@@ -141,6 +141,25 @@ behavior. Contract and promotion questions are in [29.1](../../docs/29.1-physics
 [29.2](../../docs/29.2-physics-state-networking.md), and
 [17.3](../../docs/17.3-product-gameplay.md); evidence is [42.18](../../docs/42.18-physics-p7.md).
 
+## Jelly and player compression prototype (#455)
+
+Run `npm run physics:jelly` and open `test-results/physics-jelly.html` directly
+in a browser. Select a witness, press Play, or seek through retained frames.
+The JSON export includes the initial scene, ordered actions, transforms,
+compression state and lab threshold events. Playback needs no server or solver.
+`node tools/physics/jelly-report.mjs <output.json>` chooses another output path.
+
+Four synthetic scenes show stretched-jelly recovery, wall loading, opposing
+player presses and a one-sided control. The player collider stays radius 12;
+visual compression never changes collision geometry. The discrete jelly nodes
+collide, but the filled connecting artwork is not a continuous shell collider.
+The threshold signal causes no damage or death. Fixed-wall CCD contacts may have
+no reported impulse, so the force proxy is not ready for gameplay crushing.
+
+Checks: `node --test tests/physics-jelly.test.js tests/physics-lab-contacts.test.js`
+and `node tests/physics-jelly.browser.mjs`. Assumptions, evidence and open
+promotion choices are in [42.21](../../docs/42.21-jelly-squish.md).
+
 ## Experimental P1 evidence (#438)
 
 The production adapter now lives in `shared/physics/`, separately from these lab

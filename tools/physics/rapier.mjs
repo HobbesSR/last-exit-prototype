@@ -270,6 +270,41 @@ export async function createWorld(scene, options = {}) {
     });
   }
 
+  function contacts() {
+    ensure();
+    const rows = [];
+    const seen = new Set();
+    for (const id of sorted(bodies)) {
+      const record = bodies.get(id);
+      const collider = native.getCollider(record.colliderHandle);
+      native.contactPairsWith(collider, otherCollider => {
+        const otherId = colliderIds.get(otherCollider.handle);
+        if (!otherId || otherId === id) return;
+        const a = id < otherId ? id : otherId;
+        const b = id < otherId ? otherId : id;
+        const key = JSON.stringify([a, b]);
+        if (seen.has(key)) return;
+        seen.add(key);
+        const first = native.getCollider(bodies.get(a).colliderHandle);
+        const second = native.getCollider(bodies.get(b).colliderHandle);
+        native.contactPair(first, second, (manifold, flipped) => {
+          let impulse = 0;
+          for (let i = 0; i < manifold.numContacts(); i++) {
+            impulse += Math.max(0, manifold.contactImpulse(i));
+          }
+          if (!(impulse > 0)) return;
+          const normal = manifold.normal();
+          const sign = flipped ? -1 : 1;
+          rows.push({ a, b, nx: normal.x * sign, ny: normal.y * sign, impulse: impulse * SCALE });
+        });
+      });
+    }
+    rows.sort((left, right) => left.a < right.a ? -1 : left.a > right.a ? 1 :
+      left.b < right.b ? -1 : left.b > right.b ? 1 :
+        left.nx - right.nx || left.ny - right.ny || left.impulse - right.impulse);
+    return rows;
+  }
+
   function cast(query) {
     ensure();
     const x = finite(query?.x), y = finite(query?.y), dx = finite(query?.dx), dy = finite(query?.dy);
@@ -338,5 +373,5 @@ export async function createWorld(scene, options = {}) {
     for (const joint of scene?.joints ?? []) addJoint(joint);
   } catch (error) { dispose(); throw error; }
   return { settings, step, states, addBody, removeBody, addJoint, removeJoint,
-    motor, impulse, checkpoint, restore, cast, counts, dispose };
+    motor, impulse, checkpoint, restore, cast, contacts, counts, dispose };
 }
