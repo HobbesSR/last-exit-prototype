@@ -12,7 +12,7 @@ import path from "node:path";
 
 const FORGEJO = "mcp__forgejo__";
 
-function resultChars(content) {
+export function resultChars(content) {
   if (typeof content === "string") return content.length;
   if (!Array.isArray(content)) return 0;
   return content.reduce((n, part) => n + (typeof part?.text === "string" ? part.text.length : 0), 0);
@@ -90,7 +90,7 @@ export function report(records, split) {
   return out.join("\n");
 }
 
-function transcriptFiles(dir, match) {
+export function transcriptFiles(dir, match) {
   const files = [];
   const walk = (d) => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
