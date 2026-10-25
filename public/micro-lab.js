@@ -13,6 +13,7 @@ import { outline, transform } from '/shared/shape.ts';
 
 const $ = id => document.getElementById(id);
 const canvas = $('preview'), ctx = canvas.getContext('2d');
+let surface = { width: canvas.width, height: canvas.height };
 const title = name => name.charAt(0).toUpperCase() + name.slice(1);
 const gameTypes = Object.keys(REGION_TYPES);
 $('builder').replaceChildren(...[...gameTypes].sort().map(name => {
@@ -100,7 +101,9 @@ function diagnostics() {
 function project(point) { return { x: offset.x + point.x * scale, y: offset.y + point.y * scale }; }
 function path(points) { ctx.beginPath(); points.forEach((p, i) => { const q = project(p); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }); ctx.closePath(); }
 function draw() {
-  const { width, height } = canvas; ctx.clearRect(0, 0, width, height); ctx.fillStyle = '#0b1515'; ctx.fillRect(0, 0, width, height);
+  const { width, height } = surface;
+  ctx.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
+  ctx.clearRect(0, 0, width, height); ctx.fillStyle = '#0b1515'; ctx.fillRect(0, 0, width, height);
   if (!result) return;
   const spec = specOf(result), cellSize = spec.cellSize;
   drawn = {};
@@ -126,15 +129,15 @@ function builtBounds(spec) {
 const gridPoint = (x, y, size) => ({ x: x * size, y: y * size });
 function line(a, b, colour, width) { const p = project(a), q = project(b); ctx.strokeStyle = colour; ctx.lineWidth = width; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); }
 /** Draw the building traces in world units through the shared drawing (`building/draw.ts`), at the preview's projection. */
-function inWorld(drawTraces) { ctx.save(); ctx.setTransform(scale, 0, 0, scale, offset.x, offset.y); try { return drawTraces(ctx, traces, 1 / scale); } finally { ctx.restore(); } }
+function inWorld(drawTraces) { ctx.save(); ctx.transform(scale, 0, 0, scale, offset.x, offset.y); try { return drawTraces(ctx, traces, 1 / scale); } finally { ctx.restore(); } }
 function walkerRadius() { return microMetrics(specOf(result)).body[avatar.role === 'gladiator' ? 'hunter' : 'contestant']; }
 function fitView() { zoom = 1; pan = { x: 0, y: 0 }; $('zoom-level').value = '100%'; }
-function zoomView(factor, at = { x: canvas.width / 2, y: canvas.height / 2 }) {
+function zoomView(factor, at = { x: surface.width / 2, y: surface.height / 2 }) {
   const next = Math.max(0.5, Math.min(8, zoom * factor)), ratio = next / zoom;
-  pan = { x: (pan.x + canvas.width / 2 - at.x) * ratio + at.x - canvas.width / 2, y: (pan.y + canvas.height / 2 - at.y) * ratio + at.y - canvas.height / 2 };
+  pan = { x: (pan.x + surface.width / 2 - at.x) * ratio + at.x - surface.width / 2, y: (pan.y + surface.height / 2 - at.y) * ratio + at.y - surface.height / 2 };
   zoom = next; $('zoom-level').value = `${Math.round(zoom * 100)}%`; draw();
 }
-function canvasPoint(event) { const rect = canvas.getBoundingClientRect(); return { x: (event.clientX - rect.left) * canvas.width / rect.width, y: (event.clientY - rect.top) * canvas.height / rect.height }; }
+function canvasPoint(event) { const rect = canvas.getBoundingClientRect(); return { x: (event.clientX - rect.left) * surface.width / rect.width, y: (event.clientY - rect.top) * surface.height / rect.height }; }
 $('zoom-in').addEventListener('click', () => zoomView(1.5));
 $('zoom-out').addEventListener('click', () => zoomView(1 / 1.5));
 $('fit-view').addEventListener('click', () => { fitView(); draw(); });
@@ -169,7 +172,7 @@ $('generate').addEventListener('click', generate); $('reset').addEventListener('
 for (const id of ['design-graph', 'allocation', 'spans', 'openings']) $(id).addEventListener('change', draw);
 for (const id of ['builder', 'region-shape', 'region-width', 'region-height', 'seed', 'loot-tier', 'north-port']) $(id).addEventListener('change', generate);
 $('download').addEventListener('click', () => downloadJson(`region-${result.brief.type}-${result.brief.seed}.json`, result, 2));
-window.microLabDebug = () => structuredClone({ result, imported: imported?.id ?? null, buildings: traces, promise, portalRoutes, drawn, view: { zoom, pan, scale, offset, origin }, avatar: avatar && { x: avatar.x, y: avatar.y, role: avatar.role }, collision: collision && { obstacles: collision.obstacles.length, gates: collision.gates.length } });
+window.microLabDebug = () => structuredClone({ result, imported: imported?.id ?? null, buildings: traces, promise, portalRoutes, drawn, view: { zoom, pan, scale, offset, origin, ...surface }, avatar: avatar && { x: avatar.x, y: avatar.y, role: avatar.role }, collision: collision && { obstacles: collision.obstacles.length, gates: collision.gates.length } });
 $('import').addEventListener('change', async event => {
   const file = event.target.files[0]; if (!file) return;
   try {
@@ -191,4 +194,23 @@ async function openLinked() {
   return !!brief && showImported(brief, 'Opened from a link.');
 }
 addEventListener('hashchange', openLinked);
+// Draw in CSS pixels while retaining a full-resolution backing store. This keeps
+// labels, strokes, zoom and pointer projection consistent across display scales.
+function resizePreview() {
+  const { width, height } = canvas.getBoundingClientRect(), ratio = devicePixelRatio || 1;
+  if (width < 1 || height < 1) return;
+  const pixelsWide = Math.round(width * ratio), pixelsHigh = Math.round(height * ratio);
+  if (surface.width === width && surface.height === height && canvas.width === pixelsWide && canvas.height === pixelsHigh) return;
+  surface = { width, height }; canvas.width = pixelsWide; canvas.height = pixelsHigh; draw();
+}
+new ResizeObserver(resizePreview).observe(canvas);
+addEventListener('resize', resizePreview);
+// Moving between monitors or changing browser zoom can change DPR without changing
+// the canvas's CSS box. Rearm the query for the new display scale after each change.
+function watchDisplayScale() {
+  matchMedia(`(resolution: ${devicePixelRatio}dppx)`).addEventListener('change', () => {
+    resizePreview(); watchDisplayScale();
+  }, { once: true });
+}
+watchDisplayScale();
 if (!await openLinked()) generate();

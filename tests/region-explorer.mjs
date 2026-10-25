@@ -13,7 +13,7 @@ const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-region-explore
 const { server, base, browser } = await serveWithBrowser({ replayDir, profileSummary: false, devTools: 'all' });
 try {
   await mkdir('test-results', { recursive: true });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 2 });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`${base}/dev`);
@@ -64,7 +64,7 @@ try {
   const canvas = page.locator('#preview'), box = await canvas.boundingBox();
   const place = async point => {
     const { view } = await debug(), box = await canvas.boundingBox();
-    await canvas.click({ position: { x: (view.offset.x + point.x * view.scale) * box.width / 960, y: (view.offset.y + point.y * view.scale) * box.height / 620 }, modifiers: ['Shift'] });
+    await canvas.click({ position: { x: (view.offset.x + point.x * view.scale) * box.width / view.width, y: (view.offset.y + point.y * view.scale) * box.height / view.height }, modifiers: ['Shift'] });
   };
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 + 45, box.y + box.height / 2 + 20); await page.mouse.up();
@@ -77,6 +77,78 @@ try {
   await place(point);
   const placed = await debug();
   assert.ok(Math.abs(placed.avatar.x - point.x) < 2, 'Shift-click places walker');
+  // The central work surface and primary actions stay on screen at both desktop
+  // targets. Resize then place in world space to catch stale pointer projection.
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }]) {
+    await page.setViewportSize(viewport);
+    await page.waitForFunction(() => {
+      const c = document.getElementById('preview'), r = c.getBoundingClientRect();
+      return c.width === Math.round(r.width * devicePixelRatio) && c.height === Math.round(r.height * devicePixelRatio);
+    });
+    for (const selector of ['#preview', '#generate', '#download', '#fit-view']) {
+      const rect = await page.locator(selector).boundingBox();
+      assert.ok(rect.x >= 0 && rect.y >= 0 && rect.x + rect.width <= viewport.width + 1 && rect.y + rect.height <= viewport.height + 1, `${selector} fits ${viewport.width}×${viewport.height}`);
+    }
+    const surface = await canvas.boundingBox();
+    assert.ok(surface.width > 600 && surface.height > 350, `preview owns a substantial central work area at ${viewport.width}: ${surface.width}×${surface.height}`);
+    await place(point);
+    const resized = await debug();
+    assert.ok(Math.abs(resized.avatar.x - point.x) < 2 && Math.abs(resized.avatar.y - point.y) < 2, 'resized Shift-click maps to world coordinates');
+    const inspector = page.locator('#diagnostics').locator('..');
+    const beforeScroll = await canvas.boundingBox();
+    await inspector.evaluate(panel => { panel.scrollTop = panel.scrollHeight; });
+    if (viewport.height === 720) assert.ok(await inspector.evaluate(panel => panel.scrollTop > 0), 'long diagnostics scroll inside their panel');
+    assert.deepEqual(await canvas.boundingBox(), beforeScroll, 'inspector scrolling leaves preview fixed');
+    await page.screenshot({ path: `test-results/region-workspace-${viewport.width}.png` });
+  }
+  // Navigation owns its natural height; extra nav content must shrink the workspace
+  // rather than push it below the desktop viewport.
+  const naturalTop = (await page.locator('.region-builder').boundingBox()).y;
+  await page.locator('.global-tool-wrapper').evaluate(nav => { nav.style.paddingBottom = '24px'; });
+  await page.waitForFunction(() => {
+    const c = document.getElementById('preview');
+    return c.height === Math.round(c.getBoundingClientRect().height * devicePixelRatio);
+  });
+  const fitted = await page.locator('.region-builder').boundingBox();
+  assert.equal(fitted.y, naturalTop + 24, 'test actually increases navigation height');
+  assert.ok(fitted.y + fitted.height <= 721, 'workspace fits below taller navigation');
+  await place(point);
+  assert.ok(Math.abs((await debug()).avatar.x - point.x) < 2, 'pointer mapping survives navigation resize');
+  await page.locator('.global-tool-wrapper').evaluate(nav => { nav.style.paddingBottom = ''; });
+
+  // Fractional Windows scaling also needs a full-resolution backing store. Check
+  // actual walker pixels as well as placement, so a missing draw transform fails.
+  const scaled = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1.25 });
+  await scaled.goto(`${base}/dev/micro`);
+  await scaled.waitForFunction(() => window.microLabDebug?.().avatar);
+  await scaled.getByLabel('Builder', { exact: true }).selectOption('region:open');
+  await scaled.waitForFunction(() => {
+    const c = document.getElementById('preview'), r = c.getBoundingClientRect();
+    return c.width === Math.round(r.width * devicePixelRatio) && c.height === Math.round(r.height * devicePixelRatio);
+  });
+  const target = await scaled.evaluate(() => {
+    const { view } = window.microLabDebug();
+    return { x: view.offset.x + 160 * view.scale, y: view.offset.y + 160 * view.scale };
+  });
+  await scaled.locator('#preview').click({ position: target, modifiers: ['Shift'] });
+  const pixels = await scaled.evaluate(() => {
+    const c = document.getElementById('preview'), { avatar, view } = window.microLabDebug();
+    const x = (view.offset.x + (avatar.x - view.origin.x) * view.scale) * c.width / view.width;
+    const y = (view.offset.y + (avatar.y - view.origin.y) * view.scale) * c.height / view.height;
+    return { avatar, color: [...c.getContext('2d').getImageData(Math.floor(x), Math.floor(y), 1, 1).data] };
+  });
+  assert.ok(Math.abs(pixels.avatar.x - 160) < 2 && Math.abs(pixels.avatar.y - 160) < 2, 'fractional-DPR placement uses CSS pixels');
+  assert.deepEqual(pixels.color, [142, 225, 224, 255], 'walker renders at the projected display pixel');
+  await scaled.screenshot({ path: 'test-results/region-workspace-dpr125.png' });
+  const display = await scaled.context().newCDPSession(scaled);
+  await display.send('Emulation.setDeviceMetricsOverride', { width: 1281, height: 720, deviceScaleFactor: 2, mobile: false });
+  await scaled.waitForFunction(() => {
+    const c = document.getElementById('preview'), r = c.getBoundingClientRect();
+    return devicePixelRatio === 2 && c.width === Math.round(r.width * 2) && c.height === Math.round(r.height * 2);
+  });
+  await scaled.locator('#preview').click({ position: target, modifiers: ['Shift'] });
+  assert.ok(await scaled.evaluate(() => Math.abs(window.microLabDebug().avatar.x - 160) < 2), 'changing display scale in place preserves pointer coordinates');
+  await scaled.close();
   await page.keyboard.down('ArrowRight');
   await page.waitForFunction(x => window.microLabDebug().avatar.x > x, placed.avatar.x);
   await page.keyboard.up('ArrowRight');
@@ -139,6 +211,9 @@ try {
   assert.equal((await debug()).imported, null);
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.getByLabel('Seed', { exact: true }).focus();
+  assert.equal(await page.getByLabel('Seed', { exact: true }).evaluate(input => document.activeElement === input), true, 'stacked parameters remain focusable');
+  await page.screenshot({ path: 'test-results/region-workspace-narrow.png', fullPage: true });
   assert.deepEqual(errors, []);
   console.log('Region Builder Explorer browser acceptance passed.');
 } finally {

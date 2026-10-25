@@ -6,37 +6,67 @@
   <meta name="theme-color" content="#172a2b">
   <title>Last Exit | Region Builder Explorer</title>
   <link rel="stylesheet" href="/micro-lab.css">
-  <style>#legend{padding:10px 14px 0;color:#8da59e;font-size:.82rem;border-top:1px solid #27403d;word-spacing:2px}.legend-loot{color:#f2ca55}.legend-route{color:#72d8d2}.legend-walker{color:#8ee1e0}.legend-door{color:#d66955}#buildings-note{font-size:.8rem;color:#8da59e;margin-bottom:6px}#buildings .warning{color:#e9ad59}#buildings .error{color:#ef7a6a}</style>
   <script type="importmap">{"imports":{"sat":"/sat-browser.js"}}</script>
   <script src="/vendor/sat/SAT.js"></script>
   <script type="module" src="/micro-lab.js"></script>
   <link rel="stylesheet" href="/dev/dev-nav.css">
   <script type="module" src="/dev/dev-nav.js"></script>
 </head>
-<body>
-  <main class="lab">
-    <header><div><span class="eyebrow">DEVELOPMENT TOOL</span><h1>Region Builder Explorer</h1><p>Choose a region type and shape, inspect its internals, and walk it as either body. Save the JSON to share a reproducible example.</p></div></header>
-    <section class="controls" aria-label="Region controls">
-      <label>Region type<select id="builder" aria-label="Builder"></select></label>
-      <label>Region shape<select id="region-shape" aria-label="Region shape"><option value="rect">Rectangle</option><option value="l">L shape</option><option value="hole">Courtyard hole</option></select></label>
-      <label>Width (cells)<input id="region-width" type="number" min="8" max="48" step="1" value="24"></label>
-      <label>Height (cells)<input id="region-height" type="number" min="8" max="48" step="1" value="18"></label>
-      <label>Seed<input id="seed" type="number" value="4217" step="1" aria-label="Seed"></label>
-      <label id="loot-tier-control">Loot tier<input id="loot-tier" type="number" min="1" max="5" value="2"></label>
-      <label class="check"><input id="north-port" type="checkbox"> Contestant north port</label>
-      <label class="check"><input id="routes" type="checkbox" checked> Show clearance routes</label>
-      <label class="check"><input id="roofs" type="checkbox"> Show roofs</label>
-      <label class="check building-view" id="design-graph-control"><input id="design-graph" type="checkbox"> Show design graph</label>
-      <label class="check building-view" id="allocation-control"><input id="allocation" type="checkbox"> Show allocation</label>
-      <label class="check building-view" id="spans-control"><input id="spans" type="checkbox"> Show spans</label>
-      <label class="check building-view" id="openings-control"><input id="openings" type="checkbox"> Show openings</label>
-      <label>Walk as<select id="role" aria-label="Walk as"><option value="contestant">Contestant</option><option value="gladiator">Hunter</option></select></label>
-      <div class="actions"><button id="generate" type="button">Generate region</button><button id="download" type="button" disabled>Download JSON</button><button id="reset" type="button" disabled>Reset walker</button></div>
-      <label>Load region JSON<input id="import" type="file" accept=".json,application/json"></label>
-    </section>
-    <section class="workspace">
-      <div class="canvas-wrap"><div class="view-controls"><button id="zoom-in" type="button" aria-label="Zoom in">+</button><button id="zoom-out" type="button" aria-label="Zoom out">−</button><button id="fit-view" type="button">Fit region</button><output id="zoom-level">100%</output></div><canvas id="preview" width="960" height="620" aria-label="Generated micro region preview"></canvas><p id="legend"><span class="legend-loot">●</span> Loot <span class="legend-route">━</span> Clearance route <span class="legend-walker">●</span> Walker <span class="legend-door">■</span> Door</p><p id="walk-note">Click the preview, then WASD or arrows to move. E opens nearby doors. Scroll to zoom, drag to pan; Shift-click clear ground to place the walker.</p></div>
-      <aside><h2>Generation</h2><p id="status" role="status">Choose a layout, then generate.</p><p id="scale-note"></p><dl id="diagnostics"></dl><h2>Ports and routes</h2><ul id="ports"></ul><h2>Buildings</h2><p id="buildings-note">Region types that build from a design show it here. Designs are not saved with the region.</p><ul id="buildings"></ul></aside>
+<body class="region-builder-page">
+  <main class="lab region-builder">
+    <header class="builder-heading">
+      <div><span class="eyebrow">REGION BUILDER</span><h1>Region Builder Explorer</h1></div>
+      <p>Generate, inspect, and walk a region. Controls apply automatically.</p>
+    </header>
+
+    <div class="builder-actions" aria-label="Region actions">
+      <button id="generate" type="button">Generate region</button>
+      <button id="download" type="button" disabled>Download JSON</button>
+      <label class="import-control">Load region JSON<input id="import" type="file" accept=".json,application/json"></label>
+    </div>
+
+    <section class="workspace builder-workspace" aria-label="Region Builder workspace">
+      <section class="controls parameter-panel" aria-label="Generation parameters">
+        <div class="panel-heading"><h2>Parameters</h2><p>Example region</p></div>
+        <div class="parameter-group">
+          <h3>Region</h3>
+          <label>Region type<select id="builder" aria-label="Builder"></select></label>
+          <label>Region shape<select id="region-shape" aria-label="Region shape"><option value="rect">Rectangle</option><option value="l">L shape</option><option value="hole">Courtyard hole</option></select></label>
+          <div class="dimension-fields">
+            <label>Width (cells)<input id="region-width" type="number" min="8" max="48" step="1" value="24"></label>
+            <label>Height (cells)<input id="region-height" type="number" min="8" max="48" step="1" value="18"></label>
+          </div>
+          <label>Seed<input id="seed" type="number" value="4217" step="1" aria-label="Seed"></label>
+        </div>
+        <div class="parameter-group">
+          <h3>Contents and ports</h3>
+          <label id="loot-tier-control">Loot tier<input id="loot-tier" type="number" min="1" max="5" value="2"></label>
+          <label class="check"><input id="north-port" type="checkbox"> Contestant north port</label>
+        </div>
+      </section>
+
+      <section class="preview-panel" aria-label="Region preview and view controls">
+        <div class="preview-toolbar">
+          <div class="walk-controls"><label>Walk as<select id="role" aria-label="Walk as"><option value="contestant">Contestant</option><option value="gladiator">Hunter</option></select></label><button id="reset" type="button" disabled>Reset walker</button></div>
+          <div class="view-controls" aria-label="Zoom controls"><button id="zoom-in" type="button" aria-label="Zoom in">+</button><button id="zoom-out" type="button" aria-label="Zoom out">&minus;</button><button id="fit-view" type="button">Fit region</button><output id="zoom-level">100%</output></div>
+        </div>
+        <div class="layer-controls" aria-label="Preview layers">
+          <label class="check"><input id="routes" type="checkbox" aria-label="Show clearance routes" checked> Routes</label>
+          <label class="check"><input id="roofs" type="checkbox" aria-label="Show roofs"> Roofs</label>
+          <label class="check building-view" id="design-graph-control"><input id="design-graph" type="checkbox" aria-label="Show design graph"> Design graph</label>
+          <label class="check building-view" id="allocation-control"><input id="allocation" type="checkbox" aria-label="Show allocation"> Allocation</label>
+          <label class="check building-view" id="spans-control"><input id="spans" type="checkbox" aria-label="Show spans"> Spans</label>
+          <label class="check building-view" id="openings-control"><input id="openings" type="checkbox" aria-label="Show openings"> Openings</label>
+        </div>
+        <div class="canvas-wrap"><div class="preview-surface"><canvas id="preview" width="960" height="620" aria-label="Generated micro region preview"></canvas></div></div>
+        <div class="preview-caption"><p id="legend"><span class="legend-loot">&#9679;</span> Loot <span class="legend-route">&#9473;</span> Clearance route <span class="legend-walker">&#9679;</span> Walker <span class="legend-door">&#9632;</span> Door</p><p id="walk-note">Click preview, then WASD or arrows to move; E opens doors. Scroll to zoom, drag to pan, Shift-click clear ground to place walker.</p></div>
+      </section>
+
+      <aside class="diagnostics-panel" aria-label="Region diagnostics">
+        <h2>Generation</h2><p id="status" role="status">Choose a layout, then generate.</p><p id="scale-note"></p><dl id="diagnostics"></dl>
+        <h2>Ports and routes</h2><ul id="ports"></ul>
+        <h2>Buildings</h2><p id="buildings-note">Region types that build from a design show it here. Designs are not saved with the region.</p><ul id="buildings"></ul>
+      </aside>
     </section>
   </main>
 </body>
