@@ -229,7 +229,7 @@ straight cut divides the pending spaces into two nonempty groups whose area
 ranges fit the two sides, then recursively partitions both sides. A singleton
 group becomes a room; larger groups can branch again. Both axes and all proper
 subsets of pending spaces are considered (at most 254 for eight spaces).
-Unlike `allocateCandidates` (20.3),
+Unlike `allocateCandidates` (20.3.2),
 this task requires an exact partition into named spaces with usable interfaces;
 the existing allocator scores independent claims and residuals and has no
 cross-piece feasibility hook. Extending that contract for this first consumer
