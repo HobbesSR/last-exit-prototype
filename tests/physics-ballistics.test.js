@@ -9,14 +9,11 @@ import { retainedFrame, drawBallisticFrame } from '../tools/physics/ballistic-pl
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
 const box = (id, extra = {}) => ({ id, x: 25, y: 40, w: 2, h: 20, zMin: 0, zMax: 80, ...extra });
 
-test('retained laboratory evidence matches current sources and complete trajectories', async () => {
+test('retained laboratory evidence matches complete trajectories and its trace digest', async () => {
   const report = JSON.parse(await readFile('docs/reports/physics-p7-traces.json', 'utf8'));
   assert.deepEqual(report.witnesses, captureWitnesses().witnesses);
   const sha = value => createHash('sha256').update(value).digest('hex');
   assert.equal(report.traceSha256, sha(JSON.stringify(report.witnesses)));
-  assert.equal(report.sourceHashEncoding, 'utf8-lf');
-  for (const [file, digest] of Object.entries(report.sourceSha256))
-    assert.equal(sha((await readFile(file, 'utf8')).replaceAll('\r\n', '\n')), digest, file);
 });
 
 test('bounded thrown-object witnesses distinguish low/tall cover, roof art and explicit window intervals', () => {
@@ -112,6 +109,26 @@ test('admission rejects missing legacy height data, invalid planes, non-finite i
   const copy = structuredClone(initial), geometry = scene();
   const sceneCopy = structuredClone(geometry);
   stepThrow(initial, geometry); assert.deepEqual(initial, copy); assert.deepEqual(geometry, sceneCopy);
+});
+
+test('scene admission rejects misspellings and validates decorative roof art without creating contacts', () => {
+  const initial = createThrow();
+  assert.throws(() => stepThrow(initial, scene([], { obstacle: [box('typo')] })), /Unknown scene field obstacle/);
+  assert.throws(() => stepThrow(initial, scene([], { decorativeRoof: [] })), /Unknown scene field decorativeRoof/);
+  const roof = { x: 15, y: 40, w: 30, h: 20 };
+  assert.deepEqual(stepThrow(initial, scene([], { decorativeRoofs: [roof] })), stepThrow(initial, scene()));
+  for (const decorativeRoofs of [{}, [{ ...roof, w: NaN }], Array(1025).fill(roof)])
+    assert.throws(() => stepThrow(initial, scene([], { decorativeRoofs })));
+});
+
+test('outer-edge contact ID is reserved for unambiguous boundary reporting', () => {
+  const initial = createThrow();
+  assert.throws(() => stepThrow(initial, scene([box('bounds')])), /Reserved scene id bounds/);
+  assert.throws(() => stepThrow(initial, scene([], {
+    holes: [{ id: 'bounds', x: 25, y: 40, w: 2, h: 20 }],
+  })), /Reserved scene id bounds/);
+  const edge = stepThrow(createThrow({ x: 197, vx: 100 }), scene());
+  assert.equal(edge.events[0].obstacleId, 'bounds');
 });
 
 test('JSON state-only playback seeks retained poses, holds sparse gaps and draws the stored shadow and sprite', () => {

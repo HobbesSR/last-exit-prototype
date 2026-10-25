@@ -11,6 +11,7 @@ const MAX_HEIGHT = 1000 + LAUNCH_SPEED ** 2 / (2 * PROFILE.gravity);
 const MAX_SPEED = Math.sqrt(LAUNCH_SPEED ** 2 + 2 * PROFILE.gravity * 1000);
 const STATE_KEYS = new Set(['id', 'x', 'y', 'z', 'vx', 'vy', 'vz',
   'groundPlaneId', 'age', 'fuse', 'bounces', 'status', 'events']);
+const SCENE_KEYS = new Set(['groundPlaneId', 'bounds', 'holes', 'obstacles', 'decorativeRoofs']);
 const STATUSES = new Set(['flying', 'impact', 'fused', 'landed']);
 
 function finite(value, name, min, max) {
@@ -71,18 +72,24 @@ function rectangle(rect, name, height = false) {
 
 function validateScene(scene, groundPlaneId) {
   if (!scene || typeof scene !== 'object' || Array.isArray(scene)) throw new TypeError('Invalid scene');
+  for (const key of Object.keys(scene)) if (!SCENE_KEYS.has(key)) throw new TypeError(`Unknown scene field ${key}`);
   identity(scene.groundPlaneId, 'scene ground plane id');
   if (scene.groundPlaneId !== groundPlaneId) throw new RangeError('Ground plane mismatch');
   rectangle(scene.bounds, 'bounds');
   const holes = scene.holes ?? [];
   const obstacles = scene.obstacles ?? [];
+  const roofs = scene.decorativeRoofs ?? [];
   if (!Array.isArray(holes) || !Array.isArray(obstacles) || holes.length > 1024 || obstacles.length > 1024) {
     throw new RangeError('Invalid scene objects');
   }
+  if (!Array.isArray(roofs) || roofs.length > 1024) throw new RangeError('Invalid decorative roofs');
+  // Roof rectangles are validated artwork, never collision geometry.
+  for (const roof of roofs) rectangle(roof, 'bounds');
   const ids = new Set();
   for (const [list, name, elevated] of [[holes, 'hole', false], [obstacles, 'obstacle', true]]) {
     for (const box of list) {
       rectangle(box, name, elevated);
+      if (box.id === 'bounds') throw new RangeError('Reserved scene id bounds');
       if (ids.has(box.id)) throw new RangeError('Duplicate scene id');
       ids.add(box.id);
     }
