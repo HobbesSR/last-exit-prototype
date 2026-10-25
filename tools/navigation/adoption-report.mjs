@@ -25,7 +25,7 @@ import { acquireMachineLock } from '../../tests/helpers/machine-lock.js';
 
 const SEEDS = { '12x6': Number(process.env.SEEDS_12 ?? 8), '24x12': Number(process.env.SEEDS_24 ?? 3), '36x18': Number(process.env.SEEDS_36 ?? 2) };
 const CONTENTS = (process.env.CONTENTS ?? 'content-3,content-4').split(',');
-const SOURCES = ['shared/simulation/bots.ts', 'shared/navigation/knowledge.ts', 'shared/free-space.ts', 'shared/discovery.ts', 'shared/map/route.ts',
+const SOURCES = ['shared/simulation/bots.ts', 'shared/navigation/knowledge.ts', 'shared/free-space.ts', 'shared/shape-construction.ts', 'shared/discovery.ts', 'shared/map/route.ts',
   'shared/simulation/content.ts', 'tools/navigation/adoption-report.mjs'];
 const ROUTES = process.env.ROUTES !== '0', COLD = process.env.COLD === '1';
 /** A stall: an active contestant, not charging, that moves under STALL_RANGE units in STALL_TICKS ticks. */

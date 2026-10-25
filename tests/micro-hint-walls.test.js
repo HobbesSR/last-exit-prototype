@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { commitHintWalls, separateAreas, wallHints } from '../map/micro/hint-walls.ts';
+import { commitHintWalls, wallHints } from '../map/micro/hint-walls.ts';
+import { disjoint } from '../shared/shape-construction.ts';
 import { createBuilderCanvas } from '../map/micro/canvas.ts';
 import { hintsOfStrength } from '../map/micro/hints.ts';
 import { areasOverlap, createAddressedArea } from '../map/micro/addressed.ts';
@@ -39,7 +40,7 @@ test('walls stand in the cells beside each hint, against its line, and close a c
 
 test('walls meeting at a corner commit as one assembly, the earlier keeping the corner as intent', () => {
   const b = brief([NORTH, WEST, SOUTH]), walls = wallHints(b, { kind: 'building' });
-  const areas = separateAreas(walls.shapes);
+  const areas = disjoint(walls.shapes);
   assert.deepEqual(areas.map(bounds), [
     { x: 0, y: 0, w: 8 * SIZE, h: 10 },
     // The west wall's intent stops short of the north wall's.
@@ -51,7 +52,7 @@ test('walls meeting at a corner commit as one assembly, the earlier keeping the 
   commitHintWalls(canvas, walls);
   assert.deepEqual(canvas.elements, walls.elements);
   // A wall wholly inside an earlier rectangle, or a polygon over one, adds no area of its own.
-  assert.deepEqual(separateAreas([rect(0, 0, 40, 10), rect(10, 0, 20, 10), circle(5, 5, 3)]).map(bounds), [{ x: 0, y: 0, w: 40, h: 10 }]);
+  assert.deepEqual(disjoint([rect(0, 0, 40, 10), rect(10, 0, 20, 10), circle(5, 5, 3)]).map(bounds), [{ x: 0, y: 0, w: 40, h: 10 }]);
 });
 
 test('thickness and inset set the wall across its cells', () => {

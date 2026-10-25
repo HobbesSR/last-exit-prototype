@@ -60,7 +60,7 @@ test('dev module serving resolves geometry imports through registered vendors an
       const server = await createArenaServer({ devTools, replayDir, profileSummary: false });
       try {
         const base = await listen(server);
-        const source = await (await fetch(`${base}/shared/free-space.ts`)).text();
+        const source = await (await fetch(`${base}/shared/shape-construction.ts`)).text();
         for (const [name, url] of [['clipper-lib', '/vendor/clipper.mjs'], ['delaunator', '/vendor/delaunator.mjs'],
           ['@kninnug/constrainautor', '/vendor/constrainautor.mjs']]) {
           assert.ok(source.includes(`from '${devTools === 'all' ? url : name}'`));
