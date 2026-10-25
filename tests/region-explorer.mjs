@@ -13,7 +13,7 @@ const replayDir = await mkdtemp(path.join(os.tmpdir(), 'last-exit-region-explore
 const { server, base, browser } = await serveWithBrowser({ replayDir, profileSummary: false, devTools: 'all' });
 try {
   await mkdir('test-results', { recursive: true });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 2 });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(`${base}/dev`);
@@ -64,8 +64,7 @@ try {
   const canvas = page.locator('#preview'), box = await canvas.boundingBox();
   const place = async point => {
     const { view } = await debug(), box = await canvas.boundingBox();
-    const size = await canvas.evaluate(c => ({ width: c.width, height: c.height }));
-    await canvas.click({ position: { x: (view.offset.x + point.x * view.scale) * box.width / size.width, y: (view.offset.y + point.y * view.scale) * box.height / size.height }, modifiers: ['Shift'] });
+    await canvas.click({ position: { x: (view.offset.x + point.x * view.scale) * box.width / view.width, y: (view.offset.y + point.y * view.scale) * box.height / view.height }, modifiers: ['Shift'] });
   };
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 + 45, box.y + box.height / 2 + 20); await page.mouse.up();
@@ -84,7 +83,7 @@ try {
     await page.setViewportSize(viewport);
     await page.waitForFunction(() => {
       const c = document.getElementById('preview'), r = c.getBoundingClientRect();
-      return c.width === Math.round(r.width) && c.height === Math.round(r.height);
+      return c.width === Math.round(r.width * devicePixelRatio) && c.height === Math.round(r.height * devicePixelRatio);
     });
     for (const selector of ['#preview', '#generate', '#download', '#fit-view']) {
       const rect = await page.locator(selector).boundingBox();
@@ -102,6 +101,54 @@ try {
     assert.deepEqual(await canvas.boundingBox(), beforeScroll, 'inspector scrolling leaves preview fixed');
     await page.screenshot({ path: `test-results/region-workspace-${viewport.width}.png` });
   }
+  // Navigation owns its natural height; extra nav content must shrink the workspace
+  // rather than push it below the desktop viewport.
+  const naturalTop = (await page.locator('.region-builder').boundingBox()).y;
+  await page.locator('.global-tool-wrapper').evaluate(nav => { nav.style.paddingBottom = '24px'; });
+  await page.waitForFunction(() => {
+    const c = document.getElementById('preview');
+    return c.height === Math.round(c.getBoundingClientRect().height * devicePixelRatio);
+  });
+  const fitted = await page.locator('.region-builder').boundingBox();
+  assert.equal(fitted.y, naturalTop + 24, 'test actually increases navigation height');
+  assert.ok(fitted.y + fitted.height <= 721, 'workspace fits below taller navigation');
+  await place(point);
+  assert.ok(Math.abs((await debug()).avatar.x - point.x) < 2, 'pointer mapping survives navigation resize');
+  await page.locator('.global-tool-wrapper').evaluate(nav => { nav.style.paddingBottom = ''; });
+
+  // Fractional Windows scaling also needs a full-resolution backing store. Check
+  // actual walker pixels as well as placement, so a missing draw transform fails.
+  const scaled = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1.25 });
+  await scaled.goto(`${base}/dev/micro`);
+  await scaled.waitForFunction(() => window.microLabDebug?.().avatar);
+  await scaled.getByLabel('Builder', { exact: true }).selectOption('region:open');
+  await scaled.waitForFunction(() => {
+    const c = document.getElementById('preview'), r = c.getBoundingClientRect();
+    return c.width === Math.round(r.width * devicePixelRatio) && c.height === Math.round(r.height * devicePixelRatio);
+  });
+  const target = await scaled.evaluate(() => {
+    const { view } = window.microLabDebug();
+    return { x: view.offset.x + 160 * view.scale, y: view.offset.y + 160 * view.scale };
+  });
+  await scaled.locator('#preview').click({ position: target, modifiers: ['Shift'] });
+  const pixels = await scaled.evaluate(() => {
+    const c = document.getElementById('preview'), { avatar, view } = window.microLabDebug();
+    const x = (view.offset.x + (avatar.x - view.origin.x) * view.scale) * c.width / view.width;
+    const y = (view.offset.y + (avatar.y - view.origin.y) * view.scale) * c.height / view.height;
+    return { avatar, color: [...c.getContext('2d').getImageData(Math.floor(x), Math.floor(y), 1, 1).data] };
+  });
+  assert.ok(Math.abs(pixels.avatar.x - 160) < 2 && Math.abs(pixels.avatar.y - 160) < 2, 'fractional-DPR placement uses CSS pixels');
+  assert.deepEqual(pixels.color, [142, 225, 224, 255], 'walker renders at the projected display pixel');
+  await scaled.screenshot({ path: 'test-results/region-workspace-dpr125.png' });
+  const display = await scaled.context().newCDPSession(scaled);
+  await display.send('Emulation.setDeviceMetricsOverride', { width: 1281, height: 720, deviceScaleFactor: 2, mobile: false });
+  await scaled.waitForFunction(() => {
+    const c = document.getElementById('preview'), r = c.getBoundingClientRect();
+    return devicePixelRatio === 2 && c.width === Math.round(r.width * 2) && c.height === Math.round(r.height * 2);
+  });
+  await scaled.locator('#preview').click({ position: target, modifiers: ['Shift'] });
+  assert.ok(await scaled.evaluate(() => Math.abs(window.microLabDebug().avatar.x - 160) < 2), 'changing display scale in place preserves pointer coordinates');
+  await scaled.close();
   await page.keyboard.down('ArrowRight');
   await page.waitForFunction(x => window.microLabDebug().avatar.x > x, placed.avatar.x);
   await page.keyboard.up('ArrowRight');

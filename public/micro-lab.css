@@ -4,7 +4,9 @@
 .view-controls{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #27403d}.view-controls button{font:inherit;color:#e7f2ec;background:#1a2b2b;border:1px solid #49635e;border-radius:5px;padding:4px 10px}.view-controls output{color:#adc1ba;font-size:.8rem}#preview{cursor:grab}#preview:active{cursor:grabbing}#preview:focus-visible{outline:2px solid #b8ec76;outline-offset:-2px}
 
 /* Region Builder workspace. The base lab rules above also serve the other micro pages. */
-.region-builder{max-width:none;height:calc(100dvh - 92px);min-height:560px;padding:9px 18px 9px;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:8px}
+body.region-builder-page{display:flex;flex-direction:column;min-height:100dvh}
+.region-builder{width:100%;margin:0;max-width:none;flex:1 1 auto;min-height:0;padding:9px 18px 9px;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:8px}
+@media(min-width:801px){body.region-builder-page{height:100dvh;overflow:hidden}}
 .region-builder .builder-heading{align-items:center;justify-content:space-between;gap:16px;margin:0;min-width:0}
 .region-builder .builder-heading h1{font-size:1.4rem;line-height:1.15}
 .region-builder .builder-heading p{margin:0;max-width:490px;font-size:.82rem;text-align:right}
