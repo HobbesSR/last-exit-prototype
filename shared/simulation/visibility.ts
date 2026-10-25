@@ -28,7 +28,11 @@ export function couldSee(s: Game, viewer: Player | null | undefined, target: Pla
 export function visibleTo(s: Game, viewer: Player | null | undefined, target: Player): boolean {
   if (!viewer || viewer.id === target.id || target.status !== 'active') return true;
   if (viewer.role === 'gladiator' && target.revealed > 0) return true;
-  return !target.cloak && !roofConceals(s.map, viewer, target) && distance(viewer, target) < VISION && lineClear(s.map, viewer, target);
+  return !target.cloak && visiblePoint(s, viewer, target);
+}
+/** Geometric sight for a point without actor status, cloak, or reveal rules. */
+export function visiblePoint(s: Game, viewer: Vec2, target: Vec2): boolean {
+  return !roofConceals(s.map, viewer, target) && distance(viewer, target) < VISION && lineClear(s.map, viewer, target);
 }
 // What one client may learn about another player it can currently see. Everything omitted is either
 // private (inventory, ability timers, whether a slot is a bot) or unread by the renderer, so it never

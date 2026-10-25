@@ -1,42 +1,52 @@
-import { lineClear, sweptClear, VISION } from '../movement.ts';
+import { sweptClear } from '../movement.ts';
 import { bounds, segmentShapeDistance, type Shape } from '../shape.ts';
-import { roofConceals } from '../view.ts';
 import { discoveryGrid } from '../discovery.ts';
 import { actorRadius } from './actor-physics.ts';
 import { physicsRuntime } from './physics-runtime.ts';
-import { visibleTo } from './visibility.ts';
+import { visiblePoint, visibleTo } from './visibility.ts';
 import type { CollisionMap, Game, Player, Vec2 } from '../types.ts';
+import type { BodySpec, Transform } from '../physics/types.ts';
 
 // Local overlays never enter the static mesh, discovery, snapshots or replay state.
 const RANGE = 192, MARGIN = 2, EDGES_PER_BOT = 192, EDGES_PER_TICK = 1536;
 const distance = (a: Vec2, b: Vec2) => Math.hypot(a.x - b.x, a.y - b.y);
 interface Detour { goal: Vec2; last: Vec2; route: Vec2[]; source: Player['route'] }
+interface ObservedBody { kind: 'actor' | 'prop'; shape: Shape }
 const detours = new WeakMap<Player, Detour>();
 const work = new WeakMap<Game, { tick: number; edges: number }>();
 const localMaps = new WeakMap<Player, { source: CollisionMap; doors: string; map: CollisionMap }>();
+const collectionObservations = new WeakMap<Game, { players: Player[]; props: Array<{ spec: BodySpec; transform: Transform }> }>();
 export function dynamicNavigationWork(s: Game): number { return work.get(s)?.tick === s.tick ? work.get(s)!.edges : 0; }
 
+const sortedPlayers = (s: Game) => [...s.players].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+/** Scope sharing to the immutable pre-movement collection, never merely to a tick number. */
+export function beginDynamicNavigationCollection(s: Game): void {
+  if (s.content.dynamicNavigation && s.players.some(p => p.bot && p.status === 'active')) collectionObservations.set(s, {
+    players: sortedPlayers(s), props: physicsRuntime(s)?.world.solidPropStates() ?? [],
+  });
+}
+export function endDynamicNavigationCollection(s: Game): void { collectionObservations.delete(s); }
+
 /** Current sight only, including for full-map gladiators; sleep never changes eligibility. */
-export function observedBlockers(s: Game, p: Player): Shape[] {
-  const shapes: Shape[] = [];
-  for (const other of [...s.players].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0)) if (other !== p && other.status === 'active' && distance(p, other) <= RANGE
-    && visibleTo(s, p, other)) shapes.push({ kind: 'circle', x: other.x, y: other.y, r: actorRadius(s, other) });
-  const sees = (at: Vec2) => distance(p, at) <= RANGE && distance(p, at) < VISION
-    && !roofConceals(s.map, p, at) && lineClear(s.map, p, at);
-  const world = physicsRuntime(s)?.world;
-  for (const body of world?.solidPropStates() ?? []) {
+function observations(s: Game, p: Player): ObservedBody[] {
+  const bodies: ObservedBody[] = [], shared = collectionObservations.get(s);
+  for (const other of shared?.players ?? sortedPlayers(s)) if (other !== p && other.status === 'active' && distance(p, other) <= RANGE
+    && visibleTo(s, p, other)) bodies.push({ kind: 'actor', shape: { kind: 'circle', x: other.x, y: other.y, r: actorRadius(s, other) } });
+  const sees = (at: Vec2) => distance(p, at) <= RANGE && visiblePoint(s, p, at);
+  for (const body of shared?.props ?? physicsRuntime(s)?.world.solidPropStates() ?? []) {
     if (!sees(body.transform)) continue;
     const at = body.transform, shape = body.spec.shape;
-    if (shape.kind === 'circle') shapes.push({ kind: 'circle', x: at.x, y: at.y, r: shape.radius });
+    if (shape.kind === 'circle') bodies.push({ kind: 'prop', shape: { kind: 'circle', x: at.x, y: at.y, r: shape.radius } });
     else {
       const points = shape.kind === 'box' ? [{ x: -shape.hx, y: -shape.hy }, { x: shape.hx, y: -shape.hy },
         { x: shape.hx, y: shape.hy }, { x: -shape.hx, y: shape.hy }] : shape.vertices;
       const c = Math.cos(at.angle), sn = Math.sin(at.angle);
-      shapes.push({ kind: 'polygon', x: at.x, y: at.y, points: points.map(q => ({ x: c * q.x - sn * q.y, y: sn * q.x + c * q.y })) });
+      bodies.push({ kind: 'prop', shape: { kind: 'polygon', x: at.x, y: at.y, points: points.map(q => ({ x: c * q.x - sn * q.y, y: sn * q.x + c * q.y })) } });
     }
   }
-  return shapes;
+  return bodies;
 }
+export function observedBlockers(s: Game, p: Player): Shape[] { return observations(s, p).map(body => body.shape); }
 
 // A contestant's local static sweep must not learn a hidden door's current state.
 function localMap(s: Game, p: Player): CollisionMap {
@@ -64,18 +74,19 @@ function knownSegment(s: Game, p: Player, a: Vec2, b: Vec2, radius: number): boo
   return true;
 }
 
-/** Return a motor destination, or the current pose to queue. Never changes positions or the global route. */
+/** Return a detour or advance to a queue; prop contact remains the physical motor's job. */
 export function dynamicWaypoint(s: Game, p: Player, destination: Vec2): Vec2 {
   if (!s.content.dynamicNavigation) return destination;
-  const shapes = observedBlockers(s, p), radius = actorRadius(s, p);
+  const bodies = observations(s, p), shapes = bodies.map(body => body.shape), radius = actorRadius(s, p);
   // Rejoin beyond the observed body's far side, even if its centre is at the observation horizon.
   const length = distance(p, destination), horizon = RANGE + 64, scale = length > horizon ? horizon / length : 1;
   const goal = { x: p.x + (destination.x - p.x) * scale, y: p.y + (destination.y - p.y) * scale };
-  const footprints = shapes.map(shape => ({ shape, box: bounds(shape) }));
-  const clearBodies = (a: Vec2, b: Vec2) => {
+  const footprints = bodies.map(({ shape, kind }) => ({ shape, box: bounds(shape), actor: kind === 'actor' }));
+  const clearBodies = (a: Vec2, b: Vec2, actorsOnly = false) => {
     const left = Math.min(a.x, b.x) - radius - MARGIN, right = Math.max(a.x, b.x) + radius + MARGIN;
     const top = Math.min(a.y, b.y) - radius - MARGIN, bottom = Math.max(a.y, b.y) + radius + MARGIN;
-    return footprints.every(({ shape, box }) => {
+    return footprints.every(({ shape, box, actor }) => {
+      if (actorsOnly && !actor) return true;
       if (box.x > right || box.y > bottom || box.x + box.w < left || box.y + box.h < top) return true;
       const gap = segmentShapeDistance(a, b, shape);
       if (gap >= radius + MARGIN) return true;
@@ -86,6 +97,18 @@ export function dynamicWaypoint(s: Game, p: Player, destination: Vec2): Vec2 {
     });
   };
   if (clearBodies(p, goal)) { detours.delete(p); return destination; }
+  // A failed/deferred detour must not turn the whole observation horizon into a stop zone.
+  // Approach the first observed actor with the same safety margin. Props remain pushable:
+  // admitting a direct motor intent never bypasses solver/static/other-body contact.
+  const advance = () => {
+    if (clearBodies(p, goal, true)) return destination;
+    let low = 0, high = 1;
+    for (let i = 0; i < 14; i++) {
+      const t = (low + high) / 2, point = { x: p.x + (goal.x - p.x) * t, y: p.y + (goal.y - p.y) * t };
+      if (clearBodies(p, point, true)) low = t; else high = t;
+    }
+    return { x: p.x + (goal.x - p.x) * low, y: p.y + (goal.y - p.y) * low };
+  };
   const map = localMap(s, p);
   const clear = (a: Vec2, b: Vec2) => clearBodies(a, b) && knownSegment(s, p, a, b, radius) && sweptClear(map, a, b, radius);
   const old = detours.get(p);
@@ -97,7 +120,7 @@ export function dynamicWaypoint(s: Game, p: Player, destination: Vec2): Vec2 {
   let allowance = work.get(s);
   if (allowance?.tick !== s.tick) work.set(s, allowance = { tick: s.tick, edges: 0 });
   // Round-robin admission keeps a crowded room from always spending its allowance on its first bots.
-  if ((s.tick + s.players.indexOf(p)) % 4 !== 0) return p;
+  if ((s.tick + s.players.indexOf(p)) % 4 !== 0) return advance();
   const nodes: Vec2[] = [{ x: p.x, y: p.y }, goal];
   // Corners of conservative expanded bounds; all bodies still judge every edge, including overflow.
   for (const shape of shapes.slice().sort((a, b) => distance(p, a) - distance(p, b)).slice(0, 8)) {
@@ -122,11 +145,11 @@ export function dynamicWaypoint(s: Game, p: Player, destination: Vec2): Vec2 {
     closed.add(at);
     for (let i = 1; i < nodes.length; i++) {
       if (closed.has(i) || costs[at]! + distance(nodes[at]!, nodes[i]!) >= costs[i]!) continue;
-      if (used >= EDGES_PER_BOT || allowance.edges >= EDGES_PER_TICK) return p;
+      if (used >= EDGES_PER_BOT || allowance.edges >= EDGES_PER_TICK) return advance();
       used++; allowance.edges++;
       if (!clear(nodes[at]!, nodes[i]!)) continue;
       costs[i] = costs[at]! + distance(nodes[at]!, nodes[i]!); parents[i] = at;
     }
   }
-  return p;
+  return advance();
 }

@@ -47,7 +47,7 @@ for (let repeat = 0; repeat < 3; repeat++) for (const id of ['content-physics-6'
 }
 const sources = {};
 for (const file of ['shared/simulation/dynamic-navigation.ts', 'shared/simulation/bots.ts', 'shared/simulation/phased.ts',
-  'shared/simulation.ts', 'shared/physics/world.ts', 'shared/simulation/content.ts', 'tools/physics/navigation-report.mjs'])
+  'shared/simulation.ts', 'shared/physics/world.ts', 'shared/simulation/content.ts', 'shared/simulation/visibility.ts', 'tools/physics/navigation-report.mjs'])
   sources[file] = createHash('sha256').update(await readFile(file)).digest('hex');
 await mkdir(dirname(output), { recursive: true });
 await writeFile(output, JSON.stringify({ schema: 'physics-p8-crowd-1', node: process.version, cpu: cpus()[0]?.model,

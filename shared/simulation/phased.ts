@@ -5,6 +5,7 @@ import { addAuthoredProps, applyFloorDrag, synchronizePhysicalItems, validateWor
 import { HZ } from './rules.ts';
 import { syncWeapon, rearrangeEquipment, rearrangeInstanceEquipment } from '../equipment.ts';
 import { collectBotIntent } from './bots.ts';
+import { beginDynamicNavigationCollection, endDynamicNavigationCollection } from './dynamic-navigation.ts';
 import type { BotIntent } from './bots.ts';
 import { consumeInput } from './input.ts';
 import { respawn, finishMatch } from './lifecycle.ts';
@@ -199,7 +200,10 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
   r.world.commitMutations();
   // 2: roster-order collection from the same pre-movement world.
   const intents = new Map<Player, BotIntent>();
-  for (const p of s.players) if (p.status === 'active') intents.set(p, p.bot ? collectBotIntent(s, p) : { input: consumeInput(p, s.tick) });
+  beginDynamicNavigationCollection(s);
+  try {
+    for (const p of s.players) if (p.status === 'active') intents.set(p, p.bot ? collectBotIntent(s, p) : { input: consumeInput(p, s.tick) });
+  } finally { endDynamicNavigationCollection(s); }
   // 3: inventory then utilities/projectile admission, without damage callbacks during solve.
   for (const p of ordered(s)) {
     const intent = intents.get(p); if (!intent) continue;

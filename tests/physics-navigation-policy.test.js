@@ -57,15 +57,15 @@ test('local detours honor the remembered door state and do not inspect hidden ge
     const goal = { x: 480, y: 400 };
     const a = dynamicWaypoint(clear, clear.players[0], goal);
     const b = dynamicWaypoint(altered, altered.players[0], goal);
-    assert.deepEqual(a, clear.players[0], 'unsurveyed support queues the bot at its current pose');
-    assert.deepEqual(b, altered.players[0], 'hidden obstacle geometry cannot select a different local waypoint');
+    assert.ok(a.x > clear.players[0].x && a.x < clear.players[1].x, 'unsurveyed support advances only toward the observed actor');
+    assert.equal(a.y, clear.players[0].y, 'no unseen static geometry selects a lateral detour');
     assert.deepEqual(a, b);
 
     for (const s of [clear, altered]) s.players[0].discovery.surveyed = allSurveyed(s);
     const surveyedA = dynamicWaypoint(clear, clear.players[0], goal);
     const surveyedB = dynamicWaypoint(altered, altered.players[0], goal);
-    assert.notDeepEqual(surveyedA, clear.players[0], 'fully surveyed support permits a local detour');
-    assert.notDeepEqual(surveyedB, altered.players[0]);
+    assert.notEqual(surveyedA.y, clear.players[0].y, 'fully surveyed support permits a lateral detour');
+    assert.notEqual(surveyedB.y, altered.players[0].y);
   } finally { disposePhysics(clear); disposePhysics(altered); }
 });
 

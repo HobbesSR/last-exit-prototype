@@ -104,6 +104,7 @@ test('narrow corridor queues behind an actor without tunneling, then resumes whe
     const [p, blocker] = s.players, goal = { x: 500, y: 400 };
     for (let i = 0; i < 20; i++) drive(s, p, goal);
     assert.ok(p.x < blocker.x - 20, `actor waited outside blocker: ${p.x}`);
+    assert.ok(blocker.x - p.x < 30, `actor reached the queue instead of stopping at observation range: gap=${blocker.x - p.x}`);
     assert.ok(p.y > 390 && p.y < 410, `actor stayed inside corridor: ${p.y}`);
     assert.ok(teleport(s, blocker.id, 650, 500));
     for (let i = 0; i < 50; i++) drive(s, p, goal);

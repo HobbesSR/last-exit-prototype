@@ -10,6 +10,13 @@
 
 ## Deliberately deferred
 
+Strategic bot reasoning about physical blockages is deferred by Corey's
+[17.3](17.3-product-gameplay.md) entry 24. Local avoidance and ordinary physical
+pushing may fail against an immovable blockage. Future strategies must build on
+authorized observations and the separate planner/motor/solver boundaries
+([22.6](22.6-hierarchical-navigation.md)); current code must not assume that
+dynamic blockages can never be resolved.
+
 These are requirements for later milestones, not silently missing pieces of the
 current proof of concept:
 

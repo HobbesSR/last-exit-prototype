@@ -209,6 +209,9 @@ queue/resume, teleport invalidation, remembered-door/hidden-geometry equivalence
 and bounded crowd queries. `tests/physics-navigation.browser.mjs` compares a
 complete autonomous pickup/charge/escape trace in Node and Chrome. The P8
 live-chain whole-match witness is `tests/slow/physics-navigation.test.js`.
+Review regression files `physics-navigation-following`, `physics-navigation-heading`
+and `physics-navigation-cache` cover contact-range following, normal motor crate
+pushing, queued heading, shared point sight and collection-scoped query reuse.
 The crowd comparison is `node tools/physics/navigation-report.mjs`; run after other
 CPU-heavy gates finish. Evidence and limits belong to [42.19](42.19-physics-p8.md).
 
