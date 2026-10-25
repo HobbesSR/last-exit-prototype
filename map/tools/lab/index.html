@@ -154,10 +154,7 @@
         <div class="chain-heading">
           <div>
             <h2>Chain Library</h2>
-            <p>
-              Author the version 3 library used by the generation chain.
-              Portal preview covers one tile design; placement across tiles is resolved later.
-            </p>
+            <p>Author the generation chain's version 3 input library.</p>
           </div>
           <div class="chain-actions">
             <button id="chainLoadBundled" type="button">Edit bundled library</button
@@ -172,6 +169,7 @@
         </div>
         <div class="chain-layout">
           <aside class="chain-sidebar">
+            <h3>Catalogue</h3>
             <label
               >Library section<select id="chainSection">
                 <option value="classes">Cell classes</option>
@@ -192,8 +190,6 @@
               Generating from the draft on the World tab checks it against the
               game's region types.
             </p>
-          </aside>
-          <div class="chain-work">
             <div id="chainTileGallerySection" class="chain-gallery-container" style="display: none;">
               <div class="gallery-head">
                 <label class="grow"
@@ -206,17 +202,26 @@
               </div>
               <div id="tileGallery" aria-label="Tile gallery"></div>
             </div>
-            <div id="chainEditor"></div>
-            <div id="chainPreview"></div>
-            <details>
-              <summary>JSON source</summary>
-              <textarea
-                id="chainSource"
-                spellcheck="false"
-                aria-label="Chain library JSON source"
-              ></textarea
-              ><button id="chainApply" type="button">Apply JSON</button>
-            </details>
+          </aside>
+          <div class="chain-work">
+            <header class="object-heading"><span id="chainSelectedKind"></span><h3 id="chainSelected"></h3></header>
+            <div id="chainEditor">
+              <section id="chainSurface" class="author-surface" aria-label="Selected object authoring surface"></section>
+              <aside class="chain-inspector" aria-label="Object properties">
+                <h3>Properties</h3>
+                <div id="chainProperties"></div>
+                <div id="chainPreview"></div>
+                <details>
+                  <summary>JSON source</summary>
+                  <textarea
+                    id="chainSource"
+                    spellcheck="false"
+                    aria-label="Chain library JSON source"
+                  ></textarea
+                  ><button id="chainApply" type="button">Apply JSON</button>
+                </details>
+              </aside>
+            </div>
             <pre id="chainStatus" role="status"></pre>
           </div>
         </div>

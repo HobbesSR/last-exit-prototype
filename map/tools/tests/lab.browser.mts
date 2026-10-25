@@ -623,6 +623,40 @@ try {
   assert.equal(stageTile.cells, undefined, "clearing painting removes cells");
   assert.equal(stageTile.legend, undefined, "clearing painting removes legend");
 
+  // #515: the catalogue and properties scroll beside the selected object's work surface.
+  for (const width of [1440, 1180]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.locator("#chainEditor .chain-inspector").evaluate((node: HTMLElement) => { node.scrollTop = 0; });
+    const boxes = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const r = document.querySelector(selector)!.getBoundingClientRect();
+        return { x: r.x, right: r.right, y: r.y, bottom: r.bottom };
+      };
+      return { catalogue: rect("#chainViewContainer .chain-sidebar"), surface: rect("#chainSurface"), properties: rect("#chainEditor .chain-inspector") };
+    });
+    assert.ok(boxes.catalogue.right <= boxes.surface.x && boxes.surface.right <= boxes.properties.x, `${width}: catalogue, surface and properties are side by side`);
+    assert.ok(boxes.properties.right <= width && boxes.surface.bottom <= 900, "workspace stays inside the desktop viewport");
+    assert.equal(await page.locator("#chainSelected").innerText(), await page.locator("#chainItem").inputValue());
+    await page.locator('.chain-swatch-button[data-class="arrival"]').click();
+    const gridBox = await page.locator("#chainGrid").boundingBox();
+    assert.ok(gridBox.y >= boxes.surface.y && gridBox.y + gridBox.height <= boxes.surface.bottom, `${width}: the entire tile grid is visible beside the toolbar`);
+    await page.mouse.click(gridBox.x + gridBox.width * 2.5 / 6, gridBox.y + gridBox.height * 3.5 / 6);
+    const tile = await page.evaluate(() => (window as any).chainLab.snapshot().library.tiles[0]);
+    assert.equal(tile.legend[tile.cells[3][2]], "arrival", `${width}: resized stage paints logical cell (2,3)`);
+    await page.screenshot({ path: `${OUT}/authoring-${width}.png` });
+    await page.locator('.chain-tool-group button', { hasText: "Clear painting" }).click();
+  }
+  const authoringBefore = await page.evaluate(() => (window as any).chainLab.snapshot());
+  await page.locator("#worldTab").click();
+  await page.locator("#chainTab").click();
+  assert.deepEqual(await page.evaluate(() => (window as any).chainLab.snapshot()), authoringBefore, "changing tabs preserves selected entry and draft");
+  const surfaceBeforeScroll = await page.locator("#chainSurface").boundingBox();
+  await page.locator("#chainEditor .chain-inspector").evaluate((node: HTMLElement) => { node.scrollTop = node.scrollHeight; });
+  assert.ok(await page.locator("#chainEditor .chain-inspector").evaluate((node: HTMLElement) => node.scrollTop > 0), "properties have their own scroll area");
+  assert.deepEqual(await page.locator("#chainSurface").boundingBox(), surfaceBeforeScroll, "scrolling properties keeps the stage in place");
+  await page.locator("#chainEditor .chain-inspector").evaluate((node: HTMLElement) => { node.scrollTop = 0; });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+
   // Fill tool: flood fill stops at class boundaries
   await page.locator('.chain-swatch-button[data-class="arrival"]').click();
   await page.locator(".chain-gutter.cols button").nth(3).click();
@@ -2149,6 +2183,25 @@ try {
   assert.equal(await painted(view.locator(".placeable-preview")), true);
   await view.locator('[data-placeable="warehouse"]').click();
   assert.match(await view.locator(".readout").innerText(), /warehouse: \d+ spaces?, /, "a building placeable reads as its trace");
+  for (const width of [1440, 1180]) {
+    await placeablesPage.setViewportSize({ width, height: 900 });
+    await placeablesPage.waitForFunction(() => {
+      const c = document.querySelector(".placeable-preview") as HTMLCanvasElement;
+      return c.width === Math.round(c.clientWidth * devicePixelRatio);
+    });
+    const catalogue = await view.locator(".chain-sidebar").boundingBox();
+    const preview = await view.locator(".placeable-preview").boundingBox();
+    const inspector = await view.locator(".placeable-inspector").boundingBox();
+    assert.ok(catalogue.x + catalogue.width <= preview.x && preview.x + preview.width <= inspector.x, "placeable preview sits between catalogue and placement information");
+    assert.ok(inspector.x + inspector.width <= width && preview.y + preview.height <= 900, "selected placeable stays visible on desktop");
+    assert.equal(await painted(view.locator(".placeable-preview")), true, "preview repaints after resize");
+    await placeablesPage.screenshot({ path: `${OUT}/placeable-workspace-${width}.png` });
+  }
+  const previewParams = await view.locator("details pre").textContent();
+  await placeablesPage.locator("#chainTab").click();
+  await placeablesPage.locator("#placeablesTab").click();
+  assert.match(await view.locator(".placeable-title").innerText(), /^warehouse /);
+  assert.equal(await view.locator("details pre").textContent(), previewParams, "placeable selection and parameters survive tab changes");
   // A number parameter's spec bounds it but sets no granularity.
   await view.locator('[data-placeable="cover-piece"]').click();
   assert.equal(await view.locator('[name="length"]').getAttribute("step"), "any");
