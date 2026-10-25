@@ -135,6 +135,23 @@ function closePopup(): void {
     activePopup = null;
   }
 }
+/** Fixed menus stay within the viewport even when opened near a pane's edge. */
+function showPopup(popup: HTMLElement, x: number, y: number): void {
+  const margin = 8;
+  popup.style.maxWidth = `${window.innerWidth - margin * 2}px`;
+  popup.style.maxHeight = `${window.innerHeight - margin * 2}px`;
+  popup.style.overflow = "auto";
+  document.body.append(popup);
+  const bounds = popup.getBoundingClientRect();
+  popup.style.left = `${Math.max(margin, Math.min(x + 4, window.innerWidth - bounds.width - margin))}px`;
+  popup.style.top = `${Math.max(margin, Math.min(y + 4, window.innerHeight - bounds.height - margin))}px`;
+  activePopup = popup;
+}
+// A menu belongs to its current stage coordinates. Scrolling the menu itself is allowed.
+document.addEventListener("scroll", (event) => {
+  if (activePopup && !activePopup.contains(event.target as Node)) closePopup();
+}, true);
+window.addEventListener("resize", closePopup);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     closePopup();
@@ -625,8 +642,6 @@ function openSegmentPopup(
 
   const popup = document.createElement("div");
   popup.className = "chain-popup";
-  popup.style.left = `${clientX + 4}px`;
-  popup.style.top = `${clientY + 4}px`;
 
   const title = document.createElement("h4");
   title.textContent = `Segment ${key} (${isPerimeter ? "perimeter" : "interior"})`;
@@ -680,8 +695,7 @@ function openSegmentPopup(
     }
   }
 
-  document.body.append(popup);
-  activePopup = popup;
+  showPopup(popup, clientX, clientY);
 
   popupDismissListener = (evt: MouseEvent) => {
     if (!popup.contains(evt.target as Node)) {
@@ -886,12 +900,12 @@ function floodFill(
   }
   updateTileCells(tile, cells);
 }
-function renderTiles(root: HTMLElement): void {
+function renderTiles(properties: HTMLElement, root: HTMLElement): void {
   const tile = current() as ChainTileDesign;
   if (!tile) return;
   const classes = ["any", ...Object.keys(library.cellClasses)];
   if (!classes.includes(selectedCellClass)) selectedCellClass = classes[0]!;
-  root.append(
+  properties.append(
     choice(
       "Default cell class",
       "chainDefaultClass",
@@ -919,7 +933,7 @@ function renderTiles(root: HTMLElement): void {
     label.append(input, `${angle}°`);
     orientations.append(label);
   }
-  root.append(
+  properties.append(
     orientations,
     field(
       "Eligible tiers (comma separated, blank = all)",
@@ -954,8 +968,6 @@ function renderTiles(root: HTMLElement): void {
       "number",
     ),
   );
-  root.append(heading("Paint cells"));
-
   const palette = document.createElement("div");
   palette.className = "chain-paint-palette";
 
@@ -1216,12 +1228,7 @@ function renderTiles(root: HTMLElement): void {
   segRow.append(segBrushGroup, segPatternGroup);
   palette.append(swatchRow, toolsRow, segRow);
 
-  root.append(
-    palette,
-    paragraph(
-      "Click or drag to apply the active brush · Alt-click to eyedropper sample · Right-click for quick palette · Gutter buttons cover a whole row or column.",
-    ),
-  );
+  root.append(palette);
 
   const stage = document.createElement("div");
   stage.className = "chain-tile-stage";
@@ -1653,8 +1660,6 @@ function renderTiles(root: HTMLElement): void {
 
     const popup = document.createElement("div");
     popup.className = "chain-popup";
-    popup.style.left = `${e.clientX + 4}px`;
-    popup.style.top = `${e.clientY + 4}px`;
 
     const title = document.createElement("h4");
     title.textContent = `Cell ${x},${y} (${currentClass})`;
@@ -1719,8 +1724,7 @@ function renderTiles(root: HTMLElement): void {
     };
 
     popup.append(fillRowBtn, fillColBtn);
-    document.body.append(popup);
-    activePopup = popup;
+    showPopup(popup, e.clientX, e.clientY);
 
     popupDismissListener = (evt: MouseEvent) => {
       if (!popup.contains(evt.target as Node)) {
@@ -1738,6 +1742,11 @@ function renderTiles(root: HTMLElement): void {
   root.append(
     stage,
     hoverReadout,
+    paragraph(
+      "Click or drag to apply the active brush · Alt-click to eyedropper sample · Right-click for quick palette · Gutter buttons cover a whole row or column.",
+    ),
+  );
+  properties.append(
     heading("Segment prescriptions"),
     paragraph(
       "Select any interior or perimeter segment on stage or in the list. Adjacency is available only on the perimeter. Written any remains distinct from an unstated field.",
@@ -1762,7 +1771,7 @@ function renderTiles(root: HTMLElement): void {
         };
         segments.append(button);
       }
-  root.append(segments);
+  properties.append(segments);
   const prescription = tile.segments?.[selectedSegment] ?? {};
   const { isPerimeter: perimeter } = segmentDescriptor(selectedSegment);
   const controls = document.createElement("div");
@@ -1808,7 +1817,7 @@ function renderTiles(root: HTMLElement): void {
       "Passable guarantees a crossing. Any is a written don't-care statement; two facing any statements guarantee a crossing. Prefer occupied is optional architectural guidance, never an impassability requirement. A facing passable statement still guarantees a crossing; any facing this hint does not. Unspecified stays distinct from any. Open span / aperture geometry is deferred to micro/region strategies in chain v3 (docs 20.2, 52).",
     ),
   );
-  root.append(controls);
+  properties.append(controls);
   renderPreview(tile);
 }
 function renderPreview(tile: ChainTileDesign): void {
@@ -2148,7 +2157,7 @@ function slotEditor(
 let activeLayoutBrush = "";
 let setPiecePaletteFilter = "";
 
-function renderSetPieces(root: HTMLElement): void {
+function renderSetPieces(root: HTMLElement, surface: HTMLElement): void {
   const piece = current() as ChainLibrary["setPieces"][number];
   if (!piece) return;
 
@@ -2293,7 +2302,7 @@ function renderSetPieces(root: HTMLElement): void {
 
   gridContainer.append(gridHint, grid);
   workspace.append(palette, gridContainer);
-  root.append(workspace);
+  surface.append(workspace);
 
   function populateGrid(): void {
     grid.replaceChildren();
@@ -2613,19 +2622,32 @@ function render(): void {
   select("chainItem").replaceChildren(...names.map((id) => option(id)));
   select("chainItem").value = selectedId;
   renderGallery();
-  const editor = $("chainEditor");
+  const editor = $("chainSurface");
+  const properties = $("chainProperties");
+  const selection = JSON.stringify([section(), selectedId]);
+  if (editor.dataset.selection !== selection) {
+    editor.scrollTop = 0;
+    properties.parentElement!.scrollTop = 0;
+    editor.dataset.selection = selection;
+  }
   editor.replaceChildren();
+  properties.replaceChildren();
   $("chainPreview").replaceChildren();
+  $("chainSelectedKind").textContent = select("chainSection").selectedOptions[0]?.textContent ?? "";
+  $("chainSelected").textContent = selectedId || "No entry selected";
+  const formSection = section() === "classes" || section() === "setPieceClasses";
+  properties.parentElement!.querySelector("h3")!.textContent = formSection ? "Library tools" : "Properties";
   if (!selectedId) editor.append(paragraph("Add an entry to this section."));
   else {
-    editor.append(
-      heading(selectedId),
+    // Non-visual entries are authored as one central form, including their identity.
+    if (formSection) editor.append(heading("Properties"));
+    (formSection ? editor : properties).append(
       field("ID", "chainId", selectedId, rename),
     );
     if (section() === "classes") renderClasses(editor);
-    if (section() === "tiles") renderTiles(editor);
+    if (section() === "tiles") renderTiles(properties, editor);
     if (section() === "tileSets") renderTileSets(editor);
-    if (section() === "setPieces") renderSetPieces(editor);
+    if (section() === "setPieces") renderSetPieces(properties, editor);
     if (section() === "setPieceClasses") renderSetPieceClasses(editor);
   }
   area("chainSource").value = JSON.stringify(library, null, 2);

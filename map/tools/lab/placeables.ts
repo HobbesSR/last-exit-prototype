@@ -199,25 +199,32 @@ export function renderPlaceables(root: HTMLElement): void {
 
   root.replaceChildren(
     el("div", { className: "chain-heading" }, el("div", {}, el("h2", {}, "Placeables"),
-      el("p", {}, `The things builders put down (20.8), built at ${CELL} units a cell. A builder chooses where; a placeable owns what it is and the area it demands.`))),
-    el("div", { className: "chain-layout" },
-      el("aside", { className: "chain-sidebar" }, list),
+      el("p", {}, `Inspect builder objects at ${CELL} units a cell. Parameters try a preview; definitions are read-only.`))),
+    el("div", { className: "chain-layout placeable-workspace" },
+      el("aside", { className: "chain-sidebar" }, el("h3", {}, "Catalogue"), list),
       el("div", { className: "chain-work" },
-        el("div", {}, el("h3", { className: "placeable-title" }, `${placeable.id} `, el("span", {}, placeable.version)), el("p", { className: "hint" }, placeable.summary)),
-        el("div", { className: "placeable-examples" }, ...cards),
-        el("h3", {}, "Parameters"),
+        el("header", { className: "object-heading" }, el("span", {}, "Selected placeable"), el("h3", { className: "placeable-title" }, `${placeable.id} `, el("span", {}, placeable.version))),
+        el("section", { className: "author-surface" },
+          el("label", { className: "placeable-check" }, traceToggle, "Building trace: spaces, allocation and openings"),
+          canvas,
+          el("div", { className: "placeable-legend" },
+            ...[["body", BODY], ["clear", CLEAR], ...PARTS.map((part) => [part, PART_FILL[part]])].map(([name, colour]) => {
+              const swatch = el("i");
+              swatch.style.background = colour!;
+              return el("span", {}, swatch, name!);
+            })),
+          el("h3", {}, "Examples"),
+          el("div", { className: "placeable-examples" }, ...cards),
+        ),
+      ),
+      el("aside", { className: "chain-inspector chain-work placeable-inspector", ariaLabel: "Preview parameters and placement information" },
+        el("h3", {}, "Preview parameters"),
+        el("p", { className: "hint" }, placeable.summary),
         el("div", { className: "placeable-fields" }, ...fields.map((f) => f.control)),
-        out,
-        el("label", { className: "placeable-check" }, traceToggle, "Building trace: spaces, allocation and openings"),
-        canvas,
-        el("div", { className: "placeable-legend" },
-          ...[["body", BODY], ["clear", CLEAR], ...PARTS.map((part) => [part, PART_FILL[part]])].map(([name, colour]) => {
-            const swatch = el("i");
-            swatch.style.background = colour!;
-            return el("span", {}, swatch, name!);
-          })),
+        el("h3", {}, "Placement information"), out,
         el("details", {}, el("summary", {}, "Parameters as JSON"), json),
-      )),
+      ),
+    ),
   );
   update();
   repaint = () => { if (!root.hidden) paints.forEach((p) => p()); };
