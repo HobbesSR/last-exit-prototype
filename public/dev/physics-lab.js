@@ -119,7 +119,7 @@ function input() {
 function tick() { if (lab.game) { lab.tick(input()); refresh(); } }
 function stop() { if (playing) clearInterval(playing); playing = null; byId('play').textContent = 'Play'; }
 async function reset() {
-  stop();
+  stop(); keys.clear(); skillPending = false;
   const tuning = Object.fromEntries([...document.querySelectorAll('[data-tune]')].map(field => [field.dataset.tune, Number(field.value)]));
   const config = sceneConfig(byId('scene').value, Number(byId('seed').value), tuning);
   await lab.start(config); refresh();
@@ -151,14 +151,28 @@ button('download', () => {
 });
 button('import', async () => { stop(); await lab.import(JSON.parse(byId('recording').value)); refresh(); status(`Imported and reran ${lab.trace.length} ticks; retained frames match.`); });
 window.addEventListener('keydown', event => {
-  if (event.target instanceof HTMLElement && event.target.closest('input, textarea, select')) return;
+  // A key pressed on the arena stays a simulation key through button focus.
+  // Suppress native button activation on repeats without blocking fresh presses.
+  if (keys.has(event.code)) event.preventDefault();
+  if (event.target !== canvas) return;
   if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'Enter'].includes(event.code)) {
     if (event.code === 'Space' && !keys.has('Space')) skillPending = true;
     keys.add(event.code); event.preventDefault();
   }
 });
-window.addEventListener('keyup', event => keys.delete(event.code));
+window.addEventListener('keyup', event => {
+  if (keys.has(event.code)) event.preventDefault();
+  keys.delete(event.code);
+});
 window.addEventListener('blur', () => keys.clear());
+canvas.addEventListener('blur', event => {
+  // Keep held movement available while clicking Step; editable fields stop it.
+  if (!(event.relatedTarget instanceof HTMLButtonElement) || !event.relatedTarget.closest('main')) keys.clear();
+});
+document.addEventListener('focusin', event => {
+  if (event.target instanceof HTMLElement && event.target.closest('input, textarea, select')) keys.clear();
+});
+canvas.addEventListener('pointerdown', () => canvas.focus({ preventScroll: true }));
 canvas.addEventListener('pointermove', event => {
   const rect = canvas.getBoundingClientRect(), x = (event.clientX - rect.left) * 800 / rect.width, y = (event.clientY - rect.top) * 800 / rect.height;
   const selected = lab.frame()?.players.find(p => p.id === lab.selected);
