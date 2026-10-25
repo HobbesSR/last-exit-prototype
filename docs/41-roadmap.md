@@ -50,13 +50,14 @@ still need separate gameplay and version review.
 
 ### Hierarchical navigation design (#353)
 
-Issue [#353](http://localhost:3000/corey/astra_test/issues/353) tracks the
+Issue [#353](http://localhost:3000/corey/astra_test/issues/353) tracked the
 navigation hierarchy and optimistic planning through unknown space. Corey set the
 direction on 2026-10-21: region portals as the top level, a free-space navmesh
-beneath, discovery cells as each contestant's filter, all derived at load. The
-design and stages are in [22.6](22.6-hierarchical-navigation.md), not implemented.
-First the portal graph with full knowledge and production bots unchanged, then the
-navmesh, then private knowledge, then the intentional gameplay adoption.
+beneath, discovery cells as each contestant's filter, all derived at load. Built
+in stages (#420, #422, #423, #424, then #470's sliced replanning and local repair);
+the middle level (#425) and #470's coarse far-away plans were not needed. Closed
+2026-10-25; playtesting findings get new issues. Design and stages are in
+[22.6](22.6-hierarchical-navigation.md).
 
 ### Generation pipeline
 
