@@ -19,9 +19,48 @@
     </nav>
     <main>
       <div id="worldView" class="tab-view">
+        <header id="worldActions">
+          <div class="world-heading"><h1>World</h1><span>Generation chain</span></div>
+          <p class="world-help">Select a cell to inspect / Drag to pan / Scroll to zoom</p>
+          <details class="world-action-menu" name="world-actions">
+            <summary>Save / load</summary>
+            <div class="world-action-content">
+              <section>
+                <h2>Save</h2>
+                <div class="pair">
+                  <button id="saveJson" type="button">Wire JSON</button
+                  ><button id="saveBson" type="button">Wire BSON</button>
+                </div>
+                <button id="saveLayout" type="button" class="full">Layout alone (JSON)</button>
+                <label class="file-button full"
+                  >Load a saved map<input id="load" type="file" accept=".json,.bson,application/json,application/octet-stream"
+                /></label>
+                <p class="hint">
+                  A saved map carries the library it was made from.
+                </p>
+              </section>
+            </div>
+          </details>
+          <details class="world-action-menu" name="world-actions">
+            <summary>Play</summary>
+            <div class="world-action-content">
+              <section>
+                <h2>Play</h2>
+                <p class="hint">
+                  A room plays the map its seed generates with the room's recipe and
+                  the bundled library.
+                </p>
+                <button id="roomRecipe" type="button" class="full">Use a room's recipe</button>
+                <a id="playInGame" class="button full" target="_blank" rel="noopener" hidden>Play in the game</a>
+                <p id="playNote" class="hint"></p>
+              </section>
+            </div>
+          </details>
+        </header>
         <aside id="sidebar">
           <section>
             <h2>Recipe</h2>
+            <p class="hint">Generate from the bundled library or your draft.</p>
             <label>Seed<input id="seed" value="last-exit-001" /></label>
             <label
               >Mode<select id="mode">
@@ -51,41 +90,12 @@
             </div>
           </section>
           <section>
-            <h2>Play</h2>
-            <p class="hint">
-              A room plays the map its seed generates with the room's recipe and
-              the bundled library.
-            </p>
-            <button id="roomRecipe" type="button" class="full">Use a room's recipe</button>
-            <a id="playInGame" class="button full" target="_blank" rel="noopener" hidden>Play in the game</a>
-            <p id="playNote" class="hint"></p>
-          </section>
-          <section>
             <h2>Layers</h2>
             <p class="hint">
               In generation chain order. Later layers draw over earlier ones, and lines
               over areas.
             </p>
             <div id="layers"></div>
-          </section>
-          <section>
-            <h2>Save</h2>
-            <div class="pair">
-              <button id="saveJson" type="button">Wire JSON</button
-              ><button id="saveBson" type="button">Wire BSON</button>
-            </div>
-            <button id="saveLayout" type="button" class="full">Layout alone (JSON)</button>
-            <label class="file-button full"
-              >Load a saved map<input id="load" type="file" accept=".json,.bson,application/json,application/octet-stream"
-            /></label>
-            <p class="hint">
-              A map is read with the library it was made from: the one chosen above.
-            </p>
-          </section>
-          <section>
-            <h2>Inspector</h2>
-            <div id="inspector" class="readout">Select a cell.</div>
-            <div id="inspectorLinks" class="links"></div>
           </section>
         </aside>
         <div class="world-main">
@@ -95,7 +105,7 @@
               <button id="zoomOut" type="button" title="Zoom out">−</button
               ><span id="zoomLevel">100%</span
               ><button id="zoomIn" type="button" title="Zoom in">+</button
-              ><button id="zoomReset" type="button" title="Fit the map: 100%">Reset</button>
+              ><button id="zoomReset" type="button" title="Fit the map: 100%">Fit</button>
             </div>
             <div id="tooltip" class="map-tooltip" hidden></div>
           </div>
@@ -132,6 +142,13 @@
             </section>
           </div>
         </div>
+        <aside id="worldInspector" aria-label="Selected cell inspector">
+          <section>
+            <h2>Selected cell</h2>
+            <div id="inspector" class="readout">Select a cell.</div>
+            <div id="inspectorLinks" class="links"></div>
+          </section>
+        </aside>
       </div>
       <div id="chainViewContainer" class="tab-view" hidden>
         <div class="chain-heading">
