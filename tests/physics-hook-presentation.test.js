@@ -52,3 +52,26 @@ test('flight capture and projection disclose only an authorized caster and tip',
       'older physics captures preserve optional-field absence');
   } finally { disposePhysics(s); }
 });
+
+test('only the caster learns its hook is active, through flight, pending and pull', async () => {
+  const content = structuredClone(contentById('content-physics-6'));
+  content.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'hook' }] };
+  const s = await createPhysicsGame(446, map(), content);
+  try {
+    const r = physicsRuntime(s);
+    assert.equal(playerView(s, snapshot(s), 'g0').hookActive, false);
+    r.hooks.push({ id: 'hook:g0', caster: 'g0', x: 240, y: 400, dx: 1, dy: 0, travelled: 90,
+      startedTick: s.tick, phase: 'flying', generationA: r.world.getGeneration('actor:g0') });
+    for (const phase of ['flying', 'pending', 'pulling']) {
+      r.hooks[0].phase = phase;
+      const frame = snapshot(s);
+      assert.equal(playerView(s, frame, 'g0').hookActive, true, phase);
+      assert.equal(playerView(s, frame, 'c0').hookActive, false, phase);
+    }
+  } finally { disposePhysics(s); }
+  const older = structuredClone(contentById('content-physics-5'));
+  older.roster = { contestants: ['C'], gladiators: [{ name: 'G', kit: 'warden' }] };
+  const p5 = await createPhysicsGame(446, map(), older);
+  try { assert.equal(Object.hasOwn(playerView(p5, snapshot(p5), 'g0'), 'hookActive'), false); }
+  finally { disposePhysics(p5); }
+});

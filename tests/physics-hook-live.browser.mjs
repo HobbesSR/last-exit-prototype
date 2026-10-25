@@ -41,7 +41,8 @@ try {
       const decoder = createLayerDecoder(), messages = [], frames = [];
       ws.onmessage = event => {
         const message = JSON.parse(event.data);
-        if (message.type === 'state') frames.push(decoder.decode(message.state));
+        // Waiting-area frames count their own ticks; matching match ticks against them is a lottery.
+        if (message.type === 'state') { const frame = decoder.decode(message.state); if (frame.phase !== 'waiting') frames.push(frame); }
         messages.push(message);
       };
       await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
