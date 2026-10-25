@@ -5,43 +5,92 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Last Exit · Physics playtest</title>
   <link rel="icon" type="image/svg+xml" href="/assets/mark.svg">
+  <link rel="stylesheet" href="/dev/dev-nav.css">
+  <script type="module" src="/dev/dev-nav.js"></script>
   <style>
-    :root { color-scheme: dark; font: 15px system-ui, sans-serif; background: #142523; color: #ecf4ed; }
-    body { margin: 0; padding: 20px; }
-    header, main { max-width: 1280px; margin: auto; }
-    h1 { margin: 0 0 4px; } p { color: #b7ccc5; }
-    main { display: grid; grid-template-columns: minmax(320px, 820px) minmax(280px, 1fr); gap: 18px; }
-    canvas { width: 100%; height: auto; background: #263b37; border: 1px solid #627d75; touch-action: none; }
-    section, fieldset { border: 1px solid #526c64; border-radius: 8px; padding: 12px; margin: 0 0 12px; }
-    label { display: inline-flex; align-items: center; gap: 6px; margin: 4px 8px 4px 0; }
-    input[type=number] { width: 85px; } select, input, button, textarea { font: inherit; background: #203932; color: inherit; border: 1px solid #789488; border-radius: 4px; padding: 5px; }
-    button { cursor: pointer; margin: 4px 4px 4px 0; } button:hover { background: #38594d; }
-    textarea { box-sizing: border-box; width: 100%; height: 155px; }
-    output { display: block; color: #abdacc; min-height: 22px; }
-    .legend { font-size: 13px; } .legend b { margin-right: 8px; }
-    @media (max-width: 850px) { main { display: block; } }
+    :root { color-scheme: dark; font: 14px Inter, Segoe UI, system-ui, sans-serif; background: #101b1c; color: #e7f2ec; }
+    * { box-sizing: border-box; }
+    body { margin: 0; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+    main { flex: 1; min-height: 0; padding: 10px 18px; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 9px; }
+    h1, h2, p { margin: 0; } h1 { font-size: 1.4rem; } h2 { font-size: .88rem; }
+    .eyebrow { font-size: .7rem; letter-spacing: .14em; color: #b8ec76; }
+    .heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .heading p, .hint { color: #9eb4ae; font-size: .8rem; line-height: 1.5; }
+    .actions { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #192929; border: 1px solid #34504d; border-radius: 9px; }
+    .actions .hint { margin-left: auto; }
+    button, input, select, textarea { font: inherit; color: inherit; background: #0e191a; border: 1px solid #49635e; border-radius: 6px; padding: 7px 8px; min-width: 0; max-width: 100%; }
+    button { cursor: pointer; background: #223534; } button:hover { background: #2c4540; border-color: #a9cd8f; }
+    :focus-visible { outline: 2px solid #b8ec76; outline-offset: 2px; }
+    #reset { background: #b8ec76; color: #14221f; border-color: #b8ec76; font-weight: 700; }
+    .workspace { min-height: 0; display: grid; grid-template-columns: 235px minmax(0, 1fr) 285px; gap: 10px; }
+    .panel { min-width: 0; min-height: 0; background: #172626; border: 1px solid #34504d; border-radius: 10px; }
+    .parameters, .inspector { overflow: auto; padding: 13px; }
+    .group + .group { border-top: 1px solid #34504d; margin-top: 16px; padding-top: 16px; }
+    h2, legend { color: #b8ec76; margin-bottom: 10px; }
+    label { display: grid; gap: 5px; font-size: .78rem; color: #adc1ba; margin-bottom: 11px; }
+    label input, label select { width: 100%; color: #eef6ee; }
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .parameters .button-row button { flex: 1; }
+    .preview { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
+    .preview-bar { padding: 10px 12px; border-bottom: 1px solid #34504d; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+    .preview-bar h2 { margin: 0; color: #e7f2ec; } .badge { color: #9eb4ae; font-size: .73rem; }
+    .arena-surface { min-height: 0; min-width: 0; display: grid; place-items: center; background: #0a1112; container-type: size; padding: 8px; }
+    canvas { display: block; width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); background: #263b37; touch-action: none; }
+    .caption { border-top: 1px solid #34504d; padding: 8px 12px; }
+    output { display: block; font-size: .78rem; color: #abdacc; line-height: 1.4; font-variant-numeric: tabular-nums; }
+    .caption .hint { font-size: .73rem; margin-top: 4px; }
+    fieldset { border: 0; padding: 0; margin: 0; min-width: 0; } legend { font-size: .88rem; font-weight: 600; padding: 0; }
+    .inspector .hint { margin-bottom: 10px; }
+    details { border-top: 1px solid #34504d; padding-top: 12px; margin-top: 14px; }
+    summary { cursor: pointer; color: #b8ec76; font-size: .85rem; margin-bottom: 10px; }
+    textarea { width: 100%; height: 155px; resize: vertical; font: .75rem ui-monospace, monospace; margin-top: 8px; }
+    .legend { font-size: .78rem; color: #adc1ba; line-height: 1.6; } .legend b { margin-right: 8px; }
+    @media (max-width: 1100px) and (min-width: 801px) { .workspace { grid-template-columns: 200px minmax(0, 1fr) 245px; } main { padding: 9px; } }
+    @media (max-width: 800px) {
+      body { height: auto; min-height: 100dvh; overflow: auto; } main { display: flex; flex-direction: column; padding: 12px; }
+      .heading { display: block; } .heading p { margin-top: 5px; } .actions { flex-wrap: wrap; } .actions .hint { margin-left: 0; }
+      .workspace { display: flex; flex-direction: column; } .preview { order: -1; height: 520px; } .parameters, .inspector { overflow: visible; }
+      .arena-surface { min-height: 0; } .parameters .group { max-width: none; }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Physics playtest lab</h1>
-    <p>Local, isolated content-physics-8 simulation. WASD moves the selected actor, pointer aims, Space uses skill once per press, Enter interacts. Step advances one fixed 20 Hz tick. Tuning takes effect after Reset.</p>
-  </header>
   <main>
-    <div>
-      <canvas id="arena" width="800" height="800" aria-label="Physics playtest arena"></canvas>
-      <p class="legend"><b style="color:#5be1d8">Head</b><b style="color:#ffbc54">Body</b><b style="color:#ff80bb">Combat hurt</b> Dashed: sleeping body. Yellow: tether anchors. Red: final-substep contact normals. Blue: motor target. Green: requested impulse. Violet: external force (final substep; excludes motor/contact impulses). White: hook tip sweep between retained frames. Orange: static/solid-prop diagnostic cast; dashed path is the full request, disk is the swept centre at its stop. Contact impulses are unavailable.</p>
+    <header class="heading">
+      <div><span class="eyebrow">SIMULATION WORKBENCH</span><h1>Physics playtest lab</h1></div>
+      <p>Local, isolated content-physics-8 simulation &middot; 20 Hz fixed ticks</p>
+    </header>
+    <div class="actions" aria-label="Simulation actions">
+      <button id="reset">Start / Reset</button><button id="step">Step tick</button><button id="play">Play</button>
+      <span class="hint">Scene, seed and tuning apply on Reset.</span>
     </div>
-    <div>
-      <section>
-        <label>Scene <select id="scene"><option value="A">A · character collision and crowd</option><option value="B">B · physical prop</option><option value="C">C · hook</option></select></label>
-        <label>Seed <input id="seed" type="number" min="0" step="1" value="449"></label>
-        <label>Actor <select id="actor"></select></label>
-        <div><button id="reset">Start / Reset</button><button id="step">Step tick</button><button id="play">Play</button><button id="skill">Skill next tick</button><button id="cast">Cast ahead</button></div>
-        <div><label>Impulse X <input id="impulse-x" type="number" value="300" step="10"></label><label>Y <input id="impulse-y" type="number" value="0" step="10"></label><button id="impulse">Queue impulse</button></div>
-        <output id="status" role="status">Select a scene and start.</output>
+    <div class="workspace">
+      <section class="panel parameters" aria-label="Scene and actor controls">
+        <div class="group">
+          <h2>Scene</h2>
+          <label>Scenario<select id="scene"><option value="A">A &middot; Collision and crowd</option><option value="B">B &middot; Physical prop</option><option value="C">C &middot; Hook</option></select></label>
+          <label>Seed<input id="seed" type="number" min="0" step="1" value="449"></label>
+        </div>
+        <div class="group">
+          <h2>Actor</h2>
+          <label>Selected actor<select id="actor"></select></label>
+          <div class="button-row"><button id="skill">Skill next tick</button><button id="cast">Cast ahead</button></div>
+        </div>
+        <div class="group">
+          <h2>Impulse</h2>
+          <div class="pair"><label>X<input id="impulse-x" type="number" value="300" step="10"></label><label>Y<input id="impulse-y" type="number" value="0" step="10"></label></div>
+          <button id="impulse">Queue impulse</button>
+          <p class="hint">Applies to the selected actor on the next tick.</p>
+        </div>
       </section>
-      <fieldset id="tuning"><legend>Copied match-pinned character tuning</legend>
+      <section class="panel preview" aria-label="Simulation arena">
+        <div class="preview-bar"><h2>Arena</h2><span class="badge">800 &times; 800 world units</span></div>
+        <div class="arena-surface"><canvas id="arena" width="800" height="800" tabindex="0" aria-label="Physics playtest arena" aria-describedby="arena-help"></canvas></div>
+        <div class="caption"><output id="status" role="status">Select a scene and start.</output><p class="hint" id="arena-help">Click arena to control &middot; WASD move &middot; Pointer aim &middot; Space skill &middot; Enter interact</p></div>
+      </section>
+      <aside class="panel inspector" aria-label="Tuning, recording and help">
+      <fieldset id="tuning"><legend>Character tuning</legend>
         <label>Acceleration <input data-tune="acceleration" type="number" min="1" max="100000" step="1"></label>
         <label>Braking <input data-tune="braking" type="number" min="1" max="100000" step="1"></label>
         <label>Max impulse <input data-tune="maxImpulse" type="number" min="1" max="100000" step="1"></label>
@@ -49,7 +98,20 @@
         <label>Contestant body radius <input data-tune="contestantBodyRadius" type="number" min="1" max="100" step="0.1"></label>
         <label>Gladiator body radius <input data-tune="gladiatorBodyRadius" type="number" min="1" max="100" step="0.1"></label>
       </fieldset>
-      <section><button id="export">Export JSON</button><button id="download">Download JSON</button><button id="import">Import and rerun</button><textarea id="recording" aria-label="Pinned lab recording JSON" spellcheck="false"></textarea></section>
+
+        <p class="hint">Copied match-pinned values. Reset creates a fresh world with these settings.</p>
+        <details open>
+          <summary>Recording</summary>
+          <div class="button-row"><button id="export">Export JSON</button><button id="download">Download JSON</button><button id="import">Import and rerun</button></div>
+          <textarea id="recording" aria-label="Pinned lab recording JSON" spellcheck="false"></textarea>
+          <p class="hint">Import reruns ordered actions and checks retained frames.</p>
+        </details>
+        <details>
+          <summary>Controls and diagnostic legend</summary>
+          <p class="hint">Step advances one 50 ms tick. Play runs fixed ticks. Click the arena before using movement shortcuts. Cast ahead sweeps 200 units against static geometry and solid props; actors and sensor loot are excluded.</p>
+          <p class="legend"><b style="color:#5be1d8">Head</b><b style="color:#ffbc54">Body</b><b style="color:#ff80bb">Combat hurt</b> Dashed: sleeping body. Yellow: tether anchors. Red: final-substep contact normals. Blue: motor target. Green: requested impulse. Violet: external force (final substep; excludes motor/contact impulses). White: hook tip sweep between retained frames. Orange: static/solid-prop diagnostic cast; dashed path is the full request, disk is the swept centre at its stop. Contact impulses are unavailable.</p>
+        </details>
+      </aside>
     </div>
   </main>
   <script type="module" src="/dev/physics-lab.js"></script>
