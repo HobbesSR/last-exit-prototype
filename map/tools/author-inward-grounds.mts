@@ -1,4 +1,4 @@
-/** Offline authoring check for the #214 block/depot/compound inward grounds (52).
+/** Offline authoring check for the authored inward grounds (#214, #530; 52).
  *
  * node map/tools/author-inward-grounds.mts --primitives PATH --common PATH --district PATH [--local-library PATH] [--check]
  * node map/tools/author-inward-grounds.mts --primitives PATH --common PATH --district PATH [--local-library PATH] --out-dir DIR
@@ -11,7 +11,7 @@ import { pathToFileURL } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import { CHAIN_LIBRARY_VERSION } from '../macro/src/chain/library.ts';
 
-const KINDS = ['block', 'compound', 'depot'] as const;
+const KINDS = ['block', 'compound', 'depot', 'market', 'plant', 'hall', 'park', 'ruins', 'checkpoint'] as const;
 type Kind = typeof KINDS[number];
 type Json = Record<string, any>;
 const SIDES = [
@@ -87,7 +87,7 @@ function author(primitives: Json, blueprints: Json[]): { modules: Json[]; varian
     const matches = tiles.filter((tile: Json) => tile.id === `${kind}-ground`);
     expect(matches.length === 1, `expected one ${kind}-ground original`);
     const original = matches[0];
-    expect(original.defaultCellClass === kind && isDeepStrictEqual(original.orientations, [0]) && original.weight === 0,
+    expect(original.defaultCellClass === kind && isDeepStrictEqual(original.orientations, [0]) && original.weight === (kind === 'park' ? 0.6 : 0),
       `${kind}-ground original class/orientation/weight changed`);
     expect(original.segments && typeof original.segments === 'object', `${kind}-ground has no segments`);
     for (const side of SIDES) for (let i = 0; i < 6; i++) {
