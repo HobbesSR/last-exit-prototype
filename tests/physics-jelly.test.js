@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { captureJellyWitnesses, stepCompression, emptyCompression, JELLY_PROFILE } from '../tools/physics/jelly.mjs';
+import { captureJellyWitnesses, stepCompression, emptyCompression, JELLY_PROFILE,
+  jellySetups, runJellyWitness } from '../tools/physics/jelly.mjs';
 import { retainedJellyFrame } from '../tools/physics/jelly-playback.mjs';
 
 const captured = captureJellyWitnesses();
@@ -50,10 +51,51 @@ test('a short pressure pulse cannot crush, rotated opposing loads set the visual
   assert.equal(state.crushed, false);
   assert.equal(state.axisX, 0); assert.equal(state.axisY, 1);
   for (let i = 0; i < 30; i++) state = stepCompression(state, [], 'player');
+  assert.equal(state.axisX, 0); assert.equal(state.axisY, 1, 'recovery preserves the loaded visual direction');
   assert.equal(state.crushed, false);
   assert.ok(state.amount < 0.001);
   for (const dt of [0, -1, NaN, Infinity])
     assert.throws(() => stepCompression(state, rows, 'player', dt), /dt/);
+});
+
+test('compression normalizes contact axes without scaling impulse loads', () => {
+  const rows = [
+    { a: 'player', b: 'left', nx: -1, ny: 0, impulse: 25 },
+    { a: 'player', b: 'right', nx: 1, ny: 0, impulse: 25 },
+  ];
+  const expected = stepCompression(emptyCompression(), rows, 'player');
+  const scaled = rows.map(c => ({ ...c, nx: c.nx * 7 }));
+  assert.deepEqual(stepCompression(emptyCompression(), scaled, 'player'), expected);
+  assert.equal(expected.pressure, 500);
+  assert.equal(Math.hypot(expected.axisX, expected.axisY), 1);
+  assert.throws(() => stepCompression(emptyCompression(), [{ ...rows[0], nx: 0 }], 'player'), /normal/);
+});
+
+test('authored containment planes work with walls on the left and below, and report a crossed plane', async () => {
+  for (const rotate of [false, true]) {
+    const setup = jellySetups()[1];
+    setup.ticks = 45;
+    // Reflect horizontally, or rotate 90 degrees: preserve all relative physics.
+    for (const b of setup.scene.bodies) {
+      const { x, y } = b;
+      b.x = rotate ? -y : -x; b.y = rotate ? x : y;
+      if (rotate) b.angle = Math.PI / 2;
+    }
+    for (const a of setup.actions) if (a.method === 'motor') {
+      const { x, y } = a.args[1];
+      a.args[1].x = rotate ? -y : -x; a.args[1].y = rotate ? x : y;
+    }
+    setup.containmentPlanes[0].nx = rotate ? 0 : -1;
+    setup.containmentPlanes[0].ny = rotate ? 1 : 0;
+    const w = await runJellyWitness(setup);
+    assert.equal(w.metrics.wallCrossings, 0);
+    assert.ok(w.metrics.peakStaticPenetration < 0.05);
+    assert.ok(w.metrics.peakRadialError > 1, 'transformed wall is actually contacted');
+    // Move only the diagnostic plane behind every body: it must flag violations.
+    setup.ticks = 1;
+    setup.containmentPlanes[0].offset = -1000;
+    assert.ok((await runJellyWitness(setup)).metrics.wallCrossings > 0);
+  }
 });
 
 test('identical actions reproduce ordered states/events exactly, and engine-free seeking returns detached frames', async () => {

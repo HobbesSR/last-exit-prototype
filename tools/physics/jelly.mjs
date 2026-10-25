@@ -15,11 +15,16 @@ export const emptyCompression = () => ({ amount: 0, axisX: 1, axisY: 0,
 // Require opposing external loads: a single hit cannot count as a squeeze.
 export function stepCompression(previous, contacts, id, dt = JELLY_PROFILE.tickSeconds) {
   if (!Number.isFinite(dt) || dt <= 0) throw new RangeError('positive finite dt required');
-  const loads = contacts.filter(c => c.a === id || c.b === id).map(c => ({
-    x: c.a === id ? c.nx : -c.nx, y: c.a === id ? c.ny : -c.ny,
-    force: c.impulse / dt,
-  }));
+  const loads = contacts.filter(c => c.a === id || c.b === id).map(c => {
+    const length = Math.hypot(c.nx, c.ny);
+    if (!Number.isFinite(length) || length === 0 || !Number.isFinite(c.impulse) || c.impulse < 0)
+      throw new RangeError('finite nonzero contact normal and nonnegative impulse required');
+    const sign = c.a === id ? 1 : -1;
+    return { x: sign * c.nx / length, y: sign * c.ny / length, force: c.impulse / dt };
+  });
+  // Retain the last loaded direction during recovery so the visual does not snap.
   let pressure = 0, axisX = previous.axisX, axisY = previous.axisY;
+  // Deliberately a contact-axis proxy, not the maximum over every possible axis.
   for (const axis of loads) {
     let positive = 0, negative = 0;
     for (const load of loads) {
@@ -67,6 +72,8 @@ function jellySetup(name, stretch, wall) {
   return { name, scene: { bodies: [core, ...ring,
     ...(wall ? [box('wall', 'static', 220, 100, 5, 90)] : [])], joints },
   jelly: { coreId: core.id, ringIds: ring.map(b => b.id), restRadius: p.restRadius },
+  // Dot(position, normal) <= offset is the authored allowed half-plane.
+  containmentPlanes: wall ? [{ wallId: 'wall', nx: 1, ny: 0, offset: 215 }] : [],
   ticks: 160, settleStartTick: wall ? 120 : 60,
   actions: wall ? [action(1, 'motor', 'core', { x: 80, y: 0, accel: 300 }),
     action(40, 'motor', 'core', { x: -80, y: 0, accel: 300 }),
@@ -112,8 +119,9 @@ export async function runJellyWitness(setup) {
           if (Math.hypot(body.vx, body.vy) > cap + 1e-4) metrics.speedAdmissionFailures++;
           for (const wall of bodies.filter(b => b.kind === 'static')) {
             metrics.peakStaticPenetration = Math.max(metrics.peakStaticPenetration, penetration(body, wall));
-            if (body.x > wall.x - wall.hx) metrics.wallCrossings++;
           }
+          for (const plane of setup.containmentPlanes ?? [])
+            if (body.x * plane.nx + body.y * plane.ny > plane.offset) metrics.wallCrossings++;
           if (setup.jelly.ringIds.includes(body.id)) {
             const error = Math.abs(Math.hypot(body.x - core.x, body.y - core.y) - p.restRadius);
             metrics.peakRadialError = Math.max(metrics.peakRadialError, error);
@@ -143,6 +151,7 @@ export async function captureJellyWitnesses() {
     limitations: ['Lab-only native centre springs; no live gameplay, damage or default activation.',
       'Discrete colliding ring nodes with interpolated artwork; the filled shell is not a continuous collider.',
       'Solid player core never shrinks. Compression is a game-owned opposing-contact force proxy.',
+      'Compression tests observed normal axes only, not the strongest squeeze axis in an arbitrary multi-contact crowd.',
       'Crush threshold and recovery numbers are provisional visual signals, not agreed game rules.',
       'The positive-impulse diagnostic can omit CCD-stopped fixed-wall contacts; crush witnesses use dynamic presses.',
       'Synthetic scenes only; no production capacity, privacy or arbitrary-map containment claim.'], witnesses };
