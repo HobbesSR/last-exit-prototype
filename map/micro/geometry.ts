@@ -1,5 +1,5 @@
 import { compareCells } from '../kernel/cell.ts';
-import { bounds, circle, convex, overlaps, polygon, rect, transform } from '../../shared/shape.ts';
+import { bounds, circle, convex, overlaps, polygon, rect, sharesArea, transform } from '../../shared/shape.ts';
 import type { Shape } from '../../shared/shape.ts';
 import type { Box, Vec2 } from '../../shared/types.ts';
 import type { RegionElement, RegionMask } from './types.ts';
@@ -19,6 +19,15 @@ export function createAccessMask(region: MarginRegion & Pick<RegionBrief, 'cellS
 }
 export const boxesOverlap = (a: Box, b: Box): boolean => a.x < b.x + b.w - EPS && a.x + a.w > b.x + EPS && a.y < b.y + b.h - EPS && a.y + a.h > b.y + EPS;
 export const shapesOverlap = (a: Shape, b: Shape): boolean => boxesOverlap(bounds(a), bounds(b)) && overlaps(a, b);
+/**
+ * Collision includes contact; this does not. It requires positive penetration on the separating
+ * axes, using the broad phase's tolerance. Authored areas (#404) and pieces of separate assemblies
+ * (#489) use it.
+ */
+export function shapesShareArea(a: Shape, b: Shape): boolean {
+  if (!boxesOverlap(bounds(a), bounds(b))) return false;
+  return a.kind === 'rect' && b.kind === 'rect' || sharesArea(a, b, EPS);
+}
 
 export function validShape(shape: Shape): boolean {
   if (!shape || !Number.isFinite(shape.x) || !Number.isFinite(shape.y)) return false;

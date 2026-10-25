@@ -1,7 +1,7 @@
 import { bounds, circle, rect } from '../../shared/shape.ts';
 import type { Shape } from '../../shared/shape.ts';
 import { createAddressedArea } from './addressed.ts';
-import { createAccessMask, createFillMask, elementShapes, shapesOverlap } from './geometry.ts';
+import { createAccessMask, createFillMask, elementShapes, shapesOverlap, shapesShareArea } from './geometry.ts';
 import type { RegionBrief, RegionElement } from './types.ts';
 
 export interface CanvasAssembly {
@@ -66,7 +66,9 @@ export function createBuilderCanvas(brief: RegionBrief, protectedShapes: readonl
       // Only what stands is kept off protections. Roofs only conceal sight (15), so routes may pass
       // beneath them, and intent is not occupancy, so it may include a route, as `markEmpty`'s may.
       if ([...geometry, ...reserves, ...spots].some(s => protections.some(p => shapesOverlap(s, p)))) return false;
-      if (geometry.some(s => blockers.some(p => shapesOverlap(s, p)))) return false;
+      // Separate assemblies may stand flush, as a pipe ends on its machine's surface; only shared
+      // area collides (#489). What a protection keeps clear, standing room included, stays clear of contact.
+      if (geometry.some(s => blockers.some(p => shapesShareArea(s, p)))) return false;
       if (reserves.some(s => blockers.some(p => shapesOverlap(s, p)))) return false;
       if (clear.some(s => !access.contains(s) || [...blockers, ...geometry].some(p => shapesOverlap(s, p)))) return false;
       if (!addressed.markAll(areas)) return false;

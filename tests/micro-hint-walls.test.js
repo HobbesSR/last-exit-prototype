@@ -4,7 +4,8 @@ import { commitHintWalls, wallHints } from '../map/micro/hint-walls.ts';
 import { disjoint } from '../shared/shape-construction.ts';
 import { createBuilderCanvas } from '../map/micro/canvas.ts';
 import { hintsOfStrength } from '../map/micro/hints.ts';
-import { areasOverlap, createAddressedArea } from '../map/micro/addressed.ts';
+import { createAddressedArea } from '../map/micro/addressed.ts';
+import { shapesShareArea } from '../map/micro/geometry.ts';
 import { buildRegion, briefErrors } from '../map/micro/region-types.ts';
 import { createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../map/micro/geometry.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
@@ -47,7 +48,7 @@ test('walls meeting at a corner commit as one assembly, the earlier keeping the 
     { x: 0, y: 10, w: 10, h: 6 * SIZE - 10 },
     { x: 2 * SIZE, y: 6 * SIZE - 10, w: 4 * SIZE, h: 10 },
   ]);
-  assert.equal(areas.some((a, i) => areas.slice(0, i).some(o => areasOverlap(a, o))), false);
+  assert.equal(areas.some((a, i) => areas.slice(0, i).some(o => shapesShareArea(a, o))), false);
   const canvas = createBuilderCanvas(b);
   commitHintWalls(canvas, walls);
   assert.deepEqual(canvas.elements, walls.elements);
