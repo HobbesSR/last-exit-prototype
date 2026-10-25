@@ -8,46 +8,19 @@ import { hunterClearance, portalStands, validatePortalReach } from '../map/micro
 import { microMetrics } from '../map/micro/metrics.ts';
 import { circle } from '../shared/shape.ts';
 import { hintErrors, hintedCells } from '../map/micro/hints.ts';
+import { validateBriefPartition } from '../map/micro/delegation.ts';
 import { cellsOf } from './helpers/cells.js';
+import { MASKS, SEEDS, SIZE, brief } from './helpers/block-masks.js';
 
-const SIZE = 40;
-const brief = (id, seed, cells, portals) => ({ id, seed, type: 'block', cellSize: SIZE, cells,
-  zones: [{ tier: 3, bonus: 0, lootChance: 0.3, cells }], portals });
-
-/** A wide field, an L, a ring around a hole and a deep block, with portals on several sides. */
-const MASKS = {
-  field: [cellsOf(44, 34), [{ id: 'west', axis: 'v', x: 0, y: 7, length: 3 }, { id: 'east', axis: 'v', x: 44, y: 20, length: 3 },
-    { id: 'north', axis: 'h', x: 28, y: 0, length: 8 }]],
-  ell: [cellsOf(56, 56, (x, y) => y < 26 || x < 26), [{ id: 'east', axis: 'v', x: 56, y: 4, length: 3 }, { id: 'south', axis: 'h', x: 2, y: 56, length: 4 },
-    { id: 'corner', axis: 'h', x: 30, y: 26, length: 6 }]],
-  ring: [cellsOf(64, 64, (x, y) => x < 24 || x >= 40 || y < 24 || y >= 40), [{ id: 'north', axis: 'h', x: 20, y: 0, length: 4 },
-    { id: 'hole', axis: 'v', x: 40, y: 28, length: 3 }, { id: 'west', axis: 'v', x: 0, y: 50, length: 3 }]],
-  deep: [cellsOf(72, 60), [{ id: 'west', axis: 'v', x: 0, y: 30, length: 2 }, { id: 'east', axis: 'v', x: 72, y: 2, length: 2 },
-    { id: 'south', axis: 'h', x: 60, y: 60, length: 2 }, { id: 'north', axis: 'h', x: 4, y: 0, length: 2 }]],
-};
-const SEEDS = [1, 2, 3, 4];
 const blockers = result => result.elements.flatMap(element => elementShapes(element));
 const key = c => `${c.x},${c.y}`;
 const sameRun = (p, q) => p.axis === q.axis && p.x === q.x && p.y === q.y && p.length === q.length;
-const built = new Map();
-const sample = input => {
-  const id = JSON.stringify(input);
-  if (!built.has(id)) built.set(id, buildRegion(input));
-  return built.get(id);
-};
-
-test('a block keeps the portal promise over seeds and masks', () => {
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
-    const result = sample(brief(name, seed, cells, portals));
-    assert.ok(result.manifest.lots >= 2, `${name} seed ${seed} has lots`);
-    const check = validatePortalReach({ ...result.brief, blockers: blockers(result) });
-    assert.deepEqual(check.errors, [], `${name} seed ${seed}`);
-  }
-});
 
 test('a block\'s children partition it, and every two that share a boundary have a portal between them', () => {
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
-    const { lots, alleys } = planBlock(brief(name, seed, cells, portals)), children = [...lots, alleys];
+    const input = brief(name, seed, cells, portals), { lots, alleys } = planBlock(input), children = [...lots, alleys];
+    // The check 51.8's inference rests on: each child is one area holding its own promise (#508).
+    assert.deepEqual(validateBriefPartition(input, children), [], `${name} ${seed}`);
     const owned = children.flatMap(child => child.cells.map(key));
     assert.equal(new Set(owned).size, owned.length, `${name} ${seed}: no cell has two owners`);
     assert.deepEqual(new Set(owned), new Set(cells.map(key)), `${name} ${seed}: every cell has an owner`);
