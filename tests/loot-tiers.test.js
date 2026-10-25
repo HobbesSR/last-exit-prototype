@@ -91,7 +91,7 @@ test('a live chain map: virtual columns are the generator zone tiers, and weapon
   for (const item of loot) assert.equal(virtualZone(map, item).col + 1, item.tier, `${item.id} at ${item.x},${item.y}`);
   const s = createGame(1, map, contentById('content-loot-1')), byMix = [[], [], [], [], []];
   for (const item of s.map.items) if (item.kind === 'weapon' && item.nodeId) byMix[spatialMix(virtualZone(s.map, item)) - 1].push(item.quality);
-  // Authored set pieces can now place loot in mix 1. Every sampled quality must be
+  // Non-entry regions in mix 1 roll loot too, and the #530 layouts place weapons there. Every sampled quality must be
   // possible under that mix's weights, regardless of the chosen layout (#530).
   for (const [mixIndex, qualities] of byMix.entries()) for (const quality of qualities)
     assert.ok(Number.isInteger(quality) && quality >= 1 && quality <= 5 && LOOT.lootTiers.mixes[mixIndex][quality - 1] > 0,
