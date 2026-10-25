@@ -60,7 +60,12 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [20-micro-generation.md](20-micro-generation.md) | Guide to micro contracts, geometry, builders, decomposition, tools, passable margins (20.6) builder delegation (20.7: preparation/execution, hut and compound adoption implemented), placeables (20.8) and a builder's usual structure (20.9); load the relevant 20.x part |
 | [21-stack.md](21-stack.md) | Chosen components, why, and the constraints a replacement must satisfy |
 | [22-ownership.md](22-ownership.md) | Guide to ownership by subsystem and the boundaries tests enforce; load the relevant 22.x part |
-| [22.6-hierarchical-navigation.md](22.6-hierarchical-navigation.md) | Portal graph (#420) over a free-space mesh (#422); knowledge tiles and optimistic planning (#423), adopted by bots under `content-3` (#424); sliced replanning under `content-4` (#470), local repair under `content-5` (#470 part 2); middle level and extra crossings not built (#425 closed) |
+| [22.6-hierarchical-navigation.md](22.6-hierarchical-navigation.md) | Guide: direction, constraints, levels and owners, compatibility. Portal graph (#420) over a free-space mesh (#422); knowledge tiles and optimistic planning (#423), adopted by bots under `content-3` (#424); sliced replanning under `content-4` (#470), local repair under `content-5` (#470 part 2); middle level and extra crossings not built (#425 closed) |
+| [22.6.1-portal-graph-and-mesh.md](22.6.1-portal-graph-and-mesh.md) | The portal graph (#420) and the free-space mesh eroded per body (#422); the deferred middle level |
+| [22.6.2-knowledge-and-doors.md](22.6.2-knowledge-and-doors.md) | Knowledge tiles, optimistic planning and result states (#423); doors as edge states |
+| [22.6.3-bot-adoption.md](22.6.3-bot-adoption.md) | Bot adoption under `content-3` (#424), sliced replanning (`content-4`) and local repair (`content-5`, #470) |
+| [22.6.4-dynamic-overlay.md](22.6.4-dynamic-overlay.md) | P8's experimental local overlay of observed dynamic bodies (#448) |
+| [22.6.5-implementation-sequence.md](22.6.5-implementation-sequence.md) | The #353 stages and #470 parts: built, deferred, closed |
 | [22.7-content-and-presentation.md](22.7-content-and-presentation.md) | Content/presentation and shared-rule ownership (#385, implemented in #386): display descriptors, live/replay metadata, client configuration and compatibility defaults |
 | [23-types.md](23-types.md) | The TypeScript arrangement in `shared/`, branding policy, erasure |
 | [24-networking-privacy.md](24-networking-privacy.md) | Server authority, potential visibility, field contracts, spectator delay |
