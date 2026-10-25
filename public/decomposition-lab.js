@@ -5,7 +5,7 @@ import { analyzeRegion } from '/map/micro/decomposition/analysis.ts';
 
 const $ = id => document.getElementById(id);
 const palette = ['#54c7bb','#6f9de0','#d884a8','#d7a65d','#a18ada','#72b777','#dc7d66','#70b9d8'];
-let input, plan, analysis, selectedId, selectedCandidateId, view = 'selected', updateTimer;
+let input, plan, analysis, selectedId, selectedCandidateId, view = 'selected', mode = 'tree', updateTimer;
 let layout = { originX: 0, originY: 0, scale: 1, bounds: null };
 const key = cell => `${cell.x},${cell.y}`;
 const cellSet = cells => new Set((cells || []).map(key));
@@ -16,6 +16,33 @@ const presets = {
   fewer: { beamWidth: 8, residualComponentPenalty: 10, piecePenalty: 200, help: 'A high per-piece cost favors one broad, generic allocation on the neck example.' },
   islands: { beamWidth: 8, residualComponentPenalty: 100, piecePenalty: 3, help: 'A high leftover-island cost favors plans with fewer disconnected residual areas.' },
 };
+function sizePreview(surface) {
+  const canvas = surface.querySelector('canvas');
+  const bounds = surface.getBoundingClientRect();
+  if (!bounds.width || !bounds.height) return;
+  const style = getComputedStyle(surface);
+  const width = bounds.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  const height = bounds.height - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+  const scale = Math.min(width / canvas.width, height / canvas.height);
+  canvas.style.width = Math.max(1, canvas.width * scale) + 'px';
+  canvas.style.height = Math.max(1, canvas.height * scale) + 'px';
+}
+const previewObserver = new ResizeObserver(entries => {
+  for (const entry of entries) sizePreview(entry.target);
+});
+document.querySelectorAll('.preview-surface').forEach(surface => previewObserver.observe(surface));
+function setMode(nextMode) {
+  mode = nextMode;
+  for (const name of ['tree', 'flat']) {
+    $('mode-' + name).setAttribute('aria-pressed', String(name === mode));
+    for (const suffix of ['settings', 'preview-panel', 'inspector']) {
+      $(name + '-' + suffix).hidden = name !== mode;
+    }
+  }
+  sizePreview($(mode + '-preview-panel').querySelector('.preview-surface'));
+}
+$('mode-tree').addEventListener('click', () => setMode('tree'));
+$('mode-flat').addEventListener('click', () => setMode('flat'));
 function syncOutputs() { for (const id of ['beam-width','residual-penalty','piece-penalty']) $(`${id}-value`).textContent = $(id).value; }
 function setPreset(name) { const preset = presets[name]; if (!preset) return; $('beam-width').value = preset.beamWidth; $('residual-penalty').value = preset.residualComponentPenalty; $('piece-penalty').value = preset.piecePenalty; $('preset-help').textContent = preset.help; syncOutputs(); }
 function policyKey(candidate) { return JSON.stringify((candidate?.pieces || []).map(piece => [piece.generator, piece.role, piece.cells.map(key).sort()])); }
@@ -61,6 +88,6 @@ $('piece-list').addEventListener('change', event => { selectedId = event.target.
 $('preview').addEventListener('click', event => { if (view !== 'selected' || !plan) return; const box=$('preview').getBoundingClientRect(), x=(event.clientX-box.left)*$('preview').width/box.width, y=(event.clientY-box.top)*$('preview').height/box.height; const cx=Math.floor((x-layout.originX)/layout.scale+layout.bounds.minX), cy=Math.floor((y-layout.originY)/layout.scale+layout.bounds.minY); const hit=plan.pieces.find(piece=>piece.cells.some(cell=>cell.x===cx&&cell.y===cy)); if(hit){selectedId=hit.id;renderPieceControl();renderInspector();draw();} });
 $('download').addEventListener('click', () => downloadJson(`decomposition-${input.id || 'plan'}.json`, plan, 2));
 $('import').addEventListener('change', async event => { const file=event.target.files?.[0]; if(!file)return; try { const loaded=JSON.parse(await file.text()); if(!loaded || !Array.isArray(loaded.cells) || typeof loaded.id !== 'string') throw new Error('expected a RegionContextInput with id and cells'); if (generate(loaded)) $('status').textContent=`Loaded ${file.name}; its allocation was recomputed with the current policy.`; } catch(error) { $('status').textContent=`Import rejected: ${error.message}. The previous context remains active.`; } event.target.value=''; });
-window.decompositionLabDebug = () => structuredClone({ input, plan, selectedId, selectedCandidateId, view, analysis, preset: $('preset').value });
+window.decompositionLabDebug = () => structuredClone({ input, plan, selectedId, selectedCandidateId, view, mode, analysis, preset: $('preset').value });
 setPreset('balanced');
 generate(decompositionExample($('shape').value));

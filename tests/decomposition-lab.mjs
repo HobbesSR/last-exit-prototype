@@ -15,6 +15,8 @@ try {
   page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) errors.push(message.text()); });
   await page.goto(`${base}/dev/micro/decomposition`);
   await page.waitForFunction(() => window.decompositionLabDebug?.().plan, null, { timeout: 15000 });
+  assert.equal(await page.locator('#mode-tree').getAttribute('aria-pressed'), 'true');
+  await page.getByRole('button', { name: 'Flat', exact: true }).click();
   const initial = await page.evaluate(() => window.decompositionLabDebug());
   assert.equal(initial.plan.version, 'decomposition-1');
   const owned = new Set(initial.input.cells.map(c => `${c.x},${c.y}`));
@@ -44,6 +46,7 @@ try {
   await page.screenshot({ path: 'test-results/decomposition-lab-ring-candidate.png', fullPage: true });
   await page.getByLabel('Pattern example').selectOption('neck');
   await page.waitForFunction(() => window.decompositionTreeDebug?.().portfolio?.alternatives.length > 0);
+  await page.getByRole('button', { name: 'Tree', exact: true }).click();
   await page.getByLabel('Tree objective').selectOption('rooms');
   await page.waitForFunction(() => window.decompositionTreeDebug().portfolio.objective === 'rooms');
   const trees = await page.evaluate(() => window.decompositionTreeDebug().portfolio);
@@ -59,10 +62,21 @@ try {
   await page.getByRole('button', { name: 'Download trees JSON' }).click();
   const treeFile = await treeDownload;
   assert.deepEqual(JSON.parse(await readFile(await treeFile.path(), 'utf8')), trees);
+  const retainedTree = await page.evaluate(() => window.decompositionTreeDebug());
+  await page.getByRole('button', { name: 'Flat', exact: true }).click();
+  await page.getByLabel('Canvas view').selectOption('candidates');
+  const retainedFlat = await page.evaluate(() => window.decompositionLabDebug());
+  await page.getByRole('button', { name: 'Tree', exact: true }).click();
+  assert.deepEqual(await page.evaluate(() => window.decompositionTreeDebug()), retainedTree, 'returning to Tree preserves alternative and branch without recomputing');
+  await page.getByRole('button', { name: 'Flat', exact: true }).click();
+  assert.equal(await page.evaluate(() => window.decompositionLabDebug().selectedCandidateId), retainedFlat.selectedCandidateId, 'returning to Flat preserves candidate selection');
+  assert.equal(await page.evaluate(() => window.decompositionLabDebug().view), 'candidates');
+  await page.getByRole('button', { name: 'Tree', exact: true }).click();
   await page.getByLabel('Tree objective').selectOption('preserve');
   await page.waitForFunction(() => window.decompositionTreeDebug().portfolio.objective === 'preserve');
   const preserved = await page.evaluate(() => window.decompositionTreeDebug().portfolio.alternatives[0].root);
   assert.notDeepEqual(preserved, trees.alternatives[0].root, 'objective presets choose different trees');
+  await page.getByRole('button', { name: 'Flat', exact: true }).click();
   await page.waitForFunction(() => window.decompositionLabDebug().input?.id.includes('neck'));
   const balanced = await page.evaluate(() => window.decompositionLabDebug().plan);
   await page.getByLabel('Allocation policy').selectOption('fewer');
@@ -77,6 +91,45 @@ try {
   await page.getByLabel('Canvas view').selectOption('depth');
   await page.waitForFunction(() => window.decompositionLabDebug().analysis?.depth?.length > 0);
   await page.getByLabel('Canvas view').selectOption('selected');
+  await page.getByLabel('Allocation policy').selectOption('balanced');
+  await page.waitForFunction(() => window.decompositionLabDebug().plan?.policy?.piecePenalty === 3);
+  for (const [width, height] of [[1440, 900], [1280, 720]]) {
+    await page.setViewportSize({ width, height });
+    for (const mode of ['flat', 'tree']) {
+      await page.getByRole('button', { name: mode === 'flat' ? 'Flat' : 'Tree', exact: true }).click();
+      await page.waitForFunction(mode => {
+        const canvas = document.querySelector(mode === 'flat' ? '#preview' : '#tree-preview').getBoundingClientRect();
+        return canvas.width > 0 && canvas.bottom <= innerHeight && Math.abs(canvas.width / canvas.height - 960 / 620) < .01;
+      }, mode);
+      const geometry = await page.evaluate(mode => {
+        const canvas = document.querySelector(mode === 'flat' ? '#preview' : '#tree-preview').getBoundingClientRect();
+        const settings = document.querySelector('.settings-panel').getBoundingClientRect();
+        const details = document.querySelector('.inspection-panel').getBoundingClientRect();
+        return { canvas: { x: canvas.x, y: canvas.y, width: canvas.width, height: canvas.height }, settings: { x: settings.x, width: settings.width, height: settings.height, scrollHeight: document.querySelector('.settings-panel').scrollHeight }, details: { x: details.x, width: details.width, height: details.height, scrollHeight: document.querySelector('.inspection-panel').scrollHeight }, viewportHeight: innerHeight };
+      }, mode);
+      assert.ok(geometry.settings.x + geometry.settings.width < geometry.canvas.x, 'settings stay left of the active preview');
+      assert.ok(geometry.canvas.x + geometry.canvas.width < geometry.details.x, 'selection details stay right of the active preview');
+      assert.ok(geometry.canvas.y + geometry.canvas.height <= geometry.viewportHeight, 'preview fits the viewport');
+      assert.ok(Math.abs(geometry.canvas.width / geometry.canvas.height - 960 / 620) < .01, 'canvas keeps its aspect ratio');
+      assert.ok(geometry.settings.height <= geometry.viewportHeight && geometry.details.height <= geometry.viewportHeight, 'side panels fit the available height');
+      await page.screenshot({ path: `test-results/decomposition-${mode}-${width}x${height}.png` });
+    }
+  }
+  await page.getByRole('button', { name: 'Flat', exact: true }).click();
+  const clickTarget = await page.evaluate(() => {
+    const { input, plan } = window.decompositionLabDebug();
+    const piece = plan.pieces.find(piece => piece.id !== window.decompositionLabDebug().selectedId);
+    if (!piece) return null;
+    const cell = piece.cells[0], canvas = document.querySelector('#preview'), box = canvas.getBoundingClientRect();
+    const minX = Math.min(...input.cells.map(c => c.x)), minY = Math.min(...input.cells.map(c => c.y));
+    const spanX = Math.max(...input.cells.map(c => c.x)) - minX + 1, spanY = Math.max(...input.cells.map(c => c.y)) - minY + 1;
+    const scale = Math.max(1, Math.floor(Math.min((canvas.width - 88) / spanX, (canvas.height - 88) / spanY)));
+    const ox = (canvas.width - spanX * scale) / 2, oy = (canvas.height - spanY * scale) / 2;
+    return { id: piece.id, x: (ox + (cell.x - minX + .5) * scale) * box.width / canvas.width, y: (oy + (cell.y - minY + .5) * scale) * box.height / canvas.height };
+  });
+  assert.ok(clickTarget, 'balanced neck plan has another piece for the pointer mapping check');
+  await page.locator('#preview').click({ position: { x: clickTarget.x, y: clickTarget.y } });
+  assert.equal(await page.evaluate(() => window.decompositionLabDebug().selectedId), clickTarget.id, 'canvas click maps to the selected piece after resizing');
   await page.screenshot({ path: 'test-results/decomposition-lab-neck-selected.png', fullPage: true });
   const downloadable = await page.evaluate(() => window.decompositionLabDebug().plan);
   const download = page.waitForEvent('download');
@@ -97,6 +150,9 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'compact inspector has no horizontal overflow');
   await page.screenshot({ path: 'test-results/decomposition-lab-compact.png', fullPage: true });
+  await page.getByRole('button', { name: 'Tree', exact: true }).click();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'compact tree has no horizontal overflow');
+  await page.screenshot({ path: 'test-results/decomposition-tree-390x844.png', fullPage: true });
   assert.equal(errors.length, 0, errors.join('\n'));
 } finally {
   await browser.close();
