@@ -327,6 +327,10 @@ P8 adds explicit `last-exit-0.8-physics-8` / `content-physics-8` for local dynam
 navigation and drop-placement behavior. It keeps P6's frame representation,
 schema and minimum reader; private local detours are not recorded. Old content
 and recorded poses remain unchanged.
+P9's local playtest export uses the separate `last-exit-physics-lab-1` diagnostic
+format ([42.20](42.20-physics-p9.md)), with pinned map/content, ordered actions,
+retained gameplay frames and private diagnostic samples. It is not accepted as
+a production replay and changes no schema, reader floor or rules identity.
 Flight/pending/pull transitions are stored state, not instructions to replay an
 engine. Old frames omit the new records; seek/removal follows complete captured
 lists. Private pending target/generation/force state never enters live projection.

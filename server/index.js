@@ -74,6 +74,10 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   // one, need the imports rewritten, so a server without dev tools serves the shared modules untouched.
   app.use('/shared', serveSharedModules(path.join(ROOT, 'shared'), policy !== 'none'));
 
+  // Local physics diagnostics are developer-only even via their static filenames.
+  app.use(['/dev/physics', '/dev/physics-lab.html', '/dev/physics-lab.js', '/dev/physics-lab-model.js'],
+    (req, res, next) => policy === 'none' ? res.sendStatus(404) : next());
+
   if (policy !== 'none') {
     for (const [name, url] of Object.entries(VENDOR_MODULES))
       app.get(url, async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule(name)); });
@@ -89,6 +93,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
     // Serve top-level Map files used by the lab (like chain.ts, engines.ts, etc.)
     app.get(/^\/map\/[^/]+\.ts$/, serveSharedModules(ROOT, true));
     app.get('/dev', (req, res) => res.sendFile(path.join(ROOT, 'public/dev/index.html')));
+    app.get('/dev/physics', (req, res) => res.sendFile(path.join(ROOT, 'public/dev/physics-lab.html')));
     app.get('/dev/map', (req, res) => res.sendFile(path.join(ROOT, 'map/tools/lab/index.html')));
     app.get('/dev/micro', (req, res) => res.sendFile(path.join(ROOT, 'public/micro-lab.html')));
     app.get('/dev/micro/decomposition', (req, res) => res.sendFile(path.join(ROOT, 'public/decomposition-lab.html')));

@@ -1,5 +1,27 @@
 # Physics P0 comparison lab
 
+P9's integrated local playtest is at `/dev/physics` when running `npm run dev`.
+Try A character contact/crowd, B crates and C hook; use Reset to pin tuning and
+Download JSON to retain configuration/actions/frames for Import and rerun.
+This does not change default matches. Human feel/promotion gates and measurement
+limits live in [42.20](../../docs/42.20-physics-p9.md).
+
+Sequential P9 measurements (after other tests finish):
+
+```powershell
+npm run physics:integration
+node tests/bench-client.mjs --physics --json
+```
+
+The integration report accepts `--warmup=N --samples=N --output=path` through
+the direct `node --expose-gc tools/physics/integration-report.mjs` invocation.
+It compares legacy/A/B/C at 11/27 actors, with 128 **total** dynamic bodies in
+B/C (64 crates plus actors and loose loot), and eight direct bounded ropes in C.
+This is an open synthetic arena with scripted input; generated-map bot and real
+browser costs require their own existing witnesses. Source/settings and observed
+awake-body counts accompany every run. A failed admission is retained as a
+failure rather than silently reducing the requested population.
+
 Isolated research for #437 and #451. Nothing in the game imports these candidates. Rapier
 is an exact, development-only dependency; `npm ci` installs the pinned artifact.
 The scenario/action contract is in [contract.md](contract.md). This is neither a

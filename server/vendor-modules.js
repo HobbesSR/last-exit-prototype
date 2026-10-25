@@ -18,8 +18,8 @@ function required(from, name) {
 const vendored = new Map();
 
 /**
- * A CommonJS package as one ES module, for the browser.
- * Note: This hand-rolled bundler handles simple `require()` calls for these two packages.
+ * A CommonJS/UMD package as one ES module, for the browser.
+ * This hand-rolled bundler handles simple `require()` calls in the registered packages.
  * It does not support circular dependencies, dynamic imports, or JSON files.
  */
 export function vendorModule(name) {
@@ -35,7 +35,10 @@ export function vendorModule(name) {
     factories[id] = `function (module, exports, require) {\n${source}\n}`;
     return id;
   };
-  visit(required(path.join(ROOT, "package.json"), name));
+  // Delaunator's main is ESM; its distributed UMD bundle includes its dependencies
+  // and follows the same module.exports path as the other wrapped packages.
+  visit(name === 'delaunator' ? path.join(ROOT, 'node_modules/delaunator/delaunator.min.js')
+    : required(path.join(ROOT, "package.json"), name));
   const body = `const factories = [${factories.join(",\n")}], loaded = [];
 function require(id) {
   if (!loaded[id]) {

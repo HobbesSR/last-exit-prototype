@@ -1,0 +1,40 @@
+npm notice run last-exit@0.1.0 bench
+npm notice run node tests/bench.mjs
+Last Exit tick benchmark — seed 4217, content-5, 12x6, 1 room(s), 1 viewer(s), 2746 ticks in 6239 ms
+tick cost   mean 2.264 ms   p50 1.885 ms   p95 4.729 ms   p99 7.034 ms   max 16.646 ms
+budget      50.000 ms at 20 Hz — mean uses 4.5%, 0 of 2746 ticks over budget
+headroom    sustainable 211 Hz at p95, about 10 concurrent room(s) inside budget
+
+per frame, milliseconds
+series            mean    p50    p95    max  calls
+---------------  -----  -----  -----  -----  -----
+sim.snapshot     0.767  0.753  0.870  1.494    1.0
+sim.step         0.749  0.641  1.449  2.558    1.0
+sim.bots         0.280  0.205  0.689  1.996    6.8
+sim.discovery    0.160  0.001  0.674  1.378    1.0
+sim.actions      0.158  0.138  0.256  0.364    6.8
+sim.pickups      0.120  0.101  0.213  0.774    6.8
+sim.playerView   0.075  0.072  0.082  0.595    1.0
+sim.repath       0.035  0.000  0.221  1.708    0.2
+sim.move         0.020  0.017  0.022  0.705    6.8
+sim.projectiles  0.000  0.000  0.001  0.007    1.0
+
+per frame, counts
+series                   mean  p50    p95    max  calls
+-----------------------  ----  ---  -----  -----  -----
+work.rayEdgeTests        2665    0  11104  19432
+work.visibilityRays      1704    0  10838  13271
+work.route.expansions      11    0     60    969
+calls.movePlayer            7    7      7      7
+calls.lineClear             3    3      6     10
+work.route.waiting          1    1      3      3
+calls.visibilityPolygon     0    0      1      1
+work.repath                 0    0      1      3
+work.route.slices           0    0      1      3
+work.route.backtracked      0    0      0      1
+calls.canOccupy             0    0      0      0
+alloc.sightEdges            0    0      0      0
+calls.sweptClear            0    0      0      0
+work.route.repairs          0    0      0      0
+
+sim.step is inclusive: its children (bots, move, actions, pickups, projectiles) are counted inside it.

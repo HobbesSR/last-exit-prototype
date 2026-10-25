@@ -2,8 +2,10 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { stripTypeScriptTypes } from 'node:module';
 
-/** CommonJS packages the dev labs import by bare name, each wrapped as one ES module (vendor-modules.js) at its URL. */
-export const VENDOR_MODULES = Object.freeze({ sat: '/vendor/sat.mjs', pathfinding: '/vendor/pathfinding.mjs' });
+/** CommonJS/UMD packages the dev labs import by bare name, wrapped as ES modules. */
+export const VENDOR_MODULES = Object.freeze({ sat: '/vendor/sat.mjs', pathfinding: '/vendor/pathfinding.mjs',
+  'clipper-lib': '/vendor/clipper.mjs', delaunator: '/vendor/delaunator.mjs',
+  '@kninnug/constrainautor': '/vendor/constrainautor.mjs' });
 const BARE = { ...VENDOR_MODULES, '@dimforge/rapier2d-compat': '/vendor/rapier/rapier.mjs' };
 
 function bareResolved(source) {

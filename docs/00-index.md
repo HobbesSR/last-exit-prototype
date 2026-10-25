@@ -107,6 +107,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.17-physics-p6.md](42.17-physics-p6.md) | Experimental capped springs/ropes and hook: swept attachment, cancellation, privacy, replay and browser evidence (#446) |
 | [42.18-physics-p7.md](42.18-physics-p7.md) | Lab-only thrown cube: analytic height sweep, event ties, explicit roof/window intervals, mask containment and engine-free retained playback (#447) |
 | [42.19-physics-p8.md](42.19-physics-p8.md) | Experimental local body detours, drop occupancy, privacy and crowd evidence (#448) |
+| [42.20-physics-p9.md](42.20-physics-p9.md) | Staged integration gates, local playtest tooling, measured envelopes and promotion limits (#449) |
 
 ### 5x — Map generation
 

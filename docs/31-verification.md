@@ -215,6 +215,20 @@ pushing, queued heading, shared point sight and collection-scoped query reuse.
 The crowd comparison is `node tools/physics/navigation-report.mjs`; run after other
 CPU-heavy gates finish. Evidence and limits belong to [42.19](42.19-physics-p8.md).
 
+## P9 integration and playtest
+
+P9's `tests/physics-integration.test.js` exercises an actual experimental room's
+creation-pinned mode, withheld distant body, delayed spectator pose, reconnect
+body keyframe and disposal. `tests/physics-diagnostics.test.js` verifies detached
+world-unit contact/force diagnostics without changing gameplay capture.
+`tests/physics-playtest.browser.mjs` covers local A/B/C scenes, real contacts and
+hook force, tuning reset, bounded recordings, JSON download and exact action
+rerun, diagnostic solid-geometry casts, plus disabled routes. It runs in `test:browser`. Reproduce the sequential
+synthetic envelope with `npm run physics:integration`; reproduce the actual
+physics client entry workload with `node tests/bench-client.mjs --physics --json`.
+These complement the existing privacy, prediction, item conservation, replay and
+bot witnesses; their measured scope and outstanding human gates are [42.20](42.20-physics-p9.md).
+
 ## The frozen fixture
 
 The current frozen characterization fixture is `behavior-nav-1.json.gz`.

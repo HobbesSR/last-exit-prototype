@@ -24,4 +24,6 @@ unsustainable. The P0 comparison and retained failures are in
 [42.9](42.9-physics-remediation.md). The explicit experimental P1 adapter is a
 production dependency, initialized only by the async physics factory; it retains
 legacy defaults. Its boundaries/evidence are [42.11](42.11-physics-p1.md), with
-remaining promotion work in [41.1](41.1-physics-plan.md).
+remaining promotion work in [41.1](41.1-physics-plan.md). P9's developer-only local
+playtest and measured integration checkpoint are in [42.20](42.20-physics-p9.md);
+default selection remains a separate reviewed checkpoint.

@@ -91,6 +91,10 @@ factory. It extends P6 with P5 drops, P2 footprints and the default planner's
 local repair. Earlier content, ordinary rooms and the frozen fixture retain
 their behavior. The new selection and bounds are experimental implementation
 assumptions for review; P9 and human feel remain prerequisites for promotion.
+P9's local `/dev/physics` playtest ([42.20](42.20-physics-p9.md)) copies and pins
+this content at each reset. Its A/B/C scenes stage characters, props and hook
+testing; they introduce no new match rules or default selection. Human feel and
+the separate reviewed default checkpoint remain promotion requirements.
 
 Bots avoid currently visible active actors and solid props within 192 units,
 regardless of sleep. Loot remains a sensor. A temporary local route rejoins at
