@@ -1,136 +1,181 @@
 # Last Exit
 
-A playable browser proof of concept for an asymmetric escape game. Eight contestants compete for three exits while three gladiators hunt them across an elongated diamond arena. Empty player slots are filled by bots.
+**Last Exit** is an asymmetric top-down escape game prototype and browser-based multiplayer testbed. Eight contestants navigate a large, procedurally generated elongated diamond arena to charge and extract with power cells, while three gladiators hunt them using specialized tracking kits and a private transit network as a sweeping hazard forces the match forward. Empty player slots are filled by autonomous bots.
+
+The project is in active development. It has moved well past an initial proof of concept into a structured, deterministic engineering foundation—with an authoritative 20 Hz simulation, a multi-stage macro-to-micro map generation pipeline, free-space polygon navigation with limited-knowledge bot planning, bounded replay recording, and an integrated suite of browser developer labs—while final cyberpunk art direction, live-chain trap authoring, multiplayer balance tuning, and experimental Rapier 2D physics promotion remain in progress.
 
 ![A contestant leaving the entry sector of the ruins, equipment slots and the power-cell objective on screen, closing on the unfogged directed camera](media/last-exit-demo.gif)
 
-This clip predates the shorter/taller maze and normal-slot cells. Recorded from a real match with `npm run demo`, which scripts a contestant through installed Chrome and encodes the capture with ffmpeg. The full-length clip is [media/last-exit-demo.mp4](media/last-exit-demo.mp4). It covers the opening of a ten-minute match, so it shows traversal and the objective rather than a fight; bots clear the crates near the entry within seconds, and the two roles begin the match at opposite ends of the arena.
+*Recorded from a live match with `npm run demo` ([media/last-exit-demo.mp4](media/last-exit-demo.mp4)). Note: this earlier capture predates the live macro-to-micro generation chain and normal-slot power cells; it shows opening traversal and the objective rather than a fight, as the two roles spawn at opposite ends of the arena.*
 
-## Run
+---
 
-Use Node 24.15.0 or newer. This workspace was verified with npm 12.0.2. The exact dependency versions are recorded in `package-lock.json`.
+## Current State at a Glance
+
+| Area | Implemented and Active (`last-exit-0.7` / `content-5`) | Experimental or In Progress |
+| --- | --- | --- |
+| **Core Gameplay** | 8 contestants vs. 3 gladiators (Warden, Specter, Striker), 3 shared extraction slots, 5-second power-cell charging, 6-slot inventory with drag-and-drop and stack merging, doors and windows, west-to-east hazard wall. | Spatial weapon quality tiers (`content-loot-1`, #443) and magazine reloading with ammo reserves (`content-ammo-1`, #444) are implemented as opt-in content pending balance signoff ([14](docs/14-match-rules.md)). |
+| **Map Generation** | Unified macro-to-micro generation chain ([50](docs/50-map-generation.md), [51](docs/51-generation-chain.md)): tile placement, layout regions, reachability proofs, region briefs, and bespoke micro builders (`depot`, `compound`, `block`, `hut`, `ruins`, etc.) at `12x6` (default), `24x12`, and `36x18` zone sizes. | Recursive execution of explored decomposition trees ([19](docs/19-decomposition-design.md)), second building-library milestone ([56](docs/56-buildings.md)), and live-chain trap/sensor/locked-door authoring ([16](docs/16-deferred.md)). |
+| **Bot Navigation** | Eroded free-space polygon navmesh ([22.6.1](docs/22.6.1-portal-graph-and-mesh.md)), contestant discovery-grid knowledge filter with optimistic planning ([22.6.2](docs/22.6.2-knowledge-and-doors.md)), sliced multi-tick replanning, and immediate local route repair ([22.6.3](docs/22.6.3-bot-adoption.md)). | Dynamic body avoidance and drop occupancy (`content-physics-8`, [22.6.4](docs/22.6.4-dynamic-overlay.md)) for physical props and crowds. |
+| **Physics & Contact** | Deterministic circle/polygon movement and sight sweeps via `shared/shape.ts` and SAT.js, shared between authoritative server ticks and client prediction. | Opt-in Rapier 2D adapter (P1–P9, [41.1](docs/41.1-physics-plan.md)): narrow character bodies, pushable crates, physical loot, swept hook ability, bounded client prediction, and isolated ballistics/jelly labs ([42.20](docs/42.20-physics-p9.md), [42.21](docs/42.21-jelly-squish.md)). |
+| **Networking & Replays** | Authoritative 20 Hz server loop, per-viewer potential-visibility filtering, client-side sight polygons and roof cutaways, local prediction + interpolated receive buffer, lobbies/auto-matchmaking, and compressed SHA-256 verified replay archives. | Public internet hosting, account authentication, and persistent progression are intentionally out of scope for this local/LAN slice ([28](docs/28-operational-limits.md)). |
+
+---
+
+## Quick Start
+
+Requires **Node.js 24.15.0 or newer** (verified with npm 12.0.2; exact dependency versions are locked in `package-lock.json`).
 
 ```powershell
 npm ci
+npm --prefix map/macro ci
 npm run dev
 ```
 
-Open the URL printed by the server, normally http://127.0.0.1:3100. If that is busy the next free port up to 3109 is used. A `PORT` set in the environment or in an untracked `.env.local` beside `package.json` is used exactly, and the server stops if it is busy; `PORT=0` picks any free port. The server binds to loopback by default. It must remain running while playing; Ctrl+C stops it and finalizes active recordings. There are no required build watchers or background installers.
+Open the URL printed by the server, normally `http://127.0.0.1:3100` (or the next free port up to `3109`). A `PORT` set in the environment or in an untracked `.env.local` beside `package.json` is used exactly, and the server stops if that port is busy; `PORT=0` picks any free port. The server binds to loopback by default and must stay running while playing; `Ctrl+C` stops it and finalizes active recordings.
 
-The shared simulation is written in TypeScript and is never compiled to an output directory. Node strips the types as it loads each module, and the dev server does the same for the browser as it serves them, so there is no bundle, no `dist/`, and no source map to keep in sync. Type checking is a separate command, not a step between editing a file and running it.
+The shared simulation and map modules are written in TypeScript and run directly without a build step or `dist/` directory—Node strips types as it loads modules, and the dev server does the same on the fly for the browser. Type checking is a separate verification gate, not a step between editing a file and running it.
 
-To let other devices on the same network join, start the LAN server instead:
+### Playing on a Local Network (LAN)
+
+To let other devices on the same network join:
 
 ```powershell
 npm run dev:lan
 ```
 
-Open one of the LAN URLs printed by the server, such as `http://192.168.1.25:3100`, from each client device. Windows may ask whether to allow Node.js through the firewall; allow private network access. LAN mode is still local-network only and does not configure internet hosting.
+Open one of the printed LAN URLs (such as `http://192.168.1.25:3100`) from each client device. Windows may prompt to allow Node.js through the firewall on private networks. LAN mode is local-network only and does not configure public internet hosting.
 
-## Controls
+---
 
-Development previews and their controls are in [20.5](docs/20.5-tools-and-next-boundaries.md#development-previews).
-
-For the isolated jelly and player-squish prototype, run `npm run physics:jelly`
-and open `test-results/physics-jelly.html`. Play or seek through four recorded
-scenes without a server. This lab changes no live gameplay; details and open
-decisions are in [42.21](docs/42.21-jelly-squish.md).
+## Gameplay and Controls
 
 | Action | Keyboard and mouse | Touch |
 | --- | --- | --- |
-| Move | WASD or arrow keys | Left virtual stick |
-| Aim | Mouse position | Right virtual stick |
+| Move | `WASD` or arrow keys | Left virtual stick |
+| Aim | Mouse pointer | Right virtual stick |
 | Fire / melee | Hold left mouse button | Deflect right stick |
-| Select equipment slot | 1 to 6 | Slot buttons |
-| Move / merge item | Drag between slots, or M then destination 1–6 | Drag between slots, or Move/merge then destination slot |
-| Reload (reload content only) | R | Reload button |
-| Drop reserve ammunition (reload content only) | Click a reserve chip | Tap a reserve chip |
-| Gladiator kit ability | Q | Ability button |
-| Open/close door / charge cell / extract / rail | E | Hand button |
-| Drop equipment | Drag a slot into the arena, or G for selected item | Drag a slot into the arena, or Drop selected button |
-| Sneak | Hold Shift | Hold footprints button |
-| Fullscreen | F | Fullscreen button |
+| Select equipment slot | `1` to `6` | Slot buttons |
+| Move / merge item | Drag between slots, or `M` then destination `1`–`6` | Drag between slots, or Move/merge then destination slot |
+| Reload (`content-ammo-1` only) | `R` | Reload button |
+| Drop reserve ammo (`content-ammo-1` only) | Click a reserve chip | Tap a reserve chip |
+| Gladiator kit ability | `Q` | Ability button |
+| Open/close door / charge cell / extract / transit | `E` | Hand button |
+| Drop equipment | Drag a slot into the arena, or `G` for selected item | Drag a slot into the arena, or Drop selected button |
+| Sneak | Hold `Shift` | Hold footprints button |
+| Fullscreen | `F` | Fullscreen button |
+| Toggle Dev View (`npm run dev`) | `` ` `` (backquote) or top-bar telescope button | Top-bar telescope button |
+| Toggle Profiler Overlay | `P` (or `?profile=1`) | `?profile=1` |
 
-Contestants win by finding a power cell, charging it for five seconds, and carrying it to the extraction site. Three shared slots are available. Live maps use the authored generation chain at 17,280 by 8,640 units, with a ten-minute wall deadline. Each start has a nearby pistol and uncharged cell. Walk over loot to collect it into six equipment slots; weapons have finite ammo, and medkits and shields stack. Use M or Move/merge to rearrange equipment. Contestants can shoot one another and have no innate ability. Gladiators use six distributed blue transit stations with E; Warden has a shockwave, Specter a scan, and Striker a speed burst. Kills improve gladiator damage and ability recovery. Eliminated gladiators respawn after 20 seconds at a safe transit station with earned upgrades retained. Current body sizes and combat tuning are preserved; narrow-gap balance still needs a pass. Traps, sensors and locked doors remain supported in legacy maps but are not authored by the live chain yet.
+### Match Rules
 
-The live camera follows your character and fills the viewport rather than clipping sight to a circle. Solid structures and closed doors block sight. Building roofs hide interiors from outside and disappear inside. Windows pass sight and shots but block movement; E opens or closes nearby doors. Terrain and structures stay on screen wherever they are and fall into shadow when you cannot see them; contestants, gladiators, loot, traps, and shots appear only while actually in sight. Gates you have already seen keep their last observed state, marked as remembered rather than current, until you see them again. The minimap is schematic and does not reveal the whole battlefield. Full-map viewing is available only in completed replays, the directed spectator stream and the dev view.
+- **Objective:** Contestants must find an uncharged power cell, press `E` at one of the three charging stations and stay still for five seconds (100 ticks; progress is retained if interrupted), and carry the charged cell to the extraction site. Three shared extraction slots are available within a ten-minute match deadline.
+- **Arena & Scale:** Default live matches generate a `12x6` diamond zone plan (17,280 × 8,640 world units) on a background worker thread (`map/live.ts`). Private rooms can also select larger `24x12` and `36x18` authored zone libraries. Each contestant start includes a nearby starter pistol and uncharged cell.
+- **Equipment:** Walk over loot to collect it into six mixed equipment slots. Weapons (pistol, rifle, scattergun) carry finite ammunition; medkits and shields stack up to three; power cells take one slot each and never stack. Drag slots to rearrange, merge, or drop them into the arena. Contestants can damage one another and have no innate kit ability.
+- **Gladiators:** Three hunters spawn at the departure end and fast-travel across six distributed blue transit stations with `E`. **Warden** triggers a close-range shockwave, **Specter** runs a radial scan, and **Striker** activates a speed burst. Claiming kills upgrades gladiator damage and ability recovery. Eliminated gladiators respawn after 20 seconds at a safe transit station ahead of the hazard wall with earned upgrades retained.
+- **Sight & Information:** The live camera fills your viewport rather than clipping sight to a circle. Solid structures and closed doors block line of sight; building roofs conceal interiors from the outside and cut away when you step inside. Windows pass sight and gunfire but block movement and item reach. Static terrain stays visible in shadow when out of sight, while actors, loot, traps, and projectiles appear only in direct sight. Previously observed doors retain their last seen state (marked as remembered) until seen again. The minimap is schematic; for contestants it reveals only discovered areas, while gladiators see the full arena layout.
+- **Lobbies & Matchmaking:** The Lobbies dialog lets you choose a role, kit, and callsign, browse and join open rooms, use **Auto** to matchmake into a shared 15-second countdown room, or configure and deploy a private room (with custom seed and zone size `12x6`, `24x12`, or `36x18`). Copying the arena link lets another tab or LAN device join and take over an available bot. Empty live rooms close and archive after a 30-second reconnect grace.
 
-Lobbies opens role, kit and callsign selection, with tabs for finding and joining open rooms (including Auto matchmaking) or configuring and deploying a new room, then a lobby the room owner starts; a named room is listed for others to join. Auto matchmakes on this server instead, filling a shared room that starts on a timer. Copy the arena link to join the same match in another browser tab or from another device using a LAN URL; joining takes over an available bot. The default loopback address is only reachable on this computer. LAN hosting needs `npm run dev:lan` or `HOST=0.0.0.0`, the computer's LAN address, and appropriate firewall access; no internet deployment or account system is configured.
+---
 
-### Dev view
+## Developer Portal and Tools
 
-Under `npm run dev` (and `dev:lan`) the telescope button in the top bar, or the backquote key, steps you out of your player into the match's dev view and back again; your player stays in the match, idle, meanwhile. It shows the whole live map, undelayed and unfogged. Drag or hold WASD/arrows to pan and use the wheel to zoom. Click a player or bot, or pick one from the list, to follow them in their own sight; V toggles that fog, Esc stops following, and 0 returns to the whole arena. T moves the followed player (or your own, while you have stepped out of it) to the point under the cursor, if they can stand there. The pause button or Space pauses the whole match for everyone in it (not other rooms); the replay shows a mark where it was paused. The same camera controls work in replays. `?room=<id>&dev` opens a standalone dev view in any tab. The server decides who may: `DEV_TOOLS=none|owner|all` (or `--dev-tools=`), unset meaning nobody.
+When running under `npm run dev` or `npm run dev:lan` (`--dev-tools=all`), the game server hosts an integrated **Developer Portal** at `/dev` (`http://127.0.0.1:3100/dev`) with a shared navigation bar across all interactive inspection labs:
 
-Empty live rooms close and save after a 30-second reconnect grace, so repeatedly starting a new arena does not leave entire bot matches running in the background.
+- **Map Lab (`/dev/map`):** Whole-map generator and generation-chain inspector ([53.1](docs/53.1-map-lab-and-tools.md)). Preview every stage of the chain (`Layout`, resolved classes, regions, portals, reachability proof components, zone tiers, loot heatmaps, building drill-downs, and contestant vs. hunter route comparisons), edit and validate tile and set-piece libraries in the **Chain Library** tab, preview parameterized assemblies in the **Placeables** tab, or launch the exact seed directly into a live game room.
+- **Region Builder Explorer (`/dev/micro`):** Interactive workbench for testing individual micro region strategies (`depot`, `compound`, `block`, `hut`, `park`, `plant`, `ruins`, etc.) across customizable shapes and sizes ([20.5](docs/20.5-tools-and-next-boundaries.md)). Inspect building design graphs, space allocations, roofs, and portal clearance routes, and walk the generated collision geometry as either role using `WASD` and `E`.
+- **Decomposition Inspector (`/dev/micro/decomposition`):** Visualizes polyomino region partitioning, neck cuts, candidate footprints, residual scoring, and bounded recursive allocation trees ([19](docs/19-decomposition-design.md), [20.4](docs/20.4-hierarchical-generation.md)).
+- **Generation Trace (`/dev/micro/generation`):** Step-by-step walkthrough of a decomposing `block` region through *Region → Decomposition → Generated → Walk* stages.
+- **Physics Playtest (`/dev/physics`):** Local browser simulation workbench for the experimental Rapier 2D integration ([42.20](docs/42.20-physics-p9.md)). Test character contact and doorway crowd squeezes (Scene A), pushable rotated crates and physical loot (Scene B), and the gladiator hook tether (Scene C), complete with solver contact/force overlays, swept disk casts, and deterministic JSON action-trace export/rerun.
+- **Standalone Physics Labs:** Run `npm run physics:ballistics` or `npm run physics:jelly` to generate self-contained HTML viewers under `test-results/` for the 2½D thrown-cube ballistics lab ([42.18](docs/42.18-physics-p7.md)) and native-spring jelly/player-squish prototype ([42.21](docs/42.21-jelly-squish.md)).
+- **In-Match Dev View:** Press `` ` `` (backquote) or click the telescope button in a live match (or open `?room=<id>&dev`) to step out of your character into an undelayed, unfogged whole-arena overview. Pan with drag/`WASD`, zoom with the wheel, click any player or bot to follow them in their own sight (`V` toggles their fog, `Esc` stops following, `0` resets to the arena), press `T` to teleport the followed actor to the cursor, or press `Space` to pause the room. Controlled on the server by `DEV_TOOLS=none|owner|all` (`--dev-tools=`).
+- **Non-Player Spectators:** Joining a room as a spectator with the room owner key provides an unfogged directed view delayed by 60 simulation ticks (3 seconds) without enabling dev-tool manipulation ([24](docs/24-networking-privacy.md)).
 
-## Replays
+Command-line and MCP tools for map generation and region inspection (`map/tools/cli.mts`, `map/tools/mcp.mts`, `tools/micro-region.mjs`, `tools/decompose-region.mjs`, `tools/builder-fill.mjs`) are documented in [53.1](docs/53.1-map-lab-and-tools.md) and [20.5](docs/20.5-tools-and-next-boundaries.md).
 
-The server records simulation ticks to compressed JSON under `replays/`. Completed matches are available from the clapperboard button. The room creator can end a match there to save immediately. Playback supports pause, timeline seeking, speed selection, and JSON download. Slow storage never pauses gameplay: bounded recording may omit frames, with recovered archives labelled incomplete. Playback preserves elapsed match time and indicates missing intervals. A permanent recording failure notifies viewers while the match continues.
+---
 
-These are exact recorded simulation states, not a promise of identical audiovisual output or cross-platform input resimulation. They include all actors, positions, health, cooldowns, AI paths, objects, projectiles, accepted commands, seed, map geometry, and simulation version. SHA-256 metadata verifies the frame stream. Interrupted `.partial` recordings are not offered as completed replays. Recordings from the earlier grid prototype remain downloadable but are incompatible with the new renderer.
+## Repository Layout
 
-## Performance diagnostics
+```text
+├── shared/          # Portable TypeScript core shared by server and browser (simulation, geometry,
+│                    #   free-space navmesh, bot planning, equipment, visibility, frame layers, physics)
+├── map/             # Procedural map generation (never imported by shared/; enforced by boundary tests)
+│   ├── kernel/      # Zero-dependency shared map space: macro/micro contract, body scale, cells, runs
+│   ├── macro/       # Macro generator ("mapgen"): WFC tile placement, layout regions, proofs, libraries
+│   ├── micro/       # Micro generation SDK, building library, and per-region builders/decomposers
+│   ├── tools/       # Shared Map Lab (/dev/map), CLI (cli.mts), MCP server (mcp.mts), and seed sweep
+│   └── live.ts      # Runtime adapter turning built chain maps into playable arena maps
+├── server/          # Authoritative 20 Hz Node/Express/WebSocket server, room lifecycle, replay writer
+├── public/          # Browser client (Phaser renderer, snapshot buffer, UI, replay player, /dev portal)
+├── docs/            # Numbered product, engineering, process, performance, and mapgen documentation
+├── tests/           # Fast and slow unit suites, Playwright browser tests, benchmarks, frozen fixtures
+└── tools/           # CLI utilities, physics/navigation report harnesses, and historical audit scripts
+```
 
-If the game stutters, open Replays → Download performance diagnostics. This saves recent raw frame times and packet gaps, browser/viewport information, seed/location and server room counts. It does not include owner credentials or the player list. Share the file when reviewing performance issues. The current investigation status and evidence needed are in [42](docs/42-performance-history.md#the-reported-slowdown-is-still-open).
+Architectural ownership and module boundaries are enforced by automated tests and recorded in [22](docs/22-ownership.md) and [50](docs/50-map-generation.md).
 
-## Profiling
+---
 
-Instrumentation is compiled into the simulation, the server loop, and the renderer, and is off by
-default: each hook returns before reading the clock, so normal play is untaxed. Coarse phases are
-timed; hot leaf calls such as `lineClear` are only counted, because timing them would cost more than
-the work being measured. Frame series report one sample per tick or rendered frame, event series
-(packet gaps, frame deltas) report one sample per occurrence.
+## Replays, Profiling, and Diagnostics
+
+### Replays
+The server records simulation ticks to compressed JSON archives under `replays/` ([26](docs/26-recording-contract.md)). Open completed matches from the clapperboard button in the top bar; the room creator can also end a match early to save immediately. Playback supports pause, timeline seeking, speed selection, camera follow, and raw JSON download.
+
+Recordings capture exact authoritative simulation states—actors, positions, health, cooldowns, bot routes, objects, projectiles, accepted commands, seed, map geometry, pinned content ID, and simulation version—verified by SHA-256 stream metadata. Bounded recording (8 MiB pending budget per room) never stalls live gameplay: if storage falls behind, frames are omitted and marked cleanly as gaps during playback.
+
+### Performance Diagnostics & Profiling
+If a live match stutters, open **Replays → Download performance diagnostics** to save a sanitized JSON report of recent frame times, packet gaps, viewport metrics, and room counts (see [42](docs/42-performance-history.md)).
+
+Low-overhead profiling hooks are compiled into the simulation, server loop, and renderer, and remain off by default:
 
 ```powershell
 npm run bench
 npm run bench:client
 ```
 
-For benchmark parameters, invoke the script directly because npm 12 treats unknown `--key=value` arguments as configuration flags in some PowerShell setups:
+To pass benchmark flags directly (avoiding npm 12 flag interception in PowerShell):
 
 ```powershell
 node tests/bench.mjs --rooms=2 --ticks=300 --clients=8
 node tests/bench-client.mjs --location=dense --seconds=30
 ```
 
-`bench` runs the simulation headless with no sockets or disk and reports per-tick cost against the
-`1000 / HZ` budget, phase and counter tables, and how many concurrent rooms fit in that budget. It
-accepts `--seed=`, `--ticks=`, `--rooms=`, `--clients=`, and `--json`. `bench:client` drives a real
-match in installed Chrome and reports renderer phases, observed frame time, and the gap between
-authoritative server states; it accepts `--seconds=`, `--headed`, and `--json`.
+- `bench` runs the simulation headless and reports per-tick CPU cost against the 50 ms (`20 Hz`) budget, phase/counter breakdowns, and concurrent room capacity.
+- `bench:client` drives a live match in headless Chrome and reports renderer phases, frame times, and server state arrival gaps.
+- Start a server with `PROFILE=1` (or toggle via `POST /api/profile` and read `GET /api/profile`) for live server telemetry. In the browser, press `P` or append `?profile=1` for the live profiler overlay, or call `window.arenaProfile()` in the console.
 
-For a running server, start it with `PROFILE=1` to log a summary every ten seconds and read
-`GET /api/profile` for the live report; `POST /api/profile` toggles it without a restart. In the
-browser, press `P` or load the arena with `?profile=1` for an on-screen overlay, and call
-`window.arenaProfile()` for the same data as JSON.
-
-`sim.step` and `render.frame` are inclusive totals: their child phases are counted inside them.
-The profiler is a single process-wide registry, so a server running several rooms reports the
-combined per-tick cost of all of them, which is the number the loop budget actually cares about.
+---
 
 ## Verification
 
 ```powershell
-npm test          # fast tier, for iterating
-npm run test:all  # adds the slow seed sweeps and whole-match runs
-npm run check
-npm run typecheck
-npm run test:browser
+npm run check         # Parses all JS modules and verifies clean TypeScript type erasure
+npm run typecheck     # Strict tsc --noEmit across shared/, map/micro/, map/kernel/, and map/tools/
+npm test              # Fast unit and integration suite (concurrency-capped for rapid iteration)
+npm run test:all      # Full unit suite including slow seed sweeps and whole-match bot runs
+npm run test:mapgen   # Typecheck and unit/quota suite for the macro generator in map/macro/
+npm run test:micro    # Micro-generation unit tests plus browser checks for /dev/micro labs
+npm run test:physics  # Focused Rapier 2D physics, item identity, hook, and dynamic navigation suite
+npm run test:browser  # End-to-end Playwright suite in Google Chrome (game, dev view, labs, physics)
+npm run test:times    # Measures per-file execution times against the 15s (fast) / 60s (slow) budgets
 ```
 
-`npm run check` parses every JavaScript module and confirms every TypeScript module erases cleanly, which is what Node does to load it. `npm run typecheck` is the stronger pass: `tsc --noEmit` under `strict`, rejecting unused locals and imports, over `shared/`, `map/micro/`, `map/kernel/`, the `map/*.ts` entry modules and `map/tools/`. The map generator in `map/macro/` has its own gate, `npm run test:mapgen`. [31](docs/31-verification.md) has the full coverage of each command.
+Full verification gates, coverage details, and the frozen characterization baseline policy (`tests/fixtures/behavior-nav-1.json.gz`, which guards against unintended simulation regressions across refactors) are documented in [31](docs/31-verification.md) and [tests/fixtures/README.md](tests/fixtures/README.md).
 
-Browser tests use an installed Google Chrome through Playwright and start an isolated temporary server. Screenshots are written to `test-results/`. Tests cover seeded routes, geometry, line of sight, movement, combat, extraction, multiplayer authority, per-viewer filtering, the spectator directed view, the dev view's camera and follow, recording integrity, replay controls, shot interpolation, and desktop/touch input. The visibility polygon's culling is checked against a brute-force implementation of the same rays over sixteen hundred cases, including origins placed exactly on obstacle corners and edges, and must match it vertex for vertex.
+---
 
-## Design and Requirements
+## Documentation
 
-The maintained product requirements, acceptance status, original prompt notes, deferred work, and open decisions live in [docs/](docs/), split into numbered files so a task can load the two or three it needs. [docs/00-index.md](docs/00-index.md) says what is where: `1x` is product, `2x` is engineering, `3x` is process, `4x` is plan and history. Update the relevant numbered file and its tests together when the game rules change.
+Project requirements, architecture contracts, verification policies, and measured engineering history live in [docs/](docs/), organized into numbered families so contributors and agents can load only the context relevant to a task. Start at [**docs/00-index.md**](docs/00-index.md):
 
-## Scope
+- **`1x` — Product:** [11 Product intent](docs/11-product-intent.md), [12 Player requirements](docs/12-player-requirements.md), [13 Accepted features & status](docs/13-accepted-features.md), [14 Match rules & defaults](docs/14-match-rules.md), [15 Information & sight rules](docs/15-information-rules.md), [16 Deferred work](docs/16-deferred.md), [17 Open questions & answers](docs/17-open-questions.md).
+- **`2x` — Engineering:** [20 Micro generation](docs/20-micro-generation.md), [21 Stack decisions](docs/21-stack.md), [22 Subsystem ownership](docs/22-ownership.md) (including [22.6 Hierarchical navigation](docs/22.6-hierarchical-navigation.md)), [23 TypeScript arrangement](docs/23-types.md), [24 Networking & privacy](docs/24-networking-privacy.md), [25 Pacing & rendering](docs/25-pacing-and-rendering.md), [26 Recording contract](docs/26-recording-contract.md), [28 Operational limits](docs/28-operational-limits.md), [29 Geometry, drawing & physics](docs/29-geometry-and-drawing.md).
+- **`3x` — Process:** [31 Verification](docs/31-verification.md), [32 Delegation](docs/32-delegation.md), [33 Documentation maintenance](docs/33-maintenance.md), [34 Forgejo workflow](docs/34-forgejo-workflow.md).
+- **`4x` — Plan & History:** [41 Roadmap](docs/41-roadmap.md), [41.1 Physics plan](docs/41.1-physics-plan.md), [42 Performance history & measured baselines](docs/42-performance-history.md).
+- **`5x` — Map Generation:** [50 Overview & ownership](docs/50-map-generation.md), [51 Generation chain](docs/51-generation-chain.md), [52 Primitives & library](docs/52-map-primitives-and-library.md), [53 Artifacts & tools](docs/53-map-artifacts-and-tools.md), [54 Region type catalogue](docs/54-region-types.md), [55 Zone plans](docs/55-zone-plans.md), [56 Buildings](docs/56-buildings.md).
 
-Non-player clients: a connection can join as a spectator with the room owner key and receive the unfogged directed view, delayed by 60 simulation ticks (three seconds); during the initial three seconds it stays at the opening frame. It has no interface of its own beyond the dev view's camera, and there is no patron action system. The undelayed dev view is a development tool gated by `DEV_TOOLS`. Owner credentials persist in session storage for refresh recovery; shared room URLs remain keyless.
-
-This is a local vertical slice using Phaser, Node, SAT.js, and PathFinding.js. The simulation and geometric movement are separate from rendering. Persistent unlocks, contestant perks, cameras with viewing stations, sound, polished animation, economy, and production hosting are future work. See [docs/16-deferred.md](docs/16-deferred.md) and [docs/28-operational-limits.md](docs/28-operational-limits.md).
+---
 
 ## License
 
