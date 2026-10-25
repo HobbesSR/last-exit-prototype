@@ -2666,6 +2666,9 @@ function edited(): void {
   if (!names.includes(selectedId)) return render();
   showEntries(names);
   $("chainSelected").textContent = selectedId;
+  // A refused rename left its text in the ID field; once another edit commits, show the real ID.
+  const id = document.getElementById("chainId") as HTMLInputElement | null;
+  if (id && id !== document.activeElement) id.value = selectedId;
   $("chainSurface").dataset.selection = JSON.stringify([section(), selectedId]);
   renderGallery();
   refreshEditor?.();
@@ -2723,7 +2726,7 @@ function render(): void {
   if (restore && again) {
     again.focus({ preventScroll: true });
     try {
-      if (again instanceof HTMLInputElement && restore.start !== null)
+      if (again instanceof HTMLInputElement && typeof restore.start === "number")
         again.setSelectionRange(restore.start, restore.end);
     } catch {
       /* number inputs have no selection */

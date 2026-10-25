@@ -1849,6 +1849,11 @@ try {
     assert.equal(await editPage.locator("#chainId").inputValue(), "half-hut-1");
     assert.equal((await draft()).selectedId, "hut-left");
     assert.deepEqual(await kept(), { stage: true, selected: true, other: true });
+    // The next committed edit elsewhere shows the real ID again.
+    await editPage.locator("#chainWeight").fill("2");
+    await editPage.locator("#chainWeight").press("Enter");
+    assert.equal(await editPage.locator("#chainId").inputValue(), "hut-left");
+    assert.equal((await draft()).library.tiles[0].weight, 2);
 
     // Exact slot coordinates: Tab walks dx → dy and the blueprint follows.
     await editPage.locator("#chainSection").selectOption("setPieces");
