@@ -20,8 +20,8 @@ Read, in this order:
    - `docs/51-generation-chain.md`: route to 51.1 (invariants), the relevant
      stage child, or 51.14 (build record); do not load every child
    - `docs/52-map-primitives-and-library.md`: the library model
-   - `docs/53-map-artifacts-and-tools.md`: artifacts, determinism, the sweep and
-     tools
+   - `docs/53-map-artifacts-and-tools.md`: artifacts, determinism and the sweep;
+     `docs/53.1-map-lab-and-tools.md`: the Map Lab, CLI and MCP
 4. For anything inside a region: root docs 19 and the relevant child of 20.
 5. Root `docs/17.2-map-questions.md`: route to the relevant verbatim answers
    and questions with their working assumptions; M-numbers remain unchanged.
