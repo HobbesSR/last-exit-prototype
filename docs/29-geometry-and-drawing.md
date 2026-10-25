@@ -34,8 +34,35 @@ implementation lives in the physics presentation adapter.
 Polygons must be **convex** and consistently wound: SAT separation is only defined for convex bodies,
 and a concave one separates in the wrong direction rather than failing loudly. `convex(points)`
 checks this; generated content should be validated once at build time rather than trusted. Concave
-shapes must be decomposed into convex pieces before they become geometry. No decomposition helper
-exists yet — that is the next piece of this module when the generator needs it.
+shapes must be decomposed into convex pieces before they become geometry, with shape construction
+below.
+
+## Shape construction
+
+`shared/shape-construction.ts` builds shapes from shapes (#488). `construct(shapes)` starts from their
+union; `union`, `subtract` and `intersect` each return a new construction; `pieces()` breaks the
+result into disjoint convex pieces. `convexPieces(rings)` breaks a concave or holed outline the same
+way, filled even-odd. `disjoint(shapes)` gives each shape less the ones before it, returning a shape
+that overlaps none of them as it is, so overlapping parts of one assembly can be its addressed areas
+([20.2](20.2-geometry-access.md#addressed-area)). Builders use it for intent; it lives in `shared/`
+beside `shape.ts` rather than in `map/kernel/`, which imports nothing outside itself, so macro and
+micro can both reach it.
+
+- **Grid.** Operations run on Clipper's integer grid, 256 steps per world unit, so coincidence and
+  collinearity are exact and nothing depends on trig (#170). The result's corners are then put back:
+  an input corner exactly as given, and a corner the construction made at the exact crossing of the
+  input edges it lies on, so a piece ends on a cut's surface rather than up to half a step inside it.
+  Edges are found by their grid versions, since a shallow crossing's rounding moves it further
+  along them. A sliver thinner than a grid step may be lost.
+- **Circles** become polygons circumscribed one grid step wide of the circle, taken from the grid,
+  so a cut by a circle never leaves a piece inside it. The free-space index keeps its own exact
+  circumscription.
+- **Breakdown.** A part (an outer ring with its holes) whose edges are all axis-aligned breaks into
+  rectangles: bands at every corner, spans carried on while they match, in rows or columns,
+  whichever gives fewer. Any other part is triangulated and its diagonals removed where the two
+  sides make a convex piece (Hertel–Mehlhorn, at most four times the fewest). A four-sided
+  axis-aligned piece comes back as a rect; other pieces are polygons anchored at the origin, so
+  their points are their world outline exactly. Order depends only on the area.
 
 ## One assembly, stamped anywhere
 
@@ -248,8 +275,8 @@ The shape module is the primitive layer for it, and deliberately stops short of 
   `sharesArea(a, b, tolerance)` does not, and serves authored areas such as a builder's
   addressed-area record ([20.2](20.2-geometry-access.md#addressed-area)), never collision.
 - Missing, in the order they would be needed: velocity and integration, an impulse/restitution model,
-  rotational inertia, joints, continuous collision for fast bodies, and convex decomposition for
-  concave generated content. F-14 in [13](13-accepted-features.md) accepts the direction and requires
+  rotational inertia, joints and continuous collision for fast bodies. Convex decomposition for
+  concave generated content now exists (shape construction, above). F-14 in [13](13-accepted-features.md) accepts the direction and requires
   a measured comparison against middleware before any of it is built.
 
 Any of that must keep the fixed-tick order, the RNG/ID order and the recorded outcomes in

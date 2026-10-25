@@ -6,8 +6,9 @@ import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
 import { createFillMask, createRegionMask } from '../geometry.ts';
-import { commitHintWalls, separateAreas, wallHints } from '../hint-walls.ts';
+import { commitHintWalls, wallHints } from '../hint-walls.ts';
 import { createBuilderCanvas } from '../canvas.ts';
+import { disjoint } from '../../../shared/shape-construction.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
 import { builtRegion } from '../result.ts';
@@ -121,7 +122,7 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
     // These legacy world-absolute records' template boxes are not their intent; their shapes are.
     // The room's box is not either, as a protected route may run through a fallen span.
     // Siting has already accepted every span, so a refusal is a broken placement invariant.
-    if (room.length && !canvas.commit({ elements: room, areas: separateAreas(roomShapes), extents: roomShapes }))
+    if (room.length && !canvas.commit({ elements: room, areas: disjoint(roomShapes), extents: roomShapes }))
       throw new Error(`Ruins room at ${slot.x},${slot.y} failed its canvas commit.`);
   }
 

@@ -1,8 +1,7 @@
 import ClipperLib from 'clipper-lib';
-import Delaunator from 'delaunator';
-import Constrainautor from '@kninnug/constrainautor';
 import { IndexHeap } from './index-heap.ts';
-import { CIRCLE_SEGMENTS, outline, polygon, rect, shapeOf, type Shape } from './shape.ts';
+import { outline, polygon, rect, shapeOf, type Shape } from './shape.ts';
+import { CLIP_SCALE, canonicalRings, clipPath, triangulateRings } from './shape-construction.ts';
 import { gateShape } from './movement.ts';
 import type { Box, CollisionMap, Vec2, World } from './types.ts';
 
@@ -30,8 +29,8 @@ export interface FreeSpace {
 }
 interface Grid { x: World; y: World; size: World; cols: number; rows: number; starts: Int32Array; items: Int32Array }
 
-/** Integer coordinates per world unit for clipping and triangulating, so collinearity and coincidence are exact. */
-const SCALE = 256;
+/** Integer coordinates per world unit, the construction grid (29). */
+const SCALE = CLIP_SCALE;
 /** World units per locator bucket. */
 const BUCKET = 64;
 /**
@@ -48,7 +47,7 @@ const ERODE_MARGIN: World = 0.2;
  * become circumscribed polygons, so the free space here never includes ground a circle covers.
  */
 export function triangulateFreeSpace(within: readonly Shape[], open: readonly Shape[], blocked: readonly Shape[], clearance: World): FreeSpace {
-  return triangulateRings(erodedRings(within, open, blocked, clearance), clearance);
+  return meshOf(erodedRings(within, open, blocked, clearance), clearance);
 }
 
 /** `within ∩ open − blocked`, eroded by `clearance`, as strictly simple integer rings. */
@@ -56,12 +55,12 @@ function erodedRings(within: readonly Shape[], open: readonly Shape[], blocked: 
   const { PolyType, ClipType, PolyFillType, JoinType, EndType } = ClipperLib;
   const area: ClipperLib.Paths = [], free: ClipperLib.Paths = [], eroded: ClipperLib.Paths = [], tidy: ClipperLib.Paths = [];
   const meet = new ClipperLib.Clipper();
-  meet.AddPaths(within.map(pathOf), PolyType.ptSubject, true);
-  meet.AddPaths(open.map(pathOf), PolyType.ptClip, true);
+  meet.AddPaths(within.map(clipPath), PolyType.ptSubject, true);
+  meet.AddPaths(open.map(clipPath), PolyType.ptClip, true);
   meet.Execute(ClipType.ctIntersection, area, PolyFillType.pftNonZero, PolyFillType.pftNonZero);
   const cut = new ClipperLib.Clipper();
   cut.AddPaths(area, PolyType.ptSubject, true);
-  cut.AddPaths(blocked.map(pathOf), PolyType.ptClip, true);
+  cut.AddPaths(blocked.map(clipPath), PolyType.ptClip, true);
   cut.Execute(ClipType.ctDifference, free, PolyFillType.pftNonZero, PolyFillType.pftNonZero);
   const erode = new ClipperLib.ClipperOffset(2, ARC_TOLERANCE * SCALE);
   erode.AddPaths(free, JoinType.jtRound, EndType.etClosedPolygon);
@@ -74,118 +73,17 @@ function erodedRings(within: readonly Shape[], open: readonly Shape[], blocked: 
   return tidy.filter(ring => ring.length >= 3);
 }
 
-/** A shape's outline as one integer ring, wound one way, so overlapping shapes add under the non-zero rule. */
-function pathOf(shape: Shape): ClipperLib.Path {
-  const points = shape.kind === 'circle'
-    // Circumscribed: each side touches the circle, so the polygon covers it.
-    ? outline({ ...shape, r: shape.r / Math.cos(Math.PI / CIRCLE_SEGMENTS) })
-    : outline(shape);
-  const path = points.map(p => ({ X: Math.round(p.x * SCALE), Y: Math.round(p.y * SCALE) }));
-  if (!ClipperLib.Clipper.Orientation(path)) path.reverse();
-  return path;
-}
-
-function triangulateRings(rings: ClipperLib.Paths, clearance: World): FreeSpace {
-  // Vertices, deduplicated, and the rings' edges between them.
-  const index = new Map<string, number>(), coords: number[] = [];
-  const vertex = (p: ClipperLib.IntPoint) => {
-    const key = `${p.X},${p.Y}`;
-    let i = index.get(key);
-    if (i === undefined) { i = coords.length / 2; coords.push(p.X, p.Y); index.set(key, i); }
-    return i;
-  };
-  const ringEdges: [number, number][] = [];
-  for (const ring of rings) for (let i = 0; i < ring.length; i++) {
-    const a = vertex(ring[i]!), b = vertex(ring[(i + 1) % ring.length]!);
-    if (a !== b) ringEdges.push([a, b]);
-  }
-  if (coords.length < 6) return emptySpace(clearance);
-  const edges = splitAtVertices(coords, ringEdges);
-
-  const del = new Delaunator(Float64Array.from(coords));
-  const con = new Constrainautor(del);
-  for (const [a, b] of edges) con.constrainOne(a, b);
-  const { triangles, halfedges } = del;
-  const count = triangles.length / 3;
-  // A constraint marks one half-edge or both.
-  const constrained = (e: number) => con.isConstrained(e) || halfedges[e]! >= 0 && con.isConstrained(halfedges[e]!);
-
-  // Inside or outside, by parity: the hull's unconstrained edges face outside, and every
-  // constrained edge separates free space from the rest.
-  const inside = new Int8Array(count).fill(-1), queue: number[] = [];
-  for (let e = 0; e < triangles.length; e++) if (halfedges[e] === -1) {
-    const t = Math.floor(e / 3);
-    if (inside[t] === -1) { inside[t] = constrained(e) ? 1 : 0; queue.push(t); }
-  }
-  for (let q = 0; q < queue.length; q++) {
-    const t = queue[q]!;
-    for (let k = 0; k < 3; k++) {
-      const e = t * 3 + k, h = halfedges[e]!;
-      if (h < 0) continue;
-      const n = Math.floor(h / 3);
-      if (inside[n] !== -1) continue;
-      inside[n] = constrained(e) ? 1 - inside[t]! : inside[t]!;
-      queue.push(n);
-    }
-  }
-
-  // Free triangles, renumbered and wound counterclockwise, each edge mapped from its half-edge.
-  const compact = new Int32Array(count).fill(-1);
-  let free = 0;
-  for (let t = 0; t < count; t++) if (inside[t] === 1) compact[t] = free++;
-  const out = new Int32Array(free * 3), slotOf = new Int32Array(triangles.length).fill(-1), halfOf = new Int32Array(free * 3);
-  for (let t = 0; t < count; t++) {
-    const c = compact[t]!;
-    if (c < 0) continue;
-    const a = triangles[t * 3]!, b = triangles[t * 3 + 1]!, d = triangles[t * 3 + 2]!;
-    const turn = (coords[b * 2]! - coords[a * 2]!) * (coords[d * 2 + 1]! - coords[a * 2 + 1]!) - (coords[b * 2 + 1]! - coords[a * 2 + 1]!) * (coords[d * 2]! - coords[a * 2]!);
-    // Delaunator's edge k runs from its vertex k to k + 1; reversed winding reverses the edges.
-    const verts = turn > 0 ? [a, b, d] : [a, d, b], halves = turn > 0 ? [t * 3, t * 3 + 1, t * 3 + 2] : [t * 3 + 2, t * 3 + 1, t * 3];
-    for (let k = 0; k < 3; k++) { out[c * 3 + k] = verts[k]!; halfOf[c * 3 + k] = halves[k]!; slotOf[halves[k]!] = c * 3 + k; }
-  }
-  const twins = new Int32Array(free * 3);
-  for (let s = 0; s < free * 3; s++) { const h = halfedges[halfOf[s]!]!; twins[s] = h < 0 ? -1 : slotOf[h]!; }
-  const points = Float64Array.from(coords, v => v / SCALE);
-  return { clearance, points, triangles: out, twins, locator: gridOf(points, out, 3) };
+/** The rings' triangulation, in world units, with a locator. */
+function meshOf(rings: ClipperLib.Paths, clearance: World): FreeSpace {
+  const mesh = triangulateRings(rings);
+  if (!mesh) return emptySpace(clearance);
+  const points = Float64Array.from(mesh.coords, v => v / SCALE);
+  return { clearance, points, triangles: mesh.triangles, twins: mesh.twins, locator: gridOf(points, mesh.triangles, 3) };
 }
 
 function emptySpace(clearance: World): FreeSpace {
   return { clearance, points: new Float64Array(), triangles: new Int32Array(), twins: new Int32Array(),
     locator: { x: 0, y: 0, size: BUCKET, cols: 0, rows: 0, starts: new Int32Array(1), items: new Int32Array() } };
-}
-
-function splitAtVertices(coords: readonly number[], edges: readonly [number, number][]): [number, number][] {
-  const size = BUCKET * SCALE, buckets = new Map<string, number[]>();
-  for (let i = 0; i < coords.length / 2; i++) {
-    const key = `${Math.floor(coords[i * 2]! / size)},${Math.floor(coords[i * 2 + 1]! / size)}`;
-    let bucket = buckets.get(key);
-    if (!bucket) buckets.set(key, bucket = []);
-    bucket.push(i);
-  }
-  // An edge two rings share bounds neither side, so pieces cancel in pairs: what remains separates
-  // free space from the rest, which is what the parity flood after triangulation needs.
-  const pieces = new Map<string, [number, number, number]>();
-  const add = (a: number, b: number) => {
-    const key = a < b ? `${a},${b}` : `${b},${a}`, piece = pieces.get(key);
-    if (piece) piece[2]++; else pieces.set(key, [a, b, 1]);
-  };
-  for (const [a, b] of edges) {
-    const ax = coords[a * 2]!, ay = coords[a * 2 + 1]!, dx = coords[b * 2]! - ax, dy = coords[b * 2 + 1]! - ay, length = dx * dx + dy * dy;
-    const on: [number, number][] = [];
-    for (let bx = Math.floor(Math.min(ax, ax + dx) / size); bx <= Math.floor(Math.max(ax, ax + dx) / size); bx++)
-      for (let by = Math.floor(Math.min(ay, ay + dy) / size); by <= Math.floor(Math.max(ay, ay + dy) / size); by++)
-        for (const v of buckets.get(`${bx},${by}`) ?? []) {
-          if (v === a || v === b) continue;
-          const px = coords[v * 2]! - ax, py = coords[v * 2 + 1]! - ay, along = px * dx + py * dy;
-          if (dx * py - dy * px === 0 && along > 0 && along < length) on.push([along, v]);
-        }
-    if (!on.length) { add(a, b); continue; }
-    on.sort((p, q) => p[0] - q[0]);
-    let from = a;
-    for (const [, v] of on) { add(from, v); from = v; }
-    add(from, b);
-  }
-  return [...pieces.values()].filter(piece => piece[2] % 2).map(([a, b]) => [a, b]);
 }
 
 /**
@@ -486,21 +384,21 @@ export function freeSpaceTile(map: CollisionMap, box: Box, clearance: World): Fr
   const window = { x: box.x - reach, y: box.y - reach, w: box.w + 2 * reach, h: box.h + 2 * reach };
   const blocked = nearInBucketOrder(cache.buckets, window).map(i => shapeOf(map.obstacles[i]!));
   const eroded = erodedRings([rect(window.x, window.y, window.w, window.h)], openGround(map, window), blocked, clearance);
-  let pieces: { rings: ClipperLib.Paths; gates: string[] }[] = [{ rings: clip(eroded, [pathOf(rect(box.x, box.y, box.w, box.h))], ClipperLib.ClipType.ctIntersection), gates: [] }];
+  let pieces: { rings: ClipperLib.Paths; gates: string[] }[] = [{ rings: clip(eroded, [clipPath(rect(box.x, box.y, box.w, box.h))], ClipperLib.ClipType.ctIntersection), gates: [] }];
   // A door matters wherever a disk of the clearance would meet it closed: its outline widened by the erosion, squared off.
   const widen = clearance + ERODE_MARGIN;
   const doors = map.gates.map(g => ({ id: g.id, zone: gateShape(g) }))
     .map(({ id, zone }) => ({ id, zone: { x: zone.x - widen, y: zone.y - widen, w: zone.w + 2 * widen, h: zone.h + 2 * widen } }))
     .filter(({ zone }) => meets(zone, box)).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   for (const door of doors) {
-    const zone = [pathOf(rect(door.zone.x, door.zone.y, door.zone.w, door.zone.h))];
+    const zone = [clipPath(rect(door.zone.x, door.zone.y, door.zone.w, door.zone.h))];
     pieces = pieces.flatMap(piece => [
       { rings: clip(piece.rings, zone, ClipperLib.ClipType.ctDifference), gates: piece.gates },
       { rings: clip(piece.rings, zone, ClipperLib.ClipType.ctIntersection), gates: [...piece.gates, door.id] },
     ]).filter(piece => piece.rings.length);
   }
-  const rings = sharePoints(pieces.map(piece => canonical(piece.rings)));
-  const tile = joinPieces(pieces.map((piece, i) => ({ space: triangulateRings(rings[i]!, clearance), gates: piece.gates })), box, reach, clearance);
+  const rings = sharePoints(pieces.map(piece => canonicalRings(piece.rings)));
+  const tile = joinPieces(pieces.map((piece, i) => ({ space: meshOf(rings[i]!, clearance), gates: piece.gates })), box, reach, clearance);
   cache.tiles.set(key, tile);
   return tile;
 }
@@ -574,33 +472,6 @@ function clip(subject: ClipperLib.Paths, by: ClipperLib.Paths, type: ClipperLib.
   clipper.AddPaths(by, ClipperLib.PolyType.ptClip, true);
   clipper.Execute(type, out, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
   return out.filter(ring => ring.length >= 3);
-}
-
-/**
- * Rings in an order that depends only on the region they bound: repeated and collinear points
- * dropped, each ring started at its least point (by y, then x), and the rings sorted by it.
- * The clipper's own order follows its inputs', which would let geometry elsewhere change a tile.
- */
-function canonical(rings: ClipperLib.Paths): ClipperLib.Paths {
-  const out: ClipperLib.Paths = [];
-  for (const ring of rings) {
-    let points = ring;
-    for (let changed = true; changed && points.length >= 3;) {
-      changed = false;
-      const kept: ClipperLib.Path = [];
-      for (let i = 0; i < points.length; i++) {
-        const a = kept.at(-1) ?? points.at(-1)!, p = points[i]!, b = points[(i + 1) % points.length]!;
-        if (p.X === a.X && p.Y === a.Y || (p.X - a.X) * (b.Y - a.Y) - (p.Y - a.Y) * (b.X - a.X) === 0) { changed = true; continue; }
-        kept.push(p);
-      }
-      points = kept;
-    }
-    if (points.length < 3) continue;
-    let first = 0;
-    points.forEach((p, i) => { const f = points[first]!; if (p.Y < f.Y || p.Y === f.Y && p.X < f.X) first = i; });
-    out.push([...points.slice(first), ...points.slice(0, first)]);
-  }
-  return out.sort((a, b) => a[0]!.Y - b[0]!.Y || a[0]!.X - b[0]!.X || a.length - b.length || a[1]!.Y - b[1]!.Y || a[1]!.X - b[1]!.X);
 }
 
 /**
