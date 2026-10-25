@@ -1765,6 +1765,116 @@ try {
     "hut",
     "a new tile uses the first declared class after a class is removed",
   );
+  // #538: typing in property fields keeps focus and caret, and an edit leaves the paint stage and
+  // unrelated thumbnails as built. A fresh context starts from the starter library.
+  {
+    const editPage = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    editPage.on("pageerror", (error: Error) => errors.push(error.message));
+    await editPage.goto(base, { waitUntil: "domcontentloaded" });
+    await editPage.waitForFunction(() => !!(window as any).chainLab);
+    await editPage.locator("#chainTab").click();
+    await editPage.locator("#chainSection").selectOption("tiles");
+    await editPage.locator("#chainClone").click();
+    await editPage.locator('#tileGallery .tile-card[data-tile="half-hut"]').click();
+    const draft = () => editPage.evaluate(() => (window as any).chainLab.snapshot());
+    const focusedId = () => editPage.evaluate(() => document.activeElement?.id);
+    // Mark the stage and both thumbnails; a rebuilt node loses its mark.
+    const mark = () => editPage.evaluate(() => {
+      for (const node of [document.querySelector("#chainGrid"), ...document.querySelectorAll("#tileGallery figure")])
+        (node as any).keep538 = true;
+    });
+    const kept = () => editPage.evaluate(() => ({
+      stage: !!(document.querySelector("#chainGrid") as any)?.keep538,
+      selected: !!(document.querySelector('#tileGallery .tile-card.active figure') as any)?.keep538,
+      other: !!(document.querySelector('#tileGallery .tile-card:not(.active) figure') as any)?.keep538,
+    }));
+    await mark();
+    await editPage.locator("#chainTiers").click();
+    await editPage.keyboard.type("1, 2");
+    await editPage.keyboard.press("Tab");
+    assert.equal(await focusedId(), "chainBonus", "Tab after a committed field reaches the next field");
+    await editPage.keyboard.type("3");
+    await editPage.keyboard.press("Tab");
+    assert.equal(await focusedId(), "chainLabels");
+    await editPage.keyboard.type("alpha, beta");
+    await editPage.keyboard.press("Enter");
+    assert.equal(await focusedId(), "chainLabels", "Enter commits without losing focus");
+    assert.deepEqual(await editPage.locator("#chainLabels").evaluate((input: HTMLInputElement) =>
+      [input.selectionStart, input.value.length]), [11, 11], "caret stays where typing left it");
+    await editPage.keyboard.type(", gamma");
+    await editPage.keyboard.press("Enter");
+    let tile = (await draft()).library.tiles[0];
+    assert.deepEqual([tile.eligibleTiers, tile.eligibleBonus, tile.labels], [[1, 2], [3], ["alpha", "beta", "gamma"]]);
+    assert.deepEqual(await kept(), { stage: true, selected: true, other: true }, "property edits rebuild no stage or thumbnail");
+    assert.match(await editPage.locator("#chainSource").inputValue(), /"gamma"/, "the source view follows edits");
+
+    // A related property redraws in place: the stage's cells and only its own thumbnail.
+    await editPage.locator("#chainDefaultClass").selectOption("arrival");
+    assert.equal(await editPage.locator('#chainGrid [data-cell="0,0"]').innerText(), "arrival");
+    assert.deepEqual(await kept(), { stage: true, selected: false, other: true });
+    await editPage.locator("#chainDefaultClass").selectOption("open");
+    await mark();
+
+    // Invalid values reach the draft and its validation, and fixing them clears it.
+    await editPage.locator("#chainTiers").fill("9");
+    await editPage.locator("#chainTiers").press("Enter");
+    assert.equal((await draft()).valid, false);
+    assert.match(await editPage.locator("#chainStatus").innerText(), /validation issue/);
+    await editPage.locator("#chainTiers").fill("");
+    await editPage.locator("#chainTiers").press("Enter");
+    assert.equal((await draft()).valid, true);
+    assert.equal(await focusedId(), "chainTiers");
+
+    // Renaming keeps focus and updates the entry list, the gallery and references. Declining the
+    // reference warning redraws the old name into the focused field.
+    editPage.once("dialog", (dialog: any) => dialog.dismiss());
+    await editPage.locator("#chainId").fill("hut-left");
+    await editPage.locator("#chainId").press("Enter");
+    assert.equal(await focusedId(), "chainId");
+    assert.equal(await editPage.locator("#chainId").inputValue(), "half-hut");
+    await mark();
+    editPage.once("dialog", (dialog: any) => dialog.accept());
+    await editPage.locator("#chainId").fill("hut-left");
+    await editPage.locator("#chainId").press("Enter");
+    assert.equal(await focusedId(), "chainId");
+    let snap = await draft();
+    assert.equal(snap.selectedId, "hut-left");
+    assert.equal(await editPage.locator("#chainItem").inputValue(), "hut-left");
+    assert.equal(await editPage.locator("#tileGallery .tile-card.active").getAttribute("data-tile"), "hut-left");
+    assert.deepEqual(snap.library.tileSets[0].members, ["hut-left"]);
+    // A refused name keeps its text and the reason, and leaves the draft alone.
+    await editPage.locator("#chainId").fill("half-hut-1");
+    await editPage.locator("#chainId").press("Enter");
+    assert.match(await editPage.locator("#chainStatus").innerText(), /Name must be unique/);
+    assert.equal(await editPage.locator("#chainId").inputValue(), "half-hut-1");
+    assert.equal((await draft()).selectedId, "hut-left");
+    assert.deepEqual(await kept(), { stage: true, selected: true, other: true });
+
+    // Exact slot coordinates: Tab walks dx → dy and the blueprint follows.
+    await editPage.locator("#chainSection").selectOption("setPieces");
+    await editPage.locator("#chainSlotX0").fill("2");
+    await editPage.keyboard.press("Tab");
+    assert.equal(await focusedId(), "chainSlotY0");
+    await editPage.keyboard.type("1");
+    await editPage.keyboard.press("Tab");
+    assert.equal(await focusedId(), "chainSlotSet0");
+    snap = await draft();
+    assert.deepEqual([snap.library.setPieces[0].tiles[0].dx, snap.library.setPieces[0].tiles[0].dy], [2, 1]);
+    assert.equal(await editPage.locator('#setPieceGrid [data-dx="2"][data-dy="1"].filled').count(), 1);
+    assert.equal(await editPage.locator("#setPieceGrid .filled").count(), 1);
+
+    // Changing the selection rebuilds the editor, and the draft survives a reload.
+    await editPage.locator("#chainSection").selectOption("tiles");
+    await editPage.locator('#tileGallery .tile-card[data-tile="half-hut-1"]').click();
+    assert.equal(await editPage.locator("#chainId").inputValue(), "half-hut-1");
+    assert.equal(await editPage.locator("#chainLabels").inputValue(), "");
+    const before = (await draft()).library;
+    await editPage.reload({ waitUntil: "domcontentloaded" });
+    await editPage.waitForFunction(() => !!(window as any).chainLab);
+    assert.deepEqual((await draft()).library, before, "edits are saved as they are made");
+    await editPage.close();
+  }
+
   // Saved Chain Library drafts may be unfinished, but the editor must never render a broken
   // container. Each persistence case gets its own browser context and localStorage.
   const draftKey = "last-exit-chain-library-v3";
