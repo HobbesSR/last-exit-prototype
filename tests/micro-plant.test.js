@@ -2,10 +2,10 @@ import { portalMargin } from '../map/micro/hints.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { createAccessMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
+import { createAccessMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap, shapesShareArea } from '../map/micro/geometry.ts';
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
-import { bounds, circle } from '../shared/shape.ts';
+import { bounds, circle, overlaps } from '../shared/shape.ts';
 import { cellsOf } from './helpers/cells.js';
 
 const SIZE = 40;
@@ -80,14 +80,34 @@ test('machines and the shed keep an aisle from each other and respect portal mar
 /** A run's stubs as intervals along it, in cells from the run's start, and the gap they leave. */
 function gapOf(pipe) {
   const across = pipe.template.w > pipe.template.h, length = (across ? pipe.template.w : pipe.template.h) / SIZE - 1;
-  const stubs = pipe.template.parts.map(({ shape }) => across ? [shape.x / SIZE - 0.5, (shape.x + shape.w) / SIZE - 0.5]
-    : [shape.y / SIZE - 0.5, (shape.y + shape.h) / SIZE - 0.5]).sort((a, b) => a[0] - b[0]);
+  // A stub cut by a chamfer is several convex pieces; their bounds still cover it along the run.
+  const stubs = pipe.template.parts.map(({ shape }) => bounds(shape)).map(box => across ? [box.x / SIZE - 0.5, (box.x + box.w) / SIZE - 0.5]
+    : [box.y / SIZE - 0.5, (box.y + box.h) / SIZE - 0.5]).sort((a, b) => a[0] - b[0]);
   const free = [];
   let at = 0;
   for (const [start, end] of stubs) { if (start > at) free.push([at, start]); at = Math.max(at, end); }
   if (at < length) free.push([at, length]);
   return { across, free };
 }
+
+test('pipe stubs end on the surfaces of the machines they join, chamfers included', () => {
+  const [cells, portals] = MASKS.field;
+  let ends = 0, cut = 0;
+  for (const seed of SEEDS) {
+    const result = buildRegion(brief('field', seed, cells, portals, { density: 1, shed: 0 }));
+    const machines = result.elements.filter(kind('machine')).flatMap(m => elementShapes(m));
+    for (const pipe of result.elements.filter(kind('pipe'))) {
+      const pieces = elementShapes(pipe);
+      cut += pieces.filter(piece => piece.kind === 'polygon').length;
+      for (const piece of pieces) assert.ok(machines.every(m => !shapesShareArea(piece, m)), `${seed}: ${pipe.label} stays out of machines`);
+      // Each machine the run joins is met by one of its stubs, flush: in contact, sharing no area.
+      const met = machines.filter(m => pieces.some(piece => overlaps(piece, m)));
+      ends += met.length;
+      assert.ok(met.length >= 1 && met.length <= 2, `${seed}: ${pipe.label} meets its machines`);
+    }
+  }
+  assert.ok(ends > 20 && cut > 0, `${ends} ends, ${cut} chamfer-cut pieces`);
+});
 
 test('pipe runs block movement, not sight, and leave one gap a door wide', () => {
   const [cells, portals] = MASKS.field;
@@ -99,7 +119,8 @@ test('pipe runs block movement, not sight, and leave one gap a door wide', () =>
     assert.equal(result.manifest.machines, result.elements.filter(kind('machine')).length);
     for (const pipe of pipes) {
       runs++;
-      assert.ok(pipe.template.parts.length >= 1 && pipe.template.parts.length <= 2);
+      // Two stubs at most, each a piece or, where a chamfer cuts its end, two.
+      assert.ok(pipe.template.parts.length >= 1 && pipe.template.parts.length <= 4);
       for (const stub of pipe.template.parts) assert.equal(stub.kind, 'pipe');
       const { free } = gapOf(pipe);
       assert.equal(free.length, 1, `${pipe.label} has one gap`);
