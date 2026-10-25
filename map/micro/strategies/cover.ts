@@ -2,7 +2,7 @@ import { compareCells } from '../../kernel/cell.ts';
 import { circle, rect } from '../../../shared/shape.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import { elementShapes, findRegionRoute, shapesOverlap } from '../geometry.ts';
-import { rng } from '../index.ts';
+import { rng } from '../random.ts';
 import { boundaryBoxFilter, boxesAgainstHints, hintedCells } from '../hints.ts';
 import { protectedRoutes } from './scatter.ts';
 import { microMetrics } from '../metrics.ts';
@@ -13,6 +13,7 @@ import type { BuiltRegion, LootSite, RegionBrief, RegionElement } from '../types
 import type { ExecutionBuilder } from '../delegation-execute.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import type { BuilderCanvas } from '../canvas.ts';
+import { builtRegion } from '../result.ts';
 
 /**
  * The cover executor implementation (20.7); bump it when `buildCover` output changes. The aggregate
@@ -138,8 +139,7 @@ function sitedCover(brief: RegionBrief): { region: BuiltRegion; protectedShapes:
   }
 
   const elements = [...canvas.elements];
-  return { protectedShapes, region: { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
-    manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0, loot: loot.length, coreElements: 0 } } };
+  return { protectedShapes, region: builtRegion(brief, elements, loot) };
 }
 
 /** Commits each piece as its own assembly, as `buildCover` did. Siting has accepted them, so a refusal is an invariant failure. */

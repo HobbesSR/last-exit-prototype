@@ -18,6 +18,7 @@ import { createAddressedArea } from '../addressed.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
 import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
+import { builtRegion } from '../result.ts';
 
 /** The catalogue's proposed shape need (54): the compound at least this many cells a side, so its court is at least 4. */
 const MIN_SIDE = 10;
@@ -245,16 +246,13 @@ function buildRetainedCompound(brief: RegionBrief, context: ExecutionContext, ob
   const elements = placedElements(ring, 'compound', bx, by, size);
   // Siting has already accepted this box. A canvas refusal is a broken placement invariant.
   if (!createBuilderCanvas(brief).commit({ elements })) throw new Error('Compound placement failed its canvas commit.');
-  const parts = elements.flatMap(element => element.template.parts);
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const steps = ring.details.steps.map(step => ({ x: bx + step.x, y: by + step.y }));
   const yard = exteriorYard(brief, site, steps, ring.demand);
   if (yard.offers.length) context.delegate(yard.offers, { blockers: pieces, protectedCells: yard.protectedCells });
   brief = context.brief;
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
-  return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
-    manifest: { cells: brief.cells.length, structures: rooms, obstacles: parts.filter(p => p.part === 'obstacle').length,
-      gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0, rooms, compoundGates: passages.length } };
+  return builtRegion(brief, elements, loot, [], { rooms, compoundGates: passages.length });
 }
 
 /** Compound authorship: retain the complete court/ring, approach and perimeter;

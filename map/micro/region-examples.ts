@@ -31,7 +31,7 @@ function keep(shape: RegionShape, x: number, y: number, width: number, height: n
     case 'rectangle': return true;
     case 'l': return x < right || y >= top;
     case 'hole': {
-      // At 24 x 18 this is exactly microExample's x=10..13, y=3..5 hole.
+      // At 24 x 18 this is the hole x=10..13, y=3..5.
       const x0 = Math.round(width * 10 / 24), x1 = Math.max(x0 + 1, Math.round(width * 14 / 24));
       const y0 = Math.round(height * 3 / 18), y1 = Math.max(y0 + 1, Math.round(height * 6 / 18));
       return x < x0 || x >= x1 || y < y0 || y >= y1;
@@ -54,7 +54,7 @@ function boundaryStart(cells: Set<string>, count: number, target: number, cellAt
 /** Make a bounded lab brief using real registered region types. */
 export function regionExample({ type = 'cover', seed = 4217, shape = 'rectangle', width = 24,
   height = 18, tier = 2, northPortal = false }: RegionExampleOptions = {}): RegionBrief {
-  if (typeof type !== 'string' || type.startsWith('example-') || !Object.hasOwn(REGION_TYPES, type))
+  if (typeof type !== 'string' || !Object.hasOwn(REGION_TYPES, type))
     throw new RangeError(`Unknown explorer region type ${String(type)}.`);
   if (!REGION_SHAPES.some(entry => entry.id === shape)) throw new RangeError(`Unknown explorer shape ${String(shape)}.`);
   for (const [name, value] of [['width', width], ['height', height]] as const)

@@ -12,6 +12,7 @@ import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import { rect } from '../../../shared/shape.ts';
 import type { BuiltRegion, Portal, RegionBrief, RegionElement } from '../types.ts';
+import { builtRegion } from '../result.ts';
 
 /** Barrier gaps and post spacing, as well as clear space around each post. */
 const AISLE = CELL_SCALE.doorway;
@@ -215,12 +216,9 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
   }
   if (!posts && !barriers.length) return unfilledRegion(brief, CHANNEL.loot);
 
-  const placed = [...canvas.elements], parts = placed.flatMap(element => element.template.parts);
+  const placed = [...canvas.elements];
   const loot = cellLoot(brief, createRegionMask(brief), placed.flatMap(element => elementShapes(element, true)), CHANNEL.loot);
-  return { version: 'region-2', brief: structuredClone(brief), elements: placed, coreElements: [], loot,
-    manifest: { cells: brief.cells.length, structures: posts, obstacles: parts.filter(p => p.part === 'obstacle').length,
-      gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0,
-      barriers: barriers.length, posts, designed } };
+  return builtRegion(brief, placed, loot, [], { barriers: barriers.length, posts, designed });
 }
 
 /** A point `POST_SETBACK` cells inside a portal's centre, for a region with one portal. */

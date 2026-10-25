@@ -4,6 +4,7 @@ import { microMetrics } from '../metrics.ts';
 import { spreadPoints } from '../placement.ts';
 import { portalStands } from '../portals.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
+import { builtRegion } from '../result.ts';
 
 /** Clear ground around a hunter transit station, measured in cells. */
 const STANDING = 2;
@@ -29,7 +30,5 @@ export function buildTransit(brief: RegionBrief): BuiltRegion {
   const { elements, loot } = cover;
   const coreElements = warps.map(point => ({ kind: 'warp' as const, ...point }));
 
-  return { version: 'region-2', brief: structuredClone(brief), elements, coreElements, loot,
-    manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0,
-      loot: loot.length, coreElements: coreElements.length } };
+  return builtRegion(brief, elements, loot, coreElements);
 }

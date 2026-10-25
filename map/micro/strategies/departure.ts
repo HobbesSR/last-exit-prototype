@@ -5,6 +5,7 @@ import { microMetrics } from '../metrics.ts';
 import { spreadPoints } from '../placement.ts';
 import { portalStands } from '../portals.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
+import { builtRegion } from '../result.ts';
 
 /** Proposed (54): hunters start at least one tile, 6 cells, from every exit. */
 const SET_BACK = 6;
@@ -52,7 +53,5 @@ export function buildDeparture(brief: RegionBrief): BuiltRegion {
     ...hunters.map(point => ({ ...point, radius: clearance.hunter })),
   ], root);
 
-  return { version: 'region-2', brief: structuredClone(brief), elements, coreElements, loot,
-    manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0,
-      loot: loot.length, coreElements: coreElements.length } };
+  return builtRegion(brief, elements, loot, coreElements);
 }

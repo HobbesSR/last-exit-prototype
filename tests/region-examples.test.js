@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { microExample } from '../map/micro/examples.ts';
 import { REGION_SHAPES, regionExample } from '../map/micro/region-examples.ts';
 import { briefErrors, buildRegion, REGION_TYPES } from '../map/micro/region-types.ts';
 import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
@@ -19,11 +18,10 @@ function connected(cells) {
   return seen.size === owned.size;
 }
 
-test('default rectangle, L and hole retain the old example cells and side portals', () => {
-  for (const shape of ['rectangle', 'l', 'hole']) {
+test('default rectangle, L and hole keep their 24 x 18 cells and side portals', () => {
+  for (const [shape, missing] of [['rectangle', 0], ['l', 48], ['hole', 12]]) {
     const brief = regionExample({ shape });
-    const old = microExample('depot', 4217, shape);
-    assert.deepEqual(brief.cells, old.cells, shape);
+    assert.equal(brief.cells.length, 24 * 18 - missing, shape);
     assert.deepEqual(brief.portals, [
       { id: 'hunter-west', axis: 'v', x: 0, y: 8, length: 2 },
       { id: 'hunter-east', axis: 'v', x: 24, y: 8, length: 2 },
@@ -52,10 +50,10 @@ test('all shapes stay connected and carry valid external portal runs at varied s
 });
 
 test('inputs reject unknown types, unsupported shapes, and out-of-range controls', () => {
-  for (const type of Object.keys(REGION_TYPES).filter(name => !name.startsWith('example-')))
+  for (const type of Object.keys(REGION_TYPES))
     assert.equal(regionExample({ type }).type, type);
   for (const options of [
-    { type: 'example-depot' }, { type: 'missing' }, { type: '__proto__' },
+    { type: 'missing' }, { type: '__proto__' },
     { shape: 'zigzag' }, { width: 7 }, { width: 49 }, { width: 8.5 },
     { height: 7 }, { height: 49 }, { height: NaN },
     { tier: 0 }, { tier: 6 }, { tier: 2.5 },

@@ -13,6 +13,7 @@ import { CONTAINER_ROW } from '../placeables/container-row.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import type { Placed } from '../placeables/placeable.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
+import { builtRegion } from '../result.ts';
 
 /** The catalogue's proposed shape need (54): a contained square at least this many cells a side. */
 const MIN_SIDE = 10;
@@ -136,10 +137,7 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
   }
 
   const elements = [...canvas.elements];
-  const parts = elements.flatMap(element => element.template.parts);
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
-  return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
-    manifest: { cells: brief.cells.length, structures: warehouses, obstacles: parts.filter(p => p.part === 'obstacle').length,
-      gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0, warehouses, designed, rows } };
+  return builtRegion(brief, elements, loot, [], { warehouses, designed, rows });
 }

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { unusedComponents } from '../map/micro/components.ts';
 import { connectedComponents } from '../map/micro/decomposition/analysis.ts';
-import { rng } from '../map/micro/index.ts';
+import { rng } from '../map/micro/random.ts';
 import { cellsOf as rectangle } from './helpers/cells.js';
 
 const keyed = cells => new Set(cells.map(c => `${c.x},${c.y}`));

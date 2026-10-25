@@ -28,7 +28,6 @@ const PINNED = {
   'wall-run': ['wall-run-1', 'b561356f4a5ad4c6'],
   'compound-ring': ['compound-ring-1', '095003e5438bad82'],
   'checkpoint-barrier': ['checkpoint-barrier-1', 'de6b024a4cea7410'],
-  'example-room-shell': ['example-room-shell-1', '27464143c2deb445'],
   'fallen-slab': ['fallen-slab-1', '714ae94d6dcc1fbb'],
   'hall-pillar': ['hall-pillar-1', 'f16b2fc1db46654b'],
   'ruin-room-span': ['ruin-room-span-1', '05cc9a34bef0eb9a'],

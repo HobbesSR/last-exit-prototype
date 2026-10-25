@@ -15,19 +15,13 @@
 </head>
 <body>
   <main class="lab">
-    <header><div><span class="eyebrow">DEVELOPMENT TOOL</span><h1>Region Builder Explorer</h1><p>Choose a builder and region shape, inspect its internals, and walk it as either body. Save the JSON to share a reproducible example.</p></div></header>
+    <header><div><span class="eyebrow">DEVELOPMENT TOOL</span><h1>Region Builder Explorer</h1><p>Choose a region type and shape, inspect its internals, and walk it as either body. Save the JSON to share a reproducible example.</p></div></header>
     <section class="controls" aria-label="Region controls">
-      <label>Builder<select id="builder" aria-label="Builder"></select></label>
-      <label id="body-profile-control">Body scale<select id="body-profile"><option value="cell">Cell proportions</option><option value="live">Current live game</option></select></label>
-      <label id="entry-count-control">Entry contestants<input id="entry-count" type="number" min="0" max="64" step="1" value="24"></label>
+      <label>Region type<select id="builder" aria-label="Builder"></select></label>
       <label>Region shape<select id="region-shape" aria-label="Region shape"><option value="rect">Rectangle</option><option value="l">L shape</option><option value="hole">Courtyard hole</option></select></label>
-      <label id="region-width-control">Width (cells)<input id="region-width" type="number" min="8" max="48" step="1" value="24"></label>
-      <label id="region-height-control">Height (cells)<input id="region-height" type="number" min="8" max="48" step="1" value="18"></label>
+      <label>Width (cells)<input id="region-width" type="number" min="8" max="48" step="1" value="24"></label>
+      <label>Height (cells)<input id="region-height" type="number" min="8" max="48" step="1" value="18"></label>
       <label>Seed<input id="seed" type="number" value="4217" step="1" aria-label="Seed"></label>
-      <label id="density-control">Density<input id="density" type="range" min="0" max="1" step="0.05" value="0.55"><output for="density" id="density-value">0.55</output></label>
-      <label id="room-cells-control">Room cells<input id="room-cells" type="range" min="4" max="12" step="1" value="6"><output for="room-cells" id="room-cells-value">6</output></label>
-      <label id="decay-control">Ruin decay<input id="decay" type="range" min="0" max="1" step="0.05" value="0.35"><output for="decay" id="decay-value">0.35</output></label>
-      <label id="loot-budget-control">Loot budget<input id="loot-budget" type="number" min="0" max="40" value="10"></label>
       <label id="loot-tier-control">Loot tier<input id="loot-tier" type="number" min="1" max="5" value="2"></label>
       <label class="check"><input id="north-port" type="checkbox"> Contestant north port</label>
       <label class="check"><input id="routes" type="checkbox" checked> Show clearance routes</label>

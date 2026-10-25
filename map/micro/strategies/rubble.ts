@@ -8,6 +8,7 @@ import { commitHintWalls, wallHints } from '../hint-walls.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
+import { builtRegion } from '../result.ts';
 
 const DEFAULT_DENSITY = 0.85;
 const DEFAULT_SQUEEZE_SHARE = 0.8;
@@ -57,7 +58,5 @@ export function buildRubble(brief: RegionBrief): BuiltRegion {
   commitHintWalls(canvas, walls);
   const elements = [...canvas.elements];
   const loot = cellLoot(brief, createRegionMask(brief), [...debris, ...walls.shapes], 3);
-  return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
-    manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0,
-      loot: loot.length, coreElements: 0, squeezeDebris, hintWalls: walls.shapes.length } };
+  return builtRegion(brief, elements, loot, [], { squeezeDebris, hintWalls: walls.shapes.length });
 }

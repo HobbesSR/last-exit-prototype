@@ -27,10 +27,10 @@ try {
   assert.deepEqual((await debug()).result, JSON.parse(JSON.stringify(buildRegion(regionExample({ type: 'depot' })))));
   assert.ok((await debug()).portalRoutes.length > 0, 'game builders expose sampled hunter routes for the clearance overlay');
   assert.deepEqual(await page.locator('#builder optgroup').first().locator('option').evaluateAll(options => options.map(option => option.value)),
-    Object.keys(REGION_TYPES).filter(type => !type.startsWith('example-')).sort().map(type => `region:${type}`));
+    Object.keys(REGION_TYPES).sort().map(type => `region:${type}`));
   assert.equal(await page.locator('#builder option[value="region:market"]').textContent(), 'Market (hall strategy)');
   // Exercise the catalogue through the browser module loader, including core-site builders.
-  for (const type of Object.keys(REGION_TYPES).filter(type => !type.startsWith('example-'))) {
+  for (const type of Object.keys(REGION_TYPES)) {
     await selectBuilder(type);
     assert.ok((await debug()).avatar, `${type} has a walker on clear ground`);
   }

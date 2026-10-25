@@ -5,6 +5,7 @@ import type { PatchOffer, PatchPreparationPolicy, PreparedDelegation } from './d
 import type { BuildingObserver, BuildingTrace } from './building/trace.ts';
 import type { BuiltRegion } from './types.ts';
 import { sameDelegationJSON } from './delegation-json.ts';
+import { builtRegion } from './result.ts';
 
 /** Physical patch execution is separate from the brief preparation SDK and production registry. */
 export const DELEGATION_ALGORITHM_VERSION = 'builder-delegation-1';
@@ -54,10 +55,7 @@ class EmptyHandoff {
   readonly kind: FallbackKind;
   constructor(reason: string, kind: FallbackKind = 'builder-empty') { this.reason = reason; this.kind = kind; }
 }
-const emptyResult = (brief: RegionBrief): BuiltRegion => ({
-  version: 'region-2', brief: structuredClone(brief), elements: [], coreElements: [], loot: [],
-  manifest: { cells: brief.cells.length, structures: 0, obstacles: 0, gates: 0, loot: 0, coreElements: 0 },
-});
+const emptyResult = (brief: RegionBrief): BuiltRegion => builtRegion(brief, [], []);
 const emptyNode = (input: RegionBrief, depth: number, reason: string, kind: FallbackKind): DelegationExecutionNode => ({
   version: DELEGATION_ALGORITHM_VERSION, input: structuredClone(input), depth,
   requestedBuilder: input.type, actualBuilder: 'empty', builderVersion: DELEGATION_ALGORITHM_VERSION,

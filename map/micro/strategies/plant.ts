@@ -13,6 +13,7 @@ import { latticeSlots } from './lattice.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
+import { builtRegion } from '../result.ts';
 
 /** The catalogue's proposed shape need (54), as `depot`'s: a contained square at least this many cells a side. */
 const MIN_SIDE = 10;
@@ -164,11 +165,7 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
     }
   }
 
-  const parts = elements.flatMap(element => element.template.parts);
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
-  return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
-    manifest: { cells: brief.cells.length, structures: sheds, obstacles: parts.filter(p => p.part === 'obstacle').length,
-      gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0,
-      machines: machines.size, pipes, sheds, designed } };
+  return builtRegion(brief, elements, loot, [], { machines: machines.size, pipes, sheds, designed });
 }

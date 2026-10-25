@@ -1,4 +1,5 @@
 import type { BuiltRegion, RegionBrief } from '../types.ts';
+import { builtRegion } from '../result.ts';
 
 /**
  * The `open` region type (54): the fill, and every decomposer's last resort (17 M24).
@@ -7,6 +8,5 @@ import type { BuiltRegion, RegionBrief } from '../types.ts';
  * that lists core elements gets none, and the shortfall is the report's to name (51 stage 8).
  */
 export function buildOpen(brief: RegionBrief): BuiltRegion {
-  return { version: 'region-2', brief: structuredClone(brief), elements: [], coreElements: [], loot: [],
-    manifest: { cells: brief.cells.length, structures: 0, obstacles: 0, gates: 0, loot: 0, coreElements: 0 } };
+  return builtRegion(brief, [], []);
 }

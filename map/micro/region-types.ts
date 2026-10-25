@@ -1,5 +1,5 @@
-import { generateBriefRegion } from './index.ts';
 import { hintErrors } from './hints.ts';
+import { checkedRegionCells } from './limits.ts';
 import { CORE_ELEMENT_KINDS } from '../kernel/contract.ts';
 import { buildCover } from './strategies/cover.ts';
 import { buildHut } from './strategies/hut.ts';
@@ -30,9 +30,7 @@ export type RegionTypeRegistry = Readonly<Record<RegionTypeId, RegionStrategy>>;
 
 /**
  * The game's region types. Each catalogue type (54) is registered under its own name, with
- * its strategy in `strategies/`; a drafted one is bound to its nearest built strategy. The
- * `example-` entries are the original example builders, kept for tests and tools; the
- * prefix keeps a library from binding to them by accident.
+ * its strategy in `strategies/`; a drafted one is bound to its nearest built strategy.
  */
 export const REGION_TYPES: RegionTypeRegistry = Object.freeze({
   open: buildOpen,
@@ -53,18 +51,13 @@ export const REGION_TYPES: RegionTypeRegistry = Object.freeze({
   park: buildPark,
   // Drafted types (54), each bound to its nearest built strategy until its own is written.
   market: buildHall,
-  'example-open': brief => generateBriefRegion(brief, 'open'),
-  'example-depot': brief => generateBriefRegion(brief, 'depot'),
-  'example-courtyard': brief => generateBriefRegion(brief, 'courtyard'),
-  'example-ruins': brief => generateBriefRegion(brief, 'ruins'),
-  'example-entry': brief => generateBriefRegion(brief, 'entry'),
 });
 
 /**
  * Names what `REGION_TYPES` builds. A change to what any of its strategies builds bumps it,
  * so a saved map's results are never rebuilt by other strategies without saying so (51 "Saving").
  */
-export const REGION_TYPES_VERSION = 'types-32';
+export const REGION_TYPES_VERSION = 'types-33';
 
 /**
  * Dispatch a brief to its region type's strategy (51 stage 6). The brief is checked as
@@ -78,13 +71,17 @@ export function buildRegion(brief: RegionBrief, registry: RegionTypeRegistry = R
   return registry[brief.type]!(structuredClone(brief), observe);
 }
 
-/** The brief's own shape. Region size and scale limits are the SDK's, checked when a builder runs. */
+/**
+ * The brief's own shape, and the SDK's region limits (20), checked here once for every
+ * strategy rather than by each builder that happens to (20.1).
+ */
 export function briefErrors(brief: RegionBrief): string[] {
   const errors: string[] = [];
   if (!brief || typeof brief !== 'object') return ['A brief must be an object.'];
   if (typeof brief.id !== 'string' || !brief.id || !Number.isSafeInteger(brief.seed)) errors.push('A brief needs a stable id and integer seed.');
   if (typeof brief.type !== 'string' || !brief.type) errors.push('A brief needs a region type.');
   if (!Array.isArray(brief.cells) || !brief.cells.length) return [...errors, 'A brief needs cells.'];
+  try { checkedRegionCells(brief.cells); } catch (error) { errors.push((error as Error).message); }
   if (!Array.isArray(brief.portals)) errors.push('A brief lists its portals, even when there are none.');
   const cells = new Set(brief.cells.map(c => `${c.x},${c.y}`)), zoned = new Set<string>();
   const sets = new Map<string, Set<string>>();

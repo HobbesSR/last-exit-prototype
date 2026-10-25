@@ -19,40 +19,27 @@ try {
   page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) errors.push(message.text()); });
   await page.goto(`${base}/dev/micro`);
   await page.waitForFunction(() => window.microLabDebug?.().result, null, { timeout: 15000 });
-  // The explorer opens on the game depot; this suite retains the SDK example coverage.
-  await page.getByLabel('Builder', { exact: true }).selectOption('open');
+  // The explorer opens on the game depot, built from the lab's example brief.
   assert.equal(errors.length, 0, errors.join('\n'));
   const initial = await page.evaluate(() => window.microLabDebug());
-  assert.equal(initial.result.version, 'micro-1');
-  assert.equal(initial.result.spec.bodyProfile, 'cell');
-  assert.ok(initial.result.manifest.obstacles > 0, 'default builder emits geometry');
-  assert.ok(initial.result.ports.length >= 2, 'required west/east ports resolve');
-  for (const builder of ['open', 'depot', 'courtyard', 'ruins']) {
-    await page.getByLabel('Builder').selectOption(builder);
-    await page.getByRole('button', { name: 'Generate region' }).click();
-    await page.waitForFunction(name => window.microLabDebug().result?.manifest.builder === name, builder);
-    const generated = await page.evaluate(() => window.microLabDebug());
-    assert.ok(generated.result.manifest.attempted > generated.result.manifest.rejected, `${builder} places content beyond the port boundary`);
-    if (builder === 'depot' || builder === 'courtyard') assert.ok(generated.result.manifest.structures > 0, `${builder} has roofed structures`);
-    if (builder === 'depot' || builder === 'courtyard') await page.screenshot({ path: `test-results/micro-lab-${builder}.png` });
-  }
-  await page.getByLabel('Seed').fill('0');
-  await page.getByRole('button', { name: 'Generate region' }).click();
-  await page.waitForFunction(() => window.microLabDebug().result?.spec.seed === 0);
+  assert.equal(initial.result.version, 'region-2');
+  assert.equal(initial.result.brief.type, 'depot');
+  assert.ok(initial.result.manifest.obstacles > 0, 'the default type emits geometry');
+  assert.deepEqual(initial.promise, [], 'the depot keeps its portal promise');
+  await page.screenshot({ path: 'test-results/micro-lab-depot.png' });
   await page.getByLabel('Seed').fill('9961');
-  await page.getByLabel('Density').fill('0.9');
   await page.getByLabel('Region shape').selectOption('hole');
   await page.getByLabel('Contestant north port').check();
   await page.getByRole('button', { name: 'Generate region' }).click();
-  await page.waitForFunction(() => window.microLabDebug().result?.spec.seed === 9961);
+  await page.waitForFunction(() => window.microLabDebug().result?.brief.seed === 9961);
   const varied = await page.evaluate(() => window.microLabDebug());
   assert.notDeepEqual(varied.result.elements, initial.result.elements, 'seed and controls vary output');
-  assert.ok(varied.result.ports.some(port => port.id === 'contestant-north'), 'optional north port resolves');
+  assert.ok(varied.result.brief.portals.some(portal => portal.id === 'contestant-north'), 'optional north portal is in the brief');
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download JSON' }).click();
   const downloadFile = await download;
-  assert.match(downloadFile.suggestedFilename(), /^micro-region-9961\.json$/);
-  assert.deepEqual(JSON.parse(await readFile(await downloadFile.path(), 'utf8')), varied.result, 'download preserves the generated artifact');
+  assert.match(downloadFile.suggestedFilename(), /^region-depot-9961\.json$/);
+  assert.deepEqual(JSON.parse(await readFile(await downloadFile.path(), 'utf8')), varied.result, 'download preserves the generated result');
   const before = varied.avatar.x;
   await page.locator('#preview').focus();
   await page.keyboard.down('KeyD');
@@ -61,47 +48,17 @@ try {
   const after = await page.evaluate(() => window.microLabDebug().avatar.x);
   assert.notEqual(after, before, `walker should move or slide: ${before} -> ${after}`);
   await page.screenshot({ path: 'test-results/micro-lab.png' });
-  await page.getByLabel('Builder', { exact: true }).selectOption('entry');
-  assert.equal(await page.getByLabel('Ruin decay').isDisabled(), true, 'ruin-only control is disabled for entry layouts');
-  await page.getByRole('button', { name: 'Generate region' }).click();
-  await page.waitForFunction(() => window.microLabDebug().result?.entry?.points.length === 24);
-  const entry = await page.evaluate(() => window.microLabDebug().result);
-  assert.equal(entry.entry.shortfall, 0);
-  const entryPoints = entry.entry.points;
-  await page.getByLabel('Seed').fill('8128');
-  await page.getByRole('button', { name: 'Generate region' }).click();
-  await page.waitForFunction(() => window.microLabDebug().result?.spec.seed === 8128);
-  assert.notDeepEqual((await page.evaluate(() => window.microLabDebug().result)).entry.points, entryPoints, 'entry seed changes visible position geometry');
-  await page.getByLabel('Seed').fill(String(entry.spec.seed));
-  await page.getByRole('button', { name: 'Generate region' }).click();
-  await page.waitForFunction(seed => window.microLabDebug().result?.spec.seed === seed, entry.spec.seed);
-  await page.screenshot({ path: 'test-results/micro-lab-entry.png', fullPage: true });
-  await page.locator('#import').setInputFiles({ name: 'entry.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(entry)) });
-  await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Loaded entry.json'));
-  assert.deepEqual(await page.evaluate(() => window.microLabDebug().result), entry);
-  const invalid = structuredClone(entry); invalid.entry.points[0].x = -999;
-  await page.locator('#import').setInputFiles({ name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(invalid)) });
+  await page.locator('#import').setInputFiles({ name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ version: 'micro-1' })) });
   await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Import rejected:'));
-  assert.deepEqual(await page.evaluate(() => window.microLabDebug().result), entry, 'bad import preserves the previous valid region');
-  await page.getByLabel('Builder', { exact: true }).selectOption('ruins');
-  await page.getByLabel('Ruin decay').fill('0');
-  await page.waitForFunction(() => window.microLabDebug().result?.spec.parameters.decay === 0);
-  const intact = await page.evaluate(() => window.microLabDebug().result.elements);
-  await page.screenshot({ path: 'test-results/micro-lab-decay-0.png', fullPage: true });
-  await page.getByLabel('Ruin decay').fill('1');
-  await page.waitForFunction(() => window.microLabDebug().result?.spec.parameters.decay === 1);
-  assert.notDeepEqual(await page.evaluate(() => window.microLabDebug().result.elements), intact, 'decay auto-applies and changes physical geometry');
-  await page.screenshot({ path: 'test-results/micro-lab-decay-1.png', fullPage: true });
+  assert.deepEqual(await page.evaluate(() => window.microLabDebug().result), varied.result, 'bad import preserves the previous region');
 
   // A region type that builds from a design: its building views match the build in memory (56 L4).
   const views = ['Show design graph', 'Show allocation', 'Show spans', 'Show openings'];
-  for (const view of views) assert.equal(await page.getByLabel(view).isDisabled(), true, `${view} is disabled for an example builder`);
   await page.getByLabel('Region shape').selectOption('rect');
   await page.getByLabel('Contestant north port').uncheck();
   await page.getByLabel('Seed').fill('4217');
   await page.getByLabel('Builder', { exact: true }).selectOption('region:hut');
   await page.waitForFunction(() => window.microLabDebug().result?.brief?.type === 'hut' && window.microLabDebug().result.brief.seed === 4217);
-  assert.equal(await page.getByLabel('Body scale').isDisabled(), true, 'region types are walked at cell proportions');
   for (const view of views) await page.getByLabel(view).check();
   const hut = await page.evaluate(() => window.microLabDebug());
   assert.equal(hut.result.version, 'region-2');
@@ -169,8 +126,8 @@ try {
   await page.waitForFunction(() => window.microLabDebug().result?.brief?.seed === 1);
   assert.equal((await page.evaluate(() => window.microLabDebug())).buildings.length, 0);
   assert.match(await page.locator('#scale-note').textContent(), /no building from a design/);
-  await page.getByLabel('Builder', { exact: true }).selectOption('ruins');
-  await page.waitForFunction(() => window.microLabDebug().result?.spec?.builder === 'ruins');
+  await page.getByLabel('Builder', { exact: true }).selectOption('region:ruins');
+  await page.waitForFunction(() => window.microLabDebug().result?.brief.type === 'ruins');
   assert.deepEqual((await page.evaluate(() => window.microLabDebug())).buildings, []);
   // A chain map's brief, opened by the Map Lab's link (20.5), builds the region the map stored,
   // and walks at the game's own scale. Houses and block-lot buildings are traced
@@ -184,7 +141,6 @@ try {
     assert.deepEqual(opened.result, JSON.parse(JSON.stringify(stored)), `the micro lab builds the ${type} the map stored`);
     assert.deepEqual(opened.promise, [], `the chain ${type} keeps its portal promise`);
     assert.ok(opened.buildings.length > 0, `the chain ${type}'s buildings are traced`);
-    assert.equal(await page.getByLabel('Body scale').isDisabled(), true, 'an imported brief walks at its own scale');
     assert.match(await page.locator('#status').textContent(), new RegExp(`Opened from a link\\. Region ${brief.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
     await page.screenshot({ path: `test-results/micro-lab-chain-${type}.png` });
   }
@@ -237,11 +193,8 @@ try {
   await page.locator('#import').setInputFiles({ name: 'altered.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(altered)) });
   await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Loaded altered.json'));
   assert.match(await page.locator('#status').textContent(), /differs from the file at result\.loot/);
-  await page.getByLabel('Builder', { exact: true }).selectOption('ruins');
-  await page.waitForFunction(() => window.microLabDebug().result?.spec?.builder === 'ruins' && window.microLabDebug().imported === null);
-  await page.getByLabel('Body scale').selectOption('live');
-  await page.getByRole('button', { name: 'Generate region' }).click();
-  await page.waitForFunction(() => window.microLabDebug().result?.spec.bodyProfile === 'live');
+  await page.getByLabel('Builder', { exact: true }).selectOption('region:ruins');
+  await page.waitForFunction(() => window.microLabDebug().result?.brief.type === 'ruins' && window.microLabDebug().imported === null);
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'compact lab has no horizontal overflow');
   assert.equal(errors.length, 0, errors.join('\n'));

@@ -153,7 +153,7 @@ test('empty fill preserves core requests and original siting ownership', () => {
   input.fillCells = [];
   input.clearCells = input.cells;
   for (const [type, coreElements] of [['arrival', { spawn: 3 }], ['departure', { exit: 1, 'hunter-spawn': 1 }],
-    ['charging', { charger: 1 }], ['transit', { warp: 1 }], ['example-entry', { spawn: 3 }]]) {
+    ['charging', { charger: 1 }], ['transit', { warp: 1 }]]) {
     const result = buildRegion({ ...input, type, coreElements });
     assert.equal(result.elements.length, 0, type);
     assert.equal(result.coreElements.length, Object.values(coreElements).reduce((a, b) => a + b, 0), type);

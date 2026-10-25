@@ -9,6 +9,7 @@ import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { ElementTemplate } from '../../../shared/map/element.ts';
 import type { BuiltRegion, RegionBrief, RegionMask } from '../types.ts';
+import { builtRegion } from '../result.ts';
 
 /** The catalogue's proposed shape need (54): a contained rectangle at least this many cells a side. */
 const MIN_SIDE = 6;
@@ -96,9 +97,7 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
     throw new Error('Hall placement failed its canvas commit.');
   const elements = [...canvas.elements];
   const loot = cellLoot(brief, createRegionMask(brief), [...pillars, ...walls.shapes], CHANNEL.loot);
-  return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
-    manifest: { cells: brief.cells.length, structures: roofed ? 1 : 0, obstacles: pillars.length + walls.shapes.length, gates: 0,
-      loot: loot.length, coreElements: 0, pillars: pillars.length, hintWalls: walls.shapes.length } };
+  return builtRegion(brief, elements, loot, [], { pillars: pillars.length, hintWalls: walls.shapes.length });
 }
 
 /**

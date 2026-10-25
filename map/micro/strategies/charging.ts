@@ -4,6 +4,7 @@ import { microMetrics } from '../metrics.ts';
 import { spreadPoints } from '../placement.ts';
 import { portalStands } from '../portals.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
+import { builtRegion } from '../result.ts';
 
 /**
  * Proposed (54): cells around the charger kept clear of cover and loot. The live game
@@ -44,7 +45,5 @@ export function buildCharging(brief: RegionBrief): BuiltRegion {
   const { elements, loot } = cover;
   const coreElements = chargers.map(point => ({ kind: 'charger' as const, ...point }));
 
-  return { version: 'region-2', brief: structuredClone(brief), elements, coreElements, loot,
-    manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0,
-      loot: loot.length, coreElements: coreElements.length } };
+  return builtRegion(brief, elements, loot, coreElements);
 }

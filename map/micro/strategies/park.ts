@@ -11,6 +11,7 @@ import { createBuilderCanvas } from '../canvas.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
+import { builtRegion } from '../result.ts';
 
 /**
  * Clear cells between pieces and across each hedge gap: a doorway (52), so a hunter fits each.
@@ -116,10 +117,7 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
   }
 
   const elements = [...canvas.elements];
-  const parts = elements.flatMap(element => element.template.parts);
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
-  return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
-    manifest: { cells: brief.cells.length, structures: 0, obstacles: parts.filter(p => p.part === 'obstacle').length,
-      gates: 0, loot: loot.length, coreElements: 0, trees, clumps, hedges } };
+  return builtRegion(brief, elements, loot, [], { trees, clumps, hedges });
 }
