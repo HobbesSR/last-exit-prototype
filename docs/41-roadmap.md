@@ -50,7 +50,7 @@ still need separate gameplay and version review.
 
 ### Hierarchical navigation design (#353)
 
-Issue [#353](http://localhost:3000/corey/astra_test/issues/353) tracked the
+Issue [#353](http://192.168.1.170:3000/corey/astra_test/issues/353) tracked the
 navigation hierarchy and optimistic planning through unknown space. Corey set the
 direction on 2026-10-21: region portals as the top level, a free-space navmesh
 beneath, discovery cells as each contestant's filter, all derived at load. Built
