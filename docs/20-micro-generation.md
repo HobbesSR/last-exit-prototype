@@ -1,7 +1,7 @@
 # 20. Bounded micro generation
 
 The game now has a standalone micro-generation implementation in
-`map/micro/`. It accepts explicit regions and resolves them into the same
+`map/micro/`. It accepts briefs for regions and resolves them into the same
 obstacles, roofs, windows and doors used by the live game. Live matches consume
 the chain through `map/live.ts`; the legacy street generator remains available
 for characterization. The macro generator, formerly the sibling
@@ -12,8 +12,8 @@ completed results (22). Cell masks and replay compatibility are described in 26.
 This is the current user-directed F-01 work. Macro gives micro an owned area and
 constraints; micro chooses what occupies it. Cells and segments organize that
 work without prohibiting freeform shapes. The priority is a reusable local SDK
-of geometry and placement primitives; the shipped architecture builders are
-examples, not an art-style backlog. The child-region decomposer now supplies
+of geometry and placement primitives; the region type strategies are built on
+it, not an art-style backlog. The child-region decomposer now supplies
 bounded candidate analysis and allocation; its design record is [19](19-decomposition-design.md).
 
 ## Reading guide
@@ -23,7 +23,7 @@ bounded candidate analysis and allocation; its design record is [19](19-decompos
 | 20.1 | Region contract and briefs | [20.1](20.1-region-contract.md) |
 | 20.2 | Geometry and access | [20.2](20.2-geometry-access.md) |
 | 20.3 | Builders and child-region decomposition | [20.3](20.3-builders-decomposition.md) |
-| 20.4 | Hierarchical generation and portal negotiation | [20.4](20.4-hierarchical-generation.md) |
+| 20.4 | Hierarchical generation, and the retired physical realization | [20.4](20.4-hierarchical-generation.md) |
 | 20.5 | Tools and next boundaries | [20.5](20.5-tools-and-next-boundaries.md) |
 | 20.6 | Guaranteed passability and automatic clear margins | [20.6](20.6-passable-margins.md) |
 | 20.7 | Builder patch preparation, bounded execution, owning snapshots, hut-to-cover pilot and compound exterior-yard adoption | [20.7](20.7-builder-delegation.md) |
