@@ -7,6 +7,7 @@ import { effect } from './loot.ts';
 import { eliminate } from './lifecycle.ts';
 import { asSeenBy } from './rewind.ts';
 import { hookSkill } from './hook.ts';
+import { actorHitRadius } from './swept.ts';
 import type { Game, Player, InventoryItem, StackItem } from '../types.ts';
 
 type UtilityState = Pick<Player, 'hp' | 'maxHp' | 'shield'>;
@@ -84,7 +85,7 @@ export function advanceProjectiles(s: Game): void {
     const hits = s.players.filter(p => p.id !== b.owner && p.status === 'active').map(p => {
       const t = Math.max(0, Math.min(1, ((p.x - previous.x) * b.dx + (p.y - previous.y) * b.dy) / lengthSquared));
       const point = { x: previous.x + b.dx * t, y: previous.y + b.dy * t };
-      return { p, t, point, hit: distance(p, point) < (p.role === 'gladiator' ? 26 : 15) };
+      return { p, t, point, hit: distance(p, point) < actorHitRadius(p.role) };
     }).filter(h => h.hit).sort((a, b) => a.t - b.t);
     if (hits.length && lineClear(s.map, previous, hits[0].point)) { damage(s, hits[0].p, b.damage, s.players.find(p => p.id === b.owner) ?? null); return false; }
     if (!canOccupy(s.map, b.x, b.y, 2, false, true) || !lineClear(s.map, previous, b)) return false;

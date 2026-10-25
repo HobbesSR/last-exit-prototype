@@ -375,4 +375,7 @@ blocks flight; only an active enemy may become a target. A hit is pending until
 the next tick revalidates status, body generation, range and unobstructed reach.
 Pulling releases at standoff, timeout, obstruction, endpoint removal or relocation.
 Skill again cancels flight/pending/pull without resetting or bypassing cooldown.
+The hook cooldown is `hook.cooldownTicks` and does not shorten with level, unlike
+the other kits. Solid props, closed gates and see-through obstacles (fences,
+windows) block the tip and tether alike, though shots pass the see-through ones.
 No scenery/prop grabs, wrapping, damage, historical rewind or client hit claims.

@@ -232,10 +232,11 @@ export function createHUDController(actions) {
       const skillTip = `${skillName} (Q)`;
       if ($('skill').dataset.tip !== skillTip) $('skill').dataset.tip = skillTip;
       
-      setText($('skill-cd'), me.cooldown ? `${(me.cooldown / HZ).toFixed(1)}s` : 'READY');
+      setText($('skill-cd'), state.hookActive ? 'RELEASE' : me.cooldown ? `${(me.cooldown / HZ).toFixed(1)}s` : 'READY');
       $('skill').classList.toggle('active', me.boost > 0 || me.cloak > 0);
       
-      const skillDisabled = me.cooldown > 0 || me.status !== 'active';
+      // A hook in flight or pulling is released by the same skill, so cooldown alone does not disable it.
+      const skillDisabled = me.cooldown > 0 && !state.hookActive || me.status !== 'active';
       if ($('skill').disabled !== skillDisabled) $('skill').disabled = skillDisabled;
       
       setText($('interact-label'), gladiator ? (me.railCd ? `${(me.railCd / HZ).toFixed(1)}s` : 'RAIL') : 'USE');
