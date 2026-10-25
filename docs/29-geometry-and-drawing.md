@@ -41,10 +41,15 @@ below.
 
 `shared/shape-construction.ts` builds shapes from shapes (#488). `construct(shapes)` starts from their
 union; `union`, `subtract` and `intersect` each return a new construction; `pieces()` breaks the
-result into disjoint convex pieces. `convexPieces(rings)` breaks a concave or holed outline the same
+result into disjoint convex pieces; `subtract(shapes, margin)` grows what it cuts first, so the result
+keeps that far off it. `convexPieces(rings)` breaks a concave or holed outline the same
 way, filled even-odd. `disjoint(shapes)` gives each shape less the ones before it, returning a shape
 that overlaps none of them as it is, so overlapping parts of one assembly can be its addressed areas
-([20.2](20.2-geometry-access.md#addressed-area)). Builders use it for intent; it lives in `shared/`
+([20.2](20.2-geometry-access.md#addressed-area)). It tests a shape against what earlier shapes came
+back as too, since a cut circle's pieces reach past it, but subtracts the earlier shapes themselves, so
+every cut is made on the same grid. Where inputs lie nearer one another than a grid step, an exact
+corner can still reach past another's cut; it checks for that and cuts again with a two-step
+margin, leaving a gap rather than an overlap (PR #516 review). Builders use it for intent; it lives in `shared/`
 beside `shape.ts` rather than in `map/kernel/`, which imports nothing outside itself, so macro and
 micro can both reach it.
 
@@ -53,14 +58,17 @@ micro can both reach it.
   an input corner exactly as given, and a corner the construction made at the exact crossing of the
   input edges it lies on, so a piece ends on a cut's surface rather than up to half a step inside it.
   Edges are found by their grid versions, since a shallow crossing's rounding moves it further
-  along them. A sliver thinner than a grid step may be lost.
+  along them. A sliver thinner than a grid step may be lost, and one whose corners come back in
+  line goes.
 - **Circles** become polygons circumscribed one grid step wide of the circle, taken from the grid,
   so a cut by a circle never leaves a piece inside it. The free-space index keeps its own exact
   circumscription.
 - **Breakdown.** A part (an outer ring with its holes) whose edges are all axis-aligned breaks into
   rectangles: bands at every corner, spans carried on while they match, in rows or columns,
   whichever gives fewer. Any other part is triangulated and its diagonals removed where the two
-  sides make a convex piece (Hertel–Mehlhorn, at most four times the fewest). A four-sided
+  sides make a convex piece (Hertel–Mehlhorn, at most four times the fewest). Convexity is judged
+  at the corners as put back, within `convex`'s tolerance, since putting one back can move it
+  across a diagonal the grid would have accepted (PR #516 review). A four-sided
   axis-aligned piece comes back as a rect; other pieces are polygons anchored at the origin, so
   their points are their world outline exactly. Order depends only on the area.
 

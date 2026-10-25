@@ -67,7 +67,8 @@ function snappedPath(shape: Shape, snap: Snap): ClipperLib.Path {
 /** An area being constructed. Each step returns a new construction; none changes this one. */
 export interface Construction {
   union(shapes: readonly Shape[]): Construction;
-  subtract(shapes: readonly Shape[]): Construction;
+  /** Less `shapes`, each grown by `margin` world units first (mitred), so what is left keeps that far off them. */
+  subtract(shapes: readonly Shape[], margin?: number): Construction;
   intersect(shapes: readonly Shape[]): Construction;
   /**
    * The area as disjoint convex pieces, in an order that depends only on the area. A part whose
@@ -97,27 +98,51 @@ export function convexPieces(rings: readonly (readonly Vec2[])[]): Shape[] {
 
 /**
  * Each shape less every earlier one, so the result never overlaps itself: an earlier shape keeps
- * any place they share. A shape that shares area with no earlier one comes back as it is, circles
- * included; one wholly covered adds nothing. Overlap is `sharesArea` at the geometry tolerance,
- * as the addressed record tests it (20.2).
+ * any place they share. A shape that shares area with no earlier shape, nor with what one came
+ * back as, is returned as it is, circles included; one wholly covered adds nothing. What came back
+ * is tested too because a cut circle's pieces reach a grid step past it. A shape that is cut has
+ * every earlier shape near its grid outline subtracted, as a circle's outline reaches past it too.
+ * The earlier shapes, not their pieces, are what is subtracted, so every cut is made on the same
+ * grid. Overlap is `sharesArea` at the geometry tolerance, as the addressed record tests it (20.2).
  */
 export function disjoint(shapes: readonly Shape[]): Shape[] {
-  const result: Shape[] = [];
+  const returned: Shape[][] = [];
   shapes.forEach((shape, i) => {
-    const box = bounds(shape);
-    const earlier = shapes.slice(0, i).filter(o => boxesMeet(box, bounds(o)) && sharesArea(shape, o, OVERLAP));
-    result.push(...earlier.length ? construct([shape]).subtract(earlier).pieces() : [shape]);
+    const box = bounds(shape), meets = (o: Shape) => boxesMeet(box, bounds(o)) && sharesArea(shape, o, OVERLAP);
+    if (!shapes.slice(0, i).some((o, j) => meets(o) || returned[j]!.some(meets))) { returned.push([shape]); return; }
+    const grid = gridBounds(shape, GRID_MARGIN), cut = shapes.slice(0, i).filter(o => boxesMeet(grid, gridBounds(o, GRID_MARGIN)));
+    const pieces = construct([shape]).subtract(cut).pieces();
+    // Inputs nearer one another than a grid step can leave an exact corner past the grid's cut;
+    // then the cut is made again with the earlier shapes grown, leaving a gap of a step or two.
+    const earlier = returned.flat(), clash = (p: Shape) => earlier.some(o => boxesMeet(bounds(p), bounds(o)) && sharesArea(p, o, OVERLAP));
+    returned.push(pieces.some(clash) ? construct([shape]).subtract(cut, GRID_MARGIN).pieces() : pieces);
   });
-  return result;
+  return returned.flat();
 }
 const OVERLAP = 1e-7;
+/** Two grid steps: past where rounding can put an edge, so a cut grown by it leaves a gap. */
+const GRID_MARGIN = 2 / CLIP_SCALE;
+/** Bounds wide enough for a shape's outline on the grid, a circle's wider polygon included, and `margin` more. */
+function gridBounds(shape: Shape, margin = 0): ReturnType<typeof bounds> {
+  const box = bounds(shape.kind === 'circle' ? { ...shape, r: shape.r / Math.cos(Math.PI / CIRCLE_SEGMENTS) } : shape), pad = 2 / CLIP_SCALE + margin;
+  return { x: box.x - pad, y: box.y - pad, w: box.w + 2 * pad, h: box.h + 2 * pad };
+}
 const boxesMeet = (a: ReturnType<typeof bounds>, b: ReturnType<typeof bounds>) =>
   a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
 function constructed(rings: ClipperLib.Paths, snap: Snap): Construction {
-  const step = (type: ClipperLib.ClipType) => (shapes: readonly Shape[]): Construction => {
+  const step = (type: ClipperLib.ClipType) => (shapes: readonly Shape[], margin = 0): Construction => {
     const next: Snap = { x: new Map(snap.x), y: new Map(snap.y), points: new Map(snap.points), edges: [...snap.edges] };
-    return constructed(execute(type, rings, shapes.map(s => snappedPath(s, next))), next);
+    let by = shapes.map(s => snappedPath(s, next));
+    if (margin > 0) {
+      // Grown outlines are known only on the grid, as a circle's is.
+      const grown: ClipperLib.Paths = [], offset = new ClipperLib.ClipperOffset(2);
+      offset.AddPaths(by, ClipperLib.JoinType.jtMiter, ClipperLib.EndType.etClosedPolygon);
+      offset.Execute(grown, margin * CLIP_SCALE);
+      for (const path of grown) next.edges.push(...edgesOf(path.map(p => ({ x: p.X / CLIP_SCALE, y: p.Y / CLIP_SCALE })), path));
+      by = grown;
+    }
+    return constructed(execute(type, rings, by), next);
   };
   return {
     union: step(ClipperLib.ClipType.ctUnion),
@@ -163,10 +188,7 @@ function piecesOf(rings: ClipperLib.Paths, snap: Snap): Shape[] {
       pieces.push(...(down.length < across.length ? down : across).sort((a, b) => a[1] - b[1] || a[0] - b[0]).map(box));
       continue;
     }
-    for (const piece of convexMerge(part)) {
-      const corners = piece.map(p => cornerOf(p, snap));
-      pieces.push(rectangleOf(corners) ?? polygon(0, 0, corners));
-    }
+    for (const corners of convexMerge(part, p => cornerOf(p, snap))) pieces.push(rectangleOf(corners) ?? polygon(0, 0, corners));
   }
   return pieces;
 }
@@ -191,14 +213,16 @@ function cornerOf(p: ClipperLib.IntPoint, snap: Snap): Vec2 {
     for (const { a, b } of on) { if (a.x === b.x) q.x = a.x; if (a.y === b.y) q.y = a.y; }
     return q;
   };
+  // The pair the clipper crossed is the one whose rounded edges cross nearest the corner; the
+  // corner is then where the edges as given cross.
   let best: Vec2 | undefined, distance = Infinity;
   for (let i = 0; i < near.length; i++) for (let j = i + 1; j < near.length; j++) {
-    const { a, b } = near[i]!, { a: c, b: d } = near[j]!;
-    const rx = b.x - a.x, ry = b.y - a.y, sx = d.x - c.x, sy = d.y - c.y, denominator = rx * sy - ry * sx;
-    if (!denominator) continue;
-    const t = ((c.x - a.x) * sy - (c.y - a.y) * sx) / denominator, q = fixed({ x: a.x + t * rx, y: a.y + t * ry }, near[i]!, near[j]!);
-    const off = Math.hypot(q.x - px, q.y - py);
-    if (off < distance) { best = q; distance = off; }
+    const grid = crossing(near[i]!.A, near[i]!.B, near[j]!.A, near[j]!.B);
+    if (!grid) continue;
+    const off = Math.hypot(grid.x - p.X, grid.y - p.Y);
+    if (off >= distance) continue;
+    const q = crossing(near[i]!.a, near[i]!.b, near[j]!.a, near[j]!.b);
+    if (q) { best = fixed(q, near[i]!, near[j]!); distance = off; }
   }
   if (best) return best;
   if (near.length) {
@@ -206,6 +230,15 @@ function cornerOf(p: ClipperLib.IntPoint, snap: Snap): Vec2 {
     return fixed({ x: a.x + t * dx, y: a.y + t * dy }, near[0]!);
   }
   return { x: snap.x.get(p.X) ?? px, y: snap.y.get(p.Y) ?? py };
+}
+
+/** Where the lines through a → b and c → d cross, or nothing if they are parallel. */
+function crossing(a: { x: number; y: number } | ClipperLib.IntPoint, b: typeof a, c: typeof a, d: typeof a): Vec2 | undefined {
+  const [ax, ay, bx, by, cx, cy, dx, dy] = [a, b, c, d].flatMap(p => 'X' in p ? [p.X, p.Y] : [p.x, p.y]) as number[];
+  const rx = bx! - ax!, ry = by! - ay!, sx = dx! - cx!, sy = dy! - cy!, denominator = rx * sy - ry * sx;
+  if (!denominator) return undefined;
+  const t = ((cx! - ax!) * sy - (cy! - ay!) * sx) / denominator;
+  return { x: ax! + t * rx, y: ay! + t * ry };
 }
 
 const transposed = (ring: ClipperLib.Path): ClipperLib.Path => ring.map(p => ({ X: p.Y, Y: p.X }));
@@ -243,17 +276,22 @@ function rows(rings: ClipperLib.Paths): Quad[] {
 /**
  * A part as convex pieces (Hertel–Mehlhorn): triangulated, then each diagonal in turn removed
  * where the two pieces it parts make a convex one. At most four times the fewest convex pieces.
+ * Convexity is judged at the corners `place` puts back, not on the grid, since putting them
+ * back can move a corner across a diagonal; turns within `convex`'s tolerance are straight.
  */
-function convexMerge(rings: ClipperLib.Paths): ClipperLib.IntPoint[][] {
+function convexMerge(rings: ClipperLib.Paths, place: (p: ClipperLib.IntPoint) => Vec2): Vec2[][] {
   const mesh = triangulateRings(rings);
   if (!mesh) return [];
-  const { coords, triangles, twins } = mesh, count = triangles.length / 3;
+  const { triangles, twins } = mesh, count = triangles.length / 3;
+  const corners = Array.from({ length: mesh.coords.length / 2 }, (_, v) => place({ X: mesh.coords[v * 2]!, Y: mesh.coords[v * 2 + 1]! }));
   const owner = Int32Array.from({ length: count }, (_, t) => t);
   const find = (t: number): number => owner[t] === t ? t : (owner[t] = find(owner[t]!));
   const loops = new Map<number, number[]>();
   for (let t = 0; t < count; t++) loops.set(t, [triangles[t * 3]!, triangles[t * 3 + 1]!, triangles[t * 3 + 2]!]);
-  const turn = (a: number, b: number, c: number) =>
-    (coords[b * 2]! - coords[a * 2]!) * (coords[c * 2 + 1]! - coords[a * 2 + 1]!) - (coords[b * 2 + 1]! - coords[a * 2 + 1]!) * (coords[c * 2]! - coords[a * 2]!);
+  const turn = (i: number, j: number, k: number) => {
+    const a = corners[i]!, b = corners[j]!, c = corners[k]!;
+    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  };
   for (let s = 0; s < triangles.length; s++) {
     const twin = twins[s]!;
     if (twin < s) continue;
@@ -264,16 +302,20 @@ function convexMerge(rings: ClipperLib.Paths): ClipperLib.IntPoint[][] {
     const left = rotated(loops.get(p)!, b, a), right = rotated(loops.get(q)!, a, b);
     if (!left || !right) continue;
     const merged = [...left, ...right.slice(1, -1)];
-    if (!merged.every((v, i) => turn(merged[(i + merged.length - 1) % merged.length]!, v, merged[(i + 1) % merged.length]!) >= 0)) continue;
+    if (!merged.every((v, i) => turn(merged[(i + merged.length - 1) % merged.length]!, v, merged[(i + 1) % merged.length]!) >= -STRAIGHT)) continue;
     owner[q] = p;
     loops.set(p, merged);
     loops.delete(q);
   }
+  // A sliver whose corners all came back in line has no area left, and goes.
   return [...loops.values()].map(loop => {
-    const kept = loop.filter((v, i) => turn(loop[(i + loop.length - 1) % loop.length]!, v, loop[(i + 1) % loop.length]!) !== 0);
-    return kept.map(v => ({ X: coords[v * 2]!, Y: coords[v * 2 + 1]! }));
-  });
+    const kept = loop.filter((v, i) => Math.abs(turn(loop[(i + loop.length - 1) % loop.length]!, v, loop[(i + 1) % loop.length]!)) > STRAIGHT);
+    return kept.map(v => corners[v]!);
+  }).filter(piece => piece.length >= 3);
 }
+
+/** The turn `convex` (shape.ts) reads as straight. */
+const STRAIGHT = 1e-9;
 
 /** The loop started at `from` and ending at `to`, where `to` → `from` is one of its edges. */
 function rotated(loop: readonly number[], from: number, to: number): number[] | undefined {

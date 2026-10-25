@@ -62,13 +62,42 @@ test('intersection keeps only what both cover', () => {
   assert.deepEqual(both.filter(p => p.kind === 'rect'), [rect(30, 10, 10, 10)]);
 });
 
+test('a merged piece stays convex where putting its corners back moves one across a diagonal', () => {
+  // PR #516 review: merged on the grid, one piece turned concave by -0.007 once its corners returned.
+  const poly = coords => polygon(0, 0, coords.map(([x, y]) => ({ x, y })));
+  const from = poly([[-10.3201, -2.7839], [4.1947, 17.3686], [-10.765, 28.1432], [-25.2798, 7.9908]]);
+  const cut = poly([[-0.4621, 10.8378], [-1.5053, 19.9265], [-6.4867, 19.3547], [-5.4435, 10.266]]);
+  const pieces = construct([from]).subtract([cut]).pieces();
+  assertPieces(pieces);
+  assert.equal(pieces.some(p => overlapping(p, cut)), false);
+});
+
 test('disjoint keeps each shape less the ones before it, and returns an untouched shape as it is', () => {
   // Walls meeting at a corner: the earlier keeps it.
   assert.deepEqual(disjoint([rect(0, 0, 320, 10), rect(0, 0, 10, 240)]), [rect(0, 0, 320, 10), rect(0, 10, 10, 230)]);
   // A wall wholly inside an earlier one, and a circle over one, add nothing; a circle clear of both is kept round.
   assert.deepEqual(disjoint([rect(0, 0, 40, 10), rect(10, 0, 20, 10), circle(5, 5, 3), circle(100, 100, 3)]), [rect(0, 0, 40, 10), circle(100, 100, 3)]);
+  // A cut circle's pieces reach a grid step past it, so a later shape clear of the circle but not of them is cut too (PR #516 review).
+  const past = disjoint([rect(0, 0, 10, 20), circle(10, 10, 10), rect(20.05, 9, 1, 2)]);
+  assertPieces(past);
   // Touching at an edge is not overlap.
   assert.deepEqual(disjoint([rect(0, 0, 10, 10), rect(10, 0, 10, 10)]), [rect(0, 0, 10, 10), rect(10, 0, 10, 10)]);
+});
+
+test('disjoint stays disjoint when inputs lie nearer than a grid step', () => {
+  // A slab's corner 0.004 outside a quad's edge lands inside it on the grid; the quad's exact pieces
+  // then reach past the cut a later shape made, which is made again with a margin.
+  const poly = points => polygon(0, 0, points.map(([x, y]) => ({ x, y })));
+  const pieces = disjoint([rect(0, 0, 120, 42),
+    poly([[42.982, 60.344], [37.418, 87.033], [30.178, 85.524], [35.743, 58.835]]),
+    poly([[36.252, 59.572], [19.146, 60.64], [9.277, 53.809], [30.521, 51.32]]),
+    poly([[55.067, 54.359], [36.3, 62.55], [30.756, 39.328], [54.839, 34.981]])]);
+  assertPieces(pieces);
+});
+
+test('a subtraction with a margin keeps that far off what it cuts', () => {
+  const pieces = construct([rect(0, 0, 100, 10)]).subtract([rect(40, 0, 20, 10)], 1).pieces();
+  assert.deepEqual(pieces, [rect(0, 0, 39, 10), rect(61, 0, 39, 10)]);
 });
 
 test('a concave or holed outline breaks into convex pieces covering it', () => {
@@ -92,8 +121,14 @@ test('pieces never overlap one another or what was cut, over many rotated cuts',
     const turned = transform(rect(-8 - random() * 12, -3, 16 + random() * 24, 6 + random() * 4), 0, 0, random() * Math.PI);
     return polygon(round(random() * 120), round(random() * 120), turned.points.map(p => ({ x: round(p.x), y: round(p.y) })));
   };
+  // An irregular convex quad, as the review's witness was.
+  const quad = () => {
+    const cx = random() * 120, cy = random() * 120, turns = [0, 1, 2, 3].map(k => (k + random() * 0.6) * Math.PI / 2);
+    const points = turns.map(a => ({ x: round(cx + Math.cos(a) * (6 + random() * 14)), y: round(cy + Math.sin(a) * (6 + random() * 14)) }));
+    return convex(points) ? polygon(0, 0, points) : quad();
+  };
   for (let run = 0; run < 150; run++) {
-    const from = [rect(0, 0, 120, 10 + Math.floor(random() * 40)), slab(), slab()], cut = [slab(), slab(), circle(random() * 120, random() * 120, 3 + random() * 10)];
+    const from = [rect(0, 0, 120, 10 + Math.floor(random() * 40)), slab(), slab(), quad()], cut = [slab(), quad(), circle(random() * 120, random() * 120, 3 + random() * 10)];
     const name = `run ${run}`, pieces = construct(from).subtract(cut).pieces();
     assertPieces(pieces, name);
     for (const c of cut) for (const p of pieces) assert.equal(overlapping(p, c), false, `${name} piece overlaps a cut ${JSON.stringify([p, c])}`);
@@ -101,5 +136,7 @@ test('pieces never overlap one another or what was cut, over many rotated cuts',
     // A sliver thinner than a grid step, as where a corner barely crosses an edge, may be lost.
     assert.ok(Math.abs(total(pieces) + total(kept) - total(construct(from).pieces())) < 0.25, `${name} pieces cover the area`);
     assertPieces(disjoint([...from, ...cut]), `${name} disjoint`);
+    // Circles first, so later shapes meet their cut pieces.
+    assertPieces(disjoint([circle(random() * 120, random() * 20, 4 + random() * 8), ...cut, ...from]), `${name} disjoint after circles`);
   }
 });
