@@ -1,6 +1,6 @@
 import type { PhysicsBodyView, PhysicsGameplayState, PhysicsTetherView } from '../physics/types.ts';
 import type { Snapshot, Player, Vec2 } from '../types.ts';
-import { physicsBodyFields, physicsTetherFields } from './projection-contract.ts';
+import { physicsBodyFields, physicsHookFlightFields, physicsTetherFields } from './projection-contract.ts';
 import { bodyRadius } from '../physics/presentation-geometry.ts';
 
 /** Capture once, alongside private gameplay state. Complete lists express spawn/removal at each tick. */
@@ -18,8 +18,11 @@ export function capturePhysicsPresentation(physics: PhysicsGameplayState, frame:
     ...(placed.has(b.spec.id) ? { discontinuity: 'placed' as const } : {}),
   }));
   const ids = new Set(bodies.map(b => b.id));
+  const actorIds = new Set(bodies.filter(b => b.kind === 'actor').map(b => b.id));
   const tethers = physics.world.constraints.filter(c => ids.has(c.a) && ids.has(c.b)).map(physicsTetherFields);
-  return { physicsProfile: physics.profile, bodies, tethers };
+  const hookFlights = physics.hooks?.filter(hook => hook.phase === 'flying' && actorIds.has(`actor:${hook.caster}`))
+    .map(hook => physicsHookFlightFields({ id: hook.id, a: `actor:${hook.caster}`, x: hook.x, y: hook.y }));
+  return { physicsProfile: physics.profile, bodies, tethers, ...(hookFlights ? { hookFlights } : {}) };
 }
 
 /** Apply existing potential-visibility authorization to the captured tick, including delayed views. */
@@ -32,7 +35,10 @@ export function projectPhysicsPresentation(frame: Snapshot, viewer: Player | und
     return !viewer || inRange({ x: body.x, y: body.y, radius: bodyRadius(body.shape) });
   }).map(body => physicsBodyFields(body, !viewer || body.kind !== 'actor' || body.actorId === viewer.id));
   const ids = new Set(bodies.map(body => body.id));
+  const actorIds = new Set(bodies.filter(body => body.kind === 'actor' && body.actorId !== undefined && authorizedPlayers.has(body.actorId)).map(body => body.id));
   // Omit the whole tether when either endpoint is unauthorized. Never send hidden IDs/anchors.
   const tethers: PhysicsTetherView[] = (frame.tethers ?? []).filter(t => ids.has(t.a) && ids.has(t.b)).map(physicsTetherFields);
-  return { physicsProfile: frame.physicsProfile, bodies, tethers };
+  const hookFlights = frame.hookFlights?.filter(hook => actorIds.has(hook.a) && inRange({ x: hook.x, y: hook.y }))
+    .map(physicsHookFlightFields);
+  return { physicsProfile: frame.physicsProfile, bodies, tethers, ...(hookFlights ? { hookFlights } : {}) };
 }

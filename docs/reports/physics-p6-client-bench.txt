@@ -1,0 +1,33 @@
+P6 integration smoke, base 6ed90d2 plus issue #446 changes
+Windows 10.0.26200 x64; Node v24.15.0; Chrome 155.0.8059.85
+Default content-5; seed 4217; 12x6; server then client sequentially after unit/browser/chain completion.
+This measures default smoke workloads, not P6 hook capacity.
+
+Last Exit client benchmark — entry, 12.01s, 720 rendered frames (59.9 fps average)
+frame time  mean 16.67 ms   p50 16.70   p95 16.80   max 17.40   (60 fps budget 16.7 ms)
+state gap   mean 50.0 ms   p50 46.9   p95 62.9   max 75.4   over 240 packets   (server 20 Hz = 50.0 ms)
+state size  mean 2.3 KiB, p95 2.8 KiB per authoritative frame
+
+per frame, milliseconds
+series           mean    p50    p95    max  calls
+--------------  -----  -----  -----  -----  -----
+render.draw     0.528  0.500  1.000  1.700    1.0
+render.frame    0.423  0.400  0.600  5.000    1.0
+render.vision   0.104  0.100  0.200  0.400    1.0
+render.hud      0.063  0.000  0.200  0.600    0.3
+render.tiles    0.047  0.000  0.100  4.500    1.0
+render.actors   0.028  0.000  0.100  0.200    1.0
+render.world    0.027  0.000  0.100  0.300    1.0
+render.minimap  0.022  0.000  0.100  0.300    0.3
+render.camera   0.003  0.000  0.000  0.100    1.0
+
+per frame, counts
+series                   mean  p50  p95  max  calls
+-----------------------  ----  ---  ---  ---  -----
+work.visibilityRays       210  198  324  360
+calls.visibilityPolygon     1    1    1    1
+calls.movePlayer            0    0    1    1
+work.tileRasterise          0    0    0    4
+
+render.frame is inclusive: camera, vision, cover, world and actors are counted inside it.
+Headless Chrome may fall back to software GL, so treat GPU-bound draw cost as a ceiling.

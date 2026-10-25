@@ -24,7 +24,7 @@ the latter carry player `reserves` and `reload`, `ammo` ground items and
 pickup as an unknown item, so the floor stays.
 
 Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
-default content is `content-5`, and recordings use schema 13 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
+default content is `content-5`, and recordings use schema 14 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
 display descriptor in the header, 7 bots' world-point routes, 8 optional private physics gameplay state, 9 optional character geometry and discontinuities). Masked live maps require reader 4; legacy maps keep
 minimum schema 0.
 Schema 10 adds required engine-free physics presentation for experimental physics
@@ -314,3 +314,15 @@ order, input consumption, player sizes, combat and timers are unchanged. The
 intentional new map content is named by `generator` and embedded in full, rather
 than rebuilding an old recording with today's chain. Frozen characterization
 continues to use its stored legacy maps and is not regenerated.
+
+## Schema 14: experimental hook (#446)
+
+Schema 14 adds optional private `physics.hooks`, explicit bounded spring/rope
+constraint fields, and optional `hookFlights` presentation records. This is
+the next writer revision after L2's schema 13; both explicit content sets remain
+independently selectable. The change is additive: the general minimum reader remains 0 and experimental physics keeps
+its schema-10 visual floor. New P6 simulation behavior is separately identified
+by `last-exit-0.8-physics-6` and `content-physics-6`; no legacy content is changed.
+Flight/pending/pull transitions are stored state, not instructions to replay an
+engine. Old frames omit the new records; seek/removal follows complete captured
+lists. Private pending target/generation/force state never enters live projection.

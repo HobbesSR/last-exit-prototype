@@ -1,0 +1,7445 @@
+{
+  "schema": "physics-p6-functional-traces-1",
+  "baseCommit": "95b0cf6",
+  "seed": 446,
+  "runtime": {
+    "node": "v24.15.0",
+    "platform": "win32",
+    "architecture": "x64",
+    "osRelease": "10.0.26200"
+  },
+  "map": {
+    "seed": 446,
+    "width": 800,
+    "height": 800,
+    "playableArea": {
+      "cellSize": 100,
+      "rows": [
+        {
+          "y": 0,
+          "runs": [
+            [
+              0,
+              8
+            ]
+          ]
+        },
+        {
+          "y": 1,
+          "runs": [
+            [
+              0,
+              8
+            ]
+          ]
+        },
+        {
+          "y": 2,
+          "runs": [
+            [
+              0,
+              8
+            ]
+          ]
+        },
+        {
+          "y": 3,
+          "runs": [
+            [
+              0,
+              8
+            ]
+          ]
+        },
+        {
+          "y": 4,
+          "runs": [
+            [
+              0,
+              8
+            ]
+          ]
+        },
+        {
+          "y": 5,
+          "runs": [
+            [
+              0,
+              8
+            ]
+          ]
+        },
+        {
+          "y": 6,
+          "runs": [
+            [
+              0,
+              8
+            ]
+          ]
+        },
+        {
+          "y": 7,
+          "runs": [
+            [
+              0,
+              8
+            ]
+          ]
+        }
+      ]
+    },
+    "modules": [],
+    "buildings": [],
+    "obstacles": [],
+    "gates": [],
+    "hazards": [],
+    "gaps": [],
+    "stations": [],
+    "chargers": [],
+    "sensors": [],
+    "items": [],
+    "traps": [],
+    "routes": [],
+    "nodes": [],
+    "streets": [],
+    "entry": {
+      "x": 80,
+      "y": 400
+    },
+    "exit": {
+      "x": 750,
+      "y": 400
+    },
+    "spawns": [
+      {
+        "x": 250,
+        "y": 400
+      }
+    ],
+    "hunterSpawns": [
+      {
+        "x": 150,
+        "y": 400
+      }
+    ]
+  },
+  "content": {
+    "id": "content-physics-6",
+    "roster": {
+      "contestants": [
+        "C"
+      ],
+      "gladiators": [
+        {
+          "name": "G0",
+          "kit": "hook"
+        }
+      ]
+    },
+    "weapons": {
+      "pistol": {
+        "name": "Pistol",
+        "ammo": 48,
+        "maxAmmo": 192,
+        "cooldown": 8,
+        "damage": 10,
+        "speed": 35,
+        "life": 24,
+        "spread": [
+          0
+        ]
+      },
+      "rifle": {
+        "name": "Rifle",
+        "ammo": 90,
+        "maxAmmo": 360,
+        "cooldown": 4,
+        "damage": 6,
+        "speed": 44,
+        "life": 28,
+        "spread": [
+          0
+        ]
+      },
+      "scattergun": {
+        "name": "Scattergun",
+        "ammo": 24,
+        "maxAmmo": 96,
+        "cooldown": 18,
+        "damage": 7,
+        "speed": 30,
+        "life": 12,
+        "spread": [
+          -0.18,
+          -0.09,
+          0,
+          0.09,
+          0.18
+        ]
+      }
+    },
+    "kits": {
+      "warden": {
+        "name": "Warden",
+        "color": 16739184,
+        "damage": 24,
+        "cooldown": 110,
+        "skill": "Shockwave"
+      },
+      "specter": {
+        "name": "Specter",
+        "color": 11770623,
+        "damage": 19,
+        "cooldown": 150,
+        "skill": "Pulse scan"
+      },
+      "striker": {
+        "name": "Striker",
+        "color": 16759394,
+        "damage": 29,
+        "cooldown": 95,
+        "skill": "Overdrive"
+      },
+      "hook": {
+        "name": "Hook",
+        "color": 7855581,
+        "damage": 24,
+        "cooldown": 140,
+        "skill": "Hook / release"
+      }
+    },
+    "traps": {
+      "mine": {
+        "trigger": 65,
+        "blast": 120,
+        "damage": 45
+      },
+      "turret": {
+        "range": 650,
+        "cooldown": 35,
+        "speed": 24,
+        "damage": 12,
+        "life": 30
+      },
+      "flame": {
+        "cycle": 160,
+        "warnAt": 80,
+        "fireAt": 120,
+        "interval": 5,
+        "range": 240,
+        "cone": 0.8,
+        "damage": 6
+      },
+      "spider": {
+        "leash": 360,
+        "acquire": 240,
+        "step": 5,
+        "grapple": 150,
+        "cooldown": 50,
+        "stun": 30,
+        "damage": 10
+      }
+    },
+    "durationTicks": 12000,
+    "cellChargeTicks": 100,
+    "gladiatorRespawnTicks": 400,
+    "hazardGraceTicks": 1200,
+    "discovery": true,
+    "navigation": "tiles",
+    "replanning": "sliced",
+    "actorPhysics": {
+      "geometry": {
+        "contestant": {
+          "headRadius": 14.109375,
+          "bodyRadius": 11.2875,
+          "hurtRadius": 12
+        },
+        "gladiator": {
+          "headRadius": 20.3125,
+          "bodyRadius": 16.25,
+          "hurtRadius": 23
+        }
+      },
+      "acceleration": 3600,
+      "braking": 3600,
+      "maxImpulse": 600,
+      "maxSpeed": 600
+    },
+    "itemInstances": {
+      "groundCapacity": 4096
+    },
+    "worldPhysics": {
+      "loot": {
+        "radius": 6,
+        "mass": 0.2,
+        "linearDamping": 5,
+        "angularDamping": 5,
+        "dropSpeed": 60
+      },
+      "prop": {
+        "hx": 24,
+        "hy": 12,
+        "mass": 2,
+        "friction": 0.4,
+        "linearDamping": 2,
+        "angularDamping": 2
+      },
+      "maxImpulse": 300
+    },
+    "hook": {
+      "range": 500,
+      "speed": 900,
+      "maxForce": 6000,
+      "stiffness": 120,
+      "damping": 30,
+      "pullSpeed": 240,
+      "durationTicks": 60,
+      "cooldownTicks": 140,
+      "standoff": 55,
+      "targetDistance": 35,
+      "breakDistance": 550
+    }
+  },
+  "physicsSettings": {
+    "engine": "rapier2d-compat",
+    "version": "0.21.0",
+    "unitsPerMetre": 40,
+    "substeps": 4,
+    "substepSeconds": 0.0125,
+    "speculativeDistanceMetres": 0.6,
+    "exactCheckpoint": "unsupported",
+    "maxConstraints": 8,
+    "constraintLimitations": "legacy native center rope; explicit bounded spring/rope has no hard length projection"
+  },
+  "sourceSha256": {
+    "tools/physics/hook-traces.mjs": "b32367b9b16799987bf9f046ef31c7802ec4f59a5b28c4e5c8b810755cbc939a",
+    "shared/simulation/hook.ts": "d2d7b5da3dae049cb2b61b6d2c51ca3043ca883ff934f4da21e30c8968177d96",
+    "shared/simulation/content.ts": "f7201a05f9ec6fb3c7e712bb6efd7ff6613d0df06058babd461721d03fdba88f",
+    "shared/simulation/phased.ts": "b2db77f1f5fe36c952636c6cb748e4f2eb34c6c734ab9b2b09ea9c708d830996",
+    "shared/simulation/physics-presentation.ts": "503844f0a3fb6d26506278c067b05fab9288bfa82b51e51abb249de88ddb3a1b",
+    "shared/types.ts": "24bbb515efb38a2f1fa6d83511d7075461f8f4abb1d7ceff3b1d6e60a64f5180",
+    "shared/physics/constraints.ts": "afa5e8a11674a5d428574e2fbaa131657b9267c6d103f7976a969c5bba6498b5",
+    "shared/physics/types.ts": "1e6c298423e939de142a4df69d36cdf9e442ba6700a55f7a62f7ddcbaa5b899d",
+    "shared/physics/world.ts": "187dcd5809e15284647921366b86b9b6c8c691c31489bb29ab15f40c58ae12f7"
+  },
+  "limitations": [
+    "Functional deterministic scenarios on one Node/platform; no timing or performance claim.",
+    "Private hooks are laboratory state; public flights and tethers are unfiltered capture projections.",
+    "The tiny rectangular map omits authored room complexity and network visibility filtering."
+  ],
+  "traceSha256": "66afd002b52fa95679ee44c1d72fed8dc93e2049cb5d46b132b278547ae022ee",
+  "scenarios": [
+    {
+      "name": "stationary-pull-release",
+      "setup": {},
+      "events": [
+        {
+          "afterTick": 12,
+          "action": "second skill press requests release"
+        }
+      ],
+      "maxPlayerSpeed": 76.95448875427246,
+      "frames": [
+        {
+          "tick": 0,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 1,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 195,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 45,
+              "startedTick": 1,
+              "phase": "flying",
+              "generationA": 6
+            }
+          ],
+          "public": {
+            "hookFlights": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "x": 195,
+                "y": 400
+              }
+            ],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 140,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 2,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pending",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 139,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 3,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2,
+              "desiredLength": 88
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 249.50952529907227,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -16.88477396965027,
+              "vy": 0,
+              "speed": 16.88477396965027
+            },
+            {
+              "id": "g0",
+              "x": 150.49046516418457,
+              "y": 400,
+              "status": "active",
+              "cooldown": 138,
+              "vx": 16.88477396965027,
+              "vy": 0,
+              "speed": 16.88477396965027
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 88,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 4,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2,
+              "desiredLength": 76
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 248.56868743896484,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -32.38931655883789,
+              "vy": 0,
+              "speed": 32.38931655883789
+            },
+            {
+              "id": "g0",
+              "x": 151.43128395080566,
+              "y": 400,
+              "status": "active",
+              "cooldown": 137,
+              "vx": 32.38931655883789,
+              "vy": 0,
+              "speed": 32.38931655883789
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 76,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 5,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2,
+              "desiredLength": 64
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 247.12051391601562,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -47.356271743774414,
+              "vy": 0,
+              "speed": 47.356271743774414
+            },
+            {
+              "id": "g0",
+              "x": 152.87945747375488,
+              "y": 400,
+              "status": "active",
+              "cooldown": 136,
+              "vx": 47.356271743774414,
+              "vy": 0,
+              "speed": 47.356271743774414
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 64,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 6,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2,
+              "desiredLength": 52
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 244.9437713623047,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -63.68502616882324,
+              "vy": 0,
+              "speed": 63.68502616882324
+            },
+            {
+              "id": "g0",
+              "x": 155.05616188049316,
+              "y": 400,
+              "status": "active",
+              "cooldown": 135,
+              "vx": 63.68502616882324,
+              "vy": 0,
+              "speed": 63.68502616882324
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 52,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 7,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2,
+              "desiredLength": 40
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 242.03062057495117,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -76.95448875427246,
+              "vy": 0,
+              "speed": 76.95448875427246
+            },
+            {
+              "id": "g0",
+              "x": 157.969388961792,
+              "y": 400,
+              "status": "active",
+              "cooldown": 134,
+              "vx": 76.95448875427246,
+              "vy": 0,
+              "speed": 76.95448875427246
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 40,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 8,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 239.06652450561523,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -75.05325317382812,
+              "vy": 0,
+              "speed": 75.05325317382812
+            },
+            {
+              "id": "g0",
+              "x": 160.9334945678711,
+              "y": 400,
+              "status": "active",
+              "cooldown": 133,
+              "vx": 75.05325317382812,
+              "vy": 0,
+              "speed": 75.05325317382812
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 9,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 236.58000946044922,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -64.4314193725586,
+              "vy": 0,
+              "speed": 64.4314193725586
+            },
+            {
+              "id": "g0",
+              "x": 163.4200096130371,
+              "y": 400,
+              "status": "active",
+              "cooldown": 132,
+              "vx": 64.4314193725586,
+              "vy": 0,
+              "speed": 64.4314193725586
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 10,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 234.57252502441406,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -55.801658630371094,
+              "vy": 0,
+              "speed": 55.801658630371094
+            },
+            {
+              "id": "g0",
+              "x": 165.42749404907227,
+              "y": 400,
+              "status": "active",
+              "cooldown": 131,
+              "vx": 55.801658630371094,
+              "vy": 0,
+              "speed": 55.801658630371094
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 11,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 232.95221328735352,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -48.83606433868408,
+              "vy": 0,
+              "speed": 48.83606433868408
+            },
+            {
+              "id": "g0",
+              "x": 167.0478057861328,
+              "y": 400,
+              "status": "active",
+              "cooldown": 130,
+              "vx": 48.83606433868408,
+              "vy": 0,
+              "speed": 48.83606433868408
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 12,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 231.64087295532227,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -43.33674907684326,
+              "vy": 0,
+              "speed": 43.33674907684326
+            },
+            {
+              "id": "g0",
+              "x": 168.35914611816406,
+              "y": 400,
+              "status": "active",
+              "cooldown": 129,
+              "vx": 43.33674907684326,
+              "vy": 0,
+              "speed": 43.33674907684326
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 13,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 231.64087295532227,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 168.35914611816406,
+              "y": 400,
+              "status": "active",
+              "cooldown": 128,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 14,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 231.64087295532227,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 168.35914611816406,
+              "y": 400,
+              "status": "active",
+              "cooldown": 127,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        }
+      ]
+    },
+    {
+      "name": "moving-victim-steering",
+      "setup": {},
+      "events": [
+        {
+          "fromTick": 2,
+          "action": "victim holds rightward movement"
+        }
+      ],
+      "maxPlayerSpeed": 181.5552520751953,
+      "frames": [
+        {
+          "tick": 0,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 1,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 195,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 45,
+              "startedTick": 1,
+              "phase": "flying",
+              "generationA": 6
+            }
+          ],
+          "public": {
+            "hookFlights": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "x": 195,
+                "y": 400
+              }
+            ],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 140,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 2,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90,
+              "startedTick": 1,
+              "phase": "flying",
+              "generationA": 6
+            }
+          ],
+          "public": {
+            "hookFlights": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "x": 240,
+                "y": 400
+              }
+            ],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 255.625,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 180,
+              "vy": 0,
+              "speed": 180
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 139,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 3,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pending",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 264.625244140625,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 180,
+              "vy": 0,
+              "speed": 180
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 138,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 4,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 102.625244140625
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 270.26254653930664,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 77.48191833496094,
+              "vy": 0,
+              "speed": 77.48191833496094
+            },
+            {
+              "id": "g0",
+              "x": 153.36275100708008,
+              "y": 400,
+              "status": "active",
+              "cooldown": 137,
+              "vx": 102.51802444458008,
+              "vy": 0,
+              "speed": 102.51802444458008
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 102.625244140625,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 5,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 90.625244140625
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 274.1301918029785,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 53.99900436401367,
+              "vy": 0,
+              "speed": 53.99900436401367
+            },
+            {
+              "id": "g0",
+              "x": 158.49515914916992,
+              "y": 400,
+              "status": "active",
+              "cooldown": 136,
+              "vx": 126.00091934204102,
+              "vy": 0,
+              "speed": 126.00091934204102
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 90.625244140625,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 6,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 78.625244140625
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 276.9589614868164,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 35.38713455200195,
+              "vy": 0,
+              "speed": 35.38713455200195
+            },
+            {
+              "id": "g0",
+              "x": 164.66642379760742,
+              "y": 400,
+              "status": "active",
+              "cooldown": 135,
+              "vx": 144.61275100708008,
+              "vy": 0,
+              "speed": 144.61275100708008
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 78.625244140625,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 7,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 66.625244140625
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 278.952693939209,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 20.367302894592285,
+              "vy": 0,
+              "speed": 20.367302894592285
+            },
+            {
+              "id": "g0",
+              "x": 171.67261123657227,
+              "y": 400,
+              "status": "active",
+              "cooldown": 134,
+              "vx": 159.63258743286133,
+              "vy": 0,
+              "speed": 159.63258743286133
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 66.625244140625,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 8,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 54.625244140625
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 280.2726745605469,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 8.24458360671997,
+              "vy": 0,
+              "speed": 8.24458360671997
+            },
+            {
+              "id": "g0",
+              "x": 179.35270309448242,
+              "y": 400,
+              "status": "active",
+              "cooldown": 133,
+              "vx": 171.75535202026367,
+              "vy": 0,
+              "speed": 171.75535202026367
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 54.625244140625,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 9,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 42.625244140625
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 281.04867935180664,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -1.5400570631027222,
+              "vy": 0,
+              "speed": 1.5400570631027222
+            },
+            {
+              "id": "g0",
+              "x": 187.57665634155273,
+              "y": 400,
+              "status": "active",
+              "cooldown": 132,
+              "vx": 181.53993606567383,
+              "vy": 0,
+              "speed": 181.53993606567383
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 42.625244140625,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 10,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 281.72603607177734,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -1.5554571151733398,
+              "vy": 0,
+              "speed": 1.5554571151733398
+            },
+            {
+              "id": "g0",
+              "x": 195.89942932128906,
+              "y": 400,
+              "status": "active",
+              "cooldown": 131,
+              "vx": 181.5552520751953,
+              "vy": 0,
+              "speed": 181.5552520751953
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 11,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 282.99787521362305,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 12.219719886779785,
+              "vy": 0,
+              "speed": 12.219719886779785
+            },
+            {
+              "id": "g0",
+              "x": 203.6275863647461,
+              "y": 400,
+              "status": "active",
+              "cooldown": 130,
+              "vx": 167.7800178527832,
+              "vy": 0,
+              "speed": 167.7800178527832
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 12,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 284.89145278930664,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 23.423943519592285,
+              "vy": 0,
+              "speed": 23.423943519592285
+            },
+            {
+              "id": "g0",
+              "x": 210.7339859008789,
+              "y": 400,
+              "status": "active",
+              "cooldown": 129,
+              "vx": 156.5757179260254,
+              "vy": 0,
+              "speed": 156.5757179260254
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 13,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 287.2877502441406,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 32.4676513671875,
+              "vy": 0,
+              "speed": 32.4676513671875
+            },
+            {
+              "id": "g0",
+              "x": 217.337646484375,
+              "y": 400,
+              "status": "active",
+              "cooldown": 128,
+              "vx": 147.53198623657227,
+              "vy": 0,
+              "speed": 147.53198623657227
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 14,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 290.0897979736328,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 39.76707458496094,
+              "vy": 0,
+              "speed": 39.76707458496094
+            },
+            {
+              "id": "g0",
+              "x": 223.53561401367188,
+              "y": 400,
+              "status": "active",
+              "cooldown": 127,
+              "vx": 140.23256301879883,
+              "vy": 0,
+              "speed": 140.23256301879883
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 15,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 293.2193374633789,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 45.658607482910156,
+              "vy": 0,
+              "speed": 45.658607482910156
+            },
+            {
+              "id": "g0",
+              "x": 229.40603256225586,
+              "y": 400,
+              "status": "active",
+              "cooldown": 126,
+              "vx": 134.34106826782227,
+              "vy": 0,
+              "speed": 134.34106826782227
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 16,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 296.61319732666016,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 50.41378974914551,
+              "vy": 0,
+              "speed": 50.41378974914551
+            },
+            {
+              "id": "g0",
+              "x": 235.01214981079102,
+              "y": 400,
+              "status": "active",
+              "cooldown": 125,
+              "vx": 129.58589553833008,
+              "vy": 0,
+              "speed": 129.58589553833008
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 17,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300.22043228149414,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 54.25178527832031,
+              "vy": 0,
+              "speed": 54.25178527832031
+            },
+            {
+              "id": "g0",
+              "x": 240.40491104125977,
+              "y": 400,
+              "status": "active",
+              "cooldown": 124,
+              "vx": 125.74785232543945,
+              "vy": 0,
+              "speed": 125.74785232543945
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 18,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 303.99988174438477,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 57.34956741333008,
+              "vy": 0,
+              "speed": 57.34956741333008
+            },
+            {
+              "id": "g0",
+              "x": 245.62551498413086,
+              "y": 400,
+              "status": "active",
+              "cooldown": 123,
+              "vx": 122.65008926391602,
+              "vy": 0,
+              "speed": 122.65008926391602
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 19,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 307.9182815551758,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 59.84983444213867,
+              "vy": 0,
+              "speed": 59.84983444213867
+            },
+            {
+              "id": "g0",
+              "x": 250.70709228515625,
+              "y": 400,
+              "status": "active",
+              "cooldown": 122,
+              "vx": 120.14986038208008,
+              "vy": 0,
+              "speed": 120.14986038208008
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 20,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240.78125529822657,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90.78125529822658,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 311.94881439208984,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 61.86790466308594,
+              "vy": 0,
+              "speed": 61.86790466308594
+            },
+            {
+              "id": "g0",
+              "x": 255.67649841308594,
+              "y": 400,
+              "status": "active",
+              "cooldown": 121,
+              "vx": 118.13179969787598,
+              "vy": 0,
+              "speed": 118.13179969787598
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "opposing-hooks",
+      "setup": {
+        "gladiators": 2
+      },
+      "events": [
+        {
+          "beforeTick": 1,
+          "action": "both gladiators launch toward c0"
+        }
+      ],
+      "maxPlayerSpeed": 202.67999649047852,
+      "frames": [
+        {
+          "tick": 0,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g1",
+              "x": 450,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 1,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 195,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 45,
+              "startedTick": 1,
+              "phase": "flying",
+              "generationA": 6
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 405,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 45,
+              "startedTick": 1,
+              "phase": "flying",
+              "generationA": 7
+            }
+          ],
+          "public": {
+            "hookFlights": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "x": 195,
+                "y": 400
+              },
+              {
+                "id": "hook:g1",
+                "a": "actor:g1",
+                "x": 405,
+                "y": 400
+              }
+            ],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 140,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g1",
+              "x": 450,
+              "y": 400,
+              "status": "active",
+              "cooldown": 140,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 2,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 240,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 90,
+              "startedTick": 1,
+              "phase": "flying",
+              "generationA": 6
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 360,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 90,
+              "startedTick": 1,
+              "phase": "flying",
+              "generationA": 7
+            }
+          ],
+          "public": {
+            "hookFlights": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "x": 240,
+                "y": 400
+              },
+              {
+                "id": "hook:g1",
+                "a": "actor:g1",
+                "x": 360,
+                "y": 400
+              }
+            ],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 139,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g1",
+              "x": 450,
+              "y": 400,
+              "status": "active",
+              "cooldown": 139,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 3,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 285,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pending",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 315,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pending",
+              "generationA": 7,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 138,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g1",
+              "x": 450,
+              "y": 400,
+              "status": "active",
+              "cooldown": 138,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 4,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 285,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 138
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 315,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 7,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 138
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              },
+              {
+                "id": "hook:g1",
+                "a": "actor:g1",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0.000057220458984375,
+              "vy": 0,
+              "speed": 0.000057220458984375
+            },
+            {
+              "id": "g0",
+              "x": 150.49830436706543,
+              "y": 400,
+              "status": "active",
+              "cooldown": 137,
+              "vx": 17.436436414718628,
+              "vy": 0,
+              "speed": 17.436436414718628
+            },
+            {
+              "id": "g1",
+              "x": 449.50172424316406,
+              "y": 400,
+              "status": "active",
+              "cooldown": 137,
+              "vx": -17.436493635177612,
+              "vy": 0,
+              "speed": 17.436493635177612
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 138,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            },
+            {
+              "id": "hook:g1",
+              "a": "actor:g1",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 138,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 5,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 285,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 126
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 315,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 7,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 126
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              },
+              {
+                "id": "hook:g1",
+                "a": "actor:g1",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0.0000839233416627394,
+              "vy": 0,
+              "speed": 0.0000839233416627394
+            },
+            {
+              "id": "g0",
+              "x": 151.47421836853027,
+              "y": 400,
+              "status": "active",
+              "cooldown": 136,
+              "vx": 34.148831367492676,
+              "vy": 0,
+              "speed": 34.148831367492676
+            },
+            {
+              "id": "g1",
+              "x": 448.5258102416992,
+              "y": 400,
+              "status": "active",
+              "cooldown": 136,
+              "vx": -34.14891958236694,
+              "vy": 0,
+              "speed": 34.14891958236694
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 126,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            },
+            {
+              "id": "hook:g1",
+              "a": "actor:g1",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 126,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 6,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 285,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 114
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 315,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 7,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 114
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              },
+              {
+                "id": "hook:g1",
+                "a": "actor:g1",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0.0001487731879024068,
+              "vy": 0,
+              "speed": 0.0001487731879024068
+            },
+            {
+              "id": "g0",
+              "x": 153.1956672668457,
+              "y": 400,
+              "status": "active",
+              "cooldown": 135,
+              "vx": 57.50959396362305,
+              "vy": 0,
+              "speed": 57.50959396362305
+            },
+            {
+              "id": "g1",
+              "x": 446.8044662475586,
+              "y": 400,
+              "status": "active",
+              "cooldown": 135,
+              "vx": -57.50992298126221,
+              "vy": 0,
+              "speed": 57.50992298126221
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 114,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            },
+            {
+              "id": "hook:g1",
+              "a": "actor:g1",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 114,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 7,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 285,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 102
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 315,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 7,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 102
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              },
+              {
+                "id": "hook:g1",
+                "a": "actor:g1",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0.000026702878130890895,
+              "vy": 0,
+              "speed": 0.000026702878130890895
+            },
+            {
+              "id": "g0",
+              "x": 156.30274772644043,
+              "y": 400,
+              "status": "active",
+              "cooldown": 134,
+              "vx": 92.14987754821777,
+              "vy": 0,
+              "speed": 92.14987754821777
+            },
+            {
+              "id": "g1",
+              "x": 443.69739532470703,
+              "y": 400,
+              "status": "active",
+              "cooldown": 134,
+              "vx": -92.15030670166016,
+              "vy": 0,
+              "speed": 92.15030670166016
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 102,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            },
+            {
+              "id": "hook:g1",
+              "a": "actor:g1",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 102,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 8,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 285,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 90
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 315,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 7,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 90
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              },
+              {
+                "id": "hook:g1",
+                "a": "actor:g1",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -0.00003814697265625,
+              "vy": 0,
+              "speed": 0.00003814697265625
+            },
+            {
+              "id": "g0",
+              "x": 161.11688613891602,
+              "y": 400,
+              "status": "active",
+              "cooldown": 133,
+              "vx": 124.5660400390625,
+              "vy": 0,
+              "speed": 124.5660400390625
+            },
+            {
+              "id": "g1",
+              "x": 438.8832092285156,
+              "y": 400,
+              "status": "active",
+              "cooldown": 133,
+              "vx": -124.5665168762207,
+              "vy": 0,
+              "speed": 124.5665168762207
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 90,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            },
+            {
+              "id": "hook:g1",
+              "a": "actor:g1",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 90,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 9,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 285,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 78
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 315,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 7,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 78
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              },
+              {
+                "id": "hook:g1",
+                "a": "actor:g1",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -0.00003433227675486705,
+              "vy": 0,
+              "speed": 0.00003433227675486705
+            },
+            {
+              "id": "g0",
+              "x": 167.40482330322266,
+              "y": 400,
+              "status": "active",
+              "cooldown": 132,
+              "vx": 151.21414184570312,
+              "vy": 0,
+              "speed": 151.21414184570312
+            },
+            {
+              "id": "g1",
+              "x": 432.59517669677734,
+              "y": 400,
+              "status": "active",
+              "cooldown": 132,
+              "vx": -151.2143898010254,
+              "vy": 0,
+              "speed": 151.2143898010254
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 78,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            },
+            {
+              "id": "hook:g1",
+              "a": "actor:g1",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 78,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 10,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 285,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 66
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 315,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 7,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 66
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              },
+              {
+                "id": "hook:g1",
+                "a": "actor:g1",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -0.00003433227675486705,
+              "vy": 0,
+              "speed": 0.00003433227675486705
+            },
+            {
+              "id": "g0",
+              "x": 174.8830795288086,
+              "y": 400,
+              "status": "active",
+              "cooldown": 131,
+              "vx": 172.4872589111328,
+              "vy": 0,
+              "speed": 172.4872589111328
+            },
+            {
+              "id": "g1",
+              "x": 425.11688232421875,
+              "y": 400,
+              "status": "active",
+              "cooldown": 131,
+              "vx": -172.48712539672852,
+              "vy": 0,
+              "speed": 172.48712539672852
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 66,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            },
+            {
+              "id": "hook:g1",
+              "a": "actor:g1",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 66,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 11,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 285,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 54
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 315,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 7,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 54
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              },
+              {
+                "id": "hook:g1",
+                "a": "actor:g1",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -0.000019073486328125,
+              "vy": 0,
+              "speed": 0.000019073486328125
+            },
+            {
+              "id": "g0",
+              "x": 183.30743789672852,
+              "y": 400,
+              "status": "active",
+              "cooldown": 130,
+              "vx": 189.34547424316406,
+              "vy": 0,
+              "speed": 189.34547424316406
+            },
+            {
+              "id": "g1",
+              "x": 416.69246673583984,
+              "y": 400,
+              "status": "active",
+              "cooldown": 130,
+              "vx": -189.34545516967773,
+              "vy": 0,
+              "speed": 189.34545516967773
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 54,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            },
+            {
+              "id": "hook:g1",
+              "a": "actor:g1",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 54,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 12,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 285,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 42
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 315,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 7,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 42
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              },
+              {
+                "id": "hook:g1",
+                "a": "actor:g1",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0.00009155272891803179,
+              "vy": 0,
+              "speed": 0.00009155272891803179
+            },
+            {
+              "id": "g0",
+              "x": 192.4807357788086,
+              "y": 400,
+              "status": "active",
+              "cooldown": 129,
+              "vx": 202.67999649047852,
+              "vy": 0,
+              "speed": 202.67999649047852
+            },
+            {
+              "id": "g1",
+              "x": 407.51930236816406,
+              "y": 400,
+              "status": "active",
+              "cooldown": 129,
+              "vx": -202.6799774169922,
+              "vy": 0,
+              "speed": 202.6799774169922
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 42,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            },
+            {
+              "id": "hook:g1",
+              "a": "actor:g1",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 42,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 13,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 285,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 315,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 7,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              },
+              {
+                "id": "hook:g1",
+                "a": "actor:g1",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0.000007629395213371026,
+              "vy": 0,
+              "speed": 0.000007629395213371026
+            },
+            {
+              "id": "g0",
+              "x": 201.70196533203125,
+              "y": 400,
+              "status": "active",
+              "cooldown": 128,
+              "vx": 196.99670791625977,
+              "vy": 0,
+              "speed": 196.99670791625977
+            },
+            {
+              "id": "g1",
+              "x": 398.2980728149414,
+              "y": 400,
+              "status": "active",
+              "cooldown": 128,
+              "vx": -196.99684143066406,
+              "vy": 0,
+              "speed": 196.99684143066406
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            },
+            {
+              "id": "hook:g1",
+              "a": "actor:g1",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 14,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 285,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 315,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 7,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              },
+              {
+                "id": "hook:g1",
+                "a": "actor:g1",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0.000019073486328125,
+              "vy": 0,
+              "speed": 0.000019073486328125
+            },
+            {
+              "id": "g0",
+              "x": 209.79829788208008,
+              "y": 400,
+              "status": "active",
+              "cooldown": 127,
+              "vx": 166.48868560791016,
+              "vy": 0,
+              "speed": 166.48868560791016
+            },
+            {
+              "id": "g1",
+              "x": 390.20172119140625,
+              "y": 400,
+              "status": "active",
+              "cooldown": 127,
+              "vx": -166.4887809753418,
+              "vy": 0,
+              "speed": 166.4887809753418
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            },
+            {
+              "id": "hook:g1",
+              "a": "actor:g1",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 15,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 285,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            },
+            {
+              "id": "hook:g1",
+              "caster": "g1",
+              "x": 315,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 7,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 3,
+              "desiredLength": 35
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              },
+              {
+                "id": "hook:g1",
+                "a": "actor:g1",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 300,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0.000049591067181609105,
+              "vy": 0,
+              "speed": 0.000049591067181609105
+            },
+            {
+              "id": "g0",
+              "x": 216.36249542236328,
+              "y": 400,
+              "status": "active",
+              "cooldown": 126,
+              "vx": 137.08179473876953,
+              "vy": 0,
+              "speed": 137.08179473876953
+            },
+            {
+              "id": "g1",
+              "x": 383.63746643066406,
+              "y": 400,
+              "status": "active",
+              "cooldown": 126,
+              "vx": -137.08189010620117,
+              "vy": 0,
+              "speed": 137.08189010620117
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            },
+            {
+              "id": "hook:g1",
+              "a": "actor:g1",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 35,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "gate-closes-after-pending-hit",
+      "setup": {
+        "gate": true
+      },
+      "events": [
+        {
+          "afterTick": 2,
+          "action": "door closes before attachment boundary"
+        }
+      ],
+      "maxPlayerSpeed": 0,
+      "frames": [
+        {
+          "tick": 0,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 1,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 195,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 45,
+              "startedTick": 1,
+              "phase": "flying",
+              "generationA": 6
+            }
+          ],
+          "public": {
+            "hookFlights": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "x": 195,
+                "y": 400
+              }
+            ],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 140,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 2,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pending",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 139,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 2,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 139,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 3,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 138,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 4,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 137,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 5,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 136,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        }
+      ]
+    },
+    {
+      "name": "teleport-cancels",
+      "setup": {},
+      "events": [
+        {
+          "afterTick": 4,
+          "action": "target teleported to (350,400)"
+        }
+      ],
+      "maxPlayerSpeed": 32.38931655883789,
+      "frames": [
+        {
+          "tick": 0,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 1,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 195,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 45,
+              "startedTick": 1,
+              "phase": "flying",
+              "generationA": 6
+            }
+          ],
+          "public": {
+            "hookFlights": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "x": 195,
+                "y": 400
+              }
+            ],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 140,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 2,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pending",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 139,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 3,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2,
+              "desiredLength": 88
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 249.50952529907227,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -16.88477396965027,
+              "vy": 0,
+              "speed": 16.88477396965027
+            },
+            {
+              "id": "g0",
+              "x": 150.49046516418457,
+              "y": 400,
+              "status": "active",
+              "cooldown": 138,
+              "vx": 16.88477396965027,
+              "vy": 0,
+              "speed": 16.88477396965027
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 88,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 4,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 235,
+              "y": 400,
+              "dx": 1,
+              "dy": 0,
+              "travelled": 85,
+              "startedTick": 1,
+              "phase": "pulling",
+              "generationA": 6,
+              "target": "c0",
+              "generationB": 5,
+              "hitTick": 2,
+              "desiredLength": 76
+            }
+          ],
+          "public": {
+            "hookFlights": [],
+            "tethers": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "b": "actor:c0"
+              }
+            ]
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 248.56868743896484,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": -32.38931655883789,
+              "vy": 0,
+              "speed": 32.38931655883789
+            },
+            {
+              "id": "g0",
+              "x": 151.43128395080566,
+              "y": 400,
+              "status": "active",
+              "cooldown": 137,
+              "vx": 32.38931655883789,
+              "vy": 0,
+              "speed": 32.38931655883789
+            }
+          ],
+          "constraints": [
+            {
+              "id": "hook:g0",
+              "a": "actor:g0",
+              "b": "actor:c0",
+              "kind": "rope",
+              "maxDistance": 76,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 120,
+              "damping": 30,
+              "maxForce": 6000,
+              "breakDistance": 550
+            }
+          ]
+        },
+        {
+          "tick": 4,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 350,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 151.43128395080566,
+              "y": 400,
+              "status": "active",
+              "cooldown": 137,
+              "vx": 32.38931655883789,
+              "vy": 0,
+              "speed": 32.38931655883789
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 5,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 350,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 151.43128395080566,
+              "y": 400,
+              "status": "active",
+              "cooldown": 136,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        }
+      ]
+    },
+    {
+      "name": "miss-away-from-target",
+      "setup": {},
+      "events": [
+        {
+          "beforeTick": 1,
+          "action": "caster launches left, away from target"
+        }
+      ],
+      "maxPlayerSpeed": 0,
+      "frames": [
+        {
+          "tick": 0,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 1,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 105,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 45,
+              "startedTick": 1,
+              "phase": "flying",
+              "generationA": 6
+            }
+          ],
+          "public": {
+            "hookFlights": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "x": 105,
+                "y": 400
+              }
+            ],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 140,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 2,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 60,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 90,
+              "startedTick": 1,
+              "phase": "flying",
+              "generationA": 6
+            }
+          ],
+          "public": {
+            "hookFlights": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "x": 60,
+                "y": 400
+              }
+            ],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 139,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 3,
+          "privateHooks": [
+            {
+              "id": "hook:g0",
+              "caster": "g0",
+              "x": 15,
+              "y": 400,
+              "dx": -1,
+              "dy": 1.2246467991473532e-16,
+              "travelled": 135,
+              "startedTick": 1,
+              "phase": "flying",
+              "generationA": 6
+            }
+          ],
+          "public": {
+            "hookFlights": [
+              {
+                "id": "hook:g0",
+                "a": "actor:g0",
+                "x": 15,
+                "y": 400
+              }
+            ],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 138,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 4,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 137,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 5,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 136,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 6,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 135,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 7,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 134,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 8,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 133,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 9,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 132,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 10,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 131,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 11,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 130,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        },
+        {
+          "tick": 12,
+          "privateHooks": [],
+          "public": {
+            "hookFlights": [],
+            "tethers": []
+          },
+          "players": [
+            {
+              "id": "c0",
+              "x": 250,
+              "y": 400,
+              "status": "active",
+              "cooldown": 0,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            },
+            {
+              "id": "g0",
+              "x": 150,
+              "y": 400,
+              "status": "active",
+              "cooldown": 129,
+              "vx": 0,
+              "vy": 0,
+              "speed": 0
+            }
+          ],
+          "constraints": []
+        }
+      ]
+    }
+  ],
+  "probes": [
+    {
+      "name": "zero-anchor-spring",
+      "setup": {
+        "bodies": [
+          {
+            "id": "a",
+            "kind": "prop",
+            "shape": {
+              "kind": "circle",
+              "radius": 2
+            },
+            "x": 0,
+            "y": 0,
+            "friction": 0
+          },
+          {
+            "id": "b",
+            "kind": "prop",
+            "shape": {
+              "kind": "circle",
+              "radius": 2
+            },
+            "x": 0,
+            "y": 0,
+            "friction": 0
+          }
+        ],
+        "constraints": [
+          {
+            "id": "link",
+            "a": "a",
+            "b": "b",
+            "maxDistance": 10,
+            "maxForce": 200,
+            "stiffness": 2000,
+            "damping": 60,
+            "kind": "spring",
+            "restLength": 0
+          }
+        ]
+      },
+      "frames": [
+        {
+          "tick": 0,
+          "bodies": [
+            {
+              "id": "a",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "spring",
+              "maxDistance": 10,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "restLength": 0,
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 200
+            }
+          ]
+        },
+        {
+          "tick": 1,
+          "bodies": [
+            {
+              "id": "a",
+              "x": 0,
+              "y": -0.6583482027053833,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 0,
+              "y": 0.6583482027053833,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "spring",
+              "maxDistance": 10,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "restLength": 0,
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 200
+            }
+          ]
+        },
+        {
+          "tick": 2,
+          "bodies": [
+            {
+              "id": "a",
+              "x": 0,
+              "y": -1.099107712507248,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 0,
+              "y": 1.099107712507248,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "spring",
+              "maxDistance": 10,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "restLength": 0,
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 200
+            }
+          ]
+        },
+        {
+          "tick": 3,
+          "bodies": [
+            {
+              "id": "a",
+              "x": 0,
+              "y": -1.3944587111473083,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 0,
+              "y": 1.3944587111473083,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "spring",
+              "maxDistance": 10,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "restLength": 0,
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 200
+            }
+          ]
+        },
+        {
+          "tick": 4,
+          "bodies": [
+            {
+              "id": "a",
+              "x": 0,
+              "y": -1.5923726558685303,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 0,
+              "y": 1.5923726558685303,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "spring",
+              "maxDistance": 10,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "restLength": 0,
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 200
+            }
+          ]
+        },
+        {
+          "tick": 5,
+          "bodies": [
+            {
+              "id": "a",
+              "x": 0,
+              "y": -1.724993735551834,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 0,
+              "y": 1.724993735551834,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "spring",
+              "maxDistance": 10,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "restLength": 0,
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 200
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "unequal-mass-rope",
+      "setup": {
+        "bodies": [
+          {
+            "id": "a",
+            "kind": "prop",
+            "shape": {
+              "kind": "circle",
+              "radius": 2
+            },
+            "x": 0,
+            "y": 0,
+            "friction": 0,
+            "mass": 1
+          },
+          {
+            "id": "b",
+            "kind": "prop",
+            "shape": {
+              "kind": "circle",
+              "radius": 2
+            },
+            "x": 30,
+            "y": 0,
+            "friction": 0,
+            "mass": 4
+          }
+        ],
+        "constraints": [
+          {
+            "id": "link",
+            "a": "a",
+            "b": "b",
+            "maxDistance": 10,
+            "maxForce": 200,
+            "stiffness": 2000,
+            "damping": 60,
+            "kind": "rope"
+          }
+        ]
+      },
+      "frames": [
+        {
+          "tick": 0,
+          "bodies": [
+            {
+              "id": "a",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 30,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 10,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 200
+            }
+          ]
+        },
+        {
+          "tick": 1,
+          "bodies": [
+            {
+              "id": "a",
+              "x": 0.2578124962747097,
+              "y": 0,
+              "angle": 0,
+              "vx": 10,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 29.935548305511475,
+              "y": 0,
+              "angle": 0,
+              "vx": -2.5,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 10,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 200
+            }
+          ]
+        },
+        {
+          "tick": 2,
+          "bodies": [
+            {
+              "id": "a",
+              "x": 1.015625,
+              "y": 0,
+              "angle": 0,
+              "vx": 20,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 29.74609375,
+              "y": 0,
+              "angle": 0,
+              "vx": -5,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 10,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 200
+            }
+          ]
+        },
+        {
+          "tick": 3,
+          "bodies": [
+            {
+              "id": "a",
+              "x": 2.2734375298023224,
+              "y": 0,
+              "angle": 0,
+              "vx": 30,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 29.431641101837158,
+              "y": 0,
+              "angle": 0,
+              "vx": -7.5,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 10,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 200
+            }
+          ]
+        },
+        {
+          "tick": 4,
+          "bodies": [
+            {
+              "id": "a",
+              "x": 4.0312498807907104,
+              "y": 0,
+              "angle": 0,
+              "vx": 40,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 28.992187976837158,
+              "y": 0,
+              "angle": 0,
+              "vx": -10,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 10,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 200
+            }
+          ]
+        },
+        {
+          "tick": 5,
+          "bodies": [
+            {
+              "id": "a",
+              "x": 6.2890625,
+              "y": 0,
+              "angle": 0,
+              "vx": 50,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 28.427734375,
+              "y": 0,
+              "angle": 0,
+              "vx": -12.5,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 10,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 200
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "blocked-finite-rope",
+      "setup": {
+        "bodies": [
+          {
+            "id": "a",
+            "kind": "prop",
+            "shape": {
+              "kind": "circle",
+              "radius": 2
+            },
+            "x": -20,
+            "y": 0,
+            "friction": 0
+          },
+          {
+            "id": "b",
+            "kind": "prop",
+            "shape": {
+              "kind": "circle",
+              "radius": 2
+            },
+            "x": 20,
+            "y": 0,
+            "friction": 0
+          },
+          {
+            "id": "wall",
+            "kind": "static",
+            "shape": {
+              "kind": "box",
+              "hx": 2,
+              "hy": 40
+            },
+            "x": 0,
+            "y": 0
+          }
+        ],
+        "constraints": [
+          {
+            "id": "link",
+            "a": "a",
+            "b": "b",
+            "maxDistance": 4,
+            "maxForce": 100,
+            "stiffness": 2000,
+            "damping": 60,
+            "kind": "rope"
+          }
+        ]
+      },
+      "frames": [
+        {
+          "tick": 0,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -20,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 20,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 1,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -19.871093034744263,
+              "y": 0,
+              "angle": 0,
+              "vx": 5,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 19.871093034744263,
+              "y": 0,
+              "angle": 0,
+              "vx": -5,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 2,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -19.4921875,
+              "y": 0,
+              "angle": 0,
+              "vx": 10,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 19.4921875,
+              "y": 0,
+              "angle": 0,
+              "vx": -10,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 3,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -18.86328101158142,
+              "y": 0,
+              "angle": 0,
+              "vx": 15,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 18.86328101158142,
+              "y": 0,
+              "angle": 0,
+              "vx": -15,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 4,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -17.98437476158142,
+              "y": 0,
+              "angle": 0,
+              "vx": 20,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 17.98437476158142,
+              "y": 0,
+              "angle": 0,
+              "vx": -20,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 5,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -16.85546875,
+              "y": 0,
+              "angle": 0,
+              "vx": 25,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 16.85546875,
+              "y": 0,
+              "angle": 0,
+              "vx": -25,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 6,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -15.476561784744263,
+              "y": 0,
+              "angle": 0,
+              "vx": 30,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 15.476561784744263,
+              "y": 0,
+              "angle": 0,
+              "vx": -30,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 7,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -13.84765625,
+              "y": 0,
+              "angle": 0,
+              "vx": 35,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 13.84765625,
+              "y": 0,
+              "angle": 0,
+              "vx": -35,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 8,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -11.968749761581421,
+              "y": 0,
+              "angle": 0,
+              "vx": 40,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 11.968749761581421,
+              "y": 0,
+              "angle": 0,
+              "vx": -40,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 9,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -9.839843511581421,
+              "y": 0,
+              "angle": 0,
+              "vx": 45,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 9.839843511581421,
+              "y": 0,
+              "angle": 0,
+              "vx": -45,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 10,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -7.4609375,
+              "y": 0,
+              "angle": 0,
+              "vx": 50,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 7.4609375,
+              "y": 0,
+              "angle": 0,
+              "vx": -50,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 11,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -4.832031428813934,
+              "y": 0,
+              "angle": 0,
+              "vx": 55,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 4.832031428813934,
+              "y": 0,
+              "angle": 0,
+              "vx": -55,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 12,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -3.999686539173126,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 3.999686539173126,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 13,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -3.999462127685547,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 3.999462127685547,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 14,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -3.9993664622306824,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 3.9993664622306824,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 15,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -3.999326229095459,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 3.999326229095459,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 16,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -3.9993098378181458,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 3.9993098378181458,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 17,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -3.999301791191101,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 3.999301791191101,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 18,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -3.999301791191101,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 3.999301791191101,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 19,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -3.999301791191101,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 3.999301791191101,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        },
+        {
+          "tick": 20,
+          "bodies": [
+            {
+              "id": "a",
+              "x": -3.999301791191101,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "b",
+              "x": 3.999301791191101,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            },
+            {
+              "id": "wall",
+              "x": 0,
+              "y": 0,
+              "angle": 0,
+              "vx": 0,
+              "vy": 0,
+              "omega": 0,
+              "sleeping": false
+            }
+          ],
+          "constraints": [
+            {
+              "id": "link",
+              "a": "a",
+              "b": "b",
+              "kind": "rope",
+              "maxDistance": 4,
+              "anchorA": {
+                "x": 0,
+                "y": 0
+              },
+              "anchorB": {
+                "x": 0,
+                "y": 0
+              },
+              "stiffness": 2000,
+              "damping": 60,
+              "maxForce": 100
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

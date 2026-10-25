@@ -34,6 +34,9 @@ export function physicsBodyFields(body: PhysicsBodyView, full = true): PhysicsBo
     ...(body.discontinuity === 'placed' ? { discontinuity: 'placed' as const } : {}) };
 }
 export function physicsTetherFields({ id, a, b }: PhysicsTetherView): PhysicsTetherView { return { id, a, b }; }
+export function physicsHookFlightFields({ id, a, x, y }: { id: string; a: string; x: number; y: number }) {
+  return { id, a, x, y };
+}
 export function ownPlayerFields(player: Player, discovery?: DiscoveryMemory | null): Projected<Player> {
   const result = ownFields(player);
   // Carried items are projected through the same item contract; both sides are wire records.

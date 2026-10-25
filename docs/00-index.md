@@ -104,6 +104,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [42.14-physics-p3.md](42.14-physics-p3.md) | Physics privacy, engine-free body/tether playback and body-heavy serialization evidence (#440) |
 | [42.15-physics-p4.md](42.15-physics-p4.md) | Bounded local prediction, scheduled network witnesses and correction/cost evidence (#441) |
 | [42.16-physics-p5.md](42.16-physics-p5.md) | Opt-in physical loot/crates, floor drag and covered blast impulses; body-heavy serialization and current baseline evidence (#445) |
+| [42.17-physics-p6.md](42.17-physics-p6.md) | Experimental capped springs/ropes and hook: swept attachment, cancellation, privacy, replay and browser evidence (#446) |
 
 ### 5x — Map generation
 

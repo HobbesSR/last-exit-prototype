@@ -1,10 +1,12 @@
 import type { PhysicsWorld } from '../physics/world.ts';
-import type { PhysicsGameplayState } from '../physics/types.ts';
+import type { PhysicsGameplayState, HookState } from '../physics/types.ts';
 import type { Game, Player, Projectile, Vec2 } from '../types.ts';
 
 export const PHYSICS_VERSION = 'last-exit-0.8-physics-1';
+export const PHYSICS_HOOK_VERSION = 'last-exit-0.8-physics-6';
 export interface PendingAttachment { id: string; a: string; b: string; maxDistance: number }
 export interface PhysicsRuntime {
+  hooks: HookState[];
   discontinuityCapacity: number;
   discontinuities: Array<{ id: string; generation: number; kind: 'placed' | 'removed'; tick: number }>;
   world: PhysicsWorld;
@@ -40,6 +42,7 @@ export function disposePhysics(s: Game): void {
 export function physicsState(s: Game): PhysicsGameplayState | undefined {
   const r = rooms.get(s);
   return r && structuredClone({ profile: s.version, settings: r.world.settings, world: r.world.snapshot({ includeStatic: false }),
+    ...(s.content.hook ? { hooks: r.hooks } : {}),
     ...(s.content.actorPhysics ? { discontinuities: r.discontinuities.map(({ id, generation, kind }) => ({ id, generation, kind })) } : {}),
     pendingSpawns: r.pendingSpawns, pendingImpulses: r.pendingImpulses, pendingAttachments: r.pendingAttachments });
 }

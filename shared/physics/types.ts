@@ -17,7 +17,12 @@ export type BodyDefinition = BodySpec;
 export type Transform = { x: number; y: number; angle: number; vx: number; vy: number; omega: number; sleeping: boolean };
 export type MotorIntent = Point & { accel: number };
 export type PhysicsContact = { a: string; b: string; substep: number; type: 'start' | 'stop' };
-export type ConstraintSpec = { id: string; a: string; b: string; maxDistance: number };
+export type ConstraintSpec = { id: string; a: string; b: string; maxDistance: number;
+  kind?: 'spring' | 'rope'; anchorA?: Point; anchorB?: Point; restLength?: number;
+  stiffness?: number; damping?: number; maxForce?: number; breakDistance?: number };
+export type HookState = { id: string; caster: string; x: number; y: number; dx: number; dy: number;
+  travelled: number; startedTick: number; phase: 'flying' | 'pending' | 'pulling'; generationA: number;
+  target?: string; generationB?: number; hitTick?: number; desiredLength?: number };
 export type PhysicsSnapshot = {
   bodies: Array<{ spec: BodySpec; transform: Transform; generation: number; motor?: MotorIntent }>;
   constraints: ConstraintSpec[];
@@ -35,6 +40,7 @@ export type PhysicsTetherView = { id: string; a: string; b: string };
 
 /** Private, engine-free authoritative state. This is not a backend continuation checkpoint. */
 export interface PhysicsGameplayState {
+  hooks?: HookState[];
   discontinuities?: Array<{ id: string; generation: number; kind: 'placed' | 'removed' }> | undefined;
   profile: string;
   settings: {

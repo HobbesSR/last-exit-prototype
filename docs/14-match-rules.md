@@ -352,3 +352,27 @@ does not change weapon statistics or inventory rules; weapon quality is the
 explicit L1 selection above. Traps, sensors and locked-door authoring remain deferred
 for the chain (16), so this library emits none of them. Their existing simulation
 mechanics still apply to stored legacy maps.
+
+## Experimental hook profile (#446)
+
+Explicit `content-physics-6` passed to `createPhysicsGame`/`createPhysicsMatch`
+selects `last-exit-0.8-physics-6`, extending P5 with an additional selectable
+`hook` gladiator kit. The existing roster and three kits remain available;
+normal rooms still select content-5. This is an experimental review profile,
+not default activation or a human-feel qualification.
+
+Pinned provisional content: range 500 world units, swept tip speed 900 units/s,
+maximum tension 6,000 force units, stiffness 120, damping 30, target shortening
+240 units/s, total lifetime 60 ticks, cooldown 140 ticks, centre standoff 55,
+target rope floor 35 (below the release standoff but outside both bodies),
+and break separation 550. These are implementation assumptions for review,
+not additional user balance answers. Actors keep P2's bounded steering motors;
+the caster receives the opposite tether force. Contacts take precedence over
+target length, so force-limited ropes may remain stretched.
+
+The skill launches one present-state swept flight per caster. The first actor
+blocks flight; only an active enemy may become a target. A hit is pending until
+the next tick revalidates status, body generation, range and unobstructed reach.
+Pulling releases at standoff, timeout, obstruction, endpoint removal or relocation.
+Skill again cancels flight/pending/pull without resetting or bypassing cooldown.
+No scenery/prop grabs, wrapping, damage, historical rewind or client hit claims.

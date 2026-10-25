@@ -66,7 +66,7 @@ function seatsOf(game, reconcile = () => {}) {
 
 // A map with no places on it. A lobby's game exists only for its roster, which createGame builds from
 // content alone; positions come from the map and are never read before the real match takes over.
-const NOWHERE = { spawns: [], stations: [], exit: { x: 0, y: 0 } };
+const NOWHERE = { spawns: [], stations: [], items: [], exit: { x: 0, y: 0 } };
 
 /**
  * The seats of a room whose map is still being generated (#258): the same roster the match will have,
