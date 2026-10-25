@@ -34,3 +34,7 @@ node map/tools/mcp.mts
 ```
 
 `npm install` only installs development formatting tools.
+
+## License
+
+Original map generator code and assets are licensed under the repository's [MIT License](../../LICENSE).
