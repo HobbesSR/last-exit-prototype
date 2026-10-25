@@ -1,5 +1,4 @@
-import { circle, polygon } from '../shape.ts';
-import { actorHitRadius, closedGateShapes, firstContact, impact, staticShapes } from './swept.ts';
+import { actorHitRadius, firstContact, impact, solidBlockers } from './swept.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import type { HookState } from '../physics/types.ts';
 import type { Game, Player, Vec2 } from '../types.ts';
@@ -11,25 +10,8 @@ const actor = (id: string) => `actor:${id}`;
 const length = (a: Vec2, b: Vec2) => Math.hypot(a.x - b.x, a.y - b.y);
 const lerp = (a: Vec2, b: Vec2, t: number): Vec2 => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 
-// The tip and tether are physical: unlike shots, see-through obstacles and solid props block them.
-function geometry(s: Game) {
-  const props = physicsRuntime(s)?.world.snapshot({ includeStatic: false }).bodies
-    .filter(body => body.spec.kind === 'prop' && body.spec.collisionProfile !== 'loot') ?? [];
-  const propShapes = props.map(({ spec, transform }) => {
-    if (spec.shape.kind === 'circle') return circle(transform.x, transform.y, spec.shape.radius);
-    const vertices = spec.shape.kind === 'box'
-      ? [{ x: -spec.shape.hx, y: -spec.shape.hy }, { x: spec.shape.hx, y: -spec.shape.hy },
-        { x: spec.shape.hx, y: spec.shape.hy }, { x: -spec.shape.hx, y: spec.shape.hy }]
-      : spec.shape.vertices;
-    const c = Math.cos(transform.angle), sin = Math.sin(transform.angle);
-    return polygon(transform.x, transform.y, vertices.map(point =>
-      ({ x: point.x * c - point.y * sin, y: point.x * sin + point.y * c })));
-  });
-  return [...staticShapes(s.map, false), ...closedGateShapes(s.map.gates), ...propShapes];
-}
-
 /** A blocked prefix wins a simultaneous actor contact. The experimental tip/tether has zero radius. */
-function blockedAt(s: Game, a: Vec2, b: Vec2): number { return firstContact(a, b, geometry(s), 0); }
+function blockedAt(s: Game, a: Vec2, b: Vec2): number { return firstContact(a, b, solidBlockers(s), 0); }
 
 function remove(s: Game, hook: HookState): void {
   const r = physicsRuntime(s);

@@ -81,9 +81,6 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   if (policy !== 'none') {
     for (const [name, url] of Object.entries(VENDOR_MODULES))
       app.get(url, async (req, res) => { const { vendorModule } = await import('./vendor-modules.js'); res.type('application/javascript').send(vendorModule(name)); });
-    app.get('/vendor/clipper/clipper.js', (req, res) => res.sendFile(path.join(ROOT, 'node_modules/clipper-lib/clipper.js')));
-    app.get('/vendor/delaunator/delaunator.min.js', (req, res) => res.sendFile(path.join(ROOT, 'node_modules/delaunator/delaunator.min.js')));
-    app.get('/vendor/constrainautor/Constrainautor.min.mjs', (req, res) => res.sendFile(path.join(ROOT, 'node_modules/@kninnug/constrainautor/lib/Constrainautor.min.mjs')));
 
     app.use('/map/micro', serveSharedModules(path.join(ROOT, 'map/micro'), true));
     app.use('/map/kernel', serveSharedModules(path.join(ROOT, 'map/kernel'), true));

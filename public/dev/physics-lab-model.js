@@ -1,8 +1,7 @@
 import { createPhysicsGame, disposePhysics, enqueuePhysicsImpulse, setInput, snapshot, step } from '/shared/simulation.ts';
 import { contentById } from '/shared/simulation/content.ts';
 import { physicsRuntime } from '/shared/simulation/physics-runtime.ts';
-import { closedGateShapes, firstContact, staticShapes } from '/shared/simulation/swept.ts';
-import { circle, polygon } from '/shared/shape.ts';
+import { firstContact, solidBlockers } from '/shared/simulation/swept.ts';
 
 export const LAB_FORMAT = 'last-exit-physics-lab-1';
 export const MAX_TICKS = 2400;
@@ -96,21 +95,7 @@ export class PhysicsLab {
     const from = { x: body.x, y: body.y };
     const to = { x: from.x + 200 * Math.cos(aim), y: from.y + 200 * Math.sin(aim) };
     const radius = this.game.content.actorPhysics.geometry[player.role].bodyRadius;
-    const world = physicsRuntime(this.game).world;
-    const props = world.snapshot({ includeStatic: false }).bodies
-      .filter(entry => entry.spec.kind === 'prop' && entry.spec.collisionProfile !== 'loot');
-    const propShapes = props.map(({ spec, transform }) => {
-      if (spec.shape.kind === 'circle') return circle(transform.x, transform.y, spec.shape.radius);
-      const vertices = spec.shape.kind === 'box'
-        ? [{ x: -spec.shape.hx, y: -spec.shape.hy }, { x: spec.shape.hx, y: -spec.shape.hy },
-          { x: spec.shape.hx, y: spec.shape.hy }, { x: -spec.shape.hx, y: spec.shape.hy }]
-        : spec.shape.vertices;
-      const c = Math.cos(transform.angle), s = Math.sin(transform.angle);
-      return polygon(transform.x, transform.y, vertices.map(point =>
-        ({ x: point.x * c - point.y * s, y: point.x * s + point.y * c })));
-    });
-    const fractionValue = firstContact(from, to,
-      [...staticShapes(this.game.map, false), ...closedGateShapes(this.game.map.gates), ...propShapes], radius);
+    const fractionValue = firstContact(from, to, solidBlockers(this.game), radius);
     const fraction = Number.isFinite(fractionValue) ? fractionValue : null;
     const point = fraction === null ? { ...to } :
       { x: from.x + (to.x - from.x) * fraction, y: from.y + (to.y - from.y) * fraction };

@@ -3,7 +3,9 @@ import { bounds, circle, polygon, rect, segmentShapeDistance } from '../shape.ts
 import type { Shape } from '../shape.ts';
 import { seeThrough } from '../movement.ts';
 import type { BodyDefinition } from '../physics/types.ts';
-import type { CollisionMap, Gate, Role, Vec2 } from '../types.ts';
+import { bodyShape } from '../physics/presentation-geometry.ts';
+import { physicsRuntime } from './physics-runtime.ts';
+import type { CollisionMap, Game, Gate, Role, Vec2 } from '../types.ts';
 
 // The one owner of swept queries against actors and geometry: physical projectiles and the P6 hook
 // tip/tether both ask the same questions, differing only in radius and which geometry blocks them.
@@ -40,6 +42,21 @@ export function staticShapes(map: CollisionMap, passSeeThrough: boolean): Shape[
 
 export function closedGateShapes(gates: readonly Gate[]): Shape[] {
   return gates.filter(gate => !gate.open).map(gate => shapeOfBody(physicsGate(gate)));
+}
+
+/** Current solid query geometry for the physical hook and diagnostic casts.
+ * Static descriptors are borrowed from the map cache; callers must treat all returned shapes as read-only.
+ */
+export function solidBlockers(game: Game): Shape[] {
+  const props = physicsRuntime(game)?.world.snapshot({ includeStatic: false }).bodies
+    .filter(body => body.spec.kind === 'prop' && body.spec.collisionProfile !== 'loot') ?? [];
+  const copy = (shape: Shape): Shape => shape.kind === 'polygon'
+    ? polygon(shape.x, shape.y, shape.points.map(point => ({ ...point }))) : { ...shape };
+  return [
+    ...staticShapes(game.map, false),
+    ...closedGateShapes(game.map.gates),
+    ...props.map(({ spec, transform }) => copy(bodyShape({ ...transform, shape: spec.shape }))),
+  ];
 }
 
 /** First relative disk intersection of a moving point and a moving actor, including an initial overlap. */
