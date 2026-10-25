@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const tool = resolve('map/tools/author-inward-grounds.mts');
-const names = ['common-primitives@4.json', 'common-set-pieces@4.json', 'district-set-pieces@3.json'];
+const names = ['common-primitives@5.json', 'common-set-pieces@5.json', 'district-set-pieces@4.json'];
 const source = names.map(name => resolve('map/macro/content', name));
 const localName = 'diamond-36x18.json';
 const localSource = resolve('map/macro/content', localName);
@@ -35,13 +35,13 @@ const invokeWithLocal = (files, extra = []) => invoke(files, ['--local-library',
 test('committed inward variants and blueprint references reconstruct from original grounds', () => {
   const result = invoke(source, ['--check']);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /27 inward variants and 521 blueprint references/);
+  assert.match(result.stdout, /81 inward variants and 1504 blueprint references/);
 });
 
 test('committed large-library local joins reconstruct with the included modules', () => {
   const result = invokeWithLocal([...source, localSource], ['--check']);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /27 inward variants and 1253 blueprint references/);
+  assert.match(result.stdout, /81 inward variants and 3492 blueprint references/);
 });
 
 test('a later schema 1 content revision can pin its matching primitives revision', () => withCopies(files => {
@@ -156,25 +156,32 @@ test('regeneration refuses an output directory resolving to any input file', () 
   files.forEach((file, i) => assert.deepEqual(json(file), json(source[i])));
 }));
 
-// The 36x18 library's local quarters and their structure grounds (#340, #347).
-const LOCAL_JOINS = [['military-quarter', 'compound', 312], ['city-centre', 'block', 240], ['industrial-quarter', 'depot', 180]];
+// Every same-class ground slot in the 36x18 library's five local quarters (#530).
+const LOCAL_JOINS = [
+  ['market-quarter', 'market', 270], ['market-quarter', 'park', 90], ['market-quarter', 'hall', 90],
+  ['industrial-quarter', 'plant', 240], ['industrial-quarter', 'depot', 180],
+  ['city-centre', 'block', 240], ['city-centre', 'market', 72], ['city-centre', 'park', 108],
+  ['military-quarter', 'compound', 312], ['military-quarter', 'checkpoint', 78],
+  ['ruined-quarter', 'ruins', 224], ['ruined-quarter', 'park', 84],
+];
 
-test('optional library authors local block, compound and depot joins and preserves every other slot', () => withLocalCopies((files, dir) => {
+test('optional library authors local same-class joins and preserves every other slot', () => withLocalCopies((files, dir) => {
   const original = json(files[3]);
   const output = join(dir, 'generated');
   const result = invokeWithLocal(files, ['--out-dir', output]);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /27 inward variants and 1253 blueprint references/);
+  assert.match(result.stdout, /81 inward variants and 3492 blueprint references/);
   const generated = json(join(output, localName));
   const target = (kind, slot) => slot.tileSetId === `${kind}-grounds` || slot.tileSetId.startsWith(`${kind}-ground-inward-`);
-  const pieces = LOCAL_JOINS.map(([id]) => id);
+  const pieces = [...new Set(LOCAL_JOINS.map(([id]) => id))];
   for (const [id, kind, count] of LOCAL_JOINS) {
     const before = original.setPieces.find(piece => piece.id === id);
     const after = generated.setPieces.find(piece => piece.id === id);
     assert.equal(before.tiles.filter(slot => target(kind, slot)).length, count, id);
     assert.equal(after.tiles.filter(slot => slot.tileSetId.startsWith(`${kind}-ground-inward-`)).length, count, id);
     for (const [index, slot] of after.tiles.entries()) {
-      if (!target(kind, before.tiles[index])) assert.deepEqual(slot, before.tiles[index], `${id} slot ${index}`);
+      if (!LOCAL_JOINS.some(([pieceId, targetKind]) => pieceId === id && target(targetKind, before.tiles[index])))
+        assert.deepEqual(slot, before.tiles[index], `${id} slot ${index}`);
     }
   }
   assert.deepEqual(generated.setPieces.filter(piece => !pieces.includes(piece.id)),
@@ -229,7 +236,7 @@ test('optional library requires the library format version, some name and its ma
   library.name = 'custom-large-library';
   library.includes.find(ref => ref.name === 'common-primitives').version++;
   save(files[3], library);
-  assert.match(invokeWithLocal(files, ['--check']).stderr, /expected common-primitives@4 include/);
+  assert.match(invokeWithLocal(files, ['--check']).stderr, /expected common-primitives@5 include/);
 }));
 
 test('optional library refuses an output resolving to the fourth input', () => withLocalCopies((files, dir) => {

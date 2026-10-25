@@ -91,8 +91,11 @@ test('a live chain map: virtual columns are the generator zone tiers, and weapon
   for (const item of loot) assert.equal(virtualZone(map, item).col + 1, item.tier, `${item.id} at ${item.x},${item.y}`);
   const s = createGame(1, map, contentById('content-loot-1')), byMix = [[], [], [], [], []];
   for (const item of s.map.items) if (item.kind === 'weapon' && item.nodeId) byMix[spatialMix(virtualZone(s.map, item)) - 1].push(item.quality);
-  // Column 0's middle zone is the entry region, which rolls no loot, so mix 1 is only the spawn kit here.
-  assert.equal(byMix[0].length, 0);
+  // Non-entry regions in mix 1 roll loot too, and the #530 layouts place weapons there. Every sampled quality must be
+  // possible under that mix's weights, regardless of the chosen layout (#530).
+  for (const [mixIndex, qualities] of byMix.entries()) for (const quality of qualities)
+    assert.ok(Number.isInteger(quality) && quality >= 1 && quality <= 5 && LOOT.lootTiers.mixes[mixIndex][quality - 1] > 0,
+      `mix ${mixIndex + 1} sampled unsupported quality ${quality}`);
   const means = byMix.slice(1).map(q => q.reduce((a, b) => a + b, 0) / q.length);
   assert.ok(byMix.slice(1).every(q => q.length >= 10), `weapons per mix: ${byMix.map(q => q.length)}`);
   for (let i = 1; i < means.length; i++) assert.ok(means[i] > means[i - 1], `mean quality rises over mixes 2..5: ${means.map(m => m.toFixed(2))}`);
