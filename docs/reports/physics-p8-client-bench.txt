@@ -1,0 +1,38 @@
+node.exe : npm notice run last-exit@0.1.0 bench:client
+At C:\nvm4w\nodejs\npm.ps1:16 char:5
++     & "$basedir/node$exe"  "$basedir/node_modules/npm/bin/npm-cli.js" ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm notice run ....0 bench:client:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+npm notice run node tests/bench-client.mjs
+(node:87768) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Last Exit client benchmark — entry, 12.01s, 720 rendered frames (59.9 fps average)
+frame time  mean 16.67 ms   p50 16.70   p95 16.80   max 17.20   (60 fps budget 16.7 ms)
+state gap   mean 50.0 ms   p50 47.0   p95 63.1   max 74.0   over 240 packets   (server 20 Hz = 50.0 ms)
+state size  mean 2.3 KiB, p95 2.8 KiB per authoritative frame
+
+per frame, milliseconds
+series           mean    p50    p95    max  calls
+--------------  -----  -----  -----  -----  -----
+render.draw     0.496  0.500  1.000  1.500    1.0
+render.frame    0.369  0.300  0.500  4.700    1.0
+render.vision   0.092  0.100  0.200  0.300    1.0
+render.hud      0.061  0.000  0.200  0.400    0.3
+render.tiles    0.042  0.000  0.100  4.200    1.0
+render.minimap  0.026  0.000  0.100  0.200    0.3
+render.world    0.025  0.000  0.100  0.200    1.0
+render.actors   0.018  0.000  0.100  0.100    1.0
+render.camera   0.003  0.000  0.000  0.100    1.0
+
+per frame, counts
+series                   mean  p50  p95  max  calls
+-----------------------  ----  ---  ---  ---  -----
+work.visibilityRays       210  198  322  360
+calls.visibilityPolygon     1    1    1    1
+calls.movePlayer            0    0    2    2
+work.tileRasterise          0    0    0    4
+
+render.frame is inclusive: camera, vision, cover, world and actors are counted inside it.
+Headless Chrome may fall back to software GL, so treat GPU-bound draw cost as a ceiling.

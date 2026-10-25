@@ -124,6 +124,10 @@ const CONTENT_PHYSICS_6: MatchContent = { ...CONTENT_PHYSICS_5, id: 'content-phy
 const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4, 'content-5': CONTENT_5, 'content-physics-2': CONTENT_PHYSICS_2, 'content-equipment-1': CONTENT_EQUIPMENT_1, 'content-physics-5': CONTENT_PHYSICS_5, 'content-physics-6': CONTENT_PHYSICS_6, 'content-loot-1': CONTENT_LOOT_1, 'content-ammo-1': CONTENT_AMMO_1 };
 
 
+// P8 keeps P6's physical content and adopts local repair plus temporary body detours.
+const CONTENT_PHYSICS_8: MatchContent = { ...CONTENT_PHYSICS_6, id: 'content-physics-8', replanning: 'repair', dynamicNavigation: true };
+SHIPPED['content-physics-8'] = CONTENT_PHYSICS_8;
+
 /** Return an independent, deeply frozen copy of a shipped content set. */
 export function contentById(id: string): MatchContent {
   const source = Object.hasOwn(SHIPPED, id) ? SHIPPED[id] : undefined;

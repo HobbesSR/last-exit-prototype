@@ -10,6 +10,7 @@ import { carriedCell, sameQuality, syncWeapon } from '../equipment.ts';
 import { GATE_REACH, HZ } from './rules.ts';
 import { distance, center, clearRoute } from './geometry.ts';
 import { visibleTo } from './visibility.ts';
+import { dynamicWaypoint } from './dynamic-navigation.ts';
 import { attack, utilityApplies, utilityOutcome } from './combat.ts';
 import { dropEquipment, dropInventorySlot } from './loot.ts';
 import { reloadableRounds, reserveRoom } from './ammo.ts';
@@ -572,6 +573,10 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
       return { x, y, point, score: distance(point, hunter) + (x * dx + y * dy) / goalLength * 15 - (point.x < s.hazardX + 100 ? 1000 : 0) };
     }).filter(o => canOccupy(s.map, o.point.x, o.point.y, 12) && reachClear(s.map, p, o.point)).sort((a, b) => b.score - a.score);
     if (options.length) { dx = options[0].x * 9; dy = options[0].y * 9; }
+  }
+  if (s.content.dynamicNavigation) {
+    const next = dynamicWaypoint(s, p, { x: p.x + dx, y: p.y + dy });
+    dx = next.x - p.x; dy = next.y - p.y;
   }
   const length = Math.max(9, Math.hypot(dx, dy));
   if (p.role === 'contestant' && cell != null && cell.charge < s.content.cellChargeTicks && s.map.chargers.some(st => distance(p, st) < 55 && lineClear(s.map, p, st))) {

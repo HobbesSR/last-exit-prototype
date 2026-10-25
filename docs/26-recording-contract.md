@@ -323,6 +323,10 @@ the next writer revision after L2's schema 13; both explicit content sets remain
 independently selectable. The change is additive: the general minimum reader remains 0 and experimental physics keeps
 its schema-10 visual floor. New P6 simulation behavior is separately identified
 by `last-exit-0.8-physics-6` and `content-physics-6`; no legacy content is changed.
+P8 adds explicit `last-exit-0.8-physics-8` / `content-physics-8` for local dynamic
+navigation and drop-placement behavior. It keeps P6's frame representation,
+schema and minimum reader; private local detours are not recorded. Old content
+and recorded poses remain unchanged.
 Flight/pending/pull transitions are stored state, not instructions to replay an
 engine. Old frames omit the new records; seek/removal follows complete captured
 lists. Private pending target/generation/force state never enters live projection.

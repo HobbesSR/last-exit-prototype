@@ -520,6 +520,12 @@ export class PhysicsWorld {
       addConstraints: this.pendingAddConstraints, removeConstraints: this.pendingRemoveConstraints,
       forces: this.forces, impulses: this.impulses } });
   }
+  /** Small query view for local navigation: excludes loot, actors and pending/constraint state. */
+  solidPropStates(): Array<{ spec: BodySpec; transform: Transform }> {
+    this.ensure();
+    return this.sortedDynamic.filter(([, record]) => record.spec.kind === 'prop' && record.spec.collisionProfile !== 'loot')
+      .map(([id, record]) => ({ spec: clone(record.spec), transform: this.getTransform(id)! }));
+  }
   dispose(): void {
     if (this.disposed) return;
     this.events.free(); this.native.free(); this.bodies.clear(); this.colliderIds.clear(); this.constraints.clear();

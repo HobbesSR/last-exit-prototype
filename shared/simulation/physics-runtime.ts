@@ -4,6 +4,7 @@ import type { Game, Player, Projectile, Vec2 } from '../types.ts';
 
 export const PHYSICS_VERSION = 'last-exit-0.8-physics-1';
 export const PHYSICS_HOOK_VERSION = 'last-exit-0.8-physics-6';
+export const PHYSICS_NAVIGATION_VERSION = 'last-exit-0.8-physics-8';
 export interface PendingAttachment { id: string; a: string; b: string; maxDistance: number }
 export interface PhysicsRuntime {
   hooks: HookState[];
