@@ -239,6 +239,10 @@ test('the owner sees reserves and reload progress; other players and older conte
   assert.equal(own.players.find(r => r.id === p.id).reload.instanceId, 'gun');
   const seen = other.players.find(r => r.id === p.id);
   assert.equal(seen.reserves, undefined); assert.equal(seen.reload, undefined);
+  // Ground ammo keeps its family on the live wire, as in recorded frames.
+  s.map.items.push({ id: 'box', kind: 'ammo', family: 'shell', count: 4, x: q.x, y: q.y });
+  const box = playerView(s, snapshot(s), q.id).items.find(item => item.id === 'box');
+  assert.equal(box.family, 'shell');
   const legacy = createGame(17, arena(), content('content-5'));
   assert.equal(Object.hasOwn(snapshot(legacy).players[0], 'reserves'), false);
 });
