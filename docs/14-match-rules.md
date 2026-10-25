@@ -109,7 +109,7 @@ range. Solid props remain pushable through the existing bounded motor and
 solver when a detour is unavailable; an immovable contact can still queue.
 Queued bots without a visible enemy retain their heading. Strategic blockage
 clearing is deferred by [17.3](17.3-product-gameplay.md) entry 24. See
-[22.6](22.6-hierarchical-navigation.md) for the extension boundaries.
+[22.6.4](22.6.4-dynamic-overlay.md) for the extension boundaries.
 
 Optional physical drops additionally avoid active actors and rotated solid props
 at placement. Impossible optional drops preserve inventory and IDs. Mandatory
