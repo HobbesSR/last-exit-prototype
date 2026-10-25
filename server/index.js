@@ -64,7 +64,7 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   const directory = createRoomDirectory({ host: service, generateMap: generateMap ?? maps.generate, pool, devTools: policy });
   const app = express();
   app.disable('x-powered-by');
-  app.use(express.json({ limit: '2kb' }));
+  app.use(express.json({ limit: '2kb', inflate: false }));
   app.use('/vendor/phaser', express.static(path.join(ROOT, 'node_modules/phaser/dist')));
   app.use('/vendor/lucide', express.static(path.join(ROOT, 'node_modules/lucide/dist/umd')));
   app.use('/vendor/sat', express.static(path.join(ROOT, 'node_modules/sat')));
