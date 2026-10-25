@@ -1,0 +1,32 @@
+npm notice run last-exit@0.1.0 bench:client
+npm notice run node tests/bench-client.mjs
+(node:85316) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+Last Exit client benchmark — entry, 12.02s, 720 rendered frames (59.9 fps average)
+frame time  mean 16.67 ms   p50 16.70   p95 16.80   max 17.10   (60 fps budget 16.7 ms)
+state gap   mean 50.0 ms   p50 47.8   p95 64.9   max 73.7   over 240 packets   (server 20 Hz = 50.0 ms)
+state size  mean 2.3 KiB, p95 2.8 KiB per authoritative frame
+
+per frame, milliseconds
+series           mean    p50    p95    max  calls
+--------------  -----  -----  -----  -----  -----
+render.draw     0.511  0.500  1.000  1.900    1.0
+render.frame    0.377  0.400  0.500  4.700    1.0
+render.vision   0.099  0.100  0.200  0.300    1.0
+render.hud      0.064  0.000  0.300  0.300    0.3
+render.tiles    0.044  0.000  0.100  4.500    1.0
+render.world    0.027  0.000  0.100  0.200    1.0
+render.actors   0.024  0.000  0.100  0.200    1.0
+render.minimap  0.024  0.000  0.100  0.200    0.3
+render.camera   0.004  0.000  0.000  0.100    1.0
+
+per frame, counts
+series                   mean  p50  p95  max  calls
+-----------------------  ----  ---  ---  ---  -----
+work.visibilityRays       210  198  322  360
+calls.visibilityPolygon     1    1    1    1
+calls.movePlayer            1    1    2    2
+work.tileRasterise          0    0    0    4
+
+render.frame is inclusive: camera, vision, cover, world and actors are counted inside it.
+Headless Chrome may fall back to software GL, so treat GPU-bound draw cost as a ceiling.

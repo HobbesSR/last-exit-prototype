@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Last Exit · Physics playtest</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/mark.svg">
+  <script src="/vendor/clipper/clipper.js"></script>
+  <script src="/vendor/delaunator/delaunator.min.js"></script>
+  <script type="importmap">{"imports":{"clipper-lib":"data:text/javascript,export default window.ClipperLib","delaunator":"data:text/javascript,export default window.Delaunator","@kninnug/constrainautor":"/vendor/constrainautor/Constrainautor.min.mjs","sat":"/vendor/sat.mjs","@dimforge/rapier2d-compat":"/vendor/rapier/rapier.mjs"}}</script>
+  <style>
+    :root { color-scheme: dark; font: 15px system-ui, sans-serif; background: #142523; color: #ecf4ed; }
+    body { margin: 0; padding: 20px; }
+    header, main { max-width: 1280px; margin: auto; }
+    h1 { margin: 0 0 4px; } p { color: #b7ccc5; }
+    main { display: grid; grid-template-columns: minmax(320px, 820px) minmax(280px, 1fr); gap: 18px; }
+    canvas { width: 100%; height: auto; background: #263b37; border: 1px solid #627d75; touch-action: none; }
+    section, fieldset { border: 1px solid #526c64; border-radius: 8px; padding: 12px; margin: 0 0 12px; }
+    label { display: inline-flex; align-items: center; gap: 6px; margin: 4px 8px 4px 0; }
+    input[type=number] { width: 85px; } select, input, button, textarea { font: inherit; background: #203932; color: inherit; border: 1px solid #789488; border-radius: 4px; padding: 5px; }
+    button { cursor: pointer; margin: 4px 4px 4px 0; } button:hover { background: #38594d; }
+    textarea { box-sizing: border-box; width: 100%; height: 155px; }
+    output { display: block; color: #abdacc; min-height: 22px; }
+    .legend { font-size: 13px; } .legend b { margin-right: 8px; }
+    @media (max-width: 850px) { main { display: block; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Physics playtest lab</h1>
+    <p>Local, isolated content-physics-8 simulation. WASD moves the selected actor, pointer aims, Space uses skill once per press, Enter interacts. Step advances one fixed 20 Hz tick. Tuning takes effect after Reset.</p>
+  </header>
+  <main>
+    <div>
+      <canvas id="arena" width="800" height="800" aria-label="Physics playtest arena"></canvas>
+      <p class="legend"><b style="color:#5be1d8">Head</b><b style="color:#ffbc54">Body</b><b style="color:#ff80bb">Combat hurt</b> Dashed: sleeping body. Yellow: tether anchors. Red: final-substep contact normals. Blue: motor target. Green: requested impulse. Violet: external force (final substep; excludes motor/contact impulses). White: hook tip sweep between retained frames. Orange: static/solid-prop diagnostic cast; dashed path is the full request, disk is the swept centre at its stop. Contact impulses are unavailable.</p>
+    </div>
+    <div>
+      <section>
+        <label>Scene <select id="scene"><option value="A">A · character collision and crowd</option><option value="B">B · physical prop</option><option value="C">C · hook</option></select></label>
+        <label>Seed <input id="seed" type="number" min="0" step="1" value="449"></label>
+        <label>Actor <select id="actor"></select></label>
+        <div><button id="reset">Start / Reset</button><button id="step">Step tick</button><button id="play">Play</button><button id="skill">Skill next tick</button><button id="cast">Cast ahead</button></div>
+        <div><label>Impulse X <input id="impulse-x" type="number" value="300" step="10"></label><label>Y <input id="impulse-y" type="number" value="0" step="10"></label><button id="impulse">Queue impulse</button></div>
+        <output id="status" role="status">Select a scene and start.</output>
+      </section>
+      <fieldset id="tuning"><legend>Copied match-pinned character tuning</legend>
+        <label>Acceleration <input data-tune="acceleration" type="number" min="1" max="100000" step="1"></label>
+        <label>Braking <input data-tune="braking" type="number" min="1" max="100000" step="1"></label>
+        <label>Max impulse <input data-tune="maxImpulse" type="number" min="1" max="100000" step="1"></label>
+        <label>Max speed <input data-tune="maxSpeed" type="number" min="1" max="100000" step="1"></label>
+        <label>Contestant body radius <input data-tune="contestantBodyRadius" type="number" min="1" max="100" step="0.1"></label>
+        <label>Gladiator body radius <input data-tune="gladiatorBodyRadius" type="number" min="1" max="100" step="0.1"></label>
+      </fieldset>
+      <section><button id="export">Export JSON</button><button id="download">Download JSON</button><button id="import">Import and rerun</button><textarea id="recording" aria-label="Pinned lab recording JSON" spellcheck="false"></textarea></section>
+    </div>
+  </main>
+  <script type="module" src="/dev/physics-lab.js"></script>
+</body>
+</html>

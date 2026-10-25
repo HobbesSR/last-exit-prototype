@@ -13,12 +13,18 @@ import { canOccupy } from '../shared/movement.ts';
 import path from 'node:path';
 import { arrangeCrowd } from './crowd-workload.mjs';
 import { cliArgs } from './helpers/args.js';
+import { createPhysicsMatch } from '../server/match.js';
+import { contentById } from '../shared/simulation/content.ts';
 
 const args = cliArgs();
 const seconds = Number(args.get('seconds') ?? 12);
+if (args.has('physics') && (args.has('location') || args.has('spectator') || args.get('mode') === 'spectator'))
+  throw new Error('--physics currently supports the live entry workload only');
+const physicsContent = args.has('physics') ? args.get('content') ?? 'content-physics-8' : null;
 await acquireMachineLock('bench');
 await mkdir('test-results', { recursive: true });
 const server = await createArenaServer({ replayDir: path.resolve('test-results/replays'),
+  ...(physicsContent ? { content: () => contentById(physicsContent), matchFactory: createPhysicsMatch } : {}),
   ...(args.has('server-profile') ? { profile: true, profileSummary: false } : {}) });
 const base = await listen(server);
 const browser = await chromium.launch({ channel: 'chrome', headless: !args.has('headed') });
@@ -55,6 +61,10 @@ try {
   await page.waitForTimeout(seconds * 1000);
   if (!workload && !spectator) await page.keyboard.up('KeyD');
   const { frames, series } = await page.evaluate(() => window.arenaProfile());
+  const physics = physicsContent && await page.evaluate(() => {
+    const debug = window.arenaDebug();
+    return { version: debug.version, prediction: debug.physicsPrediction };
+  });
   const elapsedSeconds = (performance.now() - measuredAt) / 1000;
   const find = name => series.find(s => s.name === name);
   const delta = find('render.delta'), gap = find('net.stateGap'), bytes = find('net.stateBytes');
@@ -63,7 +73,7 @@ try {
     return { tick: d.tick, transmittedActors: d.actorCount, visibleActors: d.actors.filter(a => a.visible).length, camera: d.camera, cameraWidth: d.cameraWidth };
   });
   const serverProfile = args.has('server-profile') ? { frames: server.profiler.frameCount(), series: server.profiler.report() } : undefined;
-  if (args.has('json')) console.log(JSON.stringify({ frames, series, ...(workload ? { workload, crowd } : {}), ...(serverProfile ? { server: serverProfile } : {}) }, null, 2));
+  if (args.has('json')) console.log(JSON.stringify({ frames, series, ...(physics ? { physics, content: physicsContent } : {}), ...(workload ? { workload, crowd } : {}), ...(serverProfile ? { server: serverProfile } : {}) }, null, 2));
   else {
     const benchmarkLabel = spectator ? 'spectator (whole arena)' : args.get('location') || 'entry';
     console.log(`Last Exit client benchmark — ${benchmarkLabel}, ${elapsedSeconds.toFixed(2)}s, ${frames} rendered frames (${(frames / elapsedSeconds).toFixed(1)} fps average)`);
@@ -73,6 +83,7 @@ try {
     console.log(format(series.filter(s => s !== delta && s !== gap && s !== bytes)));
     console.log('\nrender.frame is inclusive: camera, vision, cover, world and actors are counted inside it.');
     console.log('Headless Chrome may fall back to software GL, so treat GPU-bound draw cost as a ceiling.');
+    if (physics) console.log('Physics workload:', JSON.stringify({ content: physicsContent, ...physics }));
     if (workload) console.log('Crowd workload:', JSON.stringify({ ...workload, ...crowd }));
     if (serverProfile) console.log('Server profile:\n' + format(serverProfile.series));
   }

@@ -8,6 +8,7 @@ export function renderDevNav() {
   const links = [
     { href: '/dev', text: 'Overview', match: 'dev-portal' },
     { href: '/dev/map', text: 'Macro Map', match: 'dev/map' },
+    { href: '/dev/physics', text: 'Physics', match: 'dev/physics' },
     { href: '/dev/micro', text: 'Micro Maps', match: 'dev/micro' }
   ];
 

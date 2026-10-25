@@ -505,6 +505,41 @@ export class PhysicsWorld {
     return { distance, paths };
   }
   drainContacts(): PhysicsContact[] { this.ensure(); return this.contacts.splice(0); }
+  /** Final-substep external force accumulators, excluding motor velocity changes
+   * and collision impulses. Developer-only; no extra work during ordinary ticks. */
+  debugForces(): Array<{ id: string; point: Point; force: Point }> {
+    this.ensure();
+    return this.sortedDynamic.map(([id, record]) => {
+      const body = this.native.getRigidBody(record.handle)!, point = body.translation(), force = body.userForce();
+      return { id, point: { x: point.x * SCALE, y: point.y * SCALE },
+        force: { x: force.x * SCALE, y: force.y * SCALE } };
+    });
+  }
+  /** Private developer diagnostic, sampled on demand after the final substep.
+   * Never include this in a gameplay snapshot or a player projection. */
+  debugContacts(): Array<{ a: string; b: string; point: Point; normal: Point; distance: number }> {
+    this.ensure();
+    const result: Array<{ a: string; b: string; point: Point; normal: Point; distance: number }> = [];
+    for (const [id, record] of [...this.bodies].sort(([a], [b]) => order(a, b))) {
+      const collider = this.native.getCollider(record.collider);
+      this.native.contactPairsWith(collider, other => {
+        const otherId = this.colliderIds.get(other.handle);
+        if (!otherId || order(id, otherId) >= 0 || result.length >= 256) return;
+        this.native.contactPair(collider, other, (manifold, flipped) => {
+          const normal = manifold.normal(), sign = flipped ? -1 : 1;
+          for (let i = 0; i < manifold.numSolverContacts() && result.length < 256; i++) {
+            const point = manifold.solverContactPoint(i);
+            if (point) result.push({ a: id, b: otherId,
+              point: { x: point.x * SCALE, y: point.y * SCALE },
+              normal: { x: normal.x * sign, y: normal.y * sign },
+              distance: manifold.solverContactDist(i) * SCALE });
+          }
+        });
+      });
+    }
+    return result.sort((a, b) => order(a.a, b.a) || order(a.b, b.b)
+      || a.point.x - b.point.x || a.point.y - b.point.y);
+  }
   counts(): { actors: number; dynamic: number; static: number; constraints: number } {
     this.ensure();
     return { actors: this.actorCount, dynamic: this.dynamicCount, static: this.staticCount, constraints: this.constraints.size };
