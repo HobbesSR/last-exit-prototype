@@ -4,6 +4,7 @@ import { microMetrics } from '../metrics.ts';
 import { spreadPoints } from '../placement.ts';
 import { portalStands } from '../portals.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
+import { builtRegion } from '../result.ts';
 
 /**
  * The one arrival region owns every contestant spawn (17 M20, 54). It has no decomposer
@@ -28,7 +29,5 @@ export function buildArrival(brief: RegionBrief): BuiltRegion {
   const coreElements = points.map(point => ({ kind: 'spawn' as const, ...point }));
   const { elements, loot } = coverAround(brief, points.map(point => ({ ...point, radius })), root);
 
-  return { version: 'region-2', brief: structuredClone(brief), elements, coreElements, loot,
-    manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0,
-      loot: loot.length, coreElements: coreElements.length } };
+  return builtRegion(brief, elements, loot, coreElements);
 }

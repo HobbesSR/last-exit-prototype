@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateMicroRegion } from '../map/micro/index.ts';
-import { regionCollisionMap } from '../map/micro/adapter.ts';
-import { microExample } from '../map/micro/examples.ts';
+import { builtMapCollision } from '../map/micro/adapter.ts';
+import { buildRegion } from '../map/micro/region-types.ts';
+import { regionExample } from '../map/micro/region-examples.ts';
 import { canOccupy } from '../shared/movement.ts';
 import { GATE_REACH } from '../shared/simulation/rules.ts';
 import { keyIntent, toggleNearbyGate } from '../public/lab-walk.js';
@@ -12,7 +12,8 @@ const nearestInReach = (map, body) => map.gates.filter(g => Math.hypot(g.x - bod
   .sort((a, b) => Math.hypot(a.x - body.x, a.y - body.y) - Math.hypot(b.x - body.x, b.y - body.y))[0];
 /** A depot's collision map, every gate open, and a walker whose nearest gate in reach can close beside it. */
 function scene() {
-  const map = regionCollisionMap(generateMicroRegion(microExample('depot', 4217)));
+  const region = buildRegion(regionExample({ type: 'depot', seed: 4217 }));
+  const map = builtMapCollision({ cellSize: region.brief.cellSize, regions: [region], pairs: [] });
   for (const g of map.gates) g.open = true;
   for (const gate of map.gates) for (let r = RADIUS * 2; r < GATE_REACH; r += 2) for (let a = 0; a < 16; a++) {
     const body = { x: gate.x + r * Math.cos(a * Math.PI / 8), y: gate.y + r * Math.sin(a * Math.PI / 8) };

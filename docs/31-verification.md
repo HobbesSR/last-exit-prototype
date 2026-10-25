@@ -80,8 +80,8 @@ without dropping its original seed/parameter coverage.
 
 Micro-generation changes additionally run `npm run test:micro`: focused contracts
 and seeded builder tests plus all three isolated browser previews. The unit tests also run
-in `npm test`. The lab browser check verifies actual builder content, control
-variation, artifact download and movement, and saves `test-results/micro-lab.png`.
+in `npm test`. The lab browser check verifies region type content, control
+variation, result download and movement, and saves `test-results/micro-lab.png`.
 It also toggles each building view for `hut`, `compound` and `block`, checks the drawn
 counts against the build in memory, and shows unmet guidance as a warning
 ([56](56-buildings.md) L4, L5).
@@ -94,24 +94,18 @@ core requests without changing the production generator or its fixtures.
 CLI batch generation/validation and limits are described in [20.5](20.5-tools-and-next-boundaries.md).
 Decomposition checks cover immutable contexts and trial claims, graph/topology
 analysis, generator contracts, residual tradeoffs, exact ownership and interface
-accounting, corrupted artifacts, and CLI round trips. Negotiation checks cover
-contestant-only and unstated-seam policies, rejected disconnected policies and
-unfitting runs, whole inherited obligations, and the bridged parent proof, including
-its refusal to bridge through a child that failed its own check. The decomposition browser
+accounting, corrupted artifacts, and CLI round trips. The decomposition browser
 lab verifies policy controls, candidate inspection, imports/exports and narrow
 viewports. Its diagrams are allocation proposals, not physical traversal tests.
-The combined demo additionally checks generated child content, stable ownership
-across content changes, export, stages, and real collision movement across a join.
-Realization unit tests validate paired portals and both body-sized swept routes,
-replay those routes with actual movement, preserve holes and reject corrupt output.
-Exploration tests check exact recursive ownership, depth/search limits, distinct
-objective choices and terminal constraints. The browser inspector exercises tree
-and branch selection and exports. Entry-seed and ruin-decay tests compare actual
-positions/geometry, and the micro browser verifies decay applies automatically.
-Boundary tests cover disconnected interiors behind open mouths, single-port
-standing clearance, body-specific passages, freeform routes, inherited and paired
-child obligations, and rejection of silently split crossings. Access validation
-uses final collision geometry rather than trusting recorded routes.
+The generation demo checks that its example and a linked map's block show what
+`buildRegion` built, their lots and alleys, stages, download and real collision
+movement. Exploration tests check exact recursive ownership, depth/search limits,
+distinct objective choices and terminal constraints. The browser inspector
+exercises tree and branch selection and exports. Brief children are checked by
+inference with `validateBriefPartition` (20.7), and portal promises from final
+collision geometry with `validatePortalReach`, rather than from recorded routes.
+The negotiation, realization and explicit-port access and boundary tests retired
+with what they tested (#483).
 
 `npm run check` parses every JavaScript module as Node would load it and confirms
 every TypeScript module erases cleanly, which is what Node does instead of parsing

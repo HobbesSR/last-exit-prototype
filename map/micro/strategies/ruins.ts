@@ -10,6 +10,7 @@ import { commitHintWalls, separateAreas, wallHints } from '../hint-walls.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
+import { builtRegion } from '../result.ts';
 
 const DEFAULT_DENSITY = 0.7;
 const DEFAULT_DECAY = 0.35;
@@ -128,9 +129,7 @@ export function buildRuins(brief: RegionBrief): BuiltRegion {
   commitHintWalls(canvas, hinted);
   const elements = [...canvas.elements];
   const loot = cellLoot(brief, createRegionMask(brief), [...pieces, ...hinted.shapes], CHANNEL.loot);
-  return { version: 'region-2', brief: structuredClone(brief), elements, coreElements: [], loot,
-    manifest: { cells: brief.cells.length, structures: 0, obstacles: elements.length, gates: 0,
-      loot: loot.length, coreElements: 0, rooms, walls, debris, hintWalls: hinted.shapes.length } };
+  return builtRegion(brief, elements, loot, [], { rooms, walls, debris, hintWalls: hinted.shapes.length });
 }
 
 /** Adapt a locally built slab to the legacy world-absolute element record. */

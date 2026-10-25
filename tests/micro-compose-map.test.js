@@ -16,7 +16,7 @@ const SIZE = 48, BAND = 70, BLOCK = 5, COLS = 20, ROWS = 15;
 function syntheticBriefs() {
   const regions = new Map(), owner = new Map();
   const region = (id, cells) => {
-    regions.set(id, { id, seed: regions.size + 1, type: 'example-open', cellSize: SIZE, cells, zones: [{ tier: 1, bonus: 0, lootChance: 0.04, cells }], portals: [] });
+    regions.set(id, { id, seed: regions.size + 1, type: 'cover', cellSize: SIZE, cells, zones: [{ tier: 1, bonus: 0, lootChance: 0.04, cells }], portals: [] });
     for (const c of cells) owner.set(`${c.x},${c.y}`, id);
   };
   const band = [];
@@ -76,7 +76,7 @@ test('a portal id names its pair by both ids, whatever characters they hold', ()
   // ('a', 'b and c') and ('a and b', 'c') would join to the same key; they are two pairs.
   const result = (id, x, y, portals) => {
     const cells = [{ x, y }];
-    return { version: 'region-2', brief: { id, seed: 1, type: 'example-open', cellSize: SIZE, cells, zones: [{ tier: 1, bonus: 0, lootChance: 0, cells }], portals },
+    return { version: 'region-2', brief: { id, seed: 1, type: 'cover', cellSize: SIZE, cells, zones: [{ tier: 1, bonus: 0, lootChance: 0, cells }], portals },
       elements: [], coreElements: [], loot: [], manifest: {} };
   };
   const shared = y => [{ id: 'shared', axis: 'v', x: 1, y, length: 1 }];
@@ -100,7 +100,7 @@ test('the bounds are explicit tool limits, raised for macro-sized regions', () =
   const one = results[1];
   assert.throws(() => composeRegions(Array.from({ length: LIMITS.mapRegions + 1 }, () => one)), /1 to 4096 region results/);
   const line = n => Array.from({ length: n }, (_, x) => ({ x, y: 0 }));
-  const brief = cells => ({ id: 'wide', seed: 1, type: 'example-open', cellSize: SIZE, cells, zones: [{ tier: 1, bonus: 0, lootChance: 0, cells }], portals: [] });
+  const brief = cells => ({ id: 'wide', seed: 1, type: 'cover', cellSize: SIZE, cells, zones: [{ tier: 1, bonus: 0, lootChance: 0, cells }], portals: [] });
   assert.throws(() => buildRegion(brief(line(LIMITS.regionSpan + 1))), /at most 512 cells per axis/);
   const square = [];
   for (let y = 0; y < 257; y++) for (let x = 0; x < 256; x++) square.push({ x, y });

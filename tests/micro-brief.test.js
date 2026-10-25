@@ -5,11 +5,10 @@ import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { elementShapes } from '../map/micro/geometry.ts';
 import { validateFillConstraints } from '../map/micro/margins.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
-import { BUILDERS } from '../map/micro/builders.ts';
 import { rect } from '../shared/shape.ts';
 
 /** A 24 × 18 region with a portal on its west and east sides, and two zones split at x = 12. */
-function brief(type = 'example-depot', seed = 4217) {
+function brief(type = 'depot', seed = 4217) {
   const cells = [];
   for (let y = 0; y < 18; y++) for (let x = 0; x < 24; x++) cells.push({ x, y });
   return { id: 'r1', seed, type, cellSize: 40, cells,
@@ -23,13 +22,13 @@ test('a brief dispatches to its region type\'s strategy', () => {
   assert.equal(buildRegion(brief('b'), registry), 'B');
   assert.deepEqual(ran, [['b', 'r1']]);
   assert.throws(() => buildRegion(brief('c'), registry), /Unknown region type c/);
-  const result = buildRegion(brief('example-ruins'));
+  const result = buildRegion(brief('ruins'));
   assert.equal(result.version, 'region-2');
-  assert.equal(result.brief.type, 'example-ruins');
+  assert.equal(result.brief.type, 'ruins');
   assert.ok(Object.isFrozen(REGION_TYPES));
 });
 
-test('a brief\'s portals are kept, never walled, and the example keeps its promise', () => {
+test('a brief\'s portals are kept, never walled, and every region type keeps its promise', () => {
   for (const type of Object.keys(REGION_TYPES)) for (const seed of [1, 2, 3]) {
     const result = buildRegion(brief(type, seed));
     assert.ok(result.elements.every(e => !e.label.startsWith('port:')), type);
@@ -40,7 +39,7 @@ test('a brief\'s portals are kept, never walled, and the example keeps its promi
 });
 
 test('the whole-portal promise is refused when a builder narrows a portal or cuts it off', () => {
-  const result = buildRegion(brief('example-open')), blockers = blockersOf(result);
+  const result = buildRegion(brief('open')), blockers = blockersOf(result);
   assert.deepEqual(validatePortalReach({ ...result.brief, blockers }).errors, []);
   // A post in the east portal's mouth leaves a doorway, but not the whole portal.
   const narrowed = validatePortalReach({ ...result.brief, blockers: [...blockers, rect(924, 360, 16, 16)] });
@@ -57,17 +56,6 @@ test('a wall sitting right on the boundary seals the portal even when no stand d
   // The same sliver clear of every portal changes nothing.
   const clear = validatePortalReach({ ...brief(), blockers: [rect(0, 0, 0.5, 80)] });
   assert.deepEqual(clear.errors, []);
-});
-
-test('a brief whose portals cannot connect fails explicitly, not silently', () => {
-  // Two 2×2 lobes joined by a single-cell corridor: too narrow for a hunter to cross.
-  const cells = [];
-  for (const x of [0, 1, 3, 4]) for (const y of [0, 1]) cells.push({ x, y });
-  cells.push({ x: 2, y: 0 });
-  const lobes = { id: 'lobes', seed: 1, type: 'example-open', cellSize: 40, cells,
-    zones: [{ tier: 1, bonus: 0, lootChance: 0, cells }],
-    portals: [{ id: 'west', axis: 'v', x: 0, y: 0, length: 2 }, { id: 'east', axis: 'v', x: 5, y: 0, length: 2 }] };
-  assert.throws(() => buildRegion(lobes), /cannot connect/);
 });
 
 test('fewer than two portals carry no reachability requirement, but the margin is still a fill rule', () => {
@@ -123,38 +111,16 @@ test('portal stands cover the whole portal from inside the region', () => {
   assert.equal(portalStands({ ...brief(), portals: [{ id: 'short', axis: 'v', x: 0, y: 2, length: 1 }] })[0].points.length, 0);
 });
 
-test('core elements are sited before loot, and loot follows each cell\'s zone', () => {
-  const input = { ...brief('example-entry'), coreElements: { spawn: 6, 'hunter-spawn': 1, exit: 2 } };
-  const result = buildRegion(input);
-  const count = kind => result.coreElements.filter(f => f.kind === kind).length;
-  assert.deepEqual([count('spawn'), count('hunter-spawn'), count('exit')], [6, 1, 2]);
-  assert.equal(result.manifest.coreElements, 9);
-  assert.ok(result.loot.length > 0);
-  for (const spot of result.loot) assert.equal(spot.tier, spot.x < 480 ? 1 : 3);
-  const none = buildRegion({ ...brief('example-entry'), zones: brief().zones.map(z => ({ ...z, lootChance: 0 })) });
-  assert.deepEqual(none.loot, []);
-  assert.deepEqual(buildRegion(input), result, 'deterministic');
-});
-
-test('zone loot chance gates loot a builder places directly, not only the remaining fill', () => {
-  const zeroChance = zones => brief('example-open').zones.map(z => ({ ...z, lootChance: zones }));
-  // 'open' offers loot from inside its own rooms, before the remaining-loot fill ever runs.
-  assert.deepEqual(buildRegion({ ...brief('example-open'), zones: zeroChance(0) }).loot, []);
-  assert.ok(buildRegion({ ...brief('example-open'), zones: zeroChance(1) }).loot.length > 0);
-});
-
-test('a cell rolls its loot chance once, however often it is offered', () => {
-  // Offering one cell 64 times must land loot exactly when offering it once does: the first roll decides.
-  const original = BUILDERS.open, at = { x: 220, y: 220 }, landed = offers => {
-    BUILDERS.open = context => { for (let i = 0; i < offers; i++) context.loot(at.x, at.y); };
-    try {
-      return Array.from({ length: 20 }, (_, seed) => buildRegion({ ...brief('example-open', seed + 1), zones: brief().zones.map(z => ({ ...z, lootChance: 0.5 })) })
-        .loot.some(l => Math.floor(l.x / 40) === 5 && Math.floor(l.y / 40) === 5));
-    } finally { BUILDERS.open = original; }
-  };
-  const once = landed(1);
-  assert.deepEqual(landed(64), once);
-  assert.ok(once.includes(true) && once.includes(false), 'the seeds exercise both outcomes');
+test('loot follows each cell\'s zone: its chance, then its tier', () => {
+  const chance = lootChance => brief().zones.map(z => ({ ...z, lootChance }));
+  let looted = 0;
+  for (const type of Object.keys(REGION_TYPES)) for (const seed of [1, 2]) {
+    assert.deepEqual(buildRegion({ ...brief(type, seed), zones: chance(0) }).loot, [], `${type} seed ${seed}`);
+    const result = buildRegion(brief(type, seed));
+    for (const spot of result.loot) assert.equal(spot.tier, spot.x < 480 ? 1 : 3, `${type} seed ${seed}`);
+    looted += result.loot.length;
+  }
+  assert.ok(looted > 0, 'the briefs exercise loot');
 });
 
 test('builder-placed loot never overlaps a later-sited core element spawn', () => {

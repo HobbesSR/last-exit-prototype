@@ -1,6 +1,6 @@
 import type { Side } from '../port-terms.ts';
 import { circle } from '../../../shared/shape.ts';
-import { rng } from '../index.ts';
+import { rng } from '../random.ts';
 import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
 import { microMetrics } from '../metrics.ts';
 import { portalStands } from '../portals.ts';
@@ -17,6 +17,7 @@ import { createAddressedArea } from '../addressed.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import { executeDelegation, flattenDelegationResult } from '../delegation-execute.ts';
 import type { ExecutionContext, ExecutionOptions, ExecutionRegistry } from '../delegation-execute.ts';
+import { builtRegion } from '../result.ts';
 
 /** The one-space house's box in cells (54, proposed). */
 const BOX = 4;
@@ -120,10 +121,7 @@ function buildRetainedHut(brief: RegionBrief, context: ExecutionContext, observe
     if (ownedMask.contains(disc) && !shapes.some(shape => shapesOverlap(disc, shape))) loot.push({ x, y, tier: zone.tier });
   }
 
-  const parts = element.template.parts;
-  return { version: 'region-2', brief: structuredClone(brief), elements: [element], coreElements: [], loot,
-    manifest: { cells: brief.cells.length, structures: 1, obstacles: parts.filter(p => p.part === 'obstacle').length,
-      gates: parts.filter(p => p.part === 'gate').length, loot: loot.length, coreElements: 0 } };
+  return builtRegion(brief, [element], loot);
 }
 
 type Site = { x: number; y: number; house: House; steps: string[] };

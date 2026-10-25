@@ -1,9 +1,8 @@
 import { navigationClearance } from '../../shared/map/navigation.ts';
 import { CELL_SCALE } from '../kernel/scale.ts';
-import type { RegionSpec } from './types.ts';
 
 /** Explicit preview scale; omitted profile retains existing game geometry contracts. */
-export function microMetrics(spec: Pick<RegionSpec, 'cellSize' | 'bodyProfile'>) {
+export function microMetrics(spec: { cellSize: number; bodyProfile?: 'live' | 'cell' }) {
   const cell = spec.bodyProfile === 'cell', size = spec.cellSize, margin = size * CELL_SCALE.clearanceMargin;
   const body = cell ? { contestant: size * CELL_SCALE.contestantRadius, hunter: size * CELL_SCALE.hunterRadius } : { contestant: 12, hunter: 23 };
   const clearance = cell ? { contestant: body.contestant + margin, hunter: body.hunter + margin }

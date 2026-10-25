@@ -21,7 +21,6 @@ const ENGINES = { version: REGION_TYPES_VERSION, build: brief => buildRegion(bri
 test('every class in each bundled library names a region type the game registers', () => {
   for (const library of CHAIN_LIBRARIES) {
     assert.deepEqual(validateLibrary(library, new Set(Object.keys(REGION_TYPES))), { valid: true, errors: [] }, library.name);
-    for (const cellClass of Object.values(library.cellClasses)) assert.ok(!cellClass.regionType.startsWith('example-'));
   }
 });
 

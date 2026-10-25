@@ -11,8 +11,9 @@ requirements until Corey adopts them (53, "Provenance rule").
 
 This is the catalogue the new library (B4) and its strategies (B3) are built
 against. A cell class names a region type (52), and the type's strategy fills
-each layout region of that class (51 stage 6). The game's example builders and
-mapgen's six are material for these types, not constraints (51 track B).
+each layout region of that class (51 stage 6). The game's example builders (retired
+in #483, in git history) and mapgen's six are material for these types, not
+constraints (51 track B).
 
 ## What every type shares
 
@@ -436,8 +437,8 @@ inside, and windows and doors let sight through.
   a contained 12 × 12 for one lot with its alley.
 - **Formed by:** enormous set pieces (`city-block`, 52).
 - **Parameters:** none yet. Each lot's type takes its own defaults.
-- **Material:** `decomposition/example.ts` and `decomposition/realize.ts`, the
-  demonstration strategy.
+- **Material:** `decomposition/example.ts` and the retired demonstration
+  strategy `decomposition/realize.ts` (#483, in git history).
 
 ## Drafted types
 
@@ -587,7 +588,7 @@ above).
 | `hut` | the room shell in `builders.ts` (built, #129) | `compound` |
 | `depot` | `example-depot` (built, #159) | — |
 | `compound` | `example-courtyard`, 19's ring example (built, #160) | `courtyard`, `compound` |
-| `block` | `decomposition/example.ts`, `realize.ts`, `negotiate.ts` (built on spacing instead, #161) | — |
+| `block` | `decomposition/example.ts`, the retired `realize.ts` and `negotiate.ts` (built on spacing instead, #161) | — |
 | `market` | `hall` (its stand-in) | `pillar-hall` |
 | `plant` | `depot`'s warehouse for its shed (built, #219) | — |
 | `checkpoint` | `cover`'s barriers and `depot`'s warehouse for its post (built, #220) | — |

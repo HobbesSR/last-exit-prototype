@@ -6,7 +6,7 @@ import { options } from './options.mjs';
 
 const args = options(process.argv.slice(2), ['types', 'seeds', 'width', 'height', 'min', 'json'], argument => `Unknown option ${argument}. Use --types=hut,block --seeds=20 --width=24 --height=18 --min=3 --json=1.`);
 const width = Number(args.get('width') ?? 24), height = Number(args.get('height') ?? 18), min = Number(args.get('min') ?? 3), seeds = Number(args.get('seeds') ?? 20);
-const types = args.has('types') ? args.get('types').split(',') : Object.keys(REGION_TYPES).filter(type => !type.startsWith('example-'));
+const types = args.has('types') ? args.get('types').split(',') : Object.keys(REGION_TYPES);
 const cells = [];
 for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) cells.push({ x, y });
 const portals = [{ id: 'west', axis: 'v', x: 0, y: Math.floor(height / 2) - 1, length: 2 }, { id: 'east', axis: 'v', x: width, y: Math.floor(height / 2) - 1, length: 2 }];

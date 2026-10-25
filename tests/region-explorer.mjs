@@ -26,11 +26,11 @@ try {
   };
   assert.deepEqual((await debug()).result, JSON.parse(JSON.stringify(buildRegion(regionExample({ type: 'depot' })))));
   assert.ok((await debug()).portalRoutes.length > 0, 'game builders expose sampled hunter routes for the clearance overlay');
-  assert.deepEqual(await page.locator('#builder optgroup').first().locator('option').evaluateAll(options => options.map(option => option.value)),
-    Object.keys(REGION_TYPES).filter(type => !type.startsWith('example-')).sort().map(type => `region:${type}`));
+  assert.deepEqual(await page.locator('#builder option').evaluateAll(options => options.map(option => option.value)),
+    Object.keys(REGION_TYPES).sort().map(type => `region:${type}`));
   assert.equal(await page.locator('#builder option[value="region:market"]').textContent(), 'Market (hall strategy)');
   // Exercise the catalogue through the browser module loader, including core-site builders.
-  for (const type of Object.keys(REGION_TYPES).filter(type => !type.startsWith('example-'))) {
+  for (const type of Object.keys(REGION_TYPES)) {
     await selectBuilder(type);
     assert.ok((await debug()).avatar, `${type} has a walker on clear ground`);
   }
@@ -128,15 +128,14 @@ try {
   await page.getByLabel('Width (cells)', { exact: true }).fill('24');
   await page.getByRole('button', { name: 'Generate region', exact: true }).click();
   assert.ok((await debug()).result);
-  // Imports preserve their artifact; controls still describe the selected example builder.
-  await page.getByLabel('Builder', { exact: true }).selectOption('open');
+  // An import shows its own region until a control makes a new example.
+  await selectBuilder('open');
   await page.locator('#import').setInputFiles({ name: 'charging.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(generated.result)) });
   await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Loaded charging.json'));
   assert.equal((await debug()).imported, generated.result.brief.id);
-  assert.equal(await page.getByLabel('Width (cells)', { exact: true }).isDisabled(), true);
-  assert.equal(await page.locator('#region-shape option[value="cross"]').evaluate(option => option.disabled), true);
+  assert.equal((await debug()).result.brief.type, 'charging');
   await page.getByLabel('Region shape', { exact: true }).selectOption('l');
-  assert.equal((await debug()).result.spec.builder, 'open');
+  await page.waitForFunction(() => window.microLabDebug().result?.brief.type === 'open');
   assert.equal((await debug()).imported, null);
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

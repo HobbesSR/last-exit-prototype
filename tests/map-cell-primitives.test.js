@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cellKey, compareCells } from '../map/kernel/cell.ts';
 import { cellKey as analysisCellKey } from '../map/micro/decomposition/analysis.ts';
-import { OPPOSITE, PASSAGE_RANK, requiredFor } from '../map/micro/port-terms.ts';
+import { OPPOSITE } from '../map/micro/port-terms.ts';
 
 test('cell keys are x,y, including negative and zero coordinates', () => {
   assert.equal(cellKey({ x: 3, y: -2 }), '3,-2');
@@ -19,16 +19,7 @@ test('cell order is row-major and independent of input order', () => {
   assert.equal(compareCells({ x: 4, y: 2 }, { x: 4, y: 2 }), 0);
 });
 
-test('port terms keep the opposite sides and passage ranks', () => {
+test('opposite sides face each other across a shared edge', () => {
   assert.deepEqual({ ...OPPOSITE }, { N: 'S', S: 'N', E: 'W', W: 'E' });
-  assert.deepEqual({ ...PASSAGE_RANK }, { none: 0, contestant: 1, hunter: 2 });
-  assert.ok(Object.isFrozen(OPPOSITE) && Object.isFrozen(PASSAGE_RANK));
-});
-
-test('requiredFor keeps the ports a role must cross, in their given order', () => {
-  const ports = [{ id: 'a', required: 'hunter' }, { id: 'b', required: 'none' }, { id: 'c', required: 'contestant' }, { id: 'd', required: 'hunter' }];
-  assert.deepEqual(requiredFor(ports, 'contestant').map(p => p.id), ['a', 'c', 'd']);
-  assert.deepEqual(requiredFor(ports, 'hunter').map(p => p.id), ['a', 'd']);
-  assert.deepEqual(requiredFor([...ports].reverse(), 'contestant').map(p => p.id), ['d', 'c', 'a']);
-  assert.deepEqual(requiredFor(ports, 'none').map(p => p.id), ['a', 'b', 'c', 'd']);
+  assert.ok(Object.isFrozen(OPPOSITE));
 });

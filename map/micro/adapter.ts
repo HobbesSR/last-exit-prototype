@@ -1,10 +1,9 @@
 import { placeElement } from '../../shared/map/element.ts';
 import { createGenerationContext } from '../../shared/map/context.ts';
 import { pointInRoof } from '../../shared/view.ts';
-import { validateMicroRegion } from './index.ts';
 import type { BaseGenerationContext } from '../../shared/map/context.ts';
 import type { CollisionMap, NodeId, PlayableArea, Vec2 } from '../../shared/types.ts';
-import type { BuiltMap, MicroResult, RegionElement } from './types.ts';
+import type { BuiltMap, RegionElement } from './types.ts';
 
 /** Emit elements and loot through the same element/shape emission as normal arena content. */
 function stamp(context: BaseGenerationContext, elements: readonly RegionElement[], loot: readonly Vec2[], origin: Vec2, nodeId: NodeId): void {
@@ -24,13 +23,6 @@ function stamp(context: BaseGenerationContext, elements: readonly RegionElement[
     }
     context.spots.push({ x, y, nodeId, ...(buildingId ? { buildingId } : {}) });
   }
-}
-
-/** Resolve a generated region through the same element/shape emission as normal arena content. */
-export function stampMicroRegion(context: BaseGenerationContext, result: MicroResult, origin: Vec2, nodeId: NodeId): void {
-  const errors = validateMicroRegion(result);
-  if (errors.length) throw new Error(`Cannot stamp invalid region: ${errors.join(' ')}`);
-  stamp(context, result.elements, result.loot, origin, nodeId);
 }
 
 /**
@@ -85,11 +77,4 @@ export function builtMapFrame(map: BuiltMap<RegionElement>): { width: number; he
   if (!Number.isFinite(minX) || !(map.cellSize > 0)) throw new Error('A built map needs cells and a positive cell size.');
   return { width: (maxX - minX + 1) * map.cellSize, height: (maxY - minY + 1) * map.cellSize,
     origin: { x: -minX * map.cellSize, y: -minY * map.cellSize } };
-}
-
-/** Isolated preview collision uses the real arena's shape/gate schema and world scale. */
-export function regionCollisionMap(result: MicroResult, origin: Vec2 = { x: 12000, y: 6000 }): CollisionMap {
-  const context = createGenerationContext(result.spec.seed);
-  stampMicroRegion(context, result, origin, 'micro-preview' as NodeId);
-  return { width: context.map.width, height: context.map.height, obstacles: context.map.obstacles, gates: context.map.gates };
 }

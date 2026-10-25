@@ -15,7 +15,7 @@ function briefs() {
   const region = (id, x0, portals) => {
     const cells = [];
     for (let y = 0; y < H; y++) for (let x = x0; x < x0 + W; x++) cells.push({ x, y });
-    return { id, seed: 1, type: 'example-open', cellSize: SIZE, cells, zones: [{ tier: 1, bonus: 0, lootChance: 0, cells }], portals };
+    return { id, seed: 1, type: 'open', cellSize: SIZE, cells, zones: [{ tier: 1, bonus: 0, lootChance: 0, cells }], portals };
   };
   const west = { id: 'a~b~v:12,4', axis: 'v', x: W, y: 4, length: 3 }, east = { id: 'b~c~v:24,4', axis: 'v', x: 2 * W, y: 4, length: 3 };
   return [region('a', 0, [west]), region('b', W, [{ ...west }, { ...east }]), region('c', 2 * W, [{ ...east }])];

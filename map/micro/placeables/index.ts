@@ -5,7 +5,6 @@ import { WALL_RUN } from './wall-run.ts';
 import { WAREHOUSE } from './warehouse.ts';
 import { COMPOUND_RING } from './compound-ring.ts';
 import { CHECKPOINT_BARRIER } from './checkpoint-barrier.ts';
-import { EXAMPLE_ROOM_SHELL } from './example-room-shell.ts';
 import { FALLEN_SLAB } from './fallen-slab.ts';
 import { HALL_PILLAR } from './hall-pillar.ts';
 import { RUIN_ROOM_SPAN } from './ruin-room-span.ts';
@@ -30,7 +29,6 @@ export const PLACEABLES: Readonly<Record<string, Placeable<any, unknown>>> = Obj
   [WALL_RUN.id]: WALL_RUN,
   [COMPOUND_RING.id]: COMPOUND_RING,
   [CHECKPOINT_BARRIER.id]: CHECKPOINT_BARRIER,
-  [EXAMPLE_ROOM_SHELL.id]: EXAMPLE_ROOM_SHELL,
   [FALLEN_SLAB.id]: FALLEN_SLAB,
   [HALL_PILLAR.id]: HALL_PILLAR,
   [RUIN_ROOM_SPAN.id]: RUIN_ROOM_SPAN,
