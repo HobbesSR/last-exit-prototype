@@ -62,7 +62,12 @@ try {
     assert.equal(lab.error, "", `the lab failed: ${lab.error}`);
     return lab;
   };
+  const openActionMenu = async (tab: any, control: string) => {
+    const menu = tab.locator(`#worldActions details:has(#${control})`);
+    if (!await menu.evaluate((details: HTMLDetailsElement) => details.open)) await menu.locator("summary").click();
+  };
   const save = async (button: string, name: string) => {
+    await openActionMenu(page, "saveJson");
     const download = page.waitForEvent("download");
     await page.locator(button).click();
     const path = `${OUT}/${name}`;
@@ -103,6 +108,86 @@ try {
   assert.deepEqual(first.report.coreElements, referenceCheck.coreElements);
   assert.match(await page.locator("#reportBody").innerText(), /No defects found/);
   await page.screenshot({ path: `${OUT}/world.png` });
+
+  // The World workspace keeps its map, actions and inspector usable at desktop sizes.
+  // A click at the fitted canvas centre must still address the same cell after resize.
+  const workspaceGeometry = () => page.evaluate(() => {
+    const rect = (selector: string) => {
+      const { x, y, width, height } = document.querySelector(selector)!.getBoundingClientRect();
+      return { x, y, width, height, right: x + width, bottom: y + height };
+    };
+    return {
+      sidebar: rect("#sidebar"), main: rect(".world-main"), map: rect("#map"),
+      inspector: rect("#worldInspector"), actions: rect("#worldActions"),
+      viewport: { width: innerWidth, height: innerHeight },
+    };
+  });
+  const checkWorkspace = async (width: number, height: number) => {
+    await page.setViewportSize({ width, height });
+    await page.locator("#zoomReset").click();
+    const g = await workspaceGeometry();
+    assert.ok(g.sidebar.right <= g.map.x + 1, `${width}: recipe/layers stay left of the map`);
+    assert.ok(g.map.right <= g.inspector.x + 1, `${width}: inspector stays right of the map`);
+    assert.ok(g.actions.bottom <= g.map.y + 1, `${width}: actions sit above the map`);
+    assert.ok(g.map.width >= 300 && g.map.height >= 200, `${width}: map has useful visible area`);
+    assert.ok(g.map.x >= 0 && g.map.right <= width + 1 && g.map.y >= 0 && g.map.bottom <= height + 1,
+      `${width}: canvas fits in the viewport`);
+    assert.equal(await page.locator("#sidebar #generate").isVisible(), true, `${width}: generate is available in the recipe`);
+    assert.equal(await page.locator("#worldActions details").count(), 2, `${width}: save/load and play have action menus`);
+    await openActionMenu(page, "saveJson");
+    for (const id of ["saveJson", "saveBson", "saveLayout", "load"])
+      assert.equal(await page.locator(`#worldActions #${id}`).count(), 1, `${width}: ${id} stays in the save/load menu`);
+    assert.equal(await page.locator("#worldActions #saveJson").isVisible(), true);
+    await openActionMenu(page, "roomRecipe");
+    assert.equal(await page.locator("#worldActions #roomRecipe").isVisible(), true, `${width}: play controls are reachable`);
+    await page.locator("#worldActions details:has(#roomRecipe) summary").click();
+    assert.equal(await page.locator("#zoomReset").innerText(), "Fit");
+    const mapBox = (await page.locator("#map").boundingBox())!;
+    const target = { x: Math.floor(first.grid.width / 2), y: Math.floor(first.grid.height / 2) };
+    const fittedZoom = Math.min(mapBox.width / first.grid.width, mapBox.height / first.grid.height) * 0.96;
+    await page.mouse.click(
+      mapBox.x + (mapBox.width - first.grid.width * fittedZoom) / 2 + (target.x + 0.5) * fittedZoom,
+      mapBox.y + (mapBox.height - first.grid.height * fittedZoom) / 2 + (target.y + 0.5) * fittedZoom,
+    );
+    const selected = (await snapshot()).selected;
+    assert.deepEqual(selected, target, `${width}: a fitted canvas click selects the same cell after resize`);
+    await page.screenshot({ path: `${OUT}/workspace-${width}x${height}.png` });
+    return g;
+  };
+  const desktop = await checkWorkspace(1440, 900);
+  await openActionMenu(page, "saveJson");
+  await page.screenshot({ path: `${OUT}/workspace-save-menu.png` });
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator("#worldActions details:has(#saveJson)").evaluate((d: HTMLDetailsElement) => d.open), false,
+    "Escape closes the save/load menu");
+  assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), "Save / load",
+    "Escape returns focus to the save/load summary");
+  await openActionMenu(page, "roomRecipe");
+  await page.screenshot({ path: `${OUT}/workspace-play-menu.png` });
+  const outsideBox = (await page.locator("#map").boundingBox())!;
+  await page.mouse.click(outsideBox.x + outsideBox.width / 2, outsideBox.y + outsideBox.height / 2);
+  assert.equal(await page.locator("#worldActions details:has(#roomRecipe)").evaluate((d: HTMLDetailsElement) => d.open), false,
+    "a canvas click dismisses the play menu");
+  await page.locator("#sidebar").evaluate((sidebar: HTMLElement) => { sidebar.scrollTop = sidebar.scrollHeight; });
+  const scrolled = await workspaceGeometry();
+  assert.ok(await page.locator("#sidebar").evaluate((sidebar: HTMLElement) => sidebar.scrollTop) > 0,
+    "the layers sidebar has independent scrolling");
+  assert.deepEqual(scrolled.map, desktop.map, "scrolling the recipe/layers sidebar leaves the canvas fixed");
+  await page.locator("#sidebar").evaluate((sidebar: HTMLElement) => { sidebar.scrollTop = 0; });
+  await checkWorkspace(1280, 720);
+  await page.setViewportSize({ width: 760, height: 900 });
+  for (const id of ["seed", "generate", "layer-regions", "zoomReset", "inspector"])
+    await page.locator(`#${id}`).scrollIntoViewIfNeeded();
+  await openActionMenu(page, "saveJson");
+  await page.locator("#saveJson").scrollIntoViewIfNeeded();
+  await openActionMenu(page, "roomRecipe");
+  await page.locator("#roomRecipe").scrollIntoViewIfNeeded();
+  assert.ok(await page.locator("#map").boundingBox(), "the narrow workspace still exposes its canvas");
+  await page.screenshot({ path: `${OUT}/workspace-760x900.png`, fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.locator("#zoomReset").click();
+  await generateIn("last-exit-001");
+  assert.equal((await snapshot()).selected, null, "workspace checks leave no selection over the layer pixels");
 
   // The layers are in chain order, with today's defaults on.
   const FIELDS = ["declared", "resolved", "regions", "proof", "zones", "bonus", "regionType", "lootChance"];
@@ -1937,6 +2022,7 @@ try {
   assert.match(notLive.note, /isn't a room seed/);
   assert.match(notLive.note, /exitCount is 2; a room uses 1/);
   await playPage.locator("#seed").fill("4217");
+  await openActionMenu(playPage, "roomRecipe");
   await playPage.locator("#roomRecipe").click();
   await playPage.waitForFunction(() => {
     const lab = (window as any).mapLab.snapshot();
@@ -1946,6 +2032,7 @@ try {
   assert.equal(playable.error, "");
   assert.equal(playable.play.href, `${gameUrl}/?seed=4217&size=12x6`);
   const opening = playPage.context().waitForEvent("page");
+  await openActionMenu(playPage, "playInGame");
   await playPage.locator("#playInGame").click();
   const room = await opening;
   room.on("pageerror", (error: Error) => errors.push(`game: ${error.message}`));
@@ -1976,6 +2063,7 @@ try {
   const bigMap = await playPage.evaluate(() => (window as any).mapLab.snapshot());
   assert.equal(bigMap.play.href, `${gameUrl}/?seed=4217&size=24x12`);
   const openingBig = playPage.context().waitForEvent("page");
+  await openActionMenu(playPage, "playInGame");
   await playPage.locator("#playInGame").click();
   const bigRoom = await openingBig;
   bigRoom.on("pageerror", (error: Error) => errors.push(`game: ${error.message}`));

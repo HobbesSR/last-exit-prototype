@@ -1315,6 +1315,22 @@ $("random").onclick = () => {
   input("seed").value = `exit-${crypto.getRandomValues(new Uint32Array(1))[0]!.toString(36)}`;
   generateMap();
 };
+// Keep the file/play menus dismissible without moving focus out of the workspace.
+const actionMenus = document.querySelectorAll<HTMLDetailsElement>(".world-action-menu");
+document.addEventListener("pointerdown", (event) => {
+  for (const menu of actionMenus)
+    if (!menu.contains(event.target as Node)) menu.open = false;
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  for (const menu of actionMenus) {
+    if (!menu.open) continue;
+    menu.open = false;
+    menu.querySelector("summary")?.focus();
+    event.preventDefault();
+  }
+});
+
 $("zoomIn").onclick = () => zoomCentre(1.25);
 $("zoomOut").onclick = () => zoomCentre(1 / 1.25);
 $("zoomReset").onclick = fit;
