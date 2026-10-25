@@ -318,7 +318,7 @@ test('identical traces yield identical identities, counters, quantities and snap
   assert.deepEqual(trace(), trace());
 });
 
-test('schema 11 recording roundtrip and backward seeks retain exact item-instance frames', async () => {
+test('schema 12 recording roundtrip and backward seeks retain exact item-instance frames', async () => {
   const map = arena();
   map.items.push(ground('med-root', 'med', { count: 3, quality: 3 }),
     ground('rifle-root', 'weapon', { weaponType: 'rifle', ammo: 7, quality: 2 }),
@@ -329,7 +329,7 @@ test('schema 11 recording roundtrip and backward seeks retain exact item-instanc
   const header = { id: 'item-roundtrip', version: s.version, contentId: s.content.id,
     schema: SCHEMA, minSchema: minimumReaderForMatch(map, false), seed: s.seed,
     hz: 20, createdAt: 1, map: structuredClone(map) };
-  assert.equal(header.schema, 11);
+  assert.equal(header.schema, 12);
   assert.equal(header.minSchema, 4);
   assert.equal(recordingFit(header), 'ok');
   assert.equal(recordingFit({ ...header, schema: 10, minSchema: 10 }), 'ok');

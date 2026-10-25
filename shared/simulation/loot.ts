@@ -1,6 +1,8 @@
 import { canOccupy, reachClear } from '../movement.ts';
 import { carriedCell, collectEquipment, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
 import { allocateItemId, ensureItemIdentity, validateItemPayload } from '../item-instances.ts';
+import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
+import { physicsRuntime } from './physics-runtime.ts';
 import { HZ } from './rules.ts';
 import { clearRoute, distance } from './geometry.ts';
 import type { EffectKind, Game, GroundItem, InventoryItem, ItemId, Player, PlayerInput, Vec2, World } from '../types.ts';
@@ -73,13 +75,15 @@ export function dropInventorySlot(s: Game, p: Player, slot: number, mandatory = 
   if (!Number.isInteger(slot) || slot < 0 || slot >= (p.inventory?.length ?? 0)) return false;
   const item = p.inventory![slot];
   if (!item) return false;
+  let records: GroundItem[] = [];
   if (s.content.itemInstances) {
     const plan = planDrop(s, p, item, mandatory);
-    if (!plan) return false;
+    if (!plan || !mandatory && !canRepresentPhysicalDrop(s, plan.records.length)) return false;
     s.itemSerial = plan.itemSerial;
-    s.map.items.push(...plan.records);
+    s.map.items.push(...plan.records); records = plan.records;
   } else dropEquipment(s, p, item);
   p.inventory![slot] = null; p.charging = null; syncWeapon(p, s.content.weapons);
+  if (records.length) launchPhysicalDrops(s, records, p);
   return true;
 }
 export function automaticPickups(s: Game, p: Player, input: PlayerInput): void {
@@ -96,7 +100,7 @@ export function automaticPickups(s: Game, p: Player, input: PlayerInput): void {
       // Commit each consumed instance before the next pickup inspects ownership or allocates IDs.
       for (let i = 0; i < s.map.items.length;) {
         if (keep(s.map.items[i]!)) i++;
-        else s.map.items.splice(i, 1);
+        else { s.map.items.splice(i, 1); physicsRuntime(s)?.synchronize(); }
       }
     } else s.map.items = s.map.items.filter(keep);
     if (!input.sneak && !p.cloak && s.map.sensors.some(sensor => distance(p, sensor) < 180)) p.revealed = 65;

@@ -1,0 +1,181 @@
+{
+  "frames": 721,
+  "series": [
+    {
+      "name": "net.stateBytes",
+      "unit": "n",
+      "scope": "event",
+      "samples": 240,
+      "calls": 240,
+      "mean": 2318.0375,
+      "p50": 2228,
+      "p95": 2897,
+      "max": 3748
+    },
+    {
+      "name": "work.visibilityRays",
+      "unit": "n",
+      "scope": "frame",
+      "samples": 600,
+      "calls": 0,
+      "mean": 210.11166666666668,
+      "p50": 198,
+      "p95": 324,
+      "max": 360
+    },
+    {
+      "name": "net.stateGap",
+      "unit": "ms",
+      "scope": "event",
+      "samples": 240,
+      "calls": 240,
+      "mean": 49.985833333184324,
+      "p50": 46.89999997615814,
+      "p95": 63.39999997615814,
+      "max": 65.5
+    },
+    {
+      "name": "render.delta",
+      "unit": "ms",
+      "scope": "event",
+      "samples": 600,
+      "calls": 721,
+      "mean": 16.667166666587192,
+      "p50": 16.69999998807907,
+      "p95": 16.80000001192093,
+      "max": 17.30000001192093
+    },
+    {
+      "name": "calls.visibilityPolygon",
+      "unit": "n",
+      "scope": "frame",
+      "samples": 600,
+      "calls": 0,
+      "mean": 1,
+      "p50": 1,
+      "p95": 1,
+      "max": 1
+    },
+    {
+      "name": "render.draw",
+      "unit": "ms",
+      "scope": "frame",
+      "samples": 600,
+      "calls": 1,
+      "mean": 0.5644999999801318,
+      "p50": 0.5999999642372131,
+      "p95": 1,
+      "max": 2.300000011920929
+    },
+    {
+      "name": "render.frame",
+      "unit": "ms",
+      "scope": "frame",
+      "samples": 600,
+      "calls": 1,
+      "mean": 0.43283333331346513,
+      "p50": 0.3999999761581421,
+      "p95": 0.6000000238418579,
+      "max": 4.699999988079071
+    },
+    {
+      "name": "calls.movePlayer",
+      "unit": "n",
+      "scope": "frame",
+      "samples": 600,
+      "calls": 0,
+      "mean": 0.3333333333333333,
+      "p50": 0,
+      "p95": 1,
+      "max": 1
+    },
+    {
+      "name": "render.vision",
+      "unit": "ms",
+      "scope": "frame",
+      "samples": 600,
+      "calls": 1,
+      "mean": 0.11016666909058889,
+      "p50": 0.10000002384185791,
+      "p95": 0.20000004768371582,
+      "max": 0.3999999761581421
+    },
+    {
+      "name": "render.hud",
+      "unit": "ms",
+      "scope": "frame",
+      "samples": 600,
+      "calls": 0.3333333333333333,
+      "mean": 0.06900000015894572,
+      "p50": 0,
+      "p95": 0.30000001192092896,
+      "max": 0.6000000238418579
+    },
+    {
+      "name": "render.tiles",
+      "unit": "ms",
+      "scope": "frame",
+      "samples": 600,
+      "calls": 1,
+      "mean": 0.04633333365122477,
+      "p50": 0,
+      "p95": 0.10000002384185791,
+      "max": 4.300000011920929
+    },
+    {
+      "name": "render.actors",
+      "unit": "ms",
+      "scope": "frame",
+      "samples": 600,
+      "calls": 1,
+      "mean": 0.03066666583220164,
+      "p50": 0,
+      "p95": 0.10000002384185791,
+      "max": 0.20000004768371582
+    },
+    {
+      "name": "render.world",
+      "unit": "ms",
+      "scope": "frame",
+      "samples": 600,
+      "calls": 1,
+      "mean": 0.026999999582767487,
+      "p50": 0,
+      "p95": 0.10000002384185791,
+      "max": 0.30000001192092896
+    },
+    {
+      "name": "render.minimap",
+      "unit": "ms",
+      "scope": "frame",
+      "samples": 600,
+      "calls": 0.3333333333333333,
+      "mean": 0.025666667024294536,
+      "p50": 0,
+      "p95": 0.10000002384185791,
+      "max": 0.40000003576278687
+    },
+    {
+      "name": "work.tileRasterise",
+      "unit": "n",
+      "scope": "frame",
+      "samples": 600,
+      "calls": 0,
+      "mean": 0.02,
+      "p50": 0,
+      "p95": 0,
+      "max": 4
+    },
+    {
+      "name": "render.camera",
+      "unit": "ms",
+      "scope": "frame",
+      "samples": 600,
+      "calls": 1,
+      "mean": 0.00516666700442632,
+      "p50": 0,
+      "p95": 0.09999996423721313,
+      "max": 0.10000002384185791
+    }
+  ]
+}

@@ -1,5 +1,13 @@
 # 26. Recording contract
 
+P5 (#445) raises the writer schema to **12** for optional authored map
+`physicsProps`, floor `drag`, and private body `collisionProfile`, `linearDamping`
+and `angularDamping`. Its explicit content/rules identities are in
+[14](14-match-rules.md). Required renderable shapes/poses retain the schema-10
+physics contract, so minimum readers stay unchanged. These optional fields do
+not require solver initialization during old or new playback. Live/spectator map
+payloads omit private prop authoring; the recorded source map retains it.
+
 L0 (#442) raises the writer schema to **11** for optional item `instanceId`,
 `lineageId`, `quality` and private authoritative `itemSerial` allocation state.
 These fields do not change drawing requirements, so minimum readers remain
@@ -11,7 +19,7 @@ allocates IDs or resimulates transfers. Persisting the allocation counter retain
 the history of IDs no longer present in the current frame. See [14](14-match-rules.md).
 
 Recording failure must never reach gameplay. Current rules are `last-exit-0.7`,
-default content is `content-5`, and recordings use schema 11 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
+default content is `content-5`, and recordings use schema 12 (4 added masked maps, 5 the diagnostics trailer, 6 an optional
 display descriptor in the header, 7 bots' world-point routes, 8 optional private physics gameplay state, 9 optional character geometry and discontinuities). Masked live maps require reader 4; legacy maps keep
 minimum schema 0.
 Schema 10 adds required engine-free physics presentation for experimental physics
