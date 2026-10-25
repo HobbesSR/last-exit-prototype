@@ -1,4 +1,5 @@
 import { canOccupy } from '../movement.ts';
+import { actorRadius } from './actor-physics.ts';
 import { physicsRuntime, markPhysicsDiscontinuity } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GroundItem, MatchContent, GameMap, Vec2 } from '../types.ts';
@@ -7,6 +8,14 @@ export const PHYSICS_WORLD_VERSION = 'last-exit-0.8-physics-5';
 const order = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const reserveActors = (s: Game, r: PhysicsRuntime) => Math.max(0, s.players.length - r.actors.size);
 const bodyId = (item: GroundItem) => `item:${item.id}`;
+
+/** P8 drop admission uses the same footprint as scatter planning. Loot stays a sensor after admission. */
+export function physicalDropPlacementClear(s: Game, r: PhysicsRuntime, x: number, y: number): boolean {
+  const radius = s.content.worldPhysics?.loot.radius;
+  if (!s.content.dynamicNavigation || radius === undefined) return true;
+  return !r.world.overlapsProp(x, y, radius)
+    && s.players.every(p => p.status !== 'active' || Math.hypot(x - p.x, y - p.y) >= radius + actorRadius(s, p));
+}
 
 /** Reject authoring before allocating a solver. All numbers are match-pinned tuning. */
 export function validateWorldPhysics(content: MatchContent, map: GameMap): void {
@@ -60,7 +69,8 @@ export function synchronizePhysicalItems(s: Game, r: PhysicsRuntime, markTick: n
   // A transfer that preflighted a batch owns its released slots before retrying overflow.
   for (const item of [...s.map.items].sort((a, b) => Number(r.itemLaunches.has(b.id)) - Number(r.itemLaunches.has(a.id)) || order(a.id, b.id))) {
     const id = bodyId(item);
-    if (r.items.has(id) || !r.world.canAddBodies(1 + reserveActors(s, r)) || !canOccupy(s.map, item.x, item.y, profile.loot.radius)) continue;
+    if (r.items.has(id) || !r.world.canAddBodies(1 + reserveActors(s, r)) || !canOccupy(s.map, item.x, item.y, profile.loot.radius)
+      || !physicalDropPlacementClear(s, r, item.x, item.y)) continue;
     const motion = r.itemLaunches.get(item.id);
     r.world.queueAddBody({ id, kind: 'prop', collisionProfile: 'loot', shape: { kind: 'circle', radius: profile.loot.radius },
       x: item.x, y: item.y, mass: profile.loot.mass, friction: 0, restitution: 0,
@@ -78,7 +88,7 @@ export function synchronizePhysicalItems(s: Game, r: PhysicsRuntime, markTick: n
 export function canRepresentPhysicalDrop(s: Game, count: number, removed: GroundItem[] = []): boolean {
   const r = physicsRuntime(s);
   if (!s.content.worldPhysics || !r) return true;
-  r.synchronize({ deferItemAdmission: true });
+  if (!s.content.dynamicNavigation) r.synchronize({ deferItemAdmission: true });
   const released = removed.filter(item => r.items.has(bodyId(item))).length;
   return r.world.canAddBodies(Math.max(0, count - released) + reserveActors(s, r));
 }

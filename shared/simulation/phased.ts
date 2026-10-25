@@ -5,6 +5,7 @@ import { addAuthoredProps, applyFloorDrag, synchronizePhysicalItems, validateWor
 import { HZ } from './rules.ts';
 import { syncWeapon, rearrangeEquipment, rearrangeInstanceEquipment } from '../equipment.ts';
 import { collectBotIntent } from './bots.ts';
+import { beginDynamicNavigationCollection, endDynamicNavigationCollection } from './dynamic-navigation.ts';
 import type { BotIntent } from './bots.ts';
 import { consumeInput } from './input.ts';
 import { respawn, finishMatch } from './lifecycle.ts';
@@ -17,7 +18,7 @@ import { stepTraps } from '../traps.ts';
 import { advanceTick, advanceTimers, applyEnvironment, advanceDiscovery } from './tick-rules.ts';
 import { recordRewind } from './rewind.ts';
 import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
-import { attachPhysics, physicsRuntime, markPhysicsDiscontinuity, PHYSICS_VERSION, PHYSICS_HOOK_VERSION } from './physics-runtime.ts';
+import { attachPhysics, physicsRuntime, markPhysicsDiscontinuity, PHYSICS_VERSION, PHYSICS_HOOK_VERSION, PHYSICS_NAVIGATION_VERSION } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GameMap, MatchContent, Player, Vec2 } from '../types.ts';
 
@@ -34,6 +35,7 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
   const s = createGame(seed, map, content);
   validateActorPhysics(s.content.actorPhysics, s.map);
   validateWorldPhysics(s.content, s.map);
+  if (s.content.dynamicNavigation && (!s.content.actorPhysics || s.content.navigation !== 'tiles')) throw new RangeError('dynamic navigation requires actor physics and tiles');
   if (s.content.hook) {
     const h = s.content.hook;
     if (!s.content.actorPhysics || !s.content.kits.hook || ![h.range, h.speed, h.maxForce, h.stiffness, h.damping,
@@ -74,7 +76,7 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
       if (i % 512 === 511) world.commitMutations();
     }
     world.commitMutations();
-    // Static authoring is pinned until P8 introduces a shared geometry-revision transaction.
+    // Authored static geometry stays pinned; P8 overlays current dynamic observations locally.
     for (const obstacle of s.map.obstacles) {
       if (obstacle.points) { obstacle.points.forEach(Object.freeze); Object.freeze(obstacle.points); }
       Object.freeze(obstacle);
@@ -89,7 +91,7 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
     for (const key of ['width', 'height', 'obstacles', 'playableArea', 'gates'] as const) Object.defineProperty(s.map, key, { writable: false, configurable: false });
     addAuthoredProps(s, runtime);
     attachPhysics(s, runtime);
-    Object.defineProperty(s, 'version', { value: s.content.hook ? PHYSICS_HOOK_VERSION : s.content.worldPhysics ? PHYSICS_WORLD_VERSION : s.content.actorPhysics ? PHYSICS_CHARACTER_VERSION : PHYSICS_VERSION, enumerable: true, writable: false });
+    Object.defineProperty(s, 'version', { value: s.content.dynamicNavigation ? PHYSICS_NAVIGATION_VERSION : s.content.hook ? PHYSICS_HOOK_VERSION : s.content.worldPhysics ? PHYSICS_WORLD_VERSION : s.content.actorPhysics ? PHYSICS_CHARACTER_VERSION : PHYSICS_VERSION, enumerable: true, writable: false });
     synchronize(s, runtime, s.tick + 1);
     return s;
   } catch (error) { world.dispose(); throw error; }
@@ -198,7 +200,10 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
   r.world.commitMutations();
   // 2: roster-order collection from the same pre-movement world.
   const intents = new Map<Player, BotIntent>();
-  for (const p of s.players) if (p.status === 'active') intents.set(p, p.bot ? collectBotIntent(s, p) : { input: consumeInput(p, s.tick) });
+  beginDynamicNavigationCollection(s);
+  try {
+    for (const p of s.players) if (p.status === 'active') intents.set(p, p.bot ? collectBotIntent(s, p) : { input: consumeInput(p, s.tick) });
+  } finally { endDynamicNavigationCollection(s); }
   // 3: inventory then utilities/projectile admission, without damage callbacks during solve.
   for (const p of ordered(s)) {
     const intent = intents.get(p); if (!intent) continue;

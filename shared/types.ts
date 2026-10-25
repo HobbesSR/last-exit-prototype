@@ -250,6 +250,8 @@ export interface MatchContent {
    * `content-2`; `tiles` plans over the free-space tiles, contestants over what they know (22.6).
    */
   navigation?: 'grid' | 'tiles' | undefined;
+  /** Experimental P8 local avoidance and actor/solid-prop drop placement. */
+  dynamicNavigation?: boolean | undefined;
   /**
    * How a tile planner's repath runs: `whole`, the default, searches within one tick; `sliced`
    * spreads one search over several ticks, a fixed number of expansions each, while the bot walks

@@ -1,7 +1,7 @@
 import { canOccupy, reachClear } from '../movement.ts';
 import { carriedCell, collectAmmo, collectEquipment, collectInstanceEquipment, syncWeapon } from '../equipment.ts';
 import { allocateItemId, ensureItemIdentity, validateItemPayload } from '../item-instances.ts';
-import { canRepresentPhysicalDrop, launchPhysicalDrops } from './world-physics.ts';
+import { canRepresentPhysicalDrop, launchPhysicalDrops, physicalDropPlacementClear } from './world-physics.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import { HZ } from './rules.ts';
 import { clearRoute, distance } from './geometry.ts';
@@ -27,12 +27,14 @@ export function dropEquipment(s: Game, p: Player, item: InventoryItem): void {
 
 /** The bounded L0 spiral search: a free, reachable point near `origin`, clear of both lists. */
 export function scatterPoint(s: Game, origin: Vec2, phase: number, items: readonly Vec2[], points: readonly Vec2[] = []): Vec2 | undefined {
+  const runtime = s.content.dynamicNavigation ? physicsRuntime(s) : undefined;
   for (let j = 0; j < 180; j++) {
     const angle = (phase + j) * 2.39996, radius = 36 + Math.floor(j / 12) * 24;
     const candidate = { x: origin.x + Math.cos(angle) * radius, y: origin.y + Math.sin(angle) * radius };
     if (canOccupy(s.map, candidate.x, candidate.y, 16) && reachClear(s.map, origin, candidate)
       && items.every(other => distance(other, candidate) > 32)
-      && points.every(other => distance(other, candidate) > 32)) return candidate;
+      && points.every(other => distance(other, candidate) > 32)
+      && (!runtime || physicalDropPlacementClear(s, runtime, candidate.x, candidate.y))) return candidate;
   }
   return undefined;
 }
@@ -44,7 +46,8 @@ export interface DropPlan { records: GroundItem[]; itemSerial: number }
  * Validate, place and identify every ground record of one carried L0 item without changing the
  * match. `items` stands in for the ground list, so a swap can plan around the pickup it removes.
  */
-export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = false, items: readonly GroundItem[] = s.map.items): DropPlan | null {
+export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = false, items: readonly GroundItem[] = s.map.items,
+  stagedSerial = s.itemSerial ?? 0): DropPlan | null {
   if (!['weapon', 'med', 'shield', 'cell'].includes(item.kind) || ![p.x, p.y].every(Number.isFinite) || !validateItemPayload(item, s)) return null;
   const copies = item.kind === 'med' || item.kind === 'shield' ? item.count : 1;
   if (!Number.isInteger(copies) || copies < 1 || copies > 3
@@ -53,7 +56,7 @@ export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = fa
   if (!mandatory && items.length + copies > s.content.itemInstances!.groundCapacity) return null;
   const points: Vec2[] = [];
   for (let i = 0; i < copies; i++) {
-    const point = scatterPoint(s, p, (s.itemSerial ?? 0) + i, items, points);
+    const point = scatterPoint(s, p, stagedSerial + i, items, points);
     if (!point && !mandatory) return null;
     // Mandatory overflow is logical loot, not a promise that P5 can allocate a body here.
     points.push(point ?? { x: p.x, y: p.y });
@@ -61,7 +64,7 @@ export function planDrop(s: Game, p: Player, item: InventoryItem, mandatory = fa
   if (item.instanceId && (items.some(other => other.id === item.instanceId)
     || s.players.some(player => player.inventory?.some(other => other && other !== item && other.instanceId === item.instanceId)))) return null;
   // Allocation is staged too: an exhausted counter cannot partly split a carried stack.
-  const allocation = { ...s }, identity = { ...item };
+  const allocation = { ...s, itemSerial: stagedSerial }, identity = { ...item };
   try {
     ensureItemIdentity(allocation, identity);
     const records = points.map((point, i): GroundItem => ({

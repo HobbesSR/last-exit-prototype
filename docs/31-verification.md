@@ -200,6 +200,21 @@ state-only playback including actual shadow/sprite pixels and Node/Chrome equali
 lab-only change does not trigger the shared/server/map full-suite or seed-sweep
 gate. It does not establish live gameplay or arbitrary authored-map coverage.
 
+## P8 dynamic navigation
+
+P8's focused witnesses are `physics-drop-occupancy`, `physics-dynamic-navigation`
+and `physics-navigation-policy` unit files. They cover atomic drop refusal,
+mandatory retry, actual solver detours, moving/sleeping props, mixed roles,
+queue/resume, teleport invalidation, remembered-door/hidden-geometry equivalence
+and bounded crowd queries. `tests/physics-navigation.browser.mjs` compares a
+complete autonomous pickup/charge/escape trace in Node and Chrome. The P8
+live-chain whole-match witness is `tests/slow/physics-navigation.test.js`.
+Review regression files `physics-navigation-following`, `physics-navigation-heading`
+and `physics-navigation-cache` cover contact-range following, normal motor crate
+pushing, queued heading, shared point sight and collection-scoped query reuse.
+The crowd comparison is `node tools/physics/navigation-report.mjs`; run after other
+CPU-heavy gates finish. Evidence and limits belong to [42.19](42.19-physics-p8.md).
+
 ## The frozen fixture
 
 The current frozen characterization fixture is `behavior-nav-1.json.gz`.

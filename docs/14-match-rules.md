@@ -84,6 +84,36 @@ other bodies. Solver speed limits still apply after mass conversion. Removing or
 relocating a body invalidates its queued generation. These are implementation
 assumptions for experimental review, not new user balance answers.
 
+## Experimental dynamic navigation (#448)
+
+Explicit `content-physics-8` selects `last-exit-0.8-physics-8` in the physics
+factory. It extends P6 with P5 drops, P2 footprints and the default planner's
+local repair. Earlier content, ordinary rooms and the frozen fixture retain
+their behavior. The new selection and bounds are experimental implementation
+assumptions for review; P9 and human feel remain prerequisites for promotion.
+
+Bots avoid currently visible active actors and solid props within 192 units,
+regardless of sleep. Loot remains a sensor. A temporary local route rejoins at
+most 256 units ahead; it never moves an actor directly or edits static meshes.
+At most eight nearby blockers supply detour corners; every observed blocker
+still judges every segment. Search admits at most 192 edges per attempt and
+1,536 per room tick, with new attempts staggered across four ticks. Cached next
+legs are checked against fresh observations. A failed/deferred local route
+advances along the existing leg toward the first observed actor, stopping with
+a 2-unit margin (14 bounded prefix bisections). It does not stop at observation
+range. Solid props remain pushable through the existing bounded motor and
+solver when a detour is unavailable; an immovable contact can still queue.
+Queued bots without a visible enemy retain their heading. Strategic blockage
+clearing is deferred by [17.3](17.3-product-gameplay.md) entry 24. See
+[22.6](22.6-hierarchical-navigation.md) for the extension boundaries.
+
+Optional physical drops additionally avoid active actors and rotated solid props
+at placement. Impossible optional drops preserve inventory and IDs. Mandatory
+logical fallback remains pickable, with body admission retried at later boundaries
+after clearance. This placement rule does not turn loot into a solid blocker.
+Existing bounded actor placement, respawn deferral, exact developer-teleport
+refusal, transit preflight and occupied gate-close refusal remain in force.
+
 ## Experimental character profile (#439)
 
 Explicitly pass `contentById('content-physics-2')` to `createPhysicsGame` or
