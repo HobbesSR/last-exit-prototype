@@ -1,5 +1,6 @@
 import RAPIER from '@dimforge/rapier2d-compat';
 import { PHYSICS_SUBSTEP_SECONDS, physicsSpeedLimit } from './motion-limits.ts';
+import { constraintForce, validateConstraint } from './constraints.ts';
 import type { BodySpec, ConstraintSpec, MotorIntent, PhysicsContact, PhysicsSnapshot, Point, Transform } from './types.ts';
 
 const SCALE = 40;
@@ -130,7 +131,7 @@ export class PhysicsWorld {
   readonly settings = Object.freeze({ engine: 'rapier2d-compat', version: '0.21.0', unitsPerMetre: SCALE,
     substeps: SUBSTEPS, substepSeconds: DT, speculativeDistanceMetres: 0.6,
     exactCheckpoint: 'unsupported' as const, maxConstraints: 8,
-    constraintLimitations: 'native center max-distance rope; no finite force cap or break policy' });
+    constraintLimitations: 'legacy native center rope; explicit bounded spring/rope has no hard length projection' });
   private native: RAPIER.World;
   private events: RAPIER.EventQueue;
   private bodies = new Map<string, RecordBody>();
@@ -140,7 +141,7 @@ export class PhysicsWorld {
   private staticCount = 0;
   private nextGeneration = 0;
   private colliderIds = new Map<number, string>();
-  private constraints = new Map<string, { spec: ConstraintSpec; handle: number }>();
+  private constraints = new Map<string, { spec: ConstraintSpec; handle?: number }>();
   private pendingAdd: BodySpec[] = [];
   private pendingRemove: string[] = [];
   private pendingAddConstraints: ConstraintSpec[] = [];
@@ -210,9 +211,7 @@ export class PhysicsWorld {
   }
   queueAddConstraint(input: ConstraintSpec): void {
     this.ensure(); this.checkQueue();
-    const spec = { id: validId(input.id), a: validId(input.a), b: validId(input.b),
-      maxDistance: positive(input.maxDistance) };
-    if (spec.a === spec.b) throw new RangeError('constraint endpoints must differ');
+    const spec = validateConstraint(input);
     if (this.constraints.has(spec.id) && !this.pendingRemoveConstraints.includes(spec.id) ||
         this.pendingAddConstraints.some(item => item.id === spec.id)) throw new Error(`duplicate physics constraint ${spec.id}`);
     if (this.constraints.size - this.pendingRemoveConstraints.length + this.pendingAddConstraints.length >= 8)
@@ -264,6 +263,12 @@ export class PhysicsWorld {
     else { this.dynamicCount++; if (spec.kind === 'actor') this.actorCount++; }
     this.colliderIds.set(attached.handle, spec.id);
   }
+  private wakeConstraintEndpoints(spec: ConstraintSpec): void {
+    for (const id of [spec.a, spec.b]) {
+      const record = this.bodies.get(id);
+      if (record && record.spec.kind !== 'static') this.native.getRigidBody(record.handle)!.wakeUp();
+    }
+  }
   commitMutations(): void {
     this.ensure();
     const bodiesChanged = this.pendingAdd.length > 0 || this.pendingRemove.length > 0;
@@ -272,7 +277,8 @@ export class PhysicsWorld {
     for (const id of this.pendingRemoveConstraints.sort(order)) {
       const record = this.constraints.get(id);
       if (record) {
-        this.native.removeImpulseJoint(this.native.getImpulseJoint(record.handle)!, true);
+        if (record.handle !== undefined) this.native.removeImpulseJoint(this.native.getImpulseJoint(record.handle)!, true);
+        else this.wakeConstraintEndpoints(record.spec);
         this.constraints.delete(id);
       }
     }
@@ -280,7 +286,10 @@ export class PhysicsWorld {
       const record = this.bodies.get(id);
       if (record) {
         for (const [jointId, joint] of this.constraints) {
-          if (joint.spec.a === id || joint.spec.b === id) this.constraints.delete(jointId);
+          if (joint.spec.a === id || joint.spec.b === id) {
+            if (joint.handle === undefined) this.wakeConstraintEndpoints(joint.spec);
+            this.constraints.delete(jointId);
+          }
         }
         this.native.removeRigidBody(this.native.getRigidBody(record.handle)!);
         this.colliderIds.delete(record.collider);
@@ -299,10 +308,16 @@ export class PhysicsWorld {
           this.pendingRemove.includes(spec.a) || this.pendingRemove.includes(spec.b)) continue;
       const a = this.bodies.get(spec.a), b = this.bodies.get(spec.b);
       if (!a || !b) continue;
-      const native = this.native.createImpulseJoint(
-        RAPIER.JointData.rope(spec.maxDistance / SCALE, { x: 0, y: 0 }, { x: 0, y: 0 }),
-        this.native.getRigidBody(a.handle)!, this.native.getRigidBody(b.handle)!, true);
-      this.constraints.set(spec.id, { spec, handle: native.handle });
+      if (spec.kind === undefined) {
+        const native = this.native.createImpulseJoint(
+          RAPIER.JointData.rope(spec.maxDistance / SCALE, { x: 0, y: 0 }, { x: 0, y: 0 }),
+          this.native.getRigidBody(a.handle)!, this.native.getRigidBody(b.handle)!, true);
+        this.constraints.set(spec.id, { spec, handle: native.handle });
+      } else {
+        this.constraints.set(spec.id, { spec });
+        this.native.getRigidBody(a.handle)!.wakeUp();
+        this.native.getRigidBody(b.handle)!.wakeUp();
+      }
     }
     this.pendingRemove = []; this.pendingAdd = [];
     this.pendingRemoveConstraints = []; this.pendingAddConstraints = [];
@@ -312,6 +327,7 @@ export class PhysicsWorld {
       .sort(([a], [b]) => order(a, b));
   }
   hasBody(id: string): boolean { this.ensure(); return this.bodies.has(id); }
+  hasConstraint(id: string): boolean { this.ensure(); return this.constraints.has(validId(id)); }
   /** Placement only; queries current colliders, including rotated props, without backend handles. */
   overlapsProp(x: number, y: number, radius: number): boolean {
     this.ensure();
@@ -360,7 +376,8 @@ export class PhysicsWorld {
     const x = finite(value.x), y = finite(value.y), angle = finite(value.angle);
     for (const [jointId, joint] of this.constraints) {
       if (joint.spec.a !== id && joint.spec.b !== id) continue;
-      this.native.removeImpulseJoint(this.native.getImpulseJoint(joint.handle)!, true);
+      if (joint.handle !== undefined) this.native.removeImpulseJoint(this.native.getImpulseJoint(joint.handle)!, true);
+      else this.wakeConstraintEndpoints(joint.spec);
       this.constraints.delete(jointId);
     }
     this.pendingAddConstraints = this.pendingAddConstraints.filter(spec => spec.a !== id && spec.b !== id);
@@ -405,6 +422,37 @@ export class PhysicsWorld {
       if (speed > linearBudget) body.setLinvel({ x: v.x * linearBudget / speed, y: v.y * linearBudget / speed }, true);
     }
   }
+  private applyBoundedConstraints(): void {
+    for (const [id, record] of [...this.constraints].sort(([a], [b]) => order(a, b))) {
+      const spec = record.spec;
+      if (spec.kind === undefined) continue;
+      const first = this.bodies.get(spec.a), second = this.bodies.get(spec.b);
+      if (!first || !second) { this.constraints.delete(id); continue; }
+      const a = this.native.getRigidBody(first.handle)!, b = this.native.getRigidBody(second.handle)!;
+      const at = (body: RAPIER.RigidBody, local: Point): Point => {
+        const angle = body.rotation(), c = Math.cos(angle), s = Math.sin(angle), p = body.translation();
+        return { x: p.x * SCALE + local.x * c - local.y * s,
+          y: p.y * SCALE + local.x * s + local.y * c };
+      };
+      const pointA = at(a, spec.anchorA!), pointB = at(b, spec.anchorB!);
+      const velocity = (body: RAPIER.RigidBody, point: Point): Point => {
+        const v = body.velocityAtPoint({ x: point.x / SCALE, y: point.y / SCALE });
+        return { x: v.x * SCALE, y: v.y * SCALE };
+      };
+      const result = constraintForce(spec,
+        { position: pointA, velocity: velocity(a, pointA) },
+        { position: pointB, velocity: velocity(b, pointB) });
+      if (spec.breakDistance !== undefined && result.distance > spec.breakDistance) {
+        this.constraints.delete(id);
+        a.wakeUp(); b.wakeUp();
+        continue;
+      }
+      const force = { x: result.force.x / SCALE, y: result.force.y / SCALE };
+      if (force.x === 0 && force.y === 0) continue;
+      a.addForceAtPoint(force, { x: pointA.x / SCALE, y: pointA.y / SCALE }, true);
+      b.addForceAtPoint({ x: -force.x, y: -force.y }, { x: pointB.x / SCALE, y: pointB.y / SCALE }, true);
+    }
+  }
   step(): { distance: Record<string, number>; paths: Record<string, Point[]> } {
     this.ensure(); this.commitMutations();
     const distance: Record<string, number> = Object.create(null);
@@ -435,6 +483,7 @@ export class PhysicsWorld {
       if (substep === 0) for (const entry of impulses) {
         if (this.hasBody(entry.id)) this.dynamic(entry.id).body.applyImpulse({ x: entry.value.x / SCALE, y: entry.value.y / SCALE }, true);
       }
+      this.applyBoundedConstraints();
       this.capSpeeds(); this.native.step(this.events); this.capSpeeds();
       this.events.drainCollisionEvents((a, b, started) => {
         const first = this.colliderIds.get(a), second = this.colliderIds.get(b);

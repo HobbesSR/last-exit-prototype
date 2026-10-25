@@ -10,13 +10,14 @@ import { consumeInput } from './input.ts';
 import { respawn, finishMatch } from './lifecycle.ts';
 import { damage, skill, attack } from './combat.ts';
 import { solvePhysicsProjectiles } from './physics-projectiles.ts';
+import { prepareHooks, finishHooks, reconcileHooks } from './hook.ts';
 import { interact, advanceCharging } from './interactions.ts';
 import { automaticPickups, dropInventorySlot, effect } from './loot.ts';
 import { stepTraps } from '../traps.ts';
 import { advanceTick, advanceTimers, applyEnvironment, advanceDiscovery } from './tick-rules.ts';
 import { recordRewind } from './rewind.ts';
 import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
-import { attachPhysics, physicsRuntime, markPhysicsDiscontinuity, PHYSICS_VERSION } from './physics-runtime.ts';
+import { attachPhysics, physicsRuntime, markPhysicsDiscontinuity, PHYSICS_VERSION, PHYSICS_HOOK_VERSION } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GameMap, MatchContent, Player, Vec2 } from '../types.ts';
 
@@ -32,6 +33,16 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
   const s = createGame(seed, map, content);
   validateActorPhysics(s.content.actorPhysics, s.map);
   validateWorldPhysics(s.content, s.map);
+  if (s.content.hook) {
+    const h = s.content.hook;
+    if (!s.content.actorPhysics || !s.content.kits.hook || ![h.range, h.speed, h.maxForce, h.stiffness, h.damping,
+      h.pullSpeed, h.durationTicks, h.cooldownTicks, h.standoff, h.targetDistance, h.breakDistance].every(n => Number.isFinite(n) && n > 0 && n <= 100000)
+      || !Number.isInteger(h.durationTicks) || !Number.isInteger(h.cooldownTicks) || h.breakDistance < h.range
+      || h.standoff > h.range || h.targetDistance >= h.standoff
+      || h.targetDistance < s.content.actorPhysics.geometry.contestant.bodyRadius + s.content.actorPhysics.geometry.gladiator.bodyRadius)
+      throw new RangeError('invalid hook profile');
+    s.content = Object.freeze({ ...s.content, hook: Object.freeze({ ...h }) });
+  }
   if (s.content.worldPhysics) {
     s.content = Object.freeze({ ...s.content, worldPhysics: Object.freeze({ ...s.content.worldPhysics, loot: Object.freeze({ ...s.content.worldPhysics.loot }), prop: Object.freeze({ ...s.content.worldPhysics.prop }) }) });
     s.map.physicsProps = structuredClone(s.map.physicsProps ?? []);
@@ -54,7 +65,7 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
   const world = await createPhysicsWorld();
   const runtime: PhysicsRuntime = { discontinuityCapacity: s.content.worldPhysics ? 256 : 128, world, actors: new Set(), items: new Set(), itemLaunches: new Map(), gates: new Map(), discontinuities: [], synchronize: options => synchronize(s, runtime, stepping.has(s) ? s.tick : s.tick + 1, options?.deferItemAdmission),
     placement: (p, destination) => placement(s, runtime, p, ordered(s).filter(q => q !== p && q.status === 'active'), destination),
-    pendingSpawns: [], pendingImpulses: [], pendingAttachments: [] };
+    pendingSpawns: [], pendingImpulses: [], pendingAttachments: [], hooks: [] };
   try {
     const geometry = buildPhysicsGeometry(s.map).sort((a, b) => compare(a.id, b.id));
     for (let i = 0; i < geometry.length; i++) {
@@ -77,7 +88,7 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
     for (const key of ['width', 'height', 'obstacles', 'playableArea', 'gates'] as const) Object.defineProperty(s.map, key, { writable: false, configurable: false });
     addAuthoredProps(s, runtime);
     attachPhysics(s, runtime);
-    Object.defineProperty(s, 'version', { value: s.content.worldPhysics ? PHYSICS_WORLD_VERSION : s.content.actorPhysics ? PHYSICS_CHARACTER_VERSION : PHYSICS_VERSION, enumerable: true, writable: false });
+    Object.defineProperty(s, 'version', { value: s.content.hook ? PHYSICS_HOOK_VERSION : s.content.worldPhysics ? PHYSICS_WORLD_VERSION : s.content.actorPhysics ? PHYSICS_CHARACTER_VERSION : PHYSICS_VERSION, enumerable: true, writable: false });
     synchronize(s, runtime, s.tick + 1);
     return s;
   } catch (error) { world.dispose(); throw error; }
@@ -149,6 +160,7 @@ function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferItemAdmi
     r.pendingAttachments = r.pendingAttachments.filter(entry => r.world.getGeneration(entry.a) === entry.generationA
       && r.world.getGeneration(entry.b) === entry.generationB);
   }
+  reconcileHooks(s);
 }
 
 /** Match seat/teleport boundaries reconcile game IDs before the first recorded frame. */
@@ -173,6 +185,7 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
     if (p.status === 'active') advanceTimers(p);
   }
   synchronize(s, r, s.tick);
+  prepareHooks(s);
   s.projectiles.push(...r.pendingSpawns.splice(0));
   for (const impulse of r.pendingImpulses.splice(0)) if ((r.actors.has(impulse.id) || s.content.worldPhysics && r.world.hasBody(impulse.id)) && r.world.getGeneration(impulse.id) === impulse.generation) r.world.queueImpulse(impulse.id, impulse.value);
   for (const attachment of r.pendingAttachments.splice(0).sort((a, b) => compare(a.id, b.id))) {
@@ -215,6 +228,7 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
   r.world.drainContacts();
   // 5: physical TOI first, then finalized-pose abilities/melee by stable caster ID.
   solvePhysicsProjectiles(s, result.paths);
+  finishHooks(s, result.paths);
   for (const p of ordered(s)) {
     const input = intents.get(p)?.input;
     if (p.status !== 'active' || !input) continue;

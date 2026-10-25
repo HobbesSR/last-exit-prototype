@@ -111,7 +111,7 @@ export type Serial = number;
 // ---------------------------------------------------------------------------
 
 export type Role = 'contestant' | 'gladiator';
-export type Kit = 'warden' | 'specter' | 'striker';
+export type Kit = 'warden' | 'specter' | 'striker' | 'hook';
 export type Phase = 'live' | 'finished';
 export type PlayerStatus = 'active' | 'eliminated' | 'respawning' | 'escaped' | 'stranded';
 export type WeaponType = 'pistol' | 'rifle' | 'scattergun';
@@ -210,6 +210,8 @@ export interface MatchContent {
   id: string;
   actorPhysics?: ActorPhysics | undefined;
   worldPhysics?: WorldPhysics | undefined;
+  hook?: { range: number; speed: number; maxForce: number; stiffness: number; damping: number;
+    pullSpeed: number; durationTicks: number; cooldownTicks: number; standoff: number; targetDistance: number; breakDistance: number } | undefined;
   /** Explicit L0 selection; optional drops stop at this logical ground-entry limit. */
   itemInstances?: { groundCapacity: number } | undefined;
   /**
@@ -226,7 +228,7 @@ export interface MatchContent {
     gladiators: { name: string; kit: Kit }[];
   };
   weapons: Record<WeaponType, WeaponSpec>;
-  kits: Record<Kit, KitSpec>;
+  kits: Record<Exclude<Kit, 'hook'>, KitSpec> & Partial<Record<'hook', KitSpec>>;
   traps: TrapContent;
   durationTicks: Tick;
   cellChargeTicks: Tick;
@@ -647,6 +649,7 @@ export interface Snapshot {
   physicsProfile?: string;
   bodies?: import('./physics/types.ts').PhysicsBodyView[];
   tethers?: import('./physics/types.ts').PhysicsTetherView[];
+  hookFlights?: Array<{ id: string; a: string; x: number; y: number }>;
   /** Private authoritative gameplay physics state, never an exact backend checkpoint or live projection. */
   physics?: import('./physics/types.ts').PhysicsGameplayState;
   version: string;

@@ -307,3 +307,14 @@ order, input consumption, player sizes, combat and timers are unchanged. The
 intentional new map content is named by `generator` and embedded in full, rather
 than rebuilding an old recording with today's chain. Frozen characterization
 continues to use its stored legacy maps and is not regenerated.
+
+## Schema 13: experimental hook (#446)
+
+Schema 13 adds optional private `physics.hooks`, explicit bounded spring/rope
+constraint fields, and optional `hookFlights` presentation records. This is
+additive: the general minimum reader remains 0 and experimental physics keeps
+its schema-10 visual floor. New P6 simulation behavior is separately identified
+by `last-exit-0.8-physics-6` and `content-physics-6`; no legacy content is changed.
+Flight/pending/pull transitions are stored state, not instructions to replay an
+engine. Old frames omit the new records; seek/removal follows complete captured
+lists. Private pending target/generation/force state never enters live projection.

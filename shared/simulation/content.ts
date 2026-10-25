@@ -106,7 +106,13 @@ const CONTENT_PHYSICS_5: MatchContent = { ...CONTENT_PHYSICS_2, id: 'content-phy
     prop: { hx: 24, hy: 12, mass: 2, friction: 0.4, linearDamping: 2, angularDamping: 2 },
     maxImpulse: 300,
   } };
-const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4, 'content-5': CONTENT_5, 'content-physics-2': CONTENT_PHYSICS_2, 'content-equipment-1': CONTENT_EQUIPMENT_1, 'content-physics-5': CONTENT_PHYSICS_5, 'content-loot-1': CONTENT_LOOT_1 };
+// P6 tuning is provisional and separately selected; previous kits and content stay available.
+const CONTENT_PHYSICS_6: MatchContent = { ...CONTENT_PHYSICS_5, id: 'content-physics-6',
+  kits: { ...CONTENT_PHYSICS_5.kits, hook: { name: 'Hook', color: 0x77dddd, damage: 24, cooldown: 140, skill: 'Hook / release' } },
+  hook: { range: 500, speed: 900, maxForce: 6000, stiffness: 120, damping: 30, pullSpeed: 240,
+    durationTicks: 60, cooldownTicks: 140, standoff: 55, targetDistance: 35, breakDistance: 550 },
+};
+const SHIPPED: Record<string, MatchContent> = { 'content-1': CONTENT_1, 'content-2': CONTENT_2, 'content-3': CONTENT_3, 'content-4': CONTENT_4, 'content-5': CONTENT_5, 'content-physics-2': CONTENT_PHYSICS_2, 'content-equipment-1': CONTENT_EQUIPMENT_1, 'content-physics-5': CONTENT_PHYSICS_5, 'content-physics-6': CONTENT_PHYSICS_6, 'content-loot-1': CONTENT_LOOT_1 };
 
 
 /** Return an independent, deeply frozen copy of a shipped content set. */

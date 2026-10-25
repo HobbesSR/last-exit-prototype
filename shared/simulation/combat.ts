@@ -6,6 +6,7 @@ import { distance } from './geometry.ts';
 import { effect } from './loot.ts';
 import { eliminate } from './lifecycle.ts';
 import { asSeenBy } from './rewind.ts';
+import { hookSkill } from './hook.ts';
 import type { Game, Player, InventoryItem, StackItem } from '../types.ts';
 
 type UtilityState = Pick<Player, 'hp' | 'maxHp' | 'shield'>;
@@ -31,6 +32,7 @@ export function damage(s: Game, target: Player, amount: number, source: Player |
   eliminate(s, target, source);
 }
 export function skill(s: Game, p: Player): void {
+  if (p.kit === 'hook') { hookSkill(s, p); return; }
   if (p.cooldown > 0) return;
   if (p.role === 'contestant') return;
   p.cooldown = Math.max(45, s.content.kits[p.kit].cooldown - (p.level - 1) * 12);
@@ -52,7 +54,7 @@ export function attack(s: Game, p: Player): void {
     // Range, arc and cover all read the positions this gladiator was looking at when they swung.
     const seen = asSeenBy(s, p);
     const t = s.players.filter(t => t.role !== p.role && t.status === 'active' && distance(p, seen(t)) < 86 && Math.cos(Math.atan2(seen(t).y - p.y, seen(t).x - p.x) - p.heading) > 0.25 && lineClear(s.map, p, seen(t))).sort((a, b) => distance(p, seen(a)) - distance(p, seen(b)))[0];
-    if (t) damage(s, t, s.content.kits[p.kit].damage + (p.level - 1) * 4, p);
+    if (t) damage(s, t, s.content.kits[p.kit]!.damage + (p.level - 1) * 4, p);
   } else {
     const item = equipped(p);
     if (!item) return;

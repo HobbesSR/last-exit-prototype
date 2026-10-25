@@ -1,5 +1,5 @@
 import { defaultContent } from './content.ts';
-import type { Kit, KitSpec, Role, Tick } from '../types.ts';
+import type { Kit, MatchContent, Role, Tick } from '../types.ts';
 
 export const VERSION = 'last-exit-0.7';
 export const HZ = 20;
@@ -20,7 +20,7 @@ export const DURATION: Tick = shipped.durationTicks;
 export const CELL_CHARGE_TICKS: Tick = shipped.cellChargeTicks;
 export const GLADIATOR_RESPAWN_TICKS: Tick = shipped.gladiatorRespawnTicks;
 export const HAZARD_GRACE_TICKS: Tick = shipped.hazardGraceTicks;
-export const KITS: Record<Kit, KitSpec> = structuredClone(shipped.kits);
+export const KITS: MatchContent['kits'] = structuredClone(shipped.kits);
 
 // Interaction reaches, compared strictly (`distance < reach`). Charging and transit share a value but
 // are separate policies.

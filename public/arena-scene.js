@@ -30,6 +30,10 @@ const SEAM = 1 / MIN_RESOLUTION;
 // Each Graphics method the static layer draws with, recorded for replay into the tiles it touches.
 const STATIC_DRAWS = ['fillStyle', 'lineStyle', 'fillPoints', 'strokePoints', 'fillRect', 'strokeRect', 'fillRoundedRect', 'strokeRoundedRect', 'lineBetween', 'fillCircle', 'fillEllipse', 'fillTriangle'];
 const obstacleFill = o => o.kind === 'fence' ? 0x53636b : o.kind === 'building' ? 0x92929e : PALETTE[o.color || 0];
+export function drawHookFlight(g, caster, flight) {
+  g.lineStyle(3, 0xd6dfbd, 0.85); g.lineBetween(caster.x, caster.y, flight.x, flight.y);
+  g.fillStyle(0xe9f5d4, 0.95); g.fillCircle(flight.x, flight.y, 4);
+}
 export function makeArenaScene(api) {
   return class ArenaScene extends Phaser.Scene {
     constructor() { super('arena'); }
@@ -714,6 +718,13 @@ export function makeArenaScene(api) {
         // than drawing a line into shadow; actor anchors retain their cloak/reveal policy above.
         if (fogged && (a.kind === 'prop' && !lit(a.x, a.y) || b.kind === 'prop' && !lit(b.x, b.y))) continue;
         g.lineStyle(3, 0xd6dfbd, 0.85); g.lineBetween(a.x, a.y, b.x, b.y);
+      }
+      for (const flight of state.hookFlights || []) {
+        const caster = visibleBodies.get(flight.a);
+        if (!caster || fogged && !lit(flight.x, flight.y) ||
+          !nearView((caster.x + flight.x) / 2, (caster.y + flight.y) / 2,
+            Math.hypot(caster.x - flight.x, caster.y - flight.y) / 2)) continue;
+        drawHookFlight(g, caster, flight);
       }
       const drawnItems = new Set((state.items || []).map(item => item.id));
       for (const body of visibleBodies.values()) {
