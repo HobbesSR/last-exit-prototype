@@ -1,18 +1,11 @@
 import { cellKey, type Cell } from '../kernel/cell.ts';
-import { bounds, rect, sharesArea } from '../../shared/shape.ts';
+import { bounds, rect } from '../../shared/shape.ts';
 import type { Shape } from '../../shared/shape.ts';
-import { boxesOverlap, validShape } from './geometry.ts';
+import { shapesShareArea, validShape } from './geometry.ts';
 import { unusedComponents } from './components.ts';
 import type { RegionMask } from './types.ts';
 
 const EPS = 1e-7;
-
-// Collision includes contact. Authored area does not: require positive penetration
-// on the separating axes, using the same tolerance as the geometry broad phase.
-export function areasOverlap(a: Shape, b: Shape): boolean {
-  if (!boxesOverlap(bounds(a), bounds(b))) return false;
-  return a.kind === 'rect' && b.kind === 'rect' || sharesArea(a, b, EPS);
-}
 
 /**
  * What a builder has addressed with intent (#404, 20.2): the areas it built into or chose to
@@ -52,7 +45,7 @@ export function createAddressedArea(mask: Pick<RegionMask, 'cells' | 'cellSize' 
     const b = bounds(shape), keys: string[] = [];
     for (let y = Math.floor((b.y + EPS) / size); y <= Math.floor((b.y + b.h - EPS) / size); y++) {
       for (let x = Math.floor((b.x + EPS) / size); x <= Math.floor((b.x + b.w - EPS) / size); x++) {
-        if (mask.has(x, y) && areasOverlap(shape, rect(x * size, y * size, size, size))) keys.push(cellKey({ x, y }));
+        if (mask.has(x, y) && shapesShareArea(shape, rect(x * size, y * size, size, size))) keys.push(cellKey({ x, y }));
       }
     }
     return keys;
@@ -63,8 +56,8 @@ export function createAddressedArea(mask: Pick<RegionMask, 'cells' | 'cellSize' 
   };
   const markAll = (shapes: readonly Shape[]): boolean => {
     if (shapes.some(shape => !validShape(shape))) throw new Error('An addressed area must be a valid convex shape.');
-    if (shapes.some((shape, i) => areas.some(o => areasOverlap(shape, o))
-      || shapes.slice(0, i).some(o => areasOverlap(shape, o)))) return false;
+    if (shapes.some((shape, i) => areas.some(o => shapesShareArea(shape, o))
+      || shapes.slice(0, i).some(o => shapesShareArea(shape, o)))) return false;
     const entries = shapes.map(shape => [structuredClone(shape), touched(shape)] as const);
     for (const [shape, keys] of entries) record(shape, keys);
     return true;
@@ -81,7 +74,7 @@ export function createAddressedArea(mask: Pick<RegionMask, 'cells' | 'cellSize' 
         seen.add(k);
         const square = rect(c.x * size, c.y * size, size, size);
         // A whole owned square can intersect only shapes indexed in that cell.
-        if (byCell.get(k)?.some(o => areasOverlap(square, o))) return false;
+        if (byCell.get(k)?.some(o => shapesShareArea(square, o))) return false;
         squares.push([square, k]);
       }
       for (const [square, k] of squares) record(square, [k]);
