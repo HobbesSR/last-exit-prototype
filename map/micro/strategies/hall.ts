@@ -3,7 +3,7 @@ import { HALL_PILLAR, HALL_PILLAR_INSET as INSET } from '../placeables/hall-pill
 import { expectPlaced } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
-import { createFillMask, createRegionMask, shapesOverlap } from '../geometry.ts';
+import { createFillMask, createRegionMask } from '../geometry.ts';
 import { separateAreas, wallHints } from '../hint-walls.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
@@ -59,6 +59,7 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
   if (!box) return unfilledRegion(brief, CHANNEL.loot);
 
   const protectedShapes = protectedRoutes(brief, 'Hall');
+  const canvas = createBuilderCanvas(brief, protectedShapes);
   const staggerRows = draw(brief.seed, 0, 0, CHANNEL.axis) < 0.5;
   const stride = staggerStride(spacing);
   // Lines of blocks run along the staggered axis (u) and step across the other (v).
@@ -77,22 +78,21 @@ export function buildHall(brief: RegionBrief): BuiltRegion {
       if (u < us) continue;
       const [bx, by] = staggerRows ? [u, v] : [v, u];
       const shape = rect((bx + INSET) * size, (by + INSET) * size, span, span);
-      if (!mask.contains(shape) || protectedShapes.some(keep => shapesOverlap(shape, keep))) continue;
+      if (!canvas.fits(shape)) continue;
       pillars.push(shape);
       parts.push({ part: 'obstacle', shape: rect((bx - box.x + INSET) * size, (by - box.y + INSET) * size, span, span), kind: 'building' });
     }
   }
 
   const walls = wallHints(brief, { kind: 'building', avoid: [...protectedShapes, ...pillars] });
-  const canvas = createBuilderCanvas(brief, protectedShapes);
   // The hall and its hint walls commit as one assembly. Walls may stand inside the rectangle,
   // between pillars, so the pillars and the walls are its intent; a hall with neither intends
   // its rectangle. Siting has already accepted the hall, so a refusal is a broken placement invariant.
   const hall = parts.length || roofed ? [{ label: 'hall', x: box.x * size, y: box.y * size,
     template: { w: box.w * size, h: box.h * size, ...(roofed ? { encloses: true } : {}), parts } }] : [];
-  const areas = [...pillars, ...separateAreas(walls.shapes)];
+  const areas = [...pillars, ...separateAreas(walls.shapes)], rectangle = rect(box.x * size, box.y * size, box.w * size, box.h * size);
   if ((hall.length || walls.elements.length) && !canvas.commit({ elements: [...hall, ...walls.elements],
-    areas: areas.length ? areas : [rect(box.x * size, box.y * size, box.w * size, box.h * size)] }))
+    areas: areas.length ? areas : [rectangle], extents: [...hall.length ? [rectangle] : [], ...walls.shapes] }))
     throw new Error('Hall placement failed its canvas commit.');
   const elements = [...canvas.elements];
   const loot = cellLoot(brief, createRegionMask(brief), [...pillars, ...walls.shapes], CHANNEL.loot);

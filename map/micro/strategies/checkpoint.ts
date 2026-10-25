@@ -10,6 +10,7 @@ import { boxesAgainstHints } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
+import { rect } from '../../../shared/shape.ts';
 import type { BuiltRegion, Portal, RegionBrief, RegionElement } from '../types.ts';
 
 /** Barrier gaps and post spacing, as well as clear space around each post. */
@@ -183,19 +184,19 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
     : brief.portals.length === 1 ? inward(brief.portals[0]!, createRegionMask(brief)) : { x: (bounds.x + bounds.w / 2) / size, y: (bounds.y + bounds.h / 2) / size };
   const longSide = LONG[Math.floor(draw(brief.seed, 0, 0, CHANNEL.long) * LONG.length)]!, shortSide = SHORT[Math.floor(draw(brief.seed, 0, 0, CHANNEL.short) * SHORT.length)]!;
   const [pw, ph] = lineAlongX ? [longSide, shortSide] : [shortSide, longSide];
-  const touches = (box: Box, other: Box) => box.x < other.x + other.w + AISLE && box.x + box.w + AISLE > other.x && box.y < other.y + other.h + AISLE && box.y + box.h + AISLE > other.y;
   const onLine = (box: Box) => !!line && Array.from({ length: Math.ceil(farthest * 2) + 1 }, (_, i) => i / Math.max(1, Math.ceil(farthest * 2)))
     .some(t => { const p = { x: line![0].x + (line![1].x - line![0].x) * t, y: line![0].y + (line![1].y - line![0].y) * t };
       return p.x > box.x - AISLE && p.x < box.x + box.w + AISLE && p.y > box.y - AISLE && p.y < box.y + box.h + AISLE; });
+  // Only the barriers are committed yet, so the post keeps its aisle from them.
   const fits = ({ x, y, w, h }: Box) => {
-    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!mask.has(i, j)) return false;
-    return true;
+    const shape = rect(x * size, y * size, w * size, h * size);
+    return canvas.fits(shape) && canvas.spaced(shape, AISLE * size);
   };
   const hinted = new Set(boxesAgainstHints(brief, pw, ph).map(({ x, y }) => `${x},${y}`));
   const sites: { box: Box; hinted: boolean; near: number; tie: number }[] = [];
   for (const { x, y } of owned) {
     const box = { x, y, w: pw, h: ph };
-    if (!fits(box) || barriers.some(b => touches(box, b)) || onLine(box)) continue;
+    if (!fits(box) || onLine(box)) continue;
     sites.push({ box, hinted: hinted.has(`${x},${y}`), near: Math.hypot(x + pw / 2 - anchor.x, y + ph / 2 - anchor.y), tie: draw(brief.seed, x, y, CHANNEL.tie) });
   }
   sites.sort((a, b) => Number(b.hinted) - Number(a.hinted) || a.near - b.near || a.tie - b.tie || a.box.y - b.box.y || a.box.x - b.box.x);

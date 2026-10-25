@@ -108,3 +108,31 @@ test('batch parts may overlap, and a refused batch never retains its access rese
   assert.equal(canvas.commit({ elements: [piece(80, 0)] }), true);
   assert.equal(canvas.elements.length, 3);
 });
+
+test('fits reads the fill and every protection, committed access included', () => {
+  const canvas = createBuilderCanvas(brief({ fillCells: cells.filter(c => c.x < 5) }), [rect(80, 0, 40, 40)]);
+  assert.equal(canvas.fits(rect(0, 0, 40, 40)), true);
+  assert.equal(canvas.fits(rect(200, 0, 40, 40)), false, 'outside the reduced fill');
+  assert.equal(canvas.fits(rect(60, 0, 40, 40)), false, 'on a supplied protection');
+  assert.equal(canvas.commit({ elements: [piece(0, 0)], access: [rect(0, 80, 40, 40)] }), true);
+  assert.equal(canvas.fits(rect(0, 80, 40, 40)), false, 'on committed access');
+  assert.equal(canvas.fits(rect(0, 0, 40, 40)), true, 'committed geometry is spacing, not a protection');
+});
+
+test('spaced keeps a clearance from committed extents, never from addressed intent', () => {
+  const canvas = createBuilderCanvas(brief());
+  assert.equal(canvas.markEmpty([rect(160, 0, 40, 40)]), true);
+  assert.equal(canvas.spaced(rect(160, 0, 40, 40), 40), true, 'empty intent is not an extent');
+  assert.equal(canvas.commit({ elements: [piece(0, 0)] }), true);
+  assert.equal(canvas.spaced(rect(40, 0, 40, 40)), true, 'touching a template box is not overlap');
+  assert.equal(canvas.spaced(rect(40, 0, 40, 40), 40), false);
+  assert.equal(canvas.spaced(rect(80, 0, 40, 40), 40), true, 'a clearance-wide gap is enough');
+  assert.equal(canvas.spaced(rect(20, 0, 40, 40)), false);
+  // A world-absolute record names its extent; its template box spans the region.
+  const record = { label: 'wall', x: 0, y: 0, template: { w: 240, h: 160, parts: [{ part: 'obstacle', kind: 'ruin-wall', shape: rect(200, 120, 40, 40) }] } };
+  assert.equal(canvas.commit({ elements: [record], areas: [rect(200, 120, 40, 40)], extents: [rect(200, 120, 40, 40)] }), true);
+  assert.equal(canvas.spaced(rect(120, 80, 40, 40)), true);
+  assert.equal(canvas.spaced(rect(120, 80, 40, 40), 50), false);
+  assert.equal(canvas.commit({ elements: [piece(400, 0)], extents: [rect(80, 120, 40, 40)] }), false);
+  assert.equal(canvas.spaced(rect(80, 120, 40, 40)), true, 'a refused commit records no extent');
+});

@@ -4,7 +4,7 @@ import { PARK_HEDGE_RUN } from '../placeables/park-hedge-run.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
-import { createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
+import { createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { latticeSlots } from './lattice.ts';
 import { createBuilderCanvas } from '../canvas.ts';
@@ -60,17 +60,14 @@ export function buildPark(brief: RegionBrief): BuiltRegion {
   const protectedShapes = protectedRoutes(brief, 'Park', brief.portals.length <= 32 ? 'root' : 'nearby');
 
 
+  const canvas = createBuilderCanvas(brief, protectedShapes);
   // A piece must stay owned and clear of portals; the lattice preserves inter-piece aisles.
-  const clear = ({ x, y, w, h }: Box) => {
-    for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!mask.has(i, j)) return false;
-    return !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
-  };
+  const clear = ({ x, y, w, h }: Box) => canvas.fits(rect(x * size, y * size, w * size, h * size));
 
   const slots = latticeSlots(brief, mask, PERIOD, { x: CHANNEL.phaseX, y: CHANNEL.phaseY });
   const key = (x: number, y: number) => `${x},${y}`;
   const hintedTrees = new Set(boxesAgainstHints(brief, TREE, TREE).map(b => key(b.x, b.y)));
 
-  const canvas = createBuilderCanvas(brief, protectedShapes);
   // Siting has already accepted each assembly. A canvas refusal is a broken placement
   // invariant, rather than a new fallback that silently changes the seeded build.
   const place = (label: string, elements: RegionElement[]) => {

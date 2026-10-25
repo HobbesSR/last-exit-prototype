@@ -87,7 +87,7 @@ export function wallHints(brief: RegionBrief, options: HintWallOptions): HintWal
  * refusal is a broken placement invariant.
  */
 export function commitHintWalls(canvas: BuilderCanvas, walls: HintWalls): void {
-  if (walls.elements.length && !canvas.commit({ elements: walls.elements, areas: separateAreas(walls.shapes) }))
+  if (walls.elements.length && !canvas.commit({ elements: walls.elements, areas: separateAreas(walls.shapes), extents: walls.shapes }))
     throw new Error('Hint walls failed their canvas commit.');
 }
 
