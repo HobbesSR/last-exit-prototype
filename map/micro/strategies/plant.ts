@@ -1,4 +1,5 @@
-import { rect } from '../../../shared/shape.ts';
+import { rect, transform } from '../../../shared/shape.ts';
+import { construct } from '../../../shared/shape-construction.ts';
 import type { BuildingObserver } from '../building/trace.ts';
 import { largestRectangle } from './hall.ts';
 import { WAREHOUSE } from '../placeables/warehouse.ts';
@@ -7,12 +8,13 @@ import { PLANT_PIPE_RUN } from '../placeables/plant-pipe-run.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot, fraction, protectedRoutes } from './scatter.ts';
 import { draw } from '../random.ts';
-import { createAccessMask, createFillMask, createRegionMask, elementShapes, shapesOverlap } from '../geometry.ts';
+import { createAccessMask, createFillMask, createRegionMask, elementShapes } from '../geometry.ts';
+import { createBuilderCanvas } from '../canvas.ts';
 import { boundaryBoxFilter, boxesAgainstHints } from '../hints.ts';
 import { latticeSlots } from './lattice.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
-import type { BuiltRegion, RegionBrief, RegionElement } from '../types.ts';
+import type { BuiltRegion, RegionBrief } from '../types.ts';
 import { builtRegion } from '../result.ts';
 
 /** The catalogue's proposed shape need (54), as `depot`'s: a contained square at least this many cells a side. */
@@ -30,7 +32,7 @@ const MACHINE_MIN = 2, MACHINE_MAX = 4;
 const CHAMFERED = 0.5;
 /** The chance two neighbouring machines are joined, and a pipe's thickness in cells, centred in its row. */
 const JOINED = 0.7;
-/** How far a pipe reaches into the machines it joins, in cells, so it meets a chamfered face. */
+/** How far a pipe run's stubs reach into the machines it joins, in cells, before they are cut back to the machines' surfaces. */
 const SEAT = 0.5;
 /** The shed's size in slots: two by one, one by two, or two by two. */
 const SHEDS: ReadonlyArray<readonly [number, number]> = [[2, 1], [1, 2], [2, 2]];
@@ -57,9 +59,12 @@ type Box = { x: number; y: number; w: number; h: number };
  * window does (17.2.8 M34), and leaves one gap a door wide, `AISLE` cells, at a seeded place.
  *
  * Machines and the shed keep `AISLE` clear cells from other pieces. Pipe runs bridge
- * neighbouring machines through a door-wide gap, with owned aisles around each run.
- * Candidate footprints stay clear of portal approaches; concave masks also protect a
- * hunter corridor. A region with no contained `MIN_SIDE` square goes to `open` (17 M24).
+ * neighbouring machines through a door-wide gap, with owned aisles around each run. Each stub is
+ * its run less both machines' shapes, broken into convex pieces, so it ends on the machine's
+ * surface, chamfer included, rather than inside it (#490). Candidate footprints stay clear of
+ * portal approaches; concave masks also protect a hunter corridor. Pieces commit through the
+ * builder canvas (20.2), whose siting queries they were accepted with, so a refusal is a defect.
+ * A region with no contained `MIN_SIDE` square goes to `open` (17 M24).
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear of
  * every piece, indoors or out. A plant sites no core elements; any the brief lists are left for
@@ -75,21 +80,21 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
   // Routes between portals are protected; past 32 portals that search is too dear, and
   // boxes keep an aisle from the boundary instead.
   const boundary = boundaryBoxFilter(brief, AISLE), routed = brief.portals.length <= 32;
-  const protectedShapes = routed ? protectedRoutes(brief, 'Plant') : [];
+  const canvas = createBuilderCanvas(brief, routed ? protectedRoutes(brief, 'Plant') : []);
 
-
-  // A piece must stay owned and clear of portals; the lattice preserves inter-piece aisles.
-  const clear = ({ x, y, w, h }: Box) => {
-    for (let j = Math.floor(y); j < Math.ceil(y + h); j++)
-      for (let i = Math.floor(x); i < Math.ceil(x + w); i++) if (!mask.has(i, j)) return false;
-    return (routed || boundary.fits({ x, y, w, h }))
-      && !protectedShapes.some(shape => shapesOverlap(rect(x * size, y * size, w * size, h * size), shape));
+  // A piece must stay owned, clear of portals and an aisle from other pieces.
+  const clear = (box: Box) => {
+    const shape = rect(box.x * size, box.y * size, box.w * size, box.h * size);
+    return canvas.fits(shape) && (routed || boundary.fits(box)) && canvas.spaced(shape, AISLE * size);
+  };
+  // Siting has already accepted these with the canvas's own queries; a refusal is a defect.
+  const commit = (label: string, assembly: Parameters<typeof canvas.commit>[0]) => {
+    if (!canvas.commit(assembly)) throw new Error(`Plant placement ${label} failed its canvas commit.`);
   };
 
   const slots = latticeSlots(brief, mask, PERIOD, { x: CHANNEL.phaseX, y: CHANNEL.phaseY });
   const key = (x: number, y: number) => `${x},${y}`;
 
-  const elements: RegionElement[] = [];
   // The shed, at the first block of slots in a seeded order whose box fits.
   const shedSlots = new Set<string>();
   let sheds = 0, designed = 0;
@@ -106,13 +111,13 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
       const built = expectPlaced(WAREHOUSE.build({ w: shed.w, h: shed.h, alongX: shed.w >= shed.h, seed }, size)), { design, allocation, realization, rejected } = built.details;
       if (design.spaces.length > 1) designed++;
       observe?.({ label, origin: { x: shed.x * size, y: shed.y * size }, cellSize: size, design, allocation, realization, ...rejected.length ? { rejected } : {} });
-      elements.push(...placedElements(built, label, shed.x, shed.y, size));
+      commit(label, { elements: placedElements(built, label, shed.x, shed.y, size) });
       sheds = 1;
     }
   }
 
   // A machine in each slot that rolls under `density`, if its footprint fits.
-  const machines = new Map<string, Box>();
+  const machines = new Map<string, Box>(), machineShapes = new Map<string, Shape[]>();
   const hintedMachines = new Map<string, ReturnType<typeof boxesAgainstHints>>();
   for (const slot of slots) {
     if (shedSlots.has(key(slot.x, slot.y)) || draw(brief.seed, slot.x, slot.y, CHANNEL.machine) >= density) continue;
@@ -127,8 +132,10 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
     if (!clear(box)) continue;
     machines.set(key(slot.x, slot.y), box);
     const chamfered = draw(brief.seed, slot.x, slot.y, CHANNEL.chamfer) < CHAMFERED;
-    const built = expectPlaced(PLANT_MACHINE.build({ w, h, chamfered }, size));
-    elements.push(...placedElements(built, `plant-machine-${machines.size}`, box.x, box.y, size));
+    const built = expectPlaced(PLANT_MACHINE.build({ w, h, chamfered }, size)), label = `plant-machine-${machines.size}`;
+    const placed = placedElements(built, label, box.x, box.y, size);
+    machineShapes.set(key(slot.x, slot.y), placed.flatMap(element => elementShapes(element)));
+    commit(label, { elements: placed });
   }
 
   // Pipe runs between neighbouring machines, across then down, each with one door-wide gap.
@@ -137,7 +144,7 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
     const a = machines.get(key(slot.x, slot.y));
     if (!a) continue;
     for (const across of [true, false]) {
-      const b = machines.get(across ? key(slot.x + PERIOD, slot.y) : key(slot.x, slot.y + PERIOD));
+      const bKey = across ? key(slot.x + PERIOD, slot.y) : key(slot.x, slot.y + PERIOD), b = machines.get(bKey);
       if (!b) continue;
       // Along u from a's far face to b's near face, in a row v that both span.
       const [u0, u1] = across ? [a.x + a.w, b.x] : [a.y + a.h, b.y];
@@ -155,16 +162,23 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
       if (!runRing) continue;
       // Local to the run's box, which reaches SEAT into each machine.
       const built = expectPlaced(PLANT_PIPE_RUN.build({ length, gap, aisle: AISLE, across }, size));
-      const parts = built.elements[0]!.template.parts;
-      if (!parts.length) continue;
       const seated = across ? { ...run, x: run.x - SEAT, w: run.w + 2 * SEAT } : { ...run, y: run.y - SEAT, h: run.h + 2 * SEAT };
-      const shapes = elementShapes({ label: 'pipe-trial', x: seated.x * size, y: seated.y * size,
-        template: { w: seated.w * size, h: seated.h * size, parts } });
-      if (shapes.some(shape => !mask.contains(shape) || protectedShapes.some(keep => shapesOverlap(shape, keep)))) continue;
-      elements.push(...placedElements(built, `plant-pipe-${++pipes}`, seated.x, seated.y, size));
+      const [element] = placedElements(built, `plant-pipe-${pipes + 1}`, seated.x, seated.y, size);
+      // Each stub less both machines, so it ends on their surfaces, as convex pieces local to the element.
+      const ends = [...machineShapes.get(key(slot.x, slot.y))!, ...machineShapes.get(bKey)!];
+      const pieces = element!.template.parts.flatMap(part => part.part === 'obstacle'
+        ? construct([transform(part.shape, element!.x, element!.y)]).subtract(ends).pieces() : []);
+      if (!pieces.length || pieces.some(piece => !canvas.fits(piece))) continue;
+      const parts = pieces.map(piece => ({ part: 'obstacle' as const, kind: 'pipe' as const, shape: transform(piece, -element!.x, -element!.y) }));
+      // It addresses each stub's cells, flush with its machines' boxes; the gap is left as the aisle it is.
+      const areas = [[0, gap], [gap + AISLE, length]].filter(([s, e]) => e > s).map(([s, e]) => across
+        ? rect((run.x + s) * size, run.y * size, (e - s) * size, size) : rect(run.x * size, (run.y + s) * size, size, (e - s) * size));
+      commit(element!.label, { elements: [{ ...element!, template: { ...element!.template, parts } }], areas, extents: areas });
+      pipes++;
     }
   }
 
+  const elements = [...canvas.elements];
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
   return builtRegion(brief, elements, loot, [], { machines: machines.size, pipes, sheds, designed });
