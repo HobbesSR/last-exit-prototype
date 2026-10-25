@@ -131,3 +131,7 @@ The maintained product requirements, acceptance status, original prompt notes, d
 Non-player clients: a connection can join as a spectator with the room owner key and receive the unfogged directed view, delayed by 60 simulation ticks (three seconds); during the initial three seconds it stays at the opening frame. It has no interface of its own beyond the dev view's camera, and there is no patron action system. The undelayed dev view is a development tool gated by `DEV_TOOLS`. Owner credentials persist in session storage for refresh recovery; shared room URLs remain keyless.
 
 This is a local vertical slice using Phaser, Node, SAT.js, and PathFinding.js. The simulation and geometric movement are separate from rendering. Persistent unlocks, contestant perks, cameras with viewing stations, sound, polished animation, economy, and production hosting are future work. See [docs/16-deferred.md](docs/16-deferred.md) and [docs/28-operational-limits.md](docs/28-operational-limits.md).
+
+## License
+
+The project's original code and original assets are licensed under the [MIT License](LICENSE). Third-party dependencies, libraries, and assets incorporated or redistributed retain their own respective licenses and notices.

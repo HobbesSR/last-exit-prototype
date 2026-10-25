@@ -2,6 +2,7 @@
   "name": "last-exit-map",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "test": "npm run typecheck && node --test tests/*.test.ts tests/slow/*.test.ts",
