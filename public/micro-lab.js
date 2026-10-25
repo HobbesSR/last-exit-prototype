@@ -191,4 +191,11 @@ async function openLinked() {
   return !!brief && showImported(brief, 'Opened from a link.');
 }
 addEventListener('hashchange', openLinked);
+// Match the drawing surface to its workspace slot. Pointer projection uses these same
+// logical pixels, so resizing panels/windows neither stretches the region nor shifts clicks.
+new ResizeObserver(([entry]) => {
+  const width = Math.round(entry.contentRect.width), height = Math.round(entry.contentRect.height);
+  if (width < 1 || height < 1 || (canvas.width === width && canvas.height === height)) return;
+  canvas.width = width; canvas.height = height; draw();
+}).observe(canvas);
 if (!await openLinked()) generate();
