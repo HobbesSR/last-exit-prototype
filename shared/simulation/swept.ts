@@ -50,12 +50,11 @@ export function closedGateShapes(gates: readonly Gate[]): Shape[] {
 export function solidBlockers(game: Game): Shape[] {
   const props = physicsRuntime(game)?.world.snapshot({ includeStatic: false }).bodies
     .filter(body => body.spec.kind === 'prop' && body.spec.collisionProfile !== 'loot') ?? [];
-  const copy = (shape: Shape): Shape => shape.kind === 'polygon'
-    ? polygon(shape.x, shape.y, shape.points.map(point => ({ ...point }))) : { ...shape };
   return [
     ...staticShapes(game.map, false),
     ...closedGateShapes(game.map.gates),
-    ...props.map(({ spec, transform }) => copy(bodyShape({ ...transform, shape: spec.shape }))),
+    // snapshot() already detaches specs, including an unrotated convex body's vertices.
+    ...props.map(({ spec, transform }) => bodyShape({ ...transform, shape: spec.shape })),
   ];
 }
 

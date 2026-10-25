@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { attachPhysics } from '../shared/simulation/physics-runtime.ts';
 import { firstContact, solidBlockers, staticShapes } from '../shared/simulation/swept.ts';
+import { createPhysicsWorld } from '../shared/physics/world.ts';
 
 function fixture() {
   const map = { width: 300, height: 200,
@@ -65,19 +66,23 @@ test('current solid prop poses block; actors and sensor loot do not', () => {
     'the next query sees the new prop pose');
 });
 
-test('queries leave borrowed static shapes intact and prop geometry is detached from body specs', () => {
+test('queries preserve cached statics and real world snapshots isolate zero-angle convex vertices', async () => {
   const game = fixture();
   const vertices = [{ x: -4, y: -4 }, { x: 4, y: -4 }, { x: 0, y: 4 }];
-  attachPhysics(game, { world: { snapshot: () => ({ bodies: [
-    body('triangle', 'prop', { kind: 'convex', vertices }, 170, 50),
-  ] }) } });
-  const cached = staticShapes(game.map, false);
-  const original = structuredClone(cached);
-  const before = solidBlockers(game);
-  assert.strictEqual(before[0], cached[0], 'static descriptors remain borrowed from the cache');
-  firstContact({ x: 10, y: 30 }, { x: 50, y: 30 }, before, 0);
-  assert.deepEqual(staticShapes(game.map, false), original);
-  before.at(-1).points[0].x = -999;
-  assert.notEqual(solidBlockers(game).at(-1).points[0].x, -999);
-  assert.deepEqual(vertices[0], { x: -4, y: -4 });
+  const world = await createPhysicsWorld();
+  try {
+    world.queueAddBody({ id: 'triangle', kind: 'prop', shape: { kind: 'convex', vertices }, x: 170, y: 50 });
+    world.commitMutations();
+    attachPhysics(game, { world });
+    const cached = staticShapes(game.map, false);
+    const original = structuredClone(cached);
+    const before = solidBlockers(game);
+    assert.strictEqual(before[0], cached[0], 'static descriptors remain borrowed from the cache');
+    firstContact({ x: 10, y: 30 }, { x: 50, y: 30 }, before, 0);
+    assert.deepEqual(staticShapes(game.map, false), original);
+    before.at(-1).points[0].x = -999;
+    assert.notEqual(solidBlockers(game).at(-1).points[0].x, -999);
+    assert.deepEqual(world.snapshot().bodies[0].spec.shape.vertices[0], { x: -4, y: -4 });
+    assert.deepEqual(vertices[0], { x: -4, y: -4 });
+  } finally { world.dispose(); }
 });
