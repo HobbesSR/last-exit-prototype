@@ -189,6 +189,17 @@ Options include `--seconds=<N>`, `--headed`, `--location=dense|crowded|offscreen
 to arrange entity crowds, and `--spectator` (`node tests/bench-client.mjs --spectator`)
 to benchmark rendering the unfogged, whole-arena spectator overview at full zoom-out.
 
+## P7 ballistic lab
+
+P7's isolated ballistic lab is checked by `tests/physics-ballistics.test.js` and
+`node tests/physics-ballistics.browser.mjs` (also in `test:browser`). These cover
+analytic height/planar overlap, event ties, mask containment, bounds and retained
+state-only playback including actual shadow/sprite pixels and Node/Chrome equality.
+`npm run physics:ballistics` writes reproducible JSON and standalone HTML under
+`test-results/`; no game server or engine is required to open the HTML. This
+lab-only change does not trigger the shared/server/map full-suite or seed-sweep
+gate. It does not establish live gameplay or arbitrary authored-map coverage.
+
 ## The frozen fixture
 
 The current frozen characterization fixture is `behavior-nav-1.json.gz`.
