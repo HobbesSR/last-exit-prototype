@@ -6,7 +6,7 @@ import { defaultContent } from '../shared/simulation/content.ts';
 import { portalGraphOf } from '../shared/navigation/portal-graph.ts';
 import { freeSpaceTile } from '../shared/free-space.ts';
 import { discoveryGrid } from '../shared/discovery.ts';
-import { roomHarness } from './helpers/room-harness.js';
+import { generatedMap, roomHarness } from './helpers/room-harness.js';
 
 test('the map worker returns exactly the map generated inline', async () => {
   const maps = createMapGenerator();
@@ -14,7 +14,7 @@ test('the map worker returns exactly the map generated inline', async () => {
     const [first, second] = await Promise.all([maps.generate(4217, DEFAULT_LIVE_ZONE_SIZE), maps.generate(9, DEFAULT_LIVE_ZONE_SIZE)]);
     const inline = generateLiveMap(4217, defaultContent(), DEFAULT_LIVE_ZONE_SIZE);
     assert.equal(JSON.stringify(first), JSON.stringify(inline));
-    assert.equal(JSON.stringify(second), JSON.stringify(generateLiveMap(9, defaultContent(), DEFAULT_LIVE_ZONE_SIZE)), 'requests are answered in their own order');
+    assert.equal(JSON.stringify(second), JSON.stringify(generatedMap(9, DEFAULT_LIVE_ZONE_SIZE)), 'requests are answered in their own order');
     assert.deepEqual(portalGraphOf(first), portalGraphOf(inline), 'the portal graph crosses beside the map');
     // A gladiator's tiles cross too, packed (22.6, "Bot adoption"): read from one buffer, equal to those built inline.
     const { cols, size } = discoveryGrid(inline), boxOf = cell => ({ x: (cell % cols) * size, y: Math.floor(cell / cols) * size, w: size, h: size });
@@ -27,7 +27,7 @@ test('the map worker returns exactly the map generated inline', async () => {
 /** A generator whose maps arrive only when the test says, so the time between can be observed. */
 function heldGenerator() {
   const held = [];
-  const generateMap = (seed, size) => new Promise((resolve, reject) => held.push({ resolve: () => resolve(generateLiveMap(seed, defaultContent(), size)), reject }));
+  const generateMap = (seed, size) => new Promise((resolve, reject) => held.push({ resolve: () => resolve(generatedMap(9, size)), reject }));
   return { generateMap, held };
 }
 
@@ -68,7 +68,7 @@ test('a room is joinable while its map generates, and the seats it gave out are 
     }
 
     // The same seed generated inline, with the same people arriving after it exists.
-    const inline = roomHarness(), twin = inline.service.makeRoom(9);
+    const inline = roomHarness({ reuseMaps: true }), twin = inline.service.makeRoom(9);
     try {
       const people = crowd(inline, twin), ids = new Map([[owner, people.owner], [late, people.late], [back, people.back]]
         .map(([held, live]) => [live.session.playerId, held.session.playerId]));

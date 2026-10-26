@@ -3,21 +3,21 @@ import assert from 'node:assert/strict';
 import { roomHarness } from './helpers/room-harness.js';
 
 test('the dev view follows the server policy and sees the current directed frame', async () => {
-  const closed = roomHarness(), shut = closed.live();
+  const closed = roomHarness({ reuseMaps: true }), shut = closed.live();
   try {
     const refused = closed.joined(shut.room, { role: 'dev', ownerKey: shut.room.ownerKey });
     assert.match(refused.messages[0].message, /not enabled/);
     assert.equal(shut.owner.messages.find(m => m.type === 'welcome').devTools, false, 'players are told when the dev view is off');
   } finally { await closed.service.close(); }
 
-  const owned = roomHarness({ devTools: 'owner' }), mine = owned.live();
+  const owned = roomHarness({ devTools: 'owner', reuseMaps: true }), mine = owned.live();
   try {
     assert.match(owned.joined(mine.room, { role: 'dev' }).messages[0].message, /owner key/);
     assert.equal(owned.joined(mine.room, { role: 'dev', ownerKey: mine.room.ownerKey }).session.dev, true);
     assert.equal(owned.joined(mine.room, {}).messages.find(m => m.type === 'welcome').devTools, false, 'a joiner without the key is not offered it');
   } finally { await owned.service.close(); }
 
-  const h = roomHarness({ devTools: 'all' }), { room, owner, writer } = h.live();
+  const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room, owner, writer } = h.live();
   try {
     assert.equal(owner.messages.find(m => m.type === 'welcome').devTools, true);
     const dev = h.joined(room, { role: 'dev' }), welcome = dev.messages[0];
@@ -37,7 +37,7 @@ test('the dev view follows the server policy and sees the current directed frame
 });
 
 test('a dev pause stops only its own room, drops owed time and leaves one mark', async () => {
-  const h = roomHarness({ devTools: 'all' }), { room, owner, writer } = h.live(), other = h.live(10);
+  const h = roomHarness({ devTools: 'all', reuseMaps: true }), { room, owner, writer } = h.live(), other = h.live(10);
   try {
     const dev = h.joined(room, { role: 'dev' });
     h.wake(100); const tick = room.match.tick;
@@ -59,7 +59,7 @@ test('a dev pause stops only its own room, drops owed time and leaves one mark',
     assert.equal(writer.marks.filter(m => m.kind === 'pause').length, 2, 'ending a paused match settles its pause');
   } finally { await h.service.close(); }
 
-  const closed = roomHarness({ devTools: 'owner' }), shut = closed.live();
+  const closed = roomHarness({ devTools: 'owner', reuseMaps: true }), shut = closed.live();
   try {
     const guest = closed.joined(shut.room, {}), before = shut.room.match.tick;
     guest.send({ type: 'dev', action: 'pause' }); closed.wake(100);
@@ -70,7 +70,7 @@ test('a dev pause stops only its own room, drops owed time and leaves one mark',
 });
 
 test('a dev teleport moves any active player to open ground, is recorded, and shows while paused', async () => {
-  const h = roomHarness({ devTools: 'owner' }), { room, owner, writer } = h.live();
+  const h = roomHarness({ devTools: 'owner', reuseMaps: true }), { room, owner, writer } = h.live();
   try {
     const id = owner.session.playerId, bot = room.game.players.find(p => p.bot && p.status === 'active');
     const open = room.game.map.spawns[0];
@@ -99,7 +99,7 @@ test('a dev teleport moves any active player to open ground, is recorded, and sh
 });
 
 test('teleports in a paused room never shorten the spectator delay', async () => {
-  const h = roomHarness({ devTools: 'owner' }), { room, owner } = h.live();
+  const h = roomHarness({ devTools: 'owner', reuseMaps: true }), { room, owner } = h.live();
   try {
     for (let i = 0; i < 100; i++) h.wake(50);
     const eye = h.joined(room, { role: 'spectator', ownerKey: room.ownerKey });
