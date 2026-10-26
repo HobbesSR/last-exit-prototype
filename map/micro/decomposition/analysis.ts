@@ -3,8 +3,10 @@ import { cellKey, compareCells } from '../../kernel/cell.ts';
 import type { Cell } from '../types.ts';
 import type { BoundaryEdge, CellRect, NeckCut, RegionAnalysis } from './types.ts';
 
-const LIMIT = 4096;
-const SPAN = 64;
+export const REGION_CELL_LIMIT = 4096;
+export const REGION_SPAN_LIMIT = 64;
+const LIMIT = REGION_CELL_LIMIT;
+const SPAN = REGION_SPAN_LIMIT;
 const DIRS = [[0, -1], [-1, 0], [1, 0], [0, 1]] as const;
 const edgeDirections = [
   { dx: 0, dy: -1, a: (x: number, y: number): Cell => ({ x, y }), b: (x: number, y: number): Cell => ({ x: x + 1, y }) },

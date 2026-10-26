@@ -1,7 +1,8 @@
 import { cellKey, compareCells } from '../../kernel/cell.ts';
 import { unusedComponents } from '../components.ts';
 import { allocateCandidates } from '../decomposition/allocation.ts';
-import { createRegionContext } from '../decomposition/context.ts';
+import { REGION_CELL_LIMIT, REGION_SPAN_LIMIT } from '../decomposition/analysis.ts';
+import { createRegionContext, REGION_CELL_SIZE_LIMIT } from '../decomposition/context.ts';
 import type { CandidatePiece, DecompositionPlan } from '../decomposition/types.ts';
 import { buildCompound } from './compound.ts';
 import { buildCover } from './cover.ts';
@@ -189,7 +190,8 @@ export function planBlock(brief: RegionBrief): BlockPlan {
   // alley even when a smaller lot fits. Successful guillotine plans are retained.
   // One claim makes residual connectivity a hard, candidate-local predicate.
   let allocation: DecompositionPlan | undefined;
-  if (!lots.length && mask.cells.length <= 4096 && W <= 64 && H <= 64 && size > 0 && size <= 200) {
+  if (!lots.length && mask.cells.length <= REGION_CELL_LIMIT && W <= REGION_SPAN_LIMIT && H <= REGION_SPAN_LIMIT
+    && size > 0 && size <= REGION_CELL_SIZE_LIMIT) {
     const candidates: CandidatePiece[] = [], boxes = new Map<string, Box>();
     const cellsOf = (box: Box): Cell[] => {
       const cells: Cell[] = [];
