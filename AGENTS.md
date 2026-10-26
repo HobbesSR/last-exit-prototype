@@ -18,7 +18,8 @@ owning number, not a heading, in briefs and handoffs. See 00 and 33 for numberin
 
 Use cost-aware delegation proactively when tools and runtime rules permit it.
 Keep architecture, ambiguous diagnosis, cross-system contracts and integration
-review with the lead (`gpt-6.1-sol` for deep reasoning and broad context). Prefer
+review with the lead (`gpt-6.1-sol` for deep reasoning and broad context;
+`gpt-6-astra` for deep creativity and imagining systems' physical behavior). Prefer
 `gpt-6.1-terra` with medium reasoning for bounded implementation/tests; use
 `gpt-6.1-sol` for algorithmically dense or high-invariant tasks and `gpt-6-luna`
 with low/medium reasoning for mechanical edits and focused inventories. Check

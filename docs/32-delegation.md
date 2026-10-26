@@ -9,6 +9,7 @@ deliverables. Delegation should reduce total context/rework, not just elapsed ti
 | Work | Preferred owner |
 | --- | --- |
 | Physics ownership, replay/content compatibility, conflicting requirements, uncertain performance causes | Lead; GPT-6.1 Sol (`gpt-6.1-sol`) preferred for deep reasoning and broad context |
+| Creative direction and imagining the end result and physical behavior of systems | GPT-6 Astra (`gpt-6-astra`) |
 | Algorithmic/spatial logic, non-trivial state machines, complex refactors within defined contracts | GPT-6.1 Sol, medium (`gpt-6.1-sol`) |
 | Implement an agreed inventory gesture, extract a specified adapter, add meaningful tests for a defined contract | GPT-6.1 Terra, medium (`gpt-6.1-terra`) |
 | Bounded call-site inventory, mechanical edits, documentation updates with settled facts | GPT-6 Luna, low/medium (`gpt-6-luna`) |
