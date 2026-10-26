@@ -1,0 +1,57 @@
+{
+  "baseline": "df815bb",
+  "candidate": "1d1bf9645e05579c07a6af0986626a2423969d0a",
+  "fixture": "existing 200x150, 170-portal plant budget witness, seed3",
+  "node": "v24.15.0",
+  "limits": "Three sequential paired builds after one warmup per builder, with machine benchmark lock and no competing lead-agent tests. Shared-machine ordinary tests are not serialized by this lock. Absolute fixture budget is 3000ms; this is generation cost only, not server/client tick performance.",
+  "rows": [
+    {
+      "repeat": 1,
+      "label": "before",
+      "wallMs": 234.35750000000007,
+      "cpuMs": 453,
+      "elements": 396,
+      "crates": 0
+    },
+    {
+      "repeat": 1,
+      "label": "after",
+      "wallMs": 305.88200000000006,
+      "cpuMs": 390,
+      "elements": 737,
+      "crates": 341
+    },
+    {
+      "repeat": 2,
+      "label": "before",
+      "wallMs": 241.2195999999999,
+      "cpuMs": 313,
+      "elements": 396,
+      "crates": 0
+    },
+    {
+      "repeat": 2,
+      "label": "after",
+      "wallMs": 316.05290000000014,
+      "cpuMs": 375,
+      "elements": 737,
+      "crates": 341
+    },
+    {
+      "repeat": 3,
+      "label": "before",
+      "wallMs": 202.86930000000007,
+      "cpuMs": 235,
+      "elements": 396,
+      "crates": 0
+    },
+    {
+      "repeat": 3,
+      "label": "after",
+      "wallMs": 291.35339999999997,
+      "cpuMs": 437,
+      "elements": 737,
+      "crates": 341
+    }
+  ]
+}
