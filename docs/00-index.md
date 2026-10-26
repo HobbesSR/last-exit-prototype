@@ -59,6 +59,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | --- | --- |
 | [20-micro-generation.md](20-micro-generation.md) | Guide to micro contracts, geometry, builders, decomposition, tools, passable margins (20.6) builder delegation (20.7: preparation/execution, hut and compound adoption implemented), placeables (20.8) and a builder's usual structure (20.9); load the relevant 20.x part |
 | [21-stack.md](21-stack.md) | Chosen components, why, and the constraints a replacement must satisfy |
+| [21.1-third-party-licenses.md](21.1-third-party-licenses.md) | Third-party licence audit (#551): what the server redistributes, evidence, obligations, unresolved items, and the update process behind `THIRD-PARTY-NOTICES.txt` |
 | [22-ownership.md](22-ownership.md) | Guide to ownership by subsystem and the boundaries tests enforce; load the relevant 22.x part |
 | [22.6-hierarchical-navigation.md](22.6-hierarchical-navigation.md) | Guide: direction, constraints, levels and owners, compatibility. Portal graph (#420) over a free-space mesh (#422); knowledge tiles and optimistic planning (#423), adopted by bots under `content-3` (#424); sliced replanning under `content-4` (#470), local repair under `content-5` (#470 part 2); middle level and extra crossings not built (#425 closed) |
 | [22.6.1-portal-graph-and-mesh.md](22.6.1-portal-graph-and-mesh.md) | The portal graph (#420) and the free-space mesh eroded per body (#422); the deferred middle level |

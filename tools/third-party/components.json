@@ -1,0 +1,130 @@
+{
+  "audited": "2026-10-26",
+  "note": "Everything the server delivers to a browser that this project did not write. docs/21.1 owns the inventory, evidence and update process; `npm run notices` regenerates THIRD-PARTY-NOTICES.txt from this file.",
+  "components": [
+    {
+      "name": "Phaser",
+      "package": "phaser",
+      "version": "3.90.0",
+      "license": "MIT",
+      "source": "https://github.com/phaserjs/phaser",
+      "delivery": "game",
+      "served": "/vendor/phaser/phaser.min.js",
+      "texts": ["node_modules/phaser/LICENSE.md"],
+      "embeds": [
+        { "name": "eventemitter3", "license": "MIT", "source": "https://github.com/primus/eventemitter3", "texts": ["node_modules/eventemitter3/LICENSE"] },
+        { "name": "Matter.js", "license": "MIT", "source": "https://github.com/liabru/matter-js", "texts": ["tools/third-party/texts/matter-js.txt"] },
+        { "name": "poly-decomp.js", "license": "MIT", "source": "https://github.com/schteppe/poly-decomp.js", "texts": ["tools/third-party/texts/poly-decomp.txt"] },
+        { "name": "matter-collision-events", "license": "MIT", "source": "https://github.com/dxu/matter-collision-events", "texts": ["tools/third-party/texts/matter-collision-events.txt"] },
+        { "name": "Earcut 2.2.4", "license": "ISC", "source": "https://github.com/mapbox/earcut", "texts": ["tools/third-party/texts/earcut.txt"] },
+        { "name": "RBush", "license": "MIT", "source": "https://github.com/mourner/rbush", "texts": ["tools/third-party/texts/rbush.txt"] },
+        { "name": "Simplify.js", "license": "BSD-2-Clause", "source": "https://github.com/mourner/simplify-js", "texts": ["tools/third-party/texts/simplify-js.txt"] },
+        { "name": "Median (RoboWhale)", "license": "MIT", "source": "node_modules/phaser/src/math/Median.js", "texts": ["tools/third-party/texts/robowhale-median.txt"] },
+        { "name": "AudioContext-MonkeyPatch", "license": "Apache-2.0", "source": "https://github.com/cwilso/AudioContext-MonkeyPatch", "texts": ["tools/third-party/texts/audiocontext-monkeypatch.txt"], "textRef": "Rapier 2D" },
+        { "name": "SVG path conversion (Gavin Kistner), in Matter.js", "license": "BSD-style (phrogz reuse licence)", "source": "http://phrogz.net/js/_ReuseLicense.txt", "texts": ["tools/third-party/texts/phrogz-reuse.txt"] },
+        { "name": "topologicalSort from javascript-algorithms (Minko Gechev), in Matter.js", "license": "MIT", "source": "https://github.com/mgechev/javascript-algorithms", "texts": ["tools/third-party/texts/javascript-algorithms.txt"] }
+      ]
+    },
+    {
+      "name": "Lucide",
+      "package": "lucide",
+      "version": "0.468.0",
+      "license": "ISC",
+      "source": "https://github.com/lucide-icons/lucide",
+      "delivery": "game",
+      "served": "/vendor/lucide/lucide.min.js",
+      "texts": ["node_modules/lucide/LICENSE"],
+      "embeds": [
+        { "name": "Feather (icon portions)", "license": "MIT", "source": "https://github.com/feathericons/feather", "texts": ["tools/third-party/texts/feather.txt"] }
+      ]
+    },
+    {
+      "name": "SAT.js",
+      "package": "sat",
+      "version": "0.9.0",
+      "license": "MIT",
+      "source": "https://github.com/jriecken/sat-js",
+      "delivery": "game",
+      "served": "/vendor/sat/SAT.js, and /vendor/sat.mjs for the dev labs",
+      "texts": ["node_modules/sat/LICENSE"]
+    },
+    {
+      "name": "Rapier 2D",
+      "package": "@dimforge/rapier2d-compat",
+      "version": "0.21.0",
+      "license": "Apache-2.0",
+      "source": "https://github.com/dimforge/rapier.js",
+      "delivery": "game",
+      "served": "/vendor/rapier/rapier.mjs (WebAssembly embedded as base64)",
+      "texts": ["node_modules/@dimforge/rapier2d-compat/LICENSE"],
+      "embeds": [
+        { "name": "Rust crates compiled into the WebAssembly: nalgebra 0.35.0 and parry2d 0.31.1 (Apache-2.0); arrayvec 0.7.8, dlmalloc 0.2.13, ena 0.14.4, glam 0.33.10, hashbrown 0.17.1, js-sys 0.3.106, once_cell 1.21.4, robust 1.2.0, smallvec 1.16.2, spade 2.15.1, web-time 1.1.0 and the Rust standard library (each MIT OR Apache-2.0, distributed here under Apache-2.0)", "license": "Apache-2.0", "source": "crate paths in rapier_wasm2d_bg.wasm; licences from crates.io (docs/21.1)", "textRef": "Rapier 2D" }
+      ]
+    },
+    {
+      "name": "fdlibm 5.3 (sin, cos, atan2 ported in shared/math.ts)",
+      "version": "5.3",
+      "license": "fdlibm (permissive, notice preserved)",
+      "source": "https://www.netlib.org/fdlibm/",
+      "delivery": "game",
+      "served": "/shared/math.ts, with the notice in its header",
+      "texts": ["tools/third-party/texts/fdlibm.txt"]
+    },
+    {
+      "name": "PathFinding.js",
+      "package": "pathfinding",
+      "version": "0.4.18",
+      "license": "MIT",
+      "source": "https://github.com/qiao/PathFinding.js",
+      "delivery": "dev",
+      "served": "/vendor/pathfinding.mjs",
+      "texts": ["tools/third-party/texts/pathfinding.txt"]
+    },
+    {
+      "name": "heap.js",
+      "package": "heap",
+      "version": "0.2.5",
+      "license": "PSF",
+      "source": "https://github.com/qiao/heap.js",
+      "delivery": "dev",
+      "served": "inside /vendor/pathfinding.mjs",
+      "texts": ["tools/third-party/texts/heap-psf.txt"]
+    },
+    {
+      "name": "Clipper (clipper-lib)",
+      "package": "clipper-lib",
+      "version": "6.4.2",
+      "license": "BSL-1.0",
+      "source": "https://github.com/junmer/clipper-lib",
+      "delivery": "dev",
+      "served": "/vendor/clipper.mjs, with Angus Johnson's notice in its header",
+      "texts": ["tools/third-party/texts/boost-1.0.txt"]
+    },
+    {
+      "name": "Delaunator",
+      "package": "delaunator",
+      "version": "5.1.0",
+      "license": "ISC",
+      "source": "https://github.com/mapbox/delaunator",
+      "delivery": "dev",
+      "served": "/vendor/delaunator.mjs (its minified UMD bundle)",
+      "texts": ["node_modules/delaunator/LICENSE"],
+      "embeds": [
+        { "name": "robust-predicates", "license": "Unlicense", "source": "https://github.com/mourner/robust-predicates", "texts": ["node_modules/robust-predicates/LICENSE"] }
+      ]
+    },
+    {
+      "name": "Constrainautor",
+      "package": "@kninnug/constrainautor",
+      "version": "4.1.0",
+      "license": "ISC",
+      "source": "https://github.com/kninnug/Constrainautor",
+      "delivery": "dev",
+      "served": "/vendor/constrainautor.mjs",
+      "texts": ["node_modules/@kninnug/constrainautor/LICENSE"],
+      "embeds": [
+        { "name": "robust-predicates", "license": "Unlicense", "source": "https://github.com/mourner/robust-predicates", "textRef": "Delaunator" }
+      ]
+    }
+  ]
+}

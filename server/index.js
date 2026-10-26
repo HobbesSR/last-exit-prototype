@@ -14,7 +14,7 @@ import { createMapPool, MAP_POOL_SIZE } from './map-pool.js';
 import { installHttpApi } from './http-api.js';
 import { attachWebSockets } from './websocket.js';
 import { startScheduler } from './scheduler.js';
-import { serveSharedModules, VENDOR_MODULES } from './shared-assets.js';
+import { NOTICES_URL, serveSharedModules, VENDOR_DIRECTORIES, VENDOR_MODULES } from './shared-assets.js';
 import { devToolsPolicy } from './protocol.js';
 export { EMPTY_ROOM_GRACE_MS } from './room-service.js';
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
@@ -65,10 +65,10 @@ export async function createArenaServer({ replayDir = path.join(ROOT, 'replays')
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '2kb', inflate: false }));
-  app.use('/vendor/phaser', express.static(path.join(ROOT, 'node_modules/phaser/dist')));
-  app.use('/vendor/lucide', express.static(path.join(ROOT, 'node_modules/lucide/dist/umd')));
-  app.use('/vendor/sat', express.static(path.join(ROOT, 'node_modules/sat')));
-  app.use('/vendor/rapier', express.static(path.join(ROOT, 'node_modules/@dimforge/rapier2d-compat/dist')));
+  for (const [url, directory] of Object.entries(VENDOR_DIRECTORIES))
+    app.use(url, express.static(path.join(ROOT, 'node_modules', directory)));
+  // Their licences and notices, which the minified bundles do not carry themselves (#551).
+  app.get(NOTICES_URL, (req, res) => res.type('text/plain').sendFile(path.join(ROOT, 'THIRD-PARTY-NOTICES.txt')));
 
   // The game client maps bare `sat` through an import map. Only the dev labs, whose workers cannot use
   // one, need the imports rewritten, so a server without dev tools serves the shared modules untouched.

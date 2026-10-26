@@ -6,7 +6,12 @@ import { stripTypeScriptTypes } from 'node:module';
 export const VENDOR_MODULES = Object.freeze({ sat: '/vendor/sat.mjs', pathfinding: '/vendor/pathfinding.mjs',
   'clipper-lib': '/vendor/clipper.mjs', delaunator: '/vendor/delaunator.mjs',
   '@kninnug/constrainautor': '/vendor/constrainautor.mjs' });
-const BARE = { ...VENDOR_MODULES, '@dimforge/rapier2d-compat': '/vendor/rapier/rapier.mjs' };
+/** Package directories served to every browser as they are installed, by URL prefix. */
+export const VENDOR_DIRECTORIES = Object.freeze({ '/vendor/phaser': 'phaser/dist', '/vendor/lucide': 'lucide/dist/umd',
+  '/vendor/sat': 'sat', '/vendor/rapier': '@dimforge/rapier2d-compat/dist' });
+/** Every third-party file above is covered here (THIRD-PARTY-NOTICES.txt, docs/21.1). */
+export const NOTICES_URL = '/third-party-notices.txt';
+const BARE ={ ...VENDOR_MODULES, '@dimforge/rapier2d-compat': '/vendor/rapier/rapier.mjs' };
 
 function bareResolved(source) {
   return source.replace(/(\bfrom\s*|\bimport\s*)(["'])([^"'./][^"']*)\2/g, (match, keyword, quote, name) =>
