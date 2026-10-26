@@ -454,7 +454,7 @@ test('roof geometry works with non-40 cell size and non-zero origins', () => {
 });
 
 test('live map: roofs have unique ids, keep map id order, and declare multi-room groups', () => {
-  // #530's inward-ground content changes the generated layouts and their object counts.
+  // #530's inward grounds and #564's residual cover change generated object/loot counts.
   // Pin the resulting map IDs so roof creation cannot renumber obstacles, gates or items (#343).
   const map1 = generateLiveMap(1);
   assert.equal(map1.obstacles?.at(-1)?.id, 'o635', 'obstacle IDs stay pinned on seed 1');
@@ -462,9 +462,9 @@ test('live map: roofs have unique ids, keep map id order, and declare multi-room
   assert.equal(map1.items?.at(-1)?.id, 'item-1734', 'item IDs stay pinned on seed 1');
 
   const map2 = generateLiveMap(2);
-  assert.equal(map2.obstacles?.at(-1)?.id, 'o659', 'obstacle IDs stay pinned on seed 2');
-  assert.equal(map2.gates?.at(-1)?.id, 'door-454', 'gate IDs stay pinned on seed 2');
-  assert.equal(map2.items?.at(-1)?.id, 'item-1691', 'item IDs stay pinned on seed 2');
+  assert.equal(map2.obstacles?.at(-1)?.id, 'o664', 'obstacle IDs stay pinned on seed 2');
+  assert.equal(map2.gates?.at(-1)?.id, 'door-456', 'gate IDs stay pinned on seed 2');
+  assert.equal(map2.items?.at(-1)?.id, 'item-1684', 'item IDs stay pinned on seed 2');
 
   for (const map of [map1, map2]) {
     const ids = new Set(map.roofs.map(r => r.id));

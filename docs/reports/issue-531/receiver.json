@@ -1,0 +1,3175 @@
+{
+  "audit": "residual-cover-receiver-1",
+  "commit": "d097d58fc30bf7c067866f494f224bd9141f76de",
+  "sourceHashes": {
+    "tools/residual-cover-audit.mjs": "dd90fccdb1219b6e0bedad9e5c427bf083269f71ad0995c7ffe29f2b351ed32e",
+    "map/micro/strategies/cover.ts": "a4162ba67eb2bfc44199054ee74b8e54b8f144a4b46fc2394b857b4ef18d69d7",
+    "map/micro/strategies/hut.ts": "3360d11816a04adc7ef4a7c8b2957c6341d65b63f1af181a372ac701efeda2ba",
+    "map/micro/strategies/compound.ts": "9330a70c6b986f37bc9d5a99b1464c2eb018fae9acefd804e7ad0dc0725ef9f9",
+    "map/micro/region-types.ts": "bdc6c417c4419d7bebbba1a372413ca6a49cf3a068b8b5d04b25520546765289"
+  },
+  "createdAt": "2026-10-26T03:25:32.261Z",
+  "contentVersion": "types-36",
+  "receiverVersion": "cover-receiver-infill-1",
+  "maps": [
+    {
+      "seed": "issue330-before-12x6",
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "summary": [
+        {
+          "type": "hut",
+          "regions": 8,
+          "before": {
+            "offers": 7,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 8,
+            "loot": 23,
+            "freeCells": 690
+          },
+          "after": {
+            "offers": 7,
+            "accepted": 7,
+            "childElements": 7,
+            "elements": 15,
+            "loot": 11,
+            "freeCells": 681
+          }
+        },
+        {
+          "type": "compound",
+          "regions": 0,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 0,
+            "loot": 0,
+            "freeCells": 0
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 0,
+            "loot": 0,
+            "freeCells": 0
+          }
+        }
+      ],
+      "rows": [
+        {
+          "id": "hut@126,36",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@354,72",
+          "type": "hut",
+          "cells": 36,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 29,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 29,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@228,126",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 6,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:230,133",
+                "reason": "Receiving builder for yard:230,133: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:235,128",
+                "reason": "Receiving builder for yard:235,128: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:235,133",
+                "reason": "Receiving builder for yard:235,133: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 0,
+            "freeCells": 131,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": {
+            "full": true,
+            "omitted": true,
+            "historicalFull": true,
+            "historicalRecoveryRefused": true
+          }
+        },
+        {
+          "id": "hut@240,138",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@258,138",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@144,156",
+          "type": "hut",
+          "cells": 252,
+          "before": {
+            "offers": 4,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 10,
+            "freeCells": 245,
+            "rejections": [
+              {
+                "key": "yard:151,164",
+                "reason": "Receiving builder for yard:151,164: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:152,169",
+                "reason": "Receiving builder for yard:152,169: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:157,170",
+                "reason": "Receiving builder for yard:157,170: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:158,175",
+                "reason": "Receiving builder for yard:158,175: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 4,
+            "accepted": 4,
+            "childElements": 4,
+            "elements": 5,
+            "loot": 4,
+            "freeCells": 241,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@144,174",
+          "type": "hut",
+          "cells": 36,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 26,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 26,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@174,174",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        }
+      ],
+      "errors": []
+    },
+    {
+      "seed": "issue330-before-24x12",
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "summary": [
+        {
+          "type": "hut",
+          "regions": 31,
+          "before": {
+            "offers": 41,
+            "accepted": 2,
+            "childElements": 2,
+            "elements": 33,
+            "loot": 103,
+            "freeCells": 2862
+          },
+          "after": {
+            "offers": 41,
+            "accepted": 41,
+            "childElements": 41,
+            "elements": 72,
+            "loot": 42,
+            "freeCells": 2815
+          }
+        },
+        {
+          "type": "compound",
+          "regions": 4,
+          "before": {
+            "offers": 14,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 90,
+            "loot": 322,
+            "freeCells": 6999
+          },
+          "after": {
+            "offers": 14,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 90,
+            "loot": 322,
+            "freeCells": 6999
+          }
+        }
+      ],
+      "rows": [
+        {
+          "id": "hut@396,0",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@426,6",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 4,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 4,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@366,18",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 7,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:368,20",
+                "reason": "Receiving builder for yard:368,20: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:368,25",
+                "reason": "Receiving builder for yard:368,25: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:373,20",
+                "reason": "Receiving builder for yard:373,20: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 3,
+            "freeCells": 132,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": {
+            "full": true,
+            "omitted": true,
+            "historicalFull": true,
+            "historicalRecoveryRefused": true
+          }
+        },
+        {
+          "id": "hut@288,36",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 63,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 63,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@288,54",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 63,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 63,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "compound@336,54",
+          "type": "compound",
+          "cells": 1296,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 24,
+            "loot": 57,
+            "freeCells": 1124,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 24,
+            "loot": 57,
+            "freeCells": 1124,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@426,54",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 64,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 64,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@186,72",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 64,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 64,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@492,72",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 63,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 63,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "compound@336,120",
+          "type": "compound",
+          "cells": 1152,
+          "before": {
+            "offers": 2,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 20,
+            "loot": 39,
+            "freeCells": 1008,
+            "rejections": [
+              {
+                "key": "exterior:338,122",
+                "reason": "No compatible hunter crossing between compound@336,120 and compound@336,120/delegate/exterior%3A338%2C122."
+              },
+              {
+                "key": "exterior:373,122",
+                "reason": "No compatible hunter crossing between compound@336,120 and compound@336,120/delegate/exterior%3A373%2C122."
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 2,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 20,
+            "loot": 39,
+            "freeCells": 1008,
+            "rejections": [
+              {
+                "key": "exterior:338,122",
+                "reason": "No compatible hunter crossing between compound@336,120 and compound@336,120/delegate/exterior%3A338%2C122."
+              },
+              {
+                "key": "exterior:373,122",
+                "reason": "No compatible hunter crossing between compound@336,120 and compound@336,120/delegate/exterior%3A373%2C122."
+              }
+            ],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@420,138",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 4,
+            "freeCells": 135,
+            "rejections": [
+              {
+                "key": "yard:422,140",
+                "reason": "Receiving builder for yard:422,140: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:422,145",
+                "reason": "Receiving builder for yard:422,145: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:427,145",
+                "reason": "Receiving builder for yard:427,145: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 0,
+            "freeCells": 132,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@96,144",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 64,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 64,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@108,150",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 1,
+            "childElements": 1,
+            "elements": 2,
+            "loot": 1,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:110,157",
+                "reason": "Receiving builder for yard:110,157: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:115,152",
+                "reason": "Receiving builder for yard:115,152: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 0,
+            "freeCells": 133,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@582,156",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 10,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:584,158",
+                "reason": "Receiving builder for yard:584,158: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:584,163",
+                "reason": "Receiving builder for yard:584,163: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:589,163",
+                "reason": "Receiving builder for yard:589,163: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 2,
+            "freeCells": 132,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@54,180",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:56,187",
+                "reason": "Receiving builder for yard:56,187: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:61,182",
+                "reason": "Receiving builder for yard:61,182: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:61,187",
+                "reason": "Receiving builder for yard:61,187: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 0,
+            "freeCells": 133,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "compound@84,180",
+          "type": "compound",
+          "cells": 1152,
+          "before": {
+            "offers": 2,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 21,
+            "loot": 7,
+            "freeCells": 1005,
+            "rejections": [
+              {
+                "key": "exterior:121,182",
+                "reason": "No compatible hunter crossing between compound@84,180 and compound@84,180/delegate/exterior%3A121%2C182."
+              },
+              {
+                "key": "exterior:86,182",
+                "reason": "No compatible hunter crossing between compound@84,180 and compound@84,180/delegate/exterior%3A86%2C182."
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 2,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 21,
+            "loot": 7,
+            "freeCells": 1005,
+            "rejections": [
+              {
+                "key": "exterior:121,182",
+                "reason": "No compatible hunter crossing between compound@84,180 and compound@84,180/delegate/exterior%3A121%2C182."
+              },
+              {
+                "key": "exterior:86,182",
+                "reason": "No compatible hunter crossing between compound@84,180 and compound@84,180/delegate/exterior%3A86%2C182."
+              }
+            ],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@546,186",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 1,
+            "childElements": 1,
+            "elements": 2,
+            "loot": 3,
+            "freeCells": 134,
+            "rejections": [
+              {
+                "key": "yard:548,188",
+                "reason": "Receiving builder for yard:548,188: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:548,193",
+                "reason": "Receiving builder for yard:548,193: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 0,
+            "freeCells": 132,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@708,192",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 9,
+            "freeCells": 137,
+            "rejections": [
+              {
+                "key": "yard:710,194",
+                "reason": "Receiving builder for yard:710,194: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:710,199",
+                "reason": "Receiving builder for yard:710,199: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:715,194",
+                "reason": "Receiving builder for yard:715,194: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 1,
+            "freeCells": 132,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@42,198",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:44,200",
+                "reason": "Receiving builder for yard:44,200: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:44,205",
+                "reason": "Receiving builder for yard:44,205: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:49,200",
+                "reason": "Receiving builder for yard:49,200: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 1,
+            "freeCells": 132,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@558,204",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 4,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:560,206",
+                "reason": "Receiving builder for yard:560,206: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:560,211",
+                "reason": "Receiving builder for yard:560,211: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:565,211",
+                "reason": "Receiving builder for yard:565,211: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 1,
+            "freeCells": 132,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@576,204",
+          "type": "hut",
+          "cells": 84,
+          "before": {
+            "offers": 1,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 6,
+            "freeCells": 77,
+            "rejections": [
+              {
+                "key": "yard:578,206",
+                "reason": "Receiving builder for yard:578,206: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 1,
+            "accepted": 1,
+            "childElements": 1,
+            "elements": 2,
+            "loot": 2,
+            "freeCells": 76,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@30,210",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 64,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 64,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@594,210",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@558,228",
+          "type": "hut",
+          "cells": 84,
+          "before": {
+            "offers": 1,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 76,
+            "rejections": [
+              {
+                "key": "yard:560,235",
+                "reason": "Receiving builder for yard:560,235: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 1,
+            "accepted": 1,
+            "childElements": 1,
+            "elements": 2,
+            "loot": 1,
+            "freeCells": 75,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@144,234",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 63,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 63,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@552,246",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 7,
+            "freeCells": 135,
+            "rejections": [
+              {
+                "key": "yard:554,248",
+                "reason": "Receiving builder for yard:554,248: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:559,248",
+                "reason": "Receiving builder for yard:559,248: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:559,253",
+                "reason": "Receiving builder for yard:559,253: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 0,
+            "freeCells": 132,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@432,270",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 5,
+            "freeCells": 135,
+            "rejections": [
+              {
+                "key": "yard:434,272",
+                "reason": "Receiving builder for yard:434,272: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:434,277",
+                "reason": "Receiving builder for yard:434,277: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:439,277",
+                "reason": "Receiving builder for yard:439,277: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 2,
+            "freeCells": 132,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@570,282",
+          "type": "hut",
+          "cells": 36,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 28,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 28,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@288,288",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "compound@300,288",
+          "type": "compound",
+          "cells": 4032,
+          "before": {
+            "offers": 10,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 25,
+            "loot": 219,
+            "freeCells": 3862,
+            "rejections": [
+              {
+                "key": "exterior:302,290",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A302%2C290."
+              },
+              {
+                "key": "exterior:336,290",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A336%2C290."
+              },
+              {
+                "key": "exterior:336,323",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A336%2C323."
+              },
+              {
+                "key": "exterior:342,290",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A342%2C290."
+              },
+              {
+                "key": "exterior:342,323",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A342%2C323."
+              },
+              {
+                "key": "exterior:348,290",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A348%2C290."
+              },
+              {
+                "key": "exterior:348,323",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A348%2C323."
+              },
+              {
+                "key": "exterior:354,290",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A354%2C290."
+              },
+              {
+                "key": "exterior:354,323",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A354%2C323."
+              },
+              {
+                "key": "exterior:362,290",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A362%2C290."
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 10,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 25,
+            "loot": 219,
+            "freeCells": 3862,
+            "rejections": [
+              {
+                "key": "exterior:302,290",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A302%2C290."
+              },
+              {
+                "key": "exterior:336,290",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A336%2C290."
+              },
+              {
+                "key": "exterior:336,323",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A336%2C323."
+              },
+              {
+                "key": "exterior:342,290",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A342%2C290."
+              },
+              {
+                "key": "exterior:342,323",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A342%2C323."
+              },
+              {
+                "key": "exterior:348,290",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A348%2C290."
+              },
+              {
+                "key": "exterior:348,323",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A348%2C323."
+              },
+              {
+                "key": "exterior:354,290",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A354%2C290."
+              },
+              {
+                "key": "exterior:354,323",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A354%2C323."
+              },
+              {
+                "key": "exterior:362,290",
+                "reason": "No compatible hunter crossing between compound@300,288 and compound@300,288/delegate/exterior%3A362%2C290."
+              }
+            ],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@402,294",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 6,
+            "freeCells": 135,
+            "rejections": [
+              {
+                "key": "yard:404,296",
+                "reason": "Receiving builder for yard:404,296: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:409,296",
+                "reason": "Receiving builder for yard:409,296: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:409,301",
+                "reason": "Receiving builder for yard:409,301: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 1,
+            "freeCells": 131,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@288,336",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 64,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 64,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@414,342",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 9,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:416,344",
+                "reason": "Receiving builder for yard:416,344: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:421,344",
+                "reason": "Receiving builder for yard:421,344: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:421,349",
+                "reason": "Receiving builder for yard:421,349: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 1,
+            "freeCells": 133,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@288,354",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 63,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 63,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@426,354",
+          "type": "hut",
+          "cells": 36,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 26,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 26,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        }
+      ],
+      "errors": []
+    },
+    {
+      "seed": "issue330-before-36x18",
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "summary": [
+        {
+          "type": "hut",
+          "regions": 37,
+          "before": {
+            "offers": 54,
+            "accepted": 2,
+            "childElements": 2,
+            "elements": 39,
+            "loot": 98,
+            "freeCells": 3456
+          },
+          "after": {
+            "offers": 54,
+            "accepted": 54,
+            "childElements": 54,
+            "elements": 91,
+            "loot": 30,
+            "freeCells": 3385
+          }
+        },
+        {
+          "type": "compound",
+          "regions": 9,
+          "before": {
+            "offers": 18,
+            "accepted": 3,
+            "childElements": 124,
+            "elements": 326,
+            "loot": 834,
+            "freeCells": 20680
+          },
+          "after": {
+            "offers": 18,
+            "accepted": 3,
+            "childElements": 124,
+            "elements": 326,
+            "loot": 834,
+            "freeCells": 20680
+          }
+        }
+      ],
+      "rows": [
+        {
+          "id": "hut@624,0",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 4,
+            "freeCells": 64,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 4,
+            "freeCells": 64,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "compound@564,12",
+          "type": "compound",
+          "cells": 1296,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 25,
+            "loot": 60,
+            "freeCells": 1126,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 25,
+            "loot": 60,
+            "freeCells": 1126,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@642,12",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "compound@444,18",
+          "type": "compound",
+          "cells": 1296,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 25,
+            "loot": 62,
+            "freeCells": 1125,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 25,
+            "loot": 62,
+            "freeCells": 1125,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@606,30",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:608,37",
+                "reason": "Receiving builder for yard:608,37: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:613,32",
+                "reason": "Receiving builder for yard:613,32: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:613,37",
+                "reason": "Receiving builder for yard:613,37: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 1,
+            "freeCells": 132,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": {
+            "full": true,
+            "omitted": true,
+            "historicalFull": true,
+            "historicalRecoveryRefused": true
+          }
+        },
+        {
+          "id": "hut@600,54",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 4,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:602,56",
+                "reason": "Receiving builder for yard:602,56: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:602,61",
+                "reason": "Receiving builder for yard:602,61: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:607,61",
+                "reason": "Receiving builder for yard:607,61: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 0,
+            "freeCells": 133,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "compound@564,78",
+          "type": "compound",
+          "cells": 2448,
+          "before": {
+            "offers": 1,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 23,
+            "loot": 120,
+            "freeCells": 2282,
+            "rejections": [
+              {
+                "key": "exterior:566,80",
+                "reason": "Patch disconnects retained ownership."
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 1,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 23,
+            "loot": 120,
+            "freeCells": 2282,
+            "rejections": [
+              {
+                "key": "exterior:566,80",
+                "reason": "Patch disconnects retained ownership."
+              }
+            ],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "compound@234,108",
+          "type": "compound",
+          "cells": 1296,
+          "before": {
+            "offers": 1,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 25,
+            "loot": 21,
+            "freeCells": 1124,
+            "rejections": [
+              {
+                "key": "exterior:236,110",
+                "reason": "No compatible hunter crossing between compound@234,108 and compound@234,108/delegate/exterior%3A236%2C110."
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 1,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 25,
+            "loot": 21,
+            "freeCells": 1124,
+            "rejections": [
+              {
+                "key": "exterior:236,110",
+                "reason": "No compatible hunter crossing between compound@234,108 and compound@234,108/delegate/exterior%3A236%2C110."
+              }
+            ],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@306,108",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@570,108",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 4,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:572,110",
+                "reason": "Receiving builder for yard:572,110: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:572,115",
+                "reason": "Receiving builder for yard:572,115: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:577,115",
+                "reason": "Receiving builder for yard:577,115: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 0,
+            "freeCells": 131,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@654,108",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 2,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@852,108",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 63,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 63,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@216,120",
+          "type": "hut",
+          "cells": 42,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 33,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 33,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@822,120",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 8,
+            "freeCells": 137,
+            "rejections": [
+              {
+                "key": "yard:824,122",
+                "reason": "Receiving builder for yard:824,122: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:824,127",
+                "reason": "Receiving builder for yard:824,127: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:829,127",
+                "reason": "Receiving builder for yard:829,127: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 1,
+            "freeCells": 134,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@258,150",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 1,
+            "childElements": 1,
+            "elements": 2,
+            "loot": 4,
+            "freeCells": 134,
+            "rejections": [
+              {
+                "key": "yard:260,152",
+                "reason": "Receiving builder for yard:260,152: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:265,152",
+                "reason": "Receiving builder for yard:265,152: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 1,
+            "freeCells": 131,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@228,156",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 135,
+            "rejections": [
+              {
+                "key": "yard:230,158",
+                "reason": "Receiving builder for yard:230,158: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:230,163",
+                "reason": "Receiving builder for yard:230,163: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:235,163",
+                "reason": "Receiving builder for yard:235,163: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 0,
+            "freeCells": 132,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "compound@792,168",
+          "type": "compound",
+          "cells": 1152,
+          "before": {
+            "offers": 2,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 19,
+            "loot": 70,
+            "freeCells": 1009,
+            "rejections": [
+              {
+                "key": "exterior:794,170",
+                "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A794%2C170."
+              },
+              {
+                "key": "exterior:829,170",
+                "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 2,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 19,
+            "loot": 70,
+            "freeCells": 1009,
+            "rejections": [
+              {
+                "key": "exterior:794,170",
+                "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A794%2C170."
+              },
+              {
+                "key": "exterior:829,170",
+                "reason": "No compatible hunter crossing between compound@792,168 and compound@792,168/delegate/exterior%3A829%2C170."
+              }
+            ],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@546,192",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 6,
+            "freeCells": 137,
+            "rejections": [
+              {
+                "key": "yard:548,199",
+                "reason": "Receiving builder for yard:548,199: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:553,194",
+                "reason": "Receiving builder for yard:553,194: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:553,199",
+                "reason": "Receiving builder for yard:553,199: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 1,
+            "freeCells": 133,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@258,198",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 135,
+            "rejections": [
+              {
+                "key": "yard:260,205",
+                "reason": "Receiving builder for yard:260,205: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:265,200",
+                "reason": "Receiving builder for yard:265,200: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:265,205",
+                "reason": "Receiving builder for yard:265,205: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 0,
+            "freeCells": 132,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@528,204",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 135,
+            "rejections": [
+              {
+                "key": "yard:530,206",
+                "reason": "Receiving builder for yard:530,206: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:530,211",
+                "reason": "Receiving builder for yard:530,211: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:535,206",
+                "reason": "Receiving builder for yard:535,206: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 1,
+            "freeCells": 130,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@588,210",
+          "type": "hut",
+          "cells": 84,
+          "before": {
+            "offers": 1,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 77,
+            "rejections": [
+              {
+                "key": "yard:595,212",
+                "reason": "Receiving builder for yard:595,212: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 1,
+            "accepted": 1,
+            "childElements": 1,
+            "elements": 2,
+            "loot": 0,
+            "freeCells": 76,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@18,216",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 63,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 63,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@60,216",
+          "type": "hut",
+          "cells": 84,
+          "before": {
+            "offers": 1,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 77,
+            "rejections": [
+              {
+                "key": "yard:62,223",
+                "reason": "Receiving builder for yard:62,223: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 1,
+            "accepted": 1,
+            "childElements": 1,
+            "elements": 2,
+            "loot": 0,
+            "freeCells": 75,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@96,216",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:103,218",
+                "reason": "Receiving builder for yard:103,218: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:98,218",
+                "reason": "Receiving builder for yard:98,218: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:98,223",
+                "reason": "Receiving builder for yard:98,223: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 0,
+            "freeCells": 132,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@6,222",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 137,
+            "rejections": [
+              {
+                "key": "yard:13,224",
+                "reason": "Receiving builder for yard:13,224: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:13,229",
+                "reason": "Receiving builder for yard:13,229: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:8,224",
+                "reason": "Receiving builder for yard:8,224: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 1,
+            "freeCells": 132,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@582,228",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 17,
+            "freeCells": 137,
+            "rejections": [
+              {
+                "key": "yard:584,230",
+                "reason": "Receiving builder for yard:584,230: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:584,235",
+                "reason": "Receiving builder for yard:584,235: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:589,235",
+                "reason": "Receiving builder for yard:589,235: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 1,
+            "freeCells": 133,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@270,234",
+          "type": "hut",
+          "cells": 84,
+          "before": {
+            "offers": 1,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 77,
+            "rejections": [
+              {
+                "key": "yard:272,236",
+                "reason": "Receiving builder for yard:272,236: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 1,
+            "accepted": 1,
+            "childElements": 1,
+            "elements": 2,
+            "loot": 1,
+            "freeCells": 75,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "compound@966,282",
+          "type": "compound",
+          "cells": 1296,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 24,
+            "loot": 89,
+            "freeCells": 1126,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 24,
+            "loot": 89,
+            "freeCells": 1126,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "compound@180,294",
+          "type": "compound",
+          "cells": 1152,
+          "before": {
+            "offers": 2,
+            "accepted": 1,
+            "childElements": 8,
+            "elements": 26,
+            "loot": 14,
+            "freeCells": 996,
+            "rejections": [
+              {
+                "key": "exterior:217,296",
+                "reason": "No compatible hunter crossing between compound@180,294 and compound@180,294/delegate/exterior%3A217%2C296."
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 2,
+            "accepted": 1,
+            "childElements": 8,
+            "elements": 26,
+            "loot": 14,
+            "freeCells": 996,
+            "rejections": [
+              {
+                "key": "exterior:217,296",
+                "reason": "No compatible hunter crossing between compound@180,294 and compound@180,294/delegate/exterior%3A217%2C296."
+              }
+            ],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "compound@414,300",
+          "type": "compound",
+          "cells": 1152,
+          "before": {
+            "offers": 2,
+            "accepted": 1,
+            "childElements": 1,
+            "elements": 19,
+            "loot": 42,
+            "freeCells": 1009,
+            "rejections": [
+              {
+                "key": "exterior:451,302",
+                "reason": "No compatible hunter crossing between compound@414,300 and compound@414,300/delegate/exterior%3A451%2C302."
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 2,
+            "accepted": 1,
+            "childElements": 1,
+            "elements": 19,
+            "loot": 42,
+            "freeCells": 1009,
+            "rejections": [
+              {
+                "key": "exterior:451,302",
+                "reason": "No compatible hunter crossing between compound@414,300 and compound@414,300/delegate/exterior%3A451%2C302."
+              }
+            ],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@12,306",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:14,308",
+                "reason": "Receiving builder for yard:14,308: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:19,308",
+                "reason": "Receiving builder for yard:19,308: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:19,313",
+                "reason": "Receiving builder for yard:19,313: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 0,
+            "freeCells": 131,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@864,318",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 64,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 64,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@858,324",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "compound@276,330",
+          "type": "compound",
+          "cells": 11232,
+          "before": {
+            "offers": 10,
+            "accepted": 1,
+            "childElements": 115,
+            "elements": 140,
+            "loot": 356,
+            "freeCells": 10883,
+            "rejections": [
+              {
+                "key": "exterior:342,332",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A342%2C332."
+              },
+              {
+                "key": "exterior:342,380",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A342%2C380."
+              },
+              {
+                "key": "exterior:348,332",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A348%2C332."
+              },
+              {
+                "key": "exterior:348,380",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A348%2C380."
+              },
+              {
+                "key": "exterior:354,332",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A354%2C332."
+              },
+              {
+                "key": "exterior:354,380",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A354%2C380."
+              },
+              {
+                "key": "exterior:360,332",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A360%2C332."
+              },
+              {
+                "key": "exterior:360,380",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A360%2C380."
+              },
+              {
+                "key": "exterior:368,332",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A368%2C332."
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 10,
+            "accepted": 1,
+            "childElements": 115,
+            "elements": 140,
+            "loot": 356,
+            "freeCells": 10883,
+            "rejections": [
+              {
+                "key": "exterior:342,332",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A342%2C332."
+              },
+              {
+                "key": "exterior:342,380",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A342%2C380."
+              },
+              {
+                "key": "exterior:348,332",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A348%2C332."
+              },
+              {
+                "key": "exterior:348,380",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A348%2C380."
+              },
+              {
+                "key": "exterior:354,332",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A354%2C332."
+              },
+              {
+                "key": "exterior:354,380",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A354%2C380."
+              },
+              {
+                "key": "exterior:360,332",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A360%2C332."
+              },
+              {
+                "key": "exterior:360,380",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A360%2C380."
+              },
+              {
+                "key": "exterior:368,332",
+                "reason": "No compatible hunter crossing between compound@276,330 and compound@276,330/delegate/exterior%3A368%2C332."
+              }
+            ],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@582,348",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 5,
+            "freeCells": 137,
+            "rejections": [
+              {
+                "key": "yard:584,355",
+                "reason": "Receiving builder for yard:584,355: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:589,350",
+                "reason": "Receiving builder for yard:589,350: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:589,355",
+                "reason": "Receiving builder for yard:589,355: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 1,
+            "freeCells": 133,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@216,396",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 1,
+            "childElements": 1,
+            "elements": 2,
+            "loot": 4,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:218,398",
+                "reason": "Receiving builder for yard:218,398: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:223,403",
+                "reason": "Receiving builder for yard:223,403: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 0,
+            "freeCells": 133,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@216,426",
+          "type": "hut",
+          "cells": 36,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 29,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 29,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@252,426",
+          "type": "hut",
+          "cells": 42,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 32,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 32,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@288,426",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@858,426",
+          "type": "hut",
+          "cells": 36,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 28,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 1,
+            "freeCells": 28,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@432,498",
+          "type": "hut",
+          "cells": 42,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 33,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 33,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@450,510",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 7,
+            "freeCells": 136,
+            "rejections": [
+              {
+                "key": "yard:452,512",
+                "reason": "Receiving builder for yard:452,512: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:452,517",
+                "reason": "Receiving builder for yard:452,517: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:457,512",
+                "reason": "Receiving builder for yard:457,512: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 2,
+            "freeCells": 133,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@486,516",
+          "type": "hut",
+          "cells": 144,
+          "before": {
+            "offers": 3,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 6,
+            "freeCells": 135,
+            "rejections": [
+              {
+                "key": "yard:488,518",
+                "reason": "Receiving builder for yard:488,518: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:488,523",
+                "reason": "Receiving builder for yard:488,523: cover has no usable placement in the inherited fill"
+              },
+              {
+                "key": "yard:493,523",
+                "reason": "Receiving builder for yard:493,523: cover has no usable placement in the inherited fill"
+              }
+            ],
+            "errors": []
+          },
+          "after": {
+            "offers": 3,
+            "accepted": 3,
+            "childElements": 3,
+            "elements": 4,
+            "loot": 0,
+            "freeCells": 130,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@474,534",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@516,534",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 3,
+            "freeCells": 65,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        },
+        {
+          "id": "hut@540,534",
+          "type": "hut",
+          "cells": 72,
+          "before": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "after": {
+            "offers": 0,
+            "accepted": 0,
+            "childElements": 0,
+            "elements": 1,
+            "loot": 0,
+            "freeCells": 62,
+            "rejections": [],
+            "errors": []
+          },
+          "snapshot": null
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "limits": "One map per authored size, top-level huts/compounds only; same layouts and primary builders. Baseline receiver uses unchanged standalone buildCover. Checks root/leaf portal routes, leaf fill, partition, unchanged structures and sampled changed-node snapshot recovery. No claim of human balance, exhaustive coverage, or adoption by other strategies. Counts may differ from historical audits because authored libraries changed in #530."
+}

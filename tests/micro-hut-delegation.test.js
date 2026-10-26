@@ -35,8 +35,7 @@ test('a broad concave yard gives cover a lobe while preserving the house, door, 
   const original = broad(), node = buildHutGeneration(original), flat = flattenDelegationResult(node);
   assert.equal(node.actualBuilder, 'hut');
   assert.ok(node.children?.some(child => child.actualBuilder === 'cover'), 'a real cover child was built');
-  assert.ok(node.preparation.rejected.some(({ reason }) => reason.includes('cover has no usable placement')),
-    'a lobe with unusable inherited fill remains with the hut');
+  assert.equal(node.children.length, node.offers.length, 'individual pieces now fit every offered lobe in this witness');
   assert.ok(house(node.retained), 'the house stays with the hut');
   assert.deepEqual(node.retained.brief.portals.filter(portal => original.portals.some(p => p.id === portal.id)),
     original.portals, 'the hut keeps its original portal promise');
@@ -87,17 +86,16 @@ test('a small yard retains its house without forcing a cover patch', () => {
   assertGeometry(flat);
 });
 
-test('split inherited fill refuses unbuildable cover without losing retained yard', () => {
+test('split inherited fill accepts individual cover without losing ownership or margins', () => {
   const original = broad();
   original.seed = 3;
   original.fillCells = original.cells.filter(cell => cell.x < 18);
   const node = buildHutGeneration(original), flat = flattenDelegationResult(node);
   assert.ok(house(flat));
   assert.ok(node.offers?.length, 'the hut still identifies yard lobes');
-  assert.equal(node.children?.length ?? 0, 0);
-  assert.ok(node.preparation.rejected.every(({ reason }) => reason.includes('cover has no usable placement')));
-  assert.equal(node.preparation.rejected.length, node.offers.length);
-  assert.equal(node.retained.brief.cells.length, original.cells.length, 'rejected cells stay retained');
+  assert.equal(node.children.length, 2, 'the two former cluster misses now accept individual pieces');
+  assert.deepEqual(validateBriefPartition(node.input, executionLeaves(node).map(leaf => leaf.brief)), []);
+  for (const leaf of executionLeaves(node)) assert.deepEqual(validateFillConstraints(leaf.brief, placed(leaf)), []);
   assertGeometry(flat);
 });
 
@@ -160,12 +158,12 @@ test('a real pilot snapshot recovers full and omitted results', () => {
   assert.deepEqual(delegationSnapshotResult(omitted, HUT_EXECUTION_REGISTRY), flattenDelegationResult(node));
 });
 
-test('rejected cover receivers record their executor version and recover from omitted results', () => {
+test('infill cover receivers record their executor version and recover from omitted results', () => {
   const original = broad();
   original.seed = 3;
   original.fillCells = original.cells.filter(cell => cell.x < 18);
   const node = buildHutGeneration(original);
-  assert.ok(node.preparation.rejected.length && !node.children?.length, 'cover was consulted and refused');
+  assert.equal(node.children.length, 2, 'the receiver now fills both previously refused lobes');
   assert.equal(HUT_EXECUTION_REGISTRY.cover, COVER_EXECUTION);
   assert.equal(node.registryVersions.cover, COVER_EXECUTOR_VERSION);
   const omitted = roundTrip(saveDelegationSnapshot(node, { omitResults: true }));
