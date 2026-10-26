@@ -211,19 +211,25 @@ export function validateBriefPartition(parent: RegionBrief, children: readonly R
 
 // Both initial decomposition and patch preparation finish through the same
 // margin inheritance and interface checks. The hook preserves patch geometry
-// rejection precedence before partition validation.
-function finishPartition(parent: RegionBrief, children: readonly RegionBrief[], beforeValidation?: (briefs: RegionBrief[]) => void): RegionBrief[] {
+// rejection precedence before partition validation; `fail` lets each caller
+// report a bad partition as its own kind of error.
+function finishPartition(parent: RegionBrief, children: readonly RegionBrief[], fail: (message: string) => Error,
+  beforeValidation?: (briefs: RegionBrief[]) => void): RegionBrief[] {
   const briefs = inheritBriefMargins(parent, children).map(b => ({ ...b, portals: [...b.portals].sort((a, b) => a.id.localeCompare(b.id)) }));
   beforeValidation?.(briefs);
   const errors = validateBriefPartition(parent, briefs);
-  if (errors.length) throw new InfeasiblePatch(errors.join(' '));
+  if (errors.length) throw fail(errors.join(' '));
   return briefs;
 }
 
-/** Prepare planner-authored owners, including a partition with no retained owner. */
+/**
+ * Prepare planner-authored owners, including a partition with no retained owner.
+ * A partition that fails validation is a planner contract error, not an ordinary
+ * infeasible patch, so it throws a plain error.
+ */
 export function prepareInitialPartition(input: RegionBrief, children: readonly RegionBrief[]): RegionBrief[] {
   const parent = canonicalDelegationBrief(input);
-  return finishPartition(parent, children.map(canonicalDelegationBrief));
+  return finishPartition(parent, children.map(canonicalDelegationBrief), message => new Error(`Initial partition: ${message}`));
 }
 
 /** Prepare builder-authored offers only; malformed requests throw, ordinary infeasibility retains cells with reasons. */
@@ -320,7 +326,7 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
       crossings.push({ a: seam.a, b: seam.b, portal: selected });
     }
     const complete = local.map((part, i) => ({ ...localBrief(parent, part.cells, i ? accepted[i - 1] : undefined), portals: part.portals }));
-    const briefs = finishPartition(parent, complete, briefs => {
+    const briefs = finishPartition(parent, complete, message => new InfeasiblePatch(message), briefs => {
       if (blockers.length) {
         const retainedFill = createFillMask(briefs[0]!);
         if (blockers.some(s => !retainedFill.contains(s))) throw new InfeasiblePatch('Patch ownership or crossing clearance conflicts with declared parent geometry.');

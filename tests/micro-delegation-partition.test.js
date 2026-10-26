@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dispatchDelegationPartition, executeDelegation, flattenDelegationPartition } from '../map/micro/delegation-execute.ts';
-import { canonicalDelegationBrief, validateBriefPartition } from '../map/micro/delegation.ts';
+import { canonicalDelegationBrief, prepareInitialPartition, validateBriefPartition } from '../map/micro/delegation.ts';
 import { saveDelegationSnapshot, readDelegationSnapshot, delegationSnapshotResult } from '../map/micro/delegation-snapshot.ts';
 
 const cells = (x, width) => Array.from({ length: width * 6 }, (_, i) => ({ x: x + i % width, y: Math.floor(i / width) }));
@@ -35,7 +35,9 @@ test('initial partition preserves planner order and interfaces, gathers nested l
   const execution = dispatchDelegationPartition(input, partition, registry, { observe: event => observed.push(event.label) });
   assert.deepEqual(partition, before);
   assert.deepEqual(execution.input, canonicalDelegationBrief(input));
-  assert.deepEqual(execution.children.map(child => child.input), partition.map(canonicalDelegationBrief));
+  const prepared = prepareInitialPartition(input, partition);
+  assert.deepEqual(execution.children.map(child => child.input), prepared);
+  assert.deepEqual(prepared.map(child => [child.id, child.seed, child.portals]), partition.map(child => [child.id, child.seed, child.portals]));
   assert.deepEqual(execution.children.map(child => child.depth), [0, 0]);
   for (const child of execution.children) {
     assert.equal(child.children[0].depth, 1);
@@ -69,4 +71,16 @@ test('full initial content owner starts at depth zero while further patches obey
   assert.equal(root.children[0].fallbackKind, 'depth-limit');
   assert.equal(root.children[0].depth, 1);
   assert.equal(flattenDelegationPartition(execution).elements.length, 1);
+});
+
+test('an unprepared or invalid partition never executes', () => {
+  const input = brief('region', cells(0, 12));
+  let built = 0;
+  const registry = { owner: { version: 'owner-1', build(input) { built++; return { version: 'region-2', brief: input,
+    elements: [], coreElements: [], loot: [], manifest: { cells: input.cells.length } }; } } };
+  const left = brief('region/left', cells(0, 6), { portals: [{ id: 'c', axis: 'v', x: 6, y: 2, length: 2 }] });
+  const right = brief('region/right', cells(6, 6));
+  assert.throws(() => dispatchDelegationPartition(input, [left], registry), /^Error: Initial partition: .*exhaust/);
+  assert.throws(() => dispatchDelegationPartition(input, [left, right], registry), /Initial partition: .*paired crossing/);
+  assert.equal(built, 0);
 });

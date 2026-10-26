@@ -1,6 +1,6 @@
 import { cellKey, compareCells } from '../kernel/cell.ts';
 import type { RegionBrief } from '../kernel/contract.ts';
-import { canonicalDelegationBrief, prepareCanonicalDelegation } from './delegation.ts';
+import { canonicalDelegationBrief, prepareCanonicalDelegation, prepareInitialPartition } from './delegation.ts';
 import type { PatchOffer, PatchPreparationPolicy, PreparedDelegation } from './delegation.ts';
 import type { BuildingObserver, BuildingTrace } from './building/trace.ts';
 import type { BuiltRegion } from './types.ts';
@@ -188,15 +188,18 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
 }
 
 /**
- * Dispatch an already validated initial partition in planner order, without patch
- * preparation or receiving checks. IDs, seeds and interfaces belong to the planner.
- * Each child starts at depth zero and remains an independently recoverable root.
+ * Prepare and dispatch a planner-authored initial partition in planner order, without
+ * patch placement or receiving checks. IDs, seeds and interfaces belong to the planner;
+ * preparation only inherits margins and validates the partition, so an unprepared
+ * partition can never execute. Each child starts at depth zero and remains an
+ * independently recoverable root.
  */
 export function dispatchDelegationPartition(input: RegionBrief, partition: readonly RegionBrief[],
   registry: ExecutionRegistry, options: ExecutionOptions = {}): DelegationPartitionExecution {
   const canonicalInput = canonicalDelegationBrief(input);
+  const prepared = prepareInitialPartition(canonicalInput, partition);
   const { observe, ...executionOptions } = options;
-  const children = partition.map(brief => executeDelegation(brief, registry, executionOptions));
+  const children = prepared.map(brief => executeDelegation(brief, registry, executionOptions));
   if (observe) for (const child of children) visitEvents(child, observe, child.input.id);
   return { input: canonicalInput, children };
 }
