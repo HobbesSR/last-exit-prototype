@@ -165,6 +165,18 @@ install on the desktop (`localhost:3000`, `Start-AgentStudio.bat`) on
 2026-10-25 so that agents on other home machines can reach it. The old install
 is kept stopped for rollback; do not start it beside the NAS copy.
 
+CI ([31](31-verification.md#continuous-integration)) runs on Forgejo Actions
+runners, never on the NAS itself. The first, `desktop-wsl`, is forgejo-runner in
+the desktop's `Ubuntu-24.04` WSL distro, in `~/forgejo-runner` (`config.yml`
+holds its connection token and is readable only by its owner). It offers the
+`docker` label, runs two jobs at once, and starts each job in a fresh container
+without access to the host's Docker. Start it with
+`./forgejo-runner daemon --config config.yml` from that directory. A runner on
+another machine is registered from the repository's Settings → Actions →
+Runners, which is a human step, and needs only Docker and network access to the
+NAS. Pull requests show the check as `ci / verify (pull_request)`; requiring it
+before merging is a branch-protection setting the human administers.
+
 Agents have no standing access to the NAS. When a task needs it (upgrades,
 logs, runners for [#547](http://192.168.1.170:3000/corey/astra_test/issues/547)),
 the human grants SSH and Docker access for that task and revokes it afterwards.

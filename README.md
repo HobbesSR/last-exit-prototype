@@ -161,6 +161,8 @@ npm run test:browser  # End-to-end Playwright suite in Google Chrome (game, dev 
 npm run test:times    # Measures per-file execution times against the 15s (fast) / 60s (slow) budgets
 ```
 
+Forgejo CI runs `check`, `typecheck`, `npm test` and `test:mapgen` on every pull request and on `main`; the slow, browser and benchmark tiers stay manual ([31](docs/31-verification.md#continuous-integration)). Forgejo is the source of truth; GitHub is the public copy, where `main` is published by hand and branches started there come back to Forgejo for review ([34](docs/34-forgejo-workflow.md#github)).
+
 Full verification gates, coverage details, and the frozen characterization baseline policy (`tests/fixtures/behavior-nav-1.json.gz`, which guards against unintended simulation regressions across refactors) are documented in [31](docs/31-verification.md) and [tests/fixtures/README.md](tests/fixtures/README.md).
 
 ---
