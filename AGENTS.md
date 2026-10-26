@@ -52,9 +52,10 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
   appropriate to the affected subsystem. Run timing
   comparisons sequentially without competing tests/benchmarks; repeat suspected
   regressions three times. Do not claim the reported slowdown fixed without evidence.
-  Forgejo CI runs the fast gates and the slow tier on each PR (`docs/31`), so a
-  PR may be opened on `npm test` alone; it does not replace the other checks
-  your change needs. Fix a failed run before the PR is ready.
+  Forgejo CI runs the fast gates on each PR and the slow tier after merge, filing an
+  issue per slow failure (`docs/31`), so a PR may be opened on `npm test` alone; it
+  does not replace the other checks your change needs. Fix a failed PR run before the
+  PR is ready; run `npm run test:slow` first when your change is likely to move it.
 - A new or grown test file stays under 15 s (fast tier) or 60 s (`tests/slow/`); check it with
   `npm run test:times -- <file>`. Optimize, split or gate expensive cases behind an environment
   variable rather than adding minutes to every run (`docs/31`).

@@ -28,9 +28,9 @@ fixture, and bots completing whole matches. Those slow tests sum to about four m
 by default, and their evidence only moves when generation or simulation moves.
 `tests/slow/room-sizes.test.js` runs only the 12 × 6 room unless asked
 (`ROOM_SIZES=all`, or a list such as `ROOM_SIZES=24x12,36x18`; invalid or empty values fail with
-the supported values). CI runs the slow tier on every PR, so a PR may be opened on the fast tier
-alone; `npm run test:slow` runs it locally when the answer is needed sooner, such as while
-iterating on generation or simulation. Integration checkpoints still run `test:all`. A test belongs in `tests/slow/` when it costs seconds and sweeps
+the supported values). CI runs the slow tier after merge, on `main`, so a PR is opened and
+merged on the fast tier; `npm run test:slow` runs it locally when a change is likely to move
+it, such as generation or simulation work. Integration checkpoints still run `test:all`. A test belongs in `tests/slow/` when it costs seconds and sweeps
 seeds or plays whole matches. The fast tier keeps a cheap witness of the same
 contract where one exists: the fixture's map hashes and scripted trace stay in
 `characterization.test.js`.
@@ -190,12 +190,24 @@ to benchmark rendering the unfogged, whole-arena spectator overview at full zoom
 
 ## Continuous integration
 
-Forgejo Actions runs `.forgejo/workflows/ci.yml` on every pull request and every
-push to `main`, as two parallel jobs in fresh `node:24.15.0` containers with the npm that
-`packageManager` names: `verify` runs `npm run check`, `npm run typecheck`, `npm test` and
-`npm run test:mapgen`; `slow` runs `npm run test:slow`. Each takes a few minutes. The result shows on the
-pull request and under the repository's Actions tab. While no runner is up, the
-check waits rather than fails; who runs runners is in
+Forgejo Actions runs `.forgejo/workflows/ci.yml` in fresh `node:24.15.0` containers with
+the npm that `packageManager` names, as two jobs on separate runner queues:
+
+- **`verify`** (label `docker`) runs on every pull request and every push to `main`:
+  `npm run check`, `npm run typecheck`, `npm test` and `npm run test:mapgen`. It is the
+  pull request's check, and takes a few minutes.
+- **`slow`** (label `slow`) runs `npm run test:slow` on every push to `main`, after
+  merge, so pull requests never wait for it. When it fails,
+  `tools/ci/slow-failures.mjs` files one issue per failing test, titled
+  "Slow tier fails on main: <test>", or one issue for more than five failures together;
+  a repeat failure comments on the open issue instead. Whoever fixes it closes the issue.
+  To run the slow tier on a branch before merge, start the workflow by hand from the
+  Actions tab (`workflow_dispatch`); that run files no issues.
+
+Results show on the pull request or commit and under the repository's Actions tab. A
+newer push to the same branch cancels that branch's pending runs, so `main` tests its
+latest commit; merging a pull request does not cancel the runs queued for its branch.
+While no runner serves a label, its jobs wait rather than fail; who runs runners is in
 [34](34-forgejo-workflow.md#hosting).
 
 CI is a floor, not the gate set. It does not run:
@@ -207,7 +219,8 @@ CI is a floor, not the gate set. It does not run:
   gate CI. Compare them sequentially on a quiet machine, as above.
 
 A green run does not discharge the author's own checks for what the change
-touched; a failed run is fixed before the pull request is ready. CI uploads no artifacts: recordings,
+touched; a failed `verify` is fixed before the pull request is ready, and a slow-tier issue
+is fixed forward. CI uploads no artifacts: recordings,
 diagnostics and screenshots stay on the machine that made them.
 
 ## P7 ballistic lab
