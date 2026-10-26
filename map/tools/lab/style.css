@@ -213,6 +213,11 @@ button.active {
 .chain-sidebar .gallery-head label { flex-basis: 100%; }
 .chain-sidebar .chain-gallery-container { padding: 6px; }
 .chain-sidebar #tileGallery { max-height: none; overflow: visible; padding: 4px; }
+/* Long catalogues scroll inside the list; the hint below stays reachable (#539). */
+.chain-entry-list { flex: 1 0 160px; min-height: 160px; max-height: 60vh; overflow-y: auto; padding: 2px; }
+.chain-entry-list button { flex: none; min-width: 0; }
+.chain-entry-list strong { overflow-wrap: anywhere; }
+.chain-entry-list span { flex: none; white-space: nowrap; }
 .placeable-workspace { grid-template-columns: 220px minmax(0, 1fr) 290px; }
 .placeable-workspace .author-surface { flex: 1; }
 .placeable-inspector { overflow: auto; gap: 12px; border-radius: 9px; }
