@@ -80,15 +80,16 @@ test('fallback allocation is stable under input ordering and coordinate translat
 
 test('thin regions and regions beyond SDK bounds retain safe ownership without an SDK claim', () => {
   const thinCells = [];
-  for (let y = 0; y < 5; y++) for (let x = 0; x < 60; x++) thinCells.push({ x, y });
-  const thin = { id: 'thin-block', seed: 1, type: 'block', cellSize: 40, cells: thinCells,
+  for (let y = 0; y < 5; y++) for (let x = 0; x < 64; x++) thinCells.push({ x, y });
+  const thin = { id: 'thin-block', seed: 1, type: 'block', cellSize: 200, cells: thinCells,
     zones: [{ tier: 2, bonus: 0, lootChance: 0, cells: thinCells }],
     portals: [{ id: 'west', axis: 'v', x: 0, y: 1, length: 2 }] };
   const thinPlan = planBlock(thin);
   assert.equal(thinPlan.lots.length, 0);
-  assert.ok(thinPlan.allocation, 'eligible bounded fallback reports its empty search');
+  assert.ok(thinPlan.allocation, 'maximum span and cell scale remain eligible');
   assert.equal(thinPlan.allocation.pieces.length, 0);
   assert.equal(thinPlan.alleys.cells.length, thinCells.length);
+  assert.equal(planBlock({ ...thin, cellSize: 201 }).allocation, undefined, 'cell scale above the SDK limit skips the fallback');
 
   const wideCells = [];
   for (let y = 0; y < 5; y++) for (let x = 0; x < 65; x++) wideCells.push({ x, y });

@@ -2,6 +2,8 @@ import { analyzeRegion, canonicalCells, cellKey, connectedComponents } from './a
 import type { Cell } from '../types.ts';
 import type { RegionAnalysis, RegionContext, RegionContextInput } from './types.ts';
 
+export const REGION_CELL_SIZE_LIMIT = 200;
+
 function freeze<T>(value: T): T {
   if (value && typeof value === 'object') { Object.freeze(value); for (const child of Object.values(value)) freeze(child); }
   return value;
@@ -10,7 +12,7 @@ function freeze<T>(value: T): T {
 /** Immutable constraints and lazily cached measurements. Policy belongs to callers. */
 export function createRegionContext(input: RegionContextInput): RegionContext {
   if (!input || typeof input.id !== 'string' || !input.id || input.id.length > 100) throw new Error('Region context needs a stable id.');
-  if (!Number.isFinite(input.cellSize) || input.cellSize <= 0 || input.cellSize > 200) throw new Error('Invalid context cell scale.');
+  if (!Number.isFinite(input.cellSize) || input.cellSize <= 0 || input.cellSize > REGION_CELL_SIZE_LIMIT) throw new Error('Invalid context cell scale.');
   const cells = canonicalCells(input.cells);
   if (!cells.length || connectedComponents(cells).length !== 1) throw new Error('Region context must be a connected nonempty polyomino.');
   const owned = new Set(cells.map(cellKey)), used = new Set<string>();
