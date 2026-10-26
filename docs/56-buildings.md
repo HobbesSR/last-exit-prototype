@@ -74,7 +74,7 @@ it doesn't pick what a type builds (19).
 | Door widths | The kernel's scale (52, "Units and scale"): a doorway is 2 cells | exists |
 | Hierarchical seeds | Named random channels per region (`rng(seed, channel)`) | exists |
 | Debug views | The micro lab, decomposition lab and generation demo (20.5) | exist; the micro lab's building views are L4's |
-| Kits | Deferred until art direction (M32) | deferred |
+| Kits | Art direction established in [11.1](11.1-world-and-art-direction.md) (#581); separable architectural/decay/damage kit metadata tracked in #584 (M32) | deferred |
 | Multiple floors, stairs, roof planes | 16's multi-floor direction, after collision planes (M32) | deferred |
 
 ## Adopted

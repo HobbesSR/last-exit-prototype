@@ -46,6 +46,10 @@ These hold for every entry in the catalogue's parts (54.1 to 54.4), so the entri
   builder is always the last resort. A type with no decomposer takes
   its region whole. A core element class that can't site its core elements
   leaves the shortfall for the report (51 stage 8).
+- **Decoration keeps the promise.** Cosmetic decay, damage markings and color
+  treatments never change a region's collision geometry or its portal promise
+  ([29.4](29.4-drawing.md)). How types tell districts and landmarks apart is
+  11.1 §7's direction, staged in #586.
 
 ## How many portals a region has
 

@@ -24,6 +24,25 @@ fences and doors are made of in that part of the map, so the same declaration
 can become a chain-link fence in a yard and a stone wall in a plaza. It is
 never carried by cell class. Primitive sets are deferred (16).
 
+The art direction ([11.1](11.1-world-and-art-direction.md) §4) proposes that
+appearance carry five independent dimensions rather than one generic damage
+style (#584, not designed yet). They are what primitive sets would grow into:
+- **District identity:** the neighborhood archetype and its palette.
+- **Architectural identity:** a building's original function and era, which
+  choose its components, materials, colors and signage ([56](56-buildings.md)).
+- **Decay:** long-term neglect, which transforms original colors rather than
+  erasing them.
+- **Competition damage:** the type, amount and age of damage from earlier
+  bouts, uneven across the map.
+- **Lighting identity:** a region's or block's color treatment, chosen apart
+  from its materials ([29.4](29.4-drawing.md)).
+
+Like cell class, none of these may change passability. Decoration never alters
+collision, sight or navigation ([56.2](56.2-ground-decals.md)). Destruction
+that does is emitted as elements by the region strategy
+([20.3.1](20.3.1-canvas-adoption.md), [29.3](29.3-shape-construction-and-assembly.md))
+and keeps the region's portal promise ([51.7](51.7-briefs.md), [54](54-region-types.md)).
+
 ## Primitives
 
 | Term | Extent | Carries |

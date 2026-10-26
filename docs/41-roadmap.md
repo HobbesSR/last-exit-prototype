@@ -97,6 +97,20 @@ What remains, as the owning documents state it:
   order"), with its open choices M26 to M33 ([17.2.8](17.2.8-building-questions.md)).
 - **Larger-size play:** live passage balance and human multiplayer tuning at
   the larger sizes, and their per-tick cost, are not done.
+- **World design and visual art direction (#581):**
+  Corey's *World Design & Visual Art Direction Primer* is recorded in
+  [11.1](11.1-world-and-art-direction.md), with rendering boundaries in
+  [29.4](29.4-drawing.md), separable procedural dimensions in
+  [52](52-map-primitives-and-library.md), [54](54-region-types.md) and
+  [56](56-buildings.md), and open questions in [17.3](17.3-product-gameplay.md) (#25).
+  Scoped stages: palette registries and prospective palette switcher
+  (#582), low-cost theatrical
+  lighting washes (#583),
+  separable procedural identity metadata (#584),
+  flat 2D material simplification and destruction shape vocabulary
+  (#585), urban fringe landmarks
+  and region/building differentiation (#586),
+  and contestant/hunter/hazard/objective readability validation (#587).
 
 Work in progress and its order live on the Forgejo tracker and in each step's
 issue ([34](34-forgejo-workflow.md)). mapgen's former `NEXT_TASKS.md` backlog is
