@@ -1,7 +1,7 @@
 # 34. Forgejo workflow and agent worktrees
 
 Forgejo at `http://192.168.1.170:3000`, on the home network (see
-[Hosting](#hosting)), is the source of truth; GitHub (`origin`)
+[Hosting](#hosting)), is the source of truth; GitHub (`gh`)
 is the public remote copy, described under [GitHub](#github) below.
 `corey/astra_test` is the only project repository: the map
 generator lives in `map/macro/` (see [50](50-map-generation.md)). The old
@@ -171,22 +171,22 @@ the human grants SSH and Docker access for that task and revokes it afterwards.
 
 ## GitHub
 
-`origin` is `github.com/HobbesSR/last-exit-prototype`, which is public. It makes
-the project reachable away from this machine and lets work start elsewhere.
+The `gh` remote is `github.com/HobbesSR/last-exit-prototype`, which is public
+(the primary checkout has no `origin`). It makes the project reachable away from
+this machine and lets work start elsewhere.
 The local side is managed with git and the Forgejo tools; the GitHub side with
-`gh`.
+the `gh` CLI.
 
-- **Only the human pushes to `origin`.** An agent never pushes there: its
-  worktree carries a Forgejo push identity only, so a push to `origin` would
+- **Only the human pushes to `gh`.** An agent never pushes there: its
+  worktree carries a Forgejo push identity only, so a push to `gh` would
   go out under the human's GitHub credentials.
-- **`main` moves on Forgejo first.** In the primary checkout, `main` pulls from
-  `forgejo` and pushes to `origin` (`branch.main.remote` and
-  `branch.main.pushRemote`), so after a merge `git pull` then `git push`
-  publishes it. Nothing is merged on GitHub, which keeps the two `main`s from
-  diverging.
+- **`main` moves on Forgejo first.** In the primary checkout, `main` tracks
+  `forgejo` (`branch.main.remote`), so after a merge `git pull` then
+  `git push gh main` publishes it; a bare `git push` goes to Forgejo.
+  Nothing is merged on GitHub, which keeps the two `main`s from diverging.
 - **Branches made on GitHub are reviewed on Forgejo.** For work pushed to
-  GitHub from elsewhere, list it with `gh pr list` or `git fetch origin`, bring
-  it across with `git push forgejo origin/<branch>:refs/heads/<branch>`, and
+  GitHub from elsewhere, list it with `gh pr list` or `git fetch gh`, bring
+  it across with `git push forgejo gh/<branch>:refs/heads/<branch>`, and
   open the PR on Forgejo. Delete the GitHub branch with `gh` once it has merged.
 - **No Forgejo push mirror.** A push mirror runs `git push --mirror`, which
   deletes every GitHub branch that Forgejo lacks, including branches started
