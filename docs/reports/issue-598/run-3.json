@@ -1,7 +1,11 @@
-﻿{
+{
   "node": "v24.15.0",
   "baselineCommit": "872932e916536fa03bbb80f67d907eb5c7bba188",
+  "head": "2e7ce1a7c9423b016246032088b42121e5e92df2",
+  "trackedWorktreeDirty": false,
+  "toolSha256": "efb6e9ba2f8c7cc0064a964bc438815bf5884c1efc1d9cfcc725470640b7adc4",
   "sourceSha256": "b017d94a588465665990a8990a3860d7b81ba8bcdf408f8f584d5161b9697515",
+  "provenanceNote": "Capture tool and reports were untracked; tracked source was clean. Provenance added after capture.",
   "rows": [
     {
       "shape": "neck",
