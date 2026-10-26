@@ -8,6 +8,7 @@ import { capsule, createAccessMask, createFillMask, createRegionMask, elementSha
 import { hunterClearance, portalStands, validatePortalReach } from '../portals.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
+import { infillCrates as placeInfillCrates } from './infill.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import { rect } from '../../../shared/shape.ts';
@@ -26,9 +27,12 @@ const THICK = 0.5;
 const LONG = [6, 7, 8], SHORT = [5, 6];
 /** How many places to try for the post, nearest first, before it is left out. */
 const POST_TRIES = 6;
+/** Independent chance to try a supply crate in an untouched side-yard cell. */
+const INFILL_CHANCE = 0.35;
 
 /** Per-cell draw channels, so no choice shifts another. */
-const CHANNEL = { start: 1, side: 2, long: 3, short: 4, tie: 5, loot: 6, design: 7 };
+const CHANNEL = { start: 1, side: 2, long: 3, short: 4, tie: 5, loot: 6, design: 7,
+  infill: 8, infillLength: 9, infillOffset: 10 };
 
 type Box = { x: number; y: number; w: number; h: number };
 type Point = { x: number; y: number };
@@ -63,6 +67,8 @@ const centre = (portal: Portal): Point => portal.axis === 'h'
  * A barrier that fails is left out and the next goes on; a post that fails is left out and
  * the next place is tried. Nothing is
  * rebuilt. A region whose own shape breaks the promise is `open`.
+ * After that primary solve, supply crates fill side-yard remnants, keeping the
+ * line corridor and two-cell spacing clear and passing the same portal proof.
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear of
  * every piece, indoors or out. A checkpoint sites no core elements; any the brief lists are left
@@ -216,9 +222,29 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
   }
   if (!posts && !barriers.length) return unfilledRegion(brief, CHANNEL.loot);
 
+  // Only untouched side-yard cells are offered. Use independent per-cell channels so
+  // a rejected crate cannot shift primary choices or later infill rolls.
+  const infillCrates = placeInfillCrates({ brief, canvas, chance: INFILL_CHANCE, channels: CHANNEL,
+    label: 'checkpoint-infill-crate',
+    site: cell => {
+      const box = { x: cell.x, y: cell.y, w: 1, h: 1 };
+      // Every side of the crate keeps two access cells of bypass room. Portal
+      // proof alone says nothing about a side lobe with one or no portal.
+      return accessMask.contains(rect((cell.x - AISLE) * size, (cell.y - AISLE) * size,
+        (1 + 2 * AISLE) * size, (1 + 2 * AISLE) * size)) && fits(box) && !onLine(box);
+    },
+    accept: element => {
+      elements.push(element);
+      if (holds(blockers())) return true;
+      elements.pop();
+      return false;
+    },
+    commitError: label => `Checkpoint placement ${label} failed its canvas commit.`,
+  });
+
   const placed = [...canvas.elements];
   const loot = cellLoot(brief, createRegionMask(brief), placed.flatMap(element => elementShapes(element, true)), CHANNEL.loot);
-  return builtRegion(brief, placed, loot, [], { barriers: barriers.length, posts, designed });
+  return builtRegion(brief, placed, loot, [], { barriers: barriers.length, posts, designed, infillCrates });
 }
 
 /** A point `POST_SETBACK` cells inside a portal's centre, for a region with one portal. */

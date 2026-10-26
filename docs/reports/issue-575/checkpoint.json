@@ -1,0 +1,1261 @@
+{
+  "audit": "checkpoint-side-yard-infill-1",
+  "baselineCommit": "f775fe74a77036dc9d873181b12ac18cd25d7929",
+  "commit": "dc1116faaf8e95dc72e3c5865e1c79f297e44539",
+  "dirty": "",
+  "createdAt": "2026-10-26T05:56:51.008Z",
+  "node": "v24.15.0",
+  "contentVersion": "types-38",
+  "sourceHashes": {
+    "map/micro/strategies/checkpoint.ts": "3d4bea0283067e2409730026885e9881435958171789056cbb56de21326bbbc3",
+    "tools/checkpoint-infill-audit.mjs": "9e99b204f2c5157bf62a496f68b8930b79ec7ff8caffb5e7907d367759e28320",
+    "map/micro/canvas.ts": "c8e33e23fff49727ddd35fe69207a692ecaa8442b7855acd9983e80be8d744ab",
+    "map/micro/strategies/scatter.ts": "13c6118a52bc62f1a54850733893d6814681425cd5ebfcba91fbd0e540797435",
+    "map/micro/placeables/cover-piece.ts": "49cde3bb086ed192e03137bb5c915620422236cee8b4e4f387ed6016b9430989",
+    "map/micro/region-types.ts": "9244e5f364df31ae3db7db9891d50a832f84cc94c7cb9bdf185d98b4d0a07fed"
+  },
+  "maps": [
+    {
+      "seed": "issue330-before-12x6",
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "rows": [
+        {
+          "id": "checkpoint@72,126",
+          "before": {
+            "elements": 17,
+            "crates": 0,
+            "posts": 1,
+            "barriers": 16,
+            "loot": 32,
+            "cells": 1296,
+            "freeCells": 1181,
+            "doorsChecked": 5,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 69,
+            "crates": 52,
+            "posts": 1,
+            "barriers": 16,
+            "loot": 24,
+            "cells": 1296,
+            "freeCells": 1129,
+            "doorsChecked": 5,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        }
+      ],
+      "mapErrors": []
+    },
+    {
+      "seed": "issue330-before-24x12",
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "rows": [
+        {
+          "id": "checkpoint@288,0",
+          "before": {
+            "elements": 16,
+            "crates": 0,
+            "posts": 1,
+            "barriers": 15,
+            "loot": 68,
+            "cells": 1296,
+            "freeCells": 1197,
+            "doorsChecked": 2,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 76,
+            "crates": 60,
+            "posts": 1,
+            "barriers": 15,
+            "loot": 55,
+            "cells": 1296,
+            "freeCells": 1137,
+            "doorsChecked": 2,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "checkpoint@156,84",
+          "before": {
+            "elements": 18,
+            "crates": 0,
+            "posts": 1,
+            "barriers": 17,
+            "loot": 37,
+            "cells": 1296,
+            "freeCells": 1179,
+            "doorsChecked": 5,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 66,
+            "crates": 48,
+            "posts": 1,
+            "barriers": 17,
+            "loot": 32,
+            "cells": 1296,
+            "freeCells": 1131,
+            "doorsChecked": 5,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "checkpoint@330,156",
+          "before": {
+            "elements": 18,
+            "crates": 0,
+            "posts": 1,
+            "barriers": 17,
+            "loot": 60,
+            "cells": 1296,
+            "freeCells": 1180,
+            "doorsChecked": 4,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 58,
+            "crates": 40,
+            "posts": 1,
+            "barriers": 17,
+            "loot": 51,
+            "cells": 1296,
+            "freeCells": 1140,
+            "doorsChecked": 4,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "checkpoint@168,240",
+          "before": {
+            "elements": 17,
+            "crates": 0,
+            "posts": 0,
+            "barriers": 17,
+            "loot": 35,
+            "cells": 1296,
+            "freeCells": 1205,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 69,
+            "crates": 52,
+            "posts": 0,
+            "barriers": 17,
+            "loot": 27,
+            "cells": 1296,
+            "freeCells": 1153,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "checkpoint@354,264",
+          "before": {
+            "elements": 18,
+            "crates": 0,
+            "posts": 1,
+            "barriers": 17,
+            "loot": 72,
+            "cells": 1296,
+            "freeCells": 1179,
+            "doorsChecked": 5,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 62,
+            "crates": 44,
+            "posts": 1,
+            "barriers": 17,
+            "loot": 58,
+            "cells": 1296,
+            "freeCells": 1135,
+            "doorsChecked": 5,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "checkpoint@300,330",
+          "before": {
+            "elements": 23,
+            "crates": 0,
+            "posts": 0,
+            "barriers": 23,
+            "loot": 88,
+            "cells": 1728,
+            "freeCells": 1604,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 94,
+            "crates": 71,
+            "posts": 0,
+            "barriers": 23,
+            "loot": 72,
+            "cells": 1728,
+            "freeCells": 1533,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        }
+      ],
+      "mapErrors": []
+    },
+    {
+      "seed": "issue330-before-36x18",
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "rows": [
+        {
+          "id": "checkpoint@672,126",
+          "before": {
+            "elements": 18,
+            "crates": 0,
+            "posts": 1,
+            "barriers": 17,
+            "loot": 91,
+            "cells": 1296,
+            "freeCells": 1181,
+            "doorsChecked": 2,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 60,
+            "crates": 42,
+            "posts": 1,
+            "barriers": 17,
+            "loot": 81,
+            "cells": 1296,
+            "freeCells": 1139,
+            "doorsChecked": 2,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "checkpoint@444,180",
+          "before": {
+            "elements": 18,
+            "crates": 0,
+            "posts": 1,
+            "barriers": 17,
+            "loot": 59,
+            "cells": 1296,
+            "freeCells": 1188,
+            "doorsChecked": 2,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 69,
+            "crates": 51,
+            "posts": 1,
+            "barriers": 17,
+            "loot": 51,
+            "cells": 1296,
+            "freeCells": 1137,
+            "doorsChecked": 2,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "checkpoint@1008,234",
+          "before": {
+            "elements": 17,
+            "crates": 0,
+            "posts": 1,
+            "barriers": 16,
+            "loot": 126,
+            "cells": 1296,
+            "freeCells": 1193,
+            "doorsChecked": 2,
+            "unreachableDoors": [
+              "checkpoint-post-1: no hunter route to door at 51834,11688"
+            ],
+            "errors": []
+          },
+          "after": {
+            "elements": 70,
+            "crates": 53,
+            "posts": 1,
+            "barriers": 16,
+            "loot": 108,
+            "cells": 1296,
+            "freeCells": 1140,
+            "doorsChecked": 2,
+            "unreachableDoors": [
+              "checkpoint-post-1: no hunter route to door at 51834,11688"
+            ],
+            "errors": []
+          }
+        },
+        {
+          "id": "checkpoint@576,258",
+          "before": {
+            "elements": 19,
+            "crates": 0,
+            "posts": 1,
+            "barriers": 18,
+            "loot": 66,
+            "cells": 1296,
+            "freeCells": 1182,
+            "doorsChecked": 2,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 65,
+            "crates": 46,
+            "posts": 1,
+            "barriers": 18,
+            "loot": 55,
+            "cells": 1296,
+            "freeCells": 1136,
+            "doorsChecked": 2,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "checkpoint@582,318",
+          "before": {
+            "elements": 18,
+            "crates": 0,
+            "posts": 1,
+            "barriers": 17,
+            "loot": 54,
+            "cells": 1296,
+            "freeCells": 1175,
+            "doorsChecked": 5,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 61,
+            "crates": 43,
+            "posts": 1,
+            "barriers": 17,
+            "loot": 42,
+            "cells": 1296,
+            "freeCells": 1132,
+            "doorsChecked": 5,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "checkpoint@276,402",
+          "before": {
+            "elements": 38,
+            "crates": 0,
+            "posts": 0,
+            "barriers": 38,
+            "loot": 78,
+            "cells": 2808,
+            "freeCells": 2603,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 146,
+            "crates": 108,
+            "posts": 0,
+            "barriers": 38,
+            "loot": 64,
+            "cells": 2808,
+            "freeCells": 2495,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        }
+      ],
+      "mapErrors": []
+    }
+  ],
+  "direct": [
+    {
+      "id": "checkpoint-1",
+      "before": {
+        "elements": 5,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 81,
+        "cells": 432,
+        "freeCells": 402,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 28,
+        "crates": 23,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 64,
+        "cells": 432,
+        "freeCells": 379,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "checkpoint-2",
+      "before": {
+        "elements": 5,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 88,
+        "cells": 432,
+        "freeCells": 402,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 28,
+        "crates": 23,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 82,
+        "cells": 432,
+        "freeCells": 379,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "checkpoint-3",
+      "before": {
+        "elements": 5,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 101,
+        "cells": 432,
+        "freeCells": 402,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 26,
+        "crates": 21,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 92,
+        "cells": 432,
+        "freeCells": 381,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "checkpoint-4",
+      "before": {
+        "elements": 6,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 5,
+        "loot": 94,
+        "cells": 432,
+        "freeCells": 381,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 955,140"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 23,
+        "crates": 17,
+        "posts": 1,
+        "barriers": 5,
+        "loot": 87,
+        "cells": 432,
+        "freeCells": 364,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 955,140"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "checkpoint-5",
+      "before": {
+        "elements": 6,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 5,
+        "loot": 84,
+        "cells": 432,
+        "freeCells": 384,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 955,140"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 24,
+        "crates": 18,
+        "posts": 1,
+        "barriers": 5,
+        "loot": 74,
+        "cells": 432,
+        "freeCells": 366,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 955,140"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "checkpoint-6",
+      "before": {
+        "elements": 6,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 5,
+        "loot": 87,
+        "cells": 432,
+        "freeCells": 377,
+        "doorsChecked": 4,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 955,60"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 22,
+        "crates": 16,
+        "posts": 1,
+        "barriers": 5,
+        "loot": 82,
+        "cells": 432,
+        "freeCells": 361,
+        "doorsChecked": 4,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 955,60"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "checkpoint-7",
+      "before": {
+        "elements": 6,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 5,
+        "loot": 90,
+        "cells": 432,
+        "freeCells": 384,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 955,140"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 25,
+        "crates": 19,
+        "posts": 1,
+        "barriers": 5,
+        "loot": 76,
+        "cells": 432,
+        "freeCells": 365,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 955,140"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "checkpoint-8",
+      "before": {
+        "elements": 5,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 92,
+        "cells": 432,
+        "freeCells": 402,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 27,
+        "crates": 22,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 78,
+        "cells": 432,
+        "freeCells": 380,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "checkpoint-9",
+      "before": {
+        "elements": 5,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 96,
+        "cells": 432,
+        "freeCells": 402,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 26,
+        "crates": 21,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 85,
+        "cells": 432,
+        "freeCells": 381,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "checkpoint-10",
+      "before": {
+        "elements": 5,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 96,
+        "cells": 432,
+        "freeCells": 402,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 26,
+        "crates": 21,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 83,
+        "cells": 432,
+        "freeCells": 381,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    }
+  ],
+  "variants": [
+    {
+      "id": "ell-1",
+      "before": {
+        "elements": 4,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 3,
+        "loot": 110,
+        "cells": 576,
+        "freeCells": 539,
+        "doorsChecked": 3,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 475,620",
+          "checkpoint-post-1: no hunter route to door at 360,620"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 35,
+        "crates": 31,
+        "posts": 1,
+        "barriers": 3,
+        "loot": 85,
+        "cells": 576,
+        "freeCells": 508,
+        "doorsChecked": 3,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 475,620",
+          "checkpoint-post-1: no hunter route to door at 360,620"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "ell-2",
+      "before": {
+        "elements": 4,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 3,
+        "loot": 114,
+        "cells": 576,
+        "freeCells": 543,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 475,620"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 35,
+        "crates": 31,
+        "posts": 1,
+        "barriers": 3,
+        "loot": 96,
+        "cells": 576,
+        "freeCells": 512,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 475,620"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "ell-3",
+      "before": {
+        "elements": 5,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 4,
+        "loot": 126,
+        "cells": 576,
+        "freeCells": 539,
+        "doorsChecked": 2,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 40,
+        "crates": 35,
+        "posts": 1,
+        "barriers": 4,
+        "loot": 100,
+        "cells": 576,
+        "freeCells": 504,
+        "doorsChecked": 2,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "ell-4",
+      "before": {
+        "elements": 3,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 2,
+        "loot": 120,
+        "cells": 576,
+        "freeCells": 546,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 475,620"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 40,
+        "crates": 37,
+        "posts": 1,
+        "barriers": 2,
+        "loot": 101,
+        "cells": 576,
+        "freeCells": 509,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 475,620"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "ell-5",
+      "before": {
+        "elements": 4,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 3,
+        "loot": 134,
+        "cells": 576,
+        "freeCells": 546,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 475,620"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 36,
+        "crates": 32,
+        "posts": 1,
+        "barriers": 3,
+        "loot": 109,
+        "cells": 576,
+        "freeCells": 514,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 475,620"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "one-1",
+      "before": {
+        "elements": 1,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 61,
+        "cells": 320,
+        "freeCells": 295,
+        "doorsChecked": 3,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 355,300",
+          "checkpoint-post-1: no hunter route to door at 240,300"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 20,
+        "crates": 19,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 50,
+        "cells": 320,
+        "freeCells": 276,
+        "doorsChecked": 3,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 355,300",
+          "checkpoint-post-1: no hunter route to door at 240,300"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "one-2",
+      "before": {
+        "elements": 1,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 56,
+        "cells": 320,
+        "freeCells": 299,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 315,300"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 20,
+        "crates": 19,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 40,
+        "cells": 320,
+        "freeCells": 280,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 315,300"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "one-3",
+      "before": {
+        "elements": 1,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 73,
+        "cells": 320,
+        "freeCells": 302,
+        "doorsChecked": 2,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 21,
+        "crates": 20,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 59,
+        "cells": 320,
+        "freeCells": 282,
+        "doorsChecked": 2,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "one-4",
+      "before": {
+        "elements": 1,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 62,
+        "cells": 320,
+        "freeCells": 299,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 315,300"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 26,
+        "crates": 25,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 46,
+        "cells": 320,
+        "freeCells": 274,
+        "doorsChecked": 2,
+        "unreachableDoors": [
+          "checkpoint-post-1: no hunter route to door at 315,300"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "one-5",
+      "before": {
+        "elements": 1,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 67,
+        "cells": 320,
+        "freeCells": 302,
+        "doorsChecked": 2,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 20,
+        "crates": 19,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 48,
+        "cells": 320,
+        "freeCells": 283,
+        "doorsChecked": 2,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "none-1",
+      "before": {
+        "elements": 1,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 56,
+        "cells": 320,
+        "freeCells": 295,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 20,
+        "crates": 19,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 38,
+        "cells": 320,
+        "freeCells": 276,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "none-2",
+      "before": {
+        "elements": 1,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 52,
+        "cells": 320,
+        "freeCells": 299,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 19,
+        "crates": 18,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 43,
+        "cells": 320,
+        "freeCells": 281,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "none-3",
+      "before": {
+        "elements": 1,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 76,
+        "cells": 320,
+        "freeCells": 302,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 24,
+        "crates": 23,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 59,
+        "cells": 320,
+        "freeCells": 279,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "none-4",
+      "before": {
+        "elements": 1,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 56,
+        "cells": 320,
+        "freeCells": 299,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 26,
+        "crates": 25,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 46,
+        "cells": 320,
+        "freeCells": 274,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "none-5",
+      "before": {
+        "elements": 1,
+        "crates": 0,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 68,
+        "cells": 320,
+        "freeCells": 302,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 22,
+        "crates": 21,
+        "posts": 1,
+        "barriers": 0,
+        "loot": 53,
+        "cells": 320,
+        "freeCells": 281,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "narrow-1",
+      "before": {
+        "elements": 5,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 4,
+        "cells": 72,
+        "freeCells": 67,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 5,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 4,
+        "cells": 72,
+        "freeCells": 67,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "narrow-2",
+      "before": {
+        "elements": 5,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 6,
+        "cells": 72,
+        "freeCells": 67,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 5,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 6,
+        "cells": 72,
+        "freeCells": 67,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "narrow-3",
+      "before": {
+        "elements": 6,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 6,
+        "loot": 8,
+        "cells": 72,
+        "freeCells": 66,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 6,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 6,
+        "loot": 8,
+        "cells": 72,
+        "freeCells": 66,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "narrow-4",
+      "before": {
+        "elements": 6,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 6,
+        "loot": 7,
+        "cells": 72,
+        "freeCells": 66,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 6,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 6,
+        "loot": 7,
+        "cells": 72,
+        "freeCells": 66,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "narrow-5",
+      "before": {
+        "elements": 5,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 8,
+        "cells": 72,
+        "freeCells": 67,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 5,
+        "crates": 0,
+        "posts": 0,
+        "barriers": 5,
+        "loot": 8,
+        "cells": 72,
+        "freeCells": 67,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    }
+  ],
+  "limits": "One current-library map per authored size, ten direct 24x18 cases and twenty concave/one-portal/portalless/narrow cases. Historical checkpoint module with current shared dependencies. Exact primary elements/traces, two-cell spacing, fill/margins, portal promises and unchanged reachability of every post door from the first portal checked before/after. Pre-existing inaccessible door targets are recorded separately; portalless door reach is not checked. No delegation acceptance rate: this is direct canvas infill. Human balance and exhaustive coverage unverified."
+}
