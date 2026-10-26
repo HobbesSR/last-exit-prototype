@@ -1,6 +1,7 @@
 import { rect, polygon } from '../shape.ts';
 import type { ElementTemplate } from './element.ts';
 import type { ModuleKind, Vec2 } from '../types.ts';
+import { cos, sin } from '../math.ts';
 
 /**
  * The element catalogue. A region generator draws from this rather than writing geometry inline, so
@@ -129,7 +130,7 @@ const COMPOUND: ElementTemplate = {
 
 // Integer points, so a stored map stays exact rather than carrying float noise no one reads.
 const hexagon = (radius: number): Vec2[] =>
-  Array.from({ length: 6 }, (_, i) => ({ x: Math.round(Math.cos(i * Math.PI / 3) * radius), y: Math.round(Math.sin(i * Math.PI / 3) * radius) }));
+  Array.from({ length: 6 }, (_, i) => ({ x: Math.round(cos(i * Math.PI / 3) * radius), y: Math.round(sin(i * Math.PI / 3) * radius) }));
 
 /** Yard cover: three stacks offset so none of them covers an approach on its own. */
 const CRATE_CLUSTER: ElementTemplate = {

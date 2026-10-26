@@ -9,6 +9,7 @@ import { asSeenBy } from './rewind.ts';
 import { hookSkill } from './hook.ts';
 import { actorHitRadius } from './swept.ts';
 import type { Game, Player, InventoryItem, StackItem } from '../types.ts';
+import { atan2, cos, sin } from '../math.ts';
 
 type UtilityState = Pick<Player, 'hp' | 'maxHp' | 'shield'>;
 
@@ -51,10 +52,10 @@ export function skill(s: Game, p: Player): void {
 export function attack(s: Game, p: Player): void {
   if (p.attackCd > 0) return;
   if (p.role === 'gladiator') {
-    p.attackCd = 13; effect(s, { x: p.x + Math.cos(p.heading) * 30, y: p.y + Math.sin(p.heading) * 30 }, 'slash', 55);
+    p.attackCd = 13; effect(s, { x: p.x + cos(p.heading) * 30, y: p.y + sin(p.heading) * 30 }, 'slash', 55);
     // Range, arc and cover all read the positions this gladiator was looking at when they swung.
     const seen = asSeenBy(s, p);
-    const t = s.players.filter(t => t.role !== p.role && t.status === 'active' && distance(p, seen(t)) < 86 && Math.cos(Math.atan2(seen(t).y - p.y, seen(t).x - p.x) - p.heading) > 0.25 && lineClear(s.map, p, seen(t))).sort((a, b) => distance(p, seen(a)) - distance(p, seen(b)))[0];
+    const t = s.players.filter(t => t.role !== p.role && t.status === 'active' && distance(p, seen(t)) < 86 && cos(atan2(seen(t).y - p.y, seen(t).x - p.x) - p.heading) > 0.25 && lineClear(s.map, p, seen(t))).sort((a, b) => distance(p, seen(a)) - distance(p, seen(b)))[0];
     if (t) damage(s, t, s.content.kits[p.kit]!.damage + (p.level - 1) * 4, p);
   } else {
     const item = equipped(p);
@@ -74,7 +75,7 @@ export function attack(s: Game, p: Player): void {
     if (item.ammo <= 0) return;
     item.ammo--;
     p.attackCd = weapon.cooldown;
-    for (const spread of weapon.spread) s.projectiles.push({ id: s.serial++, owner: p.id, x: p.x, y: p.y, dx: Math.cos(p.heading + spread) * weapon.speed, dy: Math.sin(p.heading + spread) * weapon.speed, life: weapon.life, damage: weapon.damage * qualityDamage(s.content, item) }); p.cloak = 0;
+    for (const spread of weapon.spread) s.projectiles.push({ id: s.serial++, owner: p.id, x: p.x, y: p.y, dx: cos(p.heading + spread) * weapon.speed, dy: sin(p.heading + spread) * weapon.speed, life: weapon.life, damage: weapon.damage * qualityDamage(s.content, item) }); p.cloak = 0;
   }
 }
 export function advanceProjectiles(s: Game): void {

@@ -8,6 +8,7 @@ import { microMetrics } from '../map/micro/metrics.ts';
 import { bounds, circle } from '../shared/shape.ts';
 import { designsNotUsed } from '../map/micro/building/draw.ts';
 import { cellsOf } from './helpers/cells.js';
+import { assertWithinBudget } from './helpers/budget.js';
 
 const SIZE = 40;
 const brief = (id, seed, cells, portals, parameters) => ({ id, seed, type: 'depot', cellSize: SIZE, cells,
@@ -165,7 +166,7 @@ test('a macro-sized depot with hundreds of portals builds quickly', () => {
   for (let y = 2; y < 146; y += 4) portals.push({ id: `w${y}`, axis: 'v', x: 0, y, length: 2 }, { id: `e${y}`, axis: 'v', x: 200, y, length: 2 });
   const started = performance.now();
   const result = buildRegion(brief('macro', 3, cells, portals));
-  assert.ok(performance.now() - started < 3000, `built in ${Math.round(performance.now() - started)} ms`);
+  assertWithinBudget(performance.now() - started, 3000);
   assert.ok(result.manifest.warehouses > 10 && result.manifest.rows > 100);
   assert.ok(bounds(blockers(result)[0]).w > 0);
 });

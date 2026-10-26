@@ -2,6 +2,7 @@ import RAPIER from '@dimforge/rapier2d-compat';
 import { PHYSICS_SUBSTEP_SECONDS, physicsSpeedLimit } from './motion-limits.ts';
 import { constraintForce, validateConstraint } from './constraints.ts';
 import type { BodySpec, ConstraintSpec, MotorIntent, PhysicsContact, PhysicsSnapshot, Point, Transform } from './types.ts';
+import { cos, hypot, sin } from '../math.ts';
 
 const SCALE = 40;
 const SUBSTEPS = 4;
@@ -55,13 +56,13 @@ const validId = (id: string): string => {
 };
 function shapeRadii(shape: BodySpec['shape']): { minimum: number; tip: number } {
   if (shape.kind === 'circle') return { minimum: shape.radius, tip: 0 };
-  if (shape.kind === 'box') return { minimum: Math.min(shape.hx, shape.hy), tip: Math.hypot(shape.hx, shape.hy) };
+  if (shape.kind === 'box') return { minimum: Math.min(shape.hx, shape.hy), tip: hypot(shape.hx, shape.hy) };
   return {
     minimum: Math.min(...shape.vertices.map((point, i, vertices) => {
       const next = vertices[(i + 1) % vertices.length]!;
-      return Math.abs(point.x * next.y - point.y * next.x) / Math.hypot(next.x - point.x, next.y - point.y);
+      return Math.abs(point.x * next.y - point.y * next.x) / hypot(next.x - point.x, next.y - point.y);
     })),
-    tip: Math.max(...shape.vertices.map(point => Math.hypot(point.x, point.y))),
+    tip: Math.max(...shape.vertices.map(point => hypot(point.x, point.y))),
   };
 }
 
@@ -107,7 +108,7 @@ function validateBody(input: BodySpec): BodySpec {
   if (result.kind === 'static' && (result.vx || result.vy || result.omega)) throw new RangeError('static body cannot move');
   if (result.kind !== 'static') {
     const { minimum, tip } = shapeRadii(checked);
-    const speed = Math.hypot(result.vx!, result.vy!) + Math.abs(result.omega!) * tip;
+    const speed = hypot(result.vx!, result.vy!) + Math.abs(result.omega!) * tip;
     const limit = Math.min(result.maxSpeed ?? Infinity, physicsSpeedLimit(minimum));
     if (speed > limit) throw new RangeError('initial physics speed requires swept-query-or-explicit-teleport');
   }
@@ -411,7 +412,7 @@ export class PhysicsWorld {
   private capSpeeds(): void {
     for (const [id, record] of this.sortedDynamic) {
       const body = this.native.getRigidBody(record.handle)!;
-      const v = body.linvel(), speed = Math.hypot(v.x, v.y) * SCALE;
+      const v = body.linvel(), speed = hypot(v.x, v.y) * SCALE;
       const limit = Math.min(record.spec.maxSpeed ?? Infinity, physicsSpeedLimit(record.minimumRadius));
       if (!Number.isFinite(speed)) throw new Error(`nonfinite physics speed ${id}`);
       const omega = body.angvel();
@@ -430,7 +431,7 @@ export class PhysicsWorld {
       if (!first || !second) { this.constraints.delete(id); continue; }
       const a = this.native.getRigidBody(first.handle)!, b = this.native.getRigidBody(second.handle)!;
       const at = (body: RAPIER.RigidBody, local: Point): Point => {
-        const angle = body.rotation(), c = Math.cos(angle), s = Math.sin(angle), p = body.translation();
+        const angle = body.rotation(), c = cos(angle), s = sin(angle), p = body.translation();
         return { x: p.x * SCALE + local.x * c - local.y * s,
           y: p.y * SCALE + local.x * s + local.y * c };
       };
@@ -473,7 +474,7 @@ export class PhysicsWorld {
         const motor = record.motor;
         if (motor) {
           const v = body.linvel(), dx = motor.x - v.x * SCALE, dy = motor.y - v.y * SCALE;
-          const magnitude = Math.hypot(dx, dy), fraction = magnitude ? Math.min(1, motor.accel * DT / magnitude) : 0;
+          const magnitude = hypot(dx, dy), fraction = magnitude ? Math.min(1, motor.accel * DT / magnitude) : 0;
           body.setLinvel({ x: v.x + dx * fraction / SCALE, y: v.y + dy * fraction / SCALE }, true);
         }
       }
@@ -496,7 +497,7 @@ export class PhysicsWorld {
       for (const id of previous.keys()) {
         const next = this.getTransform(id)!;
         const old = previous.get(id)!;
-        distance[id]! += Math.hypot(next.x - old.x, next.y - old.y);
+        distance[id]! += hypot(next.x - old.x, next.y - old.y);
         paths[id]!.push({ x: next.x, y: next.y });
         previous.set(id, { x: next.x, y: next.y });
       }

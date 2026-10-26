@@ -1,4 +1,5 @@
 import type { Box, Vec2, World } from '../types.ts';
+import { hypot } from '../math.ts';
 
 /**
  * The top level of navigation (22.6): the portals generation guarantees between regions. A
@@ -144,7 +145,7 @@ export function createPortalPlanner(graph: PortalGraph, reach: Reach, tables: Fl
       const relax = (node: number, via: number, g: World) => {
         if (g >= best[node]!) return;
         best[node] = g; parent[node] = via;
-        heap.push({ f: g + Math.hypot(to.x - at(node).x, to.y - at(node).y), g, node });
+        heap.push({ f: g + hypot(to.x - at(node).x, to.y - at(node).y), g, node });
       };
       best[START] = 0; closed[START] = 1;
       exits.forEach((p, i) => { const d = leave[i] ?? null; if (d !== null) relax(p, START, d); });

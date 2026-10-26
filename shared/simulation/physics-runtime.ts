@@ -1,6 +1,7 @@
 import type { PhysicsWorld } from '../physics/world.ts';
 import type { PhysicsGameplayState, HookState } from '../physics/types.ts';
 import type { Game, Player, Projectile, Vec2 } from '../types.ts';
+import { hypot } from '../math.ts';
 
 export const PHYSICS_VERSION = 'last-exit-0.8-physics-1';
 export const PHYSICS_HOOK_VERSION = 'last-exit-0.8-physics-6';
@@ -56,13 +57,13 @@ export function enqueuePhysicsImpulse(s: Game, id: string, value: Vec2): void {
   if (![value.x, value.y].every(n => Number.isFinite(n) && Math.abs(n) <= 1e9)) throw new TypeError('representable finite impulse required');
   const generation = r.world.getGeneration(id);
   if (generation === undefined) throw new Error('unknown impulse actor');
-  const magnitude = Math.hypot(value.x, value.y), limit = !s.content.worldPhysics || id.startsWith('actor:')
+  const magnitude = hypot(value.x, value.y), limit = !s.content.worldPhysics || id.startsWith('actor:')
     ? s.content.actorPhysics?.maxImpulse ?? Infinity : s.content.worldPhysics?.maxImpulse ?? Infinity;
   const scale = magnitude > limit ? limit / magnitude : 1;
   const previous = s.content.worldPhysics && r.pendingImpulses.find(entry => entry.id === id && entry.generation === generation);
   if (previous) {
     const x = previous.value.x + value.x * scale, y = previous.value.y + value.y * scale;
-    const total = Math.hypot(x, y), factor = total > limit ? limit / total : 1;
+    const total = hypot(x, y), factor = total > limit ? limit / total : 1;
     previous.value = { x: x * factor, y: y * factor };
   } else {
     if (r.pendingImpulses.length >= 128) throw new RangeError('pending impulse capacity');

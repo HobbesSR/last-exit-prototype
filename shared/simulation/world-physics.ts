@@ -3,6 +3,7 @@ import { actorRadius } from './actor-physics.ts';
 import { physicsRuntime, markPhysicsDiscontinuity } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GroundItem, MatchContent, GameMap, Vec2 } from '../types.ts';
+import { hypot } from '../math.ts';
 
 export const PHYSICS_WORLD_VERSION = 'last-exit-0.8-physics-5';
 const order = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
@@ -14,7 +15,7 @@ export function physicalDropPlacementClear(s: Game, r: PhysicsRuntime, x: number
   const radius = s.content.worldPhysics?.loot.radius;
   if (!s.content.dynamicNavigation || radius === undefined) return true;
   return !r.world.overlapsProp(x, y, radius)
-    && s.players.every(p => p.status !== 'active' || Math.hypot(x - p.x, y - p.y) >= radius + actorRadius(s, p));
+    && s.players.every(p => p.status !== 'active' || hypot(x - p.x, y - p.y) >= radius + actorRadius(s, p));
 }
 
 /** Reject authoring before allocating a solver. All numbers are match-pinned tuning. */
@@ -32,11 +33,11 @@ export function validateWorldPhysics(content: MatchContent, map: GameMap): void 
   const ids = new Set<string>();
   if ((map.physicsProps?.length ?? 0) > 64) throw new RangeError('physics prop authoring capacity');
   // Conservative circumscribed footprint admits rotating crates without intersecting static geometry.
-  const radius = Math.hypot(profile.prop.hx, profile.prop.hy);
+  const radius = hypot(profile.prop.hx, profile.prop.hy);
   for (const prop of map.physicsProps ?? []) {
     if (typeof prop.id !== 'string' || !prop.id || ids.has(prop.id) || prop.profile !== 'crate' || ![prop.x, prop.y, prop.angle ?? 0].every(Number.isFinite)
       || !canOccupy(map, prop.x, prop.y, radius)
-      || (map.physicsProps ?? []).some(other => other !== prop && Math.hypot(other.x - prop.x, other.y - prop.y) < radius * 2))
+      || (map.physicsProps ?? []).some(other => other !== prop && hypot(other.x - prop.x, other.y - prop.y) < radius * 2))
       throw new RangeError('invalid physics prop placement');
     ids.add(prop.id);
   }
@@ -97,7 +98,7 @@ export function launchPhysicalDrops(s: Game, items: GroundItem[], from: Vec2): v
   const r = physicsRuntime(s), speed = s.content.worldPhysics?.loot.dropSpeed;
   if (!r || speed === undefined) return;
   for (const item of items) {
-    const dx = item.x - from.x, dy = item.y - from.y, length = Math.hypot(dx, dy);
+    const dx = item.x - from.x, dy = item.y - from.y, length = hypot(dx, dy);
     r.itemLaunches.set(item.id, { x: length ? dx / length * speed : 0, y: length ? dy / length * speed : 0 });
   }
   r.synchronize();

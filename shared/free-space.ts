@@ -4,6 +4,7 @@ import { outline, polygon, rect, shapeOf, type Shape } from './shape.ts';
 import { CLIP_SCALE, canonicalRings, clipPath, triangulateRings } from './shape-construction.ts';
 import { gateShape } from './movement.ts';
 import type { Box, CollisionMap, Vec2, World } from './types.ts';
+import { hypot } from './math.ts';
 
 /**
  * The shape module's free-space index (22.6, "Bottom level"): the ground a disk's centre may
@@ -127,7 +128,7 @@ export function locate(space: FreeSpace, point: Vec2): number {
       const a = triangles[t * 3 + k]!, b = triangles[t * 3 + (k + 1) % 3]!;
       const ax = points[a * 2]!, ay = points[a * 2 + 1]!, dx = points[b * 2]! - ax, dy = points[b * 2 + 1]! - ay;
       // Within a millionth of a unit of the edge counts as on it.
-      inside = dx * (point.y - ay) - dy * (point.x - ax) >= -1e-6 * Math.hypot(dx, dy);
+      inside = dx * (point.y - ay) - dy * (point.x - ax) >= -1e-6 * hypot(dx, dy);
     }
     if (inside) return t;
   }
@@ -156,10 +157,10 @@ export function entry(space: FreeSpace, point: Vec2, reach: World): { point: Vec
       for (let k = 0; k < 3; k++) {
         if (space.twins[t * 3 + k]! >= 0) continue;
         const a = at(space, vertexOf(space, t, k)), b = at(space, vertexOf(space, t, k + 1)), near = closestOnSegment(point, a, b);
-        const d = Math.hypot(near.x - point.x, near.y - point.y);
+        const d = hypot(near.x - point.x, near.y - point.y);
         if (d < best || d === best && found && t < found.triangle) {
           // A hundredth of a unit toward the triangle's centre puts the point strictly inside it.
-          const centre = at(space, vertexOf(space, t, k + 2)), cx = (a.x + b.x + centre.x) / 3 - near.x, cy = (a.y + b.y + centre.y) / 3 - near.y, n = Math.hypot(cx, cy);
+          const centre = at(space, vertexOf(space, t, k + 2)), cx = (a.x + b.x + centre.x) / 3 - near.x, cy = (a.y + b.y + centre.y) / 3 - near.y, n = hypot(cx, cy);
           best = d; found = { point: { x: near.x + cx / n * 0.01, y: near.y + cy / n * 0.01 }, triangle: t };
         }
       }
@@ -173,7 +174,7 @@ function onSegment(px: number, py: number, ax: number, ay: number, bx: number, b
   // Off the line first, which settles almost every call.
   if (side * side > 1e-12 * n) return false;
   const t = n ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / n)) : 0;
-  return Math.hypot(px - ax - t * dx, py - ay - t * dy) <= 1e-6;
+  return hypot(px - ax - t * dx, py - ay - t * dy) <= 1e-6;
 }
 
 /** The point of segment `a`–`b` nearest `p`. */
@@ -215,7 +216,7 @@ export function freePaths(space: FreeSpace, from: Vec2, targets: readonly Vec2[]
   // Each state's crossing point: the nearest point of its edge to the crossing before, which
   // follows a taut path far better than edge midpoints do across large triangles.
   const where = new Float64Array(states * 2);
-  const span = (a: Vec2, b: Vec2) => Math.hypot(b.x - a.x, b.y - a.y);
+  const span = (a: Vec2, b: Vec2) => hypot(b.x - a.x, b.y - a.y);
   const relax = (state: number, g: World, via: number) => { if (g < best[state]!) { best[state] = g; parent[state] = via; heap.push(state, g); return true; } return false; };
   const enter = (state: number, previous: Vec2, g: World, via: number) => {
     // The state's edge, as its own triangle numbers it.

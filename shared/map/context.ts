@@ -4,6 +4,7 @@ import { distance } from '../vector.ts';
 import { fieldsOf, rect as rectShape } from '../shape.ts';
 import type { Shape } from '../shape.ts';
 import type { Box, BuildingId, GameMap, GroundItem, ItemKind, MapDraft, MapNode, NodeId, Obstacle, ObstacleId, ObstacleKind, ItemId, Vec2, World } from '../types.ts';
+import { hypot } from '../math.ts';
 
 export { distance };
 
@@ -67,7 +68,7 @@ export function createGenerationContext(seed: number): BaseGenerationContext {
   const overlaps = (a: Box, b: Box, margin = 0) => a.x < b.x + b.w + margin && a.x + a.w + margin > b.x && a.y < b.y + b.h + margin && a.y + a.h + margin > b.y;
   const reservations: Box[] = [];
   const reserve = (x: World, y: World, radius: World) => { reservations.push({ x: x - radius, y: y - radius, w: radius * 2, h: radius * 2 }); };
-  const clearFootprint = (box: Box) => insideMap(map, box.x + box.w / 2, box.y + box.h / 2, Math.hypot(box.w, box.h) / 2)
+  const clearFootprint = (box: Box) => insideMap(map, box.x + box.w / 2, box.y + box.h / 2, hypot(box.w, box.h) / 2)
     && !map.obstacles.some(o => overlaps(box, o, 20)) && !reservations.some(r => overlaps(box, r, 10));
   const spots: LootSpot[] = [];
   const occupied: Vec2[] = [];
