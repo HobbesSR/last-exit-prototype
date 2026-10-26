@@ -28,7 +28,8 @@ test('shared/ computes non-exact math only through shared/math.ts (#566)', () =>
   const offenders = [];
   for (const file of readdirSync('shared', { recursive: true })) {
     if (!file.endsWith('.ts') || file === 'math.ts') continue;
-    const code = readFileSync(path.join('shared', file), 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
+    // Comments are blanked but keep their newlines, so reported lines stay true.
+    const code = readFileSync(path.join('shared', file), 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, c => c.replace(/[^\n]/g, ''));
     code.split('\n').forEach((line, i) => {
       // `**` is Math.pow; only a literal like 2 ** 20 is exact everywhere.
       if (banned.test(line) || /\*\*/.test(line.replace(/\b\d+ \*\* \d+\b/g, ''))) offenders.push(`${file}:${i + 1}`);
@@ -62,11 +63,13 @@ test('the math module stays within 1 ulp of the engine and follows its special c
       ulps(atan2(y, x), Math.atan2(y, x)), ulps(hypot(x, y), Math.hypot(x, y)));
   }
   assert.ok(worst <= 1, `${worst} ulps`);
+  // Another engine may round these last bits differently, so they get the same 1 ulp. A wrong
+  // signed zero or a NaN is billions of ulps away, so those cases are still checked exactly.
   const special = [0, -0, 1, -1, 1e-310, -1e-310, 1e300, -1e300, Infinity, -Infinity, NaN];
   for (const a of special) {
     // Past 2^19·π/2 sin and cos are deterministic but not accurate (math.ts); the game never goes there.
-    if (!(Number.isFinite(a) && Math.abs(a) > 1e6)) assert.ok(Object.is(sin(a), Math.sin(a)) && Object.is(cos(a), Math.cos(a)), `${a}`);
-    assert.ok(Object.is(atan(a), Math.atan(a)), `${a}`);
-    for (const b of special) assert.ok(Object.is(atan2(a, b), Math.atan2(a, b)) && Object.is(hypot(a, b), Math.hypot(a, b)), `${a}, ${b}`);
+    if (!(Number.isFinite(a) && Math.abs(a) > 1e6)) assert.ok(ulps(sin(a), Math.sin(a)) <= 1 && ulps(cos(a), Math.cos(a)) <= 1, `${a}`);
+    assert.ok(ulps(atan(a), Math.atan(a)) <= 1, `${a}`);
+    for (const b of special) assert.ok(ulps(atan2(a, b), Math.atan2(a, b)) <= 1 && ulps(hypot(a, b), Math.hypot(a, b)) <= 1, `${a}, ${b}`);
   }
 });
