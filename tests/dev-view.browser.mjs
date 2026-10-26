@@ -182,6 +182,28 @@ try {
   assert.ok(Math.abs(followed.debug.camera.x + followed.debug.cameraWidth / 2 - followed.subject.x) < 60, 'following centres on the subject');
   await dev.keyboard.press('KeyV');
   await dev.waitForFunction(() => window.arenaDebug().viewer === null && window.arenaDebug().vision === null && window.arenaDebug().follow);
+  // A palette (11.1) recolours the arena in place: the camera and actors carry on where they were.
+  const groundPixels = rgb => dev.evaluate(rgb => {
+    const gl = document.querySelector('#game canvas').getContext('webgl') || document.querySelector('#game canvas').getContext('webgl2');
+    const data = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
+    gl.readPixels(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    let n = 0; for (let i = 0; i < data.length; i += 4) if (data[i] === rgb[0] && data[i + 1] === rgb[1] && data[i + 2] === rgb[2]) n++;
+    return n;
+  }, rgb);
+  const rgbOf = c => [c >> 16 & 255, c >> 8 & 255, c & 255];
+  const { THEMES } = await import('../public/palette.js');
+  const unstyled = await dev.evaluate(() => window.arenaDebug());
+  assert.equal(unstyled.palette, 'prototype');
+  assert.ok(await groundPixels(rgbOf(THEMES.prototype.colors.ground)) > 1000, 'the prototype ground is on screen');
+  await dev.locator('#dev-palette').selectOption('signature');
+  await dev.waitForTimeout(300);
+  const styled = await dev.evaluate(() => window.arenaDebug());
+  assert.equal(styled.palette, 'signature');
+  assert.ok(await groundPixels(rgbOf(THEMES.signature.colors.ground)) > 1000, 'the signature ground replaced it');
+  assert.equal(await groundPixels(rgbOf(THEMES.prototype.colors.ground)), 0, 'no stale tile keeps the old ground');
+  assert.equal(styled.follow, unstyled.follow); assert.equal(styled.actorCount, unstyled.actorCount);
+  assert.ok(Math.abs(styled.camera.zoom - unstyled.camera.zoom) < 1e-6, 'restyling leaves the camera alone');
+  await dev.locator('#dev-palette').selectOption('prototype');
   // T sends the followed player to the open ground under the cursor (#247).
   const view = await dev.evaluate(() => { const box = document.querySelector('#game canvas').getBoundingClientRect(); return { ...window.arenaDebug(), left: box.left, top: box.top }; });
   const before = room.game.players.find(p => p.id === subject);
@@ -286,6 +308,6 @@ try {
 
   await browse();
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ passed: true, checks: ['step out and back', 'dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'teleport', 'pause and resume', 'browser dev view', 'browser role after dev view and Auto', 'dev view across the start', 'death dialog hidden in dev view and restored'] }));
+  console.log(JSON.stringify({ passed: true, checks: ['step out and back', 'dev view opens undelayed', 'free camera', 'follow in sight', 'fog toggle', 'palette restyle', 'teleport', 'pause and resume', 'browser dev view', 'browser role after dev view and Auto', 'dev view across the start', 'death dialog hidden in dev view and restored'] }));
 } catch (error) { console.error('Browser errors:', errors); throw error; }
 finally { await browser.close(); await server.close(); await rm(replayDir, { recursive: true, force: true }); }

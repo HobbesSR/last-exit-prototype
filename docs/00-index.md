@@ -78,7 +78,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [29.1-physics-design.md](29.1-physics-design.md) | Proposed rigid bodies, character contact, middleware evaluation, springs/hooks and physical item contracts |
 | [29.2-physics-state-networking.md](29.2-physics-state-networking.md) | Experimental physics tick/state contracts, private live projections, engine-free playback and bounded local prediction (#441); default rollout remains proposed |
 | [29.3-shape-construction-and-assembly.md](29.3-shape-construction-and-assembly.md) | Shape construction (union, subtraction, convex pieces) and placeable element assemblies |
-| [29.4-drawing.md](29.4-drawing.md) | How drawing is cached, drawing planes, roofs and canopies, flat 2D material simplification and theatrical lighting |
+| [29.4-drawing.md](29.4-drawing.md) | How drawing is cached, drawing planes, roofs and canopies, palettes (#582) and the constraints on art passes |
 
 ### 3x — Process
 

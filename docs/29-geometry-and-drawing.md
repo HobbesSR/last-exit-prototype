@@ -113,7 +113,7 @@ Any of that must keep the fixed-tick order, the RNG/ID order and the recorded ou
 | [29.1](29.1-physics-design.md) | Proposed physical behavior, engine comparison, character bodies and items |
 | [29.2](29.2-physics-state-networking.md) | Physics ticks, state, prediction and replay |
 | [29.3](29.3-shape-construction-and-assembly.md) | Shape construction (union, subtraction, convex pieces, #488) and placeable element assemblies and their catalogue |
-| [29.4](29.4-drawing.md) | How drawing is cached in tiles, drawing planes, overhead roofs and canopies, flat 2D material simplification and theatrical lighting |
+| [29.4](29.4-drawing.md) | How drawing is cached in tiles, drawing planes, overhead roofs and canopies, palettes and the constraints on art passes |
 
 ## Earlier heading links
 

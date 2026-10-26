@@ -24,38 +24,24 @@ fences and doors are made of in that part of the map, so the same declaration
 can become a chain-link fence in a yard and a stone wall in a plaza. It is
 never carried by cell class. Primitive sets are deferred (16).
 
-Under the established world and visual art direction ([11.1](11.1-world-and-art-direction.md),
-tracked in [#581](http://localhost:3000/corey/astra_test/issues/581) and
-[#584](http://localhost:3000/corey/astra_test/issues/584)), procedural appearance separates five
-independent dimensions rather than collapsing them into one generic damage or
-cell-class style:
+The art direction ([11.1](11.1-world-and-art-direction.md) §4) proposes that
+appearance carry five independent dimensions rather than one generic damage
+style (#584, not designed yet). They are what primitive sets would grow into:
+- **District identity:** the neighborhood archetype and its palette.
+- **Architectural identity:** a building's original function and era, which
+  choose its components, materials, colors and signage ([56](56-buildings.md)).
+- **Decay:** long-term neglect, which transforms original colors rather than
+  erasing them.
+- **Competition damage:** the type, amount and age of damage from earlier
+  bouts, uneven across the map.
+- **Lighting identity:** a region's or block's color treatment, chosen apart
+  from its materials ([29.4](29.4-drawing.md)).
 
-1. **District identity:** neighborhood archetype (older commercial corridors,
-   apartment and neighborhood retail blocks, warehouse and service districts,
-   parking and transportation infrastructure, motel and roadside strips, civic
-   or institutional complexes) and neighborhood palette identity.
-2. **Architectural identity:** original building function and approximate
-   construction era, driving geometry/component choices, surface material
-   families (asphalt, concrete, brick, metal, glass), original facade and
-   commercial colors, signage, and rooftop details ([56](56-buildings.md)).
-3. **Decay state (long-term neglect):** faded/peeling paint, corrosion, water
-   staining, weathered signage, vegetation intrusion, and boarded windows,
-   transforming rather than uniformly erasing original colors.
-4. **Competition-damage history:** violent bout damage (no major damage,
-   scattered impacts, vehicle/barricade destruction, localized fire/scorch,
-   structural breach, extensive collapse, or overlapping events of differing
-   age), distributed unevenly so relatively intact abandoned blocks contrast
-   with devastated combat zones.
-5. **Theatrical lighting identity:** region- or block-level colored atmospheric
-   treatments (such as amber-and-cobalt warehouses or magenta-and-turquoise
-   storefronts) assigned independently of building materials ([29.4](29.4-drawing.md)).
-
-Cosmetic decay, surface markings, and lighting treatments never alter collision,
-sight, or navigation ([56.2](56.2-ground-decals.md)). Any geometry-changing
-destruction must be emitted through the region strategy's element/canvas pipeline
+Like cell class, none of these may change passability. Decoration never alters
+collision, sight or navigation ([56.2](56.2-ground-decals.md)). Destruction
+that does is emitted as elements by the region strategy
 ([20.3.1](20.3.1-canvas-adoption.md), [29.3](29.3-shape-construction-and-assembly.md))
-and satisfy the region's portal reachability promise ([51.7](51.7-briefs.md),
-[54](54-region-types.md)).
+and keeps the region's portal promise ([51.7](51.7-briefs.md), [54](54-region-types.md)).
 
 ## Primitives
 
