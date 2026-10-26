@@ -24,3 +24,17 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run test:mapgen
+
+  # The slow tier (docs/31), in parallel with verify so agents need not run it
+  # locally before opening a PR.
+  slow:
+    runs-on: docker
+    container:
+      image: node:24.15.0-bookworm
+    timeout-minutes: 45
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+      - run: npm install -g npm@12.0.2
+      - run: npm ci
+      - run: npm --prefix map/macro ci
+      - run: npm run test:slow
