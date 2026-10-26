@@ -6,7 +6,7 @@ import { gunzipSync } from 'node:zlib';
 import { buildCompound, buildCompoundGeneration, COMPOUND_EXECUTION_REGISTRY } from '../map/micro/strategies/compound.ts';
 import { executionLeaves, flattenDelegationResult } from '../map/micro/delegation-execute.ts';
 import { buildBlock, planBlock } from '../map/micro/strategies/block.ts';
-import { COVER_EXECUTION, COVER_EXECUTOR_VERSION } from '../map/micro/strategies/cover.ts';
+import { buildCover, COVER_EXECUTION, COVER_EXECUTOR_VERSION } from '../map/micro/strategies/cover.ts';
 import { prepareDelegation, validateBriefPartition } from '../map/micro/delegation.ts';
 import { saveDelegationSnapshot, readDelegationSnapshot, delegationSnapshotResult } from '../map/micro/delegation-snapshot.ts';
 import { createAccessMask, elementShapes, findRegionRoute } from '../map/micro/geometry.ts';
@@ -144,20 +144,24 @@ test('split fill excludes exterior patches that cannot contain cover', () => {
   assert.deepEqual(validatePortalReach({ ...flat.brief, blockers: blockers(flat) }).errors, []);
 });
 
-test('inherited cover infeasibility rejects a narrow exterior component without losing cells', () => {
+test('individual cover fits the narrow exterior witness that rejected clusters', () => {
   const cells = cellsOf(40, 34), original = brief('compound-1', cells, [
     { id: 'west', axis: 'v', x: 0, y: 8, length: 2 },
     { id: 'east', axis: 'v', x: 40, y: 8, length: 2 },
   ]);
   const node = buildCompoundGeneration(original);
-  // The explicit 4x30 before-evidence witness remains infeasible even when
-  // production screening retains a narrower route sliver without offering it.
+  // The explicit 4x30 before-evidence witness now accepts individual pieces.
   const prepared = prepareDelegation(original, [{ key: 'exterior-witness', type: 'cover',
     cells: cellsOf(4, 30).map(cell => ({ x: cell.x + 2, y: cell.y + 2 })), reasonTags: ['unused-exterior-yard'] }],
   { blockers: placed(node.retained), receiving: COMPOUND_EXECUTION_REGISTRY.cover.receiving });
-  assert.equal(prepared.children.length, 0);
-  assert.equal(prepared.retained.cells.length, original.cells.length);
-  assert.ok(prepared.rejected.some(({ reason }) => reason.includes('cover has no usable placement')));
+  assert.equal(prepared.children.length, 1);
+  const child = prepared.children[0].brief;
+  assert.equal(buildCover(child).elements.length, 0, 'the ordinary cluster pass still misses this patch');
+  const infill = COVER_EXECUTION.build(child);
+  assert.ok(infill.elements.length);
+  assert.deepEqual(validateFillConstraints(child, placed(infill)), []);
+  assert.deepEqual(validateBriefPartition(original, [prepared.retained, child]), []);
+  assert.deepEqual(validatePortalReach({ ...child, blockers: [...blockers(node.retained), ...blockers(infill)] }).errors, []);
   assert.deepEqual(validateBriefPartition(node.input, executionLeaves(node).map(leaf => leaf.brief)), []);
   assert.deepEqual(validatePortalReach({ ...node.input, blockers: blockers(flattenDelegationResult(node)) }).errors, []);
 });
@@ -259,14 +263,14 @@ test('full and omitted compound snapshots recover the same hierarchy and result'
   assert.deepEqual(delegationSnapshotResult(omitted, COMPOUND_EXECUTION_REGISTRY), flat);
 });
 
-test('omitted snapshots recover a compound whose cover receiver accepts one lobe and refuses another', () => {
+test('omitted snapshots recover a compound whose infill receiver accepts former cluster misses', () => {
   const original = brief('compound-mixed', cellsOf(36, 30, (x, y) => y < 18 || x < 18), [
     { id: 'west', axis: 'v', x: 0, y: 6, length: 2 },
     { id: 'east', axis: 'v', x: 36, y: 6, length: 2 },
   ], { seed: 2 });
   const node = buildCompoundGeneration(original), flat = flattenDelegationResult(node);
   assert.ok(node.children?.some(child => child.actualBuilder === 'cover'));
-  assert.ok(node.preparation.rejected.some(({ reason }) => reason.includes('cover has no usable placement')));
+  assert.equal(node.children.length, node.offers.length, 'individual pieces now fit all offered lobes in this witness');
   assert.equal(COMPOUND_EXECUTION_REGISTRY.cover, COVER_EXECUTION);
   assert.equal(node.registryVersions.cover, COVER_EXECUTOR_VERSION);
   const omitted = roundTrip(saveDelegationSnapshot(node, { omitResults: true }));
