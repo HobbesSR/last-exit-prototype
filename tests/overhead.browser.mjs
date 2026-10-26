@@ -72,6 +72,11 @@ try {
     return textures.length > 0 && textures.every(t => group.textures.has(t) && t.alpha === 0.5);
   });
   assert.equal(roofAlpha, true, 'roof groups also reuse textures for alpha changes');
+  // A palette restyle (11.1, #582) re-records the art but keeps a group part way through its fade.
+  await page.evaluate(() => { const s = window.fixture.scene; s.setPalette('prototype'); s.update(performance.now(), 16); });
+  await page.waitForTimeout(60);
+  assert.equal(await page.evaluate(() => window.fixture.scene.overheadGroups.get('canopy').alpha), 0.4, 'a restyle keeps the fade');
+  assert.deepEqual(await page.evaluate(() => window.fixture.pixel()), faded, 'and draws the same crown at the same alpha');
   // Roof fade and inside zoom: the viewer walks to the door, then in, then out again.
   const frames = (n = 60, id = 'house') => page.evaluate(async ([n, id]) => { const s = window.fixture.scene; s.cutTo(); for (let i = 0; i < n; i++) { s.update(performance.now(), 16); await new Promise(r => setTimeout(r, 20)); } const g = s.roofs.get(id);
     return { alpha: g.alpha, visible: g.visible, zoom: s.cameras.main.zoom, textures: [...g.textures].map(t => t.alpha) }; }, [n, id]);
@@ -133,6 +138,14 @@ try {
   assert.equal(bothOpaque.alpha, 1);
   assert.equal(eastOpaque.alpha, 1);
   // Assert no line stroke (128,145,168) or dark base seam at the shared wall (x=2040) between abutting roofs (#349)
+  // Declared roofs draw in the palette's colors under a restyle too, not in an unset (black) fill.
+  await page.evaluate(() => { const s = window.fixture.scene; s.setPalette('signature'); s.update(performance.now(), 16); });
+  await page.waitForTimeout(60);
+  const { THEMES } = await import('../public/palette.js');
+  const signatureRoof = THEMES.signature.colors.roof;
+  assert.deepEqual((await page.evaluate(() => window.fixture.pixel(2020, 120))).slice(0, 3), [signatureRoof >> 16 & 255, signatureRoof >> 8 & 255, signatureRoof & 255], 'a declared roof takes the palette roof color');
+  await page.evaluate(() => { const s = window.fixture.scene; s.setPalette('prototype'); s.update(performance.now(), 16); });
+  await page.waitForTimeout(60);
   const interiorPixel = await page.evaluate(() => window.fixture.pixel(2020, 120));
   const seamPixel = await page.evaluate(() => window.fixture.pixel(2040, 120));
   const westOfSeam = await page.evaluate(() => window.fixture.pixel(2038, 120));
