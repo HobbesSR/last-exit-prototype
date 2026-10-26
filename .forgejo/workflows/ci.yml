@@ -1,11 +1,13 @@
 # Forgejo Actions CI (#547). The gate set and what stays manual are in docs/31.
-# Runners carry the `docker` label; jobs run in a clean container, never on the runner's host.
+# Runner labels are queues: `docker` for verify, `slow` for the slow tier. Jobs run in a
+# clean container, never on the runner's host.
 name: ci
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   verify:
@@ -25,10 +27,13 @@ jobs:
       - run: npm test
       - run: npm run test:mapgen
 
-  # The slow tier (docs/31), in parallel with verify so agents need not run it
-  # locally before opening a PR.
+  # The slow tier (docs/31) runs after merge, not on PRs, on its own runner queue
+  # (label `slow`) so it never holds up a PR's verify. A failure files an issue per
+  # failing test instead of blocking anyone. Run it on a branch by hand with
+  # workflow_dispatch from the Actions tab.
   slow:
-    runs-on: docker
+    if: github.event_name != 'pull_request'
+    runs-on: slow
     container:
       image: node:24.15.0-bookworm
     timeout-minutes: 45
@@ -37,4 +42,19 @@ jobs:
       - run: npm install -g npm@12.0.2
       - run: npm ci
       - run: npm --prefix map/macro ci
-      - run: npm run test:slow
+      # 35 minutes, inside the job's 45, so a hang still leaves time to report it:
+      # at the job's own deadline Forgejo cancels everything, reporting included.
+      # timeout kills the whole process tree, so tee is not left waiting. Forgejo runs
+      # bash with -e, which would exit on the failed pipeline before its status is read.
+      - run: |
+          set +e
+          timeout --kill-after=1m 35m npm run test:slow 2>&1 | tee slow.log
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" = 124 ] || [ "$status" = 137 ]; then echo "::slow-tier-timeout::" >> slow.log; fi
+          exit "$status"
+        shell: bash
+      - if: failure() && github.event_name == 'push'
+        run: node tools/ci/slow-failures.mjs slow.log
+        env:
+          FORGEJO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
