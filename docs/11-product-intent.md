@@ -43,11 +43,11 @@ abilities and a private transport network.
 ## Presentation target
 
 The prototype's playful arena presentation is a baseline, not the target. The
-accepted art direction is cyberpunk urban dystopian ruins, preserving clear
+accepted art direction is a derelict urban battleground presented with the dramatic color and visual energy of an extravagant 1980s action spectacle ([11.1](11.1-world-and-art-direction.md)), preserving clear
 silhouettes, readable equipment and obvious interactions. Zombs Royale remains a
 handling and inventory reference. The accepted target includes ramps, playable
 roofs and overlapping floors on discrete collision planes; their navigation and
-transition rules remain future work. See [13](13-accepted-features.md) F-01 and
+transition rules remain future work. See [11.1](11.1-world-and-art-direction.md) for world design, nocturnal urban art direction, palettes, theatrical lighting, and validation criteria, [13](13-accepted-features.md) F-01 and
 F-04 for status, and [16](16-deferred.md) for what is postponed.
 
 ## Loops

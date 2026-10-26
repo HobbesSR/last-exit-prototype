@@ -43,7 +43,8 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 
 | File | Holds |
 | --- | --- |
-| [11-product-intent.md](11-product-intent.md) | Premise, the milestone's success condition, spatial and control intent, match loops |
+| [11-product-intent.md](11-product-intent.md) | Premise, the milestone's success condition, spatial and control intent, presentation target, match loops |
+| [11.1-world-and-art-direction.md](11.1-world-and-art-direction.md) | World identity, derelict urban setting, three-layer damage history, palettes, nocturnal theatrical lighting, flat 2D readability, validation criteria (#581) |
 | [12-player-requirements.md](12-player-requirements.md) | P-01 – P-16, the non-negotiable player requirements, with roles and kits |
 | [13-accepted-features.md](13-accepted-features.md) | F-01 – F-18, accepted direction and per-feature implementation status |
 | [14-match-rules.md](14-match-rules.md) | Implemented defaults: capacities, inventory, objective, traps, timings, lifecycle |
@@ -77,7 +78,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [29.1-physics-design.md](29.1-physics-design.md) | Proposed rigid bodies, character contact, middleware evaluation, springs/hooks and physical item contracts |
 | [29.2-physics-state-networking.md](29.2-physics-state-networking.md) | Experimental physics tick/state contracts, private live projections, engine-free playback and bounded local prediction (#441); default rollout remains proposed |
 | [29.3-shape-construction-and-assembly.md](29.3-shape-construction-and-assembly.md) | Shape construction (union, subtraction, convex pieces) and placeable element assemblies |
-| [29.4-drawing.md](29.4-drawing.md) | How drawing is cached, drawing planes, roofs and canopies |
+| [29.4-drawing.md](29.4-drawing.md) | How drawing is cached, drawing planes, roofs and canopies, flat 2D material simplification and theatrical lighting |
 
 ### 3x — Process
 
