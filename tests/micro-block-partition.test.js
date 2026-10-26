@@ -19,7 +19,10 @@ test('a block on any lab shape passes the brief partition check, so its portals 
   assert.ok(planned >= 150, `${planned} of ${total} have lots`);
 });
 
-test('a lot that would cut the alleys in two is refused, and the block falls back to fewer lots', () => {
-  // The neck's only lot would cut its west strip off from the east portal, so it stays open whole.
-  assert.equal(planBlock(regionExample({ type: 'block', shape: 'neck', width: 24, height: 18, seed: 1 })).lots.length, 0);
+test('a lot that would cut the alleys in two is replaced with a smaller SDK lot', () => {
+  const input = regionExample({ type: 'block', shape: 'neck', width: 24, height: 18, seed: 1 });
+  const plan = planBlock(input);
+  assert.equal(plan.lots.length, 1);
+  assert.equal(plan.allocation.strategy, 'block-single-lot-fallback');
+  assert.deepEqual(validateBriefPartition(input, [...plan.lots, plan.alleys]), []);
 });

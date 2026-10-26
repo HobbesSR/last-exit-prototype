@@ -46,6 +46,17 @@ try {
     assert.deepEqual((await debug()).result, expected, `${shape} control builds its own region`);
     previousCells = expected.brief.cells;
   }
+  // Exercise production SDK allocation through the browser's module loader and
+  // actual region controls, including the formerly empty neck witness (#580).
+  await selectBuilder('block');
+  await page.getByLabel('Region shape', { exact: true }).selectOption('neck');
+  await page.getByLabel('Seed', { exact: true }).fill('1');
+  await page.getByRole('button', { name: 'Generate region', exact: true }).click();
+  const block = (await debug()).result;
+  assert.equal(block.manifest.lots, 1);
+  assert.deepEqual(block, JSON.parse(JSON.stringify(buildRegion(regionExample({ type: 'block', shape: 'neck', seed: 1 })))));
+  await page.screenshot({ path: 'test-results/issue-580-block-neck.png' });
+  await page.getByLabel('Region shape', { exact: true }).selectOption('stair');
   await selectBuilder('charging');
   await page.getByLabel('Width (cells)', { exact: true }).fill('32');
   await page.getByLabel('Height (cells)', { exact: true }).fill('24');
