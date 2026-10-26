@@ -457,9 +457,9 @@ test('live map: roofs have unique ids, keep map id order, and declare multi-room
   // #530's inward grounds and #564/#570/#575's infill change object/loot counts.
   // Pin the resulting map IDs so roof creation cannot renumber obstacles, gates or items (#343).
   const map1 = generateLiveMap(1);
-  assert.equal(map1.obstacles?.at(-1)?.id, 'o696', 'obstacle IDs stay pinned on seed 1');
-  assert.equal(map1.gates?.at(-1)?.id, 'door-448', 'gate IDs stay pinned on seed 1');
-  assert.equal(map1.items?.at(-1)?.id, 'item-1772', 'item IDs stay pinned on seed 1');
+  assert.equal(map1.obstacles?.at(-1)?.id, 'o685', 'obstacle IDs stay pinned on seed 1');
+  assert.equal(map1.gates?.at(-1)?.id, 'door-437', 'gate IDs stay pinned on seed 1');
+  assert.equal(map1.items?.at(-1)?.id, 'item-1763', 'item IDs stay pinned on seed 1');
 
   const map2 = generateLiveMap(2);
   assert.equal(map2.obstacles?.at(-1)?.id, 'o700', 'obstacle IDs stay pinned on seed 2');

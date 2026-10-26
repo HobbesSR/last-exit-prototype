@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { createFillMask, elementShapes, shapesOverlap } from '../map/micro/geometry.ts';
-import { validatePortalReach } from '../map/micro/portals.ts';
+import { createAccessMask, createFillMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
+import { hunterClearance, portalStands, validatePortalReach } from '../map/micro/portals.ts';
 import { portalMargin } from '../map/micro/hints.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { circle, rect } from '../shared/shape.ts';
@@ -49,6 +49,7 @@ test('side-yard crates follow canonical cells and keep whole-cell spacing, margi
     assert.deepEqual(buildRegion(input(name, 1, [...brief.cells].reverse())).elements, result.elements, `${name} cell order`);
     assert.ok(crates(result).length > 0, `${name} receives infill`);
     const fill = createFillMask(brief), margin = new Set(portalMargin(brief, 1).map(c => `${c.x},${c.y}`));
+    const access = createAccessMask(brief);
     const centres = brief.portals.map(p => p.axis === 'h' ? { x: p.x + p.length / 2, y: p.y }
       : { x: p.x, y: p.y + p.length / 2 });
     const line = centres.length >= 2 ? [centres[0], centres[1]] : undefined;
@@ -58,6 +59,7 @@ test('side-yard crates follow canonical cells and keep whole-cell spacing, margi
       assert.equal(crate.template.w, SIZE);
       assert.equal(crate.template.h, SIZE);
       assert.ok(fill.contains(box(crate)));
+      assert.ok(access.contains(rect(crate.x - 2 * SIZE, crate.y - 2 * SIZE, 5 * SIZE, 5 * SIZE)));
       assert.ok(!margin.has(`${crate.x / SIZE},${crate.y / SIZE}`));
       if (line) for (let step = 0; step <= 100; step++) {
         const t = step / 100, x = line[0].x + (line[1].x - line[0].x) * t;
@@ -88,4 +90,34 @@ test('explicit reduced fill is honored and an open fallback stays open', () => {
   const small = cellsOf(2, 2), open = buildRegion(input('open', 1, small, []));
   assert.equal(open.elements.length, 0);
   assert.equal(crates(open).length, 0);
+});
+
+test('narrow dumbbell necks keep a hunter route into an unported far room', () => {
+  let compared = 0;
+  for (const width of [2, 3]) for (const seed of [3, 25]) for (const multiple of [false, true]) {
+    const cells = cellsOf(26, 12, (x, y) => x < 10 || x >= 16 || (y >= 5 && y < 5 + width));
+    const portals = [{ id: 'west', axis: 'v', x: 0, y: 5, length: 2 },
+      ...multiple ? [{ id: 'north', axis: 'h', x: 4, y: 0, length: 2 }] : []];
+    const brief = input('dumbbell', seed, cells, portals);
+    const result = buildRegion(brief), access = createAccessMask(brief);
+    const start = portalStands(brief)[0].points[0], far = { x: 24.5 * SIZE, y: 6.5 * SIZE };
+    const route = blockers => findRegionRoute(access, blockers, start, far, hunterClearance(SIZE));
+    const original = primary(result).flatMap(e => elementShapes(e));
+    const final = result.elements.flatMap(e => elementShapes(e));
+    if (route(original)) {
+      compared++;
+      assert.ok(route(final), `infill route: width ${width}, seed ${seed}, multiple ${multiple}`);
+    }
+    for (const site of result.loot.filter(site => site.x >= 16 * SIZE).slice(0, 12))
+      if (routeTo(site, original)) assert.ok(routeTo(site, final), `far-room loot ${site.x},${site.y}`);
+    function routeTo(site, blockers) {
+      return findRegionRoute(access, blockers, start, site, microMetrics({ cellSize: SIZE, bodyProfile: 'cell' }).clearance.contestant);
+    }
+    for (const crate of crates(result)) {
+      const x = crate.x / SIZE, y = crate.y / SIZE;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++)
+        assert.ok(access.has(x + dx, y + dy), `${crate.label} has owned bypass room`);
+    }
+  }
+  assert.ok(compared >= 4, `${compared} primary-accessible dumbbells compared`);
 });

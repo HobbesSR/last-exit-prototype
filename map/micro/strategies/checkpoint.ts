@@ -1,6 +1,5 @@
 import type { BuildingObserver } from '../building/trace.ts';
 import { CHECKPOINT_BARRIER } from '../placeables/checkpoint-barrier.ts';
-import { COVER_PIECE } from '../placeables/cover-piece.ts';
 import { WAREHOUSE } from '../placeables/warehouse.ts';
 import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import { unfilledRegion, cellLoot } from './scatter.ts';
@@ -9,7 +8,7 @@ import { capsule, createAccessMask, createFillMask, createRegionMask, elementSha
 import { hunterClearance, portalStands, validatePortalReach } from '../portals.ts';
 import { boxesAgainstHints } from '../hints.ts';
 import { CELL_SCALE } from '../../kernel/scale.ts';
-import { compareCells } from '../../kernel/cell.ts';
+import { infillCrates as placeInfillCrates } from './infill.ts';
 import { createBuilderCanvas } from '../canvas.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import { rect } from '../../../shared/shape.ts';
@@ -225,22 +224,23 @@ export function buildCheckpoint(brief: RegionBrief, observe?: BuildingObserver):
 
   // Only untouched side-yard cells are offered. Use independent per-cell channels so
   // a rejected crate cannot shift primary choices or later infill rolls.
-  let infillCrates = 0;
-  for (const cell of canvas.addressed.unaddressedComponents().flat().sort(compareCells)) {
-    if (canvas.addressed.addressed(cell.x, cell.y)
-      || draw(brief.seed, cell.x, cell.y, CHANNEL.infill) >= INFILL_CHANCE) continue;
-    const box = { x: cell.x, y: cell.y, w: 1, h: 1 };
-    if (!fits(box) || onLine(box)) continue;
-    const [element] = placedElements(expectPlaced(COVER_PIECE.build({
-      piece: 'crate', turned: false,
-      length: draw(brief.seed, cell.x, cell.y, CHANNEL.infillLength),
-      offset: draw(brief.seed, cell.x, cell.y, CHANNEL.infillOffset),
-    }, size)), `checkpoint-infill-crate-${infillCrates + 1}`, cell.x, cell.y, size) as [RegionElement];
-    elements.push(element);
-    if (!holds(blockers())) { elements.pop(); continue; }
-    commit(element);
-    infillCrates++;
-  }
+  const infillCrates = placeInfillCrates({ brief, canvas, chance: INFILL_CHANCE, channels: CHANNEL,
+    label: 'checkpoint-infill-crate',
+    site: cell => {
+      const box = { x: cell.x, y: cell.y, w: 1, h: 1 };
+      // Every side of the crate keeps two access cells of bypass room. Portal
+      // proof alone says nothing about a side lobe with one or no portal.
+      return accessMask.contains(rect((cell.x - AISLE) * size, (cell.y - AISLE) * size,
+        (1 + 2 * AISLE) * size, (1 + 2 * AISLE) * size)) && fits(box) && !onLine(box);
+    },
+    accept: element => {
+      elements.push(element);
+      if (holds(blockers())) return true;
+      elements.pop();
+      return false;
+    },
+    commitError: label => `Checkpoint placement ${label} failed its canvas commit.`,
+  });
 
   const placed = [...canvas.elements];
   const loot = cellLoot(brief, createRegionMask(brief), placed.flatMap(element => elementShapes(element, true)), CHANNEL.loot);
