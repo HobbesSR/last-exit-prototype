@@ -238,7 +238,7 @@ test('a nested block compound lot keeps its prefixed ring and final portal promi
   const nested = buildCompoundGeneration(lot), child = flattenDelegationResult(nested), block = buildBlock(original);
   assert.equal(nested.actualBuilder, 'compound');
   assert.ok(ring(child).length);
-  const prefix = `${lot.id.slice(original.id.length + 1)}/`;
+  const prefix = `${lot.id}/`;
   for (const element of child.elements)
     assert.ok(block.elements.some(placed => placed.label === `${prefix}${element.label}`), `block retains ${element.label}`);
   assert.deepEqual(validatePortalReach({ ...block.brief, blockers: blockers(block) }).errors, []);

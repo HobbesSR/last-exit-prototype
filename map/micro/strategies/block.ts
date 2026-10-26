@@ -14,6 +14,7 @@ import { buildOpen } from './open.ts';
 import { buildRuins } from './ruins.ts';
 import { draw } from '../random.ts';
 import { createRegionMask } from '../geometry.ts';
+import { dispatchDelegationPartition, flattenDelegationPartition } from '../delegation-execute.ts';
 import { inheritBriefMargins } from '../margins.ts';
 import { clipHints, portalMargin } from '../hints.ts';
 import { portalStands } from '../portals.ts';
@@ -68,15 +69,11 @@ export interface BlockPlan { lots: RegionBrief[]; alleys: RegionBrief; allocatio
 export function buildBlock(brief: RegionBrief, observe?: BuildingObserver): BuiltRegion {
   const plan = planBlock(brief);
   if (!plan.lots.length) return buildOpen(brief);
-  const name = (child: RegionBrief) => child.id.slice(brief.id.length + 1);
-  const results = [...plan.lots.map(lot => LOT_TYPES.find(t => t.type === lot.type)!.build(lot,
-    observe && (trace => observe({ ...trace, label: `${name(lot)}/${trace.label}` })))), buildOpen(plan.alleys)];
-  const manifest: Record<string, number> = {};
-  for (const result of results) for (const [key, count] of Object.entries(result.manifest)) manifest[key] = (manifest[key] ?? 0) + count;
-  return { version: 'region-2', brief: structuredClone(brief),
-    elements: results.flatMap(result => result.elements.map(element => ({ ...element, label: `${name(result.brief)}/${element.label}` }))),
-    coreElements: [], loot: results.flatMap(result => result.loot),
-    manifest: { ...manifest, cells: brief.cells.length, coreElements: 0, lots: plan.lots.length } };
+  const registry = Object.fromEntries(LOT_TYPES.map(({ type, build }) => [type,
+    { version: 'block-child-1', build: (child: RegionBrief, _context: unknown, childObserve?: BuildingObserver) => build(child, childObserve) }]));
+  registry.open = { version: 'block-child-1', build: (child: RegionBrief) => buildOpen(child) };
+  const result = flattenDelegationPartition(dispatchDelegationPartition(brief, [...plan.lots, plan.alleys], registry, { observe }));
+  return { ...result, brief: structuredClone(brief) };
 }
 
 /**

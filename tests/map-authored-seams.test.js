@@ -98,7 +98,7 @@ test('representative set pieces retain external portals and regain contiguous bu
     const built = buildRegion(current), previous = buildRegion(original);
     assert.equal(previous.manifest.structures, 0, `${piece}: original seams suppress structures`);
     assert.ok(built.manifest.structures > 0, `${piece}: current fill builds structures`);
-    if (type === 'block') assert.ok(built.manifest.designed > 0, 'block builds a designed child building');
+    if (type === 'block') assert.ok(built.elements.some(element => /\/lot-\d+\//.test(element.label)), 'block builds a designed child building');
     if (type === 'compound') assert.ok(built.manifest.rooms > 0, 'compound builds rooms');
   }
 });

@@ -209,7 +209,7 @@ test('a planned block hut lot builds through the production path with its nested
   assert.ok(lot, 'the block makes a hut lot');
   const nested = buildHutGeneration(lot), block = buildBlock(original);
   assert.ok(house(flattenDelegationResult(nested)));
-  const prefix = `${lot.id.slice(original.id.length + 1)}/`;
+  const prefix = `${lot.id}/`;
   assert.ok(block.elements.some(element => element.label === `${prefix}hut-building`));
   for (const element of flattenDelegationResult(nested).elements)
     assert.ok(block.elements.some(placed => placed.label === `${prefix}${element.label}`), `block retains ${element.label}`);
