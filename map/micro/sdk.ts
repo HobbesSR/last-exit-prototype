@@ -35,7 +35,7 @@ export { allocateBuilding } from './building/allocation.ts';
 export type { BuildingAllocationOptions, BuildingAllocationResult, BuildingAllocationSearch, BuildingAllocationScores } from './building/allocation.ts';
 
 export { inheritBriefMargins, validateFillConstraints } from './margins.ts';
-export { prepareDelegation, patchFootprintKey, validateBriefPartition } from './delegation.ts';
+export { prepareDelegation, prepareInitialPartition, patchFootprintKey, validateBriefPartition } from './delegation.ts';
 export type { PatchOffer, PreparedPatch, PatchRejection, BriefCrossing, PreparedDelegation, PatchPreparationPolicy } from './delegation.ts';
 export { createAddressedArea } from './addressed.ts';
 export type { AddressedArea } from './addressed.ts';
