@@ -59,6 +59,10 @@ See `docs/32-delegation.md` for the task brief and manual-switch handoff convent
 - A new or grown test file stays under 15 s (fast tier) or 60 s (`tests/slow/`); check it with
   `npm run test:times -- <file>`. Optimize, split or gate expensive cases behind an environment
   variable rather than adding minutes to every run (`docs/31`).
+- Before adding third-party code, assets or a newly served package, check that its licence is
+  compatible with the project's MIT licence, and record it with its notices
+  ([21.1](docs/21.1-third-party-licenses.md)). Escalate copyleft, non-commercial or
+  unlicensed material; never add it without asking.
 - When a rule changes, update its numbered document in the same change.
   `docs/33-maintenance.md` says where each kind of fact belongs.
 
