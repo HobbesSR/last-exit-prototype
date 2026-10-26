@@ -1,0 +1,658 @@
+{
+  "audit": "depot-lane-infill-1",
+  "baselineCommit": "e81a499ac630823ac05e6711242a0fc020d6c34e",
+  "commit": "e81a499ac630823ac05e6711242a0fc020d6c34e",
+  "dirty": "M map/micro/region-types.ts\n M map/micro/strategies/depot.ts",
+  "createdAt": "2026-10-26T04:31:54.234Z",
+  "node": "v24.15.0",
+  "contentVersion": "types-37",
+  "sourceHashes": {
+    "map/micro/strategies/depot.ts": "5ee6f67535dffb28e2231815e9543d28abbc3e413d09c881f986385c1013162a",
+    "tools/depot-infill-audit.mjs": "9f6e8670a9ab17f0e99ef03334ff5d0f4bc721447dceed82011f08bfa74f4b0b",
+    "map/micro/canvas.ts": "c8e33e23fff49727ddd35fe69207a692ecaa8442b7855acd9983e80be8d744ab",
+    "map/micro/strategies/scatter.ts": "13c6118a52bc62f1a54850733893d6814681425cd5ebfcba91fbd0e540797435",
+    "map/micro/placeables/cover-piece.ts": "49cde3bb086ed192e03137bb5c915620422236cee8b4e4f387ed6016b9430989",
+    "map/micro/region-types.ts": "816fcc2ba1043b35b00275d0098aa38ad2366d6107496210254275f7dc042ee4"
+  },
+  "maps": [
+    {
+      "seed": "issue330-before-12x6",
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "rows": [
+        {
+          "id": "depot@18,78",
+          "before": {
+            "elements": 10,
+            "crates": 0,
+            "warehouses": 2,
+            "rows": 8,
+            "loot": 4,
+            "cells": 756,
+            "freeCells": 666,
+            "doorsChecked": 6,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 20,
+            "crates": 10,
+            "warehouses": 2,
+            "rows": 8,
+            "loot": 3,
+            "cells": 756,
+            "freeCells": 656,
+            "doorsChecked": 6,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "depot@156,120",
+          "before": {
+            "elements": 29,
+            "crates": 0,
+            "warehouses": 5,
+            "rows": 24,
+            "loot": 73,
+            "cells": 1944,
+            "freeCells": 1693,
+            "doorsChecked": 21,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 48,
+            "crates": 19,
+            "warehouses": 5,
+            "rows": 24,
+            "loot": 67,
+            "cells": 1944,
+            "freeCells": 1674,
+            "doorsChecked": 21,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        }
+      ],
+      "mapErrors": []
+    },
+    {
+      "seed": "issue330-before-24x12",
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "rows": [
+        {
+          "id": "depot@318,30",
+          "before": {
+            "elements": 8,
+            "crates": 0,
+            "warehouses": 2,
+            "rows": 6,
+            "loot": 31,
+            "cells": 756,
+            "freeCells": 672,
+            "doorsChecked": 10,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 14,
+            "crates": 6,
+            "warehouses": 2,
+            "rows": 6,
+            "loot": 28,
+            "cells": 756,
+            "freeCells": 666,
+            "doorsChecked": 10,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "depot@234,72",
+          "before": {
+            "elements": 41,
+            "crates": 0,
+            "warehouses": 5,
+            "rows": 36,
+            "loot": 36,
+            "cells": 1944,
+            "freeCells": 1649,
+            "doorsChecked": 19,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 60,
+            "crates": 19,
+            "warehouses": 5,
+            "rows": 36,
+            "loot": 35,
+            "cells": 1944,
+            "freeCells": 1630,
+            "doorsChecked": 19,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "depot@414,90",
+          "before": {
+            "elements": 12,
+            "crates": 0,
+            "warehouses": 2,
+            "rows": 10,
+            "loot": 24,
+            "cells": 756,
+            "freeCells": 652,
+            "doorsChecked": 10,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 23,
+            "crates": 11,
+            "warehouses": 2,
+            "rows": 10,
+            "loot": 20,
+            "cells": 756,
+            "freeCells": 641,
+            "doorsChecked": 10,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "depot@450,216",
+          "before": {
+            "elements": 8,
+            "crates": 0,
+            "warehouses": 2,
+            "rows": 6,
+            "loot": 39,
+            "cells": 756,
+            "freeCells": 674,
+            "doorsChecked": 6,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 15,
+            "crates": 7,
+            "warehouses": 2,
+            "rows": 6,
+            "loot": 36,
+            "cells": 756,
+            "freeCells": 667,
+            "doorsChecked": 6,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "depot@312,264",
+          "before": {
+            "elements": 9,
+            "crates": 0,
+            "warehouses": 2,
+            "rows": 7,
+            "loot": 28,
+            "cells": 756,
+            "freeCells": 666,
+            "doorsChecked": 8,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 19,
+            "crates": 10,
+            "warehouses": 2,
+            "rows": 7,
+            "loot": 25,
+            "cells": 756,
+            "freeCells": 656,
+            "doorsChecked": 8,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        }
+      ],
+      "mapErrors": []
+    },
+    {
+      "seed": "issue330-before-36x18",
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "rows": [
+        {
+          "id": "depot@474,60",
+          "before": {
+            "elements": 33,
+            "crates": 0,
+            "warehouses": 5,
+            "rows": 28,
+            "loot": 62,
+            "cells": 1944,
+            "freeCells": 1683,
+            "doorsChecked": 17,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 64,
+            "crates": 31,
+            "warehouses": 5,
+            "rows": 28,
+            "loot": 52,
+            "cells": 1944,
+            "freeCells": 1652,
+            "doorsChecked": 17,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "depot@330,270",
+          "before": {
+            "elements": 54,
+            "crates": 0,
+            "warehouses": 8,
+            "rows": 46,
+            "loot": 51,
+            "cells": 2880,
+            "freeCells": 2452,
+            "doorsChecked": 32,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 79,
+            "crates": 25,
+            "warehouses": 8,
+            "rows": 46,
+            "loot": 47,
+            "cells": 2880,
+            "freeCells": 2427,
+            "doorsChecked": 32,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "depot@768,270",
+          "before": {
+            "elements": 55,
+            "crates": 0,
+            "warehouses": 8,
+            "rows": 47,
+            "loot": 126,
+            "cells": 2880,
+            "freeCells": 2446,
+            "doorsChecked": 28,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 89,
+            "crates": 34,
+            "warehouses": 8,
+            "rows": 47,
+            "loot": 114,
+            "cells": 2880,
+            "freeCells": 2412,
+            "doorsChecked": 28,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "depot@696,372",
+          "before": {
+            "elements": 46,
+            "crates": 0,
+            "warehouses": 8,
+            "rows": 38,
+            "loot": 139,
+            "cells": 2880,
+            "freeCells": 2478,
+            "doorsChecked": 32,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 77,
+            "crates": 31,
+            "warehouses": 8,
+            "rows": 38,
+            "loot": 124,
+            "cells": 2880,
+            "freeCells": 2447,
+            "doorsChecked": 32,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        },
+        {
+          "id": "depot@804,372",
+          "before": {
+            "elements": 60,
+            "crates": 0,
+            "warehouses": 8,
+            "rows": 52,
+            "loot": 119,
+            "cells": 2880,
+            "freeCells": 2410,
+            "doorsChecked": 30,
+            "unreachableDoors": [],
+            "errors": []
+          },
+          "after": {
+            "elements": 83,
+            "crates": 23,
+            "warehouses": 8,
+            "rows": 52,
+            "loot": 116,
+            "cells": 2880,
+            "freeCells": 2387,
+            "doorsChecked": 30,
+            "unreachableDoors": [],
+            "errors": []
+          }
+        }
+      ],
+      "mapErrors": []
+    }
+  ],
+  "direct": [
+    {
+      "id": "depot-1",
+      "before": {
+        "elements": 9,
+        "crates": 0,
+        "warehouses": 1,
+        "rows": 8,
+        "loot": 51,
+        "cells": 432,
+        "freeCells": 369,
+        "doorsChecked": 3,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 19,
+        "crates": 10,
+        "warehouses": 1,
+        "rows": 8,
+        "loot": 42,
+        "cells": 432,
+        "freeCells": 359,
+        "doorsChecked": 3,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "depot-2",
+      "before": {
+        "elements": 7,
+        "crates": 0,
+        "warehouses": 1,
+        "rows": 6,
+        "loot": 65,
+        "cells": 432,
+        "freeCells": 373,
+        "doorsChecked": 3,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 18,
+        "crates": 11,
+        "warehouses": 1,
+        "rows": 6,
+        "loot": 54,
+        "cells": 432,
+        "freeCells": 362,
+        "doorsChecked": 3,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "depot-3",
+      "before": {
+        "elements": 7,
+        "crates": 0,
+        "warehouses": 1,
+        "rows": 6,
+        "loot": 67,
+        "cells": 432,
+        "freeCells": 379,
+        "doorsChecked": 3,
+        "unreachableDoors": [
+          "depot-warehouse-1: no hunter route to door at 720,5"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 18,
+        "crates": 11,
+        "warehouses": 1,
+        "rows": 6,
+        "loot": 59,
+        "cells": 432,
+        "freeCells": 368,
+        "doorsChecked": 3,
+        "unreachableDoors": [
+          "depot-warehouse-1: no hunter route to door at 720,5"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "depot-4",
+      "before": {
+        "elements": 8,
+        "crates": 0,
+        "warehouses": 1,
+        "rows": 7,
+        "loot": 70,
+        "cells": 432,
+        "freeCells": 375,
+        "doorsChecked": 3,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 16,
+        "crates": 8,
+        "warehouses": 1,
+        "rows": 7,
+        "loot": 62,
+        "cells": 432,
+        "freeCells": 367,
+        "doorsChecked": 3,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "depot-5",
+      "before": {
+        "elements": 8,
+        "crates": 0,
+        "warehouses": 1,
+        "rows": 7,
+        "loot": 50,
+        "cells": 432,
+        "freeCells": 375,
+        "doorsChecked": 3,
+        "unreachableDoors": [
+          "depot-warehouse-1: no hunter route to door at 45,160"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 14,
+        "crates": 6,
+        "warehouses": 1,
+        "rows": 7,
+        "loot": 45,
+        "cells": 432,
+        "freeCells": 369,
+        "doorsChecked": 3,
+        "unreachableDoors": [
+          "depot-warehouse-1: no hunter route to door at 45,160"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "depot-6",
+      "before": {
+        "elements": 8,
+        "crates": 0,
+        "warehouses": 1,
+        "rows": 7,
+        "loot": 67,
+        "cells": 432,
+        "freeCells": 375,
+        "doorsChecked": 5,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 15,
+        "crates": 7,
+        "warehouses": 1,
+        "rows": 7,
+        "loot": 63,
+        "cells": 432,
+        "freeCells": 368,
+        "doorsChecked": 5,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "depot-7",
+      "before": {
+        "elements": 8,
+        "crates": 0,
+        "warehouses": 1,
+        "rows": 7,
+        "loot": 73,
+        "cells": 432,
+        "freeCells": 367,
+        "doorsChecked": 5,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 15,
+        "crates": 7,
+        "warehouses": 1,
+        "rows": 7,
+        "loot": 66,
+        "cells": 432,
+        "freeCells": 360,
+        "doorsChecked": 5,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "depot-8",
+      "before": {
+        "elements": 7,
+        "crates": 0,
+        "warehouses": 1,
+        "rows": 6,
+        "loot": 58,
+        "cells": 432,
+        "freeCells": 375,
+        "doorsChecked": 5,
+        "unreachableDoors": [],
+        "errors": []
+      },
+      "after": {
+        "elements": 15,
+        "crates": 8,
+        "warehouses": 1,
+        "rows": 6,
+        "loot": 50,
+        "cells": 432,
+        "freeCells": 367,
+        "doorsChecked": 5,
+        "unreachableDoors": [],
+        "errors": []
+      }
+    },
+    {
+      "id": "depot-9",
+      "before": {
+        "elements": 9,
+        "crates": 0,
+        "warehouses": 1,
+        "rows": 8,
+        "loot": 59,
+        "cells": 432,
+        "freeCells": 369,
+        "doorsChecked": 5,
+        "unreachableDoors": [
+          "depot-warehouse-1: no hunter route to door at 540,5"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 20,
+        "crates": 11,
+        "warehouses": 1,
+        "rows": 8,
+        "loot": 51,
+        "cells": 432,
+        "freeCells": 358,
+        "doorsChecked": 5,
+        "unreachableDoors": [
+          "depot-warehouse-1: no hunter route to door at 540,5"
+        ],
+        "errors": []
+      }
+    },
+    {
+      "id": "depot-10",
+      "before": {
+        "elements": 9,
+        "crates": 0,
+        "warehouses": 1,
+        "rows": 8,
+        "loot": 63,
+        "cells": 432,
+        "freeCells": 363,
+        "doorsChecked": 5,
+        "unreachableDoors": [
+          "depot-warehouse-1: no hunter route to door at 300,715",
+          "depot-warehouse-1: no hunter route to door at 420,715"
+        ],
+        "errors": []
+      },
+      "after": {
+        "elements": 16,
+        "crates": 7,
+        "warehouses": 1,
+        "rows": 8,
+        "loot": 52,
+        "cells": 432,
+        "freeCells": 356,
+        "doorsChecked": 5,
+        "unreachableDoors": [
+          "depot-warehouse-1: no hunter route to door at 300,715",
+          "depot-warehouse-1: no hunter route to door at 420,715"
+        ],
+        "errors": []
+      }
+    }
+  ],
+  "limits": "One current-library map per authored size and ten direct 24x18 cases. Historical depot module with current shared dependencies. Exact primary elements/traces, fill/margins, portal promises and unchanged reachability of every warehouse door checked before/after. Some direct-fixture doors at ownership boundaries are already unreachable before infill; they are recorded separately and must remain identical. No delegation acceptance rate: this is direct canvas infill. Human balance and exhaustive coverage unverified."
+}

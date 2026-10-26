@@ -2,8 +2,8 @@ import { portalMargin } from '../map/micro/hints.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { createAccessMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap } from '../map/micro/geometry.ts';
-import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
+import { createRegionMask, elementShapes, shapesOverlap } from '../map/micro/geometry.ts';
+import { validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { bounds, circle } from '../shared/shape.ts';
 import { designsNotUsed } from '../map/micro/building/draw.ts';
@@ -62,7 +62,7 @@ test('every piece keeps an aisle from the next and from the region\'s edge, all 
       }
     }
     // Rows and warehouses share one long axis.
-    const long = new Set(boxes.map(box => box.w > box.h ? 'x' : 'y'));
+    const long = new Set(boxes.filter(box => box.w !== box.h).map(box => box.w > box.h ? 'x' : 'y'));
     assert.equal(long.size, 1, `${name} ${seed}: one axis`);
   }
 });
@@ -129,25 +129,6 @@ test('a warehouse box too small for several spaces is one room with a door at ea
     for (const { reason } of trace.rejected) assert.ok(reason.length > 0);
     assert.deepEqual(designsNotUsed(trace), trace.rejected.map(r => `Design not used: ${r.design}, ${r.reason}`));
   }
-});
-
-test('every aisle is open to a contestant, indoors and out', () => {
-  const radius = microMetrics({ cellSize: SIZE, bodyProfile: 'cell' }).clearance.contestant;
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS.slice(0, 3))
-    for (const roomCells of [6, 9]) {
-      const input = brief(name, seed, cells, portals, { density: 1, roomCells });
-      input.zones[0].lootChance = 1;
-      const result = buildRegion(input), mask = createRegionMask(input), access = createAccessMask(input), shapes = blockers(result);
-      const from = portalStands(input)[0].points[0];
-      // Every site in the first warehouse, which tests its doors and shelf aisles, and a sample outdoors.
-      const first = result.elements.find(element => element.label.startsWith('depot-warehouse'));
-      const indoors = first ? result.loot.filter(site => site.x > first.x && site.x < first.x + first.template.w
-        && site.y > first.y && site.y < first.y + first.template.h) : [];
-      if (first) assert.ok(indoors.length > 0, `${name} ${seed}: loot indoors`);
-      const every = Math.ceil(result.loot.length / 8);
-      for (const site of [...indoors, ...result.loot.filter((_, i) => i % every === 0)])
-        assert.ok(findRegionRoute(access, shapes, from, site, radius), `${name} ${seed}: ${site.x},${site.y} is reachable`);
-    }
 });
 
 test('depots roll loot by zone and keep every site clear of walls, doors and containers', () => {

@@ -14,6 +14,8 @@ import { expectPlaced, placedElements } from '../placeables/placeable.ts';
 import type { Placed } from '../placeables/placeable.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
 import { builtRegion } from '../result.ts';
+import { compareCells } from '../../kernel/cell.ts';
+import { COVER_PIECE } from '../placeables/cover-piece.ts';
 
 /** The catalogue's proposed shape need (54): a contained square at least this many cells a side. */
 const MIN_SIDE = 10;
@@ -30,7 +32,8 @@ const CONTAINER = 2, ROW_MIN = 2, ROW_MAX = 3;
 const LANE = 1 + AISLE;
 
 /** Per-cell draw channels, so no choice shifts another. */
-const CHANNEL = { axis: 1, phase: 2, site: 3, row: 4, length: 5, loot: 6, design: 7 };
+const CHANNEL = { axis: 1, phase: 2, site: 3, row: 4, length: 5, loot: 6, design: 7,
+  infill: 8, infillLength: 9, infillOffset: 10 };
 
 /**
  * The `depot` region type (54): warehouses and container rows on industrial ground, with long
@@ -43,6 +46,8 @@ const CHANNEL = { axis: 1, phase: 2, site: 3, row: 4, length: 5, loot: 6, design
  * room with a door at each end where neither fits (the `warehouse` placeable, 20.8). Shelf islands run down the
  * floor. Container rows follow, two or three containers end to end, packed along each lane
  * around the warehouses. Each place that fits one is taken with chance `density`.
+ * A final pass puts single-cell crates on still-unaddressed lane cells, with independent
+ * per-cell rolls and the same piece spacing. Row sites rejected by density stay empty.
  *
  * Every piece's box keeps `AISLE` clear cells from other pieces. Candidate footprints stay
  * owned and clear of portal approaches, and the builder protects a swept hunter route tree
@@ -131,13 +136,28 @@ export function buildDepot(brief: RegionBrief, observe?: BuildingObserver): Buil
       if (!clear(u, v, length, 1)) { u++; continue; }
       if (draw(brief.seed, u, v, CHANNEL.row) < density) {
         place(`depot-row-${++rows}`, u, v, expectPlaced(CONTAINER_ROW.build({ length, alongX }, size)));
+      } else if (!canvas.markEmpty([boxAt(u, v, length, 1)])) {
+        throw new Error('Depot empty row site failed its canvas mark.');
       }
       u += length + AISLE;
     }
   }
 
+  // Fill only untouched lane cells. Row sites that lost their density roll are deliberate
+  // open spans, and accepted crates address their cells before the next candidate is tried.
+  let infillCrates = 0;
+  if (density > 0) for (const cell of canvas.addressed.unaddressedComponents().flat().sort(compareCells)) {
+    if (canvas.addressed.addressed(cell.x, cell.y)) continue;
+    const { u, v } = alongX ? { u: cell.x, v: cell.y } : { u: cell.y, v: cell.x };
+    if (!onLane(v) || draw(brief.seed, u, v, CHANNEL.infill) >= density || !clear(u, v, 1, 1)) continue;
+    place(`depot-infill-crate-${++infillCrates}`, u, v, expectPlaced(COVER_PIECE.build({
+      piece: 'crate', turned: false, length: draw(brief.seed, u, v, CHANNEL.infillLength),
+      offset: draw(brief.seed, u, v, CHANNEL.infillOffset),
+    }, size)));
+  }
+
   const elements = [...canvas.elements];
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
-  return builtRegion(brief, elements, loot, [], { warehouses, designed, rows });
+  return builtRegion(brief, elements, loot, [], { warehouses, designed, rows, infillCrates });
 }
