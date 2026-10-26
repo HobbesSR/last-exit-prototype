@@ -2680,6 +2680,71 @@ function showEntries(names: string[]): void {
   if (JSON.stringify([...item.options].map((o) => o.value)) !== JSON.stringify(names))
     item.replaceChildren(...names.map((id) => option(id)));
   item.value = selectedId;
+  // Tiles are browsed by thumbnail; every other section by its entry list (#539).
+  const tiles = section() === "tiles";
+  item.closest("label")!.style.display = tiles ? "" : "none";
+  showEntryList(tiles ? [] : names);
+}
+/** A short description of an entry beside its ID in the entry list. */
+function entrySummary(id: string): string {
+  // A class whose region type repeats its ID needs no summary.
+  if (section() === "classes") {
+    const type = library.cellClasses[id]?.regionType ?? "";
+    return type === id ? "" : type;
+  }
+  const entry = list().find((e) => e.id === id) as any;
+  if (section() === "tileSets") return count(entry?.members?.length ?? 0, "tile");
+  if (section() === "setPieces") return count(entry?.tiles?.length ?? 0, "slot");
+  if (section() === "setPieceClasses")
+    return [entry?.placementRule, typeof entry?.quota === "number" ? `×${entry.quota}` : ""].filter(Boolean).join(" ");
+  return "";
+}
+function count(n: number, noun: string): string {
+  return `${n} ${noun}${n === 1 ? "" : "s"}`;
+}
+/** The entry whose list row was last brought into view, so edits don't scroll the list. */
+let shownEntry = "";
+function showEntryList(names: string[]): void {
+  const listed = $("chainEntryList");
+  listed.style.display = section() === "tiles" ? "none" : "";
+  if (!names.length) {
+    if (!listed.querySelector(".gallery-empty")) {
+      const empty = paragraph("No entries in this section.");
+      empty.className = "gallery-empty";
+      listed.replaceChildren(empty);
+    }
+    return;
+  }
+  const rows = [...listed.querySelectorAll<HTMLButtonElement>("button")];
+  if (JSON.stringify(rows.map((row) => row.dataset.entry)) !== JSON.stringify(names))
+    listed.replaceChildren(
+      ...names.map((id) => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.setAttribute("role", "option");
+        row.dataset.entry = id;
+        row.append(document.createElement("strong"), document.createElement("span"));
+        row.firstElementChild!.textContent = id;
+        row.onclick = () => {
+          selectedId = id;
+          render();
+        };
+        return row;
+      }),
+    );
+  for (const row of listed.querySelectorAll<HTMLButtonElement>("button")) {
+    const active = row.dataset.entry === selectedId;
+    row.classList.toggle("active", active);
+    row.setAttribute("aria-selected", String(active));
+    // Only the active row is in the tab order; arrow keys move between rows.
+    row.tabIndex = active ? 0 : -1;
+    row.lastElementChild!.textContent = entrySummary(row.dataset.entry!);
+  }
+  const key = JSON.stringify([section(), selectedId]);
+  if (key !== shownEntry) {
+    shownEntry = key;
+    listed.querySelector<HTMLElement>("button.active")?.scrollIntoView({ block: "nearest" });
+  }
 }
 function render(): void {
   closePopup();
@@ -2859,6 +2924,8 @@ function accept(raw: unknown): void {
   if (!renderableDraft(raw)) throw Error("Library is not safe to edit.");
   library = raw;
   selectedId = "";
+  // A new draft brings its first entry into view even when the old one had the same ID.
+  shownEntry = "";
   changed();
 }
 function exportLibrary(): void {
@@ -2877,6 +2944,24 @@ select("chainItem").onchange = () => {
   selectedId = select("chainItem").value;
   render();
 };
+$("chainEntryList").addEventListener("keydown", (event) => {
+  const names = entries();
+  const at = names.indexOf(selectedId);
+  const next =
+    event.key === "ArrowDown" ? at + 1
+      : event.key === "ArrowUp" ? at - 1
+        : event.key === "Home" ? 0
+          : event.key === "End" ? names.length - 1
+            : null;
+  if (next === null || !names.length) return;
+  event.preventDefault();
+  const target = names[Math.max(0, Math.min(names.length - 1, next))]!;
+  // At either end the selection stays put; don't rebuild the workspace for it.
+  if (target === selectedId) return;
+  selectedId = target;
+  render();
+  $("chainEntryList").querySelector<HTMLElement>("button.active")?.focus();
+});
 $("chainAdd").onclick = add;
 $("chainClone").onclick = clone;
 $("cloneTemplate").onclick = clone;

@@ -687,6 +687,105 @@ try {
   await page.locator('.chain-tool-group button[data-tool="paint"]').click();
   await page.setViewportSize({ width: 1440, height: 1000 });
 
+  // #539: non-tile sections are browsed in a scrollable entry list; tiles keep their gallery.
+  const entryBefore = await page.evaluate(() => (window as any).chainLab.snapshot());
+  const listed = () => page.locator("#chainEntryList button").evaluateAll((rows: HTMLElement[]) => rows.map((row) => row.dataset.entry));
+  const active = () => page.locator("#chainEntryList button.active").getAttribute("data-entry");
+  const applySource = async (library: unknown) => {
+    await page.locator("#chainSource").evaluate((node: HTMLElement) => { (node.closest("details") as HTMLDetailsElement).open = true; });
+    await page.locator("#chainSource").fill(JSON.stringify(library));
+    await page.locator("#chainApply").click();
+    await page.locator("#chainSource").evaluate((node: HTMLElement) => { (node.closest("details") as HTMLDetailsElement).open = false; });
+  };
+  for (const kind of ["classes", "tileSets", "setPieces", "setPieceClasses"]) {
+    await page.locator("#chainSection").selectOption(kind);
+    assert.equal(await page.locator("#chainEntryList").isVisible(), true, `${kind}: entries are listed`);
+    assert.equal(await page.locator("#chainItem").isVisible(), false, `${kind}: the list replaces the entry dropdown`);
+    const ids = await page.evaluate(() => {
+      const { library, section } = (window as any).chainLab.snapshot();
+      return section === "classes" ? Object.keys(library.cellClasses) : library[section].map((e: any) => e.id);
+    });
+    assert.deepEqual(await listed(), ids, `${kind}: every entry is listed in library order`);
+    assert.equal(await active(), await page.locator("#chainSelected").innerText(), `${kind}: the active entry is marked`);
+    assert.equal(await page.locator("#chainEntryList button[aria-selected=true]").count(), 1);
+    assert.equal(await page.locator("#chainEntryList button[role=option]").count(), ids.length, `${kind}: rows are listbox options`);
+  }
+  await page.locator("#chainSection").selectOption("tiles");
+  assert.equal(await page.locator("#chainEntryList").isVisible(), false, "tiles are browsed by thumbnail");
+  assert.equal(await page.locator("#chainItem").isVisible(), true);
+
+  await page.locator("#chainSection").selectOption("classes");
+  await page.locator("#chainAdd").click();
+  assert.equal(await active(), "new-class", "an added entry is listed and active");
+  await page.locator("#chainClone").click();
+  const cloned = await page.evaluate(() => (window as any).chainLab.snapshot().selectedId);
+  assert.equal(await active(), cloned, "a duplicate is listed and active");
+  await page.locator("#chainId").fill("renamed-class");
+  await page.locator("#chainId").blur();
+  assert.equal(await active(), "renamed-class", "a rename updates its row");
+  assert.equal((await listed()).includes(cloned), false);
+  await page.locator('#chainEntryList button[data-entry="new-class"]').click();
+  assert.equal(await page.locator("#chainSelected").innerText(), "new-class", "clicking a row selects it");
+  await page.locator("#chainDelete").click();
+  assert.equal((await listed()).includes("new-class"), false, "a deleted entry leaves the list");
+  assert.equal(await active(), await page.locator("#chainSelected").innerText());
+
+  // Keyboard: the active row is the list's tab stop and arrow keys move the selection.
+  await page.locator("#chainEntryList button.active").focus();
+  const names = await listed();
+  await page.keyboard.press("Home");
+  assert.equal(await active(), names[0]);
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await active(), names[1], "ArrowDown selects the next entry");
+  assert.equal(await page.evaluate(() => (document.activeElement as HTMLElement).dataset.entry), names[1], "focus follows the selection");
+  await page.keyboard.press("ArrowUp");
+  assert.equal(await active(), names[0]);
+  // At an end the selection and its editor stay as they were.
+  await page.locator("#chainId").evaluate((node: HTMLElement) => { node.dataset.kept = "yes"; });
+  await page.locator("#chainEntryList button.active").focus();
+  await page.keyboard.press("ArrowUp");
+  assert.equal(await page.locator("#chainId").getAttribute("data-kept"), "yes", "a keypress that can't move doesn't rebuild the workspace");
+  assert.equal(await page.locator("#chainEntryList button[tabindex='0']").count(), 1);
+
+  // A long imported catalogue scrolls inside the list; an empty section says so.
+  const long = structuredClone(entryBefore.library);
+  for (let i = 0; i < 80; i++) long.cellClasses[`bulk-${String(i).padStart(2, "0")}`] = { regionType: `bulk-${i}` };
+  long.setPieceClasses = [];
+  await applySource(long);
+  assert.equal(await active(), Object.keys(long.cellClasses)[0], "an import selects the first entry");
+  assert.equal((await listed()).length, Object.keys(long.cellClasses).length);
+  const surfaceBeforeList = await page.locator("#chainSurface").boundingBox();
+  await page.locator("#chainEntryList button.active").focus();
+  await page.keyboard.press("End");
+  assert.equal(await active(), "bulk-79");
+  const fits = await page.evaluate(() => {
+    const list = document.querySelector("#chainEntryList")!, row = list.querySelector("button.active")!;
+    const a = list.getBoundingClientRect(), b = row.getBoundingClientRect();
+    return { scrolls: list.scrollHeight > list.clientHeight && list.scrollTop > 0, visible: b.top >= a.top - 1 && b.bottom <= a.bottom + 1 };
+  });
+  assert.deepEqual(fits, { scrolls: true, visible: true }, "the list scrolls to the active entry");
+  assert.deepEqual(await page.locator("#chainSurface").boundingBox(), surfaceBeforeList, "scrolling the catalogue keeps the stage in place");
+  await page.locator("#chainEntryList button").first().click();
+  await page.locator("#chainEntryList").evaluate((node: HTMLElement) => { node.scrollTop = node.scrollHeight; });
+  await applySource(long);
+  assert.ok(await page.locator("#chainEntryList").evaluate((list: HTMLElement) => {
+    const a = list.getBoundingClientRect(), b = list.querySelector("button.active")!.getBoundingClientRect();
+    return b.top >= a.top - 1 && b.bottom <= a.bottom + 1;
+  }), "re-importing brings the first entry back into view");
+  await page.screenshot({ path: `${OUT}/entry-list.png` });
+  await page.locator("#chainSection").selectOption("setPieceClasses");
+  assert.equal(await page.locator("#chainEntryList button").count(), 0);
+  assert.match(await page.locator("#chainEntryList").innerText(), /No entries/);
+  await page.locator("#chainAdd").click();
+  assert.deepEqual(await listed(), ["new-piece-class"], "adding to an empty section lists the entry");
+  assert.equal(await active(), "new-piece-class");
+
+  await applySource(entryBefore.library);
+  await page.locator("#chainSection").selectOption(entryBefore.section);
+  if (entryBefore.section === "tiles") await page.locator("#chainItem").selectOption(entryBefore.selectedId);
+  else await page.locator(`#chainEntryList button[data-entry="${entryBefore.selectedId}"]`).click();
+  assert.deepEqual(await page.evaluate(() => (window as any).chainLab.snapshot()), entryBefore, "the draft is restored for later checks");
+
   // Fill tool: flood fill stops at class boundaries
   await page.locator('.chain-swatch-button[data-class="arrival"]').click();
   await page.locator(".chain-gutter.cols button").nth(3).click();
@@ -1364,7 +1463,7 @@ try {
   await page.locator("#chainDelete").click();
 
   // Test renaming a tile set that is referenced in set pieces
-  await page.locator("#chainItem").selectOption("new-set");
+  await page.locator('#chainEntryList button[data-entry="new-set"]').click();
   const piecesReferencing = await page.evaluate(() => {
     const snap = (window as any).chainLab.snapshot();
     return snap.library.setPieces
@@ -1455,7 +1554,7 @@ try {
 
   // Visual Set Pieces layout grid editor (#315)
   await page.locator("#chainSection").selectOption("setPieces");
-  await page.locator("#chainItem").selectOption("new-piece");
+  await page.locator('#chainEntryList button[data-entry="new-piece"]').click();
   assert.ok(
     await page.locator("#setPieceGrid").isVisible(),
     "set piece blueprint grid is visible in setPieces section",
@@ -1712,7 +1811,7 @@ try {
 
   // Return to setPieces section and new-piece for the delete test
   await page.locator("#chainSection").selectOption("setPieces");
-  await page.locator("#chainItem").selectOption("new-piece");
+  await page.locator('#chainEntryList button[data-entry="new-piece"]').click();
 
   // 5. Set piece delete confirmation warning when referenced by set piece classes
   const classesUsingPiece = await page.evaluate((id: string) => {
@@ -1752,7 +1851,7 @@ try {
     false,
     "tile gallery is hidden outside tiles section",
   );
-  await page.locator("#chainItem").selectOption("open");
+  await page.locator('#chainEntryList button[data-entry="open"]').click();
   await page.locator("#chainDelete").click();
   await page.locator("#chainSection").selectOption("tiles");
   await page.locator("#chainAdd").click();
@@ -1961,7 +2060,7 @@ try {
   assert.equal(await incompletePage.locator('#tileGallery .tile-card[data-tile="missing-references"]').isVisible(), true);
   await incompletePage.locator("#tileFilter").fill("");
   await incompletePage.locator("#chainSection").selectOption("setPieces");
-  await incompletePage.locator("#chainItem").selectOption("huge-slot");
+  await incompletePage.locator('#chainEntryList button[data-entry="huge-slot"]').click();
   assert.match(await incompletePage.locator("#chainEditor").innerText(), /Blueprint preview is too large/);
   assert.deepEqual(await incompletePage.evaluate(() => (window as any).chainLab.snapshot().library), incomplete,
     "navigation and filtering do not edit the draft");
@@ -2059,7 +2158,7 @@ try {
   // A draft the game can't build is refused before generating.
   await page.locator("#chainTab").click();
   await page.locator("#chainSection").selectOption("classes");
-  await page.locator("#chainItem").selectOption("open");
+  await page.locator('#chainEntryList button[data-entry="open"]').click();
   await page.locator("#chainRegionType").fill("no-such-strategy");
   await page.locator("#chainRegionType").blur();
   await page.locator("#worldTab").click();
