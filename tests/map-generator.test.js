@@ -27,6 +27,8 @@ test('the map worker returns exactly the map generated inline', async () => {
 /** A generator whose maps arrive only when the test says, so the time between can be observed. */
 function heldGenerator() {
   const held = [];
+  // Resolves pre-warmed seed 9 map regardless of requested seed (matching harness pool behavior)
+  // to avoid redundant runtime generation during lifecycle tests; seed agreement is not asserted here.
   const generateMap = (seed, size) => new Promise((resolve, reject) => held.push({ resolve: () => resolve(generatedMap(9, size)), reject }));
   return { generateMap, held };
 }
@@ -68,7 +70,7 @@ test('a room is joinable while its map generates, and the seats it gave out are 
     }
 
     // The same seed generated inline, with the same people arriving after it exists.
-    const inline = roomHarness({ reuseMaps: true }), twin = inline.service.makeRoom(9);
+    const inline = roomHarness({ reuseMaps: true }), twin = inline.service.makeRoom(9, false, DEFAULT_LIVE_ZONE_SIZE, generatedMap(9));
     try {
       const people = crowd(inline, twin), ids = new Map([[owner, people.owner], [late, people.late], [back, people.back]]
         .map(([held, live]) => [live.session.playerId, held.session.playerId]));

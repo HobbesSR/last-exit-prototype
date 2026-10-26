@@ -141,8 +141,9 @@ test('an admitted spectator has no diagnostic authority, independent of any cap 
 
 test('a room created at a larger size starts, advertises it and records that map', () => {
   const generateMap = (seed, size) => ({ ...generatedMap(seed), width: size.zoneWidth * 1440, height: size.zoneHeight * 1440 });
-  const h = roomHarness({ reuseMaps: true, generateMap }), size = { zoneWidth: 24, zoneHeight: 12 };
-  const room = h.service.makeRoom(9, false, size, generateMap(9, size)), owner = h.joined(room, { ownerKey: room.ownerKey });
+  const size = { zoneWidth: 24, zoneHeight: 12 };
+  const h = roomHarness({ reuseMaps: true, generateMap });
+  const room = h.directory.createRoom(9, false, size), owner = h.joined(room, { ownerKey: room.ownerKey });
   assert.equal(owner.messages.find(m => m.type === 'lobby').size, '24x12');
   owner.send({ type: 'start' });
   const { header } = h.writers.get(room.id);
