@@ -5,11 +5,21 @@
 import { pathToFileURL } from 'node:url';
 import { options } from '../options.mjs';
 
-const ACTIVE = new Set(['waiting', 'running', 'blocked']);
+const ACTIVE = ['waiting', 'running', 'blocked'];
+const PAGE = 50;
 
-/** The runs to cancel: active `ci.yml` runs of this pull request. Never this workflow's own. */
-export function runsToCancel(runs, pr) {
-  return runs.filter(run => run.workflow_id === 'ci.yml' && run.event === 'pull_request' && run.prettyref === `#${pr}` && ACTIVE.has(run.status));
+/**
+ * Every active `ci.yml` run of this pull request, reading `page(n)` (one page of active
+ * `ci.yml` runs, newest first) until a short page. The server's `event` filter is not used:
+ * it leaves out runs from `synchronized` pushes, which are exactly the leftovers.
+ */
+export async function activeRuns(page, pr) {
+  const found = [];
+  for (let n = 1; ; n++) {
+    const runs = await page(n);
+    found.push(...runs.filter(run => run.event === 'pull_request' && run.prettyref === `#${pr}` && ACTIVE.includes(run.status)));
+    if (runs.length < PAGE) return found;
+  }
 }
 
 async function main() {
@@ -19,9 +29,12 @@ async function main() {
   const env = name => { const value = process.env[name]; if (!value) throw new Error(`${name} is not set`); return value; };
   const api = `${env('GITHUB_SERVER_URL').replace(/\/$/, '')}/api/v1/repos/${env('GITHUB_REPOSITORY')}/actions/runs`;
   const headers = { Authorization: `token ${env('FORGEJO_TOKEN')}` };
-  const response = await fetch(`${api}?event=pull_request&limit=50`, { headers });
-  if (!response.ok) throw new Error(`GET runs: ${response.status} ${await response.text()}`);
-  const runs = runsToCancel((await response.json()).workflow_runs, pr);
+  const query = `workflow_id=ci.yml&${ACTIVE.map(status => `status=${status}`).join('&')}&limit=${PAGE}`;
+  const runs = await activeRuns(async n => {
+    const response = await fetch(`${api}?${query}&page=${n}`, { headers });
+    if (!response.ok) throw new Error(`GET runs page ${n}: ${response.status} ${await response.text()}`);
+    return (await response.json()).workflow_runs ?? [];
+  }, pr);
   if (!runs.length) console.log(`no active CI runs for #${pr}`);
   for (const run of runs) {
     if (!args.has('dry-run')) {
