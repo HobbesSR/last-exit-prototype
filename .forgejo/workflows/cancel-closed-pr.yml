@@ -1,0 +1,20 @@
+# When a pull request is merged or closed, cancel its CI runs still queued or running
+# (docs/31). Forgejo cancels a branch's older runs on a new push, but not on merge, and
+# those leftovers hold runner slots ahead of main's run.
+name: cancel-closed-pr
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cancel:
+    runs-on: docker
+    container:
+      image: node:24.15.0-bookworm
+    timeout-minutes: 5
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+      - run: node tools/ci/cancel-pr-runs.mjs --pr=${{ github.event.pull_request.number }}
+        env:
+          FORGEJO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
