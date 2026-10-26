@@ -1,6 +1,7 @@
 # 34. Forgejo workflow and agent worktrees
 
-Local Forgejo at `http://localhost:3000` is the source of truth; GitHub (`origin`)
+Forgejo at `http://192.168.1.170:3000`, on the home network (see
+[Hosting](#hosting)), is the source of truth; GitHub (`origin`)
 is the public remote copy, described under [GitHub](#github) below.
 `corey/astra_test` is the only project repository: the map
 generator lives in `map/macro/` (see [50](50-map-generation.md)). The old
@@ -129,7 +130,7 @@ git worktree add --detach ../astra_test.agents/<agent> forgejo/main
 git -C ../astra_test.agents/<agent> config --worktree user.name  <account>
 git -C ../astra_test.agents/<agent> config --worktree user.email <commit email>
 git -C ../astra_test.agents/<agent> config --worktree remote.forgejo.pushurl \
-  http://<account>:<token>@localhost:3000/corey/astra_test.git
+  http://<account>:<token>@192.168.1.170:3000/corey/astra_test.git
 printf 'PORT=<game port>\n' > ../astra_test.agents/<agent>/.env.local
 (cd ../astra_test.agents/<agent> && npm ci && npm --prefix map/macro ci)
 ```
@@ -141,7 +142,7 @@ anything a check takes from the machine as a whole must be one it can share.
 
 - **Ports.** Automated checks bind port 0 and use the address actually bound:
   `tests/helpers/listen.js` in the game. Never hardcode a port in a check. Dev servers use the
-  worktree's assigned ports above. Port 3000 is Forgejo; 47913 is the
+  worktree's assigned ports above. Port 47913 is the
   benchmark lock.
 - **Scratch files.** Temporary data goes in a fresh `mkdtemp` directory. Outputs
   go in the worktree (`test-results/`, `replays/`), never at a fixed path outside it.
@@ -153,6 +154,20 @@ anything a check takes from the machine as a whole must be one it can share.
   use a bare `git stash`/`git stash pop`; set work aside with a WIP commit on your
   own branch. A transient `cannot lock ref` during a fetch is another agent's
   fetch; retry it.
+
+## Hosting
+
+Forgejo runs on the human's Synology NAS as a Docker Compose project in
+`/volume2/docker/forgejo`, with SQLite and all state under `data/`. The image
+tag is pinned: an upgrade bumps it deliberately, after a backup. Port 3000 is
+the web UI and API; git over SSH is port 2222. It moved there from a WSL
+install on the desktop (`localhost:3000`, `Start-AgentStudio.bat`) on
+2026-10-25 so that agents on other home machines can reach it. The old install
+is kept stopped for rollback; do not start it beside the NAS copy.
+
+Agents have no standing access to the NAS. When a task needs it (upgrades,
+logs, runners for [#547](http://192.168.1.170:3000/corey/astra_test/issues/547)),
+the human grants SSH and Docker access for that task and revokes it afterwards.
 
 ## GitHub
 

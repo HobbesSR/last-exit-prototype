@@ -132,7 +132,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const arena = await createArenaServer(devTools === undefined ? { mapPool } : { devTools, mapPool });
   const lan = process.argv.includes('--lan') || process.env.LAN === '1';
   const host = process.env.HOST || (lan ? '0.0.0.0' : '127.0.0.1');
-  // 3000 is taken by the local Forgejo. An explicit PORT (e.g. a worktree's .env.local) is
+  // The default starts at 3100, clear of the commonly taken 3000. An explicit PORT (e.g. a worktree's .env.local) is
   // honoured exactly: drifting upward would land on another agent's assigned port.
   const explicit = process.env.PORT !== undefined && process.env.PORT !== '';
   const firstPort = explicit ? Number(process.env.PORT) : 3100;
