@@ -9,11 +9,13 @@ import { createArenaServer, EMPTY_ROOM_GRACE_MS } from '../server/index.js';
 import { listen } from './helpers/listen.js';
 import { next, open, createRoom } from './helpers/arena-socket.js';
 import { createLayerDecoder } from '../shared/frame-layers.ts';
-import { generateLiveMap } from '../map/live.ts';
+import { generatedMap } from './helpers/room-harness.js';
+
+const fastMap = (seed, size) => Promise.resolve(generatedMap(seed, size));
 
 test('abandoned live rooms keep a reconnect grace then stop simulation and finalize their replay', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-abandoned-'));
-  const server = await createArenaServer({ replayDir: dir });
+  const server = await createArenaServer({ replayDir: dir, generateMap: fastMap });
   const until = async predicate => {
     const deadline = Date.now() + 5000;
     while (!await predicate()) { assert.ok(Date.now() < deadline, 'condition timed out'); await new Promise(r => setTimeout(r, 15)); }
@@ -37,10 +39,11 @@ test('abandoned live rooms keep a reconnect grace then stop simulation and final
     const health = await (await fetch(base + '/api/health')).json(); assert.equal(health.emptyLiveRooms, 0);
   } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
 });
+
 test('a room created with no seed is answered with a pooled map\'s seed, and health reports the pool', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-pool-'));
   // Every size gets the small map: only the default size is taken here, and the large ones are slow inline.
-  const asked = [], generateMap = seed => { asked.push(seed); return Promise.resolve(generateLiveMap(seed)); };
+  const asked = [], generateMap = seed => { asked.push(seed); return Promise.resolve(generatedMap(9)); };
   const server = await createArenaServer({ replayDir: dir, generateMap, mapPool: 1 });
   try {
     const base = await listen(server), health = async () => (await (await fetch(base + '/api/health')).json()).mapPool;
@@ -53,9 +56,10 @@ test('a room created with no seed is answered with a pooled map\'s seed, and hea
     assert.equal(asked.length, before + 1, 'only the pool\'s refill was generated');
   } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
 });
+
 test('resume credentials restore the same player even while the previous socket is open', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-resume-'));
-  const server = await createArenaServer({ replayDir: dir });
+  const server = await createArenaServer({ replayDir: dir, generateMap: fastMap });
   try {
     const base = await listen(server);
     const room = await createRoom(server, base, '{"seed":9}');
@@ -76,9 +80,10 @@ test('resume credentials restore the same player even while the previous socket 
     a.ws.close(); b.ws.close(); guest.ws.close();
   } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
 });
+
 test('spectators hold no slot, need the owner key, and receive the directed view', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-spectator-'));
-  const server = await createArenaServer({ replayDir: dir });
+  const server = await createArenaServer({ replayDir: dir, generateMap: fastMap });
   try {
     const base = await listen(server);
     const room = await createRoom(server, base, '{"seed":9}');
@@ -117,9 +122,10 @@ test('spectators hold no slot, need the owner key, and receive the directed view
     eye.close(); player.close();
   } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
 });
+
 test('two clients share authority; replay preserves each recorded frame and survives restart', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'last-exit-test-'));
-  const server = await createArenaServer({ replayDir: dir });
+  const server = await createArenaServer({ replayDir: dir, generateMap: fastMap });
   let restarted;
   try {
     const base = await listen(server);
@@ -185,7 +191,7 @@ test('two clients share authority; replay preserves each recorded frame and surv
     const disk = JSON.parse(gunzipSync(await readFile(path.join(dir, `${room.id}.json.gz`))).toString());
     assert.deepEqual(disk, replay);
     a.close(); b.close(); await server.close();
-    restarted = await createArenaServer({ replayDir: dir });
+    restarted = await createArenaServer({ replayDir: dir, generateMap: fastMap });
     const archive = await (await fetch(await listen(restarted) + '/api/replays')).json();
     assert.equal(archive[0].id, room.id);
   } finally {

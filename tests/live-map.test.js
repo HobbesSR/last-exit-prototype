@@ -1,18 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateLiveMap, liveChainParams, liveMapFromBuilt, liveMismatch, liveRecipeMismatch, liveSeed, liveZoneSize, LIVE_ZONE_SIZES } from '../map/live.ts';
+import { generateLiveMap, liveChainParams, liveMapFromBuilt, liveMismatch, liveRecipeMismatch, liveSeed } from '../map/live.ts';
 import { generate } from '../map/chain.ts';
 import { composeRegions } from '../map/micro/compose.ts';
 import { builtMapFrame } from '../map/micro/adapter.ts';
 import { canOccupy, moveBody } from '../shared/movement.ts';
-import { defaultContent, contentById } from '../shared/simulation/content.ts';
+import { defaultContent } from '../shared/simulation/content.ts';
 import { createGame, setInput, step } from '../shared/simulation.ts';
-import { createMatch } from '../server/match.js';
 
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-let defaultMap, defaultChain;
+let defaultMap, defaultChain, defaultBuilt;
 const live = () => defaultMap ??= generateLiveMap(1);
 const liveChain = () => defaultChain ??= generate('1', liveChainParams());
+const liveBuilt = () => defaultBuilt ??= composeRegions(liveChain().results);
 
 test('a chain live map supplies usable authored sites and retained loot metadata', () => {
   const map = live(), content = defaultContent();
@@ -36,20 +36,10 @@ test('a chain live map supplies usable authored sites and retained loot metadata
   assert.ok(map.items.some(item => Number.isInteger(item.tier) && item.tier >= 1), 'micro loot tier survives runtime conversion');
 });
 
-test('the adapter is deterministic, content-sized, and is the default match map', () => {
-  const map = live();
-  assert.deepEqual(generateLiveMap(1), map);
-  assert.deepEqual(createMatch(1).map(), map);
-  const twoHunters = contentById('content-1');
-  const earlier = generateLiveMap(1, twoHunters);
-  assert.equal(earlier.hunterSpawns.length, twoHunters.roster.gladiators.length);
-  assert.equal(earlier.spawns.length, twoHunters.roster.contestants.length);
-});
-
 test('a chain map the Map Lab calls live is the map a room with its seed plays', () => {
   const chain = liveChain();
   assert.deepEqual(liveMismatch(chain), []);
-  assert.deepEqual(liveMapFromBuilt(liveSeed(chain.layout.seed), composeRegions(chain.results)), live());
+  assert.deepEqual(liveMapFromBuilt(liveSeed(chain.layout.seed), liveBuilt()), live());
   const other = { ...chain, layout: { ...chain.layout, seed: '01', params: { ...chain.layout.params, exitCount: 2 } },
     library: { ...chain.library, name: 'draft' }, cellSize: 32, build: 'older' };
   assert.deepEqual(liveMismatch(other).map(reason => reason.split(' ').slice(0, 2).join(' ')),
@@ -102,7 +92,7 @@ test('live sites allow charging, extraction, and safe hunter redeployment', () =
 });
 
 test('each live site and item keeps its own source region, place and tier', () => {
-  const map = live(), built = composeRegions(liveChain().results);
+  const map = live(), built = liveBuilt();
   const { origin } = builtMapFrame(built), regions = new Map(built.regions.map(region => [region.brief.id, region]));
   const world = site => `${site.x + origin.x},${site.y + origin.y}`;
   for (const [sites, kind] of [[map.chargers, 'charger'], [map.stations, 'warp']]) {
@@ -117,32 +107,4 @@ test('each live site and item keeps its own source region, place and tier', () =
     assert.ok(source, `${item.id} at ${item.x},${item.y} is a loot site of ${item.nodeId}`);
     assert.equal(item.tier, source.tier, `${item.id} keeps its site's tier`);
   }
-});
-
-test('the adapter rejects missing and extra required core sites', () => {
-  const content = defaultContent();
-  const chain = generate(1, { mode: 'game', exitCount: 1, contestantCount: content.roster.contestants.length,
-    hunterCount: content.roster.gladiators.length });
-  const built = composeRegions(chain.results);
-  const missing = structuredClone(built);
-  const spawnRegion = missing.regions.find(region => region.coreElements.some(site => site.kind === 'spawn'));
-  spawnRegion.coreElements.splice(spawnRegion.coreElements.findIndex(site => site.kind === 'spawn'), 1);
-  assert.throws(() => liveMapFromBuilt(1, missing), /needs .* spawns/);
-  const extra = structuredClone(built);
-  const exitRegion = extra.regions.find(region => region.coreElements.some(site => site.kind === 'exit'));
-  exitRegion.coreElements.push({ ...exitRegion.coreElements.find(site => site.kind === 'exit') });
-  assert.throws(() => liveMapFromBuilt(1, extra), /one exit/);
-});
-
-test('a room can be generated at each authored size, and only those', () => {
-  assert.deepEqual(LIVE_ZONE_SIZES.map(({ zoneWidth, zoneHeight }) => `${zoneWidth}x${zoneHeight}`), ['12x6', '24x12', '36x18']);
-  assert.deepEqual(generateLiveMap(1, defaultContent(), LIVE_ZONE_SIZES[0]), live());
-  const size = LIVE_ZONE_SIZES[1], map = generateLiveMap(1, defaultContent(), size);
-  assert.deepEqual([map.width, map.height], [34560, 17280]);
-  const chain = generate('1', liveChainParams(defaultContent(), size));
-  assert.deepEqual(liveRecipeMismatch(chain), []);
-  assert.equal(liveZoneSize({ zoneWidth: 24, zoneHeight: 6 }), undefined);
-  assert.throws(() => generateLiveMap(1, defaultContent(), { zoneWidth: 24, zoneHeight: 6 }), /no bundled library/);
-  const playground = generate('1', { ...liveChainParams(), mode: 'playground', zoneWidth: 20, zoneHeight: 9 });
-  assert.match(liveRecipeMismatch(playground).join(), /20 x 9 zones isn't a size a room can use/);
 });

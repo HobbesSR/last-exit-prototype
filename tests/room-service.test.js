@@ -5,7 +5,7 @@ import { createMatch } from '../server/match.js';
 import { createGame, joinGame, setInput, step, snapshot } from '../shared/simulation.ts';
 
 test('three hunter places are advertised, admitted, reclaimed and recorded', async () => {
-  const h = roomHarness(), room = h.service.makeRoom(9);
+  const h = roomHarness({ reuseMaps: true }), room = h.directory.createRoom(9);
   try {
     const owner = h.joined(room, { ownerKey: room.ownerKey });
     const hunters = ['warden', 'specter', 'striker'].map(kit => h.joined(room, { role: 'gladiator', kit }));
@@ -37,7 +37,7 @@ test('three hunter places are advertised, admitted, reclaimed and recorded', asy
 });
 
 test('a player changes role and kit in the lobby, freeing their place to its roster bot, until the start', async () => {
-  const h = roomHarness(), room = h.service.makeRoom(9);
+  const h = roomHarness({ reuseMaps: true }), room = h.directory.createRoom(9);
   try {
     const owner = h.joined(room, { ownerKey: room.ownerKey, name: 'Owner' });
     const runner = h.joined(room, { name: 'Runner' }), id = runner.session.playerId;
@@ -81,7 +81,7 @@ test('a player changes role and kit in the lobby, freeing their place to its ros
 });
 
 test('a private match already under way admits only the role asked for', async () => {
-  const h = roomHarness();
+  const h = roomHarness({ reuseMaps: true });
   try {
     const { room } = h.live();
     for (let i = 0; i < 3; i++) h.joined(room, { role: 'gladiator' });
@@ -92,7 +92,7 @@ test('a private match already under way admits only the role asked for', async (
 });
 
 test('matchmaking balances occupied fractions against three hunter places and fills all eleven slots', async () => {
-  const h = roomHarness();
+  const h = roomHarness({ reuseMaps: true });
   try {
     const match = role => { const p = h.peer(); p.send({ type: 'match', role }); return p; };
     const first = match('gladiator'), room = first.session.room;
@@ -126,7 +126,7 @@ test('match boundary preserves simulation output and returns detached commands, 
 });
 
 test('fake clock preserves debt, catch-up cap, every recorded tick and newest-only delivery', async () => {
-  const h = roomHarness(), { owner, writer, room } = h.live(); owner.messages.length = 0;
+  const h = roomHarness({ reuseMaps: true }), { owner, writer, room } = h.live(); owner.messages.length = 0;
   h.wake(25); assert.equal(room.match.tick, 0);
   h.wake(25); assert.equal(room.match.tick, 1);
   h.wake(450); assert.equal(room.match.tick, 6);
@@ -138,7 +138,7 @@ test('fake clock preserves debt, catch-up cap, every recorded tick and newest-on
 });
 
 test('room command recording owns each sanitized input independently of later ticks', async () => {
-  const h = roomHarness(), { owner, writer } = h.live();
+  const h = roomHarness({ reuseMaps: true }), { owner, writer } = h.live();
   owner.send({ type: 'input', seq: 1, interact: true, moveSlot: { from: 0, to: 5 }, hp: 999 });
   owner.send({ type: 'input', seq: 2, x: 1 }); h.wake(50);
   const inputs = writer.frames.at(-1).commands.filter(c => c.type === 'input');
@@ -154,7 +154,7 @@ test('room command recording owns each sanitized input independently of later ti
 });
 
 test('inventory gesture commands preserve source items in authoritative frames and recordings', async () => {
-  const h = roomHarness(), { room, owner, writer } = h.live();
+  const h = roomHarness({ reuseMaps: true }), { room, owner, writer } = h.live();
   try {
     const game = room.game, player = game.players.find(p => p.id === owner.session.playerId);
     for (const actor of game.players) { actor.bot = false; actor.input = {}; }
@@ -186,7 +186,7 @@ test('inventory gesture commands preserve source items in authoritative frames a
 });
 
 test('fake sessions retain owner checks, spectator delay and safe live-session replacement', async () => {
-  const h = roomHarness(), { room, owner } = h.live();
+  const h = roomHarness({ reuseMaps: true }), { room, owner } = h.live();
   const denied = h.joined(room, { role: 'spectator' }); assert.match(denied.messages[0].message, /owner key/);
   const eye = h.joined(room, { role: 'spectator', ownerKey: room.ownerKey });
   assert.equal(eye.messages[0].state.tick, 0); assert.equal(eye.session.playerId, null);

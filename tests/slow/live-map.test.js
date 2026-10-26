@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateLiveMap } from '../../map/live.ts';
+import { generateLiveMap, liveChainParams, liveMapFromBuilt, liveRecipeMismatch, LIVE_ZONE_SIZES } from '../../map/live.ts';
+import { generate } from '../../map/chain.ts';
+import { composeRegions } from '../../map/micro/compose.ts';
+import { defaultContent } from '../../shared/simulation/content.ts';
 import { createGame, step } from '../../shared/simulation.ts';
 
 test('combat-neutralized bots fill all three extraction slots on representative live chain maps', () => {
@@ -18,4 +21,12 @@ test('combat-neutralized bots fill all three extraction slots on representative 
     assert.equal(game.slots, 0, `seed ${seed}: three extraction slots filled`);
     assert.equal(game.players.filter(player => player.status === 'escaped').length, 3, `seed ${seed}: three contestants escaped`);
   }
+});
+
+test('a room can be generated at the larger authored size', () => {
+  const size = LIVE_ZONE_SIZES[1];
+  const chain = generate('1', liveChainParams(defaultContent(), size));
+  assert.deepEqual(liveRecipeMismatch(chain), []);
+  const map = liveMapFromBuilt(1, composeRegions(chain.results), defaultContent());
+  assert.deepEqual([map.width, map.height], [34560, 17280]);
 });
