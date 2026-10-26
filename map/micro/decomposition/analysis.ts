@@ -5,8 +5,6 @@ import type { BoundaryEdge, CellRect, NeckCut, RegionAnalysis } from './types.ts
 
 export const REGION_CELL_LIMIT = 4096;
 export const REGION_SPAN_LIMIT = 64;
-const LIMIT = REGION_CELL_LIMIT;
-const SPAN = REGION_SPAN_LIMIT;
 const DIRS = [[0, -1], [-1, 0], [1, 0], [0, 1]] as const;
 const edgeDirections = [
   { dx: 0, dy: -1, a: (x: number, y: number): Cell => ({ x, y }), b: (x: number, y: number): Cell => ({ x: x + 1, y }) },
@@ -20,20 +18,20 @@ const copy = (cell: Cell): Cell => ({ x: cell.x, y: cell.y });
 
 /** Validate and return row-major copies, so callers' input objects and ordering are never retained. */
 export function canonicalCells(cells: readonly Cell[]): Cell[] {
-  if (cells.length > LIMIT) throw new Error(`A region supports at most ${LIMIT} cells`);
+  if (cells.length > REGION_CELL_LIMIT) throw new Error(`A region supports at most ${REGION_CELL_LIMIT} cells`);
   const seen = new Set<string>();
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (const cell of cells) {
     // Position does not affect analysis cost; retain only the representation
     // guard needed by bounded-span scans and their outside boundary cells.
     if (![cell.x, cell.y].every(n => Number.isSafeInteger(n)
-      && Number.isSafeInteger(n - SPAN - 2) && Number.isSafeInteger(n + SPAN + 2)))
+      && Number.isSafeInteger(n - REGION_SPAN_LIMIT - 2) && Number.isSafeInteger(n + REGION_SPAN_LIMIT + 2)))
       throw new Error('Cell coordinates must be safe integers with representable analysis offsets');
     const key = cellKey(cell);
     if (seen.has(key)) throw new Error(`Duplicate cell ${key}`);
     seen.add(key); minX = Math.min(minX, cell.x); maxX = Math.max(maxX, cell.x); minY = Math.min(minY, cell.y); maxY = Math.max(maxY, cell.y);
   }
-  if (cells.length && (maxX - minX + 1 > SPAN || maxY - minY + 1 > SPAN)) throw new Error(`A region may span at most ${SPAN} cells per axis`);
+  if (cells.length && (maxX - minX + 1 > REGION_SPAN_LIMIT || maxY - minY + 1 > REGION_SPAN_LIMIT)) throw new Error(`A region may span at most ${REGION_SPAN_LIMIT} cells per axis`);
   return cells.map(copy).sort(compareCells);
 }
 
@@ -150,7 +148,7 @@ export function analyzeRegion(input: readonly Cell[]): RegionAnalysis {
 
 export function findNeckCuts(input: readonly Cell[], options: { maxWidth?: number; minComponentArea?: number; limit?: number } = {}): NeckCut[] {
   const cells = canonicalCells(input), maxWidth = options.maxWidth ?? 3, minArea = options.minComponentArea ?? 8, limit = options.limit ?? 64;
-  if (!Number.isInteger(maxWidth) || maxWidth < 1 || maxWidth > SPAN || !Number.isInteger(minArea) || minArea < 1 || minArea > LIMIT || !Number.isInteger(limit) || limit < 0 || limit > 64) throw new Error('Neck cut options must be bounded integers (width 1..64, area 1..4096, limit 0..64)');
+  if (!Number.isInteger(maxWidth) || maxWidth < 1 || maxWidth > REGION_SPAN_LIMIT || !Number.isInteger(minArea) || minArea < 1 || minArea > REGION_CELL_LIMIT || !Number.isInteger(limit) || limit < 0 || limit > 64) throw new Error(`Neck cut options must be bounded integers (width 1..${REGION_SPAN_LIMIT}, area 1..${REGION_CELL_LIMIT}, limit 0..64)`);
   const own = new Set(cells.map(cellKey)), initialComponents = componentsFromCanonical(cells), candidates: Array<{ cells: Cell[]; orientation: 'horizontal' | 'vertical' }> = [];
   for (const orientation of ['horizontal', 'vertical'] as const) {
     const dx = orientation === 'horizontal' ? 1 : 0, dy = orientation === 'vertical' ? 1 : 0;
@@ -178,7 +176,7 @@ export function growRegion(input: readonly Cell[], seeds: readonly Cell[], optio
   if (!normalizedSeeds.every(seed => own.has(cellKey(seed)))) throw new Error('Growth seeds must be cells in the region');
   if (options.eligible && !normalizedSeeds.every(seed => options.eligible!(copy(seed)))) throw new Error('Growth seeds must be eligible');
   const maxArea = options.maxArea ?? cells.length;
-  if (!Number.isInteger(maxArea) || maxArea < 0 || maxArea > LIMIT || normalizedSeeds.length > maxArea) throw new Error('maxArea must accommodate seeds and be at most 4096');
+  if (!Number.isInteger(maxArea) || maxArea < 0 || maxArea > REGION_CELL_LIMIT || normalizedSeeds.length > maxArea) throw new Error(`maxArea must accommodate seeds and be at most ${REGION_CELL_LIMIT}`);
   const selected = new Map(normalizedSeeds.map(c => [cellKey(c), c])), frontier = new Map<string, Cell>();
   const addNeighbors = (cell: Cell) => { for (const [dx, dy] of DIRS) { const next = { x: cell.x + dx, y: cell.y + dy }, key = cellKey(next); if (own.has(key) && !selected.has(key) && !frontier.has(key) && (options.eligible?.(copy(next)) ?? true)) frontier.set(key, next); } };
   for (const seed of normalizedSeeds) addNeighbors(seed);
