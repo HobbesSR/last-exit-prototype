@@ -1,0 +1,55 @@
+{
+  "baseline": "f775fe7",
+  "fixture": "existing 156x18, 58-portal checkpoint budget witness",
+  "rows": [
+    {
+      "repeat": 1,
+      "label": "before",
+      "wallMs": 1042.8573,
+      "cpuMs": 1344,
+      "elements": 38,
+      "crates": 0
+    },
+    {
+      "repeat": 1,
+      "label": "after",
+      "wallMs": 1426.7637,
+      "cpuMs": 1500,
+      "elements": 144,
+      "crates": 106
+    },
+    {
+      "repeat": 2,
+      "label": "before",
+      "wallMs": 960.9243000000001,
+      "cpuMs": 1031,
+      "elements": 38,
+      "crates": 0
+    },
+    {
+      "repeat": 2,
+      "label": "after",
+      "wallMs": 1402.6593000000003,
+      "cpuMs": 1469,
+      "elements": 144,
+      "crates": 106
+    },
+    {
+      "repeat": 3,
+      "label": "before",
+      "wallMs": 959.2450999999992,
+      "cpuMs": 1047,
+      "elements": 38,
+      "crates": 0
+    },
+    {
+      "repeat": 3,
+      "label": "after",
+      "wallMs": 1386.2737000000006,
+      "cpuMs": 1422,
+      "elements": 144,
+      "crates": 106
+    }
+  ],
+  "afterCommit": "dc1116faaf8e95dc72e3c5865e1c79f297e44539"
+}

@@ -148,7 +148,7 @@ test('hinted perimeter post boxes are preferred and keep every portal reachable'
   assert.deepEqual(validatePortalReach({ ...result.brief, blockers: blockers(result) }).errors, []);
 });
 
-test('a one-portal or portalless region is a post alone, and a region with no room is open', () => {
+test('a one-portal or portalless region has a post without barriers, and a region with no room is open', () => {
   for (const name of ['one', 'none']) for (const seed of SEEDS) {
     const result = buildRegion(brief(name, seed, ...MASKS[name]));
     assert.equal(barriers(result).length, 0, `${name} ${seed} has no barriers`);
