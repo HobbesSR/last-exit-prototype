@@ -226,7 +226,7 @@ try {
   await mkdir(dirname(out), { recursive: true });
   await writeFile(out, `${JSON.stringify(report, null, 2)}\n`);
   if (maps.some(m => m.mapErrors.length || m.rows.some(r => r.before.errors.length || r.after.errors.length))
-    || [...direct, ...variants].some(r => r.before.errors.length || r.after.errors.length)) process.exitCode = 1;
+    || [...direct, ...variants, ...dumbbells, ...sideLobes].some(r => r.before.errors.length || r.after.errors.length)) process.exitCode = 1;
 } finally {
   await rm(scratch, { recursive: true, force: true });
 }

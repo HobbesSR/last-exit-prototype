@@ -1,0 +1,24 @@
+{
+  "baseline": "8783d93",
+  "target": "24.5,6.5 cells; single west portal",
+  "rows": [
+    {
+      "width": 2,
+      "seeds": 100,
+      "primaryReachable": 46,
+      "originalLost": 18,
+      "fixedLost": 0,
+      "originalOccupied": 28,
+      "fixedOccupied": 9
+    },
+    {
+      "width": 3,
+      "seeds": 100,
+      "primaryReachable": 46,
+      "originalLost": 9,
+      "fixedLost": 0,
+      "originalOccupied": 28,
+      "fixedOccupied": 9
+    }
+  ]
+}
