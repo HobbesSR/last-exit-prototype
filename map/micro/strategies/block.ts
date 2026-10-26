@@ -1,5 +1,8 @@
 import { cellKey, compareCells } from '../../kernel/cell.ts';
 import { unusedComponents } from '../components.ts';
+import { allocateCandidates } from '../decomposition/allocation.ts';
+import { createRegionContext } from '../decomposition/context.ts';
+import type { CandidatePiece, DecompositionPlan } from '../decomposition/types.ts';
 import { buildCompound } from './compound.ts';
 import { buildCover } from './cover.ts';
 import { buildDepot } from './depot.ts';
@@ -42,7 +45,7 @@ const LOT_TYPES: ReadonlyArray<{ type: string; build: (brief: RegionBrief, obser
 ];
 
 /** The block's children: briefs for its lots, and its alleys, which hold every one of the block's own portals. */
-export interface BlockPlan { lots: RegionBrief[]; alleys: RegionBrief }
+export interface BlockPlan { lots: RegionBrief[]; alleys: RegionBrief; allocation?: DecompositionPlan }
 
 /**
  * The `block` region type (54): a city block of lots and the alleys between them. It is the
@@ -54,7 +57,8 @@ export interface BlockPlan { lots: RegionBrief[]; alleys: RegionBrief }
  * many portals a region has"). The alleys are one `open` region holding every portal of the
  * block's own and every lot's frontages. Each child keeps its own promise, so the block's
  * portals are joined by inference (51 stage 6). A region with no room for a lot is left
- * `open` whole (17 M24).
+ * `open` whole (17 M24). A bounded SDK fallback tries one smaller lot when the
+ * ordinary split selects none (20.3.5).
  *
  * The children's geometry, loot and manifest counts are gathered into one result, with each
  * element's label prefixed by its child's. A block sites no core elements; any the brief
@@ -181,6 +185,42 @@ export function planBlock(brief: RegionBrief): BlockPlan {
   }
   lots.sort((a, b) => a.y - b.y || a.x - b.x);
 
+  // Bounded production pilot (20.3.5): a maximal rectangle may sever a concave
+  // alley even when a smaller lot fits. Successful guillotine plans are retained.
+  // One claim makes residual connectivity a hard, candidate-local predicate.
+  let allocation: DecompositionPlan | undefined;
+  if (!lots.length && mask.cells.length <= 4096 && W <= 64 && H <= 64 && size > 0 && size <= 200) {
+    const candidates: CandidatePiece[] = [], boxes = new Map<string, Box>();
+    const cellsOf = (box: Box): Cell[] => {
+      const cells: Cell[] = [];
+      for (let y = box.y; y < box.y + box.h; y++) for (let x = box.x; x < box.x + box.w; x++) cells.push({ x, y });
+      return cells;
+    };
+    // Stable row order and largest size first; cap admitted candidates, not
+    // coordinates, so narrow leading tendrils do not consume the whole budget.
+    scan: for (const cell of [...mask.cells].sort(compareCells)) for (const side of [12, 9, 6]) {
+      const box = { x: cell.x, y: cell.y, w: side, h: side };
+      const cells = cellsOf(box);
+      if (cells.some(c => !mask.has(c.x, c.y) || margin.has(cellKey(c)))
+        || !safeAttachment(box) || !corners(box).length || !keepsAlleys(box)) continue;
+      const id = `fallback-${String(candidates.length).padStart(2, '0')}`;
+      boxes.set(id, box);
+      candidates.push({ id, cells, role: 'lot', rationale: 'Smaller lot with two full frontages and one connected circulation remainder.' });
+      if (candidates.length === 64) break scan;
+    }
+    // Portal approaches remain residual circulation. Reserving them separately
+    // would split that ownership into artificial reserved children in the SDK.
+    const context = createRegionContext({ id: 'block-fallback', cells: [...mask.cells], cellSize: size });
+    allocation = allocateCandidates(context, candidates, [{ id: 'block-lot', roles: ['lot'], tags: [],
+      minArea: 36, maxArea: 144, holes: 'none', rectangular: true,
+      utility: a => ({ lotArea: a.area }) }], {
+      beamWidth: 1, maxPieces: 1, maxCandidates: 64, unusedCellPenalty: 0,
+      residualComponentPenalty: 0, smallResidualPenalty: 0, smallResidualArea: 0,
+      piecePenalty: 0, seamRunPenalty: 0, portalWidth: 2,
+    }, { strategy: 'block-single-lot-fallback' });
+    for (const piece of allocation.pieces) lots.push(boxes.get(piece.id)!);
+  }
+
   const taken = new Set(brief.portals.map(portal => portal.id));
   const unique = (id: string) => { while (taken.has(id)) id += '+'; taken.add(id); return id; };
   const restrict = (cells: Cell[]): RegionBrief['zones'] => {
@@ -210,7 +250,7 @@ export function planBlock(brief: RegionBrief): BlockPlan {
   // Margin cells remain owned by lots/alleys. They are constraints, not extra children.
   // Only genuinely new frontages add clearance; inherited exclusions are never inset again.
   const constrained = inheritBriefMargins(brief, [...children, alleys]);
-  return { lots: constrained.slice(0, children.length), alleys: constrained[children.length]! };
+  return { lots: constrained.slice(0, children.length), alleys: constrained[children.length]!, ...(allocation ? { allocation } : {}) };
 }
 
 /** The run along one whole side of a box, in cells. */

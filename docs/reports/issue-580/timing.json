@@ -1,0 +1,135 @@
+{
+  "machine": {
+    "cpu": "AMD Ryzen 9 5900X 12-Core Processor",
+    "os": "Microsoft Windows NT 10.0.26200.0",
+    "note": "Shared machine; this task's other CPU-heavy processes had ended before isolated and paired timing runs."
+  },
+  "reproduction": {
+    "script": "tools/block-sdk-timing.mjs",
+    "commands": ["node tools/block-sdk-timing.mjs before", "node tools/block-sdk-timing.mjs after"],
+    "note": "Measured before the witness moved unchanged from test-results/580-timing.mjs; explanatory header added afterward."
+  },
+  "capturedAt": "2026-10-26 17:45:41 UTC",
+  "contentCommit": "409b6fda8d35bc4de923e952998c16d4f0721761",
+  "node": "v24.15.0",
+  "limits": "Sequential runs after this task's other CPU-heavy work ended; the machine is shared. Initial full-fast timing misses: block 5089ms/5000ms, depot 3125ms/3000ms. Three isolated repeats retain all outcomes, including the first repeated block miss. Paired cold-process block runs alternate order; pinned block source is 872932e with current sibling builders. No performance fix or broad runtime slowdown claim.",
+  "isolated": [
+    {
+      "repeat": 1,
+      "cmd": "node --test --test-name-pattern=macro-sized tests/micro-block.test.js",
+      "chunk_id": "1ad54d",
+      "wall_time_seconds": 5.8442402,
+      "exit_code": 1,
+      "original_token_count": 263,
+      "output": "✖ a macro-sized block with hundreds of portals builds quickly (5187.9117ms)\nℹ tests 1\nℹ suites 0\nℹ pass 0\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 5607.422\n\n✖ failing tests:\n\ntest at tests\\micro-block.test.js:124:1\n✖ a macro-sized block with hundreds of portals builds quickly (5187.9117ms)\n  AssertionError [ERR_ASSERTION]: built in 5181 ms, budget 5000 ms\n      at assertWithinBudget (file:///C:/Users/Corey/Documents/Projects/astra_test.agents/codex/tests/helpers/budget.js:10:10)\n      at TestContext.<anonymous> (file:///C:/Users/Corey/Documents/Projects/astra_test.agents/codex/tests/micro-block.test.js:131:3)\n      at Test.runInAsyncScope (node:async_hooks:227:14)\n      at Test.run (node:internal/test_runner/test:1201:25)\n      at Test.start (node:internal/test_runner/test:1096:17)\n      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: false,\n    expected: true,\n    operator: '==',\n    diff: 'simple'\n  }\n"
+    },
+    {
+      "repeat": 1,
+      "cmd": "node --test --test-name-pattern=macro-sized tests/micro-depot.test.js",
+      "chunk_id": "46f46f",
+      "wall_time_seconds": 3.2633601,
+      "exit_code": 0,
+      "original_token_count": 48,
+      "output": "✔ a macro-sized depot with hundreds of portals builds quickly (2705.2553ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 3034.0666\n"
+    },
+    {
+      "repeat": 2,
+      "cmd": "node --test --test-name-pattern=macro-sized tests/micro-block.test.js",
+      "chunk_id": "9b2ed8",
+      "wall_time_seconds": 5.2078801,
+      "exit_code": 0,
+      "original_token_count": 48,
+      "output": "✔ a macro-sized block with hundreds of portals builds quickly (4597.3809ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 4968.2486\n"
+    },
+    {
+      "repeat": 2,
+      "cmd": "node --test --test-name-pattern=macro-sized tests/micro-depot.test.js",
+      "chunk_id": "2c1aec",
+      "wall_time_seconds": 3.4538574,
+      "exit_code": 0,
+      "original_token_count": 48,
+      "output": "✔ a macro-sized depot with hundreds of portals builds quickly (2787.3404ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 3160.1405\n"
+    },
+    {
+      "repeat": 3,
+      "cmd": "node --test --test-name-pattern=macro-sized tests/micro-block.test.js",
+      "chunk_id": "1c52bd",
+      "wall_time_seconds": 4.7660468,
+      "exit_code": 0,
+      "original_token_count": 48,
+      "output": "✔ a macro-sized block with hundreds of portals builds quickly (4154.0428ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 4516.5354\n"
+    },
+    {
+      "repeat": 3,
+      "cmd": "node --test --test-name-pattern=macro-sized tests/micro-depot.test.js",
+      "chunk_id": "4f56b4",
+      "wall_time_seconds": 3.3435434,
+      "exit_code": 0,
+      "original_token_count": 48,
+      "output": "✔ a macro-sized depot with hundreds of portals builds quickly (2744.1615ms)\nℹ tests 1\nℹ suites 0\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 3092.6672\n"
+    }
+  ],
+  "paired": [
+    {
+      "repeat": 1,
+      "mode": "before",
+      "chunk_id": "5ca98e",
+      "wall_time_seconds": 4.3161913,
+      "exit_code": 0,
+      "original_token_count": 17,
+      "output": "{\"mode\":\"before\",\"elapsedMs\":3816.8182,\"lots\":106,\"elements\":1024}\n"
+    },
+    {
+      "repeat": 1,
+      "mode": "after",
+      "chunk_id": "470919",
+      "wall_time_seconds": 4.6961308,
+      "exit_code": 0,
+      "original_token_count": 17,
+      "output": "{\"mode\":\"after\",\"elapsedMs\":4164.5538,\"lots\":106,\"elements\":1024}\n"
+    },
+    {
+      "repeat": 2,
+      "mode": "after",
+      "chunk_id": "167a3c",
+      "wall_time_seconds": 4.1998273,
+      "exit_code": 0,
+      "original_token_count": 17,
+      "output": "{\"mode\":\"after\",\"elapsedMs\":3674.5856,\"lots\":106,\"elements\":1024}\n"
+    },
+    {
+      "repeat": 2,
+      "mode": "before",
+      "chunk_id": "86ce05",
+      "wall_time_seconds": 4.1857997000000005,
+      "exit_code": 0,
+      "original_token_count": 17,
+      "output": "{\"mode\":\"before\",\"elapsedMs\":3633.3314,\"lots\":106,\"elements\":1024}\n"
+    },
+    {
+      "repeat": 3,
+      "mode": "before",
+      "chunk_id": "de4490",
+      "wall_time_seconds": 4.081011,
+      "exit_code": 0,
+      "original_token_count": 17,
+      "output": "{\"mode\":\"before\",\"elapsedMs\":3616.5542,\"lots\":106,\"elements\":1024}\n"
+    },
+    {
+      "repeat": 3,
+      "mode": "after",
+      "chunk_id": "400346",
+      "wall_time_seconds": 4.0364098,
+      "exit_code": 0,
+      "original_token_count": 17,
+      "output": "{\"mode\":\"after\",\"elapsedMs\":3546.8246,\"lots\":106,\"elements\":1024}\n"
+    }
+  ],
+  "fileTimes": {
+    "chunk_id": "cf00b2",
+    "wall_time_seconds": 5.5921649,
+    "exit_code": 0,
+    "original_token_count": 131,
+    "output": "npm notice run last-exit@0.1.0 test:times\nnpm notice run node tests/timing.mjs tests/micro-block-partition.test.js tests/micro-block-sdk.test.js tests/micro-rubble.test.js\n    3.8s  tests/micro-block-partition.test.js\n    0.8s  tests/micro-block-sdk.test.js\n    0.5s  tests/micro-rubble.test.js\n\nslowest first (budget: fast tier 15s, slow tier 60s per file)\n    3.8s      tests/micro-block-partition.test.js\n    0.8s      tests/micro-block-sdk.test.js\n    0.5s      tests/micro-rubble.test.js\ntotal 5s serial across 3 files\n"
+  }
+}
