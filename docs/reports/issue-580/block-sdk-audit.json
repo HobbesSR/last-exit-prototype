@@ -1,0 +1,5695 @@
+{
+  "audit": "block-sdk-same-brief-1",
+  "baselineRef": "872932e",
+  "baselineCommit": "872932e916536fa03bbb80f67d907eb5c7bba188",
+  "commit": "409b6fda8d35bc4de923e952998c16d4f0721761",
+  "createdAt": "2026-10-26T17:42:01.194Z",
+  "node": "v24.15.0",
+  "sourceHashes": {
+    "map/micro/strategies/block.ts": "a35f914d48df0bc51cbb20962d872839e517913d1df84e87f16d900c80b44328",
+    "tools/block-sdk-audit.mjs": "d2859e39b3db94b8cc95104b90462678cb7786e7ab62beb2e5c35d3acc70aa24"
+  },
+  "currentSourceDirty": "",
+  "summary": {
+    "cases": 187,
+    "labCases": 180,
+    "gameCases": 7,
+    "successfulLegacyPlans": 167,
+    "sdkSelections": 20,
+    "changedPlans": 20,
+    "changedBuilds": 20,
+    "densityDeltaChangedBuilds": {
+      "elements": 11,
+      "freeCells": -99,
+      "loot": 6,
+      "lotCells": 720
+    },
+    "baselinePlanErrors": 0,
+    "baselineBuildErrors": 0,
+    "currentPlanErrors": 0,
+    "currentBuildErrors": 0,
+    "counterexamples": 0
+  },
+  "mapSamples": [
+    {
+      "seed": "4217",
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "blocks": 1,
+      "mapDefects": []
+    },
+    {
+      "seed": "4217",
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "blocks": 4,
+      "mapDefects": []
+    },
+    {
+      "seed": "4217",
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "blocks": 2,
+      "mapDefects": []
+    }
+  ],
+  "counterexamples": [],
+  "rows": [
+    {
+      "group": "lab",
+      "id": "rectangle-24x18-1",
+      "cells": 432,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "1e32140ffe07bf136a4a13ff3d087a4079701c3a308cb7c36a60a88fc2bac6b5",
+        "after": "1e32140ffe07bf136a4a13ff3d087a4079701c3a308cb7c36a60a88fc2bac6b5"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-24x18-2",
+      "cells": 432,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "cffb98c469123fdb15709d0b75f9c339a86f363750691b59afa98e227a1fb72c",
+        "after": "cffb98c469123fdb15709d0b75f9c339a86f363750691b59afa98e227a1fb72c"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-24x18-3",
+      "cells": 432,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "10d57f642035305a81f009cef746cd1b51997cdd69004e47ef1a6e6b81dc4f8b",
+        "after": "10d57f642035305a81f009cef746cd1b51997cdd69004e47ef1a6e6b81dc4f8b"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-24x18-4",
+      "cells": 432,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "cf30e53354fe2da7f6b3eed5d05ca228e60ffdbc76a053e32acd16015e3568e1",
+        "after": "cf30e53354fe2da7f6b3eed5d05ca228e60ffdbc76a053e32acd16015e3568e1"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-24x18-5",
+      "cells": 432,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "4adab2bc7716ca3850319192561665fd5494edef8b6b2b3091ab5b4d11ab81a9",
+        "after": "4adab2bc7716ca3850319192561665fd5494edef8b6b2b3091ab5b4d11ab81a9"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-24x18-6",
+      "cells": 432,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "1d78082d4838fe4e9832725172480cfc4b1eb2cdb20fa6d3908769a35fb94e44",
+        "after": "1d78082d4838fe4e9832725172480cfc4b1eb2cdb20fa6d3908769a35fb94e44"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-24x18-7",
+      "cells": 432,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "27364eda52e4281f0884a771b41d0d0e57caa5617fa0af7c0a02ec7a2c4a5fda",
+        "after": "27364eda52e4281f0884a771b41d0d0e57caa5617fa0af7c0a02ec7a2c4a5fda"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-24x18-8",
+      "cells": 432,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "8c92f3c9d5dcd77cfb6e37ae8b7786a2285a3e7b64a52769dc68c554c8218390",
+        "after": "8c92f3c9d5dcd77cfb6e37ae8b7786a2285a3e7b64a52769dc68c554c8218390"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-24x18-9",
+      "cells": 432,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "ae712f764e992edb4651e9f1733f7cd5f2a8a1e4df33d51cc5bcab59304fda3f",
+        "after": "ae712f764e992edb4651e9f1733f7cd5f2a8a1e4df33d51cc5bcab59304fda3f"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-24x18-10",
+      "cells": 432,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "60f6b254924df89ae459c27fb474bde604499009ef5e0aaf63492996ebe64e51",
+        "after": "60f6b254924df89ae459c27fb474bde604499009ef5e0aaf63492996ebe64e51"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-36x30-1",
+      "cells": 1080,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "df904b650585c23bd9b9d15b9d785f5253f1bf7a10869251e585c96131311b6e",
+        "after": "df904b650585c23bd9b9d15b9d785f5253f1bf7a10869251e585c96131311b6e"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-36x30-2",
+      "cells": 1080,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "3f918532f34b3a47678bcd9ea1f483da19246bf27d3f585b2b84e26fd907406b",
+        "after": "3f918532f34b3a47678bcd9ea1f483da19246bf27d3f585b2b84e26fd907406b"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-36x30-3",
+      "cells": 1080,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "0808060cb5944959af93ffa84b821c01e437aa763349fb8d6786d83e1be9eabb",
+        "after": "0808060cb5944959af93ffa84b821c01e437aa763349fb8d6786d83e1be9eabb"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-36x30-4",
+      "cells": 1080,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "eb45f803807dbcc7471c97680865b8bfaf5c75699dc11f98d8c7576ed08b3fe1",
+        "after": "eb45f803807dbcc7471c97680865b8bfaf5c75699dc11f98d8c7576ed08b3fe1"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-36x30-5",
+      "cells": 1080,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "fc16e053a790d63aa735a81336af451c475e5bebeceb4b4a22f24ffec356f24e",
+        "after": "fc16e053a790d63aa735a81336af451c475e5bebeceb4b4a22f24ffec356f24e"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-36x30-6",
+      "cells": 1080,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "e0a40a8457a863b9395df8a48ebd7f491e808763aaccbaa029c7fa194228a2aa",
+        "after": "e0a40a8457a863b9395df8a48ebd7f491e808763aaccbaa029c7fa194228a2aa"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-36x30-7",
+      "cells": 1080,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "5689459cebcc0c97e00cbd744f22e17ba7b47438fdaf694c6af1e41d3d16e430",
+        "after": "5689459cebcc0c97e00cbd744f22e17ba7b47438fdaf694c6af1e41d3d16e430"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-36x30-8",
+      "cells": 1080,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "0a265afd350852f768df86629b2ce6e906654478884e7b7af96044836c8436e0",
+        "after": "0a265afd350852f768df86629b2ce6e906654478884e7b7af96044836c8436e0"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-36x30-9",
+      "cells": 1080,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "eb47d71f268298d8dfe08274856fdb726a72287ea4b0c9fe26fe1757071118f8",
+        "after": "eb47d71f268298d8dfe08274856fdb726a72287ea4b0c9fe26fe1757071118f8"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-36x30-10",
+      "cells": 1080,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "65af21cd98277bfe388e5b46ef9b84a21b66892b74f81173d2b831ec3bf3762e",
+        "after": "65af21cd98277bfe388e5b46ef9b84a21b66892b74f81173d2b831ec3bf3762e"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-48x44-1",
+      "cells": 2112,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "7d8814e715b47f789388e18a04ef181d52104d70ec5bd4e19e1ff5fd3b8a4001",
+        "after": "7d8814e715b47f789388e18a04ef181d52104d70ec5bd4e19e1ff5fd3b8a4001"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-48x44-2",
+      "cells": 2112,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "83f59ec0f39e6637edc89cc43cb185e93fcea028de61f84f5d319f8548059db6",
+        "after": "83f59ec0f39e6637edc89cc43cb185e93fcea028de61f84f5d319f8548059db6"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-48x44-3",
+      "cells": 2112,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "72f6fd59817c04056e696c8a92de08e9e5af1c649a28287915c42d141f17531f",
+        "after": "72f6fd59817c04056e696c8a92de08e9e5af1c649a28287915c42d141f17531f"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-48x44-4",
+      "cells": 2112,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 9,
+        "after": 9
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "d66e5fafcf88a579e0133507bef7074a58ab3456518cf1cdb74ad364f050f66e",
+        "after": "d66e5fafcf88a579e0133507bef7074a58ab3456518cf1cdb74ad364f050f66e"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-48x44-5",
+      "cells": 2112,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 9,
+        "after": 9
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "d4f81e3ba4cb2e6e9c120795dc52144875dd5d262da748f85c21b3078e2d5f1c",
+        "after": "d4f81e3ba4cb2e6e9c120795dc52144875dd5d262da748f85c21b3078e2d5f1c"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-48x44-6",
+      "cells": 2112,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "5b8644c27916c4c6da177eaf469635c5ac68e26424b3952e0e549ba572ce6a8b",
+        "after": "5b8644c27916c4c6da177eaf469635c5ac68e26424b3952e0e549ba572ce6a8b"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-48x44-7",
+      "cells": 2112,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 9,
+        "after": 9
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "4edce001d80ec21a920fd1627a6dde11f380c51cee3ce2a640b9bf42b443f81e",
+        "after": "4edce001d80ec21a920fd1627a6dde11f380c51cee3ce2a640b9bf42b443f81e"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-48x44-8",
+      "cells": 2112,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 11,
+        "after": 11
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "11261049160704f1385e0548f6faf555dd46baa5756b7c9b6220d80f6ce43253",
+        "after": "11261049160704f1385e0548f6faf555dd46baa5756b7c9b6220d80f6ce43253"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-48x44-9",
+      "cells": 2112,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 11,
+        "after": 11
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "bfdcd5d38fd7d3d71187f35f176ed30d758d7a1a6b0ee0ca38899d848374942b",
+        "after": "bfdcd5d38fd7d3d71187f35f176ed30d758d7a1a6b0ee0ca38899d848374942b"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "rectangle-48x44-10",
+      "cells": 2112,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 9,
+        "after": 9
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "b3563e41191f248b6a46370f05cff18ce9ce7d4279fd2aa4d3e76c19579f02e8",
+        "after": "b3563e41191f248b6a46370f05cff18ce9ce7d4279fd2aa4d3e76c19579f02e8"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-24x18-1",
+      "cells": 384,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "39c13a466af3b18127228bd3875582a2b9fff3fc195fce012fd8191811f7c061",
+        "after": "39c13a466af3b18127228bd3875582a2b9fff3fc195fce012fd8191811f7c061"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-24x18-2",
+      "cells": 384,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "c907db390de61a2fc85fdbf891195bfce5c2238b81d32079469b42cc9444445e",
+        "after": "c907db390de61a2fc85fdbf891195bfce5c2238b81d32079469b42cc9444445e"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-24x18-3",
+      "cells": 384,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "37141a4445edbb68b6f38b2e1c9beaaa076c9fc5dae18b2b68b3390215e4c275",
+        "after": "37141a4445edbb68b6f38b2e1c9beaaa076c9fc5dae18b2b68b3390215e4c275"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-24x18-4",
+      "cells": 384,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "46ced58a304cd996b3c3896bc54b47e0dfe696903a2d7245301384aaaf7e05a5",
+        "after": "46ced58a304cd996b3c3896bc54b47e0dfe696903a2d7245301384aaaf7e05a5"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-24x18-5",
+      "cells": 384,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "0ad03ed5d623ce2e632f27c5e82313a801a9e54d8beb1b1719cf2587a3046b2e",
+        "after": "0ad03ed5d623ce2e632f27c5e82313a801a9e54d8beb1b1719cf2587a3046b2e"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-24x18-6",
+      "cells": 384,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "051ce0c6d20f006ba4f0cf238632f4c0a5db5ad5c75fbbd2108bd288696c178a",
+        "after": "051ce0c6d20f006ba4f0cf238632f4c0a5db5ad5c75fbbd2108bd288696c178a"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-24x18-7",
+      "cells": 384,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "fd983a19ea7ba8227c91964adaf48f28e00d51a085328048b163321fbeb93e1f",
+        "after": "fd983a19ea7ba8227c91964adaf48f28e00d51a085328048b163321fbeb93e1f"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-24x18-8",
+      "cells": 384,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "c93537d44c6743b030503d9b7ea4e9cd3a89013d76e01453756777f1ecbeb1c9",
+        "after": "c93537d44c6743b030503d9b7ea4e9cd3a89013d76e01453756777f1ecbeb1c9"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-24x18-9",
+      "cells": 384,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "cf94659f0e40acd65f78e63bee909f956cfa4b4f4f4ee33494bbb1f8fbf0df71",
+        "after": "cf94659f0e40acd65f78e63bee909f956cfa4b4f4f4ee33494bbb1f8fbf0df71"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-24x18-10",
+      "cells": 384,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "d584578209a6de61983d3220232df7c4ceccb2804a50d193c869db2ec5391101",
+        "after": "d584578209a6de61983d3220232df7c4ceccb2804a50d193c869db2ec5391101"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-36x30-1",
+      "cells": 960,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "53b115031125eb6250263502d76c9ac75f2c11da4270838019f95aaacd0b7f8b",
+        "after": "53b115031125eb6250263502d76c9ac75f2c11da4270838019f95aaacd0b7f8b"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-36x30-2",
+      "cells": 960,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "ed6b4bf0ab875ce0df1224bdb5f5aa116371ddfdb0774136d6d16821914d0700",
+        "after": "ed6b4bf0ab875ce0df1224bdb5f5aa116371ddfdb0774136d6d16821914d0700"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-36x30-3",
+      "cells": 960,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "3c4997710553bf15c16a04e5d225679415e4d8e61ddedff4c5454eb36617d73c",
+        "after": "3c4997710553bf15c16a04e5d225679415e4d8e61ddedff4c5454eb36617d73c"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-36x30-4",
+      "cells": 960,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 3,
+        "after": 3
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "0837f7cca07549231b06add3f27d57d87cb2e960771aa5959504f34993e297d0",
+        "after": "0837f7cca07549231b06add3f27d57d87cb2e960771aa5959504f34993e297d0"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-36x30-5",
+      "cells": 960,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "8de9a5ff3d28eb271796808ab76c9d1c37134f7aa0da822bbe30b929c9ad243e",
+        "after": "8de9a5ff3d28eb271796808ab76c9d1c37134f7aa0da822bbe30b929c9ad243e"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-36x30-6",
+      "cells": 960,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "5759c6270c6ce27ceba09221365d62fb9efb54c5407a04c0ddca3098898a5fc7",
+        "after": "5759c6270c6ce27ceba09221365d62fb9efb54c5407a04c0ddca3098898a5fc7"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-36x30-7",
+      "cells": 960,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "9ad753a9fd3435123f94a66bbd16bdd657c75a7efffc39d8bc415c8fefee2102",
+        "after": "9ad753a9fd3435123f94a66bbd16bdd657c75a7efffc39d8bc415c8fefee2102"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-36x30-8",
+      "cells": 960,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "736fa40928431da94424c923ce3476e8a09924d44b20c69eab508678efbf3b06",
+        "after": "736fa40928431da94424c923ce3476e8a09924d44b20c69eab508678efbf3b06"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-36x30-9",
+      "cells": 960,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "41861c36d16f33dd4fb2c451983a37a0c9c68fb7fd846d9a63cf507f87d827fc",
+        "after": "41861c36d16f33dd4fb2c451983a37a0c9c68fb7fd846d9a63cf507f87d827fc"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-36x30-10",
+      "cells": 960,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "bc349781996373720b02680475cec65025cefdd8437e3391e3e4880f0c03a511",
+        "after": "bc349781996373720b02680475cec65025cefdd8437e3391e3e4880f0c03a511"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-48x44-1",
+      "cells": 1872,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 7,
+        "after": 7
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "c4cf45a3e25f03182b3a9ea8369f31c9ace8b5d1d15d9bbf8069f14c6f24699e",
+        "after": "c4cf45a3e25f03182b3a9ea8369f31c9ace8b5d1d15d9bbf8069f14c6f24699e"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-48x44-2",
+      "cells": 1872,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "2dfa7ebbec6dd15e8668499b83d944dcc166072eb13110e01a9446cf5b666175",
+        "after": "2dfa7ebbec6dd15e8668499b83d944dcc166072eb13110e01a9446cf5b666175"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-48x44-3",
+      "cells": 1872,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "e326786d1b99f838227b0e0d42e42b3afe6a4905c334d92c9281405deb86928c",
+        "after": "e326786d1b99f838227b0e0d42e42b3afe6a4905c334d92c9281405deb86928c"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-48x44-4",
+      "cells": 1872,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "99a441bde221b1f1ba24300369fb0ebb3fd206437ef1cf58d81649d3c6c81bb4",
+        "after": "99a441bde221b1f1ba24300369fb0ebb3fd206437ef1cf58d81649d3c6c81bb4"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-48x44-5",
+      "cells": 1872,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "d24d24f25f84fa8fd3ecb1878e4b948552a1bf8a161798c3b8fcb46f81372226",
+        "after": "d24d24f25f84fa8fd3ecb1878e4b948552a1bf8a161798c3b8fcb46f81372226"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-48x44-6",
+      "cells": 1872,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "65ccb4fdeaadb5190bdd6f423c869182df1b5862533a21f80d8d91ff79c8969c",
+        "after": "65ccb4fdeaadb5190bdd6f423c869182df1b5862533a21f80d8d91ff79c8969c"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-48x44-7",
+      "cells": 1872,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "5d15d22db1332f314281bf5c15b81a3081683d5ba286006c95d4341b2e9b62fc",
+        "after": "5d15d22db1332f314281bf5c15b81a3081683d5ba286006c95d4341b2e9b62fc"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-48x44-8",
+      "cells": 1872,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 10,
+        "after": 10
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "ab7a4c4b4690d1846a2861f57d04af7667b8a13c3f680297e4cd2b514469633f",
+        "after": "ab7a4c4b4690d1846a2861f57d04af7667b8a13c3f680297e4cd2b514469633f"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-48x44-9",
+      "cells": 1872,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 11,
+        "after": 11
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "420ec30cbdbfd6a49a2e2f51760e2f02421cf2902f4857f7bfa77870f1b6aa54",
+        "after": "420ec30cbdbfd6a49a2e2f51760e2f02421cf2902f4857f7bfa77870f1b6aa54"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "l-48x44-10",
+      "cells": 1872,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "ec6c8429d1fed37041e15a38cc2f98a353a28b12edf948d67d6ab84f813e2c71",
+        "after": "ec6c8429d1fed37041e15a38cc2f98a353a28b12edf948d67d6ab84f813e2c71"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-24x18-1",
+      "cells": 420,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "7ca480182eb95013cedb844159ec9fd40489229e315789fe6c20425a84b55061",
+        "after": "7ca480182eb95013cedb844159ec9fd40489229e315789fe6c20425a84b55061"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-24x18-2",
+      "cells": 420,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "870986896fe919876c981e1598f1b14011bfd4f5f664cff247a2d0444e023804",
+        "after": "870986896fe919876c981e1598f1b14011bfd4f5f664cff247a2d0444e023804"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-24x18-3",
+      "cells": 420,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "8aebcc73ada2eb4322a820ac15eab6f2451b8cc6a0df1b5d400fac53c84b0e45",
+        "after": "8aebcc73ada2eb4322a820ac15eab6f2451b8cc6a0df1b5d400fac53c84b0e45"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-24x18-4",
+      "cells": 420,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "7a519911da529bde98db1b2dc5675f90d18c23d1cf1fd91884f8313e99f37e92",
+        "after": "7a519911da529bde98db1b2dc5675f90d18c23d1cf1fd91884f8313e99f37e92"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-24x18-5",
+      "cells": 420,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "16fce2aa9e5f83d25b93c4f401ac61b7357c635f86e393cf43f87c8f1d2fbbd2",
+        "after": "16fce2aa9e5f83d25b93c4f401ac61b7357c635f86e393cf43f87c8f1d2fbbd2"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-24x18-6",
+      "cells": 420,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "bfa5076b4fec68dfc320b90996188670f828db9af89da6829a2d48717303f877",
+        "after": "bfa5076b4fec68dfc320b90996188670f828db9af89da6829a2d48717303f877"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-24x18-7",
+      "cells": 420,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "0589c505fdc0d488b47aec2dd4ff3284d56c3f0fe74aa814c314e57118e1d1b8",
+        "after": "0589c505fdc0d488b47aec2dd4ff3284d56c3f0fe74aa814c314e57118e1d1b8"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-24x18-8",
+      "cells": 420,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "7c14cbc06c03495092a5695e0b46b49f910c5d198bca1c0a955bf89066c41351",
+        "after": "7c14cbc06c03495092a5695e0b46b49f910c5d198bca1c0a955bf89066c41351"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-24x18-9",
+      "cells": 420,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "7d5d77d25d05126d06c43197998cfdf4dd799ce9d4c642d3b312ec0b003f7095",
+        "after": "7d5d77d25d05126d06c43197998cfdf4dd799ce9d4c642d3b312ec0b003f7095"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-24x18-10",
+      "cells": 420,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "8b2c1778370c68b4c65adcf64cb427301eff2d93fe8d8d05cc1e44f74e3ef996",
+        "after": "8b2c1778370c68b4c65adcf64cb427301eff2d93fe8d8d05cc1e44f74e3ef996"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-36x30-1",
+      "cells": 1050,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "7f93f8fa717c6d51defbdaf36fe15a70285ce617f40c4a84f0b6e2779cb019f2",
+        "after": "7f93f8fa717c6d51defbdaf36fe15a70285ce617f40c4a84f0b6e2779cb019f2"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-36x30-2",
+      "cells": 1050,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "303e33a6fe9e701b5d6fce086f98fad10acf5db6e54a10ac8472de549c35ec9f",
+        "after": "303e33a6fe9e701b5d6fce086f98fad10acf5db6e54a10ac8472de549c35ec9f"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-36x30-3",
+      "cells": 1050,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "39f9e0643e6e379540dfac548da047c54511d982fa19c2cb0bea96a8fda903e4",
+        "after": "39f9e0643e6e379540dfac548da047c54511d982fa19c2cb0bea96a8fda903e4"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-36x30-4",
+      "cells": 1050,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "0cf3e01629e4dd0aa1277e82c08d11a0f1e25c1169b561e941a304bedb812143",
+        "after": "0cf3e01629e4dd0aa1277e82c08d11a0f1e25c1169b561e941a304bedb812143"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-36x30-5",
+      "cells": 1050,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "235330e58009295ab8a81964dc493d6f4b80b801c6160d70df3e0322a3cf4c94",
+        "after": "235330e58009295ab8a81964dc493d6f4b80b801c6160d70df3e0322a3cf4c94"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-36x30-6",
+      "cells": 1050,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "d0448317b31387922821ba51f815f384a7586ac3328b741fc433ff6250893c9e",
+        "after": "d0448317b31387922821ba51f815f384a7586ac3328b741fc433ff6250893c9e"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-36x30-7",
+      "cells": 1050,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "9c4f19eb12ef21364fe4fae14ac26414e46b62bb322a311dad84ef93cb4acf0f",
+        "after": "9c4f19eb12ef21364fe4fae14ac26414e46b62bb322a311dad84ef93cb4acf0f"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-36x30-8",
+      "cells": 1050,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "887195661950c0f81131287cfe94ec22ecf1f7ba1da2ba22abbb0b288bb173c6",
+        "after": "887195661950c0f81131287cfe94ec22ecf1f7ba1da2ba22abbb0b288bb173c6"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-36x30-9",
+      "cells": 1050,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "400c2760ed576fad9ada07758a85ac1bce754fe91821dc4fef75e8f26742cba9",
+        "after": "400c2760ed576fad9ada07758a85ac1bce754fe91821dc4fef75e8f26742cba9"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-36x30-10",
+      "cells": 1050,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "b3b1e9fe3d28d34f587f0c6bd546e736efcd8e9c58ac964f175f6dc8ac639e56",
+        "after": "b3b1e9fe3d28d34f587f0c6bd546e736efcd8e9c58ac964f175f6dc8ac639e56"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-48x44-1",
+      "cells": 2048,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 7,
+        "after": 7
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "9105609d3f2ce1708ab3e6f6e91d8d1e141c4b9df35ad8785ce18c2643da5889",
+        "after": "9105609d3f2ce1708ab3e6f6e91d8d1e141c4b9df35ad8785ce18c2643da5889"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-48x44-2",
+      "cells": 2048,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "5c52dc5603873ead67281da3178f1dd98cfc580ebd738775e928b31237bf0ac1",
+        "after": "5c52dc5603873ead67281da3178f1dd98cfc580ebd738775e928b31237bf0ac1"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-48x44-3",
+      "cells": 2048,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "e49957db9f07bd614fe0d2bcf9e9d20bffd5aebd4ba46749140f771f27d4c634",
+        "after": "e49957db9f07bd614fe0d2bcf9e9d20bffd5aebd4ba46749140f771f27d4c634"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-48x44-4",
+      "cells": 2048,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 9,
+        "after": 9
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "d89092fb1d86a240bb88a8bb54adfeb5b3ffa440f982678517bcf964a16e2d6e",
+        "after": "d89092fb1d86a240bb88a8bb54adfeb5b3ffa440f982678517bcf964a16e2d6e"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-48x44-5",
+      "cells": 2048,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "d7c0a4f99db30c4dc6ce13fb68b7b1ddc782d81b2ec1d41cafa6d42a22941885",
+        "after": "d7c0a4f99db30c4dc6ce13fb68b7b1ddc782d81b2ec1d41cafa6d42a22941885"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-48x44-6",
+      "cells": 2048,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "6a4be96f4a17175dc0678278e1effa4b284901378237dbef72c3f48aa6eed18f",
+        "after": "6a4be96f4a17175dc0678278e1effa4b284901378237dbef72c3f48aa6eed18f"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-48x44-7",
+      "cells": 2048,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "3db8d2018525c732401d97b696f865b9de014064c48e7f0734aac07f50924314",
+        "after": "3db8d2018525c732401d97b696f865b9de014064c48e7f0734aac07f50924314"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-48x44-8",
+      "cells": 2048,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 11,
+        "after": 11
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "c2f5f8b6d18c6fbb3dd7e9af225b1fd114c4878666d6b2e58fd4440c7bae760a",
+        "after": "c2f5f8b6d18c6fbb3dd7e9af225b1fd114c4878666d6b2e58fd4440c7bae760a"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-48x44-9",
+      "cells": 2048,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 11,
+        "after": 11
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "803588621fca588e3ead6e964e3d5c5f15c3f29c3a83f0c522eab7c2e376f471",
+        "after": "803588621fca588e3ead6e964e3d5c5f15c3f29c3a83f0c522eab7c2e376f471"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "hole-48x44-10",
+      "cells": 2048,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "b798dbd8e7313ce99b605bd77e4ea204003246337cde61839e02c9d05912f39c",
+        "after": "b798dbd8e7313ce99b605bd77e4ea204003246337cde61839e02c9d05912f39c"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-24x18-1",
+      "cells": 336,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": false,
+      "buildHashes": {
+        "before": "02e5e5d4f86e3bfda21a2277d31b915780131383d03c66d9139367412ebe5871",
+        "after": "212d5cee6116b8f24a68be03860c6b7778ca2d3affcabac21f7acb9ba7e52609"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 336,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 326,
+          "elements": 1,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 1,
+        "freeCells": -10,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "neck-24x18-2",
+      "cells": 336,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": false,
+      "buildHashes": {
+        "before": "a33d44a87f9f7ded5807a293875f836e72d0d71fe4bab0d0a6d5f55f686f56f1",
+        "after": "f6533e8b64276ebf2624ae41e7a667b0668d3d378bd53881f7b9e7529ef96b79"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 336,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 329,
+          "elements": 1,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 1,
+        "freeCells": -7,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "neck-24x18-3",
+      "cells": 336,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": false,
+      "buildHashes": {
+        "before": "0253ebd01acf00042c92aa3a97faed710976424d5dd7a68a5ab62a39da8d05de",
+        "after": "66af72bceae679a8a7f828709201ab138555f216bf4a82f0a943061f41597dee"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 336,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 328,
+          "elements": 1,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 1,
+        "freeCells": -8,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "neck-24x18-4",
+      "cells": 336,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": false,
+      "buildHashes": {
+        "before": "e26a1f1b4caf64af32d50d09ab47248e79febfa9b40925a0c5ce325de8ff6492",
+        "after": "aefb0b540dea9613d7e7fbe386a7dc1a5acf36f72d166dbb07520ca8beb860d1"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 336,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 326,
+          "elements": 1,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 1,
+        "freeCells": -10,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "neck-24x18-5",
+      "cells": 336,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": false,
+      "buildHashes": {
+        "before": "556f166fedfbcf40adef66a3900ddc7b454e062a6fb7bf04092f68d5426ff731",
+        "after": "201ecc383777696b60afd8c7dc8df95b7bbbf40004e2beb441ecc057d3b568d9"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 336,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 327,
+          "elements": 1,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 1,
+        "freeCells": -9,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "neck-24x18-6",
+      "cells": 336,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": false,
+      "buildHashes": {
+        "before": "0aae5c6b273dd99286738d15e8b3ddceeb21a03ca2bdb4cb4f63f9f97cd75542",
+        "after": "b8a3b1fbdff0a5ce02e8f6f869ffc91640b6bfe08fd4f723e41be3e39ec8e300"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 336,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 326,
+          "elements": 1,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 1,
+        "freeCells": -10,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "neck-24x18-7",
+      "cells": 336,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": false,
+      "buildHashes": {
+        "before": "eb69b13b489783d93115e1f1e33597b9a9e1ad0170334c9d76d7c19d568f158f",
+        "after": "c501ddeb7c85d2d3f2cbdba46f15383b6069d38c31d9e1176ff09b1b1ca24b80"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 336,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 329,
+          "elements": 1,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 1,
+        "freeCells": -7,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "neck-24x18-8",
+      "cells": 336,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "fb100c5ae1e3effc0a69370dbad6efcd71dfdd0f193f5072eae8464d80c24928",
+        "after": "35650b2b91d17e16f7f49a560977eb66b375f539c4defa3714018291061ca034"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 336,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 336,
+          "elements": 0,
+          "loot": 1,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 0,
+        "freeCells": 0,
+        "loot": 1,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "neck-24x18-9",
+      "cells": 336,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "b5583ed573ae41bbebb7d4ff1c4d7fbd25c8c2db06658f8aeba608bb95c921cc",
+        "after": "ccf38fc1b9474ff7cc32ed30792517e57567d149753b11053dc824a3e4b871ec"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 336,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 336,
+          "elements": 0,
+          "loot": 2,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 0,
+        "freeCells": 0,
+        "loot": 2,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "neck-24x18-10",
+      "cells": 336,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "ff4b1d09f7deddbfff6197309723bdbb695958a17e2d266a36e26af922eec803",
+        "after": "6e77bedaf8f794b0a181eab85e537c7937108d72fc749ee41b14feb237da67bf"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 336,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 336,
+          "freeCells": 336,
+          "elements": 0,
+          "loot": 1,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 0,
+        "freeCells": 0,
+        "loot": 1,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "neck-36x30-1",
+      "cells": 840,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "2aaa5f0aadd47c0326f93bda9fffb3bb20dae29dff6a807c86b8dce661779795",
+        "after": "2aaa5f0aadd47c0326f93bda9fffb3bb20dae29dff6a807c86b8dce661779795"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-36x30-2",
+      "cells": 840,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "0a30bd2a44d3d6e440f19cf0564518526aa6f69eb16621481e0e220f5bb5b99f",
+        "after": "0a30bd2a44d3d6e440f19cf0564518526aa6f69eb16621481e0e220f5bb5b99f"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-36x30-3",
+      "cells": 840,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "5bd6a7fe2768a5f343bd5f4f2902ccd8a7891ee62ff9a0b52f38e30cee2cf404",
+        "after": "5bd6a7fe2768a5f343bd5f4f2902ccd8a7891ee62ff9a0b52f38e30cee2cf404"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-36x30-4",
+      "cells": 840,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "87642a36f7621ee7254690b7b22bfb4a918a0143cf14659d4701210935d37293",
+        "after": "87642a36f7621ee7254690b7b22bfb4a918a0143cf14659d4701210935d37293"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-36x30-5",
+      "cells": 840,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "98d45fb3468b8a0f42985ff194cb85c2b4573118867e5163fd458685f23e34ec",
+        "after": "98d45fb3468b8a0f42985ff194cb85c2b4573118867e5163fd458685f23e34ec"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-36x30-6",
+      "cells": 840,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "ea0c640b753dea5fff081ee3551c5ca99f11c766d489b36a382abb7c1b812b7e",
+        "after": "ea0c640b753dea5fff081ee3551c5ca99f11c766d489b36a382abb7c1b812b7e"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-36x30-7",
+      "cells": 840,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "dec5e9b2bd0b83bb8ff248859697f79ff5e758079f0916bd3aacdf97b5077892",
+        "after": "dec5e9b2bd0b83bb8ff248859697f79ff5e758079f0916bd3aacdf97b5077892"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-36x30-8",
+      "cells": 840,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "a21e141922f51097d7380e33f7872981201dd5f2526d258f2ab76689fdff9c6f",
+        "after": "a21e141922f51097d7380e33f7872981201dd5f2526d258f2ab76689fdff9c6f"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-36x30-9",
+      "cells": 840,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "fd35ff29b9ef0bceebdf35843e0ad0548e2405c78eea6b86671e8dec2b90786e",
+        "after": "fd35ff29b9ef0bceebdf35843e0ad0548e2405c78eea6b86671e8dec2b90786e"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-36x30-10",
+      "cells": 840,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "dbabacc75eadd9ca58df2b8add3c6d2d6de3a72bc5266915c9758a7f2d6d89ce",
+        "after": "dbabacc75eadd9ca58df2b8add3c6d2d6de3a72bc5266915c9758a7f2d6d89ce"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-48x44-1",
+      "cells": 1632,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 7,
+        "after": 7
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "bf8bcf2e56fed9d681019f05c483a060d3e754984530df0be7e230b47d708ca0",
+        "after": "bf8bcf2e56fed9d681019f05c483a060d3e754984530df0be7e230b47d708ca0"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-48x44-2",
+      "cells": 1632,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "1b04659b56ccb548aa45c3031148f83ec32ac8815b4eabf4f47e6e8f2fef4379",
+        "after": "1b04659b56ccb548aa45c3031148f83ec32ac8815b4eabf4f47e6e8f2fef4379"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-48x44-3",
+      "cells": 1632,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "060d0bf1755c3495660960fdba09e78a1239f1f555c95fde3191090616fe2b76",
+        "after": "060d0bf1755c3495660960fdba09e78a1239f1f555c95fde3191090616fe2b76"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-48x44-4",
+      "cells": 1632,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 9,
+        "after": 9
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "c44f6b9737280d91cdd6b179ba5f78e9b17d384160829b9e7b66084ece3f3530",
+        "after": "c44f6b9737280d91cdd6b179ba5f78e9b17d384160829b9e7b66084ece3f3530"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-48x44-5",
+      "cells": 1632,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 7,
+        "after": 7
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "bce4bf45a837fc22024f735f6c430c643a86e1b002fc5dddac3bec8013a39a91",
+        "after": "bce4bf45a837fc22024f735f6c430c643a86e1b002fc5dddac3bec8013a39a91"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-48x44-6",
+      "cells": 1632,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 7,
+        "after": 7
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "8b4ac81cad9266c99661af46f4ca391107ba233d43dcede648342e8e1987636a",
+        "after": "8b4ac81cad9266c99661af46f4ca391107ba233d43dcede648342e8e1987636a"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-48x44-7",
+      "cells": 1632,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "676ab9ac9072996352f241a2739bff871037aa19889ca8a63e68d5a709a2e197",
+        "after": "676ab9ac9072996352f241a2739bff871037aa19889ca8a63e68d5a709a2e197"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-48x44-8",
+      "cells": 1632,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 10,
+        "after": 10
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "0a99b3765059389c334fff661343943c2187ad7a2833159c1dbb3737c2f6c558",
+        "after": "0a99b3765059389c334fff661343943c2187ad7a2833159c1dbb3737c2f6c558"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-48x44-9",
+      "cells": 1632,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 10,
+        "after": 10
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "1ec05b1cbbeff857db83157cd103cb1bbdee011c01f704ab9dc1af7b1d0ccd6f",
+        "after": "1ec05b1cbbeff857db83157cd103cb1bbdee011c01f704ab9dc1af7b1d0ccd6f"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "neck-48x44-10",
+      "cells": 1632,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 7,
+        "after": 7
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "eab829c5274da3fa53338aec6fdcddd04911e614e450fd45223cc8a3d5fe9e9d",
+        "after": "eab829c5274da3fa53338aec6fdcddd04911e614e450fd45223cc8a3d5fe9e9d"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-24x18-1",
+      "cells": 240,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": false,
+      "buildHashes": {
+        "before": "6200c15b71963e135edcd0d6d7d36d2bf4630becb0ae157b874c6e12398d5530",
+        "after": "ddd81e192df31f012f6e5d152255f15aa24ecc865cc6f3e21ef8e123915d96ad"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 230,
+          "elements": 1,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 1,
+        "freeCells": -10,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "cross-24x18-2",
+      "cells": 240,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": false,
+      "buildHashes": {
+        "before": "f7c0ce08ffbf8ca75a41ed3620b1914e03497bef3eba77e8cc350f24f26db185",
+        "after": "cc8548c1146d66bf3e1c46fc4933ce62016c9c2de8b768c8627590135dfd3c8c"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 230,
+          "elements": 1,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 1,
+        "freeCells": -10,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "cross-24x18-3",
+      "cells": 240,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "858ab8c0b389ba052045fe33e2463b0570d67cfb43de914fc9048e34c61b52b0",
+        "after": "3f4531bef22e4f1109b613db9141a65acd7e14d6da55c227fe5d7b1f8a0689da"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 0,
+        "freeCells": 0,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "cross-24x18-4",
+      "cells": 240,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "bbc05039e3c48f0b3c634bd54479b72d049e2973cc4d96425e52728643a4feb8",
+        "after": "72ab0fe01d02d89ebc2d4227feea53701b6377d384aa7dfc69b4c9091b4e9fe1"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 0,
+        "freeCells": 0,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "cross-24x18-5",
+      "cells": 240,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": false,
+      "buildHashes": {
+        "before": "d8be9334c510c8017fce926c106414d87f890746912fbea20da5b67ae48df17a",
+        "after": "ef50217e1cd39dd25e35177cc526392c2010aac060daa55f7022d00e27540c67"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 230,
+          "elements": 1,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 1,
+        "freeCells": -10,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "cross-24x18-6",
+      "cells": 240,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "c1084a045de949b66e2067cd77116a637691231f1741d8f0addcae354417458c",
+        "after": "cf749a3487aab68749fd26b02573c4da791fa5513069bf2ff0086bef5d4b45d2"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 1,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 0,
+        "freeCells": 0,
+        "loot": 1,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "cross-24x18-7",
+      "cells": 240,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "874b2718b1a0c902149f2f88f4cd24be879358202d600fb72598d31928034dd3",
+        "after": "e42dc3d00e6e103665574cfb005560d45f1bab730ff98abfe0c9093683ea472c"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 0,
+        "freeCells": 0,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "cross-24x18-8",
+      "cells": 240,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "16b195eab11cf87d5fb8acf047547f6e50dff8f44010dca417324c81d6583902",
+        "after": "ed05dcc95dbc6af3c07b92d56570bba258692e27761afa82bdc9f62f197bbb16"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 1,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 0,
+        "freeCells": 0,
+        "loot": 1,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "cross-24x18-9",
+      "cells": 240,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "70648930c905f356f1defd4fbe7f65c87e799fac35959dfa5928f7c13da37917",
+        "after": "d25484633e5824b5ef1365402d4632d4dcd763c1d66bb897ac63699efd0c4a6f"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 0,
+        "freeCells": 0,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "cross-24x18-10",
+      "cells": 240,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 0,
+        "after": 1
+      },
+      "sdk": {
+        "strategy": "block-single-lot-fallback",
+        "pieces": 1
+      },
+      "planSame": false,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": false,
+      "tracesSame": false,
+      "buildHashes": {
+        "before": "832e9697365c4222535dd58ff802a35ff35af9bc0a689f64c90fb8b7689317b4",
+        "after": "c7e6953beae768f2578465882954253917525d59ab7eca7434b096d993cc1d31"
+      },
+      "before": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 240,
+          "elements": 0,
+          "loot": 0,
+          "lotCells": 0
+        }
+      },
+      "after": {
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "density": {
+          "cells": 240,
+          "freeCells": 232,
+          "elements": 1,
+          "loot": 0,
+          "lotCells": 36
+        }
+      },
+      "delta": {
+        "elements": 1,
+        "freeCells": -8,
+        "loot": 0,
+        "lotCells": 36
+      },
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "childPortalErrors": [
+        {
+          "child": "micro-lab/lot-1",
+          "errors": []
+        },
+        {
+          "child": "micro-lab/alleys",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "group": "lab",
+      "id": "cross-36x30-1",
+      "cells": 600,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "92b44a5a6631459ae6c0a9ce8fc8dcbe74d5ce0c32d1f12a6edbeab930bc7e53",
+        "after": "92b44a5a6631459ae6c0a9ce8fc8dcbe74d5ce0c32d1f12a6edbeab930bc7e53"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-36x30-2",
+      "cells": 600,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 2,
+        "after": 2
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "65caffa7aa567e2915112fcc159ca524202c946cc52767db7f5e7816ed63ee60",
+        "after": "65caffa7aa567e2915112fcc159ca524202c946cc52767db7f5e7816ed63ee60"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-36x30-3",
+      "cells": 600,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 3,
+        "after": 3
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "d3fe2ed4ad57443a7bbeacf53ad98cd2d7300e2f7841afd81bba480b63a37c18",
+        "after": "d3fe2ed4ad57443a7bbeacf53ad98cd2d7300e2f7841afd81bba480b63a37c18"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-36x30-4",
+      "cells": 600,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 3,
+        "after": 3
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "788c795793d1975bbd08e59f10fdfc7f2ec55757f63af7aed8e2c79804a466a2",
+        "after": "788c795793d1975bbd08e59f10fdfc7f2ec55757f63af7aed8e2c79804a466a2"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-36x30-5",
+      "cells": 600,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 3,
+        "after": 3
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "0ab1073c5c5917ed937555a1d992c8f3a26f85d56b10da18a91125811f55c2d7",
+        "after": "0ab1073c5c5917ed937555a1d992c8f3a26f85d56b10da18a91125811f55c2d7"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-36x30-6",
+      "cells": 600,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 3,
+        "after": 3
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "5435283653c9089102245dbb8e332fffb175d2d56cb8c0ed6c940279e9c5596f",
+        "after": "5435283653c9089102245dbb8e332fffb175d2d56cb8c0ed6c940279e9c5596f"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-36x30-7",
+      "cells": 600,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 2,
+        "after": 2
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "33ae7f43afe07ac592c6a67786bd08fc8dd5b61e9e5c7728aad936466ea8b9b1",
+        "after": "33ae7f43afe07ac592c6a67786bd08fc8dd5b61e9e5c7728aad936466ea8b9b1"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-36x30-8",
+      "cells": 600,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 2,
+        "after": 2
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "fe744270a8671bc8384d520690838df2356533dd66755f7b93c68c1f0cb97164",
+        "after": "fe744270a8671bc8384d520690838df2356533dd66755f7b93c68c1f0cb97164"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-36x30-9",
+      "cells": 600,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "bc657131b810b596bdfc19ff71e6caeb0785df82d89e5d0b810082b3f88f21d9",
+        "after": "bc657131b810b596bdfc19ff71e6caeb0785df82d89e5d0b810082b3f88f21d9"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-36x30-10",
+      "cells": 600,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 2,
+        "after": 2
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "385b4289b34e55b4692368e7a7636fa47d9bbef1193a993d58523b94cd01dbf2",
+        "after": "385b4289b34e55b4692368e7a7636fa47d9bbef1193a993d58523b94cd01dbf2"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-48x44-1",
+      "cells": 1152,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "946f2d5e6fa00e92cfcbf4e249eda7bf29033d837c9a48df6275731abb82af35",
+        "after": "946f2d5e6fa00e92cfcbf4e249eda7bf29033d837c9a48df6275731abb82af35"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-48x44-2",
+      "cells": 1152,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "cd528327f6d513a1f5451c251d4eeb503f3d5934fe1d561afcbd8957a06018ac",
+        "after": "cd528327f6d513a1f5451c251d4eeb503f3d5934fe1d561afcbd8957a06018ac"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-48x44-3",
+      "cells": 1152,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "a0e26c48dc8539a1eb8cdbb6e7f693273deb5af8023c1c94003d6202da4c360b",
+        "after": "a0e26c48dc8539a1eb8cdbb6e7f693273deb5af8023c1c94003d6202da4c360b"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-48x44-4",
+      "cells": 1152,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "3472e71133ffa32653cff7afca0a10421c2b903160d681c2cd16078cfc97f9f5",
+        "after": "3472e71133ffa32653cff7afca0a10421c2b903160d681c2cd16078cfc97f9f5"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-48x44-5",
+      "cells": 1152,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "0160b9c1f75f933351989779b8116d8072834fc50c2583cfe4dc73c1968874ec",
+        "after": "0160b9c1f75f933351989779b8116d8072834fc50c2583cfe4dc73c1968874ec"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-48x44-6",
+      "cells": 1152,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "f031969e19618de8f657a17c95d173cb74170fadb037aa660a6ff87ba1a05760",
+        "after": "f031969e19618de8f657a17c95d173cb74170fadb037aa660a6ff87ba1a05760"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-48x44-7",
+      "cells": 1152,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "26ef3ead097acd23b703560349114370805629db131a46cc591f4c5b3bcdf013",
+        "after": "26ef3ead097acd23b703560349114370805629db131a46cc591f4c5b3bcdf013"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-48x44-8",
+      "cells": 1152,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "b9b252e706fe54a585a71e4bdf717c3f916d1c71e14162750e01bb7e62f4fd2f",
+        "after": "b9b252e706fe54a585a71e4bdf717c3f916d1c71e14162750e01bb7e62f4fd2f"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-48x44-9",
+      "cells": 1152,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "26dd7bde481e9ab2338f201ecc38899034b4d9a16dca7dadeaa5eb197df87708",
+        "after": "26dd7bde481e9ab2338f201ecc38899034b4d9a16dca7dadeaa5eb197df87708"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "cross-48x44-10",
+      "cells": 1152,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "be85ffb72a618d4eb1660622acf69dd43d491c61f23b033e414469dd5b5fb4ac",
+        "after": "be85ffb72a618d4eb1660622acf69dd43d491c61f23b033e414469dd5b5fb4ac"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-24x18-1",
+      "cells": 360,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "061ed59b3a8db686e19924dc448b3f20e042e82501275cf06b722296ddc5e394",
+        "after": "061ed59b3a8db686e19924dc448b3f20e042e82501275cf06b722296ddc5e394"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-24x18-2",
+      "cells": 360,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "632f6a61b769ca5932480c2632d4f57467f0a7be6c50a61fa1f49705314ebc1c",
+        "after": "632f6a61b769ca5932480c2632d4f57467f0a7be6c50a61fa1f49705314ebc1c"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-24x18-3",
+      "cells": 360,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "3873aac4904a468820b64267789c37fa239009cdac898e1afe21f03cf766cbbd",
+        "after": "3873aac4904a468820b64267789c37fa239009cdac898e1afe21f03cf766cbbd"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-24x18-4",
+      "cells": 360,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "f74ef8d72e8f05826bb9d8d9444a7bba93a1163cae9c302c46bd13f953b90b7e",
+        "after": "f74ef8d72e8f05826bb9d8d9444a7bba93a1163cae9c302c46bd13f953b90b7e"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-24x18-5",
+      "cells": 360,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "98ffd6918674ad35f238b1632d444a17afc8ce137d50b612c5f24b01cc6b1922",
+        "after": "98ffd6918674ad35f238b1632d444a17afc8ce137d50b612c5f24b01cc6b1922"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-24x18-6",
+      "cells": 360,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "b718221339c917a0f15cd1c51dacaca10af889ff60ecac9c7f8600fbb5427b65",
+        "after": "b718221339c917a0f15cd1c51dacaca10af889ff60ecac9c7f8600fbb5427b65"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-24x18-7",
+      "cells": 360,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "9a9640ca8bfed9cbce8726d23721ccdb89541e461101e9435c813201519e1769",
+        "after": "9a9640ca8bfed9cbce8726d23721ccdb89541e461101e9435c813201519e1769"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-24x18-8",
+      "cells": 360,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "e276d5f51c9019d0e0ce7addf4d9eac70cb81c4d8d3e6d58d4562912e688f0da",
+        "after": "e276d5f51c9019d0e0ce7addf4d9eac70cb81c4d8d3e6d58d4562912e688f0da"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-24x18-9",
+      "cells": 360,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "6a34565c4cb3d93c36ef6f8ee59b77989e6c61c045dfb11587166da4354042de",
+        "after": "6a34565c4cb3d93c36ef6f8ee59b77989e6c61c045dfb11587166da4354042de"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-24x18-10",
+      "cells": 360,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 1,
+        "after": 1
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "c0dfe1ac85b029103b09f4cdf6492940aedbf0fc771f4b3ee27a51606b452e9a",
+        "after": "c0dfe1ac85b029103b09f4cdf6492940aedbf0fc771f4b3ee27a51606b452e9a"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-36x30-1",
+      "cells": 900,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "6cc5e9dcd1a3f4895e47e45654083cc154fb83898c50adbfa5ea0bd02b76f3e3",
+        "after": "6cc5e9dcd1a3f4895e47e45654083cc154fb83898c50adbfa5ea0bd02b76f3e3"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-36x30-2",
+      "cells": 900,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "ee073f9c18b3958ff52688b13fe1ff8688591be203225866fc10cac6affd45f5",
+        "after": "ee073f9c18b3958ff52688b13fe1ff8688591be203225866fc10cac6affd45f5"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-36x30-3",
+      "cells": 900,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "41855a9ded1d055f2c6846fdbabeff5c7bc8d2c62e7c703a4787242ce06d96ed",
+        "after": "41855a9ded1d055f2c6846fdbabeff5c7bc8d2c62e7c703a4787242ce06d96ed"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-36x30-4",
+      "cells": 900,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 3,
+        "after": 3
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "728a6fb0d161649bb3dcb8fa4a80d25b5181bce7f09c917774008f3cd1be9c3c",
+        "after": "728a6fb0d161649bb3dcb8fa4a80d25b5181bce7f09c917774008f3cd1be9c3c"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-36x30-5",
+      "cells": 900,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "5a2cb5e8d54a9a39d81c81da4d28eecbad019c7b0896720ec667dc8a4d1431df",
+        "after": "5a2cb5e8d54a9a39d81c81da4d28eecbad019c7b0896720ec667dc8a4d1431df"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-36x30-6",
+      "cells": 900,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "8bfe01d6dd433df7117f49ae066e156dd2877ed1421e35d121ce12d13c84be8c",
+        "after": "8bfe01d6dd433df7117f49ae066e156dd2877ed1421e35d121ce12d13c84be8c"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-36x30-7",
+      "cells": 900,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "42b0304728f5f18d6583936d732de722cfedb10b8286f88ae499af1d32cc7fbb",
+        "after": "42b0304728f5f18d6583936d732de722cfedb10b8286f88ae499af1d32cc7fbb"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-36x30-8",
+      "cells": 900,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "dc3079b5bf87483fa0bb1a1a57d2d23eac6318e825a92b5df899fdbd0cb06255",
+        "after": "dc3079b5bf87483fa0bb1a1a57d2d23eac6318e825a92b5df899fdbd0cb06255"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-36x30-9",
+      "cells": 900,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "cb9712bdab9f360ce535d97ea5e70ffea59e747e7808dbc1480980c7be62d0dc",
+        "after": "cb9712bdab9f360ce535d97ea5e70ffea59e747e7808dbc1480980c7be62d0dc"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-36x30-10",
+      "cells": 900,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "67c97bfba1d7cb023954c15d861e5d4c43e840698188def8ddef06efb85764d4",
+        "after": "67c97bfba1d7cb023954c15d861e5d4c43e840698188def8ddef06efb85764d4"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-48x44-1",
+      "cells": 1760,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 6,
+        "after": 6
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "31363e3e4b2a3b8712259b32627b87b493a526b678c7f164336889058bfaf28d",
+        "after": "31363e3e4b2a3b8712259b32627b87b493a526b678c7f164336889058bfaf28d"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-48x44-2",
+      "cells": 1760,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "2eab4b01ff0983bc05cb7415f4995ffad0f40599524750331f0028f5e2b7fc41",
+        "after": "2eab4b01ff0983bc05cb7415f4995ffad0f40599524750331f0028f5e2b7fc41"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-48x44-3",
+      "cells": 1760,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "47b505a88421ac0b963ad5392613eb5e1eafb232264d5c02e0ee0ce28a7ea56b",
+        "after": "47b505a88421ac0b963ad5392613eb5e1eafb232264d5c02e0ee0ce28a7ea56b"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-48x44-4",
+      "cells": 1760,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 7,
+        "after": 7
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "02071723b22ce3965b6750c178d8814670dc516e7caa961471a6561f6e6c77fa",
+        "after": "02071723b22ce3965b6750c178d8814670dc516e7caa961471a6561f6e6c77fa"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-48x44-5",
+      "cells": 1760,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "adbc93a6738f91f8c1e6dff98e5dcb18edf340b02f5f9bc0b676236537de6b0b",
+        "after": "adbc93a6738f91f8c1e6dff98e5dcb18edf340b02f5f9bc0b676236537de6b0b"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-48x44-6",
+      "cells": 1760,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "7b9e48036e6824979389783365a0f2cd7f784a467a839bef4be602438ec46372",
+        "after": "7b9e48036e6824979389783365a0f2cd7f784a467a839bef4be602438ec46372"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-48x44-7",
+      "cells": 1760,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "9790f1c114d0eb705a3aa2516a9f12dd3468433662ae92cb8c8e782443e51d50",
+        "after": "9790f1c114d0eb705a3aa2516a9f12dd3468433662ae92cb8c8e782443e51d50"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-48x44-8",
+      "cells": 1760,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 9,
+        "after": 9
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "5a015e431513a47be0c14c70e9038ef2e38aaa5964adf70b76ced25109b06a23",
+        "after": "5a015e431513a47be0c14c70e9038ef2e38aaa5964adf70b76ced25109b06a23"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-48x44-9",
+      "cells": 1760,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 10,
+        "after": 10
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "83d435e10fa29b5c4d96c016ca73ef4580e2ef098dc5a82d85d16868c10241c3",
+        "after": "83d435e10fa29b5c4d96c016ca73ef4580e2ef098dc5a82d85d16868c10241c3"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "lab",
+      "id": "stair-48x44-10",
+      "cells": 1760,
+      "portals": 2,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 8,
+        "after": 8
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "896ffa6a60da5e746a0b73a0d4ab940953b767ab1c06c3d56a80a8e3a3e891e2",
+        "after": "896ffa6a60da5e746a0b73a0d4ab940953b767ab1c06c3d56a80a8e3a3e891e2"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "game",
+      "id": "12x6/block@144,150",
+      "cells": 1728,
+      "portals": 24,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "41b668acda6a9536e7e669ee17ddea555d21cd862b451f8b9284892dfb714aca",
+        "after": "41b668acda6a9536e7e669ee17ddea555d21cd862b451f8b9284892dfb714aca"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "game",
+      "id": "24x12/block@294,36",
+      "cells": 4320,
+      "portals": 52,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 14,
+        "after": 14
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "f74507a2fc8729b0bc2a29cd0c6a73b6996723d6be70efe215fd80146367fec3",
+        "after": "f74507a2fc8729b0bc2a29cd0c6a73b6996723d6be70efe215fd80146367fec3"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "game",
+      "id": "24x12/block@174,132",
+      "cells": 1728,
+      "portals": 32,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "567a4e358cbb91ef2831ea97678871a94bad161f690083f346d47ba18d9af63b",
+        "after": "567a4e358cbb91ef2831ea97678871a94bad161f690083f346d47ba18d9af63b"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "game",
+      "id": "24x12/block@174,210",
+      "cells": 1728,
+      "portals": 32,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "1deb2d3413156f8a1e1632f3ef9ed90183d28b3152248988a3fe311a21ec4675",
+        "after": "1deb2d3413156f8a1e1632f3ef9ed90183d28b3152248988a3fe311a21ec4675"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "game",
+      "id": "24x12/block@504,264",
+      "cells": 1728,
+      "portals": 16,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 5,
+        "after": 5
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "56ce080831b26cf94289b4a71746a37139fb1590e6adabe0718f7a6d0978f269",
+        "after": "56ce080831b26cf94289b4a71746a37139fb1590e6adabe0718f7a6d0978f269"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "game",
+      "id": "36x18/block@504,294",
+      "cells": 1728,
+      "portals": 32,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 4,
+        "after": 4
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "e966f7bc57fb7e6e26abeeecfae64be23e1eeb389482458f28363f0bdd2dd76b",
+        "after": "e966f7bc57fb7e6e26abeeecfae64be23e1eeb389482458f28363f0bdd2dd76b"
+      },
+      "geometry": "inherited by exact build equality"
+    },
+    {
+      "group": "game",
+      "id": "36x18/block@432,330",
+      "cells": 8640,
+      "portals": 76,
+      "baselinePlanError": null,
+      "currentPlanError": null,
+      "lots": {
+        "before": 30,
+        "after": 30
+      },
+      "sdk": null,
+      "planSame": true,
+      "partitionErrors": [],
+      "parentPortalsRetained": true,
+      "baselineBuildError": null,
+      "currentBuildError": null,
+      "buildSame": true,
+      "tracesSame": true,
+      "buildHashes": {
+        "before": "c3a1b991bc311c991ff1fa9884ab2f84fb5900f04d009bdac1ab26f0486beec5",
+        "after": "c3a1b991bc311c991ff1fa9884ab2f84fb5900f04d009bdac1ab26f0486beec5"
+      },
+      "geometry": "inherited by exact build equality"
+    }
+  ],
+  "limits": "Baseline block strategy is pinned to one source file; current geometry, child builders, library and engine are shared. Samples all six lab shapes at three sizes and seeds 1..10, plus block briefs from current-library game maps with seed 4217 at three zone sizes. Exact equality uses JSON serialization of plan, build and observer traces. Changed builds receive final hunter validatePortalReach, fill constraints, measureFill density and child portal checks on selected fallback lots. Unchanged builds inherit baseline geometry by exact result equality. Existing baseline errors are recorded on changed builds and only baseline-passing geometry is required to remain passing. This is a bounded correctness and density sample, not performance or exhaustive access proof."
+}
