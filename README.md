@@ -181,4 +181,4 @@ Project requirements, architecture contracts, verification policies, and measure
 
 ## License
 
-The project's original code and original assets are licensed under the [MIT License](LICENSE). Third-party dependencies, libraries, and assets incorporated or redistributed retain their own respective licenses and notices.
+The project's original code and original assets are licensed under the [MIT License](LICENSE). Third-party dependencies, libraries, and assets incorporated or redistributed retain their own respective licenses and notices. Those the server delivers to browsers are listed with their license texts in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt), which a running server also serves at `/third-party-notices.txt`; the audit and its open items are [docs/21.1](docs/21.1-third-party-licenses.md).
