@@ -10,6 +10,7 @@ import { circle } from '../shared/shape.ts';
 import { hintErrors, hintedCells } from '../map/micro/hints.ts';
 import { validateBriefPartition } from '../map/micro/delegation.ts';
 import { cellsOf } from './helpers/cells.js';
+import { assertWithinBudget } from './helpers/budget.js';
 import { MASKS, SEEDS, SIZE, brief } from './helpers/block-masks.js';
 
 const blockers = result => result.elements.flatMap(element => elementShapes(element));
@@ -127,7 +128,7 @@ test('a macro-sized block with hundreds of portals builds quickly', () => {
   const started = performance.now();
   const result = buildRegion(brief('macro', 3, cells, portals));
   const elapsed = performance.now() - started;
-  assert.ok(elapsed < 5000, `built in ${Math.round(elapsed)} ms`);
+  assertWithinBudget(elapsed, 5000);
   assert.ok(result.manifest.lots > 50, `${result.manifest.lots} lots`);
 });
 

@@ -6,6 +6,7 @@ import { elementShapes } from '../map/micro/geometry.ts';
 import { bounds } from '../shared/shape.ts';
 import { portalMargin } from '../map/micro/hints.ts';
 import { cellsOf } from './helpers/cells.js';
+import { assertWithinBudget } from './helpers/budget.js';
 
 const brief = (id, seed, cells, portals, extra = {}) => ({ id, seed, type: 'cover', cellSize: 40, cells,
   zones: [{ tier: 2, bonus: 0, lootChance: 0.2, cells }], portals, ...extra });
@@ -120,7 +121,7 @@ test('cover builds a macro-sized region with hundreds of portals in bounded time
   const start = performance.now(), result = buildRegion(brief('macro', 1, cells, portals));
   const elapsed = performance.now() - start;
   assert.ok(portals.length > 400 && result.elements.length > 200, `${portals.length} portals, ${result.elements.length} pieces`);
-  assert.ok(elapsed < 2000, `built in ${Math.round(elapsed)} ms`);
+  assertWithinBudget(elapsed, 2000);
 });
 
 test('cover can place geometry against a hinted edge while protecting portals', () => {

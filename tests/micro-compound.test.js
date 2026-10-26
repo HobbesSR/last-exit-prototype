@@ -6,6 +6,7 @@ import { validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { circle, rect } from '../shared/shape.ts';
 import { cellsOf } from './helpers/cells.js';
+import { assertWithinBudget } from './helpers/budget.js';
 
 const SIZE = 40;
 const brief = (id, seed, cells, portals, parameters) => ({ id, seed, type: 'compound', cellSize: SIZE, cells,
@@ -131,7 +132,7 @@ test('a macro-sized compound with hundreds of portals builds quickly', () => {
   for (let y = 2; y < 146; y += 4) portals.push({ id: `w${y}`, axis: 'v', x: 0, y, length: 2 }, { id: `e${y}`, axis: 'v', x: 200, y, length: 2 });
   const started = performance.now();
   const result = buildRegion(brief('macro', 3, cells, portals, { gates: 4 }));
-  assert.ok(performance.now() - started < 3000, `built in ${Math.round(performance.now() - started)} ms`);
+  assertWithinBudget(performance.now() - started, 3000);
   const box = compoundBox(result);
   assert.deepEqual([box.w, box.h], [24, 24]);
 });
