@@ -3,8 +3,9 @@
 # those leftovers hold runner slots ahead of main's run.
 #
 # pull_request_target runs this file and checks out code from the base branch, never the
-# pull request's, and its token may cancel runs even for a pull request from a fork. Never
-# check out or run the pull request's code here.
+# pull request's; never check out or run the pull request's code here. A fork's pull
+# request still gets a read-only token, which cannot cancel runs, so the job skips forks;
+# cancel their leftover runs from the Actions tab.
 name: cancel-closed-pr
 
 on:
@@ -13,6 +14,7 @@ on:
 
 jobs:
   cancel:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: docker
     container:
       image: node:24.15.0-bookworm

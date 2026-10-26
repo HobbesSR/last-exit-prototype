@@ -213,7 +213,8 @@ tests its latest commit: during a burst of merges the slow tier keeps restarting
 finishes in the first quiet spell, and a cancelled run files no issue. Merging or
 closing a pull request does not cancel its own runs, so `cancel-closed-pr.yml` does,
 through `tools/ci/cancel-pr-runs.mjs`; otherwise they would hold runner slots ahead
-of `main`'s run.
+of `main`'s run. It skips pull requests from forks, whose token cannot cancel runs;
+cancel those by hand from the Actions tab.
 While no runner serves a label, its jobs wait rather than fail; who runs runners is in
 [34](34-forgejo-workflow.md#hosting).
 
