@@ -82,9 +82,11 @@ import `AGENTS.md`; edit `AGENTS.md`, not them.
 These rules are for top-level agents; in-session subagents follow
 `docs/32-delegation.md` instead (see 34).
 
-Forgejo on the home NAS (http://192.168.1.170:3000) is the source of truth. GitHub (`gh`) is
-the public remote copy, which only the human pushes to; agents push only to
-`forgejo`. Use the `forgejo` MCP tools, which act as your own agent account
+Forgejo, on the human's home network (the `forgejo` remote), is the source of
+truth. GitHub (`gh`) is the public remote copy, which only the human pushes to;
+agents push only to `forgejo`. Because this repository is public, hosting,
+runner, network and credential details live in the private `corey/studio-ops`
+repository on Forgejo, never here. Use the `forgejo` MCP tools, which act as your own agent account
 (Antigravity loads them through `call_mcp_tool` with `ServerName: forgejo`).
 `docs/34-forgejo-workflow.md` has the full loop, the agent accounts and the
 worktree table.
