@@ -85,7 +85,16 @@ try {
   await page.getByRole('button', { name: 'Drop selected', exact: false }).click();
   await page.waitForFunction(() => window.arenaDebug().me.inventory[0] === null);
   // Real pointer gestures travel through the client, wire validation and fixed tick.
-  const inventoryPlayer = server.rooms.get(ownerRoom).game.players.find(p => p.id === ownerPlayer);
+  const inventoryGame = server.rooms.get(ownerRoom).game;
+  const inventoryPlayer = inventoryGame.players.find(p => p.id === ownerPlayer);
+  // As in the touch fixture below, keep other players from collecting the
+  // dropped weapon before the browser observes its authoritative ground record.
+  const inventoryAway = inventoryGame.map.chargers[0];
+  const inventoryOthers = inventoryGame.players.filter(p => p.id !== inventoryPlayer.id)
+    .map(player => ({ player, bot: player.bot, x: player.x, y: player.y }));
+  for (const { player } of inventoryOthers) {
+    player.bot = false; player.x = inventoryAway.x; player.y = inventoryAway.y;
+  }
   inventoryPlayer.inventory[5] = { kind: 'weapon', weaponType: 'rifle', ammo: 7 };
   inventoryPlayer.selectedSlot = 0;
   await page.waitForFunction(() => window.arenaDebug().me.inventory[5]?.ammo === 7);
@@ -107,6 +116,8 @@ try {
   await page.waitForFunction(() => window.arenaDebug().me.inventory[4] === null);
   const gestureDrop = server.rooms.get(ownerRoom).game.map.items.find(item => item.droppedBy === ownerPlayer && item.weaponType === 'rifle');
   assert.equal(gestureDrop?.ammo, 7, 'world drag drops the unselected source with its ammunition');
+  // Live guest admission below needs its replaceable bot slots back.
+  for (const { player, bot, x, y } of inventoryOthers) Object.assign(player, { bot, x, y });
   await page.screenshot({ path: 'test-results/desktop.png' });
   
   await page.waitForTimeout(200);

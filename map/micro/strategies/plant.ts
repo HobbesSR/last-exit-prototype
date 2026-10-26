@@ -16,6 +16,7 @@ import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
 import { builtRegion } from '../result.ts';
+import { infillCrates as placeInfillCrates } from './infill.ts';
 
 /** The catalogue's proposed shape need (54), as `depot`'s: a contained square at least this many cells a side. */
 const MIN_SIDE = 10;
@@ -39,7 +40,8 @@ const SHEDS: ReadonlyArray<readonly [number, number]> = [[2, 1], [1, 2], [2, 2]]
 
 /** Per-cell draw channels, so no choice shifts another. */
 const CHANNEL = { phaseX: 1, phaseY: 2, machine: 3, width: 4, height: 5, jitterX: 6, jitterY: 7, chamfer: 8,
-  loot: 9, shed: 10, shedOrder: 11, shedSize: 12, design: 13 };
+  loot: 9, shed: 10, shedOrder: 11, shedSize: 12, design: 13,
+  infill: 20, infillLength: 21, infillOffset: 22 };
 /** A pipe run's draws, keyed by the slot it leaves, one set for each direction. */
 const RUN_CHANNEL = { across: { joined: 14, row: 15, gap: 16 }, down: { joined: 17, row: 18, gap: 19 } };
 
@@ -65,6 +67,7 @@ type Box = { x: number; y: number; w: number; h: number };
  * portal approaches; concave masks also protect a hunter corridor. Pieces commit through the
  * builder canvas (20.2), whose siting queries they were accepted with, so a refusal is a defect.
  * A region with no contained `MIN_SIDE` square goes to `open` (17 M24).
+ * Residual machinery bands then receive crates, preserving skipped/shed slots, aisles and a local hunter bypass (20.3.4).
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear of
  * every piece, indoors or out. A plant sites no core elements; any the brief lists are left for
@@ -118,9 +121,11 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
 
   // A machine in each slot that rolls under `density`, if its footprint fits.
   const machines = new Map<string, Box>(), machineShapes = new Map<string, Shape[]>();
+  const passedSlots = new Set<string>();
   const hintedMachines = new Map<string, ReturnType<typeof boxesAgainstHints>>();
   for (const slot of slots) {
     if (shedSlots.has(key(slot.x, slot.y)) || draw(brief.seed, slot.x, slot.y, CHANNEL.machine) >= density) continue;
+    passedSlots.add(key(slot.x, slot.y));
     const side = (channel: number) => MACHINE_MIN + Math.floor(draw(brief.seed, slot.x, slot.y, channel) * (MACHINE_MAX - MACHINE_MIN + 1));
     const w = side(CHANNEL.width), h = side(CHANNEL.height);
     const hintKey = `${w},${h}`;
@@ -178,8 +183,24 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
     }
   }
 
+  // Address only remnants in slots whose original machine roll passed. This keeps the
+  // continuous lattice aisles, skipped density slots and shed slots open. Pipe commits use
+  // their stub areas as extents, so a crate can stand by the gap without crowding a stub.
+  const infillCrates = placeInfillCrates({ brief, canvas, chance: density, channels: CHANNEL,
+    label: 'plant-infill-crate',
+    site: cell => {
+      const slotX = slots[0]!.x + Math.floor((cell.x - slots[0]!.x) / PERIOD) * PERIOD;
+      const slotY = slots[0]!.y + Math.floor((cell.y - slots[0]!.y) / PERIOD) * PERIOD;
+      return cell.x < slotX + BAND && cell.y < slotY + BAND && passedSlots.has(key(slotX, slotY))
+        && accessMask.contains(rect((cell.x - AISLE) * size, (cell.y - AISLE) * size,
+          (1 + 2 * AISLE) * size, (1 + 2 * AISLE) * size))
+        && clear({ x: cell.x, y: cell.y, w: 1, h: 1 });
+    },
+    commitError: label => `Plant placement ${label} failed its canvas commit.`,
+  });
+
   const elements = [...canvas.elements];
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
   const loot = cellLoot(brief, createRegionMask(brief), pieces, CHANNEL.loot);
-  return builtRegion(brief, elements, loot, [], { machines: machines.size, pipes, sheds, designed });
+  return builtRegion(brief, elements, loot, [], { machines: machines.size, pipes, sheds, designed, infillCrates });
 }

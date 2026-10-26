@@ -2,32 +2,15 @@ import { portalMargin } from '../map/micro/hints.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildRegion } from '../map/micro/region-types.ts';
-import { createAccessMask, createRegionMask, elementShapes, findRegionRoute, shapesOverlap, shapesShareArea } from '../map/micro/geometry.ts';
-import { portalStands, validatePortalReach } from '../map/micro/portals.ts';
+import { createRegionMask, elementShapes, shapesOverlap, shapesShareArea } from '../map/micro/geometry.ts';
+import { validatePortalReach } from '../map/micro/portals.ts';
 import { microMetrics } from '../map/micro/metrics.ts';
 import { bounds, circle, overlaps } from '../shared/shape.ts';
 import { cellsOf } from './helpers/cells.js';
 import { assertWithinBudget } from './helpers/budget.js';
+import { SIZE, brief, MASKS, SEEDS, blockers, kind, gapOf } from './helpers/plant-fixtures.js';
 
-const SIZE = 40;
-const brief = (id, seed, cells, portals, parameters) => ({ id, seed, type: 'plant', cellSize: SIZE, cells,
-  zones: [{ tier: 3, bonus: 0, lootChance: 0.4, cells }], portals, ...(parameters ? { parameters } : {}) });
-
-/** A yard, a wide field, an L, and a ring around a hole, with portals on several sides. */
-const MASKS = {
-  yard: [cellsOf(14, 12), [{ id: 'north', axis: 'h', x: 1, y: 0, length: 3 }, { id: 'east', axis: 'v', x: 14, y: 2, length: 4 },
-    { id: 'south', axis: 'h', x: 6, y: 12, length: 2 }, { id: 'west', axis: 'v', x: 0, y: 7, length: 2 }]],
-  field: [cellsOf(40, 30), [{ id: 'west', axis: 'v', x: 0, y: 7, length: 3 }, { id: 'east', axis: 'v', x: 40, y: 20, length: 3 },
-    { id: 'north', axis: 'h', x: 28, y: 0, length: 8 }]],
-  ell: [cellsOf(30, 30, (x, y) => y < 15 || x < 15), [{ id: 'east', axis: 'v', x: 30, y: 4, length: 3 }, { id: 'south', axis: 'h', x: 2, y: 30, length: 4 },
-    { id: 'corner', axis: 'h', x: 18, y: 15, length: 6 }]],
-  ring: [cellsOf(36, 36, (x, y) => x < 13 || x >= 23 || y < 13 || y >= 23), [{ id: 'north', axis: 'h', x: 15, y: 0, length: 4 },
-    { id: 'hole', axis: 'v', x: 23, y: 16, length: 3 }, { id: 'west', axis: 'v', x: 0, y: 26, length: 3 }]],
-};
-const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
-const blockers = result => result.elements.flatMap(element => elementShapes(element));
 const cellBox = element => ({ x: element.x / SIZE, y: element.y / SIZE, w: element.template.w / SIZE, h: element.template.h / SIZE });
-const kind = prefix => element => element.label.startsWith(`plant-${prefix}`);
 const gapBetween = (a, b) => Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
 
 test('a plant region keeps the portal promise over seeds, masks and parameters', () => {
@@ -78,19 +61,6 @@ test('machines and the shed keep an aisle from each other and respect portal mar
     }
 });
 
-/** A run's stubs as intervals along it, in cells from the run's start, and the gap they leave. */
-function gapOf(pipe) {
-  const across = pipe.template.w > pipe.template.h, length = (across ? pipe.template.w : pipe.template.h) / SIZE - 1;
-  // A stub cut by a chamfer is several convex pieces; their bounds still cover it along the run.
-  const stubs = pipe.template.parts.map(({ shape }) => bounds(shape)).map(box => across ? [box.x / SIZE - 0.5, (box.x + box.w) / SIZE - 0.5]
-    : [box.y / SIZE - 0.5, (box.y + box.h) / SIZE - 0.5]).sort((a, b) => a[0] - b[0]);
-  const free = [];
-  let at = 0;
-  for (const [start, end] of stubs) { if (start > at) free.push([at, start]); at = Math.max(at, end); }
-  if (at < length) free.push([at, length]);
-  return { across, free };
-}
-
 test('pipe stubs end on the surfaces of the machines they join, chamfers included', () => {
   const [cells, portals] = MASKS.field;
   let ends = 0, cut = 0;
@@ -129,33 +99,6 @@ test('pipe runs block movement, not sight, and leave one gap a door wide', () =>
     }
   }
   assert.ok(runs > 10, `${runs} runs`);
-});
-
-test('a hunter passes every pipe gap, and a contestant reaches every loot site, indoors and out', () => {
-  const { hunter, contestant } = microMetrics({ cellSize: SIZE, bodyProfile: 'cell' }).clearance;
-  let gaps = 0;
-  for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS.slice(0, 4)) {
-    const input = brief(name, seed, cells, portals, { density: 1, shed: 1 });
-    input.zones[0].lootChance = 1;
-    const result = buildRegion(input), mask = createRegionMask(input), access = createAccessMask(input), shapes = blockers(result);
-    const from = portalStands(input)[0].points[0];
-    // A cell either side of each gap's middle, both reached by a hunter.
-    for (const pipe of result.elements.filter(kind('pipe'))) {
-      const { across, free: [[start, end]] } = gapOf(pipe), middle = (start + end) / 2 + 0.5;
-      const centre = across ? { x: pipe.x + middle * SIZE, y: pipe.y + SIZE / 2 } : { x: pipe.x + SIZE / 2, y: pipe.y + middle * SIZE };
-      for (const side of [-1, 1]) {
-        gaps++;
-        const point = across ? { x: centre.x, y: centre.y + side * SIZE } : { x: centre.x + side * SIZE, y: centre.y };
-        assert.ok(findRegionRoute(access, shapes, from, point, hunter), `${name} ${seed}: ${pipe.label} side ${side}`);
-      }
-    }
-    const every = Math.ceil(result.loot.length / 30);
-    const shed = result.elements.find(kind('shed'));
-    const inside = site => shed && site.x > shed.x && site.x < shed.x + shed.template.w && site.y > shed.y && site.y < shed.y + shed.template.h;
-    for (const site of result.loot.filter((site, i) => inside(site) || i % every === 0))
-      assert.ok(findRegionRoute(access, shapes, from, site, contestant), `${name} ${seed}: ${site.x},${site.y} is reachable`);
-  }
-  assert.ok(gaps > 20, `${gaps} gap sides`);
 });
 
 test('the shed is a roofed design, traced, and a way through', () => {

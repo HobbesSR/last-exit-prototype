@@ -1,0 +1,3822 @@
+{
+  "audit": "plant-residual-infill-1",
+  "baselineRef": "df815bb",
+  "baselineCommit": "df815bb75b9367ebd71d7af571d168b6e64592a3",
+  "commit": "1d1bf9645e05579c07a6af0986626a2423969d0a",
+  "dirty": "",
+  "createdAt": "2026-10-26T15:56:15.635Z",
+  "node": "v24.15.0",
+  "contentVersion": "types-40",
+  "sourceHashes": {
+    "map/micro/strategies/plant.ts": "f3f528c18883366834f98d135fccf8cf682a388cfe2d36766581797bed888a6a",
+    "tools/plant-infill-audit.mjs": "69d81a4b741f0bf83e22df7131b557a39df3778160bcc592d54049acab24c837",
+    "map/micro/canvas.ts": "c8e33e23fff49727ddd35fe69207a692ecaa8442b7855acd9983e80be8d744ab",
+    "map/micro/strategies/scatter.ts": "13c6118a52bc62f1a54850733893d6814681425cd5ebfcba91fbd0e540797435",
+    "map/micro/strategies/infill.ts": "43dabcfcfc430ec3d844ed5290df3674b9bd7308e0b83e196e7ee1ac41e30191",
+    "map/micro/placeables/cover-piece.ts": "49cde3bb086ed192e03137bb5c915620422236cee8b4e4f387ed6016b9430989",
+    "map/micro/region-types.ts": "7504554b93429022b55ee66b93ea2e8bcec95900f9b5bad9dcf630ec1ecfa043"
+  },
+  "maps": [
+    {
+      "seed": "issue330-before-12x6",
+      "zoneWidth": 12,
+      "zoneHeight": 6,
+      "rows": [
+        {
+          "id": "plant@156,0",
+          "before": {
+            "elements": 3,
+            "infillCrates": 0,
+            "machines": 3,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 36,
+            "cells": 648,
+            "freeCells": 632,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 648,
+              "walkableNodes": 608,
+              "reachableNodes": 608,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 7,
+            "infillCrates": 4,
+            "machines": 3,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 34,
+            "cells": 648,
+            "freeCells": 628,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 648,
+              "walkableNodes": 592,
+              "reachableNodes": 592,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 608,
+            "afterReachableNodes": 592,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 16,
+            "candidateNodes": 648,
+            "walkableNodesBefore": 608,
+            "walkableNodesAfter": 592,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 20,
+            "removedSampledSites": 0,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 20,
+              "reachableSites": 20,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 20,
+              "reachableSites": 20,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        },
+        {
+          "id": "plant@270,36",
+          "before": {
+            "elements": 17,
+            "infillCrates": 0,
+            "machines": 11,
+            "pipes": 5,
+            "sheds": 1,
+            "loot": 200,
+            "cells": 2916,
+            "freeCells": 2781,
+            "doorsChecked": 3,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 2916,
+              "walkableNodes": 2576,
+              "reachableNodes": 2568,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 45,
+            "infillCrates": 28,
+            "machines": 11,
+            "pipes": 5,
+            "sheds": 1,
+            "loot": 185,
+            "cells": 2916,
+            "freeCells": 2753,
+            "doorsChecked": 3,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 2916,
+              "walkableNodes": 2464,
+              "reachableNodes": 2456,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 2568,
+            "afterReachableNodes": 2456,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 112,
+            "candidateNodes": 2916,
+            "walkableNodesBefore": 2576,
+            "walkableNodesAfter": 2464,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 18,
+            "removedSampledSites": 2,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 18,
+              "reachableSites": 18,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 18,
+              "reachableSites": 18,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        },
+        {
+          "id": "plant@114,48",
+          "before": {
+            "elements": 0,
+            "infillCrates": 0,
+            "machines": 0,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 26,
+            "cells": 648,
+            "freeCells": 648,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 648,
+              "walkableNodes": 630,
+              "reachableNodes": 630,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 6,
+            "infillCrates": 6,
+            "machines": 0,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 26,
+            "cells": 648,
+            "freeCells": 642,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 648,
+              "walkableNodes": 606,
+              "reachableNodes": 606,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 630,
+            "afterReachableNodes": 606,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 24,
+            "candidateNodes": 648,
+            "walkableNodesBefore": 630,
+            "walkableNodesAfter": 606,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 20,
+            "removedSampledSites": 0,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 20,
+              "reachableSites": 20,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 20,
+              "reachableSites": 20,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        },
+        {
+          "id": "plant@168,102",
+          "before": {
+            "elements": 0,
+            "infillCrates": 0,
+            "machines": 0,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 31,
+            "cells": 540,
+            "freeCells": 540,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 540,
+              "walkableNodes": 524,
+              "reachableNodes": 524,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 10,
+            "infillCrates": 10,
+            "machines": 0,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 30,
+            "cells": 540,
+            "freeCells": 530,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 540,
+              "walkableNodes": 484,
+              "reachableNodes": 484,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 524,
+            "afterReachableNodes": 484,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 40,
+            "candidateNodes": 540,
+            "walkableNodesBefore": 524,
+            "walkableNodesAfter": 484,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 19,
+            "removedSampledSites": 1,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 19,
+              "reachableSites": 19,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 19,
+              "reachableSites": 19,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        }
+      ],
+      "mapErrors": []
+    },
+    {
+      "seed": "issue330-before-24x12",
+      "zoneWidth": 24,
+      "zoneHeight": 12,
+      "rows": [
+        {
+          "id": "plant@402,72",
+          "before": {
+            "elements": 0,
+            "infillCrates": 0,
+            "machines": 0,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 42,
+            "cells": 648,
+            "freeCells": 648,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 648,
+              "walkableNodes": 630,
+              "reachableNodes": 630,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 3,
+            "infillCrates": 3,
+            "machines": 0,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 41,
+            "cells": 648,
+            "freeCells": 645,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 648,
+              "walkableNodes": 618,
+              "reachableNodes": 618,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 630,
+            "afterReachableNodes": 618,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 12,
+            "candidateNodes": 648,
+            "walkableNodesBefore": 630,
+            "walkableNodesAfter": 618,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 19,
+            "removedSampledSites": 1,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 19,
+              "reachableSites": 19,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 19,
+              "reachableSites": 19,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        },
+        {
+          "id": "plant@132,174",
+          "before": {
+            "elements": 29,
+            "infillCrates": 0,
+            "machines": 20,
+            "pipes": 8,
+            "sheds": 1,
+            "loot": 90,
+            "cells": 3456,
+            "freeCells": 3207,
+            "doorsChecked": 3,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 3456,
+              "walkableNodes": 2947,
+              "reachableNodes": 2940,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 87,
+            "infillCrates": 58,
+            "machines": 20,
+            "pipes": 8,
+            "sheds": 1,
+            "loot": 87,
+            "cells": 3456,
+            "freeCells": 3149,
+            "doorsChecked": 3,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 3456,
+              "walkableNodes": 2715,
+              "reachableNodes": 2708,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 2940,
+            "afterReachableNodes": 2708,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 232,
+            "candidateNodes": 3456,
+            "walkableNodesBefore": 2947,
+            "walkableNodesAfter": 2715,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 20,
+            "removedSampledSites": 0,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 20,
+              "reachableSites": 20,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 20,
+              "reachableSites": 20,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        },
+        {
+          "id": "plant@414,210",
+          "before": {
+            "elements": 0,
+            "infillCrates": 0,
+            "machines": 0,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 32,
+            "cells": 540,
+            "freeCells": 540,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 540,
+              "walkableNodes": 524,
+              "reachableNodes": 524,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 4,
+            "infillCrates": 4,
+            "machines": 0,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 31,
+            "cells": 540,
+            "freeCells": 536,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 540,
+              "walkableNodes": 508,
+              "reachableNodes": 508,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 524,
+            "afterReachableNodes": 508,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 16,
+            "candidateNodes": 540,
+            "walkableNodesBefore": 524,
+            "walkableNodesAfter": 508,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 19,
+            "removedSampledSites": 1,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 19,
+              "reachableSites": 19,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 19,
+              "reachableSites": 19,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        }
+      ],
+      "mapErrors": []
+    },
+    {
+      "seed": "issue330-before-36x18",
+      "zoneWidth": 36,
+      "zoneHeight": 18,
+      "rows": [
+        {
+          "id": "plant@414,144",
+          "before": {
+            "elements": 1,
+            "infillCrates": 0,
+            "machines": 1,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 97,
+            "cells": 1728,
+            "freeCells": 1716,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 1728,
+              "walkableNodes": 1680,
+              "reachableNodes": 1680,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 23,
+            "infillCrates": 22,
+            "machines": 1,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 96,
+            "cells": 1728,
+            "freeCells": 1694,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 1728,
+              "walkableNodes": 1592,
+              "reachableNodes": 1592,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 1680,
+            "afterReachableNodes": 1592,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 88,
+            "candidateNodes": 1728,
+            "walkableNodesBefore": 1680,
+            "walkableNodesAfter": 1592,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 19,
+            "removedSampledSites": 1,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 19,
+              "reachableSites": 19,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 19,
+              "reachableSites": 19,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        },
+        {
+          "id": "plant@792,204",
+          "before": {
+            "elements": 0,
+            "infillCrates": 0,
+            "machines": 0,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 139,
+            "cells": 1728,
+            "freeCells": 1728,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 1728,
+              "walkableNodes": 1700,
+              "reachableNodes": 1700,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 21,
+            "infillCrates": 21,
+            "machines": 0,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 129,
+            "cells": 1728,
+            "freeCells": 1707,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 1728,
+              "walkableNodes": 1616,
+              "reachableNodes": 1616,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 1700,
+            "afterReachableNodes": 1616,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 84,
+            "candidateNodes": 1728,
+            "walkableNodesBefore": 1700,
+            "walkableNodesAfter": 1616,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 20,
+            "removedSampledSites": 0,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 20,
+              "reachableSites": 20,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 20,
+              "reachableSites": 20,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        },
+        {
+          "id": "plant@270,270",
+          "before": {
+            "elements": 23,
+            "infillCrates": 0,
+            "machines": 17,
+            "pipes": 6,
+            "sheds": 0,
+            "loot": 107,
+            "cells": 3600,
+            "freeCells": 3461,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 3600,
+              "walkableNodes": 3294,
+              "reachableNodes": 3294,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 93,
+            "infillCrates": 70,
+            "machines": 17,
+            "pipes": 6,
+            "sheds": 0,
+            "loot": 96,
+            "cells": 3600,
+            "freeCells": 3391,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 3600,
+              "walkableNodes": 3014,
+              "reachableNodes": 3014,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 3294,
+            "afterReachableNodes": 3014,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 280,
+            "candidateNodes": 3600,
+            "walkableNodesBefore": 3294,
+            "walkableNodesAfter": 3014,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 18,
+            "removedSampledSites": 2,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 18,
+              "reachableSites": 18,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 18,
+              "reachableSites": 18,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        },
+        {
+          "id": "plant@708,270",
+          "before": {
+            "elements": 32,
+            "infillCrates": 0,
+            "machines": 21,
+            "pipes": 11,
+            "sheds": 0,
+            "loot": 279,
+            "cells": 3600,
+            "freeCells": 3401,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 3600,
+              "walkableNodes": 3186,
+              "reachableNodes": 3186,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 105,
+            "infillCrates": 73,
+            "machines": 21,
+            "pipes": 11,
+            "sheds": 0,
+            "loot": 248,
+            "cells": 3600,
+            "freeCells": 3328,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 3600,
+              "walkableNodes": 2894,
+              "reachableNodes": 2894,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 3186,
+            "afterReachableNodes": 2894,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 292,
+            "candidateNodes": 3600,
+            "walkableNodesBefore": 3186,
+            "walkableNodesAfter": 2894,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 17,
+            "removedSampledSites": 3,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 17,
+              "reachableSites": 17,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 17,
+              "reachableSites": 17,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        },
+        {
+          "id": "plant@486,306",
+          "before": {
+            "elements": 1,
+            "infillCrates": 0,
+            "machines": 1,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 105,
+            "cells": 1728,
+            "freeCells": 1722,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 1728,
+              "walkableNodes": 1688,
+              "reachableNodes": 1688,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 26,
+            "infillCrates": 25,
+            "machines": 1,
+            "pipes": 0,
+            "sheds": 0,
+            "loot": 95,
+            "cells": 1728,
+            "freeCells": 1697,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 1728,
+              "walkableNodes": 1588,
+              "reachableNodes": 1588,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 1688,
+            "afterReachableNodes": 1588,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 100,
+            "candidateNodes": 1728,
+            "walkableNodesBefore": 1688,
+            "walkableNodesAfter": 1588,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 18,
+            "removedSampledSites": 2,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 18,
+              "reachableSites": 18,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 18,
+              "reachableSites": 18,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        },
+        {
+          "id": "plant@636,372",
+          "before": {
+            "elements": 14,
+            "infillCrates": 0,
+            "machines": 10,
+            "pipes": 3,
+            "sheds": 1,
+            "loot": 258,
+            "cells": 3600,
+            "freeCells": 3457,
+            "doorsChecked": 5,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 3600,
+              "walkableNodes": 3276,
+              "reachableNodes": 3268,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 73,
+            "infillCrates": 59,
+            "machines": 10,
+            "pipes": 3,
+            "sheds": 1,
+            "loot": 232,
+            "cells": 3600,
+            "freeCells": 3398,
+            "doorsChecked": 5,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 3600,
+              "walkableNodes": 3040,
+              "reachableNodes": 3032,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 3268,
+            "afterReachableNodes": 3032,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 236,
+            "candidateNodes": 3600,
+            "walkableNodesBefore": 3276,
+            "walkableNodesAfter": 3040,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 20,
+            "removedSampledSites": 0,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 20,
+              "reachableSites": 20,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 20,
+              "reachableSites": 20,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        },
+        {
+          "id": "plant@744,372",
+          "before": {
+            "elements": 16,
+            "infillCrates": 0,
+            "machines": 12,
+            "pipes": 4,
+            "sheds": 0,
+            "loot": 269,
+            "cells": 3600,
+            "freeCells": 3460,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 3600,
+              "walkableNodes": 3285,
+              "reachableNodes": 3285,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 63,
+            "infillCrates": 47,
+            "machines": 12,
+            "pipes": 4,
+            "sheds": 0,
+            "loot": 258,
+            "cells": 3600,
+            "freeCells": 3413,
+            "doorsChecked": 0,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 3600,
+              "walkableNodes": 3097,
+              "reachableNodes": 3097,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 3285,
+            "afterReachableNodes": 3097,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 188,
+            "candidateNodes": 3600,
+            "walkableNodesBefore": 3285,
+            "walkableNodesAfter": 3097,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 20,
+            "removedSampledSites": 0,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 20,
+              "reachableSites": 20,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 20,
+              "reachableSites": 20,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        },
+        {
+          "id": "plant@588,504",
+          "before": {
+            "elements": 6,
+            "infillCrates": 0,
+            "machines": 5,
+            "pipes": 0,
+            "sheds": 1,
+            "loot": 98,
+            "cells": 1728,
+            "freeCells": 1615,
+            "doorsChecked": 5,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 1728,
+              "walkableNodes": 1487,
+              "reachableNodes": 1479,
+              "anchor": "first-portal"
+            }
+          },
+          "after": {
+            "elements": 28,
+            "infillCrates": 22,
+            "machines": 5,
+            "pipes": 0,
+            "sheds": 1,
+            "loot": 89,
+            "cells": 1728,
+            "freeCells": 1593,
+            "doorsChecked": 5,
+            "unreachableDoors": [],
+            "errors": {
+              "fill": [],
+              "portal": []
+            },
+            "freeArea": {
+              "candidateNodes": 1728,
+              "walkableNodes": 1399,
+              "reachableNodes": 1391,
+              "anchor": "first-portal"
+            }
+          },
+          "newlyUnreachableDoors": [],
+          "recoveredDoors": [],
+          "newErrors": {
+            "fill": [],
+            "portal": []
+          },
+          "freeArea": {
+            "beforeReachableNodes": 1479,
+            "afterReachableNodes": 1391,
+            "lostStillWalkableNodes": 0,
+            "newlyBlockedNodes": 88,
+            "candidateNodes": 1728,
+            "walkableNodesBefore": 1487,
+            "walkableNodesAfter": 1399,
+            "anchor": "first-portal"
+          },
+          "retainedLootReach": {
+            "sampledBaselineSites": 20,
+            "retainedSampledSites": 18,
+            "removedSampledSites": 2,
+            "newlyUnreachableSites": 0,
+            "before": {
+              "checked": 18,
+              "reachableSites": 18,
+              "unreachableSites": 0
+            },
+            "after": {
+              "checked": 18,
+              "reachableSites": 18,
+              "unreachableSites": 0
+            },
+            "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+          }
+        }
+      ],
+      "mapErrors": []
+    }
+  ],
+  "direct": [
+    {
+      "id": "plant-rect-1",
+      "before": {
+        "elements": 2,
+        "infillCrates": 0,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 92,
+        "cells": 432,
+        "freeCells": 422,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 371,
+          "reachableNodes": 371,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 8,
+        "infillCrates": 6,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 84,
+        "cells": 432,
+        "freeCells": 416,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 347,
+          "reachableNodes": 347,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 371,
+        "afterReachableNodes": 347,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 24,
+        "candidateNodes": 432,
+        "walkableNodesBefore": 371,
+        "walkableNodesAfter": 347,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 20,
+        "removedSampledSites": 0,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-rect-2",
+      "before": {
+        "elements": 1,
+        "infillCrates": 0,
+        "machines": 1,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 97,
+        "cells": 432,
+        "freeCells": 426,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 383,
+          "reachableNodes": 383,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 12,
+        "infillCrates": 11,
+        "machines": 1,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 86,
+        "cells": 432,
+        "freeCells": 415,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 339,
+          "reachableNodes": 339,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 383,
+        "afterReachableNodes": 339,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 44,
+        "candidateNodes": 432,
+        "walkableNodesBefore": 383,
+        "walkableNodesAfter": 339,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 17,
+        "removedSampledSites": 3,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 17,
+          "reachableSites": 17,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 17,
+          "reachableSites": 17,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-rect-3",
+      "before": {
+        "elements": 3,
+        "infillCrates": 0,
+        "machines": 3,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 83,
+        "cells": 432,
+        "freeCells": 407,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 351,
+          "reachableNodes": 351,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 9,
+        "infillCrates": 6,
+        "machines": 3,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 77,
+        "cells": 432,
+        "freeCells": 401,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 327,
+          "reachableNodes": 327,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 351,
+        "afterReachableNodes": 327,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 24,
+        "candidateNodes": 432,
+        "walkableNodesBefore": 351,
+        "walkableNodesAfter": 327,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 19,
+        "removedSampledSites": 1,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-rect-4",
+      "before": {
+        "elements": 3,
+        "infillCrates": 0,
+        "machines": 3,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 97,
+        "cells": 432,
+        "freeCells": 416,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 359,
+          "reachableNodes": 359,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 6,
+        "infillCrates": 3,
+        "machines": 3,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 94,
+        "cells": 432,
+        "freeCells": 413,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 347,
+          "reachableNodes": 347,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 359,
+        "afterReachableNodes": 347,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 12,
+        "candidateNodes": 432,
+        "walkableNodesBefore": 359,
+        "walkableNodesAfter": 347,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 18,
+        "removedSampledSites": 2,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 18,
+          "reachableSites": 18,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 18,
+          "reachableSites": 18,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-rect-5",
+      "before": {
+        "elements": 4,
+        "infillCrates": 0,
+        "machines": 4,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 86,
+        "cells": 432,
+        "freeCells": 398,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 331,
+          "reachableNodes": 331,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 7,
+        "infillCrates": 3,
+        "machines": 4,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 83,
+        "cells": 432,
+        "freeCells": 395,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 319,
+          "reachableNodes": 319,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 331,
+        "afterReachableNodes": 319,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 12,
+        "candidateNodes": 432,
+        "walkableNodesBefore": 331,
+        "walkableNodesAfter": 319,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 20,
+        "removedSampledSites": 0,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-rect-6",
+      "before": {
+        "elements": 7,
+        "infillCrates": 0,
+        "machines": 5,
+        "pipes": 2,
+        "sheds": 0,
+        "loot": 78,
+        "cells": 432,
+        "freeCells": 380,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 298,
+          "reachableNodes": 298,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 12,
+        "infillCrates": 5,
+        "machines": 5,
+        "pipes": 2,
+        "sheds": 0,
+        "loot": 69,
+        "cells": 432,
+        "freeCells": 375,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 278,
+          "reachableNodes": 278,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 298,
+        "afterReachableNodes": 278,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 20,
+        "candidateNodes": 432,
+        "walkableNodesBefore": 298,
+        "walkableNodesAfter": 278,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 20,
+        "removedSampledSites": 0,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-rect-7",
+      "before": {
+        "elements": 7,
+        "infillCrates": 0,
+        "machines": 4,
+        "pipes": 3,
+        "sheds": 0,
+        "loot": 70,
+        "cells": 432,
+        "freeCells": 384,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 307,
+          "reachableNodes": 307,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 12,
+        "infillCrates": 5,
+        "machines": 4,
+        "pipes": 3,
+        "sheds": 0,
+        "loot": 65,
+        "cells": 432,
+        "freeCells": 379,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 287,
+          "reachableNodes": 287,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 307,
+        "afterReachableNodes": 287,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 20,
+        "candidateNodes": 432,
+        "walkableNodesBefore": 307,
+        "walkableNodesAfter": 287,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 18,
+        "removedSampledSites": 2,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 18,
+          "reachableSites": 18,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 18,
+          "reachableSites": 18,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-rect-8",
+      "before": {
+        "elements": 3,
+        "infillCrates": 0,
+        "machines": 3,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 104,
+        "cells": 432,
+        "freeCells": 413,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 359,
+          "reachableNodes": 359,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 13,
+        "infillCrates": 10,
+        "machines": 3,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 91,
+        "cells": 432,
+        "freeCells": 403,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 319,
+          "reachableNodes": 319,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 359,
+        "afterReachableNodes": 319,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 40,
+        "candidateNodes": 432,
+        "walkableNodesBefore": 359,
+        "walkableNodesAfter": 319,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 18,
+        "removedSampledSites": 2,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 18,
+          "reachableSites": 18,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 18,
+          "reachableSites": 18,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-rect-9",
+      "before": {
+        "elements": 2,
+        "infillCrates": 0,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 109,
+        "cells": 432,
+        "freeCells": 420,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 375,
+          "reachableNodes": 375,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 7,
+        "infillCrates": 5,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 101,
+        "cells": 432,
+        "freeCells": 415,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 355,
+          "reachableNodes": 355,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 375,
+        "afterReachableNodes": 355,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 20,
+        "candidateNodes": 432,
+        "walkableNodesBefore": 375,
+        "walkableNodesAfter": 355,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 18,
+        "removedSampledSites": 2,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 18,
+          "reachableSites": 18,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 18,
+          "reachableSites": 18,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-rect-10",
+      "before": {
+        "elements": 4,
+        "infillCrates": 0,
+        "machines": 2,
+        "pipes": 1,
+        "sheds": 1,
+        "loot": 73,
+        "cells": 432,
+        "freeCells": 366,
+        "doorsChecked": 5,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 287,
+          "reachableNodes": 279,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 9,
+        "infillCrates": 5,
+        "machines": 2,
+        "pipes": 1,
+        "sheds": 1,
+        "loot": 65,
+        "cells": 432,
+        "freeCells": 361,
+        "doorsChecked": 5,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 267,
+          "reachableNodes": 259,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 279,
+        "afterReachableNodes": 259,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 20,
+        "candidateNodes": 432,
+        "walkableNodesBefore": 287,
+        "walkableNodesAfter": 267,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 19,
+        "removedSampledSites": 1,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-L-17",
+      "before": {
+        "elements": 4,
+        "infillCrates": 0,
+        "machines": 3,
+        "pipes": 1,
+        "sheds": 0,
+        "loot": 148,
+        "cells": 675,
+        "freeCells": 646,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 675,
+          "walkableNodes": 564,
+          "reachableNodes": 564,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 16,
+        "infillCrates": 12,
+        "machines": 3,
+        "pipes": 1,
+        "sheds": 0,
+        "loot": 125,
+        "cells": 675,
+        "freeCells": 634,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 675,
+          "walkableNodes": 516,
+          "reachableNodes": 516,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 564,
+        "afterReachableNodes": 516,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 48,
+        "candidateNodes": 675,
+        "walkableNodesBefore": 564,
+        "walkableNodesAfter": 516,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 19,
+        "removedSampledSites": 1,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-L-29",
+      "before": {
+        "elements": 4,
+        "infillCrates": 0,
+        "machines": 4,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 144,
+        "cells": 675,
+        "freeCells": 647,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 675,
+          "walkableNodes": 564,
+          "reachableNodes": 564,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 10,
+        "infillCrates": 6,
+        "machines": 4,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 137,
+        "cells": 675,
+        "freeCells": 641,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 675,
+          "walkableNodes": 540,
+          "reachableNodes": 540,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 564,
+        "afterReachableNodes": 540,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 24,
+        "candidateNodes": 675,
+        "walkableNodesBefore": 564,
+        "walkableNodesAfter": 540,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 19,
+        "removedSampledSites": 1,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-L-43",
+      "before": {
+        "elements": 5,
+        "infillCrates": 0,
+        "machines": 4,
+        "pipes": 1,
+        "sheds": 0,
+        "loot": 145,
+        "cells": 675,
+        "freeCells": 633,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 675,
+          "walkableNodes": 549,
+          "reachableNodes": 549,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 11,
+        "infillCrates": 6,
+        "machines": 4,
+        "pipes": 1,
+        "sheds": 0,
+        "loot": 139,
+        "cells": 675,
+        "freeCells": 627,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 675,
+          "walkableNodes": 525,
+          "reachableNodes": 525,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 549,
+        "afterReachableNodes": 525,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 24,
+        "candidateNodes": 675,
+        "walkableNodesBefore": 549,
+        "walkableNodesAfter": 525,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 20,
+        "removedSampledSites": 0,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-ring-17",
+      "before": {
+        "elements": 8,
+        "infillCrates": 0,
+        "machines": 6,
+        "pipes": 2,
+        "sheds": 0,
+        "loot": 276,
+        "cells": 1196,
+        "freeCells": 1142,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 1196,
+          "walkableNodes": 1006,
+          "reachableNodes": 1006,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 27,
+        "infillCrates": 19,
+        "machines": 6,
+        "pipes": 2,
+        "sheds": 0,
+        "loot": 244,
+        "cells": 1196,
+        "freeCells": 1123,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 1196,
+          "walkableNodes": 930,
+          "reachableNodes": 930,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 1006,
+        "afterReachableNodes": 930,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 76,
+        "candidateNodes": 1196,
+        "walkableNodesBefore": 1006,
+        "walkableNodesAfter": 930,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 20,
+        "removedSampledSites": 0,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-ring-29",
+      "before": {
+        "elements": 6,
+        "infillCrates": 0,
+        "machines": 5,
+        "pipes": 1,
+        "sheds": 0,
+        "loot": 254,
+        "cells": 1196,
+        "freeCells": 1149,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 1196,
+          "walkableNodes": 1022,
+          "reachableNodes": 1022,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 19,
+        "infillCrates": 13,
+        "machines": 5,
+        "pipes": 1,
+        "sheds": 0,
+        "loot": 240,
+        "cells": 1196,
+        "freeCells": 1136,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 1196,
+          "walkableNodes": 970,
+          "reachableNodes": 970,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 1022,
+        "afterReachableNodes": 970,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 52,
+        "candidateNodes": 1196,
+        "walkableNodesBefore": 1022,
+        "walkableNodesAfter": 970,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 19,
+        "removedSampledSites": 1,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-ring-43",
+      "before": {
+        "elements": 11,
+        "infillCrates": 0,
+        "machines": 9,
+        "pipes": 2,
+        "sheds": 0,
+        "loot": 271,
+        "cells": 1196,
+        "freeCells": 1108,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 1196,
+          "walkableNodes": 965,
+          "reachableNodes": 965,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 26,
+        "infillCrates": 15,
+        "machines": 9,
+        "pipes": 2,
+        "sheds": 0,
+        "loot": 258,
+        "cells": 1196,
+        "freeCells": 1093,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 1196,
+          "walkableNodes": 905,
+          "reachableNodes": 905,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 965,
+        "afterReachableNodes": 905,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 60,
+        "candidateNodes": 1196,
+        "walkableNodesBefore": 965,
+        "walkableNodesAfter": 905,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 20,
+        "removedSampledSites": 0,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-notched-17",
+      "before": {
+        "elements": 1,
+        "infillCrates": 0,
+        "machines": 1,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 132,
+        "cells": 640,
+        "freeCells": 634,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 640,
+          "walkableNodes": 558,
+          "reachableNodes": 558,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 12,
+        "infillCrates": 11,
+        "machines": 1,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 114,
+        "cells": 640,
+        "freeCells": 623,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 640,
+          "walkableNodes": 514,
+          "reachableNodes": 514,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 558,
+        "afterReachableNodes": 514,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 44,
+        "candidateNodes": 640,
+        "walkableNodesBefore": 558,
+        "walkableNodesAfter": 514,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 20,
+        "removedSampledSites": 0,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-notched-29",
+      "before": {
+        "elements": 2,
+        "infillCrates": 0,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 141,
+        "cells": 640,
+        "freeCells": 630,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 640,
+          "walkableNodes": 549,
+          "reachableNodes": 549,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 10,
+        "infillCrates": 8,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 133,
+        "cells": 640,
+        "freeCells": 622,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 640,
+          "walkableNodes": 517,
+          "reachableNodes": 517,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 549,
+        "afterReachableNodes": 517,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 32,
+        "candidateNodes": 640,
+        "walkableNodesBefore": 549,
+        "walkableNodesAfter": 517,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 19,
+        "removedSampledSites": 1,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-notched-43",
+      "before": {
+        "elements": 4,
+        "infillCrates": 0,
+        "machines": 4,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 143,
+        "cells": 640,
+        "freeCells": 606,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 640,
+          "walkableNodes": 517,
+          "reachableNodes": 517,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 10,
+        "infillCrates": 6,
+        "machines": 4,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 138,
+        "cells": 640,
+        "freeCells": 600,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 640,
+          "walkableNodes": 493,
+          "reachableNodes": 493,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 517,
+        "afterReachableNodes": 493,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 24,
+        "candidateNodes": 640,
+        "walkableNodesBefore": 517,
+        "walkableNodesAfter": 493,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 19,
+        "removedSampledSites": 1,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-thin-17",
+      "before": {
+        "elements": 1,
+        "infillCrates": 0,
+        "machines": 1,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 47,
+        "cells": 240,
+        "freeCells": 234,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 240,
+          "walkableNodes": 196,
+          "reachableNodes": 196,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 6,
+        "infillCrates": 5,
+        "machines": 1,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 41,
+        "cells": 240,
+        "freeCells": 229,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 240,
+          "walkableNodes": 176,
+          "reachableNodes": 176,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 196,
+        "afterReachableNodes": 176,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 20,
+        "candidateNodes": 240,
+        "walkableNodesBefore": 196,
+        "walkableNodesAfter": 176,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 18,
+        "removedSampledSites": 2,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 18,
+          "reachableSites": 18,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 18,
+          "reachableSites": 18,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-thin-29",
+      "before": {
+        "elements": 2,
+        "infillCrates": 0,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 40,
+        "cells": 240,
+        "freeCells": 230,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 240,
+          "walkableNodes": 187,
+          "reachableNodes": 187,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 5,
+        "infillCrates": 3,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 37,
+        "cells": 240,
+        "freeCells": 227,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 240,
+          "walkableNodes": 175,
+          "reachableNodes": 175,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 187,
+        "afterReachableNodes": 175,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 12,
+        "candidateNodes": 240,
+        "walkableNodesBefore": 187,
+        "walkableNodesAfter": 175,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 18,
+        "removedSampledSites": 2,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 18,
+          "reachableSites": 18,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 18,
+          "reachableSites": 18,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-thin-43",
+      "before": {
+        "elements": 2,
+        "infillCrates": 0,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 50,
+        "cells": 240,
+        "freeCells": 216,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 240,
+          "walkableNodes": 176,
+          "reachableNodes": 176,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 3,
+        "infillCrates": 1,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 50,
+        "cells": 240,
+        "freeCells": 215,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 240,
+          "walkableNodes": 172,
+          "reachableNodes": 172,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 176,
+        "afterReachableNodes": 172,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 4,
+        "candidateNodes": 240,
+        "walkableNodesBefore": 176,
+        "walkableNodesAfter": 172,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 20,
+        "removedSampledSites": 0,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-density-zero",
+      "before": {
+        "elements": 0,
+        "infillCrates": 0,
+        "machines": 0,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 103,
+        "cells": 432,
+        "freeCells": 432,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 392,
+          "reachableNodes": 392,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 0,
+        "infillCrates": 0,
+        "machines": 0,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 103,
+        "cells": 432,
+        "freeCells": 432,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 432,
+          "walkableNodes": 392,
+          "reachableNodes": 392,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 392,
+        "afterReachableNodes": 392,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 0,
+        "candidateNodes": 432,
+        "walkableNodesBefore": 392,
+        "walkableNodesAfter": 392,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 20,
+        "removedSampledSites": 0,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-many-portals",
+      "before": {
+        "elements": 12,
+        "infillCrates": 0,
+        "machines": 9,
+        "pipes": 2,
+        "sheds": 1,
+        "loot": 389,
+        "cells": 1728,
+        "freeCells": 1593,
+        "doorsChecked": 5,
+        "unreachableDoors": [
+          "plant-shed-1: 5,740"
+        ],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 1728,
+          "walkableNodes": 1399,
+          "reachableNodes": 1391,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 35,
+        "infillCrates": 23,
+        "machines": 9,
+        "pipes": 2,
+        "sheds": 1,
+        "loot": 361,
+        "cells": 1728,
+        "freeCells": 1570,
+        "doorsChecked": 5,
+        "unreachableDoors": [
+          "plant-shed-1: 5,740"
+        ],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 1728,
+          "walkableNodes": 1307,
+          "reachableNodes": 1299,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 1391,
+        "afterReachableNodes": 1299,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 92,
+        "candidateNodes": 1728,
+        "walkableNodesBefore": 1399,
+        "walkableNodesAfter": 1307,
+        "anchor": "first-portal"
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 18,
+        "removedSampledSites": 2,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 18,
+          "reachableSites": 18,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 18,
+          "reachableSites": 18,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    }
+  ],
+  "dumbbells": [
+    {
+      "id": "plant-dumbbell-neck2-3",
+      "before": {
+        "elements": 2,
+        "infillCrates": 0,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 72,
+        "cells": 420,
+        "freeCells": 403,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 420,
+          "walkableNodes": 326,
+          "reachableNodes": 326,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 4,
+        "infillCrates": 2,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 69,
+        "cells": 420,
+        "freeCells": 401,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 420,
+          "walkableNodes": 318,
+          "reachableNodes": 318,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 326,
+        "afterReachableNodes": 318,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 8,
+        "candidateNodes": 420,
+        "walkableNodesBefore": 326,
+        "walkableNodesAfter": 318,
+        "anchor": "first-portal",
+        "baselineFarLobeReachable": true
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 20,
+        "removedSampledSites": 0,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-dumbbell-left-portals-neck2-3",
+      "before": {
+        "elements": 2,
+        "infillCrates": 0,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 72,
+        "cells": 420,
+        "freeCells": 403,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 420,
+          "walkableNodes": 326,
+          "reachableNodes": 326,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 4,
+        "infillCrates": 2,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 69,
+        "cells": 420,
+        "freeCells": 401,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 420,
+          "walkableNodes": 318,
+          "reachableNodes": 318,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 326,
+        "afterReachableNodes": 318,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 8,
+        "candidateNodes": 420,
+        "walkableNodesBefore": 326,
+        "walkableNodesAfter": 318,
+        "anchor": "first-portal",
+        "baselineFarLobeReachable": true
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 20,
+        "removedSampledSites": 0,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-dumbbell-neck2-25",
+      "before": {
+        "elements": 3,
+        "infillCrates": 0,
+        "machines": 3,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 81,
+        "cells": 420,
+        "freeCells": 408,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 420,
+          "walkableNodes": 326,
+          "reachableNodes": 0,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 7,
+        "infillCrates": 4,
+        "machines": 3,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 79,
+        "cells": 420,
+        "freeCells": 404,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 420,
+          "walkableNodes": 310,
+          "reachableNodes": 0,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 0,
+        "afterReachableNodes": 0,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 0,
+        "candidateNodes": 420,
+        "walkableNodesBefore": 326,
+        "walkableNodesAfter": 310,
+        "anchor": "first-portal",
+        "baselineFarLobeReachable": false
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 19,
+        "removedSampledSites": 1,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 19,
+          "reachableSites": 0,
+          "unreachableSites": 19
+        },
+        "after": {
+          "checked": 19,
+          "reachableSites": 0,
+          "unreachableSites": 19
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-dumbbell-left-portals-neck2-25",
+      "before": {
+        "elements": 2,
+        "infillCrates": 0,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 83,
+        "cells": 420,
+        "freeCells": 412,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 420,
+          "walkableNodes": 335,
+          "reachableNodes": 335,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 5,
+        "infillCrates": 3,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 83,
+        "cells": 420,
+        "freeCells": 409,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 420,
+          "walkableNodes": 323,
+          "reachableNodes": 323,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 335,
+        "afterReachableNodes": 323,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 12,
+        "candidateNodes": 420,
+        "walkableNodesBefore": 335,
+        "walkableNodesAfter": 323,
+        "anchor": "first-portal",
+        "baselineFarLobeReachable": true
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 20,
+        "removedSampledSites": 0,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-dumbbell-neck3-3",
+      "before": {
+        "elements": 2,
+        "infillCrates": 0,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 76,
+        "cells": 430,
+        "freeCells": 413,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 430,
+          "walkableNodes": 337,
+          "reachableNodes": 337,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 4,
+        "infillCrates": 2,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 73,
+        "cells": 430,
+        "freeCells": 411,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 430,
+          "walkableNodes": 329,
+          "reachableNodes": 329,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 337,
+        "afterReachableNodes": 329,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 8,
+        "candidateNodes": 430,
+        "walkableNodesBefore": 337,
+        "walkableNodesAfter": 329,
+        "anchor": "first-portal",
+        "baselineFarLobeReachable": true
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 19,
+        "removedSampledSites": 1,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-dumbbell-left-portals-neck3-3",
+      "before": {
+        "elements": 2,
+        "infillCrates": 0,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 76,
+        "cells": 430,
+        "freeCells": 413,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 430,
+          "walkableNodes": 337,
+          "reachableNodes": 337,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 4,
+        "infillCrates": 2,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 73,
+        "cells": 430,
+        "freeCells": 411,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 430,
+          "walkableNodes": 329,
+          "reachableNodes": 329,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 337,
+        "afterReachableNodes": 329,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 8,
+        "candidateNodes": 430,
+        "walkableNodesBefore": 337,
+        "walkableNodesAfter": 329,
+        "anchor": "first-portal",
+        "baselineFarLobeReachable": true
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 19,
+        "removedSampledSites": 1,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 19,
+          "reachableSites": 19,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-dumbbell-neck3-25",
+      "before": {
+        "elements": 3,
+        "infillCrates": 0,
+        "machines": 3,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 83,
+        "cells": 430,
+        "freeCells": 418,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 430,
+          "walkableNodes": 337,
+          "reachableNodes": 0,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 7,
+        "infillCrates": 4,
+        "machines": 3,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 81,
+        "cells": 430,
+        "freeCells": 414,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 430,
+          "walkableNodes": 321,
+          "reachableNodes": 0,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 0,
+        "afterReachableNodes": 0,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 0,
+        "candidateNodes": 430,
+        "walkableNodesBefore": 337,
+        "walkableNodesAfter": 321,
+        "anchor": "first-portal",
+        "baselineFarLobeReachable": false
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 20,
+        "removedSampledSites": 0,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 20,
+          "reachableSites": 0,
+          "unreachableSites": 20
+        },
+        "after": {
+          "checked": 20,
+          "reachableSites": 0,
+          "unreachableSites": 20
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    },
+    {
+      "id": "plant-dumbbell-left-portals-neck3-25",
+      "before": {
+        "elements": 2,
+        "infillCrates": 0,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 85,
+        "cells": 430,
+        "freeCells": 422,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 430,
+          "walkableNodes": 346,
+          "reachableNodes": 346,
+          "anchor": "first-portal"
+        }
+      },
+      "after": {
+        "elements": 5,
+        "infillCrates": 3,
+        "machines": 2,
+        "pipes": 0,
+        "sheds": 0,
+        "loot": 85,
+        "cells": 430,
+        "freeCells": 419,
+        "doorsChecked": 0,
+        "unreachableDoors": [],
+        "errors": {
+          "fill": [],
+          "portal": []
+        },
+        "freeArea": {
+          "candidateNodes": 430,
+          "walkableNodes": 334,
+          "reachableNodes": 334,
+          "anchor": "first-portal"
+        }
+      },
+      "newlyUnreachableDoors": [],
+      "recoveredDoors": [],
+      "newErrors": {
+        "fill": [],
+        "portal": []
+      },
+      "freeArea": {
+        "beforeReachableNodes": 346,
+        "afterReachableNodes": 334,
+        "lostStillWalkableNodes": 0,
+        "newlyBlockedNodes": 12,
+        "candidateNodes": 430,
+        "walkableNodesBefore": 346,
+        "walkableNodesAfter": 334,
+        "anchor": "first-portal",
+        "baselineFarLobeReachable": true
+      },
+      "retainedLootReach": {
+        "sampledBaselineSites": 20,
+        "retainedSampledSites": 20,
+        "removedSampledSites": 0,
+        "newlyUnreachableSites": 0,
+        "before": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "after": {
+          "checked": 20,
+          "reachableSites": 20,
+          "unreachableSites": 0
+        },
+        "sampling": "Up to 20 spatially spread baseline sites; contestant-sized findRegionRoute checks from the shared baseline anchor."
+      }
+    }
+  ],
+  "limits": "Baseline strategy is pinned while shared current library, geometry and placeables are used on both sides. Three current-library authored maps, ten direct 24x18 cases, twelve varied-shape cases, a >32-portal case and eight dumbbell variants with 10x20 lobes, 2/3-cell necks and one or two portals on the left lobe. Checks exact primary geometry and building traces, full crate access rings, fill constraints, portal reach, shed-door reachability, and independent integer-intersection hunter reach with swept-clearance cardinal edges. A previously reachable node fails only if it remains walkable but becomes disconnected; newly blocked nodes are reported separately. Up to 20 spatially spread retained baseline loot sites use contestant-sized findRegionRoute checks from a shared baseline anchor and fail only on new losses. This bounded sample is not a proof of continuous-space reachability; removed sampled loot and pre-existing errors/door failures are reported separately. No claim of human balance, exhaustive coverage or performance beyond these samples."
+}
