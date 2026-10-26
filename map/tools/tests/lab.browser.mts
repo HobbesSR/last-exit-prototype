@@ -707,7 +707,8 @@ try {
     });
     assert.deepEqual(await listed(), ids, `${kind}: every entry is listed in library order`);
     assert.equal(await active(), await page.locator("#chainSelected").innerText(), `${kind}: the active entry is marked`);
-    assert.equal(await page.locator("#chainEntryList button[aria-current=true]").count(), 1);
+    assert.equal(await page.locator("#chainEntryList button[aria-selected=true]").count(), 1);
+    assert.equal(await page.locator("#chainEntryList button[role=option]").count(), ids.length, `${kind}: rows are listbox options`);
   }
   await page.locator("#chainSection").selectOption("tiles");
   assert.equal(await page.locator("#chainEntryList").isVisible(), false, "tiles are browsed by thumbnail");
@@ -739,6 +740,11 @@ try {
   assert.equal(await page.evaluate(() => (document.activeElement as HTMLElement).dataset.entry), names[1], "focus follows the selection");
   await page.keyboard.press("ArrowUp");
   assert.equal(await active(), names[0]);
+  // At an end the selection and its editor stay as they were.
+  await page.locator("#chainId").evaluate((node: HTMLElement) => { node.dataset.kept = "yes"; });
+  await page.locator("#chainEntryList button.active").focus();
+  await page.keyboard.press("ArrowUp");
+  assert.equal(await page.locator("#chainId").getAttribute("data-kept"), "yes", "a keypress that can't move doesn't rebuild the workspace");
   assert.equal(await page.locator("#chainEntryList button[tabindex='0']").count(), 1);
 
   // A long imported catalogue scrolls inside the list; an empty section says so.
@@ -759,6 +765,13 @@ try {
   });
   assert.deepEqual(fits, { scrolls: true, visible: true }, "the list scrolls to the active entry");
   assert.deepEqual(await page.locator("#chainSurface").boundingBox(), surfaceBeforeList, "scrolling the catalogue keeps the stage in place");
+  await page.locator("#chainEntryList button").first().click();
+  await page.locator("#chainEntryList").evaluate((node: HTMLElement) => { node.scrollTop = node.scrollHeight; });
+  await applySource(long);
+  assert.ok(await page.locator("#chainEntryList").evaluate((list: HTMLElement) => {
+    const a = list.getBoundingClientRect(), b = list.querySelector("button.active")!.getBoundingClientRect();
+    return b.top >= a.top - 1 && b.bottom <= a.bottom + 1;
+  }), "re-importing brings the first entry back into view");
   await page.screenshot({ path: `${OUT}/entry-list.png` });
   await page.locator("#chainSection").selectOption("setPieceClasses");
   assert.equal(await page.locator("#chainEntryList button").count(), 0);

@@ -2682,16 +2682,21 @@ function showEntries(names: string[]): void {
   item.value = selectedId;
   // Tiles are browsed by thumbnail; every other section by its entry list (#539).
   const tiles = section() === "tiles";
-  item.parentElement!.style.display = tiles ? "" : "none";
+  item.closest("label")!.style.display = tiles ? "" : "none";
   showEntryList(tiles ? [] : names);
 }
 /** A short description of an entry beside its ID in the entry list. */
 function entrySummary(id: string): string {
-  if (section() === "classes") return library.cellClasses[id]?.regionType ?? "";
+  // A class whose region type repeats its ID needs no summary.
+  if (section() === "classes") {
+    const type = library.cellClasses[id]?.regionType ?? "";
+    return type === id ? "" : type;
+  }
   const entry = list().find((e) => e.id === id) as any;
   if (section() === "tileSets") return count(entry?.members?.length ?? 0, "tile");
   if (section() === "setPieces") return count(entry?.tiles?.length ?? 0, "slot");
-  if (section() === "setPieceClasses") return `${entry?.placementRule ?? ""} ×${entry?.quota ?? ""}`;
+  if (section() === "setPieceClasses")
+    return [entry?.placementRule, typeof entry?.quota === "number" ? `×${entry.quota}` : ""].filter(Boolean).join(" ");
   return "";
 }
 function count(n: number, noun: string): string {
@@ -2716,6 +2721,7 @@ function showEntryList(names: string[]): void {
       ...names.map((id) => {
         const row = document.createElement("button");
         row.type = "button";
+        row.setAttribute("role", "option");
         row.dataset.entry = id;
         row.append(document.createElement("strong"), document.createElement("span"));
         row.firstElementChild!.textContent = id;
@@ -2729,8 +2735,7 @@ function showEntryList(names: string[]): void {
   for (const row of listed.querySelectorAll<HTMLButtonElement>("button")) {
     const active = row.dataset.entry === selectedId;
     row.classList.toggle("active", active);
-    if (active) row.setAttribute("aria-current", "true");
-    else row.removeAttribute("aria-current");
+    row.setAttribute("aria-selected", String(active));
     // Only the active row is in the tab order; arrow keys move between rows.
     row.tabIndex = active ? 0 : -1;
     row.lastElementChild!.textContent = entrySummary(row.dataset.entry!);
@@ -2919,6 +2924,8 @@ function accept(raw: unknown): void {
   if (!renderableDraft(raw)) throw Error("Library is not safe to edit.");
   library = raw;
   selectedId = "";
+  // A new draft brings its first entry into view even when the old one had the same ID.
+  shownEntry = "";
   changed();
 }
 function exportLibrary(): void {
@@ -2948,7 +2955,10 @@ $("chainEntryList").addEventListener("keydown", (event) => {
             : null;
   if (next === null || !names.length) return;
   event.preventDefault();
-  selectedId = names[Math.max(0, Math.min(names.length - 1, next))]!;
+  const target = names[Math.max(0, Math.min(names.length - 1, next))]!;
+  // At either end the selection stays put; don't rebuild the workspace for it.
+  if (target === selectedId) return;
+  selectedId = target;
   render();
   $("chainEntryList").querySelector<HTMLElement>("button.active")?.focus();
 });

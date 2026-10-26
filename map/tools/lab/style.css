@@ -1465,6 +1465,8 @@ a.button {
   #chainViewContainer, #placeablesView { overflow: visible; padding: 8px; }
   .chain-layout, .placeable-workspace { grid-template-columns: minmax(0, 1fr); }
   .chain-sidebar { max-height: 320px; }
+  /* The stacked sidebar is already the scroller; a nested one would chain (#539). */
+  .chain-entry-list { flex: none; min-height: 0; max-height: none; overflow: visible; }
   .chain-work { overflow: visible; }
   #chainEditor { grid-template-columns: minmax(0, 1fr); }
   .author-surface { overflow: auto; }
