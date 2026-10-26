@@ -2,12 +2,13 @@ import { actorHitRadius, firstContact, impact, solidBlockers } from './swept.ts'
 import { physicsRuntime } from './physics-runtime.ts';
 import type { HookState } from '../physics/types.ts';
 import type { Game, Player, Vec2 } from '../types.ts';
+import { cos, hypot, sin } from '../math.ts';
 
 const HZ = 20;
 const STEPS = 4;
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const actor = (id: string) => `actor:${id}`;
-const length = (a: Vec2, b: Vec2) => Math.hypot(a.x - b.x, a.y - b.y);
+const length = (a: Vec2, b: Vec2) => hypot(a.x - b.x, a.y - b.y);
 const lerp = (a: Vec2, b: Vec2, t: number): Vec2 => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 
 /** A blocked prefix wins a simultaneous actor contact. The experimental tip/tether has zero radius. */
@@ -47,7 +48,7 @@ export function hookSkill(s: Game, p: Player): void {
   const generationA = r.world.getGeneration(actor(p.id));
   if (generationA === undefined) return;
   p.cooldown = tuning.cooldownTicks;
-  const dx = Math.cos(p.heading), dy = Math.sin(p.heading);
+  const dx = cos(p.heading), dy = sin(p.heading);
   r.hooks.push({ id: `hook:${p.id}`, caster: p.id, x: p.x, y: p.y, dx, dy,
     travelled: 0, startedTick: s.tick, phase: 'flying', generationA });
   r.hooks.sort((a, b) => compare(a.id, b.id));

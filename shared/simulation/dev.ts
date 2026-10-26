@@ -3,6 +3,7 @@ import { clearRoute } from './geometry.ts';
 import { actorRadius } from './actor-physics.ts';
 import { physicsRuntime } from './physics-runtime.ts';
 import type { Game, PlayerId, Vec2 } from '../types.ts';
+import { hypot } from '../math.ts';
 
 /**
  * Development commands (24): what the dev view may do to a match that play cannot. None runs unless a
@@ -22,7 +23,7 @@ export function teleport(s: Game, id: PlayerId, x: number, y: number): Vec2 | nu
   const radius = runtime ? actorRadius(s, p) : bodyRadius(p);
   if (!canOccupy(s.map, at.x, at.y, radius)) return null;
   if (runtime && s.content.actorPhysics && (runtime.world.overlapsProp(at.x, at.y, radius)
-    || s.players.some(q => q !== p && q.status === 'active' && Math.hypot(at.x - q.x, at.y - q.y) < radius + actorRadius(s, q)))) return null;
+    || s.players.some(q => q !== p && q.status === 'active' && hypot(at.x - q.x, at.y - q.y) < radius + actorRadius(s, q)))) return null;
   p.x = at.x; p.y = at.y; clearRoute(p);
   runtime?.synchronize();
   return at;

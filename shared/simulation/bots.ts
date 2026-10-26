@@ -15,6 +15,7 @@ import { attack, utilityApplies, utilityOutcome } from './combat.ts';
 import { dropEquipment, dropInventorySlot } from './loot.ts';
 import { reloadableRounds, reserveRoom } from './ammo.ts';
 import type { CollisionMap, DiscoveryMemory, Gate, GateId, GroundItem, Game, ItemId, MatchContent, Player, PlayerInput, Role, Tick, TileCount, TileIndex, Vec2, WeaponItem, World } from '../types.ts';
+import { atan2, cos, hypot, sin } from '../math.ts';
 
 // What a bot that decides from discovery is after, kept between ticks (#230). A bot searching for what
 // it needs heads for the frontier of what it has *seen*: loot needs line of sight, so a cell the view
@@ -565,10 +566,10 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
   const hunter = p.role === 'contestant' && s.players.find(t => t.role === 'gladiator' && t.status === 'active' && distance(p, t) < 170 && visibleTo(s, p, t));
   if (hunter) {
     // Keep firing, but do not blindly follow an objective path straight into melee range.
-    const away = Math.atan2(p.y - hunter.y, p.x - hunter.x);
-    const goalLength = Math.max(1, Math.hypot(dx, dy));
+    const away = atan2(p.y - hunter.y, p.x - hunter.x);
+    const goalLength = Math.max(1, hypot(dx, dy));
     const options = [0, -0.5, 0.5, -1, 1, -1.5, 1.5].map(offset => {
-      const x = Math.cos(away + offset), y = Math.sin(away + offset);
+      const x = cos(away + offset), y = sin(away + offset);
       const point = { x: p.x + x * 90, y: p.y + y * 90 };
       return { x, y, point, score: distance(point, hunter) + (x * dx + y * dy) / goalLength * 15 - (point.x < s.hazardX + 100 ? 1000 : 0) };
     }).filter(o => canOccupy(s.map, o.point.x, o.point.y, 12) && reachClear(s.map, p, o.point)).sort((a, b) => b.score - a.score);
@@ -578,20 +579,20 @@ function decideBot(s: Game, p: Player, collecting: boolean): BotIntent {
     const next = dynamicWaypoint(s, p, { x: p.x + dx, y: p.y + dy });
     dx = next.x - p.x; dy = next.y - p.y;
   }
-  const length = Math.max(9, Math.hypot(dx, dy));
+  const length = Math.max(9, hypot(dx, dy));
   if (p.role === 'contestant' && cell != null && cell.charge < s.content.cellChargeTicks && s.map.chargers.some(st => distance(p, st) < 55 && lineClear(s.map, p, st))) {
     intent.input = { ...intent.input, x: 0, y: 0, interact: true }; return intent;
   }
   const allyInLine = p.role === 'contestant' && nearest && s.players.some(other => {
     if (other.id === p.id || other.id === nearest.id || other.role !== 'contestant' || other.status !== 'active') return false;
     const nx = nearest.x - p.x, ny = nearest.y - p.y, projection = ((other.x - p.x) * nx + (other.y - p.y) * ny) / (nx * nx + ny * ny);
-    return projection > 0 && projection < 1 && Math.hypot(other.x - p.x - projection * nx, other.y - p.y - projection * ny) < 28;
+    return projection > 0 && projection < 1 && hypot(other.x - p.x - projection * nx, other.y - p.y - projection * ny) < 28;
   });
   if (s.content.reloading && p.role === 'contestant') {
     // Reload when empty, or topping up when no one is in sight. Never automatic for humans (14).
     const held = p.inventory?.[(collecting ? intent.input.slot : p.selectedSlot) ?? -1];
     if (held?.kind === 'weapon' && reloadableRounds(s, p, held) > 0 && (held.ammo === 0 || !nearest)) intent.input.reload = true;
   }
-  intent.input = { ...intent.input, x: dx / length, y: dy / length, aim: nearest ? Math.atan2(nearest.y - p.y, nearest.x - p.x) : s.content.dynamicNavigation && dx === 0 && dy === 0 ? p.heading : Math.atan2(dy, dx), attack: !!nearest && !allyInLine && distance(p, nearest) < (p.role === 'gladiator' ? 86 : 450) && lineClear(s.map, p, nearest), skill: !!nearest && distance(p, nearest) < (p.kit === 'specter' && p.role === 'gladiator' ? 320 : 125), interact: p.role === 'contestant' || s.map.gates.some(g => !g.open && distance(p, g) < GATE_REACH) || p.x < s.hazardX + 200 };
+  intent.input = { ...intent.input, x: dx / length, y: dy / length, aim: nearest ? atan2(nearest.y - p.y, nearest.x - p.x) : s.content.dynamicNavigation && dx === 0 && dy === 0 ? p.heading : atan2(dy, dx), attack: !!nearest && !allyInLine && distance(p, nearest) < (p.role === 'gladiator' ? 86 : 450) && lineClear(s.map, p, nearest), skill: !!nearest && distance(p, nearest) < (p.kit === 'specter' && p.role === 'gladiator' ? 320 : 125), interact: p.role === 'contestant' || s.map.gates.some(g => !g.open && distance(p, g) < GATE_REACH) || p.x < s.hazardX + 200 };
   return intent;
 }

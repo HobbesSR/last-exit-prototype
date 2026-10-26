@@ -1,6 +1,7 @@
 import { canOccupy, sweptClear, TILE } from '../movement.ts';
 import { count, start, stop } from '../profiler.ts';
 import type { CollisionMap, DoorPermission, Gate, Obstacle, Role, TileCount, TileIndex, TileRect, TileStep, Vec2, World } from '../types.ts';
+import { hypot } from '../math.ts';
 
 /**
  * The clearance a planned route requires, padded past the body radius in `movement.ts` so a route is
@@ -98,7 +99,7 @@ export function stepClear(map: CollisionMap, openDoors: DoorPermission, from: Ve
 
 /** Can a body of `clearance` travel the straight line from `a` to `b` without leaving open ground? */
 function travelClear(map: CollisionMap, a: Vec2, b: Vec2, clearance: World): boolean {
-  const length = Math.hypot(b.x - a.x, b.y - a.y);
+  const length = hypot(b.x - a.x, b.y - a.y);
   // Samples one clearance apart overlap by half a radius, so anything actually crossing the segment
   // falls inside at least one of them. Spacing them wider would let a thin wall slip between tests.
   const steps = Math.max(1, Math.ceil(length / clearance));
@@ -135,7 +136,7 @@ export function straightenPath(map: CollisionMap, role: Role, origin: Vec2, path
     }
     kept.push(path[best]);
     const to = tileCentre(path[best]);
-    travelled += Math.hypot(to.x - from.x, to.y - from.y);
+    travelled += hypot(to.x - from.x, to.y - from.y);
     from = to;
     index = best + 1;
   }

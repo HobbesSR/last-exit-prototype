@@ -1,4 +1,5 @@
 import type { ConstraintSpec, Point } from './types.ts';
+import { hypot } from '../math.ts';
 
 const LIMIT = 1e9;
 function bounded(value: number | undefined, fallback?: number): number {
@@ -47,7 +48,7 @@ export type ConstraintEndpoint = { position: Point; velocity: Point };
 export function constraintForce(spec: ConstraintSpec, a: ConstraintEndpoint, b: ConstraintEndpoint):
   { force: Point; distance: number } {
   const dx = b.position.x - a.position.x, dy = b.position.y - a.position.y;
-  const distance = Math.hypot(dx, dy);
+  const distance = hypot(dx, dy);
   if (distance === 0) return { force: { x: 0, y: 0 }, distance };
   const nx = dx / distance, ny = dy / distance;
   const length = spec.kind === 'spring' ? spec.restLength! : spec.maxDistance!;

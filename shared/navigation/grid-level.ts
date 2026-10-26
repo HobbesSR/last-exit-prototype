@@ -4,6 +4,7 @@ import { nearestTile } from '../map/route.ts';
 import { IndexHeap } from '../index-heap.ts';
 import type { CollisionMap, DoorPermission, Role, TileCount, TileIndex, TileRect, TileStep, Vec2, World } from '../types.ts';
 import type { PortalGraph, Reach } from './portal-graph.ts';
+import { hypot } from '../math.ts';
 
 /**
  * The interim bottom level (22.6): today's walkability grid, searched within one region instead
@@ -23,9 +24,9 @@ export function stepsLength(a: Vec2, steps: readonly TileStep[], b: Vec2): World
   let length = 0, from = a;
   for (const [x, y] of steps) {
     const to = { x: (x + 0.5) * TILE, y: (y + 0.5) * TILE };
-    length += Math.hypot(to.x - from.x, to.y - from.y); from = to;
+    length += hypot(to.x - from.x, to.y - from.y); from = to;
   }
-  return length + Math.hypot(b.x - from.x, b.y - from.y);
+  return length + hypot(b.x - from.x, b.y - from.y);
 }
 
 /**
@@ -129,14 +130,14 @@ export function gridReach(map: CollisionMap, role: Role, graph: PortalGraph, ope
     if (source < 0) return targets.map(() => null);
     const ends = targets.map(tileOf);
     const distance = flood(area, source, ends.filter(tile => tile >= 0));
-    const start = centre(area.tiles[source]!), lead = Math.hypot(start.x - from.x, start.y - from.y);
+    const start = centre(area.tiles[source]!), lead = hypot(start.x - from.x, start.y - from.y);
     return targets.map((target, i) => {
       const tile = ends[i]!;
       if (tile < 0 || distance[tile] === Infinity) return null;
       // Through tile centres, as `stepsLength` counts a route; the same tile is the straight line.
-      if (tile === source && clear(from, target)) return Math.hypot(target.x - from.x, target.y - from.y);
+      if (tile === source && clear(from, target)) return hypot(target.x - from.x, target.y - from.y);
       const end = centre(area.tiles[tile]!);
-      return lead + distance[tile]! + Math.hypot(target.x - end.x, target.y - end.y);
+      return lead + distance[tile]! + hypot(target.x - end.x, target.y - end.y);
     });
   };
 }

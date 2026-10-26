@@ -2,6 +2,7 @@ import { gateShape, insideMap, litPoint, visibilityPolygon } from './movement.ts
 import { MAX_VIEW_HEIGHT, MAX_VIEW_WIDTH, roofConceals } from './view.ts';
 import { nextVersion } from './frame-layers.ts';
 import type { CollisionMap, DiscoveryMemory, DiscoveryWire, GameMap, Gate, GateObservation, ItemId, Player, PlayerId, Role, Vec2, World } from './types.ts';
+import { hypot } from './math.ts';
 export type { DiscoveryMemory, DiscoveryWire };
 
 /** The side length of a coarse discovery cell in world units (4 x 48 map cells). */
@@ -127,7 +128,8 @@ export function discover(
   }
   // A landmark's beacon shows over walls and roofs, so its cell is discovered from much further away.
   for (const landmark of landmarks(map)) {
-    if ((landmark.x - eye.x) ** 2 + (landmark.y - eye.y) ** 2 > BEACON_RADIUS ** 2) continue;
+    const lx = landmark.x - eye.x, ly = landmark.y - eye.y;
+    if (lx * lx + ly * ly > BEACON_RADIUS * BEACON_RADIUS) continue;
     const idx = cellIndexAt(map, landmark.x, landmark.y);
     if (idx !== -1) mark(idx);
   }
@@ -137,7 +139,8 @@ export function discover(
     const radiusSq = radius * radius;
     // The polygon is built only once something in reach needs it.
     const sees = (x: World, y: World): boolean => {
-      if ((x - eye.x) ** 2 + (y - eye.y) ** 2 > radiusSq) return false;
+      const ex = x - eye.x, ey = y - eye.y;
+      if (ex * ex + ey * ey > radiusSq) return false;
       if (roofConceals(map, eye, { x, y })) return false;
       if (!poly) poly = visibilityPolygon(map, eye, radius);
       return litPoint(poly, eye, x, y);
@@ -158,7 +161,7 @@ export function discover(
     for (const gate of map.gates) {
       const box = gateShape(gate);
       const nx = Math.max(box.x, Math.min(box.x + box.w, eye.x)), ny = Math.max(box.y, Math.min(box.y + box.h, eye.y));
-      const dx = eye.x - nx, dy = eye.y - ny, d = Math.hypot(dx, dy);
+      const dx = eye.x - nx, dy = eye.y - ny, d = hypot(dx, dy);
       if (d <= radius && sees(d > 1 ? nx + dx / d : eye.x, d > 1 ? ny + dy / d : eye.y)) changed = observeGate(memory, gate, false) || changed;
     }
   }

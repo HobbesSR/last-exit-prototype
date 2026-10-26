@@ -3,6 +3,7 @@ import { body as shapeBody, bounds as shapeBounds, contains, nearBounds, overlap
 import type { Shape } from './shape.ts';
 import type { VisibilityPoint } from './movement.ts';
 import type { Building, Cell, CollisionMap, GameMap, Gate, GateId, ObservedGate, PlayableArea, Player, Roof, Tick, Vec2, ViewBounds, World } from './types.ts';
+import { hypot } from './math.ts';
 
 /** A gate as last seen, kept per client so an unobserved gate is drawn stale rather than current. */
 export type RememberedGate = Gate & { lastSeenTick: Tick };
@@ -13,7 +14,7 @@ type RoofMap = Pick<GameMap, 'buildings'> & { roofs?: Roof[] | undefined; playab
 // Physical screen pixels never grant an unbounded view of the arena.
 export const MAX_VIEW_WIDTH = 2400;
 export const MAX_VIEW_HEIGHT = 1600;
-export const POTENTIAL_RADIUS = Math.ceil(Math.hypot(MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT) / 2) + 250;
+export const POTENTIAL_RADIUS = Math.ceil(hypot(MAX_VIEW_WIDTH, MAX_VIEW_HEIGHT) / 2) + 250;
 const PLAYER_ZOOM = 1.12;
 export function playerZoom(width: number, height: number): number {
   return Math.max(PLAYER_ZOOM, width / MAX_VIEW_WIDTH, height / MAX_VIEW_HEIGHT);
@@ -50,7 +51,7 @@ function inViewport(bounds: ViewBounds, x: World, y: World, margin: World = 0): 
 }
 export function viewRadius(bounds: ViewBounds, eye: Vec2): World {
   return Math.max(...[bounds.x, bounds.x + bounds.width].flatMap(x =>
-    [bounds.y, bounds.y + bounds.height].map(y => Math.hypot(x - eye.x, y - eye.y)))) + 100;
+    [bounds.y, bounds.y + bounds.height].map(y => hypot(x - eye.x, y - eye.y)))) + 100;
 }
 
 // Memory is presentation-only. Collision and server outcomes use the actual gates.
@@ -105,7 +106,7 @@ export function createShapeVisibility(sight: Sight | null | undefined, map: Roof
     if (!sight || sight.points.length < 3) return false;
     const box = shapeBounds(shape), x = box.x + box.w / 2, y = box.y + box.h / 2;
     // Reject off-camera props before constructing SAT bodies or touching the sight boundary.
-    if (!inViewport(sight.bounds, x, y, ENTITY_MARGIN + Math.hypot(box.w, box.h) / 2)
+    if (!inViewport(sight.bounds, x, y, ENTITY_MARGIN + hypot(box.w, box.h) / 2)
       || roofConceals(map, sight.eye, shape)) return false;
     const target = shapeBody(shape);
     if (contains(shape, shape.x, shape.y, target) && seesPoint(sight, map, shape.x, shape.y)) return true;
@@ -536,7 +537,7 @@ export function openingDistance(map: Pick<GameMap, 'gates' | 'obstacles'> & { pl
   let best = Infinity;
   const consider = (box: { x: number; y: number; w: number; h: number }) => {
     const dx = Math.max(box.x - point.x, 0, point.x - box.x - box.w), dy = Math.max(box.y - point.y, 0, point.y - box.y - box.h);
-    best = Math.min(best, Math.hypot(dx, dy));
+    best = Math.min(best, hypot(dx, dy));
   };
   for (const item of group) {
     if ('thresholds' in item && item.thresholds?.length) {
