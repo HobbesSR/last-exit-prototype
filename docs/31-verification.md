@@ -183,6 +183,29 @@ Options include `--seconds=<N>`, `--headed`, `--location=dense|crowded|offscreen
 to arrange entity crowds, and `--spectator` (`node tests/bench-client.mjs --spectator`)
 to benchmark rendering the unfogged, whole-arena spectator overview at full zoom-out.
 
+## Continuous integration
+
+Forgejo Actions runs `.forgejo/workflows/ci.yml` on every pull request and every
+push to `main`: `npm run check`, `npm run typecheck`, `npm test` and
+`npm run test:mapgen`, in a fresh `node:24.15.0` container with the npm that
+`packageManager` names. It takes about three minutes. The result shows on the
+pull request and under the repository's Actions tab; where the runners live is
+in [34](34-forgejo-workflow.md#hosting).
+
+CI is a floor, not the gate set. It does not run:
+
+- **`npm run test:all`'s slow tier.** About four minutes more, and only
+  generation or simulation changes move it; run it when they do.
+- **`npm run test:browser`.** It needs installed Google Chrome, which the
+  container lacks. Renderer and client changes still run it locally.
+- **`npm run bench` and `npm run bench:client`.** Wall-clock thresholds on a
+  runner shared with agent sessions would fail at random, so benchmarks never
+  gate CI. Compare them sequentially on a quiet machine, as above.
+
+A green run does not discharge the author's own checks for what the change
+touched; a failed run is fixed before the pull request is ready. CI uploads no artifacts: recordings,
+diagnostics and screenshots stay on the machine that made them.
+
 ## P7 ballistic lab
 
 P7's isolated ballistic lab is checked by `tests/physics-ballistics.test.js` and
