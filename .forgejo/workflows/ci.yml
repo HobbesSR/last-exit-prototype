@@ -44,10 +44,13 @@ jobs:
       - run: npm --prefix map/macro ci
       # 35 minutes, inside the job's 45, so a hang still leaves time to report it:
       # at the job's own deadline Forgejo cancels everything, reporting included.
-      # timeout kills the whole process tree, so tee is not left waiting.
+      # timeout kills the whole process tree, so tee is not left waiting. Forgejo runs
+      # bash with -e, which would exit on the failed pipeline before its status is read.
       - run: |
+          set +e
           timeout --kill-after=1m 35m npm run test:slow 2>&1 | tee slow.log
           status=${PIPESTATUS[0]}
+          set -e
           if [ "$status" = 124 ] || [ "$status" = 137 ]; then echo "::slow-tier-timeout::" >> slow.log; fi
           exit "$status"
         shell: bash
