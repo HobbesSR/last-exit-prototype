@@ -17,6 +17,7 @@ it restates something in another numbered file; if it does, link the number inst
 | Raw measurement data supporting a durable finding in 42 or a child | `docs/reports/`, linked from the owning numbered document; retain source/configuration provenance and distinguish historical results from new runs. Transient outputs stay in `test-results/` |
 | What to build next | [41](41-roadmap.md) |
 | Work in progress or a session handoff | A comment on its Forgejo issue or pull request ([32](32-delegation.md)) |
+| Hosting, CI runners, network access, credentials, machine paths | The private `corey/studio-ops` repository on Forgejo, never this one ([34](34-forgejo-workflow.md#hosting)) |
 
 When a requirement changes, update its row first, then the explanation in a 2x file
 only if the explanation belongs there. Add or update an acceptance test for every

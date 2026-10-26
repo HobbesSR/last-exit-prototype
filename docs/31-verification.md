@@ -189,8 +189,9 @@ Forgejo Actions runs `.forgejo/workflows/ci.yml` on every pull request and every
 push to `main`: `npm run check`, `npm run typecheck`, `npm test` and
 `npm run test:mapgen`, in a fresh `node:24.15.0` container with the npm that
 `packageManager` names. It takes about three minutes. The result shows on the
-pull request and under the repository's Actions tab; where the runners live is
-in [34](34-forgejo-workflow.md#hosting).
+pull request and under the repository's Actions tab. While no runner is up, the
+check waits rather than fails; who runs runners is in
+[34](34-forgejo-workflow.md#hosting).
 
 CI is a floor, not the gate set. It does not run:
 

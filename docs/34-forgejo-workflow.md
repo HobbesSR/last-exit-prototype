@@ -1,7 +1,7 @@
 # 34. Forgejo workflow and agent worktrees
 
-Forgejo at `http://192.168.1.170:3000`, on the home network (see
-[Hosting](#hosting)), is the source of truth; GitHub (`gh`)
+Forgejo, on the human's home network (see [Hosting](#hosting)), is the source
+of truth; GitHub (`gh`)
 is the public remote copy, described under [GitHub](#github) below.
 `corey/astra_test` is the only project repository: the map
 generator lives in `map/macro/` (see [50](50-map-generation.md)). The old
@@ -88,7 +88,7 @@ request as [32](32-delegation.md) describes; the next session resumes from it.
 
 ## Reading Forgejo economically
 
-The Forgejo MCP server (`forgejo_studio/forgejo-mcp/`, its own git repo outside this one; its shaping
+The Forgejo MCP server (`forgejo-mcp`, its own git repo outside this one; its shaping
 functions and tests are in `shape.js` and `shape.test.js`, run with `node --test`) returns
 compact text, not raw API JSON. Writes return a compact identifier and URL
 (`{number, html_url}`, or `{id, ...}` for reviews; idempotent ones add a `_note`);
@@ -130,7 +130,7 @@ git worktree add --detach ../astra_test.agents/<agent> forgejo/main
 git -C ../astra_test.agents/<agent> config --worktree user.name  <account>
 git -C ../astra_test.agents/<agent> config --worktree user.email <commit email>
 git -C ../astra_test.agents/<agent> config --worktree remote.forgejo.pushurl \
-  http://<account>:<token>@192.168.1.170:3000/corey/astra_test.git
+  http://<account>:<token>@<forgejo host>/corey/astra_test.git
 printf 'PORT=<game port>\n' > ../astra_test.agents/<agent>/.env.local
 (cd ../astra_test.agents/<agent> && npm ci && npm --prefix map/macro ci)
 ```
@@ -157,29 +157,22 @@ anything a check takes from the machine as a whole must be one it can share.
 
 ## Hosting
 
-Forgejo runs on the human's Synology NAS as a Docker Compose project in
-`/volume2/docker/forgejo`, with SQLite and all state under `data/`. The image
-tag is pinned: an upgrade bumps it deliberately, after a backup. Port 3000 is
-the web UI and API; git over SSH is port 2222. It moved there from a WSL
-install on the desktop (`localhost:3000`, `Start-AgentStudio.bat`) on
-2026-10-25 so that agents on other home machines can reach it. The old install
-is kept stopped for rollback; do not start it beside the NAS copy.
+Forgejo runs on the human's own hardware. Agents reach it through the `forgejo`
+remote and the `forgejo` MCP tools, both already configured. This repository
+is public, so where Forgejo runs, how it is reached off the home network, how
+CI runners are hosted and started, and how credentials are held are recorded in
+the private `corey/studio-ops` repository on Forgejo, which is never published.
+Read it there when a task touches hosting, runners or access, and put such
+details there rather than here.
 
-CI ([31](31-verification.md#continuous-integration)) runs on Forgejo Actions
-runners, never on the NAS itself. The first, `desktop-wsl`, is forgejo-runner in
-the desktop's `Ubuntu-24.04` WSL distro, in `~/forgejo-runner` (`config.yml`
-holds its connection token and is readable only by its owner). It offers the
-`docker` label, runs two jobs at once, and starts each job in a fresh container
-without access to the host's Docker. Start it with
-`./forgejo-runner daemon --config config.yml` from that directory. A runner on
-another machine is registered from the repository's Settings → Actions →
-Runners, which is a human step, and needs only Docker and network access to the
-NAS. Pull requests show the check as `ci / verify (pull_request)`; requiring it
-before merging is a branch-protection setting the human administers.
+The rules that bind agents stay here:
 
-Agents have no standing access to the NAS. When a task needs it (upgrades,
-logs, runners for [#547](http://192.168.1.170:3000/corey/astra_test/issues/547)),
-the human grants SSH and Docker access for that task and revokes it afterwards.
+- **CI runners are the human's.** Agents do not start, schedule or add them;
+  registering one is a human step. While no runner is up, a pull request's
+  check (`ci / verify (pull_request)`) waits rather than fails. Requiring it
+  before merging is a branch-protection setting the human administers.
+- **No standing access to the host.** When a task needs it (upgrades, logs,
+  runners), the human grants access for that task and revokes it afterwards.
 
 ## GitHub
 
