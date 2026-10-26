@@ -5,6 +5,7 @@ import { hunterClearance, portalStands, validatePortalReach } from '../map/micro
 import { createAccessMask, createFillMask, createRegionMask, elementShapes, findRegionRoute, travelClear } from '../map/micro/geometry.ts';
 import { circle, overlaps } from '../shared/shape.ts';
 import { cellsOf } from './helpers/cells.js';
+import { assertWithinBudget } from './helpers/budget.js';
 
 const SIZE = 40;
 const brief = (id, seed, cells, portals, extra = {}) => ({ id, seed, type: 'hut', cellSize: SIZE, cells,
@@ -180,8 +181,8 @@ test('a macro-sized hut region with hundreds of portals builds in bounded time',
   assert.ok(house(result));
   assert.ok(portals.length > 200 && cells.length > 29000);
   // Includes whole-yard delegation and cover generation, not just the house.
-  // The 8-second budget runs in the normal parallel suite (31, measurements in 42).
-  assert.ok(elapsed < 8000, `${Math.round(elapsed)} ms`);
+  // The 8-second budget runs in the normal parallel suite, not in CI (31, measurements in 42).
+  assertWithinBudget(elapsed, 8000);
 });
 
 test('an observer sees the house its element was realized from, and changes nothing', () => {

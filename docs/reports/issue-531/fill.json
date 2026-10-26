@@ -1,0 +1,26 @@
+{
+  "width": 24,
+  "height": 18,
+  "min": 3,
+  "seeds": 10,
+  "rows": [
+    {
+      "type": "hut",
+      "built": 10,
+      "failed": 0,
+      "freeShare": 0.917,
+      "gapsPerRegion": 6,
+      "gapCellsShare": 0.82,
+      "largestGapCells": 288
+    },
+    {
+      "type": "compound",
+      "built": 10,
+      "failed": 0,
+      "freeShare": 0.727,
+      "gapsPerRegion": 1,
+      "gapCellsShare": 0.324,
+      "largestGapCells": 140
+    }
+  ]
+}

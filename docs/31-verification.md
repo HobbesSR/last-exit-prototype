@@ -165,6 +165,11 @@ generation is recorded in [42](42-performance-history.md). Isolated timing runs 
 separate builder cost from normal suite contention. The file also remains
 subject to the strict 15-second isolated budget.
 
+The hut's 8-second budget and the other macro-sized "builds quickly" budgets in the micro tests go
+through `tests/helpers/budget.js`, which skips them when `CI` is set: they are tuned on
+the desktop, and a slower runner would fail them on its speed rather than on the change
+(#567). The tests still build the region and check what it contains.
+
 Other agents' worktrees share this machine's CPU. `npm run bench` and
 `npm run bench:client` therefore take a machine-wide lock and wait for each
 other rather than overlap. The lock (`tests/helpers/machine-lock.js`) is a
