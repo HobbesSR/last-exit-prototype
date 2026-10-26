@@ -1,0 +1,65 @@
+{
+  "node": "v24.15.0",
+  "baselineCommit": "872932e916536fa03bbb80f67d907eb5c7bba188",
+  "head": "2e7ce1a7c9423b016246032088b42121e5e92df2",
+  "trackedWorktreeDirty": false,
+  "toolSha256": "efb6e9ba2f8c7cc0064a964bc438815bf5884c1efc1d9cfcc725470640b7adc4",
+  "sourceSha256": "b017d94a588465665990a8990a3860d7b81ba8bcdf408f8f584d5161b9697515",
+  "provenanceNote": "Capture tool and reports were untracked; tracked source was clean. Provenance added after capture.",
+  "rows": [
+    {
+      "shape": "neck",
+      "width": 24,
+      "height": 18,
+      "cells": 336,
+      "counts": {
+        "connectivityChecks": 36,
+        "connectivityRejected": 0
+      },
+      "pieces": 1,
+      "timesMs": {
+        "baseline": [
+          5.4237999999999715,
+          5.460199999999986,
+          3.972599999999943,
+          6.546499999999924,
+          3.180500000000052
+        ],
+        "current": [
+          60.0222,
+          47.015300000000025,
+          45.2097,
+          41.00469999999996,
+          46.34129999999993
+        ]
+      }
+    },
+    {
+      "shape": "cross",
+      "width": 18,
+      "height": 48,
+      "cells": 480,
+      "counts": {
+        "connectivityChecks": 71,
+        "connectivityRejected": 7
+      },
+      "pieces": 1,
+      "timesMs": {
+        "baseline": [
+          6.013700000000085,
+          4.5996000000000095,
+          4.552200000000084,
+          4.464400000000069,
+          4.11609999999996
+        ],
+        "current": [
+          99.14080000000001,
+          91.82369999999992,
+          91.24499999999989,
+          94.12379999999985,
+          102.96780000000012
+        ]
+      }
+    }
+  ]
+}
