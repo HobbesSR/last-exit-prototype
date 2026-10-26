@@ -16,16 +16,16 @@ import type { BuilderCanvas } from '../canvas.ts';
 import { builtRegion } from '../result.ts';
 
 /**
- * The cover executor implementation (20.7); bump it when `buildCover` output changes. The aggregate
+ * The cover receiver implementation (20.7); bump it when receiver output changes. The aggregate
  * `REGION_TYPES_VERSION` tracks a separate contract and does not move this.
  */
-export const COVER_EXECUTOR_VERSION = 'cover-types-23';
+export const COVER_EXECUTOR_VERSION = 'cover-receiver-infill-1';
 
 /**
  * Cover as a delegation receiver: it accepts an inherited interface when its build there
  * has a usable placement. Registries name this entry for direct snapshot recovery.
  */
-export const COVER_EXECUTION: ExecutionBuilder = Object.freeze(coverExecution(buildCover));
+export const COVER_EXECUTION: ExecutionBuilder = Object.freeze(coverExecution(receiverCover));
 
 /**
  * The same receiver for one adopter invocation. Its receiving check and child build share
@@ -35,7 +35,7 @@ export function previewedCoverExecution(): ExecutionBuilder {
   const previews = new Map<string, BuiltRegion>();
   return coverExecution(child => {
     const key = JSON.stringify(child);
-    if (!previews.has(key)) previews.set(key, buildCover(child));
+    if (!previews.has(key)) previews.set(key, receiverCover(child));
     return previews.get(key)!;
   });
 }
@@ -43,6 +43,44 @@ export function previewedCoverExecution(): ExecutionBuilder {
 function coverExecution(build: (brief: RegionBrief) => BuiltRegion): ExecutionBuilder {
   return { version: COVER_EXECUTOR_VERSION, build,
     receiving: brief => build(brief).elements.length ? null : 'cover has no usable placement in the inherited fill' };
+}
+
+/** A child keeps the ordinary cover result whenever its clustered siting succeeds. */
+function receiverCover(brief: RegionBrief): BuiltRegion {
+  const normal = buildCover(brief);
+  const density = densityOf(brief);
+  // Above this limit the ordinary builder's boundary policy bounds route work.
+  // Residual siting is for small child interfaces, where routes can be protected explicitly.
+  if (normal.elements.length || density === 0 || brief.portals.length > 32) return normal;
+
+  const size = brief.cellSize;
+  const canvas = createBuilderCanvas(brief, protectedRoutes(brief, 'Cover'));
+  const random = rng(brief.seed, `${brief.id}:cover-receiver-infill`);
+  const candidates = random.shuffle([...canvas.fill.cells].sort(compareCells));
+  // A failed large piece can give way to a crate at the same site. Every demand is
+  // checked in full; a fractional remnant of a barrier or container is never placed.
+  for (const cell of candidates) {
+    const taken = random.next() < density;
+    const pick = random.next(), turned = random.next() < 0.5, length = random.next(), offset = random.next();
+    if (!taken) continue;
+    let first = PIECES[0]!;
+    for (let sum = 0, i = 0; i < PIECES.length; i++) if (pick < (sum += PIECES[i]!.weight)) { first = PIECES[i]!; break; }
+    for (const piece of [first, ...PIECES.filter(other => other !== first)]) {
+      const placed = expectPlaced(COVER_PIECE.build({ piece: piece.name, turned, length, offset }, size));
+      const { w, h } = placed.demand.body;
+      const box = rect(cell.x * size, cell.y * size, w * size, h * size);
+      if (!canvas.fits(box) || !canvas.spaced(box, AISLE * size)) continue;
+      const assembly = placedElements(placed, `cover-${piece.name}-${canvas.elements.length + 1}`, cell.x, cell.y, size);
+      if (canvas.commit({ elements: assembly })) break;
+    }
+  }
+  if (!canvas.elements.length) return normal;
+  const loot = normal.loot.filter(site => {
+    const x = Math.floor(site.x / size), y = Math.floor(site.y / size);
+    const stand = rect((x - 1) * size, (y - 1) * size, 3 * size, 3 * size);
+    return canvas.elements.every(element => !shapesOverlap(stand, rect(element.x, element.y, element.template.w, element.template.h)));
+  });
+  return builtRegion(brief, [...canvas.elements], loot);
 }
 
 /** Cells between slots, one tile, so pieces read as sited rather than strewn. */
