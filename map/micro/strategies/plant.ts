@@ -16,8 +16,7 @@ import { CELL_SCALE } from '../../kernel/scale.ts';
 import type { Shape } from '../../../shared/shape.ts';
 import type { BuiltRegion, RegionBrief } from '../types.ts';
 import { builtRegion } from '../result.ts';
-import { compareCells } from '../../kernel/cell.ts';
-import { COVER_PIECE } from '../placeables/cover-piece.ts';
+import { infillCrates as placeInfillCrates } from './infill.ts';
 
 /** The catalogue's proposed shape need (54), as `depot`'s: a contained square at least this many cells a side. */
 const MIN_SIDE = 10;
@@ -186,19 +185,18 @@ export function buildPlant(brief: RegionBrief, observe?: BuildingObserver): Buil
   // Address only remnants in slots whose original machine roll passed. This keeps the
   // continuous lattice aisles, skipped density slots and shed slots open. Pipe commits use
   // their stub areas as extents, so a crate can stand by the gap without crowding a stub.
-  let infillCrates = 0;
-  if (density > 0) for (const cell of canvas.addressed.unaddressedComponents().flat().sort(compareCells)) {
-    if (canvas.addressed.addressed(cell.x, cell.y)) continue;
-    const slotX = slots[0]!.x + Math.floor((cell.x - slots[0]!.x) / PERIOD) * PERIOD;
-    const slotY = slots[0]!.y + Math.floor((cell.y - slots[0]!.y) / PERIOD) * PERIOD;
-    if (cell.x >= slotX + BAND || cell.y >= slotY + BAND || !passedSlots.has(key(slotX, slotY))
-      || draw(brief.seed, cell.x, cell.y, CHANNEL.infill) >= density || !clear({ x: cell.x, y: cell.y, w: 1, h: 1 })) continue;
-    const label = `plant-infill-crate-${++infillCrates}`;
-    commit(label, { elements: placedElements(expectPlaced(COVER_PIECE.build({
-      piece: 'crate', turned: false, length: draw(brief.seed, cell.x, cell.y, CHANNEL.infillLength),
-      offset: draw(brief.seed, cell.x, cell.y, CHANNEL.infillOffset),
-    }, size)), label, cell.x, cell.y, size) });
-  }
+  const infillCrates = placeInfillCrates({ brief, canvas, chance: density, channels: CHANNEL,
+    label: 'plant-infill-crate',
+    site: cell => {
+      const slotX = slots[0]!.x + Math.floor((cell.x - slots[0]!.x) / PERIOD) * PERIOD;
+      const slotY = slots[0]!.y + Math.floor((cell.y - slots[0]!.y) / PERIOD) * PERIOD;
+      return cell.x < slotX + BAND && cell.y < slotY + BAND && passedSlots.has(key(slotX, slotY))
+        && accessMask.contains(rect((cell.x - AISLE) * size, (cell.y - AISLE) * size,
+          (1 + 2 * AISLE) * size, (1 + 2 * AISLE) * size))
+        && clear({ x: cell.x, y: cell.y, w: 1, h: 1 });
+    },
+    commitError: label => `Plant placement ${label} failed its canvas commit.`,
+  });
 
   const elements = [...canvas.elements];
   const pieces: Shape[] = elements.flatMap(element => elementShapes(element, true));
