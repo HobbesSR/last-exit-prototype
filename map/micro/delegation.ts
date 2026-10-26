@@ -209,6 +209,23 @@ export function validateBriefPartition(parent: RegionBrief, children: readonly R
   return errors;
 }
 
+// Both initial decomposition and patch preparation finish through the same
+// margin inheritance and interface checks. The hook preserves patch geometry
+// rejection precedence before partition validation.
+function finishPartition(parent: RegionBrief, children: readonly RegionBrief[], beforeValidation?: (briefs: RegionBrief[]) => void): RegionBrief[] {
+  const briefs = inheritBriefMargins(parent, children).map(b => ({ ...b, portals: [...b.portals].sort((a, b) => a.id.localeCompare(b.id)) }));
+  beforeValidation?.(briefs);
+  const errors = validateBriefPartition(parent, briefs);
+  if (errors.length) throw new InfeasiblePatch(errors.join(' '));
+  return briefs;
+}
+
+/** Prepare planner-authored owners, including a partition with no retained owner. */
+export function prepareInitialPartition(input: RegionBrief, children: readonly RegionBrief[]): RegionBrief[] {
+  const parent = canonicalDelegationBrief(input);
+  return finishPartition(parent, children.map(canonicalDelegationBrief));
+}
+
 /** Prepare builder-authored offers only; malformed requests throw, ordinary infeasibility retains cells with reasons. */
 export function prepareDelegation(input: RegionBrief, offers: readonly PatchOffer[], policy: PatchPreparationPolicy): PreparedDelegation {
   if (typeof policy?.receiving !== 'function') throw new Error('Preparation needs explicit receiving-builder feasibility policy.');
@@ -303,13 +320,12 @@ export function prepareCanonicalDelegation(parent: RegionBrief, offers: readonly
       crossings.push({ a: seam.a, b: seam.b, portal: selected });
     }
     const complete = local.map((part, i) => ({ ...localBrief(parent, part.cells, i ? accepted[i - 1] : undefined), portals: part.portals }));
-    const briefs = inheritBriefMargins(parent, complete).map(b => ({ ...b, portals: [...b.portals].sort((a, b) => a.id.localeCompare(b.id)) }));
-    if (blockers.length) {
-      const retainedFill = createFillMask(briefs[0]!);
-      if (blockers.some(s => !retainedFill.contains(s))) throw new InfeasiblePatch('Patch ownership or crossing clearance conflicts with declared parent geometry.');
-    }
-    const errors = validateBriefPartition(parent, briefs);
-    if (errors.length) throw new InfeasiblePatch(errors.join(' '));
+    const briefs = finishPartition(parent, complete, briefs => {
+      if (blockers.length) {
+        const retainedFill = createFillMask(briefs[0]!);
+        if (blockers.some(s => !retainedFill.contains(s))) throw new InfeasiblePatch('Patch ownership or crossing clearance conflicts with declared parent geometry.');
+      }
+    });
     for (let i = 0; i < accepted.length; i++) {
       const reason = policy.receiving(structuredClone(briefs[i + 1]!), structuredClone(accepted[i]!));
       if (reason !== null) {

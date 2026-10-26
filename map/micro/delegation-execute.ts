@@ -49,6 +49,8 @@ export interface DelegationExecutionNode {
   maxDepth?: number;
 }
 export interface ExecutionOptions { maxDepth?: number; observe?: BuildingObserver }
+/** Initial decomposition has child owners only, with no retained builder invocation. */
+export interface DelegationPartitionExecution { input: RegionBrief; children: DelegationExecutionNode[] }
 
 class EmptyHandoff {
   readonly reason: string;
@@ -70,10 +72,8 @@ function completeOffer(input: RegionBrief, offer: PatchOffer): boolean {
 }
 function prefixed(label: string, prefix: string): string { return prefix ? `${prefix}/${label}` : label; }
 
-/** Initial decomposition invokes this once per initial brief; its depth starts at zero. */
-export function executeDelegation(input: RegionBrief, registry: ExecutionRegistry, options: ExecutionOptions = {}): DelegationExecutionNode {
-  const maxDepth = options.maxDepth ?? 3;
-  if (!Number.isSafeInteger(maxDepth) || maxDepth < 0) throw new Error('Maximum delegation depth must be a nonnegative integer.');
+/** Dispatch owns execution only; patch preparation and initial planning supply its partition. */
+function executionDispatcher(registry: ExecutionRegistry, maxDepth: number) {
   const registryVersions: Record<string, string> = {};
   const remember = (type: string): ExecutionBuilder => {
     if (!Object.hasOwn(registry, type)) throw new Error(`Unknown execution builder ${type}.`);
@@ -83,6 +83,14 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
     Object.defineProperty(registryVersions, type, { value: entry.version, enumerable: true, writable: true, configurable: true });
     return entry;
   };
+  function dispatch(partition: readonly RegionBrief[], depth: number): DelegationExecutionNode[] {
+    return partition.map(brief => {
+      if (depth > 0 && brief.type !== 'empty' && depth <= maxDepth) remember(brief.type);
+      return depth > maxDepth && brief.type !== 'empty'
+        ? emptyNode(brief, depth, 'depth-limit', 'depth-limit')
+        : run(brief, depth);
+    });
+  }
   function run(brief: RegionBrief, depth: number): DelegationExecutionNode {
     if (brief.type === 'empty') return emptyNode(brief, depth, 'explicit-empty', 'explicit-empty');
     const entry = remember(brief.type);
@@ -124,13 +132,7 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
         }
         // Preparation reports a whole content offer as an ordinary infeasible patch.
         // It never dispatches it, and the builder can still use the retained region.
-        const children = prepared.children.map(child => {
-          const requestedType = child.brief.type;
-          if (requestedType !== 'empty' && depth < maxDepth) remember(requestedType);
-          return depth >= maxDepth && requestedType !== 'empty'
-            ? emptyNode(child.brief, depth + 1, 'depth-limit', 'depth-limit')
-            : run(child.brief, depth + 1);
-        });
+        const children = dispatch(prepared.children.map(child => child.brief), depth + 1);
         current = prepared.retained;
         dispatched = { prepared, children };
         return structuredClone(dispatched);
@@ -169,12 +171,34 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
     if (offers) { node.offers = offers; node.policyData = policyData!; node.preparation = dispatched!.prepared; node.children = dispatched!.children; }
     return node;
   }
+  return { dispatch, registryVersions };
+}
+
+/** Initial decomposition invokes this once per initial brief; its depth starts at zero. */
+export function executeDelegation(input: RegionBrief, registry: ExecutionRegistry, options: ExecutionOptions = {}): DelegationExecutionNode {
+  const maxDepth = options.maxDepth ?? 3;
+  if (!Number.isSafeInteger(maxDepth) || maxDepth < 0) throw new Error('Maximum delegation depth must be a nonnegative integer.');
+  const { dispatch, registryVersions } = executionDispatcher(registry, maxDepth);
   const canonicalInput = canonicalDelegationBrief(input);
-  const result = run(canonicalInput, 0);
+  const result = dispatch([canonicalInput], 0)[0]!;
   result.registryVersions = registryVersions;
   result.maxDepth = maxDepth;
   if (options.observe) visitEvents(result, options.observe);
   return result;
+}
+
+/**
+ * Dispatch an already validated initial partition in planner order, without patch
+ * preparation or receiving checks. IDs, seeds and interfaces belong to the planner.
+ * Each child starts at depth zero and remains an independently recoverable root.
+ */
+export function dispatchDelegationPartition(input: RegionBrief, partition: readonly RegionBrief[],
+  registry: ExecutionRegistry, options: ExecutionOptions = {}): DelegationPartitionExecution {
+  const canonicalInput = canonicalDelegationBrief(input);
+  const { observe, ...executionOptions } = options;
+  const children = partition.map(brief => executeDelegation(brief, registry, executionOptions));
+  if (observe) for (const child of children) visitEvents(child, observe, child.input.id);
+  return { input: canonicalInput, children };
 }
 
 function visitEvents(node: DelegationExecutionNode, observe: BuildingObserver, prefix = ''): void {
@@ -191,6 +215,15 @@ export function executionLeaves(node: DelegationExecutionNode): BuiltRegion[] {
 
 /** Runtime view from saved generation objects; it never needs today's registry. */
 export function flattenDelegationResult(node: DelegationExecutionNode): BuiltRegion {
+  return flattenExecution(node.input, [{ node, prefix: '' }]);
+}
+
+/** Gather initial owners using the same absolute labels and manifest as patch children. */
+export function flattenDelegationPartition(partition: DelegationPartitionExecution): BuiltRegion {
+  return flattenExecution(partition.input, partition.children.map(node => ({ node, prefix: node.input.id })));
+}
+
+function flattenExecution(input: RegionBrief, roots: readonly { node: DelegationExecutionNode; prefix: string }[]): BuiltRegion {
   const elements: BuiltRegion['elements'] = [], coreElements: BuiltRegion['coreElements'] = [], loot: BuiltRegion['loot'] = [];
   const additive = ['structures', 'obstacles', 'gates', 'attempted', 'rejected'];
   const counts: Record<string, number> = Object.fromEntries(additive.map(k => [k, 0]));
@@ -201,9 +234,9 @@ export function flattenDelegationResult(node: DelegationExecutionNode): BuiltReg
     for (const key of additive) if (Number.isFinite(at.retained.manifest[key])) counts[key]! += at.retained.manifest[key]!;
     if (at.actualBuilder !== 'empty') for (const child of at.children ?? []) gather(child, child.input.id);
   }
-  gather(node, '');
-  return { version: 'region-2', brief: structuredClone(node.input), elements, coreElements, loot,
-    manifest: { cells: node.input.cells.length, structures: counts.structures!, obstacles: counts.obstacles!,
+  for (const { node, prefix } of roots) gather(node, prefix);
+  return { version: 'region-2', brief: structuredClone(input), elements, coreElements, loot,
+    manifest: { cells: input.cells.length, structures: counts.structures!, obstacles: counts.obstacles!,
       gates: counts.gates!, loot: loot.length, coreElements: coreElements.length,
       ...(counts.attempted ? { attempted: counts.attempted } : {}),
       ...(counts.rejected ? { rejected: counts.rejected } : {}) } };
