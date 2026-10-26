@@ -43,7 +43,8 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 
 | File | Holds |
 | --- | --- |
-| [11-product-intent.md](11-product-intent.md) | Premise, the milestone's success condition, spatial and control intent, match loops |
+| [11-product-intent.md](11-product-intent.md) | Premise, the milestone's success condition, spatial and control intent, presentation target, match loops |
+| [11.1-world-and-art-direction.md](11.1-world-and-art-direction.md) | World identity, derelict urban setting, three-layer damage history, palettes, nocturnal theatrical lighting, flat 2D readability, validation criteria (#581) |
 | [12-player-requirements.md](12-player-requirements.md) | P-01 – P-16, the non-negotiable player requirements, with roles and kits |
 | [13-accepted-features.md](13-accepted-features.md) | F-01 – F-18, accepted direction and per-feature implementation status |
 | [14-match-rules.md](14-match-rules.md) | Implemented defaults: capacities, inventory, objective, traps, timings, lifecycle |
@@ -78,7 +79,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | [29.1-physics-design.md](29.1-physics-design.md) | Proposed rigid bodies, character contact, middleware evaluation, springs/hooks and physical item contracts |
 | [29.2-physics-state-networking.md](29.2-physics-state-networking.md) | Experimental physics tick/state contracts, private live projections, engine-free playback and bounded local prediction (#441); default rollout remains proposed |
 | [29.3-shape-construction-and-assembly.md](29.3-shape-construction-and-assembly.md) | Shape construction (union, subtraction, convex pieces) and placeable element assemblies |
-| [29.4-drawing.md](29.4-drawing.md) | How drawing is cached, drawing planes, roofs and canopies |
+| [29.4-drawing.md](29.4-drawing.md) | How drawing is cached, drawing planes, roofs and canopies, palettes (#582) and the constraints on art passes |
 
 ### 3x — Process
 
@@ -95,6 +96,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | --- | --- |
 | [41-roadmap.md](41-roadmap.md) | Completed boundaries, the next implementation boundaries, and sequencing |
 | [41.1-physics-plan.md](41.1-physics-plan.md) | Physics/equipment issue sequence, comparison workloads, provisional tuning and rollout gates |
+| [41.2-art-direction-plan.md](41.2-art-direction-plan.md) | Technical art sequence: rendered readability witnesses, one composed street slice, appearance/lighting adoption and signature-default promotion gates (#581–#587) |
 | [42-performance-history.md](42-performance-history.md) | Measured baselines and their limits, from completed verification passes |
 | [42.1-navigation-experiment.md](42.1-navigation-experiment.md) | Safe local graph experiment (#364), passage failures and measured hierarchy costs |
 | [42.2-runtime-performance.md](42.2-runtime-performance.md) | Runtime, privacy, crowd, rendering and live-match measurements, with historical checkpoint routes |

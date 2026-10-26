@@ -13,6 +13,7 @@ import { readPresentation } from '/shared/presentation.ts';
 import { DEFAULT_KIT } from '/shared/simulation/rules.ts';
 import { PHYSICS_CHARACTER_VERSION } from '/shared/simulation/actor-physics.ts';
 import { downloadJson } from '/download.js';
+import { THEMES, DEFAULT_THEME, themeColors, css } from '/palette.js';
 import { $, HZ, INTERPOLATION_DELAY_TICKS, kitName, time, fillFollowOptions, fillKitOptions } from '/ui.js';
 
 const icon = name => `<i data-lucide="${name}"></i>`;
@@ -428,8 +429,23 @@ function updateHUD() {
   showPlayerHud();
 }
 
+// The arena's palette (11.1): `?palette=` names one, or the dev view's menu picks one. It is this
+// browser's choice alone and only recolours the drawing; no simulation, wire or recording sees it.
+const PALETTE_KEY = 'last-exit:palette';
+let palette = (() => {
+  const asked = new URLSearchParams(location.search).get('palette');
+  if (Object.hasOwn(THEMES, asked ?? '')) return asked;
+  try { const saved = localStorage.getItem(PALETTE_KEY); if (Object.hasOwn(THEMES, saved ?? '')) return saved; } catch { /* Storage may be unavailable. */ }
+  return DEFAULT_THEME;
+})();
+function choosePalette(id) {
+  palette = Object.hasOwn(THEMES, id) ? id : DEFAULT_THEME;
+  try { localStorage.setItem(PALETTE_KEY, palette); } catch { /* Storage may be unavailable. */ }
+  $('dev-palette').value = palette; scene?.setPalette(palette);
+}
 let scene;
 const ArenaScene = makeArenaScene({
+  palette: () => palette,
   map: () => arenaMap, state: () => presentationFrame(), playerId: () => playerId,
   self: () => !replayController.active() && predicted ? predicted : state?.players.find(p => p.id === playerId) || null,
   localPhysics: () => !directed() && !!state?.physicsProfile,
@@ -773,11 +789,14 @@ addEventListener('keydown', event => {
 $('dev-focus').onchange = () => director.setFollow($('dev-focus').value);
 $('dev-fog').onclick = () => director.setFog(!director.fog());
 $('dev-whole').onclick = () => director.whole();
+for (const [id, { label }] of Object.entries(THEMES)) $('dev-palette').add(new Option(label, id));
+$('dev-palette').value = palette;
+$('dev-palette').onchange = event => { choosePalette(event.currentTarget.value); event.currentTarget.blur(); };
 // Focus would leave Space pressing this button as well as toggling the pause, which cancels out.
 $('dev-pause').onclick = event => { togglePause(); event.currentTarget.blur(); };
 $('watch-match').onclick = () => { if (savedReplay) watchReplay(savedReplay.id); };
 icons();
-const game = new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: '#253f3f', antialias: true, scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' }, scene: ArenaScene, audio: { noAudio: true }, render: { preserveDrawingBuffer: true } });
+const game = new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: css(themeColors(palette).background), antialias: true, scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' }, scene: ArenaScene, audio: { noAudio: true }, render: { preserveDrawingBuffer: true } });
 // Phaser's own render pass runs after the scene's update, outside render.frame. It is where Graphics
 // are tessellated and batched, so it must be timed separately or draw cost is invisible here.
 game.events.on('prerender', () => profiler.start('render.draw'));
@@ -827,7 +846,7 @@ window.arenaProfiling = setProfiling;
 // tooling will grow from, and what the tests drive.
 window.arenaSpectate = () => connect({ room: roomId, key: ownerKey, role: 'spectator' });
 // Read-only inspection surface for reproducible browser smoke tests.
-window.arenaDebug = () => ({ tick: state?.tick, version: state?.version, room: roomId, content: displayPresentation()?.contentId ?? null, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: director.followId(), dev: inDevView(), devFeed: !!devFeed, view: currentView(), paused, fog: director.fog(), viewer: director.viewer()?.id ?? null, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y, geometry: { visible: a.geometry.visible, scale: a.geometry.scaleX, commands: a.geometry.visible ? a.geometry.commandBuffer : [] } })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, map: arenaMap && { seed: arenaMap.seed, width: arenaMap.width, height: arenaMap.height, playableArea: arenaMap.playableArea, exit: arenaMap.exit, spawns: arenaMap.spawns, hunterSpawns: arenaMap.hunterSpawns, stations: arenaMap.stations.map(({ x, y }) => ({ x, y })), chargers: arenaMap.chargers.map(({ x, y }) => ({ x, y })) }, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
+window.arenaDebug = () => ({ tick: state?.tick, palette, version: state?.version, room: roomId, content: displayPresentation()?.contentId ?? null, directed: directed(), spectating: !!state && !playerId, shots: scene?.shots, me: state?.players.find(p => p.id === playerId), replay: replayController.active(), follow: director.followId(), dev: inDevView(), devFeed: !!devFeed, view: currentView(), paused, fog: director.fog(), viewer: director.viewer()?.id ?? null, phase: state?.phase, actorCount: scene?.actors.size, roofs: scene && [...scene.roofs].map(([id, roof]) => ({ id, visible: roof.visible })), actors: scene && [...scene.actors].map(([id, a]) => ({ id, visible: a.container.visible, x: a.container.x, y: a.container.y, geometry: { visible: a.geometry.visible, scale: a.geometry.scaleX, commands: a.geometry.visible ? a.geometry.commandBuffer : [] } })), markerScale: scene?.marker, aim: inputController.aim(), cameraWidth: scene?.cameras.main.worldView.width, cameraHeight: scene?.cameras.main.worldView.height, camera: scene && { x: scene.cameras.main.worldView.x, y: scene.cameras.main.worldView.y, zoom: scene.cameras.main.zoom }, mapWidth: arenaMap?.width, map: arenaMap && { seed: arenaMap.seed, width: arenaMap.width, height: arenaMap.height, playableArea: arenaMap.playableArea, exit: arenaMap.exit, spawns: arenaMap.spawns, hunterSpawns: arenaMap.hunterSpawns, stations: arenaMap.stations.map(({ x, y }) => ({ x, y })), chargers: arenaMap.chargers.map(({ x, y }) => ({ x, y })) }, vision: scene?.visionPoints, predicted: predicted && { x: predicted.x, y: predicted.y }, buffer: snapshots.stats(),
   discoveredCount: discoveryDecoder?.known.size ?? 0,
   physicsPrediction: physicsPrediction?.stats() ?? null,
   pending: pending.length, inputStalled: state?.players.find(p => p.id === playerId)?.inputStalled ?? null, rtt: roundTripMs });
