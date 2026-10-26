@@ -67,6 +67,7 @@ type Box = { x: number; y: number; w: number; h: number };
  * portal approaches; concave masks also protect a hunter corridor. Pieces commit through the
  * builder canvas (20.2), whose siting queries they were accepted with, so a refusal is a defect.
  * A region with no contained `MIN_SIDE` square goes to `open` (17 M24).
+ * Residual machinery bands then receive crates, preserving skipped/shed slots, aisles and a local hunter bypass (20.3.4).
  *
  * Loot rolls each cell's chance and takes the cell's tier, wherever a loot disc stands clear of
  * every piece, indoors or out. A plant sites no core elements; any the brief lists are left for
