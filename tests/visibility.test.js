@@ -3,6 +3,8 @@
 import { generateMap } from '../shared/map.ts';
 import { visibilityPolygon, litPoint, lineClear, canOccupy, VISION } from '../shared/movement.ts';
 import { outline, shapeOf } from '../shared/shape.ts';
+// Exact agreement needs the same trig as shared/; Math.* differs from it in the last bit on ARM (#566).
+import { atan2, cos, sin } from '../shared/math.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 // The rays below are deliberately an independent implementation — that is what this test guards.
@@ -23,9 +25,9 @@ function reference(map, origin, radius = VISION) {
   const all = [...map.obstacles.filter(o => o.kind !== 'window').flatMap(edgesOf), ...map.gates.filter(g => !g.open).flatMap(g => edgesOf(gateShape(g)))];
   const segments = all.filter(({ a, b }) => Math.min(a.x, b.x) < origin.x + radius && Math.max(a.x, b.x) > origin.x - radius && Math.min(a.y, b.y) < origin.y + radius && Math.max(a.y, b.y) > origin.y - radius);
   const angles = Array.from({ length: 100 }, (_, i) => i * Math.PI / 50 - Math.PI);
-  for (const edge of segments) for (const p of [edge.a, edge.b]) { const ang = Math.atan2(p.y - origin.y, p.x - origin.x); angles.push(ang - 0.00001, ang, ang + 0.00001); }
+  for (const edge of segments) for (const p of [edge.a, edge.b]) { const ang = atan2(p.y - origin.y, p.x - origin.x); angles.push(ang - 0.00001, ang, ang + 0.00001); }
   return angles.sort((a, b) => a - b).map(angle => {
-    const dx = Math.cos(angle), dy = Math.sin(angle); let length = radius;
+    const dx = cos(angle), dy = sin(angle); let length = radius;
     for (const edge of segments) length = Math.min(length, hitRay(origin, dx, dy, edge));
     return { x: origin.x + dx * length, y: origin.y + dy * length };
   });
