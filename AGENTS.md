@@ -18,10 +18,11 @@ owning number, not a heading, in briefs and handoffs. See 00 and 33 for numberin
 
 Use cost-aware delegation proactively when tools and runtime rules permit it.
 Keep architecture, ambiguous diagnosis, cross-system contracts and integration
-review with the lead (Astra when available). Prefer `gpt-6-sol` with medium
-reasoning for bounded implementation/tests; use `gpt-6-luna` with low/medium
-reasoning for mechanical edits and focused inventories. Check actual available
-models; do not silently spawn flagship workers for routine tasks.
+review with the lead (`gpt-6.1-sol` for deep reasoning and broad context). Prefer
+`gpt-6.1-terra` with medium reasoning for bounded implementation/tests; use
+`gpt-6.1-sol` for algorithmically dense or high-invariant tasks and `gpt-6-luna`
+with low/medium reasoning for mechanical edits and focused inventories. Check
+actual available models; do not silently spawn flagship workers for routine tasks.
 
 Delegate only when the task is independently actionable and the lead has useful
 work alongside it. Assign non-overlapping file ownership, supply a compact brief,

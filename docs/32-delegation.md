@@ -8,8 +8,9 @@ deliverables. Delegation should reduce total context/rework, not just elapsed ti
 
 | Work | Preferred owner |
 | --- | --- |
-| Physics ownership, replay/content compatibility, conflicting requirements, uncertain performance causes | Astra lead |
-| Implement an agreed inventory gesture, extract a specified adapter, add meaningful tests for a defined contract | GPT-6 Sol, medium (`gpt-6-sol`) |
+| Physics ownership, replay/content compatibility, conflicting requirements, uncertain performance causes | Lead; GPT-6.1 Sol (`gpt-6.1-sol`) preferred for deep reasoning and broad context |
+| Algorithmic/spatial logic, non-trivial state machines, complex refactors within defined contracts | GPT-6.1 Sol, medium (`gpt-6.1-sol`) |
+| Implement an agreed inventory gesture, extract a specified adapter, add meaningful tests for a defined contract | GPT-6.1 Terra, medium (`gpt-6.1-terra`) |
 | Bounded call-site inventory, mechanical edits, documentation updates with settled facts | GPT-6 Luna, low/medium (`gpt-6-luna`) |
 | Integration review and decisions affecting multiple tasks | Lead |
 
@@ -54,7 +55,7 @@ issue or pull request where the comment was posted in the pickup prompt:
 
 > Read AGENTS.md and the latest handoff comment on issue #N or PR #N. Implement the next ready task within its scope, run its acceptance checks, and post an updated handoff there.
 
-For escalation back to Astra, replace "Implement" with "Review the blocked task,
+For escalation back to the lead, replace "Implement" with "Review the blocked task,
 resolve the cross-system decision, and prepare the next bounded implementation task."
 
 No gameplay task is newly authorized by this workflow document. Consult current
