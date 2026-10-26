@@ -17,6 +17,8 @@ test('the swatches are 11.1\'s canonical palette export', () => {
 test('every theme fills every role the renderer draws', () => {
   const roles = THEMES.prototype.colors;
   assert.equal(themeColors('no-such-palette'), THEMES[DEFAULT_THEME].colors);
+  assert.equal(themeColors('__proto__'), THEMES[DEFAULT_THEME].colors, 'inherited object keys are not palette ids');
+  assert.equal(themeColors('constructor'), THEMES[DEFAULT_THEME].colors, 'inherited constructor is not a palette id');
   for (const [id, { label, colors }] of Object.entries(THEMES)) {
     assert.ok(label, id);
     assert.deepEqual(Object.keys(colors).sort(), Object.keys(roles).sort(), id);
@@ -28,12 +30,12 @@ test('every theme fills every role the renderer draws', () => {
   }
 });
 
-// 11.1 §5.4: colour must never cost the contrast between where you can walk and what blocks you. An
-// obstacle reads by its fill or its outline, whichever differs more from the ground it stands on, and
-// must do so lit and in the out-of-sight shade. The prototype's contrast is the floor, capped at 1.5
-// where the prototype was already clearer, so a night palette may be moodier but never muddier.
-test('no palette blurs walkable surfaces into obstacles, lit or shaded', () => {
-  const blockers = c => ({ wall: c.wall, fence: c.fence, hedge: c.hedge, ruin: c.ruin, glass: c.glass, pipe: c.pipe, rock: c.rockMid, ...Object.fromEntries(c.crates.map((v, i) => [`crate${i}`, v])) });
+// Color regression guard for the opaque fill and outline drawn by rectangular walls, fences and
+// crates (arena-scene.obstacle). Polygon strokes and special shapes have different edges/alpha
+// and need their own rendered-image validation; this is not a perceptual test.
+// Compare each role over ground, street and floor, before and after the nominal 0.46 shade wash.
+test('outlined obstacle roles retain prototype color contrast, lit or shaded', () => {
+  const blockers = c => ({ wall: c.wall, fence: c.fence, ...Object.fromEntries(c.crates.map((v, i) => [`crate${i}`, v])) });
   const shaded = c => Object.fromEntries(Object.entries(c).map(([k, v]) => [k, Array.isArray(v) ? v.map(x => mix(x, c.shade, 0.46)) : mix(v, c.shade, 0.46)]));
   const edge = (c, fill, ground) => Math.max(contrast(fill, c[ground]), contrast(c.outline, c[ground]));
   const muddy = [];

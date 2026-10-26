@@ -114,6 +114,6 @@ export const THEMES = Object.freeze({
 
 export const DEFAULT_THEME = 'prototype';
 /** A theme's colors by id, or the default's for an id that names none. */
-export const themeColors = id => (THEMES[id] ?? THEMES[DEFAULT_THEME]).colors;
+export const themeColors = id => (Object.hasOwn(THEMES, id) ? THEMES[id] : THEMES[DEFAULT_THEME]).colors;
 /** `#rrggbb` for CSS and Phaser's string APIs. */
 export const css = c => `#${c.toString(16).padStart(6, '0')}`;

@@ -103,7 +103,9 @@ What remains, as the owning documents state it:
   [29.4](29.4-drawing.md), separable procedural dimensions in
   [52](52-map-primitives-and-library.md), [54](54-region-types.md) and
   [56](56-buildings.md), and open questions in [17.3](17.3-product-gameplay.md) (#25).
-  Scoped stages: palette registries and prospective palette switcher
+  Delivery order and promotion gates are in [41.2](41.2-art-direction-plan.md):
+  bring readability witnesses forward, prove one composed street slice, then expand.
+  Scoped stages: palette registries and implemented comparison switcher
   (#582), low-cost theatrical
   lighting washes (#583),
   separable procedural identity metadata (#584),

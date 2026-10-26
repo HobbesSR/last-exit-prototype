@@ -96,6 +96,7 @@ have landing links there. See [33](33-maintenance.md) for allocation and migrati
 | --- | --- |
 | [41-roadmap.md](41-roadmap.md) | Completed boundaries, the next implementation boundaries, and sequencing |
 | [41.1-physics-plan.md](41.1-physics-plan.md) | Physics/equipment issue sequence, comparison workloads, provisional tuning and rollout gates |
+| [41.2-art-direction-plan.md](41.2-art-direction-plan.md) | Technical art sequence: rendered readability witnesses, one composed street slice, appearance/lighting adoption and signature-default promotion gates (#581–#587) |
 | [42-performance-history.md](42-performance-history.md) | Measured baselines and their limits, from completed verification passes |
 | [42.1-navigation-experiment.md](42.1-navigation-experiment.md) | Safe local graph experiment (#364), passage failures and measured hierarchy costs |
 | [42.2-runtime-performance.md](42.2-runtime-performance.md) | Runtime, privacy, crowd, rendering and live-match measurements, with historical checkpoint routes |
