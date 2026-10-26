@@ -21,6 +21,7 @@ import { buildPhysicsGeometry, physicsGate } from './physics-geometry.ts';
 import { attachPhysics, physicsRuntime, markPhysicsDiscontinuity, PHYSICS_VERSION, PHYSICS_HOOK_VERSION, PHYSICS_NAVIGATION_VERSION } from './physics-runtime.ts';
 import type { PhysicsRuntime } from './physics-runtime.ts';
 import type { Game, GameMap, MatchContent, Player, Vec2 } from '../types.ts';
+import { cos, hypot, sin } from '../math.ts';
 
 const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const actorId = (p: Player) => `actor:${p.id}`;
@@ -101,12 +102,12 @@ export async function createPhysicsGame(seed = 4217, map?: GameMap, content?: Ma
 function placement(s: Game, r: PhysicsRuntime, p: Player, admitted: Player[], origin: Vec2 = p): Vec2 | null {
   const radius = actorRadius(s, p);
   const free = (x: number, y: number) => canOccupy(s.map, x, y, radius)
-    && admitted.every(q => Math.hypot(x - q.x, y - q.y) >= radius + actorRadius(s, q))
+    && admitted.every(q => hypot(x - q.x, y - q.y) >= radius + actorRadius(s, q))
     && (!s.content.actorPhysics || !r.world.overlapsProp(x, y, radius));
   if (free(origin.x, origin.y)) return { x: origin.x, y: origin.y };
   for (let ring = 1; ring <= 24; ring++) {
     for (let i = 0; i < 32; i++) {
-      const angle = i * Math.PI / 16, x = origin.x + Math.cos(angle) * ring * 4, y = origin.y + Math.sin(angle) * ring * 4;
+      const angle = i * Math.PI / 16, x = origin.x + cos(angle) * ring * 4, y = origin.y + sin(angle) * ring * 4;
       if (free(x, y)) return { x, y };
     }
   }
@@ -128,7 +129,7 @@ function synchronize(s: Game, r: PhysicsRuntime, markTick: number, deferItemAdmi
   const admitted: Player[] = [];
   for (const p of active) {
     const id = actorId(p), current = r.world.getTransform(id);
-    if (current && Math.hypot(current.x - p.x, current.y - p.y) < 1e-6) { admitted.push(p); continue; }
+    if (current && hypot(current.x - p.x, current.y - p.y) < 1e-6) { admitted.push(p); continue; }
     const at = placement(s, r, p, [...admitted, ...active.filter(q => q !== p && r.actors.has(actorId(q)))]);
     if (!at) {
       if (current) { p.x = current.x; p.y = current.y; admitted.push(p); continue; }
@@ -195,7 +196,7 @@ function advancePhysics(s: Game, r: PhysicsRuntime): void {
     const a = r.world.getTransform(attachment.a), b = r.world.getTransform(attachment.b);
     if (a && b && r.actors.has(attachment.a) && r.actors.has(attachment.b)
       && r.world.getGeneration(attachment.a) === attachment.generationA && r.world.getGeneration(attachment.b) === attachment.generationB
-      && Math.hypot(a.x - b.x, a.y - b.y) <= attachment.maxDistance && reachClear(s.map, a, b)) r.world.queueAddConstraint(attachment);
+      && hypot(a.x - b.x, a.y - b.y) <= attachment.maxDistance && reachClear(s.map, a, b)) r.world.queueAddConstraint(attachment);
   }
   r.world.commitMutations();
   // 2: roster-order collection from the same pre-movement world.

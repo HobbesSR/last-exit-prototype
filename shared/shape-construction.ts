@@ -3,6 +3,7 @@ import Delaunator from 'delaunator';
 import Constrainautor from '@kninnug/constrainautor';
 import { CIRCLE_SEGMENTS, bounds, outline, polygon, rect, sharesArea, type Shape } from './shape.ts';
 import type { Vec2 } from './types.ts';
+import { cos, hypot } from './math.ts';
 
 /**
  * Shape construction (29): union, subtraction and intersection over `shape.ts` shapes, and the
@@ -36,7 +37,7 @@ const emptySnap = (): Snap => ({ x: new Map(), y: new Map(), points: new Map(), 
 export function clipPath(shape: Shape): ClipperLib.Path {
   return ringOf(shape.kind === 'circle'
     // Circumscribed: each side touches the circle, so the polygon covers it.
-    ? outline({ ...shape, r: shape.r / Math.cos(Math.PI / CIRCLE_SEGMENTS) })
+    ? outline({ ...shape, r: shape.r / cos(Math.PI / CIRCLE_SEGMENTS) })
     : outline(shape));
 }
 
@@ -59,7 +60,7 @@ function ringOf(points: readonly Vec2[], snap?: Snap, wound = true): ClipperLib.
  */
 function snappedPath(shape: Shape, snap: Snap): ClipperLib.Path {
   if (shape.kind !== 'circle') return ringOf(outline(shape), snap);
-  const path = ringOf(outline({ ...shape, r: shape.r / Math.cos(Math.PI / CIRCLE_SEGMENTS) + 1 / CLIP_SCALE })), points = path.map(p => ({ x: p.X / CLIP_SCALE, y: p.Y / CLIP_SCALE }));
+  const path = ringOf(outline({ ...shape, r: shape.r / cos(Math.PI / CIRCLE_SEGMENTS) + 1 / CLIP_SCALE })), points = path.map(p => ({ x: p.X / CLIP_SCALE, y: p.Y / CLIP_SCALE }));
   snap.edges.push(...edgesOf(points, path));
   return path;
 }
@@ -124,7 +125,7 @@ const OVERLAP = 1e-7;
 const GRID_MARGIN = 2 / CLIP_SCALE;
 /** Bounds wide enough for a shape's outline on the grid, a circle's wider polygon included, and `margin` more. */
 function gridBounds(shape: Shape, margin = 0): ReturnType<typeof bounds> {
-  const box = bounds(shape.kind === 'circle' ? { ...shape, r: shape.r / Math.cos(Math.PI / CIRCLE_SEGMENTS) } : shape), pad = 2 / CLIP_SCALE + margin;
+  const box = bounds(shape.kind === 'circle' ? { ...shape, r: shape.r / cos(Math.PI / CIRCLE_SEGMENTS) } : shape), pad = 2 / CLIP_SCALE + margin;
   return { x: box.x - pad, y: box.y - pad, w: box.w + 2 * pad, h: box.h + 2 * pad };
 }
 const boxesMeet = (a: ReturnType<typeof bounds>, b: ReturnType<typeof bounds>) =>
@@ -206,7 +207,7 @@ function cornerOf(p: ClipperLib.IntPoint, snap: Snap): Vec2 {
   const near = snap.edges.filter(({ A, B }) => {
     const dx = B.X - A.X, dy = B.Y - A.Y, n = dx * dx + dy * dy;
     const t = n ? Math.max(0, Math.min(1, ((p.X - A.X) * dx + (p.Y - A.Y) * dy) / n)) : 0;
-    return Math.hypot(p.X - A.X - t * dx, p.Y - A.Y - t * dy) <= 1;
+    return hypot(p.X - A.X - t * dx, p.Y - A.Y - t * dy) <= 1;
   });
   const px = p.X / CLIP_SCALE, py = p.Y / CLIP_SCALE;
   const fixed = (q: Vec2, ...on: InputEdge[]): Vec2 => {
@@ -219,7 +220,7 @@ function cornerOf(p: ClipperLib.IntPoint, snap: Snap): Vec2 {
   for (let i = 0; i < near.length; i++) for (let j = i + 1; j < near.length; j++) {
     const grid = crossing(near[i]!.A, near[i]!.B, near[j]!.A, near[j]!.B);
     if (!grid) continue;
-    const off = Math.hypot(grid.x - p.X, grid.y - p.Y);
+    const off = hypot(grid.x - p.X, grid.y - p.Y);
     if (off >= distance) continue;
     const q = crossing(near[i]!.a, near[i]!.b, near[j]!.a, near[j]!.b);
     if (q) { best = fixed(q, near[i]!, near[j]!); distance = off; }

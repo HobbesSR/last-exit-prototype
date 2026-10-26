@@ -3,6 +3,7 @@ import { closestOnSegment, entry, freeSpaceTile, packTiles, pullTaut, type FreeT
 import { navigationClearance } from '../map/navigation.ts';
 import type { Box, CollisionMap, DiscoveryMemory, GateId, GateObservation, Role, Vec2, World } from '../types.ts';
 import { Heap } from './portal-graph.ts';
+import { hypot } from '../math.ts';
 
 /**
  * What one contestant may plan with (22.6, "Knowledge and optimistic planning"). The map is cut
@@ -174,7 +175,7 @@ export function createKnowledgePlanner(map: CollisionMap, role: Role) {
       for (const c of support(cell)) {
         const tile = tileAt(c), found = tile && entry(tile, p, clearance + 1);
         if (!found) continue;
-        const d = Math.hypot(found.point.x - p.x, found.point.y - p.y);
+        const d = hypot(found.point.x - p.x, found.point.y - p.y);
         if (d < distance) { distance = d; best = { cell: c, tri: found.triangle, point: { x: found.point.x, y: found.point.y }, moved: found.point !== p }; }
       }
       return best;
@@ -188,14 +189,14 @@ export function createKnowledgePlanner(map: CollisionMap, role: Role) {
       const old = states.get(key);
       if (old && old.g <= state.g || closed.has(key)) return;
       states.set(key, state);
-      heap.push({ f: state.g + Math.hypot(goal.point.x - state.x, goal.point.y - state.y), g: state.g, node: key });
+      heap.push({ f: state.g + hypot(goal.point.x - state.x, goal.point.y - state.y), g: state.g, node: key });
     };
     /** Enter a place through portal `p`–`q` from the state `parent` at `at`: costed to the portal's nearest point. */
     const enter = (parent: number, at: State, cell: number, tri: number, used: number, p: Vec2, q: Vec2, confirmed: boolean, spent: GateId[]) => {
       const centre = centreOf(cell, tri), crossing = closestOnSegment(at, p, q);
       const left = (q.x - p.x) * (centre.y - p.y) - (q.y - p.y) * (centre.x - p.x) > 0;
       relax(keyOf(cell, tri, used), {
-        g: at.g + Math.hypot(crossing.x - at.x, crossing.y - at.y), x: crossing.x, y: crossing.y, parent,
+        g: at.g + hypot(crossing.x - at.x, crossing.y - at.y), x: crossing.x, y: crossing.y, parent,
         portal: left ? [p.x, p.y, q.x, q.y] : [q.x, q.y, p.x, p.y], confirmed: at.confirmed && confirmed, spent,
       });
     };
@@ -252,10 +253,10 @@ export function createKnowledgePlanner(map: CollisionMap, role: Role) {
         closed.add(key);
         expansions++; n++;
         const at = states.get(key)!, used = key % USED, place = Math.floor(key / USED), cell = Math.floor(place / TRI), tri = place % TRI - 1;
-        const h = Math.hypot(goal.point.x - at.x, goal.point.y - at.y);
+        const h = hypot(goal.point.x - at.x, goal.point.y - at.y);
         if (h < nearestH) { nearestH = h; nearest = key; }
         if (goalKey(cell, tri)) {
-          const g2 = at.g + Math.hypot(goal.point.x - at.x, goal.point.y - at.y), old = states.get(GOAL);
+          const g2 = at.g + hypot(goal.point.x - at.x, goal.point.y - at.y), old = states.get(GOAL);
           if (!old || g2 < old.g) { states.set(GOAL, { g: g2, x: goal.point.x, y: goal.point.y, parent: key, portal: null, confirmed: at.confirmed, spent: [] }); heap.push({ f: g2, g: g2, node: GOAL }); }
         }
         const through = gatesOf(cell, tri);
@@ -315,7 +316,7 @@ export function createKnowledgePlanner(map: CollisionMap, role: Role) {
       if (start.moved) prefix = [{ x: from.x, y: from.y }, ...prefix];
       if (firstUnconfirmed < 0 && end === GOAL && goal.moved) prefix = [...prefix, { x: to.x, y: to.y }];
       let length = 0;
-      for (let i = 1; i < points.length; i++) length += Math.hypot(points[i]!.x - points[i - 1]!.x, points[i]!.y - points[i - 1]!.y);
+      for (let i = 1; i < points.length; i++) length += hypot(points[i]!.x - points[i - 1]!.x, points[i]!.y - points[i - 1]!.y);
       const status: KnownRouteStatus = end !== GOAL ? 'budget-exhausted' : firstUnconfirmed < 0 ? 'complete' : 'speculative';
       return { ...result(status, expansions), points, length, prefix, doors: chain.flatMap(s => s.spent) };
     };
@@ -390,12 +391,12 @@ function cutAt(path: readonly Vec2[], portals: readonly [number, number, number,
 function meet(a: Vec2, b: Vec2, c: Vec2, d: Vec2): Vec2 | null {
   const rx = b.x - a.x, ry = b.y - a.y, sx = d.x - c.x, sy = d.y - c.y, den = rx * sy - ry * sx;
   const eps = 1e-6;
-  if (Math.abs(den) > eps * Math.hypot(rx, ry) * Math.hypot(sx, sy)) {
+  if (Math.abs(den) > eps * hypot(rx, ry) * hypot(sx, sy)) {
     const t = ((c.x - a.x) * sy - (c.y - a.y) * sx) / den, u = ((c.x - a.x) * ry - (c.y - a.y) * rx) / den;
-    const tol = eps / Math.max(eps, Math.hypot(rx, ry)), tolU = eps / Math.max(eps, Math.hypot(sx, sy));
+    const tol = eps / Math.max(eps, hypot(rx, ry)), tolU = eps / Math.max(eps, hypot(sx, sy));
     return t >= -tol && t <= 1 + tol && u >= -tolU && u <= 1 + tolU ? { x: a.x + t * rx, y: a.y + t * ry } : null;
   }
   // Parallel: the path runs along the portal, meeting it at its first point on it.
-  for (const p of [a, b]) { const n = closestOnSegment(p, c, d); if (Math.hypot(n.x - p.x, n.y - p.y) <= eps) return p; }
+  for (const p of [a, b]) { const n = closestOnSegment(p, c, d); if (hypot(n.x - p.x, n.y - p.y) <= eps) return p; }
   return null;
 }

@@ -6,10 +6,11 @@ import { physicsRuntime } from './physics-runtime.ts';
 import { visiblePoint, visibleTo } from './visibility.ts';
 import type { CollisionMap, Game, Player, Vec2 } from '../types.ts';
 import type { BodySpec, Transform } from '../physics/types.ts';
+import { cos, hypot, sin } from '../math.ts';
 
 // Local overlays never enter the static mesh, discovery, snapshots or replay state.
 const RANGE = 192, MARGIN = 2, EDGES_PER_BOT = 192, EDGES_PER_TICK = 1536;
-const distance = (a: Vec2, b: Vec2) => Math.hypot(a.x - b.x, a.y - b.y);
+const distance = (a: Vec2, b: Vec2) => hypot(a.x - b.x, a.y - b.y);
 interface Detour { goal: Vec2; last: Vec2; route: Vec2[]; source: Player['route'] }
 interface ObservedBody { kind: 'actor' | 'prop'; shape: Shape }
 const detours = new WeakMap<Player, Detour>();
@@ -40,7 +41,7 @@ function observations(s: Game, p: Player): ObservedBody[] {
     else {
       const points = shape.kind === 'box' ? [{ x: -shape.hx, y: -shape.hy }, { x: shape.hx, y: -shape.hy },
         { x: shape.hx, y: shape.hy }, { x: -shape.hx, y: shape.hy }] : shape.vertices;
-      const c = Math.cos(at.angle), sn = Math.sin(at.angle);
+      const c = cos(at.angle), sn = sin(at.angle);
       bodies.push({ kind: 'prop', shape: { kind: 'polygon', x: at.x, y: at.y, points: points.map(q => ({ x: c * q.x - sn * q.y, y: sn * q.x + c * q.y })) } });
     }
   }

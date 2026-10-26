@@ -1,6 +1,7 @@
 import { lineClear } from '../movement.ts';
 import type { Game, Vec2 } from '../types.ts';
 import { enqueuePhysicsImpulse, physicsRuntime } from './physics-runtime.ts';
+import { hypot } from '../math.ts';
 
 /** Queue the physical part of a mine blast for the next physics tick. */
 export function enqueueExplosionImpulses(s: Game, origin: Vec2, radius: number): void {
@@ -16,7 +17,7 @@ export function enqueueExplosionImpulses(s: Game, origin: Vec2, radius: number):
     .sort((a, b) => a.spec.id < b.spec.id ? -1 : a.spec.id > b.spec.id ? 1 : 0);
   for (const body of bodies) {
     const dx = body.transform.x - origin.x, dy = body.transform.y - origin.y;
-    const distance = Math.hypot(dx, dy);
+    const distance = hypot(dx, dy);
     if (distance >= radius || !lineClear(s.map, origin, body.transform)) continue;
     const magnitude = tuning.maxImpulse * (1 - distance / radius);
     if (!(magnitude > 0)) continue;

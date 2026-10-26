@@ -1,6 +1,7 @@
 import SAT from 'sat';
 import type { Circle, Polygon, Response } from 'sat';
 import type { Box, Vec2, World } from './types.ts';
+import { cos, hypot, sin } from './math.ts';
 
 /**
  * The vector description of one piece of world geometry, and the only place the arena says what a
@@ -84,7 +85,7 @@ export function nearBounds(box: Box, x: World, y: World, radius: World): boolean
 export function outline(shape: Shape): Vec2[] {
   if (shape.kind === 'circle') {
     const step = Math.PI * 2 / CIRCLE_SEGMENTS;
-    return Array.from({ length: CIRCLE_SEGMENTS }, (_, i) => ({ x: shape.x + Math.cos(i * step) * shape.r, y: shape.y + Math.sin(i * step) * shape.r }));
+    return Array.from({ length: CIRCLE_SEGMENTS }, (_, i) => ({ x: shape.x + cos(i * step) * shape.r, y: shape.y + sin(i * step) * shape.r }));
   }
   if (shape.kind === 'rect') {
     return [{ x: shape.x, y: shape.y }, { x: shape.x + shape.w, y: shape.y },
@@ -158,7 +159,7 @@ export function separate(moving: Circle, shape: Shape, target: Circle | Polygon,
 
 /** Is a world point inside the shape? */
 export function contains(shape: Shape, x: World, y: World, cached?: Circle | Polygon): boolean {
-  if (shape.kind === 'circle') return Math.hypot(x - shape.x, y - shape.y) <= shape.r;
+  if (shape.kind === 'circle') return hypot(x - shape.x, y - shape.y) <= shape.r;
   if (shape.kind === 'rect') return x >= shape.x && x <= shape.x + shape.w && y >= shape.y && y <= shape.y + shape.h;
   return SAT.pointInPolygon(vec(x, y), (cached || body(shape)) as Polygon);
 }
@@ -191,11 +192,11 @@ export function transform(shape: Shape, dx: World = 0, dy: World = 0, angle = 0)
     return polygon(shape.x + dx, shape.y + dy, shape.points);
   }
   if (shape.kind === 'circle') return circle(shape.x + dx, shape.y + dy, shape.r);
-  const cos = Math.cos(angle), sin = Math.sin(angle);
+  const c = cos(angle), s = sin(angle);
   const local = shape.kind === 'rect'
     ? [{ x: 0, y: 0 }, { x: shape.w, y: 0 }, { x: shape.w, y: shape.h }, { x: 0, y: shape.h }]
     : shape.points;
-  return polygon(shape.x + dx, shape.y + dy, local.map(point => ({ x: point.x * cos - point.y * sin, y: point.x * sin + point.y * cos })));
+  return polygon(shape.x + dx, shape.y + dy, local.map(point => ({ x: point.x * c - point.y * s, y: point.x * s + point.y * c })));
 }
 
 /**
@@ -224,7 +225,7 @@ export function segmentShapeDistance(a: Vec2, b: Vec2, shape: Shape): number {
   const pointDistance = (p: Vec2, c: Vec2, d: Vec2): number => {
     const dx = d.x - c.x, dy = d.y - c.y, n = dx * dx + dy * dy;
     const t = n ? Math.max(0, Math.min(1, ((p.x - c.x) * dx + (p.y - c.y) * dy) / n)) : 0;
-    return Math.hypot(p.x - c.x - t * dx, p.y - c.y - t * dy);
+    return hypot(p.x - c.x - t * dx, p.y - c.y - t * dy);
   };
   if (shape.kind === 'circle') return Math.max(0, pointDistance(shape, a, b) - shape.r);
   if (contains(shape, a.x, a.y) || contains(shape, b.x, b.y)) return 0;

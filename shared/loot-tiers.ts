@@ -1,4 +1,5 @@
 import type { Game, GameMap, InventoryItem, MatchContent, Vec2 } from './types.ts';
+import { hypot } from './math.ts';
 
 /**
  * The shared spatial reward/danger selector (F-12, F-15; 14 "Weapon quality").
@@ -67,7 +68,7 @@ export function assignWeaponQualities(s: Game): void {
   if (!mixes) return;
   for (const item of s.map.items) {
     if (item.kind !== 'weapon' || item.quality !== undefined) continue;
-    const starter = s.map.spawns.some(spawn => Math.hypot(item.x - spawn.x, item.y - spawn.y) <= STARTER_RESERVE);
+    const starter = s.map.spawns.some(spawn => hypot(item.x - spawn.x, item.y - spawn.y) <= STARTER_RESERVE);
     item.quality = starter ? 1 : qualityFromWeights(mixes[spatialMix(virtualZone(s.map, item)) - 1]!, itemRoll(s.seed, item.id));
   }
 }

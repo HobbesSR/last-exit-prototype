@@ -1,5 +1,6 @@
 import { bodyRadius } from '../movement.ts';
 import type { ActorPhysics, Game, GameMap, MotorSurface, Player, Vec2 } from '../types.ts';
+import { hypot } from '../math.ts';
 
 export const PHYSICS_CHARACTER_VERSION = 'last-exit-0.8-physics-2';
 export const DEFAULT_CHARACTER_MOTOR = Object.freeze({ acceleration: 3600, braking: 3600 });
@@ -32,7 +33,7 @@ export function actorMotor(s: Game, p: Player, x: number, y: number, speed: numb
 /** Shared motor calculation for the authoritative solver and local prediction. */
 export function characterMotor(profile: Pick<ActorPhysics, 'acceleration' | 'braking'> | undefined,
   surfaces: MotorSurface[] | undefined, p: Vec2, x: number, y: number, speed: number): { x: number; y: number; accel: number } {
-  const length = Math.max(1, Math.hypot(x, y));
+  const length = Math.max(1, hypot(x, y));
   const surface = profile ? surfaces?.filter(f => p.x >= f.x && p.x < f.x + f.w && p.y >= f.y && p.y < f.y + f.h)
     .sort((a, b) => b.priority - a.priority || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0] : undefined;
   const moving = x !== 0 || y !== 0;

@@ -5,6 +5,7 @@ import { finite } from './numbers.ts';
 import { shapeOf, bounds, nearBounds, edgesOf, body, separate, segmentShapeDistance, rect } from './shape.ts';
 import type { Bounded, Edge, Shape } from './shape.ts';
 import type { Box, CollisionMap, GateId, Obstacle, PlayableArea, Player, PlayerInput, Vec2, World } from './types.ts';
+import { atan2, cos, hypot, sin } from './math.ts';
 
 // Geometry is described once in `shape.ts` and consumed here. This module owns what the simulation
 // does with a shape -- occupancy, the movement sweep and sight -- not what a shape is.
@@ -134,12 +135,13 @@ export function insideMap(map: Pick<CollisionMap, 'width' | 'height' | 'playable
       if (occupiedCell(area, col, row)) continue;
       const nearX = Math.max(col * size, Math.min((col + 1) * size, x));
       const nearY = Math.max(row * size, Math.min((row + 1) * size, y));
-      if ((x - nearX) ** 2 + (y - nearY) ** 2 < radius ** 2) return false;
+      const ex = x - nearX, ey = y - nearY;
+      if (ex * ex + ey * ey < radius * radius) return false;
     }
     return true;
   }
   const hx = map.width / 2 - 40, hy = map.height / 2 - 40;
-  return Math.abs(x - map.width / 2) / hx + Math.abs(y - map.height / 2) / hy + radius * Math.hypot(1 / hx, 1 / hy) <= 1;
+  return Math.abs(x - map.width / 2) / hx + Math.abs(y - map.height / 2) / hy + radius * hypot(1 / hx, 1 / hy) <= 1;
 }
 export function canOccupy(map: CollisionMap, x: World, y: World, radius: World = 12, ignoreGates = false, projectile = false): boolean {
   count('calls.canOccupy');
@@ -225,7 +227,7 @@ export function moveBody<T extends Vec2>(map: CollisionMap, p: T, input: { x?: n
     return p;
   }
   const x = finite(input.x) ? input.x : 0, y = finite(input.y) ? input.y : 0;
-  const norm = Math.max(1, Math.hypot(x, y));
+  const norm = Math.max(1, hypot(x, y));
   const circle = new SAT.Circle(vec(p.x + x / norm * speed, p.y + y / norm * speed), radius);
   const response = new SAT.Response();
   const colliders: Collider[] = [...nearbyShapes(map, circle.pos.x, circle.pos.y, radius + speed)].filter(o => nearBounds(o.box, circle.pos.x, circle.pos.y, radius + speed));
@@ -246,7 +248,7 @@ export function moveBody<T extends Vec2>(map: CollisionMap, p: T, input: { x?: n
     // A deep-void start has no well-defined SAT escape direction. Keep the last valid placement.
     if (!insideMap(map, circle.pos.x, circle.pos.y, radius)) { circle.pos.x = p.x; circle.pos.y = p.y; }
   } else {
-    const hx = map.width / 2 - 40, hy = map.height / 2 - 40, len = Math.hypot(1 / hx, 1 / hy);
+    const hx = map.width / 2 - 40, hy = map.height / 2 - 40, len = hypot(1 / hx, 1 / hy);
     for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
       const excess = sx * (circle.pos.x - map.width / 2) / hx + sy * (circle.pos.y - map.height / 2) / hy + radius * len - 1;
       if (excess > 0) { circle.pos.x -= excess * sx / hx / (len * len); circle.pos.y -= excess * sy / hy / (len * len); }
@@ -279,7 +281,7 @@ function hitRay(origin: Vec2, dx: number, dy: number, edge: Edge): number {
 }
 export function lineClear(map: CollisionMap, a: Vec2, b: Vec2, ignoreGateId: GateId | null = null): boolean {
   count('calls.lineClear');
-  const length = Math.hypot(b.x - a.x, b.y - a.y);
+  const length = hypot(b.x - a.x, b.y - a.y);
   if (length < 0.01) return true;
   const dx = (b.x - a.x) / length, dy = (b.y - a.y) / length;
   const edges = sightEdges(map);
@@ -292,7 +294,7 @@ export function lineClear(map: CollisionMap, a: Vec2, b: Vec2, ignoreGateId: Gat
 // Hands and dropped equipment cannot pass through a window or pipe even though sight and shots can.
 export function reachClear(map: CollisionMap, a: Vec2, b: Vec2): boolean {
   if (!lineClear(map, a, b)) return false;
-  const length = Math.hypot(b.x - a.x, b.y - a.y);
+  const length = hypot(b.x - a.x, b.y - a.y);
   if (length < 0.01) return true;
   const dx = (b.x - a.x) / length, dy = (b.y - a.y) / length;
   return !geometry(map).shapes.some(o => seeThrough(o.kind) && edgesOf(o.shape).some(edge => hitRay(a, dx, dy, edge) < length));
@@ -308,7 +310,7 @@ export function visibilityPolygon(map: CollisionMap, origin: Vec2, radius: World
   for (const edge of sightEdges(map)) {
     if (Math.min(edge.a.x, edge.b.x) >= origin.x + radius || Math.max(edge.a.x, edge.b.x) <= origin.x - radius
       || Math.min(edge.a.y, edge.b.y) >= origin.y + radius || Math.max(edge.a.y, edge.b.y) <= origin.y - radius) continue;
-    const ea = Math.atan2(edge.a.y - origin.y, edge.a.x - origin.x), eb = Math.atan2(edge.b.y - origin.y, edge.b.x - origin.x);
+    const ea = atan2(edge.a.y - origin.y, edge.a.x - origin.x), eb = atan2(edge.b.y - origin.y, edge.b.x - origin.x);
     angles.push(ea - 0.00001, ea, ea + 0.00001, eb - 0.00001, eb, eb + 0.00001);
     // The wedge argument assumes the origin lies strictly off the segment. An origin on it — along an
     // edge or exactly at a corner — is grazed at distance zero from every direction and its endpoint
@@ -334,7 +336,7 @@ export function visibilityPolygon(map: CollisionMap, origin: Vec2, radius: World
   const points = angles.map(angle => {
     while (entering < spans.length && spans[entering].lo <= angle) active.push(spans[entering++]);
     for (let i = active.length - 1; i >= 0; i--) if (active[i].hi < angle) { active[i] = active[active.length - 1]; active.pop(); }
-    const dx = Math.cos(angle), dy = Math.sin(angle);
+    const dx = cos(angle), dy = sin(angle);
     let length = radius;
     for (const span of active) { tests++; const hit = hitRay(origin, dx, dy, span.edge); if (hit < length) length = hit; }
     for (const edge of always) { tests++; const hit = hitRay(origin, dx, dy, edge); if (hit < length) length = hit; }
@@ -353,7 +355,7 @@ export function visibilityPolygon(map: CollisionMap, origin: Vec2, radius: World
 // fog it draws, and costs a log-time lookup instead of a ray cast per entity.
 export function litPoint(points: VisibilityPoint[] | null | undefined, origin: Vec2, x: World, y: World): boolean {
   if (!points || points.length < 3) return false;
-  const angle = Math.atan2(y - origin.y, x - origin.x);
+  const angle = atan2(y - origin.y, x - origin.x);
   let lo: number, hi: number;
   if (angle < points[0].angle || angle > points[points.length - 1].angle) { lo = points.length - 1; hi = 0; }
   else {
