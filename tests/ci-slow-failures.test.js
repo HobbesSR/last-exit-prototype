@@ -38,3 +38,11 @@ test('the slow-failure filer plans one issue per test, one for a mass failure, a
   assert.ok(many.every(f => mass.body.includes(`- ${f.name} `)));
   assert.equal(plan([], RUN)[0].title, 'Slow tier job fails on main');
 });
+
+test('the slow-failure filer reports a run CI killed at its time limit as one timeout issue', () => {
+  const [timeout, ...none] = plan(parseFailures(LOG), { ...RUN, timedOut: true });
+  assert.equal(none.length, 0);
+  assert.equal(timeout.title, 'Slow tier times out on main');
+  assert.ok(timeout.body.includes('- a sweep stays playable (`tests/slow/sweep.test.js`)'));
+  assert.ok(!plan([], { ...RUN, timedOut: true })[0].body.includes('Already failed'));
+});

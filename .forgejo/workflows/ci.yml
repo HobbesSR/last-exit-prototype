@@ -42,7 +42,14 @@ jobs:
       - run: npm install -g npm@12.0.2
       - run: npm ci
       - run: npm --prefix map/macro ci
-      - run: npm run test:slow 2>&1 | tee slow.log; exit ${PIPESTATUS[0]}
+      # 35 minutes, inside the job's 45, so a hang still leaves time to report it:
+      # at the job's own deadline Forgejo cancels everything, reporting included.
+      # timeout kills the whole process tree, so tee is not left waiting.
+      - run: |
+          timeout --kill-after=1m 35m npm run test:slow 2>&1 | tee slow.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" = 124 ] || [ "$status" = 137 ]; then echo "::slow-tier-timeout::" >> slow.log; fi
+          exit "$status"
         shell: bash
       - if: failure() && github.event_name == 'push'
         run: node tools/ci/slow-failures.mjs slow.log

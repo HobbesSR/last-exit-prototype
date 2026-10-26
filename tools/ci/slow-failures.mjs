@@ -10,6 +10,8 @@ const TITLE = 'Slow tier fails on main: ';
 /** Past this many failures one cause is likely, so they share one issue. */
 const MAX_ISSUES = 5;
 const ERROR_LINES = 40;
+/** The line CI appends when it killed the run at its own time limit (.forgejo/workflows/ci.yml). */
+export const TIMEOUT_MARK = '::slow-tier-timeout::';
 
 /** The failing tests in node:test spec output: name, file and the start of the error. */
 export function parseFailures(log) {
@@ -32,12 +34,16 @@ export function parseFailures(log) {
 }
 
 /** The issues to file or update, each with the title it is found by. */
-export function plan(failures, { sha, runUrl }) {
+export function plan(failures, { sha, runUrl, timedOut = false }) {
   const footer = `\n\nCommit ${sha}, [run](${runUrl}). Filed by CI (docs/31): fix forward, and close this once the slow tier passes on main.`;
   const block = f => `\`${f.file ?? 'unknown file'}\`\n\n\`\`\`\n${f.error.trim() || '(no error output)'}\n\`\`\``;
-  if (!failures.length) return [{ title: 'Slow tier job fails on main', body: `The slow job failed without a failing test: setup, a crash or a timeout. See the run log.${footer}` }];
+  const list = failures.map(f => `- ${f.name} (\`${f.file ?? 'unknown file'}\`)`).join('\n');
+  if (timedOut) {
+    const before = list && `\n\nAlready failed before that:\n\n${list}`;
+    return [{ title: 'Slow tier times out on main', body: `The slow tier ran past CI's limit and was killed: a test hung or the tier grew too long.${before}${footer}` }];
+  }
+  if (!failures.length) return [{ title: 'Slow tier job fails on main', body: `The slow job failed without a failing test, in setup or by a crash. See the run log.${footer}` }];
   if (failures.length > MAX_ISSUES) {
-    const list = failures.map(f => `- ${f.name} (\`${f.file ?? 'unknown file'}\`)`).join('\n');
     return [{ title: `${TITLE}${failures.length} tests`, body: `${failures.length} slow tests failed together, which suggests one cause:\n\n${list}\n\nFirst failure:\n\n${block(failures[0])}${footer}` }];
   }
   return failures.map(f => ({ title: `${TITLE}${f.name}`.slice(0, 255), body: `${block(f)}${footer}` }));
@@ -50,7 +56,8 @@ async function main() {
   const env = name => { const value = process.env[name]; if (!value) throw new Error(`${name} is not set`); return value; };
   const server = env('GITHUB_SERVER_URL').replace(/\/$/, ''), repo = env('GITHUB_REPOSITORY');
   const sha = env('GITHUB_SHA'), runUrl = `${server}/${repo}/actions/runs/${env('GITHUB_RUN_NUMBER')}`;
-  const issues = plan(parseFailures(existsSync(file) ? readFileSync(file, 'utf8') : ''), { sha, runUrl });
+  const log = existsSync(file) ? readFileSync(file, 'utf8') : '';
+  const issues = plan(parseFailures(log), { sha, runUrl, timedOut: log.includes(TIMEOUT_MARK) });
   if (dryRun) { for (const issue of issues) console.log(`${issue.title}\n${issue.body}\n`); return; }
 
   const token = env('FORGEJO_TOKEN'), api = `${server}/api/v1/repos/${repo}`;

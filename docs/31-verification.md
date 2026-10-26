@@ -201,6 +201,9 @@ the npm that `packageManager` names, as two jobs on separate runner queues:
   `tools/ci/slow-failures.mjs` files one issue per failing test, titled
   "Slow tier fails on main: <test>", or one issue for more than five failures together;
   a repeat failure comments on the open issue instead. Whoever fixes it closes the issue.
+  The tests get 35 of the job's 45 minutes: past that they are killed and the filer
+  reports "Slow tier times out on main", because at the job's own limit Forgejo
+  cancels every step, the filer included.
   To run the slow tier on a branch before merge, start the workflow by hand from the
   Actions tab (`workflow_dispatch`); that run files no issues.
 
