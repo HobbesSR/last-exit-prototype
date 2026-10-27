@@ -117,8 +117,8 @@ try {
   await page.getByLabel('Builder', { exact: true }).selectOption('region:block');
   await page.waitForFunction(() => window.microLabDebug().result?.brief?.type === 'block' && window.microLabDebug().result.brief.seed === 2);
   const block = await page.evaluate(() => window.microLabDebug());
-  assert.deepEqual(block.buildings.map(b => b.label), ['lot-1/depot-warehouse-1']);
-  assert.ok(block.result.elements.some(element => element.label === 'lot-1/depot-warehouse-1'));
+  assert.deepEqual(block.buildings.map(b => b.label), [`${block.result.brief.id}/lot-1/depot-warehouse-1`]);
+  assert.ok(block.result.elements.some(element => element.label === `${block.result.brief.id}/lot-1/depot-warehouse-1`));
   assert.equal(block.drawn.graph.nodes, 3);
   await page.screenshot({ path: 'test-results/micro-lab-block.png' });
   await page.getByLabel('Seed').fill('1');

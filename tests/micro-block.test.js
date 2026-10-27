@@ -89,7 +89,7 @@ test('blocks are deterministic and independent of the order of the brief\'s cell
     assert.deepEqual(buildRegion(brief('field', seed, cells, portals)), result);
   }
   const labels = buildRegion(brief('deep', 1, ...MASKS.deep)).elements.map(element => element.label);
-  assert.ok(labels.every(label => /^lot-\d+\//.test(label)), 'labels name their lot');
+  assert.ok(labels.every(label => /^deep\/lot-\d+\//.test(label)), 'executor labels include the child brief identity');
 });
 
 test('blocks roll loot by zone and keep every site clear of geometry', () => {
@@ -112,7 +112,8 @@ test('blocks roll loot by zone and keep every site clear of geometry', () => {
 
 test('a region with no room for a lot is left open, and a lot\'s name never takes a block portal\'s', () => {
   const thin = buildRegion(brief('thin', 1, cellsOf(60, 5), [{ id: 'west', axis: 'v', x: 0, y: 0, length: 2 }]));
-  assert.equal(thin.manifest.lots, undefined);
+  assert.equal(thin.manifest.structures, 0);
+  assert.equal(thin.manifest.obstacles, 0);
   assert.equal(thin.elements.length, 0);
   const [cells] = MASKS.field;
   const { lots, alleys } = planBlock(brief('field', 1, cells, [{ id: 'lot-1-N', axis: 'v', x: 0, y: 7, length: 3 }, { id: 'lot-1-W', axis: 'v', x: 44, y: 20, length: 3 }]));
@@ -129,7 +130,8 @@ test('a macro-sized block with hundreds of portals builds quickly', () => {
   const result = buildRegion(brief('macro', 3, cells, portals));
   const elapsed = performance.now() - started;
   assertWithinBudget(elapsed, 5000);
-  assert.ok(result.manifest.lots > 50, `${result.manifest.lots} lots`);
+  assert.ok(result.manifest.structures > 50, `${result.manifest.structures} structures`);
+  assert.equal(result.manifest.lots, undefined);
 });
 
 test('a block passes its lots\' buildings to an observer, labelled as their elements', () => {
@@ -137,7 +139,7 @@ test('a block passes its lots\' buildings to an observer, labelled as their elem
   for (const [name, [cells, portals]] of Object.entries(MASKS)) for (const seed of SEEDS) {
     const traces = [], result = buildRegion(brief(name, seed, cells, portals), undefined, trace => traces.push(trace));
     for (const trace of traces) {
-      assert.match(trace.label, /^lot-\d+\/(hut-building|compound|depot-warehouse-\d+)$/);
+      assert.match(trace.label, new RegExp(`^${name}\\/lot-\\d+\\/(hut-building|compound|depot-warehouse-\\d+)$`));
       if (trace.label.endsWith('/compound')) {
         // A compound's ring is split into one element per space, each labelled after the trace.
         const pieces = result.elements.filter(e => e.label.startsWith(`${trace.label}-`));

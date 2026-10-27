@@ -53,7 +53,8 @@ try {
   await page.getByLabel('Seed', { exact: true }).fill('1');
   await page.getByRole('button', { name: 'Generate region', exact: true }).click();
   const block = (await debug()).result;
-  assert.equal(block.manifest.lots, 1);
+  assert.equal(block.manifest.lots, undefined);
+  assert.ok(block.elements.some(element => /\/lot-\d+\//.test(element.label)));
   assert.deepEqual(block, JSON.parse(JSON.stringify(buildRegion(regionExample({ type: 'block', shape: 'neck', seed: 1 })))));
   await page.screenshot({ path: 'test-results/issue-580-block-neck.png' });
   await page.getByLabel('Region shape', { exact: true }).selectOption('stair');

@@ -55,12 +55,12 @@ window.generationDemoDebug = () => structuredClone({ result, shown: shown && { i
 function blockView(brief) {
   const plan = planBlock(brief), built = buildRegion(brief), size = brief.cellSize;
   const children = plan.lots.length ? [...plan.lots, plan.alleys] : [{ ...brief, id: `${brief.id}/alleys`, type: 'open' }];
-  // Children go by their names within the block, as its elements' labels do: `lot-1`, `alleys`.
+  // The view uses short names, while element labels start with each full child ID.
   const name = child => child.id.slice(brief.id.length + 1), owner = new Map();
   for (const child of children) for (const c of child.cells) owner.set(`${c.x},${c.y}`, name(child));
   const frame = builtMapFrame({ cellSize: size, regions: [built], pairs: [] });
   const regions = children.map(child => {
-    const elements = plan.lots.length ? built.elements.filter(e => e.label.startsWith(`${name(child)}/`)) : built.elements;
+    const elements = plan.lots.length ? built.elements.filter(e => e.label.startsWith(`${child.id}/`)) : built.elements;
     return { spec: { id: name(child), cells: child.cells, cellSize: size, seed: child.seed, bodyProfile: brief.bodyProfile },
       elements, loot: built.loot.filter(l => owner.get(`${Math.floor(l.x / size)},${Math.floor(l.y / size)}`) === name(child)),
       manifest: { structures: elements.filter(e => e.template.encloses).length, obstacles: elements.reduce((n, e) => n + e.template.parts.filter(p => p.part === 'obstacle').length, 0) } };
