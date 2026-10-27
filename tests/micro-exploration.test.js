@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { cellKey, connectedComponents, validateDecompositionPlan } from '../map/micro/sdk.ts';
 import { decompositionExample, EXAMPLE_GENERATORS } from '../map/micro/decomposition/example.ts';
 import { exploreDecomposition } from '../map/micro/decomposition/explore.ts';
+import { WorkBudget, WorkBudgetExceededError } from '../map/micro/decomposition/work-budget.ts';
 
 function verifyNode(node) {
   if (!node.children.length) { assert.ok(node.stopReason, `${node.id} is explicitly terminal`); return; }
@@ -33,6 +34,18 @@ test('bounded exploration is deterministic, serializable, and preserves every lo
   assert.ok(one.alternatives.length && one.alternatives.length <= 4);
   assert.equal(new Set(one.alternatives.map(a => leafSignature(a.root))).size, one.alternatives.length);
   for (const alternative of one.alternatives) verifyNode(alternative.root);
+});
+
+test('work exhaustion retains complete terminals and reports deterministic accounting', () => {
+  const input = decompositionExample('neck');
+  assert.throws(() => exploreDecomposition(input, { budget: new WorkBudget(1_000) }), WorkBudgetExceededError);
+  const run = () => exploreDecomposition(input, { budget: new WorkBudget(500_000) });
+  const result = run();
+  assert.deepEqual(result, run());
+  assert.equal(result.search.budgetExhausted, true);
+  assert.equal(result.search.workExhausted, true);
+  assert.ok(result.search.workUsed > result.search.workLimit);
+  for (const alternative of result.alternatives) verifyNode(alternative.root);
 });
 
 test('depth and expansion bounds are honored and rooms explores a neck beyond the first split', () => {

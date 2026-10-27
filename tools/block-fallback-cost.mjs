@@ -19,11 +19,11 @@ const baselineCommit = execFileSync('git', ['rev-parse', '872932e^{commit}'], { 
 const baselineSource = execFileSync('git', ['show', `${baselineCommit}:${sourcePath}`], { encoding: 'utf8' });
 const resolveImports = code => code.replace(/(from\s+['"])(\.[^'"]+)(['"])/g,
   (_, start, relative, end) => `${start}${pathToFileURL(resolve(dirname(sourcePath), relative)).href}${end}`);
-const marker = '    scan: for (const cell of [...mask.cells].sort(compareCells))';
-const predicate = '|| !safeAttachment(box) || !corners(box).length || !keepsAlleys(box)) continue;';
+const marker = '      scan: for (const cell of [...mask.cells].sort(compareCells))';
+const predicate = 'if (!keepsAlleys(box)) continue;';
 if (!source.includes(marker) || !source.includes(predicate)) throw new Error('Fallback instrumentation markers changed; inspect before measuring.');
 let diagnostic = source.replace(marker, `    diagnosticCounts = { connectivityChecks: 0, connectivityRejected: 0 };\n    const countedKeepsAlleys = (box: Box) => {\n      diagnosticCounts.connectivityChecks++;\n      const accepted = keepsAlleys(box);\n      if (!accepted) diagnosticCounts.connectivityRejected++;\n      return accepted;\n    };\n${marker}`)
-  .replace(predicate, '|| !safeAttachment(box) || !corners(box).length || !countedKeepsAlleys(box)) continue;');
+  .replace(predicate, 'if (!countedKeepsAlleys(box)) continue;');
 diagnostic = 'export let diagnosticCounts = { connectivityChecks: 0, connectivityRejected: 0 };\n' + diagnostic;
 diagnostic = resolveImports(diagnostic);
 const root = resolve('test-results');

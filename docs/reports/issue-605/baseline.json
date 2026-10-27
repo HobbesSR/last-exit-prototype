@@ -1,0 +1,224 @@
+{
+  "node": "v24.15.0",
+  "head": "647185980a5c5f8ab4e3aa02066dd7eae9fa11dc",
+  "trackedWorktreeDirty": false,
+  "scriptSha256": "ccbebe74d0057c8096e032fc1ab058bbf8cc39372c8da0d06d3c1a1123cd9bb4",
+  "limitations": "Single sequential observations in one process; buildBlock includes planning, child building and delegation. No internal work counters or timing subtraction. Placement and brief extraction are outside timings.",
+  "rows": [
+    {
+      "provenance": {
+        "kind": "bundled-placement",
+        "seed": "issue330-before-12x6",
+        "zoneWidth": 12,
+        "zoneHeight": 6,
+        "blockBriefCount": 1,
+        "matchingBriefCount": 1,
+        "selection": "first 72x24 brief by id",
+        "cellSize": 48
+      },
+      "id": "block@138,42",
+      "briefSha256": "85103cc42487e80404bba53e6c90c4a4cad516b8b69122f808656830fd2c5352",
+      "cells": 1728,
+      "span": {
+        "width": 72,
+        "height": 24
+      },
+      "portals": 32,
+      "internalGuaranteed": 0,
+      "lots": 5,
+      "lotTypes": [
+        "depot",
+        "ruins",
+        "ruins",
+        "ruins",
+        "cover"
+      ],
+      "fallbackEntered": false,
+      "fallbackSearch": null,
+      "elements": 30,
+      "elapsedMs": {
+        "planBlock": 37.44629999999961,
+        "buildBlockIncludingPlanAndDispatch": 162.21709999999985
+      }
+    },
+    {
+      "provenance": {
+        "kind": "bundled-placement",
+        "seed": "issue330-before-24x12",
+        "zoneWidth": 24,
+        "zoneHeight": 12,
+        "blockBriefCount": 3,
+        "matchingBriefCount": 1,
+        "selection": "first 120x36 brief by id",
+        "cellSize": 48
+      },
+      "id": "block@294,174",
+      "briefSha256": "bc3f0ad7550a2e1ad797b0fa822e6d7ea87a72f124cfd3a779cd58334e60f1e2",
+      "cells": 4320,
+      "span": {
+        "width": 120,
+        "height": 36
+      },
+      "portals": 52,
+      "internalGuaranteed": 0,
+      "lots": 14,
+      "lotTypes": [
+        "ruins",
+        "cover",
+        "depot",
+        "depot",
+        "ruins",
+        "hut",
+        "ruins",
+        "ruins",
+        "cover",
+        "cover",
+        "ruins",
+        "ruins",
+        "cover",
+        "ruins"
+      ],
+      "fallbackEntered": false,
+      "fallbackSearch": null,
+      "elements": 144,
+      "elapsedMs": {
+        "planBlock": 99.71520000000055,
+        "buildBlockIncludingPlanAndDispatch": 307.8176000000003
+      }
+    },
+    {
+      "provenance": {
+        "kind": "bundled-placement",
+        "seed": "issue605-0",
+        "zoneWidth": 36,
+        "zoneHeight": 18,
+        "blockBriefCount": 8,
+        "matchingBriefCount": 1,
+        "selection": "first 180x48 brief by id",
+        "cellSize": 48
+      },
+      "id": "block@288,138",
+      "briefSha256": "fc7a3c2f07acd992ed5146a0195149e98ba885550e38d7b7d883561c5e3a25bd",
+      "cells": 8640,
+      "span": {
+        "width": 180,
+        "height": 48
+      },
+      "portals": 76,
+      "internalGuaranteed": 0,
+      "lots": 31,
+      "lotTypes": [
+        "depot",
+        "hut",
+        "ruins",
+        "ruins",
+        "cover",
+        "cover",
+        "ruins",
+        "compound",
+        "depot",
+        "cover",
+        "ruins",
+        "ruins",
+        "cover",
+        "depot",
+        "depot",
+        "depot",
+        "cover",
+        "cover",
+        "depot",
+        "ruins",
+        "ruins",
+        "depot",
+        "cover",
+        "cover",
+        "ruins",
+        "depot",
+        "cover",
+        "ruins",
+        "ruins",
+        "ruins",
+        "hut"
+      ],
+      "fallbackEntered": false,
+      "fallbackSearch": null,
+      "elements": 203,
+      "elapsedMs": {
+        "planBlock": 270.97350000000006,
+        "buildBlockIncludingPlanAndDispatch": 713.0851999999995
+      }
+    },
+    {
+      "provenance": {
+        "kind": "issue-598-region-example",
+        "shape": "neck",
+        "width": 24,
+        "height": 18,
+        "seed": 1
+      },
+      "id": "micro-lab",
+      "briefSha256": "3cec269c806166607b708d83bdf6c00a58d45d57060721a53243ca8397bcc6df",
+      "cells": 336,
+      "span": {
+        "width": 24,
+        "height": 18
+      },
+      "portals": 2,
+      "internalGuaranteed": 0,
+      "lots": 1,
+      "lotTypes": [
+        "hut"
+      ],
+      "fallbackEntered": true,
+      "fallbackSearch": {
+        "considered": 36,
+        "truncated": 0,
+        "expanded": 36,
+        "beamWidth": 1,
+        "budgetExhausted": false,
+        "optimal": false
+      },
+      "elements": 1,
+      "elapsedMs": {
+        "planBlock": 64.7489999999998,
+        "buildBlockIncludingPlanAndDispatch": 68.6231000000007
+      }
+    },
+    {
+      "provenance": {
+        "kind": "issue-598-region-example",
+        "shape": "cross",
+        "width": 18,
+        "height": 48,
+        "seed": 1
+      },
+      "id": "micro-lab",
+      "briefSha256": "b3ca034038a72cef5b153719b86ec4b8e4cc4d4b2276c8b3243ab7c5487cc475",
+      "cells": 480,
+      "span": {
+        "width": 18,
+        "height": 48
+      },
+      "portals": 2,
+      "internalGuaranteed": 0,
+      "lots": 1,
+      "lotTypes": [
+        "depot"
+      ],
+      "fallbackEntered": true,
+      "fallbackSearch": {
+        "considered": 64,
+        "truncated": 0,
+        "expanded": 64,
+        "beamWidth": 1,
+        "budgetExhausted": false,
+        "optimal": false
+      },
+      "elements": 2,
+      "elapsedMs": {
+        "planBlock": 127.5070999999989,
+        "buildBlockIncludingPlanAndDispatch": 152.3052000000007
+      }
+    }
+  ]
+}

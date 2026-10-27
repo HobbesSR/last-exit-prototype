@@ -111,9 +111,11 @@ export function allocateBuilding(design: BuildingDesign, footprint: readonly Cel
   let cells: Cell[];
   try { cells = canonicalCells(footprint); }
   catch (error) { return fail(error instanceof Error ? error.message : String(error)); }
-  if (!cells.length || connectedComponents(cells).length !== 1) return fail('The footprint must be nonempty and connected.');
-  if (Math.max(...cells.map(c => c.x)) - Math.min(...cells.map(c => c.x)) >= 24
-    || Math.max(...cells.map(c => c.y)) - Math.min(...cells.map(c => c.y)) >= 24) return fail('A building footprint may span at most 24 cells per axis.');
+  if (!cells.length) return fail('The footprint must be nonempty and connected.');
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const cell of cells) { minX = Math.min(minX, cell.x); maxX = Math.max(maxX, cell.x); minY = Math.min(minY, cell.y); maxY = Math.max(maxY, cell.y); }
+  if (maxX - minX >= 24 || maxY - minY >= 24) return fail('A building footprint may span at most 24 cells per axis.');
+  if (connectedComponents(cells).length !== 1) return fail('The footprint must be nonempty and connected.');
   const spaces = [...design.spaces].sort((a, b) => compareText(a.id, b.id));
   const minArea = (space: BuildingSpace) => Math.max(9, space.area.min);
   if (spaces.some(s => s.area.max < minArea(s)) || sum(spaces.map(minArea)) > cells.length

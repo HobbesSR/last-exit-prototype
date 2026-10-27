@@ -59,13 +59,13 @@ test('unused components match the former inline walk on seeded masks and orders'
   }
 });
 
-test('unused components cover delegation-sized yards beyond the analysis limits', () => {
-  // 256 × 256 is the delegation region limit (65,536 cells); analysis stops at 4096 cells and a 64-cell span.
+test('unused components cover delegation-sized yards and long strips', () => {
+  // 256 × 256 is the delegation region limit (65,536 cells).
   const cells = rectangle(256, 256), kept = keyed(cells.filter(c => c.x === 128));
-  assert.throws(() => connectedComponents(cells), /at most 4096 cells/);
+  assert.equal(connectedComponents(cells)[0].length, cells.length);
   const parts = unusedComponents(cells, kept);
   assert.deepEqual(parts.map(p => [p[0], p.length]), [[{ x: 0, y: 0 }, 128 * 256], [{ x: 129, y: 0 }, 127 * 256]]);
   const strip = rectangle(100, 1);
-  assert.throws(() => connectedComponents(strip), /span at most 64/);
+  assert.equal(connectedComponents(strip)[0].length, strip.length);
   assert.equal(unusedComponents(strip, new Set())[0].length, 100);
 });

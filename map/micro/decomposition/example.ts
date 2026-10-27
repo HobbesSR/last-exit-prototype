@@ -3,6 +3,7 @@ import { allocateCandidates } from './allocation.ts';
 import { cellKey, connectedComponents, findNeckCuts, growRegion } from './analysis.ts';
 import type { Cell } from '../types.ts';
 import type { AllocationPolicy, CandidatePiece, GeneratorContract, RegionContextInput } from './types.ts';
+import { WorkBudget } from './work-budget.ts';
 
 /** Demonstration policy. These preferences are intentionally outside the SDK machinery. */
 export const EXAMPLE_GENERATORS: GeneratorContract[] = [
@@ -31,43 +32,48 @@ export function decompositionExample(shape: 'neck' | 'ring' | 'l' | 'rectangle' 
   return { id: `example-${shape}`, cells, cellSize: 40, annotations: { purpose: 'Inspect candidate allocation; no physical micro geometry emitted.' } };
 }
 
-export function planExample(input: RegionContextInput, options: { beamWidth?: number; residualComponentPenalty?: number; piecePenalty?: number } = {}) {
-  const context = createRegionContext(input), unavailable = new Set([...(input.reserved || []), ...(input.forbidden || [])].map(cellKey));
-  const available = input.cells.filter(c => !unavailable.has(cellKey(c))), components = connectedComponents(available);
-  const candidates: CandidatePiece[] = [], cuts = findNeckCuts(available, { maxWidth: 3, minComponentArea: 16, limit: 4 });
+export function planExample(input: RegionContextInput, options: { beamWidth?: number; residualComponentPenalty?: number; piecePenalty?: number; budget?: WorkBudget } = {}) {
+  const budget = options.budget ?? new WorkBudget();
+  const context = createRegionContext(input, budget), unavailable = new Set([...(input.reserved || []), ...(input.forbidden || [])].map(cellKey));
+  budget.spend(input.cells.length);
+  const available = input.cells.filter(c => !unavailable.has(cellKey(c))), components = connectedComponents(available, budget);
+  const candidates: CandidatePiece[] = [], cuts = findNeckCuts(available, { maxWidth: 3, minComponentArea: 16, limit: 4 }, budget);
   const add = (id: string, cells: Cell[], role: string, rationale: string, cutId?: string) => {
     candidates.push({ id, cells, role, rationale, ...(cutId ? { cutId } : {}) });
   };
   for (const [i, component] of components.entries()) {
-    const analysis = context.analyze(component);
+    const analysis = context.analyze(component, budget);
     add(`whole:${i}:utility`, component, 'utility', 'Generic generator can preserve an irregular connected allocation.');
     // A generator proposes a hole-preserving claim before any rectangle partition is imposed.
     add(`whole:${i}:courtyard`, component, 'courtyard', 'Courtyard generator tests whether the intact footprint contains exactly one hole.');
     for (const [j, rectangle] of analysis.maximalRectangles.slice(0, 12).entries()) {
+      budget.spend(component.length * 2);
       const cells = component.filter(c => c.x >= rectangle.x && c.x < rectangle.x + rectangle.w && c.y >= rectangle.y && c.y < rectangle.y + rectangle.h);
       add(`rectangle:${i}:${String(j).padStart(2, '0')}`, cells, 'room', 'Maximal rectangle offered to a rectangular room consumer.');
       const claimed = new Set(cells.map(cellKey));
-      for (const [k, remainder] of connectedComponents(component.filter(c => !claimed.has(cellKey(c)))).entries()) {
+      for (const [k, remainder] of connectedComponents(component.filter(c => !claimed.has(cellKey(c))), budget).entries()) {
         add(`remainder:${i}:${j}:${k}:utility`, remainder, 'utility', 'Connected remainder of a rectangle proposal offered to a generic consumer.');
         add(`remainder:${i}:${j}:${k}:room`, remainder, 'room', 'A residual may itself be a useful room, subject to the same hard contract.');
       }
     }
   }
   for (const [i, cut] of cuts.entries()) {
-    const widths = new Map(context.analyze(available).localWidth.map(v => [cellKey(v.cell), v.width]));
-    const strip = growRegion(available, cut.cells, { maxArea: 64, eligible: cell => (widths.get(cellKey(cell)) || 0) <= 3 });
+    const widths = new Map(context.analyze(available, budget).localWidth.map(v => [cellKey(v.cell), v.width]));
+    const strip = growRegion(available, cut.cells, { maxArea: 64, eligible: cell => (widths.get(cellKey(cell)) || 0) <= 3 }, budget);
     add(`neck:${i}:strip`, strip, 'corridor', 'Grow from a separator through narrow cells to offer a connector allocation; cut cells are never deleted.', cut.id);
     for (const [j, lobe] of cut.components.entries()) {
       add(`neck:${i}:lobe:${j}`, lobe, 'lobe', 'Substantial component after a proposed neck cut.', cut.id);
-      const analysis = context.analyze(lobe);
+      const analysis = context.analyze(lobe, budget);
+      budget.spend(lobe.length * Math.min(3, analysis.maximalRectangles.length));
       for (const [k, r] of analysis.maximalRectangles.slice(0, 3).entries()) add(`neck:${i}:room:${j}:${k}`,
         lobe.filter(c => c.x >= r.x && c.x < r.x + r.w && c.y >= r.y && c.y < r.y + r.h), 'room', 'Room footprint within a candidate lobe.', cut.id);
     }
   }
   // Equivalent claims from multiple proposal families need only one search slot.
+  for (const candidate of candidates) budget.spend(candidate.cells.length * (1 + Math.ceil(Math.log2(Math.max(1, candidate.cells.length)))));
   const seen = new Set<string>(), unique = candidates.filter(c => { const key = `${c.role}|${c.cells.map(cellKey).sort().join(';')}`; if (seen.has(key)) return false; seen.add(key); return true; });
   const policy: AllocationPolicy = { beamWidth: options.beamWidth ?? 8, maxPieces: 6, maxCandidates: 64, unusedCellPenalty: .15,
     residualComponentPenalty: options.residualComponentPenalty ?? 10, smallResidualPenalty: 2, smallResidualArea: 8,
     piecePenalty: options.piecePenalty ?? 3, seamRunPenalty: .5, portalWidth: 2 };
-  return allocateCandidates(context, unique, EXAMPLE_GENERATORS, policy, { strategy: 'rooms-courtyard-lobes-example', cuts });
+  return allocateCandidates(context, unique, EXAMPLE_GENERATORS, policy, { strategy: 'rooms-courtyard-lobes-example', cuts, budget });
 }

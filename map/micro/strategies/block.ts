@@ -1,8 +1,8 @@
 import { cellKey, compareCells } from '../../kernel/cell.ts';
 import { unusedComponents } from '../components.ts';
 import { allocateCandidates } from '../decomposition/allocation.ts';
-import { REGION_CELL_LIMIT, REGION_SPAN_LIMIT } from '../decomposition/analysis.ts';
 import { createRegionContext, REGION_CELL_SIZE_LIMIT } from '../decomposition/context.ts';
+import { WorkBudget, WorkBudgetExceededError } from '../decomposition/work-budget.ts';
 import type { CandidatePiece, DecompositionPlan } from '../decomposition/types.ts';
 import { buildCompound } from './compound.ts';
 import { buildCover } from './cover.ts';
@@ -47,7 +47,8 @@ const LOT_TYPES: ReadonlyArray<{ type: string; build: (brief: RegionBrief, obser
 ];
 
 /** The block's children: briefs for its lots, and its alleys, which hold every one of the block's own portals. */
-export interface BlockPlan { lots: RegionBrief[]; alleys: RegionBrief; allocation?: DecompositionPlan }
+export interface BlockPlan { lots: RegionBrief[]; alleys: RegionBrief; allocation?: DecompositionPlan;
+  fallbackWork?: { used: number; limit: number; budgetExhausted: boolean; attempted: number; connectivityChecks: number } }
 
 /**
  * The `block` region type (54): a city block of lots and the alleys between them. It is the
@@ -68,6 +69,9 @@ export interface BlockPlan { lots: RegionBrief[]; alleys: RegionBrief; allocatio
  */
 export function buildBlock(brief: RegionBrief, observe?: BuildingObserver): BuiltRegion {
   const plan = planBlock(brief);
+  // The build result has no planner diagnostics channel. Do not silently turn
+  // an exhausted search into an apparently successful open block.
+  if (plan.fallbackWork?.budgetExhausted) throw new WorkBudgetExceededError(plan.fallbackWork.limit, plan.fallbackWork.used);
   if (!plan.lots.length) return buildOpen(brief);
   const registry = Object.fromEntries(LOT_TYPES.map(({ type, build }) => [type,
     { version: 'block-child-1', build: (child: RegionBrief, _context: unknown, childObserve?: BuildingObserver) => build(child, childObserve) }]));
@@ -90,7 +94,7 @@ export function buildBlock(brief: RegionBrief, observe?: BuildingObserver): Buil
  * sides; its other sides keep a hunter-wide path around it. Three-cell splits separate
  * lots. Each frontage faces owned alley cells, so children keep their own promises.
  */
-export function planBlock(brief: RegionBrief): BlockPlan {
+export function planBlock(brief: RegionBrief, options: { fallbackBudget?: WorkBudget } = {}): BlockPlan {
   const mask = createRegionMask(brief), size = brief.cellSize;
   const x0 = Math.round(mask.bounds.x / size), y0 = Math.round(mask.bounds.y / size);
   const W = Math.round(mask.bounds.w / size), H = Math.round(mask.bounds.h / size);
@@ -187,37 +191,55 @@ export function planBlock(brief: RegionBrief): BlockPlan {
   // alley even when a smaller lot fits. Successful guillotine plans are retained.
   // One claim makes residual connectivity a hard, candidate-local predicate.
   let allocation: DecompositionPlan | undefined;
-  if (!lots.length && mask.cells.length <= REGION_CELL_LIMIT && W <= REGION_SPAN_LIMIT && H <= REGION_SPAN_LIMIT
-    && size > 0 && size <= REGION_CELL_SIZE_LIMIT) {
-    const candidates: CandidatePiece[] = [], boxes = new Map<string, Box>();
-    const cellsOf = (box: Box): Cell[] => {
-      const cells: Cell[] = [];
-      for (let y = box.y; y < box.y + box.h; y++) for (let x = box.x; x < box.x + box.w; x++) cells.push({ x, y });
-      return cells;
-    };
-    // Stable row order and largest size first; cap admitted candidates, not
-    // coordinates, so narrow leading tendrils do not consume the whole budget.
-    scan: for (const cell of [...mask.cells].sort(compareCells)) for (const side of [12, 9, 6]) {
-      const box = { x: cell.x, y: cell.y, w: side, h: side };
-      const cells = cellsOf(box);
-      if (cells.some(c => !mask.has(c.x, c.y) || margin.has(cellKey(c)))
-        || !safeAttachment(box) || !corners(box).length || !keepsAlleys(box)) continue;
-      const id = `fallback-${String(candidates.length).padStart(2, '0')}`;
-      boxes.set(id, box);
-      candidates.push({ id, cells, role: 'lot', rationale: 'Smaller lot with two full frontages and one connected circulation remainder.' });
-      if (candidates.length === 64) break scan;
+  let fallbackWork: BlockPlan['fallbackWork'];
+  if (!lots.length && size > 0 && size <= REGION_CELL_SIZE_LIMIT) {
+    const budget = options.fallbackBudget ?? new WorkBudget();
+    let attempted = 0, connectivityChecks = 0, budgetExhausted = false;
+    try {
+      const candidates: CandidatePiece[] = [], boxes = new Map<string, Box>();
+      const cellsOf = (box: Box): Cell[] => {
+        const cells: Cell[] = [];
+        for (let y = box.y; y < box.y + box.h; y++) for (let x = box.x; x < box.x + box.w; x++) cells.push({ x, y });
+        return cells;
+      };
+      // Stable row order and largest size first; cap admitted candidates, not
+      // coordinates, so narrow leading tendrils do not consume the whole budget.
+      budget.spend(mask.cells.length * (1 + Math.ceil(Math.log2(Math.max(1, mask.cells.length)))));
+      scan: for (const cell of [...mask.cells].sort(compareCells)) for (const side of [12, 9, 6]) {
+        const box = { x: cell.x, y: cell.y, w: side, h: side };
+        // Charge the box construction and geometric checks before attempting them.
+        // The bound includes the expanded attachment box and all frontage scans.
+        budget.spend(side * side + (side + 4) ** 2 + side * 32 + 1);
+        attempted++;
+        const cells = cellsOf(box);
+        if (cells.some(c => !mask.has(c.x, c.y) || margin.has(cellKey(c)))
+          || !safeAttachment(box) || !corners(box).length) continue;
+        // unusedComponents visits the full mask to construct and traverse the remainder.
+        budget.spend(mask.cells.length * 8 + side * side);
+        connectivityChecks++;
+        if (!keepsAlleys(box)) continue;
+        const id = `fallback-${String(candidates.length).padStart(2, '0')}`;
+        boxes.set(id, box);
+        candidates.push({ id, cells, role: 'lot', rationale: 'Smaller lot with two full frontages and one connected circulation remainder.' });
+        if (candidates.length === 64) break scan;
+      }
+      // Portal approaches remain residual circulation. Reserving them separately
+      // would split that ownership into artificial reserved children in the SDK.
+      const context = createRegionContext({ id: 'block-fallback', cells: [...mask.cells], cellSize: size }, budget);
+      allocation = allocateCandidates(context, candidates, [{ id: 'block-lot', roles: ['lot'], tags: [],
+        minArea: 36, maxArea: 144, holes: 'none', rectangular: true,
+        utility: a => ({ lotArea: a.area }) }], {
+        beamWidth: 1, maxPieces: 1, maxCandidates: 64, unusedCellPenalty: 0,
+        residualComponentPenalty: 0, smallResidualPenalty: 0, smallResidualArea: 0,
+        piecePenalty: 0, seamRunPenalty: 0, portalWidth: 2,
+      }, { strategy: 'block-single-lot-fallback', budget });
+      for (const piece of allocation.pieces) lots.push(boxes.get(piece.id)!);
+      budgetExhausted = allocation.search.workExhausted;
+    } catch (error) {
+      if (!(error instanceof WorkBudgetExceededError)) throw error;
+      budgetExhausted = true;
     }
-    // Portal approaches remain residual circulation. Reserving them separately
-    // would split that ownership into artificial reserved children in the SDK.
-    const context = createRegionContext({ id: 'block-fallback', cells: [...mask.cells], cellSize: size });
-    allocation = allocateCandidates(context, candidates, [{ id: 'block-lot', roles: ['lot'], tags: [],
-      minArea: 36, maxArea: 144, holes: 'none', rectangular: true,
-      utility: a => ({ lotArea: a.area }) }], {
-      beamWidth: 1, maxPieces: 1, maxCandidates: 64, unusedCellPenalty: 0,
-      residualComponentPenalty: 0, smallResidualPenalty: 0, smallResidualArea: 0,
-      piecePenalty: 0, seamRunPenalty: 0, portalWidth: 2,
-    }, { strategy: 'block-single-lot-fallback' });
-    for (const piece of allocation.pieces) lots.push(boxes.get(piece.id)!);
+    fallbackWork = { used: budget.used, limit: budget.limit, budgetExhausted, attempted, connectivityChecks };
   }
 
   const taken = new Set(brief.portals.map(portal => portal.id));
@@ -249,7 +271,7 @@ export function planBlock(brief: RegionBrief): BlockPlan {
   // Margin cells remain owned by lots/alleys. They are constraints, not extra children.
   // Only genuinely new frontages add clearance; inherited exclusions are never inset again.
   const constrained = inheritBriefMargins(brief, [...children, alleys]);
-  return { lots: constrained.slice(0, children.length), alleys: constrained[children.length]!, ...(allocation ? { allocation } : {}) };
+  return { lots: constrained.slice(0, children.length), alleys: constrained[children.length]!, ...(allocation ? { allocation } : {}), ...(fallbackWork ? { fallbackWork } : {}) };
 }
 
 /** The run along one whole side of a box, in cells. */

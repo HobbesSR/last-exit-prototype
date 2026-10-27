@@ -11,6 +11,7 @@ export type { HintWallOptions, HintWalls } from './hint-walls.ts';
 export type { SpreadPointOptions, SpreadPointResult } from './placement.ts';
 export type { Cell, Hint, HintStated, RegionMask, RegionRandom, BuiltRegion, Portal, RegionBrief } from './types.ts';
 export { analyzeRegion, canonicalCells, cellKey, connectedComponents, findNeckCuts, growRegion, shortestCellPath } from './decomposition/analysis.ts';
+export { WorkBudget, WorkBudgetExceededError, createWorkBudget, DEFAULT_WORK_LIMIT } from './decomposition/work-budget.ts';
 export { createRegionContext } from './decomposition/context.ts';
 export { DecompositionState, allocateCandidates, generatorFitness, measureState, scoreState } from './decomposition/allocation.ts';
 export { buildInterfaces } from './decomposition/interfaces.ts';
