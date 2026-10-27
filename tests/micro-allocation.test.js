@@ -2,11 +2,62 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRegionContext, DecompositionState, allocateCandidates, generatorFitness, buildInterfaces, validateDecompositionPlan, connectedComponents } from '../map/micro/sdk.ts';
 import { decompositionExample, planExample, EXAMPLE_GENERATORS } from '../map/micro/decomposition/example.ts';
+import { WorkBudget, WorkBudgetExceededError } from '../map/micro/decomposition/work-budget.ts';
 
 const grid = (w, h, x = 0, y = 0) => Array.from({ length: w * h }, (_, i) => ({ x: x + i % w, y: y + Math.floor(i / w) }));
 const generic = { id: 'generic', roles: ['utility'], tags: ['flexible'], minArea: 1, maxArea: 4096, holes: 'any', utility: a => ({ area: a.area }) };
 const policy = { beamWidth: 8, maxPieces: 1, maxCandidates: 32, unusedCellPenalty: 0, residualComponentPenalty: 0, smallResidualPenalty: 0, smallResidualArea: 4, piecePenalty: 0, seamRunPenalty: 0, portalWidth: 2 };
 const piece = (id, cells) => ({ id, cells, role: 'utility', rationale: 'test proposal' });
+
+test('context budgets charge equivalent analysis on cold, warm and reused contexts', () => {
+  const input = { id: 'budget-cache', cells: grid(4, 3), cellSize: 40 };
+  const ctx = createRegionContext(input), cold = new WorkBudget();
+  const analysis = ctx.analyze(undefined, cold), warm = new WorkBudget();
+  assert.equal(ctx.analyze(undefined, warm), analysis);
+  assert.equal(warm.used, cold.used);
+  const warmed = createRegionContext(input); warmed.analyze();
+  const previous = new WorkBudget(); warmed.analyze(undefined, previous);
+  assert.equal(previous.used, cold.used);
+  for (const context of [ctx, warmed, createRegionContext(input)]) {
+    assert.throws(() => context.analyze(undefined, new WorkBudget(cold.used - 1)), WorkBudgetExceededError);
+  }
+  assert.throws(() => createRegionContext(input, new WorkBudget(0)), WorkBudgetExceededError);
+  assert.throws(() => ctx.child('child', grid(2, 2), new WorkBudget(0)), WorkBudgetExceededError);
+});
+
+test('candidate exhaustion returns complete residual ownership without rejecting exhausted work', () => {
+  const ctx = createRegionContext({ id: 'budget-candidates', cells: grid(4, 3), cellSize: 40, reserved: grid(1, 1), forbidden: grid(1, 1, 3, 2) });
+  const initial = allocateCandidates(ctx, [], [generic], policy);
+  const candidates = [piece('a', grid(2, 2, 1)), piece('b', grid(1, 2, 3))];
+  const run = () => allocateCandidates(ctx, candidates, [generic], policy, { budget: new WorkBudget(initial.search.workUsed + 10) });
+  const plan = run();
+  assert.equal(plan.search.budgetExhausted, true);
+  assert.equal(plan.pieces.length, 0);
+  assert.equal(plan.diagnostics.some(d => d.status === 'rejected'), false);
+  assert.deepEqual(validateDecompositionPlan(plan, [generic]), []);
+  assert.equal(new Set(plan.residuals.flatMap(r => r.cells.map(c => `${c.x},${c.y}`))).size, ctx.input.cells.length);
+  assert.deepEqual(run(), plan);
+  assert.throws(() => allocateCandidates(ctx, candidates, [generic], policy, { budget: new WorkBudget(0) }), WorkBudgetExceededError);
+});
+
+test('search exhaustion retains a measured required-covering plan and is cache independent', () => {
+  const input = { id: 'budget-search', cells: grid(3, 2), cellSize: 40, required: [{ x: 0, y: 0 }] };
+  const candidates = [piece('a', grid(1, 2)), piece('b', grid(1, 2, 1)), piece('c', grid(1, 2, 2))];
+  const p = { ...policy, maxPieces: 2 }, ctx = createRegionContext(input);
+  const full = allocateCandidates(ctx, candidates, [generic], p);
+  const limit = Math.floor(full.search.workUsed * 0.8);
+  const run = context => allocateCandidates(context, candidates, [generic], p, { budget: new WorkBudget(limit) });
+  const plan = run(ctx);
+  assert.equal(plan.search.budgetExhausted, true);
+  assert.ok(plan.search.expanded > 0 && plan.search.expanded < full.search.expanded);
+  assert.ok(plan.pieces.some(part => part.cells.some(c => c.x === 0 && c.y === 0)));
+  assert.deepEqual(validateDecompositionPlan(plan, [generic]), []);
+  assert.deepEqual(run(ctx), plan);
+  assert.deepEqual(run(createRegionContext(input)), plan);
+  const initial = allocateCandidates(createRegionContext({ ...input, required: [] }), [], [generic], p);
+  assert.throws(() => allocateCandidates(createRegionContext(input), candidates, [generic], p,
+    { budget: new WorkBudget(initial.search.workUsed + 20) }), WorkBudgetExceededError);
+});
 
 test('contexts cache immutable analysis and child views retain only intersecting constraints', () => {
   const input = { id: 'parent', cells: grid(8, 6), cellSize: 40, reserved: [{ x: 0, y: 0 }], forbidden: [{ x: 7, y: 5 }], required: [{ x: 2, y: 1 }], entrances: [{ id: 'west', cells: [{ x: 0, y: 2 }], requiredWidth: 2 }] };

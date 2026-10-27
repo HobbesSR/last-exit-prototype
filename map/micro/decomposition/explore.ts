@@ -6,6 +6,7 @@ import { buildInterfaces } from './interfaces.ts';
 import { validateDecompositionPlan } from './validate.ts';
 import type { AllocationPolicy, CandidatePiece, DecompositionPlan, RegionContext, RegionContextInput } from './types.ts';
 import type { Cell } from '../types.ts';
+import { WorkBudget, WorkBudgetExceededError } from './work-budget.ts';
 
 export type ExplorationObjective = 'balanced' | 'rooms' | 'preserve';
 export type ExplorationSource = 'root' | 'piece' | 'residual' | 'reserved' | 'forbidden';
@@ -31,13 +32,14 @@ export interface DecompositionExploration {
   version: 'decomposition-exploration-1';
   objective: ExplorationObjective;
   alternatives: ExplorationAlternative[];
-  search: { expanded: number; limit: number; budgetExhausted: boolean; optimal: false };
+  search: { expanded: number; limit: number; budgetExhausted: boolean; workExhausted: boolean; workUsed: number; workLimit: number; optimal: false };
 }
 export interface ExplorationOptions {
   objective?: ExplorationObjective;
   maxDepth?: number;
   beamWidth?: number;
   maxExpansions?: number;
+  budget?: WorkBudget;
 }
 
 interface SearchTree { root: ExplorationNode; serial: number; expandedLeaves: Set<string> }
@@ -71,18 +73,19 @@ function childNodes(plan: DecompositionPlan, parent: ExplorationNode): Explorati
     children: [], stopReason: part.source === 'reserved' || part.source === 'forbidden' ? 'constrained terminal' : 'retained terminal choice' }));
 }
 
-function planPolicies(input: RegionContextInput): DecompositionPlan[] {
-  const context = createRegionContext(input), results: DecompositionPlan[] = [];
+function planPolicies(input: RegionContextInput, budget: WorkBudget): DecompositionPlan[] {
+  const context = createRegionContext(input, budget), results: DecompositionPlan[] = [];
   const add = (plan: DecompositionPlan) => {
-    if (!validateDecompositionPlan(plan, EXAMPLE_GENERATORS).length && plan.residuals.length + plan.pieces.length >= 2) results.push(plan);
+    if (plan.search.workExhausted) throw new WorkBudgetExceededError(budget.limit, budget.used);
+    if (!validateDecompositionPlan(plan, EXAMPLE_GENERATORS, budget).length && plan.residuals.length + plan.pieces.length >= 2) results.push(plan);
   };
-  add(planExample(structuredClone(context.input) as RegionContextInput));
+  add(planExample(structuredClone(context.input) as RegionContextInput, { budget }));
   // This intentionally coarse policy offers an alternative to high-piece decompositions.
-  add(planExample(structuredClone(context.input) as RegionContextInput, { piecePenalty: 24, residualComponentPenalty: 2 }));
+  add(planExample(structuredClone(context.input) as RegionContextInput, { piecePenalty: 24, residualComponentPenalty: 2, budget }));
   const unavailable = new Set([...(context.input.reserved || []), ...(context.input.forbidden || [])].map(cellKey));
   const available = context.input.cells.filter(cell => !unavailable.has(cellKey(cell)));
-  const analysis = context.analyze(available);
-  if (analysis.rectangularity === 1 && connectedComponents(available).length === 1) {
+  const analysis = context.analyze(available, budget);
+  if (analysis.rectangularity === 1 && connectedComponents(available, budget).length === 1) {
     const candidates: CandidatePiece[] = [];
     for (const axis of ['x', 'y'] as const) {
       const length = axis === 'x' ? analysis.bounds.w : analysis.bounds.h;
@@ -93,28 +96,30 @@ function planPolicies(input: RegionContextInput): DecompositionPlan[] {
     }
     if (candidates.length) {
       const policy: AllocationPolicy = { beamWidth: 8, maxPieces: 6, maxCandidates: 32, unusedCellPenalty: .2, residualComponentPenalty: 4, smallResidualPenalty: 2, smallResidualArea: 8, piecePenalty: 1, seamRunPenalty: .5, portalWidth: 2 };
-      add(allocateCandidates(context, candidates, EXAMPLE_GENERATORS, policy, { strategy: 'exploration-midpoint-splits' }));
+      add(allocateCandidates(context, candidates, EXAMPLE_GENERATORS, policy, { strategy: 'exploration-midpoint-splits', budget }));
     }
   }
   const seen = new Set<string>();
   return results.filter(plan => { const signature = [...plan.pieces.map(p => `p:${p.generator}:${p.cells.map(cellKey).sort().join(';')}`), ...plan.residuals.map(r => `r:${r.role}:${r.cells.map(cellKey).sort().join(';')}`)].sort().join('|'); if (seen.has(signature)) return false; seen.add(signature); return true; });
 }
 
-function localInput(parent: RegionContext, node: ExplorationNode): RegionContextInput {
+function localInput(parent: RegionContext, node: ExplorationNode, budget: WorkBudget): RegionContextInput {
   // Context owns annotation restriction; recursive strategy code does not recreate it.
-  return structuredClone(parent.child(node.id, node.cells).input) as RegionContextInput;
+  return structuredClone(parent.child(node.id, node.cells, budget).input) as RegionContextInput;
 }
 
 /** A stopped root still has an explicit, feasible owner; it is never an unassigned winner. */
-function wholeOwner(input: RegionContextInput): DecompositionPlan {
-  const context = createRegionContext(input), excluded = new Set([...(input.reserved || []), ...(input.forbidden || [])].map(cellKey));
+function wholeOwner(input: RegionContextInput, budget: WorkBudget): DecompositionPlan {
+  const context = createRegionContext(input, budget), excluded = new Set([...(input.reserved || []), ...(input.forbidden || [])].map(cellKey));
   const available = input.cells.filter(c => !excluded.has(cellKey(c)));
-  const candidates: CandidatePiece[] = connectedComponents(available).flatMap((cells, i) => [
+  const candidates: CandidatePiece[] = connectedComponents(available, budget).flatMap((cells, i) => [
     { id: `whole-${i}-utility`, cells, role: 'utility', rationale: 'Stopped exploration retains a feasible generic owner.' },
     { id: `whole-${i}-courtyard`, cells, role: 'courtyard', rationale: 'Stopped exploration may retain an intact hole-bearing owner.' },
   ]).slice(0, 128);
   const policy: AllocationPolicy = { beamWidth: 2, maxPieces: 16, maxCandidates: 128, unusedCellPenalty: 1, residualComponentPenalty: 1, smallResidualPenalty: 0, smallResidualArea: 1, piecePenalty: 0, seamRunPenalty: 0, portalWidth: 2 };
-  return allocateCandidates(context, candidates, EXAMPLE_GENERATORS, policy, { strategy: 'exploration-stopped-owner' });
+  const result = allocateCandidates(context, candidates, EXAMPLE_GENERATORS, policy, { strategy: 'exploration-stopped-owner', budget });
+  if (result.search.workExhausted) throw new WorkBudgetExceededError(budget.limit, budget.used);
+  return result;
 }
 
 function replaceNode(node: ExplorationNode, id: string, replacement: ExplorationNode): ExplorationNode {
@@ -133,7 +138,7 @@ function evaluate(root: ExplorationNode, objective: ExplorationObjective, rootHo
   const rooms = pieces.filter(n => n.role === 'room'), roomCloseness = rooms.reduce((sum, room) => sum + 40 - Math.abs(room.cells.length - 40), 0);
   const generatorFitness = pieces.reduce((sum, piece) => sum + (piece.generator === 'rectangular-room' ? piece.cells.length * 1.5 : piece.generator === 'courtyard-ring' ? piece.cells.length * 1.6 + 20 : piece.generator === 'circulation-strip' ? piece.cells.length * 1.1 : piece.cells.length * .65), 0);
   const covered = pieces.reduce((sum, n) => sum + n.cells.length, 0), residualCells = residuals.reduce((sum, n) => sum + n.cells.length, 0);
-  const maxIntact = Math.max(...allLeaves.map(n => n.cells.length));
+  const maxIntact = allLeaves.reduce((largest, node) => Math.max(largest, node.cells.length), -Infinity);
   const holeIntact = rootHoles && allLeaves.some(n => n.cells.length === root.cells.length) ? rootHoles : 0;
   const seams = buildInterfaces(allLeaves.map(n => ({ id: n.id, cells: n.cells }))).reduce((sum, item) => sum + item.length, 0), residualQuality = -residuals.length * 8 - residualCells * .08;
   const metrics = { generatorFitness, coverage: covered / total, roomTargetCloseness: roomCloseness, pieceComplexity: pieces.length, seams, residualQuality, preservedHoles: holeIntact, largestIntactArea: maxIntact };
@@ -148,49 +153,81 @@ function evaluate(root: ExplorationNode, objective: ExplorationObjective, rootHo
 
 function signature(root: ExplorationNode): string { return leaves(root).map(v => `${v.node.role}:${v.node.source}:${v.node.cells.map(cellKey).sort().join(';')}`).sort().join('|'); }
 
+// replaceNode clones every retained plan, not just the newly inserted one.
+// Charge their cell and interface data before copying a tree.
+function planCopyWork(plan: DecompositionPlan): number {
+  const context = plan.context;
+  return context.cells.length + (context.reserved?.length || 0) + (context.forbidden?.length || 0) + (context.required?.length || 0)
+    + (context.entrances || []).reduce((n, e) => n + e.cells.length, 0)
+    + [...plan.candidates, ...plan.pieces, ...plan.residuals].reduce((n, part) => n + part.cells.length, 0)
+    + plan.cuts.reduce((n, cut) => n + cut.cells.length + cut.components.reduce((sum, cells) => sum + cells.length, 0), 0)
+    + plan.interfaces.reduce((n, edge) => n + edge.runs.length + edge.portalCandidates.length, 0) + plan.diagnostics.length;
+}
+function treeCopyWork(node: ExplorationNode): number {
+  return node.cells.length + (node.plan ? planCopyWork(node.plan) : 0) + node.children.reduce((n, child) => n + treeCopyWork(child), 0);
+}
+
 /** Bounded strategy-level exploration. It is deterministic and deliberately non-optimal. */
 export function exploreDecomposition(input: RegionContextInput, options: ExplorationOptions = {}): DecompositionExploration {
-  const config = optionsFor(options), parent = createRegionContext(input);
-  const owner = wholeOwner(parent.input as RegionContextInput);
+  const budget = options.budget ?? new WorkBudget();
+  const config = optionsFor(options), parent = createRegionContext(input, budget);
+  const owner = wholeOwner(parent.input as RegionContextInput, budget);
   const parts = [...owner.pieces, ...owner.residuals];
   const only = parts.length === 1 ? parts[0] : undefined;
   const initial: ExplorationNode = { id: parent.input.id, cells: copy(parent.input.cells), role: only?.role || 'root', source: 'root', children: [] };
   if (only && 'generator' in only) { initial.generator = only.generator; initial.stopReason = 'retained terminal choice'; }
   else if (only) { initial.source = only.role; initial.stopReason = only.role === 'residual' ? 'unassigned residual; no feasible whole generator' : 'constrained terminal'; }
   else { initial.plan = owner; initial.children = childNodes(owner, initial); }
-  const rootHoles = parent.analyze().holes.length;
+  const rootHoles = parent.analyze(undefined, budget).holes.length;
   const evaluations = new Map<string, ReturnType<typeof evaluate>>();
   const evaluated = (root: ExplorationNode) => {
     const key = signature(root);
     let value = evaluations.get(key);
-    if (!value) { value = evaluate(root, config.objective, rootHoles); evaluations.set(key, value); }
+    if (!value) { budget.spend(root.cells.length * (16 + 8 * Math.ceil(Math.log2(Math.max(1, root.cells.length))))); value = evaluate(root, config.objective, rootHoles); evaluations.set(key, value); }
     return value;
   };
   let frontier: SearchTree[] = [{ root: initial, serial: 0, expandedLeaves: new Set() }], serial = 1, expanded = 0;
   const planCache = new Map<string, DecompositionPlan[]>();
-  while (frontier.length && expanded < config.maxExpansions) {
-    const next: SearchTree[] = [];
-    let changed = false;
-    for (const tree of frontier) {
-      next.push(tree); // retaining the stop choice makes truncation explicit and inspectable.
-      for (const target of leaves(tree.root)) {
-        if (expanded >= config.maxExpansions) break;
-        if (target.depth >= config.maxDepth || target.node.source === 'reserved' || target.node.source === 'forbidden' || target.node.cells.length < 2 || tree.expandedLeaves.has(target.node.id)) continue;
-        const local = localInput(parent, target.node), cacheKey = `${local.cells.map(cellKey).sort().join(';')}|${(local.reserved || []).map(cellKey).sort().join(';')}|${(local.forbidden || []).map(cellKey).sort().join(';')}`;
-        let plans = planCache.get(cacheKey); if (!plans) { plans = planPolicies(local); planCache.set(cacheKey, plans); }
-        expanded++;
-        for (const plan of plans) try {
-          const refined: ExplorationNode = { ...target.node, cells: copy(target.node.cells), plan: structuredClone(plan), children: childNodes(plan, target.node) };
-          const visited = new Set(tree.expandedLeaves); visited.add(target.node.id);
-          next.push({ root: replaceNode(tree.root, target.node.id, refined), serial: serial++, expandedLeaves: visited }); changed = true;
-        } catch { /* Non-progressing allocations remain terminal choices. */ }
-        tree.expandedLeaves.add(target.node.id);
+  // Reserve the initial feasible result before search. Every successfully retained
+  // frontier is likewise evaluated before it replaces the preceding frontier.
+  evaluated(initial);
+  let workExhausted = false;
+  try {
+    while (frontier.length && expanded < config.maxExpansions) {
+      const next: SearchTree[] = [];
+      let changed = false;
+      for (const tree of frontier) {
+        budget.spend(tree.root.cells.length * (1 + Math.ceil(Math.log2(Math.max(1, tree.root.cells.length)))));
+        next.push(tree); // retaining the stop choice makes truncation explicit and inspectable.
+        for (const target of leaves(tree.root)) {
+          if (expanded >= config.maxExpansions) break;
+          if (target.depth >= config.maxDepth || target.node.source === 'reserved' || target.node.source === 'forbidden' || target.node.cells.length < 2 || tree.expandedLeaves.has(target.node.id)) continue;
+          const local = localInput(parent, target.node, budget), cacheKey = `${local.cells.map(cellKey).sort().join(';')}|${(local.reserved || []).map(cellKey).sort().join(';')}|${(local.forbidden || []).map(cellKey).sort().join(';')}`;
+          let plans = planCache.get(cacheKey); if (!plans) { plans = planPolicies(local, budget); planCache.set(cacheKey, plans); }
+          expanded++;
+          for (const plan of plans) try {
+            // Copying the plan and tree is proportional to the retained cell data,
+            // not just to the number of explored leaves.
+            budget.spend(planCopyWork(plan) * 2 + treeCopyWork(tree.root) * 2);
+            const refined: ExplorationNode = { ...target.node, cells: copy(target.node.cells), plan: structuredClone(plan), children: childNodes(plan, target.node) };
+            const visited = new Set(tree.expandedLeaves); visited.add(target.node.id);
+            next.push({ root: replaceNode(tree.root, target.node.id, refined), serial: serial++, expandedLeaves: visited }); changed = true;
+          } catch (error) {
+            if (error instanceof WorkBudgetExceededError) throw error;
+            /* Non-progressing allocations remain terminal choices. */
+          }
+          tree.expandedLeaves.add(target.node.id);
+        }
       }
+      const dedup = new Map<string, SearchTree>();
+      for (const tree of next) { const key = `${signature(tree.root)}|${[...tree.expandedLeaves].sort().join(',')}`; if (!dedup.has(key)) dedup.set(key, tree); }
+      for (const tree of dedup.values()) evaluated(tree.root);
+      frontier = [...dedup.values()].sort((a, b) => evaluated(b.root).score - evaluated(a.root).score || a.serial - b.serial).slice(0, config.beamWidth);
+      if (!changed) break;
     }
-    const dedup = new Map<string, SearchTree>();
-    for (const tree of next) { const key = `${signature(tree.root)}|${[...tree.expandedLeaves].sort().join(',')}`; if (!dedup.has(key)) dedup.set(key, tree); }
-    frontier = [...dedup.values()].sort((a, b) => evaluated(b.root).score - evaluated(a.root).score || a.serial - b.serial).slice(0, config.beamWidth);
-    if (!changed) break;
+  } catch (error) {
+    if (!(error instanceof WorkBudgetExceededError)) throw error;
+    workExhausted = true;
   }
   for (const tree of frontier) for (const item of leaves(tree.root)) if (item.node.source !== 'reserved' && item.node.source !== 'forbidden') item.node.stopReason = item.depth >= config.maxDepth ? 'depth limit' : item.node.stopReason || 'retained terminal choice';
   const finalSeen = new Set<string>();
@@ -200,5 +237,5 @@ export function exploreDecomposition(input: RegionContextInput, options: Explora
   // JSON is the public artifact boundary and canonicalizes negative zero inherited
   // from arithmetic in allocation score components.
   return JSON.parse(JSON.stringify({ version: 'decomposition-exploration-1', objective: config.objective, alternatives,
-    search: { expanded, limit: config.maxExpansions, budgetExhausted: expanded >= config.maxExpansions, optimal: false } })) as DecompositionExploration;
+    search: { expanded, limit: config.maxExpansions, budgetExhausted: workExhausted || expanded >= config.maxExpansions, workExhausted, workUsed: budget.used, workLimit: budget.limit, optimal: false } })) as DecompositionExploration;
 }

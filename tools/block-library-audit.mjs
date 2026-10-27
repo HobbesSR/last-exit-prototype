@@ -3,7 +3,6 @@
 import { CHAIN_LIBRARIES } from '../map/chain.ts';
 import { CHAIN_TILE_SIZE, validateLibrary } from '../map/macro/src/chain/library.ts';
 import { orientDesign } from '../map/macro/src/chain/declared-grid.ts';
-import { REGION_SPAN_LIMIT } from '../map/micro/decomposition/analysis.ts';
 
 const reports = [];
 
@@ -46,8 +45,8 @@ for (const library of CHAIN_LIBRARIES) {
     const rectangle = coordinates.size === slots.length && coordinates.size === width * height;
     const allBlock = slots.every(slot => setById.get(slot.tileSetId)?.allBlock);
     const cellWidth = width * CHAIN_TILE_SIZE, cellHeight = height * CHAIN_TILE_SIZE;
-    if (!rectangle || !allBlock || Math.max(cellWidth, cellHeight) <= REGION_SPAN_LIMIT)
-      failures.push(`${piece.id}: block slots are not an exclusively block rectangle exceeding the span limit.`);
+    if (!rectangle || !allBlock)
+      failures.push(`${piece.id}: block slots are not an exclusively block rectangle.`);
     return [{ id: piece.id, slotCount: slots.length, tileSets: [...new Set(slots.map(slot => slot.tileSetId))],
       origin: { x: minX, y: minY }, tileWidth: width, tileHeight: height, cellWidth, cellHeight, rectangle, allBlock }];
   });
@@ -55,7 +54,7 @@ for (const library of CHAIN_LIBRARIES) {
     unusedBlockTileSets: blockSets.filter(set => !referenced.has(set.id)).map(set => set.id), setPieces: pieces, failures });
 }
 
-const result = { tileSize: CHAIN_TILE_SIZE, fallbackSpanLimit: REGION_SPAN_LIMIT,
+const result = { tileSize: CHAIN_TILE_SIZE,
   scope: 'Authored library inventory only; placement, clipping, and region merging are not independently verified.', libraries: reports };
 process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 if (reports.some(report => report.failures.length)) process.exitCode = 1;

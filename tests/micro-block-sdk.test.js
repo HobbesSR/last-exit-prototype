@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { planBlock } from '../map/micro/strategies/block.ts';
+import { WorkBudget } from '../map/micro/decomposition/work-budget.ts';
 import { validateBriefPartition } from '../map/micro/delegation.ts';
 import { validateDecompositionPlan } from '../map/micro/decomposition/validate.ts';
 import { buildRegion } from '../map/micro/region-types.ts';
@@ -78,7 +79,7 @@ test('fallback allocation is stable under input ordering and coordinate translat
   assert.deepEqual(translated.allocation.search, original.allocation.search);
 });
 
-test('thin regions and regions beyond SDK bounds retain safe ownership without an SDK claim', () => {
+test('thin regions retain safe ownership and no longer skip the fallback at 65 cells', () => {
   const thinCells = [];
   for (let y = 0; y < 5; y++) for (let x = 0; x < 64; x++) thinCells.push({ x, y });
   const thin = { id: 'thin-block', seed: 1, type: 'block', cellSize: 200, cells: thinCells,
@@ -86,7 +87,7 @@ test('thin regions and regions beyond SDK bounds retain safe ownership without a
     portals: [{ id: 'west', axis: 'v', x: 0, y: 1, length: 2 }] };
   const thinPlan = planBlock(thin);
   assert.equal(thinPlan.lots.length, 0);
-  assert.ok(thinPlan.allocation, 'maximum span and cell scale remain eligible');
+  assert.ok(thinPlan.allocation, 'cell scale remains eligible');
   assert.equal(thinPlan.allocation.pieces.length, 0);
   assert.equal(thinPlan.alleys.cells.length, thinCells.length);
   assert.equal(planBlock({ ...thin, cellSize: 201 }).allocation, undefined, 'cell scale above the SDK limit skips the fallback');
@@ -97,7 +98,38 @@ test('thin regions and regions beyond SDK bounds retain safe ownership without a
     zones: [{ tier: 2, bonus: 0, lootChance: 0, cells: wideCells }],
     portals: [{ id: 'west', axis: 'v', x: 0, y: 1, length: 2 }] };
   const widePlan = planBlock(wide);
-  assert.equal(widePlan.allocation, undefined, 'more than 64 cells on an axis skips SDK context creation');
+  assert.ok(widePlan.allocation, 'more than 64 cells on an axis is eligible');
   assert.equal(widePlan.lots.length, 0);
   assert.equal(widePlan.alleys.cells.length, wideCells.length);
+});
+
+test('exhausted fallback reports its budget and retains the whole open region', () => {
+  const input = regionExample({ type: 'block', shape: 'cross', width: 18, height: 48, seed: 1 });
+  const options = () => ({ fallbackBudget: new WorkBudget(100) });
+  const plan = planBlock(input, options());
+  assert.deepEqual(plan, planBlock(input, options()), 'exhaustion is deterministic');
+  assert.equal(plan.fallbackWork.budgetExhausted, true);
+  assert.ok(plan.fallbackWork.used > plan.fallbackWork.limit);
+  assert.equal(plan.lots.length, 0);
+  assert.deepEqual(new Set(plan.alleys.cells.map(key)), new Set(input.cells.map(key)));
+  assert.deepEqual(validateBriefPartition(input, [plan.alleys]), []);
+});
+
+test('a larger concave brief can use the fallback and keeps its access promises', () => {
+  const input = regionExample({ type: 'block', shape: 'cross', width: 18, height: 48, seed: 1 });
+  const extension = Array.from({ length: 18 }, (_, i) => ({ x: 8, y: 48 + i }));
+  input.cells.push(...extension);
+  input.zones[0].cells.push(...extension);
+  const plan = planBlock(input);
+  assert.equal(plan.lots.length, 1, 'the old 64-cell span guard skipped this fallback');
+  assert.equal(plan.fallbackWork.budgetExhausted, false);
+  assert.deepEqual(validateBriefPartition(input, [...plan.lots, plan.alleys]), []);
+  for (const child of [...plan.lots, plan.alleys]) {
+    const built = buildRegion(child), shapes = built.elements.flatMap(element => elementShapes(element));
+    assert.deepEqual(validatePortalReach({ ...child, blockers: shapes }).errors, []);
+    assert.deepEqual(validateFillConstraints(child, built.elements.flatMap(element => elementShapes(element, true))), []);
+  }
+  const result = buildRegion(input);
+  assert.ok(result.elements.length > 0);
+  assert.deepEqual(validatePortalReach({ ...input, blockers: result.elements.flatMap(element => elementShapes(element)) }).errors, []);
 });

@@ -1,5 +1,6 @@
 import type { Cell } from '../types.ts';
 import type { Run } from '../../kernel/run.ts';
+import type { WorkBudget } from './work-budget.ts';
 
 export interface CellRect { x: number; y: number; w: number; h: number; area: number }
 export interface BoundaryEdge { a: Cell; b: Cell; cell: Cell; kind: 'outer' | 'hole' }
@@ -41,8 +42,8 @@ export interface RegionContextInput {
 }
 export interface RegionContext {
   readonly input: Readonly<RegionContextInput>;
-  analyze(cells?: readonly Cell[]): RegionAnalysis;
-  child(id: string, cells: readonly Cell[]): RegionContext;
+  analyze(cells?: readonly Cell[], budget?: WorkBudget): RegionAnalysis;
+  child(id: string, cells: readonly Cell[], budget?: WorkBudget): RegionContext;
 }
 export interface CandidatePiece {
   id: string;
@@ -108,5 +109,5 @@ export interface DecompositionPlan {
   score: number;
   scoreComponents: Record<string, number>;
   diagnostics: Array<{ candidate: string; generator?: string; status: 'rejected' | 'selected' | 'not-selected'; reasons: string[]; scores?: Record<string, number> }>;
-  search: { considered: number; truncated: number; expanded: number; beamWidth: number; budgetExhausted: boolean; optimal: false };
+  search: { considered: number; truncated: number; expanded: number; beamWidth: number; budgetExhausted: boolean; workExhausted: boolean; workUsed: number; workLimit: number; optimal: false };
 }

@@ -1,6 +1,6 @@
 import { cellKey, compareCells } from '../kernel/cell.ts';
 import type { RegionBrief } from '../kernel/contract.ts';
-import { canonicalDelegationBrief, prepareCanonicalDelegation, prepareInitialPartition } from './delegation.ts';
+import { canonicalDelegationBrief, canonicalPreparedDelegationBrief, prepareCanonicalDelegation, prepareCanonicalInitialPartition } from './delegation.ts';
 import type { PatchOffer, PatchPreparationPolicy, PreparedDelegation } from './delegation.ts';
 import type { BuildingObserver, BuildingTrace } from './building/trace.ts';
 import type { BuiltRegion } from './types.ts';
@@ -176,10 +176,15 @@ function executionDispatcher(registry: ExecutionRegistry, maxDepth: number) {
 
 /** Initial decomposition invokes this once per initial brief; its depth starts at zero. */
 export function executeDelegation(input: RegionBrief, registry: ExecutionRegistry, options: ExecutionOptions = {}): DelegationExecutionNode {
+  return executeOwnedDelegation(input, registry, options, false);
+}
+
+/** Only the immediate partition dispatch path may reuse its checked cell ownership. */
+function executeOwnedDelegation(input: RegionBrief, registry: ExecutionRegistry, options: ExecutionOptions, checkedCells: boolean): DelegationExecutionNode {
   const maxDepth = options.maxDepth ?? 3;
   if (!Number.isSafeInteger(maxDepth) || maxDepth < 0) throw new Error('Maximum delegation depth must be a nonnegative integer.');
   const { dispatch, registryVersions } = executionDispatcher(registry, maxDepth);
-  const canonicalInput = canonicalDelegationBrief(input);
+  const canonicalInput = checkedCells ? canonicalPreparedDelegationBrief(input) : canonicalDelegationBrief(input);
   const result = dispatch([canonicalInput], 0)[0]!;
   result.registryVersions = registryVersions;
   result.maxDepth = maxDepth;
@@ -197,9 +202,9 @@ export function executeDelegation(input: RegionBrief, registry: ExecutionRegistr
 export function dispatchDelegationPartition(input: RegionBrief, partition: readonly RegionBrief[],
   registry: ExecutionRegistry, options: ExecutionOptions = {}): DelegationPartitionExecution {
   const canonicalInput = canonicalDelegationBrief(input);
-  const prepared = prepareInitialPartition(canonicalInput, partition);
+  const prepared = prepareCanonicalInitialPartition(canonicalInput, partition);
   const { observe, ...executionOptions } = options;
-  const children = prepared.map(brief => executeDelegation(brief, registry, executionOptions));
+  const children = prepared.map(brief => executeOwnedDelegation(brief, registry, executionOptions, true));
   if (observe) for (const child of children) visitEvents(child, observe, child.input.id);
   return { input: canonicalInput, children };
 }

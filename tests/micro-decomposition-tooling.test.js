@@ -13,7 +13,7 @@ test('bounded decomposition analysis accepts translated cells and refuses inexac
   assert.deepEqual(analysis.cells, cells);
   assert.equal(analysis.bounds.w, 2);
   assert.throws(() => analyzeRegion([{ x: Number.MAX_SAFE_INTEGER, y: 0 }]), /safe integers.*offsets/);
-  assert.throws(() => analyzeRegion([{ x: 10_000, y: 0 }, { x: 10_064, y: 0 }]), /at most 64/);
+  assert.equal(analyzeRegion([{ x: 10_000, y: 0 }, { x: 10_064, y: 0 }]).bounds.w, 65);
 });
 
 const cli = (...args) => spawnSync(process.execPath, ['tools/decompose-region.mjs', ...args], { encoding: 'utf8', maxBuffer: 8e6 });
