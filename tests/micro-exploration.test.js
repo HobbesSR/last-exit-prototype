@@ -39,7 +39,10 @@ test('bounded exploration is deterministic, serializable, and preserves every lo
 test('work exhaustion retains complete terminals and reports deterministic accounting', () => {
   const input = decompositionExample('neck');
   assert.throws(() => exploreDecomposition(input, { budget: new WorkBudget(1_000) }), WorkBudgetExceededError);
-  const run = () => exploreDecomposition(input, { budget: new WorkBudget(500_000) });
+  const full = exploreDecomposition(input);
+  assert.equal(full.search.workExhausted, false);
+  const limit = Math.floor(full.search.workUsed * 0.8);
+  const run = () => exploreDecomposition(input, { budget: new WorkBudget(limit) });
   const result = run();
   assert.deepEqual(result, run());
   assert.equal(result.search.budgetExhausted, true);

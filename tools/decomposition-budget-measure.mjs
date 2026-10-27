@@ -1,4 +1,4 @@
-﻿// #605: bounded, read-only baseline for actual bundled block briefs and #598 witnesses.
+// #605: bounded, read-only baseline for actual bundled block briefs and #598 witnesses.
 // Run: node tools/decomposition-budget-measure.mjs [--out=PATH]
 // Times are single in-process observations, not a benchmark or an exclusive dispatch cost.
 import { execFileSync } from 'node:child_process';
