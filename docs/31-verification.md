@@ -80,7 +80,10 @@ without dropping its original seed/parameter coverage.
 
 Micro-generation changes additionally run `npm run test:micro`: focused contracts
 and seeded builder tests plus isolated browser previews. Its unit files run one at a
-time so macro-size timing witnesses do not compete with other tests. The unit tests also run
+time so macro-size timing witnesses do not compete with other tests. Contention was
+not the sole cause of the timing misses: block's delegation dispatch added about
+1.4 s (54%) on the macro-block witness and 2.6% across eight whole maps in the
+review comparison ([42.3](42.3-generation-and-delegation-evidence.md#block-delegation-dispatch-cost-604--535-2026-10-26)). The unit tests also run
 in `npm test`. The lab browser check verifies region type content, control
 variation, result download and movement, and saves `test-results/micro-lab.png`.
 It also toggles each building view for `hut`, `compound` and `block`, checks the drawn
