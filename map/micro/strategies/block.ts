@@ -72,7 +72,7 @@ export function buildBlock(brief: RegionBrief, observe?: BuildingObserver): Buil
   const registry = Object.fromEntries(LOT_TYPES.map(({ type, build }) => [type,
     { version: 'block-child-1', build: (child: RegionBrief, _context: unknown, childObserve?: BuildingObserver) => build(child, childObserve) }]));
   registry.open = { version: 'block-child-1', build: (child: RegionBrief) => buildOpen(child) };
-  const result = flattenDelegationPartition(dispatchDelegationPartition(brief, [...plan.lots, plan.alleys], registry, { observe }));
+  const result = flattenDelegationPartition(dispatchDelegationPartition(brief, [...plan.lots, plan.alleys], registry, observe ? { observe } : {}));
   return { ...result, brief: structuredClone(brief) };
 }
 
