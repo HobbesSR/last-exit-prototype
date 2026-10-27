@@ -37,6 +37,7 @@ type Side = 'N' | 'E' | 'S' | 'W';
 export interface BlockPlanningOptions {
   /** Explicit comparison only; production callers keep the original planner. */
   planner?: 'sdk-experimental';
+  experimentalBudget?: WorkBudget;
   fallbackBudget?: WorkBudget;
 }
 /** A lot's frontages: the two sides at one of its corners. */
@@ -103,6 +104,7 @@ export function buildBlock(brief: RegionBrief, observe?: BuildingObserver, optio
  * lots. Each frontage faces owned alley cells, so children keep their own promises.
  */
 export function planBlock(brief: RegionBrief, options: BlockPlanningOptions = {}): BlockPlan {
+  const experimentalPlanner = options.planner === 'sdk-experimental';
   const mask = createRegionMask(brief), size = brief.cellSize;
   const x0 = Math.round(mask.bounds.x / size), y0 = Math.round(mask.bounds.y / size);
   const W = Math.round(mask.bounds.w / size), H = Math.round(mask.bounds.h / size);
@@ -147,7 +149,7 @@ export function planBlock(brief: RegionBrief, options: BlockPlanningOptions = {}
   };
 
   const parts: Box[] = [], pending: Box[] = [{ x: x0, y: y0, w: W, h: H }];
-  while (!options.planner && pending.length) {
+  while (!experimentalPlanner && pending.length) {
     const box = pending.pop()!, across = box.w >= box.h, length = across ? box.w : box.h;
     if (length <= MAX_LOT) { parts.push(box); continue; }
     // The first part's length, leaving at least a lot's length on each side of the alley.
@@ -187,7 +189,7 @@ export function planBlock(brief: RegionBrief, options: BlockPlanningOptions = {}
   };
   // Row order, so lots are chosen and numbered alike whatever order the split ran in.
   const lots: Box[] = [];
-  for (const part of options.planner ? [] : [...parts].sort((a, b) => a.y - b.y || a.x - b.x)) {
+  for (const part of experimentalPlanner ? [] : [...parts].sort((a, b) => a.y - b.y || a.x - b.x)) {
     const lot = candidatesFor(part).find(keepsAlleys);
     if (!lot) continue;
     lots.push(lot);
@@ -201,8 +203,8 @@ export function planBlock(brief: RegionBrief, options: BlockPlanningOptions = {}
   let allocation: DecompositionPlan | undefined;
   let fallbackWork: BlockPlan['fallbackWork'];
   let experimental: BlockPlan['experimental'];
-  if (options.planner) {
-    const budget = options.fallbackBudget ?? new WorkBudget();
+  if (experimentalPlanner) {
+    const budget = options.experimentalBudget ?? new WorkBudget();
     let attempted = 0, connectivityChecks = 0, rejected: string | undefined;
     let budgetExhausted = false;
     try {
@@ -237,8 +239,10 @@ export function planBlock(brief: RegionBrief, options: BlockPlanningOptions = {}
         piecePenalty: 0, seamRunPenalty: 0, portalWidth: 2,
       }, { strategy: 'block-spaced-bays-comparison-1', budget });
       budgetExhausted = allocation.search.workExhausted;
-      // Individual candidate checks are insufficient for a multi-piece plan.
-      // Recheck the union and all standing strips before producing child briefs.
+      // Defensive checks on the selected union before producing child briefs.
+      // No retained comparison case exercises rejection. In particular, the
+      // current three-cell inter-bay gap already protects two-deep frontages;
+      // keep the explicit check if candidate geometry changes in a future policy.
       budget.spend(mask.cells.length * 8 + allocation.pieces.reduce((n, p) => n + p.cells.length, 0));
       const claimed = new Set(allocation.pieces.flatMap(p => p.cells.map(cellKey)));
       if (unusedComponents(mask.cells, claimed).length !== 1) rejected = 'Experimental SDK selection disconnects circulation.';
@@ -262,7 +266,7 @@ export function planBlock(brief: RegionBrief, options: BlockPlanningOptions = {}
     }
     experimental = { used: budget.used, limit: budget.limit, budgetExhausted, attempted, connectivityChecks, ...(rejected ? { rejected } : {}) };
   }
-  if (!options.planner && !lots.length && size > 0 && size <= REGION_CELL_SIZE_LIMIT) {
+  if (!experimentalPlanner && !lots.length && size > 0 && size <= REGION_CELL_SIZE_LIMIT) {
     const budget = options.fallbackBudget ?? new WorkBudget();
     let attempted = 0, connectivityChecks = 0, budgetExhausted = false;
     try {

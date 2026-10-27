@@ -44,6 +44,10 @@ fixed. Smaller block ownership, portal, determinism and physical builder
 contracts remain in the fast tier. Run the slow scale file explicitly when
 changing that path; `test:micro` does not include it.
 
+Corey's exact tier guidance (2026-10-27):
+
+> macro block timings that bring in things like decomposition and microgenerations may no longer be viable for the fast track
+
 Changes under `map/macro/` run its own suite with `npm run test:mapgen` (typecheck
 plus unit tests, in that directory). Its `tests/slow/` holds the larger authored-size
 quota checks and runs in that same default macro suite; the seeds and assertions

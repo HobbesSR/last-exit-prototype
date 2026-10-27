@@ -51,7 +51,7 @@ test('experimental SDK selection partitions a block into competing spaced lots a
 test('experimental planning is deterministic and exposes exhausted work', () => {
   const input = witness();
   assert.deepEqual(planBlock({ ...input, cells: [...input.cells].reverse() }, options()), planBlock(input, options()));
-  const limited = () => ({ ...options(), fallbackBudget: new WorkBudget(100) });
+  const limited = () => ({ ...options(), experimentalBudget: new WorkBudget(100) });
   const exhausted = planBlock(input, limited());
   assert.deepEqual(exhausted, planBlock(input, limited()));
   assert.equal(exhausted.experimental.budgetExhausted, true);

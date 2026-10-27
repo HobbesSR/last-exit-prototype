@@ -1,7 +1,7 @@
 // Same-brief comparison of the default and opt-in block planners. No promotion gate.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { generate } from '../map/chain.ts';
 import { GAME_ENGINES } from '../map/engines.ts';
@@ -15,6 +15,7 @@ import { elementShapes, shapesOverlap } from '../map/micro/geometry.ts';
 import { rect } from '../shared/shape.ts';
 import { validateFillConstraints } from '../map/micro/margins.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
+import { captureSourceProvenance } from './lib/source-provenance.mjs';
 
 const args = process.argv.slice(2), valid = /^(--quick|--no-timing|--out=.+)$/;
 if (args.some(arg => !valid.test(arg)) || new Set(args.map(arg => arg.split('=')[0])).size !== args.length)
@@ -32,6 +33,10 @@ const variants = {
     build: brief => buildBlock(brief, undefined, { planner: 'sdk-experimental' }) },
 };
 const portalKey = p => JSON.stringify([p.id, p.axis, p.x, p.y, p.length]);
+const sourcePaths = git('ls-files', 'map/chain.ts', 'map/engines.ts', 'map/kernel', 'map/macro/src', 'map/macro/content', 'map/micro', 'shared/shape.ts', 'tools/block-planning-compare.mjs', 'tools/lib/source-provenance.mjs').split(/\r?\n/).filter(Boolean);
+// Pin committed source before the long capture; permit checkout EOL conversion,
+// but refuse to associate uncommitted content with a committed source identity.
+const { commit: head, ...sourceProvenance } = await captureSourceProvenance(sourcePaths);
 const cases = [], mapSamples = [];
 for (const [zoneWidth, zoneHeight] of [[12, 6], [24, 12], [36, 18]]) {
   const recipe = { seed: '4217', mode: 'game', zoneWidth, zoneHeight };
@@ -188,13 +193,9 @@ const pairedDensity = Object.fromEntries(['game', 'lab'].map(group => {
   }, { lotCells: 0, lots: 0, elements: 0, loot: 0, cells: 0, freeCells: 0 })]));
   return [group, { cases: paired.length, ids: paired.map(row => row.id), variants: variantsSummary }];
 }));
-const sourcePaths = git('ls-files', 'map/chain.ts', 'map/engines.ts', 'map/kernel', 'map/macro/src', 'map/macro/content', 'map/micro', 'shared/shape.ts', 'tools/block-planning-compare.mjs').split(/\r?\n/).filter(Boolean);
-// The script may be untracked while under development.
-if (!sourcePaths.includes('tools/block-planning-compare.mjs')) sourcePaths.push('tools/block-planning-compare.mjs');
-const sourceSha256 = Object.fromEntries(await Promise.all(sourcePaths.map(async path => [path, sha(await readFile(path))])));
-const report = { audit: 'block-planning-compare-1', createdAt: new Date().toISOString(), node: process.version,
-  head: git('rev-parse', 'HEAD'), trackedStatus: git('status', '--porcelain', '--untracked-files=no'),
-  sourceSha256, quick, mapSamples, summary, pairedDensity, determinism, timing, rows,
+const report = { audit: 'block-planning-compare-2', createdAt: new Date().toISOString(), node: process.version,
+  head, trackedStatus: git('status', '--porcelain', '--untracked-files=no'),
+  ...sourceProvenance, quick, mapSamples, summary, pairedDensity, determinism, timing, rows,
   limitations: 'Same current bundled libraries and same briefs, seed 4217 in three game sizes plus bounded region examples. Existing default defects are retained in each row. Child regions are built separately for their own fill and portal checks; parent checks inspect the final build. Density reports obstacle-cell occupancy only, excluding largest empty rectangles; the 24x18 rectangle lab case crosschecks occupancy against measureFill for both variants. Timing measures sequential planning only, including failures and diagnostic exhaustion, after warmup; it is not an exclusive benchmark. This sample is not exhaustive proof or a default-promotion decision.' };
 const output = `${JSON.stringify(report, null, 2)}\n`;
 if (out) { await mkdir(dirname(resolve(out)), { recursive: true }); await writeFile(out, output); console.log(JSON.stringify({ out: resolve(out), summary })); }
