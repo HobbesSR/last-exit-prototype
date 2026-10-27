@@ -8,6 +8,7 @@ import { elementShapes } from '../map/micro/geometry.ts';
 import { validatePortalReach } from '../map/micro/portals.ts';
 import { hasWideCirculation } from '../map/micro/strategies/block-circulation.ts';
 import { cellsOf } from './helpers/cells.js';
+import { unusedComponents } from '../map/micro/components.ts';
 
 test('neck lots preserve final alley-child hunter access independently of parent interiors', () => {
   const brief = regionExample({ type: 'block', shape: 'neck', width: 36, height: 30, seed: 1 });
@@ -30,5 +31,7 @@ test('clearance admission refuses corner pinches, clipped approaches and unsafe 
   const bottom = new Set(cells.filter(c => c.x === 4 && c.y >= 5).map(c => `${c.x},${c.y}`));
   assert.equal(hasWideCirculation(cells, top, []), true);
   assert.equal(hasWideCirculation(cells, bottom, []), true);
-  assert.equal(hasWideCirculation(cells, new Set([...top, ...bottom]), []), false);
+  const union = new Set([...top, ...bottom]);
+  assert.equal(unusedComponents(cells, union).length, 1, 'cell connectivity hides the diagonal hunter-width pinch');
+  assert.equal(hasWideCirculation(cells, union, []), false);
 });

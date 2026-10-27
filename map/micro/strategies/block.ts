@@ -1,5 +1,4 @@
 import { cellKey, compareCells } from '../../kernel/cell.ts';
-import { unusedComponents } from '../components.ts';
 import { allocateCandidates } from '../decomposition/allocation.ts';
 import { createRegionContext, REGION_CELL_SIZE_LIMIT } from '../decomposition/context.ts';
 import { WorkBudget, WorkBudgetExceededError } from '../decomposition/work-budget.ts';
@@ -18,7 +17,7 @@ import { dispatchDelegationPartition, flattenDelegationPartition } from '../dele
 import { inheritBriefMargins } from '../margins.ts';
 import { clipHints, portalMargin } from '../hints.ts';
 import { portalStands } from '../portals.ts';
-import { hasWideCirculation } from './block-circulation.ts';
+import { createCirculationCheck } from './block-circulation.ts';
 import type { BuiltRegion, Cell, Portal, RegionBrief } from '../types.ts';
 
 /**
@@ -183,6 +182,7 @@ export function planBlock(brief: RegionBrief, options: BlockPlanningOptions = {}
   // circulation beyond it. The alleys are one `open` child and must keep their own
   // promise, so each part takes its best candidate that leaves them one area, or none.
   const chosen = new Set<string>();
+  const checkCirculation = createCirculationCheck(mask.cells);
   // IDs may differ on overlapping parent runs, so their scan cost is not bounded by N.
   const circulationWork = mask.cells.length * 64 + brief.portals.reduce((n, p) => n + p.length, 0);
   const circulationPortals = (boxes: readonly Box[]): Portal[] => [...brief.portals, ...boxes.flatMap(box => {
@@ -193,8 +193,7 @@ export function planBlock(brief: RegionBrief, options: BlockPlanningOptions = {}
   const keepsAlleys = (lot: Box) => {
     const kept = new Set(chosen);
     for (let y = lot.y; y < lot.y + lot.h; y++) for (let x = lot.x; x < lot.x + lot.w; x++) kept.add(cellKey({ x, y }));
-    return unusedComponents(mask.cells, kept).length === 1
-      && hasWideCirculation(mask.cells, kept, circulationPortals([...lots, lot]));
+    return checkCirculation(kept, circulationPortals([...lots, lot]));
   };
   // Row order, so lots are chosen and numbered alike whatever order the split ran in.
   const lots: Box[] = [];
@@ -255,8 +254,7 @@ export function planBlock(brief: RegionBrief, options: BlockPlanningOptions = {}
       budget.spend(circulationWork + allocation.pieces.reduce((n, p) => n + p.cells.length, 0));
       const claimed = new Set(allocation.pieces.flatMap(p => p.cells.map(cellKey)));
       const selected = allocation.pieces.map(p => boxes.get(p.id)!);
-      if (unusedComponents(mask.cells, claimed).length !== 1
-        || !hasWideCirculation(mask.cells, claimed, circulationPortals(selected))) rejected = 'Experimental SDK selection disconnects hunter-width circulation.';
+      if (!checkCirculation(claimed, circulationPortals(selected))) rejected = 'Experimental SDK selection disconnects hunter-width circulation.';
       for (const box of selected) {
         budget.spend(box.w * 32);
         if (!corners(box).every(corner => corner.every(side => {
