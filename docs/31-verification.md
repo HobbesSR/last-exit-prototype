@@ -111,6 +111,18 @@ collision geometry with `validatePortalReach`, rather than from recorded routes.
 The negotiation, realization and explicit-port access and boundary tests retired
 with what they tested (#483).
 
+`tests/micro-builder-contract.test.js` (#540) holds every registered region type to the
+promises of a builder (20.9) over chain-like briefs (`tests/helpers/chain-briefs.js`),
+which carry what a bare rectangle with portals lacks: cleared strips inside the owned
+cells, concave and holed masks, many portals, hints and a playable area larger than the
+owned cells (20.6). A builder loop runs only its own type, in seconds:
+`node --test --test-name-pattern=plant tests/micro-builder-contract.test.js`.
+`BUILDER_SEEDS=<n>` runs seeds 1 to n on each fixture instead of two, for a builder change
+that moves a type's output; `BUILDER_SEEDS=20` took 67 to 70 s across all seventeen types.
+The default matrix, six fixtures of 224 to 660 cells at two seeds, plus #490's 120 plant
+builds, took about 9 s on the shared dev machine (14 s once, while it was busy), against the
+fast tier's 15 s; its comment records the sizing.
+
 `npm run check` parses every JavaScript module as Node would load it and confirms
 every TypeScript module erases cleanly, which is what Node does instead of parsing
 it. It walks `server/`, `shared/`, `map/micro/`, `map/kernel/`, `map/tools/`,
@@ -143,7 +155,9 @@ when this was added: `room-service`, `room-directory` (since fixed), `server`, `
 and the slow `map-library`; they are the first candidates, not a precedent.
 
 Shared test helpers live in `tests/helpers/`. Use them rather than copying them:
-`cells.js` (`cellsOf`, a rectangle's cells row by row), `listen.js`, `browser.js`
+`cells.js` (`cellsOf`, a rectangle's cells row by row), `chain-briefs.js` (`chainBrief`,
+a brief with the margins the chain applies, `chainFixtures`, the masks the builder
+contract runs, `reorderedBrief`), `listen.js`, `browser.js`
 (`serveWithBrowser`, a server and headless Chrome for the browser scripts), `args.js`
 (the bench and demo `--key=value` map), `room-harness.js` and `machine-lock.js`. The
 maintained command-line tools share `tools/options.mjs`; the one-off audit scripts
