@@ -35,6 +35,19 @@ seeds or plays whole matches. The fast tier keeps a cheap witness of the same
 contract where one exists: the fixture's map hashes and scripted trace stay in
 `characterization.test.js`.
 
+Large end-to-end builder timing witnesses also belong in the slow tier when
+they include decomposition and full child micro-generation. The 200 x 150
+macro-block witness is `tests/slow/micro-block-scale.test.js` (#610), following
+Corey's 2026-10-27 tier guidance. Its inputs and 5-second timing assertion are
+unchanged; moving tiers does not establish that the concurrent timing miss is
+fixed. Smaller block ownership, portal, determinism and physical builder
+contracts remain in the fast tier. Run the slow scale file explicitly when
+changing that path; `test:micro` does not include it.
+
+Corey's exact tier guidance (2026-10-27):
+
+> macro block timings that bring in things like decomposition and microgenerations may no longer be viable for the fast track
+
 Changes under `map/macro/` run its own suite with `npm run test:mapgen` (typecheck
 plus unit tests, in that directory). Its `tests/slow/` holds the larger authored-size
 quota checks and runs in that same default macro suite; the seeds and assertions

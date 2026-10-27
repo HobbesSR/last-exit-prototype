@@ -1,0 +1,17 @@
+{
+  "baselineCommit": "09700db",
+  "currentCommit": "409d1f2",
+  "node": "v24.15.0",
+  "method": "tools/block-sdk-timing.mjs copied unchanged to test-results/issue-610-timing.mjs except its pinned block source ref changed from 872932e to 09700db; three sequential cold before/after pairs, sharing current child builders and helpers. No other CPU-heavy work launched by this session during these observations.",
+  "pairsMs": [
+    { "before": 4196.9519, "after": 4082.2736 },
+    { "before": 3971.6841, "after": 4105.1149 },
+    { "before": 4104.7153, "after": 4188.4039 }
+  ],
+  "elementsEachRun": 1024,
+  "isolatedTestCommand": "node --test --test-name-pattern=\"a macro-sized block with hundreds of portals builds quickly\" tests/micro-block.test.js",
+  "isolatedTestMs": [4202.6415, 4177.3144, 4118.6245],
+  "isolatedTestPasses": 3,
+  "firstConcurrentFastRun": { "tests": 1132, "pass": 1131, "fail": 1, "macroBlockReportedMs": 7707.3478, "assertedElapsedRoundedMs": 7701, "budgetMs": 5000 },
+  "limitations": "Cold same-machine observations, not an exclusive benchmark or proof the existing concurrent-suite timing miss is fixed. Baseline pins only block.ts; helpers and child builders are shared. Full fast suite outcome is documented separately in 42.3."
+}
