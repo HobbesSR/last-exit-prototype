@@ -191,6 +191,10 @@ holder (#437).
 Options include `--seconds=<N>`, `--headed`, `--location=dense|crowded|offscreen`
 to arrange entity crowds, and `--spectator` (`node tests/bench-client.mjs --spectator`)
 to benchmark rendering the unfogged, whole-arena spectator overview at full zoom-out.
+`--viewport=WxH` and `--dpr=N` match a reported device's window, `--software-gl` draws
+WebGL on SwiftShader, and `--diagnostics=FILE` saves the player-facing download.
+`tests/bench-session.mjs` samples one long match every interval instead, optionally
+roaming, at a native device scale, or against another checkout (`--root`); see 42.2 (#549).
 
 ## Continuous integration
 
