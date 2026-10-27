@@ -1,0 +1,50 @@
+{
+  "beforeContentCommit": "17469cb",
+  "afterContentCommit": "b985c890d3628068e7fd49d2394218bd9b7811f6",
+  "node": "v24.15.0",
+  "input": "Exact tests/slow/micro-block-scale.test.js input: 200x150 cells, seed3, portals from its unchanged loops; buildRegion with old/current block registry. Sequential before/after pairs in one process, no competing test job started by this lead.",
+  "rows": [
+    {
+      "iteration": 1,
+      "name": "before",
+      "ms": 7294.3017,
+      "elements": 1024,
+      "structures": 174
+    },
+    {
+      "iteration": 1,
+      "name": "after",
+      "ms": 8936.943299999999,
+      "elements": 1024,
+      "structures": 174
+    },
+    {
+      "iteration": 2,
+      "name": "before",
+      "ms": 7487.6372999999985,
+      "elements": 1024,
+      "structures": 174
+    },
+    {
+      "iteration": 2,
+      "name": "after",
+      "ms": 8910.859000000004,
+      "elements": 1024,
+      "structures": 174
+    },
+    {
+      "iteration": 3,
+      "name": "before",
+      "ms": 7299.611400000002,
+      "elements": 1024,
+      "structures": 174
+    },
+    {
+      "iteration": 3,
+      "name": "after",
+      "ms": 8905.990100000003,
+      "elements": 1024,
+      "structures": 174
+    }
+  ]
+}
